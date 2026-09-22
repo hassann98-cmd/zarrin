@@ -1,0 +1,185 @@
+/*
+Theme Name: زرین
+Build: JLUXE 1.49.1 — CHECKOUT SELECT2 WHEEL FIX
+Author: زرین
+Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React (TypeScript, Tailwind, shadcn/ui).
+Version: 1.55.0
+Requires at least: 6.0
+Requires PHP: 8.0
+Text Domain: jluxe
+*/
+
+/* JLUXE — WooCommerce info notices (wallet/cashback and checkout messages) */
+.woocommerce-info {
+  display: block !important;
+  width: auto !important;
+  margin: 0 0 1rem !important;
+  padding: 0.75rem 1rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-inline-start: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.75rem;
+  background: hsl(var(--muted) / 0.72) !important;
+  color: hsl(var(--text-secondary)) !important;
+  font-size: 0.875rem;
+  line-height: 1.75;
+  text-align: start;
+}
+.woocommerce-info::before,
+.woocommerce-info::after {
+  display: none !important;
+  content: none !important;
+}
+.woocommerce-info .woocommerce-Price-amount,
+.woocommerce-info .woocommerce-Price-currencySymbol {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: hsl(var(--foreground)) !important;
+  font-weight: 700;
+  direction: rtl;
+}
+.woocommerce-info .woocommerce-Price-amount {
+  color: hsl(var(--primary)) !important;
+  direction: rtl;
+  unicode-bidi: isolate;
+  flex-direction: row;
+}
+.woocommerce-info .woocommerce-Price-currencySymbol {
+  display: none !important;
+}
+.woocommerce-info .woocommerce-Price-amount::after {
+  content: " تومان";
+  color: hsl(var(--text-secondary));
+  font-size: 0.8em;
+  font-weight: 500;
+}
+.woocommerce-info .woocommerce-Price-currencySymbol svg {
+  width: 0.85em;
+  height: 0.7em;
+  flex: 0 0 auto;
+  fill: currentColor !important;
+  stroke: none;
+}
+.select2-container--default .select2-results > .select2-results__options {
+  max-height: min(18rem, 45vh) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 640px) {
+  .woocommerce-info {
+    width: 100% !important;
+    margin-block: 0 0.75rem !important;
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+  }
+}
+
+
+/* JLUXE — Mobile product purchase bar polish */
+@media (max-width: 767px) {
+  [data-jluxe-mobile-price-bar] {
+    padding: 0 10px;
+    pointer-events: none;
+  }
+  [data-jluxe-mobile-price-bar] > div {
+    margin: 0 !important;
+    margin-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+  [data-jluxe-mobile-price-bar] .jluxe-mobile-price-card {
+    pointer-events: auto;
+    min-height: 62px;
+    border: 1px solid rgba(16,24,40,.08);
+    border-radius: 20px;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 12px 34px -14px rgba(16,24,40,.34);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    flex-wrap: wrap;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del {
+    order: 2;
+    text-decoration: none !important;
+    color: #98a2b3 !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    opacity: .9;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del .woocommerce-Price-amount,
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del bdi {
+    text-decoration: none !important;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins {
+    order: 1;
+    text-decoration: none !important;
+    color: var(--primary, #087a68) !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .woocommerce-Price-amount:not(:has(~ ins)),
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .amount {
+    color: var(--primary, #087a68);
+    font-size: 17px;
+    font-weight: 900;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] .woocommerce-Price-currencySymbol {
+    font-size: 10px;
+    font-weight: 700;
+    margin-inline-start: 2px;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] {
+    min-width: 132px;
+    height: 46px;
+    border-radius: 15px;
+    box-shadow: 0 9px 22px -10px var(--primary, #087a68);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add]:active {
+    transform: translateY(1px) scale(.98);
+  }
+  [data-jluxe-mobile-bar-toggle] {
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    border-radius: 15px !important;
+    opacity: .9;
+  }
+  .jluxe-mobile-nav {
+    border-top: 1px solid rgba(16,24,40,.06) !important;
+  }
+  .jluxe-mobile-nav-item {
+    min-height: 60px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .jluxe-mobile-nav-item:active {
+    transform: scale(.96);
+  }
+}
+
+
+/* Homepage banners: consistent zoom + restrained light-sweep effect. */
+.jluxe-home-banner{isolation:isolate}
+.jluxe-banner-shine::after{content:"";position:absolute;top:-25%;bottom:-25%;left:-40%;width:24%;pointer-events:none;z-index:3;transform:skewX(-18deg) translateX(-180%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06) 25%,rgba(255,255,255,.46) 50%,rgba(255,255,255,.06) 75%,transparent);filter:blur(1px);opacity:0}
+.jluxe-banner-shine:hover::after,.jluxe-banner-shine:focus-visible::after{opacity:1;animation:jluxeBannerShine 1.15s cubic-bezier(.22,.61,.36,1) both}
+@keyframes jluxeBannerShine{from{transform:skewX(-18deg) translateX(-180%)}to{transform:skewX(-18deg) translateX(520%)}}
+@media (prefers-reduced-motion:reduce){.jluxe-banner-shine:hover::after,.jluxe-banner-shine:focus-visible::after{animation:none;opacity:0}.jluxe-home-banner .jluxe-home-media{transition:none!important}}
+
+/* Product cards: gentle image zoom (within its own fixed frame — no layout shift) + soft lift/shadow on hover. transform + box-shadow only, so this is compositor-only work, essentially free performance-wise. */
+.woocommerce ul.products li.product:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(16,24,40,.22)}
+.woocommerce ul.products li.product [data-jluxe-card-main-img]{transition:transform .5s cubic-bezier(.22,.61,.36,1)}
+.woocommerce ul.products li.product:hover [data-jluxe-card-main-img]{transform:scale(1.07)}
+@media (prefers-reduced-motion:reduce){
+	.woocommerce ul.products li.product,
+	.woocommerce ul.products li.product [data-jluxe-card-main-img]{transition:none!important}
+	.woocommerce ul.products li.product:hover{transform:none;box-shadow:none}
+	.woocommerce ul.products li.product:hover [data-jluxe-card-main-img]{transform:none}
+}
+
+/* text-boom-sale (Tailwind) هیچ‌وقت واقعاً کامپایل نشده بود — jluxe_render_product_stock_line() توی inc/woocommerce.php ازش استفاده می‌کرد ولی بی‌اثر بود (متنِ «فقط N عدد باقی مانده» رنگِ هشدار نمی‌گرفت). این کلاسِ سراسری با همون متغیرِ رنگِ خودِ تم، تضمین‌شده کار می‌کنه. */
+.jluxe-text-danger{color:var(--boom-sale)}
