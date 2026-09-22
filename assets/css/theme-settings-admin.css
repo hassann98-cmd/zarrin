@@ -1,0 +1,610 @@
+/*
+ * فقط در صفحات تنظیمات JLuxe لود می‌شه — فونت پروژه رو ارث می‌بره، فونت جدید
+ * تعریف نمی‌کنه. طبق درخواستِ صریحِ کاربر بازطراحی شد: لیستِ طویلِ زیرمنوها
+ * از سایدبارِ پیشخوان حذف و به یک نوارِ تبِ افقی تبدیل شده (بالای هر صفحه)،
+ * پالتِ رنگیِ جدید (سبزِ اصلی/سبزِ تیره/قرمز)، و ظاهرِ نرم/گردِ الهام‌گرفته از
+ * استانداردهای طراحیِ اپل/macOS (سایه‌های ملایم، گوشه‌های گرد، فاصله‌گذاریِ
+ * سخاوتمندانه) — بدون دست‌زدن به منطقِ ذخیره‌سازی/nonce/routeing هیچ بخشی.
+ */
+
+@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileRegular-DznhMjrm.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileMedium-BvCVdR3v.ttf") format("truetype"); font-weight: 500 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileExtraBold-CkTerGWQ.ttf") format("truetype"); font-weight: 700 900; font-style: normal; font-display: swap; }
+
+.jluxe-settings {
+	--jluxe-admin-primary: #087A68;
+	--jluxe-admin-primary-dark: #075E54;
+	--jluxe-admin-accent: #B58A3A;
+	--jluxe-admin-ink: #1d2327;
+	--jluxe-admin-muted: #6b7280;
+	--jluxe-admin-border: #e5e7eb;
+	--jluxe-admin-surface: #ffffff;
+	--jluxe-admin-bg: #f6f7f8;
+	--jluxe-admin-radius: 16px;
+	--jluxe-admin-radius-sm: 10px;
+	--jluxe-admin-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.12);
+	--jluxe-admin-font: "IRANYekan", -apple-system, BlinkMacSystemFont, Tahoma, sans-serif;
+	font-family: var(--jluxe-admin-font) !important;
+}
+
+/*
+ * پیشخوانِ وردپرس روی h1/دکمه‌ها/فیلدهای فرم قانون‌های فونتِ اختصاصیِ خودشو
+ * داره که با specificity بالاتر از یک کلاسِ ساده رو کلاسِ والد برنده می‌شه؛
+ * برای همین هر عنصرِ اصلی جدا هدف‌گیری می‌شه (نه فقط ارثِ خودکار از .jluxe-settings).
+ */
+.jluxe-settings,
+.jluxe-settings h1,
+.jluxe-settings h2,
+.jluxe-settings h3,
+.jluxe-settings p,
+.jluxe-settings label,
+.jluxe-settings input,
+.jluxe-settings select,
+.jluxe-settings textarea,
+.jluxe-settings button,
+.jluxe-settings .button,
+.jluxe-settings th,
+.jluxe-settings td {
+	font-family: var(--jluxe-admin-font) !important;
+}
+
+.jluxe-settings h1 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-weight: 700;
+	color: var(--jluxe-admin-ink);
+}
+
+.jluxe-settings h1 .dashicons {
+	color: var(--jluxe-admin-primary);
+}
+
+.jluxe-settings h3 {
+	color: var(--jluxe-admin-ink);
+	font-weight: 700;
+}
+
+.jluxe-settings .jluxe-media-preview {
+	min-height: 40px;
+	display: flex;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.jluxe-settings .jluxe-reset-all,
+.jluxe-settings .jluxe-reset-section {
+	margin-right: 8px;
+	color: var(--jluxe-admin-accent);
+}
+
+/* دکمه‌های اصلی/ذخیره — رنگ‌های جدید */
+.jluxe-settings .button-primary {
+	background: var(--jluxe-admin-primary);
+	border-color: var(--jluxe-admin-primary);
+	border-radius: 10px;
+	box-shadow: none;
+	text-shadow: none;
+	font-weight: 600;
+	transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.jluxe-settings .button-primary:hover,
+.jluxe-settings .button-primary:focus {
+	background: var(--jluxe-admin-primary-dark);
+	border-color: var(--jluxe-admin-primary-dark);
+}
+.jluxe-settings .button-primary:active {
+	transform: scale(0.98);
+}
+.jluxe-settings .button:not(.button-primary) {
+	border-radius: 10px;
+}
+
+/* ===================================================================
+ * چیدمانِ کلی: نوارِ تبِ افقی بالا، محتوا زیرش تمامِ‌عرض — قبلاً ردیف
+ * (سایدبار کنار محتوا) بود.
+ * =================================================================== */
+.jluxe-settings-layout {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+	margin-top: 16px;
+	max-width: 1180px;
+}
+
+/* نوارِ تب — افقی، با اسکرولِ لمسیِ نرم روی صفحه‌های باریک به‌جای شکستنِ
+   بدقواره به چند ردیف؛ الهام از تب‌بارهای سگمنتِ اپل/macOS. */
+.jluxe-settings-nav {
+	display:flex; align-items:stretch; gap:6px; flex-wrap:wrap;
+	background:var(--jluxe-admin-surface); border:1px solid var(--jluxe-admin-border);
+	border-radius:var(--jluxe-admin-radius); padding:8px; box-shadow:var(--jluxe-admin-shadow);
+	position:sticky; top:32px; z-index:20;
+}
+.jluxe-settings-nav-group { position:relative; flex:0 0 auto; }
+.jluxe-settings-nav-group-toggle { display:inline-flex; align-items:center; gap:5px; min-height:38px; padding:7px 11px; border:1px solid transparent; border-radius:10px; background:transparent; color:var(--jluxe-admin-muted); font:600 13px/1.4 var(--jluxe-admin-font); cursor:pointer; }
+.jluxe-settings-nav-group-toggle .dashicons { font-size:15px; width:15px; height:15px; transition:transform .15s ease; }
+.jluxe-settings-nav-group:hover .jluxe-settings-nav-group-toggle, .jluxe-settings-nav-group.is-active .jluxe-settings-nav-group-toggle { background:var(--jluxe-admin-bg); color:var(--jluxe-admin-ink); border-color:var(--jluxe-admin-border); }
+.jluxe-settings-nav-group.is-active .jluxe-settings-nav-group-toggle { color:var(--jluxe-admin-primary-dark); }
+.jluxe-settings-nav-group:hover .jluxe-settings-nav-group-toggle .dashicons, .jluxe-settings-nav-group.is-active .jluxe-settings-nav-group-toggle .dashicons { transform:rotate(180deg); }
+.jluxe-settings-nav-group-items { display:none; position:absolute; top:calc(100% + 5px); inset-inline-start:0; min-width:210px; padding:6px; background:#fff; border:1px solid var(--jluxe-admin-border); border-radius:12px; box-shadow:0 12px 30px rgba(16,24,40,.12); z-index:50; }
+.jluxe-settings-nav-group:hover .jluxe-settings-nav-group-items, .jluxe-settings-nav-group:focus-within .jluxe-settings-nav-group-items { display:grid; gap:2px; }
+.jluxe-settings-nav-group.is-open .jluxe-settings-nav-group-items { display:grid; gap:2px; }
+.jluxe-settings-nav-item { display:flex; align-items:center; gap:8px; min-height:36px; padding:7px 9px; border-radius:8px; text-decoration:none; color:var(--jluxe-admin-muted); font-size:13px; font-weight:500; white-space:nowrap; transition:background-color .12s ease,color .12s ease; }
+.jluxe-settings-nav-item .dashicons { font-size:16px; width:16px; height:16px; flex:0 0 16px; }
+.jluxe-settings-nav-item:hover { background:var(--jluxe-admin-bg); color:var(--jluxe-admin-ink); }
+.jluxe-settings-nav-item-active { background:var(--jluxe-admin-primary); color:#fff !important; font-weight:700; }
+.jluxe-settings-nav-item-active:hover { background:var(--jluxe-admin-primary-dark); }
+.jluxe-settings-nav-utility { margin-inline-start:auto; display:flex; align-items:center; gap:2px; padding-inline-start:7px; border-inline-start:1px solid var(--jluxe-admin-border); }
+.jluxe-settings-nav-utility-label { padding:0 6px; font-size:11px; font-weight:700; color:#9ca3af; }
+.jluxe-settings-nav-utility .jluxe-settings-nav-item { min-height:34px; padding:6px 8px; font-size:12px; }
+
+.jluxe-settings-content {
+	flex: 1;
+	min-width: 0;
+	background: var(--jluxe-admin-surface);
+	border: 1px solid var(--jluxe-admin-border);
+	border-radius: var(--jluxe-admin-radius);
+	padding: 24px;
+	box-shadow: var(--jluxe-admin-shadow);
+}
+
+/* گروه‌بندیِ بصریِ form-table — هر ردیف کمی گردتر/نرم‌تر، جداکننده‌های
+   ظریف به‌جای خطوطِ سنگینِ پیش‌فرضِ وردپرس. */
+.jluxe-settings-content .form-table {
+	margin-top: 4px;
+}
+.jluxe-settings-content .form-table > tbody > tr {
+	border-bottom: 1px solid var(--jluxe-admin-border);
+}
+.jluxe-settings-content .form-table > tbody > tr:last-child {
+	border-bottom: none;
+}
+.jluxe-settings-content .form-table th {
+	color: var(--jluxe-admin-ink);
+	font-weight: 600;
+}
+.jluxe-settings-content input[type="text"],
+.jluxe-settings-content input[type="number"],
+.jluxe-settings-content input[type="url"],
+.jluxe-settings-content input[type="email"],
+.jluxe-settings-content input[type="password"],
+.jluxe-settings-content input[type="search"],
+.jluxe-settings-content select,
+.jluxe-settings-content textarea {
+	border-radius: var(--jluxe-admin-radius-sm);
+	border-color: var(--jluxe-admin-border);
+}
+.jluxe-settings-content input[type="text"]:focus,
+.jluxe-settings-content input[type="number"]:focus,
+.jluxe-settings-content input[type="url"]:focus,
+.jluxe-settings-content input[type="email"]:focus,
+.jluxe-settings-content input[type="password"]:focus,
+.jluxe-settings-content input[type="search"]:focus,
+.jluxe-settings-content select:focus,
+.jluxe-settings-content textarea:focus {
+	border-color: var(--jluxe-admin-primary);
+	box-shadow: 0 0 0 1px var(--jluxe-admin-primary);
+}
+.jluxe-settings-content input[type="checkbox"]:checked,
+.jluxe-settings-content input[type="radio"]:checked {
+	background: var(--jluxe-admin-primary);
+	border-color: var(--jluxe-admin-primary);
+}
+
+/* واکنش‌گرا — روی صفحه‌های باریک محتوا و پدینگ جمع‌وجورتر می‌شه، ولی
+   ساختار (تب بالا/محتوا پایین) دست‌نخورده می‌مونه. */
+@media (max-width: 782px) {
+	.jluxe-settings-content {
+		padding: 16px;
+		border-radius: var(--jluxe-admin-radius-sm);
+	}
+	.jluxe-settings-nav {
+		top: 46px;
+		border-radius: var(--jluxe-admin-radius-sm);
+	}
+	.jluxe-settings-nav-group-items { position: fixed; left: 12px; right: 12px; top: 100px; min-width: 0; }
+	.jluxe-settings-nav-utility { width:100%; margin-inline-start:0; border-inline-start:0; border-top:1px solid var(--jluxe-admin-border); padding-top:5px; flex-wrap:wrap; }
+	.jluxe-settings-nav-item { font-size:12px; padding:6px 9px; }
+}
+
+/* داشبورد */
+.jluxe-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 12px;
+	margin: 16px 0 24px;
+}
+
+.jluxe-status-card {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 14px;
+	border-radius: var(--jluxe-admin-radius-sm);
+	border: 1px solid var(--jluxe-admin-border);
+	transition: box-shadow 0.15s ease;
+}
+.jluxe-status-card:hover {
+	box-shadow: var(--jluxe-admin-shadow);
+}
+
+.jluxe-status-card.is-ok {
+	border-color: var(--jluxe-admin-primary);
+	background: #ecfdf5;
+}
+
+.jluxe-status-card.is-warn {
+	border-color: #dba617;
+	background: #fef8ee;
+}
+
+.jluxe-status-card .dashicons {
+	margin-top: 2px;
+}
+
+.jluxe-status-card.is-ok .dashicons {
+	color: var(--jluxe-admin-primary);
+}
+
+.jluxe-status-card.is-warn .dashicons {
+	color: #dba617;
+}
+
+.jluxe-status-card p {
+	margin: 2px 0 0;
+	color: var(--jluxe-admin-muted);
+}
+
+/* هومپیج بیلدر */
+.jluxe-hb-section {
+	border: 1px solid var(--jluxe-admin-border);
+	border-radius: var(--jluxe-admin-radius-sm);
+	margin-bottom: 10px;
+	background: var(--jluxe-admin-surface);
+	overflow: hidden;
+}
+
+.jluxe-hb-section-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	background: var(--jluxe-admin-bg);
+	border-bottom: 1px solid var(--jluxe-admin-border);
+	cursor: pointer;
+	list-style: none;
+}
+.jluxe-hb-section-head::-webkit-details-marker {
+	display: none;
+}
+.jluxe-hb-section-details:not([open]) > .jluxe-hb-section-head {
+	border-bottom: none;
+}
+.jluxe-hb-chevron {
+	margin-inline-start: 2px;
+	color: var(--jluxe-admin-muted);
+	transition: transform 0.15s ease;
+}
+.jluxe-hb-section-details[open] > .jluxe-hb-section-head .jluxe-hb-chevron {
+	transform: rotate(180deg);
+}
+
+.jluxe-hb-handle {
+	cursor: grab;
+	color: var(--jluxe-admin-muted);
+}
+
+.jluxe-hb-enabled {
+	margin-right: auto;
+	font-size: 12px;
+}
+
+.jluxe-hb-duplicate,
+.jluxe-hb-remove {
+	text-decoration: none;
+	font-size: 15px;
+	padding: 0 4px;
+}
+
+.jluxe-hb-remove {
+	color: var(--jluxe-admin-accent);
+}
+
+.jluxe-hb-section-body {
+	padding: 14px;
+}
+
+.jluxe-hb-section-body p {
+	margin: 8px 0;
+}
+
+.jluxe-hb-banner-item {
+	border: 1px dashed var(--jluxe-admin-border);
+	border-radius: var(--jluxe-admin-radius-sm);
+	padding: 12px;
+	margin-bottom: 10px;
+}
+
+.jluxe-hb-section.ui-sortable-helper {
+	box-shadow: var(--jluxe-admin-shadow);
+}
+
+/* Repeater عمومی (اسلاید هیرو، آیتم دسته‌بندی و...) */
+.jluxe-repeater-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 10px 0;
+}
+
+.jluxe-color-presets {
+	display: inline-flex;
+	gap: 6px;
+	margin: 6px 0 0;
+	vertical-align: middle;
+}
+
+.jluxe-color-preset-swatch {
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	cursor: pointer;
+	padding: 0;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.jluxe-color-preset-swatch:hover {
+	transform: scale(1.12);
+}
+
+/*
+ * باگِ گزارش‌شده («دکمه افزودن آیتم جدید رفته تو کادر، نمی‌ذاره متن/لینک
+ * پیست بشه»): این تکستریاِ ذخیره‌ی خامِ JSON فقط با اتریبیوتِ hidden مخفی
+ * می‌شد و هیچ CSS ای پشتش نبود. توی محیطِ واقعیِ ادمین وردپرس (که کلی
+ * قانونِ عمومی برای textarea داره)، این المنت نهایتاً display:block
+ * محاسبه می‌شه و یه کادرِ خالیِ قابل‌کلیک درست زیرِ کارتِ نمادها/دکمه
+ * «افزودن آیتم جدید» ظاهر می‌شه — همون کادری که کاربر اشتباهی داشت
+ * کدِ اینماد رو توش پیست می‌کرد (که به‌جایی نمی‌رسید، چون این فیلد فقط
+ * آینه‌ی JSONه، نه فیلدِ واقعی). با !important مطمئن می‌شیم مخفی می‌مونه
+ * صرف‌نظر از این‌که کدوم قانونِ عمومیِ ادمین داره override ش می‌کنه.
+ */
+.custom-list-json {
+	display: none !important;
+}
+
+.jluxe-repeater-item {
+	border: 1px dashed var(--jluxe-admin-border);
+	border-radius: var(--jluxe-admin-radius-sm);
+	padding: 12px;
+	background: var(--jluxe-admin-bg);
+	position: relative;
+}
+
+.jluxe-repeater-item-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+	font-weight: 600;
+}
+
+.jluxe-repeater-handle {
+	cursor: grab;
+	color: var(--jluxe-admin-muted);
+}
+
+.jluxe-repeater-remove {
+	margin-right: auto;
+	color: var(--jluxe-admin-accent);
+	text-decoration: none;
+	font-size: 15px;
+}
+
+.jluxe-repeater-add {
+	margin-top: 4px;
+}
+
+.jluxe-repeater-template {
+	display: none;
+}
+
+.jluxe-repeater-row {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	align-items: flex-start;
+}
+
+.jluxe-repeater-row > * {
+	flex: 1 1 220px;
+}
+
+/*
+ * پیش‌نمایشِ چیدمانِ «کلاژ بنر» — grid-template-columns/rows/areas و
+ * grid-area هرکدوم مستقیماً از PHP (jluxe_hb_collage_desktop_layouts()،
+ * تنها منبعِ تعریفِ چیدمان) به‌صورت inline style ست می‌شن، نه اینجا؛ این
+ * قسمت فقط ظاهرِ خودِ سلول‌ها و شماره‌گذاریه. با تعویضِ select چیدمانِ
+ * دسکتاپ، JS (theme-settings-admin.js) همین inline styleها رو live عوض
+ * می‌کنه — بدون رفرشِ صفحه.
+ */
+.jluxe-hb-collage-preview {
+	border: 1px solid var(--jluxe-admin-border);
+	border-radius: var(--jluxe-admin-radius-sm);
+	padding: 4px;
+	margin: 10px 0;
+	background: var(--jluxe-admin-bg);
+	transition: height 0.2s ease;
+}
+
+.jxc-admin-slot {
+	position: relative;
+	border-radius: 6px;
+	overflow: hidden;
+	background: #eef0f2;
+	border: 1px dashed var(--jluxe-admin-border);
+}
+
+.jxc-admin-slot-num {
+	position: absolute;
+	top: 6px;
+	inset-inline-end: 6px;
+	z-index: 2;
+	background: rgba(0, 0, 0, 0.65);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+}
+
+.jxc-admin-slot .jluxe-media-field {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 6px;
+	gap: 4px;
+}
+
+.jxc-admin-slot .jluxe-media-preview {
+	min-height: 0;
+	margin-bottom: 0;
+	flex: 1;
+	width: 100%;
+	overflow: hidden;
+}
+
+.jxc-admin-slot .jluxe-media-preview img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.jxc-admin-slot .jluxe-media-field p {
+	margin: 0;
+	display: flex;
+	gap: 4px;
+}
+
+.jxc-admin-slot .jluxe-media-field .button {
+	font-size: 10px;
+	height: 22px;
+	line-height: 20px;
+	padding: 0 6px;
+}
+
+/* پریست‌های آماده‌ی طراحی (رنگ و تایپوگرافی → پریست‌ها) */
+.jluxe-preset-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 14px;
+	margin-top: 12px;
+}
+
+.jluxe-preset-card {
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 14px;
+	background: #fff;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.jluxe-preset-card:hover {
+	border-color: #8c8f94;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.jluxe-preset-swatches {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px;
+	border-radius: 6px;
+	border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.jluxe-preset-dot {
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	flex-shrink: 0;
+}
+
+.jluxe-preset-label {
+	font-size: 13px;
+}
+
+.jluxe-preset-desc {
+	margin: 0 !important;
+	font-size: 11.5px;
+	flex: 1;
+}
+
+.jluxe-preset-card .button {
+	align-self: flex-start;
+}
+
+
+/* خوانایی و نظم پنل تنظیمات */
+.jluxe-settings-nav { align-items: stretch; gap: 6px; }
+.jluxe-settings-nav-group-toggle { font-weight: 700; color: #344054; }
+.jluxe-settings-nav-group.is-active .jluxe-settings-nav-group-toggle { background: #E8F5F2; color: #075E54; border-color: #B8DED7; }
+.jluxe-settings-nav-group-items { min-width: 230px; padding: 7px; }
+.jluxe-settings-nav-item { color: #475467; }
+.jluxe-settings-nav-item-active { background: #087A68; box-shadow: 0 2px 5px rgba(8,122,104,.18); }
+.jluxe-preset-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.jluxe-preset-card { min-height: 170px; border-color: #E4E7EC; }
+.jluxe-preset-card:hover { border-color: #087A68; box-shadow: 0 4px 16px rgba(16,24,40,.08); }
+.jluxe-preset-dot { width: 28px; height: 28px; }
+
+/* راهنمای خرید — پنل ویرایش تمیز و تفکیک‌شده */
+.jluxe-guide-admin-intro{background:#f8fafc;border:1px solid #e4e7ec;border-right:4px solid #087A68;border-radius:12px;padding:16px 18px;margin:0 0 18px}
+.jluxe-guide-admin-intro h2{margin:0 0 7px;font-size:18px}
+.jluxe-guide-admin-intro p{margin:4px 0;color:#667085}
+.jluxe-guide-editor-form .jluxe-hb-section-details{margin-bottom:10px}
+.jluxe-guide-step-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#087A68;color:#fff;font-weight:800;margin-left:8px}
+.jluxe-guide-editor-form .wp-editor-wrap{margin:0 0 14px}
+.jluxe-guide-editor-form .wp-editor-container{border-color:#d0d5dd}
+.jluxe-guide-callout-editor{background:#f8fafc;border:1px solid #e4e7ec;border-radius:10px;padding:12px 14px;margin-top:12px}
+.jluxe-guide-callout-editor h4{margin:0 0 10px;font-size:13px}
+.jluxe-guide-inline-grid{display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:10px}
+.jluxe-guide-inline-grid label,.jluxe-guide-callout-editor>label{display:block;font-weight:600;font-size:12px;color:#344054}
+.jluxe-guide-inline-grid input,.jluxe-guide-inline-grid select,.jluxe-guide-callout-editor textarea{width:100%;margin-top:5px}
+.jluxe-guide-callout-editor textarea{min-height:70px}
+@media(max-width:700px){.jluxe-guide-inline-grid{grid-template-columns:1fr}.jluxe-guide-admin-intro{padding:13px}}
+
+/* فهرست HTML نمادهای سایت */
+.custom-list-wrap .custom-list-items{display:flex;flex-direction:column;gap:8px}
+.custom-list-wrap .custom-list-item{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #dcdcde;border-radius:6px;background:#fff}
+.custom-list-wrap .custom-list-item .field-html{flex:1;width:100%;min-height:100px;font-family:monospace;direction:ltr;text-align:left}
+.custom-list-wrap .custom-list-item .button{flex:0 0 auto}
+
+/* Site badges editor: textarea must be a full-width editable field; actions stay below it. */
+
+/* Site badge fields */
+
+/* Site badges editor — completely independent from the generic custom-list UI. */
+.jluxe-site-badges-editor{width:100%;box-sizing:border-box}
+.jluxe-site-badges-items{display:flex;flex-direction:column;gap:14px;width:100%;margin:0;padding:0}
+.jluxe-site-badges-editor .jluxe-site-badge-item{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:14px!important;border:1px solid #dcdcde!important;border-radius:10px!important;background:#fff!important;box-shadow:0 1px 2px rgba(16,24,40,.04)!important;transition:border-color .15s ease,box-shadow .15s ease!important}
+.jluxe-site-badges-editor .jluxe-site-badge-item:focus-within{border-color:#8c8f94!important;box-shadow:0 2px 8px rgba(16,24,40,.08)!important}
+.jluxe-site-badges-editor .jluxe-site-badge-field{display:block!important;width:100%!important;margin:0 0 12px!important;padding:0!important}
+.jluxe-site-badges-editor .jluxe-site-badge-field label{display:block!important;margin:0 0 6px!important;font-weight:600!important;color:#344054!important}
+.jluxe-site-badges-editor .jluxe-site-badge-field .field-link{display:block!important;width:100%!important;max-width:none!important;min-height:40px!important;box-sizing:border-box!important;margin:0!important;direction:ltr!important;text-align:left!important}
+.jluxe-site-badges-editor .jluxe-site-badge-field .field-html{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:180px!important;box-sizing:border-box!important;margin:0!important;resize:vertical!important;direction:ltr!important;text-align:left!important;font-family:Consolas,Monaco,monospace!important;line-height:1.55!important;white-space:pre-wrap!important}
+.jluxe-site-badges-editor .jluxe-site-badge-remove{display:inline-block!important;position:static!important;float:none!important;margin:0!important;transition:color .15s ease,border-color .15s ease!important}
+.jluxe-site-badges-editor .jluxe-site-badge-remove:hover{color:#b32d2e!important;border-color:#b32d2e!important}
+.jluxe-site-badges-actions{display:block!important;width:100%!important;margin:12px 0 0!important;padding:0!important}
+.jluxe-site-badges-actions .jluxe-site-badge-add{display:inline-block!important;position:static!important;float:none!important;margin:0!important}
