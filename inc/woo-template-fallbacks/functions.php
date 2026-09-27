@@ -537,6 +537,7 @@ require_once JLUXE_THEME_DIR . '/inc/site-diagnosis.php';
 require_once JLUXE_THEME_DIR . '/inc/llms-txt.php';
 require_once JLUXE_THEME_DIR . '/inc/error-log.php';
 require_once JLUXE_THEME_DIR . '/inc/template-guard.php';
+require_once JLUXE_THEME_DIR . '/inc/compat-scan.php';
 /*
  * افزونه‌ی «ویرایشگر/بهینه‌سازِ تصویر» (inc/image-optimizer.php + inc/image-optimizer/)
  * طبقِ درخواستِ صریحِ کاربر کاملاً از پوسته حذف شد — داشت تصاویرِ محصولات

@@ -429,6 +429,37 @@ function jluxe_template_guard_notice(): void {
 		}
 		$details = '<p><strong>پیامِ واقعیِ خطای PHP (فایل:خط):</strong></p><ul style="list-style:disc;margin-inline-start:20px">' . implode( '', $rows_error ) . '</ul>';
 	}
+	/*
+	 * R84 — نشانه‌های «فایلِ کهنه»: اگر گزارشِ کش‌شدهٔ سلامتِ فایل‌ها فایلِ
+	 * ناشناسی روی سرور دیده باشد، یا اسکنِ سازگاری فراخوانیِ تابعِ
+	 * تعریف‌نشده پیدا کرده باشد، همان‌جا گفته می‌شود — چون این دقیقاً همان
+	 * علتی است که در نسخهٔ 1.68.0 فروشگاه را خواباند و ریشه‌اش جای دیگری
+	 * (فایلِ باقی‌مانده روی سرور) است، نه در نسخهٔ نصب‌شده.
+	 */
+	$hints = '';
+	if ( function_exists( 'jluxe_theme_integrity_cached' ) ) {
+		$cached_files = jluxe_theme_integrity_cached();
+		$extra_php    = (array) ( $cached_files['extra_php'] ?? array() );
+		if ( ! empty( $extra_php ) ) {
+			$hints .= sprintf(
+				'<li>فایل‌هایی روی سرور هستند که جزو بستهٔ رسمی نیستند (احتمالاً باقی‌ماندهٔ نسخهٔ قدیمی): <code dir="ltr">%s</code></li>',
+				esc_html( implode( ', ', array_slice( $extra_php, 0, 3 ) ) )
+			);
+		}
+	}
+	if ( function_exists( 'jluxe_compat_scan_cached' ) ) {
+		$cached_scan = jluxe_compat_scan_cached();
+		$missing_fn  = (array) ( $cached_scan['missing'] ?? array() );
+		if ( ! empty( $missing_fn ) ) {
+			$hints .= sprintf(
+				'<li>فراخوانیِ تابعی که در پوسته وجود ندارد: <code dir="ltr">%s()</code> — این‌ها هم با نصبِ کاملِ بستهٔ رسمی از بین می‌روند.</li>',
+				esc_html( implode( '(), ', array_slice( array_keys( $missing_fn ), 0, 3 ) ) )
+			);
+		}
+	}
+	if ( '' !== $hints ) {
+		$details .= '<p><strong>نشانه‌های «فایلِ کهنه» روی سرور:</strong></p><ul style="list-style:disc;margin-inline-start:20px">' . $hints . '</ul>';
+	}
 	$headline = ( $has_error && ! $has_swap )
 		? 'پوستهٔ زرین: یک قالبِ پوسته وسطِ رندر خطای PHP داد. خطا گرفته شد و فروشگاه نخوابید، ولی این خطا باید رفع شود.'
 		: 'پوستهٔ زرین: فایل‌های قالب با بستهٔ رسمی یکسان نیستند. این معمولاً یعنی آپلود/نصبِ پوسته کامل نشده و فایل‌ها بریده‌اند — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را از کار بیندازد. برای اینکه فروشگاه نخوابد، این فایل‌ها موقتاً کنار گذاشته شده‌اند:';

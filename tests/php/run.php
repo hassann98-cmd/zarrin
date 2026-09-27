@@ -1516,6 +1516,36 @@ $r83_shell = (string) file_get_contents(ABSPATH.'inc/site-diagnosis.php');
 check(false !== strpos($r83_shell, 'گزارشِ آمادهٔ کپی') && false !== strpos($r83_shell, 'jluxe-report-text') && false !== strpos($r83_shell, 'پیامِ واقعیِ خطای PHP'), 'R83 the site-diagnosis screen shows the real PHP error under the guard and offers a one-click copyable report');
 delete_option(JLUXE_FATALS_OPTION);
 delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+
+// R84 — reproduce the 1.68.0 failure mode on demand: files that call a theme
+// function the package no longer defines (that is what took the store down), and
+// files sitting on the server that are not part of the official package at all.
+$r84_stale   = JLUXE_THEME_DIR . '/woocommerce/zzz-stale-copy.php';
+$r84_guarded = JLUXE_THEME_DIR . '/woocommerce/zzz-guarded-copy.php';
+$r84_negated = JLUXE_THEME_DIR . '/woocommerce/zzz-negated-copy.php';
+file_put_contents($r84_stale, "<?php\njluxe_this_helper_was_removed();\n");
+file_put_contents($r84_guarded, "<?php\nif ( function_exists( 'jluxe_guarded_probe' ) ) { jluxe_guarded_probe(); }\n");
+file_put_contents($r84_negated, "<?php\nif ( ! function_exists( 'jluxe_negated_probe' ) ) { jluxe_negated_probe(); }\n");
+$r84_scan = jluxe_compat_scan(true);
+check(isset($r84_scan['missing']['jluxe_this_helper_was_removed']), 'R84 a plain call to a theme function that no longer exists is reported (the 1.68.0 failure mode)');
+check(isset($r84_scan['missing']['jluxe_negated_probe']), 'R84 a call behind ! function_exists() is reported too: that guard runs the call exactly when the function is missing');
+check(isset($r84_scan['guarded']['jluxe_guarded_probe']) && !isset($r84_scan['missing']['jluxe_guarded_probe']), 'R84 a call behind function_exists() is informational, not a fatal risk');
+check(2 === count($r84_scan['missing']), 'R84 the shipped package itself has zero undefined theme calls (only the two seeded probes): '.implode(', ', array_keys($r84_scan['missing'])));
+check(false !== strpos((string) $r84_scan['missing']['jluxe_this_helper_was_removed'][0], 'woocommerce/zzz-stale-copy.php'), 'R84 the report names the exact stale file that makes the call');
+$r84_integrity = jluxe_theme_integrity_report(true);
+check(in_array('woocommerce/zzz-stale-copy.php', (array) $r84_integrity['extra_php'], true), 'R84 a PHP file that is not part of the official package is listed as a leftover');
+check(!in_array('woocommerce/content-product.php', (array) $r84_integrity['extra_php'], true), 'R84 shipped templates are not mistaken for leftovers');
+unlink($r84_stale);
+unlink($r84_guarded);
+unlink($r84_negated);
+jluxe_compat_scan(true);
+$r84_clean = jluxe_compat_scan();
+check(empty($r84_clean['missing']), 'R84 with the leftovers gone the package is clean of undefined calls: '.implode(', ', array_keys((array) $r84_clean['missing'])));
+check(empty($r84_clean['guarded']), 'R84 and clean of guarded calls to functions that never existed: '.implode(', ', array_keys((array) $r84_clean['guarded'])));
+check(0 === count((array) jluxe_theme_integrity_report(true)['extra_php']), 'R84 and no leftover PHP file is reported for the official package');
+$r84_shell = (string) file_get_contents(ABSPATH.'inc/site-diagnosis.php');
+check(false !== strpos($r84_shell, 'بررسیِ سازگاریِ کد') && false !== strpos($r84_shell, 'jluxe-compat') && false !== strpos($r84_shell, 'توابعِ حذف‌شده'), 'R84 the diagnosis screen shows the compatibility section with an anchor');
+check(false !== strpos((string) file_get_contents(ABSPATH.'inc/template-guard.php'), 'jluxe_compat_scan_cached'), 'R84 the guard notice reads the cached scan so admin pages stay fast');
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {

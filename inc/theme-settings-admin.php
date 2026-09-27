@@ -437,14 +437,13 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 
-	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
-		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );
-	}
-
 	// اثرهای جانبیِ سکشن‌محور بعد از ذخیرهٔ موفق اجرا می‌شن — نه داخل
 	// sanitizer، چون reset و ذخیرهٔ دستی هم باید از این مسیر رد بشن
-	// (همون الگوی sync بنرهای homepage؛ برای «AI دیدگاه‌ها» ثبت/پاک‌کردن
-	// رویداد Cron این‌جا تضمین می‌شه).
+	// (برای «AI دیدگاه‌ها» ثبت/پاک‌کردن رویداد Cron این‌جا تضمین می‌شه).
+	// R84: یک فراخوانیِ مرده به `jluxe_sync_homepage_banner_exclusions()`
+	// این‌جا بود؛ آن تابع در هیچ نسخه‌ای از پوسته وجود نداشت (فقط داخلِ
+	// function_exists محافظت شده بود) — حذف شد تا فهرستِ «تابعِ
+	// تعریف‌نشده» تمیز بماند.
 	if ( 'ai_comments' === $section_key && function_exists( 'jluxe_ai_comments_schedule' ) ) {
 		jluxe_ai_comments_schedule();
 	}

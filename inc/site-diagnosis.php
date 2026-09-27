@@ -233,10 +233,29 @@ function jluxe_theme_manifest( bool $refresh = false ): array {
  * هشِ ۲۴۵ فایل محاسبه نشود، نتیجه ۶ ساعت کش می‌شود؛ با $refresh یا با
  * دکمهٔ «بررسی دوباره» در صفحهٔ تشخیص، کش پاک و دوباره محاسبه می‌شود.
  */
+/**
+ * کلیدِ کشِ گزارشِ سلامتِ فایل‌ها (نسخه + تعدادِ فهرست + مسیرِ پوسته).
+ */
+function jluxe_theme_integrity_cache_key(): string {
+	$version = function_exists( 'wp_get_theme' ) ? (string) wp_get_theme()->get( 'Version' ) : '';
+	return 'jluxe_integrity_' . md5( $version . '|' . count( jluxe_theme_manifest() ) . '|' . JLUXE_THEME_DIR );
+}
+
+/**
+ * فقط گزارشِ کش‌شده را برمی‌گرداند (بدونِ محاسبهٔ دوباره). اخطارِ پیشخوان از
+ * همین استفاده می‌کند تا بازکردنِ هر صفحهٔ مدیریت، هشِ صدها فایل را راه نیندازد.
+ */
+function jluxe_theme_integrity_cached(): array {
+	if ( ! function_exists( 'get_transient' ) ) {
+		return array();
+	}
+	$cached = get_transient( jluxe_theme_integrity_cache_key() );
+	return is_array( $cached ) ? $cached : array();
+}
+
 function jluxe_theme_integrity_report( bool $refresh = false ): array {
 	$manifest = jluxe_theme_manifest( $refresh );
-	$version  = function_exists( 'wp_get_theme' ) ? (string) wp_get_theme()->get( 'Version' ) : '';
-	$key      = 'jluxe_integrity_' . md5( $version . '|' . count( $manifest ) . '|' . JLUXE_THEME_DIR );
+	$key      = jluxe_theme_integrity_cache_key();
 	if ( ! $refresh && function_exists( 'get_transient' ) ) {
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) ) {
@@ -287,6 +306,26 @@ function jluxe_theme_integrity_report( bool $refresh = false ): array {
 		}
 	}
 	$report['ok'] = ! $report['manifest_missing'] && empty( $report['missing'] ) && empty( $report['modified'] ) && empty( $report['syntax'] );
+
+	/*
+	 * R84 — فایل‌های اضافه (کهنه). فایلی که روی سرور هست ولی در فهرستِ رسمی
+	 * نیست، همان چیزی است که در نسخهٔ 1.68.0 سایت را خواباند: نسخهٔ قدیمیِ
+	 * یک فایل که تابعی حذف‌شده را صدا می‌زد. این‌جا فقط «PHP» شمرده می‌شود و
+	 * فقط برای اطلاع است (ممکن است فایلِ دستیِ خودِ مدیر هم باشد) — پس در
+	 * وضعیتِ کلّی (ok) اثر نمی‌گذارد.
+	 */
+	$report['extra_php'] = array();
+	if ( function_exists( 'jluxe_compat_scan_files' ) ) {
+		$known = array_fill_keys( array_keys( $manifest ), true );
+		foreach ( jluxe_compat_scan_files() as $extra_abs ) {
+			$extra_rel = jluxe_compat_relative( $extra_abs );
+			if ( '' !== $extra_rel && ! isset( $known[ $extra_rel ] ) ) {
+				$report['extra_php'][] = $extra_rel;
+			}
+		}
+		sort( $report['extra_php'] );
+	}
+
 	if ( function_exists( 'set_transient' ) ) {
 		set_transient( $key, $report, 6 * HOUR_IN_SECONDS );
 	}
@@ -299,6 +338,9 @@ function jluxe_refresh_integrity_action(): void {
 		wp_die( esc_html__( 'دسترسی کافی نیست.', 'jluxe' ) );
 	}
 	check_admin_referer( 'jluxe_refresh_integrity' );
+	if ( function_exists( 'jluxe_compat_scan' ) ) {
+		jluxe_compat_scan( true ); // R84 — اسکنِ سازگاری هم با همان دکمه تازه می‌شود.
+	}
 	jluxe_theme_integrity_report( true );
 	wp_safe_redirect( admin_url( 'themes.php?page=jluxe-site-diagnosis&jluxe_integrity=refreshed' ) );
 	exit;
@@ -521,6 +563,59 @@ function jluxe_render_site_diagnosis_page(): void {
 		<?php endif; ?>
 
 		<?php
+		/*
+		 * R84 — «بررسیِ سازگاری». دقیقاً همان دو چیزی که در 1.68.0 سایت را
+		 * خواباندند: (۱) فایلِ کهنه‌ای که تابعی حذف‌شده را صدا می‌زند،
+		 * (۲) فایل‌هایی روی سرور که جزو بستهٔ رسمی نیستند.
+		 */
+		$compat         = function_exists( 'jluxe_compat_scan' ) ? jluxe_compat_scan() : array();
+		$compat_missing = (array) ( $compat['missing'] ?? array() );
+		$compat_extra   = (array) ( $integrity['extra_php'] ?? array() );
+		?>
+		<h2 id="jluxe-compat">بررسیِ سازگاریِ کد (فایل‌های کهنه و توابعِ حذف‌شده)</h2>
+		<p class="description">بدونِ اجرای هیچ کدی، تمامِ فایل‌های PHP پوسته خوانده می‌شوند و گزارش می‌شود: هر <b>فراخوانیِ تابعی که در پوسته تعریف نشده</b> (همان الگوی خرابیِ نسخهٔ 1.68.0 که فروشگاه را با «خطای مهم» می‌خواباند) و هر <b>فایلِ PHP که جزو بستهٔ رسمی نیست</b> (باقی‌ماندهٔ نسخه‌های قدیمی). اگر این بخش سبز باشد، کدِ پوسته از این جهت سالم است.</p>
+		<?php if ( empty( $compat['available'] ) ) : ?>
+			<p style="color:#b32d2e;font-weight:600">بررسی ممکن نشد (تابعِ <code>token_get_all</code> در دسترس نیست) — یعنی نسخهٔ PHP سرور بسیار قدیمی است.</p>
+		<?php elseif ( empty( $compat_missing ) && empty( $compat_extra ) ) : ?>
+			<p style="color:green;font-weight:600">✓ هیچ فراخوانیِ تعریف‌نشده و هیچ فایلِ ناشناسی پیدا نشد (<?php echo esc_html( jluxe_fa_digits( (string) ( $compat['files'] ?? 0 ) ) ); ?> فایلِ PHP بررسی شد، <?php echo esc_html( jluxe_fa_digits( (string) ( $compat['defined'] ?? 0 ) ) ); ?> تابعِ پوسته شناخته شد).</p>
+		<?php else : ?>
+			<?php $compat_guarded = (array) ( $compat['guarded'] ?? array() ); ?>
+			<?php if ( ! empty( $compat_guarded ) ) : ?>
+				<p class="description" style="color:#996800">ℹ️ مسیرهای محافظت‌شده با <code>function_exists()</code> (<?php echo esc_html( jluxe_fa_digits( (string) count( $compat_guarded ) ) ); ?> مورد) خطای مهم نمی‌دهند چون تابع وجود نداشته باشد صدا زده نمی‌شوند؛ فقط یعنی آن قابلیت کار نمی‌کند: <code dir="ltr"><?php echo esc_html( implode( '(), ', array_slice( array_keys( $compat_guarded ), 0, 6 ) ) ); ?>()</code></p>
+			<?php endif; ?>
+			<?php if ( ! empty( $compat_missing ) ) : ?>
+				<h3 style="color:#b32d2e">تابع‌هایی که صدا زده می‌شوند ولی در پوسته وجود ندارند (<?php echo esc_html( jluxe_fa_digits( (string) count( $compat_missing ) ) ); ?>)</h3>
+				<p class="description">این‌ها دقیقاً همان چیزی‌اند که وسطِ رندرِ صفحه «خطای مهم» می‌سازند. اگر فایلِ آن‌ها جزو بستهٔ رسمی نیست (فهرستِ پایین)، با نصبِ کاملِ بستهٔ رسمی («جایگزینی نسخهٔ فعلی») از بین می‌روند.</p>
+				<table class="widefat striped">
+					<thead><tr><th>تابع</th><th>کجا صدا زده شده</th></tr></thead>
+					<tbody>
+					<?php foreach ( $compat_missing as $compat_fn => $compat_where ) : ?>
+						<tr>
+							<td><code dir="ltr"><?php echo esc_html( (string) $compat_fn ); ?>()</code></td>
+							<td><code dir="ltr"><?php echo esc_html( implode( ' | ', array_slice( (array) $compat_where, 0, 4 ) ) ); ?></code></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+			<?php if ( ! empty( $compat_extra ) ) : ?>
+				<h3 style="color:#b32d2e">فایل‌های PHP روی سرور که جزو بستهٔ رسمی نیستند (<?php echo esc_html( jluxe_fa_digits( (string) count( $compat_extra ) ) ); ?>)</h3>
+				<p class="description">معمولاً باقی‌ماندهٔ نسخه‌های قدیمی یا فایلِ دستی‌ساز. فایلِ کهنه اگر تابعی را صدا بزند که دیگر وجود ندارد، همان «خطای مهم» را می‌سازد. برای پاک‌سازی: پیشخوان ← پوسته‌ها ← افزودن ← بارگذاری پوسته ← بستهٔ رسمی ← <b>«جایگزینی نسخهٔ فعلی»</b>.</p>
+				<table class="widefat striped">
+					<thead><tr><th>فایل</th></tr></thead>
+					<tbody>
+					<?php foreach ( array_slice( $compat_extra, 0, 40 ) as $compat_file ) : ?>
+						<tr><td><code dir="ltr"><?php echo esc_html( (string) $compat_file ); ?></code></td></tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php if ( count( $compat_extra ) > 40 ) : ?>
+					<p class="description">و <?php echo esc_html( jluxe_fa_digits( (string) ( count( $compat_extra ) - 40 ) ) ); ?> فایلِ دیگر.</p>
+				<?php endif; ?>
+			<?php endif; ?>
+		<?php endif; ?>
+
+		<?php
 		// R83 — «گزارشِ آمادهٔ کپی»: یک متنِ خام که با یک کلیک انتخاب می‌شود تا
 		// فرستادنِ وضعیتِ سایت (نسخه‌ها + خطاهای واقعی + فایل‌های ناسالم) یک کارِ
 		// یک‌مرحله‌ای باشد. عمداً هیچ کلید API، شماره، ایمیل یا اطلاعاتِ مشتری
@@ -539,6 +634,15 @@ function jluxe_render_site_diagnosis_page(): void {
 		$copy_lines[] = 'FILES modified=' . count( (array) ( $integrity['modified'] ?? array() ) ) . ' missing=' . count( (array) ( $integrity['missing'] ?? array() ) ) . ' syntax=' . count( (array) ( $integrity['syntax'] ?? array() ) ) . ' checked=' . (string) ( $integrity['checked'] ?? 0 );
 		foreach ( array_merge( (array) ( $integrity['syntax'] ?? array() ), (array) ( $integrity['missing'] ?? array() ), (array) ( $integrity['modified'] ?? array() ) ) as $copy_path ) {
 			$copy_lines[] = 'FILE ' . (string) $copy_path;
+		}
+		foreach ( (array) ( $compat['missing'] ?? array() ) as $copy_fn => $copy_where ) {
+			$copy_lines[] = 'COMPAT missing-function ' . (string) $copy_fn . '() called at ' . implode( ', ', array_slice( (array) $copy_where, 0, 3 ) );
+		}
+		foreach ( array_slice( (array) ( $integrity['extra_php'] ?? array() ), 0, 20 ) as $copy_extra ) {
+			$copy_lines[] = 'EXTRA file ' . (string) $copy_extra;
+		}
+		foreach ( (array) ( $compat['guarded'] ?? array() ) as $copy_fn => $copy_where ) {
+			$copy_lines[] = 'COMPAT guarded-not-implemented ' . (string) $copy_fn . '() at ' . implode( ', ', array_slice( (array) $copy_where, 0, 2 ) );
 		}
 		?>
 		<h2 id="jluxe-report">گزارشِ آمادهٔ کپی</h2>
