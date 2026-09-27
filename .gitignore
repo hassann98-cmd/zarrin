@@ -6,3 +6,6 @@ coverage/
 .env.*
 !.env.example
 artifacts/
+
+# بسته‌های منتشرشدهٔ پوسته (zip) هرگز داخلِ مخزن نمی‌مانند.
+zarrin-*.zip
