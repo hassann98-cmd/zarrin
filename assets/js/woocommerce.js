@@ -1497,7 +1497,19 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 
 	function openReviewModal() {
 		var wrapper = document.getElementById("review_form_wrapper");
-		if (!wrapper) { return; }
+		if (!wrapper) {
+			/* R78: فرمی برای قرض گرفتن نیست — دیدگاه‌های محصول بسته است یا فروشگاه
+			فقط به خریداران اجازهٔ دیدگاه می‌دهد و کاربرِ فعلی خریدار نیست. دکمه
+			نباید بی‌صدا بماند: بخش دیدگاه‌ها نمایان می‌شود تا پیامِ خودِ ووکامرس
+			(«فقط خریداران…») دیده شود. خودِ دکمه هم از سمتِ سرور فقط وقتی رندر
+			می‌شود که فرم موجود باشد؛ این مسیر فقط برای HTML/JS ناهم‌نسخه (کش) است. */
+			var anchor = document.getElementById("reviews") || document.getElementById("sec-reviews");
+			if (anchor && typeof anchor.scrollIntoView === "function") {
+				var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+				anchor.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+			}
+			return;
+		}
 		if (modalRoot) { closeReviewModal(); return; }
 		lastFocused = document.activeElement;
 		modalRoot = document.createElement("div");
