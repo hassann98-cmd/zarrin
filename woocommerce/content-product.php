@@ -46,9 +46,12 @@ $image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'woocomm
  * می‌تونه بره، در حالی که در گریدِ واقعیِ کارتِ محصول عرضِ نمایشِ واقعی
  * حدودِ ۲۲۰-۲۴۰px هست — روی گوشیِ retina (dpr=2/3) همین اختلاف باعث می‌شه
  * مرورگر به‌جای نسخه‌ی ۳۰۰w، نسخه‌ی ۶۰۰w (خیلی بزرگ‌تر از لازم) رو انتخاب
- * کنه. مقدارِ دستیِ زیر با عرضِ واقعیِ کارت در گریدِ ۲/۳/۴ستونه هماهنگه.
+ * کنه. مقدارِ دستیِ زیر (بازبینیِ R79 با اندازه‌گیریِ زنده‌ی PageSpeed:
+ * کارتِ واقعی ۲۲۱px در موبایل، کاروسلِ lg دقیقاً w-[300px] و گریدِ ۴ستونه‌ی
+ * دسکتاپ ~304px) با عرضِ واقعیِ کارت هماهنگه — sizesِ کوچک‌تر از واقعیت یعنی
+ * نسخه‌ی نرم/تار، بزرگ‌تر یعنی دانلودِ بیهوده.
  */
-$image_sizes = $image_id ? '(max-width: 480px) 42vw, (max-width: 1024px) 24vw, 180px' : '';
+$image_sizes = $image_id ? '(max-width: 480px) 44vw, (max-width: 1024px) 26vw, 300px' : '';
 /*
  * اخطارِ واقعیِ Lighthouse («Improve image delivery»): این تصویر نه srcset
  * داشت (یعنی موبایل هم همون فایلِ اندازه‌ی ثابتِ دسکتاپ رو دانلود می‌کرد)
@@ -159,6 +162,7 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 					src="<?php echo esc_url( $image_url ); ?>"
 					<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="<?php echo esc_attr( $image_sizes ); ?>"<?php endif; ?>
 					alt="<?php echo esc_attr( $product->get_name() ); ?>"
+					decoding="async"
 					<?php echo jluxe_lazy_attr( $jluxe_card_is_eager ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php // fetchpriority=high فقط برای اولین کارت (تنها کاندیدِ واقعیِ LCP) — دادنش به چند عکس هم‌زمان خودِ سیگنال رو کم‌اثر می‌کنه. ?>
 					<?php echo 1 === $jluxe_card_render_count ? ' fetchpriority="high"' : ''; ?>

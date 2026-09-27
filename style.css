@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.66.0 — AUDIT REMEDIATION
+Build: JLUXE 1.68.0 — AUDIT REMEDIATION
 Author: زرین
 Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
-Version: 1.67.1
+Version: 1.68.0
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -181,5 +181,3 @@ Text Domain: jluxe
 	.woocommerce ul.products li.product:hover [data-jluxe-card-main-img]{transform:none}
 }
 
-/* text-boom-sale (Tailwind) هیچ‌وقت واقعاً کامپایل نشده بود — jluxe_render_product_stock_line() توی inc/woocommerce.php ازش استفاده می‌کرد ولی بی‌اثر بود (متنِ «فقط N عدد باقی مانده» رنگِ هشدار نمی‌گرفت). این کلاسِ سراسری با همون متغیرِ رنگِ خودِ تم، تضمین‌شده کار می‌کنه. */
-.jluxe-text-danger{color:var(--boom-sale)}

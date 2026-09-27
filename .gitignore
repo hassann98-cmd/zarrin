@@ -9,3 +9,6 @@ artifacts/
 
 # بسته‌های zip فقط بیرونِ مخزن ساخته می‌شوند — هرگز کامیت نشوند
 /*.zip
+
+# باندلِ قدیمیِ Vite — محلِ واقعیِ build: assets/compiled
+/dist/

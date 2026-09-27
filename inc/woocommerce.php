@@ -980,33 +980,6 @@ function jluxe_boom_star_row( float $rating, string $size_class = 'size-[15px]' 
 	);
 }
 
-/**
- * خط تعداد موجودیِ واقعی (نه عدد ساختگی) — فقط وقتی محصول/تنوع واقعاً
- * موجودیِ عددی رو مدیریت می‌کنه (managing_stock) چیزی نشون داده می‌شه؛
- * وگرنه (فقط وضعیت موجود/ناموجودِ ساده) خط خالی برمی‌گرده. زیر ۵ عدد
- * رنگ هشدار می‌گیره.
- */
-function jluxe_render_product_stock_line( $product ): string {
-	if ( ! $product || ! $product->managing_stock() ) {
-		return '';
-	}
-	$qty = $product->get_stock_quantity();
-	if ( null === $qty ) {
-		return '';
-	}
-	$low  = $qty <= 5;
-	$icon = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
-	$text = $low
-		? sprintf( 'فقط %s عدد در انبار باقی مانده!', jluxe_fa_digits( (string) $qty ) )
-		: sprintf( '%s عدد در انبار موجود است', jluxe_fa_digits( (string) $qty ) );
-
-	return sprintf(
-		'<p class="mt-1.5 flex items-center gap-1 text-[11px] font-medium %1$s">%2$s%3$s</p>',
-		$low ? 'jluxe-text-danger' : 'text-text-muted',
-		$icon,
-		esc_html( $text )
-	);
-}
 
 /**
  * طبقِ درخواستِ صریحِ کاربر («روش‌های پرداخت رو تو یک کادرِ جدا سمتِ راستِ

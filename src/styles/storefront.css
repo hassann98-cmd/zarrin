@@ -3102,47 +3102,66 @@ html {
   height: 100% !important;
   width: 100% !important;
 }
-.jluxe-logo-shine img {
-  -webkit-mask: linear-gradient(-60deg, #000 30%, rgb(0 0 0 / 0.333), #000 50%)
-    right / 300% 100%;
-  mask: linear-gradient(-60deg, #000 30%, rgb(0 0 0 / 0.333), #000 50%) right /
-    300% 100%;
-  animation: jluxe-logo-shimmer 3s infinite;
+.jluxe-logo-shine {
+  position: relative;
+  overflow: hidden;
 }
-@keyframes jluxe-logo-shimmer {
-  0% {
-    -webkit-mask-position: 140% 140%;
-    mask-position: 140% 140%;
-  }
+/* R79 (PSI «Avoid non-composited animations»): جلوهٔ قبلی mask-position را
+روی خودِ تصویر انیمیت می‌کرد — mask-position هر فریم paint می‌شود و روی
+main-thread می‌ماند. حالا همان نوارِ مورب به‌صورت ::after با انیمیشنِ
+transform (قابلِ composited شدن) از روی جعبهٔ لوگو عبور می‌کند. */
+.jluxe-logo-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateX(-130%);
+  background: linear-gradient(
+    -60deg,
+    transparent 32%,
+    rgb(255 255 255 / 0.55) 46%,
+    rgb(12 12 12 / 0.18) 52%,
+    transparent 66%
+  );
+  animation: jluxe-logo-shine-sweep 3s infinite;
+}
+@keyframes jluxe-logo-shine-sweep {
   to {
-    -webkit-mask-position: -20% -20%;
-    mask-position: -20% -20%;
+    transform: translateX(130%);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .jluxe-logo-shine img {
+  .jluxe-logo-shine::after {
     animation: none;
-    -webkit-mask: none;
-    mask: none;
+    opacity: 0;
   }
 }
-.jluxe-card-shine {
-  -webkit-mask: linear-gradient(-60deg, #000 35%, rgb(0 0 0 / 0.6), #000 55%)
-    right / 250% 100%;
-  mask: linear-gradient(-60deg, #000 35%, rgb(0 0 0 / 0.6), #000 55%) right /
-    250% 100%;
-  -webkit-mask-position: 140% 140%;
-  mask-position: 140% 140%;
-  transition:
-    -webkit-mask-position 0.9s ease-out,
-    mask-position 0.9s ease-out;
+/* R79 (PSI «Avoid non-composited animations»): جاروی قبلی با transition
+روی mask-position بود — هر فریم paint روی main-thread. همان نوارِ مورب حالا
+::after با transform است (قابلِ composited شدن)؛ خودِ <a> از قبل
+relative + overflow-hidden دارد پس نوار بیرون نمی‌زند. */
+.jluxe-card-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    -60deg,
+    transparent 35%,
+    rgb(255 255 255 / 0.5) 47%,
+    rgb(12 12 12 / 0.16) 55%,
+    transparent 68%
+  );
 }
 /* R63: hover فقط برای دستگاه‌های واقعاً هاوردار — موبایل افکت hover ندارد. */
 @media (hover: hover) {
-  .jluxe-card-shine:hover,
-  .group:hover .jluxe-card-shine {
-    -webkit-mask-position: -20% -20%;
-    mask-position: -20% -20%;
+  .jluxe-card-shine:hover::after,
+  .group:hover .jluxe-card-shine::after {
+    transform: translateX(120%);
+    transition: transform 0.9s ease-out;
   }
 }
 /* ── R75: نورافکنِ کارت — هالهٔ شعاعیِ دنبال‌کنندهٔ موس + بالاوآمدنِ ملایم.
@@ -3240,10 +3259,8 @@ JS فقط دو متغیرِ CSS را ست می‌کند (یک لیسنرِ deleg
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jluxe-card-shine {
-    transition: none;
-    -webkit-mask: none;
-    mask: none;
+  .jluxe-card-shine::after {
+    display: none;
   }
 }
 img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]) {

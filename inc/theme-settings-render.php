@@ -2009,7 +2009,7 @@ function jluxe_render_advanced_page(): void {
 					<tr><th scope="row">max_execution_time (PHP)</th><td><?php echo esc_html( ini_get( 'max_execution_time' ) ); ?> ثانیه</td></tr>
 					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#b32d2e">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">نسخه‌ی تنظیمات پوسته</th><td><?php echo esc_html( (string) JLUXE_SETTINGS_VERSION ); ?></td></tr>
-					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (dist/ واقعی)'; ?></td></tr>
+					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (assets/compiled)'; ?></td></tr>
 					<tr><th scope="row">آخرین به‌روزرسانی تنظیمات</th><td><?php echo esc_html( get_option( 'jluxe_theme_settings_updated_at', '—' ) ); ?></td></tr>
 				</table>
 				<p class="description">این بخش فقط تشخیصیه — چیزی رو خودکار تغییر نمی‌ده (مثلاً تنظیمات LiteSpeed/کش دست‌نخورده می‌مونه).</p>
