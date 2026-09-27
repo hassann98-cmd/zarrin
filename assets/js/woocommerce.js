@@ -1417,11 +1417,19 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 	var releaseDialogFocus = null;
 	var lastFocused = null;
 	var formNode = null;
+	/* R73.1: فرمِ وو قرضی است — هنگامِ بستن باید به خانه‌اش (#review_form)
+	برگردد، وگرنه با remove() مودال برای همیشه از DOM حذف می‌شد و باز
+	کردنِ دومِ پاپ‌آپ ممکن نبود. */
+	var reviewWrapper = null;
+	var reviewFormHome = null;
 
 	function closeReviewModal() {
 		if (!modalRoot) { return; }
 		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
 		document.body.style.overflow = "";
+		if (reviewWrapper && reviewFormHome && reviewFormHome.parentNode) {
+			reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild);
+		}
 		modalRoot.remove();
 		modalRoot = null;
 		if (lastFocused && lastFocused.focus) { lastFocused.focus(); }
@@ -1472,6 +1480,8 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			"</div>";
 		document.body.appendChild(modalRoot);
 		formNode = wrapper.querySelector("form#commentform") || null;
+		reviewWrapper = wrapper;
+		reviewFormHome = wrapper.parentNode;
 		modalRoot.querySelector(".jluxe-review-modal-body").appendChild(wrapper);
 		document.body.style.overflow = "hidden";
 		releaseDialogFocus = JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeReviewModal);

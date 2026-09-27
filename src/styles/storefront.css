@@ -4257,7 +4257,16 @@ del .woocommerce-Price-amount {
 .jluxe-review-modal-head h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.25rem; }
 .jluxe-review-modal-head p { font-size: 0.78rem; line-height: 1.9; color: hsl(var(--text-secondary)); margin: 0; }
 /* فرمِ واقعیِ وو داخلِ مودال — کارتِ بیرونیِ R66 صاف می‌شود؛ ورودی‌ها/ستاره‌ها همان استایلِ R66 می‌مانند */
-.jluxe-review-modal #review_form_wrapper { margin: 0; }
+/* R73.1 (گزارشِ واقعیِ کاربر): فرمِ درون‌خطیِ «نقد و بررسی‌ها» هرگز در
+جریانِ صفحه دیده نمی‌شود — دکمهٔ «ثبت دیدگاه» آن را داخلِ پاپ‌آپ نشان
+می‌دهد. عنوانِ تکراریِ هسته و پیامِ «هنوز بررسی‌ای ثبت نشده» هم حذف
+می‌شوند (سکشنِ cp3 خودش سربرگِ «دیدگاه‌ها» و خلاصهٔ امتیاز دارد). داخلِ
+مودال (بیرونِ .jluxe-cp3) فرم دوباره بلوکِ عادی است. */
+.jluxe-cp3 #review_form_wrapper { display: none; }
+.jluxe-cp3 .woocommerce-Reviews-title,
+.jluxe-cp3 .woocommerce-noreviews { display: none; }
+.jluxe-review-modal #review_form_wrapper { display: block; margin: 0; }
+.jluxe-review-modal #reply-title { display: none; }
 .jluxe-review-modal #respond { margin-top: 0; }
 .jluxe-review-modal .comment-form { border: none !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; margin: 0 !important; }
 .jluxe-review-modal .jluxe-review-moderation-note {

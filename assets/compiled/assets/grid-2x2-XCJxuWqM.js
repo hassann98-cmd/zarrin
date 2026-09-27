@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-CcZyvINn.js";import"./icons-Bg04KikE.js";var t=e(`Grid2x2`,[[`path`,{d:`M12 3v18`,key:`108xh3`}],[`path`,{d:`M3 12h18`,key:`1i2n21`}],[`rect`,{x:`3`,y:`3`,width:`18`,height:`18`,rx:`2`,key:`h1oib`}]]);export{t};
