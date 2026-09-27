@@ -545,7 +545,12 @@ function jluxeSyncVariationAvailability(form) {
 		if (group) {
 			group.querySelectorAll("[data-jluxe-variation-value]").forEach(function (btn) {
 				var value = btn.getAttribute("data-jluxe-variation-value");
-				var selectable = !!optionValues[value];
+				/* R71: رگرسیونِ R68 — کلیدِ optionValues با پیشوندِ select.name
+				ساخته می‌شود؛ خواندنِ بدونِ پیشوند همیشه undefined برمی‌گرداند
+				و «همهٔ» سواچ‌ها (چیدمانِ پیش‌فرض + مودالِ انتخابِ سریع)
+				برایِ همیشه disable می‌شدند — همان که کاربر دید. مثلِ قرص‌ها:
+				=== true فقط وقتی واقعاً موجود است. */
+				var selectable = optionValues[select.name + "|" + value] === true;
 				btn.disabled = !selectable;
 				btn.classList.toggle("jluxe-swatch-disabled", !selectable);
 				if (!selectable) { btn.removeAttribute("data-active"); }

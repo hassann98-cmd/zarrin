@@ -4329,6 +4329,43 @@ del .woocommerce-Price-amount {
 .jluxe-variant-modal-error {
   color: hsl(var(--error));
 }
+/* R71: دکمهٔ «افزودن به سبد» داخلِ مودالِ انتخابِ تنوع — دقیقاً هم‌شکلِ
+بقیهٔ دکمه‌های افزودن (R64): گردِ ۱۶px، ارتفاعِ ۴۸px، قرمزِ primary. با
+!important تا هر CSS هسته/افزونه‌ای که بعدش لود می‌شود نتواند گوشهٔ تیز یا
+رنگِ دیگری برگرداند — گزارشِ واقعیِ کاربر: «دورش گرد نیست و تیزه». */
+.jluxe-variant-modal .single_add_to_cart_button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: none !important;
+  border-radius: 16px !important;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 16px hsl(var(--primary) / 0.25);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.jluxe-variant-modal .single_add_to_cart_button:hover {
+  background: hsl(var(--primary-hover)) !important;
+  text-decoration: none;
+}
+.jluxe-variant-modal .single_add_to_cart_button:active { transform: scale(0.98); }
+/* ردیفِ تعداد + دکمه در مودال: دکمه فضای باقی‌مانده را می‌گیرد و هم‌تراز می‌ماند */
+.jluxe-variant-modal .woocommerce-variation-add-to-cart {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.jluxe-variant-modal .woocommerce-variation-add-to-cart .single_add_to_cart_button {
+  flex: 1 1 auto;
+  margin-inline-start: auto;
+}
 .jluxe-variant-modal .single_add_to_cart_button.jluxe-loading {
   opacity: 0.6;
   pointer-events: none;

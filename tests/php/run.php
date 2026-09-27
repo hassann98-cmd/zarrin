@@ -1152,4 +1152,8 @@ check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do
 check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
 check(strpos($auth_jsx,'به‌صورت خودکار برایتان ساخته می‌شود')!==false && strpos($auth_jsx,'بعد از آن ورود پیامکی مستقیم انجام می‌شود')!==false, 'R70 the first-time SMS hint now explains auto account creation (otp-only) and the link-once flow (normal mode) instead of the confusing verify-in-account-details message');
+// R71: variation-picker swatches selectable again (R68 regression) + round modal add button.
+$wc_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
+check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false && strpos($wc_js,'!!optionValues[value]')===false, 'R71 swatch availability lookup uses the select.name-prefixed map key (R68 regression made every swatch in the default layout and the quick-pick modal permanently disabled)');
+check(strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button')!==false && strpos($store_css,'border-radius: 16px !important')!==false && strpos($store_css,'background: hsl(var(--primary)) !important')!==false, 'R71 the picker modal add-to-cart button is forced to the unified rounded primary style (16px radius, 48px height) immune to core/plugin CSS order');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
