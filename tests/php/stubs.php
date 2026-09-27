@@ -149,6 +149,18 @@ function sanitize_title($value){return (string)$value;}
 function wc_clean($value){return sanitize_text_field($value);}
 function wc_stock_amount($value){return (int)$value;}
 function wc_get_product($id=0){return $GLOBALS['products'][$id]??false;}
+// R84 — توابعِ ووکامرس که هنگامِ رندرِ واقعیِ قالبِ کارت لازم می‌شوند.
+function wc_product_class($class='',$product=null,$echo=true){$css=trim('product '.$class);if($echo){echo ' class="'.htmlspecialchars($css,ENT_QUOTES).'"';}return $css;}
+function wc_get_loop_prop($prop,$default=''){return $GLOBALS['loop_props'][$prop]??$default;}
+function wc_set_loop_prop($prop,$value=''){$GLOBALS['loop_props'][$prop]=$value;}
+function wc_get_image_size($size='woocommerce_thumbnail'){return array('width'=>300,'height'=>300,'crop'=>1);}
+function wc_placeholder_img_src($size='woocommerce_thumbnail'){return home_url('/placeholder.png');}
+function wc_get_gallery_image_html($id,$main=false){return '<img src="gallery-'.(int)$id.'.jpg" alt="">';}
+function wc_get_template($name,$args=array(),$path='',$default=''){return true;}
+function wc_get_template_part($slug,$name=''){if(function_exists('jluxe_test_render_card_probe')){jluxe_test_render_card_probe($slug,$name);}return true;}
+function get_the_ID(){return $GLOBALS['current_product_id']??0;}
+function wp_get_post_terms($id,$tax,$args=array()){return $GLOBALS['post_terms'][$id][$tax]??array();}
+
 function wc_attribute_label($name,$product=null){return $name;}
 function wc_dropdown_variation_attribute_options($args=array()){$options=isset($args["options"])?$args["options"]:array();$selected=isset($args["selected"])?(string)$args["selected"]:"";echo '<select name="'.esc_attr("attribute_".(isset($args["attribute"])?$args["attribute"]:"")).'">';foreach((array)$options as $o){echo '<option value="'.esc_attr((string)$o).'"'.((string)$o===$selected?' selected':'').'>'.esc_html((string)$o).'</option>';}echo '</select>';}
 function wc_get_products($args){$GLOBALS['product_query_args']=$args;return $GLOBALS['product_query_results']??[];}
@@ -177,7 +189,6 @@ function wc_get_price_thousand_separator(){return ',';}
 function wc_price($amount){return '<span>'.$amount.'</span>';}
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
 function wp_get_attachment_image_url(...$args){return home_url('/image.jpg');}
-function wc_placeholder_img_src(...$args){return home_url('/placeholder.jpg');}
 function wp_remote_get($url,$args=[]){$GLOBALS['provider_calls']=($GLOBALS['provider_calls']??0)+1; $GLOBALS['provider_url']=$url;return $GLOBALS['provider_response']??['response'=>['code'=>200],'body'=>'{"return":{"status":200},"entries":[]}'];}
 function wp_remote_post($url,$args=[]){$GLOBALS['provider_args']=$args;$GLOBALS['http_posts'][]=['url'=>$url,'args'=>$args];$GLOBALS['provider_calls']=($GLOBALS['provider_calls']??0)+1;$GLOBALS['provider_url']=$url;if(!empty($GLOBALS['http_post_responses'])&&is_array($GLOBALS['http_post_responses'])){return array_shift($GLOBALS['http_post_responses']);}return $GLOBALS['http_post_response']??$GLOBALS['provider_response']??['response'=>['code'=>200],'body'=>''];}
 function wp_remote_retrieve_response_code($response){return $response['response']['code'];}
@@ -281,6 +292,17 @@ class WC_Product {
  function get_permalink(){return home_url('/product/'.$this->id.'/');}
  function get_short_description(){return 'Short description';}
  function get_description(){return 'Product description';}
+ // R84 — متدهایی که قالبِ کارتِ محصول (`woocommerce/content-product.php`)
+ // در زمانِ رندر صدا می‌زند. بدونِ این‌ها هیچ تستی نمی‌توانست قالب را واقعاً
+ // رندر کند و خطاهای زمانِ اجرا (مثل «Undefined constant» نسخهٔ 1.65) دیده
+ // نمی‌شدند — همان شکافی که یک باگِ واقعی را تا روی سرورِ زنده برد.
+ function is_visible(){return true;}
+ function get_variation_price($min_or_max='min'){return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
+ function get_sale_price($context='view'){return ($GLOBALS['product_prices'][$this->id]['regular']??0.0)>($GLOBALS['product_prices'][$this->id]['price']??0.0)?($GLOBALS['product_prices'][$this->id]['price']??0.0):'';}
+ function get_review_count(){return (int)($GLOBALS['product_review_counts'][$this->id]??0);}
+ function get_average_rating(){return (float)($GLOBALS['product_avg_ratings'][$this->id]??0.0);}
+ function get_gallery_image_ids(){return (array)($GLOBALS['product_gallery_ids'][$this->id]??[]);}
+ function add_to_cart_url(){return home_url('/?add-to-cart='.$this->id);}
 }
 class WooCommerce {}
 class FakeSession { public $data=[];

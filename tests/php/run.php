@@ -1244,4 +1244,136 @@ check(strpos($r74html2,'data-active=""')===false && strpos($r74html2,' selected'
 $classic74=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($classic74,'$cp3_defaults')!==false && strpos($classic74,"' is-active' : ''; ?>")!==false, 'R74 the classic pills preselect the default value server-side and out-of-stock pills carry the unavailable title');
 check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($classic74,"if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }")!==false, 'R74 the struck-out style is attribute-based (survives any JS class wipe) and the core update event can only add, never remove, the disabled state');
+
+/*
+ * R84 — the regression that reached the live store and took the product loop down.
+ *
+ * Release 1.65.0 wrote an HTML attribute INSIDE a PHP block:
+ *     <?php wc_product_class( ... ); data-jluxe-card ?>
+ * PHP reads `data` as a constant, so PHP 8 throws "Undefined constant "data""
+ * the moment a product card renders -> "critical error" on every page with a card.
+ * php -l cannot see it (the syntax is valid) and no test ever rendered the card.
+ * These two checks close both gaps.
+ */
+function jluxe_test_render_card_probe( $slug, $name ) {
+	if ( 'content' !== $slug || 'product' !== $name ) {
+		return;
+	}
+	$file = ABSPATH . 'woocommerce/content-product.php';
+	if ( is_readable( $file ) ) {
+		global $product;
+		include $file;
+	}
+}
+
+$GLOBALS['current_product_id']      = 500;
+$GLOBALS['product_review_counts']   = array( 500 => 4 );
+$GLOBALS['product_avg_ratings']     = array( 500 => 4.5 );
+$GLOBALS['product_gallery_ids']     = array( 500 => array( 991, 992, 993, 994, 995, 996 ) );
+$GLOBALS['product_prices'][500]     = array( 'price' => 90000.0, 'regular' => 120000.0 );
+$GLOBALS['products'][500]           = new WC_Product( 500 );
+$GLOBALS['product']                 = $GLOBALS['products'][500];
+wc_set_loop_prop( 'columns', 4 );
+
+$r84_thrown = '';
+$r84_html   = '';
+ob_start();
+try {
+	jluxe_test_render_card_probe( 'content', 'product' );
+	$r84_html = (string) ob_get_clean();
+} catch ( \Throwable $r84_error ) {
+	ob_end_clean();
+	$r84_thrown = get_class( $r84_error ) . ': ' . $r84_error->getMessage();
+}
+check( '' === $r84_thrown, 'R84 the product card template actually renders end to end without a runtime error: ' . ( '' !== $r84_thrown ? $r84_thrown : 'ok' ) );
+check( false !== strpos( $r84_html, 'class="product' ) && false !== strpos( $r84_html, 'Public product' ), 'R84 and it emits the product markup (the loop item and the product name are there)' );
+check( false !== strpos( $r84_html, 'data-jluxe-card-thumbs' ), 'R84 including the card effect attributes that 1.65.0 shipped broken' );
+
+/**
+ * استاتیک: «ویژگیِ HTML داخلِ کدِ PHP». این همان الگوی خطای نسخهٔ 1.65.0 است؛
+ * با token_get_all تشخیص داده می‌شود (بیرونِ PHP، متن در T_INLINE_HTML است و
+ * امن؛ داخلِ PHP، `data-foo` به T_STRING '-' T_STRING تبدیل می‌شود).
+ */
+function jluxe_test_html_attr_in_php( string $file ): array {
+	$hits   = array();
+	$tokens = @token_get_all( (string) file_get_contents( $file ) );
+	if ( ! is_array( $tokens ) ) {
+		return $hits;
+	}
+	$count = count( $tokens );
+	for ( $i = 0; $i < $count; $i++ ) {
+		$token = $tokens[ $i ];
+		if ( ! is_array( $token ) || T_STRING !== $token[0] ) {
+			continue;
+		}
+		$name = (string) $token[1];
+		if ( 'data' !== $name && 'aria' !== $name ) {
+			continue;
+		}
+		// بعدیِ معنادار باید «-» باشد و بعدش یک شناسه.
+		$j = $i + 1;
+		while ( $j < $count && is_array( $tokens[ $j ] ) && in_array( $tokens[ $j ][0], array( T_WHITESPACE, T_COMMENT ), true ) ) {
+			$j++;
+		}
+		if ( ! isset( $tokens[ $j ] ) || '-' !== $tokens[ $j ] ) {
+			continue;
+		}
+		$k = $j + 1;
+		while ( $k < $count && is_array( $tokens[ $k ] ) && in_array( $tokens[ $k ][0], array( T_WHITESPACE, T_COMMENT ), true ) ) {
+			$k++;
+		}
+		if ( ! isset( $tokens[ $k ] ) || ! is_array( $tokens[ $k ] ) || T_STRING !== $tokens[ $k ][0] ) {
+			continue;
+		}
+		$hits[] = (int) ( $token[2] ?? 0 ) . ':' . $name;
+	}
+	return $hits;
+}
+
+function jluxe_test_theme_php_files( string $dir ): array {
+	$skip  = array( 'node_modules', '.git', '.github', 'artifacts', 'dist', 'vendor', '.cache', 'coverage' );
+	$found = array();
+	$walk  = array( rtrim( $dir, '/' ) );
+	while ( ! empty( $walk ) ) {
+		$current = array_pop( $walk );
+		$entries = @scandir( $current );
+		if ( ! is_array( $entries ) ) {
+			continue;
+		}
+		foreach ( $entries as $entry ) {
+			if ( '.' === $entry || '..' === $entry ) {
+				continue;
+			}
+			$path = $current . '/' . $entry;
+			if ( is_dir( $path ) ) {
+				if ( ! in_array( $entry, $skip, true ) ) {
+					$walk[] = $path;
+				}
+				continue;
+			}
+			if ( 'php' === strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) ) ) {
+				$found[] = $path;
+			}
+		}
+	}
+	sort( $found );
+	return $found;
+}
+
+// اول ثابت کن خودِ آشکارساز درست کار می‌کند: همان خطِ نسخهٔ 1.65.0 باید پیدا شود.
+$r84_probe_file = JLUXE_THEME_DIR . '/woocommerce/zzz-attr-probe.php';
+file_put_contents( $r84_probe_file, '<?php wc_product_class( "x", \$product ); data-jluxe-card ?>' . "\n" . '<li data-jluxe-safe>ok</li>' . "\n" );
+$r84_probe_hits = jluxe_test_html_attr_in_php( $r84_probe_file );
+check( 1 === count( $r84_probe_hits ) && false !== strpos( (string) $r84_probe_hits[0], 'data' ), 'R84 the detector flags an HTML attribute written inside PHP code (the exact 1.65.0 line) and ignores the same attribute written as real HTML' );
+unlink( $r84_probe_file );
+
+$r84_offenders = array();
+foreach ( jluxe_test_theme_php_files( JLUXE_THEME_DIR ) as $r84_file ) {
+	$r84_hit = jluxe_test_html_attr_in_php( $r84_file );
+	if ( ! empty( $r84_hit ) ) {
+		$r84_offenders[] = str_replace( JLUXE_THEME_DIR, '', $r84_file ) . ' => ' . implode( ',', $r84_hit );
+	}
+}
+check( empty( $r84_offenders ), 'R84 no theme file writes an HTML attribute inside PHP code (the 1.65.0 "Undefined constant" bug): ' . implode( ' | ', $r84_offenders ) );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
