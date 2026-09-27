@@ -413,6 +413,23 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 					<?php $cp3_attr_keys = array_keys( $jluxe_variation_attributes ); ?>
 					<?php foreach ( $jluxe_variation_attributes as $cp3_attr_name => $cp3_attr_options ) : ?>
 						<?php
+						/* R65: تنوعِ ناموجود غیرقابلِ انتخاب — همان قراردادِ سواچ‌ها؛
+						   گزینهٔ فقط-ناموجود با is-disabled رندر می‌شود (حذف نمی‌شود). */
+						$cp3_stocky_options = array();
+						foreach ( (array) $jluxe_available_variations as $cp3_stocky_variation ) {
+							if ( empty( $cp3_stocky_variation['is_in_stock'] ) ) {
+								continue;
+							}
+							foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
+								$cp3_stocky_name = str_replace( 'attribute_', '', (string) $cp3_stocky_key );
+								if ( '' === (string) $cp3_stocky_value ) {
+									$cp3_stocky_options[ $cp3_stocky_name ]['*'] = true;
+								} else {
+									$cp3_stocky_options[ $cp3_stocky_name ][ (string) $cp3_stocky_value ] = true;
+								}
+							}
+						}
+
 						$cp3_attr_slug = sanitize_title( $cp3_attr_name );
 						if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
 							$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
@@ -423,7 +440,10 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 							<div class="cp3-pills" data-cp3-pills="<?php echo esc_attr( $cp3_attr_slug ); ?>">
 								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
 									<?php $cp3_opt = (string) $cp3_opt; ?>
-									<button type="button" class="cp3-pill" data-value="<?php echo esc_attr( $cp3_opt ); ?>"><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></button>
+									<?php
+										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
+									?>
+									<button type="button" class="cp3-pill<?php echo $cp3_oos ? ' is-disabled' : ''; ?>" data-value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo $cp3_oos ? ' disabled="disabled" aria-disabled="true"' : ''; ?>><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></button>
 								<?php endforeach; ?>
 								<?php if ( end( $cp3_attr_keys ) === $cp3_attr_name ) : ?>
 									<a class="reset_variations" href="#" aria-label="پاک کردن انتخاب‌ها">حذف انتخاب</a>

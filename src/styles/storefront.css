@@ -5463,6 +5463,24 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 .jluxe-pa-total { font-size: 16px; font-weight: 700; }
 .jluxe-pa-totalrow > small { font-size: 11px; }
 /* تعریفِ unified دکمه‌های افزودن به سبد (شامل jluxe-pa-confirm) در بخش R64 پایین‌تر */
+/* ── R65: تنوعِ ناموجود غیرقابلِ انتخاب — سواچ و پیل ── */
+button.jluxe-swatch-disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: auto;
+  transform: none !important;
+  filter: grayscale(0.4);
+}
+button.jluxe-swatch-disabled:hover {
+  border-color: hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--text-secondary));
+  transform: none !important;
+}
+button.jluxe-swatch-disabled[data-active] {
+  border-color: hsl(var(--border));
+  background: transparent;
+}
 /* R64 — ناحیهٔ انتخاب تنوع (صفحهٔ محصول + مودال انتخاب سریع):
 برچسبِ سایز/رنگ کمی کوچک‌تر، قیمتِ تنوع مشکی و جمع‌وجورتر */
 [data-jluxe-variation-group] > p { font-size: 11.5px; line-height: 1.7; }

@@ -486,6 +486,97 @@ function jluxeBindQtyAvailability(form) {
 jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_variations]"));
 
 /**
+ * R65: تنوعِ ناموجود هیچ‌وقت قابلِ انتخاب نیست — در همهٔ UI ها.
+ *
+ * منبعِ حقیقت: data-product_variations فرم (خروجیِ get_available_variations
+ * خودِ ووکامرس) که تنوع‌های ناموجود را هم با is_in_stock=false دارد.
+ * قانون: گزینه‌ای در ویژگیِ X «انتخاب‌پذیر» است فقط اگر تنوعی موجود باشد که
+ * هم آن مقدار را بپذیرد (مقدارِ برابر یا خالی = هرچیزی) و هم با بقیهٔ
+ * ویژگی‌های «الان انتخاب‌شده» سازگار باشد (فیلترِ تدریجیِ استاندارد).
+ * سپس وضعیت روی همهٔ رابط‌ها اعمال می‌شود: <option> خودِ select،
+ * سواچ‌ها (data-jluxe-variation-value) و قرص‌های چیدمانِ classic (cp3-pill).
+ */
+function jluxeSyncVariationAvailability(form) {
+	var raw = form.getAttribute("data-product_variations") || "[]";
+	var variations;
+	try { variations = JSON.parse(raw) || []; } catch (e) { variations = []; }
+	if (!Array.isArray(variations) || !variations.length) { return; }
+
+	var selects = form.querySelectorAll("select[name^=\"attribute_\"]");
+	selects.forEach(function (select) {
+		var name = select.getAttribute("name");
+		var current = {};
+		selects.forEach(function (other) {
+			if (other !== select && other.value) { current[other.getAttribute("name")] = other.value; }
+		});
+		var optionValues = {};
+		Array.prototype.forEach.call(select.options, function (opt) {
+			if (!opt.value) { return; }
+			var selectable = variations.some(function (v) {
+				if (!v || v.is_in_stock === false) { return false; }
+				var attrs = v.attributes || {};
+				var own = attrs[name];
+				if (own !== "" && own !== opt.value) { return false; }
+				for (var otherName in current) {
+					if (!Object.prototype.hasOwnProperty.call(current, otherName)) { continue; }
+					var otherVal = attrs[otherName];
+					if (otherVal !== "" && otherVal !== current[otherName]) { return false; }
+				}
+				return true;
+			});
+			if (!selectable && opt.disabled && !opt.hasAttribute("data-jluxe-opt-locked")) {
+				// ووکامرس ممکن است خودش گزینه‌های بدونِ هیچ تنوعِ حاضر را حذف/خاموش کرده باشد؛ برگرداندنِ دستی لازم نیست.
+			}
+			optionValues[opt.value] = selectable;
+			opt.disabled = !selectable;
+		});
+
+		// سواچ‌های همان ویژگی (چیدمان پیش‌فرض/مودال انتخاب سریع).
+		var group = select.closest("[data-jluxe-variation-group]");
+		if (group) {
+			group.querySelectorAll("[data-jluxe-variation-value]").forEach(function (btn) {
+				var value = btn.getAttribute("data-jluxe-variation-value");
+				var selectable = !!optionValues[value];
+				btn.disabled = !selectable;
+				btn.classList.toggle("jluxe-swatch-disabled", !selectable);
+				if (!selectable) { btn.removeAttribute("data-active"); }
+			});
+		}
+	});
+
+	// قرص‌های چیدمان classic (data-cp3-pills ↔ select[data-cp3-select]).
+	var root = form.closest(".jluxe-cp3") || document;
+	var cssEscape = function (value) { return (window.CSS && CSS.escape) ? CSS.escape(value) : value; };
+	form.querySelectorAll("select[name^=\"attribute_\"]").forEach(function (select) {
+		var name = (select.getAttribute("name") || "").replace(/^attribute_/, "");
+		var pillGroup = root.querySelector('[data-cp3-pills="' + cssEscape(name) + '"]');
+		if (!pillGroup) { return; }
+		pillGroup.querySelectorAll(".cp3-pill").forEach(function (pill) {
+			var value = pill.getAttribute("data-value") || "";
+			var opt = Array.prototype.find.call(select.options, function (o) { return o.value === value; });
+			var selectable = !!(opt && !opt.disabled);
+			pill.disabled = !selectable;
+			pill.classList.toggle("is-disabled", !selectable);
+			if (pill.classList.contains("is-active") && !selectable) { pill.classList.remove("is-active"); }
+		});
+	});
+}
+
+function jluxeSyncAllVariationForms() {
+	document.querySelectorAll(".variations_form[data-product_variations]").forEach(function (form) {
+		if (form.jluxeAvailabilityBound) { return; }
+		form.jluxeAvailabilityBound = true;
+		form.addEventListener("change", function () {
+			window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+		});
+		window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+	});
+}
+jluxeSyncAllVariationForms();
+document.addEventListener("DOMContentLoaded", jluxeSyncAllVariationForms);
+window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
+
+/**
  * سواچ‌های pill محصول متغیر (woocommerce/single-product/add-to-cart/variable.php):
  * کلیک روی دکمه، مقدار select واقعی (مخفی، sr-only) رو ست کرده و change
  * واقعی dispatch می‌کنه تا wc-add-to-cart-variation.js خودِ ووکامرس
@@ -505,6 +596,11 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 		var select = group.querySelector("select");
 		if (!select) {
+			return;
+		}
+
+		/* R65: سواچِ غیرقابل‌انتخاب (تنوعِ ناموجود) کلیک را نمی‌پذیرد. */
+		if (swatch.disabled || swatch.classList.contains("jluxe-swatch-disabled")) {
 			return;
 		}
 
@@ -1716,6 +1812,8 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 					'<img src="' + data.image + '" alt="" class="jluxe-variant-modal-img" />' +
 					'<a href="' + data.url + '" class="jluxe-variant-modal-title">' + data.name + "</a>";
 				modalRoot.querySelector(".jluxe-variant-modal-body").innerHTML = data.html;
+				/* R65: مودالِ تازه‌تزریق‌شده هم بلافاصله گیتِ «ناموجود = غیرقابل‌انتخاب» می‌گیرد. */
+				if (typeof window.jluxeSyncAllVariationForms === "function") { window.jluxeSyncAllVariationForms(); }
 
 				var form = modalRoot.querySelector("form.variations_form");
 				if (form && window.jQuery && window.jQuery.fn.wc_variation_form) {

@@ -197,6 +197,11 @@ function jluxe_resolve_variation_swatch( string $attr_name, string $option_slug,
 
 	if ( $is_color_attr ) {
 		$hex = jluxe_persian_color_to_hex( $option_label );
+		if ( ! $hex && '' !== trim( $option_slug ) && $option_slug !== $option_label ) {
+			// R65: تلاشِ دوم با نامکِ ترم («dark-grey») — برچسب‌هایی که خودشان
+			// در نقشه نیستند ولی نامکشان نامِ رنگِ انگلیسیِ معروفی است.
+			$hex = jluxe_persian_color_to_hex( $option_slug );
+		}
 		if ( $hex ) {
 			return array(
 				'type'  => 'color',

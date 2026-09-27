@@ -732,32 +732,46 @@ function jluxe_price_kses( string $html ): string {
  * فهرست نبود، به همون پیل متنیِ امن قبلی برمی‌گرده (چیزی حدس زده نمی‌شه).
  */
 function jluxe_persian_color_to_hex( string $name ): ?string {
-	static $map = array(
-		'سفید'      => '#FFFFFF',
-		'مشکی'      => '#18181B',
-		'سیاه'      => '#18181B',
-		'قرمز'      => '#ED1A45',
-		'آبی'       => '#1D4ED8',
-		'ابی'       => '#1D4ED8',
-		'سرمه‌ای'   => '#1E293B',
-		'سرمه ای'   => '#1E293B',
-		'سبز'       => '#16A34A',
-		'زرد'       => '#EAB308',
-		'نارنجی'    => '#F97316',
-		'صورتی'     => '#EC4899',
-		'بنفش'      => '#7C3AED',
-		'قهوه‌ای'   => '#78350F',
-		'قهوه ای'   => '#78350F',
-		'طلایی'     => '#D4AF37',
-		'نقره‌ای'   => '#C0C0C0',
-		'نقره ای'   => '#C0C0C0',
-		'طوسی'      => '#9CA3AF',
-		'خاکستری'   => '#9CA3AF',
-		'کرم'       => '#E9DFC7',
-		'بژ'        => '#E9DFC7',
-	);
-	$name = trim( $name );
-	return $map[ $name ] ?? null;
+	static $map = null;
+	static $en_map = null;
+	if ( null === $map ) {
+		$map = array(
+			'سفید' => '#FFFFFF', 'سفید صدفی' => '#F5F0E8', 'شیری' => '#F6F1E7', 'استخوانی' => '#EFEAE0',
+			'مشکی' => '#18181B', 'سیاه' => '#18181B', 'مشکی مات' => '#1C1C1E',
+			'قرمز' => '#ED1A45', 'قرمز تیره' => '#B91C1C', 'قرمز روشن' => '#F87171', 'زرشکی' => '#9F1239', 'سرخابی' => '#DB2777', 'گلبهی' => '#FDA4AF', 'هلویی' => '#FDBA96',
+			'آبی' => '#1D4ED8', 'ابی' => '#1D4ED8', 'آبی تیره' => '#1E3A8A', 'آبی سیر' => '#1E3A8A', 'آبی روشن' => '#93C5FD', 'آبی آسمانی' => '#7DD3FC', 'سرمه ای' => '#1E293B',
+			'سبز' => '#16A34A', 'سبز تیره' => '#166534', 'سبز روشن' => '#86EFAC', 'زیتونی' => '#6B8E23', 'پسته ای' => '#93C572', 'فیروزه ای' => '#2DD4BF', 'نیلی' => '#312E81', 'لاجوردی' => '#2563EB',
+			'زرد' => '#EAB308', 'زرد روشن' => '#FDE047', 'زرد تیره' => '#CA8A04', 'خردلی' => '#A16207', 'طلایی' => '#D4AF37', 'طلایی روشن' => '#E9C46A', 'طلایی تیره' => '#B8860B',
+			'نارنجی' => '#F97316', 'نارنجی روشن' => '#FDBA74', 'نارنجی سوخته' => '#C2410C', 'مسی' => '#B87333',
+			'صورتی' => '#EC4899', 'صورتی روشن' => '#F9A8D4', 'صورتی تیره' => '#BE185D',
+			'بنفش' => '#7C3AED', 'بنفش تیره' => '#5B21B6', 'بنفش روشن' => '#C4B5FD', 'یاسی' => '#A78BFA',
+			'قهوه ای' => '#78350F', 'قهوه ای روشن' => '#A16207', 'قهوه ای تیره' => '#451A03', 'شکلاتی' => '#5C3317', 'کالباسی' => '#8A3324',
+			'طوسی' => '#9CA3AF', 'طوسی تیره' => '#4B5563', 'طوسی روشن' => '#D1D5DB', 'خاکستری' => '#9CA3AF', 'خاکستری تیره' => '#4B5563', 'خاکستری روشن' => '#D1D5DB', 'دودی' => '#6B7280',
+			'نقره ای' => '#C0C0C0', 'نقره ای تیره' => '#94A3B8',
+			'کرم' => '#E9DFC7', 'کرم روشن' => '#F5EEDC', 'کرم تیره' => '#D9C9A8', 'بژ' => '#E9DFC7', 'بژ روشن' => '#F5EEDC', 'بژ تیره' => '#CBB896', 'پنبه ای' => '#F2EFE6',
+		);
+		$en_map = array(
+			'white' => '#FFFFFF', 'ivory' => '#F6F1E7', 'cream' => '#E9DFC7', 'beige' => '#E9DFC7', 'black' => '#18181B', 'charcoal' => '#374151',
+			'red' => '#ED1A45', 'dark red' => '#B91C1C', 'light red' => '#F87171', 'maroon' => '#9F1239', 'burgundy' => '#9F1239', 'wine' => '#9F1239', 'hot pink' => '#DB2777', 'pink' => '#EC4899', 'light pink' => '#F9A8D4', 'dark pink' => '#BE185D', 'rose' => '#FDA4AF', 'peach' => '#FDBA96', 'coral' => '#F97355',
+			'blue' => '#1D4ED8', 'dark blue' => '#1E3A8A', 'light blue' => '#93C5FD', 'sky blue' => '#7DD3FC', 'navy' => '#1E293B',
+			'green' => '#16A34A', 'dark green' => '#166534', 'light green' => '#86EFAC', 'olive' => '#6B8E23', 'mint' => '#93C572', 'turquoise' => '#2DD4BF', 'teal' => '#0D9488', 'indigo' => '#312E81', 'violet' => '#A78BFA',
+			'yellow' => '#EAB308', 'light yellow' => '#FDE047', 'dark yellow' => '#CA8A04', 'mustard' => '#A16207', 'khaki' => '#A16207', 'gold' => '#D4AF37', 'golden' => '#D4AF37',
+			'orange' => '#F97316', 'light orange' => '#FDBA74', 'burnt orange' => '#C2410C', 'copper' => '#B87333',
+			'purple' => '#7C3AED', 'dark purple' => '#5B21B6', 'light purple' => '#C4B5FD', 'lavender' => '#C4B5FD',
+			'brown' => '#78350F', 'light brown' => '#A16207', 'dark brown' => '#451A03', 'chocolate' => '#5C3317', 'tan' => '#D2B48C',
+			'gray' => '#9CA3AF', 'grey' => '#9CA3AF', 'dark gray' => '#4B5563', 'dark grey' => '#4B5563', 'light gray' => '#D1D5DB', 'light grey' => '#D1D5DB', 'silver' => '#C0C0C0', 'smoke' => '#6B7280',
+		);
+	}
+	/* R65: نرمال‌سازیِ کلید — نیم‌فاصله/فاصلهٔ یونیکد → فاصلهٔ ساده و فشردن؛
+	وگرنه «قهوه ای» با ZWNJِ متفاوت از نقشه جا می‌ماند. */
+	$key = trim( (string) preg_replace( '/[\x{200B}-\x{200F}\x{00A0}]/u', ' ', $name ) );
+	$key = preg_replace( '/\s+/u', ' ', $key );
+	if ( isset( $map[ $key ] ) ) {
+		return $map[ $key ];
+	}
+	/* گام دوم: نامکِ انگلیسی («dark-grey») — خطِ تیره → فاصله، حروف کوچک. */
+	$en = strtolower( (string) preg_replace( '/[-_]+/', ' ', trim( $name ) ) );
+	return $en_map[ $en ] ?? null;
 }
 
 /**
@@ -795,8 +809,14 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 	 * استفاده می‌کنن، پس دیگه هیچ‌وقت از هم جدا نمی‌افتن.
 	 */
 	$jluxe_valid_options = array();
+	$jluxe_stocky_options = array();
 	$jluxe_has_wildcard   = array();
 	foreach ( $product->get_available_variations() as $jluxe_variation ) {
+		/* R65: تنوعِ ناموجود نباید قابلِ انتخاب باشد — جدا از «معتبر»،
+		مجموعهٔ «موجود» (is_in_stock) هم ساخته می‌شود؛ گزینه‌ای که فقط در
+		تنوعِ ناموجود حاضر است، disabled رندر می‌شود (نه حذف، تا کاربر
+		بداند چنین گزینه‌ای وجود دارد اما فعلاً خریدنی نیست). */
+		$jluxe_in_stock = ! empty( $jluxe_variation['is_in_stock'] );
 		foreach ( $jluxe_variation['attributes'] as $jluxe_attr_key => $jluxe_attr_value ) {
 			$jluxe_attr_name = str_replace( 'attribute_', '', $jluxe_attr_key );
 			if ( '' === $jluxe_attr_value ) {
@@ -807,6 +827,9 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 				continue;
 			}
 			$jluxe_valid_options[ $jluxe_attr_name ][ $jluxe_attr_value ] = true;
+			if ( $jluxe_in_stock ) {
+				$jluxe_stocky_options[ $jluxe_attr_name ][ $jluxe_attr_value ] = true;
+			}
 		}
 	}
 
@@ -844,7 +867,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform hover:scale-110 active:scale-95"
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
 						>
 							<span class="size-7 rounded-full border border-black/10 shadow-inner" style="background:<?php echo esc_attr( $jluxe_swatch['value'] ); ?>"></span>
 							<span data-jluxe-variation-ring class="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-surface opacity-0"></span>
@@ -855,7 +878,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform hover:scale-110 active:scale-95"
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
 						>
 							<span class="size-7 overflow-hidden rounded-full border border-black/10 shadow-inner">
 								<img src="<?php echo esc_url( $jluxe_swatch['value'] ); ?>" alt="" class="size-full object-cover" />
@@ -868,7 +891,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary"
+							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
 						>
 							<?php echo esc_html( $option_label ); ?>
 						</button>
