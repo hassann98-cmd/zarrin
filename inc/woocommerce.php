@@ -788,6 +788,34 @@ function jluxe_is_color_attribute( string $attribute_name ): bool {
  * روی محصول متغیر در گرید، inc/woocommerce.php: jluxe_ajax_variation_picker)
  * دقیقاً یک منطق رندر داشته باشن، نه دو کپیِ جدا که ممکنه از هم جدا بیفتن.
  */
+/**
+ * R74: انتخابِ پیش‌فرضِ تنوع — همان «مقادیرِ پیش‌فرضِ فرم» خودِ ووکامرس
+ * (ویرایش محصول ← داده‌های محصول ← ویژگی‌ها ← پیش‌فرض‌ها) که کاربر خواسته
+ * «همیشه یک تنوع از قبل انتخاب شده باشد». ترکیبی که به تنوعِ ناموجود
+ * می‌رسد عمداً پیش‌فرض نمی‌شود — صفحه با حالتِ خالیِ «انتخاب کنید» می‌آید
+ * نه با یک تنوعِ از قبل بسته (دکمهٔ خریدِ غیرفعال اولین برداشتِ بد است).
+ */
+function jluxe_default_variation_pick( WC_Product $product ): array {
+	$defaults = $product->get_default_attributes();
+	if ( empty( $defaults ) || ! is_array( $defaults ) ) {
+		return array();
+	}
+	foreach ( $product->get_available_variations() as $variation ) {
+		if ( ! is_array( $variation ) || empty( $variation['is_in_stock'] ) ) { continue; }
+		$attrs = is_array( $variation['attributes'] ?? null ) ? $variation['attributes'] : array();
+		$match = true;
+		foreach ( $defaults as $name => $value ) {
+			$value = (string) $value;
+			$key   = 'attribute_' . $name;
+			if ( ! array_key_exists( $key, $attrs ) ) { $match = false; break; }
+			$own = (string) $attrs[ $key ];
+			if ( '' !== $own && $own !== $value && rawurldecode( $own ) !== rawurldecode( $value ) ) { $match = false; break; }
+		}
+		if ( $match ) { return array_map( 'strval', $defaults ); }
+	}
+	return array();
+}
+
 function jluxe_render_variation_swatches( WC_Product $product, array $variation_attributes ): void {
 	/*
 	 * باگِ واقعیِ گزارش‌شده («انتخابِ سایزِ X، ولی درخواستِ واقعی برایِ سایزِ
@@ -811,6 +839,13 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 	$jluxe_valid_options = array();
 	$jluxe_stocky_options = array();
 	$jluxe_has_wildcard   = array();
+	/* R74: پیش‌فرضِ ووکامرس برای «همیشه انتخاب‌شده بودنِ» یک تنوع. */
+	$jluxe_defaults = jluxe_default_variation_pick( $product );
+	$_jluxe_same_pick = static function ( $option, $pick ): bool {
+		$option = (string) $option;
+		$pick   = (string) $pick;
+		return '' !== $pick && ( $option === $pick || rawurldecode( $option ) === rawurldecode( $pick ) );
+	};
 	foreach ( $product->get_available_variations() as $jluxe_variation ) {
 		/* R65: تنوعِ ناموجود نباید قابلِ انتخاب باشد — جدا از «معتبر»،
 		مجموعهٔ «موجود» (is_in_stock) هم ساخته می‌شود؛ گزینه‌ای که فقط در
@@ -838,6 +873,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		$select_id        = sanitize_title( $attr_name );
 		$is_color_attr    = jluxe_is_color_attribute( $attr_name );
 		$is_taxonomy_attr = 0 === strpos( $attr_name, 'pa_' );
+		$jluxe_default_pick = isset( $jluxe_defaults[ $attr_name ] ) ? (string) $jluxe_defaults[ $attr_name ] : '';
 
 		if ( empty( $jluxe_has_wildcard[ $attr_name ] ) && ! empty( $jluxe_valid_options[ $attr_name ] ) ) {
 			$attr_options = array_values( array_filter( $attr_options, fn( $o ) => isset( $jluxe_valid_options[ $attr_name ][ $o ] ) ) );
@@ -860,6 +896,13 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 						$option_label = apply_filters( 'woocommerce_variation_option_name', $option, null, $attr_name, $product );
 					}
 					$jluxe_swatch = jluxe_resolve_variation_swatch( $attr_name, (string) $option, $option_label, $is_color_attr );
+					/* R65/R74: وضعیتِ ناموجودیِ واقعیِ هر گزینه از همان منبعِ «موجود» —
+					این دو متغیر قبلاً هرگز تعریف نشده بودند (نالِ بی‌صدا → سواچِ
+					ناموجودِ رندرشدهٔ سرور هرگز disable نمی‌شد و فقط JS جبران
+					می‌کرد؛ در فرم‌های بالای آستانه که سینک early-return می‌کند،
+					سواچ کاملاً آزاد دیده می‌شد). */
+					$jluxe_oos = ( empty( $jluxe_stocky_options[ $attr_name ]['*'] ) && ! empty( $jluxe_valid_options[ $attr_name ] ) && empty( $jluxe_stocky_options[ $attr_name ][ $option ] ) );
+					$jluxe_oos_attrs = $jluxe_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( (string) $option_label . ' (ناموجود)' ) . '"' : '';
 					?>
 					<?php if ( $jluxe_swatch && 'color' === $jluxe_swatch['type'] ) : ?>
 						<button
@@ -867,7 +910,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<span class="size-7 rounded-full border border-black/10 shadow-inner" style="background:<?php echo esc_attr( $jluxe_swatch['value'] ); ?>"></span>
 							<span data-jluxe-variation-ring class="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-surface opacity-0"></span>
@@ -878,7 +921,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<span class="size-7 overflow-hidden rounded-full border border-black/10 shadow-inner">
 								<img src="<?php echo esc_url( $jluxe_swatch['value'] ); ?>" alt="" class="size-full object-cover" />
@@ -891,7 +934,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?>
+							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<?php echo esc_html( $option_label ); ?>
 						</button>
@@ -905,6 +948,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 						'options'   => $attr_options,
 						'attribute' => $attr_name,
 						'product'   => $product,
+						'selected'  => $jluxe_default_pick,
 					)
 				);
 				?>

@@ -131,8 +131,8 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-pill:hover{border-color:hsl(var(--primary)/.5)}
 .jluxe-cp3 .cp3-pill.is-active{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground));font-weight:700}
 /* گزینه‌ای که ووکامرس در update_variation_values کارت می‌کند — مثل مرجع: کم‌رنگ + خط‌خورده */
-.jluxe-cp3 .cp3-pill.is-disabled{opacity:.45;text-decoration:line-through;cursor:not-allowed}
-.jluxe-cp3 .cp3-pill.is-disabled:hover{border-color:hsl(var(--panel-border))}
+.jluxe-cp3 .cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through;cursor:not-allowed}
+.jluxe-cp3 .cp3-pill.is-disabled:hover,.jluxe-cp3 .cp3-pill[disabled]:hover,.jluxe-cp3 .cp3-pill[aria-disabled="true"]:hover{border-color:hsl(var(--panel-border))}
 .jluxe-cp3 .cp3-pills .reset_variations{display:inline-flex;align-items:center;align-self:center;padding:6px 12px;border-radius:12px;border:1px dashed hsl(var(--panel-border));background:none;color:hsl(var(--text-muted));font-size:12px;text-decoration:none;cursor:pointer;visibility:hidden;font-family:inherit;transition:all .15s}
 .jluxe-cp3 .cp3-pills .reset_variations:hover{color:#e0405f;border-color:rgba(224,64,95,.4)}
 .jluxe-cp3 .cp3-chips-label{font-weight:700;color:hsl(var(--foreground));margin-bottom:10px}
@@ -409,6 +409,8 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 					};
 					?>
 					<?php $cp3_attr_keys = array_keys( $jluxe_variation_attributes ); ?>
+					<?php /* R74: پیش‌فرضِ ووکامرس — یک تنوع از قبل انتخاب‌شده (فقط اگر موجود باشد). */
+					$cp3_defaults = function_exists( 'jluxe_default_variation_pick' ) ? jluxe_default_variation_pick( $product ) : array(); ?>
 					<?php foreach ( $jluxe_variation_attributes as $cp3_attr_name => $cp3_attr_options ) : ?>
 						<?php
 						/* R65: تنوعِ ناموجود غیرقابلِ انتخاب — همان قراردادِ سواچ‌ها؛
@@ -428,7 +430,8 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 							}
 						}
 
-						$cp3_attr_slug = sanitize_title( $cp3_attr_name );
+						$cp3_attr_slug      = sanitize_title( $cp3_attr_name );
+						$cp3_default_pick   = isset( $cp3_defaults[ $cp3_attr_name ] ) ? (string) $cp3_defaults[ $cp3_attr_name ] : '';
 						if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
 							$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
 						}
@@ -441,7 +444,11 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 									<?php
 										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
 									?>
-									<button type="button" class="cp3-pill<?php echo $cp3_oos ? ' is-disabled' : ''; ?>" data-value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo $cp3_oos ? ' disabled="disabled" aria-disabled="true"' : ''; ?>><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></button>
+									<?php
+										$cp3_opt_label       = $cp3_option_label( $cp3_opt, $cp3_attr_name );
+										$cp3_is_default_pick = '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) );
+									?>
+									<button type="button" class="cp3-pill<?php echo $cp3_oos ? ' is-disabled' : ''; ?><?php echo ( ! $cp3_oos && $cp3_is_default_pick ) ? ' is-active' : ''; ?>" data-value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo $cp3_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( $cp3_opt_label . ' (ناموجود)' ) . '"' : ''; ?>><?php echo esc_html( $cp3_opt_label ); ?></button>
 								<?php endforeach; ?>
 								<?php if ( end( $cp3_attr_keys ) === $cp3_attr_name ) : ?>
 									<a class="reset_variations" href="#" aria-label="پاک کردن انتخاب‌ها">حذف انتخاب</a>
@@ -452,7 +459,7 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 								<option value=""><?php echo esc_html( sprintf( 'انتخاب %s', wc_attribute_label( $cp3_attr_name ) ) ); ?></option>
 								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
 									<?php $cp3_opt = (string) $cp3_opt; ?>
-									<option value="<?php echo esc_attr( $cp3_opt ); ?>"><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></option>
+									<option value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo ( '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) ) ) ? ' selected' : ''; ?>><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></option>
 								<?php endforeach; ?>
 							</select>
 							</div>
@@ -847,7 +854,12 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 				Array.prototype.forEach.call( sel.options, function ( opt ) {
 					if ( ! opt.value ) { return; }
 					var pill = pillGroup.querySelector( '.cp3-pill[data-value="' + String( opt.value ).replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ) + '"]' );
-					if ( pill ) { pill.classList.toggle( 'is-disabled', !! opt.disabled ); }
+					/* R74 (گزارشِ واقعی: «ناموجود ولی خط‌خورده نیست»): رویدادِ ووکامرس در فرم‌های
+					بالای آستانه (data-product_variations=false) «همهٔ گزینه‌ها فعال» منتشر می‌کند —
+					اگر مثل قبل toggle می‌کردیم، وضعیتِ ناموجودیِ سرور پاک می‌شد (کلاس می‌رفت ولی
+					disabled می‌ماند). این رویداد فقط فیلترِ تکمیلی است: فقط اضافه می‌کند؛ مرجعِ
+					پاک‌کردن، سینکِ موجودی (assets/js/woocommerce.js) است. */
+					if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }
 				} );
 			} );
 		} );

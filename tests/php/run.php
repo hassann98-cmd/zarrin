@@ -1018,9 +1018,9 @@ check(strpos($cp3,'.cp3-price del{font-size:18px;')!==false, 'R52 the old price 
 
 check(preg_match('/<div class="variations">\s*<select name=/',$cp3)===1 && strpos($cp3,'\'woocommerce_update_variation_values\'')!==false, 'R53 the classic pills feed the real Woo variation engine: hidden selects live inside .variations so wc-add-to-cart-variation.js can hear their change events and enable the button');
 check(strpos($cp3,'<div class="single_variation_wrap">')!==false && strpos($cp3,'class="reset_variations"')!==false && strpos($cp3,'.wc-no-matching-variations{')!==false, 'R53 the classic buy area keeps the real single_variation_wrap, a Woo reset link and a styled no-matching message so the button state machine can always recover');
-check(strpos($cp3,'if ( ! opt || opt.disabled ) { return; }')!==false && strpos($cp3,"pill.classList.toggle( 'is-disabled', !! opt.disabled )")!==false, 'R53 filtered-out variation options are struck through on the pills and can never be picked');
+check(strpos($cp3,'if ( ! opt || opt.disabled ) { return; }')!==false && strpos($cp3,"if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }")!==false, 'R74 (was R53) filtered-out options can never be picked and the core update event can only strike pills, never un-strike them');
 check(strpos($cp3,'data-cp3-thumbs-prev')!==false && strpos($cp3,'data-cp3-thumbs-next')!==false && strpos($cp3,'Math.abs( thumbsStrip.scrollLeft )')!==false && strpos($cp3,'tPrev.hidden = ! over')!==false, 'R53 the gallery thumbs strip gets RTL-safe prev/next arrows that hide themselves when nothing overflows');
-check(strpos($cp3,'.cp3-tarrow{')!==false && strpos($cp3,'.cp3-pill.is-disabled{')!==false && strpos($cp3,'.cp3-thumbsrow{')!==false, 'R53 the arrows, struck-through pills and the thumbs row have explicit reference styles');
+check(strpos($cp3,'.cp3-tarrow{')!==false && strpos($cp3,'.cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through')!==false && strpos($cp3,'.cp3-thumbsrow{')!==false, 'R53 the arrows, struck-through pills (class OR disabled attributes - R74) and the thumbs row have explicit reference styles');
 $inc_woo=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
 $urls=(string) file_get_contents(ABSPATH.'inc/urls.php');
 $presets=(string) file_get_contents(ABSPATH.'inc/theme-settings-presets.php');
@@ -1209,4 +1209,39 @@ check(strpos($store_css,'.jluxe-review-modal-backdrop')!==false && strpos($store
 check(strpos($store_css,'.jluxe-cp3 #review_form_wrapper { display: none; }')!==false && strpos($store_css,'.jluxe-cp3 .woocommerce-noreviews')!==false && strpos($store_css,'.jluxe-review-modal #review_form_wrapper { display: block;')!==false, 'R73.1 the inline core review block (form, duplicate title, no-reviews note) never renders in the page flow; the form only appears inside the popup');
 check(strpos($rev_js,'reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild)')!==false, 'R73.1 closing the popup returns the borrowed WooCommerce form to its DOM home so the popup can be reopened');
 check(strpos($store_css,'.jluxe-review-criteria-fields')!==false && strpos($store_css,'repeat(auto-fit, minmax(225px, 1fr))')!==false && strpos($store_css,'.jluxe-review-criteria-row:has(input:checked)')!==false, 'R73.2 the criteria rating rows form a responsive auto-fit grid (two columns on desktop, one on mobile) instead of stacking, and the chosen card is highlighted with :has without any JS');
+// R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
+if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
+	class JLuxe_Var_Product extends WC_Product {
+		public $jluxe_rows = array();
+		public $jluxe_defs = array();
+		function get_available_variations() { return $this->jluxe_rows; }
+		function get_default_attributes() { return $this->jluxe_defs; }
+	}
+}
+$p74oos = new JLuxe_Var_Product(740);
+$p74oos->jluxe_defs = array( 'pa_rang' => 'bone' );
+$p74oos->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_pa_rang' => 'bone' ), 'is_in_stock' => false ),
+	array( 'attributes' => array( 'attribute_pa_rang' => 'red' ), 'is_in_stock' => true ),
+);
+check(array() === jluxe_default_variation_pick( $p74oos ), 'R74 a default combo whose variation is out of stock is NOT preselected (the page opens on the empty choose state)');
+$p74ok = new JLuxe_Var_Product(741);
+$p74ok->jluxe_defs = array( 'pa_rang' => 'bone' );
+$p74ok->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_pa_rang' => 'bone' ), 'is_in_stock' => true ),
+	array( 'attributes' => array( 'attribute_pa_rang' => 'red' ), 'is_in_stock' => true ),
+);
+check(array( 'pa_rang' => 'bone' ) === jluxe_default_variation_pick( $p74ok ), 'R74 WooCommerce default form values are honored when the combo matches an in-stock variation');
+if ( ! function_exists( 'jluxe_resolve_variation_swatch' ) ) { require_once ABSPATH . 'inc/attribute-swatches.php'; }
+ob_start();
+jluxe_render_variation_swatches( $p74ok, array( 'pa_rang' => array( 'bone', 'red' ) ) );
+$r74html = ob_get_clean();
+check(strpos($r74html,'data-active=""')!==false && strpos($r74html,' selected')!==false, 'R74 the swatch renderer preselects the default value (data-active swatch + selected hidden select) so the page opens with a chosen variation');
+ob_start();
+jluxe_render_variation_swatches( $p74oos, array( 'pa_rang' => array( 'bone', 'red' ) ) );
+$r74html2 = ob_get_clean();
+check(strpos($r74html2,'data-active=""')===false && strpos($r74html2,' selected')===false, 'R74 with an out-of-stock default nothing is preselected');
+$classic74=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+check(strpos($classic74,'$cp3_defaults')!==false && strpos($classic74,"' is-active' : ''; ?>")!==false, 'R74 the classic pills preselect the default value server-side and out-of-stock pills carry the unavailable title');
+check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($classic74,"if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }")!==false, 'R74 the struck-out style is attribute-based (survives any JS class wipe) and the core update event can only add, never remove, the disabled state');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
