@@ -22,19 +22,24 @@ export const MANIFEST_PATH = "docs/FILES.sha256";
 const SKIP = new Set([MANIFEST_PATH]);
 
 export function buildManifest(root) {
-  const files = execFileSync("git", ["ls-files", "-z"], { cwd: root })
+  // tracked + freshly built (untracked) files: a build replaces the hashed asset
+  // names, so the manifest must describe the tree as it exists right now.
+  const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: root })
     .toString()
     .split("\0")
     .filter(Boolean)
     .filter((file) => !SKIP.has(file))
     .filter((file) => !file.endsWith(".zip"))
     .sort();
-  const lines = files.map((file) => {
-    const hash = createHash("sha256")
-      .update(fs.readFileSync(path.join(root, file)))
-      .digest("hex");
-    return `${hash}  ${file}`;
-  });
+  const lines = [];
+  for (const file of files) {
+    const abs = path.join(root, file);
+    // git may still list build outputs that `vite build` just replaced/removed;
+    // the manifest describes what actually ships, so missing paths are skipped.
+    if (!fs.existsSync(abs)) continue;
+    const hash = createHash("sha256").update(fs.readFileSync(abs)).digest("hex");
+    lines.push(`${hash}  ${file}`);
+  }
   return `${lines.join("\n")}\n`;
 }
 

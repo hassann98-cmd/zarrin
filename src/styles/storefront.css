@@ -3263,7 +3263,12 @@ JS فقط دو متغیرِ CSS را ست می‌کند (یک لیسنرِ deleg
     display: none;
   }
 }
-img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]) {
+/* R80 (PSI: «element render delay 1,110ms» روی عکسِ LCP): قاعدهٔ اسکلتون
+روی همهٔ تصاویرِ بدونِ کلاس اجرا می‌شد — از جمله عکسِ هیرو که لبهٔ LCP است.
+انیمیشنِ بی‌پایانِ opacity روی خودِ عنصرِ LCP یعنی رنگ‌آمیزیِ نهاییِ آن مدام
+عقب می‌افتد. حالا تصویرِ eager/priority-high اصلاً اسکلتون نمی‌گیرد (همان
+تصویر است که باید فوراً دیده شود؛ شیمر برای تصاویرِ lazy معنا دارد). */
+img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"]) {
   background: linear-gradient(
     100deg,
     hsl(var(--muted)) 35%,
@@ -3288,7 +3293,7 @@ img.jluxe-img-loaded {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]) {
+  img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"]) {
     animation: none;
     background-color: hsl(var(--border));
   }

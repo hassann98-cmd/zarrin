@@ -1286,6 +1286,18 @@ foreach ( $r80_defs as $file => $src ) {
 	}
 }
 check(empty( $r80_missing ), 'R80 no shipped template calls a helper that the package does not define' . ( $r80_missing ? ' — missing: '.implode(', ', array_slice($r80_missing,0,5)) : '' ));
+
+// R80 (b): llms.txt must be a real Markdown answer with an H1, served by the theme
+// because the theme cannot write a physical file into the site root.
+$r80_llms = (string) file_get_contents(ABSPATH.'inc/llms-txt.php');
+check(strpos($r80_llms,'function jluxe_serve_llms_txt')!==false && strpos($r80_llms,"add_action( 'template_redirect', 'jluxe_serve_llms_txt', 0 )")!==false && strpos($r80_llms,"'/llms.txt' !== untrailingslashit( \$path )")!==false, 'R80 /llms.txt is served on the exact path only, before the template loads (a real file in the site root still wins, since the web server answers first)');
+check(strpos($r80_llms,"header( 'Content-Type: text/plain; charset=utf-8' )")!==false && strpos($r80_llms,'Status 200')===false && strpos($r80_llms,'status_header( 200 )')!==false && strpos($r80_llms,"in_array( \$method, array( 'GET', 'HEAD' ), true )")!==false, 'R80 llms.txt answers GET/HEAD as text/plain with an explicit 200 and a one-hour cache lifetime');
+$r80_body = jluxe_llms_txt_content();
+check(strpos($r80_body,'# Audit shop')===0 && strpos($r80_body,'> Audit shop')!==false && strpos($r80_body,'## صفحاتِ اصلی')!==false && strpos($r80_body,'- [صفحهٔ اصلی](')!==false && strpos($r80_body,'sitemap_index.xml')!==false, 'R80 the generated file starts with an H1 (llmstxt.org requirement), carries the site summary and the real main links, and says honestly that the catalogue is HTML-only');
+
+// R80 (c): the LCP image must not carry the shimmer's opacity animation — that was
+// the measured 1,110ms element render delay.
+check(strpos($store_css,'img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"])')!==false && substr_count($store_css,':not([fetchpriority="high"])')===2, 'R80 the skeleton shimmer is scoped off eager/priority-high images (the LCP hero) in both the normal and reduced-motion rules, so the largest paint is no longer opacity-animated');
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {
