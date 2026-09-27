@@ -3936,6 +3936,35 @@ input.jluxe-qty-fa-input {
   direction: ltr;
   unicode-bidi: isolate;
 }
+/* ── R67: قیمت همیشه مشکی — سبزِ پیش‌فرضِ خودِ ووکامرس (#77a464 روی
+p.price و ins در woocommerce-general) ممنوع. حذفِ آن استایل‌شیت ممکن
+نیست (نیازهای دیگرش)، پس رنگ‌ها صریحاً به رنگِ متن/موتد برمی‌گردند. ── */
+.woocommerce div.product p.price,
+.woocommerce div.product span.price,
+.woocommerce-variation-price,
+.woocommerce-variation-price .amount,
+.price,
+.price .amount,
+p.price {
+  color: hsl(var(--foreground));
+}
+.woocommerce div.product p.price ins,
+.woocommerce div.product span.price ins,
+.woocommerce-variation-price ins,
+.price ins,
+ins .woocommerce-Price-amount {
+  color: hsl(var(--foreground)) !important;
+  text-decoration: none;
+}
+.woocommerce div.product p.price del,
+.woocommerce div.product span.price del,
+.woocommerce-variation-price del,
+.price del,
+del .woocommerce-Price-amount {
+  color: hsl(var(--text-muted)) !important;
+  font-weight: 400;
+  text-decoration: line-through;
+}
 /* R64: گلیف تومان همیشه سمتِ چپِ عدد — bdi با direction:ltr موجود، حالا
 flex row-reverse است: عدد (اولین فرزند DOM) در راست، گلیف (دومین) در چپ.
 در هر بافتی (صفحهٔ محصول، کارت، مودال، نوار چسبان) بدونِ وابستگی به bidi. */
