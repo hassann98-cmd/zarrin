@@ -1234,6 +1234,23 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			showToast(name ? name + " به سبد خرید اضافه شد" : "محصول به سبد خرید اضافه شد");
 		}
 		animateAddToCart(button);
+		/* R63 (فاز ۲): Quick Add واقعی روی دکمهٔ دایره‌ای کارت — آیکون +
+		تبدیل به تیک و برچسبِ «به سبد اضافه شد»، بعدِ ~۲ ثانیه بازگشت.
+		(بجِ سبد/مینی‌کارت توسطِ رویدادِ jluxe:cart-updatedِ همین هندلر —
+		چند خط پایین‌تر — از مسیرِ REST رفرش می‌شود.) */
+		if (button && button.classList && button.classList.contains("add_to_cart_button")) {
+			if (button._jluxeAddedTimer) { window.clearTimeout(button._jluxeAddedTimer); button._jluxeAddedTimer = null; }
+			if (button.dataset.jluxeOrigHtml === undefined) { button.dataset.jluxeOrigHtml = button.innerHTML; }
+			button.classList.add("jluxe-btn-added");
+			button.setAttribute("aria-label", "به سبد اضافه شد");
+			button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="size-4"><path d="m5 12 5 5 9-10"/></svg>';
+			button._jluxeAddedTimer = window.setTimeout(function () {
+				button.classList.remove("jluxe-btn-added");
+				button.setAttribute("aria-label", "افزودن به سبد خرید");
+				button.innerHTML = button.dataset.jluxeOrigHtml;
+				button._jluxeAddedTimer = null;
+			}, 2200);
+		}
 		/*
 		 * باگِ واقعیِ گزارش‌شده («لگ زیاد موقعِ افزودن به سبد، دوباره‌کلیک
 		 * لگِ بیشتر»): سرورِ این سایت روی هر دورِ رفت‌وبرگشتِ AJAX ~۱.۵
@@ -1280,16 +1297,26 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		if (!modal || modal.getAttribute("data-cp3-pa-bound") === "1") { return; }
 		modal.setAttribute("data-cp3-pa-bound", "1");
 
+		var releaseDialogFocus = null;
 		window.jluxeOpenSuggestedProductsModal = function () {
 			modal.classList.remove("hidden");
 			modal.setAttribute("aria-hidden", "false");
 			document.body.style.overflow = "hidden";
+			/* R63 (فاز ۶): تلهٔ فوکوسِ مشترک (storefront-utils.js) — Tab داخل
+			شیت می‌ماند، فوکوس اول به خودِ مودال می‌رود و بعد از بستن به
+			عنصرِ قبلی برمی‌گردد. */
+			if (!releaseDialogFocus && window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.activateDialog === "function") {
+				releaseDialogFocus = window.JLuxeStorefrontUtils.activateDialog(modal.querySelector(".jluxe-pa-sheet") || modal, function () {
+					if (typeof window.jluxeCloseSuggestedProductsModal === "function") { window.jluxeCloseSuggestedProductsModal(); }
+				});
+			}
 		};
 
 		function closeSuggestedProductsModal() {
 			modal.classList.add("hidden");
 			modal.setAttribute("aria-hidden", "true");
 			document.body.style.overflow = "";
+			if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
 		}
 		window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
 

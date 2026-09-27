@@ -1877,7 +1877,26 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 				<?php endif; ?>
 			</div>
 
-			<footer class="jluxe-pa-foot">
+				<footer class="jluxe-pa-foot">
+			<?php
+			/* R63 (فاز ۲): خلاصهٔ سبدِ واقعی پس از افزودن (شمارش + مبلغ) و
+			دو کنشِ [مشاهده سبد] و [ادامه خرید] — بدونِ redirect خودکار؛
+			ادامه خرید فقط مودال را می‌بندد. */
+			$cart_count = function_exists( 'WC' ) && WC()->cart ? (int) WC()->cart->get_cart_contents_count() : 0;
+			$cart_total = function_exists( 'WC' ) && WC()->cart ? (float) WC()->cart->get_total( 'edit' ) : 0.0;
+			$cart_url   = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '';
+			?>
+			<?php if ( $cart_count > 0 ) : ?>
+				<div class="jluxe-pa-cartline">
+					<span class="jluxe-pa-cartinfo">سبد شما: <?php echo esc_html( jluxe_fa_digits( $cart_count ) ); ?> کالا · <?php echo esc_html( jluxe_fa_digits( number_format( $cart_total, 0, '.', ',' ) ) ); ?> <?php echo esc_html( $unit ); ?></span>
+				</div>
+			<?php endif; ?>
+			<div class="jluxe-pa-actions">
+				<?php if ( '' !== $cart_url ) : ?>
+					<a class="jluxe-pa-viewcart" href="<?php echo esc_url( $cart_url ); ?>">مشاهده سبد</a>
+				<?php endif; ?>
+				<button type="button" class="jluxe-pa-continue" data-jluxe-suggested-close>ادامه خرید</button>
+			</div>
 				<span class="jluxe-pa-totalwrap">
 					<small>مبلغ قابل پرداخت</small>
 					<span class="jluxe-pa-totalrow">

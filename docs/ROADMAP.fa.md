@@ -10,12 +10,12 @@
 
 | فاز | نسخه | محتوا | وضعیت |
 |---|---|---|---|
-| ۱ — Performance | **1.56** | Asset manager، کش مگامنو، resource hints، image pipeline، کاهش JS | **شروع شد (R62)** |
-| ۲ — خرید | 1.57 | Quick Add، مودال پیشنهاد تکمیل‌تر، Sticky Cart، Variable UX، مینی‌کارت | باز |
-| ۳ — Search | 1.58 | Instant Search کامل، نرمال‌سازی فارسی، typo tolerance | باز |
-| ۴ — AI | 1.59 | GapGPT gateway، RAG محصولات، پشتیبانی، AI Review Summary | باز |
-| ۵ — UI | 1.60 | Design System، هدر، کارت‌ها، فوتر، میکرواینترکشن | باز |
-| ۶ — SEO/A11y | 1.61 | Semantic audit، WCAG، CWV، محتوای ساخت‌یافته، FAQ | باز |
+| ۱ — Performance | 1.56 | Asset manager، کش مگامنو، resource hints، image pipeline، کاهش JS | **R62-R63 ✓** (registry/dedupe هم اضافه شد؛ تولیدِ AVIF سمتِ میزبان باقی است) |
+| ۲ — خرید | 1.57 | Quick Add، مودال پیشنهاد تکمیل‌تر، Sticky Cart، Variable UX، مینی‌کارت | **R63 ✓** (فوترِ سبد + تیکِ quick-add؛ بقیه از قبل بود) |
+| ۳ — Search | 1.58 | Instant Search کامل، نرمال‌سازی فارسی، typo tolerance | **R63: نرمال‌سازی ✓** (ی/ک/ة/اعراب/نیم‌فاصله)؛ typo tolerance کامل باز |
+| ۴ — AI | 1.59 | GapGPT gateway، RAG محصولات، پشتیبانی، AI Review Summary | **بازبینی شد: هسته از قبل برقرار** (tools + گیت سفارش/موبایل + خلاصهٔ نظرات) |
+| ۵ — UI | 1.60 | Design System، هدر، کارت‌ها، فوتر، میکرواینترکشن | **R63: توکن‌ها + hover guard + هدر فشرده ✓**؛ بازطراحی کامل باز |
+| ۶ — SEO/A11y | 1.61 | Semantic audit، WCAG، CWV، محتوای ساخت‌یافته، FAQ | **R63: skip-link + focus trap ✓**؛ WCAG کامل باز |
 
 ## آیتم‌های فاز ۱ و وضعیت کد
 
@@ -25,7 +25,7 @@
 | 2 | Asset Loading per page (سیستماتیک، جدول صفحه→asset) | **R62 ✓** | `inc/assets.php`: `jluxe_page_context` + برنامهٔ فیلترپذیر `jluxe_asset_plan` + dequeue مرکزی؛ `wc-cart-fragments` همیشه خاموش (مینی‌کارت REST-based است) |
 | 3 | API deduplication در SPA (request واحد برای posts/categories/brands/products + data registry) | باز | جزو فاز ۱؛ نیازمند بازبینی island ها — ریسک کم، ولی دامنه‌اش با مالک چک شود |
 | 4 | Resource hints هوشمند (فقط LCP/فونت/preconnect) | بخشاً ✓ | preload فونت‌ها (`functions.php`) و preload دو-مدیاییِ هیرو با `fetchpriority` از قبل هست؛ preconnect برای REST بی‌معناست (same-origin) — چیزِ بی‌دلیل اضافه نشد |
-| 5 | Image pipeline (WebP/AVIF، srcset/sizes واقعی، LCP high، بقیه lazy، `content-visibility`) | باز | تصمیمِ تولیدِ نسخه‌های AVIF سمتِ سرورِ میزبان لازم دارد |
+| 5 | Image pipeline | بخشاً ✓ | srcset/sizes واقعی + eager/LCP اولین کارت از قبل هست (R56)؛ تولیدِ WebP/AVIF سمتِ میزبان باقی است |
 
 ## آیتم‌های فاز ۲ (خرید) — وضعیت فعلی
 

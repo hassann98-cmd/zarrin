@@ -297,6 +297,7 @@ class FakeCart {
  function get_product_subtotal($product,$qty){return '100';}
  function get_applied_coupons(){return [];}
  function get_cart_contents_count(){return array_sum(array_column($this->items,'quantity'));}
+ function get_total($context='view'){return 1250000.0;}
  function get_subtotal(){return 100;}
  function get_discount_total(){return 0;}
 }

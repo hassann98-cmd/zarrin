@@ -105,3 +105,37 @@ export async function restRequest(
   }
   return data;
 }
+
+/**
+ * R63 (فاز ۱): registry یکپارچهٔ درخواست‌های GET — کلیدِ واحد، یک fetch.
+ * چند island که هم‌زمان همان داده را می‌خواهند (محصولات/دسته‌ها/برندها)
+ * یک Promise مشترک می‌گیرند؛ نتیجه تا ttl در حافظه می‌ماند و خطا کش
+ * نمی‌شود. زیرساختِ data-registry سمتِ JS — caller ها فقط fetcher می‌دهند.
+ */
+const inflightGets = new Map();
+const resolvedGets = new Map();
+
+export function dedupeGet(key, fetcher, { ttl = 30_000, now = Date.now } = {}) {
+  const cached = resolvedGets.get(key);
+  if (cached && now() - cached.at < ttl) return cached.promise;
+  resolvedGets.delete(key);
+  const pending = inflightGets.get(key);
+  if (pending) return pending;
+  const promise = Promise.resolve()
+    .then(fetcher)
+    .then((value) => {
+      resolvedGets.set(key, { promise, at: now() });
+      return value;
+    })
+    .finally(() => {
+      inflightGets.delete(key);
+    });
+  inflightGets.set(key, promise);
+  return promise;
+}
+
+/** فقط برای تست‌ها — وضعیتِ registry را خالی می‌کند. */
+export function resetDedupeGet() {
+  inflightGets.clear();
+  resolvedGets.clear();
+}

@@ -7,11 +7,34 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * نرمال‌سازیِ عبارتِ جستجوی فارسی — ي/ی، ك/ک، ك/کِ عربی، ة/ه، حذفِ اعراب،
+ * نیم‌فاصله/فاصله‌های اضافی → یک فاصله. (خروجی برای LIKE و name__like.)
+ */
+function jluxe_normalize_persian_query( string $term ): string {
+	$term = str_replace( array( 'ي', 'ﻱ', 'ﻲ' ), 'ی', $term );
+	$term = str_replace( array( 'ك', 'ﻙ', 'ﻚ' ), 'ک', $term );
+	$term = str_replace( 'ة', 'ه', $term );
+	// حذفِ اعراب/تشدید (U+064B تا U+0652 و U+0670).
+	$term = preg_replace( '/[\x{064B}-\x{0652}\x{0670}]/u', '', $term );
+	// نیم‌فاصله (ZWNJ/ZWJ) و هر نوع فاصلهٔ یونیکد → فاصلهٔ ساده.
+	$term = preg_replace( '/[\x{200B}-\x{200F}\x{202A}-\x{202E}\x{00A0}]/u', ' ', $term );
+	$term = preg_replace( '/\s+/u', ' ', $term );
+	return trim( (string) $term );
+}
+
 function jluxe_ajax_search(): void {
 	check_ajax_referer( 'jluxe_search', 'nonce' );
 
 	$term = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 	$term = trim( $term );
+
+	/* R63 (فاز ۳): نرمال‌سازیِ فارسیِ عبارتِ جستجو — کاربر ممکن است با
+	«ي/ي عربی»، «ك عربی»، نیم‌فاصله یا فاصله‌های اضافی تایپ کند؛ درخواستِ
+	LIKE کاملاً به شکلِ کاراکترها حساس است. یکسان‌سازیِ ی/ك/ة + تبدیلِ
+	نیم‌فاصله به فاصله + فشردنِ فاصله‌ها، عبارت را با محتوای دیتابیس
+	هم‌شکل می‌کند (عنوان‌ها خودشان فارسیِ استانداردند). */
+	$term = jluxe_normalize_persian_query( $term );
 
 	if ( mb_strlen( $term ) < 2 ) {
 		wp_send_json_success(

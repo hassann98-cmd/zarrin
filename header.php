@@ -33,6 +33,7 @@
 	شیشه‌ای (glassmorphism) — نسخه‌ی استاندارد (بلور + شفافیت + خط ظریف روشن)، چون به HTML
 	واقعی هدر d.acchi.ir دسترسی نداشتم (دسترسی کروم به این دامنه مسدود بود) تا دقیق کپی کنم.
 -->
+<a class="jluxe-skip-link" href="#primary">پرش به محتوای اصلی</a>
 <header id="masthead" class="site-header">
 	<!--
 		ترتیب DOM عمدیه: اکشن‌ها (سرچ/حساب/سبد) اول، لوگو دوم. توی dir="rtl" با flex

@@ -1069,4 +1069,18 @@ $GLOBALS['objcache']['jluxe']['jluxe_mega_menu_tree_v1']=array('x');
 jluxe_clear_mega_menu_cache(3,'post_tag');
 jluxe_clear_mega_menu_cache(3,'product_cat');
 check(!isset($GLOBALS['transients']['jluxe_mega_menu_tree_v1']) && !isset($GLOBALS['objcache']['jluxe']['jluxe_mega_menu_tree_v1']), 'R62 invalidation clears both cache layers but only for the product_cat taxonomy');
+// R63: cross-phase batch — search normalization, modal cart footer, quick-add state, focus trap, dedupe registry, design tokens, hover guard, condensed header, skip link.
+$search_php=(string) file_get_contents(ABSPATH.'inc/search.php');
+$store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$utils_js=(string) file_get_contents(ABSPATH.'assets/js/storefront-utils.js');
+$header_tpl=(string) file_get_contents(ABSPATH.'header.php');
+$functions_php=(string) file_get_contents(ABSPATH.'functions.php');
+check(strpos($search_php,'function jluxe_normalize_persian_query')!==false && strpos($search_php,"str_replace( array( 'ي', 'ﻱ', 'ﻲ' ), 'ی'")!==false && strpos($search_php,'$term = jluxe_normalize_persian_query( $term );')!==false, 'R63 the live search normalizes the query: Arabic yeh/kaf to Persian, diacritics removed, ZWNJ/extra spaces collapsed before LIKE and name__like');
+check(strpos($woo_inc,'jluxe-pa-cartline')!==false && strpos($woo_inc,'سبد شما:')!==false && strpos($woo_inc,'jluxe-pa-viewcart')!==false && strpos($woo_inc,'data-jluxe-suggested-close>ادامه خرید</button>')!==false && strpos($woo_inc,"function_exists( 'WC' ) && WC()->cart ? (int) WC()->cart->get_cart_contents_count()")!==false, 'R63 the suggested modal footer shows the real cart summary (count + total, digits+unit) with view-cart and continue-shopping actions and no redirect');
+check(strpos($woo_js,'jluxe-btn-added')!==false && strpos($woo_js,'به سبد اضافه شد')!==false && strpos($woo_js,'button.classList.contains("add_to_cart_button")')!==false, 'R63 the card quick-add button flips to a checkmark with an added-to-cart label and reverts after ~2s');
+check(strpos($woo_js,'window.JLuxeStorefrontUtils.activateDialog')!==false && strpos($woo_js,'releaseDialogFocus')!==false, 'R63 the suggested modal traps focus via the shared activateDialog helper and restores focus on close');
+check(strpos((string) file_get_contents(ABSPATH.'src/lib/api.js'),'export function dedupeGet')!==false && strpos($utils_js,'jluxe-header-condensed')!==false, 'R63 the JS data registry (dedupeGet single-flight + ttl cache) exists and the header condenses on scroll via storefront-utils');
+check(strpos($functions_php,'--jluxe-primary:hsl(var(--primary))')!==false && strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,15,30,0.06)')!==false, 'R63 the central design tokens (--jluxe-primary/surface/border/radii/shadows) ship in the static :root block');
+check(strpos($store_css,'@media (hover: hover)')!==false && strpos($store_css,'.jluxe-card-shine:hover')!==false && strpos($store_css,'.jluxe-btn-added { background: hsl(var(--primary))')!==false && strpos($store_css,'.jluxe-pa-viewcart')!==false, 'R63 the card shine hover is guarded by (hover: hover) and the new footer/quick-add styles exist in storefront.css');
+check(strpos($header_tpl,'jluxe-skip-link')!==false && strpos($header_tpl,'href="#primary"')!==false && strpos($store_css,'.jluxe-skip-link:focus-visible')!==false, 'R63 a real skip-to-content link targets the main landmark and only appears on keyboard focus');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

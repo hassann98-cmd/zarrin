@@ -13,6 +13,8 @@ import {
   siteLink,
   getSession,
   restRequest,
+  dedupeGet,
+  resetDedupeGet,
 } from "../src/lib/api.js";
 
 const root = "https://shop.test/store/";
@@ -363,4 +365,49 @@ test("Payment selection survives WooCommerce checkout fragment updates", () => {
   radio = { value: "bank", checked: false };
   context.clearAutoSelectedPaymentMethod();
   assert.equal(radio.checked, true, "explicit choice can also be restored");
+});
+
+test("dedupeGet shares one fetch between concurrent same-key callers and caches within ttl", async () => {
+  resetDedupeGet();
+  let calls = 0;
+  const fetcher = async () => {
+    calls += 1;
+    return { items: ["a", "b"] };
+  };
+  const [r1, r2, r3] = await Promise.all([
+    dedupeGet("home:data", fetcher),
+    dedupeGet("home:data", fetcher),
+    dedupeGet("home:data", fetcher),
+  ]);
+  assert.equal(calls, 1, "concurrent same-key callers share a single fetch");
+  assert.deepEqual(r1, r2);
+  assert.deepEqual(r3, { items: ["a", "b"] });
+
+  assert.deepEqual(await dedupeGet("home:data", fetcher), {
+    items: ["a", "b"],
+  });
+  assert.equal(calls, 1, "resolved value is cached within ttl");
+
+  const other = await dedupeGet("other:key", async () => {
+    calls += 1;
+    return { ok: true };
+  });
+  assert.deepEqual(other, { ok: true });
+  assert.equal(calls, 2, "a different key triggers its own fetch");
+
+  resetDedupeGet();
+  await dedupeGet("home:data", fetcher);
+  assert.equal(calls, 3, "cache reset forces a fresh fetch");
+});
+
+test("dedupeGet does not cache rejections", async () => {
+  resetDedupeGet();
+  let calls = 0;
+  const failing = async () => {
+    calls += 1;
+    throw new Error("network");
+  };
+  await assert.rejects(dedupeGet("flaky", failing));
+  await assert.rejects(dedupeGet("flaky", failing));
+  assert.equal(calls, 2, "failed requests are retried, never cached");
 });

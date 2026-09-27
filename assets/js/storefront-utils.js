@@ -69,5 +69,24 @@
       if (previous && previous.isConnected && previous.focus) previous.focus({ preventScroll: true });
     };
   }
+  /* R63 (فاز ۵): هدر روی اسکرول کمی جمع/سایه‌دار می‌شود — ظریف، بدونِ
+  جابه‌جاییِ layout (فقط سایه + فشرده‌سازیِ ردیفِ اول با کلاس). */
+  try {
+    var masthead = document.getElementById('masthead');
+    if (masthead && !masthead.dataset.jluxeCondenseBound) {
+      masthead.dataset.jluxeCondenseBound = '1';
+      var condenseTick = false;
+      var condenseUpdate = function () {
+        condenseTick = false;
+        masthead.classList.toggle('jluxe-header-condensed', (root.scrollY || 0) > 96);
+      };
+      root.addEventListener('scroll', function () {
+        if (condenseTick) return;
+        condenseTick = true;
+        root.requestAnimationFrame(condenseUpdate);
+      }, { passive: true });
+      condenseUpdate();
+    }
+  } catch (e) { /* هدرِ حاضر نبود = هیچ. */ }
   root.JLuxeStorefrontUtils = Object.freeze({ normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));

@@ -254,7 +254,7 @@ function jluxe_output_critical_css(): void {
 	echo '<style id="jluxe-critical-css">';
 	echo jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجیِ خودِ این تابع با esc_attr روی مقادیر امنه.
 	// توکن‌های ثابت (غیرِقابل‌تنظیم از پنل) — عیناً از globals.css:root کپی شده.
-	echo ':root{--foreground:225 6% 13%;--surface:0 0% 100%;--surface-foreground:225 6% 13%;--surface-elevated:270 16% 93%;--text-secondary:240 5% 43%;--text-muted:240 5% 58%;--muted:270 16% 93%;--muted-foreground:240 5% 43%;--border:264 15% 87%;--warning:38 92% 42%;--warning-foreground:225 6% 13%;--error:0 72% 45%;--error-foreground:0 0% 100%;--radius:0.5rem}';
+	echo ':root{--jluxe-primary:hsl(var(--primary));--jluxe-surface:hsl(var(--surface));--jluxe-border:hsl(var(--border));--jluxe-radius-sm:0.5rem;--jluxe-radius-md:0.75rem;--jluxe-radius-lg:1rem;--jluxe-shadow-sm:0 1px 2px rgba(15,15,30,0.05);--jluxe-shadow-card:0 4px 16px rgba(15,15,30,0.06);--foreground:225 6% 13%;--surface:0 0% 100%;--surface-foreground:225 6% 13%;--surface-elevated:270 16% 93%;--text-secondary:240 5% 43%;--text-muted:240 5% 58%;--muted:270 16% 93%;--muted-foreground:240 5% 43%;--border:264 15% 87%;--warning:38 92% 42%;--warning-foreground:225 6% 13%;--error:0 72% 45%;--error-foreground:0 0% 100%;--radius:0.5rem}';
 	echo 'html{direction:rtl}body{font-family:"IRANYekan","Tahoma",sans-serif;text-align:right;background-color:hsl(var(--background));color:hsl(var(--foreground))}';
 	foreach ( array(
 		'400' => 'src/assets/fonts/IRANYekanMobileRegular.woff2',

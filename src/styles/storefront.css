@@ -3137,10 +3137,13 @@ html {
     -webkit-mask-position 0.9s ease-out,
     mask-position 0.9s ease-out;
 }
-.jluxe-card-shine:hover,
-.group:hover .jluxe-card-shine {
-  -webkit-mask-position: -20% -20%;
-  mask-position: -20% -20%;
+/* R63: hover فقط برای دستگاه‌های واقعاً هاوردار — موبایل افکت hover ندارد. */
+@media (hover: hover) {
+  .jluxe-card-shine:hover,
+  .group:hover .jluxe-card-shine {
+    -webkit-mask-position: -20% -20%;
+    mask-position: -20% -20%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .jluxe-card-shine {
@@ -5453,6 +5456,22 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 .jluxe-pa-confirm { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 20px; border: none; border-radius: 16px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px hsl(var(--primary) / 0.25); transition: background-color 0.15s ease; font-family: inherit; }
 .jluxe-pa-confirm:hover { background: hsl(var(--primary-hover)); }
 .jluxe-pa-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+/* R63 (فاز ۲) — فوترِ مودالِ پیشنهاد: خلاصهٔ سبد + [مشاهده سبد] [ادامه خرید] */
+.jluxe-pa-cartline { display: flex; justify-content: flex-start; padding: 0 4px; }
+.jluxe-pa-cartinfo { font-size: 12px; font-weight: 600; color: hsl(var(--text-secondary)); }
+.jluxe-pa-actions { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
+.jluxe-pa-viewcart,
+.jluxe-pa-continue { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.jluxe-pa-viewcart { background: hsl(var(--surface)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); text-decoration: none; }
+.jluxe-pa-continue { background: transparent; color: hsl(var(--text-secondary)); border: 1px solid transparent; }
+.jluxe-pa-viewcart:hover { border-color: hsl(var(--primary)); color: hsl(var(--primary)); }
+/* R63 (فاز ۲) — state موفقِ Quick Add روی دکمهٔ کارت */
+.jluxe-btn-added { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; transform: scale(1.05); }
+/* R63 (فاز ۵) — هدرِ فشردهٔ اسکرول */
+#masthead.jluxe-header-condensed { box-shadow: var(--jluxe-shadow-card); transition: box-shadow 0.3s ease; }
+/* R63 (فاز ۶) — skip link (A11y) */
+.jluxe-skip-link { position: absolute; inset-inline-start: 12px; top: -48px; z-index: 100; padding: 8px 16px; border-radius: 10px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 700; font-size: 13px; transition: top 0.2s ease; }
+.jluxe-skip-link:focus-visible { top: 12px; }
 .jluxe-pa.hidden { display: none; }
 
 /* ===== R51 — ابزارهای گم‌شده که باعثِ به‌هم‌ریختگیِ واقعی شده بودند ===== */
