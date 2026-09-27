@@ -3815,28 +3815,45 @@ input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
   color: hsl(var(--primary-foreground));
   font-weight: 700;
 }
-/* امتیازِ ویژگی‌ها — ردیف‌های چیپ‌مانندِ جمع‌وجور */
+/* R73.2: امتیازِ معیارها — گریدِ فشرده (نه زیرِ هم؛ در دسکتاپ ۲ ستون،
+موبایل ۱ ستونِ کم‌ارتفاع) با کارت‌های یک‌خطی: برچسب راست، ستاره‌ها چپ.
+کارتِ انتخاب‌شده با :has هایلایت می‌شود تا کاربر ببیند کدام معیارها
+امتیاز گرفته‌اند — بدونِ هیچ جاوااسکریپت. */
 .jluxe-review-criteria-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 8px;
   margin: 0.75rem 0;
 }
 .jluxe-review-criteria-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  background: hsl(var(--surface));
+  gap: 0.5rem;
+  min-width: 0;
+  background: hsl(var(--muted) / 0.45);
   border: 1px solid hsl(var(--panel-border));
   border-radius: 12px;
-  padding: 8px 14px;
+  padding: 7px 12px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.jluxe-review-criteria-row:hover { border-color: hsl(var(--primary) / 0.4); }
+.jluxe-review-criteria-row:has(input:checked) {
+  border-color: hsl(var(--primary) / 0.55);
+  background: hsl(var(--primary) / 0.05);
 }
 .jluxe-review-criteria-label {
-  font-size: 0.8125rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
   color: hsl(var(--text-secondary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .jluxe-review-criteria-stars {
+  flex: none;
   display: inline-flex;
   flex-direction: row-reverse;
   justify-content: flex-end;
@@ -3848,17 +3865,23 @@ input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
   height: 0;
 }
 .jluxe-review-criteria-stars label {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   line-height: 1;
   color: hsl(var(--border));
   cursor: pointer;
-  padding: 0 0.0625rem;
-  transition: color 0.1s ease;
+  padding: 0 0.05rem;
+  transition: color 0.1s ease, transform 0.1s ease;
 }
+.jluxe-review-criteria-stars label:hover { transform: scale(1.15); }
 .jluxe-review-criteria-stars input:checked ~ label,
 .jluxe-review-criteria-stars label:hover,
 .jluxe-review-criteria-stars label:hover ~ label {
   color: #f5a623;
+}
+@media (max-width: 400px) {
+  /* موبایلِ باریک: برچسبِ بلند می‌شکند و ستاره‌ها سرِ همان ردیف می‌مانند */
+  .jluxe-review-criteria-row { flex-wrap: wrap; row-gap: 2px; }
+  .jluxe-review-criteria-label { white-space: normal; flex-basis: 100%; }
 }
 .jluxe-review-criteria-summary {
   display: flex;
