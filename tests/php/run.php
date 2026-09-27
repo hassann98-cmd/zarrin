@@ -1362,7 +1362,8 @@ try {
 	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
 	$r81_root_picked = jluxe_template_guard_include($r81_root);
 	$r81_root_hits   = get_option(JLUXE_TEMPLATE_GUARD_OPTION, array());
-	check($r81_root_picked === ABSPATH.'inc/woo-template-fallbacks/front-page.php' && 'fallback' === ($r81_root_hits['front-page.php']['mode'] ?? ''), 'R81 a corrupted main template (front-page.php) is rescued the same way, so one bad upload cannot blank the homepage');
+	$r81_root_slot   = $GLOBALS['jluxe_template_guard_slot'] ?? array();
+	check($r81_root_picked === ABSPATH.'inc/template-guard-include.php' && ($r81_root_slot['first'] ?? '') === ABSPATH.'inc/woo-template-fallbacks/front-page.php' && 'fallback' === ($r81_root_hits['front-page.php']['mode'] ?? ''), 'R81 a corrupted main template (front-page.php) is rescued the same way — and runs through the R82 safe include, so a runtime error in it cannot blank the homepage either');
 	check('' !== jluxe_template_guard_include(ABSPATH.'inc/site-diagnosis.php') || true, 'R81 the main-template guard only ever looks at root theme templates'); // نگهبانِ دامنه؛ مسیرهای inc/ دست‌نخورده می‌مانند
 } finally {
 	file_put_contents($r81_root, $r81_root_original);
@@ -1370,13 +1371,33 @@ try {
 	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
 	$GLOBALS['wc'] = $r81_prev_wc2;
 }
-$r81_registered = false;
+$r81_guard_src = (string) file_get_contents(ABSPATH.'inc/template-guard.php');
+$r81_hooks = array();
 foreach ( (array) ( $GLOBALS['filters'] ?? array() ) as $r81_filter ) {
-	if ( ( $r81_filter[0] ?? '' ) === 'woocommerce_locate_template' && ( $r81_filter[1] ?? '' ) === 'jluxe_template_guard_locate' && (int) ( $r81_filter[3] ?? 0 ) === 3 ) {
-		$r81_registered = true;
+	if ( ! is_string( $r81_filter[1] ?? null ) ) {
+		continue; // فیلترهای closure در این بررسی لازم نیستند.
+	}
+	$r81_hooks[ (string) ( $r81_filter[0] ?? '' ) ][] = array( (string) $r81_filter[1], (int) ( $r81_filter[2] ?? 0 ) );
+}
+$r81_wants = array(
+	'wc_get_template_part'         => 'jluxe_template_guard_part',
+	'wc_get_template'              => 'jluxe_template_guard_get_template',
+	'woocommerce_locate_template'  => 'jluxe_template_guard_locate',
+	'template_include'             => 'jluxe_template_guard_include',
+);
+$r81_missing_hooks = array();
+foreach ( $r81_wants as $r81_hook => $r81_cb ) {
+	if ( ! in_array( array( $r81_cb, 99 ), $r81_hooks[ $r81_hook ] ?? array(), true ) ) {
+		$r81_missing_hooks[] = $r81_hook;
 	}
 }
-check($r81_registered && true === (bool) array_filter( (array) ( $GLOBALS['filters'] ?? array() ), static fn( $f ) => ( $f[0] ?? '' ) === 'template_include' && ( $f[1] ?? '' ) === 'jluxe_template_guard_include' ) && strpos((string) file_get_contents(ABSPATH.'inc/template-guard.php'), "apply_filters( 'jluxe_template_guard_enabled', true )")!==false && substr_count((string) file_get_contents(ABSPATH.'inc/template-guard.php'), 'jluxe_theme_manifest()')>=2 && strpos((string) file_get_contents(ABSPATH.'inc/template-guard.php'), "file_get_contents(")===false, 'R81 the guard rides the official woocommerce_locate_template filter, only for theme templates, and can be switched off with a filter');
+check(
+	empty( $r81_missing_hooks )
+	&& strpos( $r81_guard_src, "apply_filters( 'jluxe_template_guard_enabled', true )" ) !== false
+	&& strpos( $r81_guard_src, 'jluxe_theme_manifest()' ) !== false
+	&& strpos( $r81_guard_src, 'token_get_all' ) !== false,
+	'R81/R82 the guard rides every real include path (wc_get_template_part for the card, wc_get_template for the object-cache path, woocommerce_locate_template, template_include), only for theme templates, stays switchable with a filter, and can decide without the hash manifest by parsing the file' . ( $r81_missing_hooks ? ' — missing: '.implode(', ', $r81_missing_hooks) : '' )
+);
 
 // R81 (b): fatals from a broken template land in the dashboard, not only in the
 // server log — with the parser message, file and line.
@@ -1389,6 +1410,94 @@ $r81_fatals = jluxe_recent_php_fatals();
 check(1 === count($r81_fatals) && 2 === $r81_fatals[0]['count'] && 'woocommerce/content-product.php' === $r81_fatals[0]['file'] && 412 === $r81_fatals[0]['line'], 'R81 the same fatal is counted instead of duplicated, warnings are ignored, and the record keeps the package-relative file and line');
 delete_option(JLUXE_FATALS_OPTION);
 check(strpos((string) file_get_contents(ABSPATH.'inc/error-log.php'), 'register_shutdown_function')!==false && strpos((string) file_get_contents(ABSPATH.'inc/site-diagnosis.php'), 'آخرین خطاهای کشندهٔ PHP')!==false, 'R81 the fatal log is written on shutdown and shown on the site-diagnosis screen with a clear action');
+
+// R82 (a) — the real root cause of "1.69.1 did not fix the store": WooCommerce loads
+// the product card with wc_get_template_part(), and that function only fires the
+// `wc_get_template_part` filter — never `woocommerce_locate_template`. The R81 guard
+// was therefore a no-op for content-product.php, the one file that was dead.
+$r82_card    = ABSPATH.'woocommerce/content-product.php';
+$r82_card_ok = (string) file_get_contents($r82_card);
+$r82_spare   = ABSPATH.'inc/woo-template-fallbacks/woocommerce/content-product.php';
+try {
+	file_put_contents($r82_card, substr($r82_card_ok, 0, 700)."\n<?php this breaks ((\n");
+	jluxe_template_guard_reset_cache();
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$r82_part = jluxe_template_guard_part($r82_card, 'content', 'product');
+	$r82_slot = $GLOBALS['jluxe_template_guard_slot'] ?? array();
+	$r82_hits = get_option(JLUXE_TEMPLATE_GUARD_OPTION, array());
+	check($r82_part === ABSPATH.'inc/template-guard-include.php' && ($r82_slot['first'] ?? '') === $r82_spare && ($r82_slot['key'] ?? '') === 'woocommerce/content-product.php' && 'fallback' === ($r82_hits['woocommerce/content-product.php']['mode'] ?? ''), 'R82 a corrupted product card is rescued through wc_get_template_part — the filter WooCommerce really fires for content-product.php — with the pristine copy in the same theme, so the custom card design survives');
+	$r82_get = jluxe_template_guard_get_template($r82_card, 'content-product.php', array(), '', '');
+	check($r82_get === $r82_spare, 'R82 templates loaded through wc_get_template() are covered as well, including the object-cache path where woocommerce_locate_template never runs');
+} finally {
+	file_put_contents($r82_card, $r82_card_ok);
+	jluxe_template_guard_reset_cache();
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+}
+
+// R82 (b) — even a healthy template that throws at runtime (a helper that a truncated
+// neighbour file failed to define is exactly that) must not take the whole page down.
+check(is_readable(ABSPATH.'inc/template-guard-include.php') && jluxe_template_guard_parses(ABSPATH.'inc/template-guard-include.php'), 'R82 the safe include (trampoline) ships with the theme and parses on its own — a corrupt template cannot disable the guard');
+$r82_dir = sys_get_temp_dir().'/jluxe-r82-'.getmypid();
+@mkdir($r82_dir, 0777, true);
+$r82_runtime = $r82_dir.'/runtime.php';
+$r82_parse   = $r82_dir.'/parse.php';
+$r82_spare_t = $r82_dir.'/spare.php';
+file_put_contents($r82_runtime, "<?php echo 'FIRST'; jluxe_missing_after_truncation();\n");
+file_put_contents($r82_parse, "<?php echo 'FIRST'; if (\n");
+file_put_contents($r82_spare_t, "<?php echo 'SPARE';\n");
+delete_option(JLUXE_FATALS_OPTION);
+$r82_outcomes = array();
+foreach (array('runtime'=>$r82_runtime, 'parse'=>$r82_parse) as $r82_kind => $r82_case) {
+	$GLOBALS['jluxe_template_guard_slot'] = array('first'=>$r82_case, 'spare'=>$r82_spare_t, 'key'=>'woocommerce/content-product.php', 't'=>microtime(true));
+	ob_start();
+	include ABSPATH.'inc/template-guard-include.php';
+	$r82_outcomes[$r82_kind] = (string) ob_get_clean();
+}
+$r82_fatals = jluxe_recent_php_fatals();
+check(strpos($r82_outcomes['runtime'], 'SPARE')!==false && strpos($r82_outcomes['parse'], 'SPARE')!==false, 'R82 a template that throws at runtime (undefined helper) or cannot be parsed is caught by the safe include, which renders the pristine copy instead of letting the whole product loop die');
+$r82_seen_runtime = false;
+$r82_seen_parse   = false;
+$r82_seen_file    = false;
+foreach ( (array) $r82_fatals as $r82_fatal ) {
+	if ( false !== strpos( (string) $r82_fatal['message'], 'jluxe_missing_after_truncation' ) ) { $r82_seen_runtime = true; }
+	if ( false !== strpos( (string) $r82_fatal['message'], 'ParseError' ) ) { $r82_seen_parse = true; }
+	if ( false !== strpos( (string) $r82_fatal['file'], 'runtime.php' ) ) { $r82_seen_file = true; }
+}
+check($r82_seen_runtime && $r82_seen_parse && $r82_seen_file && 2 === count($r82_fatals), 'R82 both failure modes (runtime Error and ParseError) are recorded for the dashboard with the real PHP message and the exact file, instead of only dying in the server log');
+delete_option(JLUXE_FATALS_OPTION);
+$GLOBALS['jluxe_template_guard_slot'] = array('first'=>$r82_dir.'/does-not-exist.php', 'spare'=>'', 'key'=>'x', 't'=>microtime(true));
+ob_start();
+include ABSPATH.'inc/template-guard-include.php';
+$r82_empty = (string) ob_get_clean();
+check('' === $r82_empty && ! isset($GLOBALS['jluxe_template_guard_slot']), 'R82 the safe include consumes its slot once and stays silent when nothing real is behind it');
+
+// R82 (c) — verification without the hash manifest: a template that is not in
+// docs/FILES.sha256 is judged by PHP's own parser, so the guard still protects the
+// store when the manifest itself got truncated by the same bad upload.
+$r82_unlisted = ABSPATH.'woocommerce/tmp-r82-unlisted.php';
+try {
+	file_put_contents($r82_unlisted, "<?php echo 'ok';\n");
+	jluxe_template_guard_reset_cache();
+	check(true === jluxe_template_guard_verify('woocommerce/tmp-r82-unlisted.php') && ! isset(jluxe_theme_manifest()['woocommerce/tmp-r82-unlisted.php']), 'R82 an unlisted but valid template is trusted (no needless replacement of a file the package does not ship)');
+	file_put_contents($r82_unlisted, "<?php echo 'ok'; if (\n");
+	jluxe_template_guard_reset_cache();
+	check(false === jluxe_template_guard_verify('woocommerce/tmp-r82-unlisted.php') && 'broken' === jluxe_template_guard_state('woocommerce/tmp-r82-unlisted.php'), 'R82 an unlisted template that PHP cannot parse is treated as broken — the guard works even without a usable manifest');
+} finally {
+	@unlink($r82_unlisted);
+	jluxe_template_guard_reset_cache();
+}
+
+// R82 (d) — the dashboard names the broken file itself, so nobody has to guess.
+try {
+	file_put_contents($r82_card, substr($r82_card_ok, 0, 500));
+	jluxe_template_guard_reset_cache();
+	$r82_report = jluxe_theme_integrity_report(true);
+	check(isset($r82_report['syntax']) && in_array('woocommerce/content-product.php', $r82_report['syntax'], true) && ($r82_report['syntax_checked'] ?? 0) > 100 && false === $r82_report['ok'], 'R82 the integrity report parses every PHP file of the package and points at the exact file PHP cannot run (the product card), not just "some files differ"');
+} finally {
+	file_put_contents($r82_card, $r82_card_ok);
+	jluxe_template_guard_reset_cache();
+	$GLOBALS['transients'] = array();
+}
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {

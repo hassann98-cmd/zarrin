@@ -1,28 +1,44 @@
 <?php
 /**
- * R81 — محافظِ قالب‌های ووکامرس.
+ * R81 + R82 — محافظِ قالب‌های پوسته.
  *
- * ریشهٔ خاموشیِ کاملِ فروشگاه (۲۷ سپتامبر ۲۰۲۶): چند فایلِ قالبِ پوسته
- * (از جمله `woocommerce/content-product.php`) هنگامِ آپلود بریده/ناقص شده
- * بودند. PHP هنگامِ include خطای نحوی می‌دهد و چون این فایل فقط وقتی
- * include می‌شود که یک «کارتِ محصول» رندر شود، دقیقاً همان‌جا صفحه می‌مرد:
- * صفحهٔ اصلی بعد از هیرو/دسته‌بندی‌ها، آرشیو فروشگاه بعد از نوارِ فیلتر، و
- * «محصولات مرتبط» صفحهٔ محصول.
+ * ریشهٔ خاموشیِ کاملِ فروشگاه (۲۷ سپتامبر ۲۰۲۶): فایلِ قالبِ کارتِ محصول
+ * (`woocommerce/content-product.php`) روی سرور ناقص/بریده بود. PHP هنگامِ
+ * include خطای نحوی می‌دهد و چون این فایل فقط وقتی include می‌شود که یک
+ * «کارتِ محصول» رندر شود، دقیقاً همان‌جا صفحه می‌مرد: صفحهٔ اصلی بعد از
+ * هیرو/دسته‌بندی‌ها، آرشیو فروشگاه بعد از نوارِ فیلتر، و «محصولات مرتبط».
  *
- * این فایل همان حلقه را می‌بندد: هر قالبی که ووکامرس از پوشهٔ پوسته
- * برمی‌دارد، اول با فهرستِ رسمیِ SHA-256 (`docs/FILES.sha256`) سنجیده
- * می‌شود. اگر فایل با بستهٔ رسمی یکی نبود:
- *   ۱) نسخهٔ پشتیبانِ دست‌نخوردهٔ همان قالب داخلِ همین پوسته استفاده می‌شود
- *      (پس طراحیِ اختصاصی هم حفظ می‌شود)،
- *   ۲) و اگر خودِ آن کپی هم سالم/تأییدشده نبود، قالبِ پیش‌فرضِ خودِ
- *      ووکامرس جایگزین می‌شود تا فروشگاه هرگز کامل از کار نیفتد.
+ * R81 این محافظ را ساخت ولی فقط روی فیلترِ `woocommerce_locate_template`
+ * سوار کرد — و این یک اشتباهِ واقعی بود: ووکامرس کارتِ محصول را با
+ * `wc_get_template_part()` می‌گیرد و آن مسیر **هیچ‌وقت** فیلترِ
+ * `woocommerce_locate_template` را صدا نمی‌زند (تنها فیلترش
+ * `wc_get_template_part` است). یعنی محافظ دقیقاً روی همان فایلی که سایت را
+ * می‌خواباند هیچ‌وقت اجرا نمی‌شد و نصبِ 1.69.1 هم مشکل را حل نکرد.
  *
- * هر جایگزینی در یک اپشن ثبت و به مدیرِ سایت با یک اخطارِ روشن نشان داده
- * می‌شود (به‌همراهِ فهرستِ فایل‌های ناسالم و لینکِ صفحهٔ تشخیص).
+ * R82 سه چیز را درست می‌کند:
+ *   ۱) پوششِ کاملِ مسیرهای واقعیِ include در ووکامرس:
+ *      `wc_get_template_part` (کارتِ محصول، قالب‌های تکی) + `wc_get_template`
+ *      (مسیرِ کش‌شده؛ چون با آبجکت‌کش، `wc_locate_template` اصلاً صدا زده
+ *      نمی‌شود) + همان `woocommerce_locate_template` + `template_include`
+ *      برای قالبِ اصلیِ وردپرس. هر چهار مسیر پوشش داده شده‌اند.
+ *   ۲) تشخیصِ مستقل از فهرست: اگر `docs/FILES.sha256` نباشد/ناقص باشد،
+ *      سالم‌بودنِ فایل با خودِ PHP سنجیده می‌شود (`token_get_all` با
+ *      TOKEN_PARSE — بدونِ اجرا). پس محافظ بدونِ فهرست هم کار می‌کند.
+ *   ۳) اجرای امن: قالب‌ها از مسیرِ `inc/template-guard-include.php`
+ *      اجرا می‌شوند؛ هر خطای زمانِ اجرا (تابعِ تعریف‌نشده، نوعِ نادرست، …)
+ *      گرفته و ثبت می‌شود و به‌جای مرگِ صفحه، نسخهٔ جانشین رندر می‌شود.
  *
- * این محافظ چیزی را «تعمیر» نمی‌کند و ادعای تعمیر هم ندارد؛ فقط نمی‌گذارد
- * یک فایلِ ناقص کلِ فروشگاه را بخواباند. برای تعمیرِ واقعی، بستهٔ رسمی را
- * دوباره نصب کنید (یا فایل‌های ناسالم را بازآپلود کنید).
+ * سیاستِ جانشینی (همان منطقِ R81، گسترش‌یافته):
+ *   قالبِ سالم            → خودِ قالب اجرا می‌شود (تلاشِ دوم: قالبِ ووکامرس)
+ *   قالبِ ناسالم          → کپیِ پشتیبانِ دست‌نخوردهٔ همین پوسته (طراحی حفظ
+ *                            می‌شود؛ تلاشِ دوم: قالبِ خودِ ووکامرس)
+ *   کپیِ پشتیبان هم تأیید نشد → قالبِ پیش‌فرضِ ووکامرس
+ *   هیچ‌کدام               → فایلِ اصلی (رفتارِ معمولِ وردپرس)
+ *
+ * هر جایگزینی/خطا در اپشنِ `jluxe_template_guard_hits` ثبت و با یک اخطارِ
+ * روشن در پیشخوان به مدیر نشان داده می‌شود. این محافظ چیزی را «تعمیر»
+ * نمی‌کند و ادعای تعمیر هم ندارد؛ برای تعمیرِ واقعی باید بستهٔ رسمی را
+ * کامل نصب کرد (یا فایل‌های ناسالم را بازآپلود کرد).
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -30,52 +46,110 @@ defined( 'ABSPATH' ) || exit;
 /** محلِ نسخه‌های پشتیبان در بستهٔ رسمی. */
 const JLUXE_TEMPLATE_FALLBACK_DIR = 'inc/woo-template-fallbacks';
 
-/** گزینهٔ ثبتِ جایگزینی‌ها (فایل => آخرین زمانِ مشاهده). */
+/** گزینهٔ ثبتِ جایگزینی‌ها (فایل => آخرین زمان/حالت مشاهده‌شده). */
 const JLUXE_TEMPLATE_GUARD_OPTION = 'jluxe_template_guard_hits';
 
-/**
- * وضعیتِ یک قالبِ پوسته نسبت به بستهٔ رسمی:
- * `ok` (سالم) / `broken` (با بستهٔ رسمی فرق دارد) / `unguarded` (در فهرست نیست).
- * نتیجه برای هر مسیر در همان درخواست کش می‌شود (هش‌گرفتن تکرار نمی‌شود).
- */
-function jluxe_template_guard_state( string $relative ): string {
-	static $states = array();
-	static $seen_reset = 0;
-	$current_reset = (int) ( $GLOBALS['jluxe_template_guard_cache_reset'] ?? 0 );
-	if ( $current_reset !== $seen_reset ) {
-		$states      = array();
-		$seen_reset  = $current_reset;
+/** اجراکنندهٔ امن (trampoline) که خطاهای زمانِ اجرا را هم می‌گیرد. */
+const JLUXE_TEMPLATE_GUARD_LOADER = 'inc/template-guard-include.php';
+
+/* -------------------------------------------------------------------------
+ * تشخیصِ سالم‌بودن
+ * ---------------------------------------------------------------------- */
+
+/** کشِ کوتاه‌مدتِ درون‌درخواستی؛ با jluxe_template_guard_reset_cache() پاک می‌شود. */
+function jluxe_template_guard_memo( string $kind, string $key, $value = null ) {
+	$reset = (int) ( $GLOBALS['jluxe_template_guard_cache_reset'] ?? 0 );
+	if ( (int) ( $GLOBALS['jluxe_template_guard_memo_reset'] ?? -1 ) !== $reset ) {
+		$GLOBALS['jluxe_template_guard_memo']       = array();
+		$GLOBALS['jluxe_template_guard_memo_reset'] = $reset;
 	}
-	if ( isset( $states[ $relative ] ) ) {
-		return $states[ $relative ];
+	if ( null === $value ) {
+		return $GLOBALS['jluxe_template_guard_memo'][ $kind ][ $key ] ?? null;
 	}
-	$absolute = JLUXE_THEME_DIR . '/' . $relative;
-	$manifest = function_exists( 'jluxe_theme_manifest' ) ? jluxe_theme_manifest() : array();
-	if ( ! isset( $manifest[ $relative ] ) || ! is_readable( $absolute ) ) {
-		return $states[ $relative ] = 'unguarded';
-	}
-	return $states[ $relative ] = ( hash_file( 'sha256', $absolute ) === $manifest[ $relative ] ) ? 'ok' : 'broken';
+	$GLOBALS['jluxe_template_guard_memo'][ $kind ][ $key ] = $value;
+	return $value;
 }
 
 /**
- * پاک‌کردنِ کشِ وضعیت (هر درخواست کشِ خودش را دارد؛ این تابع برای
- * «بررسی دوباره» بعد از بازآپلود و برای آزمون‌ها لازم است، تا نتیجهٔ
- * قدیمیِ «خراب» به درخواستِ بعدی سرایت نکند).
+ * فهرستِ رسمیِ بسته (path => sha256).
+ * اگر ابزارِ تشخیصِ سایت در دسترس نباشد (فایلِ ناقص)، خودش فهرست را می‌خواند
+ * تا محافظ هیچ‌وقت به فایلِ دیگری وابسته نباشد.
+ */
+function jluxe_template_guard_manifest(): array {
+	static $manifest = null;
+	if ( is_array( $manifest ) ) {
+		return $manifest;
+	}
+	if ( function_exists( 'jluxe_theme_manifest' ) ) {
+		return $manifest = (array) jluxe_theme_manifest();
+	}
+	$manifest = array();
+	$file     = JLUXE_THEME_DIR . '/docs/FILES.sha256';
+	if ( ! is_readable( $file ) ) {
+		return $manifest;
+	}
+	foreach ( preg_split( '/\r\n|\n|\r/', (string) file_get_contents( $file ) ) as $line ) { // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( preg_match( '/^([0-9a-f]{64}) {2}(.+)$/', trim( $line ), $m ) ) {
+			$manifest[ $m[2] ] = $m[1];
+		}
+	}
+	return $manifest;
+}
+
+/**
+ * آیا فایل از نظر نحوی سالم است؟ (بدونِ اجرا و بدونِ نیاز به فهرست)
+ * یک فایلِ بریده/ناقص تقریباً همیشه `ParseError` می‌دهد و همین معیار، محافظ
+ * را از وابستگی به `docs/FILES.sha256` آزاد می‌کند.
+ */
+function jluxe_template_guard_parses( string $absolute ): bool {
+	$cached = jluxe_template_guard_memo( 'parses', $absolute );
+	if ( null !== $cached ) {
+		return (bool) $cached;
+	}
+	$source = is_readable( $absolute ) ? file_get_contents( $absolute ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions
+	if ( ! is_string( $source ) ) {
+		return (bool) jluxe_template_guard_memo( 'parses', $absolute, true ); // ناتوانی در خواندن = عدمِ مداخله
+	}
+	try {
+		token_get_all( $source, TOKEN_PARSE );
+	} catch ( \Throwable $e ) {
+		return (bool) jluxe_template_guard_memo( 'parses', $absolute, false );
+	}
+	return (bool) jluxe_template_guard_memo( 'parses', $absolute, true );
+}
+
+/** آیا این فایل (نسبت به بستهٔ رسمی) قابلِ اعتماد است؟ */
+function jluxe_template_guard_verify( string $relative ): bool {
+	$absolute = JLUXE_THEME_DIR . '/' . $relative;
+	if ( ! is_readable( $absolute ) ) {
+		return false;
+	}
+	$manifest = jluxe_template_guard_manifest();
+	if ( isset( $manifest[ $relative ] ) ) {
+		return hash_file( 'sha256', $absolute ) === $manifest[ $relative ];
+	}
+	return jluxe_template_guard_parses( $absolute );
+}
+
+/** وضعیتِ یک قالبِ پوسته: `ok` (قابلِ اعتماد) یا `broken` (ناسالم). */
+function jluxe_template_guard_state( string $relative ): string {
+	$cached = jluxe_template_guard_memo( 'state', $relative );
+	if ( null !== $cached ) {
+		return (string) $cached;
+	}
+	return (string) jluxe_template_guard_memo( 'state', $relative, jluxe_template_guard_verify( $relative ) ? 'ok' : 'broken' );
+}
+
+/**
+ * پاک‌کردنِ کشِ وضعیت (هر درخواست کشِ خودش را دارد؛ این تابع برای «بررسی
+ * دوباره» بعد از بازآپلود و برای آزمون‌ها لازم است، تا نتیجهٔ قدیمیِ «خراب»
+ * به درخواستِ بعدی سرایت نکند).
  */
 function jluxe_template_guard_reset_cache(): void {
-	jluxe_template_guard_state_reset();
-}
-
-function jluxe_template_guard_state_reset(): void {
-	// کشِ داخلیِ jluxe_template_guard_state با ارجاع خالی می‌شود.
-	static $reset = null;
-	if ( null === $reset ) {
-		$reset = true;
-	}
 	$GLOBALS['jluxe_template_guard_cache_reset'] = (int) ( $GLOBALS['jluxe_template_guard_cache_reset'] ?? 0 ) + 1;
 }
 
-/** ثبتِ یک جایگزینی برای نمایش به مدیر (بدونِ نوشتنِ مکرر). */
+/** ثبتِ یک جایگزینی/خطا برای نمایش به مدیر (بدونِ نوشتنِ مکرر). */
 function jluxe_template_guard_record( string $relative, string $mode ): void {
 	$hits = get_option( JLUXE_TEMPLATE_GUARD_OPTION, array() );
 	if ( ! is_array( $hits ) ) {
@@ -92,85 +166,190 @@ function jluxe_template_guard_record( string $relative, string $mode ): void {
 }
 
 /**
- * مسیرِ سالمی که باید جای قالبِ ناسالم استفاده شود:
- * اول نسخهٔ پشتیبانِ تأییدشدهٔ خودِ پوسته، وگرنه قالبِ ووکامرس.
+ * R82 — خطای واقعیِ یک قالبِ خراب را ثبت می‌کند (پیام/فایل/خط) تا در
+ * «تشخیص سایت ← آخرین خطاهای کشندهٔ PHP» دیده شود، نه فقط در لاگِ سرور.
  */
-function jluxe_template_guard_replacement( string $relative, string $template_name ): string {
-	$manifest = function_exists( 'jluxe_theme_manifest' ) ? jluxe_theme_manifest() : array();
-	$spare    = JLUXE_TEMPLATE_FALLBACK_DIR . '/' . $relative;
-	$spare_abs = JLUXE_THEME_DIR . '/' . $spare;
-	if ( is_readable( $spare_abs ) && isset( $manifest[ $spare ] ) && hash_file( 'sha256', $spare_abs ) === $manifest[ $spare ] ) {
-		jluxe_template_guard_record( $relative, 'fallback' );
-		return $spare_abs;
+function jluxe_template_guard_caught( string $key, \Throwable $error, string $file ): void {
+	jluxe_template_guard_record( $key, 'error' );
+	if ( function_exists( 'jluxe_record_php_fatal' ) ) {
+		jluxe_record_php_fatal(
+			array(
+				'type'    => E_ERROR,
+				'message' => 'قالبِ پوسته وسطِ رندر خطا داد (' . get_class( $error ) . '): ' . $error->getMessage(),
+				'file'    => $file,
+				'line'    => (int) $error->getLine(),
+			)
+		);
 	}
+}
 
-	$default = '';
-	if ( function_exists( 'WC' ) && WC() && method_exists( WC(), 'plugin_path' ) ) {
-		$default = trailingslashit( WC()->plugin_path() ) . 'templates/' . $template_name;
+/* -------------------------------------------------------------------------
+ * انتخابِ مسیرِ سالم
+ * ---------------------------------------------------------------------- */
+
+/** مسیرِ نسبیِ یک قالبِ پوسته، فقط اگر در دامنهٔ محافظ باشد؛ وگرنه ''. */
+function jluxe_template_guard_relative( string $absolute ): string {
+	$theme_root = trailingslashit( JLUXE_THEME_DIR );
+	if ( 0 !== strpos( $absolute, $theme_root ) ) {
+		return '';
 	}
-	jluxe_template_guard_record( $relative, 'woocommerce' );
-	return ( $default && is_readable( $default ) ) ? $default : '';
+	$relative = ltrim( substr( $absolute, strlen( $theme_root ) ), '/' );
+	if ( '' === $relative || false !== strpos( $relative, '..' ) ) {
+		return '';
+	}
+	if ( 0 !== strpos( $relative, 'woocommerce/' ) && false !== strpos( $relative, '/' ) ) {
+		return ''; // قالب‌های ریشهٔ پوسته یا قالب‌های ووکامرسیِ پوسته — نه فایل‌های inc/.
+	}
+	return $relative;
+}
+
+/** کپیِ پشتیبانِ تأییدشدهٔ همین پوسته (یا '' اگر نباشد/تأیید نشود). */
+function jluxe_template_guard_spare( string $relative ): string {
+	$spare = JLUXE_TEMPLATE_FALLBACK_DIR . '/' . $relative;
+	$abs   = JLUXE_THEME_DIR . '/' . $spare;
+	if ( $relative === $spare || ! is_readable( $abs ) ) {
+		return '';
+	}
+	return jluxe_template_guard_verify( $spare ) ? $abs : '';
+}
+
+/** قالبِ پیش‌فرضِ خودِ ووکامرس برای همان نام (یا '' اگر نباشد). */
+function jluxe_template_guard_default( string $template_name ): string {
+	if ( '' === $template_name || ! function_exists( 'WC' ) || ! WC() || ! method_exists( WC(), 'plugin_path' ) ) {
+		return '';
+	}
+	$default = trailingslashit( WC()->plugin_path() ) . 'templates/' . ltrim( $template_name, '/' );
+	return is_readable( $default ) ? $default : '';
 }
 
 /**
- * فیلترِ رسمیِ خودِ ووکامرس روی محلِ قالب. فقط قالب‌های پوسته بررسی
- * می‌شوند و فقط وقتی فایل با بستهٔ رسمی یکی نیست.
+ * زنجیرهٔ اجرا برای یک قالب: `first` همان چیزی است که اجرا می‌شود و `spare`
+ * تلاشِ دوم است (اگر `first` وسطِ رندر خطا بدهد). `mode` هم برای ثبت است.
+ */
+function jluxe_template_guard_chain( string $absolute, string $template_name ): array {
+	$relative = jluxe_template_guard_relative( $absolute );
+	if ( '' === $relative ) {
+		return array( 'first' => $absolute, 'spare' => '', 'mode' => '' );
+	}
+	$default = jluxe_template_guard_default( $template_name );
+	$spare   = jluxe_template_guard_spare( $relative );
+	if ( 'ok' === jluxe_template_guard_state( $relative ) ) {
+		return array( 'first' => $absolute, 'spare' => $default, 'mode' => '' );
+	}
+	if ( '' !== $spare ) {
+		return array( 'first' => $spare, 'spare' => $default, 'mode' => 'fallback' );
+	}
+	if ( '' !== $default ) {
+		return array( 'first' => $default, 'spare' => '', 'mode' => 'woocommerce' );
+	}
+	return array( 'first' => $absolute, 'spare' => '', 'mode' => '' ); // رفتارِ معمولِ وردپرس
+}
+
+/** مسیرِ جایگزینِ ساده (بدونِ اجراکنندهٔ امن) — برای مسیرهایی که include فوری نیست. */
+function jluxe_template_guard_safe( string $absolute, string $template_name ): string {
+	$chain = jluxe_template_guard_chain( $absolute, $template_name );
+	if ( '' !== $chain['mode'] && $chain['first'] !== $absolute ) {
+		jluxe_template_guard_record( jluxe_template_guard_relative( $absolute ), $chain['mode'] );
+	}
+	return $chain['first'];
+}
+
+/**
+ * مسیرِ امنِ اجرا: قالب از `inc/template-guard-include.php` اجرا می‌شود تا
+ * خطاهای زمانِ اجرا هم صفحه را نخوابانند. اگر خودِ اجراکننده ناقص/غیرقابلِ
+ * اعتماد باشد، به مسیرِ ساده برمی‌گردیم (محافظ هیچ‌وقت خودش ریسک نمی‌سازد).
+ */
+function jluxe_template_guard_safe_loaded( string $absolute, string $template_name ): string {
+	$chain = jluxe_template_guard_chain( $absolute, $template_name );
+	if ( '' !== $chain['mode'] && $chain['first'] !== $absolute ) {
+		jluxe_template_guard_record( jluxe_template_guard_relative( $absolute ), $chain['mode'] );
+	}
+	$loader = JLUXE_THEME_DIR . '/' . JLUXE_TEMPLATE_GUARD_LOADER;
+	if ( ! is_readable( $loader ) || ! jluxe_template_guard_parses( $loader ) ) {
+		return $chain['first'];
+	}
+	$GLOBALS['jluxe_template_guard_slot'] = array(
+		'first' => $chain['first'],
+		'spare' => ( $chain['spare'] === $chain['first'] ) ? '' : $chain['spare'],
+		'key'   => jluxe_template_guard_relative( $absolute ),
+		't'     => microtime( true ),
+	);
+	return $loader;
+}
+
+/* -------------------------------------------------------------------------
+ * فیلترهای واقعیِ include
+ * ---------------------------------------------------------------------- */
+
+/** آیا محافظ روشن است؟ (قابلِ خاموش‌کردن با فیلتر) */
+function jluxe_template_guard_on(): bool {
+	return (bool) apply_filters( 'jluxe_template_guard_enabled', true );
+}
+
+/**
+ * فیلترِ رسمیِ ووکامرس روی محلِ قالب (`wc_locate_template`) — برای
+ * `wc_get_template()`؛ در مسیرِ کش‌شده اجرا نمی‌شود، پس تنها پوشش نیست.
  */
 function jluxe_template_guard_locate( $template, $template_name, $template_path ) {
-	if ( ! apply_filters( 'jluxe_template_guard_enabled', true ) ) {
+	if ( ! jluxe_template_guard_on() || ! is_string( $template ) || '' === $template ) {
 		return $template;
 	}
-	if ( ! is_string( $template ) || '' === $template ) {
-		return $template;
-	}
-	$theme_root = trailingslashit( JLUXE_THEME_DIR );
-	if ( 0 !== strpos( $template, $theme_root ) ) {
-		return $template;
-	}
-	$relative = ltrim( substr( $template, strlen( $theme_root ) ), '/' );
-	if ( 0 !== strpos( $relative, 'woocommerce/' ) ) {
-		return $template;
-	}
-	if ( 'broken' !== jluxe_template_guard_state( $relative ) ) {
-		return $template;
-	}
-	$replacement = jluxe_template_guard_replacement( $relative, (string) $template_name );
-	return '' !== $replacement ? $replacement : $template;
+	return jluxe_template_guard_safe( $template, (string) $template_name );
 }
-add_filter( 'woocommerce_locate_template', 'jluxe_template_guard_locate', 99, 3 );
+
+/**
+ * R82 — تنها فیلتری که `wc_get_template_part()` صدا می‌زند و کارتِ محصول
+ * (`content-product.php`) از همین مسیر می‌آید. عدمِ پوششِ همین فیلتر در
+ * 1.69.1 باعث شد محافظ روی سایتِ خراب هیچ‌وقت اجرا نشود.
+ */
+function jluxe_template_guard_part( $template, $slug, $name ) {
+	if ( ! jluxe_template_guard_on() || ! is_string( $template ) || '' === $template ) {
+		return $template;
+	}
+	$template_name = (string) $slug . ( '' !== (string) $name ? '-' . (string) $name : '' ) . '.php';
+	return jluxe_template_guard_safe_loaded( $template, $template_name );
+}
+
+/**
+ * R82 — فیلترِ نهاییِ `wc_get_template()`؛ حتی وقتی نتیجهٔ locate از کشِ
+ * آبجکت آمده و `woocommerce_locate_template` اجرا نشده، این فیلتر می‌رسد.
+ */
+function jluxe_template_guard_get_template( $template, $template_name, $args, $template_path, $default_path ) {
+	if ( ! jluxe_template_guard_on() || ! is_string( $template ) || '' === $template ) {
+		return $template;
+	}
+	return jluxe_template_guard_safe( $template, (string) $template_name );
+}
 
 /**
  * همان محافظ برای قالبِ اصلیِ خودِ وردپرس (front-page.php، single.php،
  * archive-product.php، ...) — این‌ها را وردپرس با `template_include` انتخاب
  * می‌کند و اگر یکی‌شان ناقص آپلود شده باشد، همان صفحه (و فقط همان صفحه)
- * با خطای نحوی می‌افتد. مسیرِ سالم در همان آینهٔ کپی‌ها هست.
+ * می‌افتد. مسیرِ سالم در همان آینهٔ کپی‌ها هست.
  */
 function jluxe_template_guard_include( $template ) {
-	if ( ! apply_filters( 'jluxe_template_guard_enabled', true ) ) {
+	if ( ! jluxe_template_guard_on() || ! is_string( $template ) || '' === $template ) {
 		return $template;
 	}
-	if ( ! is_string( $template ) || '' === $template ) {
-		return $template;
+	$relative = jluxe_template_guard_relative( $template );
+	if ( '' === $relative || false !== strpos( $relative, '/' ) ) {
+		return $template; // فقط قالب‌های ریشهٔ پوسته.
 	}
-	$theme_root = trailingslashit( JLUXE_THEME_DIR );
-	if ( 0 !== strpos( $template, $theme_root ) ) {
-		return $template;
-	}
-	$relative = ltrim( substr( $template, strlen( $theme_root ) ), '/' );
-	if ( false !== strpos( $relative, '/' ) ) {
-		return $template; // فقط قالب‌های ریشهٔ پوسته؛ بقیه مسیرها جای دیگری پوشش داده شده‌اند.
-	}
-	if ( 'broken' !== jluxe_template_guard_state( $relative ) ) {
-		return $template;
-	}
-	$replacement = jluxe_template_guard_replacement( $relative, $relative );
-	return '' !== $replacement ? $replacement : $template;
+	return jluxe_template_guard_safe_loaded( $template, $relative );
 }
+
+add_filter( 'wc_get_template_part', 'jluxe_template_guard_part', 99, 3 );
+add_filter( 'wc_get_template', 'jluxe_template_guard_get_template', 99, 5 );
+add_filter( 'woocommerce_locate_template', 'jluxe_template_guard_locate', 99, 3 );
 add_filter( 'template_include', 'jluxe_template_guard_include', 99 );
+
+/* -------------------------------------------------------------------------
+ * اخطارِ پیشخوان
+ * ---------------------------------------------------------------------- */
 
 /**
  * اخطارِ پیشخوان: کدام قالب‌ها ناسالم‌اند و کدام مسیر جایگزین شده است.
- * عمداً «قابل‌ردکردن» نیست — تا وقتی فایل‌ها بازآپلود نشوند این وضعیت
+ * عمداً «قابلِ‌ردکردن» نیست — تا وقتی فایل‌ها بازآپلود نشوند این وضعیت
  * باقی است و مدیری که وارد پیشخوان می‌شود باید بداند.
  */
 function jluxe_template_guard_notice(): void {
@@ -181,18 +360,22 @@ function jluxe_template_guard_notice(): void {
 	if ( ! is_array( $hits ) || empty( $hits ) ) {
 		return;
 	}
+	$labels = array(
+		'fallback'    => 'جایگزین‌شده با نسخهٔ پشتیبانِ سالمِ همین پوسته',
+		'woocommerce' => 'جایگزین‌شده با قالبِ پیش‌فرضِ ووکامرس (نسخهٔ پشتیبانِ پوسته هم تأیید نشد)',
+		'error'       => 'وسطِ رندر خطای PHP داد؛ اجراکنندهٔ امن آن را گرفت و ادامه داد',
+	);
 	$rows = array();
 	foreach ( $hits as $relative => $hit ) {
+		$mode   = (string) ( $hit['mode'] ?? '' );
 		$rows[] = sprintf(
 			'<li><code dir="ltr">%s</code> — %s</li>',
 			esc_html( (string) $relative ),
-			'fallback' === ( $hit['mode'] ?? '' )
-				? 'جایگزین‌شده با نسخهٔ پشتیبانِ سالمِ همین پوسته'
-				: 'جایگزین‌شده با قالبِ پیش‌فرضِ ووکامرس (نسخهٔ پشتیبانِ پوسته هم تأیید نشد)'
+			esc_html( $labels[ $mode ] ?? 'مسیرِ جایگزین به‌کار رفت' )
 		);
 	}
 	printf(
-		'<div class="notice notice-error"><p><strong>پوستهٔ زرین: فایل‌های قالب با بستهٔ رسمی یکسان نیستند.</strong> این معمولاً یعنی آپلود/نصبِ پوسته کامل نشده و فایل‌ها بریده‌اند — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را از کار بیندازد. برای اینکه فروشگاه بخوابد، این فایل‌ها موقتاً کنار گذاشته شده‌اند:</p><ul style="list-style:disc;margin-inline-start:20px">%s</ul><p><a class="button button-primary" href="%s">بررسی و فهرستِ کاملِ فایل‌های ناسالم</a> — بستهٔ رسمی را دوباره و کامل نصب کنید.</p></div>',
+		'<div class="notice notice-error"><p><strong>پوستهٔ زرین: فایل‌های قالب با بستهٔ رسمی یکسان نیستند.</strong> این معمولاً یعنی آپلود/نصبِ پوسته کامل نشده و فایل‌ها بریده‌اند — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را از کار بیندازد. برای اینکه فروشگاه نخوابد، این فایل‌ها موقتاً کنار گذاشته شده‌اند:</p><ul style="list-style:disc;margin-inline-start:20px">%s</ul><p><a class="button button-primary" href="%s">بررسی و فهرستِ کاملِ فایل‌های ناسالم</a> — بستهٔ رسمی را دوباره و کامل نصب کنید.</p></div>',
 		implode( '', $rows ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — هر ردیف بالا esc شده است.
 		esc_url( admin_url( 'themes.php?page=jluxe-site-diagnosis' ) )
 	);

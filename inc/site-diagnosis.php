@@ -262,7 +262,31 @@ function jluxe_theme_integrity_report( bool $refresh = false ): array {
 			$report['modified'][] = $path;
 		}
 	}
-	$report['ok'] = ! $report['manifest_missing'] && empty( $report['missing'] ) && empty( $report['modified'] );
+	/*
+	 * R82 — بررسیِ نحوی. تفاوتِ هش می‌گوید «فایل با بستهٔ رسمی یکی نیست»، ولی
+	 * نمی‌گوید «فایل اجرا می‌شود یا نه». یک فایلِ بریده معمولاً از نظر نحوی
+	 * هم خراب است؛ این حلقه همان را نام می‌برد (بدونِ اجرا، فقط با
+	 * token_get_all/TOKEN_PARSE) — همان معیاری که محافظِ قالب هم استفاده
+	 * می‌کند، پس نتیجه‌اش بینِ این‌جا و رندرِ واقعی یکی است.
+	 */
+	$report['syntax']         = array();
+	$report['syntax_checked'] = 0;
+	if ( function_exists( 'jluxe_template_guard_parses' ) ) {
+		foreach ( $manifest as $path => $hash ) {
+			if ( '.php' !== substr( $path, -4 ) ) {
+				continue;
+			}
+			$abs = JLUXE_THEME_DIR . '/' . $path;
+			if ( ! is_readable( $abs ) ) {
+				continue;
+			}
+			++$report['syntax_checked'];
+			if ( ! jluxe_template_guard_parses( $abs ) ) {
+				$report['syntax'][] = $path;
+			}
+		}
+	}
+	$report['ok'] = ! $report['manifest_missing'] && empty( $report['missing'] ) && empty( $report['modified'] ) && empty( $report['syntax'] );
 	if ( function_exists( 'set_transient' ) ) {
 		set_transient( $key, $report, 6 * HOUR_IN_SECONDS );
 	}
@@ -293,13 +317,27 @@ function jluxe_site_health_theme_integrity(): array {
 			'test'        => 'jluxe_theme_files',
 		);
 	}
+	$syntax = $report['syntax'] ?? array();
+	if ( ! empty( $syntax ) ) {
+		return array(
+			'label'       => 'فایل‌های پوسته با PHP اجرا نمی‌شوند',
+			'status'      => 'critical',
+			'badge'       => array( 'label' => 'پوستهٔ زرین', 'color' => 'red' ),
+			'description' => sprintf(
+				'<p><strong>%s فایلِ پوسته خطای نحوی دارد</strong> (بریده/ناقص آپلود شده) و همان‌ها هر حلقهٔ محصول را می‌خوابانند. بستهٔ رسمی را کامل نصب کنید.</p><p>فایل‌ها: <code>%s</code></p>',
+				esc_html( jluxe_fa_digits( (string) count( $syntax ) ) ),
+				esc_html( implode( '</code>، <code>', array_slice( $syntax, 0, 5 ) ) )
+			),
+			'test'        => 'jluxe_theme_files',
+		);
+	}
 	$bad = count( $report['missing'] ) + count( $report['modified'] );
 	if ( 0 === $bad ) {
 		return array(
 			'label'       => 'همهٔ فایل‌های پوسته با بستهٔ رسمی یکسان‌اند',
 			'status'      => 'good',
 			'badge'       => array( 'label' => 'پوستهٔ زرین', 'color' => 'blue' ),
-			'description' => sprintf( '<p>%s فایل بررسی شد و هیچ تفاوتی با بستهٔ رسمی پیدا نشد.</p>', esc_html( jluxe_fa_digits( (string) $report['checked'] ) ) ),
+			'description' => sprintf( '<p>%s فایل بررسی شد و هیچ تفاوتی با بستهٔ رسمی پیدا نشد؛ هر %s فایلِ PHP هم از نظر نحوی سالم است.</p>', esc_html( jluxe_fa_digits( (string) $report['checked'] ) ), esc_html( jluxe_fa_digits( (string) ( $report['syntax_checked'] ?? 0 ) ) ) ),
 			'test'        => 'jluxe_theme_files',
 		);
 	}
@@ -384,6 +422,21 @@ function jluxe_render_site_diagnosis_page(): void {
 			</table>
 			<?php if ( count( $integrity_bad ) > 30 ) : ?><p class="description">… و <?php echo esc_html( jluxe_fa_digits( (string) ( count( $integrity_bad ) - 30 ) ) ); ?> فایلِ دیگر.</p><?php endif; ?>
 			<p class="description">راهِ سریع روی سرور: <code dir="ltr">cd wp-content/themes/zarrin &amp;&amp; sha256sum -c docs/FILES.sha256</code></p>
+		<?php endif; ?>
+		<?php $integrity_syntax = $integrity['syntax'] ?? array(); ?>
+		<?php if ( ! empty( $integrity_syntax ) ) : ?>
+			<h3 style="color:#b32d2e">فایل‌هایی که PHP نمی‌تواند اجرا کند (خطای نحوی)</h3>
+			<p class="description">این فایل‌ها بریده/ناقص‌اند: هر جایی که include شوند، کلِ همان صفحه با «یک خطای مهم در این وب‌سایت رخ داده است» می‌خوابد — دقیقاً همان چیزی که در حلقهٔ محصولات دیده می‌شود. تا وقتی این فهرست خالی نشده، «خطای مهم» تکرار می‌شود.</p>
+			<table class="widefat striped">
+				<thead><tr><th>فایل</th><th>وضعیت</th></tr></thead>
+				<tbody>
+				<?php foreach ( array_slice( $integrity_syntax, 0, 15 ) as $path ) : ?>
+					<tr><td><code dir="ltr"><?php echo esc_html( $path ); ?></code></td><td style="color:#b32d2e">خطای نحوی — بریده/ناقص</td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php elseif ( ! $integrity['manifest_missing'] && ! empty( $integrity['syntax_checked'] ) ) : ?>
+			<p style="color:green">✓ هر <?php echo esc_html( jluxe_fa_digits( (string) $integrity['syntax_checked'] ) ); ?> فایلِ PHP از نظر نحوی هم سالم است (بدونِ اجرا تفسیر شد).</p>
 		<?php endif; ?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="jluxe_refresh_integrity" />
