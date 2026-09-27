@@ -1653,6 +1653,121 @@ function jluxe_related_products_args( array $args ): array {
 add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_args' );
 
 /**
+ * R76: منبعِ «محصولات مرتبط» زیرِ محصول — سه حالت (پنل زرین ← فروشگاه):
+ *  - category (پیش‌فرض): فقط کالای همان دسته. باگِ پیش‌فرضِ ووکامرس (دسته +
+ *    تگ باهم) باعث می‌شد تگ‌های مشترکِ تصادفی، کالای نامرتبط بیاورد —
+ *    گزارشِ واقعی کاربر: زیرِ کالای «کالای خواب»، ستِ بهداشتی نمایش می‌داد.
+ *  - brand: فقط کالای همان برند — برند از تاکسونومیِ product_brand خودِ وو
+ *    (اگر فعاله) وگرنه از ویژگیِ محصولی که برچسب/نامش «برند/brand» باشد.
+ *  - manual: انتخابِ دستی — فیلدِ رسمیِ «فروش بالاسری (Upsells)» ویرایش محصول.
+ * زنجیرهٔ fallback: manual/brand خالی → category. خروجی همیشه publish +
+ * visible و بدونِ خودِ محصول؛ ترتیبِ قطعیِ جدیدترین (قابلِ کش، برخلافِ
+ * پیشنهادِ «اضافه خرید» که طبقِ درخواستِ کاربر رندوم است). ناموجودها حذف
+ * نمی‌شوند (فیلترِ سراسریِ «ناموجود در انتها» مرتبشان می‌کند).
+ */
+function jluxe_product_brand_term_ids( int $product_id ): array {
+	if ( taxonomy_exists( 'product_brand' ) ) {
+		$terms = get_the_terms( $product_id, 'product_brand' );
+		$out = array();
+		foreach ( (array) $terms as $term ) {
+			$term_id = is_object( $term ) ? ( $term->term_id ?? 0 ) : (int) $term;
+			if ( $term_id > 0 ) { $out[] = $term_id; }
+		}
+		return $out;
+	}
+	foreach ( (array) wc_get_attribute_taxonomies() as $taxonomy ) {
+		$label = (string) ( $taxonomy->attribute_label ?? '' );
+		$name  = (string) ( $taxonomy->attribute_name ?? '' );
+		if ( '' === $name ) { continue; }
+		if ( false !== mb_stripos( $label, 'برند' ) || false !== stripos( $name, 'brand' ) ) {
+			$terms = wc_get_product_terms( $product_id, 'pa_' . $name, array( 'fields' => 'ids' ) );
+			$out = array();
+			foreach ( (array) $terms as $term ) {
+				$term_id = is_object( $term ) ? ( $term->term_id ?? 0 ) : (int) $term;
+				if ( $term_id > 0 ) { $out[] = $term_id; }
+			}
+			if ( ! empty( $out ) ) { return $out; }
+		}
+	}
+	return array();
+}
+
+function jluxe_related_products_for( int $product_id, int $limit ): array {
+	$limit    = max( 2, min( 8, $limit ) );
+	$mode     = (string) jluxe_get_setting( 'shop.related_mode', 'category' );
+	if ( ! in_array( $mode, array( 'category', 'brand', 'manual' ), true ) ) {
+		$mode = 'category';
+	}
+	static $memo = array();
+	$key = $product_id . '|' . $mode . '|' . $limit;
+	if ( isset( $memo[ $key ] ) ) { return $memo[ $key ]; }
+
+	$pick = static function ( array $candidates ) use ( $product_id, $limit ): array {
+		$out = array();
+		foreach ( $candidates as $candidate ) {
+			$pid = $candidate instanceof WC_Product ? $candidate->get_id() : (int) $candidate;
+			if ( ! $pid || $pid === $product_id ) { continue; }
+			$product = wc_get_product( $pid );
+			if ( ! $product || 'publish' !== $product->get_status() || 'visible' !== $product->get_catalog_visibility() ) { continue; }
+			$out[] = $pid;
+			if ( count( $out ) >= $limit ) { break; }
+		}
+		return $out;
+	};
+	$query = static function ( array $extra ): array {
+		$GLOBALS['product_query_args'] = null;
+		return wc_get_products( array_merge( array(
+			'status'     => 'publish',
+			'visibility' => 'visible',
+			'exclude'    => array(),
+			'orderby'    => 'date',
+			'order'      => 'DESC',
+			'limit'      => 20,
+			'return'     => 'objects',
+		), $extra ) );
+	};
+	$by_category = static function () use ( $product_id, $query ): array {
+		$category_ids = array();
+		$product = wc_get_product( $product_id );
+		if ( $product ) { $category_ids = (array) $product->get_category_ids(); }
+		if ( empty( $category_ids ) ) { return array(); }
+		return $query( array( 'exclude' => array( $product_id ), 'category' => array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids ) ) );
+	};
+
+	$ids = array();
+	if ( 'manual' === $mode ) {
+		$product = wc_get_product( $product_id );
+		$ids     = $product ? $pick( (array) $product->get_upsell_ids() ) : array();
+		if ( empty( $ids ) ) { $ids = $pick( $by_category() ); }
+	} elseif ( 'brand' === $mode ) {
+		$brand_ids = jluxe_product_brand_term_ids( $product_id );
+		if ( ! empty( $brand_ids ) ) {
+			$candidates = $query( array( 'exclude' => array( $product_id ) ) );
+			$with_brand = array();
+			foreach ( $candidates as $candidate ) {
+				if ( array_intersect( $brand_ids, jluxe_product_brand_term_ids( $candidate->get_id() ) ) ) {
+					$with_brand[] = $candidate;
+				}
+			}
+			$ids = $pick( $with_brand );
+		}
+		if ( empty( $ids ) ) { $ids = $pick( $by_category() ); }
+	} else {
+		$ids = $pick( $by_category() );
+	}
+	$memo[ $key ] = $ids;
+	return $ids;
+}
+
+function jluxe_filtered_related_products( $related_posts, $product_id, $args = array() ) {
+	if ( ! function_exists( 'wc_get_product' ) ) { return $related_posts; }
+	$limit = max( 2, min( 8, (int) ( $args['posts_per_page'] ?? 4 ) ) );
+	$ids   = jluxe_related_products_for( (int) $product_id, $limit );
+	return ! empty( $ids ) ? $ids : $related_posts;
+}
+add_filter( 'woocommerce_related_products', 'jluxe_filtered_related_products', 10, 3 );
+
+/**
  * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول).
  *
  * R72 — بازبینیِ کاملِ شرط‌ها. حالت‌ها (پنل زرین ← اضافه خرید):

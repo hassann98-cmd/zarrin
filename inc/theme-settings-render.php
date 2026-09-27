@@ -1185,6 +1185,15 @@ function jluxe_render_shop_page(): void {
 			<p class="description">این تنظیمات مستقیماً روی صفحه‌ی فروشگاه و آرشیو دسته‌بندی (<code>archive-product.php</code> → قلاب‌های واقعیِ <code>loop_shop_per_page</code> / <code>loop_shop_columns</code> خودِ ووکامرس) اثر می‌ذارن؛ کوئری موازی یا محصول جعلی این‌جا نیست.</p>
 			<table class="form-table" role="presentation">
 				<tr>
+					<th scope="row">محصولات مرتبط (زیرِ محصول)</th>
+					<td>
+						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="category" <?php checked( $shop['related_mode'] ?? 'category', 'category' ); ?> /> بر اساس دسته‌بندی (پیش‌فرض — فقط کالای همان دسته)</label>
+						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="brand" <?php checked( $shop['related_mode'] ?? '', 'brand' ); ?> /> بر اساس برند</label>
+						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="manual" <?php checked( $shop['related_mode'] ?? '', 'manual' ); ?> /> انتخابِ دستی برای هر محصول</label>
+						<p class="description">باگِ پیش‌فرضِ ووکامرس: دسته + تگ باهم، تگ‌ها کالای نامرتبط می‌آوردند. «دستی» از فیلدِ رسمیِ «فروش بالاسری (Upsells)» در ویرایش محصول ← داده‌های محصول ← محصولات پیوسته می‌خوانَد؛ اگر خالی باشد از همان دسته پر می‌شود.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-shop-per-page">تعداد محصول در هر صفحه</label></th>
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
 				</tr>

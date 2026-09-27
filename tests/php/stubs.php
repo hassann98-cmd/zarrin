@@ -149,6 +149,8 @@ function sanitize_title($value){return (string)$value;}
 function wc_clean($value){return sanitize_text_field($value);}
 function wc_stock_amount($value){return (int)$value;}
 function wc_get_product($id=0){return $GLOBALS['products'][$id]??false;}
+function wc_get_attribute_taxonomies(){return $GLOBALS['attribute_taxonomies']??[];}
+function get_the_terms($post_id,$taxonomy){return $GLOBALS['terms_by_taxonomy'][$taxonomy][(int)$post_id]??false;}
 function wc_attribute_label($name,$product=null){return $name;}
 function wc_dropdown_variation_attribute_options($args=array()){$options=isset($args["options"])?$args["options"]:array();$selected=isset($args["selected"])?(string)$args["selected"]:"";echo '<select name="'.esc_attr("attribute_".(isset($args["attribute"])?$args["attribute"]:"")).'">';foreach((array)$options as $o){echo '<option value="'.esc_attr((string)$o).'"'.((string)$o===$selected?' selected':'').'>'.esc_html((string)$o).'</option>';}echo '</select>';}
 function wc_get_products($args){$GLOBALS['product_query_args']=$args;return $GLOBALS['product_query_results']??[];}
@@ -278,6 +280,7 @@ class WC_Product {
  function get_cross_sell_ids(){return $GLOBALS['product_cross_sells'][$this->id]??[];}
  function get_category_ids(){return $GLOBALS['product_category_ids'][$this->id]??[];}
  function get_default_attributes(){return $GLOBALS['product_defaults'][$this->id]??[];}
+ function get_upsell_ids(){return $GLOBALS['product_upsells'][$this->id]??[];}
  function get_permalink(){return home_url('/product/'.$this->id.'/');}
  function get_short_description(){return 'Short description';}
  function get_description(){return 'Product description';}

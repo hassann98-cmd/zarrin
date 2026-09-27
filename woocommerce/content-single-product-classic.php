@@ -292,6 +292,8 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 .jluxe-cp3 .cp3-relhead{display:flex;align-items:center;gap:14px;margin:32px 0 8px}
 .jluxe-cp3 .cp3-relhead .ic{width:48px;height:48px;border-radius:12px;background:hsl(var(--surface));border:1px solid hsl(var(--panel-border));color:hsl(var(--primary));display:inline-flex;align-items:center;justify-content:center}
 .jluxe-cp3 .cp3-relhead h3{font-size:22px;font-weight:800;color:hsl(var(--foreground));margin:0}
+/* R76: عنوانِ تکراریِ هسته داخلِ سربرگِ خودِ سکشن معنا ندارد */
+.jluxe-cp3 .cp3-related .related.products > h2{display:none}
 .jluxe-cp3 .cp3-related ul.products{display:grid !important;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0 0 !important;padding:0 !important}
 @media(min-width:768px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(4,1fr)}}

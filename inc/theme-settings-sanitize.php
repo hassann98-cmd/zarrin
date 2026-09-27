@@ -631,6 +631,7 @@ function jluxe_sanitize_shop( array $posted, array $defaults ): array {
 		'columns_desktop'            => max( 2, min( 6, absint( $posted['columns_desktop'] ?? $defaults['columns_desktop'] ) ) ),
 		'columns_tablet'             => max( 2, min( 4, absint( $posted['columns_tablet'] ?? $defaults['columns_tablet'] ) ) ),
 		'columns_mobile'             => max( 1, min( 3, absint( $posted['columns_mobile'] ?? $defaults['columns_mobile'] ) ) ),
+		'related_mode'                 => in_array( (string) ( $posted['related_mode'] ?? '' ), array( 'category', 'brand', 'manual' ), true ) ? (string) ( $posted['related_mode'] ?? '' ) : $defaults['related_mode'],
 		'out_of_stock_last'            => ! empty( $posted['out_of_stock_last'] ),
 		'show_account_downloads_tab' => ! empty( $posted['show_account_downloads_tab'] ),
 		'mini_cart_show_coupon'        => ! empty( $posted['mini_cart_show_coupon'] ),
