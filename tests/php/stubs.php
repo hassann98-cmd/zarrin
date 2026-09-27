@@ -44,6 +44,7 @@ function sanitize_hex_color($s){return preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6}
 function sanitize_email($s){return $s;}
 function absint($v){return abs((int)$v);}
 function wp_unslash($v){return is_array($v)?array_map('wp_unslash',$v):stripslashes($v);}
+function checked($checked,$current=true,$display=true){$r=(string)$current===(string)$checked?' checked':'';if($display){echo $r;return;}return $r;}
 function wp_check_invalid_utf8($v){return $v;}
 function wp_strip_all_tags($s){return strip_tags($s);}
 function wp_kses_post($s){return $s;}

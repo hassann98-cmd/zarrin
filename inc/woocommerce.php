@@ -1889,16 +1889,31 @@ function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit 
 	}
 
 	if ( 'per_product' === $mode ) {
-		// ① انتخابِ مدیر برای همین محصول (فیلدِ رسمیِ Cross-sells ووکامرس).
-		// اگر مدیر برای این محصول چیزی انتخاب کرده باشد، «همان» نهایی است —
-		// گزینه‌های از-دست-رفته (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ
-		// تصادفی رقیق نمی‌شوند؛ fallback فقط وقتی است که چیزی انتخاب نشده باشد.
+		// ⓪ (R77) انتخابِ صریحِ مدیر در باکسِ «محصولات پیشنهادی» ویرایش محصول —
+		// مقدم بر Cross-sells.
+		// ① فیلدِ رسمیِ Cross-sells ووکامرس. اگر برای این محصول هر کدام
+		// انتخاب شده باشد، «همان» نهایی است — گزینه‌های از-دست-رفته
+		// (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ تصادفی رقیق نمی‌شوند؛
+		// fallback فقط وقتی است که هیچ‌کدام انتخاب نشده باشد.
+		$explicit = array();
+		foreach ( (array) get_post_meta( $product->get_id(), '_jluxe_suggested_ids', true ) as $suggested_id ) {
+			$suggested_product = wc_get_product( absint( $suggested_id ) );
+			if ( $suggested_product ) {
+				$explicit[] = $suggested_product;
+			}
+		}
 		$cross = array();
 		foreach ( (array) $product->get_cross_sell_ids() as $cross_id ) {
 			$cross_product = wc_get_product( absint( $cross_id ) );
 			if ( $cross_product ) {
 				$cross[] = $cross_product;
 			}
+		}
+		// انتخابِ صریحِ متاباکس «نهایی» است (قاعدهٔ R72: رقیق‌شدن ممنوع)؛
+		// فقط اگر هیچ‌کدام از آن‌ها موجود نبود، Cross-sells جایگزین می‌شود.
+		if ( ! empty( $explicit ) ) {
+			$take( $explicit );
+			if ( ! empty( $out ) ) { return $out; }
 		}
 		if ( ! empty( $cross ) ) {
 			$take( $cross );
@@ -2577,6 +2592,71 @@ function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
 	update_post_meta( $post_id, '_jluxe_suggested_modal_enabled', isset( $_POST['_jluxe_suggested_modal_enabled'] ) ? 'yes' : 'no' );
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
+
+/**
+ * R77 (گزارشِ کاربر: «هیچ بخشی برای انتخابِ محصولِ پیشنهادی در ویرایش
+ * محصول نیست»): متاباکسِ اختصاصیِ «محصولات پیشنهادی (اضافه خرید)» —
+ * انتخابِ دستیِ پیشنهادهای پاپ‌آپِ «شاید این‌ها را هم بپسندید» برایِ همین
+ * محصول، با جستجوی استانداردِ خودِ ووکامرس (wc-product-search) و بدونِ
+ * وابستگی به فیلدِ پنهانِ «فروش متقاطع». سوییچِ روشن/خاموشیِ پاپ‌آپ هم
+ * همین‌جا تکرار شده (همان متا) تا همه‌چیز یک‌جا دیده شود.
+ */
+function jluxe_add_suggested_products_metabox(): void {
+	add_meta_box(
+		'jluxe-suggested-products',
+		'محصولات پیشنهادی (اضافه خرید)',
+		'jluxe_render_suggested_products_metabox',
+		'product',
+		'side',
+		'default'
+	);
+}
+add_action( 'add_meta_boxes', 'jluxe_add_suggested_products_metabox' );
+
+function jluxe_render_suggested_products_metabox(): void {
+	global $post;
+	if ( ! $post || 'product' !== ( $post->post_type ?? '' ) ) { return; }
+	$ids   = array_map( 'absint', (array) get_post_meta( $post->ID, '_jluxe_suggested_ids', true ) );
+	$value = array();
+	foreach ( $ids as $pid ) {
+		$title = get_the_title( $pid );
+		$value[] = array( 'id' => $pid, 'text' => '' !== (string) $title ? (string) $title : ( '#' . $pid ) );
+	}
+	?>
+	<div style="padding:12px">
+		<p style="margin:0 0 10px;line-height:1.9;font-size:12px;color:#646970">
+			محصولاتِ پاپ‌آپِ «شاید این‌ها را هم بپسندید» (بعدِ افزودن به سبد) را برای همین محصول انتخاب کنید. خالی بگذارید: «فروش متقاطع» و بعدِ آن هم‌دسته‌ها پیشنهاد می‌شوند.
+		</p>
+		<label class="screen-reader-text" for="_jluxe_suggested_ids">محصولات پیشنهادی</label>
+		<input type="hidden" id="_jluxe_suggested_ids" name="_jluxe_suggested_ids" class="wc-product-search" data-multiple="true" data-action="woocommerce_json_search_products" data-placeholder="جستجوی محصول…" data-allow_clear="true" value="<?php echo esc_attr( (string) wp_json_encode( $value ) ); ?>" style="width:100%" />
+		<label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px">
+			<input type="checkbox" name="_jluxe_suggested_modal_enabled" value="1" <?php checked( 'no' !== get_post_meta( $post->ID, '_jluxe_suggested_modal_enabled', true ) ); ?> />
+			نمایشِ پاپ‌آپ برای این محصول
+		</label>
+		<p style="margin:8px 0 0;font-size:11px;color:#8c8f94">در حالتِ «ثابت»ِ اضافه‌خرید، فهرستِ سراسری به‌کار می‌رود و این انتخاب نادیده گرفته می‌شود.</p>
+	</div>
+	<?php
+}
+
+function jluxe_save_suggested_products_metabox( int $post_id ): void {
+	if ( ! current_user_can( 'edit_post', $post_id ) ) { return; }
+	$raw     = isset( $_POST['_jluxe_suggested_ids'] ) ? (string) wp_unslash( $_POST['_jluxe_suggested_ids'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- ووکامرس خودش nonce ذخیرهٔ محصول را وارسی می‌کند.
+	$decoded = json_decode( $raw, true );
+	$ids     = array();
+	if ( is_array( $decoded ) ) {
+		foreach ( $decoded as $row ) {
+			$pid = is_array( $row ) ? absint( $row['id'] ?? 0 ) : absint( $row );
+			if ( $pid > 0 ) { $ids[] = $pid; }
+		}
+	}
+	$ids = array_slice( array_values( array_unique( $ids ) ), 0, 12 );
+	if ( empty( $ids ) ) {
+		delete_post_meta( $post_id, '_jluxe_suggested_ids' );
+		return;
+	}
+	update_post_meta( $post_id, '_jluxe_suggested_ids', $ids );
+}
+add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_products_metabox' );
 
 /**
  * بج‌های واقعاً فعالِ یک محصول، آماده برای رندر — woocommerce/
