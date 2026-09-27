@@ -1304,6 +1304,25 @@ function jluxe_render_homepage_special_products( array $section ): void {
 }
 
 
+/*
+ * R80: مانند jluxe_render_product_stock_line() — این یک API عمومیِ پوسته
+ * است؛ حذفش در 1.68.0 اگر جایی بیرون از مخزن (قالبِ قدیمی/اسنیپت/افزونه)
+ * مصرف می‌شد، فرانت را کاملاً از کار می‌انداخت. برگشت، فقط برای سازگاری.
+ */
+/**
+ * درصدِ تخفیفِ واقعیِ یک محصول (ساده یا متغیر — برای متغیر، بازه‌ی
+ * min/max قیمت رو در نظر می‌گیره)، برای مرتب‌سازیِ «بیشترین تخفیف» در
+ * jluxe_render_homepage_special_products بالا.
+ */
+function jluxe_product_discount_percent( WC_Product $product ): float {
+	$regular = (float) $product->get_regular_price();
+	$sale    = (float) $product->get_sale_price();
+	if ( $regular <= 0 || $sale <= 0 || $sale >= $regular ) {
+		return 0.0;
+	}
+	return round( 100 - ( $sale / $regular ) * 100, 2 );
+}
+
 /**
  * «کلاژ بنر» — چند فرمتِ چیدمانِ قابل‌انتخاب (jluxe_hb_collage_desktop_layouts)
  * که هرکدوم دقیقاً یک CSS Grid با ستون/ردیف/مساحتِ خودشه؛ چیدمانِ موبایل

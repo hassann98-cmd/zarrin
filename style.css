@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.68.0 — AUDIT REMEDIATION
+Build: JLUXE 1.69.0 — AUDIT REMEDIATION
 Author: زرین
 Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
-Version: 1.68.0
+Version: 1.69.0
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -181,3 +181,6 @@ Text Domain: jluxe
 	.woocommerce ul.products li.product:hover [data-jluxe-card-main-img]{transform:none}
 }
 
+/* R80: کلاسِ رنگِ خطِ موجودی — همراهِ برگشتِ jluxe_render_product_stock_line()
+   دوباره لازم شد (در 1.68.0 همراهِ همان تابع حذف شده بود). */
+.jluxe-text-danger{color:var(--boom-sale)}

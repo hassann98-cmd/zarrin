@@ -266,6 +266,8 @@ class WC_Product {
  function is_sold_individually(){return $this->sold;}
  function is_purchasable(){return $this->status==='publish';}
  function is_in_stock(){return $this->stock>0;}
+ function managing_stock(){return !empty($GLOBALS['product_stock_managed'][$this->id]);}
+ function get_stock_quantity(){return $GLOBALS['product_stock_qty'][$this->id]??null;}
  function get_max_purchase_quantity(){return $this->sold?1:$this->stock;}
  function has_enough_stock($quantity){return $quantity<=$this->stock;}
  function get_stock_managed_by_id(){return $this->parent?:$this->id;}
@@ -278,6 +280,7 @@ class WC_Product {
  function is_on_sale(){return true;}
  function get_price($context='view'){return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
  function get_regular_price($context='view'){return $GLOBALS['product_prices'][$this->id]['regular']??0.0;}
+ function get_sale_price($context='view'){return $GLOBALS['product_prices'][$this->id]['sale']??0.0;}
  function get_cross_sell_ids(){return $GLOBALS['product_cross_sells'][$this->id]??[];}
  function get_category_ids(){return $GLOBALS['product_category_ids'][$this->id]??[];}
  function get_default_attributes(){return $GLOBALS['product_defaults'][$this->id]??[];}

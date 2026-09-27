@@ -195,6 +195,139 @@ function jluxe_repair_site_urls_action(): void {
 }
 add_action( 'admin_post_jluxe_repair_site_urls', 'jluxe_repair_site_urls_action' );
 
+/* -------------------------------------------------------------------------
+ * R80 — سلامتِ فایل‌های پوسته.
+ *
+ * دلیلِ ساخت: روی سایتِ فعال ثابت شد نسخهٔ «style.css» عددِ 1.68.0 را
+ * نشان می‌دهد ولی فایلِ قالبِ کارتِ محصول هنوز نسخهٔ قدیمی است (آپلودِ
+ * ناقص) و همین باعثِ «خطای مهم» در هر حلقهٔ محصول شده بود. هیچ‌کس بدونِ
+ * ابزار نمی‌تواند بفهمد کدام فایل روی سرور قدیمی مانده. این‌جا با فهرستِ
+ * SHA-256 که هنگامِ build از خودِ مخزن ساخته می‌شود (docs/FILES.sha256)
+ * همهٔ فایل‌های پوسته بررسی و «گم‌شده/تغییرکرده» گزارش می‌شوند.
+ *
+ * مرزِ صادقانه: این ابزار فقط «تفاوتِ فایل با بستهٔ رسمی» را نشان می‌دهد؛
+ * نمی‌گوید کدام فایل خطا دارد و چیزی را خودکار جایگزین نمی‌کند.
+ * ---------------------------------------------------------------------- */
+
+/** فهرستِ رسمیِ فایل‌ها با هشِ SHA-256 (path => hash). */
+function jluxe_theme_manifest( bool $refresh = false ): array {
+	static $manifest = null;
+	if ( is_array( $manifest ) && ! $refresh ) {
+		return $manifest;
+	}
+	$manifest = array();
+	$file     = JLUXE_THEME_DIR . '/docs/FILES.sha256';
+	if ( ! is_readable( $file ) ) {
+		return $manifest;
+	}
+	foreach ( preg_split( '/\r\n|\n|\r/', (string) file_get_contents( $file ) ) as $line ) {
+		if ( preg_match( '/^([0-9a-f]{64}) {2}(.+)$/', trim( $line ), $m ) ) {
+			$manifest[ $m[2] ] = $m[1];
+		}
+	}
+	return $manifest;
+}
+
+/**
+ * گزارشِ سلامتِ فایل‌ها. برای اینکه در هر بارِ بازکردنِ پیشخوان دوباره
+ * هشِ ۲۴۵ فایل محاسبه نشود، نتیجه ۶ ساعت کش می‌شود؛ با $refresh یا با
+ * دکمهٔ «بررسی دوباره» در صفحهٔ تشخیص، کش پاک و دوباره محاسبه می‌شود.
+ */
+function jluxe_theme_integrity_report( bool $refresh = false ): array {
+	$manifest = jluxe_theme_manifest( $refresh );
+	$version  = function_exists( 'wp_get_theme' ) ? (string) wp_get_theme()->get( 'Version' ) : '';
+	$key      = 'jluxe_integrity_' . md5( $version . '|' . count( $manifest ) . '|' . JLUXE_THEME_DIR );
+	if ( ! $refresh && function_exists( 'get_transient' ) ) {
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+	}
+	$report = array(
+		'manifest_missing' => empty( $manifest ),
+		'checked'          => 0,
+		'missing'          => array(),
+		'modified'         => array(),
+		'ok'               => true,
+		'at'               => time(),
+	);
+	foreach ( $manifest as $path => $hash ) {
+		$abs = JLUXE_THEME_DIR . '/' . $path;
+		if ( ! is_readable( $abs ) ) {
+			$report['missing'][] = $path;
+			continue;
+		}
+		++$report['checked'];
+		if ( hash_file( 'sha256', $abs ) !== $hash ) {
+			$report['modified'][] = $path;
+		}
+	}
+	$report['ok'] = ! $report['manifest_missing'] && empty( $report['missing'] ) && empty( $report['modified'] );
+	if ( function_exists( 'set_transient' ) ) {
+		set_transient( $key, $report, 6 * HOUR_IN_SECONDS );
+	}
+	return $report;
+}
+
+/** پاک‌کردنِ کش و بررسیِ دوباره با کلیکِ ادمین (admin-post + nonce). */
+function jluxe_refresh_integrity_action(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'دسترسی کافی نیست.', 'jluxe' ) );
+	}
+	check_admin_referer( 'jluxe_refresh_integrity' );
+	jluxe_theme_integrity_report( true );
+	wp_safe_redirect( admin_url( 'themes.php?page=jluxe-site-diagnosis&jluxe_integrity=refreshed' ) );
+	exit;
+}
+add_action( 'admin_post_jluxe_refresh_integrity', 'jluxe_refresh_integrity_action' );
+
+/** آزمونِ بومیِ «سلامتِ سایتِ» وردپرس (ابزارها ← سلامتِ سایت) — بدونِ UIِ اختصاصی. */
+function jluxe_site_health_theme_integrity(): array {
+	$report = jluxe_theme_integrity_report();
+	if ( $report['manifest_missing'] ) {
+		return array(
+			'label'       => 'فهرستِ فایل‌های پوسته در دسترس نیست',
+			'status'      => 'recommended',
+			'badge'       => array( 'label' => 'پوستهٔ زرین', 'color' => 'blue' ),
+			'description' => '<p>فایلِ <code>docs/FILES.sha256</code> پیدا نشد؛ بدونِ آن نمی‌توان فهمید فایل‌های پوسته با بستهٔ رسمی یکی هستند یا نه. بستهٔ کاملِ پوسته را دوباره نصب کنید.</p>',
+			'test'        => 'jluxe_theme_files',
+		);
+	}
+	$bad = count( $report['missing'] ) + count( $report['modified'] );
+	if ( 0 === $bad ) {
+		return array(
+			'label'       => 'همهٔ فایل‌های پوسته با بستهٔ رسمی یکسان‌اند',
+			'status'      => 'good',
+			'badge'       => array( 'label' => 'پوستهٔ زرین', 'color' => 'blue' ),
+			'description' => sprintf( '<p>%s فایل بررسی شد و هیچ تفاوتی با بستهٔ رسمی پیدا نشد.</p>', esc_html( jluxe_fa_digits( (string) $report['checked'] ) ) ),
+			'test'        => 'jluxe_theme_files',
+		);
+	}
+	return array(
+		'label'       => 'فایل‌های پوسته با بستهٔ رسمی یکی نیستند',
+		'status'      => 'critical',
+		'badge'       => array( 'label' => 'پوستهٔ زرین', 'color' => 'red' ),
+		'description' => sprintf(
+			'<p><strong>%s فایل تغییرکرده و %s فایل گم‌شده</strong> است (از %s فایل بررسی‌شده). این وضعیت یعنی آپلود/نصبِ پوسته کامل نشده و می‌تواند باعثِ «خطای مهم» در صفحه‌های فروشگاه شود.</p><p>بستهٔ رسمی را دوباره و کامل نصب کنید، سپس از «تشخیص سایت ← سلامتِ فایل‌های پوسته» دوباره بررسی کنید.</p><p>مثال‌ها: <code>%s</code></p>',
+			esc_html( jluxe_fa_digits( (string) count( $report['modified'] ) ) ),
+			esc_html( jluxe_fa_digits( (string) count( $report['missing'] ) ) ),
+			esc_html( jluxe_fa_digits( (string) ( $report['checked'] + count( $report['missing'] ) ) ) ),
+			esc_html( implode( '</code>، <code>', array_slice( array_merge( $report['missing'], $report['modified'] ), 0, 5 ) ) )
+		),
+		'test'        => 'jluxe_theme_files',
+	);
+}
+add_filter(
+	'site_status_tests',
+	static function ( array $tests ): array {
+		$tests['direct']['jluxe_theme_files'] = array(
+			'label' => 'سلامتِ فایل‌های پوستهٔ زرین',
+			'test'  => 'jluxe_site_health_theme_integrity',
+		);
+		return $tests;
+	}
+);
+
 function jluxe_render_site_diagnosis_page(): void {
 	$repair_result = isset( $_GET['jluxe_repair_result'] ) ? sanitize_key( wp_unslash( $_GET['jluxe_repair_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$repair_count  = isset( $_GET['jluxe_repair_count'] ) ? absint( $_GET['jluxe_repair_count'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -225,6 +358,38 @@ function jluxe_render_site_diagnosis_page(): void {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
+
+		<?php
+		$integrity = jluxe_theme_integrity_report();
+		$integrity_bad = array_merge( $integrity['missing'], $integrity['modified'] );
+		?>
+		<h2>سلامتِ فایل‌های پوسته</h2>
+		<p class="description">فایل‌های پوسته با فهرستِ رسمیِ بستهٔ <code>docs/FILES.sha256</code> مقایسه می‌شوند. اگر «تغییرکرده/گم‌شده» بالای صفر بود، یعنی نصب/آپلودِ پوسته کامل نشده است — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را با «خطای مهم» از کار بیندازد.</p>
+		<?php if ( $integrity['manifest_missing'] ) : ?>
+			<p class="description" style="color:#996800">فایلِ فهرست (<code>docs/FILES.sha256</code>) در این نصب نیست؛ بستهٔ کاملِ پوسته را دوباره نصب کنید.</p>
+		<?php elseif ( 0 === count( $integrity_bad ) ) : ?>
+			<p style="color:green;font-weight:600">✓ هر <?php echo esc_html( jluxe_fa_digits( (string) $integrity['checked'] ) ); ?> فایل با بستهٔ رسمی یکسان است.</p>
+		<?php else : ?>
+			<p style="color:#b32d2e;font-weight:600">⚠ <?php echo esc_html( jluxe_fa_digits( (string) count( $integrity['modified'] ) ) ); ?> فایل تغییرکرده و <?php echo esc_html( jluxe_fa_digits( (string) count( $integrity['missing'] ) ) ); ?> فایل گم‌شده است.</p>
+			<table class="widefat striped">
+				<thead><tr><th>فایل</th><th>وضعیت</th></tr></thead>
+				<tbody>
+				<?php foreach ( array_slice( $integrity['missing'], 0, 15 ) as $path ) : ?>
+					<tr><td><code dir="ltr"><?php echo esc_html( $path ); ?></code></td><td style="color:#b32d2e">گم‌شده</td></tr>
+				<?php endforeach; ?>
+				<?php foreach ( array_slice( $integrity['modified'], 0, 15 ) as $path ) : ?>
+					<tr><td><code dir="ltr"><?php echo esc_html( $path ); ?></code></td><td style="color:#996800">تغییرکرده</td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<?php if ( count( $integrity_bad ) > 30 ) : ?><p class="description">… و <?php echo esc_html( jluxe_fa_digits( (string) ( count( $integrity_bad ) - 30 ) ) ); ?> فایلِ دیگر.</p><?php endif; ?>
+			<p class="description">راهِ سریع روی سرور: <code dir="ltr">cd wp-content/themes/zarrin &amp;&amp; sha256sum -c docs/FILES.sha256</code></p>
+		<?php endif; ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="jluxe_refresh_integrity" />
+			<?php wp_nonce_field( 'jluxe_refresh_integrity' ); ?>
+			<p><button type="submit" class="button">بررسی دوبارهٔ فایل‌ها</button></p>
+		</form>
 
 		<h2>محصولات</h2>
 		<table class="widefat striped">

@@ -1227,6 +1227,65 @@ $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 check(strpos($store_css,'.jluxe-logo-shine::after')!==false && strpos($store_css,'@keyframes jluxe-logo-shine-sweep')!==false && strpos($store_css,'animation: jluxe-logo-shimmer')===false && strpos($store_css,'mask-position:')===false && strpos($store_css,'-webkit-mask-position:')===false, 'R79 the logo shine no longer animates mask-position (main-thread paint) — the sweep is a transform-animated ::after');
 check(strpos($store_css,'.jluxe-card-shine::after')!==false && strpos($store_css,'.jluxe-card-shine:hover::after')!==false && strpos($store_css,'.jluxe-card-shine:hover,')===false, 'R79 the card shine hover is the same transform sweep instead of a mask-position transition');
 check(strpos($store_css,".jluxe-card-shine::after {\n    display: none;\n  }")!==false && strpos($store_css,".jluxe-logo-shine::after {\n    animation: none;")!==false, 'R79 both new sweeps stay silent under prefers-reduced-motion');
+
+// R80: the live-site outage — a stale template on the server + a removed helper.
+// The theme now (a) keeps its public helpers for back-compat, and (b) ships a
+// SHA-256 manifest so an incomplete upload can be spotted from the dashboard.
+check(function_exists('jluxe_render_product_stock_line') && function_exists('jluxe_product_discount_percent'), 'R80 the two helpers removed in 1.68.0 are back for back-compat — a stale template or snippet calling them can no longer fatal the whole product loop');
+$GLOBALS['product_stock_managed'][500] = true;
+$GLOBALS['product_stock_qty'][500] = 3;
+$r80_stock = jluxe_render_product_stock_line( $GLOBALS['products'][500] );
+$GLOBALS['product_stock_qty'][500] = 40;
+$r80_stock_many = jluxe_render_product_stock_line( $GLOBALS['products'][500] );
+check(strpos($r80_stock,'فقط')!==false && strpos($r80_stock,'jluxe-text-danger')!==false && strpos($r80_stock_many,'jluxe-text-danger')===false && strpos($r80_stock_many,'عدد در انبار')!==false, 'R80 the restored stock line keeps its exact old behaviour (low-stock warning class under five, plain count above it)');
+$GLOBALS['product_stock_managed'][500] = false;
+unset( $GLOBALS['product_stock_qty'][500] );
+check(0.0 === jluxe_product_discount_percent( $GLOBALS['products'][500] ) || is_float( jluxe_product_discount_percent( $GLOBALS['products'][500] ) ), 'R80 the restored discount helper is callable and returns a float for a real product');
+check(strpos( (string) file_get_contents(ABSPATH.'style.css'), '.jluxe-text-danger{color:var(--boom-sale)}')!==false, 'R80 the colour class used by the restored stock line ships again with it');
+$r80_manifest = jluxe_theme_manifest();
+check(count($r80_manifest) > 200 && isset($r80_manifest['woocommerce/content-product.php']) && isset($r80_manifest['style.css']) && ! isset($r80_manifest['docs/FILES.sha256']), 'R80 the shipped SHA-256 manifest lists every tracked theme file (including the product-card template) and never lists itself');
+$r80_report = jluxe_theme_integrity_report( true );
+check(false === $r80_report['manifest_missing'] && 0 === count($r80_report['missing']) && 0 === count($r80_report['modified']) && true === $r80_report['ok'] && $r80_report['checked'] === count($r80_manifest), 'R80 a clean install reports every manifest file as matching — the check that would have caught the live partial upload');
+$r80_manifest_file = ABSPATH.'docs/FILES.sha256';
+$r80_real  = (string) file_get_contents($r80_manifest_file);
+$r80_lines = preg_split('/\r\n|\n|\r/', trim($r80_real));
+$r80_tampered = $r80_lines;
+$r80_tampered[0] = str_repeat('0',64) . substr($r80_lines[0], 64);
+file_put_contents($r80_manifest_file, implode("\n", $r80_tampered)."\n");
+$r80_bad = jluxe_theme_integrity_report( true );
+file_put_contents($r80_manifest_file, $r80_real);
+jluxe_theme_manifest( true );
+$r80_restored = jluxe_theme_integrity_report( true );
+check(1 === count($r80_bad['modified']) && false === $r80_bad['ok'] && true === $r80_restored['ok'], 'R80 a single mismatched hash flips the report to critical and re-checking a restored package reports clean again');
+check(false !== strpos((string) file_get_contents(ABSPATH.'inc/site-diagnosis.php'), "add_filter(\n\t'site_status_tests'") && false !== strpos((string) file_get_contents(ABSPATH.'inc/site-diagnosis.php'), 'admin_post_jluxe_refresh_integrity') && false !== strpos((string) file_get_contents(ABSPATH.'inc/site-diagnosis.php'), 'docs/FILES.sha256'), 'R80 the integrity report is reachable from WordPress Site Health and from the site-diagnosis screen (with a one-click re-check), not just from the CLI');
+
+// R80 regression guard: every jluxe_* helper a shipped template calls must exist
+// in the package. Deleting a helper that only an outside caller uses (a stale
+// template, a snippet) is exactly how the live product loop died.
+$r80_defs = array();
+foreach ( glob( ABSPATH.'*.php' ) as $f ) { $r80_defs[ basename( $f ) ] = (string) file_get_contents( $f ); }
+foreach ( array( 'inc/*.php', 'woocommerce/*.php', 'woocommerce/*/*.php' ) as $g ) {
+	foreach ( glob( ABSPATH.$g ) as $f ) { $r80_defs[ str_replace( ABSPATH, '', $f ) ] = (string) file_get_contents( $f ); }
+}
+$r80_defined = array();
+foreach ( $r80_defs as $src ) {
+	if ( preg_match_all( '/^function\s+(jluxe_[a-z0-9_]+)\s*\(/m', $src, $m ) ) {
+		foreach ( $m[1] as $name ) { $r80_defined[ $name ] = true; }
+	}
+}
+$r80_missing = array();
+foreach ( $r80_defs as $file => $src ) {
+	$clean = preg_replace( '#/\*.*?\*/#s', '', $src );         // comments out
+	$clean = preg_replace( '#//[^\n]*#', '', (string) $clean ); // line comments out
+	if ( preg_match_all( '/(?<![$\w])(jluxe_[a-z0-9_]+)\s*\(/', (string) $clean, $m ) ) {
+		foreach ( array_unique( $m[1] ) as $name ) {
+			if ( isset( $r80_defined[ $name ] ) ) { continue; }
+			if ( false !== strpos( (string) $clean, "function_exists( '".$name."' )" ) ) { continue; } // deliberate optional hook
+			$r80_missing[] = $name.' in '.$file;
+		}
+	}
+}
+check(empty( $r80_missing ), 'R80 no shipped template calls a helper that the package does not define' . ( $r80_missing ? ' — missing: '.implode(', ', array_slice($r80_missing,0,5)) : '' ));
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {
