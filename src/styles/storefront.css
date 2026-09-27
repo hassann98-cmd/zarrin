@@ -3145,6 +3145,100 @@ html {
     mask-position: -20% -20%;
   }
 }
+/* ── R75: نورافکنِ کارت — هالهٔ شعاعیِ دنبال‌کنندهٔ موس + بالاوآمدنِ ملایم.
+JS فقط دو متغیرِ CSS را ست می‌کند (یک لیسنرِ delegate + rAF)؛ افکت CSS
+خالص است، فقط دستگاهِ هاوردار، و با prefers-reduced-motion خاموش. */
+@media (hover: hover) {
+  [data-jluxe-card] {
+    will-change: transform;
+  }
+  [data-jluxe-card]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: inherit;
+    background: radial-gradient(
+      230px circle at var(--jluxe-spot-x, 50%) var(--jluxe-spot-y, 50%),
+      hsl(var(--primary) / 0.1),
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+  [data-jluxe-card]:hover::after { opacity: 1; }
+  [data-jluxe-card]:hover {
+    transform: translateY(-3px);
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 14px 36px hsl(var(--foreground) / 0.08), 0 6px 20px hsl(var(--primary) / 0.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-jluxe-card]::after { display: none; }
+  [data-jluxe-card]:hover { transform: none; }
+}
+
+/* ── R75: فوتر — خطِ نورانیِ بالا، تیکِ سرستون‌ها، حرکتِ لینک‌ها،
+چیپ‌های اجتماعی و نشان‌های اعتماد ── */
+[data-jluxe-island="footer"] > div {
+  position: relative;
+}
+[data-jluxe-island="footer"] > div::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.55), transparent);
+}
+[data-jluxe-island="footer"] h3 {
+  position: relative;
+  padding-inline-start: 12px;
+}
+[data-jluxe-island="footer"] h3::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 14px;
+  border-radius: 3px;
+  background: hsl(var(--primary));
+}
+@media (hover: hover) {
+  [data-jluxe-island="footer"] li a {
+    transition: color 0.15s ease, padding-inline-start 0.15s ease;
+  }
+  [data-jluxe-island="footer"] li a:hover {
+    color: hsl(var(--primary));
+    padding-inline-start: 3px;
+  }
+  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"]:hover {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    transform: translateY(-2px);
+  }
+  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"] {
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+  [data-jluxe-island="footer"] span img {
+    transition: transform 0.15s ease, filter 0.15s ease;
+    filter: grayscale(0.2);
+  }
+  [data-jluxe-island="footer"] span img:hover {
+    transform: translateY(-2px);
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-jluxe-island="footer"] li a,
+  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"],
+  [data-jluxe-island="footer"] span img { transition: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .jluxe-card-shine {
     transition: none;

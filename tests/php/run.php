@@ -1244,4 +1244,9 @@ check(strpos($r74html2,'data-active=""')===false && strpos($r74html2,' selected'
 $classic74=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($classic74,'$cp3_defaults')!==false && strpos($classic74,"' is-active' : ''; ?>")!==false, 'R74 the classic pills preselect the default value server-side and out-of-stock pills carry the unavailable title');
 check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($classic74,"if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }")!==false, 'R74 the struck-out style is attribute-based (survives any JS class wipe) and the core update event can only add, never remove, the disabled state');
+// R75: cursor-tracking card spotlight + footer polish.
+$cprod75=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
+check(strpos($cprod75,'data-jluxe-card ?>')!==false && strpos($store_css,'[data-jluxe-card]::after')!==false && strpos($store_css,'radial-gradient(
+      230px circle at var(--jluxe-spot-x, 50%) var(--jluxe-spot-y, 50%)')!==false && strpos((string) file_get_contents(ABSPATH.'assets/js/woocommerce.js'),'requestAnimationFrame(paint)')!==false, 'R75 the card glow upgrades to a cursor-tracking spotlight: one delegated rAF-throttled pointer listener sets two CSS vars and pure CSS paints the radial glow (hover:hover only, disabled with prefers-reduced-motion)');
+check(strpos($store_css,'[data-jluxe-island="footer"] > div::before')!==false && strpos($store_css,'[data-jluxe-island="footer"] h3::before')!==false && strpos($store_css,'[data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"]:hover')!==false, 'R75 the footer gets a gradient hairline, primary heading ticks, sliding link hovers and filled social chips - all CSS-only under the island root');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

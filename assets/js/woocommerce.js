@@ -1402,6 +1402,38 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 })();
 
 /*
+ * R75: نورافکنِ کارتِ محصول — هالهٔ نورِ شعاعی که مکانِ موس را دنبال
+ * می‌کند (بهبودِ افکتِ ثابتِ برقِ مورب). فوق‌سبک: فقط «یک» لیسنرِ
+ * delegate روی document با rAF-throttle (حداکثر یک محاسبه در هر فریم)،
+ * فقط دستگاه‌های واقعاً هاوردار (hover:hover + pointer:fine)، فقط ماوس،
+ * و کاملاً خاموش با prefers-reduced-motion. خودِ افکت CSS خالص است.
+ */
+(function () {
+	var fine = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+	var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	if (!fine || reduce || !window.PointerEvent) { return; }
+	var raf = 0;
+	var target = null;
+	var px = 0;
+	var py = 0;
+	function paint() {
+		raf = 0;
+		var card = target && target.closest ? target.closest("[data-jluxe-card]") : null;
+		if (!card) { return; }
+		var rect = card.getBoundingClientRect();
+		card.style.setProperty("--jluxe-spot-x", Math.round(px - rect.left) + "px");
+		card.style.setProperty("--jluxe-spot-y", Math.round(py - rect.top) + "px");
+	}
+	document.addEventListener("pointermove", function (event) {
+		if (event.pointerType && "mouse" !== event.pointerType) { return; }
+		target = event.target;
+		px = event.clientX;
+		py = event.clientY;
+		if (!raf) { raf = window.requestAnimationFrame(paint); }
+	}, { passive: true });
+})();
+
+/*
  * R73: پاپ‌آپِ «ثبت دیدگاه» — فرمِ واقعیِ ووکامرس (#review_form_wrapper با
  * ستارهٔ کلی + ستاره‌های معیارها از تنظیماتِ پوسته) به‌صورتِ Progressive
  * Enhancement به داخلِ مودال منتقل می‌شود؛ بدونِ JS همان فرمِ درون‌خطیِ

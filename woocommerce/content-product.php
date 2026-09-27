@@ -111,7 +111,7 @@ $jluxe_radius   = $jluxe_radius_map[ $jluxe_pc['radius'] ?? 'lg' ] ?? $jluxe_rad
 $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounded' ) ) ? '' : $jluxe_radius['image_inner'];
 
 ?>
-<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30', $product ); ?>>
+<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30', $product ); data-jluxe-card ?>>
 	<?php
 	// گالری محصول (عکس‌های دیگه، غیر از تصویر شاخص) — با هاور (دسکتاپ) یا
 	// لمس طولانی (موبایل) به‌صورت ردیف تامبنیل کوچیک پایین باکس تصویر
