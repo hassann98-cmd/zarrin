@@ -168,8 +168,18 @@ function jluxe_template_guard_record( string $relative, string $mode ): void {
 /**
  * R82 — خطای واقعیِ یک قالبِ خراب را ثبت می‌کند (پیام/فایل/خط) تا در
  * «تشخیص سایت ← آخرین خطاهای کشندهٔ PHP» دیده شود، نه فقط در لاگِ سرور.
+ * R83: همان پیام یک بار در هر درخواست به لاگِ خودِ سرور هم می‌رود تا اگر
+ * پیشخوان در دسترس نبود، از cPanel/لاگ هاست هم قابلِ خواندن باشد.
  */
 function jluxe_template_guard_caught( string $key, \Throwable $error, string $file ): void {
+	$logged = (array) ( $GLOBALS['jluxe_template_guard_logged'] ?? array() );
+	if ( ! in_array( $key, $logged, true ) ) {
+		$logged[] = $key;
+		$GLOBALS['jluxe_template_guard_logged'] = $logged;
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			sprintf( 'JLUXE template error [%s] %s: %s in %s:%d', $key, get_class( $error ), $error->getMessage(), $file, $error->getLine() )
+		);
+	}
 	jluxe_template_guard_record( $key, 'error' );
 	if ( function_exists( 'jluxe_record_php_fatal' ) ) {
 		jluxe_record_php_fatal(
@@ -181,6 +191,28 @@ function jluxe_template_guard_caught( string $key, \Throwable $error, string $fi
 			)
 		);
 	}
+}
+
+/**
+ * R83 — خطاهای ثبت‌شده‌ای که از رندرِ قالب‌ها آمده‌اند (برای نمایشِ فوری در
+ * اخطارِ پیشخوان و در گزارشِ آمادهٔ کپی). پیامِ واقعیِ PHP همان چیزی است که
+ * تعیین می‌کند کدام خطِ کد مشکل دارد.
+ */
+function jluxe_template_guard_recent_errors( int $limit = 3 ): array {
+	if ( ! function_exists( 'jluxe_recent_php_fatals' ) ) {
+		return array();
+	}
+	$found = array();
+	foreach ( jluxe_recent_php_fatals() as $entry ) {
+		if ( false === strpos( (string) ( $entry['message'] ?? '' ), 'قالبِ پوسته وسطِ رندر خطا داد' ) ) {
+			continue;
+		}
+		$found[] = $entry;
+		if ( count( $found ) >= $limit ) {
+			break;
+		}
+	}
+	return $found;
 }
 
 /* -------------------------------------------------------------------------
@@ -365,18 +397,46 @@ function jluxe_template_guard_notice(): void {
 		'woocommerce' => 'جایگزین‌شده با قالبِ پیش‌فرضِ ووکامرس (نسخهٔ پشتیبانِ پوسته هم تأیید نشد)',
 		'error'       => 'وسطِ رندر خطای PHP داد؛ اجراکنندهٔ امن آن را گرفت و ادامه داد',
 	);
-	$rows = array();
+	$rows      = array();
+	$has_error = false;
+	$has_swap  = false;
 	foreach ( $hits as $relative => $hit ) {
-		$mode   = (string) ( $hit['mode'] ?? '' );
+		$mode = (string) ( $hit['mode'] ?? '' );
+		if ( 'error' === $mode ) {
+			$has_error = true;
+		} else {
+			$has_swap = true;
+		}
 		$rows[] = sprintf(
 			'<li><code dir="ltr">%s</code> — %s</li>',
 			esc_html( (string) $relative ),
 			esc_html( $labels[ $mode ] ?? 'مسیرِ جایگزین به‌کار رفت' )
 		);
 	}
+	// R83: پیامِ واقعیِ PHP هم همان‌جا نشان داده می‌شود تا برای تشخیصِ خطِ
+	// دقیقِ کد لازم نباشد مدیر صفحهٔ دیگری را باز کند.
+	$details = '';
+	$errors  = jluxe_template_guard_recent_errors( 3 );
+	if ( ! empty( $errors ) ) {
+		$rows_error = array();
+		foreach ( $errors as $entry ) {
+			$rows_error[] = sprintf(
+				'<li><code dir="ltr">%s</code> — <code dir="ltr">%s:%s</code></li>',
+				esc_html( mb_substr( (string) ( $entry['message'] ?? '' ), 0, 300 ) ),
+				esc_html( (string) ( $entry['file'] ?? '' ) ),
+				esc_html( (string) ( $entry['line'] ?? 0 ) )
+			);
+		}
+		$details = '<p><strong>پیامِ واقعیِ خطای PHP (فایل:خط):</strong></p><ul style="list-style:disc;margin-inline-start:20px">' . implode( '', $rows_error ) . '</ul>';
+	}
+	$headline = ( $has_error && ! $has_swap )
+		? 'پوستهٔ زرین: یک قالبِ پوسته وسطِ رندر خطای PHP داد. خطا گرفته شد و فروشگاه نخوابید، ولی این خطا باید رفع شود.'
+		: 'پوستهٔ زرین: فایل‌های قالب با بستهٔ رسمی یکسان نیستند. این معمولاً یعنی آپلود/نصبِ پوسته کامل نشده و فایل‌ها بریده‌اند — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را از کار بیندازد. برای اینکه فروشگاه نخوابد، این فایل‌ها موقتاً کنار گذاشته شده‌اند:';
 	printf(
-		'<div class="notice notice-error"><p><strong>پوستهٔ زرین: فایل‌های قالب با بستهٔ رسمی یکسان نیستند.</strong> این معمولاً یعنی آپلود/نصبِ پوسته کامل نشده و فایل‌ها بریده‌اند — همان چیزی که می‌تواند کلِ حلقهٔ محصولات را از کار بیندازد. برای اینکه فروشگاه نخوابد، این فایل‌ها موقتاً کنار گذاشته شده‌اند:</p><ul style="list-style:disc;margin-inline-start:20px">%s</ul><p><a class="button button-primary" href="%s">بررسی و فهرستِ کاملِ فایل‌های ناسالم</a> — بستهٔ رسمی را دوباره و کامل نصب کنید.</p></div>',
+		'<div class="notice notice-error"><p><strong>%s</strong></p><ul style="list-style:disc;margin-inline-start:20px">%s</ul>%s<p><a class="button button-primary" href="%s">بررسی و فهرستِ کاملِ فایل‌های ناسالم</a> — بستهٔ رسمی را دوباره و کامل نصب کنید.</p></div>',
+		esc_html( $headline ),
 		implode( '', $rows ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — هر ردیف بالا esc شده است.
+		$details, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — هر ردیف بالا esc شده است.
 		esc_url( admin_url( 'themes.php?page=jluxe-site-diagnosis' ) )
 	);
 }

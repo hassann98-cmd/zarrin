@@ -164,6 +164,7 @@ function wp_send_json_success($data=[], $status=200){throw new JsonReply(true,$d
 function wp_die($message){throw new RuntimeException($message);}
 function WC(){return $GLOBALS['wc'];}
 function esc_html($value){return htmlspecialchars((string)$value,ENT_QUOTES);}
+function esc_textarea($t){return htmlspecialchars((string)$t, ENT_QUOTES, 'UTF-8');}
 function esc_html__($value,...$args){return $value;}
 function wp_login_url(){return home_url('/wp-login.php');}
 function wp_lostpassword_url(){return home_url('/wp-login.php?action=lostpassword');}

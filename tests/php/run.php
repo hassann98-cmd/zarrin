@@ -1498,6 +1498,24 @@ try {
 	jluxe_template_guard_reset_cache();
 	$GLOBALS['transients'] = array();
 }
+
+// R83 — the guard's own report must carry the real PHP message, so the site owner
+// can hand over one paste (or one screenshot) instead of hunting through screens.
+delete_option(JLUXE_FATALS_OPTION);
+delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+jluxe_record_php_fatal(array('type'=>E_ERROR,'message'=>'قالبِ پوسته وسطِ رندر خطا داد (TypeError): jluxe_boom_star_row(): Argument #1 ($rating) must be of type float, string given','file'=>ABSPATH.'woocommerce/content-product.php','line'=>224));
+jluxe_record_php_fatal(array('type'=>E_ERROR,'message'=>'an unrelated fatal elsewhere','file'=>ABSPATH.'inc/other.php','line'=>7));
+$r83_recent = jluxe_template_guard_recent_errors();
+check(1 === count($r83_recent) && false !== strpos((string) $r83_recent[0]['message'], 'TypeError'), 'R83 the guard surfaces only template-render errors, with the untouched PHP message that names the real problem');
+jluxe_template_guard_record('woocommerce/content-product.php', 'error');
+ob_start();
+jluxe_template_guard_notice();
+$r83_notice = (string) ob_get_clean();
+check(false !== strpos($r83_notice, 'must be of type float') && false !== strpos($r83_notice, 'content-product.php') && false !== strpos($r83_notice, 'یک قالبِ پوسته وسطِ رندر خطای PHP داد'), 'R83 the admin notice itself carries the real PHP message and file:line (and says the store did not go down), so the report can be sent in one copy');
+$r83_shell = (string) file_get_contents(ABSPATH.'inc/site-diagnosis.php');
+check(false !== strpos($r83_shell, 'گزارشِ آمادهٔ کپی') && false !== strpos($r83_shell, 'jluxe-report-text') && false !== strpos($r83_shell, 'پیامِ واقعیِ خطای PHP'), 'R83 the site-diagnosis screen shows the real PHP error under the guard and offers a one-click copyable report');
+delete_option(JLUXE_FATALS_OPTION);
+delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {

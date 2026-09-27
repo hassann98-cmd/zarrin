@@ -445,7 +445,7 @@ function jluxe_render_site_diagnosis_page(): void {
 		</form>
 
 		<?php $fatals = jluxe_recent_php_fatals(); ?>
-		<h2>آخرین خطاهای کشندهٔ PHP</h2>
+		<h2 id="jluxe-fatals">آخرین خطاهای کشندهٔ PHP</h2>
 		<p class="description">هر بار که یک فایلِ ناقص/قدیمی وسطِ رندر خطا بدهد، پیامِ واقعیِ PHP (فایل + خط) این‌جا ثبت می‌شود — همان چیزی که در حالتِ عادی فقط در لاگِ سرور دیده می‌شود و کاربر به‌جایش «یک خطای مهم در این وب‌سایت رخ داده است» می‌بیند.</p>
 		<?php if ( empty( $fatals ) ) : ?>
 			<p style="color:green;font-weight:600">✓ خطای کشندهٔ ثبت‌شده‌ای وجود ندارد.</p>
@@ -471,29 +471,80 @@ function jluxe_render_site_diagnosis_page(): void {
 		<?php endif; ?>
 
 		<?php $guard_hits = get_option( JLUXE_TEMPLATE_GUARD_OPTION, array() ); ?>
-		<h2>محافظِ قالب‌های ووکامرس</h2>
+		<h2 id="jluxe-guard">محافظِ قالب‌های ووکامرس</h2>
 		<p class="description">اگر فایلِ قالبی با بستهٔ رسمی یکی نباشد، پوسته به‌جای آن نسخهٔ پشتیبانِ سالم (یا قالبِ پیش‌فرضِ ووکامرس) را رندر می‌کند تا فروشگاه از کار نیفتد.</p>
 		<?php if ( empty( $guard_hits ) || ! is_array( $guard_hits ) ) : ?>
 			<p style="color:green;font-weight:600">✓ هیچ قالبی تا حالا نیاز به جایگزینی نداشته است.</p>
 		<?php else : ?>
+			<?php
+			// R83: خطای زمانِ اجرا (نه فایلِ بریده) هم این‌جا با پیامِ واقعیِ
+			// PHP نشان داده می‌شود؛ همان چیزی که خطِ دقیقِ کد را معلوم می‌کند.
+			$guard_errors = function_exists( 'jluxe_template_guard_recent_errors' ) ? jluxe_template_guard_recent_errors( 5 ) : array();
+			$guard_labels = array(
+				'fallback'    => 'نسخهٔ پشتیبانِ سالمِ پوسته',
+				'woocommerce' => 'قالبِ پیش‌فرضِ ووکامرس',
+				'error'       => 'خطای زمانِ اجرا — گرفته شد و صفحه نخوابید',
+			);
+			?>
 			<table class="widefat striped">
-				<thead><tr><th>فایل</th><th>جایگزینِ استفاده‌شده</th><th>آخرین بار</th></tr></thead>
+				<thead><tr><th>فایل</th><th>وضعیت</th><th>آخرین بار</th></tr></thead>
 				<tbody>
 				<?php foreach ( $guard_hits as $relative => $hit ) : ?>
 					<tr>
 						<td><code dir="ltr"><?php echo esc_html( (string) $relative ); ?></code></td>
-						<td><?php echo 'fallback' === ( $hit['mode'] ?? '' ) ? 'نسخهٔ پشتیبانِ سالمِ پوسته' : 'قالبِ پیش‌فرضِ ووکامرس'; ?></td>
+						<td<?php echo 'error' === ( $hit['mode'] ?? '' ) ? ' style="color:#b32d2e"' : ''; ?>><?php echo esc_html( $guard_labels[ (string) ( $hit['mode'] ?? '' ) ] ?? 'مسیرِ جایگزین به‌کار رفت' ); ?></td>
 						<td><?php echo esc_html( wp_date( 'Y-m-d H:i', (int) ( $hit['time'] ?? 0 ) ) ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>
 			</table>
+			<?php if ( ! empty( $guard_errors ) ) : ?>
+				<h3 style="color:#b32d2e">پیامِ واقعیِ خطای PHP (همان چیزی که باید رفع شود)</h3>
+				<table class="widefat striped">
+					<thead><tr><th>پیام</th><th>فایل:خط</th><th>تکرار</th></tr></thead>
+					<tbody>
+					<?php foreach ( $guard_errors as $guard_error ) : ?>
+						<tr>
+							<td><code dir="ltr"><?php echo esc_html( (string) ( $guard_error['message'] ?? '' ) ); ?></code></td>
+							<td><code dir="ltr"><?php echo esc_html( (string) ( $guard_error['file'] ?? '' ) ); ?>:<?php echo esc_html( (string) ( $guard_error['line'] ?? 0 ) ); ?></code></td>
+							<td><?php echo esc_html( jluxe_fa_digits( (string) ( $guard_error['count'] ?? 1 ) ) ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="jluxe_template_guard_clear" />
 				<?php wp_nonce_field( 'jluxe_template_guard_clear' ); ?>
 				<p><button type="submit" class="button">بعد از بازآپلودِ موفق، این فهرست را پاک کن</button></p>
 			</form>
 		<?php endif; ?>
+
+		<?php
+		// R83 — «گزارشِ آمادهٔ کپی»: یک متنِ خام که با یک کلیک انتخاب می‌شود تا
+		// فرستادنِ وضعیتِ سایت (نسخه‌ها + خطاهای واقعی + فایل‌های ناسالم) یک کارِ
+		// یک‌مرحله‌ای باشد. عمداً هیچ کلید API، شماره، ایمیل یا اطلاعاتِ مشتری
+		// در آن نیست — فقط نسخه‌ها، فایل‌ها و پیامِ خطاهای PHP.
+		$copy_lines   = array();
+		$copy_lines[] = '=== JLUXE diagnosis ===';
+		$copy_lines[] = 'date: ' . wp_date( 'Y-m-d H:i', time() );
+		$copy_theme   = function_exists( 'wp_get_theme' ) ? (string) wp_get_theme()->get( 'Version' ) : '—';
+		$copy_lines[] = 'theme: ' . $copy_theme . ' | wordpress: ' . get_bloginfo( 'version' ) . ' | php: ' . PHP_VERSION . ' | woocommerce: ' . ( defined( 'WC_VERSION' ) ? (string) WC_VERSION : '—' );
+		foreach ( (array) $fatals as $copy_entry ) {
+			$copy_lines[] = 'FATAL x' . (string) ( $copy_entry['count'] ?? 1 ) . ' ' . (string) ( $copy_entry['file'] ?? '' ) . ':' . (string) ( $copy_entry['line'] ?? 0 ) . ' :: ' . (string) ( $copy_entry['message'] ?? '' );
+		}
+		foreach ( (array) $guard_hits as $copy_relative => $copy_hit ) {
+			$copy_lines[] = 'GUARD ' . (string) $copy_relative . ' mode=' . (string) ( $copy_hit['mode'] ?? '' );
+		}
+		$copy_lines[] = 'FILES modified=' . count( (array) ( $integrity['modified'] ?? array() ) ) . ' missing=' . count( (array) ( $integrity['missing'] ?? array() ) ) . ' syntax=' . count( (array) ( $integrity['syntax'] ?? array() ) ) . ' checked=' . (string) ( $integrity['checked'] ?? 0 );
+		foreach ( array_merge( (array) ( $integrity['syntax'] ?? array() ), (array) ( $integrity['missing'] ?? array() ), (array) ( $integrity['modified'] ?? array() ) ) as $copy_path ) {
+			$copy_lines[] = 'FILE ' . (string) $copy_path;
+		}
+		?>
+		<h2 id="jluxe-report">گزارشِ آمادهٔ کپی</h2>
+		<p class="description">این متن را با یک کلیک انتخاب و کپی کنید و همان را بفرستید (اسکرین‌شات هم کافی است) — برای عیب‌یابیِ دقیق همین کافی است. هیچ کلید API یا اطلاعاتِ مشتری در آن نیست.</p>
+		<textarea id="jluxe-report-text" readonly rows="10" style="width:100%;font-family:Menlo,Consolas,monospace;direction:ltr;text-align:left" onclick="this.select()"><?php echo esc_textarea( implode( "\n", $copy_lines ) ); ?></textarea>
+		<p><button type="button" class="button button-primary" onclick="var t=document.getElementById('jluxe-report-text');t.focus();t.select();try{document.execCommand('copy');}catch(e){}">انتخاب و کپی</button></p>
 
 		<h2>محصولات</h2>
 		<table class="widefat striped">
