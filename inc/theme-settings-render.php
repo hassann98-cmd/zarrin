@@ -1185,6 +1185,15 @@ function jluxe_render_shop_page(): void {
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="jluxe-shop-oos-last">ناموجودها در انتهای لیست</label></th>
+					<td>
+						<label>
+							<input type="checkbox" id="jluxe-shop-oos-last" name="shop[out_of_stock_last]" value="1" <?php checked( ! empty( $shop['out_of_stock_last'] ) ); ?> />
+							محصولات ناموجود همیشه در انتهای فهرست نمایش داده شوند — در همهٔ حالت‌ها: آرشیو/دسته، بخش‌های صفحهٔ اصلی، محصولات مرتبط و پیشنهادیِ «اضافه خرید»
+						</label>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-cols-desktop">تعداد ستون — دسکتاپ</label></th>
 					<td><input type="number" id="jluxe-cols-desktop" name="shop[columns_desktop]" value="<?php echo esc_attr( $shop['columns_desktop'] ); ?>" min="2" max="6" class="small-text" /></td>
 				</tr>

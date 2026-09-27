@@ -3690,6 +3690,16 @@ input.jluxe-qty-fa-input {
   direction: ltr;
   unicode-bidi: isolate;
 }
+/* R64: گلیف تومان همیشه سمتِ چپِ عدد — bdi با direction:ltr موجود، حالا
+flex row-reverse است: عدد (اولین فرزند DOM) در راست، گلیف (دومین) در چپ.
+در هر بافتی (صفحهٔ محصول، کارت، مودال، نوار چسبان) بدونِ وابستگی به bidi. */
+.woocommerce-Price-amount bdi {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  gap: 3px;
+}
 .jluxe-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -5447,24 +5457,93 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 .jluxe-pa-check { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; border: 2px solid hsl(var(--panel-border)); color: transparent; transition: border-color 0.15s ease; }
 .jluxe-pa-row.is-selected .jluxe-pa-check { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .jluxe-pa-goto { flex: none; font-size: 12px; font-weight: 600; color: hsl(var(--primary)); }
-.jluxe-pa-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px 16px; border-top: 1px solid hsl(var(--border)); }
 .jluxe-pa-totalwrap { display: flex; flex-direction: column; gap: 2px; }
 .jluxe-pa-totalwrap > small { font-size: 11px; color: hsl(var(--text-muted)); }
 .jluxe-pa-totalrow { display: flex; align-items: baseline; gap: 4px; color: hsl(var(--foreground)); }
 .jluxe-pa-total { font-size: 16px; font-weight: 700; }
 .jluxe-pa-totalrow > small { font-size: 11px; }
-.jluxe-pa-confirm { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 20px; border: none; border-radius: 16px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px hsl(var(--primary) / 0.25); transition: background-color 0.15s ease; font-family: inherit; }
-.jluxe-pa-confirm:hover { background: hsl(var(--primary-hover)); }
-.jluxe-pa-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
-/* R63 (فاز ۲) — فوترِ مودالِ پیشنهاد: خلاصهٔ سبد + [مشاهده سبد] [ادامه خرید] */
-.jluxe-pa-cartline { display: flex; justify-content: flex-start; padding: 0 4px; }
+/* تعریفِ unified دکمه‌های افزودن به سبد (شامل jluxe-pa-confirm) در بخش R64 پایین‌تر */
+/* R64 — ناحیهٔ انتخاب تنوع (صفحهٔ محصول + مودال انتخاب سریع):
+برچسبِ سایز/رنگ کمی کوچک‌تر، قیمتِ تنوع مشکی و جمع‌وجورتر */
+[data-jluxe-variation-group] > p { font-size: 11.5px; line-height: 1.7; }
+.jluxe-variant-modal .price,
+.jluxe-variant-modal .woocommerce-variation-price {
+  font-size: 14px;
+  color: hsl(var(--foreground));
+}
+.jluxe-variant-modal .price del { font-size: 12px; color: hsl(var(--text-muted)); }
+.jluxe-variant-modal .price ins { text-decoration: none; }
+.jluxe-variant-modal .woocommerce-variation-price { margin-bottom: 4px; }
+.jluxe-pa-price { color: hsl(var(--foreground)); font-size: 12.5px; }
+
+/* ── R64: یک شکل و یک سایز بودنِ همهٔ دکمه‌های «افزودن به سبد» ──
+فرمِ صفحهٔ محصول + مودالِ انتخابِ تنوع (single_add_to_cart_button)،
+نوارِ چسبانِ موبایل و دکمهٔ تأییدِ مودالِ پیشنهاد — همه دقیقاً:
+ارتفاع ۴۸px / گردی ۱۶px / پس‌زمینه primary / متن سفید ۱۴px نیم‌ضخیم.
+selector اول با .button هم‌تراز است تا سبکِ پیش‌فرضِ وردپرس را ببرد. */
+.single_add_to_cart_button.button,
+.single_add_to_cart_button.alt,
+.jluxe-btn-primary[data-jluxe-sticky-add],
+.jluxe-pa-confirm {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 16px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 16px hsl(var(--primary) / 0.25);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.single_add_to_cart_button.button:hover,
+.single_add_to_cart_button.alt:hover,
+.jluxe-btn-primary[data-jluxe-sticky-add]:hover,
+.jluxe-pa-confirm:hover {
+  background: hsl(var(--primary-hover));
+  text-decoration: none;
+}
+.single_add_to_cart_button.button:active,
+.single_add_to_cart_button.alt:active,
+.jluxe-btn-primary[data-jluxe-sticky-add]:active,
+.jluxe-pa-confirm:active { transform: scale(0.98); }
+.single_add_to_cart_button.disabled,
+.single_add_to_cart_button.disabled:hover,
+.jluxe-pa-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: auto;
+  transform: none;
+}
+.single_add_to_cart_button.jluxe-loading,
+.jluxe-pa-confirm.opacity-60 {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ── R64: فوترِ دو ردیفیِ مودالِ پیشنهاد — ریسپانسیو کامل ──
+موبایل: تأیید تمام‌عرض؛ دسکتاپ: مبلغ راست، دکمه چپ. */
+.jluxe-pa-foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid hsl(var(--border)); }
+.jluxe-pa-foot-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .jluxe-pa-cartinfo { font-size: 12px; font-weight: 600; color: hsl(var(--text-secondary)); }
-.jluxe-pa-actions { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
-.jluxe-pa-viewcart,
-.jluxe-pa-continue { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.jluxe-pa-viewcart { background: hsl(var(--surface)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); text-decoration: none; }
-.jluxe-pa-continue { background: transparent; color: hsl(var(--text-secondary)); border: 1px solid transparent; }
+.jluxe-pa-foot-links { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.jluxe-pa-viewcart { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--surface)); color: hsl(var(--foreground)); font-size: 12.5px; font-weight: 700; text-decoration: none; }
+.jluxe-pa-continue { display: inline-flex; align-items: center; min-height: 34px; padding: 0 10px; border: none; border-radius: 10px; background: transparent; color: hsl(var(--text-secondary)); font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .jluxe-pa-viewcart:hover { border-color: hsl(var(--primary)); color: hsl(var(--primary)); }
+.jluxe-pa-foot-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.jluxe-pa-foot-main .jluxe-pa-confirm { flex: 1 1 100%; min-height: 48px; }
+@media (min-width: 768px) {
+  .jluxe-pa-foot { padding: 14px 24px 18px; }
+  .jluxe-pa-foot-main .jluxe-pa-confirm { flex: 0 0 auto; }
+}
 /* R63 (فاز ۲) — state موفقِ Quick Add روی دکمهٔ کارت */
 .jluxe-btn-added { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; transform: scale(1.05); }
 /* R63 (فاز ۵) — هدرِ فشردهٔ اسکرول */

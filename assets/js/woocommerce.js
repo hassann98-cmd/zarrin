@@ -1328,9 +1328,12 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		var paMainAmount = parseFloat(modal.getAttribute("data-pa-main")) || 0;
 
 		function paFormat(amount) {
+			/* R64: اعدادِ مبلغِ مودال همیشه فارسی — قبلاً به window.jluxeFaDigits
+			تکیه می‌کرد که سراسری تعریف نشده بود و بعدِ اولین بازمحاسبهٔ JS،
+			ارقامِ لاتین («795,000») جای ارقامِ فارسیِ سرور می‌نشست. */
 			var rounded = Math.max(0, Math.round(amount));
 			var withSeparators = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-			return window.jluxeFaDigits ? window.jluxeFaDigits(withSeparators) : withSeparators;
+			return withSeparators.replace(/[0-9]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹".charAt(+d); });
 		}
 
 		function paUpdateTotal() {
@@ -1613,6 +1616,15 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	var modalRoot = null;
 	var lastFocused = null;
 	var releaseDialogFocus = null;
+	/* R64: منطقِ دقیقِ «تنوع از داخلِ مودالِ پیشنهاد» —
+	(۱) باز شدنِ picker همیشه اول مودالِ پیشنهاد را می‌بندد (بک‌دراپِ دوبل ممنوع)؛
+	(۲) بستنِ picker بدونِ افزودن → مودالِ پیشنهاد دوباره باز می‌شود (چیزی
+	به سبد اضافه نشده، محتوایش هنوز معتبر است)؛
+	(۳) افزودنِ موفقِ تنوع → مودالِ پیشنهاد بسته می‌ماند و از DOM حذف
+	می‌شود، چون خلاصهٔ سبد/مبلغِ آن بعدِ افزودن کهنه است — هیچ حالتِ
+	کهنه‌ای دوباره به کاربر نشان داده نمی‌شود. */
+	var pickerFromSuggested = false;
+	var pickerAdded = false;
 
 	function closeModal() {
 		if (!modalRoot) {
@@ -1625,6 +1637,16 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		if (lastFocused && lastFocused.focus) {
 			lastFocused.focus();
 		}
+		if (pickerFromSuggested) {
+			var staleSuggested = document.querySelector("[data-jluxe-suggested-modal]");
+			if (!pickerAdded && staleSuggested && typeof window.jluxeOpenSuggestedProductsModal === "function") {
+				window.jluxeOpenSuggestedProductsModal();
+			} else if (pickerAdded && staleSuggested && staleSuggested.parentNode) {
+				staleSuggested.parentNode.removeChild(staleSuggested);
+			}
+		}
+		pickerFromSuggested = false;
+		pickerAdded = false;
 	}
 
 	function openModal(productId, triggerEl) {
@@ -1638,8 +1660,12 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		// modalRoot قبلی هیچ‌وقت remove نمی‌شد و بک‌دراپِ ۵۰٪-سیاهش زیرِ
 		// نمونه‌ی جدید می‌موند، با هر کلیک یک لایه‌ی تیره‌ی دیگه روی هم.
 		if (modalRoot) {
+			pickerFromSuggested = false;
+			pickerAdded = false;
 			closeModal();
 		}
+		pickerFromSuggested = !!(triggerEl && triggerEl.closest && triggerEl.closest("[data-jluxe-suggested-modal]"));
+		pickerAdded = false;
 		// اگه از داخلِ مودالِ «محصولات پیشنهادی» باز شده (یک محصولِ متغیرِ
 		// پیشنهادی)، اون مودال هم باید بسته بشه — وگرنه دو بک‌دراپِ
 		// تمام‌صفحه روی هم می‌افتن و چون z-index این مودال (۶۰) از اون
@@ -1795,6 +1821,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 				if (window.jQuery) {
 					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), response.data]);
 				}
+				pickerAdded = true;
 				closeModal();
 			})
 			.catch(function () {

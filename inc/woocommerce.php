@@ -1879,24 +1879,25 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 
 				<footer class="jluxe-pa-foot">
 			<?php
-			/* R63 (فاز ۲): خلاصهٔ سبدِ واقعی پس از افزودن (شمارش + مبلغ) و
-			دو کنشِ [مشاهده سبد] و [ادامه خرید] — بدونِ redirect خودکار؛
-			ادامه خرید فقط مودال را می‌بندد. */
+			/* R64: فوترِ دو ردیفی — ردیفِ بالا: خلاصهٔ سبدِ واقعی + [مشاهده سبد]
+			[ادامه خرید]؛ ردیفِ پایین: مبلغِ قابل پرداخت + دکمهٔ تأیید.
+			موبایل: دکمهٔ تأیید تمام‌عرض. اعداد همیشه فارسی (سرور + JS). */
 			$cart_count = function_exists( 'WC' ) && WC()->cart ? (int) WC()->cart->get_cart_contents_count() : 0;
 			$cart_total = function_exists( 'WC' ) && WC()->cart ? (float) WC()->cart->get_total( 'edit' ) : 0.0;
 			$cart_url   = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '';
 			?>
-			<?php if ( $cart_count > 0 ) : ?>
-				<div class="jluxe-pa-cartline">
+			<div class="jluxe-pa-foot-top">
+				<?php if ( $cart_count > 0 ) : ?>
 					<span class="jluxe-pa-cartinfo">سبد شما: <?php echo esc_html( jluxe_fa_digits( $cart_count ) ); ?> کالا · <?php echo esc_html( jluxe_fa_digits( number_format( $cart_total, 0, '.', ',' ) ) ); ?> <?php echo esc_html( $unit ); ?></span>
-				</div>
-			<?php endif; ?>
-			<div class="jluxe-pa-actions">
-				<?php if ( '' !== $cart_url ) : ?>
-					<a class="jluxe-pa-viewcart" href="<?php echo esc_url( $cart_url ); ?>">مشاهده سبد</a>
 				<?php endif; ?>
-				<button type="button" class="jluxe-pa-continue" data-jluxe-suggested-close>ادامه خرید</button>
+				<span class="jluxe-pa-foot-links">
+					<?php if ( '' !== $cart_url ) : ?>
+						<a class="jluxe-pa-viewcart" href="<?php echo esc_url( $cart_url ); ?>">مشاهده سبد</a>
+					<?php endif; ?>
+					<button type="button" class="jluxe-pa-continue" data-jluxe-suggested-close>ادامه خرید</button>
+				</span>
 			</div>
+			<div class="jluxe-pa-foot-main">
 				<span class="jluxe-pa-totalwrap">
 					<small>مبلغ قابل پرداخت</small>
 					<span class="jluxe-pa-totalrow">
@@ -1908,6 +1909,7 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
 					<span>تأیید و افزودن به سبد</span>
 				</button>
+			</div>
 			</footer>
 		</div>
 	</div>
@@ -1931,6 +1933,41 @@ function jluxe_render_suggested_products_modal( WC_Product $product ): void {
 function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName, Squiz.Commenting.FunctionComment
 	return (int) jluxe_get_setting( 'shop.products_per_page', $per_page );
 }
+
+/**
+ * R64: تیکِ «ناموجودها همیشه انتهای لیست» (پنل زرین ← فروشگاه).
+ *
+ * یک فیلترِ مرکزیِ posts_clauses برای «همهٔ» کوئری‌های محصولِ فرانت —
+ * آرشیو/دسته/جستجوی محصول، بخش‌های صفحهٔ اصلی، محصولاتِ مرتبط و پیشنهادی
+ * (همه سرانجام WP_Query با post_type=product می‌شوند، شاملِ مسیرِ
+ * wc_get_products خودِ ووکامرس). ناموجودها حذف نمی‌شوند؛ فقط بعدِ
+ * موجودها می‌نشینند و ترتیبِ اصلی (تاریخ/محبوبیت/post__in) داخلِ هر گروه
+ * حفظ می‌شود. ادمین (و AJAX ادمین) مستثناست؛ مقدارِ گمشدهٔ
+ * _stock_status «موجود» فرض می‌شود تا رفتارِ محتاطانه باشد.
+ */
+function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $clauses;
+	}
+	if ( ! jluxe_get_setting( 'shop.out_of_stock_last', true ) ) {
+		return $clauses;
+	}
+	$post_type = $query->get( 'post_type' );
+	if ( 'product' !== $post_type && ! ( is_array( $post_type ) && array( 'product' ) === $post_type ) ) {
+		return $clauses;
+	}
+	global $wpdb;
+	if ( false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
+		$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
+	}
+	$base = trim( (string) $clauses['orderby'] );
+	if ( '' === $base ) {
+		$base = "{$wpdb->posts}.post_date DESC";
+	}
+	$clauses['orderby'] = "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
+	return $clauses;
+}
+add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 );
 add_filter( 'loop_shop_per_page', 'jluxe_shop_per_page', 20 );
 
 function jluxe_shop_columns( $columns ) { // phpcs:ignore Squiz.Commenting.FunctionComment
