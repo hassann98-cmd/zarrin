@@ -5994,7 +5994,12 @@ selector اول با .button هم‌تراز است تا سبکِ پیش‌فر�
 .single_add_to_cart_button.button,
 .single_add_to_cart_button.alt,
 .jluxe-btn-primary[data-jluxe-sticky-add],
-.jluxe-pa-confirm {
+.jluxe-pa-confirm,
+.jluxe-variant-modal .single_add_to_cart_button,
+.woocommerce a.button.add_to_cart_button,
+.woocommerce a.button.product_type_simple,
+.woocommerce a.button.product_type_variable,
+.woocommerce a.button.product_type_grouped {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
@@ -6017,7 +6022,11 @@ selector اول با .button هم‌تراز است تا سبکِ پیش‌فر�
 .single_add_to_cart_button.button:hover,
 .single_add_to_cart_button.alt:hover,
 .jluxe-btn-primary[data-jluxe-sticky-add]:hover,
-.jluxe-pa-confirm:hover {
+.jluxe-pa-confirm:hover,
+.woocommerce a.button.add_to_cart_button:hover,
+.woocommerce a.button.product_type_simple:hover,
+.woocommerce a.button.product_type_variable:hover,
+.woocommerce a.button.product_type_grouped:hover {
   background: hsl(var(--primary-hover));
   text-decoration: none;
 }
@@ -6025,6 +6034,11 @@ selector اول با .button هم‌تراز است تا سبکِ پیش‌فر�
 .single_add_to_cart_button.alt:active,
 .jluxe-btn-primary[data-jluxe-sticky-add]:active,
 .jluxe-pa-confirm:active { transform: scale(0.98); }
+.woocommerce a.button.add_to_cart_button,
+.woocommerce a.button.product_type_simple,
+.woocommerce a.button.product_type_variable,
+.woocommerce a.button.product_type_grouped { border: none; }
+.woocommerce a.button.add_to_cart_button.added { display: none; }
 .single_add_to_cart_button.disabled,
 .single_add_to_cart_button.disabled:hover,
 .jluxe-pa-confirm:disabled {

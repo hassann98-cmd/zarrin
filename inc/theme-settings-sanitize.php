@@ -647,7 +647,7 @@ function jluxe_sanitize_shop( array $posted, array $defaults ): array {
  */
 function jluxe_sanitize_purchase_addons( array $posted, array $defaults ): array {
 	$mode = isset( $posted['mode'] ) ? (string) $posted['mode'] : $defaults['mode'];
-	if ( ! in_array( $mode, array( 'fixed', 'per_product', 'per_category' ), true ) ) {
+	if ( ! in_array( $mode, array( 'fixed', 'per_product', 'per_category', 'random' ), true ) ) {
 		$mode = $defaults['mode'];
 	}
 

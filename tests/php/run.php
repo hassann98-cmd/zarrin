@@ -861,6 +861,41 @@ $pa_base['purchase_addons']['mode'] = 'per_category';
 update_test_settings( $pa_base );
 $pa_got = jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] );
 check(1 === count( $pa_got ) && 502 === reset( $pa_got )->get_id() && null !== $GLOBALS['product_query_args'], 'R47 per-category mode queries only the same category');
+// R72: hard availability gate for suggested products + the new random mode.
+$pa_mode72 = $pa_original_settings;
+$pa_mode72['purchase_addons'] = array( 'enabled' => true, 'mode' => 'random', 'fixed_ids' => array(), 'services' => array() );
+update_test_settings( $pa_mode72 );
+$GLOBALS['product_query_args'] = null;
+$GLOBALS['product_query_results'] = array( $GLOBALS['products'][502] );
+$pa_got = jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] );
+$pa_args = $GLOBALS['product_query_args'];
+check(1 === count( $pa_got ) && 502 === reset( $pa_got )->get_id() && is_array( $pa_args ) && 'visible' === $pa_args['visibility'] && 'rand' === $pa_args['orderby'] && in_array( 500, (array) $pa_args['exclude'], true ), 'R72 the random mode queries the whole shop for visible in-stock products (rand order), excludes the current product and only really-available items fill the slots');
+
+$GLOBALS['products'][503] = new WC_Product(503);
+$GLOBALS['products'][504] = new WC_Product(504);
+$p503 = $GLOBALS['products'][503];
+$p503->type = 'variable';
+$p503->stock = 10; // والد «موجود» ثبت شده…
+$p503->children = array( 504 );
+$GLOBALS['products'][504]->stock = 0; // …ولی تک‌تنوعش ناموجود است.
+check(false === jluxe_suggested_is_available( $p503 ), 'R72 a variable product whose parent says instock but whose every variation is out of stock is never suggested');
+$GLOBALS['products'][505] = new WC_Product(505);
+$GLOBALS['products'][506] = new WC_Product(506);
+$p505 = $GLOBALS['products'][505];
+$p505->type = 'variable';
+$p505->stock = 10;
+$p505->children = array( 506 );
+$GLOBALS['products'][506]->stock = 3;
+check(true === jluxe_suggested_is_available( $p505 ), 'R72 a variable product with at least one purchasable in-stock variation counts as available');
+$pa_fixed72 = $pa_mode72;
+$pa_fixed72['purchase_addons']['mode'] = 'fixed';
+$pa_fixed72['purchase_addons']['fixed_ids'] = array( 503 );
+update_test_settings( $pa_fixed72 );
+$GLOBALS['product_query_args'] = null;
+check(array() === jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] ) && null === $GLOBALS['product_query_args'], 'R72 fixed mode keeps manager-only semantics: a fixed pick that fails the availability gate is dropped without any fallback query');
+update_test_settings( $pa_original_settings );
+$GLOBALS['product_query_results'] = array();
+
 update_test_settings( $pa_original_settings );
 /* R61: پیش‌فرضِ سوییچ روشن شد — «خاموشی» حالا یک انتخابِ صریحِ آزمون است. */
 $pa_off = $pa_original_settings;
@@ -1023,7 +1058,7 @@ check(strpos($woo_inc,'function jluxe_suggested_modal_html_for')!==false && strp
 check(strpos($woo_js,'window.jluxeMountSuggestedModal')!==false && strpos($woo_js,'var paHtml = response.data && response.data.suggested_html')!==false && strpos($woo_js,'single_add_to_cart_button\")) {')===false, 'R61 the modal opens straight from the successful endpoint result in the form interceptor; the brittle button-class gate on the shared event is gone');
 check(strpos($woo_js,'function jluxeBindSuggestedModal')!==false && strpos($woo_js,'data-cp3-pa-bound')!==false && strpos($woo_js,'document.querySelector("[data-jluxe-suggested-modal]")')!==false, 'R61 the modal binder is re-runnable for freshly mounted markup and Escape always closes the modal currently in the DOM');
 check(strpos($woo_js,'window.jluxeMountSuggestedModal(paHtml);')!==false && strpos($woo_js,'staleModal.parentNode.removeChild(staleModal)')!==false && strpos($woo_js,'if (typeof window.jluxeOpenSuggestedProductsModal === "function")')>strpos($woo_js,'window.jluxeMountSuggestedModal(paHtml);'), 'R61 an empty suggested_html means NO modal at all: the opener only runs inside the paHtml branch and any stale SSR modal is removed from the DOM');
-check(strpos($woo_inc,"'orderby'        => array( 'date' => 'DESC' )")!==false && strpos($woo_inc,"data-jluxe-quick-variant=\"<?php echo esc_attr( (string) \$sp->get_id() ); ?>\"")!==false && strpos($settings_inc,"'enabled'  => true")!==false, 'R61 the category fallback is deterministic (newest first), variable suggestions open the quick-variant picker instead of navigating, and purchase_addons defaults to enabled (explicit admin off stays off)');
+check(strpos($woo_inc,"'orderby'      => 'rand'")!==false && strpos($woo_inc,"data-jluxe-quick-variant=\"<?php echo esc_attr( (string) \$sp->get_id() ); ?>\"")!==false && strpos($settings_inc,"'enabled'  => true")!==false, 'R72 (was R61) the category fallback picks randomly among in-stock items per the user request, variable suggestions open the quick-variant picker instead of navigating, and purchase_addons defaults to enabled (explicit admin off stays off)');
 // R62: systematic per-page asset plan + two-layer mega-menu cache (roadmap phase 1).
 $assets_php=(string) file_get_contents(ABSPATH.'inc/assets.php');
 check(strpos($assets_php,'function jluxe_page_context')!==false && strpos($assets_php,'function jluxe_default_asset_plan')!==false && strpos($assets_php,"apply_filters( 'jluxe_asset_plan'")!==false && strpos((string) file_get_contents(ABSPATH.'functions.php'),"'/inc/assets.php'")!==false, 'R62 the asset manager is a single decision point: context detection, a filterable plan and the central require exist');
@@ -1156,4 +1191,11 @@ check(strpos($auth_jsx,'به‌صورت خودکار برایتان ساخته �
 $wc_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false && strpos($wc_js,'!!optionValues[value]')===false, 'R71 swatch availability lookup uses the select.name-prefixed map key (R68 regression made every swatch in the default layout and the quick-pick modal permanently disabled)');
 check(strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button')!==false && strpos($store_css,'border-radius: 16px !important')!==false && strpos($store_css,'background: hsl(var(--primary)) !important')!==false, 'R71 the picker modal add-to-cart button is forced to the unified rounded primary style (16px radius, 48px height) immune to core/plugin CSS order');
+// R72: random-mode setting ships + unified add-to-cart styling everywhere.
+check(strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php'),"'per_category', 'random'")!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-render.php'),"value=\"random\"")!==false, 'R72 the suggested-products mode offers the new random option in both the renderer and the sanitizer whitelist');
+$pa_wc=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+check(strpos($pa_wc,'function jluxe_suggested_is_available')!==false && strpos($pa_wc,"'visibility'   => 'visible'")!==false && strpos($pa_wc,"'orderby'      => 'rand'")!==false && strpos($pa_wc,'$limit * 4')!==false, 'R72 the suggestion pool queries a bigger-than-limit batch of visible products in rand order and re-filters every candidate so no slot is wasted');
+$cprod=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
+check(strpos($cprod,'bg-foreground text-surface hover:bg-primary')===false && substr_count($cprod,'bg-primary text-primary-foreground hover:bg-primary-hover')===2, 'R72 the grid quick-add chips (simple and variable) use the exact same primary style as every other add-to-cart button');
+check(strpos($store_css,'.woocommerce a.button.add_to_cart_button')!==false && strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button,')!==false, 'R72 default loop add-to-cart links and the variant-modal button join the one unified primary button block');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

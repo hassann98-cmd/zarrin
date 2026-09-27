@@ -1610,71 +1610,155 @@ add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_
 
 /**
  * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول).
- * منبع بر اساسِ تنظیمِ «اضافه خرید ← حالتِ محصولات پیشنهادی» (پنل زرین)
- * تعیین می‌شود:
- *  - fixed: فقط شناسه‌های انتخاب‌شدهٔ سراسری.
- *  - per_product (پیش‌فرض): اول Cross-sells واقعیِ خودِ ووکامرس (Product
- *    data → Linked Products) — یعنی همان فیلدِ رسمی که ادمین دستی انتخابش
- *    می‌کند، نه یک متای موازی — و اگر خالی باشد، محصولاتِ موجودِ همان
- *    دسته‌بندی.
- *  - per_category: همیشه فقط محصولاتِ موجودِ همان دسته‌بندی.
- * همیشه فقط محصولاتِ purchasable/instock برمی‌گردد — یک محصولِ ناموجود
- * یا مخفی پیشنهاد دادن فایده‌ای ندارد.
+ *
+ * R72 — بازبینیِ کاملِ شرط‌ها. حالت‌ها (پنل زرین ← اضافه خرید):
+ *  - fixed: فقط شناسه‌های انتخاب‌شدهٔ سراسریِ مدیر (محد به خودِ همین فهرست می‌ماند).
+ *  - per_product (پیش‌فرض): اول Cross-sells واقعیِ خودِ ووکامرس (ویرایش محصول ←
+ *    داده‌های محصول ← محصولات پیوسته — یعنی انتخابِ مدیر برای همان محصول)، بعد
+ *    پرکردنِ اسلات‌های خالی با محصولاتِ موجودِ همان دسته، بعد کلِ فروشگاه.
+ *  - per_category: همیشه فقط محصولاتِ موجودِ همان دسته.
+ *  - random: اتفاقی بین کالاهای موجودِ کلِ فروشگاه.
+ *
+ * «موجود» (R72) دیگر فقط وضعیتِ والدِ محصول متغیر نیست: is_in_stock() روی
+ * WC_Product_Variable فقط متای _stock_status والد را می‌خواند — محصولی که
+ * همهٔ تنوع‌هایش ناموجودند ولی والدش «موجود» ثبت شده، قبلاً پیشنهاد می‌شد و
+ * مودالِ تنوعِ آن همهٔ سواچ‌هایش بسته بود. حالا برای محصول متغیر باید حداقلِ
+ * یک تنوعِ purchasable و در-انبارِ واقعی وجود داشته باشد (کشِ استاتیک در
+ * طولِ یک درخواست). کوئری‌هایِ تصادفی هم «visibility=visible» می‌خواهند
+ * (کالای مخفی از کاتالوگ پیشنهاد نمی‌شود) و «orderby=rand» — خروجیِ این
+ * تابع داخلِ پاسخِ POST افزودن‌به‌سبد رندر می‌شود (غیرقابلِ کشِ صفحه)، پس
+ * رندومِ به‌روز مشکلی برای کش ندارد (تصمیمِ قطعیِ R61 با درخواستِ صریحِ
+ * کاربر در R72 به رندومِ بینِ کالاهای موجود تغییر کرد). هر گزینه‌ای بعد از
+ * کوئری دوباره با همین شرطِ سخت‌گیرانه فیلتر می‌شود (استخرِ بزرگ‌تر از limit
+ * کشیده می‌شود تا فیلتر بعد از limit اسلات هدر ندهد — باگِ واقعیِ نسخهٔ قبل).
  */
-function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit = 3 ): array {
-	$mode = (string) jluxe_get_setting( 'purchase_addons.mode', 'per_product' );
-
-	if ( 'fixed' === $mode ) {
-		$suggested = array();
-		foreach ( (array) jluxe_get_setting( 'purchase_addons.fixed_ids', array() ) as $fixed_id ) {
-			if ( absint( $fixed_id ) === $product->get_id() ) {
-				continue;
-			}
-			$fixed_product = wc_get_product( absint( $fixed_id ) );
-			if ( $fixed_product && 'publish' === $fixed_product->get_status() && $fixed_product->is_purchasable() && $fixed_product->is_in_stock() ) {
-				$suggested[] = $fixed_product;
-			}
-			if ( count( $suggested ) >= $limit ) {
+function jluxe_suggested_is_available( $product ): bool {
+	if ( ! $product instanceof WC_Product || 'publish' !== $product->get_status() || ! $product->is_purchasable() ) {
+		return false;
+	}
+	static $cache = array();
+	$id = $product->get_id();
+	if ( array_key_exists( $id, $cache ) ) {
+		return (bool) $cache[ $id ];
+	}
+	if ( $product->is_type( 'variable' ) ) {
+		$available = false;
+		foreach ( $product->get_children() as $child_id ) {
+			$variation = wc_get_product( $child_id );
+			if ( $variation && $variation->is_purchasable() && $variation->is_in_stock() ) {
+				$available = true;
 				break;
 			}
 		}
-		return $suggested;
+	} else {
+		$available = $product->is_in_stock();
+	}
+	$cache[ $id ] = $available;
+	return $available;
+}
+
+/**
+ * استخرِ اتفاقیِ کالاهای موجود — برایِ پرکردنِ اسلات‌های پیشنهاد.
+ * stock_status=instock در کوئری فقط وضعیتِ والد را می‌بیند؛ به همین دلیل
+ * استخر کمی بزرگ‌تر از نیاز کشیده می‌شود و هر گزینه دوباره با
+ * jluxe_suggested_is_available (بررسیِ تنوعِ واقعی) فیلتر می‌شود.
+ */
+function jluxe_suggested_random_pool( array $exclude_ids, array $category_ids = array(), int $pool_size = 12 ): array {
+	$args = array(
+		'status'       => 'publish',
+		'visibility'   => 'visible',
+		'exclude'      => array_map( 'absint', $exclude_ids ),
+		'stock_status' => 'instock',
+		'orderby'      => 'rand',
+		'limit'        => max( 1, $pool_size ),
+		'return'       => 'objects',
+	);
+	if ( ! empty( $category_ids ) ) {
+		$args['category'] = array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids );
+	}
+	$found = wc_get_products( $args );
+	$out   = array();
+	foreach ( (array) $found as $candidate ) {
+		if ( jluxe_suggested_is_available( $candidate ) ) {
+			$out[] = $candidate;
+		}
+	}
+	return $out;
+}
+
+function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit = 3 ): array {
+	$limit = max( 1, $limit );
+	$mode  = (string) jluxe_get_setting( 'purchase_addons.mode', 'per_product' );
+	if ( ! in_array( $mode, array( 'fixed', 'per_product', 'per_category', 'random' ), true ) ) {
+		$mode = 'per_product';
+	}
+
+	$seen = array( $product->get_id() => true );
+	$out  = array();
+	$take = static function ( array $candidates ) use ( &$out, &$seen, $limit ): bool {
+		foreach ( $candidates as $candidate ) {
+			$pid = $candidate instanceof WC_Product ? $candidate->get_id() : 0;
+			if ( ! $pid || isset( $seen[ $pid ] ) || ! jluxe_suggested_is_available( $candidate ) ) {
+				continue;
+			}
+			$seen[ $pid ] = true;
+			$out[]        = $candidate;
+			if ( count( $out ) >= $limit ) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	if ( 'fixed' === $mode ) {
+		// حالتِ ثابت: فقط و فقط فهرستِ مدیر — اسلاتِ خالی با جایگزین پر نمی‌شود.
+		$picked = array();
+		foreach ( (array) jluxe_get_setting( 'purchase_addons.fixed_ids', array() ) as $fixed_id ) {
+			$fixed = wc_get_product( absint( $fixed_id ) );
+			if ( $fixed ) {
+				$picked[] = $fixed;
+			}
+		}
+		$take( $picked );
+		return $out;
+	}
+
+	if ( 'random' === $mode ) {
+		// R72: حالتِ اتفاقی — بینِ کالاهای موجودِ کلِ فروشگاه.
+		$take( jluxe_suggested_random_pool( array_keys( $seen ), array(), $limit * 4 ) );
+		return $out;
 	}
 
 	if ( 'per_product' === $mode ) {
-		$suggested = array();
+		// ① انتخابِ مدیر برای همین محصول (فیلدِ رسمیِ Cross-sells ووکامرس).
+		// اگر مدیر برای این محصول چیزی انتخاب کرده باشد، «همان» نهایی است —
+		// گزینه‌های از-دست-رفته (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ
+		// تصادفی رقیق نمی‌شوند؛ fallback فقط وقتی است که چیزی انتخاب نشده باشد.
+		$cross = array();
 		foreach ( (array) $product->get_cross_sell_ids() as $cross_id ) {
 			$cross_product = wc_get_product( absint( $cross_id ) );
-			if ( $cross_product && $cross_product->is_purchasable() && $cross_product->is_in_stock() ) {
-				$suggested[] = $cross_product;
-			}
-			if ( count( $suggested ) >= $limit ) {
-				break;
+			if ( $cross_product ) {
+				$cross[] = $cross_product;
 			}
 		}
-		if ( ! empty( $suggested ) ) {
-			return $suggested;
+		if ( ! empty( $cross ) ) {
+			$take( $cross );
+			return $out;
 		}
 	}
 
+	// ② (per_product بدونِ cross-sell) همان دسته ③ (per_product) کلِ
+	//    فروشگاه / (per_category) فقط همان دسته.
 	$category_ids = $product->get_category_ids();
-	if ( empty( $category_ids ) ) {
-		return array();
+	if ( ! empty( $category_ids ) ) {
+		if ( $take( jluxe_suggested_random_pool( array_keys( $seen ), $category_ids, $limit * 4 ) ) ) {
+			return $out;
+		}
 	}
-
-	$random_ids = wc_get_products(
-		array(
-			'status'       => 'publish',
-			'category'     => array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids ),
-			'exclude'      => array( $product->get_id() ),
-			'stock_status' => 'instock',
-			'orderby'        => array( 'date' => 'DESC' ), // R61: قطعی، قابل پیش‌بینی، کش‌پذیر,
-			'limit'        => $limit,
-			'return'       => 'objects',
-		)
-	);
-
-	return array_filter( $random_ids, fn( $p ) => $p instanceof WC_Product && $p->is_purchasable() );
+	if ( 'per_product' === $mode ) {
+		$take( jluxe_suggested_random_pool( array_keys( $seen ), array(), $limit * 4 ) );
+	}
+	return $out;
 }
 
 /**
