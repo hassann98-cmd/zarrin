@@ -1991,6 +1991,16 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 	return $clauses;
 }
 add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 );
+
+/**
+ * R69: پاراگرافِ «اطلاعات شخصی شما برای پردازش سفارش…» در صفحهٔ پرداخت
+ * حذف شد (درخواستِ صریحِ کاربر) — فقط برای type=checkout؛ متن‌های ثبت‌نام
+ * دست‌نخورده می‌مانند. اگر ادمین بعداً خواست برگردد: این فیلتر را بردارید.
+ */
+function jluxe_hide_checkout_privacy_text( string $text, string $type ): string {
+	return 'checkout' === $type ? '' : $text;
+}
+add_filter( 'woocommerce_get_privacy_policy_text', 'jluxe_hide_checkout_privacy_text', 10, 2 );
 add_filter( 'loop_shop_per_page', 'jluxe_shop_per_page', 20 );
 
 function jluxe_shop_columns( $columns ) { // phpcs:ignore Squiz.Commenting.FunctionComment

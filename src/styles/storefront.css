@@ -3936,6 +3936,10 @@ input.jluxe-qty-fa-input {
   direction: ltr;
   unicode-bidi: isolate;
 }
+/* R69: پاراگرافِ حریم خصوصیِ چک‌اوت حذف شده (فیلترِ PHP) — پوستهٔ
+باقی‌ماندهٔ div هم اگر جایی چاپ شد مخفی. */
+.woocommerce-checkout .woocommerce-privacy-policy-text,
+.checkout .woocommerce-privacy-policy-text { display: none; }
 /* ── R68: ردیفِ خریدِ محصولِ متغیر — تعدادِ ظریف + دکمهٔ unified سمتِ چپ ── */
 .woocommerce-variation-add-to-cart.variations_button {
   display: flex;
@@ -4016,15 +4020,23 @@ del .woocommerce-Price-amount {
   font-weight: 400;
   text-decoration: line-through;
 }
-/* R64: گلیف تومان همیشه سمتِ چپِ عدد — bdi با direction:ltr موجود، حالا
-flex row-reverse است: عدد (اولین فرزند DOM) در راست، گلیف (دومین) در چپ.
-در هر بافتی (صفحهٔ محصول، کارت، مودال، نوار چسبان) بدونِ وابستگی به bidi. */
-.woocommerce-Price-amount bdi {
-  display: inline-flex;
+/* R64/R69: گلیف تومان همیشه سمتِ چپِ عدد، عدد سمتِ راست — در «همهٔ»
+صفحه‌ها از جمله سبد/پرداخت و جدولِ بازبینیِ سفارش. !important تا سبک‌های
+هسته/افزونه‌ها و ترتیبِ کلاس‌ها نتواند آن را برگرداند؛ margin های inline
+خودِ svg هم صفر می‌شوند تا فاصله فقط از gap بیاید. */
+.woocommerce-Price-amount bdi,
+.woocommerce-Price-amount.amount bdi {
+  display: inline-flex !important;
   align-items: center;
-  flex-direction: row-reverse;
+  flex-direction: row-reverse !important;
   justify-content: flex-start;
-  gap: 3px;
+  gap: 4px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.woocommerce-Price-amount bdi .woocommerce-Price-currencySymbol,
+.woocommerce-Price-amount bdi .woocommerce-Price-currencySymbol svg {
+  margin: 0 !important;
 }
 .jluxe-clamp-3 {
   display: -webkit-box;
