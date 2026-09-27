@@ -11,6 +11,9 @@ const DAY_IN_SECONDS = 86400;
 const MB_IN_BYTES = 1048576;
 $GLOBALS['options']=[];
 $GLOBALS['transients']=[];
+$GLOBALS['objcache']=[];
+$GLOBALS['dequeued_scripts']=[];
+$GLOBALS['dequeued_styles']=[];
 $GLOBALS['actions']=[];
 $GLOBALS['scripts']=[];
 $GLOBALS['styles']=[];
@@ -61,7 +64,7 @@ function wp_doing_ajax(){return $GLOBALS['doing_ajax']??false;}
 function check_ajax_referer(...$a){return $GLOBALS['valid_ajax_nonce'] ?? true;}
 function wp_verify_nonce(...$a){return true;}
 function current_time($v){return '2026-09-23 00:00:00';}
-function wp_cache_delete(...$a){}
+function wp_cache_delete($key,$group=''){unset($GLOBALS['objcache'][$group][$key]);return true;}
 function get_users($a){$GLOBALS['users_query']=$a; return isset($a['meta_query']) ? ($GLOBALS['billing_users']??[]) : ($GLOBALS['phone_users']??[]);}
 function wp_set_current_user($id){$GLOBALS['authenticated_user']=$id;}
 function wp_set_auth_cookie($id,...$a){$GLOBALS['cookie_user']=$id;}
@@ -201,8 +204,17 @@ function wp_trim_excerpt($text){return $text;}
 function wp_parse_str($text,&$out){parse_str($text,$out);}
 function wc_format_decimal($value){return is_numeric($value)?(string)$value:'';}
 function get_queried_object_id(){return 1;}
-function is_product(){return false;}
+function is_product(){return $GLOBALS['query_kind']==='product';}
 function is_shop(){return $GLOBALS['query_kind']==='shop';}
+function is_product_taxonomy(){return false;}
+function is_cart(){return $GLOBALS['query_kind']==='cart';}
+function is_checkout(){return $GLOBALS['query_kind']==='checkout';}
+function is_account_page(){return $GLOBALS['query_kind']==='account';}
+function is_date(){return false;}
+function wp_cache_get($key,$group=''){return $GLOBALS['objcache'][$group][$key]??false;}
+function wp_cache_set($key,$value,$group='',$ttl=0){$GLOBALS['objcache'][$group][$key]=$value;return true;}
+function wp_dequeue_script($handle){$GLOBALS['dequeued_scripts'][]=$handle;}
+function wp_dequeue_style($handle){$GLOBALS['dequeued_styles'][]=$handle;}
 function is_front_page(){return $GLOBALS['query_kind']==='front';}
 function is_singular(){return $GLOBALS['query_kind']==='single';}
 function is_category(){return false;}

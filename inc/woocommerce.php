@@ -1301,6 +1301,12 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	if ( ! function_exists( 'is_cart' ) ) {
 		return;
 	}
+	/* R62: enqueue سیستماتیک — فقط بافت‌هایی که برنامهٔ asset (inc/assets.php)
+	گروهِ theme_woo_ux را روشن کرده؛ بلاگ/404/آرشیوِ غیرمحصولی دیگر این
+	فایل (و وابستگی jquery آن) را بار نمی‌کنند. */
+	if ( empty( jluxe_asset_plan()['theme_woo_ux'] ) ) {
+		return;
+	}
 	// هر جا ممکنه کارت محصول باشه (شاپ/دسته/برچسب/جستجو/صفحه اصلی با گرید
 	// محصول) هم به هاور/لمس‌طولانیِ تامبنیل گالری کارت نیاز داره، نه فقط
 	// صفحه‌ی تکی محصول/سبد/چک‌اوت — پس این اسکریپت سراسری لود می‌شه (فایل
@@ -1369,8 +1375,16 @@ add_action( 'init', 'jluxe_remove_default_product_tabs' );
  */
 function jluxe_get_mega_menu_categories(): array {
 	$cache_key = 'jluxe_mega_menu_tree_v1';
+	/* R62: دو لایهٔ کش — Object Cache (با Redis واقعی می‌ماند؛ بدونِ آن فقط
+	حافظهٔ همین درخواست است) و بعد Transient (fallback برای نصب‌های بدونِ
+	object-cache.php). خروجی در هر دو لایه «آرایهٔ» دیتاست است، نه HTML. */
+	$cached = wp_cache_get( $cache_key, 'jluxe' );
+	if ( is_array( $cached ) ) {
+		return $cached;
+	}
 	$cached = get_transient( $cache_key );
 	if ( false !== $cached && is_array( $cached ) ) {
+		wp_cache_set( $cache_key, $cached, 'jluxe', HOUR_IN_SECONDS );
 		return $cached;
 	}
 
@@ -1449,15 +1463,18 @@ function jluxe_get_mega_menu_categories(): array {
 	}
 
 	set_transient( $cache_key, $categories, DAY_IN_SECONDS );
+	wp_cache_set( $cache_key, $categories, 'jluxe', HOUR_IN_SECONDS );
 	return $categories;
 }
 
 /**
- * پاک‌سازی کش درخت مگامنو پس از تغییر دسته‌های محصول.
+ * پاک‌سازی کش درخت مگامنو پس از تغییر دسته‌های محصول — هر دو لایه
+ * (Object Cache و Transient) با هم.
  */
 function jluxe_clear_mega_menu_cache( $term_id = 0, $taxonomy = '' ): void {
 	if ( 'product_cat' === $taxonomy ) {
 		delete_transient( 'jluxe_mega_menu_tree_v1' );
+		wp_cache_delete( 'jluxe_mega_menu_tree_v1', 'jluxe' );
 	}
 }
 add_action( 'created_product_cat', 'jluxe_clear_mega_menu_cache', 10, 2 );
