@@ -273,9 +273,7 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 .jluxe-cp3 .jluxe-ai-review-summary-badge{color:hsl(var(--foreground));font-weight:800;font-size:15px}
 .jluxe-cp3 .jluxe-ai-review-summary-sub{display:block;color:#7c3aed;font-size:12px;margin:2px 0 8px}
 .jluxe-cp3 .jluxe-ai-review-summary-text{font-size:14px;line-height:1.9;color:hsl(var(--text-secondary))}
-/* دیدگاه‌ها: کارت‌های گرد با هاورِ سایه */
-.jluxe-cp3 .jluxe-reviews .commentlist .comment{border-radius:24px;padding:20px;transition:box-shadow .2s}
-.jluxe-cp3 .jluxe-reviews .commentlist .comment:hover{box-shadow:0 6px 24px rgba(0,0,0,.06)}
+/* R66: دیدگاه‌ها — کارت‌های جمع‌وجورِ ۱۶px (استایل کامل در storefront.css) */
 /* سوالات متداول */
 .jluxe-cp3 .cp3-faq{border:1px solid hsl(var(--panel-border));background:hsl(var(--surface));border-radius:24px;padding:20px;box-shadow:0 2px 14px rgba(0,0,0,.04)}
 .jluxe-cp3 .cp3-faq-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}

@@ -3574,6 +3574,248 @@ input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
 .jluxe-product-description :where(a) {
   color: hsl(var(--primary));
 }
+/* ── R66: فرمِ دیدگاه — کارتِ گرد، امتیازِ ستاره‌ای واقعی، ورودی‌های نرم ── */
+#review_form .comment-reply-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: hsl(var(--foreground));
+  margin-bottom: 12px;
+}
+#review_form .comment-form {
+  background: hsl(var(--panel) / 0.5);
+  border: 1px solid hsl(var(--panel-border));
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#review_form .comment-form p,
+#review_form .comment-form .jluxe-rating-widget,
+#review_form .comment-form .jluxe-review-criteria-fields { margin: 0; }
+/* فقط لیبلِ فیلدهای متنی (داخلِ <p>) — ستاره‌های امتیاز/ویژگی‌ها را
+شامل نمی‌شود چون آن‌ها در div/fieldset جدا هستند */
+#review_form .comment-form > p label,
+#review_form .comment-form p.logged-in-as label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin-bottom: 6px;
+}
+#review_form textarea,
+#review_form input[type="text"],
+#review_form input[type="email"],
+#review_form input[type="url"] {
+  width: 100%;
+  background: hsl(var(--surface));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: hsl(var(--foreground));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#review_form textarea:focus,
+#review_form input[type="text"]:focus,
+#review_form input[type="email"]:focus,
+#review_form input[type="url"]:focus {
+  outline: none;
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+}
+#review_form .submit input[type="submit"] {
+  align-self: flex-start;
+  min-height: 48px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 16px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px hsl(var(--primary) / 0.25);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+#review_form .submit input[type="submit"]:hover {
+  background: hsl(var(--primary-hover));
+  transform: translateY(-1px);
+}
+/* امتیازِ کلی — ۵ ستارهٔ بزرگِ تعاملی (رادیو مخفی + label) */
+.jluxe-rating-widget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: hsl(var(--surface));
+  border: 1px solid hsl(var(--panel-border));
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.jluxe-rating-widget-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+.jluxe-rating-stars {
+  display: inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.jluxe-rating-stars input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.jluxe-rating-stars label {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+  color: hsl(var(--border));
+  cursor: pointer;
+  transition: color 0.1s ease, transform 0.1s ease;
+}
+.jluxe-rating-stars label:hover {
+  transform: scale(1.15);
+}
+.jluxe-rating-stars input:checked ~ label,
+.jluxe-rating-stars label:hover,
+.jluxe-rating-stars label:hover ~ label {
+  color: #f5a623;
+}
+.jluxe-rating-stars input:focus-visible + label {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* ── R66: کارت‌های دیدگاه — جمع‌وجور، نرم، خوانا ── */
+.jluxe-reviews .commentlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+.jluxe-reviews .commentlist li.comment,
+.jluxe-reviews .commentlist li.review {
+  list-style: none;
+  background: hsl(var(--surface));
+  border: 1px solid hsl(var(--panel-border));
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin: 0;
+  transition: border-color 0.15s ease;
+}
+.jluxe-reviews .commentlist li.comment:hover,
+.jluxe-reviews .commentlist li.review:hover {
+  border-color: hsl(var(--primary) / 0.35);
+}
+.jluxe-reviews .commentlist .comment_container {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.jluxe-reviews .commentlist .comment_container img.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--panel-border));
+  padding: 0;
+  float: none;
+  margin: 0;
+  flex: none;
+}
+.jluxe-reviews .commentlist .comment-text {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.jluxe-reviews .commentlist .comment-text .meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 11.5px;
+  color: hsl(var(--text-muted));
+  line-height: 1.7;
+  margin-bottom: 4px;
+}
+.jluxe-reviews .commentlist .comment-text .meta strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+.jluxe-reviews .commentlist .comment-text .meta time {
+  font-size: 11px;
+}
+.jluxe-reviews .commentlist .verified,
+.jluxe-reviews .commentlist .woocommerce-verified-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #047857;
+  background: rgba(4, 120, 87, 0.08);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.jluxe-reviews .commentlist .star-rating {
+  float: none;
+  display: inline-block;
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+.jluxe-reviews .commentlist .description {
+  font-size: 13.5px;
+  line-height: 1.95;
+  color: hsl(var(--text-secondary));
+  margin: 0;
+}
+.jluxe-reviews .commentlist .description p { margin: 0 0 6px; }
+.jluxe-reviews .commentlist .description p:last-child { margin: 0; }
+/* ناوبریِ صفحه‌بندیِ دیدگاه‌ها — جمع‌وجور */
+.jluxe-reviews .woocommerce-pagination,
+.jluxe-reviews .navigation.pagination {
+  margin-top: 12px;
+}
+.jluxe-reviews .woocommerce-pagination ul,
+.jluxe-reviews .navigation.pagination .nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.jluxe-reviews .woocommerce-pagination a,
+.jluxe-reviews .woocommerce-pagination span,
+.jluxe-reviews .navigation.pagination .page-numbers {
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--panel-border));
+  background: hsl(var(--surface));
+  font-size: 12.5px;
+  color: hsl(var(--text-secondary));
+  text-decoration: none;
+}
+.jluxe-reviews .woocommerce-pagination .current,
+.jluxe-reviews .navigation.pagination .page-numbers.current {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 700;
+}
+/* امتیازِ ویژگی‌ها — ردیف‌های چیپ‌مانندِ جمع‌وجور */
 .jluxe-review-criteria-fields {
   display: flex;
   flex-direction: column;
@@ -3585,6 +3827,10 @@ input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  background: hsl(var(--surface));
+  border: 1px solid hsl(var(--panel-border));
+  border-radius: 12px;
+  padding: 8px 14px;
 }
 .jluxe-review-criteria-label {
   font-size: 0.8125rem;

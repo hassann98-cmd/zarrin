@@ -10,7 +10,24 @@ function jluxe_product_reviews_available( int $product_id ): bool {
 
 
 function jluxe_review_form_criteria( array $args ): array {
-	$args['comment_field'] = ( $args['comment_field'] ?? '' ) . jluxe_render_review_criteria_inputs();
+	/* R66: فرمِ دیدگاه از صفر ساخته می‌شود — امتیازِ کلی به‌جای dropdownِ
+	پیش‌فرضِ ووکامرس، ویجتِ ستارهٔ CSS-خالص است (رادیوهای name="rating"
+	که دقیقاً همان کلیدِ متا را می‌فرستند و WC_Comments ذخیره‌اش می‌کند)؛
+	textarea و ردیف‌های امتیازِ ویژگی‌ها بلافاصله بعدش می‌آیند. */
+	$field = '';
+	if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() ) {
+		$required = function_exists( 'wc_review_ratings_required' ) && wc_review_ratings_required();
+		$labels   = array( 5 => 'عالی', 4 => 'خوب', 3 => 'متوسط', 2 => 'ضعیف', 1 => 'خیلی بد' );
+		$field   .= '<div class="comment-form-rating jluxe-rating-widget"><span class="jluxe-rating-widget-label">امتیاز شما' . ( $required ? ' <span class="required">*</span>' : '' ) . '</span><div class="jluxe-rating-stars" dir="ltr">';
+		foreach ( $labels as $i => $word ) {
+			$field .= '<input type="radio" id="jluxe-rating-' . $i . '" name="rating" value="' . $i . '"' . ( $required ? ' required' : '' ) . ' />';
+			$field .= '<label for="jluxe-rating-' . $i . '" aria-label="' . $i . ' از ۵ — ' . $word . '" title="' . $word . '">★</label>';
+		}
+		$field .= '</div></div>';
+	}
+	$field .= '<p class="comment-form-comment"><label for="comment">دیدگاه شما <span class="required">*</span></label><textarea id="comment" name="comment" cols="45" rows="6" required></textarea></p>';
+	$field .= jluxe_render_review_criteria_inputs();
+	$args['comment_field'] = $field;
 	return $args;
 }
 add_filter( 'woocommerce_product_review_comment_form_args', 'jluxe_review_form_criteria' );

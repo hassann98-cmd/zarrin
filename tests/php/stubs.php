@@ -207,6 +207,8 @@ function get_queried_object_id(){return 1;}
 function is_product(){return $GLOBALS['query_kind']==='product';}
 function is_shop(){return $GLOBALS['query_kind']==='shop';}
 function is_product_taxonomy(){return false;}
+function wc_review_ratings_enabled(){return $GLOBALS['ratings_enabled']??true;}
+function wc_review_ratings_required(){return $GLOBALS['ratings_required']??true;}
 function is_cart(){return $GLOBALS['query_kind']==='cart';}
 function is_checkout(){return $GLOBALS['query_kind']==='checkout';}
 function is_account_page(){return $GLOBALS['query_kind']==='account';}
