@@ -1,0 +1,1 @@
+import{t as e}from"./createLucideIcon-BarGlwf9.js";import"./icons-BfUBxYgg.js";var t=e(`Minus`,[[`path`,{d:`M5 12h14`,key:`1ays0h`}]]),n=e(`Plus`,[[`path`,{d:`M5 12h14`,key:`1ays0h`}],[`path`,{d:`M12 5v14`,key:`s699le`}]]);export{n,t};

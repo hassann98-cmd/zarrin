@@ -502,12 +502,20 @@ function jluxeSyncVariationAvailability(form) {
 	try { variations = JSON.parse(raw) || []; } catch (e) { variations = []; }
 	if (!Array.isArray(variations) || !variations.length) { return; }
 
+	/* R68: کلیدِ ویژگی در data-product_variations و name ی select هر دو
+	sanitize_title اند ولی برای نام‌های فارسی percent-encoded ذخیره می‌شوند —
+	تطبیق با decodeURIComponent تا طرفین حتی با تفاوتِ encode بخوانند. */
+	var decodeKey = function (key) { return (key || "").replace(/^attribute_/, ""); };
+	var sameKey = function (a, b) {
+		if (a === b) { return true; }
+		try { return decodeURIComponent(a) === decodeURIComponent(b); } catch (e) { return false; }
+	};
 	var selects = form.querySelectorAll("select[name^=\"attribute_\"]");
 	selects.forEach(function (select) {
-		var name = select.getAttribute("name");
+		var name = decodeKey(select.getAttribute("name"));
 		var current = {};
 		selects.forEach(function (other) {
-			if (other !== select && other.value) { current[other.getAttribute("name")] = other.value; }
+			if (other !== select && other.value) { current[decodeKey(other.getAttribute("name"))] = other.value; }
 		});
 		var optionValues = {};
 		Array.prototype.forEach.call(select.options, function (opt) {
@@ -515,19 +523,20 @@ function jluxeSyncVariationAvailability(form) {
 			var selectable = variations.some(function (v) {
 				if (!v || v.is_in_stock === false) { return false; }
 				var attrs = v.attributes || {};
-				var own = attrs[name];
-				if (own !== "" && own !== opt.value) { return false; }
+				var suffixes = {};
+				Object.keys(attrs).forEach(function (k) { suffixes[decodeKey(k)] = attrs[k]; });
+				var own = null;
+				Object.keys(suffixes).forEach(function (k) { if (sameKey(k, name)) { own = suffixes[k]; } });
+				if (own !== null && own !== "" && own !== opt.value) { return false; }
 				for (var otherName in current) {
 					if (!Object.prototype.hasOwnProperty.call(current, otherName)) { continue; }
-					var otherVal = attrs[otherName];
-					if (otherVal !== "" && otherVal !== current[otherName]) { return false; }
+					var otherVal = null;
+					Object.keys(suffixes).forEach(function (k) { if (sameKey(k, otherName)) { otherVal = suffixes[k]; } });
+					if (otherVal !== null && otherVal !== "" && otherVal !== current[otherName]) { return false; }
 				}
 				return true;
 			});
-			if (!selectable && opt.disabled && !opt.hasAttribute("data-jluxe-opt-locked")) {
-				// ووکامرس ممکن است خودش گزینه‌های بدونِ هیچ تنوعِ حاضر را حذف/خاموش کرده باشد؛ برگرداندنِ دستی لازم نیست.
-			}
-			optionValues[opt.value] = selectable;
+			optionValues[select.name + "|" + opt.value] = selectable;
 			opt.disabled = !selectable;
 		});
 
@@ -544,19 +553,23 @@ function jluxeSyncVariationAvailability(form) {
 		}
 	});
 
-	// قرص‌های چیدمان classic (data-cp3-pills ↔ select[data-cp3-select]).
-	var root = form.closest(".jluxe-cp3") || document;
-	var cssEscape = function (value) { return (window.CSS && CSS.escape) ? CSS.escape(value) : value; };
+	// قرص‌های چیدمان classic — نگاشتِ دقیق با data-cp3-select روی خودِ select
+	// و وضعیت از optionValues (منبعِ موجودی) نه از opt.disabled — تا فیلترِ
+	// «بدونِ انتخاب همه فعال» ووکامرس نتواند آن را پاک کند.
 	form.querySelectorAll("select[name^=\"attribute_\"]").forEach(function (select) {
-		var name = (select.getAttribute("name") || "").replace(/^attribute_/, "");
-		var pillGroup = root.querySelector('[data-cp3-pills="' + cssEscape(name) + '"]');
+		var slug = select.getAttribute("data-cp3-select");
+		if (!slug) { return; }
+		var root = form.closest(".jluxe-cp3") || document;
+		var cssEscape = function (value) { return (window.CSS && CSS.escape) ? CSS.escape(value) : value; };
+		var pillGroup = root.querySelector('[data-cp3-pills="' + cssEscape(slug) + '"]');
 		if (!pillGroup) { return; }
 		pillGroup.querySelectorAll(".cp3-pill").forEach(function (pill) {
 			var value = pill.getAttribute("data-value") || "";
-			var opt = Array.prototype.find.call(select.options, function (o) { return o.value === value; });
-			var selectable = !!(opt && !opt.disabled);
+			var selectable = optionValues[select.name + "|" + value] === true;
 			pill.disabled = !selectable;
+			pill.setAttribute("aria-disabled", selectable ? "false" : "true");
 			pill.classList.toggle("is-disabled", !selectable);
+			pill.title = pill.textContent.trim() + (selectable ? "" : " (ناموجود)");
 			if (pill.classList.contains("is-active") && !selectable) { pill.classList.remove("is-active"); }
 		});
 	});
@@ -569,7 +582,16 @@ function jluxeSyncAllVariationForms() {
 		form.addEventListener("change", function () {
 			window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
 		});
+		/* R68: ووکامرس در init «همه فعال» را منتشر می‌کند و اسکریپتِ
+		درون‌خطیِ classic طبق آن کلاس‌ها را پاک می‌کند — این قلابِ بعد از
+		رویدادِ وو، وضعیتِ موجودیِ درست را دوباره می‌نشاند (+ تاخیرِ اطمینان). */
+		if (window.jQuery) {
+			window.jQuery(form).on("woocommerce_update_variation_values", function () {
+				window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+			});
+		}
 		window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+		window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 600);
 	});
 }
 jluxeSyncAllVariationForms();

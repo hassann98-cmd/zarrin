@@ -3936,6 +3936,57 @@ input.jluxe-qty-fa-input {
   direction: ltr;
   unicode-bidi: isolate;
 }
+/* ── R68: ردیفِ خریدِ محصولِ متغیر — تعدادِ ظریف + دکمهٔ unified سمتِ چپ ── */
+.woocommerce-variation-add-to-cart.variations_button {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.woocommerce-variation-add-to-cart.variations_button .single_add_to_cart_button.alt,
+.woocommerce form.cart .single_add_to_cart_button.alt {
+  margin-inline-start: auto;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border: none !important;
+  text-shadow: none;
+}
+@media (max-width: 767px) {
+  .woocommerce-variation-add-to-cart.variations_button .single_add_to_cart_button.alt {
+    flex: 1 1 100%;
+    margin-inline-start: 0;
+  }
+}
+/* ویجتِ تعداد — جمع‌وجورتر و ظریف‌تر (۴۰px، حاشیهٔ نازک، هاورِ ملایم) */
+.woocommerce .variations_button .jluxe-qty,
+.woocommerce .jluxe-variant-modal .jluxe-qty {
+  height: 40px;
+  border-color: hsl(var(--border) / 0.7);
+  background: hsl(var(--surface));
+  box-shadow: var(--jluxe-shadow-sm);
+}
+.woocommerce .variations_button .jluxe-qty [data-jluxe-qty-step],
+.woocommerce .jluxe-variant-modal .jluxe-qty [data-jluxe-qty-step] {
+  width: 40px;
+  height: 40px;
+  color: hsl(var(--text-muted));
+}
+.woocommerce .variations_button .jluxe-qty [data-jluxe-qty-step]:hover,
+.woocommerce .jluxe-variant-modal .jluxe-qty [data-jluxe-qty-step]:hover {
+  color: hsl(var(--primary));
+}
+.woocommerce .variations_button .jluxe-qty [data-jluxe-qty-step] svg,
+.woocommerce .jluxe-variant-modal .jluxe-qty [data-jluxe-qty-step] svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
+}
+.woocommerce .variations_button .jluxe-qty input.qty,
+.woocommerce .jluxe-variant-modal .jluxe-qty input.qty {
+  width: 32px;
+  height: 40px;
+  font-size: 12.5px;
+}
 /* ── R67: قیمت همیشه مشکی — سبزِ پیش‌فرضِ خودِ ووکامرس (#77a464 روی
 p.price و ins در woocommerce-general) ممنوع. حذفِ آن استایل‌شیت ممکن
 نیست (نیازهای دیگرش)، پس رنگ‌ها صریحاً به رنگِ متن/موتد برمی‌گردند. ── */
