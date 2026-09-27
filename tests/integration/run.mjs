@@ -653,22 +653,6 @@ try {
     "Settings round-trip preserves empty lists and code backslashes under real WordPress administrator capabilities",
   );
 
-  // R79: the homepage carousel card widths must ride on the li through the real
-  // woocommerce_post_class filter — attached for the loop and detached right after,
-  // so no other product loop on the site inherits the fixed widths.
-  const widthFilter = await phpJson(`
-    $clean = apply_filters('woocommerce_post_class', array('product'));
-    jluxe_homepage_card_width_classes(true);
-    $during = apply_filters('woocommerce_post_class', array('product'));
-    jluxe_homepage_card_width_classes(false);
-    $after = apply_filters('woocommerce_post_class', array('product'));
-    return array('clean'=>in_array('w-[160px]',$clean,true),'during'=>in_array('w-[160px]',$during,true),'lg'=>in_array('lg:w-[300px]',$during,true),'after'=>in_array('w-[160px]',$after,true));
-  `);
-  check(
-    !widthFilter.clean && widthFilter.during && widthFilter.lg && !widthFilter.after,
-    "R79 the carousel card-width classes are added and removed around the loop on real WordPress, never leaking into other product loops",
-  );
-
   const debug = php.isFile("/wordpress/wp-content/debug.log")
     ? php.readFileAsText("/wordpress/wp-content/debug.log")
     : "";

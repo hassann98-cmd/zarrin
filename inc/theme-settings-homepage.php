@@ -1129,25 +1129,29 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 
 			<?php if ( $is_carousel ) : ?>
 				<div class="relative">
-					<?php
-					/* R79: ul به‌جای div — li ریشه‌ی content-product.php باید مستقیم
-					فرزندِ لیست باشد (a11y)؛ عرضِ کارت با فیلتر به خودِ li می‌رود. */
-					jluxe_homepage_card_width_classes( true );
-					?>
-					<ul data-jluxe-scroller<?php echo jluxe_carousel_autoscroll_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
+					<div data-jluxe-scroller<?php echo jluxe_carousel_autoscroll_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
 						<?php
 						foreach ( $products as $product ) {
 							$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+							/*
+						 * lg (دسکتاپ) طبقِ اندازه‌گیریِ زنده از صفحه‌ی فروشگاه به w-[300px]
+						 * عریض شده تا کارتِ محصولِ کروسلِ صفحه‌ی اصلی هم‌اندازه‌ی کارتِ
+						 * صفحه‌ی فروشگاه (grid ستون‌بندیِ ۴تایی، ~304px در 1440px) بشه —
+						 * طبقِ درخواستِ صریحِ کاربر. موبایل (w-[160px]) و تبلت
+						 * (sm:w-[190px]) دست‌نخورده مونده، چون کاربر گفته اونا از قبل
+						 * درستن.
+						 */
+						echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
 							wc_get_template_part( 'content', 'product' );
+							echo '</div>';
 						}
 						wp_reset_postdata();
-						jluxe_homepage_card_width_classes( false );
 						?>
-					</ul>
+					</div>
 					<?php jluxe_scroll_arrows(); ?>
 				</div>
 			<?php else : ?>
-				<ul class="jluxe-pg-<?php echo esc_attr( $section['id'] ); ?> grid gap-4" style="grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_m ); ?>,1fr)">
+				<div class="jluxe-pg-<?php echo esc_attr( $section['id'] ); ?> grid gap-4" style="grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_m ); ?>,1fr)">
 					<style>
 						@media(min-width:640px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_t ); ?>,1fr)!important}}
 						@media(min-width:1024px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_d ); ?>,1fr)!important}}
@@ -1159,7 +1163,7 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 					}
 					wp_reset_postdata();
 					?>
-				</ul>
+				</div>
 			<?php endif; ?>
 		</div>
 	</section>
@@ -1286,29 +1290,31 @@ function jluxe_render_homepage_special_products( array $section ): void {
 			<a href="<?php echo esc_url( $view_all_link ); ?>" class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-caption font-medium text-foreground">مشاهده همه</a>
 		</div>
 		<div class="relative">
-			<?php jluxe_homepage_card_width_classes( true ); ?>
-			<ul data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
+			<div data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
 				<?php
 				foreach ( $products as $product ) {
 					$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+					/*
+						 * lg (دسکتاپ) طبقِ اندازه‌گیریِ زنده از صفحه‌ی فروشگاه به w-[300px]
+						 * عریض شده تا کارتِ محصولِ کروسلِ صفحه‌ی اصلی هم‌اندازه‌ی کارتِ
+						 * صفحه‌ی فروشگاه (grid ستون‌بندیِ ۴تایی، ~304px در 1440px) بشه —
+						 * طبقِ درخواستِ صریحِ کاربر. موبایل (w-[160px]) و تبلت
+						 * (sm:w-[190px]) دست‌نخورده مونده، چون کاربر گفته اونا از قبل
+						 * درستن.
+						 */
+						echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
 					wc_get_template_part( 'content', 'product' );
+					echo '</div>';
 				}
 				wp_reset_postdata();
-				jluxe_homepage_card_width_classes( false );
 				?>
-			</ul>
+			</div>
 			<?php jluxe_scroll_arrows(); ?>
 		</div>
 	</section>
 	<?php
 }
 
-
-/*
- * R80: مانند jluxe_render_product_stock_line() — این یک API عمومیِ پوسته
- * است؛ حذفش در 1.68.0 اگر جایی بیرون از مخزن (قالبِ قدیمی/اسنیپت/افزونه)
- * مصرف می‌شد، فرانت را کاملاً از کار می‌انداخت. برگشت، فقط برای سازگاری.
- */
 /**
  * درصدِ تخفیفِ واقعیِ یک محصول (ساده یا متغیر — برای متغیر، بازه‌ی
  * min/max قیمت رو در نظر می‌گیره)، برای مرتب‌سازیِ «بیشترین تخفیف» در
@@ -1713,7 +1719,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 				<?php foreach ( $rows as $row ) : ?>
 					<a href="<?php echo esc_url( get_term_link( $row['term'] ) ); ?>" class="jluxe-category-grid-ref-item<?php echo $lift ? ' is-lift' : ''; ?>" aria-label="<?php echo esc_attr( 'مشاهده دسته‌بندی ' . $row['display_name'] ); ?>" title="<?php echo esc_attr( $row['display_name'] ); ?>">
 						<span class="jluxe-home-card jluxe-category-grid-ref-card">
-							<span class="jluxe-category-grid-ref-image"><img decoding="async" class="<?php echo $zoom ? 'is-zoom' : ''; ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( '(max-width: 767px) ' . min( $image_size, 60 ) . 'px, ' . $image_size . 'px' ); ?>"<?php endif; ?> alt="" aria-hidden="true" <?php echo jluxe_lazy_attr(); ?> /></span>
+							<span class="jluxe-category-grid-ref-image"><img class="<?php echo $zoom ? 'is-zoom' : ''; ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( '(max-width: 767px) ' . min( $image_size, 60 ) . 'px, ' . $image_size . 'px' ); ?>"<?php endif; ?> alt="" aria-hidden="true" <?php echo jluxe_lazy_attr(); ?> /></span>
 							<span class="jluxe-category-grid-ref-name"><?php echo esc_html( $row['display_name'] ); ?></span>
 						</span>
 					</a>
@@ -1990,31 +1996,6 @@ function jluxe_render_homepage_stories( array $section ): void {
  * «فروش ویژه» عمداً از این سوییچ مستقل مونده (همیشه خودکاره، چون رفتارِ
  * pause/rewindِ اختصاصیِ خودش رو داره)، نه اینکه دوبار همون attribute رو ست کنیم.
  */
-/**
- * R79 (a11y «li بیرونِ لیست»): به‌جایِ پیچیدنِ هر کارتِ محصول در
- * `<div class="w-[160px]...">` (که والدِ li را div می‌کرد و Lighthouse/
- * اسکرین‌ریدر خطای «List items are not contained within a list» می‌داد)،
- * کلاس‌های عرض مستقیم به خودِ li اضافه می‌شوند — از مسیرِ رسمیِ
- * woocommerce_post_class که wc_product_class در content-product.php چاپ
- * می‌کند. فقط در طولِ رندرِ همان کاروسل فعال است.
- */
-function jluxe_homepage_card_width_classes( bool $on ): void {
-	static $cb = null;
-	if ( $on ) {
-		$cb = function ( array $classes ) {
-			$classes[] = 'w-[160px]';
-			$classes[] = 'shrink-0';
-			$classes[] = 'sm:w-[190px]';
-			$classes[] = 'lg:w-[300px]';
-			return $classes;
-		};
-		add_filter( 'woocommerce_post_class', $cb, 99 );
-	} elseif ( $cb ) {
-		remove_filter( 'woocommerce_post_class', $cb, 99 );
-		$cb = null;
-	}
-}
-
 function jluxe_carousel_autoscroll_attr(): string {
 	return ! empty( jluxe_get_theme_settings()['shop']['auto_scroll_carousels'] ) ? ' data-jluxe-autoscroll' : '';
 }
@@ -2535,7 +2516,7 @@ function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 					class="size-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
 				/>
 			</div>
-			<h3 class="line-clamp-2 min-w-0 flex-1 pt-1 text-[12.5px] leading-5 text-text-secondary sm:text-[13px]"><?php echo esc_html( $product->get_name() ); ?></h3>
+			<h4 class="line-clamp-2 min-w-0 flex-1 pt-1 text-[12.5px] leading-5 text-text-secondary sm:text-[13px]"><?php echo esc_html( $product->get_name() ); ?></h4>
 		</div>
 		<div class="mt-2 flex items-center justify-end gap-1 text-foreground">
 			<span class="text-[13px] font-bold"><?php echo esc_html( jluxe_fa_digits( number_format( (float) $price, 0 ) ) ); ?></span>

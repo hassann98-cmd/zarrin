@@ -1067,7 +1067,7 @@ function jluxe_render_purchase_addons_page(): void {
 						<input type="radio" name="purchase_addons[mode]" value="random" <?php checked( $pa['mode'], 'random' ); ?> />
 						اتفاقی بین کالاهای موجود (R72)
 					</label>
-					<p class="description">در همهٔ حالت‌ها فقط کالای واقعاً موجود پیشنهاد می‌شود (برای محصول متغیر: حداقل یک تنوعِ موجود) و کالای مخفی/پیش‌نویس هرگز. «انتخاب در هر محصول» اولِ باکسِ «محصولات پیشنهادی (اضافه خرید)» در ویرایش محصول را می‌خوانَد (R77) و بعد فیلدِ رسمیِ Cross-sells ووکامرس و اسلات‌های خالی را با کالای موجودِ همان دسته و بعد کلِ فروشگاه پر می‌کند. «در هر دسته‌بندی» فقط از دستهٔ خودِ محصول. «اتفاقی» بین کالاهای موجودِ کلِ فروشگاه می‌چرخد.</p>
+					<p class="description">در همهٔ حالت‌ها فقط کالای واقعاً موجود پیشنهاد می‌شود (برای محصول متغیر: حداقل یک تنوعِ موجود) و کالای مخفی/پیش‌نویس هرگز. «انتخاب در هر محصول» از فیلدِ رسمیِ Cross-sells ووکامرس (ویرایش محصول ← داده‌های محصول ← محصولات پیوسته) می‌خواند و اسلات‌های خالی را با کالای موجودِ همان دسته و بعد کلِ فروشگاه پر می‌کند. «در هر دسته‌بندی» فقط از دستهٔ خودِ محصول. «اتفاقی» بین کالاهای موجودِ کلِ فروشگاه می‌چرخد.</p>
 				</td>
 			</tr>
 			<tr>
@@ -1184,15 +1184,6 @@ function jluxe_render_shop_page(): void {
 		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 			<p class="description">این تنظیمات مستقیماً روی صفحه‌ی فروشگاه و آرشیو دسته‌بندی (<code>archive-product.php</code> → قلاب‌های واقعیِ <code>loop_shop_per_page</code> / <code>loop_shop_columns</code> خودِ ووکامرس) اثر می‌ذارن؛ کوئری موازی یا محصول جعلی این‌جا نیست.</p>
 			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row">محصولات مرتبط (زیرِ محصول)</th>
-					<td>
-						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="category" <?php checked( $shop['related_mode'] ?? 'category', 'category' ); ?> /> بر اساس دسته‌بندی (پیش‌فرض — فقط کالای همان دسته)</label>
-						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="brand" <?php checked( $shop['related_mode'] ?? '', 'brand' ); ?> /> بر اساس برند</label>
-						<label style="display:block;margin-bottom:6px;"><input type="radio" name="shop[related_mode]" value="manual" <?php checked( $shop['related_mode'] ?? '', 'manual' ); ?> /> انتخابِ دستی برای هر محصول</label>
-						<p class="description">باگِ پیش‌فرضِ ووکامرس: دسته + تگ باهم، تگ‌ها کالای نامرتبط می‌آوردند. «دستی» از فیلدِ رسمیِ «فروش بالاسری (Upsells)» در ویرایش محصول ← داده‌های محصول ← محصولات پیوسته می‌خوانَد؛ اگر خالی باشد از همان دسته پر می‌شود.</p>
-					</td>
-				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-shop-per-page">تعداد محصول در هر صفحه</label></th>
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
@@ -2009,7 +2000,7 @@ function jluxe_render_advanced_page(): void {
 					<tr><th scope="row">max_execution_time (PHP)</th><td><?php echo esc_html( ini_get( 'max_execution_time' ) ); ?> ثانیه</td></tr>
 					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#b32d2e">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">نسخه‌ی تنظیمات پوسته</th><td><?php echo esc_html( (string) JLUXE_SETTINGS_VERSION ); ?></td></tr>
-					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (assets/compiled)'; ?></td></tr>
+					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (dist/ واقعی)'; ?></td></tr>
 					<tr><th scope="row">آخرین به‌روزرسانی تنظیمات</th><td><?php echo esc_html( get_option( 'jluxe_theme_settings_updated_at', '—' ) ); ?></td></tr>
 				</table>
 				<p class="description">این بخش فقط تشخیصیه — چیزی رو خودکار تغییر نمی‌ده (مثلاً تنظیمات LiteSpeed/کش دست‌نخورده می‌مونه).</p>

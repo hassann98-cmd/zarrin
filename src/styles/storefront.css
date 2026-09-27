@@ -3102,173 +3102,57 @@ html {
   height: 100% !important;
   width: 100% !important;
 }
-.jluxe-logo-shine {
-  position: relative;
-  overflow: hidden;
+.jluxe-logo-shine img {
+  -webkit-mask: linear-gradient(-60deg, #000 30%, rgb(0 0 0 / 0.333), #000 50%)
+    right / 300% 100%;
+  mask: linear-gradient(-60deg, #000 30%, rgb(0 0 0 / 0.333), #000 50%) right /
+    300% 100%;
+  animation: jluxe-logo-shimmer 3s infinite;
 }
-/* R79 (PSI «Avoid non-composited animations»): جلوهٔ قبلی mask-position را
-روی خودِ تصویر انیمیت می‌کرد — mask-position هر فریم paint می‌شود و روی
-main-thread می‌ماند. حالا همان نوارِ مورب به‌صورت ::after با انیمیشنِ
-transform (قابلِ composited شدن) از روی جعبهٔ لوگو عبور می‌کند. */
-.jluxe-logo-shine::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  transform: translateX(-130%);
-  background: linear-gradient(
-    -60deg,
-    transparent 32%,
-    rgb(255 255 255 / 0.55) 46%,
-    rgb(12 12 12 / 0.18) 52%,
-    transparent 66%
-  );
-  animation: jluxe-logo-shine-sweep 3s infinite;
-}
-@keyframes jluxe-logo-shine-sweep {
+@keyframes jluxe-logo-shimmer {
+  0% {
+    -webkit-mask-position: 140% 140%;
+    mask-position: 140% 140%;
+  }
   to {
-    transform: translateX(130%);
+    -webkit-mask-position: -20% -20%;
+    mask-position: -20% -20%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .jluxe-logo-shine::after {
+  .jluxe-logo-shine img {
     animation: none;
-    opacity: 0;
+    -webkit-mask: none;
+    mask: none;
   }
 }
-/* R79 (PSI «Avoid non-composited animations»): جاروی قبلی با transition
-روی mask-position بود — هر فریم paint روی main-thread. همان نوارِ مورب حالا
-::after با transform است (قابلِ composited شدن)؛ خودِ <a> از قبل
-relative + overflow-hidden دارد پس نوار بیرون نمی‌زند. */
-.jluxe-card-shine::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  transform: translateX(-120%);
-  background: linear-gradient(
-    -60deg,
-    transparent 35%,
-    rgb(255 255 255 / 0.5) 47%,
-    rgb(12 12 12 / 0.16) 55%,
-    transparent 68%
-  );
+.jluxe-card-shine {
+  -webkit-mask: linear-gradient(-60deg, #000 35%, rgb(0 0 0 / 0.6), #000 55%)
+    right / 250% 100%;
+  mask: linear-gradient(-60deg, #000 35%, rgb(0 0 0 / 0.6), #000 55%) right /
+    250% 100%;
+  -webkit-mask-position: 140% 140%;
+  mask-position: 140% 140%;
+  transition:
+    -webkit-mask-position 0.9s ease-out,
+    mask-position 0.9s ease-out;
 }
 /* R63: hover فقط برای دستگاه‌های واقعاً هاوردار — موبایل افکت hover ندارد. */
 @media (hover: hover) {
-  .jluxe-card-shine:hover::after,
-  .group:hover .jluxe-card-shine::after {
-    transform: translateX(120%);
-    transition: transform 0.9s ease-out;
-  }
-}
-/* ── R75: نورافکنِ کارت — هالهٔ شعاعیِ دنبال‌کنندهٔ موس + بالاوآمدنِ ملایم.
-JS فقط دو متغیرِ CSS را ست می‌کند (یک لیسنرِ delegate + rAF)؛ افکت CSS
-خالص است، فقط دستگاهِ هاوردار، و با prefers-reduced-motion خاموش. */
-@media (hover: hover) {
-  [data-jluxe-card] {
-    will-change: transform;
-  }
-  [data-jluxe-card]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    border-radius: inherit;
-    background: radial-gradient(
-      230px circle at var(--jluxe-spot-x, 50%) var(--jluxe-spot-y, 50%),
-      hsl(var(--primary) / 0.1),
-      transparent 65%
-    );
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    pointer-events: none;
-  }
-  [data-jluxe-card]:hover::after { opacity: 1; }
-  [data-jluxe-card]:hover {
-    transform: translateY(-3px);
-    border-color: hsl(var(--primary) / 0.35);
-    box-shadow: 0 14px 36px hsl(var(--foreground) / 0.08), 0 6px 20px hsl(var(--primary) / 0.1);
+  .jluxe-card-shine:hover,
+  .group:hover .jluxe-card-shine {
+    -webkit-mask-position: -20% -20%;
+    mask-position: -20% -20%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-jluxe-card]::after { display: none; }
-  [data-jluxe-card]:hover { transform: none; }
-}
-
-/* ── R75: فوتر — خطِ نورانیِ بالا، تیکِ سرستون‌ها، حرکتِ لینک‌ها،
-چیپ‌های اجتماعی و نشان‌های اعتماد ── */
-[data-jluxe-island="footer"] > div {
-  position: relative;
-}
-[data-jluxe-island="footer"] > div::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  inset-inline: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.55), transparent);
-}
-[data-jluxe-island="footer"] h3 {
-  position: relative;
-  padding-inline-start: 12px;
-}
-[data-jluxe-island="footer"] h3::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 14px;
-  border-radius: 3px;
-  background: hsl(var(--primary));
-}
-@media (hover: hover) {
-  [data-jluxe-island="footer"] li a {
-    transition: color 0.15s ease, padding-inline-start 0.15s ease;
-  }
-  [data-jluxe-island="footer"] li a:hover {
-    color: hsl(var(--primary));
-    padding-inline-start: 3px;
-  }
-  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"]:hover {
-    background: hsl(var(--primary));
-    border-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    transform: translateY(-2px);
-  }
-  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"] {
-    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
-  }
-  [data-jluxe-island="footer"] span img {
-    transition: transform 0.15s ease, filter 0.15s ease;
-    filter: grayscale(0.2);
-  }
-  [data-jluxe-island="footer"] span img:hover {
-    transform: translateY(-2px);
-    filter: none;
+  .jluxe-card-shine {
+    transition: none;
+    -webkit-mask: none;
+    mask: none;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  [data-jluxe-island="footer"] li a,
-  [data-jluxe-island="footer"] a[target="_blank"][rel*="noopener"],
-  [data-jluxe-island="footer"] span img { transition: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .jluxe-card-shine::after {
-    display: none;
-  }
-}
-/* R80 (PSI: «element render delay 1,110ms» روی عکسِ LCP): قاعدهٔ اسکلتون
-روی همهٔ تصاویرِ بدونِ کلاس اجرا می‌شد — از جمله عکسِ هیرو که لبهٔ LCP است.
-انیمیشنِ بی‌پایانِ opacity روی خودِ عنصرِ LCP یعنی رنگ‌آمیزیِ نهاییِ آن مدام
-عقب می‌افتد. حالا تصویرِ eager/priority-high اصلاً اسکلتون نمی‌گیرد (همان
-تصویر است که باید فوراً دیده شود؛ شیمر برای تصاویرِ lazy معنا دارد). */
-img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"]) {
+img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]) {
   background: linear-gradient(
     100deg,
     hsl(var(--muted)) 35%,
@@ -3293,7 +3177,7 @@ img.jluxe-img-loaded {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"]) {
+  img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]) {
     animation: none;
     background-color: hsl(var(--border));
   }

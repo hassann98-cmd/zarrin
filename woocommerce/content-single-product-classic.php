@@ -292,8 +292,6 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 .jluxe-cp3 .cp3-relhead{display:flex;align-items:center;gap:14px;margin:32px 0 8px}
 .jluxe-cp3 .cp3-relhead .ic{width:48px;height:48px;border-radius:12px;background:hsl(var(--surface));border:1px solid hsl(var(--panel-border));color:hsl(var(--primary));display:inline-flex;align-items:center;justify-content:center}
 .jluxe-cp3 .cp3-relhead h3{font-size:22px;font-weight:800;color:hsl(var(--foreground));margin:0}
-/* R76: عنوانِ تکراریِ هسته داخلِ سربرگِ خودِ سکشن معنا ندارد */
-.jluxe-cp3 .cp3-related .related.products > h2{display:none}
 .jluxe-cp3 .cp3-related ul.products{display:grid !important;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0 0 !important;padding:0 !important}
 @media(min-width:768px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(4,1fr)}}
@@ -677,32 +675,16 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 						</div>
 					<?php endif; ?>
 				<?php jluxe_render_review_insights( (int) $product->get_id() ); ?>
-				<?php
-				/* R78 (دکمهٔ «ثبت دیدگاه» مرده بود): دکمه فقط وقتی رندر می‌شود که
-				فرمِ واقعیِ دیدگاهِ ووکامرس هم در صفحه باشد — دقیقاً همان دو شرطِ
-				قالبِ single-product-reviews.php خودِ وو: دیدگاه‌های محصول باز باشد
-				و «دیدگاه فقط از خریداران» خاموش باشد یا بازدیدکنندهٔ فعلی خریدارِ
-				همین کالا باشد. در غیرِ این صورت JS فرم را پیدا نمی‌کرد و دکمه
-				بی‌صدا هیچ کاری نمی‌کرد؛ حالا پیامِ خودِ وو («فقط خریداران…») به‌جایش
-				دیده می‌شود. */
-				$cp3_can_review = comments_open( (int) $product->get_id() )
-					&& (
-						'no' === get_option( 'woocommerce_review_rating_verification_required' )
-						|| wc_customer_bought_product( '', get_current_user_id(), (int) $product->get_id() )
-					);
-				?>
 				<div class="cp3-reviewtoolbar">
 					<div class="cp3-sortsel" role="group" aria-label="مرتب‌سازی دیدگاه‌ها" data-cp3-sort>
 						<button type="button" class="is-active" data-sort="newest" aria-pressed="true">جدیدترین</button>
 						<button type="button" data-sort="best" aria-pressed="false">بیشترین امتیاز</button>
 						<button type="button" data-sort="worst" aria-pressed="false">کمترین امتیاز</button>
 					</div>
-					<?php if ( $cp3_can_review ) : ?>
 					<button type="button" class="cp3-reviewbtn" data-jluxe-review-modal>
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						ثبت دیدگاه
 					</button>
-					<?php endif; ?>
 				</div>
 				<?php
 				/* امتیازِ هر دیدگاه (متای استانداردِ ووکامرس) به‌شکل کلاس می‌آید تا مرتب‌سازیِ سمتِ مرورگر ممکن باشد */

@@ -980,6 +980,33 @@ function jluxe_boom_star_row( float $rating, string $size_class = 'size-[15px]' 
 	);
 }
 
+/**
+ * خط تعداد موجودیِ واقعی (نه عدد ساختگی) — فقط وقتی محصول/تنوع واقعاً
+ * موجودیِ عددی رو مدیریت می‌کنه (managing_stock) چیزی نشون داده می‌شه؛
+ * وگرنه (فقط وضعیت موجود/ناموجودِ ساده) خط خالی برمی‌گرده. زیر ۵ عدد
+ * رنگ هشدار می‌گیره.
+ */
+function jluxe_render_product_stock_line( $product ): string {
+	if ( ! $product || ! $product->managing_stock() ) {
+		return '';
+	}
+	$qty = $product->get_stock_quantity();
+	if ( null === $qty ) {
+		return '';
+	}
+	$low  = $qty <= 5;
+	$icon = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
+	$text = $low
+		? sprintf( 'فقط %s عدد در انبار باقی مانده!', jluxe_fa_digits( (string) $qty ) )
+		: sprintf( '%s عدد در انبار موجود است', jluxe_fa_digits( (string) $qty ) );
+
+	return sprintf(
+		'<p class="mt-1.5 flex items-center gap-1 text-[11px] font-medium %1$s">%2$s%3$s</p>',
+		$low ? 'jluxe-text-danger' : 'text-text-muted',
+		$icon,
+		esc_html( $text )
+	);
+}
 
 /**
  * طبقِ درخواستِ صریحِ کاربر («روش‌های پرداخت رو تو یک کادرِ جدا سمتِ راستِ
@@ -1626,121 +1653,6 @@ function jluxe_related_products_args( array $args ): array {
 add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_args' );
 
 /**
- * R76: منبعِ «محصولات مرتبط» زیرِ محصول — سه حالت (پنل زرین ← فروشگاه):
- *  - category (پیش‌فرض): فقط کالای همان دسته. باگِ پیش‌فرضِ ووکامرس (دسته +
- *    تگ باهم) باعث می‌شد تگ‌های مشترکِ تصادفی، کالای نامرتبط بیاورد —
- *    گزارشِ واقعی کاربر: زیرِ کالای «کالای خواب»، ستِ بهداشتی نمایش می‌داد.
- *  - brand: فقط کالای همان برند — برند از تاکسونومیِ product_brand خودِ وو
- *    (اگر فعاله) وگرنه از ویژگیِ محصولی که برچسب/نامش «برند/brand» باشد.
- *  - manual: انتخابِ دستی — فیلدِ رسمیِ «فروش بالاسری (Upsells)» ویرایش محصول.
- * زنجیرهٔ fallback: manual/brand خالی → category. خروجی همیشه publish +
- * visible و بدونِ خودِ محصول؛ ترتیبِ قطعیِ جدیدترین (قابلِ کش، برخلافِ
- * پیشنهادِ «اضافه خرید» که طبقِ درخواستِ کاربر رندوم است). ناموجودها حذف
- * نمی‌شوند (فیلترِ سراسریِ «ناموجود در انتها» مرتبشان می‌کند).
- */
-function jluxe_product_brand_term_ids( int $product_id ): array {
-	if ( taxonomy_exists( 'product_brand' ) ) {
-		$terms = get_the_terms( $product_id, 'product_brand' );
-		$out = array();
-		foreach ( (array) $terms as $term ) {
-			$term_id = is_object( $term ) ? ( $term->term_id ?? 0 ) : (int) $term;
-			if ( $term_id > 0 ) { $out[] = $term_id; }
-		}
-		return $out;
-	}
-	foreach ( (array) wc_get_attribute_taxonomies() as $taxonomy ) {
-		$label = (string) ( $taxonomy->attribute_label ?? '' );
-		$name  = (string) ( $taxonomy->attribute_name ?? '' );
-		if ( '' === $name ) { continue; }
-		if ( false !== mb_stripos( $label, 'برند' ) || false !== stripos( $name, 'brand' ) ) {
-			$terms = wc_get_product_terms( $product_id, 'pa_' . $name, array( 'fields' => 'ids' ) );
-			$out = array();
-			foreach ( (array) $terms as $term ) {
-				$term_id = is_object( $term ) ? ( $term->term_id ?? 0 ) : (int) $term;
-				if ( $term_id > 0 ) { $out[] = $term_id; }
-			}
-			if ( ! empty( $out ) ) { return $out; }
-		}
-	}
-	return array();
-}
-
-function jluxe_related_products_for( int $product_id, int $limit ): array {
-	$limit    = max( 2, min( 8, $limit ) );
-	$mode     = (string) jluxe_get_setting( 'shop.related_mode', 'category' );
-	if ( ! in_array( $mode, array( 'category', 'brand', 'manual' ), true ) ) {
-		$mode = 'category';
-	}
-	static $memo = array();
-	$key = $product_id . '|' . $mode . '|' . $limit;
-	if ( isset( $memo[ $key ] ) ) { return $memo[ $key ]; }
-
-	$pick = static function ( array $candidates ) use ( $product_id, $limit ): array {
-		$out = array();
-		foreach ( $candidates as $candidate ) {
-			$pid = $candidate instanceof WC_Product ? $candidate->get_id() : (int) $candidate;
-			if ( ! $pid || $pid === $product_id ) { continue; }
-			$product = wc_get_product( $pid );
-			if ( ! $product || 'publish' !== $product->get_status() || 'visible' !== $product->get_catalog_visibility() ) { continue; }
-			$out[] = $pid;
-			if ( count( $out ) >= $limit ) { break; }
-		}
-		return $out;
-	};
-	$query = static function ( array $extra ): array {
-		$GLOBALS['product_query_args'] = null;
-		return wc_get_products( array_merge( array(
-			'status'     => 'publish',
-			'visibility' => 'visible',
-			'exclude'    => array(),
-			'orderby'    => 'date',
-			'order'      => 'DESC',
-			'limit'      => 20,
-			'return'     => 'objects',
-		), $extra ) );
-	};
-	$by_category = static function () use ( $product_id, $query ): array {
-		$category_ids = array();
-		$product = wc_get_product( $product_id );
-		if ( $product ) { $category_ids = (array) $product->get_category_ids(); }
-		if ( empty( $category_ids ) ) { return array(); }
-		return $query( array( 'exclude' => array( $product_id ), 'category' => array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids ) ) );
-	};
-
-	$ids = array();
-	if ( 'manual' === $mode ) {
-		$product = wc_get_product( $product_id );
-		$ids     = $product ? $pick( (array) $product->get_upsell_ids() ) : array();
-		if ( empty( $ids ) ) { $ids = $pick( $by_category() ); }
-	} elseif ( 'brand' === $mode ) {
-		$brand_ids = jluxe_product_brand_term_ids( $product_id );
-		if ( ! empty( $brand_ids ) ) {
-			$candidates = $query( array( 'exclude' => array( $product_id ) ) );
-			$with_brand = array();
-			foreach ( $candidates as $candidate ) {
-				if ( array_intersect( $brand_ids, jluxe_product_brand_term_ids( $candidate->get_id() ) ) ) {
-					$with_brand[] = $candidate;
-				}
-			}
-			$ids = $pick( $with_brand );
-		}
-		if ( empty( $ids ) ) { $ids = $pick( $by_category() ); }
-	} else {
-		$ids = $pick( $by_category() );
-	}
-	$memo[ $key ] = $ids;
-	return $ids;
-}
-
-function jluxe_filtered_related_products( $related_posts, $product_id, $args = array() ) {
-	if ( ! function_exists( 'wc_get_product' ) ) { return $related_posts; }
-	$limit = max( 2, min( 8, (int) ( $args['posts_per_page'] ?? 4 ) ) );
-	$ids   = jluxe_related_products_for( (int) $product_id, $limit );
-	return ! empty( $ids ) ? $ids : $related_posts;
-}
-add_filter( 'woocommerce_related_products', 'jluxe_filtered_related_products', 10, 3 );
-
-/**
  * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول).
  *
  * R72 — بازبینیِ کاملِ شرط‌ها. حالت‌ها (پنل زرین ← اضافه خرید):
@@ -1862,31 +1774,16 @@ function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit 
 	}
 
 	if ( 'per_product' === $mode ) {
-		// ⓪ (R77) انتخابِ صریحِ مدیر در باکسِ «محصولات پیشنهادی» ویرایش محصول —
-		// مقدم بر Cross-sells.
-		// ① فیلدِ رسمیِ Cross-sells ووکامرس. اگر برای این محصول هر کدام
-		// انتخاب شده باشد، «همان» نهایی است — گزینه‌های از-دست-رفته
-		// (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ تصادفی رقیق نمی‌شوند؛
-		// fallback فقط وقتی است که هیچ‌کدام انتخاب نشده باشد.
-		$explicit = array();
-		foreach ( (array) get_post_meta( $product->get_id(), '_jluxe_suggested_ids', true ) as $suggested_id ) {
-			$suggested_product = wc_get_product( absint( $suggested_id ) );
-			if ( $suggested_product ) {
-				$explicit[] = $suggested_product;
-			}
-		}
+		// ① انتخابِ مدیر برای همین محصول (فیلدِ رسمیِ Cross-sells ووکامرس).
+		// اگر مدیر برای این محصول چیزی انتخاب کرده باشد، «همان» نهایی است —
+		// گزینه‌های از-دست-رفته (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ
+		// تصادفی رقیق نمی‌شوند؛ fallback فقط وقتی است که چیزی انتخاب نشده باشد.
 		$cross = array();
 		foreach ( (array) $product->get_cross_sell_ids() as $cross_id ) {
 			$cross_product = wc_get_product( absint( $cross_id ) );
 			if ( $cross_product ) {
 				$cross[] = $cross_product;
 			}
-		}
-		// انتخابِ صریحِ متاباکس «نهایی» است (قاعدهٔ R72: رقیق‌شدن ممنوع)؛
-		// فقط اگر هیچ‌کدام از آن‌ها موجود نبود، Cross-sells جایگزین می‌شود.
-		if ( ! empty( $explicit ) ) {
-			$take( $explicit );
-			if ( ! empty( $out ) ) { return $out; }
 		}
 		if ( ! empty( $cross ) ) {
 			$take( $cross );
@@ -2303,43 +2200,6 @@ function jluxe_shop_toolbar_hooks(): void {
 }
 add_action( 'wp', 'jluxe_shop_toolbar_hooks' );
 
-/*
- * R80: این تابع در 1.68.0 «کدِ مرده» تشخیص داده و حذف شد، ولی روی سایتِ
- * فعال معلوم شد فایلِ قالبِ کارتِ محصول (و شاید اسنیپت/افزونه‌ای) نسخهٔ
- * قدیمی‌تری دارد که همین تابع را صدا می‌زند → حذفش یعنی «خطای مهم» در هر
- * حلقهٔ محصول. سیاستِ تازه: توابعِ عمومیِ پوسته حتی اگر داخلِ خودِ پوسته
- * مصرف نداشته باشند، حذف نمی‌شوند — فقط back-compat می‌مانند. (تستِ R80
- * هر دو را به‌عنوان قراردادِ سازگاری قفل می‌کند.)
- */
-/**
- * [سازگاریِ عقب‌رو — از 1.68.0 حذف شد و در 1.69.0 برگشت]
- * خط تعداد موجودیِ واقعی (نه عدد ساختگی) — فقط وقتی محصول/تنوع واقعاً
- * موجودیِ عددی رو مدیریت می‌کنه (managing_stock) چیزی نشون داده می‌شه؛
- * وگرنه (فقط وضعیت موجود/ناموجودِ ساده) خط خالی برمی‌گرده. زیر ۵ عدد
- * رنگ هشدار می‌گیره.
- */
-function jluxe_render_product_stock_line( $product ): string {
-	if ( ! $product || ! $product->managing_stock() ) {
-		return '';
-	}
-	$qty = $product->get_stock_quantity();
-	if ( null === $qty ) {
-		return '';
-	}
-	$low  = $qty <= 5;
-	$icon = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>';
-	$text = $low
-		? sprintf( 'فقط %s عدد در انبار باقی مانده!', jluxe_fa_digits( (string) $qty ) )
-		: sprintf( '%s عدد در انبار موجود است', jluxe_fa_digits( (string) $qty ) );
-
-	return sprintf(
-		'<p class="mt-1.5 flex items-center gap-1 text-[11px] font-medium %1$s">%2$s%3$s</p>',
-		$low ? 'jluxe-text-danger' : 'text-text-muted',
-		$icon,
-		esc_html( $text )
-	);
-}
-
 /**
  * فیلترِ «فقط کالاهای موجود» — برخلاف min_price/max_price که خودِ ووکامرس
  * از GET param می‌خونه، وضعیتِ موجودی همچین پارامتری نداره؛ این‌جا با
@@ -2602,71 +2462,6 @@ function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
 	update_post_meta( $post_id, '_jluxe_suggested_modal_enabled', isset( $_POST['_jluxe_suggested_modal_enabled'] ) ? 'yes' : 'no' );
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
-
-/**
- * R77 (گزارشِ کاربر: «هیچ بخشی برای انتخابِ محصولِ پیشنهادی در ویرایش
- * محصول نیست»): متاباکسِ اختصاصیِ «محصولات پیشنهادی (اضافه خرید)» —
- * انتخابِ دستیِ پیشنهادهای پاپ‌آپِ «شاید این‌ها را هم بپسندید» برایِ همین
- * محصول، با جستجوی استانداردِ خودِ ووکامرس (wc-product-search) و بدونِ
- * وابستگی به فیلدِ پنهانِ «فروش متقاطع». سوییچِ روشن/خاموشیِ پاپ‌آپ هم
- * همین‌جا تکرار شده (همان متا) تا همه‌چیز یک‌جا دیده شود.
- */
-function jluxe_add_suggested_products_metabox(): void {
-	add_meta_box(
-		'jluxe-suggested-products',
-		'محصولات پیشنهادی (اضافه خرید)',
-		'jluxe_render_suggested_products_metabox',
-		'product',
-		'side',
-		'default'
-	);
-}
-add_action( 'add_meta_boxes', 'jluxe_add_suggested_products_metabox' );
-
-function jluxe_render_suggested_products_metabox(): void {
-	global $post;
-	if ( ! $post || 'product' !== ( $post->post_type ?? '' ) ) { return; }
-	$ids   = array_map( 'absint', (array) get_post_meta( $post->ID, '_jluxe_suggested_ids', true ) );
-	$value = array();
-	foreach ( $ids as $pid ) {
-		$title = get_the_title( $pid );
-		$value[] = array( 'id' => $pid, 'text' => '' !== (string) $title ? (string) $title : ( '#' . $pid ) );
-	}
-	?>
-	<div style="padding:12px">
-		<p style="margin:0 0 10px;line-height:1.9;font-size:12px;color:#646970">
-			محصولاتِ پاپ‌آپِ «شاید این‌ها را هم بپسندید» (بعدِ افزودن به سبد) را برای همین محصول انتخاب کنید. خالی بگذارید: «فروش متقاطع» و بعدِ آن هم‌دسته‌ها پیشنهاد می‌شوند.
-		</p>
-		<label class="screen-reader-text" for="_jluxe_suggested_ids">محصولات پیشنهادی</label>
-		<input type="hidden" id="_jluxe_suggested_ids" name="_jluxe_suggested_ids" class="wc-product-search" data-multiple="true" data-action="woocommerce_json_search_products" data-placeholder="جستجوی محصول…" data-allow_clear="true" value="<?php echo esc_attr( (string) wp_json_encode( $value ) ); ?>" style="width:100%" />
-		<label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px">
-			<input type="checkbox" name="_jluxe_suggested_modal_enabled" value="1" <?php checked( 'no' !== get_post_meta( $post->ID, '_jluxe_suggested_modal_enabled', true ) ); ?> />
-			نمایشِ پاپ‌آپ برای این محصول
-		</label>
-		<p style="margin:8px 0 0;font-size:11px;color:#8c8f94">در حالتِ «ثابت»ِ اضافه‌خرید، فهرستِ سراسری به‌کار می‌رود و این انتخاب نادیده گرفته می‌شود.</p>
-	</div>
-	<?php
-}
-
-function jluxe_save_suggested_products_metabox( int $post_id ): void {
-	if ( ! current_user_can( 'edit_post', $post_id ) ) { return; }
-	$raw     = isset( $_POST['_jluxe_suggested_ids'] ) ? (string) wp_unslash( $_POST['_jluxe_suggested_ids'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- ووکامرس خودش nonce ذخیرهٔ محصول را وارسی می‌کند.
-	$decoded = json_decode( $raw, true );
-	$ids     = array();
-	if ( is_array( $decoded ) ) {
-		foreach ( $decoded as $row ) {
-			$pid = is_array( $row ) ? absint( $row['id'] ?? 0 ) : absint( $row );
-			if ( $pid > 0 ) { $ids[] = $pid; }
-		}
-	}
-	$ids = array_slice( array_values( array_unique( $ids ) ), 0, 12 );
-	if ( empty( $ids ) ) {
-		delete_post_meta( $post_id, '_jluxe_suggested_ids' );
-		return;
-	}
-	update_post_meta( $post_id, '_jluxe_suggested_ids', $ids );
-}
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_products_metabox' );
 
 /**
  * بج‌های واقعاً فعالِ یک محصول، آماده برای رندر — woocommerce/
