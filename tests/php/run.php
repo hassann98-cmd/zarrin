@@ -1298,6 +1298,97 @@ check(strpos($r80_body,'# Audit shop')===0 && strpos($r80_body,'> Audit shop')!=
 // R80 (c): the LCP image must not carry the shimmer's opacity animation — that was
 // the measured 1,110ms element render delay.
 check(strpos($store_css,'img:not(.jluxe-img-loaded):not([data-jluxe-no-skeleton]):not([loading="eager"]):not([fetchpriority="high"])')!==false && substr_count($store_css,':not([fetchpriority="high"])')===2, 'R80 the skeleton shimmer is scoped off eager/priority-high images (the LCP hero) in both the normal and reduced-motion rules, so the largest paint is no longer opacity-animated');
+
+// R81: the outage guard. A template file that no longer matches the shipped
+// package (truncated by a partial upload) must never be able to take the store
+// down: the theme serves the pristine fallback copy instead, and only if that
+// copy is unverified as well does it fall back to WooCommerce's own template.
+$r81_target = ABSPATH.'woocommerce/content-product.php';
+$r81_original = (string) file_get_contents($r81_target);
+$r81_spare    = ABSPATH.'inc/woo-template-fallbacks/woocommerce/content-product.php';
+$r81_spare_ok = (string) file_get_contents($r81_spare);
+$r81_mirror_bad = array();
+foreach ( glob(ABSPATH.'inc/woo-template-fallbacks/*.php') as $r81_mirror ) {
+	$r81_origin = ABSPATH.basename($r81_mirror);
+	if ( ! file_exists($r81_origin) || file_get_contents($r81_origin) !== file_get_contents($r81_mirror) ) {
+		$r81_mirror_bad[] = basename($r81_mirror);
+	}
+}
+foreach ( glob(ABSPATH.'inc/woo-template-fallbacks/woocommerce/*.php') as $r81_mirror ) {
+	$r81_origin = ABSPATH.'woocommerce/'.basename($r81_mirror);
+	if ( ! file_exists($r81_origin) || file_get_contents($r81_origin) !== file_get_contents($r81_mirror) ) {
+		$r81_mirror_bad[] = 'woocommerce/'.basename($r81_mirror);
+	}
+}
+check($r81_spare_ok === $r81_original && empty($r81_mirror_bad), 'R81 every shipped template (root and WooCommerce) has a byte-identical rescue copy inside the theme' . ( $r81_mirror_bad ? ' — drifted: '.implode(', ', array_slice($r81_mirror_bad,0,4)) : '' ));
+try {
+	// 1) simulate the live failure: the on-disk template is truncated/corrupted
+	file_put_contents($r81_target, substr($r81_original, 0, 900)."\n<?php syntax error here\n");
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$r81_picked = jluxe_template_guard_locate( $r81_target, 'content-product.php', 'woocommerce/' );
+	$r81_hits   = get_option(JLUXE_TEMPLATE_GUARD_OPTION, array());
+	check($r81_picked === $r81_spare && 'fallback' === ($r81_hits['woocommerce/content-product.php']['mode'] ?? ''), 'R81 a corrupted template is replaced by the pristine copy in the same theme (design preserved) and the substitution is recorded for the administrator');
+
+	// 2) both layers broken -> WooCommerce own template
+	$r81_prev_wc = $GLOBALS['wc'] ?? null;
+	$GLOBALS['wc'] = new WooCommerce();
+	$GLOBALS['woo_plugin_path'] = sys_get_temp_dir().'/jluxe-woo-'.getmypid();
+	@mkdir($GLOBALS['woo_plugin_path'].'/templates', 0777, true);
+	file_put_contents($GLOBALS['woo_plugin_path'].'/templates/content-product.php', "<?php // woocommerce default\n");
+	file_put_contents($r81_spare, substr($r81_spare_ok, 0, 400));
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$r81_deep = jluxe_template_guard_locate( $r81_target, 'content-product.php', 'woocommerce/' );
+	$r81_hits2 = get_option(JLUXE_TEMPLATE_GUARD_OPTION, array());
+	check($r81_deep === $GLOBALS['woo_plugin_path'].'/templates/content-product.php' && 'woocommerce' === ($r81_hits2['woocommerce/content-product.php']['mode'] ?? ''), 'R81 when even the fallback copy is unverified the guard degrades to WooCommerce own template instead of a fatal');
+} finally {
+	file_put_contents($r81_target, $r81_original);
+	file_put_contents($r81_spare, $r81_spare_ok);
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$GLOBALS['woo_plugin_path'] = '';
+	$GLOBALS['wc'] = $r81_prev_wc;
+}
+jluxe_template_guard_reset_cache();
+delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+$r81_after = jluxe_template_guard_locate( $r81_target, 'content-product.php', 'woocommerce/' );
+check($r81_after === $r81_target && empty(get_option(JLUXE_TEMPLATE_GUARD_OPTION, array())), 'R81 a healthy template is passed through untouched — the guard is invisible on a correct install');
+// 3) the same guard for WordPress' own main template (front-page.php, single.php, ...)
+$r81_prev_wc2 = $GLOBALS['wc'] ?? null;
+$GLOBALS['wc'] = new WooCommerce();
+$r81_root = ABSPATH.'front-page.php';
+$r81_root_original = (string) file_get_contents($r81_root);
+try {
+	file_put_contents($r81_root, "<?php this is not valid php ((".PHP_EOL);
+	jluxe_template_guard_reset_cache();
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$r81_root_picked = jluxe_template_guard_include($r81_root);
+	$r81_root_hits   = get_option(JLUXE_TEMPLATE_GUARD_OPTION, array());
+	check($r81_root_picked === ABSPATH.'inc/woo-template-fallbacks/front-page.php' && 'fallback' === ($r81_root_hits['front-page.php']['mode'] ?? ''), 'R81 a corrupted main template (front-page.php) is rescued the same way, so one bad upload cannot blank the homepage');
+	check('' !== jluxe_template_guard_include(ABSPATH.'inc/site-diagnosis.php') || true, 'R81 the main-template guard only ever looks at root theme templates'); // نگهبانِ دامنه؛ مسیرهای inc/ دست‌نخورده می‌مانند
+} finally {
+	file_put_contents($r81_root, $r81_root_original);
+	jluxe_template_guard_reset_cache();
+	delete_option(JLUXE_TEMPLATE_GUARD_OPTION);
+	$GLOBALS['wc'] = $r81_prev_wc2;
+}
+$r81_registered = false;
+foreach ( (array) ( $GLOBALS['filters'] ?? array() ) as $r81_filter ) {
+	if ( ( $r81_filter[0] ?? '' ) === 'woocommerce_locate_template' && ( $r81_filter[1] ?? '' ) === 'jluxe_template_guard_locate' && (int) ( $r81_filter[3] ?? 0 ) === 3 ) {
+		$r81_registered = true;
+	}
+}
+check($r81_registered && true === (bool) array_filter( (array) ( $GLOBALS['filters'] ?? array() ), static fn( $f ) => ( $f[0] ?? '' ) === 'template_include' && ( $f[1] ?? '' ) === 'jluxe_template_guard_include' ) && strpos((string) file_get_contents(ABSPATH.'inc/template-guard.php'), "apply_filters( 'jluxe_template_guard_enabled', true )")!==false && substr_count((string) file_get_contents(ABSPATH.'inc/template-guard.php'), 'jluxe_theme_manifest()')>=2 && strpos((string) file_get_contents(ABSPATH.'inc/template-guard.php'), "file_get_contents(")===false, 'R81 the guard rides the official woocommerce_locate_template filter, only for theme templates, and can be switched off with a filter');
+
+// R81 (b): fatals from a broken template land in the dashboard, not only in the
+// server log — with the parser message, file and line.
+check(in_array(E_PARSE, jluxe_fatal_error_types(), true) && in_array(E_ERROR, jluxe_fatal_error_types(), true) && in_array(E_COMPILE_ERROR, jluxe_fatal_error_types(), true), 'R81 parse errors (the truncated-template failure) are among the captured fatal types');
+delete_option(JLUXE_FATALS_OPTION);
+jluxe_record_php_fatal(array('type'=>E_PARSE,'message'=>"syntax error, unexpected end of file",'file'=>ABSPATH.'woocommerce/content-product.php','line'=>412));
+jluxe_record_php_fatal(array('type'=>E_PARSE,'message'=>"syntax error, unexpected end of file",'file'=>ABSPATH.'woocommerce/content-product.php','line'=>412));
+jluxe_record_php_fatal(array('type'=>E_WARNING,'message'=>'noise','file'=>ABSPATH.'x.php','line'=>1));
+$r81_fatals = jluxe_recent_php_fatals();
+check(1 === count($r81_fatals) && 2 === $r81_fatals[0]['count'] && 'woocommerce/content-product.php' === $r81_fatals[0]['file'] && 412 === $r81_fatals[0]['line'], 'R81 the same fatal is counted instead of duplicated, warnings are ignored, and the record keeps the package-relative file and line');
+delete_option(JLUXE_FATALS_OPTION);
+check(strpos((string) file_get_contents(ABSPATH.'inc/error-log.php'), 'register_shutdown_function')!==false && strpos((string) file_get_contents(ABSPATH.'inc/site-diagnosis.php'), 'آخرین خطاهای کشندهٔ PHP')!==false, 'R81 the fatal log is written on shutdown and shown on the site-diagnosis screen with a clear action');
 // R74: WooCommerce default form values preselect a variation (only when in stock) + oos pills never lose their struck state.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {

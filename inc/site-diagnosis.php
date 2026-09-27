@@ -391,6 +391,57 @@ function jluxe_render_site_diagnosis_page(): void {
 			<p><button type="submit" class="button">بررسی دوبارهٔ فایل‌ها</button></p>
 		</form>
 
+		<?php $fatals = jluxe_recent_php_fatals(); ?>
+		<h2>آخرین خطاهای کشندهٔ PHP</h2>
+		<p class="description">هر بار که یک فایلِ ناقص/قدیمی وسطِ رندر خطا بدهد، پیامِ واقعیِ PHP (فایل + خط) این‌جا ثبت می‌شود — همان چیزی که در حالتِ عادی فقط در لاگِ سرور دیده می‌شود و کاربر به‌جایش «یک خطای مهم در این وب‌سایت رخ داده است» می‌بیند.</p>
+		<?php if ( empty( $fatals ) ) : ?>
+			<p style="color:green;font-weight:600">✓ خطای کشندهٔ ثبت‌شده‌ای وجود ندارد.</p>
+		<?php else : ?>
+			<table class="widefat striped">
+				<thead><tr><th>زمان</th><th>پیام</th><th>فایل:خط</th><th>تکرار</th></tr></thead>
+				<tbody>
+				<?php foreach ( $fatals as $entry ) : ?>
+					<tr>
+						<td><?php echo esc_html( wp_date( 'Y-m-d H:i', (int) ( $entry['time'] ?? 0 ) ) ); ?></td>
+						<td><code dir="ltr"><?php echo esc_html( mb_substr( (string) ( $entry['message'] ?? '' ), 0, 160 ) ); ?></code><br><small><?php echo esc_html( jluxe_fatal_type_label( (int) ( $entry['type'] ?? 0 ) ) ); ?></small></td>
+						<td><code dir="ltr"><?php echo esc_html( (string) ( $entry['file'] ?? '' ) ); ?>:<?php echo esc_html( jluxe_fa_digits( (string) ( $entry['line'] ?? 0 ) ) ); ?></code></td>
+						<td><?php echo esc_html( jluxe_fa_digits( (string) ( $entry['count'] ?? 1 ) ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="jluxe_clear_php_fatals" />
+				<?php wp_nonce_field( 'jluxe_clear_php_fatals' ); ?>
+				<p><button type="submit" class="button">پاک‌کردنِ این فهرست</button></p>
+			</form>
+		<?php endif; ?>
+
+		<?php $guard_hits = get_option( JLUXE_TEMPLATE_GUARD_OPTION, array() ); ?>
+		<h2>محافظِ قالب‌های ووکامرس</h2>
+		<p class="description">اگر فایلِ قالبی با بستهٔ رسمی یکی نباشد، پوسته به‌جای آن نسخهٔ پشتیبانِ سالم (یا قالبِ پیش‌فرضِ ووکامرس) را رندر می‌کند تا فروشگاه از کار نیفتد.</p>
+		<?php if ( empty( $guard_hits ) || ! is_array( $guard_hits ) ) : ?>
+			<p style="color:green;font-weight:600">✓ هیچ قالبی تا حالا نیاز به جایگزینی نداشته است.</p>
+		<?php else : ?>
+			<table class="widefat striped">
+				<thead><tr><th>فایل</th><th>جایگزینِ استفاده‌شده</th><th>آخرین بار</th></tr></thead>
+				<tbody>
+				<?php foreach ( $guard_hits as $relative => $hit ) : ?>
+					<tr>
+						<td><code dir="ltr"><?php echo esc_html( (string) $relative ); ?></code></td>
+						<td><?php echo 'fallback' === ( $hit['mode'] ?? '' ) ? 'نسخهٔ پشتیبانِ سالمِ پوسته' : 'قالبِ پیش‌فرضِ ووکامرس'; ?></td>
+						<td><?php echo esc_html( wp_date( 'Y-m-d H:i', (int) ( $hit['time'] ?? 0 ) ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="jluxe_template_guard_clear" />
+				<?php wp_nonce_field( 'jluxe_template_guard_clear' ); ?>
+				<p><button type="submit" class="button">بعد از بازآپلودِ موفق، این فهرست را پاک کن</button></p>
+			</form>
+		<?php endif; ?>
+
 		<h2>محصولات</h2>
 		<table class="widefat striped">
 			<tbody>

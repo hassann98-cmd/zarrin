@@ -289,7 +289,10 @@ class WC_Product {
  function get_short_description(){return 'Short description';}
  function get_description(){return 'Product description';}
 }
-class WooCommerce {}
+#[\AllowDynamicProperties]
+class WooCommerce {
+ function plugin_path(){return $GLOBALS['woo_plugin_path'] ?? '';}
+}
 class FakeSession { public $data=[];
  function get($key){return $this->data[$key]??null;}
  function set($key,$value){$this->data[$key]=$value;}
