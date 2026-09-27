@@ -47,6 +47,13 @@ function jluxe_render_sms_page(): void {
 				<tr>
 					<th scope="row">فعال‌سازی ورود با پیامک</th>
 					<td><label><input type="checkbox" name="sms[enabled]" value="1" <?php checked( $sms['enabled'] ); ?> /> نمایش تب «شماره موبایل» در صفحه‌ی ورود</label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">ورود فقط با رمز پیامکی</th>
+					<td>
+						<label><input type="checkbox" name="sms[otp_only]" value="1" <?php checked( ! empty( $sms['otp_only'] ) ); ?> /> مشتری فقط با رمز پیامکی وارد شود — بدونِ نام‌کاربری/رمز عبور</label>
+						<p class="description">در این حالت تبِ «نام کاربری» از صفحهٔ ورود حذف می‌شود؛ حسابِ جدید هم به‌صورت خودکار با همان شماره ساخته می‌شود. مدیران همیشه از <code>wp-login.php</code> وارد می‌شوند و این مسیر باز می‌ماند.</p>
 						<?php if ( $sms['enabled'] && ( ! $has_key || '' === $sms['provider'] ) ) : ?>
 							<p class="description" style="color:#b32d2e">فعاله ولی provider/کلید تنظیم نشده — تب تا زمان تکمیل تنظیمات پایین غیرفعال می‌مونه.</p>
 						<?php endif; ?>

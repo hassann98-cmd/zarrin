@@ -7,6 +7,8 @@ import { normalizeDigits, normalizePhone } from "../lib/input.js";
 export default function AuthPage() {
   const settings = getThemeSettings();
   const smsEnabled = Boolean(settings.sms?.enabled);
+  // R70: حالت «ورود فقط با رمز پیامکی» — تبِ نام‌کاربری/رمز کلاً حذف می‌شود.
+  const otpOnly = Boolean(settings.auth?.otpOnly) && smsEnabled;
   const canRegister = Boolean(settings.auth?.registrationEnabled);
   const [method, setMethod] = useState(smsEnabled ? "phone" : "username");
   const [mode, setMode] = useState("login");
@@ -88,7 +90,7 @@ export default function AuthPage() {
         <h1 id="jluxe-auth-title">
           {canRegister ? "ورود و عضویت" : "ورود به حساب کاربری"}
         </h1>
-        {smsEnabled && (
+        {smsEnabled && !otpOnly && (
           <div className="jluxe-auth-tabs" aria-label="روش ورود">
             <button
               type="button"
@@ -108,7 +110,7 @@ export default function AuthPage() {
             </button>
           </div>
         )}
-        {method === "username" && canRegister && (
+        {method === "username" && canRegister && !otpOnly && (
           <div className="jluxe-auth-tabs" aria-label="ورود یا ثبت‌نام">
             <button
               type="button"
@@ -271,8 +273,9 @@ export default function AuthPage() {
         </a>
         {smsEnabled && (
           <p className="jluxe-auth-hint">
-            برای اتصال شمارهٔ صورتحساب به حساب موجود، ابتدا با رمز وارد شوید و
-            در «جزئیات حساب» شماره را تأیید کنید.
+            {otpOnly
+              ? "با شمارهٔ موبایل وارد شوید؛ اگر حساب نداشته باشید، با همان شماره به‌صورت خودکار برایتان ساخته می‌شود."
+              : "اولین بار که با شمارهٔ ثبت‌شدهٔ صورتحساب وارد می‌شوید، برای پیوند شماره ابتدا با نام‌کاربری وارد شوید؛ بعد از آن ورود پیامکی مستقیم انجام می‌شود. حسابِ جدید هم خودکار ساخته می‌شود."}
           </p>
         )}
       </section>

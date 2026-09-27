@@ -891,6 +891,7 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
 
 	return array(
 		'enabled'  => ! empty( $posted['enabled'] ),
+		'otp_only' => ! empty( $posted['otp_only'] ),
 		'provider' => in_array( $provider, array( '', 'kavenegar', 'melipayamak' ), true ) ? $provider : '',
 		'username' => isset( $posted['username'] ) ? sanitize_text_field( $posted['username'] ) : $defaults['username'],
 		'sender'   => isset( $posted['sender'] ) ? sanitize_text_field( $posted['sender'] ) : $defaults['sender'],

@@ -1141,4 +1141,15 @@ check(strpos($store_css,'.checkout .woocommerce-privacy-policy-text { display: n
 $GLOBALS['test_filters']['woocommerce_get_privacy_policy_text']=static function($text,$type){ return jluxe_hide_checkout_privacy_text($text,$type); };
 check(''===apply_filters('woocommerce_get_privacy_policy_text','متن','checkout') && 'متن'===apply_filters('woocommerce_get_privacy_policy_text','متن','registration'), 'R69 the privacy paragraph is emptied only for checkout (registration text untouched)');
 unset($GLOBALS['test_filters']['woocommerce_get_privacy_policy_text']);
+// R70: OTP-only login toggle, redesigned lost-password page, corrected first-time SMS hint.
+$sms_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-sms.php');
+$render2=(string) file_get_contents(ABSPATH.'inc/theme-settings-render.php');
+check(strpos($settings_inc,"'otp_only' => false")!==false && strpos($sms_php,'name="sms[otp_only]"')!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php'),"'otp_only' => ! empty( \$posted['otp_only'] )")!==false, 'R70 the otp_only toggle ships (default off) with renderer and boolean sanitizer in the SMS settings');
+check(strpos($settings_inc,"'otpOnly' => ! empty( \$settings['sms']['otp_only'] ) && jluxe_otp_available()")!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'const otpOnly = Boolean(settings.auth?.otpOnly) && smsEnabled;')!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'smsEnabled && !otpOnly')!==false, 'R70 otpOnly is only exposed when the SMS gateway is truly configured and the auth page then removes the username/password tab');
+$acct=(string) file_get_contents(ABSPATH.'page-my-account.php');
+$store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($store_css,'.jluxe-recover-card')!==false && strpos($store_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
+check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
+$auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
+check(strpos($auth_jsx,'به‌صورت خودکار برایتان ساخته می‌شود')!==false && strpos($auth_jsx,'بعد از آن ورود پیامکی مستقیم انجام می‌شود')!==false, 'R70 the first-time SMS hint now explains auto account creation (otp-only) and the link-once flow (normal mode) instead of the confusing verify-in-account-details message');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

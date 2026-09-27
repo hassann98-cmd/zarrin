@@ -668,6 +668,11 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'sms' => array(
 			'enabled'  => false,
+			// R70: ورودِ «فقط رمز پیامکی» — وقتی روشنه، تبِ نام‌کاربری/رمز از
+			// صفحهٔ ورود حذف می‌شود و مشتری فقط با کدِ پیامکی وارد می‌شود
+			// (ساخت حساب هم خودکار با همان شماره انجام می‌شود). ادمین‌ها
+			// همیشه از wp-login.php وارد می‌شوند — این مسیر حذف نمی‌شود.
+			'otp_only' => false,
 			'provider' => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی. گزینه‌ها: kavenegar | melipayamak
 			// ملی‌پیامک: نام کاربریِ پنل (سرویسِ REST کلاسیک —
 			// rest.payamak-panel.com/api/SendSMS/SendSMS — به هر دوی
@@ -1385,6 +1390,8 @@ function jluxe_localize_public_settings(): void {
 			'auth' => array(
 				'isLoggedIn' => is_user_logged_in(),
 				'registrationEnabled' => jluxe_registration_enabled(),
+				// R70: حالتِ «ورود فقط با رمز پیامکی» — AuthPage تبِ رمز را حذف می‌کند.
+				'otpOnly' => ! empty( $settings['sms']['otp_only'] ) && jluxe_otp_available(),
 			),
 			// شهرستان‌های هر استان (billing_city وابسته به billing_state در
 			// چک‌اوت/ویرایش آدرس — inc/woocommerce.php: jluxe_iran_cities).
