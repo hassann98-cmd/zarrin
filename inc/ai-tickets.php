@@ -49,21 +49,25 @@ function jluxe_register_ai_ticket_rest_route(): void {
 				'name'     => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'contact'  => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'message'  => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_textarea_field',
 				),
 				'page_url' => array(
 					'required'          => false,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'esc_url_raw',
 				),
 			),

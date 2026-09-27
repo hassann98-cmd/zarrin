@@ -575,7 +575,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		}
 		// فقط ترکیبِ کاملاً مشخص (بدون مقدار خالی/"هرکدوم") و موجود، چون باید
 		// بشه هر ویژگی رو روی یک سواچِ مشخص کلیک کرد.
-		var jluxeTarget = jluxeVariations.filter(function (v) {
+		var jluxeTarget = (Array.isArray(jluxeVariations) ? jluxeVariations : []).filter(function (v) {
 			return v && v.is_in_stock && v.attributes && Object.keys(v.attributes).every(function (k) {
 				return v.attributes[k] !== "";
 			});
@@ -671,6 +671,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 	var jluxeFilterForm = document.querySelector("[data-jluxe-filter-form]");
 	if (jluxeFilterForm) {
+		jluxeFilterForm.addEventListener("input", function (event) { if (event.target.setCustomValidity) event.target.setCustomValidity(""); });
 		jluxeFilterForm.addEventListener("submit", function (event) {
 			event.preventDefault();
 
@@ -680,38 +681,37 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			var maxPrice = jluxeFilterForm.querySelector('[name="max_price"]');
 			var inStock = jluxeFilterForm.querySelector('[name="filter_stock"]');
 
-			var baseUrl = null;
-			[catSelect, brandSelect].forEach(function (select) {
-				if (!baseUrl && select && select.value) {
-					var opt = select.options[select.selectedIndex];
-					if (opt && opt.dataset.url) {
-						baseUrl = opt.dataset.url;
-					}
+			var onSale = jluxeFilterForm.querySelector('[name="on_sale"]');
+			var settings = window.JLuxeThemeSettings || {};
+			var baseUrl = settings.shopUrl || (settings.urls && settings.urls.shop);
+			if (!baseUrl) return;
+			function priceValue(input) {
+				if (!input) return "";
+				var value = JLuxeStorefrontUtils.normalizeDigits(input.value).replace(/[,،٬]/g, "").trim();
+				input.setCustomValidity("");
+				if (value && (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))) {
+					input.setCustomValidity("مبلغ معتبر وارد کنید.");
+					input.reportValidity();
+					return null;
 				}
+				return value;
+			}
+			var minimum = priceValue(minPrice);
+			var maximum = priceValue(maxPrice);
+			if (minimum === null || maximum === null) return;
+			if (minimum && maximum && Number(minimum) > Number(maximum)) {
+				maxPrice.setCustomValidity("حداکثر قیمت باید از حداقل کمتر نباشد.");
+				maxPrice.reportValidity();
+				return;
+			}
+			window.location.href = JLuxeStorefrontUtils.buildFilterUrl(baseUrl, window.location.href, {
+				product_cat: catSelect ? catSelect.value : "",
+				product_brand: brandSelect ? brandSelect.value : "",
+				min_price: minimum,
+				max_price: maximum,
+				filter_stock: inStock && inStock.checked ? "instock" : "",
+				on_sale: onSale && onSale.checked ? "1" : ""
 			});
-			if (!baseUrl) {
-				baseUrl = window.JLuxeThemeSettings && window.JLuxeThemeSettings.shopUrl
-					? window.JLuxeThemeSettings.shopUrl
-					: "/shop/";
-			}
-
-			// قیمتِ ذخیره‌شده در ووکامرس همیشه ریاله (inc/woocommerce.php:
-			// jluxe_toman_price تقسیم‌بر-۱۰ برای نمایش)؛ فیلتر native ووکامرس
-			// هم روی همون مقدار ریالی مقایسه می‌کنه، پس ورودیِ تومانیِ کاربر
-			// باید قبل از رفتن به querystring در ۱۰ ضرب بشه.
-			var params = new URLSearchParams();
-			if (minPrice && minPrice.value) {
-				params.set("min_price", String(Math.round(Number(minPrice.value) * 10)));
-			}
-			if (maxPrice && maxPrice.value) {
-				params.set("max_price", String(Math.round(Number(maxPrice.value) * 10)));
-			}
-			if (inStock && inStock.checked) {
-				params.set("filter_stock", "instock");
-			}
-
-			var query = params.toString();
-			window.location.href = baseUrl + (query ? "?" + query : "");
 		});
 	}
 })();
@@ -1253,18 +1253,11 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		 * و use-cart.ts طبقِ قبل fallback به fetch می‌کنه.)
 		 */
 		window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: cartSnapshot || null }));
-		// پاپ‌آپِ «محصولات پیشنهادی» فقط وقتی باز می‌شه که خودِ دکمه‌ی اصلیِ
-		// افزودنِ همین صفحه‌ی محصول کلیک شده باشه (کلاسِ single_add_to_cart_button
-		// فقط مالِ اونه، نه کارت‌های گرید — چه همین صفحه چه بخشِ «محصولات
-		// مرتبط»ِ زیرش که خودشون هم می‌تونن added_to_cart رو صدا بزنن). با
-		// کمی تاخیر بعدِ اینکه توست/انیمیشنِ پرواز دیده بشه.
-		if (button && button.classList.contains("single_add_to_cart_button")) {
-			window.setTimeout(function () {
-				if (typeof window.jluxeOpenSuggestedProductsModal === "function") {
-					window.jluxeOpenSuggestedProductsModal();
-				}
-			}, isMobile ? 550 : 750);
-		}
+		/* R61: بازشدنِ مودالِ «اضافه خرید» از هندلرِ رویدادِ عمومی برداشته شد —
+		شرطِ کلاسِ single_add_to_cart_button شکننده بود (چند مسیرِ افزودن داریم:
+		صفحهٔ محصول ساده/متغیر، sticky، quick-variant، گرید). حالا فقط مسیرِ
+		واحدِ درست بازش می‌کند: پاسخِ موفقِ endpoint افزودنِ صفحهٔ محصول
+		(پایینِ همین فایل، در submit interceptor). */
 	});
 })();
 
@@ -1277,42 +1270,140 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
  * می‌کنن.
  */
 (function () {
-	var modal = document.querySelector("[data-jluxe-suggested-modal]");
-	if (!modal) {
-		// محصولی که پیشنهادی براش پیدا نشد (jluxe_get_suggested_products_for_cart
-		// خالی بود) اصلاً این عنصر رو تویِ صفحه نداره — window.jluxeOpenSuggestedProductsModal
-		// هیچ‌وقت تعریف نمی‌شه، و فراخوانی‌اش تویِ IIFEِ بالا با typeof چک
-		// می‌شه، پس امنه.
-		return;
-	}
+	/* R61 — بازسازی به‌صورتِ بایندِ تابعی: مودال می‌تواند (۱) در لودِ صفحه به‌صورتِ
+	SSR حاضر باشد (رفتارِ قبلی) یا (۲) بعدِ افزودنِ موفق، با HTML تازه‌ای که
+	خودِ endpoint افزودن در پاسخ برمی‌گرداند سوار شود (موجودی/قابل‌خریدِ لحظه‌ای).
+	keydown به‌صورتِ سراسری یک‌بار بسته می‌شود و همیشه «مودالِ فعلیِ DOM» را
+	می‌بندد — وگرنه بعد از جایگزینیِ مودال، Escape گره‌ی قدیمیِ حذف‌شده را
+	می‌بست و مودالِ تازه با Esc بسته نمی‌شد. */
+	function jluxeBindSuggestedModal(modal) {
+		if (!modal || modal.getAttribute("data-cp3-pa-bound") === "1") { return; }
+		modal.setAttribute("data-cp3-pa-bound", "1");
 
-	window.jluxeOpenSuggestedProductsModal = function () {
-		modal.classList.remove("hidden");
-		modal.setAttribute("aria-hidden", "false");
-		document.body.style.overflow = "hidden";
+		window.jluxeOpenSuggestedProductsModal = function () {
+			modal.classList.remove("hidden");
+			modal.setAttribute("aria-hidden", "false");
+			document.body.style.overflow = "hidden";
+		};
+
+		function closeSuggestedProductsModal() {
+			modal.classList.add("hidden");
+			modal.setAttribute("aria-hidden", "true");
+			document.body.style.overflow = "";
+		}
+		window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
+
+		modal.querySelectorAll("[data-jluxe-suggested-close]").forEach(function (el) {
+			el.addEventListener("click", closeSuggestedProductsModal);
+		});
+
+		var paTotal = modal.querySelector("[data-pa-total]");
+		var paMainAmount = parseFloat(modal.getAttribute("data-pa-main")) || 0;
+
+		function paFormat(amount) {
+			var rounded = Math.max(0, Math.round(amount));
+			var withSeparators = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			return window.jluxeFaDigits ? window.jluxeFaDigits(withSeparators) : withSeparators;
+		}
+
+		function paUpdateTotal() {
+			if (!paTotal) { return; }
+			var total = paMainAmount;
+			modal.querySelectorAll("[data-pa-service][aria-pressed='true'], [data-pa-product][aria-pressed='true']").forEach(function (row) {
+				total += parseFloat(row.getAttribute("data-pa-amount")) || 0;
+			});
+			paTotal.textContent = paFormat(total);
+		}
+
+		modal.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
+			row.addEventListener("click", function () {
+				var pressed = row.getAttribute("aria-pressed") === "true";
+				row.setAttribute("aria-pressed", pressed ? "false" : "true");
+				row.classList.toggle("is-selected", !pressed);
+				paUpdateTotal();
+			});
+		});
+		paUpdateTotal();
+
+		var paConfirm = modal.querySelector("[data-pa-confirm]");
+		var cartCfg = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
+		if (paConfirm && cartCfg && cartCfg.ajaxUrl) {
+		paConfirm.addEventListener("click", function () {
+			var productIds = Array.prototype.map.call(
+				modal.querySelectorAll("[data-pa-product][aria-pressed='true']"),
+				function (row) { return row.getAttribute("data-pa-product"); }
+			);
+			var serviceKeys = Array.prototype.map.call(
+				modal.querySelectorAll("[data-pa-service][aria-pressed='true']"),
+				function (row) { return row.getAttribute("data-pa-service"); }
+			);
+			if (!productIds.length && !serviceKeys.length) {
+				closeSuggestedProductsModal();
+				return;
+			}
+			paConfirm.disabled = true;
+			paConfirm.classList.add("opacity-60", "pointer-events-none");
+
+			function postOp(fields) {
+				var body = new FormData();
+				body.set("action", "jluxe_cart");
+				body.set("nonce", cartCfg.nonce);
+				Object.keys(fields).forEach(function (key) { body.set(key, fields[key]); });
+				return fetch(cartCfg.ajaxUrl, { method: "POST", body: body, credentials: "same-origin" })
+					.then(function (res) { return res.json(); });
+			}
+
+			var chain = Promise.resolve();
+			productIds.forEach(function (productId) {
+				chain = chain.then(function () {
+					// اگر یک پیشنهاد به هر دلیلی اضافه نشد، بقیه ادامه
+					// پیدا می‌کنند؛ خطا در توستِ همان endpoint دیده می‌شود.
+					return postOp({ op: "add", product_id: productId, quantity: 1 }).then(function (response) {
+						if (!response || !response.success) {
+							var message = response && response.data && response.data.message ? response.data.message : "افزودنِ پیشنهاد انجام نشد.";
+							showErrorToast(message);
+						}
+						return response && response.success ? response.data : null;
+					});
+				});
+			});
+			chain = chain.then(function () {
+				return postOp({ op: "pa_services", pa_services: serviceKeys.join(",") }).then(function (response) {
+					return response && response.success ? response.data : null;
+				});
+			});
+			chain.then(function () {
+				paConfirm.disabled = false;
+				paConfirm.classList.remove("opacity-60", "pointer-events-none");
+				closeSuggestedProductsModal();
+			}).catch(function () {
+				paConfirm.disabled = false;
+				paConfirm.classList.remove("opacity-60", "pointer-events-none");
+				showErrorToast("خطا در ثبتِ اضافه‌خرید. دوباره تلاش کنید.");
+			});
+		});
+	}
+}
+
+	jluxeBindSuggestedModal(document.querySelector("[data-jluxe-suggested-modal]"));
+
+	window.jluxeMountSuggestedModal = function (html) {
+		var old = document.querySelector("[data-jluxe-suggested-modal]");
+		if (old && old.parentNode) { old.parentNode.removeChild(old); }
+		var wrap = document.createElement("div");
+		wrap.innerHTML = html;
+		var fresh = wrap.firstElementChild;
+		if (!fresh) { return null; }
+		document.body.appendChild(fresh);
+		jluxeBindSuggestedModal(fresh);
+		return fresh;
 	};
 
-	function closeSuggestedProductsModal() {
-		modal.classList.add("hidden");
-		modal.setAttribute("aria-hidden", "true");
-		document.body.style.overflow = "";
-	}
-	// روی window هم قرار می‌گیره چون مودالِ انتخابِ سریعِ تنوع (پایین‌ترِ
-	// همین فایل) باید بتونه این مودال رو ببنده وقتی از داخلش (روی یک
-	// محصولِ متغیرِ پیشنهادی) باز می‌شه — وگرنه دو بک‌دراپِ تیره‌ی
-	// تمام‌صفحه (این‌جا bg-foreground/50 و اونجا rgb(0 0 0 / 0.5)) روی هم
-	// می‌افتن و صفحه با هر کلیک تیره‌تر به‌نظر می‌رسه، بدونِ اینکه خودِ
-	// مودالِ تنوع (که z-index پایین‌تری داره) اصلاً دیده بشه — باگِ واقعیِ
-	// گزارش‌شده.
-	window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
-
-	modal.querySelectorAll("[data-jluxe-suggested-close]").forEach(function (el) {
-		el.addEventListener("click", closeSuggestedProductsModal);
-	});
-
 	document.addEventListener("keydown", function (event) {
-		if (event.key === "Escape" && !modal.classList.contains("hidden")) {
-			closeSuggestedProductsModal();
+		if (event.key !== "Escape") { return; }
+		var current = document.querySelector("[data-jluxe-suggested-modal]");
+		if (current && !current.classList.contains("hidden") && typeof window.jluxeCloseSuggestedProductsModal === "function") {
+			window.jluxeCloseSuggestedProductsModal();
 		}
 	});
 })();
@@ -1432,6 +1523,8 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		// همون فیلدی که اسکریپتِ سواچِ ووکامرس (wc-add-to-cart-variation)
 		// موقعِ انتخابِ یک تنوعِ معتبر مقدارش رو ست می‌کنه.
 		var formData = new FormData(form);
+		// Keep the native field in the DOM, but never send it to our AJAX protocol.
+		formData.delete("add-to-cart");
 		formData.set("action", "jluxe_cart");
 		formData.set("nonce", cartCfg.nonce);
 		formData.set("op", "add");
@@ -1449,6 +1542,28 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 					return;
 				}
 				window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(button), response.data]);
+				/* R61: مودالِ «اضافه خرید» مستقیماً به نتیجهٔ موفقِ همین endpoint
+				وصل است — پاسخ، HTML تازهٔ مودال را با وضعیتِ لحظه‌ایِ
+				موجودی/قابل‌خرید برمی‌گرداند؛ اگر خالی باشد و مودالِ SSR هم
+				نباشد، فقط فیدبکِ عادیِ افزودن (توست/پالس) می‌ماند. */
+				var paHtml = response.data && response.data.suggested_html ? response.data.suggested_html : "";
+				/* R61 (بند ۲): نبودِ پیشنهادِ معتبر ⇒ نبودِ کل مودال — حتی اگر
+				نسخهٔ SSR/کش‌شده‌ای از قبل در DOM باشد، حذفش می‌کنیم و هرگز
+				بازش نمی‌کنیم؛ «مودالِ خالی» هرگز به کاربر نشان داده نمی‌شود. */
+				var isMobile = window.innerWidth < 768;
+				window.setTimeout(function () {
+					if (paHtml && typeof window.jluxeMountSuggestedModal === "function") {
+						window.jluxeMountSuggestedModal(paHtml);
+						if (typeof window.jluxeOpenSuggestedProductsModal === "function") {
+							window.jluxeOpenSuggestedProductsModal();
+						}
+					} else if (!paHtml) {
+						var staleModal = document.querySelector("[data-jluxe-suggested-modal]");
+						if (staleModal && staleModal.parentNode) {
+							staleModal.parentNode.removeChild(staleModal);
+						}
+					}
+				}, isMobile ? 550 : 750);
 			})
 			.catch(function () {
 				restoreButton();
@@ -1470,11 +1585,13 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 (function () {
 	var modalRoot = null;
 	var lastFocused = null;
+	var releaseDialogFocus = null;
 
 	function closeModal() {
 		if (!modalRoot) {
 			return;
 		}
+		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
 		modalRoot.remove();
 		modalRoot = null;
 		document.body.style.overflow = "";
@@ -1509,7 +1626,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		modalRoot = document.createElement("div");
 		modalRoot.className = "jluxe-variant-modal-backdrop";
 		modalRoot.innerHTML =
-			'<div class="jluxe-variant-modal" role="dialog" aria-modal="true">' +
+			'<div class="jluxe-variant-modal" role="dialog" aria-modal="true" aria-label="انتخاب گزینه‌های محصول">' +
 			'<button type="button" class="jluxe-variant-modal-close" aria-label="بستن">' +
 			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
 			"</button>" +
@@ -1517,6 +1634,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			'<div class="jluxe-variant-modal-body"><div class="jluxe-variant-modal-loading">در حال بارگذاری...</div></div>' +
 			"</div>";
 		document.body.appendChild(modalRoot);
+		releaseDialogFocus = JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeModal);
 		document.body.style.overflow = "hidden";
 
 		modalRoot.addEventListener("click", function (event) {
@@ -1525,13 +1643,14 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			}
 		});
 
+		var requestedModal = modalRoot;
 		var body = new URLSearchParams({ action: "jluxe_variation_picker", nonce: cart.nonce, product_id: String(productId) });
 		fetch(cart.ajaxUrl, { method: "POST", body: body, credentials: "same-origin" })
 			.then(function (res) {
 				return res.json();
 			})
 			.then(function (response) {
-				if (!modalRoot) {
+				if (!modalRoot || modalRoot !== requestedModal) {
 					return;
 				}
 				if (!response.success) {
@@ -1553,7 +1672,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 				}
 			})
 			.catch(function () {
-				if (modalRoot) {
+				if (modalRoot && modalRoot === requestedModal) {
 					modalRoot.querySelector(".jluxe-variant-modal-body").innerHTML =
 						'<p class="jluxe-variant-modal-error">مشکلی پیش آمد، دوباره تلاش کنید.</p>';
 				}
@@ -1607,6 +1726,8 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		 * رو جدا جدا و صریح می‌گیره.
 		 */
 		var formData = new FormData(form);
+		// Keep the native field in the DOM, but never send it to our AJAX protocol.
+		formData.delete("add-to-cart");
 		formData.set("action", "jluxe_cart");
 		formData.set("nonce", cart.nonce);
 		formData.set("op", "add");
@@ -2115,12 +2236,25 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	 * منطقِ دیگه‌ای از چک‌اوت) خنثی می‌کنیم — با تأخیرِ کوتاه تا مطمئن
 	 * بشیم بعد از اجرای اسکریپتِ خودِ ووکامرس اجرا می‌شه، نه قبلش.
 	 */
+	var jluxeManualPaymentMethod = null;
+	document.addEventListener("change", function (event) {
+		if (event.isTrusted && event.target.matches("#payment input.payment_method") && event.target.checked) {
+			jluxeManualPaymentMethod = event.target.value;
+		}
+	}, true);
 	function clearAutoSelectedPaymentMethod() {
 		var payment = document.getElementById("payment");
 		if (!payment) {
 			return;
 		}
 		var radios = payment.querySelectorAll("input.payment_method");
+		if (jluxeManualPaymentMethod) {
+			var selected = Array.prototype.find.call(radios, function (radio) { return radio.value === jluxeManualPaymentMethod; });
+			if (selected) {
+				if (!selected.checked) window.jQuery(selected).trigger("click");
+				return;
+			}
+		}
 		if (radios.length !== 1 || !radios[0].checked) {
 			return;
 		}

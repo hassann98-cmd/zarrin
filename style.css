@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.49.1 — CHECKOUT SELECT2 WHEEL FIX
+Build: JLUXE 1.55.27 — AUDIT REMEDIATION
 Author: زرین
-Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React (TypeScript, Tailwind, shadcn/ui).
-Version: 1.55.0
+Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
+Version: 1.55.27
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -120,13 +120,13 @@ Text Domain: jluxe
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins {
     order: 1;
     text-decoration: none !important;
-    color: var(--primary, #087a68) !important;
+    color: hsl(var(--primary, 170 88% 25%)) !important;
     font-size: 17px !important;
     font-weight: 900 !important;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .woocommerce-Price-amount:not(:has(~ ins)),
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .amount {
-    color: var(--primary, #087a68);
+    color: hsl(var(--primary, 170 88% 25%));
     font-size: 17px;
     font-weight: 900;
   }
@@ -139,7 +139,7 @@ Text Domain: jluxe
     min-width: 132px;
     height: 46px;
     border-radius: 15px;
-    box-shadow: 0 9px 22px -10px var(--primary, #087a68);
+    box-shadow: 0 9px 22px -10px hsl(var(--primary, 170 88% 25%));
     transition: transform .18s ease, box-shadow .18s ease;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add]:active {

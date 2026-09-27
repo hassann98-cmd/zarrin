@@ -1180,6 +1180,39 @@ function jluxe_render_homepage_product_grid( array $section ): void {
  * فقط پخشِ خودکار/مداومِ اضافه‌ای رو فعال می‌کنه که با نگه‌داشتنِ ماوس/لمس
  * موقتاً می‌ایسته.
  */
+function jluxe_sale_grid_query_args( array $args, array $query_vars ): array {
+	if ( ! empty( $query_vars['jluxe_sale_grid'] ) ) {
+		$args['has_password'] = false;
+		$args['jluxe_discount_order'] = ! empty( $query_vars['jluxe_discount_order'] );
+		$args['jluxe_sale_price_order'] = $query_vars['jluxe_sale_price_order'] ?? '';
+		$args['jluxe_discount_instock'] = 'instock' === ( $query_vars['stock_status'] ?? '' );
+	}
+	return $args;
+}
+add_filter( 'woocommerce_product_data_store_cpt_get_products_query', 'jluxe_sale_grid_query_args', 10, 2 );
+
+/** Standard WooCommerce CPT/lookup store: highest active simple/variation discount first. */
+function jluxe_discount_orderby( string $orderby, $query ): string {
+	global $wpdb;
+	$price_order = $query->get( 'jluxe_sale_price_order' );
+	if ( in_array( $price_order, array( 'low', 'high' ), true ) ) {
+		$field = 'low' === $price_order ? 'min_price' : 'max_price';
+		$order = 'low' === $price_order ? 'ASC' : 'DESC';
+		return "(SELECT $field FROM {$wpdb->wc_product_meta_lookup} WHERE product_id = {$wpdb->posts}.ID) $order, {$wpdb->posts}.ID DESC";
+	}
+	if ( ! $query->get( 'jluxe_discount_order' ) ) { return $orderby; }
+	$stock_clause = $query->get( 'jluxe_discount_instock' ) ? " AND jluxe_lookup.stock_status = 'instock'" : '';
+	// Only identifiers from wpdb and literal clauses are interpolated. No request values enter SQL.
+	return "COALESCE((SELECT MAX(100 - 100 * jluxe_lookup.min_price / NULLIF(CAST(jluxe_regular.meta_value AS DECIMAL(20,6)), 0))
+		FROM {$wpdb->posts} AS jluxe_sale
+		INNER JOIN {$wpdb->wc_product_meta_lookup} AS jluxe_lookup ON jluxe_lookup.product_id = jluxe_sale.ID AND jluxe_lookup.onsale = 1
+		INNER JOIN {$wpdb->postmeta} AS jluxe_regular ON jluxe_regular.post_id = jluxe_sale.ID AND jluxe_regular.meta_key = '_regular_price'
+		WHERE (jluxe_sale.ID = {$wpdb->posts}.ID OR jluxe_sale.post_parent = {$wpdb->posts}.ID)
+		AND jluxe_sale.post_status = 'publish' AND CAST(jluxe_regular.meta_value AS DECIMAL(20,6)) > 0
+		$stock_clause), 0) DESC, {$wpdb->posts}.ID DESC";
+}
+add_filter( 'posts_orderby', 'jluxe_discount_orderby', 50, 2 );
+
 function jluxe_render_homepage_special_products( array $section ): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
@@ -1190,14 +1223,16 @@ function jluxe_render_homepage_special_products( array $section ): void {
 		return;
 	}
 
-	$count             = max( 4, (int) ( $section['count'] ?? 10 ) );
+	$count             = max( 4, min( 30, (int) ( $section['count'] ?? 10 ) ) );
 	$sort              = $section['sort'] ?? 'discount';
 	$hide_out_of_stock = ! empty( $section['hide_out_of_stock'] );
 
 	$args = array(
 		'status'  => 'publish',
 		'include' => $sale_ids,
-		'limit'   => -1,
+		'limit'   => $count,
+		'visibility' => 'catalog',
+		'jluxe_sale_grid' => true,
 	);
 	if ( $hide_out_of_stock ) {
 		$args['stock_status'] = 'instock';
@@ -1215,11 +1250,13 @@ function jluxe_render_homepage_special_products( array $section ): void {
 			$args['order']    = 'DESC';
 			break;
 		case 'price_low':
-			$args['orderby'] = 'price';
+			$args['jluxe_sale_price_order'] = 'low';
+			$args['orderby'] = 'date';
 			$args['order']   = 'ASC';
 			break;
 		case 'price_high':
-			$args['orderby'] = 'price';
+			$args['jluxe_sale_price_order'] = 'high';
+			$args['orderby'] = 'date';
 			$args['order']   = 'DESC';
 			break;
 		case 'rating':
@@ -1232,31 +1269,16 @@ function jluxe_render_homepage_special_products( array $section ): void {
 			break;
 		case 'discount':
 		default:
-			// درصدِ تخفیف یک فیلدِ واقعیِ ذخیره‌شده نیست (محاسبه‌شدنیه از
-			// قیمتِ اصلی/فروش) — ووکامرس هیچ orderby ای برای این نداره، پس
-			// همه‌ی محصولاتِ تخفیف‌دار رو می‌گیریم و خودمون بعد از کوئری
-			// بر اساسِ درصدِ واقعی مرتب می‌کنیم.
+			$args['jluxe_discount_order'] = true;
 			$args['orderby'] = 'date';
 			break;
 	}
 
-	$products = wc_get_products( $args );
+	// The database sorts BEFORE LIMIT; never instantiate every sale product just to slice it.
+	$products = array_values( array_filter( wc_get_products( $args ), 'jluxe_product_is_public' ) );
 	if ( empty( $products ) ) {
 		return;
 	}
-
-	if ( 'discount' === $sort ) {
-		usort(
-			$products,
-			function ( $a, $b ) {
-				$a_pct = jluxe_product_discount_percent( $a );
-				$b_pct = jluxe_product_discount_percent( $b );
-				return $b_pct <=> $a_pct;
-			}
-		);
-	}
-
-	$products = array_slice( $products, 0, $count );
 
 	$view_all_link = ! empty( $section['view_all_link'] )
 		? $section['view_all_link']
@@ -1447,7 +1469,7 @@ function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): 
 	$fit      = 'contain' === ( $slot['image_fit'] ?? 'cover' ) ? 'contain' : 'cover';
 	$bg       = ! empty( $slot['bg'] ) ? $slot['bg'] : 'hsl(var(--muted))';
 	$shadow   = ! empty( $slot['shadow'] ) ? 'box-shadow:0 8px 24px rgba(0,0,0,.15);' : '';
-	$link     = ! empty( $slot['link'] ) ? esc_url( $slot['link'] ) : '';
+	$link     = ! empty( $slot['link'] ) ? esc_url( jluxe_resolve_site_link( (string) $slot['link'] ) ) : '';
 	?>
 	<div style="position:relative;width:100%;height:100%;background:<?php echo esc_attr( $bg ); ?>;overflow:hidden;<?php echo esc_attr( $shadow ); ?>">
 		<?php if ( $link ) : ?>
@@ -1479,10 +1501,22 @@ function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): 
 			$has_link   = ! empty( $layer['link'] );
 			$tag        = $has_link ? 'a' : 'div';
 			?>
-			<<?php echo esc_html( $tag ); ?><?php echo $has_link ? ' href="' . esc_url( $layer['link'] ) . '"' : ''; ?> class="<?php echo esc_attr( $css_class ); ?>" style="<?php echo esc_attr( $style . ( $has_link ? 'text-decoration:none;' : '' ) ); ?>"><?php echo esc_html( $layer['text'] ); ?></<?php echo esc_html( $tag ); ?>>
+			<<?php echo esc_html( $tag ); ?><?php echo $has_link ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $layer['link'] ) ) . '"' : ''; ?> class="<?php echo esc_attr( $css_class ); ?>" style="<?php echo esc_attr( $style . ( $has_link ? 'text-decoration:none;' : '' ) ); ?>"><?php echo esc_html( $layer['text'] ); ?></<?php echo esc_html( $tag ); ?>>
 		<?php endforeach; ?>
 	</div>
 	<?php
+}
+
+
+/**
+ * بخش‌های ذخیره‌شدهٔ قدیمی، فیلدهایِ جدیدتر (مثل image_shape/alignment)
+ * را ندارند؛ خواندنِ دوبارهٔ کلید بعد از گاردِ ?? باعثِ Warning می‌شد
+ * (باگِ واقعی در صفحهٔ اصلی). یک‌بار با default می‌خوانیم و همان مقدار
+ * اعتبارسنجی‌شده را برمی‌گردانیم — بدون هیچ Warning در E_ALL.
+ */
+function jluxe_homepage_section_choice( array $section, string $key, array $allowed, string $fallback ): string {
+	$value = (string) ( $section[ $key ] ?? '' );
+	return in_array( $value, $allowed, true ) ? $value : $fallback;
 }
 
 function jluxe_render_homepage_category_showcase( array $section ): void {
@@ -1504,9 +1538,9 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	if ( empty( $rows ) ) return;
 	$is_showcase = 'category_showcase' === ( $section['type'] ?? '' );
 	$is_row = 'row' === ( $section['layout'] ?? 'grid' );
-	$shape = in_array( (string) ( $section['image_shape'] ?? 'circle' ), array( 'circle', 'square', 'none' ), true ) ? (string) $section['image_shape'] : 'circle';
+	$shape = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'circle' );
 	$zoom = array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true;
-	$align = in_array( (string) ( $section['alignment'] ?? 'center' ), array( 'start', 'center', 'end' ), true ) ? (string) $section['alignment'] : 'center';
+	$align = jluxe_homepage_section_choice( $section, 'alignment', array( 'start', 'center', 'end' ), 'center' );
 
 	if ( $is_showcase ) {
 		$lift = array_key_exists( 'hover_lift', $section ) ? ! empty( $section['hover_lift'] ) : true;
@@ -1620,8 +1654,8 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	$title       = trim( (string) ( $section['title'] ?? '' ) ) ?: 'دسته‌بندی‌های محبوب';
 	// این نسخه از کامپوننت مرجع همیشه یک ردیف افقی است؛ layout قدیمی عمداً نادیده گرفته می‌شود.
 	$layout      = 'row';
-	$shape       = in_array( (string) ( $section['image_shape'] ?? 'none' ), array( 'circle', 'square', 'none' ), true ) ? (string) $section['image_shape'] : 'none';
-	$alignment   = in_array( (string) ( $section['alignment'] ?? 'center' ), array( 'start', 'center', 'end' ), true ) ? (string) $section['alignment'] : 'center';
+	$shape       = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'none' );
+	$alignment   = jluxe_homepage_section_choice( $section, 'alignment', array( 'start', 'center', 'end' ), 'center' );
 	$section_rad = max( 0, min( 56, (int) ( $section['section_radius'] ?? 40 ) ) );
 	$card_rad    = max( 0, min( 40, (int) ( $section['card_radius'] ?? 20 ) ) );
 	$image_size  = (int) ( $section['image_size'] ?? 80 );
@@ -1850,7 +1884,7 @@ function jluxe_render_homepage_banners( array $section ): void {
 				list( $img_url, $img_w, $img_h ) = $img_src;
 				$img_ratio_style = ( $img_w && $img_h ) ? sprintf( 'aspect-ratio:%d/%d;', (int) $img_w, (int) $img_h ) : '';
 				$tag    = ! empty( $item['link'] ) ? 'a' : 'div';
-				$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( $item['link'] ) . '"' : '';
+				$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 				$has_overlay = array_key_exists( 'overlay', $item ) ? ! empty( $item['overlay'] ) : true;
 				$zoom_enabled = array_key_exists( 'zoom_enabled', $item ) ? ! empty( $item['zoom_enabled'] ) : true;
 				$shine_enabled = array_key_exists( 'shine_enabled', $item ) ? ! empty( $item['shine_enabled'] ) : true;
@@ -2151,7 +2185,7 @@ function jluxe_render_homepage_hero( array $section ): void {
 			}
 			$mobile_img_srcset = $has_custom_mobile ? wp_get_attachment_image_srcset( (int) $item['mobile_image_id'], 'large' ) : $img_srcset;
 			$tag  = ! empty( $item['link'] ) ? 'a' : 'div';
-			$href = ! empty( $item['link'] ) ? ' href="' . esc_url( $item['link'] ) . '"' : '';
+			$href = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 
 			// محل نوشته/دکمه روی اسلاید — قابل تنظیم به‌ازای هر اسلاید (راست/وسط/چپ).
 			switch ( $item['content_position'] ?? 'start' ) {
@@ -2255,7 +2289,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 						continue;
 					}
 					$tag  = ! empty( $item['link'] ) ? 'a' : 'div';
-					$href = ! empty( $item['link'] ) ? ' href="' . esc_url( $item['link'] ) . '"' : '';
+					$href = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 					?>
 					<<?php echo esc_html( $tag ) . $href; ?> data-jluxe-bs-slide class="absolute inset-0 transition-opacity duration-700" style="opacity:<?php echo 0 === $i ? '1' : '0'; ?>">
 						<img src="<?php echo esc_url( $img_url ); ?>" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>" />

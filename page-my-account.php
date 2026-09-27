@@ -7,7 +7,8 @@
  * REST واقعی (inc/auth.php، inc/theme-settings-sms.php) وصله.
  */
 
-if ( is_user_logged_in() ) {
+$jluxe_recovery = function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'lost-password' );
+if ( is_user_logged_in() || $jluxe_recovery ) {
 	get_header();
 	?>
 	<main id="primary" class="site-main">
@@ -20,10 +21,15 @@ if ( is_user_logged_in() ) {
 		 * واقعاً اجرا و داشبورد/سفارش‌ها/آدرس‌ها رندر بشن؛ woocommerce_content()
 		 * برای این صفحه هیچ ربطی نداره و باگ واقعی (نمایش اشتباه Shop) می‌سازه.
 		 */
-		while ( have_posts() ) :
-			the_post();
-			the_content();
-		endwhile;
+		if ( $jluxe_recovery ) {
+			// WooCommerce validates reset keys/nonces and renders request/reset forms.
+			echo do_shortcode( '[woocommerce_my_account]' );
+		} else {
+			while ( have_posts() ) :
+				the_post();
+				the_content();
+			endwhile;
+		}
 		?>
 	</main>
 	<?php
@@ -35,12 +41,11 @@ if ( is_user_logged_in() ) {
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title><?php esc_html_e( 'ورود و عضویت', 'jluxe' ); ?> — <?php bloginfo( 'name' ); ?></title>
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class( 'jluxe-auth-page' ); ?>>
 <?php wp_body_open(); ?>
-	<div data-jluxe-island="auth-page"></div>
+	<div data-jluxe-island="auth-page"><p class="jluxe-auth-fallback">در حال بارگذاری فرم ورود… <a href="<?php echo esc_url( wp_login_url() ); ?>">ورود با فرم استاندارد</a></p></div>
 <?php wp_footer(); ?>
 </body>
 </html>

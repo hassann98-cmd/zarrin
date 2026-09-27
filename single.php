@@ -73,7 +73,7 @@ $jluxe_reading_mins = max( 1, (int) ceil( $jluxe_word_count / 150 ) );
 		<nav class="mb-6 flex flex-wrap items-center gap-2 text-caption text-text-muted" aria-label="breadcrumb">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="jluxe-hover-primary transition-colors"><?php bloginfo( 'name' ); ?></a>
 			<span aria-hidden="true">/</span>
-			<a href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog' ) ); ?>" class="jluxe-hover-primary transition-colors">بلاگ</a>
+			<a href="<?php echo esc_url( function_exists( 'jluxe_blog_url' ) ? jluxe_blog_url() : home_url( '/' ) ); ?>" class="jluxe-hover-primary transition-colors">بلاگ</a>
 			<?php if ( $jluxe_cat_name ) : ?>
 				<span aria-hidden="true">/</span>
 				<a href="<?php echo esc_url( $jluxe_cat_link ); ?>" class="jluxe-hover-primary transition-colors"><?php echo esc_html( $jluxe_cat_name ); ?></a>

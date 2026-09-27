@@ -44,7 +44,7 @@ do_action( 'woocommerce_before_account_navigation' );
 			?>
 			<li class="<?php echo esc_attr( wc_get_account_menu_item_classes( $endpoint ) ); ?>">
 				<a
-					href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>"
+					href="<?php echo esc_url( in_array( $endpoint, array( 'dashboard', 'orders' ), true ) ? jluxe_route_url( $endpoint ) : wc_get_account_endpoint_url( $endpoint ) ); ?>"
 					<?php echo $is_current ? 'aria-current="page"' : ''; ?>
 					class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-small font-medium transition-colors <?php echo $is_current ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-muted hover:text-foreground'; ?>"
 				>

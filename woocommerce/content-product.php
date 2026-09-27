@@ -240,8 +240,9 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 				href="<?php echo esc_url( $out_of_stock || $is_variable ? get_permalink( $product->get_id() ) : $product->add_to_cart_url() ); ?>"
 				aria-label="<?php echo esc_attr( $out_of_stock ? 'ناموجود' : ( $is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد خرید' ) ); ?>"
 				data-product_id="<?php echo esc_attr( $product->get_id() ); ?>"
+				<?php echo ( $is_variable && ! $out_of_stock ) ? '' : 'data-quantity="1"'; ?>
 				<?php echo ( $is_variable && ! $out_of_stock ) ? 'data-jluxe-quick-variant="' . esc_attr( $product->get_id() ) . '"' : ''; ?>
-				class="group/btn flex size-9 md:size-10 shrink-0 items-center justify-center rounded-2xl text-button font-medium transition-all duration-300 active:scale-90 <?php echo $out_of_stock ? 'bg-muted text-muted-foreground opacity-50' : ( $is_variable ? 'bg-foreground text-surface hover:bg-primary' : 'ajax_add_to_cart add_to_cart_button bg-foreground text-surface hover:bg-primary' ); ?>"
+				class="product_type_<?php echo esc_attr( $is_variable ? 'variable' : 'simple' ); ?> group/btn flex size-9 md:size-10 shrink-0 items-center justify-center rounded-2xl text-button font-medium transition-all duration-300 active:scale-90 <?php echo $out_of_stock ? 'bg-muted text-muted-foreground opacity-50' : ( $is_variable ? 'bg-foreground text-surface hover:bg-primary' : 'ajax_add_to_cart add_to_cart_button bg-foreground text-surface hover:bg-primary' ); ?>"
 			>
 				<svg class="size-4 transition-transform duration-300 group-hover/btn:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
 			</a>

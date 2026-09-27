@@ -34,7 +34,11 @@ if ( post_password_required() ) {
  * (چیدمانِ پیش‌فرضِ سه‌ستونه) اصلاً ادامه پیدا نمی‌کنه — یعنی صفر ریسک
  * برای کسایی که چیدمانِ پیش‌فرض رو نگه می‌دارن.
  */
-if ( 'classic' === ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' ) ) {
+// یک‌بار خوانده می‌شود؛ هم برای انتخاب فایل و هم به‌عنوان نشانگر تشخیصی در HTML
+// (data-jluxe-layout) تا هنگام بررسی مشکل «قالب ساده شده»، از View Source/DevTools
+// مستقیماً مشخص باشد کدام چیدمان واقعاً رندر شده است.
+$jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );
+if ( 'classic' === $jluxe_layout ) {
 	require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';
 	return;
 }
@@ -98,7 +102,7 @@ $jluxe_variation_attributes = array();
 $jluxe_available_variations = array();
 if ( $jluxe_is_variable ) {
 	$jluxe_variation_attributes = $product->get_variation_attributes();
-	$jluxe_available_variations = $product->get_available_variations();
+	$jluxe_available_variations = jluxe_available_variations_for_form( $product );
 	// چون دیگه woocommerce_template_single_add_to_cart() (که خودش تویِ
 	// woocommerce_variable_add_to_cart() این اسکریپت رو enqueue می‌کرد)
 	// صدا زده نمی‌شه، باید دستی enqueue بشه — وگرنه با انتخاب سواچ هیچ
@@ -107,7 +111,7 @@ if ( $jluxe_is_variable ) {
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( '', $product ); ?> style="background:#F7F8FA">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( '', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" style="background:#F7F8FA">
 	<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
@@ -119,6 +123,7 @@ if ( $jluxe_is_variable ) {
 			<span>/</span>
 			<span class="text-text-secondary"><?php the_title(); ?></span>
 		</nav>
+		<?php jluxe_print_breadcrumb_jsonld( $product ); ?>
 
 		<?php
 		/*
@@ -384,15 +389,14 @@ if ( $jluxe_is_variable ) {
 				</div>
 			<?php endif; ?>
 
-			<div class="jluxe-reviews rounded-2xl border border-border bg-surface p-4 sm:p-5">
-				<?php comments_template(); ?>
+			<div class="jluxe-reviews jluxe-panel">
+				<?php jluxe_render_review_insights( (int) $product->get_id() ); comments_template(); ?>
 			</div>
 		</section>
 
 		<?php do_action( 'woocommerce_after_single_product_summary' ); ?>
 	</div>
 </div>
-
 <?php if ( $product->is_purchasable() ) : ?>
 	<?php
 	/*

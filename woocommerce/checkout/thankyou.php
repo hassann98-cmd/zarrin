@@ -66,7 +66,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<div class="flex items-center gap-3">
 					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground">تلاش مجدد برای پرداخت</a>
 					<?php if ( is_user_logged_in() ) : ?>
-						<a href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>" class="flex h-12 items-center justify-center rounded-lg border border-border px-6 text-button text-foreground">حساب کاربری</a>
+						<a href="<?php echo esc_url( jluxe_route_url( 'dashboard' ) ); ?>" class="flex h-12 items-center justify-center rounded-lg border border-border px-6 text-button text-foreground">حساب کاربری</a>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -209,7 +209,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			// مشتریِ لاگین‌کرده حسابِ واقعی داره، پس مستقیم به بخش سفارش‌های
 			// همون حساب می‌ره (نیازی به وارد کردن دوباره‌ی شماره سفارش/موبایل
 			// نیست)؛ فقط خریدِ مهمان (بدون حساب) به صفحه‌ی پیگیریِ عمومی می‌ره.
-			$jluxe_ty_track_url = is_user_logged_in() ? wc_get_endpoint_url( 'orders', '', wc_get_page_permalink( 'myaccount' ) ) : '/track-order/';
+			$jluxe_ty_track_url = jluxe_route_url( 'thankyou_orders' );
 			?>
 			<div class="mt-6 flex flex-col gap-3 sm:flex-row">
 				<a href="<?php echo esc_url( $jluxe_ty_track_url ); ?>" class="flex h-12 flex-1 items-center justify-center rounded-xl bg-primary px-6 text-button text-primary-foreground transition-colors hover:bg-primary-hover">پیگیری سفارش</a>

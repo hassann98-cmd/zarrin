@@ -12,12 +12,15 @@ const JLUXE_SETTINGS_MENU_SLUG = 'jluxe-theme-settings';
 
 /**
  * نگاشت slug صفحه → [کلید تنظیمات، تابع sanitize]. صفحاتی که این‌جا
- * نیستن (dashboard, homepage, ai-assistant, import-export, advanced)
+ * نیستن (dashboard, import-export, advanced)
  * منطق ذخیره‌ی مخصوص خودشون رو دارن (چون ساختارشون ساده‌ی «یک آرایه‌ی
  * تخت» نیست).
  */
 function jluxe_settings_sections_map(): array {
 	return array(
+		'jluxe-ai-assistant' => array( 'ai_assistant', 'jluxe_sanitize_ai_assistant' ),
+		'jluxe-ai-comments' => array( 'ai_comments', 'jluxe_sanitize_ai_comments' ),
+		'jluxe-sms' => array( 'sms', 'jluxe_sanitize_sms' ),
 		'jluxe-colors'        => array( 'colors', 'jluxe_sanitize_colors' ),
 		'jluxe-identity'      => array( 'identity', 'jluxe_sanitize_identity' ),
 		'jluxe-urls'          => array( 'urls', 'jluxe_sanitize_urls' ),
@@ -28,6 +31,7 @@ function jluxe_settings_sections_map(): array {
 		'jluxe-product-card'  => array( 'product_card', 'jluxe_sanitize_product_card' ),
 		'jluxe-product-page'  => array( 'product_page', 'jluxe_sanitize_product_page' ),
 		'jluxe-shop'          => array( 'shop', 'jluxe_sanitize_shop' ),
+		'jluxe-purchase-addons' => array( 'purchase_addons', 'jluxe_sanitize_purchase_addons' ),
 		'jluxe-mobile'        => array( 'mobile', 'jluxe_sanitize_mobile' ),
 		'jluxe-contact'       => array( 'contact', 'jluxe_sanitize_contact' ),
 		'jluxe-social'        => array( 'social', 'jluxe_sanitize_social' ),
@@ -69,7 +73,10 @@ function jluxe_register_settings_menu(): void {
 		'jluxe-product-page'      => array( 'صفحه محصول', 'jluxe_render_product_page_page' ),
 		'jluxe-product'           => array( 'محصول', 'jluxe_render_product_page' ),
 		'jluxe-shop'              => array( 'فروشگاه و دسته‌بندی', 'jluxe_render_shop_page' ),
+		'jluxe-purchase-addons'   => array( 'اضافه خرید', 'jluxe_render_purchase_addons_page' ),
+		'jluxe-site-diagnosis'    => array( 'تشخیص سایت', 'jluxe_render_site_diagnosis_page' ),
 		'jluxe-ai-assistant'      => array( 'دستیار هوش مصنوعی', 'jluxe_render_ai_assistant_page' ),
+		'jluxe-ai-comments'       => array( 'دیدگاه‌ها (AI)', 'jluxe_render_ai_comments_page' ),
 		'jluxe-ai-tickets'        => array( 'گزارش‌های دستیار', 'jluxe_render_ai_tickets_page' ),
 		'jluxe-sms'               => array( 'ورود با پیامک (OTP)', 'jluxe_render_sms_page' ),
 		'jluxe-mobile'            => array( 'موبایل', 'jluxe_render_mobile_page' ),
@@ -215,6 +222,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return null;
 	}
 	[ $section_key, $sanitize_fn ] = $map[ $page_slug ];
+	if ( 'custom_code' === $section_key && ! current_user_can( 'unfiltered_html' ) ) {
+		return 'error';
+	}
 	$defaults = jluxe_theme_settings_defaults();
 
 	if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -222,6 +232,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return 'reset';
 	}
 
+	if ( isset( $_POST[ $section_key ] ) && ! is_array( $_POST[ $section_key ] ) ) {
+		return 'error';
+	}
 	$posted = wp_unslash( $_POST[ $section_key ] ?? array() );
 	$clean  = call_user_func( $sanitize_fn, $posted, $defaults[ $section_key ] );
 
@@ -420,11 +433,20 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
 		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );
+	}
+
+	// اثرهای جانبیِ سکشن‌محور بعد از ذخیرهٔ موفق اجرا می‌شن — نه داخل
+	// sanitizer، چون reset و ذخیرهٔ دستی هم باید از این مسیر رد بشن
+	// (همون الگوی sync بنرهای homepage؛ برای «AI دیدگاه‌ها» ثبت/پاک‌کردن
+	// رویداد Cron این‌جا تضمین می‌شه).
+	if ( 'ai_comments' === $section_key && function_exists( 'jluxe_ai_comments_schedule' ) ) {
+		jluxe_ai_comments_schedule();
 	}
 }
 

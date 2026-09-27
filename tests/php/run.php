@@ -1,0 +1,1027 @@
+<?php
+// Development checks must never execute through a public web request.
+if ( PHP_SAPI !== 'cli' ) { http_response_code( 404 ); exit; }
+/** Isolated regressions, real theme functions and mocked WordPress/WooCommerce I/O. */
+require __DIR__ . '/stubs.php';
+require ABSPATH . 'functions.php';
+function check($condition, $message) {
+	if (!$condition) { throw new RuntimeException('FAIL: '.$message); }
+	$GLOBALS['assertion_count'] = ($GLOBALS['assertion_count'] ?? 0) + 1;
+	echo "PASS: $message\n";
+}
+check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
+jluxe_enqueue_assets();
+check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
+check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
+
+// Shared primitives and auth safety.
+function reset_security(): void {
+	$GLOBALS['transients'] = array();
+	foreach (array_keys($GLOBALS['options']) as $key) {
+		if (strpos($key, 'jluxe_lock_') === 0 || strpos($key, 'jluxe_otp_v2_') === 0) unset($GLOBALS['options'][$key]);
+	}
+	$GLOBALS['authenticated_user'] = 0;
+	unset($GLOBALS['cookie_user'], $GLOBALS['provider_response']);
+	$GLOBALS['phone_users'] = array(42);
+	$GLOBALS['billing_users'] = array();
+	$GLOBALS['users'][42] = new WP_User(42);
+	$GLOBALS['user_meta'][42]['jluxe_phone'] = '9120000000';
+}
+function update_test_settings(array $settings): void {
+	update_option(JLUXE_SETTINGS_OPTION, $settings);
+	jluxe_get_theme_settings(true);
+}
+function json_call(callable $callback): JsonReply {
+	try { $callback(); } catch (JsonReply $reply) { return $reply; }
+	throw new RuntimeException('Endpoint did not emit JSON');
+}
+function request_otp($phone='09120000000', $intent='login') {
+	return jluxe_handle_otp_request(new WP_REST_Request(array('phone'=>$phone, 'intent'=>$intent)));
+}
+function verify_otp($code='123456', $phone='09120000000') {
+	return jluxe_handle_otp_verify(new WP_REST_Request(array('phone'=>$phone, 'code'=>$code)));
+}
+$defaults = jluxe_theme_settings_defaults();
+$settings = $defaults;
+$settings['sms']['enabled'] = true;
+$settings['sms']['provider'] = 'kavenegar';
+update_test_settings($settings);
+update_option(JLUXE_SMS_API_KEY_OPTION, 'dummy-test-key');
+
+foreach (array('09120000000','۰۹۱۲۰۰۰۰۰۰۰','٠٩١٢٠٠٠٠٠٠٠','+98 (912) 000-0000','00989120000000','989120000000','9120000000') as $input) {
+	check(jluxe_normalize_phone($input) === '9120000000', 'R12 mobile digits/prefix accepted: '.$input);
+}
+foreach (array('abc09120000000','12309120000000','009909120000000','9120000000extra','۱۲۳۴','02112345678') as $input) {
+	check(jluxe_normalize_phone($input) === '', 'R12 malformed/ambiguous phone rejected: '.$input);
+}
+check(jluxe_ascii_digits('کد ۱۲۳۴۵۶ و ١٢٣٤٥٦') === 'کد 123456 و 123456', 'R12 Persian and Arabic OTP digits');
+
+$lock = jluxe_security_lock('unit-test-lock');
+check($lock !== null && jluxe_security_lock('unit-test-lock') === null, 'R03 only one mutex owner');
+$GLOBALS['options'][$lock[0]] = (time()-1).':expired';
+$replacement = jluxe_security_lock('unit-test-lock');
+jluxe_security_unlock($lock);
+check($replacement !== null && get_option($replacement[0]) === $replacement[1], 'R03 stale owner cannot release its replacement');
+jluxe_security_unlock($replacement);
+update_option('one-use-test', array('hash'=>'test', 'attempts'=>0));
+$record = get_option('one-use-test');
+check(jluxe_consume_option('one-use-test',$record) && !jluxe_consume_option('one-use-test',$record), 'R03 compare-and-delete allows one consumption');
+
+reset_security();
+check(request_otp()['sent'] === true, 'R03 OTP request succeeds with mocked provider');
+$key = jluxe_otp_key('9120000000');
+$record = get_option($key);
+check(strlen($record['hash'])===64 && strpos(serialize($record),'123456')===false && $record['expires']>time(), 'R03 challenge stores hash/expiry, not plaintext');
+for($attempt=1;$attempt<=5;$attempt++) {
+	$result = verify_otp('111111');
+	check(is_wp_error($result), 'R03 incorrect verification rejected #'.$attempt);
+}
+check($result->data['status']===429 && !get_option($key), 'R03 fifth failed attempt invalidates challenge');
+check(is_wp_error(verify_otp()) && !get_current_user_id(), 'R03 correct code cannot rescue an exhausted challenge');
+
+reset_security();
+request_otp();
+check(verify_otp('۱۲۳۴۵۶')['success']===true && get_current_user_id()===42, 'R03/R12 verified customer can log in with Persian OTP');
+$GLOBALS['authenticated_user']=0;
+check(is_wp_error(verify_otp()) && !get_current_user_id(), 'R03 consumed code cannot be replayed');
+reset_security();request_otp();
+$record=get_option($key);$record['expires']=time()-1;update_option($key,$record);
+check(is_wp_error(verify_otp()) && !get_option($key), 'R03 expired challenge is rejected and removed');
+
+reset_security();$GLOBALS['phone_users']=array(42,43);request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_ambiguous_phone' && !get_current_user_id(), 'R03 duplicate phone identities never pick the first account');
+reset_security();$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array(42);request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_link_required' && !get_current_user_id(), 'R03 billing_phone alone cannot authenticate/bind an account');
+reset_security();$GLOBALS['users'][42]=new WP_User(42,array('administrator'));request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_account_restricted' && !get_current_user_id(), 'R03 privileged roles cannot use customer OTP login');
+reset_security();$GLOBALS['users'][42]->caps=array('manage_options');request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_account_restricted', 'R03 elevated per-user capabilities also block OTP');
+
+reset_security();$GLOBALS['options']['woocommerce_enable_myaccount_registration']='no';$before=$GLOBALS['create_calls'];
+$result=jluxe_handle_auth_register(new WP_REST_Request(array('username'=>'newuser','email'=>'new@example.invalid','password'=>'long-test-password')));
+check($result->get_error_code()==='jluxe_registration_disabled' && $GLOBALS['create_calls']===$before, 'R13 password signup obeys disabled registration');
+$GLOBALS['phone_users']=array();request_otp();
+check(verify_otp()->get_error_code()==='jluxe_registration_disabled' && $GLOBALS['create_calls']===$before, 'R13 OTP signup obeys disabled registration');
+reset_security();request_otp();
+check(verify_otp()['success']===true, 'R13 existing OTP customers may log in while signup is disabled');
+reset_security();$GLOBALS['options']['woocommerce_enable_myaccount_registration']='yes';$GLOBALS['phone_users']=array();request_otp();
+check(verify_otp()['success']===true && $GLOBALS['create_calls']===$before+1, 'R13 explicitly enabled OTP registration creates a customer');
+
+reset_security();$GLOBALS['authenticated_user']=42;$GLOBALS['phone_users']=array();request_otp('09120000000','link');
+$linked=jluxe_handle_otp_link(new WP_REST_Request(array('phone'=>'09120000000','code'=>'123456')));
+check($linked['success']===true && get_user_meta(42,'jluxe_phone',true)==='9120000000', 'R03 authenticated customer can explicitly bind a verified phone');
+reset_security();$GLOBALS['authenticated_user']=42;request_otp('09120000000','link');$GLOBALS['authenticated_user']=0;
+check(is_wp_error(verify_otp()) && !get_current_user_id(), 'R03 link challenge cannot be used as a login challenge');
+reset_security();
+$GLOBALS['provider_response']=array('response'=>array('code'=>200),'body'=>'{"return":{"status":400}}');
+$before=$GLOBALS['provider_calls'];
+for($i=0;$i<3;$i++) check(is_wp_error(request_otp()), 'R03 provider rejection is not success');
+check(request_otp()->data['status']===429 && $GLOBALS['provider_calls']===$before+3 && !get_option($key), 'R03 failed sends consume the delivery budget and leave no usable code');
+reset_security();
+for($i=0;$i<31;$i++) $result=verify_otp('111111','not-a-phone');
+check($result->data['status']===429, 'R03 verification IP budget also covers malformed requests');
+
+// Real cart callbacks with a fake WC cart/session. Any raw session SQL throws in FakeWpdb.
+reset_security();
+$GLOBALS['products'][1]=new WC_Product(1);$GLOBALS['products'][2]=new WC_Product(2);
+function reset_cart(): void {
+	$GLOBALS['wc']->cart=new FakeCart();
+	$GLOBALS['wc']->cart->items['existing']=array('data'=>$GLOBALS['products'][1], 'product_id'=>1, 'variation_id'=>0, 'variation'=>array(), 'quantity'=>1);
+	$GLOBALS['test_filters']=array();
+}
+reset_cart();$_POST=array('op'=>'add','product_id'=>'2','quantity'=>'1');
+$reply=json_call('jluxe_ajax_cart');
+check($reply->success && isset(WC()->cart->items['existing'],WC()->cart->items['new']), 'R04 adding keeps the valid in-memory/persistent cart');
+check(in_array('woocommerce_add_to_cart_validation',$GLOBALS['filtered'],true), 'R05 standard add-to-cart validation is invoked');
+reset_cart();$GLOBALS['test_filters']['woocommerce_add_to_cart_validation']=fn()=>false;
+$reply=json_call('jluxe_ajax_cart');
+check(!$reply->success && WC()->cart->added===0, 'R05 extension veto prevents cart addition');
+reset_cart();WC()->cart->addFails=true;WC()->cart->mutateOnFailure=true;
+$reply=json_call('jluxe_ajax_cart');
+check(!$reply->success, 'R05 false add result is not masked by a newly added key');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'missing','qty'=>'2');
+$reply=json_call('jluxe_ajax_cart');
+check(!$reply->success && $reply->status===404 && WC()->cart->changed===0, 'R05 unknown cart key rejected');
+$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'-2');
+check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 negative quantity is not treated as removal');
+$_POST['qty']='2';$GLOBALS['products'][1]->sold=true;
+check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 sold-individually quantity cannot increase');
+$GLOBALS['products'][1]->sold=false;$GLOBALS['test_filters']['woocommerce_update_cart_validation']=fn()=>false;
+check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 quantity extension validation is honored');
+$GLOBALS['test_filters']=array();$_POST['qty']='3';
+check(json_call('jluxe_ajax_cart')->success && WC()->cart->items['existing']['quantity']===3, 'R05 valid quantity update succeeds');
+$_POST['qty']='0';check(json_call('jluxe_ajax_cart')->success && !isset(WC()->cart->items['existing']), 'R05 zero quantity removes the line through WC');
+
+reset_cart();$variation=new WC_Product(3);$variation->type='variation';$variation->parent=2;$GLOBALS['products'][3]=$variation;
+$_POST=array('op'=>'add','product_id'=>'1','variation_id'=>'3','quantity'=>'1');
+check(!json_call('jluxe_ajax_cart')->success && WC()->cart->added===0, 'R05 variation from a different parent rejected');
+$second=new WC_Product(4);$second->type='variation';$second->parent=2;$second->stock=5;$variation->stock=5;
+WC()->cart->items=array('first'=>array('data'=>$variation,'quantity'=>2),'second'=>array('data'=>$second,'quantity'=>2));
+$_POST=array('op'=>'update_qty','key'=>'first','qty'=>'4');
+check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 sibling variations sharing stock are counted together');
+
+// One schema, one unslash boundary, valid empty arrays and JSON booleans survive.
+$schema=jluxe_settings_sanitizers();
+check(array_diff(array_keys($defaults),array_merge(array('version'),array_keys($schema)))===array(), 'R06 schema covers every settings section');
+$settings=$defaults;
+$settings['custom_code']['js']='const re = /\\d+\\s/; const path = "C:\\\\test";';
+$settings['ai_assistant']['quick_replies']=array('سلام','شرایط ارسال؟');
+$settings['homepage']['sections']=array(array('id'=>'sale-test','type'=>'special_products','enabled'=>true,'title'=>'فروش','hide_out_of_stock'=>true));
+$settings['urls']['dashboard']='/my-custom-account/';
+$settings['sms']['body_id']='';
+$settings['header_nav']['items']=array();
+$clean=jluxe_sanitize_settings_payload($settings,$defaults);
+$restored=jluxe_sanitize_settings_payload(json_decode(json_encode($clean),true),$defaults);
+check($restored===$clean, 'R06 full valid settings export/import round-trip is lossless');
+check($restored['homepage']['sections'][0]['hide_out_of_stock']===true && $restored['ai_assistant']['quick_replies']===array('سلام','شرایط ارسال؟'), 'R06 JSON booleans and quick reply arrays retained');
+check($restored['sms']['body_id']==='' && $restored['header_nav']['items']===array(), 'R06 empty values and repeater lists retained');
+$old_backup=jluxe_sanitize_settings_payload(array('identity'=>$defaults['identity']),$clean);
+check($old_backup['sms']===$clean['sms'] && $old_backup['urls']===$clean['urls'], 'R06 missing sections in an old backup preserve current values');
+check(jluxe_sanitize_homepage(array('sections'=>array()),$defaults['homepage'])===array('sections'=>array()), 'R06 intentionally empty homepage is not restored to defaults');
+check($restored['custom_code']['js']===$settings['custom_code']['js'], 'R16 decoded JSON is not unslashed a second time');
+update_test_settings($defaults);
+$_POST=array('jluxe_settings_nonce'=>'test','custom_code'=>array('js'=>addslashes($settings['custom_code']['js']),'css'=>''));
+check(jluxe_handle_generic_settings_save('jluxe-custom-code')==='saved' && get_option(JLUXE_SETTINGS_OPTION)['custom_code']['js']===$settings['custom_code']['js'], 'R16 real settings form handler unslashes JavaScript exactly once');
+$secret=jluxe_sanitize_settings_payload(array('api_key'=>'do-not-import','sms'=>array_merge($defaults['sms'],array('api_key'=>'do-not-import'))),$defaults);
+check(!isset($secret['api_key'],$secret['sms']['api_key']) && get_option(JLUXE_SMS_API_KEY_OPTION)==='dummy-test-key', 'R06 import schema excludes API credentials and leaves the separate secret untouched');
+
+// Currency and public-product boundaries.
+check(jluxe_toman_symbol('ریال','IRR')==='ریال' && strpos(jluxe_toman_symbol('تومان','IRT'),'<svg')!==false, 'R07 IRR is not mislabeled as toman; IRT may use its icon');
+check(jluxe_format_price(1000000,'IRR')['raw']===1000000.0 && jluxe_format_price(1000000,'IRR')['unit']==='ریال', 'R07 tracking keeps stored rial amount and label');
+check(jluxe_format_price(1000000,'IRT')['raw']===1000000.0 && jluxe_format_price(1000000,'IRT')['unit']==='تومان', 'R07 tracking keeps stored toman amount and label');
+foreach(array('draft','private','pending','trash') as $status) {
+	$GLOBALS['products'][1]->status=$status;
+	check(jluxe_ai_tool_get_product_info(array('product_id'=>1))===array('found'=>false), 'R10 AI product tool excludes '.$status);
+}
+$GLOBALS['products'][1]->status='publish';$GLOBALS['products'][1]->visibility='hidden';
+check(!jluxe_product_is_public($GLOBALS['products'][1]), 'R10 hidden product excluded');
+$GLOBALS['products'][1]->visibility='visible';$GLOBALS['post_fields'][1]['post_password']='protected';
+check(!jluxe_product_is_public($GLOBALS['products'][1]), 'R10 password-protected product excluded');
+$GLOBALS['post_fields'][1]['post_password']='';
+check(jluxe_ai_tool_get_product_info(array('product_id'=>1))['found']===true, 'R10 published public product remains available');
+
+update_test_settings($defaults);$GLOBALS['authenticated_user']=0;
+check(jluxe_route_url('dashboard')==='https://shop.test/store/customer-zone/' && jluxe_shop_url()==='https://shop.test/store/catalog/', 'R09 native custom Woo slugs and subdirectory URLs');
+$settings=$defaults;$settings['urls']['dashboard']='/members/';update_test_settings($settings);
+check(jluxe_route_url('dashboard')==='https://shop.test/store/members/', 'R09 configured relative dashboard URL is used');
+$settings['urls']['dashboard']='/store/members/';update_test_settings($settings);
+check(jluxe_route_url('dashboard')==='https://shop.test/store/members/', 'R09 already-prefixed subdirectory URL is not doubled');
+update_test_settings($defaults);
+$GLOBALS['authenticated_user']=42;$_SERVER['REQUEST_METHOD']='POST';
+$reply=json_call('jluxe_ajax_session');
+check($reply->success && $reply->data['restNonce']==='nonce-wp_rest' && $GLOBALS['no_cache'], 'R11 logged-in session bootstrap supplies fresh REST nonce without caching');
+$GLOBALS['authenticated_user']=0;$reply=json_call('jluxe_ajax_session');
+check($reply->data['restNonce']==='' && $reply->data['auth']['email']==='', 'R11 guest bootstrap contains no customer identity or user nonce');
+
+// QA: no insertion for invalid products, excessive text, or repeated requests.
+reset_security();$_POST=array('product_id'=>1,'question'=>str_repeat('ا',2001),'name'=>'customer');$before=count($GLOBALS['inserted_posts']??array());
+check(!json_call('jluxe_qa_handle_submit')->success && count($GLOBALS['inserted_posts']??array())===$before, 'R14 oversized question rejected before insertion');
+$_POST['question']='آیا این محصول موجود است؟';$GLOBALS['products'][1]->status='private';
+check(json_call('jluxe_qa_handle_submit')->status===404, 'R14 question requires a public product');
+$GLOBALS['products'][1]->status='publish';
+check(json_call('jluxe_qa_handle_submit')->success, 'R14 valid question can be submitted');
+check(end($GLOBALS['inserted_posts'])['post_status']==='pending', 'R14 submitted question remains moderated/pending');
+check(json_call('jluxe_qa_handle_submit')->success && json_call('jluxe_qa_handle_submit')->status===429, 'R14 repeated question submissions hit a rate limit');
+
+// Pagination, sale filtering and variation payloads.
+$GLOBALS['options']['permalink_structure']='/%postname%/';$GLOBALS['query_vars']['paged']=2;$GLOBALS['query_kind']='shop';
+check(jluxe_current_canonical_url()==='https://shop.test/store/catalog/page/2/', 'R18 shop page 2 has its own canonical');
+$GLOBALS['query_kind']='tax';
+check(jluxe_current_canonical_url()==='https://shop.test/store/category/gold/page/2/', 'R18 taxonomy page 2 has its own canonical');
+$GLOBALS['options']['permalink_structure']='';
+check(jluxe_paginated_canonical_url('https://shop.test/store/?post_type=product')==='https://shop.test/store/?post_type=product&paged=2', 'R18 plain-permalink canonical retains query and page');
+$GLOBALS['query_vars']['paged']=1;
+check(jluxe_paginated_canonical_url('https://shop.test/store/catalog/')==='https://shop.test/store/catalog/', 'R18 first page has no redundant pagination suffix');
+$GLOBALS['query_kind']='search';check(jluxe_current_canonical_url()==='', 'R18 search does not receive a false shop canonical');
+$variable=new WC_Product(5);$variable->type='variable';$variable->children=range(1,1000);
+check(jluxe_available_variations_for_form($variable)===false && $variable->variationCalls===0, 'R19 large variable product uses AJAX instead of a full payload');
+$variable->children=range(1,5);
+check(is_array(jluxe_available_variations_for_form($variable)) && $variable->variationCalls===1, 'R19 small variable product keeps the inline variation payload');
+$GLOBALS['sale_ids']=array(1,2);$GLOBALS['product_query_results']=array();
+ob_start();jluxe_render_homepage_special_products(array('count'=>999,'sort'=>'discount'));ob_end_clean();
+check($GLOBALS['product_query_args']['limit']===30 && $GLOBALS['product_query_args']['jluxe_discount_order']===true, 'R19 sale grid uses a capped SQL query instead of loading all products');
+check(jluxe_sale_grid_query_args(array(),array('jluxe_sale_grid'=>true))['has_password']===false, 'R19 sale grid also excludes protected products at query time');
+
+// Recovery is delegated to WooCommerce rather than hidden by the guest React island.
+$GLOBALS['authenticated_user']=0;$GLOBALS['endpoint']='lost-password';
+ob_start();include ABSPATH.'page-my-account.php';$recovery=ob_get_clean();
+check(strpos($recovery,'data-woo-account')!==false && strpos($recovery,'data-jluxe-island="auth-page"')===false, 'R08 guest lost-password/reset page renders the native account shortcode');
+
+$query=new WP_Query(array('post__in'=>array(1,3)));
+$_GET=array('on_sale'=>'1');$GLOBALS['sale_ids']=array(1,2);
+jluxe_filter_sale_query($query);
+check($query->get('post__in')===array(1), 'R17 on_sale intersects existing product constraints');
+$GLOBALS['sale_ids']=array();jluxe_filter_sale_query($query);
+check($query->get('post__in')===array(0), 'R17 empty sale list cannot accidentally return the entire catalogue');
+
+// Cached/background review insights. The provider below is a deterministic mock, not a real AI request.
+reset_security();$settings=$defaults;
+$settings['ai_assistant']['provider']='openai';
+$settings['ai_assistant']['review_summary_enabled']=true;
+$settings['ai_assistant']['review_summary_min_count']=1;
+$settings['review_criteria']['items']=array(array('key'=>'quality','label'=>'کیفیت'));
+update_test_settings($settings);update_option(JLUXE_AI_API_KEY_OPTION,'dummy-ai-key');
+$GLOBALS['comments']=array(
+	(object)array('comment_ID'=>11,'comment_post_ID'=>1,'comment_type'=>'review','comment_approved'=>'1','comment_content'=>'کیفیت مناسب بود.'),
+	(object)array('comment_ID'=>12,'comment_post_ID'=>1,'comment_type'=>'review','comment_approved'=>'1','comment_content'=>'بسته‌بندی می‌توانست بهتر باشد.'),
+	(object)array('comment_ID'=>13,'comment_post_ID'=>1,'comment_type'=>'review','comment_approved'=>'0','comment_content'=>'NOT APPROVED: must never reach the provider'),
+);
+$GLOBALS['comment_meta'][11]=array('rating'=>5,'_jluxe_review_criteria'=>array('quality'=>5,'invalid'=>99));
+$GLOBALS['comment_meta'][12]=array('rating'=>3,'_jluxe_review_criteria'=>array('quality'=>3));
+$GLOBALS['comment_objects'][11]=$GLOBALS['comments'][0];
+$GLOBALS['comment_objects'][12]=$GLOBALS['comments'][1];
+$GLOBALS['provider_response']=array('response'=>array('code'=>200),'body'=>'{"choices":[{"message":{"content":"نظرها درباره کیفیت مثبت و درباره بسته‌بندی متفاوت است."}}]}');
+$before=$GLOBALS['provider_calls'];$GLOBALS['scheduled']=array();
+check(jluxe_get_ai_review_summary(1)==='' && $GLOBALS['provider_calls']===$before && wp_next_scheduled('jluxe_generate_ai_review_summary',array(1)), 'R15 page render queues summary without any provider request');
+jluxe_generate_ai_review_summary(1);
+check($GLOBALS['provider_calls']===$before+1 && jluxe_get_ai_review_summary(1)!=='', 'R15 background job generates and caches a summary');
+check(strpos($GLOBALS['provider_args']['body'],'NOT APPROVED')===false, 'R15 unapproved review text is excluded from provider input');
+$before=$GLOBALS['provider_calls'];jluxe_get_ai_review_summary(1);jluxe_generate_ai_review_summary(1);
+check($GLOBALS['provider_calls']===$before, 'R15 matching summary cache prevents repeated paid requests');
+$GLOBALS['comments'][0]->comment_content='نظر ویرایش شده: کالا مشکل داشت.';
+check(jluxe_get_ai_review_summary(1)==='', 'R15 edited review content invalidates the old summary');
+jluxe_generate_ai_review_summary(1);
+$settings['ai_assistant']['model']='changed-model';update_test_settings($settings);
+check(jluxe_get_ai_review_summary(1)==='', 'R15 provider/model settings invalidate summary cache');
+$before=$GLOBALS['provider_calls'];$GLOBALS['products'][1]->status='private';
+check(jluxe_get_ai_review_summary(1)==='', 'R15 private product never renders a cached summary');
+jluxe_generate_ai_review_summary(1);
+check($GLOBALS['provider_calls']===$before, 'R15 private product never starts a summary provider call');
+$GLOBALS['products'][1]->status='publish';
+
+$form=jluxe_review_form_criteria(array('comment_field'=>'<textarea name="comment"></textarea>'));
+check(strpos($form['comment_field'],'jluxe_review_criteria[quality]')!==false && strpos($form['comment_field'],'<fieldset')!==false, 'R15 review form includes accessible criteria controls');
+$_POST=array('jluxe_review_criteria'=>array('quality'=>'۵','unknown'=>'5'));
+jluxe_save_review_criteria_ratings(11,1);
+check(get_comment_meta(11,'_jluxe_review_criteria',true)===array('quality'=>5), 'R15 criteria save permits only configured keys and valid normalized scores');
+$before=count($GLOBALS['comment_queries']??array());
+check(jluxe_get_review_criteria_averages(1)===array() && count($GLOBALS['comment_queries']??array())===$before, 'R15 averages do not query every comment while rendering the page');
+$signature=jluxe_review_averages_signature(1);
+jluxe_build_review_averages(1,$signature);
+$averages=jluxe_get_review_criteria_averages(1);
+check($averages['quality']['average']===4.0 && $averages['quality']['count']===2, 'R15 background averages use only valid approved scores');
+jluxe_invalidate_review_insights(11,$GLOBALS['comments'][0]);
+check(jluxe_get_review_criteria_averages(1)===array(), 'R15 moderation/edit/delete invalidation prevents stale averages');
+
+// A large collection is processed in bounded jobs, not truncated or loaded all at once.
+$GLOBALS['comments']=array();
+for($i=1;$i<=205;$i++) {
+	$GLOBALS['comments'][]=(object)array('comment_ID'=>$i,'comment_post_ID'=>1,'comment_type'=>'review','comment_approved'=>'1','comment_content'=>'review');
+	$GLOBALS['comment_meta'][$i]['_jluxe_review_criteria']=array('quality'=>4);
+}
+$signature=jluxe_review_averages_signature(1);
+jluxe_build_review_averages(1,$signature,0);
+check(get_transient('jluxe_review_work_1')['offset']===100 && !get_transient('jluxe_review_avgs_1'), 'R15 first aggregate job processes at most 100 reviews');
+jluxe_build_review_averages(1,$signature,100);
+jluxe_build_review_averages(1,$signature,200);
+check(jluxe_get_review_criteria_averages(1)['quality']['count']===205, 'R15 bounded jobs still aggregate all approved reviews');
+
+// The discount/price ORDER BY executes before LIMIT. SQLite validates the standard SQL expression;
+// this is NOT a MySQL/WooCommerce query-plan or performance benchmark.
+$database = new PDO('sqlite::memory:');
+$database->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$database->exec("CREATE TABLE wp_posts (ID INTEGER PRIMARY KEY, post_parent INTEGER, post_type TEXT, post_status TEXT);
+CREATE TABLE wp_wc_product_meta_lookup (product_id INTEGER PRIMARY KEY, onsale INTEGER, min_price REAL, max_price REAL, stock_status TEXT);
+CREATE TABLE wp_postmeta (post_id INTEGER, meta_key TEXT, meta_value TEXT);
+INSERT INTO wp_posts VALUES (1,0,'product','publish'),(2,0,'product','publish'),(3,0,'product','publish'),(31,3,'product_variation','publish'),(32,3,'product_variation','draft');
+INSERT INTO wp_wc_product_meta_lookup VALUES (1,1,50,50,'instock'),(2,1,90,90,'instock'),(3,1,20,80,'instock'),(31,1,20,20,'instock'),(32,1,1,1,'instock');
+INSERT INTO wp_postmeta VALUES (1,'_regular_price','100'),(2,'_regular_price','100'),(31,'_regular_price','100'),(32,'_regular_price','100');");
+$order = jluxe_discount_orderby('', new WP_Query(array('jluxe_discount_order'=>true)));
+$rows = $database->query("SELECT ID FROM wp_posts WHERE post_type='product' ORDER BY $order LIMIT 2")->fetchAll(PDO::FETCH_COLUMN);
+check(array_map('intval',$rows)===array(3,1), 'R19 SQL discount ranking includes published variations and limits globally');
+foreach(array('low'=>array(3,1),'high'=>array(2,3)) as $direction=>$expected) {
+ $order = jluxe_discount_orderby('', new WP_Query(array('jluxe_sale_price_order'=>$direction)));
+ $rows = $database->query("SELECT ID FROM wp_posts WHERE post_type='product' ORDER BY $order LIMIT 2")->fetchAll(PDO::FETCH_COLUMN);
+ check(array_map('intval',$rows)===$expected, 'R19 SQL '.$direction.' price ordering uses the Woo lookup values');
+}
+check(!array_filter($GLOBALS['filters'],fn($filter)=>$filter[0]==='rank_math/frontend/canonical'), 'R18 theme no longer overrides SEO-plugin canonical ownership');
+
+reset_security();update_option('woocommerce_enable_myaccount_registration','yes');
+$result=jluxe_handle_auth_register(new WP_REST_Request(array('username'=>'newuser','email'=>'new@example.invalid','password'=>'سلامسلام')));
+check(is_wp_error($result) && strpos($result->get_error_message(),'۱۲')!==false, 'R13 short Unicode password is rejected by character count, not byte length');
+
+check(substr(jluxe_gregorian_timestamp_to_jalali_string(strtotime('2026-09-23 00:00:00 UTC')), -5)==='03:30', 'Tracking Jalali fallback uses the shop timezone, not UTC');
+$before=count($GLOBALS['inserted_posts']);$GLOBALS['existing_pages']['about-us']=new WP_Post();
+check(jluxe_ensure_required_pages(), 'Explicit administrator page setup succeeds');
+$created=array_slice($GLOBALS['inserted_posts'],$before);
+check(count($created)===count(jluxe_required_pages_map())-1 && !array_filter($created,fn($page)=>$page['post_status']!=='draft'), 'Page setup creates only missing drafts and preserves existing pages');
+$GLOBALS['can_manage']=false;$before=count($GLOBALS['inserted_posts']);
+check(!jluxe_ensure_required_pages() && count($GLOBALS['inserted_posts'])===$before, 'Page setup cannot be invoked by a non-administrator');
+$GLOBALS['can_manage']=true;
+
+foreach($GLOBALS['actions'] as $action) {
+ if($action[0]==='rest_api_init') call_user_func($action[1]);
+}
+check($GLOBALS['routes']['jluxe/v1/order-track']['methods']==='POST', 'R21 tracking only accepts a POST body, not query-string credentials');
+check($GLOBALS['routes']['jluxe/v1/auth/otp-verify']['args']['code']['type']==='string', 'R03 REST schema validates OTP input before invoking the handler');
+$GLOBALS['authenticated_user']=0;
+check(!$GLOBALS['routes']['jluxe/v1/auth/otp-link']['permission_callback'](), 'R03 linking REST route rejects a guest identity');
+$GLOBALS['authenticated_user']=42;
+check($GLOBALS['routes']['jluxe/v1/auth/otp-link']['permission_callback'](), 'R03 linking REST route accepts an authenticated identity for further verification');
+
+reset_security();$settings=$defaults;$settings['sms']['enabled']=true;$settings['sms']['provider']='kavenegar';update_test_settings($settings);
+$GLOBALS['phone_users']=array();$GLOBALS['authenticated_user']=42;request_otp('09129999999','link');$GLOBALS['fail_user_meta']=true;
+$result=jluxe_handle_otp_link(new WP_REST_Request(array('phone'=>'09129999999','code'=>'123456')));
+check(is_wp_error($result) && $result->data['status']===503, 'R03 phone linking never reports success after a metadata write failure');
+$GLOBALS['fail_user_meta']=false;
+
+reset_security();request_otp();$GLOBALS['user_meta'][42]['jluxe_phone']='9122222222';
+check(verify_otp()->get_error_code()==='jluxe_sms_phone_changed' && !get_current_user_id(), 'R03 stale account lookup cannot authenticate after the stored phone changes');
+
+$settings=$defaults;$settings['ai_assistant']['provider']='openai';$settings['ai_assistant']['review_summary_enabled']=true;update_test_settings($settings);
+update_option('woocommerce_enable_reviews','no');
+set_transient('jluxe_review_avgs_1',array('signature'=>jluxe_review_averages_signature(1),'averages'=>array('quality'=>4)),DAY_IN_SECONDS);
+check(jluxe_get_review_criteria_averages(1)===array(), 'Review insights respect the store-wide reviews-disabled setting even with a cached value');
+$before=$GLOBALS['provider_calls'];jluxe_generate_ai_review_summary(1);
+check($GLOBALS['provider_calls']===$before, 'Disabling product reviews also prevents queued summary provider calls');
+
+$settings=$defaults;$settings['sms']['enabled']=true;$settings['sms']['provider']='kavenegar';update_test_settings($settings);
+$GLOBALS['multisite']=true;
+check(!jluxe_otp_available() && !jluxe_get_sms_public_settings()['enabled'], 'R03 multisite OTP fails closed until cross-blog authorization is implemented');
+$before=$GLOBALS['provider_calls'];check(is_wp_error(request_otp()) && $GLOBALS['provider_calls']===$before, 'R03 unsupported multisite request cannot send an OTP');
+$GLOBALS['multisite']=false;
+
+$GLOBALS['denied_caps']=array('unfiltered_html');
+$_POST=array('jluxe_settings_nonce'=>'test','custom_code'=>array('js'=>'alert(1)','css'=>''));
+check(jluxe_handle_advanced_combined_save()==='error', 'Custom code cannot be changed with manage_options alone');
+$denied=false;
+try { jluxe_sanitize_settings_payload(array('custom_code'=>array('js'=>'alert(1)','css'=>'')), $defaults); }
+catch(InvalidArgumentException $error) { $denied=true; }
+check($denied, 'Settings import cannot bypass the custom-code capability restriction');
+$GLOBALS['denied_caps']=array();
+// R21: phone/order matches are not ownership. No personal detail in public tracking.
+reset_security();
+$order = new WC_Order();
+$GLOBALS['orders'][51] = $order;
+$track = new WP_REST_Request(array('order_number'=>'۵۱','phone'=>'۰۹۱۲۰۰۰۰۰۰۰'));
+$response = jluxe_order_track_handler($track);
+$data = $response->get_data()['data'];
+check($response->get_status()===200 && $data['access']==='status_only', 'R21 guest tracking returns only a status summary');
+check(array_keys($data)===array('access','order','timeline') && array_intersect(array_keys($data['order']),array('total','payment_method','order_id'))===array(), 'R21 public payload omits customer, items, carrier token, payment and internal ID');
+check(strpos(json_encode($data),'Private')===false && strpos(json_encode($data),'private-tracking-token')===false, 'R21 neither customer identity nor carrier token leaks through nested output');
+check(strpos($response->get_headers()['Cache-Control'],'no-store')!==false, 'R21 successful tracking is private/no-store');
+$GLOBALS['authenticated_user']=43;
+check(jluxe_order_track_handler($track)->get_data()['data']['access']==='status_only', 'R21 another signed-in customer cannot obtain the owner details');
+$GLOBALS['authenticated_user']=42;
+$data=jluxe_order_track_handler($track)->get_data()['data'];
+check($data['access']==='owner' && $data['customer']['full_name']==='Private Customer' && $data['shipping']['tracking_code']==='private-tracking-token', 'R21 authenticated owner retains personal detail and carrier tracking');
+$GLOBALS['authenticated_user']=0;$order->customer_id=0;
+check(jluxe_order_track_handler($track)->get_data()['data']['access']==='status_only', 'R21 guest order customer_id=0 never authenticates a guest user_id=0');
+$response=jluxe_order_track_handler(new WP_REST_Request(array('order_number'=>'51','phone'=>'09129999999')));
+check($response->get_status()===404 && strpos($response->get_headers()['Cache-Control'],'no-store')!==false, 'R21 phone mismatch is generic and not cacheable');
+$response=jluxe_order_track_handler(new WP_REST_Request(array('order_number'=>'not-an-order','phone'=>'09120000000')));
+check($response->get_status()===404 && $response->get_data()===jluxe_track_not_found_error()->get_data(), 'R21 missing order has the same failure body as a phone mismatch');
+$response=jluxe_order_track_handler(new WP_REST_Request(array('_method'=>'GET')));
+check($response->get_status()===405, 'R21 handler itself rejects a non-POST request');
+$response=jluxe_protect_private_rest_responses(new WP_REST_Response(array('code'=>'rest_invalid_param'),400),null,$track);
+check($response->get_headers()===jluxe_private_rest_headers(), 'R21 even core REST validation failures receive privacy headers');
+$response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/wp/v2/posts')));
+check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
+check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
+
+// R22: nonce rejection is explicit and happens before a cart mutation.
+reset_cart();$_POST=array('op'=>'add','product_id'=>'2','quantity'=>'1');
+$GLOBALS['valid_ajax_nonce']=false;
+$reply=json_call('jluxe_ajax_cart');
+check($reply->status===403 && $reply->data['code']==='jluxe_cart_invalid_nonce' && WC()->cart->added===0, 'R22 invalid nonce has a safe, machine-readable pre-mutation failure');
+$GLOBALS['valid_ajax_nonce']=true;$_SERVER['REQUEST_METHOD']='GET';
+check(json_call('jluxe_ajax_cart')->status===405 && WC()->cart->added===0, 'R22 cart mutations cannot be performed with GET');
+$_SERVER['REQUEST_METHOD']='POST';
+$reply=json_call('jluxe_ajax_session');
+check($reply->data['cartNonce']==='nonce-jluxe_cart' && $GLOBALS['no_cache'], 'R22 private session bootstrap supplies a fresh cart nonce');
+// R24: a custom sanitizer does not itself enforce a WordPress REST schema.
+$typed_sanitizers=0;$valid_schemas=true;
+foreach ($GLOBALS['routes'] as $route) {
+ foreach ($route['args']??array() as $arg) {
+  if (isset($arg['type'],$arg['sanitize_callback'])) {
+   ++$typed_sanitizers;
+   $valid_schemas=$valid_schemas && ($arg['validate_callback']??'')==='rest_validate_request_arg';
+  }
+ }
+}
+check($typed_sanitizers>0 && $valid_schemas, 'R24 all typed custom REST sanitizers also register actual schema validation');
+check(jluxe_extract_ai_messages(new WP_REST_Request(array('messages'=>array(array('content'=>array('not a string'))))))===array(), 'R24 malformed nested AI content is never cast from an array into a warning');
+$history=array();for($i=0;$i<30;$i++)$history[]=array('role'=>'user','content'=>'message-'.$i);
+$limited=jluxe_extract_ai_messages(new WP_REST_Request(array('messages'=>$history)));
+check(count($limited)===12 && $limited[0]['content']==='message-18', 'R24 conversation extraction only processes the last twelve messages');
+$response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/JLUXE/v1/auth/login')));
+check($response->get_headers()===jluxe_private_rest_headers(), 'R25 authentication privacy headers also cover case-insensitive WordPress route matches');
+$order->status='custom-awaiting-verification';
+$timeline=jluxe_build_timeline_data($order);
+check($timeline['current_step']===1 && $timeline['steps'][4]['label']==='ثبت کد رهگیری', 'R21 custom status or a carrier code alone is not treated as proof of payment or dispatch');
+// R26: no standard Woo form action may run before our AJAX callback's nonce gate.
+$GLOBALS['doing_ajax']=true;
+$_REQUEST=array('action'=>'jluxe_cart','add-to-cart'=>'51');$_GET=array('add-to-cart'=>'51');$_POST=array('add-to-cart'=>'51','product_id'=>'51','attribute_color'=>'red');
+jluxe_isolate_cart_ajax_request();
+check(!isset($_REQUEST['add-to-cart']) && !isset($_GET['add-to-cart']) && !isset($_POST['add-to-cart']) && $_POST['product_id']==='51' && $_POST['attribute_color']==='red', 'R26 AJAX protocol removes only the native auto-add trigger, not the selected product or attributes');
+$_REQUEST=array('action'=>'another_action','add-to-cart'=>'51');$_POST=array('add-to-cart'=>'51');
+jluxe_isolate_cart_ajax_request();
+check(isset($_REQUEST['add-to-cart'],$_POST['add-to-cart']), 'R26 unrelated AJAX/native Woo requests keep their standard form fields');
+$GLOBALS['doing_ajax']=false;$_REQUEST['action']='jluxe_cart';
+jluxe_isolate_cart_ajax_request();
+check(isset($_REQUEST['add-to-cart'],$_POST['add-to-cart']), 'R26 non-AJAX fallback is not altered');
+// R27: WC 11 only re-validates stock via check_cart_item_stock(); a failed
+// post-mutation check must never surface as success or destroy other lines.
+reset_cart();$_POST=array('op'=>'add','product_id'=>'2','quantity'=>'1');
+$GLOBALS['wc']->cart->stockFail=true;
+$reply=json_call('jluxe_ajax_cart');
+check(!$reply->success && $reply->status===409 && !isset(WC()->cart->items['new']), 'R27 failed post-add stock check rolls back the new line and answers 409');
+check(WC()->cart->items['existing']['quantity']===1, 'R27 rollback leaves the pre-existing cart line untouched');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'4');
+$GLOBALS['wc']->cart->stockFail=true;
+$reply=json_call('jluxe_ajax_cart');
+check(!$reply->success && $reply->status===409 && WC()->cart->items['existing']['quantity']===1, 'R27 failed post-update stock check restores the previous quantity');
+$GLOBALS['wc']->cart->stockFail=false;
+check(json_call('jluxe_ajax_cart')->success, 'R27 passing stock check keeps the quantity update');
+$reply=json_call(function(){jluxe_cart_error('test',409);});
+check($reply->status===409 && $reply->success===false, 'R27 cart failures remain explicit JSON errors, never success responses');
+
+// R28: price markup must read «amount then unit» in RTL, like «۱۰۰۰ ریال».
+$woo_price = '<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">﷼</span> ۵,۵۵۵</span>';
+$reordered = jluxe_amount_first_wc_price($woo_price);
+check($reordered === '<span class="woocommerce-Price-amount amount">۵,۵۵۵ <span class="woocommerce-Price-currencySymbol">﷼</span></span>', 'R28 price amount precedes the currency symbol');
+check(jluxe_amount_first_wc_price($reordered)===$reordered, 'R28 amount-first conversion is idempotent');
+$already = '<span class="woocommerce-Price-amount amount"><bdi>1,000</bdi><span class="woocommerce-Price-currencySymbol">ریال</span></span>';
+check(jluxe_amount_first_wc_price($already)===$already, 'R28 amount-first input is left untouched');
+$sale_original = '<del><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">﷼</span> ۵,۵۵۵</span></del> <ins><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">﷼</span> ۳,۳۳۳</span></ins>';
+$sale_out = jluxe_amount_first_wc_price($sale_original);
+check(strpos($sale_out,'amount amount">۵,۵۵۵')!==false && strpos($sale_out,'amount amount">۳,۳۳۳')!==false && substr_count($sale_out,'currencySymbol')===2, 'R28 sale del/ins pairs are both amount-first');
+$GLOBALS['no_cache']=false;
+$icon_price = jluxe_amount_first_wc_price('<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">'.jluxe_toman_icon_svg().'</span>&nbsp;۱٬۲۰۰</span>');
+$digitized = jluxe_fa_digits_wc_price($icon_price);
+check($digitized === $icon_price && strpos($digitized,'۱٬۲۰۰') < strpos($digitized,'</svg>'), 'R28 digit conversion keeps the toman SVG intact after reordering');
+
+// R29: legacy homepage sections without newer keys must not warn (E_ALL).
+$warnings = array();
+set_error_handler(function($severity,$message) use (&$warnings){ $warnings[]=$message; return true; });
+check(jluxe_homepage_section_choice(array(), 'image_shape', array('circle','square','none'), 'none')==='none', 'R29 missing homepage key falls back without warnings');
+check(jluxe_homepage_section_choice(array('image_shape'=>'weird'), 'image_shape', array('circle','square','none'), 'none')==='none', 'R29 invalid homepage value falls back');
+check(jluxe_homepage_section_choice(array('alignment'=>'end'), 'alignment', array('start','center','end'), 'center')==='end', 'R29 valid homepage value is preserved');
+restore_error_handler();
+check($warnings===array(), 'R29 no PHP warnings while reading legacy homepage sections');
+
+// R30: OpenAI Chat Completions contract per official OpenAI docs.
+reset_security();
+$GLOBALS['http_posts'] = array(); // The R15 summary job already recorded earlier provider calls.
+$ai = $defaults;
+$ai['ai_assistant']['enabled'] = true;
+$ai['ai_assistant']['provider'] = 'gapgpt';
+$ai['ai_assistant']['model'] = 'gpt-4o-mini';
+$ai['ai_assistant']['temperature'] = 0.5;
+$ai['ai_assistant']['max_tokens'] = 300;
+$ai['ai_assistant']['reasoning_effort'] = 'low';
+update_test_settings($ai);
+update_option(JLUXE_AI_API_KEY_OPTION, 'unit-test-key');
+$GLOBALS['http_post_response'] = array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('role'=>'assistant','content'=>'پاسخ آزمایشی'))))));
+$reply = jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'], 'unit-test-key', 'سیستم', array(array('role'=>'user','content'=>'سلام')), array());
+$post = $GLOBALS['http_posts'][0] ?? null;
+check($reply==='پاسخ آزمایشی' && 'https://api.gapgpt.app/v1/chat/completions'===($post['url']??''), 'R30 GapGPT uses the documented OpenAI-compatible chat/completions endpoint');
+check('Bearer unit-test-key'===($post['args']['headers']['Authorization']??''), 'R30 provider key is sent only as the Bearer header');
+$body = json_decode($post['args']['body'], true);
+check(isset($body['model'],$body['messages'],$body['temperature'],$body['max_tokens']) && $body['max_tokens']===300, 'R30 standard models use temperature/max_tokens per the docs');
+check(!isset($body['max_completion_tokens'],$body['reasoning_effort']), 'R30 reasoning-only parameters are not sent for standard models');
+
+$ai['ai_assistant']['model'] = 'gpt-5-mini';
+update_test_settings($ai);
+$GLOBALS['http_posts'] = array();
+jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'], 'unit-test-key', 'سیستم', array(array('role'=>'user','content'=>'سلام')), array());
+$body = json_decode($GLOBALS['http_posts'][0]['args']['body'], true);
+check(isset($body['max_completion_tokens'],$body['reasoning_effort']) && !isset($body['temperature'],$body['max_tokens']), 'R30 reasoning models use max_completion_tokens and omit temperature per the docs');
+
+$GLOBALS['http_posts'] = array();
+$GLOBALS['http_post_responses'] = array(
+	array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('role'=>'assistant','content'=>null,'tool_calls'=>array(array('id'=>'call_1','type'=>'function','function'=>array('name'=>'product_info','arguments'=>'{"product_id":1}'))))))))),
+	array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('role'=>'assistant','content'=>'قیمت نامشخص است')))))),
+);
+$reply = jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'], 'unit-test-key', 'سیستم', array(array('role'=>'user','content'=>'قیمت؟')), array());
+check($reply==='قیمت نامشخص است' && count($GLOBALS['http_posts'])===2, 'R30 tool calls continue to a second documented round');
+$second_body = json_decode($GLOBALS['http_posts'][1]['args']['body'], true);
+$roles = array_column(array_slice($second_body['messages'],-2),'role');
+$tool_message = $second_body['messages'][count($second_body['messages'])-1];
+check($roles===array('assistant','tool') && 'call_1'===($tool_message['tool_call_id']??''), 'R30 assistant tool_calls are answered by a tool message with the same tool_call_id');
+$GLOBALS['http_post_responses'] = array();
+$GLOBALS['http_posts'] = array();
+$GLOBALS['http_post_response'] = array('response'=>array('code'=>401),'body'=>wp_json_encode(array('error'=>array('message'=>'Incorrect API key provided.','type'=>'invalid_request_error'))));
+$result = jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'], 'unit-test-key', 'سیستم', array(array('role'=>'user','content'=>'سلام')), array());
+check(is_wp_error($result) && strpos($result->get_error_message(),'کلید API')!==false, 'R30 documented provider errors surface as explicit configuration failures');
+$GLOBALS['http_post_response'] = null;
+unset($GLOBALS['http_posts']);
+reset_security();
+
+// R31: the active product layout is visible in the markup for live diagnostics.
+$default_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+$classic_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+check(strpos($default_tpl,'data-jluxe-layout=')!==false && strpos($default_tpl,"\$jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );")!==false, 'R31 default template reads the layout setting once and exposes it in the markup');
+check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic template is labelled as classic in the markup');
+
+// R32: AI comments — auto replies + editable summaries. All provider traffic is the deterministic mock.
+reset_security(); 
+$defaults = jluxe_theme_settings_defaults();
+check(isset($defaults['ai_comments']['enabled']) && $defaults['ai_comments']['enabled']===false, 'R32 ai-comments defaults ship disabled with no hidden calls');
+$clean = jluxe_sanitize_ai_comments(array('enabled'=>'1','auto_reply_enabled'=>'1','cron_interval'=>'9','responder_avatar'=>'javascript:alert(1)','responder_name'=>' پشتیبان ','personality'=>str_repeat('م',2000),'max_replies_per_run'=>'99'),$defaults['ai_comments']);
+check($clean['enabled']===true && $clean['cron_interval']===30 && $clean['responder_avatar']==='' && $clean['responder_name']==='پشتیبان' && mb_strlen($clean['personality'])<=1000 && $clean['max_replies_per_run']===20, 'R32 sanitizer clamps interval/avatar/lengths/caps');
+check(jluxe_settings_sections_map()['jluxe-ai-comments']===array('ai_comments','jluxe_sanitize_ai_comments'), 'R32 ai-comments page saves through the generic settings pipeline');
+
+$settings = $defaults;
+update_option('woocommerce_enable_reviews','yes'); // an earlier block disabled reviews store-wide
+$settings['ai_assistant']['provider']='openai';
+$settings['ai_assistant']['review_summary_enabled']=true;
+$settings['ai_assistant']['review_summary_min_count']=1;
+$settings['review_criteria']['items']=array(array('key'=>'quality','label'=>'کیفیت'));
+$settings['ai_comments']=array('enabled'=>true,'auto_reply_enabled'=>true,'cron_interval'=>5,'responder_name'=>'پشتیبان','responder_avatar'=>'https://example.test/ai.png','personality'=>'صمیمی','store_description'=>'فروشگاه لوازم خانه','max_replies_per_run'=>1,'max_summaries_per_run'=>1);
+update_test_settings($settings); update_option(JLUXE_AI_API_KEY_OPTION,'dummy-ai-key');
+$GLOBALS['scheduled']=array();
+jluxe_ai_comments_schedule();
+check((bool) wp_next_scheduled('jluxe_ai_comments_tick'), 'R32 enabling a feature keeps the cron event scheduled');
+$settings['ai_comments']['enabled']=false; update_test_settings($settings);
+jluxe_ai_comments_schedule();
+check(! wp_next_scheduled('jluxe_ai_comments_tick'), 'R32 disabling the section clears the cron event');
+$settings['ai_comments']['enabled']=true; $settings['ai_comments']['auto_reply_enabled']=true; update_test_settings($settings);
+jluxe_update_settings_section('ai_comments',$settings['ai_comments']);
+check((bool) wp_next_scheduled('jluxe_ai_comments_tick'), 'R32 generic save pipeline reschedules the cron event');
+
+$GLOBALS['posts']=array(1=>array('ID'=>1,'post_type'=>'product','post_status'=>'publish','post_password'=>'','post_title'=>'سرویس قابلمه'));
+$GLOBALS['sites_posts']=array(array('ID'=>1,'post_type'=>'product','post_status'=>'publish'));
+$GLOBALS['products']=array(1=>new WC_Product(1));
+$GLOBALS['scheduled']=array(); $GLOBALS['comment_meta']=array(); $GLOBALS['http_post_responses']=array(); $GLOBALS['http_posts']=array();
+$GLOBALS['comments']=array(
+	$c1=new WP_Comment(), $c2=new WP_Comment(), $c3=new WP_Comment(), $c4=new WP_Comment(),
+);
+$c1->comment_ID=21;$c1->comment_content='ارسال چند روزه؟';
+$c2->comment_ID=22;$c2->comment_content='کیفیت خوبه';$c2->comment_type='review';
+$c3->comment_ID=23;$c3->comment_content='ping';$c3->comment_type='pingback';
+$c4->comment_ID=24;$c4->comment_content='قبلی';$c4->comment_approved='0';
+foreach(array($c1,$c2,$c3,$c4) as $cc){$GLOBALS['comment_objects'][$cc->comment_ID]=$cc;}
+$GLOBALS['http_post_responses']=array(
+	array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('content'=>'پاسخ: اطلاعات ارسال در صفحه محصول اعلام می‌شود.')))))),
+	array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('content'=>'ممنون از بازخورد شما')))))),
+);
+$result=jluxe_ai_comments_process_queue();
+check($result===array('replies'=>1,'summaries'=>1), 'R32 bounded tick processes one reply and one summary per run');
+$inserted=$GLOBALS['inserted_comments']??array();
+check(count($inserted)===1 && (int)$inserted[0]->comment_parent===21 && $inserted[0]->comment_author==='پشتیبان' && strpos($inserted[0]->comment_content,'قیمت')===false, 'R32 auto reply is attached to its parent comment without inventing prices');
+check(get_comment_meta(21,'_jluxe_ai_replied',true)!=='' , 'R32 answered comment is marked so it is never answered twice');
+update_comment_meta($inserted[0]->comment_ID,'_jluxe_ai_reply',1);
+check(strpos(jluxe_ai_comment_reply_badge($inserted[0]->comment_content,$inserted[0]),'jluxe-ai-reply-badge')!==false, 'R32 machine replies are visibly labelled as automated');
+check(jluxe_ai_comment_reply_badge('متن معمولی',$c1)==='متن معمولی', 'R32 normal comments stay unlabelled');
+check(jluxe_get_ai_review_summary(1)!=='' && get_post_meta(1,'_jluxe_ai_summary_manual',true)==='', 'R32 generated summary is cached for the product');
+update_post_meta(1,'_jluxe_ai_summary_manual','خلاصهٔ دستی مدیر');
+check(jluxe_get_ai_review_summary(1)==='خلاصهٔ دستی مدیر', 'R32 manual metabox text overrides the generated summary');
+$before=$GLOBALS['provider_calls']; jluxe_ai_fill_missing_summaries(3);
+check($GLOBALS['provider_calls']===$before, 'R32 summaries fill skips products that already have a summary');
+delete_post_meta(1,'_jluxe_ai_summary_manual');
+$GLOBALS['http_post_response']=array('response'=>array('code'=>401),'body'=>wp_json_encode(array('error'=>array('message'=>'bad key'))));
+$ok=jluxe_ai_reply_to_comment(22);
+check($ok===false && (int)get_comment_meta(22,'_jluxe_ai_reply_fails',true)>=1, 'R32 provider failure counts against the comment instead of posting junk');
+update_comment_meta(22,'_jluxe_ai_reply_fails',3);
+$before=$GLOBALS['provider_calls'];
+check(jluxe_ai_pending_comment_ids('review',5)===array(), 'R32 a comment that failed three times is never retried');
+check($GLOBALS['provider_calls']===$before, 'R32 exhausted comments cost nothing');
+check(!in_array(23,jluxe_ai_pending_comment_ids('comment',5),true) && !in_array(24,jluxe_ai_pending_comment_ids('comment',5),true), 'R32 pingbacks and unapproved comments are never selected');
+$GLOBALS['http_post_response']=null;
+$_POST=array('jluxe_ai_manual_summary'=>'  متن تستی متاباکس  ','_jluxe_ai_meta_nonce'=>'nonce-jluxe_ai_review_metabox');
+jluxe_ai_save_review_metabox(1);
+check(get_post_meta(1,'_jluxe_ai_summary_manual',true)==='متن تستی متاباکس', 'R32 metabox save stores trimmed manual summary');
+$_POST=array('jluxe_ai_manual_summary'=>'','_jluxe_ai_meta_nonce'=>'nonce-jluxe_ai_review_metabox');
+jluxe_ai_save_review_metabox(1);
+check(get_post_meta(1,'_jluxe_ai_summary_manual',true)==='', 'R32 empty metabox text returns the product to automatic generation');
+$GLOBALS['denied_caps']=array('manage_options');
+$threw=null; try{ jluxe_ai_admin_test_connection(); }catch(JsonReply $e){ $threw=$e; }
+check($threw instanceof JsonReply && $threw->success===false, 'R32 admin ajax is capability+nonce guarded');
+$GLOBALS['denied_caps']=array();
+unset($_POST);
+
+// R33: GapGPT connectivity — dual official hosts, transport-only auto failover, honest errors.
+reset_security();$GLOBALS['scheduled']=array();
+$gg=$defaults; $gg['ai_assistant']['provider']='gapgpt'; $gg['ai_assistant']['model']='gpt-4o'; $gg['ai_assistant']['temperature']=0.4; $gg['ai_assistant']['max_tokens']=50;
+update_test_settings($gg); update_option(JLUXE_AI_API_KEY_OPTION,'unit-key');
+$ok_body=array('response'=>array('code'=>200),'body'=>wp_json_encode(array('choices'=>array(array('message'=>array('content'=>'OK'))))));
+$transport_err=new WP_Error('http_request_failed','cURL error 28: Connection timed out after 60000 milliseconds');
+$GLOBALS['http_post_response']=$ok_body; $GLOBALS['http_post_responses']=array(); $GLOBALS['http_posts']=array(); delete_transient('jluxe_gapgpt_base');
+$r1=jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'],'unit-key','سیستم',array(array('role'=>'user','content'=>'سلام')),array());
+check($r1==='OK' && strpos($GLOBALS['http_posts'][0]['url'],'https://api.gapgpt.app/v1/chat/completions')!==false, 'R33 gapgpt calls the documented primary host by default');
+check(get_transient('jluxe_gapgpt_base')==='https://api.gapgpt.app/v1', 'R33 a successful primary call is remembered as the working host');
+$GLOBALS['http_post_responses']=array($transport_err,$ok_body); $GLOBALS['http_posts']=array();
+$r2=jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'],'unit-key','سیستم',array(array('role'=>'user','content'=>'سلام')),array());
+$urls=array_column($GLOBALS['http_posts'],'url');
+check($r2==='OK' && count($urls)===2 && strpos($urls[0],'api.gapgpt.app')!==false && strpos($urls[1],'api.gapapi.com')!==false, 'R33 a transport failure on the primary host retries the documented foreign CDN once');
+check(get_transient('jluxe_gapgpt_base')==='https://api.gapapi.com/v1', 'R33 the working host is cached');
+$GLOBALS['http_post_responses']=array(); $GLOBALS['http_post_response']=$ok_body; $GLOBALS['http_posts']=array();
+$r3=jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'],'unit-key','سیستم',array(array('role'=>'user','content'=>'سلام')),array());
+check($r3==='OK' && count($GLOBALS['http_posts'])===1 && strpos($GLOBALS['http_posts'][0]['url'],'api.gapapi.com')!==false, 'R33 the cached host is used directly without extra attempts');
+$GLOBALS['http_post_response']=array('response'=>array('code'=>401),'body'=>wp_json_encode(array('error'=>array('message'=>'bad key')))); $GLOBALS['http_post_responses']=array(); $GLOBALS['http_posts']=array();
+$r4=jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'],'unit-key','سیستم',array(array('role'=>'user','content'=>'سلام')),array());
+check(is_wp_error($r4) && strpos($r4->get_error_message(),'کلید API')!==false && count($GLOBALS['http_posts'])===1, 'R33 an HTTP auth error answers on that host and never triggers a host switch');
+$GLOBALS['http_post_responses']=array($transport_err,$transport_err); $GLOBALS['http_posts']=array(); delete_transient('jluxe_gapgpt_base');
+$r5=jluxe_call_ai_provider(jluxe_get_theme_settings()['ai_assistant'],'unit-key','سیستم',array(array('role'=>'user','content'=>'سلام')),array());
+check(is_wp_error($r5) && $r5->get_error_code()==='jluxe_ai_transport' && strpos($r5->get_error_message(),'api.gapapi.com')!==false && strpos($r5->get_error_message(),'cURL error 28')!==false, 'R33 when both hosts are unreachable the error names both hosts and the underlying cause');
+check(count($GLOBALS['http_posts'])===2, 'R33 the dual-host sweep stops after two attempts with no hidden retry loop');
+$GLOBALS['denied_caps']=array(); $GLOBALS['valid_ajax_nonce']=true; $_POST=array('nonce'=>'x'); $GLOBALS['http_post_responses']=array();
+$gg['ai_assistant']['model']='o4-mini'; update_test_settings($gg);
+$GLOBALS['http_post_response']=$ok_body; $GLOBALS['http_posts']=array();
+try { jluxe_ai_admin_test_connection(); } catch (JsonReply $e) {}
+$tb=json_decode($GLOBALS['http_posts'][0]['args']['body'],true);
+check(!isset($tb['temperature']) && isset($tb['max_completion_tokens']), 'R33 the connectivity probe builds the reasoning-model body through the official layer with no overrides');
+$gg['ai_assistant']['model']='gpt-4o'; update_test_settings($gg);
+$GLOBALS['http_posts']=array();
+try { jluxe_ai_admin_test_connection(); } catch (JsonReply $e) { $probe=$e; }
+$tb=json_decode($GLOBALS['http_posts'][0]['args']['body'],true);
+check($probe->success && $tb['temperature']===0.4 && !isset($tb['max_completion_tokens']), 'R33 a standard model probe keeps the documented temperature/max_tokens shape');
+unset($_POST,$probe); $GLOBALS['http_post_response']=null; unset($GLOBALS['http_post_responses']);
+
+// R34: professional 404 — real response stays 404 (WP routing); page offers explicit paths back.
+$notfound=(string) file_get_contents(ABSPATH.'404.php');
+check(strpos($notfound,'بازگشت به سایت')!==false && strpos($notfound,"esc_url( home_url( '/' ) )")!==false && strpos($notfound,'get_search_form()')!==false, 'R34 404 offers an explicit back-to-site button and search');
+check(strpos($notfound,'jluxe_icon')!==false && strpos($notfound,'wc_get_products')!==false, 'R34 404 uses the inline icon set and guarded product suggestions');
+$searchform=(string) file_get_contents(ABSPATH.'searchform.php');
+check(strpos($searchform,'min-height')===false && strpos($searchform,'jluxe-search-field')!==false && strpos($searchform,'aria-label')!==false, 'R34 search form is a labelled custom component styled in CSS');
+
+// R35: palette contrast is measured, not assumed — WCAG 2.1 AA math on the live tokens.
+$css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+preg_match_all('/:root\s*\{([^}]*)\}/u',$css,$roots);
+$tokens=array();
+foreach ($roots[1] as $root_block) {
+  foreach (preg_split('/\n/', trim($root_block)) as $line) {
+    if (preg_match('/--([a-z-]+):\s*([0-9.]+)\s+([0-9.]+)%\s+([0-9.]+)%/u', trim($line), $t)) {
+      $tokens[$t[1]]=array((float)$t[2],(float)$t[3],(float)$t[4]);
+    }
+  }
+}
+check(count($tokens)>=15, 'R35 design tokens are parseable from the stylesheet');
+function hsl_rgb($h,$s,$l){$s/=100;$l/=100;$c=(1-abs(2*$l-1))*$s;$hp=$h/60;$x=$c*(1-abs(fmod($hp,2)-1));
+  if($hp<1){$r=$c;$g=$x;$b=0;}elseif($hp<2){$r=$x;$g=$c;$b=0;}elseif($hp<3){$r=0;$g=$c;$b=$x;}
+  elseif($hp<4){$r=0;$g=$x;$b=$c;}elseif($hp<5){$r=$x;$g=0;$b=$c;}else{$r=$c;$g=0;$b=$x;}
+  $m=$l-$c/2;return array(($r+$m)*255,($g+$m)*255,($b+$m)*255);}
+function rel_lum($rgb){$out=array();foreach($rgb as $v){$v/=255;$out[]=$v<=0.03928?$v/12.92:(($v+0.055)/1.055)**2.4;}return 0.2126*$out[0]+0.7152*$out[1]+0.0722*$out[2];}
+function contrast($a,$b){$x=rel_lum($a);$y=rel_lum($b);$hi=max($x,$y);$lo=min($x,$y);return ($hi+0.05)/($lo+0.05);}
+function tok_rgb($t){return hsl_rgb($t[0],$t[1],$t[2]);}
+$white=array(255,255,255);$fg=tok_rgb($tokens['foreground']);$bg=tok_rgb($tokens['background']);
+check(contrast($fg,$bg)>=7, 'R35 body text contrast is AAA (>=7:1)');
+check(contrast(tok_rgb($tokens['text-muted']),$bg)>=4.5 && contrast(tok_rgb($tokens['text-muted']),$white)>=4.5, 'R35 muted text reaches AA on background and surface');
+check(contrast(tok_rgb($tokens['text-secondary']),$bg)>=4.5, 'R35 secondary text reaches AA');
+check(contrast($white,tok_rgb($tokens['primary']))>=4.5 && contrast($white,tok_rgb($tokens['primary-hover']))>=4.5, 'R35 white-on-primary buttons reach AA');
+check(contrast($white,tok_rgb($tokens['error']))>=4.5 && contrast($white,tok_rgb($tokens['success']))>=4.5 && contrast($white,tok_rgb($tokens['info']))>=4.5, 'R35 status colors keep AA with their foreground');
+check(contrast(tok_rgb($tokens['warning-foreground']),tok_rgb($tokens['warning']))>=4.5, 'R35 warning pairs reach AA');
+check(contrast(tok_rgb($tokens['warning-strong']),$white)>=3, 'R35 amber used as text/graphics meets WCAG 1.4.11 non-text 3:1');
+check(contrast(tok_rgb($tokens['accent-foreground']),tok_rgb($tokens['accent']))>=4.5, 'R35 accent pairs reach AA');
+check(strpos($css,'font-family: IRANYekan, Vazirmatn')!==false, 'R35 the storefront font stack actually applies IRANYekan with local fallbacks');
+
+// R36: touch targets, focus rings, motion guard, below-fold rendering.
+check(strpos($css,'.jluxe-btn')!==false && preg_match('/\.jluxe-btn\s*\{[^}]*min-height:\s*2\.75rem/s',$css)===1, 'R36 button system enforces >=44px targets');
+check(preg_match('/\(max-width: 767\.98px\)\s*\{.*?:where\(a\.button, button, \[type="submit"\], \[role="button"\]\)\s*\{\s*min-height: 44px;/s',$css)===1, 'R36 mobile touch-target floor is scoped and override-friendly');
+check(strpos($css,':where(a, button, input, select, textarea, [tabindex]):focus-visible')!==false, 'R36 keyboard focus ring is standardized');
+check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
+
+// R37: inline icon system — no network, escaped classes, graceful unknown names.
+ob_start(); jluxe_icon('cart','size-5 test'); $cart_icon=(string) ob_get_clean();
+check(strpos($cart_icon,'<svg')===0 && strpos($cart_icon,'class="size-5 test"')!==false && strpos($cart_icon,'viewBox="0 0 24 24"')!==false, 'R37 icon helper outputs inline SVG with the requested class');
+ob_start(); jluxe_icon('does-not-exist'); $empty_icon=(string) ob_get_clean();
+check(''===trim($empty_icon), 'R37 unknown icon names render nothing');
+ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_clean();
+check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
+check(in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=20, 'R37 curated icon set ships 20+ icons');
+
+// R38: breadcrumbs JSON-LD + mobile sticky add-to-cart.
+$GLOBALS['product_terms'][1]=array((object)array('term_id'=>7,'name'=>'آشپزخانه','parent'=>0,'slug'=>'kitchen','taxonomy'=>'product_cat'));
+$GLOBALS['terms_by_id']=array();
+$bc_product=new WC_Product(1);
+ob_start(); jluxe_print_breadcrumb_jsonld($bc_product); $ld=(string) ob_get_clean();
+$ld_data=json_decode(preg_replace('/^<script type="application\/ld\+json">|<\/script>\n?$/','',trim($ld)),true);
+check(is_array($ld_data) && 'BreadcrumbList'===$ld_data['@type'] && count($ld_data['itemListElement'])>=3 && 1===$ld_data['itemListElement'][0]['position'] && 'خانه'===$ld_data['itemListElement'][0]['name'], 'R38 product page emits a valid BreadcrumbList JSON-LD');
+check(strpos($ld,'</script>')!==false && strpos($ld,'<script type="application/ld+json">')===0, 'R38 JSON-LD is emitted inside a typed script tag');
+$sticky_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+$sticky_def=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+check(strpos($sticky_tpl,'jluxe_render_sticky_add_to_cart')!==false && strpos($sticky_def,'jluxe_render_sticky_add_to_cart')===false, 'R40 the classic layout ships the sticky bar while the default keeps its own Boom price card (no duplicate bars)');
+check(strpos($sticky_def,'data-jluxe-mobile-price-bar')!==false, 'R38 the default layout keeps the requested Boom mobile price card');
+check(strpos($sticky_tpl,'jluxe_print_breadcrumb_jsonld')!==false && strpos($sticky_def,'jluxe_print_breadcrumb_jsonld')!==false, 'R38 both product layouts emit breadcrumb structured data');
+ob_start(); jluxe_render_sticky_add_to_cart($bc_product); $sticky=(string) ob_get_clean();
+check(strpos($sticky,'data-jluxe-sticky-mode="add"')!==false && strpos($sticky,'افزودن به سبد')!==false, 'R38 an in-stock simple product gets a direct add-to-cart sticky button');
+$bc_product->stock=0;
+ob_start(); jluxe_render_sticky_add_to_cart($bc_product); $sticky_out=(string) ob_get_clean();
+check(strpos($sticky_out,'ناموجود')!==false && strpos($sticky_out,'data-jluxe-sticky-add')===false, 'R38 an out-of-stock product shows no fake add-to-cart control');
+$GLOBALS['products'][1]->stock=20;
+
+// R39: font preloads are generated from the real build output.
+$fontdir=sys_get_temp_dir().'/jluxe-font-test'; @mkdir($fontdir);
+file_put_contents($fontdir.'/IRANYekanMobileRegular-Abc123.woff2','x');
+ob_start(); jluxe_preload_storefront_fonts($fontdir,'https://shop.test/assets'); $heads=(string) ob_get_clean();
+check(substr_count($heads,'rel="preload"')===1 && strpos($heads,'as="font"')!==false && strpos($heads,'IRANYekanMobileRegular-Abc123.woff2')!==false && strpos($heads,'crossorigin')!==false, 'R39 existing fonts are preloaded with crossorigin');
+unlink($fontdir.'/IRANYekanMobileRegular-Abc123.woff2');
+ob_start(); jluxe_preload_storefront_fonts($fontdir,'https://shop.test/assets'); $heads=(string) ob_get_clean();
+check(''===trim($heads), 'R39 missing font files produce no preload (no broken hints)');
+
+// R41: app-like browser chrome via theme-color, filterable, escaped.
+ob_start(); jluxe_mobile_theme_color(); $meta=(string) ob_get_clean();
+check(strpos($meta,'name="theme-color"')!==false && strpos($meta,'#F7F3EE')!==false, 'R41 theme-color meta ships with the storefront background');
+$GLOBALS['test_filters']['jluxe_theme_color']=fn($c)=>'#1122" onmouseover="x';
+ob_start(); jluxe_mobile_theme_color(); $meta=(string) ob_get_clean();
+check(strpos($meta,'content="#1122&quot; onmouseover=&quot;x"')!==false, 'R41 theme-color is filterable and escaped');
+$GLOBALS['test_filters']=array();
+
+// R42/R43: mobile app feel — no iOS input zoom, contained overlay scroll, motion-guarded smooth scroll.
+$css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+check(preg_match('/\(max-width: 767\.98px\)\s*\{.*?\.woocommerce form \.input-text,.*?font-size: 16px;/s',$css)===1, 'R42 mobile form inputs are 16px so iOS never auto-zooms on focus');
+check(strpos($css,'[data-jluxe-island="category-drawer"],')!==false && strpos($css,'overscroll-behavior: contain')!==false, 'R43 layered panels contain their scroll (no background pull-to-refresh)');
+$smooth=strpos($css,'html { scroll-behavior: smooth; }');
+$guard=strpos($css,'prefers-reduced-motion: no-preference');
+check($smooth!==false && $guard!==false && $smooth>$guard, 'R43 smooth scrolling is motion-guarded');
+$sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
+check(strpos($sticky_js,"'.jluxe-mobile-nav'")!==false && strpos($sticky_js,'style.bottom')!==false, 'R40 the sticky bar measures the bottom nav and docks above it, never on top');
+
+// R44: reviews section rebuilt in the user's reference design language (22px white card,
+// hairline border, soft 0 2px 14px shadow, recessed #f7f8fa-style panels).
+$tpl_def=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+$tpl_cls=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+check(strpos($tpl_def,'jluxe-reviews jluxe-panel')!==false, 'R44 the default layout wraps reviews in the new panel');
+check(strpos($tpl_cls,'id="reviews" class="jluxe-panel mt-6"')!==false, 'R44 the classic layout uses the same panel');
+$css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+check(strpos($css,'--panel: 210 29% 98%')!==false && strpos($css,'--panel-border: 240 6% 92%')!==false, 'R44 panel tokens ship with the reference palette');
+check(preg_match('/\.jluxe-panel\s*\{[^}]*border-radius: 22px;[^}]*box-shadow: 0 2px 14px rgba\(0, 0, 0, 0\.04\);/s',$css)===1, 'R44 the panel card matches the reference radius and soft shadow');
+check(preg_match('/@media \(min-width: 768px\)\s*\{\s*\.jluxe-panel \{ padding: 1\.75rem;/s',$css)===1, 'R44 panel padding scales 20px to 28px at md');
+check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$css)===1, 'R44 each review is a recessed card instead of a divider list');
+check(strpos($css,'.jluxe-reviews .woocommerce-review__verified')!==false, 'R44 verified-owner badge is styled');
+check(preg_match('/\.jluxe-reviews \.form-submit input\[type="submit"\]\s*\{[^}]*min-height: 48px;/s',$css)===1, 'R44 the review submit button meets the 48px touch target');
+$ai_css=(string) file_get_contents(ABSPATH.'inc/theme-settings-ai.php');
+check(strpos($ai_css,'border:1px solid hsl(var(--panel-border));border-radius:1rem;background:hsl(var(--primary) / .05)')!==false, 'R44 the AI summary card follows the same panel language');
+
+// R45: product page rebuilt to match the user's jluxe.ir reference (classic layout).
+$cp3=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+check(strpos($cp3,'cp3-pills')!==false && strpos($cp3,'data-cp3-select')!==false && strpos($cp3,'dispatchEvent( new Event( \'change\'')!==false, 'R45 variation pills are wired to the real WooCommerce select with a change event');
+check(strpos($cp3,'cp3-rate')!==false && strpos($cp3,'get_rating_counts')!==false, 'R45 the rating summary card computes positive/neutral/negative from real rating counts');
+check(strpos($cp3,'data-cp3-nav')!==false && strpos($cp3,'IntersectionObserver')!==false && strpos($cp3,'scroll-margin-top')!==false, 'R45 the sticky section navbar has scrollspy sections');
+check(strpos($cp3,'cp3-specgroup')!==false && strpos($cp3,'wc_attributes_array_filter_visible')!==false, 'R45 specs tables render visible product attributes in grouped tables');
+check(strpos($cp3,'cp3-faq-item')!==false && strpos($cp3,'jluxe_get_product_faq_items')!==false, 'R45 FAQ renders managed items as native accordions');
+check(strpos($cp3,'woocommerce_output_related_products')!==false, 'R45 related products render inside the new card grid');
+check(strpos($cp3,'woocommerce_template_single_add_to_cart')!==false && strpos($cp3,'do_action( \'woocommerce_single_variation\' )')!==false, 'R45 the real add-to-cart pipeline stays intact for both simple and variable products');
+check(strpos($cp3,'mix-blend-mode:multiply')!==false && strpos($cp3,'cursor:crosshair')!==false, 'R45 the gallery matches the reference zoom style');
+check(strpos($cp3,'border-radius:24px')!==false && strpos($cp3,'cp3-descfade')!==false, 'R45 the reference 24px cards and the description fade/expand ship with the layout');
+
+// R46: pixel-level pass over the reference screenshots (uploads: 1-5.png).
+$ai_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-ai.php');
+// 1) wishlist line with the reference copy, single toggle, "نظر" wording, no duplicated SKU row under the title
+check(strpos($cp3,'cp3-wishline')!==false && strpos($cp3,'۱۰۰٪ شاید این محصول را هم پسندید')!==false && substr_count($cp3,'data-jluxe-wishlist-toggle')===3 && strpos($cp3,' نظر</a>')!==false && strpos($cp3,'cp3-sub')===false, 'R46 the title block carries the reference wishlist line and review link, without the duplicated SKU row');
+// 2) variation pill label matches the reference wording
+check(strpos($cp3,'مورد نظر را انتخاب کنید:')!==false, 'R46 variation pill label reads "… مورد نظر را انتخاب کنید:"');
+// 3) buy box column is sticky on desktop (reference keeps it pinned during section scroll)
+check(preg_match('/@media\(min-width:768px\)\{\.jluxe-cp3 \.cp3-side\{[^}]*position:sticky;top:calc\(88px \+ var\(--wp-admin--admin-bar--height,0px\)\);align-self:flex-start\}/',$cp3)===1, 'R46 the buy box column pins below the header while sections scroll');
+// 4) CTA is a full pill with a trailing plus glyph drawn via CSS mask (real button untouched)
+check(preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*border-radius:16px !important;/',$cp3)===1 && strpos($cp3,'.single_add_to_cart_button::after')!==false, 'R46 the add-to-cart button keeps the masked plus glyph');
+// 5) sticky navbar: reference label + arrows moved to the far end
+check(strpos($cp3,'پرش به قسمت')!==false && strpos($cp3,'بخش فعلی')===false && strpos($cp3,'cp3-nav-arrows"></span')===false && preg_match('/cp3-tabs.*cp3-nav-arrows/s',$cp3)===1, 'R46 the sticky navbar uses the reference label and keeps arrows at the far end');
+// 6) section numbers are plain red digits (no chip box)
+check(preg_match('/\.jluxe-cp3 \.cp3-num\{[^}]*color:hsl\(var\(--primary\)\);font-size:15px/',$cp3)===1 && preg_match('/\.jluxe-cp3 \.cp3-num\{[^}]*border-radius/',$cp3)!==1, 'R46 section numbers are plain red digits like the reference');
+// 7) spec rows push values to the far edge (label right, value left in RTL)
+check(preg_match('/\.jluxe-cp3 \.cp3-specrow\{display:flex;align-items:baseline;justify-content:space-between/',$cp3)===1 && strpos($cp3,'.cp3-specrow .v{color:hsl(var(--foreground));font-weight:500;text-align:end}')!==false, 'R46 spec rows use label/value justification with the value flush to the edge');
+// 8) rating card: bars first (right), cream score panel second (left), count inside the label, plain percent
+check(preg_match('/\.jluxe-cp3 \.cp3-rate\{[^}]*\}<\/style>|grid-template-columns:1fr 220px/s',$cp3)===1 && strpos($cp3,'cp3-rate-bars">
+								<?php')!==false && strpos($cp3,'<i dir="ltr">(')!==false && strpos($cp3,' ?>٪</span>')!==false, 'R46 the rating card orders bars before the score panel and formats counts/percent like the reference');
+// 9) AI summary card: reference title/subtitle, icon on the opposite side
+check(strpos($ai_tpl,'خلاصه دیدگاه خریداران')!==false && strpos($ai_tpl,'تولید شده با هوش مصنوعی')!==false && strpos($cp3,'flex-direction:row-reverse;gap:12px')!==false, 'R46 the AI summary card uses the reference title, generator subtitle and mirrored icon');
+// 10) review sort tabs with real DOM sorting driven by the WooCommerce rating meta class
+check(strpos($cp3,'cp3-sortsel')!==false && strpos($cp3,'data-sort="best"')!==false && strpos($cp3,'\'jluxe-rating-\' . $cp3_rating')!==false && strpos($cp3,'get_comment_meta( (int) $cp3_comment_id, \'rating\', true )')!==false && strpos($cp3,'match( /jluxe-rating-(\d+)/ )')!==false, 'R46 review sort tabs reorder real comments using the WooCommerce rating meta');
+// 11) FAQ: recessed inner panel, title first (right), plain icon (left), reference subtitle
+check(strpos($cp3,'cp3-faq-list')!==false && strpos($cp3,'شاید سوال تو هم باشه')!==false && preg_match('/cp3-faq-head">\s*<div>/s',$cp3)===1, 'R46 the FAQ card wraps items in the recessed panel with the reference header order');
+
+// R47: purchase-addons modal (add-to-cart suggestion sheet) per the user's reference DOM (1.txt on GitHub main).
+$pa_original_settings = jluxe_get_theme_settings();
+$pa_defaults = $pa_original_settings['purchase_addons'] ?? array();
+check(is_array($pa_defaults) && true === ( $pa_defaults['enabled'] ?? false ) && 'per_product' === ( $pa_defaults['mode'] ?? '' ) && is_array( $pa_defaults['services'] ?? null ), 'R47 purchase-addons ships enabled since R61 (explicit admin off stays off) with the reference default mode');
+$pa_san = jluxe_sanitize_purchase_addons( array(
+	'enabled' => '1',
+	'mode' => 'nonsense',
+	'fixed_ids_csv' => '7, 7، 0، x، 11',
+	'services' => array(
+		array( 'title' => 'بیمه', 'amount' => '12,000', 'context' => 'weird', 'auto' => '1' ),
+		array( 'title' => '' ),
+		array( 'title' => 'س', 'amount' => '-3' ),
+	),
+), $pa_defaults );
+check(true === $pa_san['enabled'] && 'per_product' === $pa_san['mode'] && array( 7, 11 ) === $pa_san['fixed_ids'], 'R47 sanitizer whitelists the mode and parses the fixed ids CSV');
+$pa_sv = array_values( $pa_san['services'] );
+check(2 === count( $pa_sv ) && 'بیمه' === $pa_sv[0]['title'] && 12000.0 === $pa_sv[0]['amount'] && 'modal' === $pa_sv[0]['context'] && true === $pa_sv[0]['auto'] && 0.0 === $pa_sv[1]['amount'], 'R47 service rows normalize title/amount/context/auto and drop empty ones');
+$GLOBALS['products'][500] = new WC_Product(500);
+$GLOBALS['products'][501] = new WC_Product(501);
+$GLOBALS['products'][502] = new WC_Product(502);
+$GLOBALS['product_cross_sells'][500] = array(501);
+$GLOBALS['product_category_ids'][500] = array(9);
+$GLOBALS['product_prices'][500] = array( 'price' => 800000.0, 'regular' => 1000000.0 );
+$GLOBALS['product_prices'][502] = array( 'price' => 500000.0, 'regular' => 500000.0 );
+$GLOBALS['product_query_results'] = array( $GLOBALS['products'][502] );
+$pa_base = $pa_original_settings;
+$pa_base['purchase_addons'] = array( 'enabled' => true, 'mode' => 'fixed', 'fixed_ids' => array( 502 ), 'services' => array() );
+update_test_settings( $pa_base );
+$pa_got = jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] );
+check(1 === count( $pa_got ) && 502 === reset( $pa_got )->get_id(), 'R47 fixed mode suggests only the globally selected purchasable products');
+$pa_base['purchase_addons']['mode'] = 'per_product';
+update_test_settings( $pa_base );
+$GLOBALS['product_query_args'] = null;
+$pa_got = jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] );
+check(1 === count( $pa_got ) && 501 === reset( $pa_got )->get_id() && null === $GLOBALS['product_query_args'], 'R47 per-product mode uses real cross-sells without a parallel query');
+$pa_base['purchase_addons']['mode'] = 'per_category';
+update_test_settings( $pa_base );
+$pa_got = jluxe_get_suggested_products_for_cart( $GLOBALS['products'][500] );
+check(1 === count( $pa_got ) && 502 === reset( $pa_got )->get_id() && null !== $GLOBALS['product_query_args'], 'R47 per-category mode queries only the same category');
+update_test_settings( $pa_original_settings );
+/* R61: پیش‌فرضِ سوییچ روشن شد — «خاموشی» حالا یک انتخابِ صریحِ آزمون است. */
+$pa_off = $pa_original_settings;
+$pa_off['purchase_addons']['enabled'] = false;
+update_test_settings( $pa_off );
+ob_start();
+jluxe_render_suggested_products_modal( $GLOBALS['products'][500] );
+$pa_html = ob_get_clean();
+check('' === $pa_html, 'R47 the modal renders nothing while the global toggle is off');
+update_test_settings( $pa_original_settings );
+$GLOBALS['post_meta'][500]['_jluxe_suggested_modal_enabled'] = 'no';
+$pa_base['purchase_addons']['enabled'] = true;
+$pa_base['purchase_addons']['mode'] = 'fixed';
+$pa_base['purchase_addons']['services'] = array(
+	array( 'title' => 'بیمه', 'amount' => 12000, 'context' => 'modal', 'auto' => true ),
+	array( 'title' => 'فقط سبد', 'amount' => 5000, 'context' => 'cart', 'auto' => false ),
+);
+update_test_settings( $pa_base );
+ob_start();
+jluxe_render_suggested_products_modal( $GLOBALS['products'][500] );
+$pa_html = ob_get_clean();
+check('' === $pa_html, 'R47 the per-product toggle can still turn the modal off');
+unset( $GLOBALS['post_meta'][500]['_jluxe_suggested_modal_enabled'] );
+ob_start();
+jluxe_render_suggested_products_modal( $GLOBALS['products'][500] );
+$pa_html = ob_get_clean();
+check(strpos($pa_html,'افزودن به سبد خرید')!==false && strpos($pa_html,'این محصولات را هم اضافه کنید')!==false && strpos($pa_html,'مبلغ قابل پرداخت')!==false && strpos($pa_html,'data-pa-confirm')!==false && strpos($pa_html,'تأیید و افزودن به سبد')!==false, 'R47 the modal matches the reference sheet: header, optional suggestions, payable total and confirm');
+check(strpos($pa_html,'data-pa-product="502"')!==false && strpos($pa_html,'data-pa-service="s0"')!==false && strpos($pa_html,'aria-pressed="true"')!==false && strpos($pa_html,'data-pa-service="s1"')===false && strpos($pa_html,'فقط سبد')===false, 'R47 auto service preselected, cart-only service excluded, suggestion row carries its id');
+check(strpos($pa_html,'<del>')!==false && strpos($pa_html,'۲۰٪')!==false && strpos($pa_html,'data-pa-main="800000"')!==false, 'R47 the main card shows reference del/discount-percent pricing and its raw amount');
+check(in_array( 'woocommerce_cart_calculate_fees', array_column( $GLOBALS['actions'], 0 ), true ) && in_array( 'woocommerce_cart_emptied', array_column( $GLOBALS['actions'], 0 ), true ), 'R47 service fees hook into the official WooCommerce fee pipeline');
+$GLOBALS['wc']->session = new FakeSession();
+$GLOBALS['wc']->session->set( 'jluxe_pa_services', array( 's0', 'evil' ) );
+$GLOBALS['wc']->cart = new FakeCart();
+jluxe_pa_apply_service_fees();
+check(array( array( 'بیمه', 12000.0 ) ) === $GLOBALS['wc']->cart->fees, 'R47 fees are applied from server-side settings only, never from client input');
+reset_cart();
+$GLOBALS['wc']->session = new FakeSession();
+$_POST = array( 'op' => 'pa_services', 'pa_services' => 's0,s1,evil' );
+$pa_reply = json_call( 'jluxe_ajax_cart' );
+check($pa_reply->success && array( 's0' ) === $GLOBALS['wc']->session->get( 'jluxe_pa_services' ), 'R47 the pa_services op stores only valid modal-service keys');
+$pa_js = (string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
+check(strpos($pa_js,'paUpdateTotal')!==false && strpos($pa_js,'op: "pa_services"')!==false && strpos($pa_js,"{ op: \"add\", product_id: productId, quantity: 1 }")!==false && strpos($pa_js,'pa_services: serviceKeys.join')!==false, 'R47 the sheet JS recomputes the live total and posts ids/keys only, never amounts');
+$pa_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+check(strpos($pa_css,'.jluxe-pa-check')!==false && strpos($pa_css,'.jluxe-pa-badge')!==false && strpos($pa_css,'.jluxe-pa-total')!==false && strpos($pa_css,'.jluxe-pa-confirm:disabled')!==false, 'R47 the reference sheet skin (checkbox, discount badge, total, confirm) ships in the stylesheet');
+update_test_settings( $pa_original_settings );
+
+// R48: product-page variable-product fixes + site URL/shop diagnosis (user report: slug names on pills,
+// broken variable buy-box button, empty /shop/, broken account/login/blog links).
+// 1) taxonomy attribute options resolve to real term names (never slugs) on pills and in the hidden select.
+$GLOBALS['taxonomies']['pa_size'] = true;
+$GLOBALS['terms_by_slug']['pa_size'] = array(
+	'cochek' => (object) array( 'name' => 'کوچک', 'slug' => 'cochek' ),
+	'bozorg' => (object) array( 'name' => 'بزرگ', 'slug' => 'bozorg' ),
+	'bi-var' => (object) array( 'name' => 'بدون تنوع', 'slug' => 'bi-var' ),
+);
+check(strpos($cp3,'get_term_by( \'slug\', $cp3_value, $cp3_name )')!==false && strpos($cp3,'taxonomy_exists( $cp3_name )')!==false && strpos($cp3,'woocommerce_variation_option_name')!==false, 'R48 variation pill labels resolve real term names (taxonomy term name or the Woo name filter, never the raw slug)');
+// 2) pills are filtered to options that actually have variations (wildcard attributes keep everything).
+check(strpos($cp3,'str_replace( \'attribute_\', \'\', (string) $cp3_attr_key )')!==false && strpos($cp3,'[\'*\'] = true;')!==false && strpos($cp3,'cp3_valid_options[ $cp3_attr_name ]')!==false, 'R48 pills only offer options backed by real variations (or wildcard attributes)');
+$pa_r48_orig = jluxe_get_theme_settings();
+check(function_exists('jluxe_render_site_diagnosis_page') && function_exists('jluxe_diagnosis_repair_pages'), 'R48 the site diagnosis page and repair routine ship');
+$GLOBALS['existing_pages'] = array();
+$GLOBALS['taxonomies']['product_cat'] = true;
+$GLOBALS['options']['woocommerce_shop_page_id'] = 0;
+$GLOBALS['options']['woocommerce_cart_page_id'] = 61;
+$GLOBALS['posts'][61] = array( 'post_type' => 'page', 'post_status' => 'draft' );
+$GLOBALS['options']['woocommerce_checkout_page_id'] = 0;
+$GLOBALS['options']['woocommerce_myaccount_page_id'] = 63;
+$GLOBALS['posts'][63] = array( 'post_type' => 'page', 'post_status' => 'publish' );
+$GLOBALS['options']['show_on_front'] = 'page';
+$GLOBALS['options']['page_for_posts'] = 0;
+$GLOBALS['post_counts']['product'] = array( 'publish' => 7, 'draft' => 2 );
+$GLOBALS['updated_posts'] = array();
+$GLOBALS['inserted_posts'] = array();
+$r48_result = jluxe_diagnosis_repair_pages();
+check(1 === count( $GLOBALS['updated_posts'] ) && 61 === $GLOBALS['updated_posts'][0]['ID'] && 'publish' === $GLOBALS['updated_posts'][0]['post_status'], 'R48 the repair publishes the trashed/draft cart page only (healthy pages untouched)');
+check(3 === count( $GLOBALS['inserted_posts'] ) && 'publish' === $GLOBALS['inserted_posts'][0]['post_status'] && 'shop' === $GLOBALS['inserted_posts'][0]['post_name'] && '[woocommerce_checkout]' === $GLOBALS['inserted_posts'][1]['post_content'] && 'blog' === $GLOBALS['inserted_posts'][2]['post_name'], 'R48 the repair creates missing shop/checkout/blog pages, published with standard Woo content');
+check(in_array( 'woocommerce_shop_page_id', array_keys( $GLOBALS['options'] ), true ) && (int) $GLOBALS['options']['woocommerce_shop_page_id'] > 0, 'R48 repaired pages are wired into the WooCommerce page settings');
+check(!empty( $r48_result['fixed'] ) && empty( $r48_result['errors'] ), 'R48 the repair reports what it fixed with no errors');
+$GLOBALS['options']['woocommerce_shop_page_id'] = 0;
+$GLOBALS['posts'][61] = array( 'post_type' => 'page', 'post_status' => 'draft' );
+$GLOBALS['inserted_posts'] = array();
+$GLOBALS['updated_posts'] = array();
+$GLOBALS['denied_caps'] = array( 'manage_options' );
+$r48_denied = jluxe_diagnosis_repair_pages();
+check(empty( $r48_denied['fixed'] ) && !empty( $r48_denied['errors'] ), 'R48 the repair refuses to run without manage_options');
+unset( $GLOBALS['denied_caps'] );
+ob_start();
+jluxe_render_site_diagnosis_page();
+$r48_html = ob_get_clean();
+check(strpos($r48_html,'برگه‌های پشتیبانِ آدرس‌ها')!==false && strpos($r48_html,'jluxe_repair_site_urls')!==false && strpos($r48_html,'آدرسِ فروشگاه به برگه‌ای سالم اشاره نمی‌کند')!==false && strpos($r48_html,'۷')!==false && strpos($r48_html,'۲')!==false, 'R48 the diagnosis page renders statuses, the repair action, the shop warning and real product counts');
+$pa_r48 = jluxe_get_theme_settings(); unset($pa_r48);
+check(strpos($cp3,'.cp3-addrow .woocommerce-variation,.jluxe-cp3 .cp3-addrow .woocommerce-variation-price,.jluxe-cp3 .cp3-addrow .woocommerce-variation-availability{display:none !important}')!==false && strpos($cp3,'.cp3-addrow .woocommerce-variation-add-to-cart{display:flex !important')!==false && strpos($cp3,'.cp3-addrow .single_variation_wrap{flex:1 1 auto;min-width:0;margin:0 !important;display:flex;flex-direction:column}')!==false && strpos($cp3,'woocommerce-variation-add-to-cart-disabled .single_add_to_cart_button{opacity:.5')!==false, 'R48 the variable buy-box resets the raw Woo variation block and lays out the real qty+button row with a disabled state');
+// R49: the variable buy-box must survive WooCommerce float/ID CSS and plugin overrides.
+check(strpos($cp3,'.cp3-addrow .quantity{float:none !important;margin:0 !important;flex:none}')!==false && strpos($cp3,'.cp3-addrow .woocommerce-variation-add-to-cart .single_add_to_cart_button{float:none !important;flex:1 1 auto !important')!==false && strpos($cp3,'.cp3-addrow .quantity{float:none !important;')!==false, 'R49 the Woo quantity stepper is only float-neutralized: the theme own jluxe-qty pill is never restyled');
+$pa_qtyrules = implode( "\n", preg_match_all('/\.jluxe-cp3 \.cp3-addrow \.quantity\{[^}]*\}/', $cp3, $m) ? $m[0] : array() );
+check(2 === substr_count( $pa_qtyrules, '.quantity{' ) && strpos( $pa_qtyrules, 'border-radius' ) === false && strpos( $pa_qtyrules, 'min-height' ) === false && strpos( $pa_qtyrules, 'display:none !important' ) !== false, 'R49 no buy-box rule restyles the theme quantity pill (only float/margin/flex neutralization plus the reference desktop hide)');
+// R50: fixes verified against the user pasted live DOM (symbol-first price, stepper conflict, gallery polish).
+$pa_r50_input = '<div class="cp3-price" data-cp3-price=""><span class="woocommerce-Price-amount amount" aria-hidden="true"><span class="woocommerce-Price-currencySymbol">&#65020;</span> 100,000</span> <span aria-hidden="true">&ndash;</span> <span class="woocommerce-Price-amount amount" aria-hidden="true"><span class="woocommerce-Price-currencySymbol">&#65020;</span> 1,500,000</span><span class="screen-reader-text">x</span></div>';
+$pa_r50_out = jluxe_amount_first_wc_price( $pa_r50_input );
+check(strpos($pa_r50_out,'100,000 <span class="woocommerce-Price-currencySymbol"')!==false && strpos($pa_r50_out,'1,500,000 <span class="woocommerce-Price-currencySymbol"')!==false && strpos($pa_r50_out,'"><span class="woocommerce-Price-currencySymbol">')===false, 'R50 the amount-first reorder survives the aria-hidden amount markup (symbol never leads, both range amounts fixed)');
+check(jluxe_amount_first_wc_price( $pa_r50_out ) === $pa_r50_out, 'R50 the reorder is idempotent');
+check(strpos($cp3,'.cp3-zoom::after')!==false && strpos($cp3,'img.is-loaded')!==false && strpos($cp3,"zoomImg.addEventListener( 'load', cp3MarkLoaded )")!==false && strpos($cp3,'scroll-snap-type:x mandatory')!==false && strpos($cp3,'.cp3-thumb:hover{background:hsl(var(--muted-foreground)/.15);transform:translateY(-2px)}')!==false, 'R50 the gallery ships the polished presentation: framed zoom box, load fade, snapped thumb strip with hover lift');
+check(strpos($cp3,'.cp3-fabs{display:flex;gap:10px;margin-top:16px}')!==false && strpos($cp3,'position:absolute;bottom:23px')===false, 'R49 the gallery action buttons sit in flow so they can never overlap the buy box');
+check(strpos($cp3,'.cp3-gallery{flex:none;width:460px;')!==false && strpos($cp3,'.cp3-info{flex:1 1 0;min-width:min(250px,100%)')!==false, 'R49 the gallery column has explicit reference width and the info column can never be crushed');
+check(strpos($cp3,'background:hsl(var(--primary)) !important')!==false && strpos($cp3,'border-radius:16px !important')!==false && strpos($cp3,'width:100% !important;max-width:100%')!==false, 'R48 the add-to-cart button beats WooCommerce ID-based styles and can never collapse');
+// R51: fixes verified against the user second pasted live DOM (price still symbol-first in
+// final range HTML, visible screen-reader-text, always-on short toggle, missing utilities).
+$r51_range = '<div class="cp3-price" data-cp3-price=""><span class="woocommerce-Price-amount amount" aria-hidden="true"><span class="woocommerce-Price-currencySymbol">&#65020;</span> ۱۰۰,۰۰۰</span> <span aria-hidden="true">&ndash;</span> <span class="woocommerce-Price-amount amount" aria-hidden="true"><span class="woocommerce-Price-currencySymbol">&#65020;</span> ۱,۵۰۰,۰۰۰</span><span class="screen-reader-text">محدوده قیمت: &#65020; ۱۰۰,۰۰۰ تا &#65020; ۱,۵۰۰,۰۰۰</span></div>';
+$r51_out = jluxe_amount_first_price_html( $r51_range );
+check(strpos($r51_out,'۱۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'۱,۵۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'محدوده قیمت: &#65020; ۱۰۰,۰۰۰ تا')!==false && jluxe_amount_first_price_html( $r51_out ) === $r51_out, 'R51 the final price HTML (get_price_html late filter) reorders the symbol-first range and leaves the screen-reader summary untouched, idempotently');
+$r51_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: #f5a623; }')!==false, 'R51 the missing utilities ship: hidden screen-reader-text, max-md:hidden, md:px-5 and the boom star bar fill');
+check(strpos($cp3,'shortBody.scrollHeight <= shortBody.clientHeight + 2')!==false && strpos($cp3,'shortBtn.hidden = true;')!==false, 'R51 the short-description toggle hides itself when the text is not clamped');
+// R52: final parity pass against the user's full reference DOM (buttonsAddToCard row).
+check(preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*border-radius:16px !important;/',$cp3)===1 && preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*999px/',$cp3)!==1, 'R52 the buy button uses the reference rounded-16, never the 999px pill that collapsed into a circle');
+check(strpos($cp3,'@media(min-width:768px){.jluxe-cp3 .cp3-addrow .quantity{display:none !important}}')!==false && strpos($cp3,'@media(max-width:767px){.jluxe-cp3 .cp3-addrow{display:none !important}}')!==false, 'R52 the buy row matches the reference buttonsAddToCard: no desktop stepper, whole row hidden on mobile (sticky bar buys there)');
+check(strpos($cp3,'flex-wrap:nowrap !important')!==false, 'R52 the variable buy row can never wrap the button into a circle');
+check(strpos($cp3,'.cp3-gallery{flex:none;width:460px;')!==false && strpos($cp3,'.cp3-zoom{height:420px;width:420px;max-width:100%}')!==false && strpos($cp3,'width:min(420px,100%)')===false, 'R52 the gallery sheet has explicit reference sizing (460px column, 420px zoom) so it can never collapse into a bare thumbnail line');
+check(strpos($cp3,'.cp3-price del{font-size:18px;')!==false, 'R52 the old price renders at the reference text-lg strike-through');
+
+check(preg_match('/<div class="variations">\s*<select name=/',$cp3)===1 && strpos($cp3,'\'woocommerce_update_variation_values\'')!==false, 'R53 the classic pills feed the real Woo variation engine: hidden selects live inside .variations so wc-add-to-cart-variation.js can hear their change events and enable the button');
+check(strpos($cp3,'<div class="single_variation_wrap">')!==false && strpos($cp3,'class="reset_variations"')!==false && strpos($cp3,'.wc-no-matching-variations{')!==false, 'R53 the classic buy area keeps the real single_variation_wrap, a Woo reset link and a styled no-matching message so the button state machine can always recover');
+check(strpos($cp3,'if ( ! opt || opt.disabled ) { return; }')!==false && strpos($cp3,"pill.classList.toggle( 'is-disabled', !! opt.disabled )")!==false, 'R53 filtered-out variation options are struck through on the pills and can never be picked');
+check(strpos($cp3,'data-cp3-thumbs-prev')!==false && strpos($cp3,'data-cp3-thumbs-next')!==false && strpos($cp3,'Math.abs( thumbsStrip.scrollLeft )')!==false && strpos($cp3,'tPrev.hidden = ! over')!==false, 'R53 the gallery thumbs strip gets RTL-safe prev/next arrows that hide themselves when nothing overflows');
+check(strpos($cp3,'.cp3-tarrow{')!==false && strpos($cp3,'.cp3-pill.is-disabled{')!==false && strpos($cp3,'.cp3-thumbsrow{')!==false, 'R53 the arrows, struck-through pills and the thumbs row have explicit reference styles');
+$inc_woo=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+$urls=(string) file_get_contents(ABSPATH.'inc/urls.php');
+$presets=(string) file_get_contents(ABSPATH.'inc/theme-settings-presets.php');
+$sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
+$woo_inc=$inc_woo;
+check(strpos($cp3,'name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>"')!==false && strpos($cp3,'data-attribute_name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>"')!==false && strpos($cp3,'data-show_option_none="yes"')!==false, 'R54 the classic selects carry the real Woo attribute_ names so wc-add-to-cart-variation.js matches variationData keys and never strips the options');
+check(strpos($inc_woo,'\\s*<bdi>\\s*')!==false && strpos($inc_woo,'woocommerce-Price-currencySymbol"[^>]*')!==false && strpos($inc_woo,'(﷼|ریال|تومان)')!==false, 'R54 the price reorder covers the modern <bdi>/translate=no wc_price output and re-numbers-first the screen-reader range text');
+check(strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R54 the classic price box re-numbers-first at the render point, so no later plugin filter can flip it back');
+check(strpos($inc_woo,'jluxe_reference_price_html( $product->get_price_html() )')!==false, 'R54 the sticky CTA price is re-numbers-first at its render point too');
+check(strpos($cp3,'function jluxeBindJqParts')!==false && strpos($cp3,"document.addEventListener( 'DOMContentLoaded', jluxeBindJqParts )")!==false && strpos($cp3,"data-cp3-jq-bound")!==false, 'R55 the jQuery price/pill bindings survive the deferred jquery-core: they bind on DOMContentLoaded when jQuery is not ready yet, exactly once');
+check(strpos($inc_woo,'function jluxe_reference_price_html')!==false && strpos($inc_woo,'function jluxe_toman_glyph_svg')!==false && strpos($inc_woo,'jluxe-toman-clip')!==false, 'R55 the reference price formatter strips the symbol inside del and swaps the rest with the verbatim toman glyph from the reference DOM');
+check(strpos($inc_woo,"\$data['price_html'] = jluxe_reference_price_html")!==false && strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R55 both the variation price_html (found_variation swap) and the server-rendered price box use the reference format with svg-safe kses');
+check(strpos($inc_woo,"\$allowed['svg']")!==false && strpos($inc_woo,"\$allowed['clippath']")!==false && strpos($cp3,'.jluxe-toman-glyph,')!==false, 'R55 the kses allowlist keeps the glyph svg and the glyph has explicit styles in the price box and sticky CTA');
+check(strpos($urls,'preg_match( \'/^(shop|فروشگاه)$/u\', $slug )')!==false && strpos($urls,'preg_match( \'/^(blog|وبلاگ)$/u\', $slug )')!==false && strpos($urls,'get_option( \'page_for_posts\' )')!==false, 'R56 the nav link resolver maps shop/blog header links to their real destinations (Woo shop permalink, posts page, published blog page, home fallback) instead of raw slugs that 404');
+check(strpos($urls,'get_page_by_path( $slug, OBJECT, \'page\' )')!==false && strpos($urls,"'publish' === \$page->post_status")!==false, 'R56 any single-slug nav link that matches a published page goes to its real permalink, while drafts stay untouched for the admin setup flow');
+check(strpos($presets,'\'jluxe_brand_red\'')!==false && strpos($presets,'\'primary\' => \'#ED1A45\'')!==false && strpos($presets,'\'secondary\' => \'#101113\'')!==false && strpos($presets,'\'background\' => \'#F7F8FA\'')!==false, 'R57 the design presets include the reference brand red (ED1A45 primary, 101113 secondary, F7F8FA background) exactly as the user requested from the reference DOM');
+check(substr_count($presets,'typography')>=7 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R57 the new preset card flows through the same apply pipeline and sanitizer gates as the other preset cards');
+check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
+check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false, 'R58 the sticky CTA price renders through the svg-safe kses so the toman glyph survives (wp_kses_post was stripping it)');
+$home_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
+$export_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-import-export.php');
+$card_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
+$cart_php=(string) file_get_contents(ABSPATH.'inc/cart-ux.php');
+$woo_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
+$settings_inc=(string) file_get_contents(ABSPATH.'inc/theme-settings.php');
+$single=(string) file_get_contents(ABSPATH.'single.php');
+check(strpos($sticky_js,'var pillsTarget = document.querySelector( \'[data-cp3-pills]\' )')!==false && strpos($sticky_js,'var scrollTarget = pillsTarget || form')!==false, 'R58 the sticky select-and-buy lands on the first variation pill group instead of the middle of the whole card');
+check(strpos($cp3,'data-cp3-pillfor')===false && strpos($cp3,"hash( 'crc32'")===false, 'R58 the vestigial pillfor attribute and its crc32 computation are gone from the classic template');
+check(strpos($urls,'function jluxe_blog_url')!==false && strpos($urls,'return jluxe_blog_url();')!==false && strpos($single,'jluxe_blog_url()')!==false, 'R59 the blog destination is one shared mapping (posts page -> published blog page -> home) used by the nav resolver and the single.php breadcrumb, never the raw /blog/ that 404s');
+check(substr_count($home_tpl,'jluxe_resolve_site_link')>=5 && strpos($home_tpl,'esc_url( jluxe_resolve_site_link( (string) $slot[\'link\'] ) )')!==false, 'R59 every settings-driven homepage link (collage, layers, item rows) resolves through the same site-link resolver so raw slugs like /blog/ can no longer 404');
+check(strpos($export_php,"\$settings['sms']['username'] = '';")!==false, 'R59 the settings export strips the SMS panel username (defense in depth; the actual keys already live in separate options and never enter the payload)');
+check(strpos($card_tpl,'product_type_<?php echo esc_attr( $is_variable ? \'variable\' : \'simple\' ); ?>')!==false && strpos($card_tpl,'data-quantity="1"')!==false, 'R59 the shop loop button carries the same product_type class and data-quantity as the official Woo loop args');
+check(strpos($cp3,'function_exists( \'jluxe_render_suggested_products_modal\' )')!==false && strpos($cp3,'jluxe_render_suggested_products_modal( $product )')!==false && strpos($cp3,'is_purchasable()')!==false, 'R60 the classic layout renders the R47 suggested-products modal with the same purchasable+function guard as the modern template, so add-to-cart can finally open it');
+check(strpos($woo_inc,'function jluxe_suggested_modal_html_for')!==false && strpos($woo_inc,'function jluxe_render_suggested_products_modal')!==false && strpos($cart_php,"\$snapshot['suggested_html'] = jluxe_suggested_modal_html_for")!==false, 'R61 the suggested modal is served fresh from the add-to-cart endpoint response (op=add attaches post-add suggested_html), not only pre-rendered page markup');
+check(strpos($woo_js,'window.jluxeMountSuggestedModal')!==false && strpos($woo_js,'var paHtml = response.data && response.data.suggested_html')!==false && strpos($woo_js,'single_add_to_cart_button\")) {')===false, 'R61 the modal opens straight from the successful endpoint result in the form interceptor; the brittle button-class gate on the shared event is gone');
+check(strpos($woo_js,'function jluxeBindSuggestedModal')!==false && strpos($woo_js,'data-cp3-pa-bound')!==false && strpos($woo_js,'document.querySelector("[data-jluxe-suggested-modal]")')!==false, 'R61 the modal binder is re-runnable for freshly mounted markup and Escape always closes the modal currently in the DOM');
+check(strpos($woo_js,'window.jluxeMountSuggestedModal(paHtml);')!==false && strpos($woo_js,'staleModal.parentNode.removeChild(staleModal)')!==false && strpos($woo_js,'if (typeof window.jluxeOpenSuggestedProductsModal === "function")')>strpos($woo_js,'window.jluxeMountSuggestedModal(paHtml);'), 'R61 an empty suggested_html means NO modal at all: the opener only runs inside the paHtml branch and any stale SSR modal is removed from the DOM');
+check(strpos($woo_inc,"'orderby'        => array( 'date' => 'DESC' )")!==false && strpos($woo_inc,"data-jluxe-quick-variant=\"<?php echo esc_attr( (string) \$sp->get_id() ); ?>\"")!==false && strpos($settings_inc,"'enabled'  => true")!==false, 'R61 the category fallback is deterministic (newest first), variable suggestions open the quick-variant picker instead of navigating, and purchase_addons defaults to enabled (explicit admin off stays off)');
+echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

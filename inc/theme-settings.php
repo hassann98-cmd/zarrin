@@ -82,6 +82,20 @@ function jluxe_theme_settings_defaults(): array {
 			// روشنش کنه.
 			'auto_scroll_carousels' => false,
 		),
+		// «آیتم‌های اضافه خرید» — مودالِ بعدِ افزودن به سبد (مطابقِ نمونهٔ
+		// قالبِ مرجع). enabled=false یعنی رفتارِ عادی: هیچ مودالی باز
+		// نمی‌شود. mode منبعِ محصولاتِ پیشنهادی را تعیین می‌کند؛ services
+		// فهرستِ خدماتِ قابل‌انتخاب (مثل بیمه) با محلِ نمایش و انتخابِ
+		// خودکار است — مبلغِ فِی در سرور از همین تنظیمات خوانده می‌شود،
+		// نه از POST کلاینت.
+		'purchase_addons' => array(
+			// R61: طبق بررسیِ کاربر، پیش‌فرضِ خاموش کل قابلیت را عملاً غیرموجود می‌کرد —
+			// پیش‌فرضِ روشن مثل مرجع؛ اگر ادمین صریحاً خاموش کند، انتخابش محترم است.
+			'enabled'  => true,
+			'mode'      => 'per_product',
+			'fixed_ids' => array(),
+			'services'  => array(),
+		),
 		'identity' => array(
 			'logo_id'            => 0, // 0 یعنی لوگوی پیش‌فرضِ خودِ سایت (Customize → هویت سایت) یا فقط اسمِ سایت به‌صورتِ متنی — نه یک عکسِ ثابتِ داخلِ پوسته.
 			'mobile_logo_id'     => 0, // 0 یعنی از همون لوگوی اصلی استفاده کن (لوگوی جدا برای موبایل اختیاریه).
@@ -98,7 +112,7 @@ function jluxe_theme_settings_defaults(): array {
 			'short_description'  => get_bloginfo( 'description' ) ?: 'فروشگاه تخصصی جهیزیه با تضمین اصالت کالا و ارسال مطمئن به سراسر ایران.',
 		),
 		'urls' => array(
-			'login' => '/sign', 'dashboard' => '/account', 'orders' => '/account?tab=orders', 'track_order' => '/track-order', 'thankyou_orders' => '/account?tab=orders',
+			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
 		),
 		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted، در src/assets/fonts) استفاده می‌شه؛
 		// این تنظیمات جایگزین فونت نمی‌کنن، فقط اندازه/وزن رو کنترل می‌کنن.
@@ -527,6 +541,21 @@ function jluxe_theme_settings_defaults(): array {
 				),
 			),
 		),
+		// بخش «AI دیدگاه‌ها»: پاسخ خودکار + خلاصهٔ قابل‌ویرایش هر محصول.
+		// پیش‌فرض همه‌چیز خاموش/خالیه تا بدون رضایت مدیر هیچ تماس یا
+		// محتوای ماشینی‌ای ساخته نشه؛ زمان‌بندی هم فقط وقتی قابلیتی فعال
+		// باشه register می‌مونه (jluxe_ai_comments_schedule).
+		'ai_comments' => array(
+			'enabled'               => false,
+			'auto_reply_enabled'    => false,
+			'cron_interval'         => 30,          // دقیقه (1|5|10|15|30|60).
+			'responder_name'        => '',          // خالی = نام سایت.
+			'responder_avatar'      => '',
+			'personality'           => '',
+			'store_description'     => '',
+			'max_replies_per_run'   => 5,
+			'max_summaries_per_run' => 3,
+		),
 		'homepage' => array(
 			'sections' => array(
 				array(
@@ -770,8 +799,11 @@ function jluxe_array_merge_deep( array $defaults, array $overrides ): array {
 /**
  * خواندن تنظیمات — با کش داخل همون request (طبق اصل «کوئری تکراری نزن»).
  */
-function jluxe_get_theme_settings(): array {
+function jluxe_get_theme_settings( bool $refresh = false ): array {
 	static $cached = null;
+	if ( $refresh ) {
+		$cached = null;
+	}
 	if ( null !== $cached ) {
 		return $cached;
 	}
@@ -1328,7 +1360,12 @@ function jluxe_localize_public_settings(): void {
 		array(
 			'logoUrl'          => jluxe_get_logo_url(),
 			'mobileLogoUrl'    => jluxe_get_mobile_logo_url(),
-			'shopUrl'          => function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/shop/' ),
+			'shopUrl'          => jluxe_shop_url(),
+			'urls' => jluxe_public_urls(),
+			'rest' => array(
+				'root' => esc_url_raw( rest_url( 'jluxe/v1/' ) ),
+				'sessionUrl' => admin_url( 'admin-ajax.php' ),
+			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
 			'header'           => $settings['header'],
@@ -1339,15 +1376,10 @@ function jluxe_localize_public_settings(): void {
 			'productCard'      => $settings['product_card'],
 			'aiAssistant'      => jluxe_get_ai_public_settings(),
 			'sms'              => jluxe_get_sms_public_settings(),
-			// وضعیت لاگین واقعیِ بازدیدکننده — نه یک «تنظیم»، بلکه وضعیتِ
-			// واقعیِ درخواستِ فعلی؛ چون این صفحه (header.php) کش کامل نمی‌شه
-			// (هدر همیشه سمت سرور در هر بار بارگذاری رندر می‌شه)، همیشه درسته.
-			'auth'             => array(
-				'isLoggedIn'  => is_user_logged_in(),
-				// برایِ پرکردنِ خودکارِ فرمِ «ثبت پیام برای پشتیبان» — فقط
-				// وقتی واقعاً لاگین باشه؛ برایِ مهمان همیشه رشته‌ی خالیه.
-				'displayName' => is_user_logged_in() ? wp_get_current_user()->display_name : '',
-				'email'       => is_user_logged_in() ? wp_get_current_user()->user_email : '',
+			// Public HTML contains no name/email or user REST nonce. api.js refreshes these privately.
+			'auth' => array(
+				'isLoggedIn' => is_user_logged_in(),
+				'registrationEnabled' => jluxe_registration_enabled(),
 			),
 			// شهرستان‌های هر استان (billing_city وابسته به billing_state در
 			// چک‌اوت/ویرایش آدرس — inc/woocommerce.php: jluxe_iran_cities).
@@ -1420,36 +1452,54 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 22 );
  * نگه‌داشتنِ هر دو باعثِ چاپِ دوتا <link rel="canonical"> متفاوت می‌شد
  * (بررسی‌شده زنده) — نامعتبر/گیج‌کننده برای گوگل.
  */
-remove_action( 'wp_head', 'rel_canonical' );
+if ( ! defined( 'RANK_MATH_VERSION' ) && ! defined( 'WPSEO_VERSION' ) ) {
+	remove_action( 'wp_head', 'rel_canonical' );
+}
 
 /**
  * لینکِ canonical برای وضعیتِ فعلیِ کوئری — نسخه‌ی مطمئن و صریحِ خودمون
  * برای همه‌ی حالت‌های اصلی (بالاتر توضیح داده شد چرا جایگزینِ core شد).
  */
+function jluxe_paginated_canonical_url( string $base ): string {
+	$page = max( 1, (int) get_query_var( 'paged', 1 ) );
+	if ( $page <= 1 || '' === $base ) {
+		return $base;
+	}
+	if ( ! get_option( 'permalink_structure' ) || false !== strpos( $base, '?' ) ) {
+		return add_query_arg( 'paged', $page, $base );
+	}
+	global $wp_rewrite;
+	$pagination_base = isset( $wp_rewrite->pagination_base ) ? $wp_rewrite->pagination_base : 'page';
+	return trailingslashit( $base ) . user_trailingslashit( $pagination_base . '/' . $page, 'paged' );
+}
+
 function jluxe_current_canonical_url(): string {
+	if ( is_search() || is_404() ) {
+		return '';
+	}
 	if ( function_exists( 'is_shop' ) && is_shop() ) {
-		$shop_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'shop' ) : 0;
-		if ( $shop_id > 0 ) {
-			return (string) get_permalink( $shop_id );
-		}
+		return jluxe_paginated_canonical_url( jluxe_shop_url() );
 	}
 	if ( is_front_page() ) {
-		return home_url( '/' );
+		return jluxe_paginated_canonical_url( home_url( '/' ) );
 	}
 	if ( is_singular() ) {
-		$url = get_permalink();
-		return $url ? (string) $url : '';
+		return (string) ( wp_get_canonical_url() ?: '' );
+	}
+	if ( is_home() ) {
+		$posts_page = (int) get_option( 'page_for_posts' );
+		return jluxe_paginated_canonical_url( $posts_page ? get_permalink( $posts_page ) : home_url( '/' ) );
 	}
 	if ( is_category() || is_tag() || is_tax() ) {
 		$url = get_term_link( get_queried_object() );
-		return is_wp_error( $url ) ? '' : (string) $url;
+		return is_wp_error( $url ) ? '' : jluxe_paginated_canonical_url( (string) $url );
 	}
 	if ( is_post_type_archive() ) {
-		$url = get_post_type_archive_link( get_query_var( 'post_type' ) );
-		return $url ? (string) $url : '';
+		$type = get_query_var( 'post_type' );
+		$url = get_post_type_archive_link( is_array( $type ) ? reset( $type ) : $type );
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
 	}
-	$core_canonical = wp_get_canonical_url();
-	return $core_canonical ? (string) $core_canonical : '';
+	return '';
 }
 
 /**
@@ -1979,10 +2029,7 @@ function jluxe_set_sms_api_key( string $key ): void {
  * جزئیات دیگه. تا وقتی این false باشه، تب OTP توی فرانت غیرفعال/مخفیه.
  */
 function jluxe_get_sms_public_settings(): array {
-	$sms = jluxe_get_theme_settings()['sms'];
-	return array(
-		'enabled' => (bool) $sms['enabled'] && '' !== $sms['provider'] && '' !== jluxe_get_sms_api_key(),
-	);
+	return array( 'enabled' => jluxe_otp_available() );
 }
 
 require_once __DIR__ . '/theme-settings-sanitize.php';

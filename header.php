@@ -133,13 +133,13 @@
 					? '<span class="inline-flex size-4 shrink-0 [&>svg]:size-full">' . $jluxe_item['svg'] . '</span>'
 					: jluxe_nav_icon_svg( $jluxe_item['icon'] ?? '', 'size-4' );
 				if ( empty( $jluxe_item['children'] ) ) : ?>
-					<a href="<?php echo esc_url( $jluxe_item['url'] ?: '#' ); ?>" class="flex shrink-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-foreground">
+					<a href="<?php echo esc_url( jluxe_resolve_site_link( $jluxe_item['url'] ?: '#' ) ); ?>" class="flex shrink-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-foreground">
 						<?php echo $jluxe_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<?php echo esc_html( $jluxe_item['label'] ); ?>
 					</a>
 				<?php else : ?>
 					<div class="group relative">
-						<a href="<?php echo esc_url( $jluxe_item['url'] ?: '#' ); ?>" class="flex shrink-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-foreground">
+						<a href="<?php echo esc_url( jluxe_resolve_site_link( $jluxe_item['url'] ?: '#' ) ); ?>" class="flex shrink-0 items-center gap-1.5 text-text-secondary transition-colors hover:text-foreground">
 							<?php echo $jluxe_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 							<?php echo esc_html( $jluxe_item['label'] ); ?>
 							<?php echo $jluxe_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -150,7 +150,7 @@
 									? '<span class="inline-flex size-4 shrink-0 [&>svg]:size-full">' . $jluxe_child['svg'] . '</span>'
 									: jluxe_nav_icon_svg( $jluxe_child['icon'] ?? '', 'size-4' );
 								?>
-								<a href="<?php echo esc_url( $jluxe_child['url'] ?: '#' ); ?>" class="flex items-center gap-1.5 px-4 py-2 text-small text-text-secondary transition-colors hover:bg-muted hover:text-primary">
+								<a href="<?php echo esc_url( jluxe_resolve_site_link( $jluxe_child['url'] ?: '#' ) ); ?>" class="flex items-center gap-1.5 px-4 py-2 text-small text-text-secondary transition-colors hover:bg-muted hover:text-primary">
 									<?php echo $jluxe_child_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 									<?php echo esc_html( $jluxe_child['label'] ); ?>
 								</a>

@@ -166,12 +166,29 @@ add_action( 'save_post_jluxe_question', 'jluxe_qa_save_meta_box' );
 function jluxe_qa_handle_submit(): void {
 	check_ajax_referer( 'jluxe_qa_submit', 'jluxe_qa_nonce' );
 
+	if ( ! jluxe_security_rate_limit( 'qa_ip', jluxe_theme_get_client_ip(), 5, 10 * MINUTE_IN_SECONDS ) ) {
+		wp_send_json_error( array( 'message' => 'تعداد درخواست‌ها زیاد است؛ چند دقیقه دیگر دوباره تلاش کنید.' ), 429 );
+	}
+	if ( ! empty( $_POST['jluxe_qa_company'] ) || ( isset( $_POST['question'] ) && ( ! is_string( $_POST['question'] ) || strlen( $_POST['question'] ) > 8000 ) ) ) {
+		wp_send_json_error( array( 'message' => 'درخواست معتبر نیست.' ), 400 );
+	}
+
 	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 	$question   = isset( $_POST['question'] ) ? sanitize_textarea_field( wp_unslash( $_POST['question'] ) ) : '';
 	$name       = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 
 	if ( ! $product_id || '' === trim( $question ) ) {
 		wp_send_json_error( array( 'message' => __( 'لطفاً متن پرسش را وارد کنید.', 'jluxe' ) ) );
+	}
+
+	if ( ! function_exists( 'wc_get_product' ) || ! jluxe_product_is_public( wc_get_product( $product_id ) ) ) {
+		wp_send_json_error( array( 'message' => 'محصول در دسترس نیست.' ), 404 );
+	}
+	if ( mb_strlen( $question, 'UTF-8' ) < 5 || mb_strlen( $question, 'UTF-8' ) > 2000 || mb_strlen( $name, 'UTF-8' ) > 80 ) {
+		wp_send_json_error( array( 'message' => 'پرسش باید بین ۵ تا ۲۰۰۰ کاراکتر و نام حداکثر ۸۰ کاراکتر باشد.' ), 400 );
+	}
+	if ( ! jluxe_security_rate_limit( 'qa_product', jluxe_theme_get_client_ip() . ':' . $product_id, 2, 10 * MINUTE_IN_SECONDS ) ) {
+		wp_send_json_error( array( 'message' => 'برای این محصول چند دقیقه بعد دوباره پرسش ثبت کنید.' ), 429 );
 	}
 
 	$post_id = wp_insert_post(
@@ -246,11 +263,14 @@ function jluxe_render_qa_section(): void {
 
 		<form class="jluxe-qa-form mt-4 flex flex-col items-start gap-3 rounded-xl border border-border p-5" data-jluxe-qa-form>
 			<?php wp_nonce_field( 'jluxe_qa_submit', 'jluxe_qa_nonce' ); ?>
+			<input type="text" name="jluxe_qa_company" value="" tabindex="-1" aria-hidden="true" autocomplete="off" style="display:none" />
 			<input type="hidden" name="product_id" value="<?php echo esc_attr( (string) $product_id ); ?>" />
 
 			<p class="text-body font-medium text-foreground"><?php esc_html_e( 'پرسشی درباره این کالا دارید؟', 'jluxe' ); ?></p>
 			<textarea
 				name="question"
+				aria-label="متن پرسش"
+				minlength="5" maxlength="2000"
 				required
 				rows="3"
 				class="w-full rounded-lg border border-border p-3 text-small"
@@ -259,6 +279,7 @@ function jluxe_render_qa_section(): void {
 			<input
 				type="text"
 				name="name"
+				aria-label="نام شما (اختیاری)" maxlength="80"
 				class="w-full max-w-xs rounded-lg border border-border p-2 text-small"
 				placeholder="<?php esc_attr_e( 'نام شما (اختیاری)', 'jluxe' ); ?>"
 			/>
@@ -268,7 +289,7 @@ function jluxe_render_qa_section(): void {
 			>
 				<?php esc_html_e( 'ثبت پرسش', 'jluxe' ); ?>
 			</button>
-			<p class="jluxe-qa-form-message hidden text-small" data-jluxe-qa-message></p>
+			<p class="jluxe-qa-form-message hidden text-small" data-jluxe-qa-message role="status" aria-live="polite"></p>
 		</form>
 
 		<div class="jluxe-qa-list mt-6 flex flex-col divide-y divide-border">

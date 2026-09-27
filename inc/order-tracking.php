@@ -1,17 +1,10 @@
 <?php
 /**
- * =====================================================================
- *  JLuxe – Order Tracking REST API
- * ---------------------------------------------------------------------
- *  پشتوانه‌ی صفحه‌ی «پیگیری سفارش» (اسلاگ track-order). دقیقاً همون
- *  منطقی که روی jluxe.ir (Code Snippet جدا) واقعاً فعاله، این‌جا به‌عنوان
- *  بخش واقعیِ خودِ قالب پورت شده (نه یک افزونه‌ی جدا) — jluxe_theme_get_client_ip()
- *  حذف شده چون از قبل در inc/theme-settings-ai.php تعریف شده و همون
- *  نسخه‌ی مشترک استفاده می‌شه.
- *
- *  Endpoint : GET /wp-json/jluxe/v1/order-track?order_number=X&phone=Y
- *  نسخه API : 1.1
- * =====================================================================
+ * Order tracking API 1.2: POST only, private/no-store on every response.
+ * An order number and phone permit a status summary, not disclosure of the
+ * customer's identity, purchases or carrier tracking token. Full detail also
+ * requires the WordPress-authenticated owner. Cookie authentication in the
+ * browser also requires a valid REST nonce; identity is never taken from input.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -19,13 +12,6 @@ defined( 'ABSPATH' ) || exit;
 /* ---------------------------------------------------------------------
  * 0) تنظیمات قابل تغییر توسط ادمین
  * ------------------------------------------------------------------ */
-
-if ( ! defined( 'JLUXE_CURRENCY_UNIT_LABEL' ) ) {
-	define( 'JLUXE_CURRENCY_UNIT_LABEL', 'تومان' ); // یا: 'ریال'
-}
-if ( ! defined( 'JLUXE_CURRENCY_DIVIDE_BY' ) ) {
-	define( 'JLUXE_CURRENCY_DIVIDE_BY', 1 ); // اگر ذخیره‌سازی ریالی و نمایش تومانی است: 10
-}
 
 /* ---------------------------------------------------------------------
  * 1) ثبت مسیر REST API
@@ -37,18 +23,22 @@ add_action(
 			'jluxe/v1',
 			'/order-track',
 			array(
-				'methods'             => WP_REST_Server::READABLE, // GET
+				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => 'jluxe_order_track_handler',
 				'permission_callback' => '__return_true', // صفحه پیگیری برای عموم است
 				'args'                => array(
 					'order_number' => array(
 						'required'          => true,
 						'type'              => 'string',
+						'maxLength'         => 100,
+						'validate_callback' => 'rest_validate_request_arg',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
 					'phone'        => array(
 						'required'          => true,
 						'type'              => 'string',
+						'maxLength'         => 64,
+						'validate_callback' => 'rest_validate_request_arg',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
 				),
@@ -61,6 +51,13 @@ add_action(
  * 2) هندلر اصلی درخواست
  * ------------------------------------------------------------------ */
 function jluxe_order_track_handler( WP_REST_Request $request ) {
+
+	if ( 'POST' !== $request->get_method() ) {
+		return jluxe_track_error_response( 'Method not allowed', 405 );
+	}
+	if ( ! function_exists( 'wc_get_order' ) || ! function_exists( 'wc_get_orders' ) || ! class_exists( 'WC_Order' ) ) {
+		return jluxe_track_error_response( 'پیگیری سفارش در حال حاضر در دسترس نیست.', 503 );
+	}
 
 	if ( ! jluxe_track_rate_limit_ok() ) {
 		return jluxe_track_error_response(
@@ -92,19 +89,25 @@ function jluxe_order_track_handler( WP_REST_Request $request ) {
 		return jluxe_track_not_found_error();
 	}
 
-	$response = array(
-		'success' => true,
-		'version' => '1.1',
-		'data'    => array(
-			'order'    => jluxe_build_order_data( $order ),
-			'customer' => jluxe_build_customer_data( $order ),
-			'shipping' => jluxe_build_shipping_data( $order ),
-			'items'    => jluxe_build_items_data( $order ),
-			'timeline' => jluxe_build_timeline_data( $order ),
-		),
+	// Cookie identity is trustworthy in REST only after core has checked X-WP-Nonce.
+	// A guest order (customer_id=0) never matches an anonymous visitor (user_id=0).
+	$is_owner = get_current_user_id() > 0 && (int) $order->get_customer_id() === get_current_user_id();
+	$data = array(
+		'access'   => $is_owner ? 'owner' : 'status_only',
+		'order'    => jluxe_build_order_data( $order, $is_owner ),
+		'timeline' => jluxe_build_timeline_data( $order ),
 	);
+	if ( $is_owner ) {
+		$data['customer'] = jluxe_build_customer_data( $order );
+		$data['shipping'] = jluxe_build_shipping_data( $order );
+		$data['items'] = jluxe_build_items_data( $order );
+	}
 
-	return new WP_REST_Response( $response, 200 );
+	return new WP_REST_Response(
+		array( 'success' => true, 'version' => '1.2', 'data' => $data ),
+		200,
+		jluxe_private_rest_headers()
+	);
 }
 
 /* ---------------------------------------------------------------------
@@ -150,14 +153,7 @@ function jluxe_find_order_by_number( $input ) {
  * ------------------------------------------------------------------ */
 
 function jluxe_convert_digits_to_en( $string ) {
-	$persian = array( '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹' );
-	$arabic  = array( '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩' );
-	$english = array( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' );
-
-	$string = str_replace( $persian, $english, (string) $string );
-	$string = str_replace( $arabic, $english, $string );
-
-	return $string;
+	return jluxe_ascii_digits( (string) $string );
 }
 
 function jluxe_convert_digits_to_fa( $string ) {
@@ -168,14 +164,7 @@ function jluxe_convert_digits_to_fa( $string ) {
 }
 
 function jluxe_normalize_phone_last10( $phone ) {
-	$phone       = jluxe_convert_digits_to_en( $phone );
-	$digits_only = preg_replace( '/\D+/', '', $phone );
-
-	if ( strlen( $digits_only ) < 10 ) {
-		return '';
-	}
-
-	return substr( $digits_only, -10 );
+	return jluxe_normalize_phone( (string) $phone );
 }
 
 function jluxe_track_error_response( $message, $status = 404 ) {
@@ -184,7 +173,8 @@ function jluxe_track_error_response( $message, $status = 404 ) {
 			'success' => false,
 			'message' => $message,
 		),
-		$status
+		$status,
+		jluxe_private_rest_headers()
 	);
 }
 
@@ -198,35 +188,7 @@ function jluxe_track_not_found_error() {
  * استفاده می‌کنه تا تابع تکراری تعریف نشه.
  */
 function jluxe_track_rate_limit_ok() {
-	$ip     = jluxe_theme_get_client_ip();
-	$key    = 'jluxe_track_' . md5( $ip );
-	$window = 10 * MINUTE_IN_SECONDS;
-	$max    = 10;
-
-	$data = get_transient( $key );
-
-	if ( false === $data || ! is_array( $data ) || empty( $data['expires_at'] ) ) {
-		set_transient(
-			$key,
-			array(
-				'count'      => 1,
-				'expires_at' => time() + $window,
-			),
-			$window
-		);
-		return true;
-	}
-
-	if ( $data['count'] >= $max ) {
-		return false;
-	}
-
-	$remaining = max( 1, $data['expires_at'] - time() );
-
-	$data['count']++;
-	set_transient( $key, $data, $remaining );
-
-	return true;
+	return jluxe_security_rate_limit( 'order_track', jluxe_theme_get_client_ip(), 10, 10 * MINUTE_IN_SECONDS );
 }
 
 /* ---------------------------------------------------------------------
@@ -238,13 +200,14 @@ function jluxe_gregorian_timestamp_to_jalali_string( $timestamp, $format = 'Y/m/
 		return jdate( $format, $timestamp );
 	}
 
+	$local_time = ( new DateTimeImmutable( '@' . (int) $timestamp ) )->setTimezone( wp_timezone() );
 	list( $jy, $jm, $jd ) = jluxe_gregorian_to_jalali(
-		(int) gmdate( 'Y', $timestamp ),
-		(int) gmdate( 'n', $timestamp ),
-		(int) gmdate( 'j', $timestamp )
+		(int) $local_time->format( 'Y' ),
+		(int) $local_time->format( 'n' ),
+		(int) $local_time->format( 'j' )
 	);
 
-	$time_part = gmdate( 'H:i', $timestamp );
+	$time_part = $local_time->format( 'H:i' );
 
 	$jalali = sprintf( '%04d/%02d/%02d', $jy, $jm, $jd );
 
@@ -292,29 +255,23 @@ function jluxe_gregorian_to_jalali( $gy, $gm, $gd ) {
 /* ---------------------------------------------------------------------
  * 6) فرمت قیمت
  * ------------------------------------------------------------------ */
-function jluxe_format_price( $raw_amount ) {
-	$divided = ( (float) $raw_amount ) / JLUXE_CURRENCY_DIVIDE_BY;
-
-	$formatted_en = number_format( $divided, 0 );
-	$formatted_fa = jluxe_convert_digits_to_fa( $formatted_en ) . ' ' . JLUXE_CURRENCY_UNIT_LABEL;
-
-	return array(
-		'raw'       => $divided,
-		'formatted' => $formatted_fa,
-		'unit'      => JLUXE_CURRENCY_UNIT_LABEL,
-	);
+function jluxe_format_price( $raw_amount, string $currency = '' ) {
+	$currency = $currency ?: get_woocommerce_currency();
+	$unit = jluxe_currency_label( $currency );
+	$amount = (float) $raw_amount;
+	$formatted = jluxe_convert_digits_to_fa( number_format( $amount, wc_get_price_decimals(), wc_get_price_decimal_separator(), wc_get_price_thousand_separator() ) );
+	return array( 'raw' => $amount, 'formatted' => $formatted . ' ' . $unit, 'unit' => $unit );
 }
 
 /* ---------------------------------------------------------------------
  * 7) توابع ساخت بخش‌های مختلف خروجی JSON
  * ------------------------------------------------------------------ */
-function jluxe_build_order_data( WC_Order $order ) {
+function jluxe_build_order_data( WC_Order $order, bool $include_private = false ) {
 	$status    = $order->get_status();
 	$date_obj  = $order->get_date_created();
 	$timestamp = $date_obj ? $date_obj->getTimestamp() : time();
 
-	return array(
-		'order_id'       => $order->get_id(),
+	$data = array(
 		'order_number'   => $order->get_order_number(),
 		'status'         => $status,
 		'status_label'   => jluxe_get_status_label( $status ),
@@ -322,9 +279,13 @@ function jluxe_build_order_data( WC_Order $order ) {
 			'gregorian' => $date_obj ? $date_obj->date( 'Y-m-d H:i' ) : null,
 			'jalali'    => $date_obj ? jluxe_gregorian_timestamp_to_jalali_string( $timestamp ) : null,
 		),
-		'total'          => jluxe_format_price( $order->get_total() ),
-		'payment_method' => $order->get_payment_method_title(),
 	);
+	if ( $include_private ) {
+		$data['order_id'] = $order->get_id();
+		$data['total'] = jluxe_format_price( $order->get_total(), $order->get_currency() );
+		$data['payment_method'] = $order->get_payment_method_title();
+	}
+	return $data;
 }
 
 function jluxe_build_customer_data( WC_Order $order ) {
@@ -502,8 +463,8 @@ function jluxe_build_items_data( WC_Order $order ) {
 				'full'      => $full_url,
 			),
 			'quantity'     => (int) $item->get_quantity(),
-			'price'        => jluxe_format_price( $unit_price ),
-			'subtotal'     => jluxe_format_price( $line_total ),
+			'price'        => jluxe_format_price( $unit_price, $order->get_currency() ),
+			'subtotal'     => jluxe_format_price( $line_total, $order->get_currency() ),
 			'sku'          => $product ? $product->get_sku() : null,
 			'attributes'   => $attributes,
 		);
@@ -517,7 +478,7 @@ function jluxe_get_status_label( $status ) {
 		'pending'    => 'در انتظار پرداخت',
 		'on-hold'    => 'در انتظار بررسی پرداخت',
 		'processing' => 'در حال آماده‌سازی',
-		'completed'  => 'تحویل شده',
+		'completed'  => 'تکمیل شده',
 		'cancelled'  => 'لغو شده',
 		'failed'     => 'پرداخت ناموفق',
 		'refunded'   => 'بازگشت وجه',
@@ -533,8 +494,8 @@ function jluxe_build_timeline_data( WC_Order $order ) {
 		2 => 'در انتظار پرداخت',
 		3 => 'تایید پرداخت',
 		4 => 'در حال آماده‌سازی',
-		5 => 'ارسال شده',
-		6 => 'تحویل شده',
+		5 => 'ثبت کد رهگیری',
+		6 => 'تکمیل سفارش',
 	);
 
 	$status        = $order->get_status();
@@ -557,7 +518,8 @@ function jluxe_build_timeline_data( WC_Order $order ) {
 				$current_step = 6;
 				break;
 			default:
-				$current_step = 3;
+				// A custom order status is not evidence that payment or delivery occurred.
+				$current_step = 1;
 		}
 	}
 

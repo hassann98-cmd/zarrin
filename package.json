@@ -1,0 +1,33 @@
+{
+  "name": "zarrin-theme",
+  "version": "1.55.27",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "vite build && node scripts/check-assets.mjs",
+    "dev": "vite --host 0.0.0.0",
+    "test": "node --test tests/*.test.mjs",
+    "test:php": "node scripts/test-php.mjs",
+    "check": "npm run build && npm test && npm run test:php",
+    "package": "python3 scripts/package-theme.py",
+    "test:integration": "node tests/integration/run.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "1.3.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lenis": "1.3.26",
+    "lucide-react": "0.469.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "2.6.1"
+  },
+  "devDependencies": {
+    "jquery": "3.7.1",
+    "jsdom": "26.1.0",
+    "vite": "8.3.0"
+  }
+}

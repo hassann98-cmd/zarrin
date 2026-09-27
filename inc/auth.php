@@ -28,6 +28,7 @@ function jluxe_register_auth_rest_routes(): void {
 				'login'    => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'password' => array(
@@ -49,11 +50,13 @@ function jluxe_register_auth_rest_routes(): void {
 				'username' => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_user',
 				),
 				'email'    => array(
 					'required'          => true,
 					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_email',
 				),
 				'password' => array(
@@ -71,14 +74,7 @@ add_action( 'rest_api_init', 'jluxe_register_auth_rest_routes' );
  * force روی رمز عبور یا اسپم ثبت‌نام روی endpoint عمومی بدون nonce.
  */
 function jluxe_auth_rate_limit_ok( string $bucket, int $max, int $window_seconds ): bool {
-	$ip    = jluxe_theme_get_client_ip();
-	$key   = 'jluxe_auth_rl_' . $bucket . '_' . md5( $ip );
-	$count = (int) get_transient( $key );
-	if ( $count >= $max ) {
-		return false;
-	}
-	set_transient( $key, $count + 1, $window_seconds );
-	return true;
+	return jluxe_security_rate_limit( 'auth_' . $bucket, jluxe_theme_get_client_ip(), $max, $window_seconds );
 }
 
 function jluxe_handle_auth_login( WP_REST_Request $request ) {
@@ -103,6 +99,9 @@ function jluxe_handle_auth_login( WP_REST_Request $request ) {
 }
 
 function jluxe_handle_auth_register( WP_REST_Request $request ) {
+	if ( ! jluxe_registration_enabled() ) {
+		return new WP_Error( 'jluxe_registration_disabled', 'ثبت‌نام در حال حاضر غیرفعال است.', array( 'status' => 403 ) );
+	}
 	if ( ! jluxe_auth_rate_limit_ok( 'register', 5, HOUR_IN_SECONDS ) ) {
 		return new WP_Error( 'jluxe_auth_rate_limited', 'تعداد تلاش‌ها زیاده — بعداً دوباره تلاش کن.', array( 'status' => 429 ) );
 	}
@@ -123,25 +122,87 @@ function jluxe_handle_auth_register( WP_REST_Request $request ) {
 	if ( email_exists( $email ) ) {
 		return new WP_Error( 'jluxe_auth_email_taken', 'حسابی با این ایمیل قبلاً ثبت شده است.', array( 'status' => 409 ) );
 	}
-	if ( strlen( $password ) < 6 ) {
-		return new WP_Error( 'jluxe_auth_weak_password', 'رمز عبور باید حداقل ۶ کاراکتر باشد.', array( 'status' => 400 ) );
+	if ( mb_strlen( $password, 'UTF-8' ) < 12 ) {
+		return new WP_Error( 'jluxe_auth_weak_password', 'رمز عبور باید حداقل ۱۲ کاراکتر باشد.', array( 'status' => 400 ) );
 	}
 
-	$user_id = wp_insert_user( array(
-		'user_login' => $username,
-		'user_email' => $email,
-		'user_pass'  => $password,
-		'role'       => 'customer',
-	) );
+	if ( function_exists( 'wc_create_new_customer' ) ) {
+		// Honor WooCommerce registration validation and customer-created integrations.
+		$user_id = wc_create_new_customer( $email, $username, $password );
+	} else {
+		$errors = apply_filters( 'registration_errors', new WP_Error(), $username, $email );
+		if ( $errors->has_errors() ) {
+			return $errors;
+		}
+		$user_id = wp_insert_user( array( 'user_login' => $username, 'user_email' => $email, 'user_pass' => $password, 'role' => 'subscriber' ) );
+	}
 
 	if ( is_wp_error( $user_id ) ) {
 		return new WP_Error( 'jluxe_auth_register_failed', 'ثبت‌نام ناموفق بود.', array( 'status' => 500 ) );
 	}
 
-	wp_new_user_notification( $user_id, null, 'user' );
+	if ( ! function_exists( 'wc_create_new_customer' ) ) {
+		wp_new_user_notification( $user_id, null, 'user' );
+	}
 
 	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id, true );
+	wp_set_auth_cookie( $user_id, true, is_ssl() );
+	$user = get_userdata( $user_id );
+	do_action( 'wp_login', $user->user_login, $user );
 
 	return array( 'success' => true );
 }
+
+/** Read-only identity bootstrap; never place a customer's name/email in cacheable HTML. */
+function jluxe_ajax_session(): void {
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		wp_send_json_error( array( 'message' => 'Method not allowed' ), 405 );
+	}
+	nocache_headers();
+	$user = wp_get_current_user();
+	wp_send_json_success( array(
+		'restNonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
+		'cartNonce' => wp_create_nonce( 'jluxe_cart' ),
+		'auth' => array(
+			'isLoggedIn' => is_user_logged_in(),
+			'displayName' => is_user_logged_in() ? $user->display_name : '',
+			'email' => is_user_logged_in() ? $user->user_email : '',
+		),
+	) );
+}
+add_action( 'wp_ajax_jluxe_session', 'jluxe_ajax_session' );
+add_action( 'wp_ajax_nopriv_jluxe_session', 'jluxe_ajax_session' );
+
+/** Cache plugins/CDNs must also bypass logged-in cookies and account/cart/checkout URLs. */
+function jluxe_protect_personal_pages_from_cache(): void {
+	if ( is_user_logged_in() || ( function_exists( 'is_account_page' ) && ( is_account_page() || is_cart() || is_checkout() ) ) ) {
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		nocache_headers();
+	}
+}
+add_action( 'template_redirect', 'jluxe_protect_personal_pages_from_cache', 0 );
+
+/** Linking requires BOTH an authenticated customer session (REST nonce) and a phone OTP. */
+function jluxe_render_phone_link_form(): void {
+	if ( ! jluxe_otp_available() || ! jluxe_otp_user_allowed( wp_get_current_user() ) ) {
+		return;
+	}
+	wp_enqueue_script( 'jluxe-phone-link', JLUXE_THEME_URI . '/assets/js/phone-link.js', array( 'jluxe-storefront-utils' ), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/phone-link.js' ), true );
+	?>
+	<form class="jluxe-phone-link rounded-xl border border-border p-5 mt-6" data-jluxe-phone-link
+		data-request-url="<?php echo esc_url( rest_url( 'jluxe/v1/auth/otp-request' ) ); ?>"
+		data-confirm-url="<?php echo esc_url( rest_url( 'jluxe/v1/auth/otp-link' ) ); ?>"
+		data-session-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
+		<h2 class="text-h3 font-bold mb-3">تأیید شماره برای ورود پیامکی</h2>
+		<p class="text-small mb-3">شمارهٔ صورتحساب به‌تنهایی شناسهٔ ورود نیست. شماره‌ای را که مالک آن هستید تأیید کنید.</p>
+		<p><label for="jluxe-link-phone">شماره موبایل</label><input id="jluxe-link-phone" name="phone" type="tel" autocomplete="tel" required dir="ltr" value="<?php echo esc_attr( get_user_meta( get_current_user_id(), 'jluxe_phone', true ) ); ?>" /></p>
+		<button type="button" class="button" data-send-code>ارسال کد تأیید</button>
+		<p><label for="jluxe-link-code">کد ۶ رقمی</label><input id="jluxe-link-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required dir="ltr" /></p>
+		<button type="submit" class="button">تأیید و اتصال شماره</button>
+		<p data-link-status role="status" aria-live="polite"></p>
+	</form>
+	<?php
+}
+add_action( 'woocommerce_after_edit_account_form', 'jluxe_render_phone_link_form' );
