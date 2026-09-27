@@ -1198,4 +1198,12 @@ check(strpos($pa_wc,'function jluxe_suggested_is_available')!==false && strpos($
 $cprod=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
 check(strpos($cprod,'bg-foreground text-surface hover:bg-primary')===false && substr_count($cprod,'bg-primary text-primary-foreground hover:bg-primary-hover')===2, 'R72 the grid quick-add chips (simple and variable) use the exact same primary style as every other add-to-cart button');
 check(strpos($store_css,'.woocommerce a.button.add_to_cart_button')!==false && strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button,')!==false, 'R72 default loop add-to-cart links and the variant-modal button join the one unified primary button block');
+// R73: the review form opens in a popup with per-criteria star ratings and a moderation notice.
+$cp3_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
+$reviews_php=(string) file_get_contents(ABSPATH.'inc/reviews.php');
+$rev_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
+check(strpos($cp3_tpl,'data-jluxe-review-modal')!==false && strpos($cp3_tpl,'href="#review_form_wrapper"')===false, 'R73 the classic toolbar review button opens the popup (data-jluxe-review-modal) instead of only scrolling to the inline form');
+check(strpos($reviews_php,'دیدگاه شما پس از بررسی و تأیید مدیر منتشر می‌شود')!==false && strpos($reviews_php,"comment_notes_before")!==false, 'R73 the review form itself carries the moderation notice (published only after admin approval)');
+check(strpos($rev_js,'redirect: "manual"')!==false && strpos($rev_js,'jluxe-review-modal-backdrop')!==false && strpos($rev_js,'wp-die-message')!==false, 'R73 the popup submits the real WooCommerce form via fetch (opaque redirect = success, core wp-die messages surfaced inside the modal)');
+check(strpos($store_css,'.jluxe-review-modal-backdrop')!==false && strpos($store_css,'.jluxe-review-modal-check')!==false && strpos($store_css,'.jluxe-review-moderation-note')!==false, 'R73 the review popup is styled in the shared modal language (card, success state, moderation note)');
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

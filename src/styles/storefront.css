@@ -4216,6 +4216,148 @@ del .woocommerce-Price-amount {
 .jluxe-btn-added-pulse {
   animation: jluxe-btn-added-pulse 0.42s ease-out;
 }
+/* ── R73: مودالِ «ثبت دیدگاه» — همان زبانِ طراحیِ مودالِ تنوع ── */
+.jluxe-review-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(15, 18, 22, 0.55);
+}
+.jluxe-review-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: min(88svh, 760px);
+  overflow: auto;
+  border-radius: 24px;
+  background: hsl(var(--surface));
+  padding: 1.75rem;
+  box-shadow: 0 18px 48px hsl(var(--foreground) / 0.2);
+}
+.jluxe-review-modal-close {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 12px;
+  background: hsl(var(--muted));
+  color: hsl(var(--text-secondary));
+  cursor: pointer;
+}
+.jluxe-review-modal-close svg { width: 17px; height: 17px; }
+.jluxe-review-modal-close:hover { background: hsl(var(--panel-border)); color: hsl(var(--foreground)); }
+.jluxe-review-modal-head { margin-bottom: 1rem; padding-inline-end: 2.5rem; }
+.jluxe-review-modal-head h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.25rem; }
+.jluxe-review-modal-head p { font-size: 0.78rem; line-height: 1.9; color: hsl(var(--text-secondary)); margin: 0; }
+/* فرمِ واقعیِ وو داخلِ مودال — کارتِ بیرونیِ R66 صاف می‌شود؛ ورودی‌ها/ستاره‌ها همان استایلِ R66 می‌مانند */
+.jluxe-review-modal #review_form_wrapper { margin: 0; }
+.jluxe-review-modal #respond { margin-top: 0; }
+.jluxe-review-modal .comment-form { border: none !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; margin: 0 !important; }
+.jluxe-review-modal .jluxe-review-moderation-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: hsl(var(--primary) / 0.07);
+  color: hsl(var(--foreground));
+  padding: 0.65rem 0.9rem;
+  font-size: 0.78rem;
+  line-height: 1.9;
+  margin: 0 0 0.9rem;
+}
+.jluxe-review-modal .jluxe-review-moderation-note::before {
+  content: "\2713";
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 11px;
+  font-weight: 700;
+}
+.jluxe-review-modal .comment-form-comment textarea,
+.jluxe-review-modal input[type="text"],
+.jluxe-review-modal input[type="email"] {
+  width: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--muted));
+  padding: 0.875rem 1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.jluxe-review-modal .comment-form-comment textarea { min-height: 130px; resize: vertical; }
+.jluxe-review-modal .comment-form-comment textarea:focus,
+.jluxe-review-modal input:focus {
+  outline: none;
+  background: hsl(var(--surface));
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+.jluxe-review-modal .form-submit input[type="submit"],
+.jluxe-review-modal #submit {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 16px;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px hsl(var(--primary) / 0.25);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.jluxe-review-modal .form-submit input[type="submit"]:hover,
+.jluxe-review-modal #submit:hover { background: hsl(var(--primary-hover)) !important; }
+.jluxe-review-modal .form-submit input[type="submit"]:active { transform: scale(0.98); }
+.jluxe-review-modal .form-submit input[type="submit"]:disabled { opacity: 0.6; cursor: wait; }
+.jluxe-review-modal .jluxe-review-modal-error {
+  border: 1px solid hsl(var(--error) / 0.35);
+  border-radius: 12px;
+  background: hsl(var(--error) / 0.06);
+  color: hsl(var(--error));
+  padding: 0.7rem 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.9;
+  margin: 0 0 0.9rem;
+}
+.jluxe-review-modal-success {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 2.25rem 0.5rem;
+}
+.jluxe-review-modal-success strong { font-size: 1.05rem; }
+.jluxe-review-modal-success span { font-size: 0.82rem; line-height: 2; color: hsl(var(--text-secondary)); }
+.jluxe-review-modal-check {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #16a34a;
+  background: hsl(142 70% 45% / 0.12);
+  margin-bottom: 0.25rem;
+}
+.jluxe-review-modal-check svg { width: 26px; height: 26px; }
+@media (max-width: 640px) {
+  .jluxe-review-modal { padding: 1.25rem; border-radius: 20px; }
+}
+
 .jluxe-variant-modal-backdrop {
   position: fixed;
   top: 0;

@@ -28,6 +28,11 @@ function jluxe_review_form_criteria( array $args ): array {
 	$field .= '<p class="comment-form-comment"><label for="comment">دیدگاه شما <span class="required">*</span></label><textarea id="comment" name="comment" cols="45" rows="6" required></textarea></p>';
 	$field .= jluxe_render_review_criteria_inputs();
 	$args['comment_field'] = $field;
+	/* R73: فرم داخلِ پاپ‌آپِ «ثبت دیدگاه» باز می‌شود — عنوانِ کارت و
+	یادداشتِ شفافِ «منتشرشدن پس از تأییدِ مدیر» (دیدگاه‌ها طبقِ قانونِ
+	ثابتِ همین پوسته همیشه منتظرِ تأییدِ مدیر می‌مانند). */
+	$args['title_reply'] = '';
+	$args['comment_notes_before'] = '<p class="jluxe-review-moderation-note">دیدگاه شما پس از بررسی و تأیید مدیر منتشر می‌شود.</p>';
 	return $args;
 }
 add_filter( 'woocommerce_product_review_comment_form_args', 'jluxe_review_form_criteria' );

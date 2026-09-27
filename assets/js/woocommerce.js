@@ -1401,6 +1401,130 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 	});
 })();
 
+/*
+ * R73: پاپ‌آپِ «ثبت دیدگاه» — فرمِ واقعیِ ووکامرس (#review_form_wrapper با
+ * ستارهٔ کلی + ستاره‌های معیارها از تنظیماتِ پوسته) به‌صورتِ Progressive
+ * Enhancement به داخلِ مودال منتقل می‌شود؛ بدونِ JS همان فرمِ درون‌خطیِ
+ * همیشگی می‌ماند. ارسال با fetch و redirect:"manual" به wp-comments-post.php
+ * خودِ وردپرس انجام می‌شود (ریدایرکتِ 302 یعنی موفق؛ wp-die های هسته — فیلدِ
+ * خالی/تکراری/سیلاب — متنشان استخراج و داخلِ مودال نشان داده می‌شود)؛ پس از
+ * موفقیت: پیامِ «ثبت شد، منتظرِ تأییدِ مدیر» — چون دیدگاه‌ها طبقِ قانونِ
+ * پوسته همیشه مودِارت می‌شوند. تلهٔ فوکوس + Escape + قفلِ اسکرول مثل بقیهٔ
+ * مودال‌ها.
+ */
+(function () {
+	var modalRoot = null;
+	var releaseDialogFocus = null;
+	var lastFocused = null;
+	var formNode = null;
+
+	function closeReviewModal() {
+		if (!modalRoot) { return; }
+		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
+		document.body.style.overflow = "";
+		modalRoot.remove();
+		modalRoot = null;
+		if (lastFocused && lastFocused.focus) { lastFocused.focus(); }
+	}
+
+	function showReviewSuccess() {
+		if (!modalRoot) { return; }
+		var body = modalRoot.querySelector(".jluxe-review-modal-body");
+		if (body) {
+			body.innerHTML = '<div class="jluxe-review-modal-success" role="status">' +
+				'<span class="jluxe-review-modal-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>' +
+				'<strong>دیدگاه شما ثبت شد</strong>' +
+				'<span>پس از بررسی و تأیید مدیر منتشر می‌شود؛ از همراهی شما سپاسگزاریم.</span>' +
+				"</div>";
+		}
+		if (formNode) { formNode.reset(); }
+		window.setTimeout(closeReviewModal, 3200);
+	}
+
+	function showReviewError(message) {
+		if (!modalRoot) { return; }
+		var body = modalRoot.querySelector(".jluxe-review-modal-body");
+		if (!body) { return; }
+		var box = modalRoot.querySelector(".jluxe-review-modal-error");
+		if (!box) {
+			box = document.createElement("p");
+			box.className = "jluxe-review-modal-error";
+			box.setAttribute("role", "alert");
+			body.insertBefore(box, body.firstChild);
+		}
+		box.textContent = message;
+	}
+
+	function openReviewModal() {
+		var wrapper = document.getElementById("review_form_wrapper");
+		if (!wrapper) { return; }
+		if (modalRoot) { closeReviewModal(); return; }
+		lastFocused = document.activeElement;
+		modalRoot = document.createElement("div");
+		modalRoot.className = "jluxe-review-modal-backdrop";
+		modalRoot.innerHTML =
+			'<div class="jluxe-review-modal" role="dialog" aria-modal="true" aria-labelledby="jluxe-review-modal-title">' +
+			'<button type="button" class="jluxe-review-modal-close" aria-label="بستن">' +
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+			"</button>" +
+			'<div class="jluxe-review-modal-head"><h2 id="jluxe-review-modal-title">ثبت دیدگاه</h2><p>به هر معیار امتیازِ ستاره بدهید؛ دیدگاه شما پس از تأیید مدیر منتشر می‌شود.</p></div>' +
+			'<div class="jluxe-review-modal-body"></div>' +
+			"</div>";
+		document.body.appendChild(modalRoot);
+		formNode = wrapper.querySelector("form#commentform") || null;
+		modalRoot.querySelector(".jluxe-review-modal-body").appendChild(wrapper);
+		document.body.style.overflow = "hidden";
+		releaseDialogFocus = JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeReviewModal);
+		modalRoot.addEventListener("click", function (event) {
+			if (event.target === modalRoot || event.target.closest(".jluxe-review-modal-close")) {
+				closeReviewModal();
+			}
+		});
+	}
+
+	document.addEventListener("click", function (event) {
+		var trigger = event.target.closest("[data-jluxe-review-modal]");
+		if (!trigger) { return; }
+		event.preventDefault();
+		openReviewModal();
+	});
+
+	document.addEventListener("keydown", function (event) {
+		if (event.key === "Escape" && modalRoot) { closeReviewModal(); }
+	});
+
+	document.addEventListener("submit", function (event) {
+		var form = event.target.closest(".jluxe-review-modal form#commentform");
+		if (!form || !window.fetch) { return; }
+		event.preventDefault();
+		var submit = form.querySelector("[type=submit]");
+		if (submit) { submit.disabled = true; }
+		fetch(form.getAttribute("action") || window.location.href, {
+			method: "POST",
+			body: new FormData(form),
+			redirect: "manual",
+			credentials: "same-origin",
+		}).then(function (res) {
+			if (res.type === "opaqueredirect" || 0 === res.status) { showReviewSuccess(); return null; }
+			return res.text().then(function (html) {
+				if (res.ok && -1 === html.indexOf("wp-die-message")) {
+					/* پاسخِ پیش‌بینی‌نشده — صفحهٔ کامل نتیجه را نشان می‌دهد. */
+					window.location.reload();
+					return null;
+				}
+				var doc = new DOMParser().parseFromString(html, "text/html");
+				var el = doc.querySelector(".wp-die-message");
+				var msg = el ? String(el.textContent || "").replace(/\s+/g, " ").trim() : "";
+				showReviewError(msg ? msg.slice(0, 240) : "ثبت دیدگاه انجام نشد؛ دوباره تلاش کنید.");
+			});
+		}).catch(function () {
+			showReviewError("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
+		}).finally(function () {
+			if (submit) { submit.disabled = false; }
+		});
+	});
+})();
+
 /**
  * پاپ‌آپِ «محصولات پیشنهادی» — محتوا کاملاً سمتِ سرور رندر شده
  * (inc/woocommerce.php: jluxe_render_suggested_products_modal)، این‌جا

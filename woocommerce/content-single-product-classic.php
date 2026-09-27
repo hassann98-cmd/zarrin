@@ -674,10 +674,10 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 						<button type="button" data-sort="best" aria-pressed="false">بیشترین امتیاز</button>
 						<button type="button" data-sort="worst" aria-pressed="false">کمترین امتیاز</button>
 					</div>
-					<a class="cp3-reviewbtn" href="#review_form_wrapper">
+					<button type="button" class="cp3-reviewbtn" data-jluxe-review-modal>
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						ثبت دیدگاه
-					</a>
+					</button>
 				</div>
 				<?php
 				/* امتیازِ هر دیدگاه (متای استانداردِ ووکامرس) به‌شکل کلاس می‌آید تا مرتب‌سازیِ سمتِ مرورگر ممکن باشد */
