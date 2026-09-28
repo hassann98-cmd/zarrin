@@ -928,6 +928,21 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
 			$width_mode              = isset( $posted['width_mode'] ) ? sanitize_key( $posted['width_mode'] ) : 'full';
 			$section['width_mode']   = in_array( $width_mode, array( 'full', 'container' ), true ) ? $width_mode : 'full';
+			// R89 — گزینه‌های تازه؛ چک‌باکس‌ها صریحاً false ذخیره می‌شوند (نه «نبودِ کلید» = پیش‌فرض).
+			$hero_opt = jluxe_hero_options(
+				array_merge(
+					$posted,
+					array(
+						'autoplay'    => ! empty( $posted['autoplay'] ),
+						'loop'        => ! empty( $posted['loop'] ),
+						'show_arrows' => ! empty( $posted['show_arrows'] ),
+						'border'      => ! empty( $posted['border'] ),
+					)
+				)
+			);
+			foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mobile_height', 'radius', 'top_spacing', 'show_arrows', 'indicators', 'border' ) as $hero_key ) {
+				$section[ $hero_key ] = $hero_opt[ $hero_key ];
+			}
 			// دیگه ۶ اسلات ثابت نیست — لیست پویاست (افزودن/حذف واقعی از ادمین)،
 			// چون سایز عکس دسکتاپ و موبایل حالا جدا ذخیره می‌شه (mobile_image_id)
 			// و تعداد اسلاید واقعی سلیقه‌ی ادمینه، نه یک عدد هاردکد.

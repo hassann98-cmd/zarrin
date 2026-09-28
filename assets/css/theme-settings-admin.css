@@ -608,3 +608,7 @@
 .jluxe-site-badges-editor .jluxe-site-badge-remove:hover{color:#b32d2e!important;border-color:#b32d2e!important}
 .jluxe-site-badges-actions{display:block!important;width:100%!important;margin:12px 0 0!important;padding:0!important}
 .jluxe-site-badges-actions .jluxe-site-badge-add{display:inline-block!important;position:static!important;float:none!important;margin:0!important}
+
+/* R89 — گروه‌بندیِ تنظیماتِ اسلایدرِ هیرو */
+.jluxe-hero-admin{border:1px solid #dcdcde;border-radius:6px;padding:4px 12px 8px;margin:0 0 12px}
+.jluxe-hero-admin legend{padding:0 6px}

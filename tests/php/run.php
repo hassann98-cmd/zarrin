@@ -1663,4 +1663,54 @@ update_test_settings( jluxe_theme_settings_defaults() );
 $pwa_render = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 check( false !== strpos( $pwa_render, 'name="performance[pwa_enabled]"' ) && false !== strpos( $pwa_render, 'name="performance[pwa_install_prompt]"' ), 'R88 PWA switches are in the Performance form' );
 
+// ---------------------------------------------------------------- R89 hero slider
+if ( ! function_exists( 'wp_get_attachment_image_srcset' ) ) { function wp_get_attachment_image_srcset( ...$a ) { return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w'; } }
+$h89 = jluxe_hero_options( array( 'duration_sec' => 5 ) );
+check( 'slide' === $h89['effect'] && 360 === $h89['desktop_height'] && 320 === $h89['mobile_height'] && 16 === $h89['top_mobile'] && 64 === $h89['top_desktop'], 'R89 hero defaults = the owner\'s reference (slide, 360/320px, 64/16px top)' );
+check( 'full' === $h89['width_mode'] && 0 === $h89['radius_desktop'] && true === $h89['zoom'], 'R89 an old saved hero (no new keys) keeps full width + its zoom; auto radius = square when full' );
+$h89 = jluxe_hero_options( array( 'width_mode' => 'container' ) );
+check( 32 === $h89['radius_desktop'] && 24 === $h89['radius_mobile'], 'R89 container + auto radius = 32px desktop / 24px mobile' );
+$h89 = jluxe_hero_options( array( 'effect' => 'cube<script>', 'speed_ms' => 99999, 'desktop_height' => -4, 'mobile_height' => 'x', 'radius' => 'huge', 'indicators' => 'stars', 'top_spacing' => 'far' ) );
+check( 'slide' === $h89['effect'] && 2000 === $h89['speed_ms'] && 200 === $h89['desktop_height'] && 320 === $h89['mobile_height'] && 'auto' === $h89['radius'] && 'bars' === $h89['indicators'] && 'reference' === $h89['top_spacing'], 'R89 hero options are clamped/whitelisted' );
+check( array( 'slide', 'fade', 'zoom', 'vertical', 'none' ) === array_keys( jluxe_hero_effects() ), 'R89 five selectable slide effects' );
+$h89s = jluxe_sanitize_homepage_section( array( 'type' => 'hero', 'id' => 'hero-x', 'enabled' => '1', 'effect' => 'fade', 'speed_ms' => '800', 'desktop_height' => '400', 'mobile_height' => '300', 'width_mode' => 'container', 'radius' => 'small', 'indicators' => 'dots', 'top_spacing' => 'compact', 'items' => array( array( 'image_id' => 5 ) ) ) );
+check( 'fade' === $h89s['effect'] && 800 === $h89s['speed_ms'] && 400 === $h89s['desktop_height'] && 300 === $h89s['mobile_height'] && 'small' === $h89s['radius'] && 'dots' === $h89s['indicators'] && 'compact' === $h89s['top_spacing'], 'R89 sanitizer stores the new hero options' );
+check( false === $h89s['autoplay'] && false === $h89s['loop'] && false === $h89s['show_arrows'] && false === $h89s['border'], 'R89 unchecked hero boxes are stored as false (not reset to the default)' );
+$h89d = jluxe_theme_settings_defaults()['homepage']['sections'][0];
+check( 'hero' === $h89d['type'] && 'container' === $h89d['width_mode'] && 360 === $h89d['desktop_height'] && 'slide' === $h89d['effect'], 'R89 fresh installs start with the reference layout' );
+
+$h89items = array( array( 'image_id' => 11, 'mobile_image_id' => 12, 'link' => '/sale/' ), array( 'image_id' => 21, 'title' => 'دو' ), array( 'image_id' => 31 ) );
+ob_start(); jluxe_render_homepage_hero( array( 'effect' => 'vertical', 'width_mode' => 'container', 'speed_ms' => 700, 'duration_sec' => 4, 'items' => $h89items ) ); $h89html = (string) ob_get_clean();
+check( 1 === substr_count( $h89html, 'id="jluxe-hero-style"' ) && false !== strpos( $h89html, 'data-effect="vertical"' ) && false !== strpos( $h89html, 'data-speed="700"' ) && false !== strpos( $h89html, 'data-autoplay-ms="4000"' ), 'R89 hero prints its CSS once + effect/speed/duration data' );
+check( false !== strpos( $h89html, '--jh-h-m:320px;--jh-h-d:360px;--jh-r-m:24px;--jh-r-d:32px;--jh-mt-m:16px;--jh-mt-d:64px' ), 'R89 reference dimensions reach the markup as CSS variables' );
+check( 3 === substr_count( $h89html, 'data-jluxe-hero-slide ' ) && 3 === substr_count( $h89html, '<picture>' ) && 3 === substr_count( $h89html, '<source media="(min-width: 768px)"' ), 'R89 one <picture> per slide: the browser downloads only the mobile OR the desktop image' );
+check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_count( $h89html, 'loading="eager"' ) && 2 === substr_count( $h89html, 'loading="lazy"' ), 'R89 only the first slide is eager/high priority' );
+check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
+check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
+check( false !== strpos( $h89html, 'sizes="(min-width: 1328px) 1296px, calc(100vw - 32px)"' ), 'R89 container srcset sizes match the real width' );
+check( false !== strpos( $h89html, 'data-jluxe-hero-prev' ) && false !== strpos( $h89html, 'jluxe-hero__dots--bars' ) && 3 === substr_count( $h89html, 'data-jluxe-hero-fill' ), 'R89 arrows + progress bars rendered' );
+check( false !== strpos( $h89html, '@media (hover:hover) and (pointer:fine){.jluxe-hero__arrow:hover' ) && false !== strpos( $h89html, 'prefers-reduced-motion:reduce' ), 'R89 hover only on mouse devices; reduced-motion honoured' );
+ob_start(); jluxe_render_homepage_hero( array( 'width_mode' => 'full', 'show_arrows' => false, 'indicators' => 'none', 'items' => $h89items ) ); $h89html = (string) ob_get_clean();
+check( false === strpos( $h89html, 'jluxe-hero-style' ) && false !== strpos( $h89html, 'jluxe-hero--full' ) && false !== strpos( $h89html, 'jluxe-hero--flush' ) && false === strpos( $h89html, 'data-jluxe-hero-prev' ) && false === strpos( $h89html, 'jluxe-hero__dots' ), 'R89 full width is flush (square, no gap); arrows/indicators can be switched off' );
+ob_start(); jluxe_render_homepage_hero( array( 'items' => array( array( 'image_id' => 11 ) ) ) ); $h89html = (string) ob_get_clean();
+check( false !== strpos( $h89html, 'data-autoplay="0"' ) && false === strpos( $h89html, 'data-jluxe-hero-next' ), 'R89 a single slide: no autoplay, no arrows' );
+ob_start(); jluxe_render_homepage_hero( array( 'items' => array() ) ); check( '' === (string) ob_get_clean(), 'R89 no slides → nothing rendered' );
+
+$GLOBALS['query_kind'] = 'front';
+$h89set = jluxe_theme_settings_defaults();
+$h89set['homepage']['sections'][0]['items'] = $h89items;
+update_test_settings( $h89set );
+ob_start(); jluxe_preload_homepage_hero_lcp_image(); $h89pre = (string) ob_get_clean();
+check( 2 === substr_count( $h89pre, 'rel="preload"' ) && false !== strpos( $h89pre, 'imagesizes="(min-width: 1328px) 1296px, calc(100vw - 32px)"' ) && false !== strpos( $h89pre, 'imagesizes="calc(100vw - 32px)"' ), 'R89 LCP preload uses the same sizes as the <picture>' );
+$GLOBALS['scripts'] = array();
+jluxe_enqueue_homepage_assets();
+check( isset( $GLOBALS['scripts']['jluxe-hero-slider'] ) && 'defer' === ( $GLOBALS['scripts']['jluxe-hero-slider'][3]['strategy'] ?? '' ), 'R89 hero-slider.js is enqueued deferred on the front page' );
+$GLOBALS['query_kind'] = 'home';
+update_test_settings( jluxe_theme_settings_defaults() );
+check( false === strpos( (string) file_get_contents( ABSPATH . 'assets/js/homepage.js' ), 'initSliders("[data-jluxe-hero-slider]")' ), 'R89 the old hero driver no longer runs on the new markup' );
+$h89admin = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mobile_height', 'radius', 'top_spacing', 'border', 'show_arrows', 'indicators' ) as $h89k ) {
+	check( false !== strpos( $h89admin, "jluxe_hb_field_select( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_number( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_checkbox( \$name, '$h89k'" ) || false !== strpos( $h89admin, "\t\$name,\n\t\t\t\t\t\t\t'$h89k'," ), 'R89 admin field exists: ' . $h89k );
+}
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

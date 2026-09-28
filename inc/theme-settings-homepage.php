@@ -118,26 +118,81 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 			<?php
 			switch ( $type ) {
 				case 'hero':
-					jluxe_hb_field_number( $name, 'duration_sec', 'مدت نمایش هر اسلاید (ثانیه)', $section['duration_sec'] ?? 5, 2, 15 );
-					jluxe_hb_field_checkbox( $name, 'zoom_enabled', 'فعال‌سازی افکت بزرگنمایی نرم تصویر', array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true );
-					jluxe_hb_field_select(
-						$name,
-						'width_mode',
-						'عرض بنر',
-						$section['width_mode'] ?? 'full',
-						array(
-							'full'      => 'تمام صفحه (edge-to-edge)',
-							'container' => 'به‌اندازه‌ی کانتینر (هم‌عرض با بقیه‌ی بخش‌های صفحه اصلی)',
-						)
-					);
+					$hero_opt = jluxe_hero_options( $section );
 					?>
+					<fieldset class="jluxe-hero-admin">
+						<legend><strong>حرکت</strong></legend>
+						<?php
+						jluxe_hb_field_select( $name, 'effect', 'نحوهٔ اسلاید', $hero_opt['effect'], jluxe_hero_effects() );
+						jluxe_hb_field_number( $name, 'speed_ms', 'سرعتِ جابه‌جایی (میلی‌ثانیه؛ ۱۵۰ تا ۲۰۰۰)', $hero_opt['speed_ms'], 150, 2000 );
+						jluxe_hb_field_checkbox( $name, 'autoplay', 'چرخشِ خودکار', $hero_opt['autoplay'] );
+						jluxe_hb_field_number( $name, 'duration_sec', 'مدت نمایش هر اسلاید (ثانیه)', (int) ( $hero_opt['duration_ms'] / 1000 ), 2, 15 );
+						jluxe_hb_field_checkbox( $name, 'loop', 'حلقهٔ بی‌پایان (بعد از آخری، اولی — بدونِ برگشتِ طولانی)', $hero_opt['loop'] );
+						jluxe_hb_field_checkbox( $name, 'zoom_enabled', 'افکتِ بزرگ‌نماییِ آرامِ تصویر در طولِ نمایش (Ken Burns)', $hero_opt['zoom'] );
+						?>
+					</fieldset>
+					<fieldset class="jluxe-hero-admin">
+						<legend><strong>ابعاد و ظاهر</strong></legend>
+						<?php
+						jluxe_hb_field_select(
+							$name,
+							'width_mode',
+							'عرض بنر',
+							$hero_opt['width_mode'],
+							array(
+								'container' => 'به‌اندازهٔ کانتینر (هم‌عرض با بقیهٔ بخش‌های صفحهٔ اصلی)',
+								'full'      => 'تمام صفحه (لبه‌به‌لبه)',
+							)
+						);
+						jluxe_hb_field_number( $name, 'desktop_height', 'ارتفاع در دسکتاپ (px) — نمونهٔ شما: ۳۶۰', $hero_opt['desktop_height'], 200, 720 );
+						jluxe_hb_field_number( $name, 'mobile_height', 'ارتفاع در موبایل (px) — نمونهٔ شما: ۳۲۰', $hero_opt['mobile_height'], 160, 640 );
+						jluxe_hb_field_select(
+							$name,
+							'radius',
+							'گردیِ گوشه‌ها',
+							$hero_opt['radius'],
+							array(
+								'auto'  => 'خودکار (کانتینر: ۳۲/۲۴px — تمام صفحه: بدونِ گردی)',
+								'large' => 'زیاد — ۳۲px دسکتاپ / ۲۴px موبایل (مثلِ نمونه)',
+								'small' => 'کم — ۱۶px / ۱۲px',
+								'none'  => 'بدونِ گردی',
+							)
+						);
+						jluxe_hb_field_select(
+							$name,
+							'top_spacing',
+							'فاصله از بالا (زیرِ هدر)',
+							$hero_opt['top_spacing'],
+							array(
+								'reference' => 'مثلِ نمونه — ۶۴px دسکتاپ / ۱۶px موبایل',
+								'compact'   => 'کم — ۲۴px / ۱۲px',
+								'none'      => 'بدونِ فاصله',
+							)
+						);
+						jluxe_hb_field_checkbox( $name, 'border', 'حاشیهٔ نازکِ دورِ بنر', $hero_opt['border'] );
+						jluxe_hb_field_checkbox( $name, 'show_arrows', 'فلش‌های قبلی/بعدی (در موبایل همیشه با کشیدنِ انگشت)', $hero_opt['show_arrows'] );
+						jluxe_hb_field_select(
+							$name,
+							'indicators',
+							'نشانگرِ اسلایدها',
+							$hero_opt['indicators'],
+							array(
+								'bars' => 'نوارِ پیشرفت',
+								'dots' => 'نقطه',
+								'none' => 'هیچ',
+							)
+						);
+						?>
+					</fieldset>
 					<p class="description">
-						هر اسلاید حتماً به یک «عکس دسکتاپ» نیاز داره. «عکس موبایل» اختیاریه — اگه خالی بمونه، همون عکس دسکتاپ روی موبایل کامل (بدون کراپ) نشون داده می‌شه؛ اگه عکس جدا بدی، دقیقاً همون عکس با نسبت مناسب موبایل بارگذاری می‌شه (کراپ‌شده، پُر کردنِ کادر). دکمه و لینک هم اختیاری‌ان.
+						هر اسلاید یک «عکس دسکتاپ» (اجباری) و یک «عکس موبایل» (اختیاری ولی توصیه‌شده) دارد. مرورگر فقط یکی از این دو را دانلود می‌کند.
+						اگر عکس موبایل خالی بماند، همان عکس دسکتاپ روی موبایل کامل و بدون کراپ نشان داده می‌شود.
 						<br /><br />
-						<strong>ابعادِ پیشنهادی:</strong><br />
-						عکسِ دسکتاپ: <strong>۱۹۲۰ × ۴۲۰ پیکسل</strong> (نسبتِ تقریبیِ ۴.۶:۱) — چون ارتفاعِ بنر رو دسکتاپ ثابت ۴۲۰px هست و عکس کاملِ عرض رو با کراپ پُر می‌کنه.<br />
-						عکسِ موبایلِ اختصاصی (اگه جدا آپلود کنی): <strong>۷۵۰ × ۳۲۰ پیکسل</strong> (نسبتِ تقریبیِ ۲.۳:۱) — ارتفاعِ بنر رو موبایل بین ۲۲۰ تا ۳۲۰px هست.<br />
-						اگه عکسِ موبایلِ جدا آپلود نکنی، همون عکسِ دسکتاپ بدونِ کراپ (letterbox) رو موبایل نشون داده می‌شه، پس نگرانِ نسبتِ دقیقش نباش.
+						<strong>ابعادِ پیشنهادی (با ارتفاع‌های پیش‌فرض):</strong><br />
+						دسکتاپ، حالتِ کانتینر: <strong>۲۶۰۰ × ۷۲۰</strong> پیکسل (نسبتِ حدودِ ۳٫۶ به ۱)<br />
+						دسکتاپ، حالتِ تمام صفحه: <strong>۲۵۶۰ × ۴۸۰</strong> پیکسل (نسبتِ حدودِ ۵٫۳ به ۱)<br />
+						موبایل: <strong>۱۰۸۰ × ۹۶۰</strong> پیکسل (تقریباً مربع). عکس مربعِ ۱۰۸۰ × ۱۰۸۰ هم با کمی کراپ از بالا و پایین جا می‌شود.<br />
+						اگر ارتفاع را عوض کنید، نسبت هم به همان اندازه تغییر می‌کند. موضوعِ اصلی را وسطِ عکس بگذارید.
 					</p>
 					<div class="jluxe-repeater" data-max="10">
 						<div class="jluxe-repeater-list" data-group="items">
@@ -969,6 +1024,15 @@ function jluxe_enqueue_homepage_assets(): void {
 		array(),
 		file_exists( $path ) ? (string) filemtime( $path ) : null,
 		true
+	);
+	// R89 — اسلایدرِ هیرو (بدونِ کتابخانه، ~۴KB gzip)؛ جدا تا قابلِ تست باشد.
+	$hero_path = JLUXE_THEME_DIR . '/assets/js/hero-slider.js';
+	wp_enqueue_script(
+		'jluxe-hero-slider',
+		JLUXE_THEME_URI . '/assets/js/hero-slider.js',
+		array(),
+		file_exists( $hero_path ) ? (string) filemtime( $hero_path ) : null,
+		array( 'in_footer' => true, 'strategy' => 'defer' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_homepage_assets' );
@@ -2037,21 +2101,92 @@ function jluxe_scroll_arrows(): void {
  * هیچ اسلایدی پر نشده باشه، اصلاً چیزی رندر نمی‌شه (نه گرادیان جایگزین).
  */
 /**
- * پیش‌بارگذاریِ عکسِ اسلایدِ اولِ هیروی صفحه‌ی اصلی (تنها کاندیدِ واقعیِ
- * LCP در بیشترِ صفحات اصلی) — طبقِ اولویتِ کاربر («Critical CSS + LCP
- * هیرو»). یک <link rel="preload"> در همون لحظه‌ی اولِ <head> (قبل از هر
- * چیزِ دیگه‌ای، حتی قبل از enqueueِ استایل‌ها) به مرورگر می‌گه فوراً این
- * عکس رو دانلود کن — بدونِ نیازِ منتظرماندنِ پارسِ کاملِ HTML تا رسیدن به
- * خودِ <img>. srcset/sizes دقیقاً هم‌راستا با <img> واقعی (پایین‌تر در
- * jluxe_render_homepage_hero) نگه داشته شده تا مرورگر همون فایلی رو
- * preload کنه که واقعاً استفاده می‌شه (نه یک URL متفاوت که preload رو
- * بی‌اثر می‌کنه). دو نسخه (موبایل/دسکتاپ) با media جدا preload می‌شن تا
- * فقط اونی که واقعاً نیاز داره دانلود بشه، نه هر دو.
+ * R89 — گزینه‌های نرمال‌شدهٔ اسلایدرِ هیرو (یک منبعِ واحد برای فرمِ ادمین،
+ * sanitizer، preload و رندرِ فرانت). مقدارِ پیش‌فرض‌ها دقیقاً ابعادِ نمونه‌ای
+ * است که صاحبِ سایت فرستاد: کارتِ گرد با ارتفاعِ ۳۶۰px دسکتاپ / ۳۲۰px موبایل،
+ * گردیِ ۳۲px / ۲۴px، فاصلهٔ بالای ۶۴px / ۱۶px، حرکتِ اسلاید افقی.
  *
- * فقط روی front-page اجرا می‌شه — منطقِ «کدوم سکشن هیرو است»ش عیناً از
- * jluxe_render_homepage_sections/jluxe_render_homepage_hero کپی شده، نه
- * حدس زده — تا اگه ادمین هیرو رو خاموش کرده باشه یا هیچ آیتمی نداشته
- * باشه، هیچ preloadِ اشتباهی چاپ نشه.
+ * بخش‌های ذخیره‌شدهٔ قدیمی (که فقط duration_sec/zoom_enabled/width_mode
+ * داشتند) بدونِ هیچ مهاجرتی همین پیش‌فرض‌ها را می‌گیرند؛ width_modeِ
+ * ذخیره‌شده (پیش‌فرضِ قدیمی full) دست نمی‌خورد.
+ *
+ * @return array<string, mixed>
+ */
+function jluxe_hero_effects(): array {
+	return array(
+		'slide'    => 'اسلاید افقی (مثل Swiper — پیش‌فرض)',
+		'fade'     => 'محو شدن (Fade)',
+		'zoom'     => 'محو + بزرگ‌نمایی (Zoom)',
+		'vertical' => 'اسلاید عمودی',
+		'none'     => 'بدونِ انیمیشن (جابه‌جاییِ فوری)',
+	);
+}
+
+function jluxe_hero_options( array $section ): array {
+	$pick = static function ( $value, array $allowed, string $default ): string {
+		$value = is_string( $value ) ? sanitize_key( $value ) : '';
+		return in_array( $value, $allowed, true ) ? $value : $default;
+	};
+	$int = static function ( $value, int $min, int $max, int $default ): int {
+		if ( ! is_numeric( $value ) ) {
+			return $default;
+		}
+		return max( $min, min( $max, (int) $value ) );
+	};
+	$width_mode = $pick( $section['width_mode'] ?? 'full', array( 'full', 'container' ), 'full' );
+	$radius     = $pick( $section['radius'] ?? 'auto', array( 'auto', 'large', 'small', 'none' ), 'auto' );
+	if ( 'auto' === $radius ) {
+		$radius_px = 'container' === $width_mode ? array( 24, 32 ) : array( 0, 0 );
+	} else {
+		$radius_px = array(
+			'large' => array( 24, 32 ),
+			'small' => array( 12, 16 ),
+			'none'  => array( 0, 0 ),
+		)[ $radius ];
+	}
+	$spacing    = $pick( $section['top_spacing'] ?? 'reference', array( 'reference', 'compact', 'none' ), 'reference' );
+	$spacing_px = array(
+		'reference' => array( 16, 64 ),
+		'compact'   => array( 12, 24 ),
+		'none'      => array( 0, 0 ),
+	)[ $spacing ];
+
+	return array(
+		'effect'         => $pick( $section['effect'] ?? 'slide', array_keys( jluxe_hero_effects() ), 'slide' ),
+		'speed_ms'       => $int( $section['speed_ms'] ?? 500, 150, 2000, 500 ),
+		'duration_ms'    => $int( $section['duration_sec'] ?? 5, 2, 15, 5 ) * 1000,
+		'autoplay'       => array_key_exists( 'autoplay', $section ) ? ! empty( $section['autoplay'] ) : true,
+		'loop'           => array_key_exists( 'loop', $section ) ? ! empty( $section['loop'] ) : true,
+		'zoom'           => array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true,
+		'width_mode'     => $width_mode,
+		'desktop_height' => $int( $section['desktop_height'] ?? 360, 200, 720, 360 ),
+		'mobile_height'  => $int( $section['mobile_height'] ?? 320, 160, 640, 320 ),
+		'radius'         => $radius,
+		'radius_mobile'  => $radius_px[0],
+		'radius_desktop' => $radius_px[1],
+		'top_spacing'    => $spacing,
+		'top_mobile'     => $spacing_px[0],
+		'top_desktop'    => $spacing_px[1],
+		'show_arrows'    => array_key_exists( 'show_arrows', $section ) ? ! empty( $section['show_arrows'] ) : true,
+		'indicators'     => $pick( $section['indicators'] ?? 'bars', array( 'bars', 'dots', 'none' ), 'bars' ),
+		'border'         => array_key_exists( 'border', $section ) ? ! empty( $section['border'] ) : true,
+	);
+}
+
+/** sizes دقیق برای srcset — هم‌راستا بین <picture> و preload. */
+function jluxe_hero_image_sizes( array $opt ): array {
+	if ( 'container' === $opt['width_mode'] ) {
+		return array(
+			'mobile'  => 'calc(100vw - 32px)',
+			'desktop' => '(min-width: 1328px) 1296px, calc(100vw - 32px)',
+		);
+	}
+	return array( 'mobile' => '100vw', 'desktop' => '100vw' );
+}
+
+/**
+ * پیش‌بارگذاریِ عکسِ اسلایدِ اولِ هیرو (کاندیدِ اصلیِ LCP). دو نسخه با media
+ * جدا تا فقط یکی دانلود شود؛ srcset/sizes دقیقاً همانِ <picture> پایین.
  */
 function jluxe_preload_homepage_hero_lcp_image(): void {
 	if ( ! is_front_page() ) {
@@ -2073,6 +2208,7 @@ function jluxe_preload_homepage_hero_lcp_image(): void {
 		return;
 	}
 	$first = $items[0];
+	$sizes = jluxe_hero_image_sizes( jluxe_hero_options( $hero ) );
 
 	$desktop_url     = wp_get_attachment_image_url( (int) $first['image_id'], 'large' );
 	$desktop_srcset  = wp_get_attachment_image_srcset( (int) $first['image_id'], 'large' );
@@ -2080,195 +2216,208 @@ function jluxe_preload_homepage_hero_lcp_image(): void {
 	$mobile_url      = wp_get_attachment_image_url( $mobile_image_id, 'large' );
 	$mobile_srcset   = wp_get_attachment_image_srcset( $mobile_image_id, 'large' );
 
-	$is_container = 'container' === ( $hero['width_mode'] ?? 'full' );
-	$desktop_sizes = $is_container ? '(min-width: 1296px) 1296px, 100vw' : '100vw';
-
 	if ( $mobile_url ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" media="(max-width: 767px)"%2$s fetchpriority="high">' . "\n",
 			esc_url( $mobile_url ),
-			$mobile_srcset ? sprintf( ' imagesrcset="%s" imagesizes="100vw"', esc_attr( $mobile_srcset ) ) : ''
+			$mobile_srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $mobile_srcset ), esc_attr( $sizes['mobile'] ) ) : ''
 		);
 	}
 	if ( $desktop_url ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" media="(min-width: 768px)"%2$s fetchpriority="high">' . "\n",
 			esc_url( $desktop_url ),
-			$desktop_srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $desktop_srcset ), esc_attr( $desktop_sizes ) ) : ''
+			$desktop_srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $desktop_srcset ), esc_attr( $sizes['desktop'] ) ) : ''
 		);
 	}
 }
 add_action( 'wp_head', 'jluxe_preload_homepage_hero_lcp_image', 1 );
+
+/** CSSِ هیرو — یک‌بار و inline (بخشی از مسیرِ بحرانیِ LCP؛ درخواستِ اضافه ندارد). */
+function jluxe_hero_css(): string {
+	return '.jluxe-hero{--jh-gap:16px;position:relative;box-sizing:border-box;width:100%;margin:var(--jh-mt-m) auto 0}'
+		. '.jluxe-hero--container{width:calc(100% - 32px);max-width:1296px}'
+		. '.jluxe-hero--flush{--jh-gap:0px}.jluxe-hero--flush .jluxe-hero__card{border-inline-width:0}'
+		. '.jluxe-hero__viewport{overflow:hidden;border-radius:var(--jh-r-m)}'
+		. '.jluxe-hero__track{display:flex;gap:var(--jh-gap);transition:transform var(--jh-speed) cubic-bezier(.25,.8,.25,1)}'
+		. '.jluxe-hero__track.is-dragging,.jluxe-hero__track.is-jumping{transition:none}'
+		. '.jluxe-hero__slide{flex:0 0 100%;min-width:0}'
+		. '.jluxe-hero__card{position:relative;display:block;box-sizing:border-box;height:var(--jh-h-m);overflow:hidden;border-radius:var(--jh-r-m);background:hsl(var(--muted));isolation:isolate;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}'
+		. '.jluxe-hero--border .jluxe-hero__card{border:1px solid hsl(var(--border))}'
+		. '.jluxe-hero__card picture,.jluxe-hero__img{display:block;width:100%;height:100%}'
+		. '.jluxe-hero__img{object-fit:cover;-webkit-user-drag:none}'
+		. '@media (max-width:767px){.jluxe-hero__img.is-contain{object-fit:contain}}'
+		. '.jluxe-hero[data-zoom="1"] .jluxe-hero__img{transform:scale(1);transition:transform 900ms cubic-bezier(.2,.7,.2,1)}'
+		. '.jluxe-hero[data-zoom="1"] .jluxe-hero__slide[data-active="true"] .jluxe-hero__img{transform:scale(1.045);transition-duration:var(--jh-dur);transition-timing-function:linear}'
+		// fade / zoom: اسلایدها روی هم (grid) — بدونِ JS هم فقط اسلایدِ فعال دیده می‌شود.
+		. '.jluxe-hero[data-effect="fade"] .jluxe-hero__track,.jluxe-hero[data-effect="zoom"] .jluxe-hero__track,.jluxe-hero[data-effect="none"] .jluxe-hero__track{display:grid;transform:none!important}'
+		. '.jluxe-hero[data-effect="fade"] .jluxe-hero__slide,.jluxe-hero[data-effect="zoom"] .jluxe-hero__slide,.jluxe-hero[data-effect="none"] .jluxe-hero__slide{grid-area:1/1;opacity:0;visibility:hidden;transition:opacity var(--jh-speed) ease,transform var(--jh-speed) ease,visibility 0s linear var(--jh-speed)}'
+		. '.jluxe-hero[data-effect="zoom"] .jluxe-hero__slide{transform:scale(1.08)}'
+		. '.jluxe-hero[data-effect] .jluxe-hero__slide[data-active="true"]{opacity:1;visibility:visible;transform:none;z-index:1;transition-delay:0s}'
+		. '.jluxe-hero[data-effect="none"] .jluxe-hero__slide{transition:none}'
+		// عمودی
+		. '.jluxe-hero[data-effect="vertical"] .jluxe-hero__track{flex-direction:column;height:var(--jh-h-m)}'
+		. '.jluxe-hero[data-effect="vertical"] .jluxe-hero__slide{flex:0 0 100%;min-height:0}'
+		// فلش‌ها — فقط تبلت/دسکتاپ؛ موبایل با کشیدنِ انگشت.
+		. '.jluxe-hero__arrow{position:absolute;top:50%;z-index:3;display:none;align-items:center;justify-content:center;width:44px;height:44px;margin-top:-22px;padding:0;border:0;border-radius:999px;background:hsl(var(--surface)/.92);color:hsl(var(--foreground));box-shadow:0 4px 14px rgb(0 0 0/.14);cursor:pointer}'
+		. '.jluxe-hero__arrow svg{width:20px;height:20px}'
+		. '.jluxe-hero__arrow--prev{inset-inline-start:16px}.jluxe-hero__arrow--next{inset-inline-end:16px}'
+		. '.jluxe-hero__arrow:focus-visible,.jluxe-hero__dot:focus-visible,.jluxe-hero__card:focus-visible{outline:3px solid hsl(var(--primary));outline-offset:2px}'
+		// نشانگرها — دکمهٔ ۲۴px (هدفِ لمسیِ WCAG 2.2) با نمایشِ کوچک.
+		. '.jluxe-hero__dots{position:absolute;inset-inline:16px;bottom:8px;z-index:3;display:flex;justify-content:center;gap:2px}'
+		. '.jluxe-hero__dot{position:relative;display:block;width:24px;height:24px;min-height:0;padding:0;border:0;background:none;cursor:pointer}'
+		. '.jluxe-hero__dot::before{content:"";position:absolute;top:50%;inset-inline:8px;height:8px;margin-top:-4px;border-radius:999px;background:rgb(255 255 255/.6);box-shadow:0 0 0 1px rgb(0 0 0/.08)}'
+		. '.jluxe-hero__dot[aria-current="true"]{width:34px}.jluxe-hero__dot[aria-current="true"]::before{background:#fff}'
+		. '.jluxe-hero__dots--bars{inset-inline:24px;gap:6px}'
+		. '.jluxe-hero__dots--bars .jluxe-hero__dot,.jluxe-hero__dots--bars .jluxe-hero__dot[aria-current="true"]{flex:1;max-width:120px;width:auto;height:20px}'
+		. '.jluxe-hero__dots--bars .jluxe-hero__dot::before{inset-inline:0;height:4px;margin-top:-2px;background:rgb(255 255 255/.4)}'
+		. '.jluxe-hero__fill{position:absolute;top:50%;left:0;height:4px;margin-top:-2px;width:0;border-radius:999px;background:#fff}'
+		. '[dir="rtl"] .jluxe-hero__fill{left:auto;right:0}'
+		. '@media (min-width:768px){.jluxe-hero{margin-top:var(--jh-mt-d)}.jluxe-hero__viewport,.jluxe-hero__card{border-radius:var(--jh-r-d)}.jluxe-hero__card{height:var(--jh-h-d)}.jluxe-hero[data-effect="vertical"] .jluxe-hero__track{height:var(--jh-h-d)}.jluxe-hero__arrow{display:flex}}'
+		. '@media (hover:hover) and (pointer:fine){.jluxe-hero__arrow:hover{background:hsl(var(--surface))}.jluxe-hero__track{cursor:grab}.jluxe-hero__track.is-dragging{cursor:grabbing}}'
+		. '@media (prefers-reduced-motion:reduce){.jluxe-hero__track,.jluxe-hero .jluxe-hero__slide,.jluxe-hero .jluxe-hero__img{transition:none!important}.jluxe-hero[data-zoom="1"] .jluxe-hero__slide[data-active="true"] .jluxe-hero__img{transform:none}}'
+		. 'html.jluxe-lite .jluxe-hero[data-zoom="1"] .jluxe-hero__slide[data-active="true"] .jluxe-hero__img{transform:none}';
+}
 
 function jluxe_render_homepage_hero( array $section ): void {
 	$items = array_values( array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
 	if ( empty( $items ) ) {
 		return;
 	}
-	$duration_ms = max( 2000, min( 15000, (int) ( $section['duration_sec'] ?? 5 ) * 1000 ) );
-	// دو حالتِ عرض: «تمام صفحه» (پیش‌فرض، رفتارِ همیشگی — edge-to-edge، بدونِ
-	// محدودیتِ عرض) یا «به‌اندازه‌ی کانتینر» (همون max-w-[1296px] px-4 ی
-	// استانداردِ بقیه‌ی بخش‌های صفحه اصلی، طبقِ درخواستِ کاربر).
-	$is_container = 'container' === ( $section['width_mode'] ?? 'full' );
-	$wrap_class   = $is_container ? 'mx-auto max-w-[1296px] px-4 py-6' : '';
-	/*
-	 * ارتفاعِ موبایل — طبقِ درخواستِ صریحِ بعدیِ کاربر («ارتفاع بنر تو حالت
-	 * موبایل خیلی زیاده») تصمیمِ قبلی (تمام‌صفحه، h-[calc(100svh-4rem)])
-	 * برگردونده شد؛ الان یک نسبتِ‌تصویرِ استاندارد/رایجِ بنرهای هیروی
-	 * موبایلِ فروشگاهی (۴:۵ — نه کاملاً چهارگوش، نه کشیده‌ی بی‌قواره) با یک
-	 * سقفِ ارتفاع (max-h) که روی گوشی‌های خیلی بلند هم بی‌قواره/زیادی‌بلند
-	 * نشه. دسکتاپ (md+) همون ارتفاعِ ثابتِ قبلی (420px، خودش از قبل
-	 * استانداردِ رایجِ بنرهای هیروی دسکتاپه) دست‌نخورده می‌مونه —
-	 * md:aspect-auto صریحاً نسبتِ موبایل رو در دسکتاپ خنثی می‌کنه.
-	 */
-	$section_class = $is_container
-		? 'relative aspect-[4/5] max-h-[520px] w-full overflow-hidden rounded-2xl bg-muted md:aspect-auto md:h-[420px]'
-		: 'relative aspect-[4/5] max-h-[520px] w-full overflow-hidden bg-muted md:aspect-auto md:h-[420px]';
-	if ( $is_container ) {
-		echo '<div class="' . esc_attr( $wrap_class ) . '">';
+	$opt   = jluxe_hero_options( $section );
+	$sizes = jluxe_hero_image_sizes( $opt );
+
+	// ساختِ اسلایدها اول (تا شمارشِ نهایی — بعد از حذفِ عکس‌های پاک‌شده — درست باشد).
+	$slides = array();
+	foreach ( $items as $item ) {
+		$img_url = wp_get_attachment_image_url( (int) $item['image_id'], 'large' );
+		if ( ! $img_url ) {
+			continue;
+		}
+		$has_mobile = ! empty( $item['mobile_image_id'] ) && wp_get_attachment_image_url( (int) $item['mobile_image_id'], 'large' );
+		$slides[]   = array(
+			'item'           => $item,
+			'desktop_url'    => $img_url,
+			'desktop_srcset' => (string) wp_get_attachment_image_srcset( (int) $item['image_id'], 'large' ),
+			'mobile_url'     => $has_mobile ? (string) wp_get_attachment_image_url( (int) $item['mobile_image_id'], 'large' ) : $img_url,
+			'mobile_srcset'  => (string) wp_get_attachment_image_srcset( $has_mobile ? (int) $item['mobile_image_id'] : (int) $item['image_id'], 'large' ),
+			'has_mobile'     => (bool) $has_mobile,
+		);
+	}
+	if ( empty( $slides ) ) {
+		return;
+	}
+	$count = count( $slides );
+
+	$classes = array( 'jluxe-hero', 'jluxe-hero--' . $opt['width_mode'] );
+	if ( $opt['border'] ) {
+		$classes[] = 'jluxe-hero--border';
+	}
+	if ( 0 === $opt['radius_desktop'] && 'full' === $opt['width_mode'] ) {
+		$classes[] = 'jluxe-hero--flush'; // تمام‌صفحهٔ بی‌گوشه: بدونِ فاصلهٔ سفید بینِ اسلایدها.
+	}
+	$style = sprintf(
+		'--jh-h-m:%dpx;--jh-h-d:%dpx;--jh-r-m:%dpx;--jh-r-d:%dpx;--jh-mt-m:%dpx;--jh-mt-d:%dpx;--jh-speed:%dms;--jh-dur:%dms',
+		$opt['mobile_height'],
+		$opt['desktop_height'],
+		$opt['radius_mobile'],
+		$opt['radius_desktop'],
+		$opt['top_mobile'],
+		$opt['top_desktop'],
+		'none' === $opt['effect'] ? 0 : $opt['speed_ms'],
+		$opt['duration_ms']
+	);
+
+	static $css_printed = false;
+	if ( ! $css_printed ) {
+		$css_printed = true;
+		echo '<style id="jluxe-hero-style">' . jluxe_hero_css() . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS.
 	}
 	?>
-	<?php $hero_zoom = array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true; ?>
-	<style>
-		[data-jluxe-hero-slider] [data-jluxe-bs-kenburns]{transform:scale(1)!important;transition:transform 900ms cubic-bezier(.2,.7,.2,1)!important;will-change:transform}
-		[data-jluxe-hero-slider][data-jluxe-hero-zoom="1"] [data-jluxe-bs-slide][data-active="true"] [data-jluxe-bs-kenburns][data-jluxe-hero-zoom-item="1"]{transform:scale(1.045)!important}
-		@media(max-width:767px){[data-jluxe-hero-slider][data-jluxe-hero-zoom="1"] [data-jluxe-bs-slide][data-active="true"] [data-jluxe-bs-kenburns][data-jluxe-hero-zoom-item="1"]{transform:scale(1.025)!important}}
-	</style>
 	<section
-		class="<?php echo esc_attr( $section_class ); ?>"
+		class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
+		style="<?php echo esc_attr( $style ); ?>"
 		data-jluxe-hero-slider
-		data-jluxe-hero-zoom="<?php echo $hero_zoom ? '1' : '0'; ?>"
-		data-autoplay-ms="<?php echo esc_attr( (string) $duration_ms ); ?>"
+		data-effect="<?php echo esc_attr( $opt['effect'] ); ?>"
+		data-speed="<?php echo esc_attr( (string) $opt['speed_ms'] ); ?>"
+		data-autoplay="<?php echo $opt['autoplay'] && $count > 1 ? '1' : '0'; ?>"
+		data-autoplay-ms="<?php echo esc_attr( (string) $opt['duration_ms'] ); ?>"
+		data-loop="<?php echo $opt['loop'] ? '1' : '0'; ?>"
+		data-zoom="<?php echo $opt['zoom'] ? '1' : '0'; ?>"
 		aria-roledescription="carousel"
 		aria-label="بنرهای تبلیغاتی"
 	>
-		<?php
-		/*
-		 * قبلاً همه‌ی اسلایدها روی هم absolute می‌شدن و فقط opacity عوض
-		 * می‌شد (محو/ظاهر، نه اسلاید) — طبقِ درخواستِ صریحِ کاربر («بنرها
-		 * با یک حالتِ نرمِ اسلاید بخورن») الان یک trackِ flex واقعیه که با
-		 * transform:translateX جابه‌جا می‌شه (assets/js/homepage.js:
-		 * initSliders). dir="ltr" روی خودِ track عمدیه: صفحه RTL هست ولی
-		 * منطقِ اسلاید (index مثبت = برو چپ) اگه با flex معکوسِ RTL قاطی
-		 * بشه جهتِ دکمه‌ی بعدی/قبلی برعکس می‌شد؛ ایزوله‌کردنِ trackِ اسلایدر
-		 * تو LTR (الگویی که خیلی از کاروسل‌های سایت‌های فارسی هم استفاده
-		 * می‌کنن) این ابهام رو کلاً حذف می‌کنه.
-		 */
-		?>
-		<div data-jluxe-bs-track dir="ltr" class="flex h-full w-full transition-transform duration-700 ease-out">
-		<?php foreach ( $items as $i => $item ) :
-			/*
-			 * باگِ واقعیِ گزارش‌شده (اخطارِ Lighthouse «Improve image delivery»،
-			 * ~۴.۴ مگابایتِ تلف‌شده): این بنر همیشه اندازه‌ی 'full' (فایلِ
-			 * اصلیِ آپلودی، بدونِ هیچ محدودیتِ ابعاد) رو لود می‌کرد، در حالی
-			 * که جعبه‌ش حداکثر ۴۲۰-۵۲۰px ارتفاع داره — یعنی مثلاً یک بنرِ
-			 * ۲۴۰۰px عریض به‌جای نسخه‌ی هم‌اندازه‌ی خودش، کامل دانلود می‌شد.
-			 * 'large' (سایزِ استانداردِ خودِ وردپرس، حداکثر ۱۰۲۴px، برای هر
-			 * عکسِ آپلودشده از قبل ساخته می‌شه، بدونِ نیاز به regenerate) +
-			 * srcset واقعی، دقیقاً همون کاری رو می‌کنه که این اخطار می‌خواد.
-			 */
-			$img_url = wp_get_attachment_image_url( (int) $item['image_id'], 'large' );
-			if ( ! $img_url ) {
-				continue;
-			}
-			$img_srcset = wp_get_attachment_image_srcset( (int) $item['image_id'], 'large' );
-			// عکس موبایل جدا (اختیاری، PHASE پیش از فاز ۳: قبلاً همه‌جا از عکس
-			// دسکتاپ با object-contain استفاده می‌شد که روی موبایل letterbox
-			// می‌شد). اگه ادمین واقعاً عکس مخصوص موبایل انتخاب کرده باشه، همون
-			// با object-cover (چون خودِ ادمین برای موبایل طراحیش کرده) نشون داده
-			// می‌شه؛ وگرنه دقیقاً همون fallback قبلی (عکس دسکتاپ، object-contain).
-			$has_custom_mobile = ! empty( $item['mobile_image_id'] );
-			$mobile_img_url    = $has_custom_mobile ? wp_get_attachment_image_url( (int) $item['mobile_image_id'], 'large' ) : $img_url;
-			if ( ! $mobile_img_url ) {
-				$mobile_img_url    = $img_url;
-				$has_custom_mobile = false;
-			}
-			$mobile_img_srcset = $has_custom_mobile ? wp_get_attachment_image_srcset( (int) $item['mobile_image_id'], 'large' ) : $img_srcset;
-			$tag  = ! empty( $item['link'] ) ? 'a' : 'div';
-			$href = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
-
-			// محل نوشته/دکمه روی اسلاید — قابل تنظیم به‌ازای هر اسلاید (راست/وسط/چپ).
-			switch ( $item['content_position'] ?? 'start' ) {
-				case 'center':
-					$pos_class = 'inset-0 items-center justify-center px-6 text-center';
-					break;
-				case 'end':
-					$pos_class = 'inset-y-0 end-6 sm:end-10 items-end justify-center text-end';
-					break;
-				default:
-					$pos_class = 'inset-y-0 start-6 sm:start-10 items-start justify-center text-start';
-			}
-			$button_style = ! empty( $item['button_color'] ) ? ' style="background-color:' . esc_attr( $item['button_color'] ) . '"' : '';
-			?>
-			<<?php echo esc_html( $tag ) . $href; ?> data-jluxe-bs-slide data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="relative h-full w-full shrink-0 overflow-hidden" dir="rtl">
-				<img
-					data-jluxe-bs-kenburns data-jluxe-hero-zoom-item="<?php echo $hero_zoom ? '1' : '0'; ?>"
-					src="<?php echo esc_url( $mobile_img_url ); ?>"
-					<?php if ( $mobile_img_srcset ) : ?>srcset="<?php echo esc_attr( $mobile_img_srcset ); ?>" sizes="100vw"<?php endif; ?>
-					alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>"
-					class="size-full <?php echo $has_custom_mobile ? 'object-cover' : 'object-contain'; ?> md:hidden"
-					loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"
-					fetchpriority="<?php echo 0 === $i ? 'high' : 'low'; ?>"
-				/>
-				<img
-					data-jluxe-bs-kenburns data-jluxe-hero-zoom-item="<?php echo $hero_zoom ? '1' : '0'; ?>"
-					src="<?php echo esc_url( $img_url ); ?>"
-					<?php if ( $img_srcset ) : ?>srcset="<?php echo esc_attr( $img_srcset ); ?>" sizes="<?php echo $is_container ? '(min-width: 1296px) 1296px, 100vw' : '100vw'; ?>"<?php endif; ?>
-					alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>"
-					class="hidden size-full object-cover md:block"
-					loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"
-					fetchpriority="<?php echo 0 === $i ? 'high' : 'low'; ?>"
-				/>
-				<?php if ( ! empty( $item['title'] ) || ! empty( $item['subtitle'] ) || ! empty( $item['button'] ) ) : ?>
-					<?php
-					/*
-					 * گرادیانِ زیرِ نوشته — طبقِ استانداردِ رایجِ بنرهای هیروی
-					 * امروزی (خوانایی/کنتراستِ متن، صرف‌نظر از روشن/تیره بودنِ
-					 * خودِ عکس). فقط وقتی اسلاید واقعاً متن/دکمه داره رندر
-					 * می‌شه — اسلایدِ خالی از تیرگیِ غیرلازم افتاده نمی‌مونه.
-					 */
-					?>
-					<div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
-					<div class="absolute flex flex-col gap-1.5 <?php echo esc_attr( $pos_class ); ?>">
-						<?php if ( ! empty( $item['title'] ) ) : ?><span class="text-h2 font-extrabold text-white"><?php echo esc_html( $item['title'] ); ?></span><?php endif; ?>
-						<?php if ( ! empty( $item['subtitle'] ) ) : ?><span class="max-w-xs text-small text-white/85"><?php echo esc_html( $item['subtitle'] ); ?></span><?php endif; ?>
-						<?php if ( ! empty( $item['button'] ) ) : ?><span class="mt-2 rounded-lg bg-primary px-4 py-2 text-button font-bold text-primary-foreground"<?php echo $button_style; ?>><?php echo esc_html( $item['button'] ); ?></span><?php endif; ?>
-					</div>
-				<?php endif; ?>
-			</<?php echo esc_html( $tag ); ?>>
-		<?php endforeach; ?>
+		<div class="jluxe-hero__viewport">
+			<div class="jluxe-hero__track" data-jluxe-hero-track aria-live="<?php echo $opt['autoplay'] ? 'off' : 'polite'; ?>">
+			<?php
+			foreach ( $slides as $i => $slide ) :
+				$item = $slide['item'];
+				$tag  = ! empty( $item['link'] ) ? 'a' : 'div';
+				$href = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
+				switch ( $item['content_position'] ?? 'start' ) {
+					case 'center':
+						$pos_class = 'inset-0 items-center justify-center px-6 text-center';
+						break;
+					case 'end':
+						$pos_class = 'inset-y-0 end-6 sm:end-10 items-end justify-center text-end';
+						break;
+					default:
+						$pos_class = 'inset-y-0 start-6 sm:start-10 items-start justify-center text-start';
+				}
+				$button_style = ! empty( $item['button_color'] ) ? ' style="background-color:' . esc_attr( $item['button_color'] ) . '"' : '';
+				$alt          = (string) ( $item['title'] ?? '' );
+				$first        = 0 === $i;
+				/* translators: 1: slide number, 2: slide count */
+				$label = sprintf( '%1$s از %2$s', jluxe_fa_digits( $i + 1 ), jluxe_fa_digits( $count ) );
+				?>
+				<div class="jluxe-hero__slide" data-jluxe-hero-slide data-active="<?php echo $first ? 'true' : 'false'; ?>" role="group" aria-roledescription="slide" aria-label="<?php echo esc_attr( $label ); ?>"<?php echo $first ? '' : ' aria-hidden="true" inert'; ?>>
+					<<?php echo esc_html( $tag ) . $href; ?> class="jluxe-hero__card"<?php echo 'a' === $tag && '' === $alt ? ' aria-label="' . esc_attr( 'بنر ' . $label ) . '"' : ''; ?>>
+						<picture>
+							<source media="(min-width: 768px)" srcset="<?php echo esc_attr( $slide['desktop_srcset'] ?: $slide['desktop_url'] ); ?>" sizes="<?php echo esc_attr( $sizes['desktop'] ); ?>">
+							<img
+								class="jluxe-hero__img<?php echo $slide['has_mobile'] ? '' : ' is-contain'; ?>"
+								src="<?php echo esc_url( $slide['mobile_url'] ); ?>"
+								<?php if ( $slide['mobile_srcset'] ) : ?>srcset="<?php echo esc_attr( $slide['mobile_srcset'] ); ?>" sizes="<?php echo esc_attr( $sizes['mobile'] ); ?>"<?php endif; ?>
+								alt="<?php echo esc_attr( $alt ); ?>"
+								draggable="false"
+								decoding="<?php echo $first ? 'sync' : 'async'; ?>"
+								loading="<?php echo $first ? 'eager' : 'lazy'; ?>"
+								fetchpriority="<?php echo $first ? 'high' : 'low'; ?>"
+							/>
+						</picture>
+						<?php if ( ! empty( $item['title'] ) || ! empty( $item['subtitle'] ) || ! empty( $item['button'] ) ) : ?>
+							<div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
+							<div class="absolute flex flex-col gap-1.5 <?php echo esc_attr( $pos_class ); ?>">
+								<?php if ( ! empty( $item['title'] ) ) : ?><span class="text-h2 font-extrabold text-white"><?php echo esc_html( $item['title'] ); ?></span><?php endif; ?>
+								<?php if ( ! empty( $item['subtitle'] ) ) : ?><span class="max-w-xs text-small text-white/85"><?php echo esc_html( $item['subtitle'] ); ?></span><?php endif; ?>
+								<?php if ( ! empty( $item['button'] ) ) : ?><span class="mt-2 rounded-lg bg-primary px-4 py-2 text-button font-bold text-primary-foreground"<?php echo $button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above. ?>><?php echo esc_html( $item['button'] ); ?></span><?php endif; ?>
+							</div>
+						<?php endif; ?>
+					</<?php echo esc_html( $tag ); ?>>
+				</div>
+			<?php endforeach; ?>
+			</div>
 		</div>
 
-		<?php if ( count( $items ) > 1 ) : ?>
-			<button type="button" data-jluxe-bs-prev aria-label="اسلاید قبلی" class="absolute end-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md transition-transform hover:scale-105 sm:size-11">
-				<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
-			</button>
-			<button type="button" data-jluxe-bs-next aria-label="اسلاید بعدی" class="absolute start-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md transition-transform hover:scale-105 sm:size-11">
-				<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-			</button>
-			<?php
-			/*
-			 * نشانگرهای نوارِ پیشرفت به‌جایِ نقطه‌های ساده — طبقِ خواستِ کاربر
-			 * («جدیدترین استانداردهای روزِ دنیا»؛ الگویِ رایجِ استوری‌مانندِ
-			 * هیروهای امروزی). ساختارِ data-jluxe-bs-dot دست‌نخورده می‌مونه
-			 * (همون چیزی که assets/js/homepage.js می‌خونه)، فقط داخلش یک
-			 * span پرشونده (data-jluxe-bs-fill) اضافه شده که با مدتِ واقعیِ
-			 * autoplay هماهنگ پر می‌شه.
-			 */
-			?>
-			<div class="absolute inset-x-4 bottom-3 z-10 flex items-center gap-1.5 sm:inset-x-8">
-				<?php foreach ( $items as $i => $item ) : ?>
-					<span data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-1 flex-1 overflow-hidden rounded-full bg-white/35">
-						<span data-jluxe-bs-fill class="block h-full w-0 rounded-full bg-white"></span>
-					</span>
-				<?php endforeach; ?>
-			</div>
+		<?php if ( $count > 1 ) : ?>
+			<?php if ( $opt['show_arrows'] ) : ?>
+				<button type="button" class="jluxe-hero__arrow jluxe-hero__arrow--prev" data-jluxe-hero-prev aria-label="اسلاید قبلی">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+				</button>
+				<button type="button" class="jluxe-hero__arrow jluxe-hero__arrow--next" data-jluxe-hero-next aria-label="اسلاید بعدی">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+				</button>
+			<?php endif; ?>
+			<?php if ( 'none' !== $opt['indicators'] ) : ?>
+				<div class="jluxe-hero__dots jluxe-hero__dots--<?php echo esc_attr( $opt['indicators'] ); ?>">
+					<?php foreach ( $slides as $i => $slide ) : ?>
+						<button type="button" class="jluxe-hero__dot" data-jluxe-hero-dot="<?php echo (int) $i; ?>" aria-label="<?php echo esc_attr( 'رفتن به اسلاید ' . jluxe_fa_digits( $i + 1 ) ); ?>" aria-current="<?php echo 0 === $i ? 'true' : 'false'; ?>"><?php echo 'bars' === $opt['indicators'] ? '<span class="jluxe-hero__fill" data-jluxe-hero-fill></span>' : ''; ?></button>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
 		<?php endif; ?>
 	</section>
 	<?php
-	if ( $is_container ) {
-		echo '</div>';
-	}
 }
 
 function jluxe_render_homepage_banner_slider( array $section ): void {

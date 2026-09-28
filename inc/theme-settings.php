@@ -568,6 +568,20 @@ function jluxe_theme_settings_defaults(): array {
 					'type'          => 'hero',
 					'enabled'       => true,
 					'duration_sec'  => 5,
+					// R89 — ابعادِ نمونهٔ صاحبِ سایت: کارتِ هم‌عرضِ کانتینر، ۳۶۰/۳۲۰px، اسلاید افقی.
+					'effect'         => 'slide',
+					'speed_ms'       => 500,
+					'autoplay'       => true,
+					'loop'           => true,
+					'zoom_enabled'   => false,
+					'width_mode'     => 'container',
+					'desktop_height' => 360,
+					'mobile_height'  => 320,
+					'radius'         => 'auto',
+					'top_spacing'    => 'reference',
+					'show_arrows'    => true,
+					'indicators'     => 'bars',
+					'border'         => true,
 					// خالی یعنی اسلایدر چیزی نمایش نمی‌ده — هیچ عکس/گرادیان
 					// پیش‌فرض ساختگی از قبل ست نمی‌شه، ادمین خودش عکس واقعی اضافه می‌کنه.
 					'items'         => array(),
