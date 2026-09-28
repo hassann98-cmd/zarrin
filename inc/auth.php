@@ -122,7 +122,7 @@ function jluxe_handle_auth_register( WP_REST_Request $request ) {
 	if ( email_exists( $email ) ) {
 		return new WP_Error( 'jluxe_auth_email_taken', 'حسابی با این ایمیل قبلاً ثبت شده است.', array( 'status' => 409 ) );
 	}
-	if ( mb_strlen( $password, 'UTF-8' ) < 12 ) {
+	if ( jluxe_strlen($password) < 12 ) {
 		return new WP_Error( 'jluxe_auth_weak_password', 'رمز عبور باید حداقل ۱۲ کاراکتر باشد.', array( 'status' => 400 ) );
 	}
 

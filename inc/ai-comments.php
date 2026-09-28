@@ -145,7 +145,7 @@ function jluxe_ai_reply_to_comment( int $comment_id ): bool {
 	$ai['tools'] = array_fill_keys( array_keys( $ai['tools'] ), false ); // پاسخ دیدگاه، ابزار/هزینهٔ اضافه ندارد.
 	$messages   = array( array(
 		'role'    => 'user',
-		'content' => 'محصول: ' . $post_title . "\n" . 'متن دیدگاه مشتری: ' . mb_substr( (string) $comment->comment_content, 0, 600, 'UTF-8' ),
+		'content' => 'محصول: ' . $post_title . "\n" . 'متن دیدگاه مشتری: ' . jluxe_substr((string) $comment->comment_content, 0, 600),
 	) );
 	$reply = jluxe_call_ai_provider( $ai, jluxe_get_ai_api_key(), jluxe_ai_reply_system_prompt( $settings ), $messages, array() );
 	if ( is_wp_error( $reply ) || '' === trim( (string) $reply ) ) {
@@ -153,7 +153,7 @@ function jluxe_ai_reply_to_comment( int $comment_id ): bool {
 		update_comment_meta( $comment_id, JLUXE_AI_REPLY_FAILS_META, $fails );
 		return false;
 	}
-	$text = trim( mb_substr( wp_strip_all_tags( (string) $reply ), 0, 700, 'UTF-8' ) );
+	$text = trim( jluxe_substr(wp_strip_all_tags( (string) $reply ), 0, 700) );
 	if ( '' === $text ) {
 		update_comment_meta( $comment_id, JLUXE_AI_REPLY_FAILS_META, (int) get_comment_meta( $comment_id, JLUXE_AI_REPLY_FAILS_META, true ) + 1 );
 		return false;
@@ -405,7 +405,7 @@ function jluxe_ai_save_review_metabox( int $post_id ): void {
 	if ( ! current_user_can( 'edit_post', $post_id ) || ! isset( $_POST['jluxe_ai_manual_summary'] ) ) {
 		return;
 	}
-	$text = trim( mb_substr( sanitize_textarea_field( wp_unslash( (string) $_POST['jluxe_ai_manual_summary'] ) ), 0, 1500, 'UTF-8' ) );
+	$text = trim( jluxe_substr(sanitize_textarea_field( wp_unslash( (string) $_POST['jluxe_ai_manual_summary'] ) ), 0, 1500) );
 	if ( '' === $text ) {
 		delete_post_meta( $post_id, JLUXE_AI_SUMMARY_META );
 	} else {

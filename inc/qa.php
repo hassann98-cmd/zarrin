@@ -184,7 +184,7 @@ function jluxe_qa_handle_submit(): void {
 	if ( ! function_exists( 'wc_get_product' ) || ! jluxe_product_is_public( wc_get_product( $product_id ) ) ) {
 		wp_send_json_error( array( 'message' => 'محصول در دسترس نیست.' ), 404 );
 	}
-	if ( mb_strlen( $question, 'UTF-8' ) < 5 || mb_strlen( $question, 'UTF-8' ) > 2000 || mb_strlen( $name, 'UTF-8' ) > 80 ) {
+	if ( jluxe_strlen($question) < 5 || jluxe_strlen($question) > 2000 || jluxe_strlen($name) > 80 ) {
 		wp_send_json_error( array( 'message' => 'پرسش باید بین ۵ تا ۲۰۰۰ کاراکتر و نام حداکثر ۸۰ کاراکتر باشد.' ), 400 );
 	}
 	if ( ! jluxe_security_rate_limit( 'qa_product', jluxe_theme_get_client_ip() . ':' . $product_id, 2, 10 * MINUTE_IN_SECONDS ) ) {

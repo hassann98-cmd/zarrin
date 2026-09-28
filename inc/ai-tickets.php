@@ -98,7 +98,7 @@ function jluxe_handle_ai_ticket_submit( WP_REST_Request $request ) {
 	if ( '' === $name || '' === $contact || '' === $message ) {
 		return new WP_Error( 'jluxe_ticket_missing_fields', 'نام، راه ارتباطی و پیام الزامی هستن.', array( 'status' => 400 ) );
 	}
-	if ( mb_strlen( $message ) > 2000 ) {
+	if ( jluxe_strlen($message) > 2000 ) {
 		return new WP_Error( 'jluxe_ticket_too_long', 'پیام خیلی طولانیه.', array( 'status' => 400 ) );
 	}
 

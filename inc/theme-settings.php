@@ -624,7 +624,7 @@ function jluxe_theme_settings_defaults(): array {
 				'get_categories'       => true,
 				'recommend_products'   => true,
 				'get_product_reviews'  => true,
-				'get_customer_context' => true,
+				'get_customer_context' => false, // R86 — حریمِ خصوص: دادهٔ سفارشِ مشتری به سرویسِ بیرونی نرود مگر مدیر آگاهانه روشن کند.
 				'get_store_info'       => true,
 			),
 			// ویجت‌های تصویری‌ای که دستیار مجازه در جواب رندر کنه (کارت محصول،
@@ -664,6 +664,7 @@ function jluxe_theme_settings_defaults(): array {
 			'handoff_telegram' => '',
 			'handoff_form_url' => '',
 			'rate_limit'       => 10, // حداکثر پیام در دقیقه به ازای هر IP.
+			'daily_limit'      => 100, // R86 — سقفِ روزانه (کاربر/IP) برای مصرفِ اعتبارِ API.
 			'log_enabled'      => true, // ثبت خطاهای فراخوانی provider در error_log.
 		),
 		'sms' => array(

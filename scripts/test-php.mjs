@@ -1,10 +1,33 @@
 import { spawnSync } from "node:child_process";
-const binary = process.env.PHP_BINARY || "php";
+import fs from "node:fs";
+import path from "node:path";
+
+/*
+ * R86 — اجرای تست‌های PHP باید روی هر سیستمی قابلِ تکرار باشد (نقدِ بیرونی:
+ * «سوئیت در محیطِ مستقل اجرا نمی‌شود»).
+ *   ۱) اگر PHP_BINARY تنظیم شده باشد، همان استفاده می‌شود.
+ *   ۲) وگرنه اگر `php` روی سیستم باشد، همان.
+ *   ۳) وگرنه اگر وابستگی‌های dev نصب باشند، از PHP-WASM همین مخزن
+ *      (scripts/php-wasm-cli.mjs) استفاده می‌شود — بدونِ نیاز به نصبِ PHP.
+ */
+function resolvePhp() {
+  if (process.env.PHP_BINARY) return { binary: process.env.PHP_BINARY, prefix: [] };
+  const probe = spawnSync("php", ["-v"], { encoding: "utf8" });
+  if (!probe.error && probe.status === 0) return { binary: "php", prefix: [] };
+  const shim = path.resolve(import.meta.dirname, "php-wasm-cli.mjs");
+  if (fs.existsSync(shim)) {
+    console.log("php not found on PATH — using the bundled PHP-WASM CLI (scripts/php-wasm-cli.mjs)");
+    return { binary: process.execPath, prefix: [shim] };
+  }
+  return { binary: "php", prefix: [] };
+}
+
+const { binary, prefix } = resolvePhp();
 for (const [file, marker] of [
   ["tests/php/lint.php", "PHP_LINT_OK:"],
   ["tests/php/run.php", "ALL_TESTS_PASSED:"],
 ]) {
-  const result = spawnSync(binary, [file], {
+  const result = spawnSync(binary, [...prefix, file], {
     encoding: "utf8",
     timeout: 120_000,
     maxBuffer: 8 * 1024 * 1024,

@@ -36,7 +36,7 @@ function jluxe_ajax_search(): void {
 	هم‌شکل می‌کند (عنوان‌ها خودشان فارسیِ استانداردند). */
 	$term = jluxe_normalize_persian_query( $term );
 
-	if ( mb_strlen( $term ) < 2 ) {
+	if ( jluxe_strlen($term) < 2 ) {
 		wp_send_json_success(
 			array(
 				'products'   => array(),

@@ -74,7 +74,7 @@ foreach ( array_filter( $product->get_attributes(), 'wc_attributes_array_filter_
 		'name'    => sanitize_title( $attribute->get_name() ),
 		'label'   => wc_attribute_label( $attribute->get_name() ),
 		'value'   => implode( '، ', $values ),
-		'is_brand' => false !== mb_strpos( wc_attribute_label( $attribute->get_name() ), 'برند' ),
+		'is_brand' => false !== jluxe_strpos(wc_attribute_label( $attribute->get_name() ), 'برند'),
 	);
 }
 usort(

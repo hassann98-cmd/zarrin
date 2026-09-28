@@ -615,11 +615,11 @@ function jluxe_sanitize_ai_comments( array $posted, array $defaults ): array {
 		'enabled'               => ! empty( $posted['enabled'] ),
 		'auto_reply_enabled'    => ! empty( $posted['auto_reply_enabled'] ),
 		'cron_interval'         => $interval,
-		'responder_name'        => mb_substr( sanitize_text_field( $posted['responder_name'] ?? '' ), 0, 60 ),
+		'responder_name'        => jluxe_substr(sanitize_text_field( $posted['responder_name'] ?? '' ), 0, 60),
 		// آواتار فقط http(s) مجاز است (esc_url_raw بدون پروتکل‌های عجیب).
 		'responder_avatar'      => in_array( wp_parse_url( $avatar, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ? esc_url_raw( $avatar ) : '',
-		'personality'           => mb_substr( sanitize_textarea_field( $posted['personality'] ?? '' ), 0, 1000 ),
-		'store_description'     => mb_substr( sanitize_textarea_field( $posted['store_description'] ?? '' ), 0, 1000 ),
+		'personality'           => jluxe_substr(sanitize_textarea_field( $posted['personality'] ?? '' ), 0, 1000),
+		'store_description'     => jluxe_substr(sanitize_textarea_field( $posted['store_description'] ?? '' ), 0, 1000),
 		'max_replies_per_run'   => max( 1, min( 20, absint( $posted['max_replies_per_run'] ?? $defaults['max_replies_per_run'] ) ) ),
 		'max_summaries_per_run' => max( 1, min( 10, absint( $posted['max_summaries_per_run'] ?? $defaults['max_summaries_per_run'] ) ) ),
 	);
@@ -682,7 +682,7 @@ function jluxe_sanitize_purchase_addons( array $posted, array $defaults ): array
 			$context = 'modal';
 		}
 		$services[] = array(
-			'title'   => mb_substr( $title, 0, 60 ),
+			'title'   => jluxe_substr($title, 0, 60),
 			'amount'  => min( $amount, 999999999 ),
 			'context' => $context,
 			'auto'    => ! empty( $row['auto'] ),
@@ -844,6 +844,7 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	$provider         = isset( $posted['provider'] ) ? sanitize_key( $posted['provider'] ) : '';
 	$reasoning_effort = isset( $posted['reasoning_effort'] ) ? sanitize_key( $posted['reasoning_effort'] ) : $defaults['reasoning_effort'];
 	$rate_limit       = isset( $posted['rate_limit'] ) ? absint( $posted['rate_limit'] ) : $defaults['rate_limit'];
+	$daily_limit      = isset( $posted['daily_limit'] ) ? absint( $posted['daily_limit'] ) : ( $defaults['daily_limit'] ?? 100 );
 
 	return array(
 		'enabled'          => ! empty( $posted['enabled'] ),
@@ -882,6 +883,7 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'handoff_telegram' => isset( $posted['handoff_telegram'] ) ? esc_url_raw( trim( (string) $posted['handoff_telegram'] ) ) : '',
 		'handoff_form_url' => isset( $posted['handoff_form_url'] ) ? esc_url_raw( trim( (string) $posted['handoff_form_url'] ) ) : '',
 		'rate_limit'       => max( 0, min( 120, $rate_limit ) ),
+		'daily_limit'      => max( 0, min( 5000, $daily_limit ) ),
 		'log_enabled'      => ! empty( $posted['log_enabled'] ),
 	);
 }

@@ -779,7 +779,7 @@ function jluxe_persian_color_to_hex( string $name ): ?string {
  */
 function jluxe_is_color_attribute( string $attribute_name ): bool {
 	$label = wc_attribute_label( $attribute_name );
-	return false !== mb_strpos( $label, 'رنگ' ) || false !== stripos( $attribute_name, 'color' );
+	return false !== jluxe_strpos($label, 'رنگ') || false !== stripos( $attribute_name, 'color' );
 }
 
 /**

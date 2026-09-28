@@ -481,7 +481,7 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 					<?php
 					$cp3_brand_row = null;
 					foreach ( $cp3_specs as $cp3_spec ) {
-						if ( false !== mb_strpos( $cp3_spec['label'], 'برند' ) ) {
+						if ( false !== jluxe_strpos($cp3_spec['label'], 'برند') ) {
 							$cp3_brand_row = $cp3_spec;
 							break;
 						}

@@ -17,7 +17,7 @@ $jluxe_sg_title     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg
 $jluxe_sg_intro     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['intro'] ?? '' );
 $jluxe_sg_steps     = isset( $jluxe_sg['steps'] ) && is_array( $jluxe_sg['steps'] ) ? $jluxe_sg['steps'] : array();
 $jluxe_sg_btn_text  = $jluxe_sg['button_text'] ?? 'شروع خرید ←';
-if ( mb_strlen( wp_strip_all_tags( (string) $jluxe_sg_btn_text ) ) > 80 ) { $jluxe_sg_btn_text = 'شروع خرید ←'; }
+if ( jluxe_strlen(wp_strip_all_tags( (string) $jluxe_sg_btn_text )) > 80 ) { $jluxe_sg_btn_text = 'شروع خرید ←'; }
 $jluxe_sg_btn_url   = $jluxe_sg['button_url'] ?? '/';
 $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_sg['button_color'] ) . '"' : '';
 ?>
