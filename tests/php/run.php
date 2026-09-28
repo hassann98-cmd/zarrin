@@ -1553,4 +1553,34 @@ if ( ! function_exists( 'jluxe_normalize_persian_query' ) ) {
 check( 'قوری' === jluxe_normalize_persian_query( 'قورى' ) && 'قوری' === jluxe_normalize_persian_query( 'قوري' ), 'R87 قوری / قوري / قورى all normalise to the same query' );
 check( 'بانکه حبوبات' === jluxe_normalize_persian_query( "بانكه\u{200C}  حبوبات" ), 'R87 Arabic kaf, ZWNJ and doubled spaces collapse to one clean query' );
 
+/*
+ * R88 — footer badges are printed in place by PHP (no staging div, no polling
+ * script); the footer background moved server-side with the shell.
+ */
+$r88_settings = jluxe_theme_settings_defaults();
+$r88_settings['footer']['trust_badges'] = array(
+	array( 'html' => '<a href="https://trustseal.enamad.ir/?id=1"><img src="https://trustseal.enamad.ir/logo.aspx?id=1" alt="enamad"></a>', 'link' => '' ),
+	array( 'html' => '<img src="https://logo.samandehi.ir/logo.aspx?id=2" alt="samandehi">', 'link' => '' ),
+);
+update_test_settings( $r88_settings );
+ob_start();
+jluxe_render_site_trust_badges();
+$r88_badges = (string) ob_get_clean();
+check( false !== strpos( $r88_badges, '<section class="jluxe-site-badges-section' ) && 2 === substr_count( $r88_badges, 'jluxe-site-badge-card flex' ), 'R88 both badges are printed directly as one visible grid item' );
+check( false === strpos( $r88_badges, 'staging' ) && false === strpos( $r88_badges, '<script' ) && false === strpos( $r88_badges, ' hidden' ), 'R88 no hidden staging div and no mover script are printed any more' );
+check( false !== strpos( $r88_badges, '@media (hover:hover)' ), 'R88 the badge hover lift only applies on hover-capable devices' );
+update_test_settings( jluxe_theme_settings_defaults() );
+ob_start();
+jluxe_render_site_trust_badges();
+check( '' === trim( (string) ob_get_clean() ), 'R88 no badges configured → nothing printed' );
+
+check( '' === jluxe_footer_background_style( array( 'mode' => 'default' ) ), 'R88 default footer background adds no style' );
+check( 'background-color:#112233;' === jluxe_footer_background_style( array( 'mode' => 'solid', 'solid_color' => '#112233' ) ), 'R88 solid footer background' );
+check( 'background-image:linear-gradient(to top left, #111111, #222222);' === jluxe_footer_background_style( array( 'mode' => 'gradient', 'gradient_direction' => 'to top left', 'gradient_colors' => array( '#111111', '', '#222222', 'red;x' ) ) ), 'R88 gradient keeps only valid hex colours, in order' );
+check( '' === jluxe_footer_background_style( array( 'mode' => 'gradient', 'gradient_colors' => array( '#111111' ) ) ), 'R88 a one-colour gradient adds nothing (same rule as the React version)' );
+check( false === strpos( jluxe_footer_background_style( array( 'mode' => 'gradient', 'gradient_direction' => 'to bottom);background:url(x', 'gradient_colors' => array( '#111111', '#222222' ) ) ), 'url(' ), 'R88 a tampered gradient direction cannot inject CSS' );
+$r88_footer = (string) file_get_contents( ABSPATH . 'footer.php' );
+check( false !== strpos( $r88_footer, 'data-jluxe-footer-slot="features"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="bottom"' ), 'R88 footer.php provides the three island slots' );
+check( strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) < strpos( $r88_footer, 'jluxe_render_site_trust_badges();' ), 'R88 the badge column comes after the link columns inside the same grid' );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

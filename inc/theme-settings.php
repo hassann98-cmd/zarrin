@@ -1241,14 +1241,20 @@ function jluxe_render_site_trust_badges(): void {
     $count = count( $badges );
 
     /*
-     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد باید متناسب با تعدادشون تغییر
-     * کنه، و چیدمان هم فرق کنه: موبایل همیشه همه‌شون (حتی ۴ تا) توی یک
-     * خط، ولی دسکتاپ برای ۱ تا ۳ تا یک ردیف، و برای ۴ تا (یا بیشتر) دو
-     * ستونی (۲ بالا ۲ پایین) چون این بخش الان کنارِ ستونِ «شرکت» جا می‌گیره
-     * (فضای کمی داره) نه یک ردیفِ کاملاً جداگانه‌ی زیرِ فوتر.
+     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد متناسب با تعدادشون؛ موبایل همه
+     * در یک خط، دسکتاپ ۱ تا ۳ تا یک ردیف و ۴ تا (یا بیشتر) دو ستونی.
+     *
+     * R88 — این بخش دیگر «staging» مخفی + اسکریپتِ جابه‌جاکننده ندارد. قبلاً
+     * این‌جا یک div مخفی چاپ می‌شد و یک اسکریپت با setInterval (هر ۱۰۰ms تا
+     * ۱۲ ثانیه) + MutationObserver دنبالِ گریدِ React با انتخابگرِ کلاس‌های
+     * Tailwind (".grid.gap-8.p-5…") می‌گشت تا نمادها را داخلش جابه‌جا کند —
+     * با هر تغییرِ کلاس بی‌صدا می‌شکست، و اگر JS نمی‌آمد نمادها هرگز دیده
+     * نمی‌شدند. حالا footer.php خودِ گرید را سمتِ سرور می‌سازد و این تابع
+     * مستقیم همان‌جا، به‌عنوانِ آیتمِ واقعیِ گرید، صدا زده می‌شود؛ <script>
+     * رسمیِ اینماد هم چون در جریانِ پارسِ HTML دیده می‌شود عادی اجرا می‌شود.
      */
-    $mobile_cols  = min( max( $count, 1 ), 4 );
-    $desktop_cols = $count <= 3 ? $count : 2;
+    $mobile_cols   = min( max( $count, 1 ), 4 );
+    $desktop_cols  = $count <= 3 ? $count : 2;
     $size_by_count = array(
         1 => array( 'mobile' => 4.5, 'desktop' => 5 ),
         2 => array( 'mobile' => 4, 'desktop' => 4.5 ),
@@ -1259,81 +1265,58 @@ function jluxe_render_site_trust_badges(): void {
         'desktop' => 3.75,
     );
     ?>
-    <div id="jluxe-site-badges-staging" hidden aria-hidden="true">
-        <div class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1">
-            <style>
-                /*
-                 * فیکسِ فاصله‌ی زیاد: قبلاً ستون‌ها minmax(0,1fr) بودن —
-                 * یعنی کلِ عرضِ ردیف بینِ ستون‌ها تقسیم می‌شد، پس هر نماد
-                 * وسطِ یه سلولِ خیلی پهن قرار می‌گرفت و فاصله‌ی واقعی خیلی
-                 * بیشتر از gap به‌نظر می‌رسید. الان عرضِ هر ستون دقیقاً
-                 * هم‌اندازه‌ی خودِ نمادهاست، پس کنارِ هم و جمع‌وجورن.
-                 */
-                .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;}
-                @media (min-width:640px){
-                    .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
-                    .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
-                }
-                /* حالتِ حرفه‌ای‌تر: خاکستری تا لحظه‌ی هاور، سایه‌ی ملایم و کمی بالا اومدن روی هاور */
-                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease; background:#fff;}
+    <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-label="<?php echo esc_attr( $title ); ?>">
+        <style>
+            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
+            .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;background:#fff;}
+            @media (min-width:640px){
+                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
+                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
+            }
+            /* افکتِ هاور فقط روی دستگاهِ دارای ماوس (قاعدهٔ پروژه: hover داخلِ @media (hover:hover)). */
+            @media (hover:hover){
+                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;}
                 .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--primary) / .35);box-shadow:0 4px 14px -6px rgba(0,0,0,.18);transform:translateY(-2px);}
-                .jluxe-site-badges-grid .jluxe-site-badge-card img{transition:filter .25s ease;}
-            </style>
-            <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
-            <div class="jluxe-site-badges-grid">
-                <?php foreach ( $badges as $badge ) : ?>
-                    <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border bg-transparent p-1.5 mx-auto">
-                        <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+            }
+        </style>
+        <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
+        <div class="jluxe-site-badges-grid">
+            <?php foreach ( $badges as $badge ) : ?>
+                <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border p-1.5 mx-auto">
+                    <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
+                </div>
+            <?php endforeach; ?>
         </div>
-    </div>
-    <script>
-    (function(){
-        'use strict';
-        var staging = document.getElementById('jluxe-site-badges-staging');
-        if (!staging) return;
-        var section = staging.querySelector('.jluxe-site-badges-section');
-        if (!section) return;
-        var moved = false;
-        function mount(){
-            if (moved && document.querySelector('.jluxe-site-badges-mounted')) return;
-            var root = document.getElementById('jluxe-footer-root');
-            if (!root) return;
-            var inner = root.querySelector('.mx-auto.mt-4.mb-24');
-            if (!inner) return;
-            var card = inner.firstElementChild;
-            if (!card) return;
-            var mainGrid = card.querySelector('.grid.gap-8.p-5.sm\\:grid-cols-2.lg\\:grid-cols-4');
-            if (!mainGrid) return;
-            if (mainGrid.querySelector('.jluxe-site-badges-mounted')) { moved = true; return; }
-            /*
-             * درخواستِ کاربر: نمادها نباید یک ردیفِ جداگانه زیرِ کل فوتر
-             * باشن — باید عضوِ همون گریدِ اصلی (لوگو/راهنما/شرکت) بشن و
-             * جلوی «شرکت» بیفتن. برای همین section رو به‌عنوانِ یک آیتمِ
-             * واقعیِ گرید، مستقیم به انتهای mainGrid اضافه می‌کنیم (نه
-             * این‌که بعد از mainGrid به‌عنوان یک ردیفِ جدا درج بشه).
-             */
-            section.classList.add('jluxe-site-badges-mounted');
-            mainGrid.appendChild(section);
-            section.hidden = false;
-            staging.remove();
-            moved = true;
-        }
-        mount();
-        var tries = 0;
-        var timer = setInterval(function(){
-            mount();
-            if (moved || ++tries > 120) clearInterval(timer);
-        }, 100);
-        var observer = new MutationObserver(function(){ mount(); });
-        observer.observe(document.getElementById('jluxe-footer-root') || document.body, {childList:true,subtree:true});
-        setTimeout(function(){ observer.disconnect(); }, 15000);
-    })();
-    </script>
+    </section>
     <?php
+}
+
+/**
+ * R88 — پس‌زمینهٔ فوتر (همان منطقِ I() در src/islands/Footer.js) حالا سمتِ سرور،
+ * چون پوستهٔ فوتر در footer.php رندر می‌شود. جهت و رنگ‌ها قبلاً در sanitize
+ * لیستِ‌سفید/hex شده‌اند؛ این‌جا فقط یک رشتهٔ style ساخته می‌شود.
+ */
+function jluxe_footer_background_style( ?array $background = null ): string {
+    $background = $background ?? (array) jluxe_get_setting( 'footer.background', array() );
+    $mode       = (string) ( $background['mode'] ?? 'default' );
+    if ( 'solid' === $mode ) {
+        $color = sanitize_hex_color( (string) ( $background['solid_color'] ?? '' ) );
+        return $color ? 'background-color:' . $color . ';' : '';
+    }
+    if ( 'gradient' !== $mode ) {
+        return '';
+    }
+    $colors = array_values( array_filter( array_map( static function ( $c ) {
+        return sanitize_hex_color( (string) $c ) ?: '';
+    }, (array) ( $background['gradient_colors'] ?? array() ) ) ) );
+    if ( count( $colors ) < 2 ) {
+        return '';
+    }
+    $direction = (string) ( $background['gradient_direction'] ?? 'to bottom' );
+    if ( ! preg_match( '/^(to (top|bottom|left|right)( (left|right))?|\d{1,3}deg)$/', $direction ) ) {
+        $direction = 'to bottom';
+    }
+    return 'background-image:linear-gradient(' . $direction . ', ' . implode( ', ', $colors ) . ');';
 }
 
 /**

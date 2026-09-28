@@ -34,5 +34,6 @@ for (const element of document.querySelectorAll("[data-jluxe-island]")) {
     },
     { rootMargin: "1200px 0px" },
   );
-  observer.observe(element);
+  // R88 — ریشهٔ آیلند داخلِ پوستهٔ سمتِ سرورِ فوتر خالی (بدونِ ارتفاع) است؛ خودِ فوتر مشاهده می‌شود.
+  observer.observe(element.closest("[data-jluxe-footer]") || element);
 }

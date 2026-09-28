@@ -6,7 +6,8 @@ import { N as p } from "../components/nav-icons.js";
 import { c as h } from "../lib/icons.js";
 import { S as _ } from "../icons/shield-check.js";
 import { S as i } from "../icons/send.js";
-import "../lib/react-dom.js";
+import { r as ReactDOM } from "../lib/react-dom.js";
+import { useState } from "react";
 import "../components/button.js";
 import "../lib/utils.js";
 import "../lib/use-cart.js";
@@ -145,7 +146,20 @@ const M = { ...p, "badge-percent": k },
     bale: "بله",
   },
   T = "پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله";
+/** R88 — جایگاه‌هایی که footer.php سمتِ سرور می‌سازد؛ نبودشان یعنی footer.php قدیمی. */
+export function findFooterSlots(
+  doc = typeof document === "undefined" ? null : document,
+) {
+  if (!doc) return null;
+  const pick = (name) =>
+    doc.querySelector(`[data-jluxe-footer-slot="${name}"]`);
+  const features = pick("features"),
+    columns = pick("columns"),
+    bottom = pick("bottom");
+  return features && columns && bottom ? { features, columns, bottom } : null;
+}
 function re() {
+  const [slots] = useState(() => findFooterSlots());
   const s = N(),
     r = s.footer;
   if (r && !r.enabled) return null;
@@ -163,17 +177,7 @@ function re() {
     x = (r == null ? void 0 : r.link_hover_color) || void 0,
     c = (r == null ? void 0 : r.feature_cards_icon_color) || void 0,
     v = c ? { color: c, backgroundColor: `${c}1a` } : void 0;
-  return e.jsxs("footer", {
-    className: "flow-root",
-    style: I(r == null ? void 0 : r.background),
-    children: [
-      e.jsx("div", {
-        className: "mx-auto mt-4 mb-24 w-full max-w-[1296px] px-4 md:mb-6",
-        children: e.jsxs("div", {
-          className:
-            "overflow-hidden rounded-2xl border border-border bg-muted/40",
-          children: [
-            d.length > 0
+  const featuresNode = d.length > 0
               ? e.jsxs(e.Fragment, {
                   children: [
                     e.jsx("style", {
@@ -232,10 +236,8 @@ function re() {
                     }),
                   ],
                 })
-              : null,
-            e.jsxs("div", {
-              className: "grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4",
-              children: [
+              : null;
+  const columnsNode = [
                 e.jsxs("div", {
                   className: "sm:col-span-2 lg:col-span-1",
                   children: [
@@ -345,8 +347,8 @@ function re() {
                       ],
                     })
                   : null,
-              ],
-            }),
+              ];
+  const bottomNode = [
             m.length > 0
               ? e.jsxs("div", {
                   className:
@@ -398,14 +400,55 @@ function re() {
                   `© ${new Date().getFullYear()} ${g} — تمامی حقوق محفوظ است.`,
               }),
             }),
-          ],
-        }),
-      }),
-      x
+  ];
+  const hoverNode = x
         ? e.jsx("style", {
             children: `[data-jluxe-footer-link]:hover{color:${x}!important}`,
           })
-        : null,
+        : null;
+  /*
+   * R88 — footer.php (سمتِ سرور) پوسته و ستونِ نمادها را در جای درستش رندر
+   * می‌کند؛ این آیلند فقط محتوای خودش را با portal داخلِ سه جایگاهِ مشخص
+   * (data-jluxe-footer-slot) می‌گذارد. دیگر هیچ جابه‌جاییِ DOM، setInterval،
+   * MutationObserver یا انتخابگرِ کلاسِ Tailwind در کار نیست.
+   */
+  if (slots)
+    return e.jsxs(e.Fragment, {
+      children: [
+        ReactDOM.createPortal(featuresNode, slots.features, "features"),
+        ReactDOM.createPortal(
+          e.jsxs(e.Fragment, { children: columnsNode }),
+          slots.columns,
+          "columns",
+        ),
+        ReactDOM.createPortal(
+          e.jsxs(e.Fragment, { children: [...bottomNode, hoverNode] }),
+          slots.bottom,
+          "bottom",
+        ),
+      ],
+    });
+  // سازگاری: قالبِ فرزندی که footer.php قدیمی دارد — کلِ فوتر مثلِ قبل.
+  return e.jsxs("footer", {
+    className: "flow-root",
+    style: I(r == null ? void 0 : r.background),
+    children: [
+      e.jsx("div", {
+        className: "mx-auto mt-4 mb-24 w-full max-w-[1296px] px-4 md:mb-6",
+        children: e.jsxs("div", {
+          className:
+            "overflow-hidden rounded-2xl border border-border bg-muted/40",
+          children: [
+            featuresNode,
+            e.jsxs("div", {
+              className: "grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4",
+              children: columnsNode,
+            }),
+            ...bottomNode,
+          ],
+        }),
+      }),
+      hoverNode,
     ],
   });
 }
