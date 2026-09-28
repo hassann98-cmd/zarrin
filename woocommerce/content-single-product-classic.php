@@ -292,10 +292,21 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 .jluxe-cp3 .cp3-relhead{display:flex;align-items:center;gap:14px;margin:32px 0 8px}
 .jluxe-cp3 .cp3-relhead .ic{width:48px;height:48px;border-radius:12px;background:hsl(var(--surface));border:1px solid hsl(var(--panel-border));color:hsl(var(--primary));display:inline-flex;align-items:center;justify-content:center}
 .jluxe-cp3 .cp3-relhead h3{font-size:22px;font-weight:800;color:hsl(var(--foreground));margin:0}
-.jluxe-cp3 .cp3-related ul.products{display:grid !important;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0 0 !important;padding:0 !important}
-@media(min-width:768px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:1024px){.jluxe-cp3 .cp3-related ul.products{grid-template-columns:repeat(4,1fr)}}
-.jluxe-cp3 .cp3-related ul.products li.product{width:100% !important;float:none !important;margin:0 !important;background:linear-gradient(180deg,hsl(var(--surface)),hsl(var(--panel)/.5));border:1px solid hsl(var(--panel-border));border-radius:24px;overflow:hidden;padding:12px !important}
+/* R85 — یک ردیفِ افقیِ اسلایدی (بدونِ شکستن به خطِ بعد) با فلشِ قبلی/بعدی.
+   ۴ کارت در دسکتاپ، ۳ در تبلت، ۲ در موبایل؛ بقیه با اسکرول/فلش دیده می‌شوند. */
+.jluxe-cp3 .cp3-relhead{flex-wrap:wrap}
+.jluxe-cp3 .cp3-relnav{display:flex;gap:8px;margin-inline-start:auto}
+.jluxe-cp3 .cp3-relnav[hidden]{display:none}
+.jluxe-cp3 .cp3-relbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9999px;border:1px solid hsl(var(--panel-border));background:hsl(var(--surface));color:hsl(var(--foreground));cursor:pointer;transition:border-color .2s,color .2s,opacity .2s}
+@media (hover:hover){.jluxe-cp3 .cp3-relbtn:hover:not(:disabled){border-color:hsl(var(--primary)/.55);color:hsl(var(--primary))}}
+.jluxe-cp3 .cp3-relbtn:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+.jluxe-cp3 .cp3-relbtn:disabled{opacity:.35;cursor:default}
+.jluxe-cp3 .cp3-related ul.products{display:flex !important;flex-wrap:nowrap !important;grid-template-columns:none !important;gap:12px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scroll-behavior:smooth;margin:16px 0 0 !important;padding:4px 2px 10px !important;list-style:none;scrollbar-width:none;-ms-overflow-style:none}
+.jluxe-cp3 .cp3-related ul.products::-webkit-scrollbar{display:none}
+.jluxe-cp3 .cp3-related ul.products li.product{flex:0 0 calc((100% - 12px)/2) !important;width:auto !important;max-width:none !important;scroll-snap-align:start;float:none !important;margin:0 !important;background:linear-gradient(180deg,hsl(var(--surface)),hsl(var(--panel)/.5));border:1px solid hsl(var(--panel-border));border-radius:24px;overflow:hidden;padding:12px !important}
+@media(min-width:768px){.jluxe-cp3 .cp3-related ul.products li.product{flex-basis:calc((100% - 24px)/3) !important}}
+@media(min-width:1024px){.jluxe-cp3 .cp3-related ul.products li.product{flex-basis:calc((100% - 36px)/4) !important}}
+@media (prefers-reduced-motion: reduce){.jluxe-cp3 .cp3-related ul.products{scroll-behavior:auto}}
 .jluxe-cp3 .cp3-related ul.products li.product img{border-radius:18px;background:#f8f9fb;mix-blend-mode:multiply;transition:transform .7s ease}
 @media (prefers-reduced-motion: no-preference){.jluxe-cp3 .cp3-related ul.products li.product:hover img{transform:scale(1.06)}}
 .jluxe-cp3 .cp3-related .woocommerce-loop-product__title{font-size:13px !important;font-weight:500 !important;color:hsl(var(--text-secondary)) !important;padding:0 4px}
@@ -746,6 +757,14 @@ quantity / single_add_to_cart_button) با اولویت و !important به‌ش�
 					<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M2.5 7.5v6c0 3.771 0 5.657 1.172 6.828S6.729 21.5 10.5 21.5h3c3.771 0 5.657 0 6.828-1.172S21.5 17.271 21.5 13.5v-6M3.87 5.315L2.5 7.5h19l-1.252-2.087c-.854-1.423-1.28-2.134-1.969-2.524c-.687-.389-1.517-.389-3.176-.389h-6.15c-1.623 0-2.435 0-3.113.375c-.678.376-1.109 1.064-1.97 2.44M12 7.5v-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 				</span>
 				<h3>محصولات مرتبط</h3>
+				<div class="cp3-relnav" data-cp3-rel-nav hidden>
+					<button type="button" class="cp3-relbtn" data-cp3-rel-prev aria-label="محصول قبلی">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</button>
+					<button type="button" class="cp3-relbtn" data-cp3-rel-next aria-label="محصول بعدی">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</button>
+				</div>
 			</div>
 			<?php woocommerce_output_related_products(); ?>
 		</div>

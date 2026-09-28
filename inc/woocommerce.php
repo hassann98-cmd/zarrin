@@ -1653,6 +1653,32 @@ function jluxe_related_products_args( array $args ): array {
 add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_args' );
 
 /**
+ * R85 — اسکریپتِ اسلایدرِ «محصولات مرتبط» (یک ردیف با فلشِ قبلی/بعدی).
+ *
+ * فقط در صفحهٔ محصول بارگذاری می‌شود، فایلِ مستقل و بدونِ وابستگی است (بدونِ
+ * jQuery/فریم‌ورک) و نسخه‌اش از زمانِ تغییرِ خودِ فایل می‌آید تا کشِ مرورگر
+ * پس از هر آپدیت تازه شود. اگر فایل نباشد، هیچ چیز بارگذاری نمی‌شود و ردیف
+ * همچنان با اسکرولِ لمسی کار می‌کند.
+ */
+function jluxe_related_slider_assets(): void {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return;
+	}
+	$file = JLUXE_THEME_DIR . '/assets/js/related-slider.js';
+	if ( ! is_readable( $file ) ) {
+		return;
+	}
+	wp_enqueue_script(
+		'jluxe-related-slider',
+		JLUXE_THEME_URI . '/assets/js/related-slider.js',
+		array(),
+		(string) filemtime( $file ),
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_related_slider_assets', 20 );
+
+/**
  * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول).
  *
  * R72 — بازبینیِ کاملِ شرط‌ها. حالت‌ها (پنل زرین ← اضافه خرید):

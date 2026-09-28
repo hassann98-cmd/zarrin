@@ -1376,4 +1376,38 @@ foreach ( jluxe_test_theme_php_files( JLUXE_THEME_DIR ) as $r84_file ) {
 }
 check( empty( $r84_offenders ), 'R84 no theme file writes an HTML attribute inside PHP code (the 1.65.0 "Undefined constant" bug): ' . implode( ' | ', $r84_offenders ) );
 
+
+/*
+ * R85 — related products must stay ONE horizontal row with arrows: adding a fifth
+ * product may not push it to a second line, and the row must work right-to-left.
+ */
+$r85_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' );
+check( false !== strpos( $r85_tpl, 'data-cp3-rel-nav' ) && false !== strpos( $r85_tpl, 'aria-label="محصول بعدی"' ) && false !== strpos( $r85_tpl, 'aria-label="محصول قبلی"' ), 'R85 the related row ships previous/next buttons with accessible labels' );
+check( false !== strpos( $r85_tpl, 'data-cp3-rel-nav hidden' ), 'R85 the arrows start hidden, so without JavaScript the row is still a plain swipeable strip' );
+check( 2 === substr_count( $r85_tpl, 'type="button" class="cp3-relbtn"' ), 'R85 the arrows are real buttons of type=button (they can never submit a form)' );
+check( false !== strpos( $r85_tpl, 'flex-wrap:nowrap !important' ) && false !== strpos( $r85_tpl, 'scroll-snap-type:x proximity' ), 'R85 the track is a single-line flex row with scroll snapping' );
+check( false === strpos( $r85_tpl, '.jluxe-cp3 .cp3-related ul.products{display:grid' ), 'R85 the old grid is gone: a fifth related product can no longer wrap onto a second line' );
+check( false !== strpos( $r85_tpl, '@media(min-width:1024px){.jluxe-cp3 .cp3-related ul.products li.product{flex-basis:calc((100% - 36px)/4) !important}}' ), 'R85 four cards per view on desktop' );
+check( false !== strpos( $r85_tpl, '@media(min-width:768px){.jluxe-cp3 .cp3-related ul.products li.product{flex-basis:calc((100% - 24px)/3) !important}}' ), 'R85 three on tablet' );
+check( false !== strpos( $r85_tpl, 'flex:0 0 calc((100% - 12px)/2) !important' ), 'R85 two on mobile' );
+check( false !== strpos( $r85_tpl, '.cp3-relnav[hidden]{display:none}' ), 'R85 hidden arrows stay hidden even though the nav itself is display:flex' );
+check( false !== strpos( $r85_tpl, '@media (prefers-reduced-motion: reduce){.jluxe-cp3 .cp3-related ul.products{scroll-behavior:auto}}' ), 'R85 reduced motion turns the smooth scrolling off' );
+
+$r85_js_path = ABSPATH . 'assets/js/related-slider.js';
+check( is_readable( $r85_js_path ), 'R85 the slider ships as its own small asset' );
+$r85_js = (string) file_get_contents( $r85_js_path );
+check( strlen( $r85_js ) < 6144, 'R85 the script stays inside the performance budget (' . strlen( $r85_js ) . ' bytes, no framework)' );
+check( false === stripos( $r85_js, 'jquery' ) && false === stripos( $r85_js, 'react' ) && false !== strpos( $r85_js, 'scrollBy' ) && false !== strpos( $r85_js, 'addEventListener' ), 'R85 plain vanilla JavaScript: no framework, one native scrollBy per arrow click' );
+check( false !== strpos( $r85_js, 'getComputedStyle' ) && false !== strpos( $r85_js, 'scrollBy' ) && false !== strpos( $r85_js, 'step()' ), 'R85 it moves one card per click and reads the row direction itself, so RTL and LTR both work (covered by the jsdom suite)' );
+check( false !== strpos( $r85_js, 'nav.hidden = !scrollable' ), 'R85 when every card fits, the arrows hide themselves (nothing to scroll)' );
+
+$GLOBALS['scripts']     = array();
+$GLOBALS['query_kind']  = 'product';
+jluxe_related_slider_assets();
+check( isset( $GLOBALS['scripts']['jluxe-related-slider'] ), 'R85 on a product page the slider script is enqueued in the footer' );
+$GLOBALS['scripts']    = array();
+$GLOBALS['query_kind'] = 'home';
+jluxe_related_slider_assets();
+check( ! isset( $GLOBALS['scripts']['jluxe-related-slider'] ), 'R85 and it is loaded nowhere else (performance budget)' );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
