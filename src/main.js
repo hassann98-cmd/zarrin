@@ -1,4 +1,9 @@
-import { mountIsland, startSmoothScrolling } from "./lib/islands.js";
+import {
+  markLiteDevice,
+  mountIsland,
+  startSmoothScrolling,
+} from "./lib/islands.js";
+markLiteDevice(window);
 import "./styles/storefront.css";
 const islands = {
   footer: () => import("./islands/Footer.js"),

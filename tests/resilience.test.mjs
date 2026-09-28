@@ -11,6 +11,7 @@ import {
   mountIsland,
   startSmoothScrolling,
   shouldSmoothScroll,
+  markLiteDevice,
 } from "../src/lib/islands.js";
 
 const base = "https://shop.test/store/";
@@ -599,4 +600,39 @@ test("R26 classic product and picker requests strip the native auto-add flag wit
     "51",
     "the native/no-JS form is unchanged",
   );
+});
+
+test("R88 low-memory or Save-Data devices get html.jluxe-lite; others do not", () => {
+  const make = (navigator) => {
+    const d = new JSDOM("<!doctype html><html><body></body></html>");
+    disposers.push(() => d.window.close());
+    Object.defineProperty(d.window, "navigator", { value: navigator });
+    return d.window;
+  };
+  for (const [nav, expected] of [
+    [{ deviceMemory: 2 }, true],
+    [{ deviceMemory: 1 }, true],
+    [{ deviceMemory: 4 }, false],
+    [{ connection: { saveData: true }, deviceMemory: 8 }, true],
+    [{}, false],
+  ]) {
+    const win = make(nav);
+    assert.equal(markLiteDevice(win), expected, JSON.stringify(nav));
+    assert.equal(win.document.documentElement.classList.contains("jluxe-lite"), expected);
+  }
+  assert.equal(markLiteDevice({}), false, "never throws without a document");
+});
+
+test("R88 CSS budget: blur is capped on touch, removed in lite mode, and the dead !container utility is gone", () => {
+  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  assert.ok(!css.includes(".\\!container"), "Tailwind picked up `if (!container)` from JS — dead rules removed");
+  assert.match(css, /@media \(hover: none\) and \(pointer: coarse\) \{\s*\.backdrop-blur-xl,\s*\.backdrop-blur-md \{\s*--tw-backdrop-blur: blur\(8px\);/);
+  assert.match(css, /html\.jluxe-lite \.backdrop-blur-xl,[\s\S]*?backdrop-filter: none;/);
+  assert.match(css, /@media \(prefers-reduced-transparency: reduce\)/);
+  const important = (css.match(/!important/g) || []).length;
+  assert.ok(important <= 83, `!important budget: ${important} (was 89 in the source before R88); new ones need a reason`);
+  const style = fs.readFileSync(new URL("../style.css", import.meta.url), "utf8");
+  assert.ok(!/jluxe-mobile-price-card \{[^}]*backdrop-filter/.test(style), "no blur behind the 96%-opaque sticky price card");
+  const header = fs.readFileSync(new URL("../header.php", import.meta.url), "utf8");
+  assert.match(header, /jluxe-header-bar border-b/);
 });

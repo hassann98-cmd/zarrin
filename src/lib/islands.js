@@ -114,3 +114,21 @@ export function startSmoothScrolling(win, loadLenis) {
       return null;
     });
 }
+
+/**
+ * R88 — «jluxe-lite» روی <html> برای دستگاهِ کم‌توان (Device Memory ≤ 2GB،
+ * فعلاً فقط مرورگرهای Chromium گزارشش می‌کنند) یا وقتی کاربر «صرفه‌جویی در
+ * داده» را روشن کرده. CSS با این کلاس blurها را برمی‌دارد (storefront.css).
+ */
+export function markLiteDevice(win) {
+  try {
+    const nav = win.navigator || {};
+    const lite =
+      Boolean(nav.connection?.saveData) ||
+      (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2);
+    if (lite) win.document.documentElement.classList.add("jluxe-lite");
+    return lite;
+  } catch {
+    return false;
+  }
+}

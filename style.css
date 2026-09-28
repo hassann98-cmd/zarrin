@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.64.6 — AUDIT REMEDIATION
+Build: JLUXE 1.64.7 — AUDIT REMEDIATION
 Author: زرین
 Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
-Version: 1.64.6
+Version: 1.64.7
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -94,8 +94,7 @@ Text Domain: jluxe
     border-radius: 20px;
     background: rgba(255,255,255,.96);
     box-shadow: 0 12px 34px -14px rgba(16,24,40,.34);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* R88 — blur(16px) پشتِ پس‌زمینهٔ ۹۶٪ مات دیده نمی‌شد و فقط هزینهٔ GPU داشت؛ حذف شد. */
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] {
     display: flex;

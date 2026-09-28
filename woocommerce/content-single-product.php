@@ -425,7 +425,7 @@ if ( $jluxe_is_variable ) {
 	</button>
 	<div class="fixed inset-x-0 bottom-0 z-40 hidden md:hidden" data-jluxe-mobile-price-bar>
 		<div class="m-2" style="margin-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
-			<div class="jluxe-mobile-price-card flex items-center gap-2.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl backdrop-blur-md">
+			<div class="jluxe-mobile-price-card flex items-center gap-2.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl">
 				<div class="min-w-0 flex-1">
 					<span class="block text-[10px] text-text-muted">قیمت</span>
 					<span class="text-[15px] font-black text-foreground" data-jluxe-mobile-bar-price>

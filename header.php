@@ -77,7 +77,7 @@
 	 * فاصله‌ی خالی/کوتاهیِ نامتقارن می‌گیره.
 	 */
 	?>
-	<div class="<?php echo $jluxe_header_sticky ? 'fixed inset-x-0 top-[var(--wp-admin--admin-bar--height,0px)] z-30' : 'relative'; ?> border-b border-white/10 bg-surface/60 shadow-sm backdrop-blur-xl">
+	<div class="<?php echo $jluxe_header_sticky ? 'fixed inset-x-0 top-[var(--wp-admin--admin-bar--height,0px)] z-30' : 'relative'; ?> jluxe-header-bar border-b border-white/10 bg-surface/60 shadow-sm backdrop-blur-xl">
 		<div class="mx-auto flex h-[72px] max-w-[1296px] items-center justify-between gap-4 px-4 md:h-[90px]">
 			<div data-jluxe-island="header-actions"></div>
 			<div data-jluxe-island="mini-cart"></div>
