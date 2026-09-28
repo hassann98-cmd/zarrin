@@ -1713,4 +1713,52 @@ foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mo
 	check( false !== strpos( $h89admin, "jluxe_hb_field_select( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_number( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_checkbox( \$name, '$h89k'" ) || false !== strpos( $h89admin, "\t\$name,\n\t\t\t\t\t\t\t'$h89k'," ), 'R89 admin field exists: ' . $h89k );
 }
 
+// ---------------------------------------------------------------- R90
+// کلیدِ API هنگامِ ذخیرهٔ بقیهٔ تنظیماتِ AI/پیامک نباید عوض/پاک شود.
+$r90admin = new WP_User( 7, array( 'administrator' ) );
+$r90admin->user_login = 'jluxeadmin';
+$r90admin->user_email = 'owner@jluxe.test';
+$r90admin->user_pass  = wp_hash_password( 'My-WP-Login-Pass!' );
+$GLOBALS['users'][7] = $r90admin;
+$GLOBALS['authenticated_user'] = 7;
+$r90real = 'sk-REAL-gapgpt-0123456789abcdef';
+$r90post = function ( array $post ) { $_POST = array_merge( array( 'jluxe_settings_nonce' => 'n', 'ai_assistant' => array( 'enabled' => '1', 'provider' => 'gapgpt', 'model' => 'gapgpt-qwen-3.6' ) ), $post ); ob_start(); jluxe_render_ai_assistant_page(); return (string) ob_get_clean(); };
+
+jluxe_set_ai_api_key( $r90real );
+$r90html = $r90post( array() );
+check( $r90real === jluxe_get_ai_api_key(), 'R90 saving AI settings without touching the key keeps the key' );
+check( false !== strpos( $r90html, '✓ کلید ذخیره شده' ) && false !== strpos( $r90html, '…cdef' ) && false === strpos( $r90html, $r90real ), 'R90 page shows «saved …last4», never the key itself' );
+check( 1 === preg_match( '/<input type="password" id="jluxe-ai-key" name="ai_api_key"[^>]*\sdisabled\s/', $r90html ) && false !== strpos( $r90html, 'id="jluxe-ai-key-box" hidden' ), 'R90 with a saved key the input is hidden + disabled (nothing for autofill to fill, nothing submitted)' );
+check( false !== strpos( $r90html, 'autocomplete="new-password"' ) && false !== strpos( $r90html, 'data-lpignore="true"' ) && false !== strpos( $r90html, 'data-1p-ignore="true"' ) && false === strpos( $r90html, 'name="ai_api_key" value="" class="regular-text" placeholder="•' ), 'R90 key input opts out of password managers (no autocomplete="off"-only password field any more)' );
+check( 1 === preg_match( '/name="ai_assistant\[model\]"[^>]*autocomplete="off"/', $r90html ), 'R90 model field is not a username candidate' );
+
+$r90html = $r90post( array( 'ai_api_key' => 'My-WP-Login-Pass!' ) );
+check( $r90real === jluxe_get_ai_api_key() && false !== strpos( $r90html, 'notice-warning' ) && false !== strpos( $r90html, 'رمزِ ورودِ وردپرسِ شما' ), 'R90 browser-autofilled WordPress login password is rejected; the real key stays' );
+
+$r90html = $r90post( array( 'ai_assistant' => array( 'provider' => 'gapgpt', 'model' => 'JLuxeAdmin' ), 'ai_api_key' => 'My-WP-Login-Pass!' ) );
+check( 'gapgpt-qwen-3.6' === jluxe_get_fresh_settings()['ai_assistant']['model'] && false !== strpos( $r90html, 'فیلدِ «مدل»' ), 'R90 autofilled username in «model» is ignored; previous model kept' );
+
+$r90post( array( 'ai_api_key' => "  sk-NEW-key-9876 543210zz\n" ) );
+check( 'sk-NEW-key-9876543210zz' === jluxe_get_ai_api_key(), 'R90 a deliberately pasted new key replaces the old one (spaces/newlines stripped)' );
+$r90html = $r90post( array( 'ai_api_key' => 'sk-NEW-key-9876543210zz' ) );
+check( 'sk-NEW-key-9876543210zz' === jluxe_get_ai_api_key() && false === strpos( $r90html, 'notice-warning' ), 'R90 re-posting the same key is a silent no-op' );
+$r90post( array( 'ai_api_key_clear' => '1', 'ai_api_key' => 'sk-ignored-because-clear' ) );
+check( '' === jluxe_get_ai_api_key(), 'R90 «حذف کلید فعلی» still deletes the key' );
+$r90html = $r90post( array() );
+check( 1 === preg_match( '/<input type="password" id="jluxe-ai-key" name="ai_api_key"(?![^>]*disabled)[^>]*>/', $r90html ) && false === strpos( $r90html, 'data-jluxe-secret-edit' ) && false !== strpos( $r90html, 'هنوز تنظیم نشده' ), 'R90 without a key the input is directly editable' );
+
+// پیامک: همان محافظت، ولی فاصله‌های درونیِ رمز حفظ می‌شود.
+jluxe_set_sms_api_key( 'kave-token-0000-1111' );
+$_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'kavenegar', 'username' => 'jluxeadmin' ), 'sms_api_key' => 'My-WP-Login-Pass!' );
+ob_start(); jluxe_render_sms_page(); $r90sms = (string) ob_get_clean();
+check( 'kave-token-0000-1111' === jluxe_get_sms_api_key() && false !== strpos( $r90sms, 'notice-warning' ) && false !== strpos( $r90sms, '…1111' ), 'R90 SMS key is protected from login-password autofill too' );
+$_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'melipayamak' ), 'sms_api_key' => 'pass with space' );
+ob_start(); jluxe_render_sms_page(); ob_end_clean();
+check( 'pass with space' === jluxe_get_sms_api_key(), 'R90 SMS password keeps inner spaces (it may be a panel password)' );
+check( '' === jluxe_secret_hint( 'short-key' ), 'R90 short secrets get no hint' );
+$_POST = array();
+$GLOBALS['authenticated_user'] = 0;
+jluxe_set_ai_api_key( '' );
+jluxe_set_sms_api_key( '' );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

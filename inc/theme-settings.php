@@ -2047,6 +2047,7 @@ function jluxe_get_sms_public_settings(): array {
 
 require_once __DIR__ . '/theme-settings-sanitize.php';
 require_once __DIR__ . '/theme-settings-presets.php';
+require_once __DIR__ . '/theme-settings-secrets.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
 require_once __DIR__ . '/theme-settings-ai.php';

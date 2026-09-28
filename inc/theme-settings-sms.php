@@ -9,7 +9,8 @@
 defined( 'ABSPATH' ) || exit;
 
 function jluxe_render_sms_page(): void {
-	$status = null;
+	$status   = null;
+	$warnings = array();
 
 	if ( isset( $_POST['jluxe_settings_nonce'] ) && current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['jluxe_settings_nonce'] ) ), 'jluxe_save_settings' ) ) {
 		if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -22,24 +23,24 @@ function jluxe_render_sms_page(): void {
 			$clean    = jluxe_sanitize_sms( $posted, $defaults['sms'] );
 			jluxe_update_settings_section( 'sms', $clean );
 
-			if ( ! empty( $_POST['sms_api_key'] ) ) {
-				jluxe_set_sms_api_key( sanitize_text_field( wp_unslash( $_POST['sms_api_key'] ) ) );
-			}
-			if ( ! empty( $_POST['sms_api_key_clear'] ) ) {
-				jluxe_set_sms_api_key( '' );
-			}
+			// R90 — همان محافظتِ کلیدِ AI (inc/theme-settings-secrets.php).
+			$warnings[] = jluxe_apply_posted_secret( 'sms_api_key', jluxe_get_sms_api_key(), 'jluxe_set_sms_api_key', 'کلید API / رمز عبورِ پیامک', false );
 			$status = 'saved';
 		}
 	}
 
 	$settings = jluxe_get_fresh_settings();
 	$sms      = $settings['sms'];
-	$has_key  = '' !== jluxe_get_sms_api_key();
+	$sms_key  = jluxe_get_sms_api_key();
+	$has_key  = '' !== $sms_key;
+	$key_hint = jluxe_secret_hint( $sms_key );
+	unset( $sms_key );
 
-	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key ) {
+	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key, $key_hint, $warnings ) {
 		?>
 		<p class="description">صفحه‌ی «ورود و عضویت» (my-account) همیشه با نام‌کاربری/ایمیل کار می‌کنه. تب «شماره موبایل» هم توی همون صفحه نمایش داده می‌شه، ولی تا وقتی این‌جا provider و کلید واقعی ست نکنی، غیرفعاله و پیام «سرویس پیامکی هنوز وصل نشده» نشون می‌ده — هیچ کدی به‌صورت فیک ارسال/تایید نمی‌شه.</p>
-		<form method="post">
+		<?php jluxe_render_secret_warnings( $warnings ); ?>
+		<form method="post" autocomplete="off">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
 			<h2>عمومی</h2>
@@ -76,18 +77,25 @@ function jluxe_render_sms_page(): void {
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-username">نام کاربری</label></th>
-					<td><input type="text" id="jluxe-sms-username" name="sms[username]" value="<?php echo esc_attr( $sms['username'] ); ?>" class="regular-text" dir="ltr" placeholder="فقط برای ملی‌پیامک — نام کاربری پنل" />
+					<td><input type="text" id="jluxe-sms-username" name="sms[username]" value="<?php echo esc_attr( $sms['username'] ); ?>" class="regular-text" dir="ltr" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="فقط برای ملی‌پیامک — نام کاربری پنل" />
 						<p class="description">سرویس ارسال ملی‌پیامک (REST کلاسیک) به نام‌کاربری و رمز، هر دو، نیاز داره — رمز رو پایین به‌عنوان «کلید API» وارد کن.</p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-key">کلید API / رمز عبور</label></th>
 					<td>
-						<input type="password" id="jluxe-sms-key" name="sms_api_key" value="" class="regular-text" placeholder="<?php echo $has_key ? '•••••••••••••••• (تنظیم شده — برای تغییر، مقدار جدید بنویس)' : 'هنوز تنظیم نشده'; ?>" dir="ltr" autocomplete="off" />
+						<?php
+						jluxe_render_secret_field(
+							array(
+								'id'            => 'jluxe-sms-key',
+								'name'          => 'sms_api_key',
+								'has_key'       => $has_key,
+								'hint'          => $key_hint,
+								'confirm_clear' => 'کلید API حذف بشه؟ ورود با پیامک تا تنظیم دوباره کار نمی‌کنه.',
+							)
+						);
+						?>
 						<p class="description">کاوه‌نگار: توکن API. ملی‌پیامک: مقدار <strong>APIKey جهت استفاده از وب‌سرویس</strong> در پنل ملی‌پیامک.</p>
-						<?php if ( $has_key ) : ?>
-							<label><input type="checkbox" name="sms_api_key_clear" value="1" onclick="return confirm('کلید API حذف بشه؟ ورود با پیامک تا تنظیم دوباره کار نمی‌کنه.');" /> حذف کلید فعلی</label>
-						<?php endif; ?>
 					</td>
 				</tr>
 				<tr>

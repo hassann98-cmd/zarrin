@@ -17,7 +17,8 @@ defined( 'ABSPATH' ) || exit;
 // صفحه‌ی تنظیمات
 // =====================================================================
 function jluxe_render_ai_assistant_page(): void {
-	$status = null;
+	$status   = null;
+	$warnings = array();
 
 	if ( isset( $_POST['jluxe_settings_nonce'] ) && current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['jluxe_settings_nonce'] ) ), 'jluxe_save_settings' ) ) {
 		if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -28,28 +29,35 @@ function jluxe_render_ai_assistant_page(): void {
 			$defaults = jluxe_theme_settings_defaults();
 			$posted   = wp_unslash( $_POST['ai_assistant'] ?? array() );
 			$clean    = jluxe_sanitize_ai_assistant( $posted, $defaults['ai_assistant'] );
+			// همان autofill گاهی نامِ کاربریِ وردپرس را هم در فیلدِ متنیِ قبل از
+			// فیلدِ رمز (این‌جا «مدل») می‌گذارد؛ نامِ کاربری هیچ‌وقت نامِ مدل نیست.
+			$previous = jluxe_get_fresh_settings()['ai_assistant'];
+			if ( jluxe_ai_model_is_login_autofill( (string) $clean['model'] ) ) {
+				$clean['model'] = (string) $previous['model'];
+				$warnings[]     = 'فیلدِ «مدل» با نامِ کاربری/ایمیلِ ورودِ وردپرسِ شما پُر شده بود (پُرکردنِ خودکارِ مرورگر) — نادیده گرفته شد و مدلِ قبلی ماند.';
+			}
 			jluxe_update_settings_section( 'ai_assistant', $clean );
 
-			// کلید API فقط اگر کاربر چیز جدیدی تایپ کرده باشه به‌روزرسانی می‌شه —
-			// فیلد رمز همیشه خالی رندر می‌شه، پس «خالی گذاشتن» به‌معنای «تغییر نده»ست،
-			// نه «پاک کن» (اون یک دکمه‌ی جدای explicit داره).
-			if ( ! empty( $_POST['ai_api_key'] ) ) {
-				jluxe_set_ai_api_key( sanitize_text_field( wp_unslash( $_POST['ai_api_key'] ) ) );
-			}
-			if ( ! empty( $_POST['ai_api_key_clear'] ) ) {
-				jluxe_set_ai_api_key( '' );
-			}
+			// کلید API فقط اگر کاربر آگاهانه «تغییر کلید» را زده و چیز جدیدی
+			// چسبانده باشد عوض می‌شود؛ خالی = «تغییر نده»، حذف = چک‌باکسِ جدا.
+			// رمزِ ورودِ وردپرس (autofillِ مرورگر) هرگز جای کلید نمی‌نشیند — R90،
+			// توضیح در inc/theme-settings-secrets.php.
+			$warnings[] = jluxe_apply_posted_secret( 'ai_api_key', jluxe_get_ai_api_key(), 'jluxe_set_ai_api_key', 'کلید API' );
 			$status = 'saved';
 		}
 	}
 
 	$settings = jluxe_get_fresh_settings();
 	$ai       = $settings['ai_assistant'];
-	$has_key  = '' !== jluxe_get_ai_api_key();
+	$api_key  = jluxe_get_ai_api_key();
+	$has_key  = '' !== $api_key;
+	$key_hint = jluxe_secret_hint( $api_key );
+	unset( $api_key );
 
-	jluxe_settings_page_shell( 'دستیار هوش مصنوعی', 'jluxe-ai-assistant', $status, function () use ( $ai, $has_key ) {
+	jluxe_settings_page_shell( 'دستیار هوش مصنوعی', 'jluxe-ai-assistant', $status, function () use ( $ai, $has_key, $key_hint, $warnings ) {
 		?>
-		<form method="post">
+		<?php jluxe_render_secret_warnings( $warnings ); ?>
+		<form method="post" autocomplete="off">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
 			<h2>عمومی</h2>
@@ -114,7 +122,7 @@ function jluxe_render_ai_assistant_page(): void {
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-ai-model">مدل</label></th>
-					<td><input type="text" id="jluxe-ai-model" name="ai_assistant[model]" value="<?php echo esc_attr( $ai['model'] ); ?>" class="regular-text" placeholder="مثلاً gpt-4o-mini یا claude-sonnet-5 یا gapgpt-qwen-3.6" dir="ltr" />
+					<td><input type="text" id="jluxe-ai-model" name="ai_assistant[model]" value="<?php echo esc_attr( $ai['model'] ); ?>" class="regular-text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="مثلاً gpt-4o-mini یا claude-sonnet-5 یا gapgpt-qwen-3.6" dir="ltr" />
 						<?php if ( 'gapgpt' === $ai['provider'] ) : ?>
 							<p class="description">گپ‌جی‌پی‌تی چند مدل داره (مثلاً <code dir="ltr">gpt-4o</code>، <code dir="ltr">claude-sonnet-5</code>، <code dir="ltr">gapgpt-qwen-3.6</code> و…) — دقیقاً همون اسمی که خودِ گپ‌جی‌پی‌تی برای مدلِ موردنظرت می‌ده رو این‌جا بذار.</p>
 						<?php endif; ?>
@@ -123,10 +131,17 @@ function jluxe_render_ai_assistant_page(): void {
 				<tr>
 					<th scope="row"><label for="jluxe-ai-key">کلید API</label></th>
 					<td>
-						<input type="password" id="jluxe-ai-key" name="ai_api_key" value="" class="regular-text" placeholder="<?php echo $has_key ? '•••••••••••••••• (تنظیم شده — برای تغییر، مقدار جدید بنویس)' : 'هنوز تنظیم نشده'; ?>" dir="ltr" autocomplete="off" />
-						<?php if ( $has_key ) : ?>
-							<label><input type="checkbox" name="ai_api_key_clear" value="1" onclick="return confirm('کلید API حذف بشه؟ دستیار تا تنظیم دوباره کار نمی‌کنه.');" /> حذف کلید فعلی</label>
-						<?php endif; ?>
+						<?php
+						jluxe_render_secret_field(
+							array(
+								'id'            => 'jluxe-ai-key',
+								'name'          => 'ai_api_key',
+								'has_key'       => $has_key,
+								'hint'          => $key_hint,
+								'confirm_clear' => 'کلید API حذف بشه؟ دستیار تا تنظیم دوباره کار نمی‌کنه.',
+							)
+						);
+						?>
 					</td>
 				</tr>
 				<tr>
@@ -1310,4 +1325,25 @@ function jluxe_render_ai_review_summary( int $product_id ): void {
 		</div>
 	</div>
 	<?php
+}
+
+/**
+ * R90 — آیا مقدارِ «مدل» در واقع نامِ کاربری/ایمیلِ ادمینِ فعلی است که
+ * مرورگر در فیلدِ متنیِ کنارِ فیلدِ رمز پُر کرده؟
+ */
+function jluxe_ai_model_is_login_autofill( string $model ): bool {
+	$model = trim( $model );
+	if ( '' === $model || ! function_exists( 'wp_get_current_user' ) ) {
+		return false;
+	}
+	$user = wp_get_current_user();
+	if ( ! $user || empty( $user->ID ) ) {
+		return false;
+	}
+	foreach ( array( (string) ( $user->user_login ?? '' ), (string) ( $user->user_email ?? '' ) ) as $login ) {
+		if ( '' !== $login && 0 === strcasecmp( $model, $login ) ) {
+			return true;
+		}
+	}
+	return false;
 }

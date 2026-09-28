@@ -254,7 +254,7 @@ function add_query_arg($key,$value=null,$url=null){
  return preg_replace('/\?.*$/','',$url).($q?'?'.http_build_query($q):'');
 }
 class WP_User {
- public $ID; public $roles; public $caps=[]; public $user_login; public $display_name='Test customer'; public $user_email='test@example.invalid';
+ public $ID; public $roles; public $caps=[]; public $user_login; public $user_pass=''; public $display_name='Test customer'; public $user_email='test@example.invalid';
  function __construct($id,$roles=['customer']){$this->ID=$id;$this->roles=$roles;$this->user_login='customer'.$id;}
  function exists(){return $this->ID>0;}
 }
@@ -398,3 +398,8 @@ function get_search_query(){ return $GLOBALS['search_query']??''; }
 function has_site_icon(){ return !empty($GLOBALS['site_icon']); }
 function get_site_icon_url($size=512){ return !empty($GLOBALS['site_icon']) ? home_url('/wp-content/uploads/icon-'.$size.'.png') : ''; }
 function status_header($code){ $GLOBALS['status_header']=$code; }
+if(!function_exists('wp_hash_password')){function wp_hash_password($p){return password_hash((string)$p,PASSWORD_DEFAULT);}}
+if(!function_exists('wp_check_password')){function wp_check_password($p,$h,$id=''){return password_verify((string)$p,(string)$h);}}
+if(!function_exists('checked')){function checked($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' checked=\'checked\'':'';if($echo)echo $r;return $r;}}
+if(!function_exists('selected')){function selected($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' selected=\'selected\'':'';if($echo)echo $r;return $r;}}
+if(!function_exists('esc_textarea')){function esc_textarea($s){return htmlspecialchars((string)$s,ENT_QUOTES);}}
