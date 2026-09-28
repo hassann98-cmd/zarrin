@@ -5,6 +5,9 @@ import {
 } from "./lib/islands.js";
 markLiteDevice(window);
 import "./styles/storefront.css";
+import { setupPwa } from "./lib/pwa.js";
+// R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
+setupPwa(window, window.JLuxeThemeSettings?.pwa);
 const islands = {
   footer: () => import("./islands/Footer.js"),
   "header-logo": () =>

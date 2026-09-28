@@ -701,6 +701,8 @@ function jluxe_theme_settings_defaults(): array {
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
+			'pwa_enabled'               => true, // R88 — inc/pwa.php
+			'pwa_install_prompt'        => true,
 		),
 		/*
 		 * معیارهای امتیازِ دیدگاه — پورتِ فیچرِ پوسته‌ی قبلی (طبقِ درخواستِ
@@ -1356,6 +1358,7 @@ function jluxe_localize_public_settings(): void {
 			'mobileLogoUrl'    => jluxe_get_mobile_logo_url(),
 			'shopUrl'          => jluxe_shop_url(),
 			'urls' => jluxe_public_urls(),
+			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),
 			'rest' => array(
 				'root' => esc_url_raw( rest_url( 'jluxe/v1/' ) ),
 				'sessionUrl' => admin_url( 'admin-ajax.php' ),

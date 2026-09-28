@@ -2027,6 +2027,17 @@ function jluxe_render_advanced_page(): void {
 								</p>
 							</td>
 						</tr>
+						<tr>
+							<th scope="row">اپلیکیشنِ وب (PWA)</th>
+							<td>
+								<label><input type="checkbox" name="performance[pwa_enabled]" value="1" <?php checked( $perf['pwa_enabled'] ?? true ); ?> /> قابلِ نصب روی گوشی + صفحهٔ «اتصال برقرار نیست» هنگامِ قطعیِ اینترنت</label><br>
+								<label><input type="checkbox" name="performance[pwa_install_prompt]" value="1" <?php checked( $perf['pwa_install_prompt'] ?? true ); ?> /> نوارِ کوچکِ «افزودن به صفحهٔ اصلی» در موبایل (بیرون از سبد، تسویه، حساب و صفحهٔ محصول)</label>
+								<p class="description">
+									هیچ صفحه‌ای (HTML) کش نمی‌شود — قیمت، موجودی، سبد و ورود همیشه زنده از سرور می‌آیند. فقط فایل‌های هش‌دارِ خودِ پوسته (JS/CSS/فونت) و یک صفحهٔ آفلاینِ کوچک ذخیره می‌شوند. سبد، تسویه، حساب کاربری، پیگیری سفارش، wp-admin، REST و بازگشتِ درگاه اصلاً از service worker عبور نمی‌کنند.
+									با خاموش‌کردن، service workerِ نصب‌شده روی گوشیِ کاربران در بازدیدِ بعدی خودش را پاک می‌کند.
+								</p>
+							</td>
+						</tr>
 					</table>
 					<?php jluxe_settings_submit_button( true, 'performance' ); ?>
 				</form>

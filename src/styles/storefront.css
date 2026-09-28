@@ -6295,3 +6295,70 @@ html.jluxe-lite .jluxe-header-bar {
     background-color: hsl(var(--surface) / 0.97);
   }
 }
+
+/* R88 — نوارِ «افزودن به صفحهٔ اصلی» (src/lib/pwa.js). بالای ناوبریِ پایینِ موبایل؛
+   بدونِ انیمیشن، بدونِ blur؛ hover فقط برای دستگاهِ دارای ماوس. */
+.jluxe-pwa-install {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.25);
+}
+@media (min-width: 768px) {
+  .jluxe-pwa-install {
+    inset-inline: auto 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    max-width: 420px;
+  }
+}
+.jluxe-pwa-install__text {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.jluxe-pwa-install__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.jluxe-pwa-install button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.jluxe-pwa-install__primary {
+  border: 0;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.jluxe-pwa-install__later {
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+.jluxe-pwa-install button:focus-visible {
+  outline: 3px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .jluxe-pwa-install__primary:hover {
+    filter: brightness(0.94);
+  }
+  .jluxe-pwa-install__later:hover {
+    color: hsl(var(--foreground));
+  }
+}

@@ -1583,4 +1583,84 @@ $r88_footer = (string) file_get_contents( ABSPATH . 'footer.php' );
 check( false !== strpos( $r88_footer, 'data-jluxe-footer-slot="features"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="bottom"' ), 'R88 footer.php provides the three island slots' );
 check( strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) < strpos( $r88_footer, 'jluxe_render_site_trust_badges();' ), 'R88 the badge column comes after the link columns inside the same grid' );
 
+// ---------------------------------------------------------------- R88d PWA
+update_test_settings( jluxe_theme_settings_defaults() );
+$GLOBALS['query_kind'] = 'home';
+check( function_exists( 'jluxe_pwa_manifest' ) && false !== strpos( (string) file_get_contents( ABSPATH . 'functions.php' ), "'/inc/pwa.php'" ), 'R88 PWA module is loaded from functions.php' );
+check( true === jluxe_get_setting( 'performance.pwa_enabled' ) && true === jluxe_get_setting( 'performance.pwa_install_prompt' ), 'R88 PWA defaults are on' );
+$pwa_s = jluxe_sanitize_performance( array(), jluxe_theme_settings_defaults()['performance'] );
+check( false === $pwa_s['pwa_enabled'] && false === $pwa_s['pwa_install_prompt'], 'R88 unchecked PWA boxes save as off' );
+$pwa_s = jluxe_sanitize_performance( array( 'pwa_enabled' => '1', 'pwa_install_prompt' => '1' ), jluxe_theme_settings_defaults()['performance'] );
+check( true === $pwa_s['pwa_enabled'] && true === $pwa_s['pwa_install_prompt'], 'R88 checked PWA boxes save as on' );
+check( '/store/' === jluxe_pwa_home_path(), 'R88 scope follows a subdirectory install' );
+$pwa_m = jluxe_pwa_manifest();
+check( '/store/' === $pwa_m['scope'] && '/store/' === $pwa_m['id'] && 'https://shop.test/store/' === $pwa_m['start_url'], 'R88 manifest start_url is the plain home URL (no tracking query → page cache stays warm)' );
+check( 'fa' === $pwa_m['lang'] && 'rtl' === $pwa_m['dir'] && 'standalone' === $pwa_m['display'], 'R88 manifest is Persian RTL standalone' );
+check( jluxe_strlen( $pwa_m['short_name'] ) <= 12, 'R88 short_name fits the launcher (≤12 chars)' );
+check( (bool) preg_match( '/^#[0-9A-Fa-f]{6}$/', $pwa_m['theme_color'] ) && (bool) preg_match( '/^#[0-9A-Fa-f]{6}$/', $pwa_m['background_color'] ), 'R88 manifest colours are valid hex' );
+$pwa_sizes = array_column( $pwa_m['icons'], 'sizes' );
+check( in_array( '192x192', $pwa_sizes, true ) && in_array( '512x512', $pwa_sizes, true ) && in_array( 'maskable', array_column( $pwa_m['icons'], 'purpose' ), true ), 'R88 bundled icons: 192 + 512 + maskable' );
+foreach ( array( 'icon-192.png' => 192, 'icon-512.png' => 512, 'icon-maskable-512.png' => 512, 'apple-touch-icon.png' => 180 ) as $pwa_icon => $pwa_px ) {
+	$pwa_dim = @getimagesize( ABSPATH . 'assets/pwa/' . $pwa_icon );
+	check( is_array( $pwa_dim ) && $pwa_px === $pwa_dim[0] && $pwa_px === $pwa_dim[1] && 'image/png' === $pwa_dim['mime'], 'R88 bundled icon is a ' . $pwa_px . 'px square PNG: ' . $pwa_icon );
+}
+$GLOBALS['site_icon'] = 1;
+$pwa_m = jluxe_pwa_manifest();
+check( 2 === count( $pwa_m['icons'] ) && false !== strpos( $pwa_m['icons'][1]['src'], 'icon-512.png' ) && false !== strpos( $pwa_m['icons'][1]['src'], '/uploads/' ), 'R88 the WordPress Site Icon replaces the bundled icons' );
+ob_start(); jluxe_pwa_head(); $pwa_head = (string) ob_get_clean();
+check( false === strpos( $pwa_head, 'apple-touch-icon' ), 'R88 no duplicate apple-touch-icon when WordPress prints the Site Icon' );
+$GLOBALS['site_icon'] = 0;
+ob_start(); jluxe_pwa_head(); $pwa_head = (string) ob_get_clean();
+check( false !== strpos( $pwa_head, 'rel="manifest"' ) && false !== strpos( $pwa_head, 'jluxe_pwa=manifest' ) && false !== strpos( $pwa_head, 'apple-touch-icon' ) && false !== strpos( $pwa_head, 'mobile-web-app-capable' ), 'R88 head links the manifest + iOS meta' );
+
+$pwa_bp = jluxe_pwa_bypass_paths();
+foreach ( array( '/store/basket/', '/store/pay/', '/store/customer-zone/', '/store/customer-zone/orders/', '/store/track-order/', '/store/wp-admin/', '/store/wp-json/', '/store/wp-login.php' ) as $pwa_path ) {
+	check( in_array( $pwa_path, $pwa_bp, true ), 'R88 service worker never touches ' . $pwa_path );
+}
+check( ! in_array( '/store/', $pwa_bp, true ) && ! in_array( '/', $pwa_bp, true ), 'R88 the home page is never a bypass prefix (would disable the whole PWA)' );
+foreach ( array( 'wc-ajax', 'wc-api', 'add-to-cart', 'key', 'pay_for_order', 'preview', 'customize_changeset_uuid' ) as $pwa_q ) {
+	check( in_array( $pwa_q, jluxe_pwa_bypass_params(), true ), 'R88 stateful query is bypassed: ' . $pwa_q );
+}
+
+$pwa_js = jluxe_pwa_service_worker_js();
+check( 0 === strpos( $pwa_js, '/* JLUXE service worker' ) && false !== strpos( $pwa_js, 'const JLUXE_SW = {' ) && false !== strpos( $pwa_js, '"assetPrefix":"/store/wp-content/themes/zarrin/assets/compiled/assets/"' ), 'R88 SW config is JSON with the hashed-asset prefix' );
+$pwa_sw_src = (string) file_get_contents( ABSPATH . 'assets/pwa/sw.js' );
+check( false === strpos( $pwa_sw_src, 'cache.put(request' ) || ( 1 === substr_count( $pwa_sw_src, 'cache.put(' ) && false !== strpos( $pwa_sw_src, 'async function cacheFirst' ) ), 'R88 exactly one cache.put — inside the hashed-asset cacheFirst' );
+check( false !== strpos( $pwa_sw_src, 'request.method !== "GET"' ) && false !== strpos( $pwa_sw_src, 'url.origin !== self.location.origin' ), 'R88 SW ignores non-GET and cross-origin requests' );
+check( (bool) preg_match( '/networkWithOfflineFallback[\s\S]*?fetch\(event\.request\)[\s\S]*?catch/', $pwa_sw_src ) && false === strpos( substr( $pwa_sw_src, (int) strpos( $pwa_sw_src, 'async function networkWithOfflineFallback' ), 400 ), 'put(' ), 'R88 navigations are network-first with only an offline fallback (no stale HTML)' );
+check( jluxe_pwa_version() === jluxe_pwa_version() && 12 === strlen( jluxe_pwa_version() ), 'R88 SW version is deterministic' );
+
+$GLOBALS['jluxe_pwa_headers'] = array();
+ob_start(); jluxe_pwa_send( 'sw' ); ob_end_clean();
+check( 0 === strpos( $GLOBALS['jluxe_pwa_headers']['Content-Type'], 'application/javascript' ) && '/store/' === $GLOBALS['jluxe_pwa_headers']['Service-Worker-Allowed'] && false !== strpos( $GLOBALS['jluxe_pwa_headers']['Cache-Control'], 'no-store' ) && 'no-cache' === $GLOBALS['jluxe_pwa_headers']['X-LiteSpeed-Cache-Control'] && defined( 'DONOTCACHEPAGE' ), 'R88 SW response is uncacheable (browser, LiteSpeed, page-cache plugins)' );
+ob_start(); jluxe_pwa_send( 'manifest' ); $pwa_body = (string) ob_get_clean();
+check( 0 === strpos( $GLOBALS['jluxe_pwa_headers']['Content-Type'], 'application/manifest+json' ) && is_array( json_decode( $pwa_body, true ) ), 'R88 manifest endpoint returns valid JSON' );
+ob_start(); jluxe_pwa_send( 'offline' ); $pwa_body = (string) ob_get_clean();
+check( false !== strpos( $pwa_body, 'dir="rtl"' ) && false !== strpos( $pwa_body, 'noindex' ) && false === strpos( $pwa_body, 'http' ) , 'R88 offline page is self-contained RTL + noindex (no external request)' );
+$GLOBALS['status_header'] = 0;
+ob_start(); jluxe_pwa_send( 'bogus' ); ob_end_clean();
+check( 404 === $GLOBALS['status_header'], 'R88 unknown PWA endpoint → 404' );
+
+$GLOBALS['query_kind'] = 'cart';
+check( true === jluxe_pwa_public_settings()['suppressPrompt'], 'R88 no install banner on the cart' );
+$GLOBALS['query_kind'] = 'product';
+check( true === jluxe_pwa_public_settings()['suppressPrompt'], 'R88 no install banner on product pages (sticky add-to-cart lives there)' );
+$GLOBALS['query_kind'] = 'home';
+$pwa_pub = jluxe_pwa_public_settings();
+check( true === $pwa_pub['enabled'] && false === $pwa_pub['suppressPrompt'] && false !== strpos( $pwa_pub['sw'], 'jluxe_pwa=sw' ) && '/store/' === $pwa_pub['scope'], 'R88 public PWA settings on the home page' );
+
+// kill switch
+$pwa_off = jluxe_theme_settings_defaults(); $pwa_off['performance']['pwa_enabled'] = false;
+update_test_settings( $pwa_off );
+$pwa_js = jluxe_pwa_service_worker_js();
+check( false !== strpos( $pwa_js, 'unregister()' ) && false !== strpos( $pwa_js, 'caches.delete' ) && false === strpos( $pwa_js, 'JLUXE_SW' ), 'R88 disabling PWA serves a self-destructing SW' );
+ob_start(); jluxe_pwa_head(); check( '' === trim( (string) ob_get_clean() ), 'R88 disabled PWA prints no manifest link' );
+$GLOBALS['status_header'] = 0;
+ob_start(); jluxe_pwa_send( 'manifest' ); ob_end_clean();
+check( 404 === $GLOBALS['status_header'], 'R88 disabled PWA → manifest 404' );
+check( false === jluxe_pwa_public_settings()['enabled'] && false === jluxe_pwa_public_settings()['installPrompt'], 'R88 disabled PWA → client unregisters, no banner' );
+update_test_settings( jluxe_theme_settings_defaults() );
+$pwa_render = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check( false !== strpos( $pwa_render, 'name="performance[pwa_enabled]"' ) && false !== strpos( $pwa_render, 'name="performance[pwa_install_prompt]"' ), 'R88 PWA switches are in the Performance form' );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

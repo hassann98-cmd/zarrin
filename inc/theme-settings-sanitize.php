@@ -792,6 +792,8 @@ function jluxe_sanitize_performance( array $posted, array $defaults ): array {
 		'disable_emojis'   => ! empty( $posted['disable_emojis'] ),
 		'lazy_load_images' => ! empty( $posted['lazy_load_images'] ),
 		'defer_third_party_scripts' => ! empty( $posted['defer_third_party_scripts'] ),
+		'pwa_enabled'               => ! empty( $posted['pwa_enabled'] ),
+		'pwa_install_prompt'        => ! empty( $posted['pwa_install_prompt'] ),
 	);
 }
 

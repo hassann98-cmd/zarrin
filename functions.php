@@ -559,6 +559,7 @@ require_once JLUXE_THEME_DIR . '/inc/site-diagnosis.php';
 require_once JLUXE_THEME_DIR . '/inc/search.php';
 require_once JLUXE_THEME_DIR . '/inc/cart-ux.php';
 require_once JLUXE_THEME_DIR . '/inc/reviews.php';
+require_once JLUXE_THEME_DIR . '/inc/pwa.php'; // R88 — PWAِ امن (بدونِ کشِ HTML)
 
 /**
  * تضمینِ اینکه صفحه‌ی «ورود» همیشه همون UI اختصاصیِ خودمون

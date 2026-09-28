@@ -394,3 +394,7 @@ class WP_Term { public $term_id=7; public $name='دسته'; public $parent=0; pu
 function wc_get_product_terms($id,$tax,$args=[]){ return $GLOBALS['product_terms'][$id]??[]; }
 function get_term($id,$tax){ return ($GLOBALS['terms_by_id'][$id]??null) ?: new WP_Error('invalid_term','Term not found'); }
 function get_search_query(){ return $GLOBALS['search_query']??''; }
+// R88 — PWA
+function has_site_icon(){ return !empty($GLOBALS['site_icon']); }
+function get_site_icon_url($size=512){ return !empty($GLOBALS['site_icon']) ? home_url('/wp-content/uploads/icon-'.$size.'.png') : ''; }
+function status_header($code){ $GLOBALS['status_header']=$code; }
