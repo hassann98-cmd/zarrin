@@ -1,5 +1,4 @@
 import { mountIsland, startSmoothScrolling } from "./lib/islands.js";
-import Lenis from "lenis";
 import "./styles/storefront.css";
 const islands = {
   footer: () => import("./islands/Footer.js"),
@@ -16,7 +15,15 @@ const islands = {
   "ai-assistant": () => import("./islands/AiAssistant.js"),
   "auth-page": () => import("./islands/AuthPage.jsx"),
 };
-startSmoothScrolling(window, Lenis);
+// R88 — Lenis فقط روی دستگاهِ دارای ماوس، به‌صورتِ chunkِ جدا و بعد از بیکار شدنِ مرورگر.
+const whenIdle = window.requestIdleCallback
+  ? (cb) => window.requestIdleCallback(cb, { timeout: 2500 })
+  : (cb) => setTimeout(cb, 200);
+whenIdle(() =>
+  startSmoothScrolling(window, () =>
+    import("lenis").then((module) => module.default),
+  ),
+);
 for (const element of document.querySelectorAll("[data-jluxe-island]")) {
   const name = element.dataset.jluxeIsland;
   const load = islands[name];

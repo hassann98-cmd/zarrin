@@ -70,20 +70,47 @@ export function mountIsland(element, load) {
     });
 }
 
-/** Animation is progressive enhancement; initialization failures keep native scrolling. */
-export function startSmoothScrolling(win, Lenis) {
+/**
+ * R88 — اسکرولِ نرم فقط جایی که واقعاً اثر دارد. Lenis به‌طورِ پیش‌فرض
+ * (syncTouch: false) اسکرولِ لمسی را نرم نمی‌کند؛ روی گوشی فقط یک حلقهٔ
+ * requestAnimationFrame دائمی و ~۱۲KB جاوااسکریپتِ اضافه بود. حالا:
+ * ماوس/تاچ‌پدِ دقیق + بدونِ reduced-motion + بدونِ «صرفه‌جویی در داده».
+ */
+export function shouldSmoothScroll(win) {
   try {
-    if (
-      !win.matchMedia ||
-      win.matchMedia("(prefers-reduced-motion: reduce)").matches
-    )
-      return;
-    const lenis = new Lenis({ autoRaf: true });
-    win.addEventListener("pagehide", () => lenis.destroy(), { once: true });
-  } catch (error) {
-    console.warn(
-      "[jluxe] smooth scrolling unavailable; native scrolling retained",
-      error,
-    );
+    if (!win || !win.matchMedia) return false;
+    if (win.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    if (!win.matchMedia("(hover: hover) and (pointer: fine)").matches)
+      return false;
+    if (win.navigator?.connection?.saveData) return false;
+    return true;
+  } catch {
+    return false;
   }
+}
+
+/**
+ * Animation is progressive enhancement; initialization failures keep native
+ * scrolling. `loadLenis` is either the Lenis class or a loader returning it
+ * (a dynamic import, so touch devices never download the library).
+ */
+export function startSmoothScrolling(win, loadLenis) {
+  if (!shouldSmoothScroll(win)) return Promise.resolve(null);
+  const isClass = typeof loadLenis === "function" && /^class\b/.test(
+    Function.prototype.toString.call(loadLenis),
+  );
+  return Promise.resolve()
+    .then(() => (isClass ? loadLenis : loadLenis()))
+    .then((Lenis) => {
+      const lenis = new Lenis({ autoRaf: true });
+      win.addEventListener("pagehide", () => lenis.destroy(), { once: true });
+      return lenis;
+    })
+    .catch((error) => {
+      console.warn(
+        "[jluxe] smooth scrolling unavailable; native scrolling retained",
+        error,
+      );
+      return null;
+    });
 }

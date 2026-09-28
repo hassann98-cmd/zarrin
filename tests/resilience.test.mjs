@@ -7,7 +7,11 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { JSDOM } from "jsdom";
 import { getSession } from "../src/lib/api.js";
-import { mountIsland, startSmoothScrolling } from "../src/lib/islands.js";
+import {
+  mountIsland,
+  startSmoothScrolling,
+  shouldSmoothScroll,
+} from "../src/lib/islands.js";
 
 const base = "https://shop.test/store/";
 const originalFetch = globalThis.fetch;
@@ -479,7 +483,7 @@ test("R23 a failed lazy import keeps a working native cart link", async () => {
   );
 });
 
-test("R23 unsupported animation APIs do not block islands, and reduced motion avoids Lenis", () => {
+test("R23 unsupported animation APIs do not block islands, and reduced motion avoids Lenis", async () => {
   let constructed = 0;
   console.warn = () => {};
   class BrokenLenis {
@@ -488,16 +492,70 @@ test("R23 unsupported animation APIs do not block islands, and reduced motion av
       throw new Error("ResizeObserver unavailable");
     }
   }
-  assert.doesNotThrow(() =>
-    startSmoothScrolling(
-      { matchMedia: () => ({ matches: false }) },
-      BrokenLenis,
-    ),
+  const desktop = (overrides = {}) => ({
+    matchMedia: (q) => ({
+      matches: q.includes("reduced-motion")
+        ? Boolean(overrides.reduced)
+        : !overrides.touch,
+    }),
+    navigator: { connection: { saveData: Boolean(overrides.saveData) } },
+    addEventListener() {},
+  });
+  assert.equal(await startSmoothScrolling(desktop(), BrokenLenis), null);
+  assert.equal(constructed, 1, "a desktop tries Lenis and survives its failure");
+  await startSmoothScrolling(desktop({ reduced: true }), BrokenLenis);
+  await startSmoothScrolling({}, BrokenLenis);
+  assert.equal(constructed, 1);
+});
+
+test("R88 touch devices and Save-Data never download or start Lenis", async () => {
+  const win = (touch, saveData = false, reduced = false) => ({
+    matchMedia: (q) => ({
+      matches: q.includes("reduced-motion") ? reduced : !touch,
+    }),
+    navigator: { connection: { saveData } },
+    listeners: [],
+    addEventListener(type, fn) {
+      this.listeners.push(type);
+    },
+  });
+  let loads = 0;
+  class FakeLenis {
+    constructor(opts) {
+      this.opts = opts;
+    }
+    destroy() {}
+  }
+  const loader = () => {
+    loads++;
+    return Promise.resolve(FakeLenis);
+  };
+  assert.equal(shouldSmoothScroll(win(true)), false);
+  assert.equal(await startSmoothScrolling(win(true), loader), null);
+  assert.equal(await startSmoothScrolling(win(false, true), loader), null);
+  assert.equal(await startSmoothScrolling(win(false, false, true), loader), null);
+  assert.equal(loads, 0, "the lazy chunk is never requested on touch / Save-Data / reduced motion");
+  const desktop = win(false);
+  const lenis = await startSmoothScrolling(desktop, loader);
+  assert.equal(loads, 1);
+  assert.ok(lenis instanceof FakeLenis);
+  assert.deepEqual(lenis.opts, { autoRaf: true });
+  assert.deepEqual(desktop.listeners, ["pagehide"], "destroyed on pagehide");
+  const failing = await startSmoothScrolling(win(false), () =>
+    Promise.reject(new Error("chunk failed")),
   );
-  assert.equal(constructed, 1);
-  startSmoothScrolling({ matchMedia: () => ({ matches: true }) }, BrokenLenis);
-  startSmoothScrolling({}, BrokenLenis);
-  assert.equal(constructed, 1);
+  assert.equal(failing, null, "a failed chunk keeps native scrolling");
+});
+
+test("R88 Lenis is no longer in the main bundle — it is a lazy chunk", () => {
+  const main = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
+  assert.ok(!/^import\s+Lenis/m.test(main), "no static Lenis import in main.js");
+  assert.match(main, /import\("lenis"\)/);
+  const manifest = JSON.parse(
+    fs.readFileSync(new URL("../assets/compiled/manifest.json", import.meta.url), "utf8"),
+  );
+  const entry = manifest["src/main.js"];
+  assert.ok(entry.dynamicImports?.some((k) => /lenis/.test(k)), "lenis is a dynamic import of the entry");
 });
 
 // Run both ACTUAL classic form-preparation blocks, not a duplicate implementation.
