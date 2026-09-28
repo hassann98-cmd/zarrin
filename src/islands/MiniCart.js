@@ -1,3 +1,4 @@
+import { siteUrl } from "../lib/api.js";
 import { useDialog } from "../lib/use-dialog.js";
 import { j as e } from "../lib/jsx.js";
 import { r } from "../lib/icons.js";
@@ -226,7 +227,7 @@ function J() {
                                     ],
                                   }),
                                   e.jsx("a", {
-                                    href: "/shop/",
+                                    href: siteUrl("shop"),
                                     onClick: () => l(!1),
                                     className:
                                       "mt-1 rounded-xl bg-primary px-5 py-2.5 text-caption font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-95",

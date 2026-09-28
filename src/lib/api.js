@@ -5,6 +5,18 @@ export function siteUrl(name) {
   return urls[name] || urls.home || "./";
 }
 
+/*
+ * R87 — مسیرهایی که مدیر در «تنظیمات ← آدرس‌ها» عوض‌شان می‌کند. همان نگاشتِ
+ * jluxe_resolve_site_link() سمتِ PHP (inc/urls.php): اسلاگِ خامِ «/track-order/»
+ * یا «/shop/» که در تنظیماتِ فوتر یا پیش‌فرض‌ها ذخیره شده، به آدرسِ واقعیِ
+ * تنظیم‌شده می‌رود، نه به مسیرِ ثابت. فقط اسلاگِ تکی و بدونِ ?/# نگاشت می‌شود.
+ */
+const ROUTE_SLUGS = {
+  "track-order": "track_order",
+  shop: "shop",
+  "فروشگاه": "shop",
+};
+
 export function siteLink(value) {
   if (typeof value !== "string" || !/^\/(?!\/)/.test(value)) return value;
   const base = new URL(
@@ -13,8 +25,23 @@ export function siteLink(value) {
   );
   const url = new URL(value, base.origin);
   const prefix = base.pathname.replace(/\/+$/, "");
-  return prefix &&
-    (url.pathname === prefix || url.pathname.startsWith(prefix + "/"))
+  const inside =
+    prefix &&
+    (url.pathname === prefix || url.pathname.startsWith(prefix + "/"));
+  if (!url.search && !url.hash) {
+    const rel = (inside ? url.pathname.slice(prefix.length) : url.pathname)
+      .replace(/^\/+|\/+$/g, "");
+    let slug = rel;
+    try {
+      slug = decodeURIComponent(rel);
+    } catch {
+      /* نویسهٔ نامعتبر: همان اسلاگِ خام */
+    }
+    const key = ROUTE_SLUGS[slug];
+    const routed = key ? (getThemeSettings().urls ?? {})[key] : "";
+    if (routed) return routed;
+  }
+  return inside
     ? url.toString()
     : new URL(value.replace(/^\/+/, ""), base).toString();
 }

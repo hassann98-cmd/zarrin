@@ -12,7 +12,8 @@ defined( 'ABSPATH' ) || exit;
  * نیم‌فاصله/فاصله‌های اضافی → یک فاصله. (خروجی برای LIKE و name__like.)
  */
 function jluxe_normalize_persian_query( string $term ): string {
-	$term = str_replace( array( 'ي', 'ﻱ', 'ﻲ' ), 'ی', $term );
+	// R87 — «ى» (U+0649، الف مقصوره) هم؛ کیبوردهای عربی «قورى» تایپ می‌کنند و بدونِ این نگاشت نتیجه‌ای نمی‌آمد.
+	$term = str_replace( array( 'ي', 'ﻱ', 'ﻲ', 'ى', 'ﻯ', 'ﻰ' ), 'ی', $term );
 	$term = str_replace( array( 'ك', 'ﻙ', 'ﻚ' ), 'ک', $term );
 	$term = str_replace( 'ة', 'ه', $term );
 	// حذفِ اعراب/تشدید (U+064B تا U+0652 و U+0670).

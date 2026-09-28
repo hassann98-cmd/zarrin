@@ -96,6 +96,24 @@ test("R09 configured account links and site-relative navigation retain installat
   assert.equal(siteLink("#reviews"), "#reviews");
 });
 
+test("R87 raw route slugs follow the addresses configured in theme settings", () => {
+  settings();
+  window.JLuxeThemeSettings.urls.track_order = root + "order-status/";
+  assert.equal(siteLink("/track-order/"), root + "order-status/");
+  assert.equal(siteLink("/track-order"), root + "order-status/");
+  assert.equal(siteLink("/store/track-order/"), root + "order-status/");
+  assert.equal(siteLink("/shop/"), root + "catalog/");
+  assert.equal(siteLink("/%D9%81%D8%B1%D9%88%D8%B4%DA%AF%D8%A7%D9%87/"), root + "catalog/");
+  // Query strings, deeper paths and unknown slugs keep the old behaviour.
+  assert.equal(siteLink("/track-order/?id=5"), root + "track-order/?id=5");
+  assert.equal(siteLink("/shop/rings/"), root + "shop/rings/");
+  assert.equal(siteLink("/faq/"), root + "faq/");
+  // No configured address: fall back to the installation-relative path.
+  delete window.JLuxeThemeSettings.urls.track_order;
+  assert.equal(siteLink("/track-order/"), root + "track-order/");
+  settings();
+});
+
 test("R17 category AND brand AND other filters are retained while pagination resets", () => {
   const url = new URL(
     buildFilterUrl(

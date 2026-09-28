@@ -289,7 +289,7 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 
 		<div class="jsg-footer-cta">
 			<?php if ( ! empty( $jluxe_sg['button_enabled'] ) ) : ?>
-			<a href="<?php echo esc_url( $jluxe_sg_btn_url ); ?>" class="jsg-btn"<?php echo $jluxe_sg_btn_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_sg_btn_text ); ?></a>
+			<a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_sg_btn_url ) ); ?>" class="jsg-btn"<?php echo $jluxe_sg_btn_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_sg_btn_text ); ?></a>
 			<?php endif; ?>
 		</div>
 

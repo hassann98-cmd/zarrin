@@ -1,3 +1,4 @@
+import { siteUrl } from "../lib/api.js";
 import { j as e } from "../lib/jsx.js";
 import { c as q, r as i } from "../lib/icons.js";
 import { c as h } from "../lib/utils.js";
@@ -453,7 +454,7 @@ function ce() {
                 className: "mt-8 flex items-center justify-between gap-3",
                 children: [
                   e.jsxs("a", {
-                    href: "/shop/",
+                    href: siteUrl("shop"),
                     className:
                       "flex h-12 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-5 text-button font-normal text-foreground transition-colors hover:bg-muted sm:w-[190px] sm:flex-none sm:rounded-2xl",
                     children: [
@@ -1021,7 +1022,7 @@ function ce() {
                   "کد رهگیری سفارش به‌زودی از طریق پیامک برای شما ارسال می‌شود. می‌توانید وضعیت سفارش را از بخش پیگیری سفارش دنبال کنید.",
               }),
               e.jsx("a", {
-                href: "/track-order/",
+                href: siteUrl("track_order"),
                 children: e.jsx(g, { size: "lg", children: "پیگیری سفارش" }),
               }),
             ],

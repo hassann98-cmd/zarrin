@@ -1,3 +1,4 @@
+import { siteUrl } from "../lib/api.js";
 import { j as e } from "../lib/jsx.js";
 import { c as u, r } from "../lib/icons.js";
 import { c as l } from "../lib/utils.js";
@@ -249,7 +250,7 @@ function me() {
           }),
           e.jsx("span", { children: "/" }),
           e.jsx("a", {
-            href: "/shop/",
+            href: siteUrl("shop"),
             className: "hover:text-foreground",
             children: "سرویس خواب",
           }),

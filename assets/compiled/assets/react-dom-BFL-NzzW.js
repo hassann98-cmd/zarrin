@@ -1,1 +1,0 @@
-import{l as e,o as t,s as n}from"./main-CTCQ4S3h.js";import{t as r}from"./input-BodJioBg.js";var i=e(n(),1);function a(e,t,n){let a=(0,i.useRef)(n);a.current=n,(0,i.useEffect)(()=>{if(e&&t.current)return r(t.current,()=>a.current())},[e,t])}var o=e(t(),1);export{a as n,o as t};
