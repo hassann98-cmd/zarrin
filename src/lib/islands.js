@@ -29,6 +29,10 @@ export function mountIsland(element, load) {
     existing?.textContent.trim() ||
     (isCart ? "مشاهده سبد خرید" : "رفتن به فروشگاه");
   const message = "بارگذاری این بخش ممکن نشد. ";
+  // R92 — islandی که HTMLِ کامل و کارای سرور را در خود دارد (data-jluxe-keep-ssr)
+  // در صورتِ خطا همان HTML را نگه می‌دارد، نه پیامِ خطا (لینک‌های ?cat= بدونِ JS کار می‌کنند).
+  const keepSsr = element.hasAttribute("data-jluxe-keep-ssr");
+  const ssrHtml = keepSsr ? element.innerHTML : "";
   const report = (error) => {
     console.error(`[jluxe] ${name} could not be rendered`, error);
     const CustomEvent = element.ownerDocument.defaultView.CustomEvent;
@@ -36,12 +40,18 @@ export function mountIsland(element, load) {
       new CustomEvent("jluxe:load-error", { bubbles: true }),
     );
   };
-  const fallback = React.createElement(
-    "span",
-    { role: "alert", className: "jluxe-island-error" },
-    message,
-    React.createElement("a", { href, className: "underline" }, label),
-  );
+  const fallback = keepSsr
+    ? React.createElement("div", {
+        className: "jluxe-island-ssr",
+        style: { display: "contents" },
+        dangerouslySetInnerHTML: { __html: ssrHtml },
+      })
+    : React.createElement(
+        "span",
+        { role: "alert", className: "jluxe-island-error" },
+        message,
+        React.createElement("a", { href, className: "underline" }, label),
+      );
   return Promise.resolve()
     .then(load)
     .then((module) => {
@@ -57,6 +67,10 @@ export function mountIsland(element, load) {
     })
     .catch((error) => {
       // Import failures occur before React can mount its error boundary.
+      if (keepSsr) {
+        report(error);
+        return () => {};
+      }
       const node = element.ownerDocument.createElement("span");
       node.setAttribute("role", "alert");
       node.className = "jluxe-island-error";
@@ -79,7 +93,8 @@ export function mountIsland(element, load) {
 export function shouldSmoothScroll(win) {
   try {
     if (!win || !win.matchMedia) return false;
-    if (win.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    if (win.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return false;
     if (!win.matchMedia("(hover: hover) and (pointer: fine)").matches)
       return false;
     if (win.navigator?.connection?.saveData) return false;
@@ -96,9 +111,9 @@ export function shouldSmoothScroll(win) {
  */
 export function startSmoothScrolling(win, loadLenis) {
   if (!shouldSmoothScroll(win)) return Promise.resolve(null);
-  const isClass = typeof loadLenis === "function" && /^class\b/.test(
-    Function.prototype.toString.call(loadLenis),
-  );
+  const isClass =
+    typeof loadLenis === "function" &&
+    /^class\b/.test(Function.prototype.toString.call(loadLenis));
   return Promise.resolve()
     .then(() => (isClass ? loadLenis : loadLenis()))
     .then((Lenis) => {

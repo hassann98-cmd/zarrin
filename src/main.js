@@ -22,6 +22,7 @@ const islands = {
   "cart-checkout-demo": () => import("./islands/CartCheckout.js"),
   "ai-assistant": () => import("./islands/AiAssistant.js"),
   "auth-page": () => import("./islands/AuthPage.jsx"),
+  "categories-browser": () => import("./islands/CategoriesBrowser.js"),
 };
 // R88 — Lenis فقط روی دستگاهِ دارای ماوس، به‌صورتِ chunkِ جدا و بعد از بیکار شدنِ مرورگر.
 const whenIdle = window.requestIdleCallback

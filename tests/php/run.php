@@ -1838,4 +1838,87 @@ check( 4 === substr_count( $r91admin, 'class="jluxe-repeater-item jluxe-cats-ite
 check( 3 === substr_count( $r91admin, 'name="categories_page[layout]"' ) && false !== strpos( $r91admin, 'jluxe-cats-layout-demo--tiles' ) && false !== strpos( $r91admin, 'jluxe-cats-admin-preview' ), 'R91 layout picker with visual demos + live preview' );
 $GLOBALS['test_terms'] = array(); $GLOBALS['terms_by_id'] = array(); $GLOBALS['term_meta'] = array();
 
+// ---------------------------------------------------------------- R92
+// مرورِ اپ‌گونهٔ دسته‌ها: زیردسته‌ها بدونِ رفرش (React island) + HTMLِ کاملِ سرور
+$r92d = jluxe_categories_page_defaults();
+check( 'panel' === $r92d['browse_mode'] && 4 === $r92d['children_columns_desktop'] && 3 === $r92d['children_columns_tablet'] && 2 === $r92d['children_columns_mobile'] && 64 === $r92d['child_image_size'] && true === $r92d['show_all_link'], 'R92 defaults: app-like panel, children 4/3/2 columns, 64px, «همهٔ کالاها» link on' );
+$r92s = jluxe_sanitize_categories_page( array( 'browse_mode' => 'weird', 'children_columns_desktop' => 99, 'children_columns_mobile' => 0, 'child_image_size' => 5 ), array() );
+check( 'panel' === $r92s['browse_mode'] && 8 === $r92s['children_columns_desktop'] && 1 === $r92s['children_columns_mobile'] && 32 === $r92s['child_image_size'] && false === $r92s['show_all_link'], 'R92 sanitizer: unknown mode → panel, columns/size clamped, unticked link → off' );
+check( 'stack' === jluxe_sanitize_categories_page( array( 'browse_mode' => 'stack' ), array() )['browse_mode'] && 'grid' === jluxe_sanitize_categories_page( array( 'browse_mode' => 'grid' ), array() )['browse_mode'], 'R92 sanitizer keeps stack/grid' );
+
+$GLOBALS['test_terms'] = array(); $GLOBALS['terms_by_id'] = array(); $GLOBALS['term_meta'] = array();
+$r92term = static function ( int $id, string $name, int $parent = 0, int $count = 5 ) {
+	$t = new WP_Term(); $t->term_id = $id; $t->name = $name; $t->parent = $parent; $t->count = $count; $t->slug = 's' . $id;
+	$GLOBALS['test_terms'][] = $t; $GLOBALS['terms_by_id'][ $id ] = $t;
+	return $t;
+};
+$r92term( 910, 'آشپزخانه' ); $r92term( 911, 'حمام' ); $r92term( 912, 'دکور' );
+$r92term( 920, 'قابلمه', 910 ); $r92term( 921, 'لیوان', 910 ); $r92term( 922, 'حوله', 911 ); $r92term( 923, 'خالی', 911, 0 ); $r92term( 930, 'نوه', 920 );
+$GLOBALS['term_meta'][920]['thumbnail_id'] = 55;
+$r92cfg  = array_merge( jluxe_categories_page_defaults(), array( 'items' => array( array( 'term_id' => 0, 'title' => 'فروش ویژه', 'link' => 'https://jluxe.test/sale/', 'image_id' => 0, 'visible' => true ) ) ) );
+$r92rows = jluxe_categories_page_rows( $r92cfg );
+$r92kids = jluxe_categories_page_children( $r92cfg, array_column( $r92rows, 'term_id' ) );
+check( array( 'قابلمه', 'لیوان' ) === array_column( $r92kids[910] ?? array(), 'name' ) && array( 'حوله' ) === array_column( $r92kids[911] ?? array(), 'name' ) && ! isset( $r92kids[912] ) && ! isset( $r92kids[920] ), 'R92 children: one get_terms, grouped by direct parent; empty (hide_empty) and grandchildren excluded' );
+
+$_GET = array( 'cat' => '911' );
+$r92data = jluxe_categories_browser_data( $r92cfg, $r92rows, $r92kids, jluxe_categories_page_requested_cat() );
+$r92p    = array_column( $r92data['parents'], null, 'name' );
+check( 'panel' === $r92data['mode'] && 911 === $r92data['active'] && 910 === $r92data['defaultId'], 'R92 ?cat=911 selects that parent server-side (reload/share shows the same panel)' );
+check( true === $r92p['دکور']['hasPanel'] && false === $r92p['فروش ویژه']['hasPanel'] && '' === $r92p['فروش ویژه']['catHref'] && 'https://jluxe.test/sale/' === $r92p['فروش ویژه']['url'], 'R92 panel: every real category gets a panel; custom-link rows keep their direct link' );
+check( false !== strpos( $r92p['آشپزخانه']['catHref'], 'cat=910' ) && is_array( $r92p['آشپزخانه']['children'][0]['img'] ) && null === $r92p['آشپزخانه']['children'][1]['img'] && '' !== $r92p['آشپزخانه']['children'][1]['svg'], 'R92 parent links are real ?cat= URLs; child image or icon fallback' );
+$_GET = array( 'cat' => '99999' );
+check( 910 === jluxe_categories_browser_data( $r92cfg, $r92rows, $r92kids, jluxe_categories_page_requested_cat() )['active'], 'R92 unknown ?cat falls back to the first category (no empty panel)' );
+$_GET = array( 'cat' => array( 'x' ) );
+check( 0 === jluxe_categories_page_requested_cat(), 'R92 array-valued ?cat is ignored' );
+$_GET = array();
+
+$r92stack = jluxe_categories_browser_data( array_merge( $r92cfg, array( 'browse_mode' => 'stack' ) ), $r92rows, $r92kids, 0 );
+$r92sp    = array_column( $r92stack['parents'], null, 'name' );
+check( 0 === $r92stack['active'] && true === $r92sp['آشپزخانه']['hasPanel'] && false === $r92sp['دکور']['hasPanel'], 'R92 stack: starts on the grid; a category without children links straight to its archive' );
+
+ob_start(); jluxe_render_categories_browser( $r92cfg, $r92rows, $r92kids, 911 ); $r92html = (string) ob_get_clean();
+check( false !== strpos( $r92html, 'data-jluxe-island="categories-browser" data-jluxe-keep-ssr' ) && 1 === substr_count( $r92html, 'id="jluxe-cats-data"' ), 'R92 output = React island wrapper (keeps server HTML on failure) + one JSON data block' );
+check( 3 === substr_count( $r92html, '<section class="jc-panel"' ) && 2 === substr_count( $r92html, ' hidden>' ) && false !== strpos( $r92html, 'id="jc-panel-911" aria-labelledby="jc-panel-911-t">' ), 'R92 server renders every panel (crawlable) with only the active one visible' );
+check( false !== strpos( $r92html, 'class="jc-rail__item is-active" href="' ) && 1 === substr_count( $r92html, 'aria-current="true"' ) && false !== strpos( $r92html, 'قابلمه' ) && false !== strpos( $r92html, 'زیردسته‌ای ندارد' ), 'R92 rail marks the active parent; children + empty note present' );
+preg_match( '#<script type="application/json" id="jluxe-cats-data">(.*?)</script>#s', $r92html, $r92m );
+$r92json = json_decode( $r92m[1] ?? '', true );
+check( is_array( $r92json ) && 911 === $r92json['active'] && 4 === count( $r92json['parents'] ) && '4' === $r92json['style']['--jc-ch-d'], 'R92 JSON parses and matches the server state' );
+
+// XSS: نامِ دسته با </script> نمی‌تواند از JSON بیرون بزند
+$GLOBALS['terms_by_id'][912]->name = 'x</script><img src=x onerror=alert(1)>';
+$r92rows2 = jluxe_categories_page_rows( $r92cfg );
+ob_start(); jluxe_render_categories_browser( $r92cfg, $r92rows2, $r92kids, 0 ); $r92x = (string) ob_get_clean();
+check( 1 === substr_count( $r92x, '</script>' ) && false === strpos( $r92x, '<img src=x' ) && false !== strpos( $r92x, '\u003C/script\u003E' ), 'R92 hostile category names are escaped in HTML and hex-encoded in the JSON' );
+$GLOBALS['terms_by_id'][912]->name = 'دکور';
+
+// صفحه: حالت‌ها
+$GLOBALS['options']['jluxe_theme_settings']['categories_page'] = array( 'browse_mode' => 'grid', 'auto_depth' => 'all' );
+jluxe_get_theme_settings( true );
+ob_start(); jluxe_render_categories_page(); $r92g = (string) ob_get_clean();
+check( false === strpos( $r92g, 'data-jluxe-island' ) && false !== strpos( $r92g, 'class="jluxe-cats-grid jluxe-cats-grid--list"' ) && false !== strpos( $r92g, 'قابلمه' ), 'R92 grid mode = the R91 grid, no island (auto_depth=all still honoured)' );
+$GLOBALS['options']['jluxe_theme_settings']['categories_page'] = array( 'browse_mode' => 'panel', 'auto_depth' => 'all' );
+jluxe_get_theme_settings( true );
+ob_start(); jluxe_render_categories_page(); $r92pp = (string) ob_get_clean();
+preg_match( '#<nav class="jc-rail".*?</nav>#s', $r92pp, $r92nav );
+check( false !== strpos( $r92pp, 'data-jluxe-island="categories-browser"' ) && false === strpos( $r92nav[0] ?? 'قابلمه', 'قابلمه' ) && false !== strpos( $r92pp, 'has-sticky-header' ), 'R92 panel mode forces top-level rows (subcategories only inside panels) + sticky-header offset class' );
+unset( $GLOBALS['options']['jluxe_theme_settings']['categories_page'] );
+jluxe_get_theme_settings( true );
+
+// React island + mountIsland + CSS
+$r92js = (string) file_get_contents( ABSPATH . 'src/islands/CategoriesBrowser.js' );
+check( false !== strpos( (string) file_get_contents( ABSPATH . 'src/main.js' ), '"categories-browser": () => import("./islands/CategoriesBrowser.js")' ) && false !== strpos( $r92js, 'pushState' ) && false !== strpos( $r92js, 'replaceState' ) && false !== strpos( $r92js, 'popstate' ), 'R92 island registered (lazy chunk) with pushState/replaceState/popstate' );
+check( false !== strpos( (string) file_get_contents( ABSPATH . 'src/lib/islands.js' ), 'data-jluxe-keep-ssr' ), 'R92 mountIsland keeps server HTML for opted-in islands' );
+$r92man = json_decode( (string) file_get_contents( ABSPATH . 'assets/compiled/manifest.json' ), true );
+check( isset( $r92man['src/islands/CategoriesBrowser.js']['file'] ) && is_file( ABSPATH . 'assets/compiled/' . $r92man['src/islands/CategoriesBrowser.js']['file'] ), 'R92 compiled island chunk is committed' );
+ob_start(); jluxe_print_categories_page_css(); $r92css = (string) ob_get_clean();
+check( '' === $r92css || ( false !== strpos( $r92css, 'prefers-reduced-motion:reduce){.jc-anim{animation:none}' ) ), 'R92 CSS disables the panel animation under reduced motion' );
+$r92src = (string) file_get_contents( ABSPATH . 'inc/categories-page.php' );
+check( false !== strpos( $r92src, '.jc-browser--panel{display:grid;grid-template-columns:88px minmax(0,1fr)' ) && false !== strpos( $r92src, '.jc-browser--panel{grid-template-columns:240px minmax(0,1fr)' ) && false !== strpos( $r92src, '@media (hover:hover) and (pointer:fine){.jc-rail__item' ), 'R92 responsive rail 88px → 240px; hover only for fine pointers' );
+
+// پیشخوان
+$GLOBALS['authenticated_user'] = 0; $_POST = array(); $_GET = array();
+ob_start(); jluxe_render_categories_page_settings(); $r92admin = (string) ob_get_clean();
+check( 3 === substr_count( $r92admin, 'name="categories_page[browse_mode]"' ) && false !== strpos( $r92admin, 'categories_page[children_columns_mobile]' ) && false !== strpos( $r92admin, 'categories_page[show_all_link]' ) && false !== strpos( $r92admin, 'class="jc-browser jc-browser--panel"' ) && false === strpos( $r92admin, 'data-jluxe-island' ), 'R92 admin: mode picker + children fields + static browser preview (no island in wp-admin)' );
+$GLOBALS['test_terms'] = array(); $GLOBALS['terms_by_id'] = array(); $GLOBALS['term_meta'] = array();
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
