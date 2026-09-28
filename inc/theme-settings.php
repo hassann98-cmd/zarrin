@@ -711,6 +711,8 @@ function jluxe_theme_settings_defaults(): array {
 			// ست نمی‌شه (طبق قانون «بدون تنظیمات جعلی» پروژه).
 			'items' => array(),
 		),
+		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
+		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
@@ -2048,6 +2050,7 @@ function jluxe_get_sms_public_settings(): array {
 require_once __DIR__ . '/theme-settings-sanitize.php';
 require_once __DIR__ . '/theme-settings-presets.php';
 require_once __DIR__ . '/theme-settings-secrets.php';
+require_once __DIR__ . '/categories-page.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
 require_once __DIR__ . '/theme-settings-ai.php';

@@ -390,7 +390,7 @@ function wp_schedule_event($time,$recurrence,$hook,$args=[]){$GLOBALS['scheduled
 function wp_clear_scheduled_hook($hook){ $removed=0; foreach(array_keys($GLOBALS['scheduled']??[]) as $k){ if(strpos($k,$hook.'|')===0){ unset($GLOBALS['scheduled'][$k]); ++$removed; } } return $removed; }
 
 /* — R34..R39: طراحی/UX (۴۰۴، توکن‌ها، آیکون‌ها، بردکرامب، نوار چسبان، preload فونت) — */
-class WP_Term { public $term_id=7; public $name='دسته'; public $parent=0; public $slug='cat'; public $taxonomy='product_cat'; }
+class WP_Term { public $term_id=7; public $name='دسته'; public $parent=0; public $slug='cat'; public $taxonomy='product_cat'; public $count=0; }
 function wc_get_product_terms($id,$tax,$args=[]){ return $GLOBALS['product_terms'][$id]??[]; }
 function get_term($id,$tax){ return ($GLOBALS['terms_by_id'][$id]??null) ?: new WP_Error('invalid_term','Term not found'); }
 function get_search_query(){ return $GLOBALS['search_query']??''; }
@@ -403,3 +403,8 @@ if(!function_exists('wp_check_password')){function wp_check_password($p,$h,$id='
 if(!function_exists('checked')){function checked($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' checked=\'checked\'':'';if($echo)echo $r;return $r;}}
 if(!function_exists('selected')){function selected($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' selected=\'selected\'':'';if($echo)echo $r;return $r;}}
 if(!function_exists('esc_textarea')){function esc_textarea($s){return htmlspecialchars((string)$s,ENT_QUOTES);}}
+if(!function_exists('get_terms')){function get_terms($args=array()){$out=array();foreach($GLOBALS['test_terms']??array() as $t){if(isset($args['taxonomy'])&&$t->taxonomy!==$args['taxonomy'])continue;if(array_key_exists('parent',$args)&&(int)$t->parent!==(int)$args['parent'])continue;if(!empty($args['hide_empty'])&&(int)$t->count<1)continue;$out[]=$t;}return $out;}}
+if(!function_exists('term_exists')){function term_exists($id,$tax=''){return isset($GLOBALS['terms_by_id'][(int)$id])?array('term_id'=>(int)$id):null;}}
+if(!function_exists('get_term_meta')){function get_term_meta($id,$key='',$single=false){return $GLOBALS['term_meta'][(int)$id][$key]??'';}}
+if(!function_exists('wp_dropdown_pages')){function wp_dropdown_pages($a=array()){echo '<select name="'.htmlspecialchars((string)($a['name']??''),ENT_QUOTES).'"></select>';}}
+if(!function_exists('is_page')){function is_page(...$a){return !empty($GLOBALS['is_page']);}}

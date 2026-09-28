@@ -1134,6 +1134,11 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 		case 'category_showcase':
 			$layout = isset( $posted['layout'] ) ? sanitize_key( $posted['layout'] ) : 'grid';
 			$section['title']  = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : '';
+			// R91 — دکمهٔ «نمایش همه» قابلِ‌ویرایش.
+			$view_all_mode = sanitize_key( (string) ( $posted['view_all_mode'] ?? 'categories_page' ) );
+			$section['view_all_mode'] = in_array( $view_all_mode, array( 'categories_page', 'shop', 'custom', 'hidden' ), true ) ? $view_all_mode : 'categories_page';
+			$section['view_all_text'] = isset( $posted['view_all_text'] ) ? sanitize_text_field( $posted['view_all_text'] ) : '';
+			$section['view_all_link'] = isset( $posted['view_all_link'] ) && '' !== trim( (string) $posted['view_all_link'] ) ? esc_url_raw( trim( (string) $posted['view_all_link'] ) ) : '';
 			if ( 'category_grid' === $type ) {
 				$section['layout'] = 'row';
 				$section['icon_svg'] = isset( $posted['icon_svg'] ) ? jluxe_sanitize_svg_markup( (string) $posted['icon_svg'] ) : '';

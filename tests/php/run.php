@@ -1761,4 +1761,81 @@ $GLOBALS['authenticated_user'] = 0;
 jluxe_set_ai_api_key( '' );
 jluxe_set_sms_api_key( '' );
 
+// ---------------------------------------------------------------- R91
+// برگهٔ «همه دسته‌بندی‌ها» + «نمایش همه»ِ قابلِ‌ویرایش.
+$r91mk = function ( int $id, string $name, int $parent = 0, int $count = 3, string $slug = '' ) { $t = new WP_Term(); $t->term_id = $id; $t->name = $name; $t->parent = $parent; $t->count = $count; $t->slug = $slug ?: 'c' . $id; return $t; };
+$GLOBALS['test_terms'] = array( $r91mk( 901, 'لوازم آشپزخانه' ), $r91mk( 902, 'حمام و سرویس بهداشتی' ), $r91mk( 903, 'بدون دسته‌بندی', 0, 5, 'uncategorized' ), $r91mk( 904, 'دسته خالی', 0, 0 ), $r91mk( 905, 'قابلمه', 901, 4 ), $r91mk( 906, 'نظافت و شستشو' ) );
+$GLOBALS['terms_by_id'] = array();
+foreach ( $GLOBALS['test_terms'] as $r91t ) { $GLOBALS['terms_by_id'][ $r91t->term_id ] = $r91t; }
+$GLOBALS['term_meta'] = array( 901 => array( 'thumbnail_id' => 55 ), 906 => array( '_jluxe_category_icon' => 'gift' ) );
+
+$r91d = jluxe_theme_settings_defaults()['categories_page'];
+check( 'list' === $r91d['layout'] && 2 === $r91d['columns_desktop'] && 2 === $r91d['columns_tablet'] && 1 === $r91d['columns_mobile'] && 80 === $r91d['image_size'] && 16 === $r91d['card_radius'] && true === $r91d['auto_append'], 'R91 defaults = the reference (list, 2/2/1 columns, 80px icons, 16px cards, new categories auto-added)' );
+
+$r91s = jluxe_sanitize_categories_page( array( 'auto_append' => '1', 'hide_empty' => '1', 'layout' => 'evil', 'columns_desktop' => '99', 'columns_mobile' => '0', 'image_size' => '5', 'card_bg' => 'red', 'image_shape' => 'circle', 'items' => array(
+	array( 'term_id' => '902', 'visible' => '1', 'image_id' => '77', 'title' => '  حمام  ' ),
+	array( 'term_id' => '902', 'visible' => '1' ),
+	array( 'term_id' => '99999', 'visible' => '1' ),
+	array( 'term_id' => '0', 'title' => 'فروش ویژه', 'link' => '/shop/?on_sale=1', 'visible' => '1' ),
+	array( 'term_id' => '0', 'title' => 'بدونِ لینک', 'link' => '' ),
+	array( 'term_id' => '906' ),
+) ), $r91d );
+check( 'list' === $r91s['layout'] && 6 === $r91s['columns_desktop'] && 1 === $r91s['columns_mobile'] && 32 === $r91s['image_size'] && '#FFFFFF' === $r91s['card_bg'] && 'circle' === $r91s['image_shape'], 'R91 sanitizer clamps layout/columns/size/colour' );
+check( 3 === count( $r91s['items'] ) && 902 === $r91s['items'][0]['term_id'] && 77 === $r91s['items'][0]['image_id'] && 'فروش ویژه' === $r91s['items'][1]['title'] && 906 === $r91s['items'][2]['term_id'] && false === $r91s['items'][2]['visible'], 'R91 sanitizer drops duplicates/deleted terms/incomplete links; unticked «نمایش» is stored as hidden' );
+
+$r91rows = jluxe_categories_page_rows( $r91s );
+$r91names = array_column( $r91rows, 'name' );
+check( array( 'حمام', 'فروش ویژه', 'لوازم آشپزخانه' ) === $r91names, 'R91 order: manual rows first, then new top-level categories; hidden row, «بدون دسته‌بندی», empty and child categories are not auto-added' );
+check( 55 === $r91rows[2]['image_id'] && 77 === $r91rows[0]['image_id'] && 0 === $r91rows[1]['term_id'] && -1 === $r91rows[1]['count'], 'R91 icon: chosen image → WooCommerce category thumbnail' );
+$r91all = jluxe_categories_page_rows( array_merge( $r91s, array( 'auto_depth' => 'all', 'hide_empty' => false, 'items' => array() ) ) );
+check( array( 'لوازم آشپزخانه', 'حمام و سرویس بهداشتی', 'دسته خالی', 'قابلمه', 'نظافت و شستشو' ) === array_column( $r91all, 'name' ), 'R91 «all categories» scope includes children and (optionally) empty ones' );
+check( false !== strpos( $r91all[4]['icon_svg'], '<svg' ) && 0 === $r91all[4]['image_id'], 'R91 no image → the category icon chosen in «آیکون دسته‌بندی‌ها»' );
+check( array() === array_column( jluxe_categories_page_rows( array_merge( $r91s, array( 'auto_append' => false, 'items' => array() ) ) ), 'name' ), 'R91 auto-append off + empty list → nothing' );
+
+ob_start(); jluxe_render_categories_grid( array_merge( $r91d, array( 'show_count' => true ) ), $r91all ); $r91html = (string) ob_get_clean();
+check( 1 === substr_count( $r91html, 'id="jluxe-cats-page-css"' ) && false !== strpos( $r91html, 'jluxe-cats-grid--list' ) && false !== strpos( $r91html, '--jc-cols-d:2;--jc-cols-t:2;--jc-cols-m:1;--jc-img:80px;--jc-img-r:14px;--jc-fit:cover;--jc-card-r:16px;--jc-card-bg:#FFFFFF;--jc-gap:16px' ), 'R91 grid markup carries the layout as CSS variables' );
+check( 5 === substr_count( $r91html, 'class="jluxe-cats-card"' ) && 1 === substr_count( $r91html, '<img ' ) && 4 === substr_count( $r91html, 'class="jluxe-cats-card__icon"' ) && false !== strpos( $r91html, '۳ کالا' ), 'R91 one link-card per category; image or icon; Persian product count' );
+check( false !== strpos( $r91html, '.jluxe-cats-grid--list .jluxe-cats-card{flex-direction:row-reverse}' ) && false !== strpos( $r91html, '@media (min-width:768px)' ) && false !== strpos( $r91html, '@media (min-width:1024px)' ) && false !== strpos( $r91html, '@media (hover:hover) and (pointer:fine)' ) && false !== strpos( $r91html, 'prefers-reduced-motion' ), 'R91 responsive CSS (mobile/tablet/desktop), hover only on mouse, reduced-motion' );
+check( false === strpos( $r91html, '<script' ), 'R91 the categories page ships zero JavaScript' );
+ob_start(); jluxe_render_categories_grid( $r91d, $r91all ); check( false === strpos( (string) ob_get_clean(), 'jluxe-cats-page-css' ), 'R91 CSS printed once per request' );
+
+// «نمایش همه»
+$GLOBALS['existing_pages'] = array();
+$r91va = jluxe_category_section_view_all( array( 'type' => 'category_grid' ) );
+check( 'نمایش همه' === $r91va['text'] && false !== strpos( $r91va['url'], '/catalog/' ), 'R91 legacy section (no fields yet) + no page → still the shop, never a 404' );
+$r91page = new WP_Post(); $r91page->ID = 4242; $r91page->post_type = 'page'; $r91page->post_status = 'publish';
+$GLOBALS['existing_pages']['product-categories'] = $r91page;
+$r91va = jluxe_category_section_view_all( array( 'type' => 'category_grid' ) );
+check( 4242 === jluxe_categories_page_id() && false !== strpos( $r91va['url'], '/4242/' ) && 'نمایش همه دسته‌بندی‌ها' === $r91va['label'], 'R91 published /product-categories/ page becomes the «نمایش همه» target' );
+check( null === jluxe_category_section_view_all( array( 'view_all_mode' => 'hidden' ) ), 'R91 «نمایش همه» can be hidden' );
+$r91va = jluxe_category_section_view_all( array( 'view_all_mode' => 'custom', 'view_all_text' => 'همه‌چیز', 'view_all_link' => 'https://jluxe.test/x/' ) );
+check( 'همه‌چیز' === $r91va['text'] && 'https://jluxe.test/x/' === $r91va['url'], 'R91 custom text + link' );
+$r91va = jluxe_category_section_view_all( array( 'type' => 'category_showcase', 'view_all_mode' => 'shop' ) );
+check( 'مشاهده همه' === $r91va['text'] && false !== strpos( $r91va['url'], '/catalog/' ), 'R91 showcase keeps «مشاهده همه»; shop mode works' );
+$r91page->post_status = 'draft';
+check( 0 === jluxe_categories_page_id(), 'R91 a draft page is never linked' );
+$GLOBALS['existing_pages'] = array();
+
+$r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_grid', 'id' => 'cg', 'enabled' => '1', 'view_all_mode' => 'custom', 'view_all_text' => '<b>همه</b>', 'view_all_link' => ' https://jluxe.test/all/ ' ) );
+check( 'custom' === $r91sec['view_all_mode'] && 'همه' === $r91sec['view_all_text'] && 'https://jluxe.test/all/' === $r91sec['view_all_link'], 'R91 homepage sanitizer stores the «نمایش همه» fields' );
+$r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_showcase', 'id' => 'cs', 'view_all_mode' => 'nope' ) );
+check( 'categories_page' === $r91sec['view_all_mode'], 'R91 unknown mode → categories page' );
+$r91hp = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+check( 2 === substr_count( $r91hp, 'jluxe_render_category_view_all_fields( $name, $section );' ) && 2 === substr_count( $r91hp, 'jluxe_category_section_view_all( $section )' ) && false === strpos( $r91hp, 'class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( \'مشاهده همه محصولات بخش' ), 'R91 both category sections use the editable button (no hard-coded shop link)' );
+
+// قالب + پیشخوان
+check( is_file( ABSPATH . 'page-product-categories.php' ) && false !== strpos( (string) file_get_contents( ABSPATH . 'page-product-categories.php' ), 'jluxe_render_categories_page()' ), 'R91 page template exists' );
+$GLOBALS['is_page'] = true;
+$r91page->post_status = 'publish'; $GLOBALS['existing_pages']['product-categories'] = $r91page;
+check( '/other.php' === jluxe_categories_page_template( '/other.php' ), 'R91 other pages keep their template' );
+$r91page->ID = 1; // get_queried_object_id() در استاب = 1
+check( 'page-product-categories.php' === basename( jluxe_categories_page_template( '/page.php' ) ), 'R91 the chosen/auto page renders with the categories template' );
+$GLOBALS['existing_pages'] = array(); $GLOBALS['is_page'] = false;
+check( isset( jluxe_settings_sections_map()['jluxe-categories-page'] ), 'R91 settings page registered in the save map' );
+$GLOBALS['authenticated_user'] = 0; $_POST = array(); $_GET = array();
+ob_start(); jluxe_render_categories_page_settings(); $r91admin = (string) ob_get_clean();
+check( 4 === substr_count( $r91admin, 'class="jluxe-repeater-item jluxe-cats-item"' ) - 1 && false !== strpos( $r91admin, 'ساخت و انتشارِ برگه' ), 'R91 first visit pre-fills every top-level category (template row excluded) + offers to create the page' );
+check( 3 === substr_count( $r91admin, 'name="categories_page[layout]"' ) && false !== strpos( $r91admin, 'jluxe-cats-layout-demo--tiles' ) && false !== strpos( $r91admin, 'jluxe-cats-admin-preview' ), 'R91 layout picker with visual demos + live preview' );
+$GLOBALS['test_terms'] = array(); $GLOBALS['terms_by_id'] = array(); $GLOBALS['term_meta'] = array();
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

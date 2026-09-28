@@ -66,6 +66,7 @@ function jluxe_render_settings_nav( string $current_slug ): void {
 			array( 'jluxe-product-card', 'کارت محصول', 'screenoptions' ),
 			array( 'jluxe-product-page', 'صفحه محصول', 'admin-page' ),
 			array( 'jluxe-shop', 'فروشگاه و دسته‌بندی', 'store' ),
+			array( 'jluxe-categories-page', 'صفحهٔ دسته‌بندی‌ها', 'category' ),
 			array( 'jluxe-site-diagnosis', 'تشخیص سایت', 'shield' ),
 		),
 		'محتوا و ارتباط' => array(

@@ -251,6 +251,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 
 				case 'category_grid':
 					jluxe_hb_field_text( $name, 'title', 'عنوان', $section['title'] ?? '' );
+					jluxe_render_category_view_all_fields( $name, $section );
 					// این کامپوننت عمداً همیشه یک ردیف افقیِ اسکرول‌شونده است؛ حالت grid
 					// باعث دو ردیفه‌شدن لیست و شکستن طراحی مرجع می‌شد.
 					$default_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M10 6a4 4 0 1 0-8 0a4 4 0 0 0 8 0Zm0 12a4 4 0 1 0-8 0a4 4 0 0 0 8 0ZM22 6a4 4 0 1 0-8 0a4 4 0 0 0 8 0Zm0 12a4 4 0 1 0-8 0a4 4 0 0 0 8 0Z"></path></svg>';
@@ -290,6 +291,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 
 				case 'category_showcase':
 					jluxe_hb_field_text( $name, 'title', 'عنوان', $section['title'] ?? '' );
+					jluxe_render_category_view_all_fields( $name, $section );
 					jluxe_hb_field_select( $name, 'layout', 'چیدمان', $section['layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی اسکرول‌شونده' ) );
 					jluxe_hb_field_select( $name, 'image_shape', 'شکل تصویر', $section['image_shape'] ?? 'circle', array( 'circle' => 'دایره‌ای', 'square' => 'مربع با گوشه گرد', 'none' => 'بدون کادر' ) );
 					jluxe_hb_field_select( $name, 'alignment', 'تراز محتوا', $section['alignment'] ?? 'center', array( 'start' => 'راست', 'center' => 'وسط', 'end' => 'چپ' ) );
@@ -726,6 +728,30 @@ function jluxe_hb_field_select( string $prefix, string $key, string $label, stri
 		printf( '<option value="%s"%s>%s</option>', esc_attr( $opt_value ), selected( $value, $opt_value, false ), esc_html( $opt_label ) );
 	}
 	echo '</select></label></p>';
+}
+
+/**
+ * R91 — دکمهٔ «نمایش همه»ِ بخش‌های دسته‌بندی (قبلاً ثابت و غیرقابلِ‌ویرایش،
+ * همیشه به فروشگاه). مقصد/متن/پنهان‌بودن حالا از همین‌جا تعیین می‌شود.
+ */
+function jluxe_render_category_view_all_fields( string $name, array $section ): void {
+	$default_text = 'category_showcase' === ( $section['type'] ?? '' ) ? 'مشاهده همه' : 'نمایش همه';
+	jluxe_hb_field_select(
+		$name,
+		'view_all_mode',
+		'دکمهٔ «' . $default_text . '» به کجا برود؟',
+		(string) ( $section['view_all_mode'] ?? 'categories_page' ),
+		array(
+			'categories_page' => 'برگهٔ همه دسته‌بندی‌ها (پیشنهادی)',
+			'shop'            => 'صفحهٔ فروشگاه',
+			'custom'          => 'لینکِ دلخواه',
+			'hidden'          => 'دکمه نمایش داده نشود',
+		)
+	);
+	jluxe_hb_field_text( $name, 'view_all_text', 'متنِ دکمه (خالی = «' . $default_text . '»)', (string) ( $section['view_all_text'] ?? '' ) );
+	jluxe_hb_field_text( $name, 'view_all_link', 'لینکِ دلخواه (فقط برای گزینهٔ «لینکِ دلخواه»)', (string) ( $section['view_all_link'] ?? '' ) );
+	$settings_url = admin_url( 'admin.php?page=jluxe-categories-page' );
+	echo '<p class="description">چیدمان، آیکون‌ها و ترتیبِ دسته‌های برگهٔ «همه دسته‌بندی‌ها» در <a href="' . esc_url( $settings_url ) . '">زرین ← صفحهٔ دسته‌بندی‌ها</a> تنظیم می‌شود.</p>';
 }
 
 /**
@@ -1625,7 +1651,7 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 		<section class="jluxe-home-section jluxe-category-showcase jluxe-category-showcase-v2" style="<?php echo esc_attr( $container_style ); ?>" dir="rtl" aria-label="<?php echo esc_attr( $section['title'] ?? 'دسته‌بندی‌های ویژه' ); ?>">
 			<div class="jluxe-category-showcase-head">
 				<div class="jluxe-category-showcase-heading"><span class="jluxe-category-showcase-mark" aria-hidden="true">✦</span><div class="jluxe-category-showcase-title-wrap"><h2><?php echo esc_html( $section['title'] ?? 'دسته‌بندی‌های ویژه' ); ?></h2><span class="jluxe-category-showcase-subtitle">انتخابی از دسته‌های محبوب فروشگاه</span></div></div>
-			<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" class="jluxe-category-showcase-all" aria-label="نمایش همه دسته‌بندی‌ها">مشاهده همه <span aria-hidden="true">←</span></a>
+			<?php $view_all = jluxe_category_section_view_all( $section ); if ( $view_all ) : ?><a href="<?php echo esc_url( $view_all['url'] ); ?>" class="jluxe-category-showcase-all" aria-label="<?php echo esc_attr( $view_all['label'] ); ?>"><?php echo esc_html( $view_all['text'] ); ?> <span aria-hidden="true">←</span></a><?php endif; ?>
 			</div>
 			<div class="jluxe-category-showcase-scroll-wrap">
 				<div class="<?php echo esc_attr( $grid_class ); ?>" data-jluxe-scroller>
@@ -1758,7 +1784,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 		$card_width,
 		$card_height
 	);
-	$shop_url = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' );
+	$view_all = jluxe_category_section_view_all( $section );
 	?>
 	<section class="jluxe-category-grid-ref jluxe-home-section" style="<?php echo esc_attr( $style ); ?>" dir="rtl" aria-label="<?php echo esc_attr( $title ); ?>">
 		<div class="jluxe-category-grid-ref-head">
@@ -1773,7 +1799,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 				</div>
 				<div class="jluxe-category-grid-ref-title-wrap">
 					<h2><?php echo esc_html( $title ); ?></h2>
-					<a href="<?php echo esc_url( $shop_url ); ?>" class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( 'مشاهده همه محصولات بخش ' . $title ); ?>" title="<?php echo esc_attr( 'مشاهده همه محصولات بخش ' . $title ); ?>">نمایش همه</a>
+					<?php if ( $view_all ) : ?><a href="<?php echo esc_url( $view_all['url'] ); ?>" class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( $view_all['label'] ); ?>"><?php echo esc_html( $view_all['text'] ); ?></a><?php endif; ?>
 				</div>
 			</div>
 		</div>

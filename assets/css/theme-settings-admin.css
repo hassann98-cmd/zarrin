@@ -619,3 +619,17 @@
 .jluxe-secret__saved code{font-weight:400}
 .jluxe-secret__box{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
 .jluxe-secret__box[hidden]{display:none}
+
+/* R91 — صفحهٔ «همه دسته‌بندی‌ها»: انتخابِ مدلِ قرارگیری با پیش‌نمایشِ کوچک */
+.jluxe-cats-layouts{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 8px;border:0;padding:0}
+.jluxe-cats-layout-option{display:flex;flex-direction:column;align-items:center;gap:8px;width:180px;padding:12px;border:1px solid #dcdcde;border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;line-height:1.7}
+.jluxe-cats-layout-option:has(input:checked){border-color:#2271b1;box-shadow:0 0 0 1px #2271b1}
+.jluxe-cats-layout-demo{display:grid;gap:5px;width:120px;padding:6px;border-radius:6px;background:#f0f0f1}
+.jluxe-cats-layout-demo i{display:block;border-radius:4px;background:#fff;position:relative}
+.jluxe-cats-layout-demo i:after{content:"";position:absolute;background:#c3c4c7;border-radius:3px}
+.jluxe-cats-layout-demo--list{grid-template-columns:1fr 1fr}.jluxe-cats-layout-demo--list i{height:22px}.jluxe-cats-layout-demo--list i:after{left:3px;top:3px;width:16px;height:16px}
+.jluxe-cats-layout-demo--tiles{grid-template-columns:repeat(4,1fr)}.jluxe-cats-layout-demo--tiles i{height:40px}.jluxe-cats-layout-demo--tiles i:after{left:50%;top:4px;width:16px;height:16px;transform:translateX(-50%)}
+.jluxe-cats-layout-demo--compact{grid-template-columns:1fr 1fr}.jluxe-cats-layout-demo--compact i{height:14px}.jluxe-cats-layout-demo--compact i:after{right:3px;top:3px;width:8px;height:8px}
+.jluxe-cats-columns label,.jluxe-cats-admin-page td>label{margin-inline-end:14px;display:inline-block}
+.jluxe-cats-item-visible{margin-inline-start:auto;font-weight:400}
+.jluxe-cats-admin-preview{max-width:900px;padding:16px;border-radius:12px;background:#F7F3EE}
