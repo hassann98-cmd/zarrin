@@ -1,8 +1,35 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { UserRound, ChevronRight } from "lucide-react";
 import { getThemeSettings } from "../lib/theme-settings.js";
 import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
+
+export function resolvePostAuthUrl() {
+  const fallback = siteUrl("dashboard");
+  try {
+    const query = new URLSearchParams(window.location.search);
+    const requested = query.get("redirect_to") || query.get("redirect");
+    if (!requested) return fallback;
+    const home = new URL(siteUrl("home"), window.location.href);
+    const destination = new URL(requested, home);
+    const sitePath = home.pathname.replace(/\/+$/, "") || "/";
+    const insideSite =
+      sitePath === "/" ||
+      destination.pathname === sitePath ||
+      destination.pathname.startsWith(`${sitePath}/`);
+    if (
+      destination.origin !== home.origin ||
+      destination.username ||
+      destination.password ||
+      !insideSite
+    ) {
+      return fallback;
+    }
+    return destination.href;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function AuthPage() {
   const settings = getThemeSettings();
@@ -13,6 +40,7 @@ export default function AuthPage() {
   const [method, setMethod] = useState(smsEnabled ? "phone" : "username");
   const [mode, setMode] = useState("login");
   const [sent, setSent] = useState(false);
+  const [listeningForOtp, setListeningForOtp] = useState(false);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [login, setLogin] = useState("");
@@ -21,9 +49,94 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const otpInput = useRef(null);
+  const verifyingOtp = useRef(false);
+  const otpRequestReady = useRef(false);
+  const pendingWebOtp = useRef("");
+
+  const verifyOtp = useCallback(
+    async (rawCode) => {
+      const normalizedPhone = normalizePhone(phone);
+      const normalizedCode = normalizeDigits(String(rawCode ?? ""))
+        .replace(/[^0-9]/g, "")
+        .slice(0, 6);
+      if (!normalizedPhone) {
+        setError("شماره موبایل معتبر نیست.");
+        return;
+      }
+      if (!/^[0-9]{6}$/.test(normalizedCode)) {
+        setError("کد ۶ رقمی پیامک را وارد کنید.");
+        return;
+      }
+      if (verifyingOtp.current) return;
+      verifyingOtp.current = true;
+      setBusy(true);
+      setError("");
+      try {
+        await restRequest(
+          "auth/otp-verify",
+          { phone: normalizedPhone, code: normalizedCode },
+          { authenticated: false },
+        );
+        window.location.assign(resolvePostAuthUrl());
+      } catch (cause) {
+        setCode("");
+        setError(
+          cause instanceof Error ? cause.message : "ارتباط با سرور برقرار نشد.",
+        );
+        otpInput.current?.focus();
+      } finally {
+        verifyingOtp.current = false;
+        setBusy(false);
+      }
+    },
+    [phone],
+  );
+
+  useEffect(() => {
+    if (
+      method !== "phone" ||
+      !listeningForOtp ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+    const credentials = window.navigator?.credentials;
+    if (
+      !window.isSecureContext ||
+      !("OTPCredential" in window) ||
+      typeof credentials?.get !== "function" ||
+      typeof window.AbortController !== "function"
+    ) {
+      return;
+    }
+
+    const controller = new window.AbortController();
+    credentials
+      .get({ otp: { transport: ["sms"] }, signal: controller.signal })
+      .then((credential) => {
+        if (controller.signal.aborted || typeof credential?.code !== "string")
+          return;
+        const receivedCode = normalizeDigits(credential.code)
+          .replace(/[^0-9]/g, "")
+          .slice(0, 6);
+        if (!/^[0-9]{6}$/.test(receivedCode)) return;
+        setCode(receivedCode);
+        if (otpRequestReady.current) void verifyOtp(receivedCode);
+        else pendingWebOtp.current = receivedCode;
+      })
+      .catch(() => {
+        // Unsupported SMS formats and denied browser prompts keep manual entry available.
+      });
+    return () => controller.abort();
+  }, [method, listeningForOtp, verifyOtp]);
 
   async function submit(event) {
     event.preventDefault();
+    if (method === "phone" && sent) {
+      await verifyOtp(code);
+      return;
+    }
     if (busy) return;
     setBusy(true);
     setError("");
@@ -31,24 +144,21 @@ export default function AuthPage() {
       if (method === "phone") {
         const normalizedPhone = normalizePhone(phone);
         if (!normalizedPhone) throw new Error("شماره موبایل معتبر نیست.");
-        if (!sent) {
-          await restRequest(
-            "auth/otp-request",
-            { phone: normalizedPhone },
-            { authenticated: false },
-          );
-          setSent(true);
-          setCode("");
-          return;
-        }
-        const normalizedCode = normalizeDigits(code).trim();
-        if (!/^[0-9]{6}$/.test(normalizedCode))
-          throw new Error("کد ۶ رقمی پیامک را وارد کنید.");
+        otpRequestReady.current = false;
+        pendingWebOtp.current = "";
+        setListeningForOtp(true);
         await restRequest(
-          "auth/otp-verify",
-          { phone: normalizedPhone, code: normalizedCode },
+          "auth/otp-request",
+          { phone: normalizedPhone },
           { authenticated: false },
         );
+        otpRequestReady.current = true;
+        setSent(true);
+        const pendingCode = pendingWebOtp.current;
+        pendingWebOtp.current = "";
+        setCode(pendingCode);
+        if (pendingCode) void verifyOtp(pendingCode);
+        return;
       } else if (mode === "register" && canRegister) {
         await restRequest(
           "auth/register",
@@ -62,18 +172,28 @@ export default function AuthPage() {
           { authenticated: false },
         );
       }
-      window.location.assign(siteUrl("dashboard"));
+      window.location.assign(resolvePostAuthUrl());
     } catch (cause) {
+      if (method === "phone" && !sent) {
+        otpRequestReady.current = false;
+        pendingWebOtp.current = "";
+        setListeningForOtp(false);
+      }
       setError(
         cause instanceof Error ? cause.message : "ارتباط با سرور برقرار نشد.",
       );
     } finally {
-      setBusy(false);
+      if (!verifyingOtp.current) setBusy(false);
     }
   }
 
   function changeMethod(next) {
     setMethod(next);
+    setSent(false);
+    otpRequestReady.current = false;
+    pendingWebOtp.current = "";
+    setListeningForOtp(false);
+    setCode("");
     setError("");
     setPassword("");
   }
@@ -88,7 +208,11 @@ export default function AuthPage() {
           <UserRound size={28} aria-hidden="true" />
         </div>
         <h1 id="jluxe-auth-title">
-          {canRegister ? "ورود و عضویت" : "ورود به حساب کاربری"}
+          {smsEnabled
+            ? "ورود و عضویت با موبایل"
+            : canRegister
+              ? "ورود و عضویت"
+              : "ورود به حساب کاربری"}
         </h1>
         {smsEnabled && !otpOnly && (
           <div className="jluxe-auth-tabs" aria-label="روش ورود">
@@ -155,21 +279,31 @@ export default function AuthPage() {
               {sent && (
                 <>
                   <p role="status">
-                    کد ۶ رقمی ارسال شد و تا دو دقیقه معتبر است.
+                    کد ۶ رقمی ارسال شد و تا دو دقیقه معتبر است. اگر خودکار پر نشد،
+                    آن را دستی وارد کنید؛ تأیید پس از کامل‌شدن شش رقم خودکار است.
                   </p>
                   <label htmlFor="jluxe-auth-code">کد تأیید</label>
                   <input
+                    ref={otpInput}
                     id="jluxe-auth-code"
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
                     dir="ltr"
                     maxLength={6}
                     required
                     autoFocus
                     value={code}
                     disabled={busy}
-                    onChange={(event) => setCode(event.target.value)}
+                    onChange={(event) => {
+                      const nextCode = normalizeDigits(event.target.value)
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 6);
+                      setCode(nextCode);
+                      if (error) setError("");
+                      if (nextCode.length === 6) void verifyOtp(nextCode);
+                    }}
                   />
                   <button
                     className="jluxe-auth-text-button"
@@ -177,6 +311,9 @@ export default function AuthPage() {
                     disabled={busy}
                     onClick={() => {
                       setSent(false);
+                      otpRequestReady.current = false;
+                      pendingWebOtp.current = "";
+                      setListeningForOtp(false);
                       setCode("");
                       setError("");
                     }}
@@ -184,9 +321,6 @@ export default function AuthPage() {
                     تغییر شماره یا درخواست کد جدید
                   </button>
                 </>
-              )}
-              {!canRegister && (
-                <p>ورود پیامکی فقط برای حساب‌های موجود فعال است.</p>
               )}
             </>
           ) : (
@@ -261,8 +395,8 @@ export default function AuthPage() {
               ? "در حال بررسی…"
               : method === "phone"
                 ? sent
-                  ? "تأیید و ورود"
-                  : "دریافت کد ورود"
+                  ? "تأیید کد"
+                  : "دریافت کد ورود / عضویت"
                 : mode === "register" && canRegister
                   ? "ساخت حساب"
                   : "ورود"}
@@ -273,9 +407,9 @@ export default function AuthPage() {
         </a>
         {smsEnabled && (
           <p className="jluxe-auth-hint">
-            {otpOnly
-              ? "با شمارهٔ موبایل وارد شوید؛ اگر حساب نداشته باشید، با همان شماره به‌صورت خودکار برایتان ساخته می‌شود."
-              : "اولین بار که با شمارهٔ ثبت‌شدهٔ صورتحساب وارد می‌شوید، برای پیوند شماره ابتدا با نام‌کاربری وارد شوید؛ بعد از آن ورود پیامکی مستقیم انجام می‌شود. حسابِ جدید هم خودکار ساخته می‌شود."}
+            با کد درست، وارد حساب مرتبط با شماره می‌شوید؛ اگر حسابی نباشد، حساب
+            مشتری با همان شمارهٔ تأییدشده ساخته می‌شود. نام و نشانی را هنگام
+            تسویه‌حساب می‌گیریم.
           </p>
         )}
       </section>

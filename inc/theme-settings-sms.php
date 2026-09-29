@@ -38,7 +38,7 @@ function jluxe_render_sms_page(): void {
 
 	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key, $key_hint, $warnings ) {
 		?>
-		<p class="description">صفحه‌ی «ورود و عضویت» (my-account) همیشه با نام‌کاربری/ایمیل کار می‌کنه. تب «شماره موبایل» هم توی همون صفحه نمایش داده می‌شه، ولی تا وقتی این‌جا provider و کلید واقعی ست نکنی، غیرفعاله و پیام «سرویس پیامکی هنوز وصل نشده» نشون می‌ده — هیچ کدی به‌صورت فیک ارسال/تایید نمی‌شه.</p>
+		<p class="description">در صفحهٔ «ورود و عضویت»، کدِ درستِ پیامکی هم ورود را انجام می‌دهد و هم برای شمارهٔ تازه یک حساب مشتریِ کمینه می‌سازد؛ اگر شماره در billing phone یک حساب موجود باشد، همان حساب پس از تأیید OTP به شماره پیوند می‌خورد. این مسیر مستقل از فعال‌بودن ثبت‌نامِ نام‌کاربری/رمز در WooCommerce است و نام/نشانی را می‌توان هنگام تسویه‌حساب گرفت. تب موبایل تا تنظیم provider و کلید واقعی غیرفعال می‌ماند و هیچ کدی به‌صورت فیک ارسال یا تأیید نمی‌شود. برای دریافتِ خودکارِ WebOTP در مرورگرهای پشتیبانی‌شده، قالب پیامکِ تأییدشده باید نشانگر دامنهٔ خودِ سایت و کد را در قالبِ origin-bound (مانند <code>@domain #123456</code>) داشته باشد؛ در غیر این صورت پرکردنِ یک‌بارهٔ سیستم‌عامل یا ورود دستی در دسترس است.</p>
 		<?php jluxe_render_secret_warnings( $warnings ); ?>
 		<form method="post" autocomplete="off">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
@@ -54,7 +54,7 @@ function jluxe_render_sms_page(): void {
 					<th scope="row">ورود فقط با رمز پیامکی</th>
 					<td>
 						<label><input type="checkbox" name="sms[otp_only]" value="1" <?php checked( ! empty( $sms['otp_only'] ) ); ?> /> مشتری فقط با رمز پیامکی وارد شود — بدونِ نام‌کاربری/رمز عبور</label>
-						<p class="description">در این حالت تبِ «نام کاربری» از صفحهٔ ورود حذف می‌شود؛ حسابِ جدید هم به‌صورت خودکار با همان شماره ساخته می‌شود. مدیران همیشه از <code>wp-login.php</code> وارد می‌شوند و این مسیر باز می‌ماند.</p>
+						<p class="description">در این حالت تبِ «نام کاربری» از صفحهٔ ورود حذف می‌شود. با تأیید کد، حساب مشتریِ دارای همین billing phone خودکار پیوند می‌خورد یا ـ اگر حسابی نباشد ـ حساب کمینه با همان شماره ساخته می‌شود؛ این ثبت‌نام پیامکی مستقل از تنظیم ثبت‌نام عادی WooCommerce است و اطلاعات خرید در تسویه‌حساب گرفته می‌شود. مدیران همیشه از <code>wp-login.php</code> وارد می‌شوند و این مسیر باز می‌ماند.</p>
 						<?php if ( $sms['enabled'] && ( ! $has_key || '' === $sms['provider'] ) ) : ?>
 							<p class="description" style="color:#b32d2e">فعاله ولی provider/کلید تنظیم نشده — تب تا زمان تکمیل تنظیمات پایین غیرفعال می‌مونه.</p>
 						<?php endif; ?>
@@ -333,7 +333,8 @@ function jluxe_verify_otp( WP_REST_Request $request, bool $link ) {
 		if ( $users ) {
 			$user_id = (int) $users[0];
 		} else {
-			// Billing metadata is editable and is NOT evidence of account ownership.
+			// Billing metadata alone is not proof. A successful OTP is; use it to
+			// link exactly one eligible account without asking for its password.
 			$candidates = array( $phone, '0' . $phone, '98' . $phone, '+98' . $phone, '0098' . $phone );
 			foreach ( array( '۰۱۲۳۴۵۶۷۸۹', '٠١٢٣٤٥٦٧٨٩' ) as $digits ) {
 				$map = array_combine( str_split( '0123456789' ), preg_split( '//u', $digits, -1, PREG_SPLIT_NO_EMPTY ) );
@@ -341,27 +342,45 @@ function jluxe_verify_otp( WP_REST_Request $request, bool $link ) {
 					$candidates[] = strtr( $candidate, $map );
 				}
 			}
-			$billing_accounts = get_users( array( 'meta_query' => array( array( 'key' => 'billing_phone', 'value' => $candidates, 'compare' => 'IN' ) ), 'number' => 1, 'fields' => 'ID' ) );
+			$billing_accounts = get_users( array( 'meta_query' => array( array( 'key' => 'billing_phone', 'value' => $candidates, 'compare' => 'IN' ) ), 'number' => 2, 'fields' => 'ID' ) );
+			if ( count( $billing_accounts ) > 1 ) {
+				return new WP_Error( 'jluxe_sms_ambiguous_phone', 'این شماره برای چند حساب ثبت شده و اتصال خودکار امن نیست؛ با پشتیبانی تماس بگیرید.', array( 'status' => 409 ) );
+			}
 			if ( $billing_accounts ) {
-				return new WP_Error( 'jluxe_sms_link_required', 'برای اولین ورود پیامکی، با رمز وارد حساب شوید و شماره را در «جزئیات حساب» تأیید کنید.', array( 'status' => 409 ) );
-			}
-			if ( ! jluxe_registration_enabled() ) {
-				return new WP_Error( 'jluxe_registration_disabled', 'ثبت‌نام در حال حاضر غیرفعال است.', array( 'status' => 403 ) );
-			}
-			$user_id = wp_insert_user( array(
-				'user_login' => 'customer_' . strtolower( wp_generate_password( 16, false, false ) ),
-				'user_pass' => wp_generate_password( 32 ),
-				// No fabricated email that could send a password reset to an unrelated mailbox.
-				'user_email' => '',
-				'display_name' => 'مشتری',
-				'role' => get_role( 'customer' ) ? 'customer' : 'subscriber',
-				'meta_input' => array( 'jluxe_phone' => $phone, 'billing_phone' => '0' . $phone ),
-			) );
-			if ( is_wp_error( $user_id ) ) {
-				return new WP_Error( 'jluxe_sms_user_create_failed', 'ساخت حساب ناموفق بود.', array( 'status' => 500 ) );
-			}
-			if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
-				return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ با پشتیبانی تماس بگیرید.', array( 'status' => 503 ) );
+				$user_id = (int) $billing_accounts[0];
+				$billing_user = get_userdata( $user_id );
+				if ( ! jluxe_otp_user_allowed( $billing_user ) ) {
+					return new WP_Error( 'jluxe_sms_account_restricted', 'برای این حساب از ورود با رمز استفاده کنید.', array( 'status' => 403 ) );
+				}
+				$linked_phone = trim( (string) get_user_meta( $user_id, 'jluxe_phone', true ) );
+				if ( '' !== $linked_phone && jluxe_normalize_phone( $linked_phone ) !== $phone ) {
+					return new WP_Error( 'jluxe_sms_ambiguous_phone', 'این شماره از قبل به حساب دیگری متصل است؛ با پشتیبانی تماس بگیرید.', array( 'status' => 409 ) );
+				}
+				if ( $linked_phone !== $phone ) {
+					update_user_meta( $user_id, 'jluxe_phone', $phone );
+					if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+						return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ دوباره تلاش کنید.', array( 'status' => 503 ) );
+					}
+				}
+			} else {
+				// SMS-verified signup is intentionally independent of the ordinary
+				// WooCommerce username/password registration setting. The verified
+				// phone is the only initial identity; checkout can collect customer data.
+				$user_id = wp_insert_user( array(
+					'user_login' => 'customer_' . strtolower( wp_generate_password( 16, false, false ) ),
+					'user_pass' => wp_generate_password( 32 ),
+					// No fabricated email that could send a password reset to an unrelated mailbox.
+					'user_email' => '',
+					'display_name' => 'مشتری',
+					'role' => get_role( 'customer' ) ? 'customer' : 'subscriber',
+					'meta_input' => array( 'jluxe_phone' => $phone, 'billing_phone' => '0' . $phone ),
+				) );
+				if ( is_wp_error( $user_id ) ) {
+					return new WP_Error( 'jluxe_sms_user_create_failed', 'ساخت حساب ناموفق بود.', array( 'status' => 500 ) );
+				}
+				if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+					return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ با پشتیبانی تماس بگیرید.', array( 'status' => 503 ) );
+				}
 			}
 		}
 		$user = get_userdata( $user_id );

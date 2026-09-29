@@ -553,17 +553,53 @@ try {
     response.status === 403 && !(await getSession()).auth.isLoggedIn,
     "A real WordPress administrator cannot use the customer OTP password bypass",
   );
+  freshVisitor();
+  code = await sendOtp("09120000003");
+  response = await rest("/jluxe/v1/auth/otp-verify", {
+    phone: "09120000003",
+    code,
+  });
+  session = await getSession();
+  const newOtpCustomer = await phpJson(`
+    $matches=get_users(array('meta_key'=>'jluxe_phone','meta_value'=>'9120000003','number'=>2,'fields'=>'ID'));
+    $id=(int)($matches[0]??0);
+    return array('id'=>$id,'roles'=>$id?get_userdata($id)->roles:array(),
+      'phone'=>$id?get_user_meta($id,'jluxe_phone',true):'',
+      'billing'=>$id?get_user_meta($id,'billing_phone',true):'',
+      'email'=>$id?get_userdata($id)->user_email:'');
+  `);
+  check(
+    response.status === 200 &&
+      response.json().success &&
+      session.auth.isLoggedIn &&
+      newOtpCustomer.id > 0 &&
+      ["customer", "subscriber"].some((role) =>
+        newOtpCustomer.roles.includes(role),
+      ) &&
+      newOtpCustomer.phone === "9120000003" &&
+      newOtpCustomer.billing === "09120000003" &&
+      newOtpCustomer.email === "",
+    "Real verified OTP creates and logs into a minimal new customer even while WordPress/WooCommerce registration is disabled (SMS mocked)",
+  );
+  freshVisitor();
   code = await sendOtp("09120000002");
   response = await rest("/jluxe/v1/auth/otp-verify", {
     phone: "09120000002",
     code,
   });
-  check(
-    response.status >= 400 &&
-      response.json().code === "jluxe_sms_link_required" &&
-      !(await getSession()).auth.isLoggedIn,
-    "Real billing_phone metadata alone never authorizes login or silently binds an account",
+  session = await getSession();
+  const billingPhoneLink = await phpJson(
+    `return get_user_meta(${users.billing}, 'jluxe_phone', true);`,
   );
+  check(
+    response.status === 200 &&
+      response.json().success &&
+      session.auth.isLoggedIn &&
+      session.auth.email === "billing@example.invalid" &&
+      billingPhoneLink === "9120000002",
+    "Real verified OTP automatically links and authenticates the unique matching billing account without a password",
+  );
+  freshVisitor();
   session = await login("integration-billing");
   code = await sendOtp("09120000002", "link", session.restNonce);
   response = await rest(

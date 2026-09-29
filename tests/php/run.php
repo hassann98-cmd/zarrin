@@ -90,8 +90,13 @@ check(is_wp_error(verify_otp()) && !get_option($key), 'R03 expired challenge is 
 
 reset_security();$GLOBALS['phone_users']=array(42,43);request_otp();
 check(verify_otp()->get_error_code()==='jluxe_sms_ambiguous_phone' && !get_current_user_id(), 'R03 duplicate phone identities never pick the first account');
-reset_security();$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array(42);request_otp();
-check(verify_otp()->get_error_code()==='jluxe_sms_link_required' && !get_current_user_id(), 'R03 billing_phone alone cannot authenticate/bind an account');
+reset_security();$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array(42);unset($GLOBALS['user_meta'][42]['jluxe_phone']);request_otp();
+$result=verify_otp();
+check($result['success']===true && get_current_user_id()===42 && get_user_meta(42,'jluxe_phone',true)==='9120000000', 'R97 verified SMS links one matching billing phone and logs into that existing customer without a password');
+reset_security();$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array(42,43);unset($GLOBALS['user_meta'][42]['jluxe_phone']);request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_ambiguous_phone' && !get_current_user_id(), 'R97 duplicate billing-phone matches are never auto-linked');
+reset_security();$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array(42);$GLOBALS['users'][42]=new WP_User(42,array('administrator'));unset($GLOBALS['user_meta'][42]['jluxe_phone']);request_otp();
+check(verify_otp()->get_error_code()==='jluxe_sms_account_restricted' && !get_current_user_id(), 'R97 billing-phone OTP cannot bypass staff-role restrictions');
 reset_security();$GLOBALS['users'][42]=new WP_User(42,array('administrator'));request_otp();
 check(verify_otp()->get_error_code()==='jluxe_sms_account_restricted' && !get_current_user_id(), 'R03 privileged roles cannot use customer OTP login');
 reset_security();$GLOBALS['users'][42]->caps=array('manage_options');request_otp();
@@ -100,12 +105,14 @@ check(verify_otp()->get_error_code()==='jluxe_sms_account_restricted', 'R03 elev
 reset_security();$GLOBALS['options']['woocommerce_enable_myaccount_registration']='no';$before=$GLOBALS['create_calls'];
 $result=jluxe_handle_auth_register(new WP_REST_Request(array('username'=>'newuser','email'=>'new@example.invalid','password'=>'long-test-password')));
 check($result->get_error_code()==='jluxe_registration_disabled' && $GLOBALS['create_calls']===$before, 'R13 password signup obeys disabled registration');
-$GLOBALS['phone_users']=array();request_otp();
-check(verify_otp()->get_error_code()==='jluxe_registration_disabled' && $GLOBALS['create_calls']===$before, 'R13 OTP signup obeys disabled registration');
+$GLOBALS['phone_users']=array();$GLOBALS['billing_users']=array();request_otp('09120000003');
+$result=verify_otp('123456','09120000003');$new_user_id=101+$before;
+check($result['success']===true && $GLOBALS['create_calls']===$before+1 && get_user_meta($new_user_id,'jluxe_phone',true)==='9120000003' && get_user_meta($new_user_id,'billing_phone',true)==='09120000003', 'R97 verified OTP creates a minimal customer even while ordinary WooCommerce registration is disabled');
 reset_security();request_otp();
-check(verify_otp()['success']===true, 'R13 existing OTP customers may log in while signup is disabled');
-reset_security();$GLOBALS['options']['woocommerce_enable_myaccount_registration']='yes';$GLOBALS['phone_users']=array();request_otp();
-check(verify_otp()['success']===true && $GLOBALS['create_calls']===$before+1, 'R13 explicitly enabled OTP registration creates a customer');
+check(verify_otp()['success']===true, 'R13 existing OTP customers may log in while password signup is disabled');
+reset_security();$GLOBALS['options']['woocommerce_enable_myaccount_registration']='yes';$GLOBALS['phone_users']=array();request_otp('09120000004');
+$result=verify_otp('123456','09120000004');
+check($result['success']===true && $GLOBALS['create_calls']===$before+2, 'R97 verified OTP also creates a customer when ordinary WooCommerce registration is enabled');
 
 reset_security();$GLOBALS['authenticated_user']=42;$GLOBALS['phone_users']=array();request_otp('09120000000','link');
 $linked=jluxe_handle_otp_link(new WP_REST_Request(array('phone'=>'09120000000','code'=>'123456')));
@@ -1186,7 +1193,7 @@ $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($store_css,'.jluxe-recover-card')!==false && strpos($store_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
 check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
-check(strpos($auth_jsx,'به‌صورت خودکار برایتان ساخته می‌شود')!==false && strpos($auth_jsx,'بعد از آن ورود پیامکی مستقیم انجام می‌شود')!==false, 'R70 the first-time SMS hint now explains auto account creation (otp-only) and the link-once flow (normal mode) instead of the confusing verify-in-account-details message');
+check(strpos($auth_jsx,'شمارهٔ تأییدشده ساخته می‌شود')!==false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R97 the SMS hint explains OTP login/signup; browser SMS retrieval and six-digit input both trigger automatic verification');
 // R71: variation-picker swatches selectable again (R68 regression) + round modal add button.
 $wc_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false && strpos($wc_js,'!!optionValues[value]')===false, 'R71 swatch availability lookup uses the select.name-prefixed map key (R68 regression made every swatch in the default layout and the quick-pick modal permanently disabled)');
