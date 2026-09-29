@@ -1864,7 +1864,8 @@ $_GET = array( 'cat' => '911' );
 $r92data = jluxe_categories_browser_data( $r92cfg, $r92rows, $r92kids, jluxe_categories_page_requested_cat() );
 $r92p    = array_column( $r92data['parents'], null, 'name' );
 check( 'panel' === $r92data['mode'] && 911 === $r92data['active'] && 910 === $r92data['defaultId'], 'R92 ?cat=911 selects that parent server-side (reload/share shows the same panel)' );
-check( true === $r92p['دکور']['hasPanel'] && false === $r92p['فروش ویژه']['hasPanel'] && '' === $r92p['فروش ویژه']['catHref'] && 'https://jluxe.test/sale/' === $r92p['فروش ویژه']['url'], 'R92 panel: every real category gets a panel; custom-link rows keep their direct link' );
+check( true === $r92p['حمام']['hasPanel'] && false === $r92p['فروش ویژه']['hasPanel'] && '' === $r92p['فروش ویژه']['catHref'] && 'https://jluxe.test/sale/' === $r92p['فروش ویژه']['url'], 'R92 panel: categories with children get a panel; custom-link rows keep their direct link' );
+check( false === $r92p['دکور']['hasPanel'] && '' === $r92p['دکور']['catHref'] && '' !== $r92p['دکور']['url'] && array() === $r92p['دکور']['children'], 'R93c panel: a category without subcategories has no (empty) panel — it links straight to its product archive' );
 check( false !== strpos( $r92p['آشپزخانه']['catHref'], 'cat=910' ) && is_array( $r92p['آشپزخانه']['children'][0]['img'] ) && null === $r92p['آشپزخانه']['children'][1]['img'] && '' !== $r92p['آشپزخانه']['children'][1]['svg'], 'R92 parent links are real ?cat= URLs; child image or icon fallback' );
 $_GET = array( 'cat' => '99999' );
 check( 910 === jluxe_categories_browser_data( $r92cfg, $r92rows, $r92kids, jluxe_categories_page_requested_cat() )['active'], 'R92 unknown ?cat falls back to the first category (no empty panel)' );
@@ -1878,7 +1879,11 @@ check( 0 === $r92stack['active'] && true === $r92sp['آشپزخانه']['hasPane
 
 ob_start(); jluxe_render_categories_browser( $r92cfg, $r92rows, $r92kids, 911 ); $r92html = (string) ob_get_clean();
 check( false !== strpos( $r92html, 'data-jluxe-island="categories-browser" data-jluxe-keep-ssr' ) && 1 === substr_count( $r92html, 'id="jluxe-cats-data"' ), 'R92 output = React island wrapper (keeps server HTML on failure) + one JSON data block' );
-check( 3 === substr_count( $r92html, '<section class="jc-panel"' ) && 2 === substr_count( $r92html, ' hidden>' ) && false !== strpos( $r92html, 'id="jc-panel-911" aria-labelledby="jc-panel-911-t">' ), 'R92 server renders every panel (crawlable) with only the active one visible' );
+check( 2 === substr_count( $r92html, '<section class="jc-panel"' ) && 1 === substr_count( $r92html, ' hidden>' ) && false !== strpos( $r92html, 'id="jc-panel-911" aria-labelledby="jc-panel-911-t">' ) && false === strpos( $r92html, 'jc-panel-912' ) && false === strpos( $r92html, 'jc-panel__empty' ), 'R92 server renders every panel (crawlable) with only the active one visible; R93c no empty panel for a leaf category' );
+check( 1 === preg_match( '#<a class="jc-rail__item" href="([^"]+)">(?:(?!</a>).)*دکور#su', $r92html, $r93cm ) && $r93cm[1] === $r92p['دکور']['url'] && false === strpos( $r93cm[0], 'data-jc-parent' ), 'R93c server HTML (no JS too): leaf category in the rail = plain link to its archive' );
+check( 910 === jluxe_categories_browser_data( $r92cfg, $r92rows, $r92kids, 912 )['active'], 'R93c old bookmark ?cat=<leaf> falls back to the first category with children' );
+$r93cnone = jluxe_categories_browser_data( $r92cfg, $r92rows, array(), 0 );
+check( 'stack' === $r93cnone['mode'] && 0 === $r93cnone['active'] && array() === array_filter( array_column( $r93cnone['parents'], 'hasPanel' ) ), 'R93c panel mode with no subcategories anywhere → plain card grid, every card straight to its archive' );
 check( false !== strpos( $r92html, 'class="jc-rail__item is-active" href="' ) && 1 === substr_count( $r92html, 'aria-current="true"' ) && false !== strpos( $r92html, 'قابلمه' ) && false !== strpos( $r92html, 'زیردسته‌ای ندارد' ), 'R92 rail marks the active parent; children + empty note present' );
 preg_match( '#<script type="application/json" id="jluxe-cats-data">(.*?)</script>#s', $r92html, $r92m );
 $r92json = json_decode( $r92m[1] ?? '', true );

@@ -643,9 +643,10 @@ function jluxe_categories_browser_data( array $cfg, array $rows, array $children
 	foreach ( array_values( $rows ) as $row ) {
 		$id   = (int) $row['term_id'];
 		$kids = $id ? ( $children[ $id ] ?? array() ) : array();
-		// panel: هر دستهٔ واقعی پنل دارد (حتی بی‌زیردسته: «همهٔ کالاها» + پیامِ خالی).
-		// stack: فقط دسته‌ای که زیردسته دارد؛ بقیه مستقیم به آرشیو می‌روند.
-		$has_panel = $id && ( 'panel' === $mode || ! empty( $kids ) );
+		// R93c — در هر دو حالت فقط دسته‌ای که زیردسته دارد پنل می‌گیرد؛ دستهٔ
+		// بی‌زیردسته (و لینکِ دلخواه) مستقیم به صفحهٔ محصولاتِ همان دسته می‌رود
+		// (قبلاً در panel یک پنلِ خالی با «این دسته زیردسته‌ای ندارد» باز می‌شد).
+		$has_panel = $id && ! empty( $kids );
 		$kid_data  = array();
 		foreach ( $kids as $kid ) {
 			$kid_data[] = array(
@@ -677,6 +678,11 @@ function jluxe_categories_browser_data( array $cfg, array $rows, array $children
 		if ( $has_panel && $requested === $id ) {
 			$active = $id;
 		}
+	}
+	if ( 'panel' === $mode && ! $default ) {
+		// هیچ دسته‌ای زیردسته ندارد ⇒ ستونِ کناری کنارِ ناحیهٔ خالی بی‌معناست؛
+		// همان شبکهٔ کارت‌ها (هر کارت مستقیم به آرشیو) نمایش داده می‌شود.
+		$mode = 'stack';
 	}
 	if ( ! $active && 'panel' === $mode ) {
 		$active = $default;

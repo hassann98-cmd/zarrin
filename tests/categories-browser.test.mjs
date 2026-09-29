@@ -75,13 +75,14 @@ const data = (mode, extra = {}) => ({
       id: 102,
       name: "دکور",
       url: `${base}../c/102/`,
-      catHref: mode === "panel" ? `${base}?cat=102` : "",
+      // R93c — بی‌زیردسته ⇒ در هر دو حالت بدونِ پنل (مستقیم به آرشیو)
+      catHref: "",
       allUrl: `${base}../c/102/`,
       img: null,
       svg: "",
       count: 1,
       countLabel: "",
-      hasPanel: mode === "panel",
+      hasPanel: false,
       children: [],
     },
     {
@@ -185,11 +186,15 @@ test("panel: first category open, click switches subcategories in place and rewr
     el.querySelector(".jc-panel__all").getAttribute("href"),
     `${base}../c/101/`,
   );
-  click(win, el.querySelector('[data-jc-parent="102"]'));
-  assert.match(
-    el.querySelector(".jc-panel__empty").textContent,
-    /زیردسته‌ای ندارد/,
+  // R93c — دستهٔ بی‌زیردسته: لینکِ مستقیم به صفحهٔ محصولاتِ همان دسته، نه پنلِ خالی
+  assert.equal(el.querySelector('[data-jc-parent="102"]'), null);
+  const leaf = [...el.querySelectorAll(".jc-rail__item")].find(
+    (a) => a.textContent.includes("دکور"),
   );
+  assert.equal(leaf.getAttribute("href"), `${base}../c/102/`);
+  assert.equal(click(win, leaf), false, "native navigation to the archive");
+  assert.equal(panelTitle(el), "حمام", "the open panel is untouched");
+  assert.equal(el.querySelector(".jc-panel__empty"), null);
 });
 
 test("panel: ?cat in the URL wins; modifier clicks and custom links keep native navigation", async () => {
@@ -201,8 +206,8 @@ test("panel: ?cat in the URL wins; modifier clicks and custom links keep native 
     false,
   );
   assert.equal(panelTitle(el), "حمام");
-  const custom = [...el.querySelectorAll(".jc-rail__item")].find(
-    (a) => !a.dataset.jcParent,
+  const custom = [...el.querySelectorAll(".jc-rail__item")].find((a) =>
+    a.textContent.includes("فروش ویژه"),
   );
   assert.equal(
     custom.getAttribute("href"),
