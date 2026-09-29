@@ -100,7 +100,7 @@ function jluxe_render_ai_assistant_page(): void {
 				<tr>
 					<th scope="row"><label for="jluxe-ai-bp">مرزِ موبایل (px)</label></th>
 					<td><input type="number" id="jluxe-ai-bp" min="360" max="1280" name="ai_assistant[mobile_breakpoint]" value="<?php echo esc_attr( $ai['mobile_breakpoint'] ?? 820 ); ?>" class="small-text" />
-						<p class="description">صفحه‌های باریک‌تر از این عرض «موبایل» حساب می‌شوند. مثلاً برای پنهان‌کردنِ دکمه زیرِ ۸۲۰ پیکسل، ۸۲۰ بگذارید و تیکِ «موبایل» را بردارید.</p></td>
+						<p class="description">صفحه‌های باریک‌تر از این عرض «موبایل» حساب می‌شوند. پیش‌فرضِ ۸۲۰px همان رفتارِ کدِ قبلی (حداکثر ۸۱۹px) است؛ برای تغییرِ مرز فقط همین عدد را عوض کنید.</p></td>
 				</tr>
 			</table>
 
