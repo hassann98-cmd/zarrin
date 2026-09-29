@@ -103,7 +103,7 @@
 		<nav class="mx-auto flex h-16 max-w-[1296px] items-center gap-6 px-4 text-body">
 			<?php
 			/*
-			 * دسته‌بندی‌ها به‌صورت مگامنو (island) — لینک اصلیش سمت سرور رندر می‌شه (href="/shop/")
+			 * دسته‌بندی‌ها به‌صورت مگامنو (island) — لینک اصلیش سمت سرور رندر می‌شه (R93b: برگهٔ «همه دسته‌بندی‌ها»، وگرنه فروشگاه)
 			 * تا قبل از اجرای JS هم کار کنه، پنل کشویی فقط enhancement روی هاوره.
 			 *
 			 * ساختار ۶ آیتمِ سطح اول («صفحات راهنما» و «درباره جهیزیه لوکس» به‌صورت
@@ -118,7 +118,7 @@
 			$jluxe_chevron = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 transition-transform group-hover:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 			$jluxe_nav_items = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'header_nav.items', array() ) : array();
 			?>
-			<div data-jluxe-island="mega-menu"><a href="<?php echo esc_url( jluxe_shop_url() ); ?>">دسته‌بندی‌ها</a></div>
+			<div data-jluxe-island="mega-menu"><a href="<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>">دسته‌بندی‌ها</a></div>
 
 			<?php
 			/*

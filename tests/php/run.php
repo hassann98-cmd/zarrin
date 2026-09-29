@@ -1921,4 +1921,30 @@ ob_start(); jluxe_render_categories_page_settings(); $r92admin = (string) ob_get
 check( 3 === substr_count( $r92admin, 'name="categories_page[browse_mode]"' ) && false !== strpos( $r92admin, 'categories_page[children_columns_mobile]' ) && false !== strpos( $r92admin, 'categories_page[show_all_link]' ) && false !== strpos( $r92admin, 'class="jc-browser jc-browser--panel"' ) && false === strpos( $r92admin, 'data-jluxe-island' ), 'R92 admin: mode picker + children fields + static browser preview (no island in wp-admin)' );
 $GLOBALS['test_terms'] = array(); $GLOBALS['terms_by_id'] = array(); $GLOBALS['term_meta'] = array();
 
+
+// ---------------------------------------------------------------------
+// R93b — «دسته‌بندی‌ها»ی هدر ← برگهٔ همه دسته‌بندی‌ها
+// ---------------------------------------------------------------------
+$r93saved_pages = $GLOBALS['existing_pages'] ?? array();
+$GLOBALS['existing_pages'] = array();
+unset( $GLOBALS['options']['jluxe_theme_settings']['categories_page'] ); jluxe_get_theme_settings( true );
+check( 'categories_page' === jluxe_categories_page_defaults()['header_link'], 'R93b default header target = categories page' );
+check( jluxe_shop_url() === jluxe_header_categories_url(), 'R93b no published categories page → header link stays the shop (never a 404)' );
+$r93page = new WP_Post(); $r93page->ID = 4343; $r93page->post_type = 'page'; $r93page->post_status = 'publish';
+$GLOBALS['existing_pages']['product-categories'] = $r93page;
+check( false !== strpos( jluxe_header_categories_url(), '/4343/' ), 'R93b published page → header «دسته‌بندی‌ها» opens the categories page' );
+$GLOBALS['options']['jluxe_theme_settings']['categories_page'] = array( 'header_link' => 'shop' ); jluxe_get_theme_settings( true );
+check( jluxe_shop_url() === jluxe_header_categories_url(), 'R93b admin can keep the old shop target' );
+$r93clean = jluxe_sanitize_categories_page( array( 'header_link' => 'javascript:alert(1)' ), array() );
+check( 'categories_page' === $r93clean['header_link'] && 'shop' === jluxe_sanitize_categories_page( array( 'header_link' => 'shop' ), array() )['header_link'], 'R93b sanitizer: whitelist, unknown → default' );
+check( 'categories_page' === jluxe_sanitize_categories_page( array(), array() )['header_link'], 'R93b saving the form without the field keeps the new default (select, not checkbox)' );
+ob_start(); jluxe_render_categories_page_settings(); $r93admin = (string) ob_get_clean();
+check( 1 === substr_count( $r93admin, 'name="categories_page[header_link]"' ) && false !== strpos( $r93admin, 'value="shop"  selected=' ), 'R93b admin select rendered with the saved value' );
+unset( $GLOBALS['options']['jluxe_theme_settings']['categories_page'] ); jluxe_get_theme_settings( true );
+$r93hdr = (string) file_get_contents( ABSPATH . 'header.php' );
+check( false !== strpos( $r93hdr, "<div data-jluxe-island=\"mega-menu\"><a href=\"<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>\">دسته‌بندی‌ها</a></div>" ), 'R93b server-rendered header link (works before/without JS) uses the same target' );
+$r93ts = (string) file_get_contents( ABSPATH . 'inc/theme-settings.php' );
+check( 1 === preg_match( "#'megaMenu'\s*=>\s*array\(.*?'url'\s*=>\s*function_exists\( 'jluxe_header_categories_url' \)#s", $r93ts ), 'R93b mega-menu island receives the same URL' );
+$GLOBALS['existing_pages'] = $r93saved_pages;
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

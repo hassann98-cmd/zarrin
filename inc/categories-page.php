@@ -47,6 +47,8 @@ function jluxe_categories_page_defaults(): array {
 		'children_columns_mobile'  => 2,
 		'child_image_size'         => 64,
 		'show_all_link'            => true,
+		// R93b — مقصدِ «دسته‌بندی‌ها»ی هدر: categories_page (این برگه، اگر منتشر شده) | shop
+		'header_link'              => 'categories_page',
 		'items'           => array(),
 	);
 }
@@ -112,6 +114,7 @@ function jluxe_sanitize_categories_page( array $posted, array $defaults ): array
 		'children_columns_mobile'  => $int( $posted['children_columns_mobile'] ?? null, 1, 4, 2 ),
 		'child_image_size'         => $int( $posted['child_image_size'] ?? null, 32, 128, 64 ),
 		'show_all_link'            => ! empty( $posted['show_all_link'] ),
+		'header_link'              => $choice( $posted['header_link'] ?? '', array( 'categories_page', 'shop' ), 'categories_page' ),
 		'items'           => array(),
 	);
 
@@ -170,6 +173,22 @@ function jluxe_categories_page_id(): int {
 function jluxe_categories_page_url(): string {
 	$id = jluxe_categories_page_id();
 	return $id ? (string) get_permalink( $id ) : '';
+}
+
+/**
+ * R93b — مقصدِ آیتمِ «دسته‌بندی‌ها» در هدرِ دسکتاپ (header.php + مگامنوی React).
+ * پیش‌فرض: برگهٔ «همه دسته‌بندی‌ها»؛ اگر آن برگه منتشر نشده یا مدیر «فروشگاه»
+ * را انتخاب کرده ⇒ فروشگاه (مثلِ قبل، هرگز ۴۰۴).
+ */
+function jluxe_header_categories_url(): string {
+	$cfg = jluxe_categories_page_settings();
+	if ( 'shop' !== ( $cfg['header_link'] ?? 'categories_page' ) ) {
+		$url = jluxe_categories_page_url();
+		if ( '' !== $url ) {
+			return $url;
+		}
+	}
+	return function_exists( 'jluxe_shop_url' ) ? jluxe_shop_url() : home_url( '/' );
 }
 
 /**
@@ -922,6 +941,16 @@ function jluxe_render_categories_page_settings(): void {
 					<tr>
 						<th scope="row"><label for="jluxe-cats-title">تیترِ بالای لیست</label></th>
 						<td><input type="text" id="jluxe-cats-title" name="categories_page[title]" value="<?php echo esc_attr( $cfg['title'] ); ?>" class="regular-text" /> <span class="description">خالی = عنوانِ برگه</span></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="jluxe-cats-header-link">«دسته‌بندی‌ها» در هدر</label></th>
+						<td>
+							<select id="jluxe-cats-header-link" name="categories_page[header_link]">
+								<option value="categories_page" <?php selected( $cfg['header_link'], 'categories_page' ); ?>>به همین برگهٔ دسته‌بندی‌ها برود</option>
+								<option value="shop" <?php selected( $cfg['header_link'], 'shop' ); ?>>به فروشگاه برود (مثلِ قبل)</option>
+							</select>
+							<p class="description">کلیک روی «دسته‌بندی‌ها»ی منوی بالای سایت. نگه‌داشتنِ ماوس روی آن مثلِ قبل مگامنو را باز می‌کند. تا برگه منتشر نشده، به فروشگاه می‌رود.</p>
+						</td>
 					</tr>
 				</table>
 

@@ -1409,6 +1409,8 @@ function jluxe_localize_public_settings(): void {
 			// قبلاً دیتای هاردکدِ سایت دیگه‌ای رو نشون می‌داد (باگ واقعی).
 			'megaMenu'         => array(
 				'categories' => function_exists( 'jluxe_get_mega_menu_categories' ) ? jluxe_get_mega_menu_categories() : array(),
+				// R93b — مقصدِ کلیک روی «دسته‌بندی‌ها» (همان href سمتِ سرورِ header.php).
+				'url'        => function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url(),
 			),
 			// دراور سبدِ کشویی (src/islands/MiniCart.tsx) و مودال انتخاب سریعِ
 			// تنوع (inc/cart-ux.php) — یک nonce مشترک، چون هر دو تغییرِ سبدند.

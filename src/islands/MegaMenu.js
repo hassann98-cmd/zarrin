@@ -10,10 +10,13 @@ function y() {
   var l, n;
   const t = ((l = m().megaMenu) == null ? void 0 : l.categories) ?? [],
     [o, i] = c.useState(((n = t[0]) == null ? void 0 : n.id) ?? ""),
-    s = t.find((r) => r.id === o) ?? t[0];
+    s = t.find((r) => r.id === o) ?? t[0],
+    // R93b — کلیک روی «دسته‌بندی‌ها» ← برگهٔ همه دسته‌بندی‌ها (inc/categories-page.php:
+    // jluxe_header_categories_url)؛ دادهٔ قدیمیِ بدونِ url ⇒ فروشگاه، مثلِ قبل.
+    u = (m().megaMenu && m().megaMenu.url) || siteUrl("shop");
   return t.length === 0
     ? e.jsx("a", {
-        href: siteUrl("shop"),
+        href: u,
         className:
           "flex items-center gap-1 text-body text-text-secondary transition-colors hover:text-foreground",
         children: "دسته‌بندی‌ها",
@@ -23,7 +26,7 @@ function y() {
         onMouseLeave: () => i(t[0].id),
         children: [
           e.jsxs("a", {
-            href: siteUrl("shop"),
+            href: u,
             className:
               "flex items-center gap-1 text-body text-text-secondary transition-colors hover:text-foreground",
             children: [
