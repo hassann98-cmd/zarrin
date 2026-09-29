@@ -5,7 +5,7 @@ import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
 
 export function resolvePostAuthUrl() {
-  const fallback = siteUrl("dashboard");
+  const fallback = siteUrl("home");
   try {
     const query = new URLSearchParams(window.location.search);
     const requested = query.get("redirect_to") || query.get("redirect");
@@ -13,15 +13,23 @@ export function resolvePostAuthUrl() {
     const home = new URL(siteUrl("home"), window.location.href);
     const destination = new URL(requested, home);
     const sitePath = home.pathname.replace(/\/+$/, "") || "/";
+    const dashboard = new URL(siteUrl("dashboard"), home);
+    const dashboardPath = dashboard.pathname.replace(/\/+$/, "") || "/";
     const insideSite =
       sitePath === "/" ||
       destination.pathname === sitePath ||
       destination.pathname.startsWith(`${sitePath}/`);
+    const accountPath =
+      dashboard.origin === home.origin &&
+      dashboardPath !== sitePath &&
+      (destination.pathname === dashboardPath ||
+        destination.pathname.startsWith(`${dashboardPath}/`));
     if (
       destination.origin !== home.origin ||
       destination.username ||
       destination.password ||
-      !insideSite
+      !insideSite ||
+      accountPath
     ) {
       return fallback;
     }
@@ -130,6 +138,21 @@ export default function AuthPage() {
       });
     return () => controller.abort();
   }, [method, listeningForOtp, verifyOtp]);
+
+  useEffect(() => {
+    if (method === "phone" && sent && !busy) otpInput.current?.focus();
+  }, [method, sent, busy]);
+
+  function handleOtpInput(event) {
+    const input = event.currentTarget;
+    const nextCode = normalizeDigits(input.value)
+      .replace(/[^0-9]/g, "")
+      .slice(0, 6);
+    if (input.value !== nextCode) input.value = nextCode;
+    setCode(nextCode);
+    if (error) setError("");
+    if (nextCode.length === 6) void verifyOtp(nextCode);
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -289,21 +312,13 @@ export default function AuthPage() {
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
                     dir="ltr"
-                    maxLength={6}
                     required
                     autoFocus
                     value={code}
                     disabled={busy}
-                    onChange={(event) => {
-                      const nextCode = normalizeDigits(event.target.value)
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 6);
-                      setCode(nextCode);
-                      if (error) setError("");
-                      if (nextCode.length === 6) void verifyOtp(nextCode);
-                    }}
+                    onInput={handleOtpInput}
+                    onChange={handleOtpInput}
                   />
                   <button
                     className="jluxe-auth-text-button"
@@ -405,13 +420,6 @@ export default function AuthPage() {
         <a className="jluxe-auth-recovery" href={siteUrl("lost_password")}>
           رمز عبور را فراموش کرده‌اید؟
         </a>
-        {smsEnabled && (
-          <p className="jluxe-auth-hint">
-            با کد درست، وارد حساب مرتبط با شماره می‌شوید؛ اگر حسابی نباشد، حساب
-            مشتری با همان شمارهٔ تأییدشده ساخته می‌شود. نام و نشانی را هنگام
-            تسویه‌حساب می‌گیریم.
-          </p>
-        )}
       </section>
     </main>
   );

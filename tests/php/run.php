@@ -1183,7 +1183,7 @@ check(strpos($store_css,'.checkout .woocommerce-privacy-policy-text { display: n
 $GLOBALS['test_filters']['woocommerce_get_privacy_policy_text']=static function($text,$type){ return jluxe_hide_checkout_privacy_text($text,$type); };
 check(''===apply_filters('woocommerce_get_privacy_policy_text','متن','checkout') && 'متن'===apply_filters('woocommerce_get_privacy_policy_text','متن','registration'), 'R69 the privacy paragraph is emptied only for checkout (registration text untouched)');
 unset($GLOBALS['test_filters']['woocommerce_get_privacy_policy_text']);
-// R70: OTP-only login toggle, redesigned lost-password page, corrected first-time SMS hint.
+// R70/R98: OTP-only login toggle, redesigned recovery page, and concise SMS-first auth UI.
 $sms_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-sms.php');
 $render2=(string) file_get_contents(ABSPATH.'inc/theme-settings-render.php');
 check(strpos($settings_inc,"'otp_only' => false")!==false && strpos($sms_php,'name="sms[otp_only]"')!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php'),"'otp_only' => ! empty( \$posted['otp_only'] )")!==false, 'R70 the otp_only toggle ships (default off) with renderer and boolean sanitizer in the SMS settings');
@@ -1193,7 +1193,7 @@ $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($store_css,'.jluxe-recover-card')!==false && strpos($store_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
 check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
-check(strpos($auth_jsx,'شمارهٔ تأییدشده ساخته می‌شود')!==false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R97 the SMS hint explains OTP login/signup; browser SMS retrieval and six-digit input both trigger automatic verification');
+check(strpos($auth_jsx,'jluxe-auth-hint')===false && strpos($auth_jsx,'با کد درست')===false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'maxLength={6}')===false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R98 the redundant auth hint is removed and the unrestricted one-time-code field supports SMS autofill plus automatic six-digit verification');
 // R71: variation-picker swatches selectable again (R68 regression) + round modal add button.
 $wc_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false && strpos($wc_js,'!!optionValues[value]')===false, 'R71 swatch availability lookup uses the select.name-prefixed map key (R68 regression made every swatch in the default layout and the quick-pick modal permanently disabled)');

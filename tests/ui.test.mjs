@@ -55,7 +55,7 @@ test("R13 disabled registration hides the registration control", () => {
   assert.match(authMarkup({ registration: true }), /ثبت‌نام/);
 });
 
-test("R97 OTP UI supports SMS-first signup and automatic six-digit verification", () => {
+test("R98 login UI omits the redundant hint and retains OTP autofill support", () => {
   assert.doesNotMatch(authMarkup(), /id="jluxe-auth-phone"/);
   const html = authMarkup({ sms: true, registration: false });
   assert.match(html, /id="jluxe-auth-phone"/);
@@ -64,11 +64,14 @@ test("R97 OTP UI supports SMS-first signup and automatic six-digit verification"
     fs.readFileSync(new URL("../src/islands/AuthPage.jsx", import.meta.url), "utf8"),
     /autoComplete="one-time-code"/,
   );
-  assert.match(html, /کد درست/);
   assert.doesNotMatch(html, /ورود پیامکی فقط برای حساب‌های موجود/);
+  assert.doesNotMatch(
+    fs.readFileSync(new URL("../src/islands/AuthPage.jsx", import.meta.url), "utf8"),
+    /jluxe-auth-hint|با کد درست/,
+  );
 });
 
-test("R97 post-login redirect keeps the same-site checkout but rejects external or out-of-install URLs", () => {
+test("R98 post-login redirect defaults to home, preserves safe checkout, and rejects external or out-of-install URLs", () => {
   const settings = {
     urls: {
       home: "https://shop.test/store/",
@@ -87,22 +90,35 @@ test("R97 post-login redirect keeps the same-site checkout but rejects external 
     "https://shop.test/store/checkout/",
     "a local checkout return target preserves the purchase flow",
   );
+  globalThis.window.location.search = "";
+  assert.equal(
+    resolvePostAuthUrl(),
+    settings.urls.home,
+    "normal login lands on the store homepage",
+  );
   globalThis.window.location.search =
     "?redirect_to=https%3A%2F%2Fevil.test%2Fcollect";
   assert.equal(
     resolvePostAuthUrl(),
-    settings.urls.dashboard,
-    "an external redirect target falls back to the account page",
+    settings.urls.home,
+    "an external redirect target falls back to the store homepage",
   );
   globalThis.window.location.search = "?redirect=%2Fevil%2Fpath";
   assert.equal(
     resolvePostAuthUrl(),
-    settings.urls.dashboard,
+    settings.urls.home,
     "same-origin paths outside the WordPress installation are rejected",
+  );
+  globalThis.window.location.search =
+    "?redirect_to=%2Fstore%2Fcustomer-zone%2Forders%2F";
+  assert.equal(
+    resolvePostAuthUrl(),
+    settings.urls.home,
+    "account-page redirects also fall back to the homepage",
   );
 });
 
-test("R97 WebOTP and autofilled six-digit input verify automatically; a rejected code can be retried", async () => {
+test("R98 WebOTP/Google autofill six-digit input verifies automatically and allows a retry after rejection", async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', {
     url: "https://shop.test/store/customer-zone/?redirect_to=%2Fstore%2Fcheckout%2F",
     pretendToBeVisual: true,
@@ -241,7 +257,7 @@ test("R97 WebOTP and autofilled six-digit input verify automatically; a rejected
     assert.equal(redirectedTo, "", "wrong OTP never redirects or authenticates");
 
     await act(async () => {
-      changeValue(codeInput, "123456");
+      changeValue(codeInput, "۱۲۳ ۴۵۶");
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     assert.equal(requests[2].body.code, "123456");
