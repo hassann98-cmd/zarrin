@@ -524,6 +524,39 @@ function jluxe_ai_hours_label( array $settings ): string {
 	return jluxe_ai_fa_time_label( $h['start'] ) . ' تا ' . jluxe_ai_fa_time_label( $h['end'] );
 }
 
+/** نامِ خوانای روزهای پاسخگویی، با همان شماره‌گذاریِ استانداردِ PHP. */
+function jluxe_ai_days_label( array $settings ): string {
+	$h     = jluxe_ai_phone_hours( $settings );
+	$order = array( 6 => 'شنبه', 0 => 'یکشنبه', 1 => 'دوشنبه', 2 => 'سه‌شنبه', 3 => 'چهارشنبه', 4 => 'پنجشنبه', 5 => 'جمعه' );
+	$open  = array_values( array_filter( array_keys( $order ), static function ( $day ) use ( $h ) {
+		return ! in_array( $day, $h['closed_days'], true );
+	} ) );
+	if ( 7 === count( $open ) ) {
+		return 'هر روز';
+	}
+	if ( empty( $open ) ) {
+		return 'هیچ روزی تنظیم نشده';
+	}
+
+	$groups = array();
+	$group  = array();
+	foreach ( $order as $day => $label ) {
+		if ( in_array( $day, $open, true ) ) {
+			$group[] = $label;
+		} elseif ( ! empty( $group ) ) {
+			$groups[] = $group;
+			$group    = array();
+		}
+	}
+	if ( ! empty( $group ) ) {
+		$groups[] = $group;
+	}
+	$labels = array_map( static function ( $days ) {
+		return count( $days ) > 2 ? $days[0] . ' تا ' . $days[ count( $days ) - 1 ] : implode( ' و ', $days );
+	}, $groups );
+	return implode( '، ', $labels );
+}
+
 /** پاسخگوییِ تلفنی الان باز است؟ (منطقهٔ زمانیِ سایت؛ روزِ ۰=یکشنبه … ۵=جمعه). */
 function jluxe_ai_phone_is_open( array $settings, ?int $now = null ): bool {
 	$h = jluxe_ai_phone_hours( $settings );
@@ -880,10 +913,12 @@ function jluxe_ai_reply_products( string $reply ): array {
  * آیکون‌های دلخواه، ساعتِ پاسخگویی و متن‌های اعلانِ باز/بسته.
  */
 function jluxe_ai_public_contact( array $settings ): array {
-	$phone    = jluxe_ai_contact_phone( $settings );
-	$hours    = jluxe_ai_phone_hours( $settings );
-	$icons    = array_filter( array_map( 'strval', (array) ( $settings['contact_icons'] ?? array() ) ) );
-	$channels = array();
+	$phone       = jluxe_ai_contact_phone( $settings );
+	$hours       = jluxe_ai_phone_hours( $settings );
+	$hours_label = jluxe_ai_hours_label( $settings );
+	$days_label  = jluxe_ai_days_label( $settings );
+	$icons       = array_filter( array_map( 'strval', (array) ( $settings['contact_icons'] ?? array() ) ) );
+	$channels    = array();
 	foreach ( jluxe_ai_contact_channels( $settings ) as $key => $channel ) {
 		$channels[] = array(
 			'key'   => (string) $key,
@@ -901,9 +936,12 @@ function jluxe_ai_public_contact( array $settings ): array {
 			'start'      => $hours['start'],
 			'end'        => $hours['end'],
 			'closedDays' => $hours['closed_days'],
+			'openDays'   => array_values( array_diff( array( 0, 1, 2, 3, 4, 5, 6 ), $hours['closed_days'] ) ),
+			'daysLabel'  => $days_label,
 		),
+		'hoursLabel' => $hours_label,
 		'timezone'   => (string) ( $settings['phone_timezone'] ?? 'Asia/Tehran' ),
-		'openText'   => (string) ( $settings['phone_open_text'] ?? '' ),
-		'closedText' => str_replace( '{hours}', jluxe_ai_hours_label( $settings ), (string) ( $settings['phone_closed_text'] ?? '' ) ),
+		'openText'   => strtr( (string) ( $settings['phone_open_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
+		'closedText' => strtr( (string) ( $settings['phone_closed_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
 	);
 }

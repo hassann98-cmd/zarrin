@@ -854,10 +854,21 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	$hours_def    = $defaults['phone_hours'] ?? array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) );
 	$start        = trim( (string) ( $hours_posted['start'] ?? $hours_def['start'] ) );
 	$end          = trim( (string) ( $hours_posted['end'] ?? $hours_def['end'] ) );
-	$closed_days  = array();
-	foreach ( (array) ( $hours_posted['closed_days'] ?? ( isset( $posted['phone_hours'] ) ? array() : $hours_def['closed_days'] ) ) as $day ) {
-		if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
-			$closed_days[] = (int) $day;
+	$closed_days = array();
+	if ( array_key_exists( 'open_days_present', $hours_posted ) ) {
+		$open_days = array();
+		foreach ( (array) ( $hours_posted['open_days'] ?? array() ) as $day ) {
+			if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
+				$open_days[] = (int) $day;
+			}
+		}
+		$closed_days = array_values( array_diff( range( 0, 6 ), array_unique( $open_days ) ) );
+	} else {
+		// تنظیماتِ قدیمیِ بسته‌بندی/فرم همچنان از closed_days استفاده می‌کنند.
+		foreach ( (array) ( $hours_posted['closed_days'] ?? ( isset( $posted['phone_hours'] ) ? array() : $hours_def['closed_days'] ) ) as $day ) {
+			if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
+				$closed_days[] = (int) $day;
+			}
 		}
 	}
 	$icons        = array();
@@ -922,7 +933,7 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 			'closed_days' => array_values( array_unique( $closed_days ) ),
 		),
 		'phone_timezone'     => $phone_tz,
-		'phone_open_text'    => isset( $posted['phone_open_text'] ) ? sanitize_text_field( (string) $posted['phone_open_text'] ) : ( $defaults['phone_open_text'] ?? '' ),
+		'phone_open_text'    => isset( $posted['phone_open_text'] ) ? sanitize_textarea_field( (string) $posted['phone_open_text'] ) : ( $defaults['phone_open_text'] ?? '' ),
 		'phone_closed_text'  => isset( $posted['phone_closed_text'] ) ? sanitize_textarea_field( (string) $posted['phone_closed_text'] ) : ( $defaults['phone_closed_text'] ?? '' ),
 		'contact_icons'      => $icons,
 		'mobile_breakpoint'  => max( 360, min( 1280, $breakpoint ) ),

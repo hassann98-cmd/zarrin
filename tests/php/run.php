@@ -2027,6 +2027,20 @@ check( false === $r94_mobile_visible['hide_mobile_launcher'], 'R94 the unchecked
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
 check( 'tel:+989120902336' === $r94_contact['tel'] && 'Asia/Tehran' === $r94_contact['timezone'] && in_array( 5, $r94_contact['hours']['closedDays'], true ), 'R94 contact data exposes a normalized phone link and Tehran-Friday schedule without API credentials' );
+check( 'شنبه تا پنجشنبه' === jluxe_ai_days_label( $r94_defaults ), 'R95 the default phone schedule is rendered as readable response days' );
+$r95_availability = jluxe_sanitize_ai_assistant(
+	array(
+		'phone_hours' => array( 'present' => '1', 'enabled' => '1', 'start' => '11:30', 'end' => '19:00', 'open_days_present' => '1', 'open_days' => array( '6', '0', '2', '8', 'invalid' ) ),
+		'phone_open_text' => 'پاسخگو {days} از {hours}',
+		'phone_closed_text' => 'بعداً {days}، {hours}',
+	),
+	jluxe_theme_settings_defaults()['ai_assistant']
+);
+$r95_public_hours = jluxe_ai_public_contact( $r95_availability );
+check( array( 1, 3, 4, 5 ) === $r95_availability['phone_hours']['closed_days'] && '11:30' === $r95_availability['phone_hours']['start'] && '19:00' === $r95_availability['phone_hours']['end'], 'R95 the settings form persists selected response days and validates custom hours' );
+check( 'شنبه و یکشنبه، سه‌شنبه' === $r95_public_hours['hours']['daysLabel'] && '۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['hoursLabel'] && 'پاسخگو شنبه و یکشنبه، سه‌شنبه از ۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['openText'] && 'بعداً شنبه و یکشنبه، سه‌شنبه، ۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['closedText'], 'R95 response notices replace the {days} and {hours} settings tokens and expose a readable schedule' );
+$r95_admin_source = file_get_contents( __DIR__ . '/../../inc/theme-settings-ai.php' );
+check( false !== strpos( $r95_admin_source, 'phone_hours][open_days][]' ) && false !== strpos( $r95_admin_source, 'پیام هنگامِ پاسخگویی' ) && false !== strpos( $r95_admin_source, 'پیام خارج از ساعت پاسخگویی' ), 'R95 admin exposes editable response days, hours, and open/closed message text' );
 $r94_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), 'phone_timezone' => 'Asia/Tehran' );
 $r94_friday = ( new DateTimeImmutable( '2026-09-25 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
 $r94_saturday = ( new DateTimeImmutable( '2026-09-26 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();

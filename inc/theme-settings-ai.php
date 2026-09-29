@@ -341,31 +341,37 @@ function jluxe_render_ai_assistant_page(): void {
 				</tr>
 			</table>
 
-			<h2>دکمه‌های تماس داخل پاسخ</h2>
-			<p class="description">وقتی دستیار راه‌های تماس را می‌دهد، ویجت آن‌ها را به یک ردیف دکمهٔ آیکون‌دار (تلفن + شبکه‌های فعالِ «شبکه‌های اجتماعی» پوسته) تبدیل می‌کند و بالای ردیف، بسته به ساعت، اعلانِ «پاسخگوی تلفنی هستیم / خارج از ساعت پاسخگویی» را نشان می‌دهد.</p>
+			<h2>ساعت و پیامِ پاسخگویی</h2>
+			<p class="description">برنامهٔ زیر برای اعلانِ دسترسیِ تلفنی/پشتیبانیِ انسانی در چت استفاده می‌شود؛ خارج از این زمان‌ها هم گفت‌وگو با دستیار هوشمند محدود نمی‌شود. وقتی دستیار راه‌های تماس را می‌دهد، شماره و شبکه‌های فعال را به شکل دکمه‌های آیکون‌دار نشان می‌دهد.</p>
 			<?php
-			$jluxe_ai_hours = array_merge( array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), (array) ( $ai['phone_hours'] ?? array() ) );
-			$jluxe_ai_days  = array( 6 => 'شنبه', 0 => 'یکشنبه', 1 => 'دوشنبه', 2 => 'سه‌شنبه', 3 => 'چهارشنبه', 4 => 'پنجشنبه', 5 => 'جمعه' );
+			$jluxe_ai_hours       = array_merge( array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), (array) ( $ai['phone_hours'] ?? array() ) );
+			$jluxe_ai_closed_days = array_map( 'intval', (array) $jluxe_ai_hours['closed_days'] );
+			$jluxe_ai_days        = array( 6 => 'شنبه', 0 => 'یکشنبه', 1 => 'دوشنبه', 2 => 'سه‌شنبه', 3 => 'چهارشنبه', 4 => 'پنجشنبه', 5 => 'جمعه' );
 			?>
 			<table class="form-table" role="presentation">
 				<tr><th scope="row"><label for="jluxe-ai-phone">شمارهٔ تماس</label></th><td><input type="text" id="jluxe-ai-phone" dir="ltr" class="regular-text" name="ai_assistant[contact_phone]" value="<?php echo esc_attr( $ai['contact_phone'] ?? '' ); ?>" placeholder="09120000000" /> <span class="description">خالی = شمارهٔ اصلیِ بخشِ «اطلاعات تماس».</span></td></tr>
 				<tr>
-					<th scope="row">ساعت پاسخگویی تلفنی</th>
+					<th scope="row">برنامهٔ پاسخگویی</th>
 					<td>
 						<input type="hidden" name="ai_assistant[phone_hours][present]" value="1" />
-						<label><input type="checkbox" name="ai_assistant[phone_hours][enabled]" value="1" <?php checked( ! empty( $jluxe_ai_hours['enabled'] ) ); ?> /> نمایشِ اعلانِ باز/بسته بودن</label><br />
-						<label>از <input type="time" name="ai_assistant[phone_hours][start]" value="<?php echo esc_attr( $jluxe_ai_hours['start'] ); ?>" /></label>
-						<label>تا <input type="time" name="ai_assistant[phone_hours][end]" value="<?php echo esc_attr( $jluxe_ai_hours['end'] ); ?>" /></label>
-						<p style="margin-top:6px">روزهای تعطیل:
-						<?php foreach ( $jluxe_ai_days as $jluxe_ai_day => $jluxe_ai_label ) : ?>
-							<label style="margin-inline-end:10px"><input type="checkbox" name="ai_assistant[phone_hours][closed_days][]" value="<?php echo esc_attr( $jluxe_ai_day ); ?>" <?php checked( in_array( $jluxe_ai_day, array_map( 'intval', (array) $jluxe_ai_hours['closed_days'] ), true ) ); ?> /> <?php echo esc_html( $jluxe_ai_label ); ?></label>
-						<?php endforeach; ?></p>
-						<p class="description">مطابقِ کدِ قبلی روی منطقهٔ زمانیِ ایران است. در صورت نیاز نامِ معتبرِ IANA وارد کنید؛ مثلاً <code dir="ltr">Asia/Tehran</code>.</p>
+						<input type="hidden" name="ai_assistant[phone_hours][open_days_present]" value="1" />
+						<label><input type="checkbox" name="ai_assistant[phone_hours][enabled]" value="1" <?php checked( ! empty( $jluxe_ai_hours['enabled'] ) ); ?> /> نمایشِ کارتِ وضعیت و ساعت پاسخگویی در پیامِ تماس</label>
+						<p style="margin:10px 0 6px"><strong>ساعتِ پاسخگویی:</strong>
+							<label style="margin-inline-start:8px">از <input type="time" aria-label="شروع ساعت پاسخگویی" name="ai_assistant[phone_hours][start]" value="<?php echo esc_attr( $jluxe_ai_hours['start'] ); ?>" /></label>
+							<label style="margin-inline-start:8px">تا <input type="time" aria-label="پایان ساعت پاسخگویی" name="ai_assistant[phone_hours][end]" value="<?php echo esc_attr( $jluxe_ai_hours['end'] ); ?>" /></label>
+						</p>
+						<p style="margin:12px 0 6px"><strong>روزهای پاسخگویی را انتخاب کنید:</strong></p>
+						<div role="group" aria-label="روزهای پاسخگویی" style="display:flex;flex-wrap:wrap;gap:7px">
+							<?php foreach ( $jluxe_ai_days as $jluxe_ai_day => $jluxe_ai_label ) : ?>
+								<label style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid #dcdcde;border-radius:8px;background:#fff"><input type="checkbox" name="ai_assistant[phone_hours][open_days][]" value="<?php echo esc_attr( $jluxe_ai_day ); ?>" <?php checked( ! in_array( $jluxe_ai_day, $jluxe_ai_closed_days, true ) ); ?> /> <?php echo esc_html( $jluxe_ai_label ); ?></label>
+							<?php endforeach; ?>
+						</div>
+						<p class="description">منطقهٔ زمانیِ پیش‌فرض ایران است؛ در صورت نیاز نامِ معتبرِ IANA وارد کنید، مثلاً <code dir="ltr">Asia/Tehran</code>.</p>
 						<label>منطقهٔ زمانی: <input type="text" dir="ltr" class="regular-text" name="ai_assistant[phone_timezone]" value="<?php echo esc_attr( $ai['phone_timezone'] ?? 'Asia/Tehran' ); ?>" /></label>
 					</td>
 				</tr>
-				<tr><th scope="row"><label for="jluxe-ai-open">متنِ «پاسخگو هستیم»</label></th><td><input type="text" id="jluxe-ai-open" class="large-text" name="ai_assistant[phone_open_text]" value="<?php echo esc_attr( $ai['phone_open_text'] ?? '' ); ?>" /></td></tr>
-				<tr><th scope="row"><label for="jluxe-ai-closed">متنِ «خارج از ساعت»</label></th><td><textarea id="jluxe-ai-closed" class="large-text" rows="3" name="ai_assistant[phone_closed_text]"><?php echo esc_textarea( $ai['phone_closed_text'] ?? '' ); ?></textarea><p class="description"><code>{hours}</code> خودکار با بازهٔ بالا (مثلاً «۱۰ صبح تا ۸ شب») جایگزین می‌شود.</p></td></tr>
+				<tr><th scope="row"><label for="jluxe-ai-open">پیام هنگامِ پاسخگویی</label></th><td><textarea id="jluxe-ai-open" class="large-text" rows="2" name="ai_assistant[phone_open_text]"><?php echo esc_textarea( $ai['phone_open_text'] ?? '' ); ?></textarea><p class="description">متنِ کارتِ سبزِ وضعیتِ تماس.</p></td></tr>
+				<tr><th scope="row"><label for="jluxe-ai-closed">پیام خارج از ساعت پاسخگویی</label></th><td><textarea id="jluxe-ai-closed" class="large-text" rows="3" name="ai_assistant[phone_closed_text]"><?php echo esc_textarea( $ai['phone_closed_text'] ?? '' ); ?></textarea><p class="description"><code>{hours}</code> با بازهٔ انتخابی (مثل «۱۰ صبح تا ۸ شب») و <code>{days}</code> با روزهای انتخابی جایگزین می‌شود؛ می‌توانید هر دو را در پیامِ بالا و پایین به‌کار ببرید.</p></td></tr>
 				<tr>
 					<th scope="row">آیکونِ دلخواه (اختیاری)</th>
 					<td>

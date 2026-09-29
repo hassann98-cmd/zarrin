@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
-test("R94 mobile hash launcher and grounded contact/product rendering work inside the assistant", async (t) => {
+test("R95 mobile chat polish and configurable contact schedule render safely", async (t) => {
   const dom = new JSDOM(
     '<!doctype html><html><head><title>گردنبند</title></head><body class="single-product postid-44"><a id="open-ai" href="/contact/#open-ai-assistant">گفتگو با ما</a><div id="app"></div></body></html>',
     { url: "https://shop.test/product/ring/", pretendToBeVisual: true },
@@ -130,7 +130,10 @@ test("R94 mobile hash launcher and grounded contact/product rendering work insid
   });
   assert.equal(click.defaultPrevented, true, "#open-ai-assistant clicks are intercepted without navigation");
   assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "the assistant opens even when its mobile launcher is hidden");
+  assert.ok(mount.querySelector(".jluxe-ai-root.is-mobile.is-open .jluxe-ai-backdrop"), "mobile opens as a focused, dismissible app-like sheet");
+  assert.match(mount.querySelector(".jluxe-ai-window").style.width, /100vw/);
   assert.match(mount.querySelector(".jluxe-ai-window").style.height, /100dvh/);
+  assert.ok(mount.querySelector(".jluxe-ai-welcome"), "the opening message is presented as a styled welcome card");
 
   await act(async () => {
     [...mount.querySelectorAll("button")].find((button) => button.textContent === "معرفی محصول").click();
@@ -139,6 +142,8 @@ test("R94 mobile hash launcher and grounded contact/product rendering work insid
   assert.equal(calls.some((call) => call.url.includes("/assistant")), true, "quick reply sends a real assistant request");
   assert.equal(mount.querySelectorAll(".jluxe-ai-contact-row .jluxe-ai-icon-link").length, 2, "phone and WhatsApp links become icon buttons");
   assert.ok(mount.querySelector(".jluxe-ai-hours-notice"), "phone hours notice appears with contact links");
+  assert.ok(mount.querySelector(".jluxe-ai-hours-meta"), "the status card displays configured response days and hours");
+  assert.match(mount.querySelector(".jluxe-ai-hours-meta").textContent, /شنبه تا پنجشنبه/);
   assert.ok(mount.querySelector(".jluxe-ai-buy-btn"), "a real product link is styled as a buy CTA");
   assert.ok(mount.querySelector(".jluxe-ai-link-btn"), "same-site helpful links remain styled and usable");
   assert.equal(mount.querySelector('a[href^="https://evil.example"]'), null, "an unconfigured external link is not made clickable");

@@ -114,6 +114,45 @@ function getPhoneHoursState(contact) {
   }
 }
 
+const DAY_ORDER = [6, 0, 1, 2, 3, 4, 5];
+const DAY_LABELS = {
+  0: "یکشنبه",
+  1: "دوشنبه",
+  2: "سه‌شنبه",
+  3: "چهارشنبه",
+  4: "پنجشنبه",
+  5: "جمعه",
+  6: "شنبه",
+};
+
+function getDaysLabel(hours = {}) {
+  if (hours.daysLabel) return String(hours.daysLabel);
+  const closed = new Set(Array.isArray(hours.closedDays) ? hours.closedDays.map(Number) : [5]);
+  const open = DAY_ORDER.filter((day) => !closed.has(day));
+  if (open.length === DAY_ORDER.length) return "هر روز";
+  if (!open.length) return "روزِ پاسخگویی ثبت نشده";
+
+  const groups = [];
+  let current = [];
+  DAY_ORDER.forEach((day) => {
+    if (!closed.has(day)) current.push(DAY_LABELS[day]);
+    else if (current.length) {
+      groups.push(current);
+      current = [];
+    }
+  });
+  if (current.length) groups.push(current);
+  return groups
+    .map((group) => group.length > 2 ? `${group[0]} تا ${group[group.length - 1]}` : group.join(" و "))
+    .join("، ");
+}
+
+function getHoursLabel(contact) {
+  const hours = contact?.hours || {};
+  if (contact?.hoursLabel) return String(contact.hoursLabel);
+  return `${hours.start || "10:00"} تا ${hours.end || "20:00"}`;
+}
+
 function iconMark(key, contact, nodeKey) {
   const icons = contact?.icons || {};
   const src = icons[key] || "";
@@ -254,7 +293,30 @@ function renderReply(text, assistant, onImage) {
       if (hasPhone && contact.hours?.enabled) {
         const isOpen = getPhoneHoursState(contact);
         const notice = isOpen ? contact.openText : contact.closedText;
-        rows.push(h("div", { key: `hours-${i}`, className: `jluxe-ai-hours-notice ${isOpen ? "is-open" : "is-closed"}`, role: "status", children: notice }));
+        const hoursLabel = getHoursLabel(contact);
+        const daysLabel = getDaysLabel(contact.hours);
+        rows.push(
+          h("div", {
+            key: `hours-${i}`,
+            className: `jluxe-ai-hours-notice ${isOpen ? "is-open" : "is-closed"}`,
+            role: "status",
+            children: [
+              h("span", { key: "icon", className: "jluxe-ai-hours-icon", "aria-hidden": true, children: isOpen ? "✓" : "◷" }),
+              h("div", { key: "content", className: "jluxe-ai-hours-content", children: [
+                h("div", { key: "head", className: "jluxe-ai-hours-head", children: [
+                  h("strong", { key: "title", className: "jluxe-ai-hours-title", children: "ساعت پاسخگویی" }),
+                  h("span", { key: "state", className: "jluxe-ai-hours-state", children: isOpen ? "اکنون پاسخگو" : "خارج از ساعت" }),
+                ] }),
+                notice ? h("p", { key: "notice", className: "jluxe-ai-hours-copy", children: notice }) : null,
+                h("div", { key: "schedule", className: "jluxe-ai-hours-meta", children: [
+                  h("span", { key: "days", children: daysLabel }),
+                  h("span", { key: "separator", className: "jluxe-ai-hours-separator", "aria-hidden": true, children: "•" }),
+                  h("span", { key: "time", children: hoursLabel }),
+                ] }),
+              ] }),
+            ],
+          }),
+        );
       }
       rows.push(
         h(
@@ -378,9 +440,16 @@ function Assistant() {
   if (!open && !launcherVisible) return null;
 
   const side = assistant.position === "start" ? "insetInlineStart" : "insetInlineEnd";
+  const safeAreaSide = assistant.position === "start" ? "right" : "left";
   const bottom = isMobile ? assistant.offsetBottomMobile : assistant.offsetBottomDesktop;
   const offset = isMobile ? assistant.offsetSideMobile : assistant.offsetSideDesktop;
-  const rootStyle = { position: "fixed", zIndex: 90, bottom: `${bottom}px`, [side]: `${offset}px` };
+  const rootStyle = {
+    position: "fixed",
+    zIndex: 90,
+    "--aia-primary": assistant.primaryColor || "hsl(var(--primary))",
+    bottom: isMobile && open ? "max(8px, env(safe-area-inset-bottom))" : `${bottom}px`,
+    [side]: isMobile && open ? `max(8px, env(safe-area-inset-${safeAreaSide}))` : `${offset}px`,
+  };
   const handoffEnabled = !!(assistant.handoffWhatsapp || assistant.handoffTelegram || assistant.handoffFormUrl || assistant.enableTicketForm);
 
   async function submitTicket() {
@@ -436,13 +505,14 @@ function Assistant() {
         "section",
         {
           ref: dialogRef,
-          className: "jluxe-ai-window flex flex-col overflow-hidden border border-border bg-surface shadow-xl",
+          className: `jluxe-ai-window flex flex-col overflow-hidden border border-border bg-surface shadow-xl ${isMobile ? "is-mobile" : "is-desktop"}`,
           style: {
-            width: `min(${assistant.windowWidth || 380}px, calc(100vw - 24px))`,
+            width: isMobile ? "min(520px, calc(100vw - 16px))" : `min(${assistant.windowWidth || 380}px, calc(100vw - 24px))`,
             height: isMobile
-              ? `min(600px, calc(100dvh - ${Number(bottom) + 24}px))`
-              : "min(600px, calc(100dvh - 36px))",
-            borderRadius: `${assistant.borderRadius || 16}px`,
+              ? "min(820px, calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))))"
+              : "min(680px, calc(100dvh - 36px))",
+            borderRadius: isMobile ? "24px" : `${assistant.borderRadius || 16}px`,
+            transformOrigin: isMobile ? "bottom center" : assistant.position === "start" ? "bottom right" : "bottom left",
             color: assistant.textColor || undefined,
             "--aia-primary": assistant.primaryColor || "hsl(var(--primary))",
           },
@@ -453,39 +523,44 @@ function Assistant() {
           children: [
             h("header", {
               key: "header",
-              className: "flex items-center gap-2 p-3 text-white",
-              style: { background: assistant.primaryColor || "hsl(var(--primary))" },
+              className: "jluxe-ai-header flex items-center gap-3 p-3 text-white",
               children: [
-                assistant.avatarUrl
-                  ? h("img", { key: "avatar", src: assistant.avatarUrl, alt: "", className: "size-9 rounded-full object-cover", "data-jluxe-no-skeleton": true })
-                  : h(MessageIcon, { key: "avatar", className: "size-6", "aria-hidden": true }),
-                h("span", { key: "title", className: "flex-1 truncate text-small font-bold", children: assistant.name }),
+                h("span", { key: "avatar-wrap", className: "jluxe-ai-avatar", children: assistant.avatarUrl
+                  ? h("img", { key: "avatar", src: assistant.avatarUrl, alt: "", className: "size-full rounded-full object-cover", "data-jluxe-no-skeleton": true })
+                  : h(MessageIcon, { key: "avatar", className: "size-6", "aria-hidden": true }) }),
+                h("div", { key: "identity", className: "jluxe-ai-identity", children: [
+                  h("strong", { key: "title", className: "jluxe-ai-title", children: assistant.name }),
+                  h("span", { key: "subtitle", className: "jluxe-ai-subtitle", children: [
+                    h("span", { key: "dot", className: "jluxe-ai-live-dot", "aria-hidden": true }),
+                    "دستیار هوشمند فروشگاه",
+                  ] }),
+                ] }),
                 handoffEnabled
                   ? h("div", { key: "handoff", className: "relative", children: [
-                      h("button", { key: "handoff-button", type: "button", onClick: () => setContactOpen((current) => !current), "aria-label": "ارتباط با پشتیبانی انسانی", className: "flex size-8 items-center justify-center rounded-full hover:bg-white/20", children: h(HeadsetIcon, { className: "size-4", "aria-hidden": true }) }),
+                      h("button", { key: "handoff-button", type: "button", onClick: () => setContactOpen((current) => !current), "aria-label": "ارتباط با پشتیبانی انسانی", className: "jluxe-ai-header-action flex size-9 items-center justify-center rounded-full", children: h(HeadsetIcon, { className: "size-4", "aria-hidden": true }) }),
                       contactOpen
-                        ? h("div", { key: "handoff-menu", className: "jluxe-ai-handoff-menu absolute end-0 top-10 z-10 w-52 rounded-xl border border-border bg-surface p-2 text-foreground shadow-lg", children: [
-                            assistant.handoffWhatsapp ? h("a", { key: "wa", href: assistant.handoffWhatsapp, target: "_blank", rel: "noopener noreferrer", className: "block rounded-lg px-2 py-2 text-small hover:bg-muted", children: "واتساپ" }) : null,
-                            assistant.handoffTelegram ? h("a", { key: "tg", href: assistant.handoffTelegram, target: "_blank", rel: "noopener noreferrer", className: "block rounded-lg px-2 py-2 text-small hover:bg-muted", children: "تلگرام" }) : null,
-                            assistant.handoffFormUrl ? h("a", { key: "form", href: assistant.handoffFormUrl, target: "_blank", rel: "noopener noreferrer", className: "block rounded-lg px-2 py-2 text-small hover:bg-muted", children: "فرم تماس" }) : null,
-                            assistant.enableTicketForm ? h("button", { key: "ticket", type: "button", onClick: () => { setTicketMode(true); setContactOpen(false); setTicketSent(false); setTicketError(null); }, className: "block w-full rounded-lg px-2 py-2 text-start text-small hover:bg-muted", children: "ثبت پیام برای پشتیبان" }) : null,
+                        ? h("div", { key: "handoff-menu", className: "jluxe-ai-handoff-menu absolute end-0 top-11 z-10 w-52 rounded-xl border border-border bg-surface p-2 text-foreground shadow-lg", children: [
+                            assistant.handoffWhatsapp ? h("a", { key: "wa", href: assistant.handoffWhatsapp, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "واتساپ" }) : null,
+                            assistant.handoffTelegram ? h("a", { key: "tg", href: assistant.handoffTelegram, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "تلگرام" }) : null,
+                            assistant.handoffFormUrl ? h("a", { key: "form", href: assistant.handoffFormUrl, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "فرم تماس" }) : null,
+                            assistant.enableTicketForm ? h("button", { key: "ticket", type: "button", onClick: () => { setTicketMode(true); setContactOpen(false); setTicketSent(false); setTicketError(null); }, className: "jluxe-ai-handoff-item block w-full rounded-lg px-2 py-2 text-start text-small", children: "ثبت پیام برای پشتیبان" }) : null,
                           ] })
                         : null,
                     ] })
                   : null,
-                h("button", { key: "close", type: "button", onClick: () => { setOpen(false); setContactOpen(false); }, "aria-label": "بستن گفتگو", className: "flex size-8 items-center justify-center rounded-full hover:bg-white/20", children: h(CloseIcon, { className: "size-4", "aria-hidden": true }) }),
+                h("button", { key: "close", type: "button", onClick: () => { setOpen(false); setContactOpen(false); }, "aria-label": "بستن گفتگو", className: "jluxe-ai-header-action flex size-9 items-center justify-center rounded-full", children: h(CloseIcon, { className: "size-4", "aria-hidden": true }) }),
               ],
             }),
             ticketMode
               ? h("div", { key: "ticket", className: "flex flex-1 flex-col gap-3 overflow-y-auto p-3", children: [
-                  h("button", { key: "back", type: "button", onClick: () => setTicketMode(false), className: "w-fit text-caption text-text-muted hover:text-foreground", children: "← بازگشت به گفتگو" }),
+                  h("button", { key: "back", type: "button", onClick: () => setTicketMode(false), className: "jluxe-ai-back-button w-fit text-caption text-text-muted", children: "← بازگشت به گفتگو" }),
                   ticketSent
                     ? h("div", { key: "ticket-sent", className: "flex flex-1 flex-col items-center justify-center gap-2 text-center", children: [
                         h("span", { key: "ticket-success-icon", className: "grid size-12 place-items-center rounded-full bg-success/10 text-success", children: h(CheckIcon, { className: "size-6", "aria-hidden": true }) }),
                         h("p", { key: "ticket-success-title", className: "text-small font-bold text-foreground", children: "پیامت ثبت شد." }),
                         h("p", { key: "ticket-success-copy", className: "text-caption text-text-muted", children: "همکارانِ ما به‌زودی باهات تماس می‌گیرن." }),
                       ] })
-                    : h("form", { key: "ticket-form", className: "flex flex-1 flex-col gap-2.5", onSubmit: (event) => { event.preventDefault(); submitTicket(); }, children: [
+                    : h("form", { key: "ticket-form", className: "jluxe-ai-ticket-form flex flex-1 flex-col gap-2.5", onSubmit: (event) => { event.preventDefault(); submitTicket(); }, children: [
                         h("p", { key: "ticket-copy", className: "text-caption text-text-secondary", children: "پیامت رو برایِ پشتیبانیِ انسانی ثبت کن — به‌زودی باهات تماس می‌گیریم." }),
                         h("input", { key: "ticket-name", type: "text", value: name, onChange: (event) => setName(event.target.value), placeholder: "نام شما", required: true, disabled: ticketLoading, className: "rounded-lg border border-border bg-surface px-3 py-2 text-small outline-none focus:border-primary disabled:opacity-60" }),
                         h("input", { key: "ticket-contact", type: "text", value: email, onChange: (event) => setEmail(event.target.value), placeholder: "ایمیل یا شماره تماس", required: true, disabled: ticketLoading, className: "rounded-lg border border-border bg-surface px-3 py-2 text-small outline-none focus:border-primary disabled:opacity-60" }),
@@ -495,23 +570,33 @@ function Assistant() {
                       ] }),
                 ] })
               : h(React.Fragment, { key: "chat", children: [
-                  h("div", { key: "messages", ref: scrollRef, className: "jluxe-ai-messages flex-1 space-y-3 overflow-y-auto p-3", role: "log", "aria-live": "polite", "aria-relevant": "additions text", children: [
-                    messages.length === 0 ? h("div", { key: "welcome", className: "rounded-xl p-3 text-small leading-6 text-text-secondary", style: { background: assistant.bgBotColor || undefined }, children: assistant.welcomeMessage }) : null,
+                  h("div", { key: "messages", ref: scrollRef, className: "jluxe-ai-messages flex-1 overflow-y-auto p-3", role: "log", "aria-live": "polite", "aria-relevant": "additions text", children: [
+                    messages.length === 0 ? h("div", { key: "welcome", className: "jluxe-ai-welcome", style: { background: assistant.bgBotColor || undefined }, children: [
+                      h("span", { key: "welcome-icon", className: "jluxe-ai-welcome-icon", "aria-hidden": true, children: h(MessageIcon, { className: "size-5" }) }),
+                      h("div", { key: "welcome-copy", className: "jluxe-ai-welcome-copy", children: [
+                        h("span", { key: "welcome-label", className: "jluxe-ai-welcome-label", children: "خوش اومدی!" }),
+                        h("p", { key: "welcome-message", className: "jluxe-ai-welcome-message", children: assistant.welcomeMessage }),
+                      ] }),
+                    ] }) : null,
                     ...messages.map((message, index) => h("div", {
                       key: `${message.role}-${index}`,
-                      className: ["jluxe-ai-bubble max-w-[88%] rounded-xl p-2.5 text-small leading-6", message.role === "user" ? "mr-auto text-primary-foreground" : "ml-auto text-foreground"].join(" "),
+                      className: ["jluxe-ai-bubble max-w-[92%] rounded-xl p-2.5 text-small leading-6", message.role === "user" ? "jluxe-ai-bubble--user text-primary-foreground" : "jluxe-ai-bubble--assistant text-foreground"].join(" "),
                       style: { background: message.role === "user" ? assistant.bgUserColor || "hsl(var(--primary))" : assistant.bgBotColor || "hsl(var(--muted))" },
                       children: message.role === "assistant" ? renderReply(message.text, { ...assistant, products: message.products || [] }, (src, alt) => setLightbox({ src, alt })) : message.text,
                     })),
-                    loading ? h("div", { key: "typing", className: "jluxe-ai-typing text-caption text-text-muted", role: "status", children: [h("span", { key: "dots", className: "jluxe-ai-typing-dots", "aria-hidden": true, children: "•••" }), " در حال تایپ…"] }) : null,
-                    error ? h("div", { key: "error", className: "text-caption", role: "alert", style: { color: assistant.negativeColor || undefined }, children: error }) : null,
+                    loading ? h("div", { key: "typing", className: "jluxe-ai-typing", role: "status", children: [
+                      h("span", { key: "typing-avatar", className: "jluxe-ai-typing-avatar", "aria-hidden": true, children: h(MessageIcon, { className: "size-4" }) }),
+                      h("span", { key: "dots", className: "jluxe-ai-typing-dots", "aria-hidden": true, children: "•••" }),
+                      h("span", { key: "typing-label", children: "در حال نوشتن پاسخ…" }),
+                    ] }) : null,
+                    error ? h("div", { key: "error", className: "jluxe-ai-error text-caption", role: "alert", style: { color: assistant.negativeColor || undefined }, children: error }) : null,
                   ] }),
                   messages.length === 0 && Array.isArray(assistant.quickReplies) && assistant.quickReplies.length
-                    ? h("div", { key: "quick-replies", className: "flex flex-wrap gap-1.5 border-t border-border p-2", children: assistant.quickReplies.map((reply) => h("button", { key: reply, type: "button", onClick: () => sendMessage(reply), className: "rounded-full border border-border px-3 py-1 text-caption text-text-secondary hover:border-primary hover:text-primary", children: reply })) })
+                    ? h("div", { key: "quick-replies", className: "jluxe-ai-quick-replies", children: assistant.quickReplies.map((reply) => h("button", { key: reply, type: "button", onClick: () => sendMessage(reply), className: "jluxe-ai-quick-reply", children: reply })) })
                     : null,
-                  h("form", { key: "chat-form", className: "flex items-center gap-2 border-t border-border p-2", onSubmit: (event) => { event.preventDefault(); sendMessage(); }, children: [
-                    h("input", { key: "chat-input", ref: inputRef, type: "text", value: input, onChange: (event) => setInput(event.target.value), placeholder: "پیامت رو بنویس…", "aria-label": "پیام شما", autoComplete: "off", className: "flex-1 rounded-lg border border-border bg-surface px-3 py-2.5 text-small outline-none focus:border-primary" }),
-                    h("button", { key: "send", type: "submit", disabled: loading || !input.trim(), "aria-label": "ارسال", className: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40", children: h(SendIcon, { className: "size-4", "aria-hidden": true }) }),
+                  h("form", { key: "chat-form", className: "jluxe-ai-chat-form", onSubmit: (event) => { event.preventDefault(); sendMessage(); }, children: [
+                    h("input", { key: "chat-input", ref: inputRef, type: "text", value: input, onChange: (event) => setInput(event.target.value), placeholder: "پیامت رو بنویس…", "aria-label": "پیام شما", autoComplete: "off", className: "jluxe-ai-chat-input" }),
+                    h("button", { key: "send", type: "submit", disabled: loading || !input.trim(), "aria-label": "ارسال", className: "jluxe-ai-send", children: h(SendIcon, { className: "size-4", "aria-hidden": true }) }),
                   ] }),
                 ] }),
           ],
@@ -521,10 +606,10 @@ function Assistant() {
         type: "button",
         onClick: () => setOpen(true),
         "aria-label": `گفتگو با ${assistant.name}`,
-        className: "jluxe-ai-launcher flex size-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+        className: "jluxe-ai-launcher flex size-14 items-center justify-center rounded-full text-white shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
         style: { background: assistant.primaryColor || "hsl(var(--primary))" },
         children: assistant.buttonUrl
-          ? h("img", { src: assistant.buttonUrl, alt: "", className: "size-8 rounded-full object-cover", "data-jluxe-no-skeleton": true })
+          ? h("img", { src: assistant.buttonUrl, alt: "", className: "jluxe-ai-launcher-image size-8 rounded-full object-cover", "data-jluxe-no-skeleton": true })
           : h(MessageIcon, { key: "avatar", className: "size-6", "aria-hidden": true }),
       });
 
@@ -535,7 +620,22 @@ function Assistant() {
       ] })
     : null;
 
-  return h("div", { className: "jluxe-ai-root", style: rootStyle, children: [panel, imageModal] });
+  const mobileBackdrop = open && isMobile
+    ? h("button", {
+        key: "backdrop",
+        type: "button",
+        tabIndex: -1,
+        className: "jluxe-ai-backdrop",
+        "aria-label": "بستن گفتگوی دستیار",
+        onClick: () => setOpen(false),
+      })
+    : null;
+
+  return h("div", {
+    className: `jluxe-ai-root ${isMobile ? "is-mobile" : "is-desktop"} ${open ? "is-open" : "is-closed"}`,
+    style: rootStyle,
+    children: [mobileBackdrop, panel, imageModal],
+  });
 }
 
 export default Assistant;
