@@ -608,12 +608,13 @@ function jluxe_theme_settings_defaults(): array {
 			'avatar_id'        => 0,
 			'button_id'        => 0,
 			'show_desktop'     => true,
-			'show_mobile'      => true,
+			'show_mobile'      => true, // R94 — مقدارِ legacy؛ گزینهٔ hide_mobile_launcher کنترلِ جدید است.
+			'hide_mobile_launcher' => true,
 			'provider'         => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی.
 			'base_url'         => '', // خالی = آدرس رسمی provider؛ برای providerهای سازگار با OpenAI (مثلاً پروکسی داخلی) قابل بازنویسیه.
 			'model'            => '',
-			'temperature'      => 0.7,
-			'max_tokens'       => 800,
+			'temperature'      => 0.4, // پاسخِ فروشگاهیِ دقیق‌تر و کم‌نوسان‌تر.
+			'max_tokens'       => 1200, // فضای کافی برای مشاوره/مقایسهٔ چند محصول.
 			'reasoning_effort' => 'low', // minimal | low | medium | high — فقط برای مدل‌های reasoning اعمال می‌شه.
 			'system_prompt'    => '', // خالی = پرامپت پیش‌فرض داخلی (jluxe_ai_default_system_prompt()).
 			// خلاصه‌ی هوشمندِ نظراتِ محصول — همون provider/کلید/مدلِ بالا رو
@@ -628,7 +629,14 @@ function jluxe_theme_settings_defaults(): array {
 				'shipping'   => false,
 				'returns'    => false,
 				'faq'        => false,
+				// R94 — متنِ برگه‌ها/راهنماهای پوسته و نوشته‌های وبلاگ برای RAG سمتِ سرور.
+				'pages'      => true,
+				'posts'      => true,
 			),
+			// R94 — دانشِ اختصاصی (هزینهٔ ارسال، گارانتی، زمانِ تحویل و…) که همیشه به دستیار داده می‌شود.
+			'custom_knowledge'   => '',
+			// append = پرامپتِ مدیر به قوانین/دانشِ داخلی اضافه می‌شود؛ replace = جایگزینِ لحن/قوانین (دانشِ سایت همچنان ضمیمه می‌شود).
+			'system_prompt_mode' => 'append',
 			// ابزارهای دیتای واقعی که دستیار، هنگام مکالمه، می‌تونه صدا بزنه
 			// (function calling سمت provider) — هرکدوم مستقل قابل خاموش‌کردنه.
 			'tools'            => array(
@@ -640,6 +648,7 @@ function jluxe_theme_settings_defaults(): array {
 				'get_product_reviews'  => true,
 				'get_customer_context' => false, // R86 — حریمِ خصوص: دادهٔ سفارشِ مشتری به سرویسِ بیرونی نرود مگر مدیر آگاهانه روشن کند.
 				'get_store_info'       => true,
+				'search_site_content'  => true, // R94 — جستجو در برگه‌ها/راهنماها/FAQ سایت.
 			),
 			// ویجت‌های تصویری‌ای که دستیار مجازه در جواب رندر کنه (کارت محصول،
 			// مقایسه، وضعیت سفارش و ...) — مستقل از ابزارهای دیتا، چون یک
@@ -677,6 +686,30 @@ function jluxe_theme_settings_defaults(): array {
 			'handoff_whatsapp' => '',
 			'handoff_telegram' => '',
 			'handoff_form_url' => '',
+			// R94 — دکمه‌های تماس داخلِ پاسخ + اعلانِ ساعتِ پاسخگوییِ تلفنی (بومیِ اسنیپت‌های قبلی).
+			'contact_phone'     => '', // خالی = شمارهٔ اصلیِ «اطلاعات تماس».
+			'phone_hours'       => array(
+				'enabled'     => true,
+				'start'       => '10:00',
+				'end'         => '20:00',
+				'closed_days' => array( 5 ), // 0=یکشنبه … 5=جمعه، 6=شنبه
+			),
+			'phone_timezone'    => 'Asia/Tehran', // مطابقِ کدِ قبلی؛ تغییر از همین بخش ممکن است.
+
+			'phone_open_text'   => '🟢 اکنون پاسخگوی تلفنی هستیم.',
+			'phone_closed_text' => '🔴 الان خارج از ساعت پاسخگویی تلفنی ({hours}، غیر تعطیل) هستیم؛ می‌تونید همینجا با من ادامه بدید یا پیامتون رو از طریق شبکه‌های اجتماعی زیر بفرستید تا در اولین فرصت پیگیری بشه.',
+			// آیکونِ دلخواه برای هر کانال (نشانیِ تصویر)؛ خالی = آیکونِ داخلیِ پوسته.
+			'contact_icons'     => array(
+				'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
+				'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
+				'telegram'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-143.png',
+				'instagram' => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-140.png',
+				'rubika'    => 'https://jluxe.ir/wp-content/uploads/2026/05/rubika.png',
+				'bale'      => 'https://jluxe.ir/wp-content/uploads/2026/05/bale.png',
+				'eitaa'     => '',
+			),
+			// زیرِ این عرض «موبایل» حساب می‌شود (نمایش/مخفی‌بودنِ دکمهٔ شناور).
+			'mobile_breakpoint' => 820,
 			'rate_limit'       => 10, // حداکثر پیام در دقیقه به ازای هر IP.
 			'daily_limit'      => 100, // R86 — سقفِ روزانه (کاربر/IP) برای مصرفِ اعتبارِ API.
 			'log_enabled'      => true, // ثبت خطاهای فراخوانی provider در error_log.
@@ -1999,7 +2032,8 @@ function jluxe_get_ai_public_settings(): array {
 		'avatarUrl'          => $ai['avatar_id'] ? wp_get_attachment_image_url( (int) $ai['avatar_id'], 'thumbnail' ) : '',
 		'buttonUrl'          => $ai['button_id'] ? wp_get_attachment_image_url( (int) $ai['button_id'], 'thumbnail' ) : '',
 		'showDesktop'        => (bool) $ai['show_desktop'],
-		'showMobile'         => (bool) $ai['show_mobile'],
+		'showMobile'         => (bool) $ai['show_mobile'], // legacy
+		'hideMobileLauncher' => ! empty( $ai['hide_mobile_launcher'] ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),
 		'primaryColor'       => $ai['primary_color'],
 		'textColor'          => $ai['text_color'],
@@ -2019,6 +2053,9 @@ function jluxe_get_ai_public_settings(): array {
 		'widgets'            => $ai['widgets'],
 		// «ثبت پیام برای پشتیبان» — از همون سوییچِ از قبل موجودِ widgets.support_ticket.
 		'enableTicketForm'   => ! empty( $ai['widgets']['support_ticket'] ),
+		// R94 — دکمه‌های تماسِ داخلِ پاسخ، ساعتِ پاسخگویی و نقطهٔ شکستِ موبایل.
+		'mobileBreakpoint'   => (int) ( $ai['mobile_breakpoint'] ?? 820 ),
+		'contact'            => function_exists( 'jluxe_ai_public_contact' ) ? jluxe_ai_public_contact( $ai ) : array(),
 	);
 }
 
@@ -2056,5 +2093,6 @@ require_once __DIR__ . '/categories-page.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
 require_once __DIR__ . '/theme-settings-ai.php';
+require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت برای دستیار (RAG)
 require_once __DIR__ . '/theme-settings-sms.php';
 require_once __DIR__ . '/auth.php';

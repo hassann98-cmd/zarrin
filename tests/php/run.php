@@ -1952,4 +1952,88 @@ $r93ts = (string) file_get_contents( ABSPATH . 'inc/theme-settings.php' );
 check( 1 === preg_match( "#'megaMenu'\s*=>\s*array\(.*?'url'\s*=>\s*function_exists\( 'jluxe_header_categories_url' \)#s", $r93ts ), 'R93b mega-menu island receives the same URL' );
 $GLOBALS['existing_pages'] = $r93saved_pages;
 
+
+// ---------------------------------------------------------------------
+// R94 — دستیار: RAG فارسی از محتوای منتشرشده، زمینهٔ فروشگاه/صفحه،
+// ساعتِ تلفن، ابزار جستجو و حفظِ سفارشی‌سازی در کنارِ قواعدِ ایمنی.
+// ---------------------------------------------------------------------
+$r94_kb = array( 'pages' => true, 'posts' => true, 'faq' => true, 'shipping' => true, 'returns' => true );
+$GLOBALS['transients'] = array();
+$GLOBALS['test_filters']['jluxe_ai_knowledge_documents'] = static function ( $docs, $knowledge ) {
+	return array(
+		array( 'policy', 'ارسال به تهران', 'https://shop.test/shipping/', 'هزینه ارسال به تهران بر اساس شهر و روش انتخابی در تسویه حساب مشخص می‌شود. ارسال تهران معمولاً یک تا دو روز کاری است.' ),
+		array( 'faq', 'تعویض کالا', 'https://shop.test/faq/', 'برای تعویض کالای استفاده‌نشده، بسته‌بندی و فاکتور را حفظ کنید و تا هفت روز با پشتیبانی تماس بگیرید.' ),
+	);
+};
+check( 'کالا تهران' === jluxe_ai_normalize_text( 'كالا تهران' ), 'R94 Persian knowledge search normalizes Arabic kaf/yeh, digits, and zero-width joiners' );
+$r94_hits = jluxe_ai_search_knowledge( 'هزینهٔ ارسال به تهران', $r94_kb, 3 );
+check( ! empty( $r94_hits ) && 'ارسال به تهران' === $r94_hits[0]['title'] && false !== strpos( $r94_hits[0]['excerpt'], 'یک تا دو روز کاری' ), 'R94 retrieval ranks the relevant published-site passage for a Persian query' );
+check( empty( jluxe_ai_search_knowledge( 'عطر مردانه', $r94_kb, 3 ) ), 'R94 knowledge retrieval returns no fabricated result for an unrelated query' );
+$r94_builder = jluxe_ai_builder_text(
+	array(
+		'elements' => array(
+			array(
+				'elType' => 'widget',
+				'widgetType' => 'heading',
+				'settings' => array( 'title' => 'راهنمای ارسالِ تهران', 'link' => array( 'url' => 'https://evil.example/' ), 'custom_css' => '.secret{display:none}' ),
+			),
+		),
+	)
+);
+check( false !== strpos( $r94_builder, 'راهنمای ارسالِ تهران' ) && false === strpos( $r94_builder, 'evil.example' ) && false === strpos( $r94_builder, 'secret' ), 'R94 Elementor-style page text is extracted without URL or CSS data' );
+$r94_tool = jluxe_ai_tool_search_site_content( array( 'query' => 'تعویض کالا هفت روز' ) );
+check( 1 === (int) $r94_tool['count'] && 'تعویض کالا' === $r94_tool['results'][0]['title'], 'R94 search_site_content tool returns a grounded page excerpt and URL' );
+$r94_defaults = jluxe_theme_settings_defaults()['ai_assistant'];
+$r94_defaults['knowledge'] = $r94_kb;
+$r94_defaults['custom_knowledge'] = 'ارسال هدیه داخل تهران در جعبهٔ کادویی انجام می‌شود.';
+$r94_defaults['system_prompt'] = 'لحن کوتاه و دوستانه داشته باش.';
+$r94_defaults['system_prompt_mode'] = 'append';
+$r94_prompt = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال به تهران چقدر است؟' ) ), array( 'url' => 'https://shop.test/product/1/', 'title' => 'محصول نمونه' ) );
+check( false !== strpos( $r94_prompt, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt, 'محتوای مرتبط از صفحات' ) && false !== strpos( $r94_prompt, 'هزینه ارسال به تهران' ) && false !== strpos( $r94_prompt, 'ارسال هدیه داخل تهران' ), 'R94 system prompt combines admin style, matched site content, and private store knowledge' );
+$r94_defaults['system_prompt_mode'] = 'replace';
+$r94_prompt_replace = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال تهران' ) ) );
+check( false !== strpos( $r94_prompt_replace, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt_replace, 'قواعدِ ثابتِ دقت و امنیت' ) && false !== strpos( $r94_prompt_replace, 'داده‌های فروشگاه' ), 'R94 replacing the custom prompt keeps immutable safety and site context' );
+check( isset( jluxe_ai_tool_specs( array( 'search_site_content' => true ) )['search_site_content']['parameters']['properties']['query'] ) && empty( jluxe_ai_tool_specs( array() )['search_site_content'] ), 'R94 site-content search is a separately controllable function-calling tool' );
+$r94_all_tools = jluxe_theme_settings_defaults()['ai_assistant'];
+$r94_all_tools['knowledge']['products'] = false;
+$r94_all_tools['knowledge']['categories'] = false;
+$r94_effective = jluxe_ai_effective_tools( $r94_all_tools );
+check( empty( $r94_effective['search_products'] ) && empty( $r94_effective['get_product_info'] ) && empty( $r94_effective['get_product_reviews'] ) && empty( $r94_effective['get_categories'] ) && ! empty( $r94_effective['get_store_info'] ), 'R94 turning off product/category knowledge really suppresses those tools but keeps store contact data' );
+$r94_product = new WC_Product( 987 );
+$GLOBALS['products'][987] = $r94_product;
+$r94_theme_settings = jluxe_theme_settings_defaults();
+$r94_theme_settings['ai_assistant']['knowledge']['prices'] = false;
+$r94_theme_settings['ai_assistant']['knowledge']['stock'] = false;
+update_test_settings( $r94_theme_settings );
+$r94_product_summary = jluxe_ai_product_summary( $r94_product );
+check( ! array_key_exists( 'price', $r94_product_summary ) && ! array_key_exists( 'stock_status', $r94_product_summary ) && ! array_key_exists( 'in_stock', $r94_product_summary ), 'R94 disabled price/stock sources are not sent to the provider' );
+update_test_settings( jluxe_theme_settings_defaults() );
+$GLOBALS['product_prices'][987] = array( 'price' => 750, 'regular' => 1000 );
+$r94_sale_summary = jluxe_ai_product_summary( $r94_product );
+check( 25 === $r94_sale_summary['discount_percent'] && $r94_sale_summary['price'] === $r94_sale_summary['price_after_discount'] && $r94_sale_summary['price_before_discount'] !== $r94_sale_summary['price_after_discount'], 'R94 a sale exposes one unambiguous current price plus the real old price and discount' );
+$r94_sanitized = jluxe_sanitize_ai_assistant(
+	array(
+		'show_desktop' => '1', 'system_prompt_mode' => 'replace', 'mobile_breakpoint' => '820',
+		'custom_knowledge' => 'تحویل تهران یک روز کاری.', 'phone_timezone' => 'Asia/Tehran',
+		'phone_hours' => array( 'enabled' => '1', 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( '5' ) ),
+		'contact_icons' => 'not-an-array',
+		'tools' => array( 'search_site_content' => '1' ),
+	),
+	jluxe_theme_settings_defaults()['ai_assistant']
+);
+check( 820 === $r94_sanitized['mobile_breakpoint'] && 'replace' === $r94_sanitized['system_prompt_mode'] && 'Asia/Tehran' === $r94_sanitized['phone_timezone'] && ! empty( $r94_sanitized['hide_mobile_launcher'] ), 'R94 assistant options sanitize prompt mode, mobile breakpoint, timezone and hidden mobile launcher' );
+$r94_mobile_visible = jluxe_sanitize_ai_assistant( array( 'hide_mobile_launcher' => '0' ), jluxe_theme_settings_defaults()['ai_assistant'] );
+check( false === $r94_mobile_visible['hide_mobile_launcher'], 'R94 the unchecked hidden-by-default mobile-launcher control can be saved as visible' );
+check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
+$r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
+check( 'tel:+989120902336' === $r94_contact['tel'] && 'Asia/Tehran' === $r94_contact['timezone'] && in_array( 5, $r94_contact['hours']['closedDays'], true ), 'R94 contact data exposes a normalized phone link and Tehran-Friday schedule without API credentials' );
+$r94_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), 'phone_timezone' => 'Asia/Tehran' );
+$r94_friday = ( new DateTimeImmutable( '2026-09-25 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
+$r94_saturday = ( new DateTimeImmutable( '2026-09-26 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
+check( ! jluxe_ai_phone_is_open( $r94_schedule, $r94_friday ) && jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday ) && ! jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday - 2 * 60 * 60 ), 'R94 phone-hours schedule uses Tehran time and excludes Friday/closed hours' );
+$r94_external_page = jluxe_ai_page_context( array( 'url' => 'https://evil.example/secret', 'title' => 'private' ) );
+check( '' === $r94_external_page, 'R94 current-page context refuses an external host' );
+unset( $GLOBALS['test_filters']['jluxe_ai_knowledge_documents'] );
+$GLOBALS['transients'] = array();
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

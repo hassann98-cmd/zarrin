@@ -848,6 +848,30 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	$rate_limit       = isset( $posted['rate_limit'] ) ? absint( $posted['rate_limit'] ) : $defaults['rate_limit'];
 	$daily_limit      = isset( $posted['daily_limit'] ) ? absint( $posted['daily_limit'] ) : ( $defaults['daily_limit'] ?? 100 );
 
+	// R94 — ساعتِ پاسخگویی/آیکون‌ها/دانشِ اختصاصی.
+	$time_re      = '/^([01]?\d|2[0-3]):[0-5]\d$/';
+	$hours_posted = is_array( $posted['phone_hours'] ?? null ) ? $posted['phone_hours'] : array();
+	$hours_def    = $defaults['phone_hours'] ?? array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) );
+	$start        = trim( (string) ( $hours_posted['start'] ?? $hours_def['start'] ) );
+	$end          = trim( (string) ( $hours_posted['end'] ?? $hours_def['end'] ) );
+	$closed_days  = array();
+	foreach ( (array) ( $hours_posted['closed_days'] ?? ( isset( $posted['phone_hours'] ) ? array() : $hours_def['closed_days'] ) ) as $day ) {
+		if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
+			$closed_days[] = (int) $day;
+		}
+	}
+	$icons        = array();
+	$posted_icons = is_array( $posted['contact_icons'] ?? null ) ? $posted['contact_icons'] : array();
+	foreach ( array_keys( $defaults['contact_icons'] ?? array() ) as $key ) {
+		$icons[ $key ] = isset( $posted_icons[ $key ] ) ? esc_url_raw( trim( (string) $posted_icons[ $key ] ) ) : '';
+	}
+	$prompt_mode = isset( $posted['system_prompt_mode'] ) ? sanitize_key( $posted['system_prompt_mode'] ) : 'append';
+	$breakpoint  = isset( $posted['mobile_breakpoint'] ) ? absint( $posted['mobile_breakpoint'] ) : ( $defaults['mobile_breakpoint'] ?? 820 );
+	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'Asia/Tehran' );
+	if ( '' === $phone_tz || ( function_exists( 'timezone_identifiers_list' ) && ! in_array( $phone_tz, timezone_identifiers_list(), true ) ) ) {
+		$phone_tz = $defaults['phone_timezone'] ?? 'Asia/Tehran';
+	}
+
 	return array(
 		'enabled'          => ! empty( $posted['enabled'] ),
 		'name'             => isset( $posted['name'] ) ? sanitize_text_field( $posted['name'] ) : $defaults['name'],
@@ -855,14 +879,15 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'avatar_id'        => isset( $posted['avatar_id'] ) ? absint( $posted['avatar_id'] ) : 0,
 		'button_id'        => isset( $posted['button_id'] ) ? absint( $posted['button_id'] ) : 0,
 		'show_desktop'     => ! empty( $posted['show_desktop'] ),
-		'show_mobile'      => ! empty( $posted['show_mobile'] ),
+		'show_mobile'      => ! empty( $posted['show_mobile'] ), // legacy
+		'hide_mobile_launcher' => isset( $posted['hide_mobile_launcher'] ) ? ! empty( $posted['hide_mobile_launcher'] ) : (bool) ( $defaults['hide_mobile_launcher'] ?? true ),
 		'provider'         => in_array( $provider, array( '', 'openai', 'anthropic', 'gapgpt', 'custom' ), true ) ? $provider : '',
 		'base_url'         => isset( $posted['base_url'] ) ? esc_url_raw( trim( (string) $posted['base_url'] ) ) : '',
 		'model'            => isset( $posted['model'] ) ? sanitize_text_field( $posted['model'] ) : '',
 		'temperature'      => max( 0, min( 2, $temperature ) ),
 		'max_tokens'       => max( 50, min( 4000, $max_tokens ) ),
 		'reasoning_effort' => in_array( $reasoning_effort, array( 'minimal', 'low', 'medium', 'high' ), true ) ? $reasoning_effort : $defaults['reasoning_effort'],
-		'system_prompt'    => isset( $posted['system_prompt'] ) ? sanitize_textarea_field( $posted['system_prompt'] ) : '',
+		'system_prompt'    => isset( $posted['system_prompt'] ) ? jluxe_substr( sanitize_textarea_field( (string) $posted['system_prompt'] ), 0, 8000 ) : '',
 		'review_summary_enabled'   => ! empty( $posted['review_summary_enabled'] ),
 		'review_summary_min_count' => isset( $posted['review_summary_min_count'] ) ? max( 1, min( 50, absint( $posted['review_summary_min_count'] ) ) ) : $defaults['review_summary_min_count'],
 		'knowledge'        => $knowledge,
@@ -887,6 +912,20 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'rate_limit'       => max( 0, min( 120, $rate_limit ) ),
 		'daily_limit'      => max( 0, min( 5000, $daily_limit ) ),
 		'log_enabled'      => ! empty( $posted['log_enabled'] ),
+		'custom_knowledge'   => isset( $posted['custom_knowledge'] ) ? jluxe_substr( sanitize_textarea_field( (string) $posted['custom_knowledge'] ), 0, 6000 ) : '',
+		'system_prompt_mode' => in_array( $prompt_mode, array( 'append', 'replace' ), true ) ? $prompt_mode : 'append',
+		'contact_phone'      => isset( $posted['contact_phone'] ) ? preg_replace( '/[^0-9۰-۹+\-\s()]/u', '', sanitize_text_field( (string) $posted['contact_phone'] ) ) : '',
+		'phone_hours'        => array(
+			'enabled'     => isset( $posted['phone_hours'] ) ? ! empty( $hours_posted['enabled'] ) : (bool) $hours_def['enabled'],
+			'start'       => preg_match( $time_re, $start ) ? $start : $hours_def['start'],
+			'end'         => preg_match( $time_re, $end ) ? $end : $hours_def['end'],
+			'closed_days' => array_values( array_unique( $closed_days ) ),
+		),
+		'phone_timezone'     => $phone_tz,
+		'phone_open_text'    => isset( $posted['phone_open_text'] ) ? sanitize_text_field( (string) $posted['phone_open_text'] ) : ( $defaults['phone_open_text'] ?? '' ),
+		'phone_closed_text'  => isset( $posted['phone_closed_text'] ) ? sanitize_textarea_field( (string) $posted['phone_closed_text'] ) : ( $defaults['phone_closed_text'] ?? '' ),
+		'contact_icons'      => $icons,
+		'mobile_breakpoint'  => max( 360, min( 1280, $breakpoint ) ),
 	);
 }
 
