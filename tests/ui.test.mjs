@@ -71,6 +71,84 @@ test("R98 login UI omits the redundant hint and retains OTP autofill support", (
   );
 });
 
+test("R99 auth overlay is an accessible React dialog with trapped focus and Escape close", async () => {
+  const dom = new JSDOM('<!doctype html><button id="opener">ورود</button><div id="root"></div>', {
+    url: "https://shop.test/store/",
+    pretendToBeVisual: true,
+  });
+  const targetWindow = dom.window;
+  targetWindow.document.body.setAttribute("data-jluxe-auth-overlay-open", "1");
+  targetWindow.JLuxeThemeSettings = {
+    auth: { registrationEnabled: false },
+    sms: { enabled: false },
+    urls: {
+      home: "https://shop.test/store/",
+      lost_password: "https://shop.test/store/customer-zone/recover/",
+    },
+  };
+  const names = [
+    "window",
+    "document",
+    "navigator",
+    "HTMLElement",
+    "HTMLInputElement",
+    "Node",
+    "Event",
+    "IS_REACT_ACT_ENVIRONMENT",
+  ];
+  const descriptors = new Map(
+    names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]),
+  );
+  Object.assign(globalThis, {
+    window: targetWindow,
+    document: targetWindow.document,
+    HTMLElement: targetWindow.HTMLElement,
+    HTMLInputElement: targetWindow.HTMLInputElement,
+    Node: targetWindow.Node,
+    Event: targetWindow.Event,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: targetWindow.navigator,
+  });
+
+  const closeEvents = [];
+  targetWindow.addEventListener("jluxe:auth-close", () => closeEvents.push(true));
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(targetWindow.document.getElementById("root"));
+  try {
+    await act(async () => root.render(React.createElement(AuthPage)));
+    const dialog = targetWindow.document.querySelector('[role="dialog"]');
+    assert.ok(dialog);
+    assert.equal(dialog.getAttribute("aria-modal"), "true");
+    assert.equal(
+      targetWindow.document.activeElement.id,
+      "jluxe-auth-login",
+      "focus starts in the first credential field",
+    );
+    await act(async () => {
+      dialog.dispatchEvent(
+        new targetWindow.KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    assert.equal(closeEvents.length, 1, "Escape asks the SPA router to return to the previous page");
+  } finally {
+    await act(async () => root.unmount());
+    targetWindow.close();
+    for (const [name, descriptor] of descriptors) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else delete globalThis[name];
+    }
+  }
+});
+
 test("R98 post-login redirect defaults to home, preserves safe checkout, and rejects external or out-of-install URLs", () => {
   const settings = {
     urls: {

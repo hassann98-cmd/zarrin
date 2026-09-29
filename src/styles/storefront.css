@@ -5634,6 +5634,7 @@ del .woocommerce-Price-amount {
 .jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs,
 .jluxe-auth-screen[data-otp-only] .jluxe-auth-recovery { display: none; }
 
+.jluxe-auth-overlay-root { position: fixed; inset: 0; z-index: 1000; overflow: auto; overscroll-behavior: contain; background: hsl(var(--background)); }
 .jluxe-auth-screen { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; background: hsl(var(--background)); }
 .jluxe-auth-card { width: 100%; max-width: 420px; border: 1px solid hsl(var(--border)); border-radius: 28px; background: hsl(var(--surface)); padding: 2rem; box-shadow: 0 12px 32px hsl(var(--foreground) / .08); }
 .jluxe-auth-back { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; color: hsl(var(--text-secondary)); }

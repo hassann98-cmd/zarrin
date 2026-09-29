@@ -3,6 +3,7 @@ import { UserRound, ChevronRight } from "lucide-react";
 import { getThemeSettings } from "../lib/theme-settings.js";
 import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
+import { useDialog } from "../lib/use-dialog.js";
 
 export function resolvePostAuthUrl() {
   const fallback = siteUrl("home");
@@ -58,6 +59,15 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const otpInput = useRef(null);
+  const authDialog = useRef(null);
+  const isOverlay =
+    typeof document !== "undefined" &&
+    Boolean(document.body?.hasAttribute("data-jluxe-auth-overlay-open"));
+  useDialog(isOverlay, authDialog, () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new window.CustomEvent("jluxe:auth-close"));
+    }
+  });
   const verifyingOtp = useRef(false);
   const otpRequestReady = useRef(false);
   const pendingWebOtp = useRef("");
@@ -222,7 +232,15 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="jluxe-auth-screen" dir="rtl">
+    <main
+      className="jluxe-auth-screen"
+      dir="rtl"
+      ref={isOverlay ? authDialog : undefined}
+      role={isOverlay ? "dialog" : undefined}
+      aria-modal={isOverlay ? "true" : undefined}
+      aria-labelledby={isOverlay ? "jluxe-auth-title" : undefined}
+      tabIndex={isOverlay ? -1 : undefined}
+    >
       <section className="jluxe-auth-card" aria-labelledby="jluxe-auth-title">
         <a className="jluxe-auth-back" href={siteUrl("home")}>
           <ChevronRight size={16} aria-hidden="true" /> بازگشت به فروشگاه
@@ -289,6 +307,7 @@ export default function AuthPage() {
               <label htmlFor="jluxe-auth-phone">شماره موبایل</label>
               <input
                 id="jluxe-auth-phone"
+                data-dialog-initial-focus=""
                 type="tel"
                 autoComplete="tel"
                 inputMode="tel"
@@ -345,6 +364,7 @@ export default function AuthPage() {
                   <label htmlFor="jluxe-auth-username">نام کاربری</label>
                   <input
                     id="jluxe-auth-username"
+                    data-dialog-initial-focus=""
                     autoComplete="username"
                     dir="ltr"
                     required
@@ -370,6 +390,7 @@ export default function AuthPage() {
                   <label htmlFor="jluxe-auth-login">نام کاربری یا ایمیل</label>
                   <input
                     id="jluxe-auth-login"
+                    data-dialog-initial-focus=""
                     autoComplete="username"
                     dir="ltr"
                     required

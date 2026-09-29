@@ -6,6 +6,7 @@ import {
 markLiteDevice(window);
 import "./styles/storefront.css";
 import { setupPwa } from "./lib/pwa.js";
+import { setupAuthNavigation } from "./lib/auth-navigation.js";
 // R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
 setupPwa(window, window.JLuxeThemeSettings?.pwa);
 const islands = {
@@ -24,6 +25,21 @@ const islands = {
   "auth-page": () => import("./islands/AuthPage.jsx"),
   "categories-browser": () => import("./islands/CategoriesBrowser.js"),
 };
+const authUrls = window.JLuxeThemeSettings?.urls ?? {};
+if (
+  !window.JLuxeThemeSettings?.auth?.isLoggedIn &&
+  authUrls.login &&
+  authUrls.home
+) {
+  setupAuthNavigation({
+    win: window,
+    doc: document,
+    loginUrl: authUrls.login,
+    homeUrl: authUrls.home,
+    loadAuth: islands["auth-page"],
+    mountIsland,
+  });
+}
 // R88 — Lenis فقط روی دستگاهِ دارای ماوس، به‌صورتِ chunkِ جدا و بعد از بیکار شدنِ مرورگر.
 const whenIdle = window.requestIdleCallback
   ? (cb) => window.requestIdleCallback(cb, { timeout: 2500 })
