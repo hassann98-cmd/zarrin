@@ -72,7 +72,7 @@ function safeHref(rawHref, contact, assistant) {
       ...(Array.isArray(contact?.channels) ? contact.channels.map((item) => item.url) : []),
       assistant?.handoffWhatsapp,
       assistant?.handoffTelegram,
-      assistant?.handoffFormUrl,
+      ...(assistant?.enableTicketForm ? [] : [assistant?.handoffFormUrl]),
     ].filter(Boolean);
     return allowed.some((candidate) => normalizeHref(candidate) === normalized)
       ? url.href
@@ -542,8 +542,8 @@ function Assistant() {
                         ? h("div", { key: "handoff-menu", className: "jluxe-ai-handoff-menu absolute end-0 top-11 z-10 w-52 rounded-xl border border-border bg-surface p-2 text-foreground shadow-lg", children: [
                             assistant.handoffWhatsapp ? h("a", { key: "wa", href: assistant.handoffWhatsapp, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "واتساپ" }) : null,
                             assistant.handoffTelegram ? h("a", { key: "tg", href: assistant.handoffTelegram, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "تلگرام" }) : null,
-                            assistant.handoffFormUrl ? h("a", { key: "form", href: assistant.handoffFormUrl, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "فرم تماس" }) : null,
-                            assistant.enableTicketForm ? h("button", { key: "ticket", type: "button", onClick: () => { setTicketMode(true); setContactOpen(false); setTicketSent(false); setTicketError(null); }, className: "jluxe-ai-handoff-item block w-full rounded-lg px-2 py-2 text-start text-small", children: "ثبت پیام برای پشتیبان" }) : null,
+                            !assistant.enableTicketForm && assistant.handoffFormUrl ? h("a", { key: "form", href: assistant.handoffFormUrl, target: "_blank", rel: "noopener noreferrer", className: "jluxe-ai-handoff-item block rounded-lg px-2 py-2 text-small", children: "فرم تماسِ وب‌سایت" }) : null,
+                            assistant.enableTicketForm ? h("button", { key: "ticket", type: "button", onClick: () => { setTicketMode(true); setContactOpen(false); setTicketSent(false); setTicketError(null); }, className: "jluxe-ai-handoff-item block w-full rounded-lg px-2 py-2 text-start text-small", children: "فرم تماس با پشتیبانی" }) : null,
                           ] })
                         : null,
                     ] })
@@ -603,6 +603,7 @@ function Assistant() {
         },
       )
     : h("button", {
+        key: "launcher",
         type: "button",
         onClick: () => setOpen(true),
         "aria-label": `گفتگو با ${assistant.name}`,

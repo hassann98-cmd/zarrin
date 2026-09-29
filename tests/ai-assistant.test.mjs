@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
-test("R95 mobile chat polish and configurable contact schedule render safely", async (t) => {
+test("R96 mobile launcher stays visible and the in-chat support form wins over an old help URL", async (t) => {
   const dom = new JSDOM(
     '<!doctype html><html><head><title>گردنبند</title></head><body class="single-product postid-44"><a id="open-ai" href="/contact/#open-ai-assistant">گفتگو با ما</a><div id="app"></div></body></html>',
     { url: "https://shop.test/product/ring/", pretendToBeVisual: true },
@@ -74,7 +74,7 @@ test("R95 mobile chat polish and configurable contact schedule render safely", a
       welcomeMessage: "سلام!",
       showDesktop: true,
       showMobile: true,
-      hideMobileLauncher: true,
+      hideMobileLauncher: false,
       mobileBreakpoint: 820,
       position: "end",
       offsetBottomMobile: 80,
@@ -84,6 +84,8 @@ test("R95 mobile chat polish and configurable contact schedule render safely", a
       windowWidth: 380,
       borderRadius: 16,
       quickReplies: ["معرفی محصول"],
+      handoffFormUrl: "https://shop.test/shopping-guide/",
+      enableTicketForm: true,
       contact: {
         phone: "09120902336",
         tel: "tel:+989120902336",
@@ -120,7 +122,7 @@ test("R95 mobile chat polish and configurable contact schedule render safely", a
     root.render(React.createElement(Assistant));
     await Promise.resolve();
   });
-  assert.equal(mount.querySelector(".jluxe-ai-launcher"), null, "mobile launcher is hidden by the assistant setting");
+  assert.ok(mount.querySelector(".jluxe-ai-launcher"), "mobile launcher is visible by default");
 
   const trigger = document.getElementById("open-ai");
   const click = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
@@ -129,11 +131,30 @@ test("R95 mobile chat polish and configurable contact schedule render safely", a
     await Promise.resolve();
   });
   assert.equal(click.defaultPrevented, true, "#open-ai-assistant clicks are intercepted without navigation");
-  assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "the assistant opens even when its mobile launcher is hidden");
+  assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "a hash link also opens the assistant");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-mobile.is-open .jluxe-ai-backdrop"), "mobile opens as a focused, dismissible app-like sheet");
   assert.match(mount.querySelector(".jluxe-ai-window").style.width, /100vw/);
   assert.match(mount.querySelector(".jluxe-ai-window").style.height, /100dvh/);
   assert.ok(mount.querySelector(".jluxe-ai-welcome"), "the opening message is presented as a styled welcome card");
+
+  await act(async () => {
+    mount.querySelector('button[aria-label="ارتباط با پشتیبانی انسانی"]').click();
+    await Promise.resolve();
+  });
+  const handoffMenu = mount.querySelector(".jluxe-ai-handoff-menu");
+  assert.ok(handoffMenu, "support actions are available from the chat header");
+  assert.equal(handoffMenu.querySelector('a[href="https://shop.test/shopping-guide/"]'), null, "a stale guide URL is not exposed as the contact-form link");
+  const ticketButton = [...handoffMenu.querySelectorAll("button")].find((button) => button.textContent === "فرم تماس با پشتیبانی");
+  assert.ok(ticketButton, "the header offers the built-in support form");
+  await act(async () => {
+    ticketButton.click();
+    await Promise.resolve();
+  });
+  assert.ok(mount.querySelector(".jluxe-ai-ticket-form"), "the contact action opens the in-chat ticket form");
+  await act(async () => {
+    mount.querySelector(".jluxe-ai-back-button").click();
+    await Promise.resolve();
+  });
 
   await act(async () => {
     [...mount.querySelectorAll("button")].find((button) => button.textContent === "معرفی محصول").click();

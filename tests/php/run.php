@@ -1990,6 +1990,19 @@ $r94_defaults['system_prompt'] = 'لحن کوتاه و دوستانه داشته
 $r94_defaults['system_prompt_mode'] = 'append';
 $r94_prompt = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال به تهران چقدر است؟' ) ), array( 'url' => 'https://shop.test/product/1/', 'title' => 'محصول نمونه' ) );
 check( false !== strpos( $r94_prompt, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt, 'محتوای مرتبط از صفحات' ) && false !== strpos( $r94_prompt, 'هزینه ارسال به تهران' ) && false !== strpos( $r94_prompt, 'ارسال هدیه داخل تهران' ), 'R94 system prompt combines admin style, matched site content, and private store knowledge' );
+$r96_prompt_settings = jluxe_theme_settings_defaults()['ai_assistant'];
+$r96_prompt_settings['handoff_form_url'] = 'https://shop.test/shopping-guide/';
+$r96_prompt_with_ticket = jluxe_ai_default_system_prompt( $r96_prompt_settings );
+check( false === strpos( $r96_prompt_with_ticket, '[فرم تماسِ وب‌سایت](https://shop.test/shopping-guide/)' ) && false !== strpos( $r96_prompt_with_ticket, 'فرم تماس با پشتیبانی' ), 'R96 an enabled in-chat form suppresses a configured help-page URL and directs the assistant to the ticket form' );
+$r96_prompt_settings['widgets']['support_ticket'] = false;
+$r96_prompt_without_ticket = jluxe_ai_default_system_prompt( $r96_prompt_settings );
+check( false !== strpos( $r96_prompt_without_ticket, '[فرم تماسِ وب‌سایت](https://shop.test/shopping-guide/)' ), 'R96 a configured external contact form remains available when the in-chat form is disabled' );
+$r96_public_settings = jluxe_theme_settings_defaults();
+$r96_public_settings['ai_assistant']['handoff_form_url'] = 'https://shop.test/shopping-guide/';
+update_test_settings( $r96_public_settings );
+$r96_public_ai = jluxe_get_ai_public_settings();
+check( false === $r96_public_ai['hideMobileLauncher'] && true === $r96_public_ai['enableTicketForm'] && '' === $r96_public_ai['handoffFormUrl'], 'R96 public settings show the mobile launcher and suppress stale external URLs when the internal support form is enabled' );
+update_test_settings( jluxe_theme_settings_defaults() );
 $r94_defaults['system_prompt_mode'] = 'replace';
 $r94_prompt_replace = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال تهران' ) ) );
 check( false !== strpos( $r94_prompt_replace, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt_replace, 'قواعدِ ثابتِ دقت و امنیت' ) && false !== strpos( $r94_prompt_replace, 'داده‌های فروشگاه' ), 'R94 replacing the custom prompt keeps immutable safety and site context' );
@@ -2021,9 +2034,20 @@ $r94_sanitized = jluxe_sanitize_ai_assistant(
 	),
 	jluxe_theme_settings_defaults()['ai_assistant']
 );
-check( 820 === $r94_sanitized['mobile_breakpoint'] && 'replace' === $r94_sanitized['system_prompt_mode'] && 'Asia/Tehran' === $r94_sanitized['phone_timezone'] && ! empty( $r94_sanitized['hide_mobile_launcher'] ), 'R94 assistant options sanitize prompt mode, mobile breakpoint, timezone and hidden mobile launcher' );
-$r94_mobile_visible = jluxe_sanitize_ai_assistant( array( 'hide_mobile_launcher' => '0' ), jluxe_theme_settings_defaults()['ai_assistant'] );
-check( false === $r94_mobile_visible['hide_mobile_launcher'], 'R94 the unchecked hidden-by-default mobile-launcher control can be saved as visible' );
+check( 820 === $r94_sanitized['mobile_breakpoint'] && 'replace' === $r94_sanitized['system_prompt_mode'] && 'Asia/Tehran' === $r94_sanitized['phone_timezone'] && false === $r94_sanitized['hide_mobile_launcher'], 'R96 assistant options keep the mobile launcher visible when the optional hide control is unchecked' );
+$r96_mobile_hidden = jluxe_sanitize_ai_assistant( array( 'hide_mobile_launcher' => '1' ), jluxe_theme_settings_defaults()['ai_assistant'] );
+check( true === $r96_mobile_hidden['hide_mobile_launcher'], 'R96 administrators can still explicitly hide the mobile launcher' );
+check( false === jluxe_theme_settings_defaults()['ai_assistant']['hide_mobile_launcher'], 'R96 fresh settings show the mobile assistant launcher by default' );
+$r96_legacy_settings = array( 'version' => 2, 'ai_assistant' => array( 'hide_mobile_launcher' => true ) );
+$r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
+check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
+$r96_loaded_settings = jluxe_get_theme_settings( true );
+check( 3 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'], 'R96 stored v2 settings are migrated once and persisted as v3 with the launcher visible' );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
+jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
+check( 3 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'], 'R96 saving another settings section cannot skip the legacy launcher migration' );
+update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
 check( 'tel:+989120902336' === $r94_contact['tel'] && 'Asia/Tehran' === $r94_contact['timezone'] && in_array( 5, $r94_contact['hours']['closedDays'], true ), 'R94 contact data exposes a normalized phone link and Tehran-Friday schedule without API credentials' );

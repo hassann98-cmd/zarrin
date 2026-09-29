@@ -75,6 +75,9 @@ function jluxe_handle_import(): ?string {
 		return 'import_error';
 	}
 	$incoming = $version < 2 ? jluxe_migrate_settings_v2( $data['settings'] ) : $data['settings'];
+	if ( $version < 3 ) {
+		$incoming = jluxe_migrate_settings_v3( $incoming );
+	}
 	try {
 		$clean = jluxe_sanitize_settings_payload( $incoming, jluxe_get_theme_settings() );
 	} catch ( Throwable $error ) {

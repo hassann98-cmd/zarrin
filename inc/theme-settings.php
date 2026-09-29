@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 2;
+const JLUXE_SETTINGS_VERSION = 3;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -608,8 +608,8 @@ function jluxe_theme_settings_defaults(): array {
 			'avatar_id'        => 0,
 			'button_id'        => 0,
 			'show_desktop'     => true,
-			'show_mobile'      => true, // R94 — مقدارِ legacy؛ گزینهٔ hide_mobile_launcher کنترلِ جدید است.
-			'hide_mobile_launcher' => true,
+			'show_mobile'      => true, // legacy
+			'hide_mobile_launcher' => false, // R96 — launcher موبایل پیش‌فرض دیده می‌شود؛ مخفی‌سازی اختیاری است.
 			'provider'         => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی.
 			'base_url'         => '', // خالی = آدرس رسمی provider؛ برای providerهای سازگار با OpenAI (مثلاً پروکسی داخلی) قابل بازنویسیه.
 			'model'            => '',
@@ -874,9 +874,16 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 		$stored = array();
 	}
 
-	if ( ! empty( $stored ) && (int) ( $stored['version'] ?? 1 ) < 2 ) {
+	$stored_version = (int) ( $stored['version'] ?? 1 );
+	if ( ! empty( $stored ) && $stored_version < 2 ) {
 		$stored             = jluxe_migrate_settings_v2( $stored );
 		$stored['version']  = 2;
+		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+		$stored_version     = 2;
+	}
+	if ( ! empty( $stored ) && $stored_version < 3 ) {
+		$stored             = jluxe_migrate_settings_v3( $stored );
+		$stored['version']  = 3;
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
@@ -908,6 +915,19 @@ function jluxe_migrate_settings_v2( array $settings ): array {
 			}
 		}
 	);
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ نسخهٔ ۲→۳: launcher موبایل از این نسخه به‌طورِ پیش‌فرض
+ * قابلِ‌مشاهده است. مقدارِ true در تنظیماتِ قبلی، پیش‌فرضِ قدیمیِ پوسته بود
+ * و نباید پس از ارتقا همچنان آیکون را پنهان کند؛ امکانِ پنهان‌سازیِ دستی
+ * بعد از این مهاجرت از پنل باقی می‌ماند.
+ */
+function jluxe_migrate_settings_v3( array $settings ): array {
+	if ( isset( $settings['ai_assistant'] ) && is_array( $settings['ai_assistant'] ) ) {
+		$settings['ai_assistant']['hide_mobile_launcher'] = false;
+	}
 	return $settings;
 }
 
@@ -2025,6 +2045,7 @@ function jluxe_set_ai_api_key( string $key ): void {
  */
 function jluxe_get_ai_public_settings(): array {
 	$ai = jluxe_get_theme_settings()['ai_assistant'];
+	$ticket_form_enabled = ! empty( $ai['widgets']['support_ticket'] );
 	return array(
 		'enabled'            => (bool) $ai['enabled'] && '' !== jluxe_get_ai_api_key(),
 		'name'               => $ai['name'],
@@ -2049,10 +2070,12 @@ function jluxe_get_ai_public_settings(): array {
 		'borderRadius'       => (int) $ai['border_radius'],
 		'handoffWhatsapp'    => $ai['handoff_whatsapp'],
 		'handoffTelegram'    => $ai['handoff_telegram'],
-		'handoffFormUrl'     => $ai['handoff_form_url'],
+		// وقتی فرمِ داخلی روشن است، URL بیرونی را اصلاً به مرورگر نده؛ این کار
+		// مانعِ نمایشِ اشتباهیِ صفحهٔ راهنما به‌جای فرمِ پشتیبانی می‌شود.
+		'handoffFormUrl'     => $ticket_form_enabled ? '' : $ai['handoff_form_url'],
 		'widgets'            => $ai['widgets'],
 		// «ثبت پیام برای پشتیبان» — از همون سوییچِ از قبل موجودِ widgets.support_ticket.
-		'enableTicketForm'   => ! empty( $ai['widgets']['support_ticket'] ),
+		'enableTicketForm'   => $ticket_form_enabled,
 		// R94 — دکمه‌های تماسِ داخلِ پاسخ، ساعتِ پاسخگویی و نقطهٔ شکستِ موبایل.
 		'mobileBreakpoint'   => (int) ( $ai['mobile_breakpoint'] ?? 820 ),
 		'contact'            => function_exists( 'jluxe_ai_public_contact' ) ? jluxe_ai_public_contact( $ai ) : array(),

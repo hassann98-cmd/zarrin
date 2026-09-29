@@ -430,8 +430,17 @@ function jluxe_handle_guide_pages_combined_save(): ?string {
  * استفاده می‌کنن.
  */
 function jluxe_update_settings_section( string $section_key, array $section_value ): void {
-	$stored                  = get_option( JLUXE_SETTINGS_OPTION, array() );
-	$stored                  = is_array( $stored ) ? $stored : array();
+	$stored = get_option( JLUXE_SETTINGS_OPTION, array() );
+	$stored = is_array( $stored ) ? $stored : array();
+	if ( ! empty( $stored ) ) {
+		$stored_version = (int) ( $stored['version'] ?? 1 );
+		if ( $stored_version < 2 ) {
+			$stored = jluxe_migrate_settings_v2( $stored );
+		}
+		if ( $stored_version < 3 ) {
+			$stored = jluxe_migrate_settings_v3( $stored );
+		}
+	}
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
@@ -458,7 +467,9 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
  */
 function jluxe_get_fresh_settings(): array {
 	wp_cache_delete( 'alloptions', 'options' );
-	return jluxe_array_merge_deep( jluxe_theme_settings_defaults(), get_option( JLUXE_SETTINGS_OPTION, array() ) );
+	// مسیرِ خواندنِ معمولی هم مهاجرت‌های نسخهٔ تنظیمات را اجرا می‌کند؛
+	// admin form نباید با merge مستقیم، مقدارِ قدیمی را دوباره زنده کند.
+	return jluxe_get_theme_settings( true );
 }
 
 require_once __DIR__ . '/theme-settings-render.php';

@@ -891,7 +891,7 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'button_id'        => isset( $posted['button_id'] ) ? absint( $posted['button_id'] ) : 0,
 		'show_desktop'     => ! empty( $posted['show_desktop'] ),
 		'show_mobile'      => ! empty( $posted['show_mobile'] ), // legacy
-		'hide_mobile_launcher' => isset( $posted['hide_mobile_launcher'] ) ? ! empty( $posted['hide_mobile_launcher'] ) : (bool) ( $defaults['hide_mobile_launcher'] ?? true ),
+		'hide_mobile_launcher' => isset( $posted['hide_mobile_launcher'] ) ? ! empty( $posted['hide_mobile_launcher'] ) : (bool) ( $defaults['hide_mobile_launcher'] ?? false ),
 		'provider'         => in_array( $provider, array( '', 'openai', 'anthropic', 'gapgpt', 'custom' ), true ) ? $provider : '',
 		'base_url'         => isset( $posted['base_url'] ) ? esc_url_raw( trim( (string) $posted['base_url'] ) ) : '',
 		'model'            => isset( $posted['model'] ) ? sanitize_text_field( $posted['model'] ) : '',

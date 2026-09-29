@@ -93,8 +93,8 @@ function jluxe_render_ai_assistant_page(): void {
 						<label><input type="checkbox" name="ai_assistant[show_desktop]" value="1" <?php checked( $ai['show_desktop'] ); ?> /> نمایشِ دکمهٔ شناور در دسکتاپ</label>
 						<br />
 						<input type="hidden" name="ai_assistant[hide_mobile_launcher]" value="0" />
-						<label><input type="checkbox" name="ai_assistant[hide_mobile_launcher]" value="1" <?php checked( $ai['hide_mobile_launcher'] ?? true ); ?> /> پنهان‌کردنِ دکمهٔ شناور در موبایل</label>
-						<p class="description">پیش‌فرض دقیقاً مثلِ کدِ قبلی دکمهٔ شناورِ موبایل را پنهان می‌کند؛ گفتگو با لینکِ <code dir="ltr">#open-ai-assistant</code> از منو، فوتر، بنر یا هر دکمهٔ دلخواه همچنان باز می‌شود.</p>
+						<label><input type="checkbox" name="ai_assistant[hide_mobile_launcher]" value="1" <?php checked( $ai['hide_mobile_launcher'] ?? false ); ?> /> پنهان‌کردنِ دکمهٔ شناور در موبایل</label>
+						<p class="description">به‌طورِ پیش‌فرض آیکونِ دستیار در موبایل نمایش داده می‌شود؛ این گزینه فقط آن را پنهان می‌کند. لینکِ <code dir="ltr">#open-ai-assistant</code> از منو، فوتر، بنر یا هر دکمهٔ دلخواه همچنان گفتگو را باز می‌کند.</p>
 					</td>
 				</tr>
 				<tr>
@@ -387,7 +387,13 @@ function jluxe_render_ai_assistant_page(): void {
 			<table class="form-table" role="presentation">
 				<tr><th scope="row">WhatsApp</th><td><input type="url" dir="ltr" class="regular-text" name="ai_assistant[handoff_whatsapp]" value="<?php echo esc_attr( $ai['handoff_whatsapp'] ); ?>" placeholder="https://wa.me/98..." /></td></tr>
 				<tr><th scope="row">Telegram</th><td><input type="url" dir="ltr" class="regular-text" name="ai_assistant[handoff_telegram]" value="<?php echo esc_attr( $ai['handoff_telegram'] ); ?>" placeholder="https://t.me/..." /></td></tr>
-				<tr><th scope="row">فرم تماس (URL)</th><td><input type="url" dir="ltr" class="regular-text" name="ai_assistant[handoff_form_url]" value="<?php echo esc_attr( $ai['handoff_form_url'] ); ?>" /></td></tr>
+				<tr>
+					<th scope="row">فرم تماسِ بیرونی (URL، اختیاری)</th>
+					<td>
+						<input type="url" dir="ltr" class="regular-text" name="ai_assistant[handoff_form_url]" value="<?php echo esc_attr( $ai['handoff_form_url'] ); ?>" placeholder="https://example.com/contact/" />
+						<p class="description">این نشانی فقط وقتی استفاده می‌شود که ویجتِ «ثبت پیام برای پشتیبان» خاموش باشد؛ اگر فرمِ داخلی روشن است، گزینهٔ سربرگ همان فرمِ داخلِ چت است و این URL نادیده گرفته می‌شود. اینجا نشانیِ خودِ فرمِ تماس را بگذارید، نه صفحهٔ راهنما.</p>
+					</td>
+				</tr>
 			</table>
 
 			<h2>پیشرفته</h2>
@@ -675,8 +681,12 @@ function jluxe_ai_default_system_prompt( array $settings ): string {
 	if ( ! empty( $settings['handoff_telegram'] ) ) {
 		$handoff_links[] = '[تلگرام](' . esc_url_raw( $settings['handoff_telegram'] ) . ')';
 	}
-	if ( ! empty( $settings['handoff_form_url'] ) ) {
-		$handoff_links[] = '[فرم تماس](' . esc_url_raw( $settings['handoff_form_url'] ) . ')';
+	$ticket_form_enabled = ! empty( $settings['widgets']['support_ticket'] );
+	if ( ! $ticket_form_enabled && ! empty( $settings['handoff_form_url'] ) ) {
+		$handoff_links[] = '[فرم تماسِ وب‌سایت](' . esc_url_raw( $settings['handoff_form_url'] ) . ')';
+	}
+	if ( $ticket_form_enabled ) {
+		$support .= "\n- برای ثبتِ پیام، کاربر را به آیکونِ پشتیبانی در سربرگِ همین گفتگو و گزینهٔ «فرم تماس با پشتیبانی» راهنمایی کن؛ لینکِ صفحهٔ راهنما یا URL دیگری را به‌جایِ فرم نساز.";
 	}
 	if ( ! empty( $handoff_links ) ) {
 		$support .= "\n- اگر کاربر صراحتاً خواست با پشتیبانی انسانی صحبت کنه، این لینک‌ها رو دقیقاً با همین فرمت مارک‌داون `[نام](URL)` پیشنهاد بده: " . implode( ' ', $handoff_links ) . '.';
