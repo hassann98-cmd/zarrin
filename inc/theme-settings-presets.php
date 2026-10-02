@@ -59,6 +59,22 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.65),
 		),
+		/*
+		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
+		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
+		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
+		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
+		 */
+		'jluxe_brand_red' => array(
+			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
+			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
+			'colors' => array(
+				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
 		'emerald_modern' => array(
 			'label' => 'زمردی مدرن',
 			'description' => 'سبز زمردی، سرمه‌ای و طلایی ملایم؛ متفاوت، باوقار و مناسب برندهای خانه و جواهر.',

@@ -1,0 +1,188 @@
+import { siteUrl } from "../lib/api.js";
+import {
+  isMobileNavItemActive as matchesCurrentRoute,
+  mobileNavContainerStyle,
+} from "../lib/mobile-navigation.js";
+import { j as r } from "../lib/jsx.js";
+import { r as a } from "../lib/icons.js";
+import { c as l } from "../lib/utils.js";
+import { g as d } from "../lib/theme-settings.js";
+import { u as N } from "../lib/use-cart.js";
+import { N as _, H as A } from "../components/nav-icons.js";
+import "../icons/grid-2x2.js";
+import "../icons/shopping-cart.js";
+import "../icons/heart.js";
+import "../icons/user.js";
+import "../icons/shield-check.js";
+import "../icons/phone.js";
+import "../icons/truck.js";
+import "../icons/tag.js";
+const m = {
+    track: { href: siteUrl("track_order") },
+    shop: { href: siteUrl("shop"), opensDrawer: "categories" },
+    home: { href: siteUrl("home") },
+    account: { href: siteUrl("dashboard") },
+    cart: { href: siteUrl("cart"), opensDrawer: "cart" },
+  },
+  I = [
+    { id: "track", label: "پیگیری سفارش", icon: "package", enabled: !0 },
+    { id: "shop", label: "دسته‌بندی‌ها", icon: "grid", enabled: !0 },
+    { id: "home", label: "خانه", icon: "home", enabled: !0 },
+    { id: "account", label: "حساب", icon: "user", enabled: !0 },
+    { id: "cart", label: "سبد", icon: "cart", enabled: !0 },
+  ];
+function R() {
+  var i, s;
+  const { snapshot: u } = N(),
+    n = u.itemCount,
+    [p, f] = a.useState(typeof window < "u" ? window.location.href : "/"),
+    [x, b] = a.useState(
+      () =>
+        typeof document < "u" &&
+        !!document.querySelector("[data-jluxe-mobile-price-bar]"),
+    );
+  a.useEffect(() => {
+    function e() {
+      b((t) => !t);
+    }
+    return (
+      window.addEventListener("jluxe:toggle-mobile-bar", e),
+      () => window.removeEventListener("jluxe:toggle-mobile-bar", e)
+    );
+  }, []);
+  a.useEffect(() => {
+    function syncPath() {
+      f(window.location.href);
+    }
+    window.addEventListener("popstate", syncPath);
+    return () => window.removeEventListener("popstate", syncPath);
+  }, []);
+  const h = ((i = d().mobile) == null ? void 0 : i.nav_items) ?? I,
+    g = ((s = d().auth) == null ? void 0 : s.isLoggedIn) ?? !1,
+    v = h
+      .filter((e) => e.enabled && m[e.id])
+      .map((e) => ({
+        ...e,
+        label: e.id === "account" ? (g ? e.label : "ورود") : e.label,
+        ...m[e.id],
+        href:
+          e.id === "account"
+            ? siteUrl(g ? "dashboard" : "login")
+            : m[e.id].href,
+      })),
+    S = d().mobile?.nav_style ?? {},
+    k = {
+      background: S.background ?? "#fff",
+      active: S.active_color ?? "#087A68",
+      icon: S.icon_color ?? "#667085",
+      iconBg: S.icon_bg ?? "#f5f7f8",
+      activeBg: S.active_bg ?? "#e8f4f1",
+      radius: S.radius ?? "22",
+      height: S.height ?? "68",
+    },
+    C =
+      S.shadow === "none"
+        ? "none"
+        : S.shadow === "strong"
+          ? "0 -10px 30px -8px rgba(0,0,0,.20)"
+          : S.shadow === "soft"
+            ? "0 -5px 18px -7px rgba(0,0,0,.10)"
+            : "0 -7px 24px -7px rgba(0,0,0,.15)",
+    T = {
+      backgroundColor: k.background,
+      borderRadius: k.radius + "px " + k.radius + "px 0 0",
+      boxShadow: C,
+      color: k.icon,
+      backdropFilter: S.blur === false ? "none" : "blur(14px)",
+      WebkitBackdropFilter: S.blur === false ? "none" : "blur(14px)",
+      ...mobileNavContainerStyle(k.height),
+    },
+    O = {
+      position: "absolute",
+      insetInlineStart: 0,
+      insetInlineEnd: 0,
+      bottom: "100%",
+      height: "1px",
+      background:
+        "linear-gradient(90deg,transparent, " + k.active + ", transparent)",
+      opacity: 0.18,
+    };
+  return x
+    ? null
+    : r.jsx("nav", {
+        className:
+          "jluxe-mobile-nav fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
+        style: T,
+        "aria-label": "ناوبری موبایل",
+        "data-jluxe-mobile-nav-dock": "",
+        children: [
+          r.jsx("span", { key: "accent-rule", style: O, "aria-hidden": !0 }),
+          v.map(({ id: e, href: t, label: j, icon: w, opensDrawer: c }) => {
+            const o = matchesCurrentRoute(p, t, e),
+              y = _[w] ?? A;
+            return r.jsxs(
+              "a",
+              {
+                href: t,
+                onClick: (E) => {
+                  if (c) {
+                    (E.preventDefault(),
+                      window.dispatchEvent(
+                        new CustomEvent(
+                          c === "cart"
+                            ? "jluxe:open-cart"
+                            : "jluxe:open-categories",
+                        ),
+                      ));
+                    return;
+                  }
+                  f(t);
+                },
+                className:
+                  "jluxe-mobile-nav-item relative flex flex-1 flex-col items-center justify-center gap-1 pt-1 text-[10.5px] font-medium",
+                style: {
+                  color: o ? k.active : k.icon,
+                  transition:
+                    S.animate === false
+                      ? "none"
+                      : "color 220ms ease,transform 180ms ease",
+                },
+                "aria-current": o ? "page" : void 0,
+                children: [
+                  r.jsxs("span", {
+                    className:
+                      "jluxe-mobile-nav-icon relative flex size-10 items-center justify-center rounded-[15px]",
+                    style: {
+                      backgroundColor: o ? k.activeBg : k.iconBg,
+                      color: o ? k.active : k.icon,
+                      boxShadow: o
+                        ? "0 5px 14px -8px " + k.active
+                        : "0 2px 10px -8px rgba(16,24,40,.18)",
+                      transform: o ? "translateY(-2px)" : "translateY(0)",
+                      transition:
+                        S.animate === false ? "none" : "all 220ms ease",
+                    },
+                    ...(e === "cart"
+                      ? { "data-jluxe-cart-icon-mobile": "" }
+                      : {}),
+                    children: [
+                      r.jsx(y, { className: "size-[21px]", "aria-hidden": !0 }),
+                      e === "cart" && n > 0
+                        ? r.jsx("span", {
+                            className:
+                              "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-accent-hover text-[10px] font-bold text-accent-foreground shadow-md",
+                            children: n,
+                          })
+                        : null,
+                    ],
+                  }),
+                  r.jsx("span", { className: "leading-none", children: j }),
+                ],
+              },
+              e,
+            );
+          }),
+        ],
+      });
+}
+export { R as default };

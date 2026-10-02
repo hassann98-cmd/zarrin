@@ -12,22 +12,28 @@ const JLUXE_SETTINGS_MENU_SLUG = 'jluxe-theme-settings';
 
 /**
  * نگاشت slug صفحه → [کلید تنظیمات، تابع sanitize]. صفحاتی که این‌جا
- * نیستن (dashboard, homepage, ai-assistant, import-export, advanced)
+ * نیستن (dashboard, import-export, advanced)
  * منطق ذخیره‌ی مخصوص خودشون رو دارن (چون ساختارشون ساده‌ی «یک آرایه‌ی
  * تخت» نیست).
  */
 function jluxe_settings_sections_map(): array {
 	return array(
+		'jluxe-ai-assistant' => array( 'ai_assistant', 'jluxe_sanitize_ai_assistant' ),
+		'jluxe-ai-comments' => array( 'ai_comments', 'jluxe_sanitize_ai_comments' ),
+		'jluxe-sms' => array( 'sms', 'jluxe_sanitize_sms' ),
 		'jluxe-colors'        => array( 'colors', 'jluxe_sanitize_colors' ),
 		'jluxe-identity'      => array( 'identity', 'jluxe_sanitize_identity' ),
 		'jluxe-urls'          => array( 'urls', 'jluxe_sanitize_urls' ),
 		'jluxe-typography'    => array( 'typography', 'jluxe_sanitize_typography' ),
 		'jluxe-header'        => array( 'header', 'jluxe_sanitize_header' ),
+		'jluxe-announcement'  => array( 'announcement_bar', 'jluxe_sanitize_announcement_bar' ),
 		'jluxe-header-nav'    => array( 'header_nav', 'jluxe_sanitize_header_nav' ),
 		'jluxe-footer'        => array( 'footer', 'jluxe_sanitize_footer' ),
 		'jluxe-product-card'  => array( 'product_card', 'jluxe_sanitize_product_card' ),
 		'jluxe-product-page'  => array( 'product_page', 'jluxe_sanitize_product_page' ),
 		'jluxe-shop'          => array( 'shop', 'jluxe_sanitize_shop' ),
+		'jluxe-categories-page' => array( 'categories_page', 'jluxe_sanitize_categories_page' ),
+		'jluxe-purchase-addons' => array( 'purchase_addons', 'jluxe_sanitize_purchase_addons' ),
 		'jluxe-mobile'        => array( 'mobile', 'jluxe_sanitize_mobile' ),
 		'jluxe-contact'       => array( 'contact', 'jluxe_sanitize_contact' ),
 		'jluxe-social'        => array( 'social', 'jluxe_sanitize_social' ),
@@ -60,6 +66,7 @@ function jluxe_register_settings_menu(): void {
 		'jluxe-identity'          => array( 'هویت سایت', 'jluxe_render_identity_page' ),
 		'jluxe-urls'              => array( 'آدرس‌های ورود و کاربر', 'jluxe_render_urls_page' ),
 		'jluxe-header'            => array( 'هدر', 'jluxe_render_header_page' ),
+		'jluxe-announcement'      => array( 'نوار اطلاع‌رسانی', 'jluxe_render_announcement_page' ),
 		'jluxe-header-nav'        => array( 'منوی هدر', 'jluxe_render_header_nav_page' ),
 		'jluxe-footer'            => array( 'فوتر', 'jluxe_render_footer_page' ),
 		'jluxe-colors'            => array( 'رنگ و ظاهر', 'jluxe_render_colors_page' ),
@@ -69,7 +76,11 @@ function jluxe_register_settings_menu(): void {
 		'jluxe-product-page'      => array( 'صفحه محصول', 'jluxe_render_product_page_page' ),
 		'jluxe-product'           => array( 'محصول', 'jluxe_render_product_page' ),
 		'jluxe-shop'              => array( 'فروشگاه و دسته‌بندی', 'jluxe_render_shop_page' ),
+		'jluxe-categories-page'   => array( 'صفحهٔ دسته‌بندی‌ها', 'jluxe_render_categories_page_settings' ),
+		'jluxe-purchase-addons'   => array( 'پیشنهادهای پس از خرید', 'jluxe_render_purchase_addons_page' ),
+		'jluxe-site-diagnosis'    => array( 'تشخیص سایت', 'jluxe_render_site_diagnosis_page' ),
 		'jluxe-ai-assistant'      => array( 'دستیار هوش مصنوعی', 'jluxe_render_ai_assistant_page' ),
+		'jluxe-ai-comments'       => array( 'دیدگاه‌ها (AI)', 'jluxe_render_ai_comments_page' ),
 		'jluxe-ai-tickets'        => array( 'گزارش‌های دستیار', 'jluxe_render_ai_tickets_page' ),
 		'jluxe-sms'               => array( 'ورود با پیامک (OTP)', 'jluxe_render_sms_page' ),
 		'jluxe-mobile'            => array( 'موبایل', 'jluxe_render_mobile_page' ),
@@ -215,6 +226,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return null;
 	}
 	[ $section_key, $sanitize_fn ] = $map[ $page_slug ];
+	if ( 'custom_code' === $section_key && ! current_user_can( 'unfiltered_html' ) ) {
+		return 'error';
+	}
 	$defaults = jluxe_theme_settings_defaults();
 
 	if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -222,6 +236,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return 'reset';
 	}
 
+	if ( isset( $_POST[ $section_key ] ) && ! is_array( $_POST[ $section_key ] ) ) {
+		return 'error';
+	}
 	$posted = wp_unslash( $_POST[ $section_key ] ?? array() );
 	$clean  = call_user_func( $sanitize_fn, $posted, $defaults[ $section_key ] );
 
@@ -415,16 +432,34 @@ function jluxe_handle_guide_pages_combined_save(): ?string {
  * استفاده می‌کنن.
  */
 function jluxe_update_settings_section( string $section_key, array $section_value ): void {
-	$stored                  = get_option( JLUXE_SETTINGS_OPTION, array() );
-	$stored                  = is_array( $stored ) ? $stored : array();
+	$stored = get_option( JLUXE_SETTINGS_OPTION, array() );
+	$stored = is_array( $stored ) ? $stored : array();
+	if ( ! empty( $stored ) ) {
+		$stored_version = (int) ( $stored['version'] ?? 1 );
+		if ( $stored_version < 2 ) {
+			$stored = jluxe_migrate_settings_v2( $stored );
+		}
+		if ( $stored_version < 3 ) {
+			$stored = jluxe_migrate_settings_v3( $stored );
+		}
+	}
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
 		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );
+	}
+
+	// اثرهای جانبیِ سکشن‌محور بعد از ذخیرهٔ موفق اجرا می‌شن — نه داخل
+	// sanitizer، چون reset و ذخیرهٔ دستی هم باید از این مسیر رد بشن
+	// (همون الگوی sync بنرهای homepage؛ برای «AI دیدگاه‌ها» ثبت/پاک‌کردن
+	// رویداد Cron این‌جا تضمین می‌شه).
+	if ( 'ai_comments' === $section_key && function_exists( 'jluxe_ai_comments_schedule' ) ) {
+		jluxe_ai_comments_schedule();
 	}
 }
 
@@ -434,7 +469,9 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
  */
 function jluxe_get_fresh_settings(): array {
 	wp_cache_delete( 'alloptions', 'options' );
-	return jluxe_array_merge_deep( jluxe_theme_settings_defaults(), get_option( JLUXE_SETTINGS_OPTION, array() ) );
+	// مسیرِ خواندنِ معمولی هم مهاجرت‌های نسخهٔ تنظیمات را اجرا می‌کند؛
+	// admin form نباید با merge مستقیم، مقدارِ قدیمی را دوباره زنده کند.
+	return jluxe_get_theme_settings( true );
 }
 
 require_once __DIR__ . '/theme-settings-render.php';

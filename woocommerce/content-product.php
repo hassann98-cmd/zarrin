@@ -2,11 +2,13 @@
 /**
  * کارت محصول در گرید (آرشیو فروشگاه + محصولات مرتبط + صفحه اصلی). طراحی
  * دقیقاً مطابق نمونه‌ی HTML/عکسِ ارسالیِ کاربر (باکس تصویر با پس‌زمینه‌ی
- * خاکستری روشن + object-contain، بج تخفیف/موجودی، ردیف امتیاز، دکمه‌ی
- * دایره‌ای افزودن سریع کنار قیمت) — با این تفاوت که گالریِ تامبنیلِ هاور
- * (نمایش عکس‌های دیگر محصول با هاور/لمس‌طولانی، قبلاً به‌درخواستِ صریحِ
+ * خاکستری روشن + object-contain، بج تخفیف/موجودی، ردیف عنوان/امتیاز و
+ * CTA سریع (دکمهٔ + آیکونیِ فشرده در همهٔ اندازه‌ها) — با حفظ گالریِ
+ * تامبنیلِ هاور (نمایش عکس‌های دیگر با هاور/لمس‌طولانی، قبلاً به‌درخواستِ صریحِ
  * کاربر ساخته شده) عمداً حفظ و روی همین طراحیِ جدید سوار شده — چیزی از
  * قبل حذف نشده.
+
+ * @version 9.4.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -210,46 +212,47 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 	</div>
 
 	<div class="flex flex-1 flex-col px-3 pb-3 md:px-4 md:pb-4">
-		<?php
-		// این ردیف همیشه رندر می‌شه (حتی بدون امتیاز) تا ارتفاعش برای همه‌ی
-		// کارت‌های یک ردیف گرید یکسان بمونه؛ وقتی امتیازی نیست با invisible
-		// فقط از دید مخفی می‌شه ولی جای خودش رو نگه می‌داره.
-		$jluxe_show_rating_row = $jluxe_show_rating && $review_count > 0;
-		?>
-		<div class="mb-1.5 flex min-h-[16px] items-center gap-1<?php echo $jluxe_show_rating_row ? '' : ' invisible'; ?>">
-			<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<span class="text-[10px] text-text-muted"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?></span>
-		</div>
-
-		<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="mb-3 min-h-[40px] text-[13px] leading-5 line-clamp-2 break-words text-text-secondary hover:text-primary">
+		<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="jluxe-product-card-title min-h-[40px] text-[13px] leading-5 line-clamp-2 break-words text-text-secondary hover:text-primary">
 			<?php echo esc_html( $product->get_name() ); ?>
 		</a>
 
-		<div class="mt-auto flex items-end justify-between gap-2">
+		<?php
+		// عنوان پیش از امتیاز می‌آید تا کارت در اسکن سریع، اول خود محصول را
+		// معرفی کند. ردیف امتیاز همیشه ارتفاع ثابت دارد تا کارت‌های گرید
+		// هم‌تراز بمانند؛ اگر امتیازی نیست فقط از دید مخفی می‌شود.
+		$jluxe_show_rating_row = $jluxe_show_rating && $review_count > 0;
+		?>
+		<div class="mb-3 mt-1 flex min-h-[16px] items-center gap-1<?php echo $jluxe_show_rating_row ? '' : ' invisible'; ?>" role="img" aria-label="<?php echo esc_attr( sprintf( 'امتیاز %s از ۵ بر اساس %s دیدگاه', jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ), jluxe_fa_digits( $review_count ) ) ); ?>">
+			<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<span aria-hidden="true" class="text-[10px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ) ); ?></span>
+			<span aria-hidden="true" class="text-[10px] text-text-muted">(<?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?>)</span>
+		</div>
+
+		<div class="jluxe-product-card-footer">
+			<div class="jluxe-product-card-price">
+				<span class="jluxe-product-card-current-price text-[14px] font-semibold text-foreground md:text-[15px]"<?php echo $jluxe_price_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo wp_kses_post( wc_price( $has_discount ? $sale_price : ( $is_variable ? $product->get_variation_price( 'min' ) : $regular_price ) ) ); ?></span>
+				<?php if ( $has_discount ) : ?>
+					<del class="jluxe-product-card-old-price text-[11px] text-text-muted line-through"><?php echo wp_kses_post( wc_price( $regular_price ) ); ?></del>
+				<?php endif; ?>
+			</div>
+
 			<?php
 			/*
-			 * دکمه‌ی دایره‌ای افزودن سریع — مطابق نمونه‌ی ارسالی، همیشه دیده
-			 * می‌شه (نه فقط روی هاور). برای محصولِ متغیر data-jluxe-quick-variant
-			 * می‌ذاریم تا assets/js/woocommerce.js کلیک رو بگیره و مودالِ
-			 * انتخاب سریعِ تنوع (inc/cart-ux.php: jluxe_ajax_variation_picker)
-			 * رو باز کنه؛ برای محصول ساده مستقیم AJAX add-to-cart واقعیِ خودِ
-			 * ووکامرس (کلاس‌های ajax_add_to_cart/add_to_cart_button).
+			 * CTA در همهٔ اندازه‌ها دکمهٔ + فشرده است؛ زمینهٔ تیره در hover/press
+			 * به رنگ اصلی فروشگاه درمی‌آید و آیکون می‌چرخد. aria-label نامِ
+			 * دسترس‌پذیر را می‌دهد؛ تنوع quick-pick و افزودنِ AJAX دست‌نخورده‌اند.
 			 */
 			?>
 			<a
 				href="<?php echo esc_url( $out_of_stock || $is_variable ? get_permalink( $product->get_id() ) : $product->add_to_cart_url() ); ?>"
 				aria-label="<?php echo esc_attr( $out_of_stock ? 'ناموجود' : ( $is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد خرید' ) ); ?>"
 				data-product_id="<?php echo esc_attr( $product->get_id() ); ?>"
+				<?php echo ( $is_variable && ! $out_of_stock ) ? '' : 'data-quantity="1"'; ?>
 				<?php echo ( $is_variable && ! $out_of_stock ) ? 'data-jluxe-quick-variant="' . esc_attr( $product->get_id() ) . '"' : ''; ?>
-				class="group/btn flex size-9 md:size-10 shrink-0 items-center justify-center rounded-2xl text-button font-medium transition-all duration-300 active:scale-90 <?php echo $out_of_stock ? 'bg-muted text-muted-foreground opacity-50' : ( $is_variable ? 'bg-foreground text-surface hover:bg-primary' : 'ajax_add_to_cart add_to_cart_button bg-foreground text-surface hover:bg-primary' ); ?>"
+				class="jluxe-product-card-cta product_type_<?php echo esc_attr( $is_variable ? 'variable' : 'simple' ); ?> <?php echo $out_of_stock ? 'is-unavailable' : 'is-available'; ?> <?php echo ( ! $is_variable && ! $out_of_stock ) ? 'ajax_add_to_cart add_to_cart_button' : ''; ?>"
 			>
-				<svg class="size-4 transition-transform duration-300 group-hover/btn:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+				<svg class="jluxe-product-card-cta-icon size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
 			</a>
-
-			<div class="flex flex-col items-end gap-0">
-				<span class="text-[11px] text-text-muted line-through<?php echo $has_discount ? '' : ' invisible'; ?>"><?php echo wp_kses_post( wc_price( $regular_price ) ); ?></span>
-				<span class="text-[14px] md:text-[15px] font-semibold text-foreground"<?php echo $jluxe_price_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo wp_kses_post( wc_price( $has_discount ? $sale_price : ( $is_variable ? $product->get_variation_price( 'min' ) : $regular_price ) ) ); ?></span>
-			</div>
 		</div>
 	</div>
 </li>

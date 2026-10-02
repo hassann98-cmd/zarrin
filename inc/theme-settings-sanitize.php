@@ -8,6 +8,36 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** All sanitizers accept UNSLASHED values. Only HTTP form handlers call wp_unslash(). */
+function jluxe_settings_sanitizers(): array {
+	$schema = array();
+	foreach ( jluxe_settings_sections_map() as $section ) {
+		$schema[ $section[0] ] = $section[1];
+	}
+	return $schema;
+}
+
+/** A missing section in an older backup is preserved, not silently reset. */
+function jluxe_sanitize_settings_payload( array $incoming, array $current ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	$clean = array( 'version' => JLUXE_SETTINGS_VERSION );
+	foreach ( jluxe_settings_sanitizers() as $key => $sanitize ) {
+		if ( ! array_key_exists( $key, $incoming ) ) {
+			$clean[ $key ] = $current[ $key ] ?? $defaults[ $key ];
+			continue;
+		}
+		if ( ! is_array( $incoming[ $key ] ) ) {
+			throw new InvalidArgumentException( 'Invalid settings section: ' . $key );
+		}
+		$clean[ $key ] = $sanitize( $incoming[ $key ], $defaults[ $key ] );
+		if ( 'custom_code' === $key && ! current_user_can( 'unfiltered_html' ) && $clean[ $key ] !== ( $current[ $key ] ?? $defaults[ $key ] ) ) {
+			throw new InvalidArgumentException( 'Changing custom code requires unfiltered_html.' );
+		}
+	}
+	return $clean;
+}
+
+
 /**
  * پاک‌سازیِ SVG سفارشی — طبق درخواستِ کاربر («برای هر آیتم بشه یک آیکونِ
  * SVG دلخواه تعریف کرد») علاوه‌بر مجموعه‌ی ثابتِ jluxe_nav_icon_options()
@@ -102,8 +132,16 @@ function jluxe_sanitize_typography( array $posted, array $defaults ): array {
 }
 
 function jluxe_sanitize_header( array $posted, array $defaults ): array {
+	$search_placeholder = isset( $posted['search_placeholder'] ) && is_scalar( $posted['search_placeholder'] )
+		? sanitize_text_field( (string) $posted['search_placeholder'] )
+		: (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
+	if ( '' === trim( $search_placeholder ) ) {
+		$search_placeholder = (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
+	}
+
 	return array(
 		'sticky'               => ! empty( $posted['sticky'] ),
+		'search_placeholder'   => $search_placeholder,
 		// نمایش/عدم‌نمایش هر آیتم حالا مستقل برای موبایل و دسکتاپه (قبلاً
 		// یک تیک مشترک هر دو حالت رو کنترل می‌کرد — درخواست واقعی: بشه مثلاً
 		// آیکون سبد رو فقط از نوار پایین موبایل حذف کرد ولی توی دسکتاپ نگه داشت).
@@ -113,6 +151,61 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
 		'show_account_mobile'  => ! empty( $posted['show_account_mobile'] ),
 		'show_cart_desktop'    => ! empty( $posted['show_cart_desktop'] ),
 		'show_cart_mobile'     => ! empty( $posted['show_cart_mobile'] ),
+	);
+}
+
+/**
+ * اعلانِ بالای سایت — متنِ ساده یا شناسهٔ attachment تصویر، و لینکِ امنِ داخلی
+ * یا HTTP(S) ذخیره شود؛ هیچ HTML یا scheme اجرایی از تنظیماتِ ادمین به صفحهٔ عمومی راه پیدا نکند.
+ */
+function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): array {
+	$message_raw   = isset( $posted['message'] ) && is_scalar( $posted['message'] ) ? (string) $posted['message'] : '';
+	$link_text_raw = isset( $posted['link_text'] ) && is_scalar( $posted['link_text'] ) ? (string) $posted['link_text'] : '';
+	$link_url_raw  = isset( $posted['link_url'] ) && is_scalar( $posted['link_url'] ) ? trim( (string) $posted['link_url'] ) : '';
+	$link_url      = '' !== $link_url_raw ? esc_url_raw( $link_url_raw ) : '';
+	$has_invalid_url_characters = '' !== $link_url && (
+		false !== strpos( $link_url, chr( 39 ) ) ||
+		false !== strpos( $link_url, '"' ) ||
+		(bool) preg_match( '/[\x00-\x20<>\\\\]/', $link_url )
+	);
+	$is_relative   = '' !== $link_url && ! $has_invalid_url_characters && (bool) preg_match( '~^(?:/(?!/)[^\s]*|[?#][^\s]*)$~', $link_url );
+	$is_absolute   = '' !== $link_url && ! $has_invalid_url_characters && (bool) preg_match( '~^https?://[^/\s]+(?:[/\?#][^\s]*)?$~i', $link_url );
+	if ( ! $is_relative && ! $is_absolute ) {
+		$link_url = '';
+	}
+
+	$background_color = isset( $posted['background_color'] ) && is_scalar( $posted['background_color'] )
+		? sanitize_hex_color( (string) $posted['background_color'] )
+		: null;
+	$text_color = isset( $posted['text_color'] ) && is_scalar( $posted['text_color'] )
+		? sanitize_hex_color( (string) $posted['text_color'] )
+		: null;
+
+	$display_mode = isset( $posted['display_mode'] ) && is_scalar( $posted['display_mode'] )
+		? sanitize_key( (string) $posted['display_mode'] )
+		: ( $defaults['display_mode'] ?? 'text' );
+	if ( ! in_array( $display_mode, array( 'text', 'image' ), true ) ) {
+		$display_mode = 'text';
+	}
+	$image_id = isset( $posted['image_id'] ) && is_scalar( $posted['image_id'] )
+		? absint( $posted['image_id'] )
+		: absint( $defaults['image_id'] ?? 0 );
+	$image_alt_raw = isset( $posted['image_alt'] ) && is_scalar( $posted['image_alt'] )
+		? (string) $posted['image_alt']
+		: (string) ( $defaults['image_alt'] ?? '' );
+
+	return array(
+		'enabled'          => ! empty( $posted['enabled'] ),
+		'sticky'           => ! empty( $posted['sticky'] ),
+		'display_mode'     => $display_mode,
+		'message'          => sanitize_textarea_field( $message_raw ),
+		'image_id'         => $image_id,
+		'image_alt'        => sanitize_text_field( $image_alt_raw ),
+		'link_text'        => sanitize_text_field( $link_text_raw ),
+		'link_url'         => $link_url,
+		'dismissible'      => ! empty( $posted['dismissible'] ),
+		'background_color' => $background_color ?: $defaults['background_color'],
+		'text_color'       => $text_color ?: $defaults['text_color'],
 	);
 }
 
@@ -139,7 +232,7 @@ function jluxe_sanitize_header_nav( array $posted, array $defaults ): array {
 				'label' => $child_label,
 				'url'   => isset( $child['url'] ) ? sanitize_text_field( $child['url'] ) : '',
 				'icon'  => isset( $child['icon'] ) ? sanitize_key( $child['icon'] ) : '',
-				'svg'   => isset( $child['svg'] ) ? jluxe_sanitize_svg_markup( wp_unslash( $child['svg'] ) ) : '',
+				'svg'   => isset( $child['svg'] ) ? jluxe_sanitize_svg_markup( $child['svg'] ) : '',
 			);
 		}
 		// نوع خودکار از روی وجود زیرمنو تعیین می‌شه — نه یک فیلد جدا که می‌تونه
@@ -150,7 +243,7 @@ function jluxe_sanitize_header_nav( array $posted, array $defaults ): array {
 			'label'    => $label,
 			'url'      => isset( $item['url'] ) ? sanitize_text_field( $item['url'] ) : '',
 			'icon'     => isset( $item['icon'] ) ? sanitize_key( $item['icon'] ) : '',
-			'svg'      => isset( $item['svg'] ) ? jluxe_sanitize_svg_markup( wp_unslash( $item['svg'] ) ) : '',
+			'svg'      => isset( $item['svg'] ) ? jluxe_sanitize_svg_markup( $item['svg'] ) : '',
 			'children' => $children,
 		);
 	}
@@ -169,7 +262,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 		$feature_cards[] = array(
 			'enabled'  => ! empty( $posted['feature_cards'][ $i ]['enabled'] ),
 			'icon'     => in_array( $posted_icon, $jluxe_valid_feature_icons, true ) ? $posted_icon : $default_card['icon'],
-			'svg'      => isset( $posted['feature_cards'][ $i ]['svg'] ) ? jluxe_sanitize_svg_markup( wp_unslash( $posted['feature_cards'][ $i ]['svg'] ) ) : '',
+			'svg'      => isset( $posted['feature_cards'][ $i ]['svg'] ) ? jluxe_sanitize_svg_markup( $posted['feature_cards'][ $i ]['svg'] ) : '',
 			'title'    => isset( $posted['feature_cards'][ $i ]['title'] ) ? sanitize_text_field( $posted['feature_cards'][ $i ]['title'] ) : $default_card['title'],
 			'subtitle' => isset( $posted['feature_cards'][ $i ]['subtitle'] ) ? sanitize_text_field( $posted['feature_cards'][ $i ]['subtitle'] ) : $default_card['subtitle'],
 		);
@@ -201,7 +294,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 	if ( empty( $trust_badges_data ) ) {
 		$trust_badges_raw = $posted['trust_badges_json'] ?? '';
 		if ( is_string( $trust_badges_raw ) && '' !== trim( $trust_badges_raw ) ) {
-			$decoded = json_decode( wp_unslash( $trust_badges_raw ), true );
+			$decoded = json_decode( $trust_badges_raw, true );
 			if ( is_array( $decoded ) ) {
 				$trust_badges_data = $decoded;
 			}
@@ -240,6 +333,10 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 			'referrerpolicy' => true, 'crossorigin' => true, 'type' => true,
 		),
 	);
+	if ( ! current_user_can( 'unfiltered_html' ) ) {
+		unset( $allowed_badge_html['script'], $allowed_badge_html['a']['onclick'], $allowed_badge_html['img']['onclick'] );
+	}
+
 	$trust_badges = array();
 	foreach ( $trust_badges_data as $badge ) {
 		if ( ! is_array( $badge ) ) {
@@ -293,7 +390,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 				'label' => $link_label,
 				'url'   => isset( $link_in['url'] ) ? sanitize_text_field( $link_in['url'] ) : '',
 				'icon'  => isset( $link_in['icon'] ) ? sanitize_key( $link_in['icon'] ) : '',
-				'svg'   => isset( $link_in['svg'] ) ? jluxe_sanitize_svg_markup( wp_unslash( $link_in['svg'] ) ) : '',
+				'svg'   => isset( $link_in['svg'] ) ? jluxe_sanitize_svg_markup( $link_in['svg'] ) : '',
 			);
 		}
 		$link_columns[] = array(
@@ -370,12 +467,12 @@ function jluxe_sanitize_info_pages( array $posted, array $defaults ): array {
 		 * از wp_editor میاد، نه متنِ خام.
 		 */
 		if ( 'about' === $page_key ) {
-			$out[ $page_key ]['story_html']       = isset( $row['story_html'] ) ? wp_kses_post( wp_unslash( $row['story_html'] ) ) : ( $default_row['story_html'] ?? '' );
+			$out[ $page_key ]['story_html']       = isset( $row['story_html'] ) ? wp_kses_post( $row['story_html'] ) : ( $default_row['story_html'] ?? '' );
 			$out[ $page_key ]['cta_text']         = isset( $row['cta_text'] ) ? sanitize_text_field( $row['cta_text'] ) : ( $default_row['cta_text'] ?? '' );
 			$out[ $page_key ]['cta_button_text']  = isset( $row['cta_button_text'] ) ? sanitize_text_field( $row['cta_button_text'] ) : ( $default_row['cta_button_text'] ?? '' );
 			$out[ $page_key ]['cta_button_url']   = isset( $row['cta_button_url'] ) ? esc_url_raw( $row['cta_button_url'] ) : ( $default_row['cta_button_url'] ?? '' );
 			$out[ $page_key ]['cta_button_color'] = isset( $row['cta_button_color'] ) ? sanitize_hex_color( $row['cta_button_color'] ) ?? '' : ( $default_row['cta_button_color'] ?? '' );
-			$out[ $page_key ]['why_html'] = isset( $row['why_html'] ) ? wp_kses_post( wp_unslash( $row['why_html'] ) ) : ( $default_row['why_html'] ?? '' );
+			$out[ $page_key ]['why_html'] = isset( $row['why_html'] ) ? wp_kses_post( $row['why_html'] ) : ( $default_row['why_html'] ?? '' );
 		}
 	}
 	return $out;
@@ -397,13 +494,13 @@ function jluxe_sanitize_guide_pages( array $posted, array $defaults ): array {
 		// از همین تنظیمات خوانده می‌شود و HTML امنِ ادیتور حفظ می‌گردد.
 		if ( 'shopping_guide' === $page_key ) {
 			$clean = array(
-				'eyebrow'        => isset( $row['eyebrow'] ) ? sanitize_text_field( wp_unslash( $row['eyebrow'] ) ) : ( $default_row['eyebrow'] ?? '' ),
-				'title'          => isset( $row['title'] ) ? sanitize_text_field( wp_unslash( $row['title'] ) ) : ( $default_row['title'] ?? '' ),
-				'intro'          => isset( $row['intro'] ) ? sanitize_textarea_field( wp_unslash( $row['intro'] ) ) : ( $default_row['intro'] ?? '' ),
-				'button_text'    => isset( $row['button_text'] ) ? sanitize_text_field( wp_unslash( $row['button_text'] ) ) : ( $default_row['button_text'] ?? '' ),
+				'eyebrow'        => isset( $row['eyebrow'] ) ? sanitize_text_field( $row['eyebrow'] ) : ( $default_row['eyebrow'] ?? '' ),
+				'title'          => isset( $row['title'] ) ? sanitize_text_field( $row['title'] ) : ( $default_row['title'] ?? '' ),
+				'intro'          => isset( $row['intro'] ) ? sanitize_textarea_field( $row['intro'] ) : ( $default_row['intro'] ?? '' ),
+				'button_text'    => isset( $row['button_text'] ) ? sanitize_text_field( $row['button_text'] ) : ( $default_row['button_text'] ?? '' ),
 				'button_url'     => isset( $row['button_url'] ) ? esc_url_raw( $row['button_url'] ) : ( $default_row['button_url'] ?? '' ),
 				'button_color'   => isset( $row['button_color'] ) ? ( sanitize_hex_color( $row['button_color'] ) ?? '' ) : ( $default_row['button_color'] ?? '' ),
-				'body_html'      => isset( $row['body_html'] ) ? wp_kses_post( wp_unslash( $row['body_html'] ) ) : ( $default_row['body_html'] ?? '' ),
+				'body_html'      => isset( $row['body_html'] ) ? wp_kses_post( $row['body_html'] ) : ( $default_row['body_html'] ?? '' ),
 				'button_enabled' => ! empty( $row['button_enabled'] ),
 				'steps'          => array(),
 			);
@@ -413,11 +510,11 @@ function jluxe_sanitize_guide_pages( array $posted, array $defaults ): array {
 				$d = isset( $default_steps[ $i ] ) && is_array( $default_steps[ $i ] ) ? $default_steps[ $i ] : array();
 				$r = isset( $posted_steps[ $i ] ) && is_array( $posted_steps[ $i ] ) ? $posted_steps[ $i ] : array();
 				$clean['steps'][] = array(
-					'title'        => isset( $r['title'] ) ? sanitize_text_field( wp_unslash( $r['title'] ) ) : ( $d['title'] ?? '' ),
-					'content'      => isset( $r['content'] ) ? wp_kses_post( wp_unslash( $r['content'] ) ) : ( $d['content'] ?? '' ),
+					'title'        => isset( $r['title'] ) ? sanitize_text_field( $r['title'] ) : ( $d['title'] ?? '' ),
+					'content'      => isset( $r['content'] ) ? wp_kses_post( $r['content'] ) : ( $d['content'] ?? '' ),
 					'callout_type' => isset( $r['callout_type'] ) && in_array( $r['callout_type'], array( '', 'tip', 'note' ), true ) ? $r['callout_type'] : ( $d['callout_type'] ?? '' ),
-					'callout_title'=> isset( $r['callout_title'] ) ? sanitize_text_field( wp_unslash( $r['callout_title'] ) ) : ( $d['callout_title'] ?? '' ),
-					'callout_text' => isset( $r['callout_text'] ) ? sanitize_textarea_field( wp_unslash( $r['callout_text'] ) ) : ( $d['callout_text'] ?? '' ),
+					'callout_title'=> isset( $r['callout_title'] ) ? sanitize_text_field( $r['callout_title'] ) : ( $d['callout_title'] ?? '' ),
+					'callout_text' => isset( $r['callout_text'] ) ? sanitize_textarea_field( $r['callout_text'] ) : ( $d['callout_text'] ?? '' ),
 				);
 			}
 			$out[ $page_key ] = $clean;
@@ -431,15 +528,15 @@ function jluxe_sanitize_guide_pages( array $posted, array $defaults ): array {
 				continue;
 			}
 			if ( 'content' === $field_key ) {
-				$clean[ $field_key ] = wp_kses_post( wp_unslash( $row[ $field_key ] ) );
+				$clean[ $field_key ] = wp_kses_post( $row[ $field_key ] );
 			} elseif ( 'button_url' === $field_key ) {
 				$clean[ $field_key ] = esc_url_raw( $row[ $field_key ] );
 			} elseif ( 'button_color' === $field_key ) {
 				$clean[ $field_key ] = sanitize_hex_color( $row[ $field_key ] ) ?? '';
 			} elseif ( 'intro' === $field_key || 'title' === $field_key || str_ends_with( $field_key, '_text' ) ) {
-				$clean[ $field_key ] = sanitize_textarea_field( wp_unslash( $row[ $field_key ] ) );
+				$clean[ $field_key ] = sanitize_textarea_field( $row[ $field_key ] );
 			} else {
-				$clean[ $field_key ] = sanitize_text_field( wp_unslash( $row[ $field_key ] ) );
+				$clean[ $field_key ] = sanitize_text_field( $row[ $field_key ] );
 			}
 		}
 		$out[ $page_key ] = $clean;
@@ -455,10 +552,10 @@ function jluxe_sanitize_guide_pages( array $posted, array $defaults ): array {
  */
 function jluxe_sanitize_payment_account( array $posted, array $defaults ): array {
 	return array(
-		'card_number' => isset( $posted['card_number'] ) ? sanitize_text_field( wp_unslash( $posted['card_number'] ) ) : ( $defaults['card_number'] ?? '' ),
-		'sheba'       => isset( $posted['sheba'] ) ? sanitize_text_field( wp_unslash( $posted['sheba'] ) ) : ( $defaults['sheba'] ?? '' ),
-		'holder_name' => isset( $posted['holder_name'] ) ? sanitize_text_field( wp_unslash( $posted['holder_name'] ) ) : ( $defaults['holder_name'] ?? '' ),
-		'bank_name'   => isset( $posted['bank_name'] ) ? sanitize_text_field( wp_unslash( $posted['bank_name'] ) ) : ( $defaults['bank_name'] ?? '' ),
+		'card_number' => isset( $posted['card_number'] ) ? sanitize_text_field( $posted['card_number'] ) : ( $defaults['card_number'] ?? '' ),
+		'sheba'       => isset( $posted['sheba'] ) ? sanitize_text_field( $posted['sheba'] ) : ( $defaults['sheba'] ?? '' ),
+		'holder_name' => isset( $posted['holder_name'] ) ? sanitize_text_field( $posted['holder_name'] ) : ( $defaults['holder_name'] ?? '' ),
+		'bank_name'   => isset( $posted['bank_name'] ) ? sanitize_text_field( $posted['bank_name'] ) : ( $defaults['bank_name'] ?? '' ),
 	);
 }
 
@@ -471,7 +568,7 @@ function jluxe_sanitize_social( array $posted, array $defaults ): array {
 			// آیکونِ SVG سفارشیِ هر شبکه — طبق درخواستِ کاربر، به‌جای همیشه
 			// افتادن روی آیکونِ عمومیِ Send برای واتس‌اپ/روبیکا/بله (که
 			// برندِ اختصاصی در lucide ندارن) قابل تعریفه.
-			'svg'     => isset( $posted[ $key ]['svg'] ) ? jluxe_sanitize_svg_markup( wp_unslash( $posted[ $key ]['svg'] ) ) : '',
+			'svg'     => isset( $posted[ $key ]['svg'] ) ? jluxe_sanitize_svg_markup( $posted[ $key ]['svg'] ) : '',
 		);
 	}
 	return $out;
@@ -569,16 +666,133 @@ function jluxe_sanitize_product_card( array $posted, array $defaults ): array {
 	);
 }
 
+/** بخش «AI دیدگاه‌ها»: پاسخ خودکار + خلاصهٔ قابل‌ویرایش هر محصول (ai-comments.php). */
+function jluxe_sanitize_ai_comments( array $posted, array $defaults ): array {
+	$interval = absint( $posted['cron_interval'] ?? $defaults['cron_interval'] );
+	if ( ! in_array( $interval, array( 1, 5, 10, 15, 30, 60 ), true ) ) {
+		$interval = (int) $defaults['cron_interval'];
+	}
+	$avatar = isset( $posted['responder_avatar'] ) ? trim( (string) esc_url_raw( $posted['responder_avatar'] ) ) : '';
+
+	return array(
+		'enabled'               => ! empty( $posted['enabled'] ),
+		'auto_reply_enabled'    => ! empty( $posted['auto_reply_enabled'] ),
+		'cron_interval'         => $interval,
+		'responder_name'        => jluxe_substr(sanitize_text_field( $posted['responder_name'] ?? '' ), 0, 60),
+		// آواتار فقط http(s) مجاز است (esc_url_raw بدون پروتکل‌های عجیب).
+		'responder_avatar'      => in_array( wp_parse_url( $avatar, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ? esc_url_raw( $avatar ) : '',
+		'personality'           => jluxe_substr(sanitize_textarea_field( $posted['personality'] ?? '' ), 0, 1000),
+		'store_description'     => jluxe_substr(sanitize_textarea_field( $posted['store_description'] ?? '' ), 0, 1000),
+		'max_replies_per_run'   => max( 1, min( 20, absint( $posted['max_replies_per_run'] ?? $defaults['max_replies_per_run'] ) ) ),
+		'max_summaries_per_run' => max( 1, min( 10, absint( $posted['max_summaries_per_run'] ?? $defaults['max_summaries_per_run'] ) ) ),
+	);
+}
+
 function jluxe_sanitize_shop( array $posted, array $defaults ): array {
 	return array(
 		'products_per_page'          => max( 4, min( 48, absint( $posted['products_per_page'] ?? $defaults['products_per_page'] ) ) ),
 		'columns_desktop'            => max( 2, min( 6, absint( $posted['columns_desktop'] ?? $defaults['columns_desktop'] ) ) ),
 		'columns_tablet'             => max( 2, min( 4, absint( $posted['columns_tablet'] ?? $defaults['columns_tablet'] ) ) ),
 		'columns_mobile'             => max( 1, min( 3, absint( $posted['columns_mobile'] ?? $defaults['columns_mobile'] ) ) ),
+		'out_of_stock_last'            => ! empty( $posted['out_of_stock_last'] ),
 		'show_account_downloads_tab' => ! empty( $posted['show_account_downloads_tab'] ),
 		'mini_cart_show_coupon'        => ! empty( $posted['mini_cart_show_coupon'] ),
 		'mini_cart_show_free_shipping' => ! empty( $posted['mini_cart_show_free_shipping'] ),
 		'auto_scroll_carousels'        => ! empty( $posted['auto_scroll_carousels'] ),
+	);
+}
+
+/**
+ * «آیتم‌های اضافه خرید» — سخت‌گیرانه: حالت در فهرستِ بسته، شناسه‌های ثابت
+ * عددیِ یکتا (سقف ۲۰)، خدمات حداکثر ۸ ردیف با عنوانِ کوتاه، مبلغِ
+ * نامنفی و محلِ نمایشِ مجاز. مبلغِ فِی هرگز از کلاینت پذیرفته نمی‌شود؛
+ * هنگامِ ثبتِ فِی دوباره از همین تنظیمات ذخیره‌شده خوانده می‌شود.
+ */
+function jluxe_sanitize_purchase_addons( array $posted, array $defaults ): array {
+	$mode = isset( $posted['mode'] ) ? (string) $posted['mode'] : $defaults['mode'];
+	if ( ! in_array( $mode, array( 'fixed', 'per_product', 'per_category', 'random' ), true ) ) {
+		$mode = $defaults['mode'];
+	}
+
+	$fixed_raw = $posted['fixed_ids_csv'] ?? $posted['fixed_ids'] ?? $defaults['fixed_ids'];
+	if ( is_string( $fixed_raw ) ) {
+		$fixed_raw = preg_split( '/[،,]+/u', $fixed_raw ) ?: array();
+	}
+	$fixed_ids = array();
+	foreach ( (array) $fixed_raw as $id ) {
+		$id = absint( $id );
+		if ( $id > 0 ) {
+			$fixed_ids[] = $id;
+		}
+	}
+	$fixed_ids = array_slice( array_values( array_unique( $fixed_ids ) ), 0, 20 );
+
+	$services = array();
+	foreach ( (array) ( $posted['services'] ?? array() ) as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$title = sanitize_text_field( (string) ( $row['title'] ?? '' ) );
+		if ( '' === $title ) {
+			continue;
+		}
+		$amount = (float) str_replace( array( '،', ',' ), '', (string) ( $row['amount'] ?? 0 ) );
+		if ( $amount < 0 ) {
+			$amount = 0.0;
+		}
+		$context = (string) ( $row['context'] ?? 'modal' );
+		if ( ! in_array( $context, array( 'modal', 'cart', 'both' ), true ) ) {
+			$context = 'modal';
+		}
+		$services[] = array(
+			'title'   => jluxe_substr($title, 0, 60),
+			'amount'  => min( $amount, 999999999 ),
+			'context' => $context,
+			'auto'    => ! empty( $row['auto'] ),
+		);
+		if ( count( $services ) >= 8 ) {
+			break;
+		}
+	}
+
+	$max_products = isset( $posted['max_products'] ) && is_scalar( $posted['max_products'] )
+		? absint( $posted['max_products'] )
+		: absint( $defaults['max_products'] ?? 4 );
+	$text_defaults = array(
+		'modal_title'            => 'افزودن به سبد خرید',
+		'products_heading'       => 'این محصولات را هم اضافه کنید',
+		'services_heading'       => 'این خدمات را هم اضافه کنید',
+		'total_label'            => 'مبلغ قابل پرداخت',
+		'confirm_selected_label' => 'افزودن انتخاب‌ها به سبد',
+		'confirm_empty_label'    => 'ادامه بدون افزودن',
+		'cart_summary_label'     => 'سبد شما',
+		'view_cart_label'        => 'مشاهده سبد',
+		'continue_label'         => 'ادامه خرید',
+	);
+	$text_settings = array();
+	foreach ( $text_defaults as $key => $fallback ) {
+		$default = isset( $defaults[ $key ] ) && is_scalar( $defaults[ $key ] ) ? (string) $defaults[ $key ] : $fallback;
+		$raw     = isset( $posted[ $key ] ) && is_scalar( $posted[ $key ] ) ? (string) $posted[ $key ] : $default;
+		$value   = jluxe_substr( sanitize_text_field( $raw ), 0, 100 );
+		$text_settings[ $key ] = '' !== $value ? $value : $default;
+	}
+
+	return array_merge(
+		array(
+			'enabled'           => ! empty( $posted['enabled'] ),
+			'mode'              => $mode,
+			'fixed_ids'         => $fixed_ids,
+			'max_products'      => max( 1, min( 4, $max_products ) ),
+			'show_main_product' => ! empty( $posted['show_main_product'] ),
+			'show_products'     => ! empty( $posted['show_products'] ),
+			'show_services'     => ! empty( $posted['show_services'] ),
+			'show_cart_summary' => ! empty( $posted['show_cart_summary'] ),
+			'show_cart_link'    => ! empty( $posted['show_cart_link'] ),
+			'show_continue'     => ! empty( $posted['show_continue'] ),
+			'show_total'        => ! empty( $posted['show_total'] ),
+			'services'          => $services,
+		),
+		$text_settings
 	);
 }
 
@@ -610,11 +824,135 @@ function jluxe_sanitize_product_page( array $posted, array $defaults ): array {
 	);
 }
 
+/**
+ * Normalize one verification tag. Only well-formed verification-style meta
+ * names are accepted; values are stored as data and escaped when rendered.
+ */
+function jluxe_normalize_verification_meta_pair( $name, $content ): ?array {
+	if ( ! is_scalar( $name ) || ! is_scalar( $content ) ) {
+		return null;
+	}
+	$name    = trim( sanitize_text_field( html_entity_decode( (string) $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+	$content = trim( sanitize_text_field( html_entity_decode( (string) $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+	$name    = strtolower( $name );
+
+	if ( '' === $content || strlen( $content ) > 512 || ! preg_match( '/^[a-z0-9][a-z0-9._:-]{0,127}$/iD', $name ) ) {
+		return null;
+	}
+	if ( false === strpos( $name, 'verification' ) && false === strpos( $name, 'verify' ) && 'msvalidate.01' !== $name ) {
+		return null;
+	}
+
+	return array(
+		'name'    => $name,
+		'content' => $content,
+	);
+}
+
+/** Parse a single pasted <meta> element, rejecting every attribute but name/content. */
+function jluxe_parse_verification_meta_tag( string $tag ): ?array {
+	if ( strlen( $tag ) > 2048 || ! preg_match( '/^\s*<meta\b([^>]*)>\s*$/i', $tag, $tag_match ) ) {
+		return null;
+	}
+	$attributes = trim( $tag_match[1] );
+	if ( '/' === substr( $attributes, -1 ) ) {
+		$attributes = trim( substr( $attributes, 0, -1 ) );
+	}
+
+	$attribute_pattern = '/([a-z][a-z0-9:_-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))/i';
+	$attribute_count   = preg_match_all( $attribute_pattern, $attributes, $attribute_matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL );
+	if ( false === $attribute_count || 0 === $attribute_count ) {
+		return null;
+	}
+	$unparsed = preg_replace( $attribute_pattern, '', $attributes );
+	if ( ! is_string( $unparsed ) || '' !== trim( $unparsed ) ) {
+		return null;
+	}
+
+	$parsed = array();
+	foreach ( $attribute_matches as $attribute_match ) {
+		$key = strtolower( $attribute_match[1] );
+		if ( ! in_array( $key, array( 'name', 'content' ), true ) || array_key_exists( $key, $parsed ) ) {
+			return null;
+		}
+		foreach ( array( 2, 3, 4 ) as $value_index ) {
+			if ( isset( $attribute_match[ $value_index ] ) ) {
+				$parsed[ $key ] = $attribute_match[ $value_index ];
+				break;
+			}
+		}
+	}
+
+	if ( ! isset( $parsed['name'], $parsed['content'] ) ) {
+		return null;
+	}
+	return jluxe_normalize_verification_meta_pair( $parsed['name'], $parsed['content'] );
+}
+
+/**
+ * Accept pasted verification meta tags, or the structured form used by
+ * settings backups. Arbitrary HTML, refresh/http-equiv tags, scripts and
+ * non-verification meta names are never kept or emitted.
+ */
+function jluxe_sanitize_verification_meta_tags( $raw ): array {
+	$candidates = array();
+	if ( is_string( $raw ) ) {
+		if ( strlen( $raw ) > 12288 ) {
+			return array();
+		}
+		preg_match_all( '/<meta\b[^<>]*>/i', $raw, $matches );
+		$candidates = $matches[0] ?? array();
+	} elseif ( is_array( $raw ) ) {
+		if ( isset( $raw['name'], $raw['content'] ) ) {
+			$candidates = array( $raw );
+		} else {
+			$candidates = array_slice( array_values( $raw ), 0, 20 );
+		}
+	} else {
+		return array();
+	}
+
+	$clean = array();
+	$seen  = array();
+	foreach ( $candidates as $candidate ) {
+		if ( is_string( $candidate ) ) {
+			$pair = jluxe_parse_verification_meta_tag( $candidate );
+		} elseif ( is_array( $candidate ) ) {
+			$pair = jluxe_normalize_verification_meta_pair( $candidate['name'] ?? null, $candidate['content'] ?? null );
+		} else {
+			$pair = null;
+		}
+		if ( ! is_array( $pair ) ) {
+			continue;
+		}
+		$key = $pair['name'] . "\0" . $pair['content'];
+		if ( isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$seen[ $key ] = true;
+		$clean[]      = $pair;
+		if ( count( $clean ) >= 10 ) {
+			break;
+		}
+	}
+	return $clean;
+}
+
+/** Convert the safe structured setting back to pasteable markup in the admin field. */
+function jluxe_verification_meta_tags_text( $tags ): string {
+	$lines = array();
+	foreach ( jluxe_sanitize_verification_meta_tags( $tags ) as $tag ) {
+		$lines[] = '<meta name="' . esc_attr( $tag['name'] ) . '" content="' . esc_attr( $tag['content'] ) . '">';
+	}
+	return implode( "\n", $lines );
+}
+
 function jluxe_sanitize_seo( array $posted, array $defaults ): array {
 	return array(
 		'default_meta_title'       => isset( $posted['default_meta_title'] ) ? sanitize_text_field( $posted['default_meta_title'] ) : '',
 		'default_meta_description' => isset( $posted['default_meta_description'] ) ? sanitize_textarea_field( $posted['default_meta_description'] ) : '',
 		'og_image_id'              => isset( $posted['og_image_id'] ) ? absint( $posted['og_image_id'] ) : 0,
+		'verification_meta_tags'   => jluxe_sanitize_verification_meta_tags( $posted['verification_meta_tags'] ?? array() ),
 	);
 }
 
@@ -674,6 +1012,8 @@ function jluxe_sanitize_performance( array $posted, array $defaults ): array {
 		'disable_emojis'   => ! empty( $posted['disable_emojis'] ),
 		'lazy_load_images' => ! empty( $posted['lazy_load_images'] ),
 		'defer_third_party_scripts' => ! empty( $posted['defer_third_party_scripts'] ),
+		'pwa_enabled'               => ! empty( $posted['pwa_enabled'] ),
+		'pwa_install_prompt'        => ! empty( $posted['pwa_install_prompt'] ),
 	);
 }
 
@@ -686,8 +1026,8 @@ function jluxe_sanitize_performance( array $posted, array $defaults ): array {
  */
 function jluxe_sanitize_custom_code( array $posted, array $defaults ): array {
 	return array(
-		'css' => isset( $posted['css'] ) ? wp_strip_all_tags( wp_unslash( $posted['css'] ) ) : '',
-		'js'  => isset( $posted['js'] ) ? wp_check_invalid_utf8( wp_unslash( $posted['js'] ) ) : '',
+		'css' => isset( $posted['css'] ) ? wp_strip_all_tags( $posted['css'] ) : '',
+		'js'  => isset( $posted['js'] ) ? wp_check_invalid_utf8( $posted['js'] ) : '',
 	);
 }
 
@@ -707,14 +1047,14 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		$widgets[ $key ] = ! empty( $posted['widgets'][ $key ] );
 	}
 
-	// یک آیتم به‌ازای هر خط غیرخالی از textarea «پیشنهادهای آماده».
+	// The form posts lines; JSON exports contain an array. Both are already unslashed.
+	$reply_input = $posted['quick_replies'] ?? array();
+	$reply_input = is_string( $reply_input ) ? preg_split( '/\r\n|\r|\n/', $reply_input ) : $reply_input;
 	$quick_replies = array();
-	if ( isset( $posted['quick_replies'] ) && is_string( $posted['quick_replies'] ) ) {
-		foreach ( preg_split( '/\r\n|\r|\n/', $posted['quick_replies'] ) as $line ) {
-			$line = sanitize_text_field( $line );
-			if ( '' !== $line ) {
-				$quick_replies[] = $line;
-			}
+	foreach ( is_array( $reply_input ) ? $reply_input : array() as $line ) {
+		$line = sanitize_text_field( $line );
+		if ( '' !== $line ) {
+			$quick_replies[] = $line;
 		}
 	}
 
@@ -726,6 +1066,42 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	$provider         = isset( $posted['provider'] ) ? sanitize_key( $posted['provider'] ) : '';
 	$reasoning_effort = isset( $posted['reasoning_effort'] ) ? sanitize_key( $posted['reasoning_effort'] ) : $defaults['reasoning_effort'];
 	$rate_limit       = isset( $posted['rate_limit'] ) ? absint( $posted['rate_limit'] ) : $defaults['rate_limit'];
+	$daily_limit      = isset( $posted['daily_limit'] ) ? absint( $posted['daily_limit'] ) : ( $defaults['daily_limit'] ?? 100 );
+
+	// R94 — ساعتِ پاسخگویی/آیکون‌ها/دانشِ اختصاصی.
+	$time_re      = '/^([01]?\d|2[0-3]):[0-5]\d$/';
+	$hours_posted = is_array( $posted['phone_hours'] ?? null ) ? $posted['phone_hours'] : array();
+	$hours_def    = $defaults['phone_hours'] ?? array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) );
+	$start        = trim( (string) ( $hours_posted['start'] ?? $hours_def['start'] ) );
+	$end          = trim( (string) ( $hours_posted['end'] ?? $hours_def['end'] ) );
+	$closed_days = array();
+	if ( array_key_exists( 'open_days_present', $hours_posted ) ) {
+		$open_days = array();
+		foreach ( (array) ( $hours_posted['open_days'] ?? array() ) as $day ) {
+			if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
+				$open_days[] = (int) $day;
+			}
+		}
+		$closed_days = array_values( array_diff( range( 0, 6 ), array_unique( $open_days ) ) );
+	} else {
+		// تنظیماتِ قدیمیِ بسته‌بندی/فرم همچنان از closed_days استفاده می‌کنند.
+		foreach ( (array) ( $hours_posted['closed_days'] ?? ( isset( $posted['phone_hours'] ) ? array() : $hours_def['closed_days'] ) ) as $day ) {
+			if ( is_numeric( $day ) && (int) $day >= 0 && (int) $day <= 6 ) {
+				$closed_days[] = (int) $day;
+			}
+		}
+	}
+	$icons        = array();
+	$posted_icons = is_array( $posted['contact_icons'] ?? null ) ? $posted['contact_icons'] : array();
+	foreach ( array_keys( $defaults['contact_icons'] ?? array() ) as $key ) {
+		$icons[ $key ] = isset( $posted_icons[ $key ] ) ? esc_url_raw( trim( (string) $posted_icons[ $key ] ) ) : '';
+	}
+	$prompt_mode = isset( $posted['system_prompt_mode'] ) ? sanitize_key( $posted['system_prompt_mode'] ) : 'append';
+	$breakpoint  = isset( $posted['mobile_breakpoint'] ) ? absint( $posted['mobile_breakpoint'] ) : ( $defaults['mobile_breakpoint'] ?? 820 );
+	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'Asia/Tehran' );
+	if ( '' === $phone_tz || ( function_exists( 'timezone_identifiers_list' ) && ! in_array( $phone_tz, timezone_identifiers_list(), true ) ) ) {
+		$phone_tz = $defaults['phone_timezone'] ?? 'Asia/Tehran';
+	}
 
 	return array(
 		'enabled'          => ! empty( $posted['enabled'] ),
@@ -734,14 +1110,15 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'avatar_id'        => isset( $posted['avatar_id'] ) ? absint( $posted['avatar_id'] ) : 0,
 		'button_id'        => isset( $posted['button_id'] ) ? absint( $posted['button_id'] ) : 0,
 		'show_desktop'     => ! empty( $posted['show_desktop'] ),
-		'show_mobile'      => ! empty( $posted['show_mobile'] ),
+		'show_mobile'      => ! empty( $posted['show_mobile'] ), // legacy
+		'hide_mobile_launcher' => isset( $posted['hide_mobile_launcher'] ) ? ! empty( $posted['hide_mobile_launcher'] ) : (bool) ( $defaults['hide_mobile_launcher'] ?? false ),
 		'provider'         => in_array( $provider, array( '', 'openai', 'anthropic', 'gapgpt', 'custom' ), true ) ? $provider : '',
 		'base_url'         => isset( $posted['base_url'] ) ? esc_url_raw( trim( (string) $posted['base_url'] ) ) : '',
 		'model'            => isset( $posted['model'] ) ? sanitize_text_field( $posted['model'] ) : '',
 		'temperature'      => max( 0, min( 2, $temperature ) ),
 		'max_tokens'       => max( 50, min( 4000, $max_tokens ) ),
 		'reasoning_effort' => in_array( $reasoning_effort, array( 'minimal', 'low', 'medium', 'high' ), true ) ? $reasoning_effort : $defaults['reasoning_effort'],
-		'system_prompt'    => isset( $posted['system_prompt'] ) ? sanitize_textarea_field( $posted['system_prompt'] ) : '',
+		'system_prompt'    => isset( $posted['system_prompt'] ) ? jluxe_substr( sanitize_textarea_field( (string) $posted['system_prompt'] ), 0, 8000 ) : '',
 		'review_summary_enabled'   => ! empty( $posted['review_summary_enabled'] ),
 		'review_summary_min_count' => isset( $posted['review_summary_min_count'] ) ? max( 1, min( 50, absint( $posted['review_summary_min_count'] ) ) ) : $defaults['review_summary_min_count'],
 		'knowledge'        => $knowledge,
@@ -764,7 +1141,22 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 		'handoff_telegram' => isset( $posted['handoff_telegram'] ) ? esc_url_raw( trim( (string) $posted['handoff_telegram'] ) ) : '',
 		'handoff_form_url' => isset( $posted['handoff_form_url'] ) ? esc_url_raw( trim( (string) $posted['handoff_form_url'] ) ) : '',
 		'rate_limit'       => max( 0, min( 120, $rate_limit ) ),
+		'daily_limit'      => max( 0, min( 5000, $daily_limit ) ),
 		'log_enabled'      => ! empty( $posted['log_enabled'] ),
+		'custom_knowledge'   => isset( $posted['custom_knowledge'] ) ? jluxe_substr( sanitize_textarea_field( (string) $posted['custom_knowledge'] ), 0, 6000 ) : '',
+		'system_prompt_mode' => in_array( $prompt_mode, array( 'append', 'replace' ), true ) ? $prompt_mode : 'append',
+		'contact_phone'      => isset( $posted['contact_phone'] ) ? preg_replace( '/[^0-9۰-۹+\-\s()]/u', '', sanitize_text_field( (string) $posted['contact_phone'] ) ) : '',
+		'phone_hours'        => array(
+			'enabled'     => isset( $posted['phone_hours'] ) ? ! empty( $hours_posted['enabled'] ) : (bool) $hours_def['enabled'],
+			'start'       => preg_match( $time_re, $start ) ? $start : $hours_def['start'],
+			'end'         => preg_match( $time_re, $end ) ? $end : $hours_def['end'],
+			'closed_days' => array_values( array_unique( $closed_days ) ),
+		),
+		'phone_timezone'     => $phone_tz,
+		'phone_open_text'    => isset( $posted['phone_open_text'] ) ? sanitize_textarea_field( (string) $posted['phone_open_text'] ) : ( $defaults['phone_open_text'] ?? '' ),
+		'phone_closed_text'  => isset( $posted['phone_closed_text'] ) ? sanitize_textarea_field( (string) $posted['phone_closed_text'] ) : ( $defaults['phone_closed_text'] ?? '' ),
+		'contact_icons'      => $icons,
+		'mobile_breakpoint'  => max( 360, min( 1280, $breakpoint ) ),
 	);
 }
 
@@ -773,11 +1165,12 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
 
 	return array(
 		'enabled'  => ! empty( $posted['enabled'] ),
+		'otp_only' => ! empty( $posted['otp_only'] ),
 		'provider' => in_array( $provider, array( '', 'kavenegar', 'melipayamak' ), true ) ? $provider : '',
 		'username' => isset( $posted['username'] ) ? sanitize_text_field( $posted['username'] ) : $defaults['username'],
 		'sender'   => isset( $posted['sender'] ) ? sanitize_text_field( $posted['sender'] ) : $defaults['sender'],
 		'template' => isset( $posted['template'] ) ? sanitize_text_field( $posted['template'] ) : $defaults['template'],
-		'body_id'  => isset( $posted['body_id'] ) ? (string) absint( $posted['body_id'] ) : ( $defaults['body_id'] ?? '' ),
+		'body_id'  => isset( $posted['body_id'] ) && '' !== (string) $posted['body_id'] ? (string) absint( $posted['body_id'] ) : ( $defaults['body_id'] ?? '' ),
 	);
 }
 
@@ -805,6 +1198,21 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
 			$width_mode              = isset( $posted['width_mode'] ) ? sanitize_key( $posted['width_mode'] ) : 'full';
 			$section['width_mode']   = in_array( $width_mode, array( 'full', 'container' ), true ) ? $width_mode : 'full';
+			// R89 — گزینه‌های تازه؛ چک‌باکس‌ها صریحاً false ذخیره می‌شوند (نه «نبودِ کلید» = پیش‌فرض).
+			$hero_opt = jluxe_hero_options(
+				array_merge(
+					$posted,
+					array(
+						'autoplay'    => ! empty( $posted['autoplay'] ),
+						'loop'        => ! empty( $posted['loop'] ),
+						'show_arrows' => ! empty( $posted['show_arrows'] ),
+						'border'      => ! empty( $posted['border'] ),
+					)
+				)
+			);
+			foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mobile_height', 'radius', 'top_spacing', 'show_arrows', 'indicators', 'border' ) as $hero_key ) {
+				$section[ $hero_key ] = $hero_opt[ $hero_key ];
+			}
 			// دیگه ۶ اسلات ثابت نیست — لیست پویاست (افزودن/حذف واقعی از ادمین)،
 			// چون سایز عکس دسکتاپ و موبایل حالا جدا ذخیره می‌شه (mobile_image_id)
 			// و تعداد اسلاید واقعی سلیقه‌ی ادمینه، نه یک عدد هاردکد.
@@ -887,7 +1295,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['columns_tablet']    = max( 2, min( 4, absint( $posted['columns_tablet'] ?? 3 ) ) );
 			$section['columns_mobile']    = max( 1, min( 3, absint( $posted['columns_mobile'] ?? 2 ) ) );
 			$section['rows']              = max( 1, min( 4, absint( $posted['rows'] ?? 2 ) ) );
-			$section['hide_out_of_stock'] = ! empty( $posted['hide_out_of_stock'] ) && '1' === $posted['hide_out_of_stock'];
+			$section['hide_out_of_stock'] = filter_var( $posted['hide_out_of_stock'] ?? false, FILTER_VALIDATE_BOOLEAN );
 			break;
 
 		case 'special_products':
@@ -898,7 +1306,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['count']             = max( 4, min( 30, absint( $posted['count'] ?? 10 ) ) );
 			$section['sort']              = in_array( $special_sort, $special_sorts, true ) ? $special_sort : 'discount';
 			$section['view_all_link']     = isset( $posted['view_all_link'] ) ? esc_url_raw( $posted['view_all_link'] ) : '';
-			$section['hide_out_of_stock'] = ! empty( $posted['hide_out_of_stock'] ) && '1' === $posted['hide_out_of_stock'];
+			$section['hide_out_of_stock'] = filter_var( $posted['hide_out_of_stock'] ?? false, FILTER_VALIDATE_BOOLEAN );
 			break;
 
 		case 'banner_collage':
@@ -996,6 +1404,11 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 		case 'category_showcase':
 			$layout = isset( $posted['layout'] ) ? sanitize_key( $posted['layout'] ) : 'grid';
 			$section['title']  = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : '';
+			// R91 — دکمهٔ «نمایش همه» قابلِ‌ویرایش.
+			$view_all_mode = sanitize_key( (string) ( $posted['view_all_mode'] ?? 'categories_page' ) );
+			$section['view_all_mode'] = in_array( $view_all_mode, array( 'categories_page', 'shop', 'custom', 'hidden' ), true ) ? $view_all_mode : 'categories_page';
+			$section['view_all_text'] = isset( $posted['view_all_text'] ) ? sanitize_text_field( $posted['view_all_text'] ) : '';
+			$section['view_all_link'] = isset( $posted['view_all_link'] ) && '' !== trim( (string) $posted['view_all_link'] ) ? esc_url_raw( trim( (string) $posted['view_all_link'] ) ) : '';
 			if ( 'category_grid' === $type ) {
 				$section['layout'] = 'row';
 				$section['icon_svg'] = isset( $posted['icon_svg'] ) ? jluxe_sanitize_svg_markup( (string) $posted['icon_svg'] ) : '';
@@ -1095,11 +1508,11 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 
 		case 'text':
 			$section['title']   = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : '';
-			$section['content'] = isset( $posted['content'] ) ? wp_kses_post( wp_unslash( $posted['content'] ) ) : '';
+			$section['content'] = isset( $posted['content'] ) ? wp_kses_post( $posted['content'] ) : '';
 			break;
 
 		case 'html':
-			$section['content'] = isset( $posted['content'] ) ? wp_unslash( $posted['content'] ) : ''; // manage_options only، مثل Custom CSS/JS.
+			$section['content'] = isset( $posted['content'] ) ? $posted['content'] : ''; // manage_options only، مثل Custom CSS/JS.
 			break;
 
 		case 'spacer':
@@ -1111,7 +1524,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 }
 
 function jluxe_sanitize_homepage( array $posted, array $defaults ): array {
-	if ( empty( $posted['sections'] ) || ! is_array( $posted['sections'] ) ) {
+	if ( ! isset( $posted['sections'] ) || ! is_array( $posted['sections'] ) ) {
 		return $defaults;
 	}
 	$sections = array();

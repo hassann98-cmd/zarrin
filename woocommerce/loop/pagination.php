@@ -16,6 +16,8 @@
  * اینپوتِ پرشِ صفحه: مقدارش با اعدادِ فارسی نمایش داده می‌شه (jluxe_fa_digits،
  * هماهنگ با بقیه‌ی سایت) ولی خودِ رفتارِ پرش (assets/js/woocommerce.js) هم
  * اعدادِ فارسی و هم لاتین رو قبول می‌کنه — کاربر مجبور نیست کیبورد عوض کنه.
+
+ * @version 9.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,7 +36,7 @@ $jluxe_prev_url = $current > 1 ? str_replace( '%#%', (string) ( $current - 1 ), 
 $jluxe_next_url = $current < $total ? str_replace( '%#%', (string) ( $current + 1 ), $base ) : '';
 ?>
 <nav
-	class="jluxe-shop-pagination mx-auto mt-8 flex max-w-[1296px] items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-2.5 sm:gap-3 sm:p-3"
+	class="jluxe-shop-pagination mx-auto mt-8 flex max-w-[1320px] items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-2.5 sm:gap-3 sm:p-3"
 	aria-label="صفحه‌بندیِ محصولات"
 	data-jluxe-pagination-base="<?php echo esc_url( $base ); ?>"
 	data-jluxe-pagination-total="<?php echo (int) $total; ?>"

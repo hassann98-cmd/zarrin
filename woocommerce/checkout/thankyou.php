@@ -63,10 +63,10 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" class="text-error" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
 				<h1 class="text-h2 text-foreground">پرداخت ناموفق بود</h1>
 				<p class="max-w-md text-body text-text-secondary">متأسفانه سفارش شما توسط بانک/درگاه پرداخت رد شد. لطفاً دوباره تلاش کنید.</p>
-				<div class="flex items-center gap-3">
-					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground">تلاش مجدد برای پرداخت</a>
+				<div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground sm:w-auto">تلاش مجدد برای پرداخت</a>
 					<?php if ( is_user_logged_in() ) : ?>
-						<a href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>" class="flex h-12 items-center justify-center rounded-lg border border-border px-6 text-button text-foreground">حساب کاربری</a>
+						<a href="<?php echo esc_url( jluxe_route_url( 'dashboard' ) ); ?>" class="flex h-12 w-full items-center justify-center rounded-lg border border-border px-6 text-button text-foreground sm:w-auto">حساب کاربری</a>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -209,7 +209,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			// مشتریِ لاگین‌کرده حسابِ واقعی داره، پس مستقیم به بخش سفارش‌های
 			// همون حساب می‌ره (نیازی به وارد کردن دوباره‌ی شماره سفارش/موبایل
 			// نیست)؛ فقط خریدِ مهمان (بدون حساب) به صفحه‌ی پیگیریِ عمومی می‌ره.
-			$jluxe_ty_track_url = is_user_logged_in() ? wc_get_endpoint_url( 'orders', '', wc_get_page_permalink( 'myaccount' ) ) : '/track-order/';
+			$jluxe_ty_track_url = jluxe_route_url( 'thankyou_orders' );
 			?>
 			<div class="mt-6 flex flex-col gap-3 sm:flex-row">
 				<a href="<?php echo esc_url( $jluxe_ty_track_url ); ?>" class="flex h-12 flex-1 items-center justify-center rounded-xl bg-primary px-6 text-button text-primary-foreground transition-colors hover:bg-primary-hover">پیگیری سفارش</a>
