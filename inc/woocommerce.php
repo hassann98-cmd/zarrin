@@ -500,7 +500,6 @@ function jluxe_render_sticky_add_to_cart( $product ): void {
 	?>
 	<div class="jluxe-sticky-cta" data-jluxe-sticky-cta>
 		<div class="jluxe-sticky-cta-info">
-			<span class="jluxe-sticky-cta-name"><?php echo esc_html( $product->get_name() ); ?></span>
 			<?php if ( $is_variable ) : ?>
 				<span class="jluxe-sticky-cta-price" data-jluxe-sticky-variation-price data-jluxe-price-placeholder="" aria-live="polite" aria-atomic="true"></span>
 			<?php elseif ( '' !== (string) $price_html ) : ?>
@@ -522,9 +521,6 @@ function jluxe_render_sticky_add_to_cart( $product ): void {
 			<?php jluxe_render_sticky_quantity_control(); ?>
 		<?php endif; ?>
 		<?php echo $button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- اجزای داخلی escape شده‌اند. ?>
-		<button type="button" class="cp3-heart jluxe-sticky-cta-heart" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-wishlist-inactive-label="افزودن به علاقه‌مندی‌ها" data-jluxe-wishlist-active-label="حذف از علاقه‌مندی‌ها" aria-pressed="false" aria-label="افزودن به علاقه‌مندی‌ها">
-			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.463 3.994c-2.682-1.645-5.023-.982-6.429.074c-.576.433-.864.65-1.034.65s-.458-.217-1.034-.65C9.56 3.012 7.219 2.349 4.537 3.994C1.018 6.153.222 13.274 8.34 19.284C9.886 20.427 10.659 21 12 21s2.114-.572 3.66-1.717c8.118-6.008 7.322-13.13 3.803-15.289" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-		</button>
 	</div>
 	<?php
 }
