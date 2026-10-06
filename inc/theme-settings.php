@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 2;
+const JLUXE_SETTINGS_VERSION = 4;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -58,6 +58,11 @@ function jluxe_theme_settings_defaults(): array {
 			'columns_desktop'            => 4,
 			'columns_tablet'             => 3,
 			'columns_mobile'             => 2,
+			// R64: تیکِ «ناموجودها همیشه انتهای لیست» — وقتی روشنه، محصولاتِ
+			// ناموجود در همهٔ فهرست‌های محصولِ فرانت (آرشیو/دسته، بخش‌های
+			// صفحهٔ اصلی، محصولاتِ مرتبط/پیشنهادی) بعدِ موجودها می‌نشینند
+			// (فیلترِ posts_clauses در inc/woocommerce.php). پیش‌فرض روشن.
+			'out_of_stock_last'          => true,
 			// تبِ «دانلودها» توی سایدبارِ حساب کاربری همیشه از خودِ ووکامرس
 			// میاد، حتی وقتی سایت هیچ محصولِ دانلودی‌ای نمی‌فروشه — یعنی یک
 			// تبِ همیشه‌خالی/بی‌فایده (باگِ واقعیِ گزارش‌شده). این سوییچ
@@ -82,6 +87,36 @@ function jluxe_theme_settings_defaults(): array {
 			// روشنش کنه.
 			'auto_scroll_carousels' => false,
 		),
+		// «آیتم‌های اضافه خرید» — مودالِ بعدِ افزودن به سبد (مطابقِ نمونهٔ
+		// قالبِ مرجع). enabled=false یعنی رفتارِ عادی: هیچ مودالی باز
+		// نمی‌شود. mode منبعِ محصولاتِ پیشنهادی را تعیین می‌کند؛ services
+		// فهرستِ خدماتِ قابل‌انتخاب (مثل بیمه) با محلِ نمایش و انتخابِ
+		// خودکار است — مبلغِ فِی در سرور از همین تنظیمات خوانده می‌شود،
+		// نه از POST کلاینت.
+		'purchase_addons' => array(
+			// R61: the modal remains opt-out; each content block can be controlled independently.
+			'enabled'                => true,
+			'mode'                   => 'per_product',
+			'fixed_ids'              => array(),
+			'max_products'           => 4,
+			'show_main_product'      => false,
+			'show_products'          => true,
+			'show_services'          => false,
+			'show_cart_summary'      => false,
+			'show_cart_link'          => false,
+			'show_continue'           => false,
+			'show_total'              => true,
+			'modal_title'             => 'افزودن به سبد خرید',
+			'products_heading'        => 'ممکن است این‌ها را هم لازم داشته باشید',
+			'services_heading'        => 'این خدمات را هم اضافه کنید',
+			'total_label'             => 'مبلغ قابل پرداخت',
+			'confirm_selected_label'  => 'افزودن انتخاب‌ها به سبد',
+			'confirm_empty_label'     => 'ادامه بدون افزودن',
+			'cart_summary_label'      => 'سبد شما',
+			'view_cart_label'         => 'مشاهده سبد',
+			'continue_label'          => 'ادامه خرید',
+			'services'                => array(),
+		),
 		'identity' => array(
 			'logo_id'            => 0, // 0 یعنی لوگوی پیش‌فرضِ خودِ سایت (Customize → هویت سایت) یا فقط اسمِ سایت به‌صورتِ متنی — نه یک عکسِ ثابتِ داخلِ پوسته.
 			'mobile_logo_id'     => 0, // 0 یعنی از همون لوگوی اصلی استفاده کن (لوگوی جدا برای موبایل اختیاریه).
@@ -98,7 +133,7 @@ function jluxe_theme_settings_defaults(): array {
 			'short_description'  => get_bloginfo( 'description' ) ?: 'فروشگاه تخصصی جهیزیه با تضمین اصالت کالا و ارسال مطمئن به سراسر ایران.',
 		),
 		'urls' => array(
-			'login' => '/sign', 'dashboard' => '/account', 'orders' => '/account?tab=orders', 'track_order' => '/track-order', 'thankyou_orders' => '/account?tab=orders',
+			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
 		),
 		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted، در src/assets/fonts) استفاده می‌شه؛
 		// این تنظیمات جایگزین فونت نمی‌کنن، فقط اندازه/وزن رو کنترل می‌کنن.
@@ -109,12 +144,28 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'header' => array(
 			'sticky'               => true,
+			'search_placeholder'   => 'جستجو در فروشگاه',
 			'show_search_desktop'  => true,
 			'show_search_mobile'   => true,
 			'show_account_desktop' => true,
 			'show_account_mobile'  => true,
 			'show_cart_desktop'    => true,
 			'show_cart_mobile'     => true,
+		),
+		// نوارِ سراسریِ اطلاع‌رسانی — پیش‌فرض خاموش است تا ارتقا از 1.64.20
+		// هیچ محتوای ناخواسته‌ای به بالای سایت اضافه نکند.
+		'announcement_bar' => array(
+			'enabled'          => false,
+			'sticky'           => false, // هنگام اسکرول خود نوار بچسبد؛ پیش‌فرض خاموش تا فقط هدر ثابت بماند.
+			'display_mode'     => 'text', // text | image (GIF هم از همین مسیر و با فایل اصلی نمایش داده می‌شود)
+			'message'          => '',
+			'image_id'         => 0,
+			'image_alt'        => '',
+			'link_text'        => '',
+			'link_url'         => '',
+			'dismissible'      => true,
+			'background_color' => '#355C5A',
+			'text_color'       => '#FFFFFF',
 		),
 		// منوی هدر (بعد از مگامنوی «دسته‌بندی‌ها» که همیشه ثابت و به‌صورت
 		// جزیره‌ی React جداست، چون واقعاً به دسته‌های ووکامرس وصله). این آیتم‌ها
@@ -483,10 +534,8 @@ function jluxe_theme_settings_defaults(): array {
 			'show_sale_badge'  => true,
 			'show_stock_badge' => true,
 			'price_color'      => '', // خالی یعنی رنگ پیش‌فرض متن (--foreground).
-			// نقطه‌ی سبزِ «موجود است» روی عکس کارت — تنها رنگِ کارت که قبلاً
-			// کاملاً ثابت بود (bg-emerald-400 خام، نه یک توکنِ مشتق‌شده از
-			// رنگ‌های سراسری)؛ مقدارِ پیش‌فرض همون هگزِ emerald-400 خودِ Tailwind.
-			'in_stock_color'   => '#34d399',
+			// خالی یعنی رنگِ semantic success؛ مقدارِ غیرخالی فقط override ادمین است.
+			'in_stock_color'   => '',
 		),
 		'product_page' => array(
 			// طبقِ درخواستِ کاربر: چیدمانِ صفحه‌ی محصول قابل‌انتخاب شد.
@@ -496,13 +545,11 @@ function jluxe_theme_settings_defaults(): array {
 			'layout'        => 'default', // default | classic
 			'show_related'  => true,
 			'related_count' => 4,
-			// رنگ‌های صفحه‌ی محصول که قبلاً فقط با CSS ثابت (--boom-*،
-			// src/styles/single-product-fallback.css) قابل تغییر بودن —
-			// مقادیرِ پیش‌فرض همون هگزهای قبلی‌ان تا فعال‌شدنِ این تنظیمات به‌تنهایی
-			// چیزی رو بصری عوض نکنه.
-			'discount_color' => '#ef4056',
-			'savings_color'  => '#00a049',
-			'star_color'     => '#f7b731',
+			// خالی یعنی semantic token (error / success / warning-strong).
+			// رنگِ غیرخالی انتخابِ آگاهانهٔ ادمین است و هنگامِ رندر حفظ می‌شود.
+			'discount_color' => '',
+			'savings_color'  => '',
+			'star_color'     => '',
 			// سه ردیفِ اعتماد زیرِ جعبه‌ی خرید (ضمانت بازگشت/ارسال/پرداخت
 			// امن) قبلاً کاملاً ثابت توی content-single-product.php بودن —
 			// حالا عنوان/توضیح/فعال‌بودنِ هرکدوم قابل‌ویرایشه (آیکون‌ها
@@ -527,6 +574,21 @@ function jluxe_theme_settings_defaults(): array {
 				),
 			),
 		),
+		// بخش «AI دیدگاه‌ها»: پاسخ خودکار + خلاصهٔ قابل‌ویرایش هر محصول.
+		// پیش‌فرض همه‌چیز خاموش/خالیه تا بدون رضایت مدیر هیچ تماس یا
+		// محتوای ماشینی‌ای ساخته نشه؛ زمان‌بندی هم فقط وقتی قابلیتی فعال
+		// باشه register می‌مونه (jluxe_ai_comments_schedule).
+		'ai_comments' => array(
+			'enabled'               => false,
+			'auto_reply_enabled'    => false,
+			'cron_interval'         => 30,          // دقیقه (1|5|10|15|30|60).
+			'responder_name'        => '',          // خالی = نام سایت.
+			'responder_avatar'      => '',
+			'personality'           => '',
+			'store_description'     => '',
+			'max_replies_per_run'   => 5,
+			'max_summaries_per_run' => 3,
+		),
 		'homepage' => array(
 			'sections' => array(
 				array(
@@ -534,6 +596,20 @@ function jluxe_theme_settings_defaults(): array {
 					'type'          => 'hero',
 					'enabled'       => true,
 					'duration_sec'  => 5,
+					// R89 — ابعادِ نمونهٔ صاحبِ سایت: کارتِ هم‌عرضِ کانتینر، ۳۶۰/۳۲۰px، اسلاید افقی.
+					'effect'         => 'slide',
+					'speed_ms'       => 500,
+					'autoplay'       => true,
+					'loop'           => true,
+					'zoom_enabled'   => false,
+					'width_mode'     => 'container',
+					'desktop_height' => 360,
+					'mobile_height'  => 320,
+					'radius'         => 'auto',
+					'top_spacing'    => 'reference',
+					'show_arrows'    => true,
+					'indicators'     => 'bars',
+					'border'         => true,
 					// خالی یعنی اسلایدر چیزی نمایش نمی‌ده — هیچ عکس/گرادیان
 					// پیش‌فرض ساختگی از قبل ست نمی‌شه، ادمین خودش عکس واقعی اضافه می‌کنه.
 					'items'         => array(),
@@ -560,12 +636,13 @@ function jluxe_theme_settings_defaults(): array {
 			'avatar_id'        => 0,
 			'button_id'        => 0,
 			'show_desktop'     => true,
-			'show_mobile'      => true,
+			'show_mobile'      => true, // legacy
+			'hide_mobile_launcher' => false, // R96 — launcher موبایل پیش‌فرض دیده می‌شود؛ مخفی‌سازی اختیاری است.
 			'provider'         => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی.
 			'base_url'         => '', // خالی = آدرس رسمی provider؛ برای providerهای سازگار با OpenAI (مثلاً پروکسی داخلی) قابل بازنویسیه.
 			'model'            => '',
-			'temperature'      => 0.7,
-			'max_tokens'       => 800,
+			'temperature'      => 0.4, // پاسخِ فروشگاهیِ دقیق‌تر و کم‌نوسان‌تر.
+			'max_tokens'       => 1200, // فضای کافی برای مشاوره/مقایسهٔ چند محصول.
 			'reasoning_effort' => 'low', // minimal | low | medium | high — فقط برای مدل‌های reasoning اعمال می‌شه.
 			'system_prompt'    => '', // خالی = پرامپت پیش‌فرض داخلی (jluxe_ai_default_system_prompt()).
 			// خلاصه‌ی هوشمندِ نظراتِ محصول — همون provider/کلید/مدلِ بالا رو
@@ -580,7 +657,14 @@ function jluxe_theme_settings_defaults(): array {
 				'shipping'   => false,
 				'returns'    => false,
 				'faq'        => false,
+				// R94 — متنِ برگه‌ها/راهنماهای پوسته و نوشته‌های وبلاگ برای RAG سمتِ سرور.
+				'pages'      => true,
+				'posts'      => true,
 			),
+			// R94 — دانشِ اختصاصی (هزینهٔ ارسال، گارانتی، زمانِ تحویل و…) که همیشه به دستیار داده می‌شود.
+			'custom_knowledge'   => '',
+			// append = پرامپتِ مدیر به قوانین/دانشِ داخلی اضافه می‌شود؛ replace = جایگزینِ لحن/قوانین (دانشِ سایت همچنان ضمیمه می‌شود).
+			'system_prompt_mode' => 'append',
 			// ابزارهای دیتای واقعی که دستیار، هنگام مکالمه، می‌تونه صدا بزنه
 			// (function calling سمت provider) — هرکدوم مستقل قابل خاموش‌کردنه.
 			'tools'            => array(
@@ -590,8 +674,9 @@ function jluxe_theme_settings_defaults(): array {
 				'get_categories'       => true,
 				'recommend_products'   => true,
 				'get_product_reviews'  => true,
-				'get_customer_context' => true,
+				'get_customer_context' => false, // R86 — حریمِ خصوص: دادهٔ سفارشِ مشتری به سرویسِ بیرونی نرود مگر مدیر آگاهانه روشن کند.
 				'get_store_info'       => true,
+				'search_site_content'  => true, // R94 — جستجو در برگه‌ها/راهنماها/FAQ سایت.
 			),
 			// ویجت‌های تصویری‌ای که دستیار مجازه در جواب رندر کنه (کارت محصول،
 			// مقایسه، وضعیت سفارش و ...) — مستقل از ابزارهای دیتا، چون یک
@@ -629,11 +714,42 @@ function jluxe_theme_settings_defaults(): array {
 			'handoff_whatsapp' => '',
 			'handoff_telegram' => '',
 			'handoff_form_url' => '',
+			// R94 — دکمه‌های تماس داخلِ پاسخ + اعلانِ ساعتِ پاسخگوییِ تلفنی (بومیِ اسنیپت‌های قبلی).
+			'contact_phone'     => '', // خالی = شمارهٔ اصلیِ «اطلاعات تماس».
+			'phone_hours'       => array(
+				'enabled'     => true,
+				'start'       => '10:00',
+				'end'         => '20:00',
+				'closed_days' => array( 5 ), // 0=یکشنبه … 5=جمعه، 6=شنبه
+			),
+			'phone_timezone'    => 'Asia/Tehran', // مطابقِ کدِ قبلی؛ تغییر از همین بخش ممکن است.
+
+			'phone_open_text'   => '🟢 اکنون پاسخگوی تلفنی هستیم؛ {days}، {hours}.',
+			'phone_closed_text' => '🔴 اکنون خارج از ساعت پاسخگویی تلفنی هستیم. ساعات پاسخگویی: {days}، {hours}. می‌تونید همینجا با دستیار ادامه بدید یا پیام بگذارید.',
+			// آیکونِ دلخواه برای هر کانال (نشانیِ تصویر)؛ خالی = آیکونِ داخلیِ پوسته.
+			'contact_icons'     => array(
+				'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
+				'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
+				'telegram'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-143.png',
+				'instagram' => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-140.png',
+				'rubika'    => 'https://jluxe.ir/wp-content/uploads/2026/05/rubika.png',
+				'bale'      => 'https://jluxe.ir/wp-content/uploads/2026/05/bale.png',
+				'eitaa'     => '',
+			),
+			// زیرِ این عرض «موبایل» حساب می‌شود (نمایش/مخفی‌بودنِ دکمهٔ شناور).
+			'mobile_breakpoint' => 820,
 			'rate_limit'       => 10, // حداکثر پیام در دقیقه به ازای هر IP.
+			'daily_limit'      => 100, // R86 — سقفِ روزانه (کاربر/IP) برای مصرفِ اعتبارِ API.
 			'log_enabled'      => true, // ثبت خطاهای فراخوانی provider در error_log.
 		),
 		'sms' => array(
 			'enabled'  => false,
+			// R70/R97: ورودِ «فقط رمز پیامکی» — وقتی روشنه، تبِ نام‌کاربری/رمز از
+			// صفحهٔ ورود حذف می‌شود. پس از OTP معتبر، حسابِ موجودِ متناظر با
+			// billing_phone پیوند می‌خورد یا حسابِ کمینهٔ مشتری ساخته می‌شود؛
+			// اطلاعاتِ خرید بعداً در checkout دریافت می‌شوند. ادمین‌ها همیشه
+			// از wp-login.php وارد می‌شوند — این مسیر حذف نمی‌شود.
+			'otp_only' => false,
 			'provider' => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی. گزینه‌ها: kavenegar | melipayamak
 			// ملی‌پیامک: نام کاربریِ پنل (سرویسِ REST کلاسیک —
 			// rest.payamak-panel.com/api/SendSMS/SendSMS — به هر دوی
@@ -643,13 +759,19 @@ function jluxe_theme_settings_defaults(): array {
 			// استفاده نمی‌شه.
 			'username' => '',
 			'sender'   => '', // ملی‌پیامک: شماره خط ارسال در ارسال عادی؛ برای پترن خدماتی استفاده نمی‌شود.
-			'template' => '', // کاوه‌نگار: نام الگوی Verify Lookup در پنل. ملی‌پیامک: استفاده نمی‌شود.
-			'body_id'  => '', // ملی‌پیامک: کد متن / Body ID پترن خدماتی.
+			'template' => '', // کاوه‌نگار: نام الگوی Verify Lookup برای OTP.
+			'body_id'  => '', // ملی‌پیامک: کد متن / Body ID پترن OTP.
+			// اعلانِ موجودشدن یک opt-in جدا می‌خواهد تا الگوی ورود هرگز برای پیامِ محصول مصرف نشود.
+			'stock_alert_enabled'  => false,
+			'stock_alert_template' => '', // کاوه‌نگار: Verify Lookup با یک متغیرِ نامِ محصول.
+			'stock_alert_body_id'  => '', // ملی‌پیامک: پترن خدماتی با یک متغیرِ نامِ محصول.
 		),
 		'seo' => array(
 			'default_meta_title'       => '',
 			'default_meta_description' => '',
 			'og_image_id'              => 0,
+			// Verification tags are stored as structured name/content pairs; only approved meta names are emitted.
+			'verification_meta_tags'   => array(),
 		),
 		'faq' => array(
 			// سؤالات واقعیِ سایت — پیش‌فرض خالی، مدیر خودش از پیشخوان پر
@@ -657,10 +779,14 @@ function jluxe_theme_settings_defaults(): array {
 			// ست نمی‌شه (طبق قانون «بدون تنظیمات جعلی» پروژه).
 			'items' => array(),
 		),
+		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
+		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
+			'pwa_enabled'               => true, // R88 — inc/pwa.php
+			'pwa_install_prompt'        => true,
 		),
 		/*
 		 * معیارهای امتیازِ دیدگاه — پورتِ فیچرِ پوسته‌ی قبلی (طبقِ درخواستِ
@@ -770,8 +896,11 @@ function jluxe_array_merge_deep( array $defaults, array $overrides ): array {
 /**
  * خواندن تنظیمات — با کش داخل همون request (طبق اصل «کوئری تکراری نزن»).
  */
-function jluxe_get_theme_settings(): array {
+function jluxe_get_theme_settings( bool $refresh = false ): array {
 	static $cached = null;
+	if ( $refresh ) {
+		$cached = null;
+	}
 	if ( null !== $cached ) {
 		return $cached;
 	}
@@ -780,9 +909,22 @@ function jluxe_get_theme_settings(): array {
 		$stored = array();
 	}
 
-	if ( ! empty( $stored ) && (int) ( $stored['version'] ?? 1 ) < 2 ) {
+	$stored_version = (int) ( $stored['version'] ?? 1 );
+	if ( ! empty( $stored ) && $stored_version < 2 ) {
 		$stored             = jluxe_migrate_settings_v2( $stored );
 		$stored['version']  = 2;
+		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+		$stored_version     = 2;
+	}
+	if ( ! empty( $stored ) && $stored_version < 3 ) {
+		$stored             = jluxe_migrate_settings_v3( $stored );
+		$stored['version']  = 3;
+		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+		$stored_version     = 3;
+	}
+	if ( ! empty( $stored ) && $stored_version < 4 ) {
+		$stored             = jluxe_migrate_settings_v4( $stored );
+		$stored['version']  = 4;
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
@@ -814,6 +956,52 @@ function jluxe_migrate_settings_v2( array $settings ): array {
 			}
 		}
 	);
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ نسخهٔ ۲→۳: launcher موبایل از این نسخه به‌طورِ پیش‌فرض
+ * قابلِ‌مشاهده است. مقدارِ true در تنظیماتِ قبلی، پیش‌فرضِ قدیمیِ پوسته بود
+ * و نباید پس از ارتقا همچنان آیکون را پنهان کند؛ امکانِ پنهان‌سازیِ دستی
+ * بعد از این مهاجرت از پنل باقی می‌ماند.
+ */
+function jluxe_migrate_settings_v3( array $settings ): array {
+	if ( isset( $settings['ai_assistant'] ) && is_array( $settings['ai_assistant'] ) ) {
+		$settings['ai_assistant']['hide_mobile_launcher'] = false;
+	}
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ نسخهٔ ۳→۴: هگزهایِ ثابتِ پیش‌فرضِ رنگِ موجودی/تخفیف/
+ * صرفه‌جویی/ستاره که نسخه‌هایِ قبل به‌صورتِ خودکار ذخیره می‌کردند، به رشتهٔ
+ * خالی تبدیل می‌شوند تا از این نسخه به بعد توکن‌هایِ semanticِ پوسته اعمال
+ * شوند. هر رنگِ دیگری انتخابِ صریحِ مدیر است و بدونِ تغییر نگه داشته می‌شود.
+ */
+function jluxe_migrate_settings_v4( array $settings ): array {
+	$legacy_defaults = array(
+		'product_card' => array(
+			'in_stock_color' => '#34d399',
+		),
+		'product_page' => array(
+			'discount_color' => '#ef4056',
+			'savings_color'  => '#00a049',
+			'star_color'     => '#f7b731',
+		),
+	);
+
+	foreach ( $legacy_defaults as $section_key => $colors ) {
+		if ( empty( $settings[ $section_key ] ) || ! is_array( $settings[ $section_key ] ) ) {
+			continue;
+		}
+		foreach ( $colors as $setting_key => $legacy_color ) {
+			$current = $settings[ $section_key ][ $setting_key ] ?? null;
+			if ( is_string( $current ) && strtolower( $current ) === $legacy_color ) {
+				$settings[ $section_key ][ $setting_key ] = '';
+			}
+		}
+	}
+
 	return $settings;
 }
 
@@ -1198,14 +1386,20 @@ function jluxe_render_site_trust_badges(): void {
     $count = count( $badges );
 
     /*
-     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد باید متناسب با تعدادشون تغییر
-     * کنه، و چیدمان هم فرق کنه: موبایل همیشه همه‌شون (حتی ۴ تا) توی یک
-     * خط، ولی دسکتاپ برای ۱ تا ۳ تا یک ردیف، و برای ۴ تا (یا بیشتر) دو
-     * ستونی (۲ بالا ۲ پایین) چون این بخش الان کنارِ ستونِ «شرکت» جا می‌گیره
-     * (فضای کمی داره) نه یک ردیفِ کاملاً جداگانه‌ی زیرِ فوتر.
+     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد متناسب با تعدادشون؛ موبایل همه
+     * در یک خط، دسکتاپ ۱ تا ۳ تا یک ردیف و ۴ تا (یا بیشتر) دو ستونی.
+     *
+     * R88 — این بخش دیگر «staging» مخفی + اسکریپتِ جابه‌جاکننده ندارد. قبلاً
+     * این‌جا یک div مخفی چاپ می‌شد و یک اسکریپت با setInterval (هر ۱۰۰ms تا
+     * ۱۲ ثانیه) + MutationObserver دنبالِ گریدِ React با انتخابگرِ کلاس‌های
+     * Tailwind (".grid.gap-8.p-5…") می‌گشت تا نمادها را داخلش جابه‌جا کند —
+     * با هر تغییرِ کلاس بی‌صدا می‌شکست، و اگر JS نمی‌آمد نمادها هرگز دیده
+     * نمی‌شدند. حالا footer.php خودِ گرید را سمتِ سرور می‌سازد و این تابع
+     * مستقیم همان‌جا، به‌عنوانِ آیتمِ واقعیِ گرید، صدا زده می‌شود؛ <script>
+     * رسمیِ اینماد هم چون در جریانِ پارسِ HTML دیده می‌شود عادی اجرا می‌شود.
      */
-    $mobile_cols  = min( max( $count, 1 ), 4 );
-    $desktop_cols = $count <= 3 ? $count : 2;
+    $mobile_cols   = min( max( $count, 1 ), 4 );
+    $desktop_cols  = $count <= 3 ? $count : 2;
     $size_by_count = array(
         1 => array( 'mobile' => 4.5, 'desktop' => 5 ),
         2 => array( 'mobile' => 4, 'desktop' => 4.5 ),
@@ -1216,81 +1410,58 @@ function jluxe_render_site_trust_badges(): void {
         'desktop' => 3.75,
     );
     ?>
-    <div id="jluxe-site-badges-staging" hidden aria-hidden="true">
-        <div class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1">
-            <style>
-                /*
-                 * فیکسِ فاصله‌ی زیاد: قبلاً ستون‌ها minmax(0,1fr) بودن —
-                 * یعنی کلِ عرضِ ردیف بینِ ستون‌ها تقسیم می‌شد، پس هر نماد
-                 * وسطِ یه سلولِ خیلی پهن قرار می‌گرفت و فاصله‌ی واقعی خیلی
-                 * بیشتر از gap به‌نظر می‌رسید. الان عرضِ هر ستون دقیقاً
-                 * هم‌اندازه‌ی خودِ نمادهاست، پس کنارِ هم و جمع‌وجورن.
-                 */
-                .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;}
-                @media (min-width:640px){
-                    .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
-                    .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
-                }
-                /* حالتِ حرفه‌ای‌تر: خاکستری تا لحظه‌ی هاور، سایه‌ی ملایم و کمی بالا اومدن روی هاور */
-                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease; background:#fff;}
+    <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-label="<?php echo esc_attr( $title ); ?>">
+        <style>
+            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
+            .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;background:#fff;}
+            @media (min-width:640px){
+                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
+                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
+            }
+            /* افکتِ هاور فقط روی دستگاهِ دارای ماوس (قاعدهٔ پروژه: hover داخلِ @media (hover:hover)). */
+            @media (hover:hover){
+                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;}
                 .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--primary) / .35);box-shadow:0 4px 14px -6px rgba(0,0,0,.18);transform:translateY(-2px);}
-                .jluxe-site-badges-grid .jluxe-site-badge-card img{transition:filter .25s ease;}
-            </style>
-            <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
-            <div class="jluxe-site-badges-grid">
-                <?php foreach ( $badges as $badge ) : ?>
-                    <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border bg-transparent p-1.5 mx-auto">
-                        <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+            }
+        </style>
+        <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
+        <div class="jluxe-site-badges-grid">
+            <?php foreach ( $badges as $badge ) : ?>
+                <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border p-1.5 mx-auto">
+                    <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
+                </div>
+            <?php endforeach; ?>
         </div>
-    </div>
-    <script>
-    (function(){
-        'use strict';
-        var staging = document.getElementById('jluxe-site-badges-staging');
-        if (!staging) return;
-        var section = staging.querySelector('.jluxe-site-badges-section');
-        if (!section) return;
-        var moved = false;
-        function mount(){
-            if (moved && document.querySelector('.jluxe-site-badges-mounted')) return;
-            var root = document.getElementById('jluxe-footer-root');
-            if (!root) return;
-            var inner = root.querySelector('.mx-auto.mt-4.mb-24');
-            if (!inner) return;
-            var card = inner.firstElementChild;
-            if (!card) return;
-            var mainGrid = card.querySelector('.grid.gap-8.p-5.sm\\:grid-cols-2.lg\\:grid-cols-4');
-            if (!mainGrid) return;
-            if (mainGrid.querySelector('.jluxe-site-badges-mounted')) { moved = true; return; }
-            /*
-             * درخواستِ کاربر: نمادها نباید یک ردیفِ جداگانه زیرِ کل فوتر
-             * باشن — باید عضوِ همون گریدِ اصلی (لوگو/راهنما/شرکت) بشن و
-             * جلوی «شرکت» بیفتن. برای همین section رو به‌عنوانِ یک آیتمِ
-             * واقعیِ گرید، مستقیم به انتهای mainGrid اضافه می‌کنیم (نه
-             * این‌که بعد از mainGrid به‌عنوان یک ردیفِ جدا درج بشه).
-             */
-            section.classList.add('jluxe-site-badges-mounted');
-            mainGrid.appendChild(section);
-            section.hidden = false;
-            staging.remove();
-            moved = true;
-        }
-        mount();
-        var tries = 0;
-        var timer = setInterval(function(){
-            mount();
-            if (moved || ++tries > 120) clearInterval(timer);
-        }, 100);
-        var observer = new MutationObserver(function(){ mount(); });
-        observer.observe(document.getElementById('jluxe-footer-root') || document.body, {childList:true,subtree:true});
-        setTimeout(function(){ observer.disconnect(); }, 15000);
-    })();
-    </script>
+    </section>
     <?php
+}
+
+/**
+ * R88 — پس‌زمینهٔ فوتر (همان منطقِ I() در src/islands/Footer.js) حالا سمتِ سرور،
+ * چون پوستهٔ فوتر در footer.php رندر می‌شود. جهت و رنگ‌ها قبلاً در sanitize
+ * لیستِ‌سفید/hex شده‌اند؛ این‌جا فقط یک رشتهٔ style ساخته می‌شود.
+ */
+function jluxe_footer_background_style( ?array $background = null ): string {
+    $background = $background ?? (array) jluxe_get_setting( 'footer.background', array() );
+    $mode       = (string) ( $background['mode'] ?? 'default' );
+    if ( 'solid' === $mode ) {
+        $color = sanitize_hex_color( (string) ( $background['solid_color'] ?? '' ) );
+        return $color ? 'background-color:' . $color . ';' : '';
+    }
+    if ( 'gradient' !== $mode ) {
+        return '';
+    }
+    $colors = array_values( array_filter( array_map( static function ( $c ) {
+        return sanitize_hex_color( (string) $c ) ?: '';
+    }, (array) ( $background['gradient_colors'] ?? array() ) ) ) );
+    if ( count( $colors ) < 2 ) {
+        return '';
+    }
+    $direction = (string) ( $background['gradient_direction'] ?? 'to bottom' );
+    if ( ! preg_match( '/^(to (top|bottom|left|right)( (left|right))?|\d{1,3}deg)$/', $direction ) ) {
+        $direction = 'to bottom';
+    }
+    return 'background-image:linear-gradient(' . $direction . ', ' . implode( ', ', $colors ) . ');';
 }
 
 /**
@@ -1328,7 +1499,13 @@ function jluxe_localize_public_settings(): void {
 		array(
 			'logoUrl'          => jluxe_get_logo_url(),
 			'mobileLogoUrl'    => jluxe_get_mobile_logo_url(),
-			'shopUrl'          => function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/shop/' ),
+			'shopUrl'          => jluxe_shop_url(),
+			'urls' => jluxe_public_urls(),
+			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),
+			'rest' => array(
+				'root' => esc_url_raw( rest_url( 'jluxe/v1/' ) ),
+				'sessionUrl' => admin_url( 'admin-ajax.php' ),
+			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
 			'header'           => $settings['header'],
@@ -1339,15 +1516,12 @@ function jluxe_localize_public_settings(): void {
 			'productCard'      => $settings['product_card'],
 			'aiAssistant'      => jluxe_get_ai_public_settings(),
 			'sms'              => jluxe_get_sms_public_settings(),
-			// وضعیت لاگین واقعیِ بازدیدکننده — نه یک «تنظیم»، بلکه وضعیتِ
-			// واقعیِ درخواستِ فعلی؛ چون این صفحه (header.php) کش کامل نمی‌شه
-			// (هدر همیشه سمت سرور در هر بار بارگذاری رندر می‌شه)، همیشه درسته.
-			'auth'             => array(
-				'isLoggedIn'  => is_user_logged_in(),
-				// برایِ پرکردنِ خودکارِ فرمِ «ثبت پیام برای پشتیبان» — فقط
-				// وقتی واقعاً لاگین باشه؛ برایِ مهمان همیشه رشته‌ی خالیه.
-				'displayName' => is_user_logged_in() ? wp_get_current_user()->display_name : '',
-				'email'       => is_user_logged_in() ? wp_get_current_user()->user_email : '',
+			// Public HTML contains no name/email or user REST nonce. api.js refreshes these privately.
+			'auth' => array(
+				'isLoggedIn' => is_user_logged_in(),
+				'registrationEnabled' => jluxe_registration_enabled(),
+				// R70: حالتِ «ورود فقط با رمز پیامکی» — AuthPage تبِ رمز را حذف می‌کند.
+				'otpOnly' => ! empty( $settings['sms']['otp_only'] ) && jluxe_otp_available(),
 			),
 			// شهرستان‌های هر استان (billing_city وابسته به billing_state در
 			// چک‌اوت/ویرایش آدرس — inc/woocommerce.php: jluxe_iran_cities).
@@ -1362,6 +1536,8 @@ function jluxe_localize_public_settings(): void {
 			// قبلاً دیتای هاردکدِ سایت دیگه‌ای رو نشون می‌داد (باگ واقعی).
 			'megaMenu'         => array(
 				'categories' => function_exists( 'jluxe_get_mega_menu_categories' ) ? jluxe_get_mega_menu_categories() : array(),
+				// R93b — مقصدِ کلیک روی «دسته‌بندی‌ها» (همان href سمتِ سرورِ header.php).
+				'url'        => function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url(),
 			),
 			// دراور سبدِ کشویی (src/islands/MiniCart.tsx) و مودال انتخاب سریعِ
 			// تنوع (inc/cart-ux.php) — یک nonce مشترک، چون هر دو تغییرِ سبدند.
@@ -1420,36 +1596,54 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 22 );
  * نگه‌داشتنِ هر دو باعثِ چاپِ دوتا <link rel="canonical"> متفاوت می‌شد
  * (بررسی‌شده زنده) — نامعتبر/گیج‌کننده برای گوگل.
  */
-remove_action( 'wp_head', 'rel_canonical' );
+if ( ! defined( 'RANK_MATH_VERSION' ) && ! defined( 'WPSEO_VERSION' ) ) {
+	remove_action( 'wp_head', 'rel_canonical' );
+}
 
 /**
  * لینکِ canonical برای وضعیتِ فعلیِ کوئری — نسخه‌ی مطمئن و صریحِ خودمون
  * برای همه‌ی حالت‌های اصلی (بالاتر توضیح داده شد چرا جایگزینِ core شد).
  */
+function jluxe_paginated_canonical_url( string $base ): string {
+	$page = max( 1, (int) get_query_var( 'paged', 1 ) );
+	if ( $page <= 1 || '' === $base ) {
+		return $base;
+	}
+	if ( ! get_option( 'permalink_structure' ) || false !== strpos( $base, '?' ) ) {
+		return add_query_arg( 'paged', $page, $base );
+	}
+	global $wp_rewrite;
+	$pagination_base = isset( $wp_rewrite->pagination_base ) ? $wp_rewrite->pagination_base : 'page';
+	return trailingslashit( $base ) . user_trailingslashit( $pagination_base . '/' . $page, 'paged' );
+}
+
 function jluxe_current_canonical_url(): string {
+	if ( is_search() || is_404() ) {
+		return '';
+	}
 	if ( function_exists( 'is_shop' ) && is_shop() ) {
-		$shop_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'shop' ) : 0;
-		if ( $shop_id > 0 ) {
-			return (string) get_permalink( $shop_id );
-		}
+		return jluxe_paginated_canonical_url( jluxe_shop_url() );
 	}
 	if ( is_front_page() ) {
-		return home_url( '/' );
+		return jluxe_paginated_canonical_url( home_url( '/' ) );
 	}
 	if ( is_singular() ) {
-		$url = get_permalink();
-		return $url ? (string) $url : '';
+		return (string) ( wp_get_canonical_url() ?: '' );
+	}
+	if ( is_home() ) {
+		$posts_page = (int) get_option( 'page_for_posts' );
+		return jluxe_paginated_canonical_url( $posts_page ? get_permalink( $posts_page ) : home_url( '/' ) );
 	}
 	if ( is_category() || is_tag() || is_tax() ) {
 		$url = get_term_link( get_queried_object() );
-		return is_wp_error( $url ) ? '' : (string) $url;
+		return is_wp_error( $url ) ? '' : jluxe_paginated_canonical_url( (string) $url );
 	}
 	if ( is_post_type_archive() ) {
-		$url = get_post_type_archive_link( get_query_var( 'post_type' ) );
-		return $url ? (string) $url : '';
+		$type = get_query_var( 'post_type' );
+		$url = get_post_type_archive_link( is_array( $type ) ? reset( $type ) : $type );
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
 	}
-	$core_canonical = wp_get_canonical_url();
-	return $core_canonical ? (string) $core_canonical : '';
+	return '';
 }
 
 /**
@@ -1495,6 +1689,27 @@ function jluxe_rank_math_fallback_description( $description ) {
 	return $description;
 }
 add_filter( 'rank_math/frontend/description', 'jluxe_rank_math_fallback_description', 20 );
+
+/**
+ * Site-ownership verification tags are independent of the theme's fallback SEO
+ * tags and must still render when Rank Math or Yoast owns titles/descriptions.
+ * The sanitizer emits only approved <meta name="…verification…" content="…"> pairs.
+ */
+function jluxe_output_verification_meta_tags(): void {
+	if ( is_admin() ) {
+		return;
+	}
+	$seo  = jluxe_get_theme_settings()['seo'] ?? array();
+	$tags = jluxe_sanitize_verification_meta_tags( $seo['verification_meta_tags'] ?? array() );
+	foreach ( $tags as $tag ) {
+		printf(
+			'<meta name="%s" content="%s">' . "\n",
+			esc_attr( $tag['name'] ),
+			esc_attr( $tag['content'] )
+		);
+	}
+}
+add_action( 'wp_head', 'jluxe_output_verification_meta_tags', 4 );
 
 function jluxe_output_seo_meta(): void {
 	if ( is_admin() ) {
@@ -1925,6 +2140,7 @@ function jluxe_set_ai_api_key( string $key ): void {
  */
 function jluxe_get_ai_public_settings(): array {
 	$ai = jluxe_get_theme_settings()['ai_assistant'];
+	$ticket_form_enabled = ! empty( $ai['widgets']['support_ticket'] );
 	return array(
 		'enabled'            => (bool) $ai['enabled'] && '' !== jluxe_get_ai_api_key(),
 		'name'               => $ai['name'],
@@ -1932,7 +2148,8 @@ function jluxe_get_ai_public_settings(): array {
 		'avatarUrl'          => $ai['avatar_id'] ? wp_get_attachment_image_url( (int) $ai['avatar_id'], 'thumbnail' ) : '',
 		'buttonUrl'          => $ai['button_id'] ? wp_get_attachment_image_url( (int) $ai['button_id'], 'thumbnail' ) : '',
 		'showDesktop'        => (bool) $ai['show_desktop'],
-		'showMobile'         => (bool) $ai['show_mobile'],
+		'showMobile'         => (bool) $ai['show_mobile'], // legacy
+		'hideMobileLauncher' => ! empty( $ai['hide_mobile_launcher'] ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),
 		'primaryColor'       => $ai['primary_color'],
 		'textColor'          => $ai['text_color'],
@@ -1948,10 +2165,15 @@ function jluxe_get_ai_public_settings(): array {
 		'borderRadius'       => (int) $ai['border_radius'],
 		'handoffWhatsapp'    => $ai['handoff_whatsapp'],
 		'handoffTelegram'    => $ai['handoff_telegram'],
-		'handoffFormUrl'     => $ai['handoff_form_url'],
+		// وقتی فرمِ داخلی روشن است، URL بیرونی را اصلاً به مرورگر نده؛ این کار
+		// مانعِ نمایشِ اشتباهیِ صفحهٔ راهنما به‌جای فرمِ پشتیبانی می‌شود.
+		'handoffFormUrl'     => $ticket_form_enabled ? '' : $ai['handoff_form_url'],
 		'widgets'            => $ai['widgets'],
 		// «ثبت پیام برای پشتیبان» — از همون سوییچِ از قبل موجودِ widgets.support_ticket.
-		'enableTicketForm'   => ! empty( $ai['widgets']['support_ticket'] ),
+		'enableTicketForm'   => $ticket_form_enabled,
+		// R94 — دکمه‌های تماسِ داخلِ پاسخ، ساعتِ پاسخگویی و نقطهٔ شکستِ موبایل.
+		'mobileBreakpoint'   => (int) ( $ai['mobile_breakpoint'] ?? 820 ),
+		'contact'            => function_exists( 'jluxe_ai_public_contact' ) ? jluxe_ai_public_contact( $ai ) : array(),
 	);
 }
 
@@ -1979,16 +2201,17 @@ function jluxe_set_sms_api_key( string $key ): void {
  * جزئیات دیگه. تا وقتی این false باشه، تب OTP توی فرانت غیرفعال/مخفیه.
  */
 function jluxe_get_sms_public_settings(): array {
-	$sms = jluxe_get_theme_settings()['sms'];
-	return array(
-		'enabled' => (bool) $sms['enabled'] && '' !== $sms['provider'] && '' !== jluxe_get_sms_api_key(),
-	);
+	return array( 'enabled' => jluxe_otp_available() );
 }
 
 require_once __DIR__ . '/theme-settings-sanitize.php';
 require_once __DIR__ . '/theme-settings-presets.php';
+require_once __DIR__ . '/theme-settings-secrets.php';
+require_once __DIR__ . '/categories-page.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
 require_once __DIR__ . '/theme-settings-ai.php';
+require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت برای دستیار (RAG)
+require_once __DIR__ . '/ai-stream.php'; // R134 — ارسالِ تدریجیِ پاسخ‌های providerهای OpenAI-compatible
 require_once __DIR__ . '/theme-settings-sms.php';
 require_once __DIR__ . '/auth.php';

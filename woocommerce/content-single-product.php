@@ -1,13 +1,8 @@
 <?php
 /**
- * صفحه‌ی محصول — override کامل. چیدمان سه‌ستونه (گالری ۲۶rem / اطلاعات ۱fr /
- * جعبه‌ی خرید ۱۹rem چسبان) دقیقاً با اندازه‌گیری واقعی از d.acchi.ir (Boom،
- * پوسته‌ی قبلی که این پوسته جایگزینش شده) گرفته شده. طبق تصمیم صریح و
- * تکرارشده‌ی کاربر، رنگ‌ها هم دقیقاً از همون مرجع کپی می‌شن (نه توکن‌های
- * JLuxe) — شامل پس‌زمینه‌ی کل صفحه (#F7F8FA، اندازه‌گیری‌شده‌ی واقعی از
- * body مرجع) و ستاره/تخفیف/موفقیت (--boom-* در globals.css). توضیحات/
- * مشخصات/دیدگاه‌ها به‌جای تب‌باکس پیش‌فرض ووکامرس، بخش‌های جدا با ناوبری
- * چسبان بالای صفحه‌ان (مطابق طراحی مرجع).
+ * صفحه‌ی محصول — چیدمانِ سه‌ستونه (گالری ۲۶rem / اطلاعات ۱fr / جعبه‌ی خرید
+ * ۱۹rem چسبان) با رنگ‌های semantic پوسته؛ رنگ‌های تخفیف/ذخیره/امتیاز از
+ * توکن‌های خطا/موفقیت/هشدار می‌آیند مگر این‌که مدیر آن‌ها را override کند.
  *
  * هوک‌های woocommerce_before_single_product_summary /
  * woocommerce_single_product_summary دیگه استفاده نمی‌شن چون طراحی سه‌ستونه
@@ -15,6 +10,8 @@
  * جدا از عنوان/امتیاز (ستون دوم) قرار بده؛ به‌جاش template partها مستقیم
  * صدا زده می‌شن. هوک‌های after_single_product_summary (پرسش‌وپاسخ واقعی در
  * inc/qa.php + محصولات مرتبط) دست‌نخورده باقی موندن.
+
+ * @version 3.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -34,7 +31,11 @@ if ( post_password_required() ) {
  * (چیدمانِ پیش‌فرضِ سه‌ستونه) اصلاً ادامه پیدا نمی‌کنه — یعنی صفر ریسک
  * برای کسایی که چیدمانِ پیش‌فرض رو نگه می‌دارن.
  */
-if ( 'classic' === ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' ) ) {
+// یک‌بار خوانده می‌شود؛ هم برای انتخاب فایل و هم به‌عنوان نشانگر تشخیصی در HTML
+// (data-jluxe-layout) تا هنگام بررسی مشکل «قالب ساده شده»، از View Source/DevTools
+// مستقیماً مشخص باشد کدام چیدمان واقعاً رندر شده است.
+$jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );
+if ( 'classic' === $jluxe_layout ) {
 	require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';
 	return;
 }
@@ -60,17 +61,22 @@ foreach ( array_filter( $product->get_attributes(), 'wc_attributes_array_filter_
 	if ( $attribute->get_variation() ) {
 		continue;
 	}
+	$attribute_name = (string) $attribute->get_name();
 	if ( $attribute->is_taxonomy() ) {
-		$values = wp_list_pluck( wc_get_product_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'all' ) ), 'name' );
+		$raw_values = wc_get_product_terms( $product->get_id(), $attribute_name, array( 'fields' => 'all' ) );
+		$values     = wp_list_pluck( $raw_values, 'name' );
 	} else {
-		$values = $attribute->get_options();
+		$raw_values = $attribute->get_options();
+		$values     = $raw_values;
 	}
+	$attribute_label = wc_attribute_label( $attribute_name );
 
 	$attributes[] = array(
-		'name'    => sanitize_title( $attribute->get_name() ),
-		'label'   => wc_attribute_label( $attribute->get_name() ),
-		'value'   => implode( '، ', $values ),
-		'is_brand' => false !== mb_strpos( wc_attribute_label( $attribute->get_name() ), 'برند' ),
+		'name'       => sanitize_title( $attribute_name ),
+		'label'      => $attribute_label,
+		'value'      => implode( '، ', $values ),
+		'swatches'   => jluxe_attribute_swatch_options( $attribute_name, (array) $raw_values, $product ),
+		'is_brand'   => false !== jluxe_strpos( $attribute_label, 'برند' ),
 	);
 }
 usort(
@@ -98,7 +104,7 @@ $jluxe_variation_attributes = array();
 $jluxe_available_variations = array();
 if ( $jluxe_is_variable ) {
 	$jluxe_variation_attributes = $product->get_variation_attributes();
-	$jluxe_available_variations = $product->get_available_variations();
+	$jluxe_available_variations = jluxe_available_variations_for_form( $product );
 	// چون دیگه woocommerce_template_single_add_to_cart() (که خودش تویِ
 	// woocommerce_variable_add_to_cart() این اسکریپت رو enqueue می‌کرد)
 	// صدا زده نمی‌شه، باید دستی enqueue بشه — وگرنه با انتخاب سواچ هیچ
@@ -107,8 +113,8 @@ if ( $jluxe_is_variable ) {
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( '', $product ); ?> style="background:#F7F8FA">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="hover:text-foreground">خانه</a>
@@ -119,6 +125,7 @@ if ( $jluxe_is_variable ) {
 			<span>/</span>
 			<span class="text-text-secondary"><?php the_title(); ?></span>
 		</nav>
+		<?php jluxe_print_breadcrumb_jsonld( $product ); ?>
 
 		<?php
 		/*
@@ -207,6 +214,7 @@ if ( $jluxe_is_variable ) {
 						<?php do_action( 'woocommerce_after_variations_table' ); ?>
 					<?php endif; ?>
 				<?php endif; ?>
+				<?php if ( function_exists( 'jluxe_render_stock_alert_trigger' ) ) { jluxe_render_stock_alert_trigger( $product ); } ?>
 
 				<?php if ( $key_attributes ) : ?>
 					<div class="mt-5">
@@ -217,7 +225,7 @@ if ( $jluxe_is_variable ) {
 									<span class="mt-1.5 size-1 shrink-0 rounded-full bg-primary"></span>
 									<p class="min-w-0 text-[12.5px] leading-5">
 										<span class="text-text-muted"><?php echo esc_html( $attribute['label'] ); ?>:</span>
-										<span class="font-medium text-foreground" data-jluxe-keyspec-value data-jluxe-keyspec-default="<?php echo esc_attr( $attribute['value'] ); ?>"><?php echo esc_html( $attribute['value'] ); ?></span>
+										<span class="font-medium text-foreground" data-jluxe-keyspec-value data-jluxe-keyspec-default="<?php echo esc_attr( $attribute['value'] ); ?>"><?php if ( ! empty( $attribute['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $attribute['swatches'], $attribute['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $attribute['value'] ); ?><?php endif; ?></span>
 									</p>
 								</div>
 							<?php endforeach; ?>
@@ -242,7 +250,7 @@ if ( $jluxe_is_variable ) {
 				<?php do_action( 'woocommerce_share', $product ); ?>
 			</div>
 
-			<div class="lg:sticky lg:top-24 lg:self-start">
+			<div class="lg:sticky lg:top-24 lg:self-start" data-jluxe-product-buybox>
 				<div class="rounded-2xl border border-border bg-muted/40 p-3.5">
 					<?php // تک‌فروشنده‌ست (نه مارکت‌پلیس) — کارت فروشگاه/فروشنده عمداً حذف شده. ?>
 					<?php wc_get_template_part( 'single-product/price' ); ?>
@@ -259,6 +267,7 @@ if ( $jluxe_is_variable ) {
 					<?php else : ?>
 						<?php woocommerce_template_single_add_to_cart(); ?>
 					<?php endif; ?>
+					<?php if ( function_exists( 'jluxe_render_stock_alert_trigger' ) ) { jluxe_render_stock_alert_trigger( $product ); } ?>
 
 					<?php
 					/*
@@ -297,11 +306,12 @@ if ( $jluxe_is_variable ) {
 				<?php do_action( 'woocommerce_after_variations_form' ); ?>
 			</form>
 			<?php do_action( 'woocommerce_after_add_to_cart_form' ); ?>
-		<?php endif; ?>
+			<?php endif; ?>
+			<?php if ( function_exists( 'jluxe_render_stock_alert_dialog' ) ) { jluxe_render_stock_alert_dialog( $product ); } ?>
 
-		<?php $jluxe_faq_items = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array(); ?>
+			<?php $jluxe_faq_items = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array(); ?>
 
-		<nav aria-label="بخش‌های محصول" class="sticky top-0 z-20 mt-8 -mx-4 border-b border-border bg-background/95 px-4 backdrop-blur-md">
+		<nav aria-label="بخش‌های محصول" class="jluxe-product-section-nav sticky z-20 mt-8 -mx-4 border-b border-border bg-background/95 px-4 backdrop-blur-md">
 			<ul class="flex gap-1 overflow-x-auto">
 				<li><a href="#description" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">معرفی</a></li>
 				<?php if ( $jluxe_faq_items ) : ?>
@@ -315,7 +325,7 @@ if ( $jluxe_is_variable ) {
 			</ul>
 		</nav>
 
-		<section id="description" class="scroll-mt-16 py-6">
+		<section id="description" class="jluxe-product-section-anchor scroll-mt-16 py-6">
 			<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
 				<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
 				معرفی محصول
@@ -332,7 +342,7 @@ if ( $jluxe_is_variable ) {
 		<?php endif; ?>
 
 		<?php if ( $attributes ) : ?>
-			<section id="specs" class="scroll-mt-16 py-6">
+			<section id="specs" class="jluxe-product-section-anchor scroll-mt-16 py-6">
 				<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
 					<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
 					مشخصات فنی
@@ -342,7 +352,7 @@ if ( $jluxe_is_variable ) {
 						<?php foreach ( $attributes as $attribute ) : ?>
 							<div class="flex gap-3 px-4 py-3 sm:gap-6">
 								<dt class="w-28 shrink-0 text-[12.5px] text-text-muted sm:w-40"><?php echo esc_html( $attribute['label'] ); ?></dt>
-								<dd class="min-w-0 flex-1 text-[12.5px] leading-6 text-foreground"><?php echo esc_html( $attribute['value'] ); ?></dd>
+								<dd class="min-w-0 flex-1 text-[12.5px] leading-6 text-foreground"><?php if ( ! empty( $attribute['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $attribute['swatches'], $attribute['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $attribute['value'] ); ?><?php endif; ?></dd>
 							</div>
 						<?php endforeach; ?>
 					</dl>
@@ -350,7 +360,7 @@ if ( $jluxe_is_variable ) {
 			</section>
 		<?php endif; ?>
 
-		<section id="reviews" class="scroll-mt-16 py-6">
+		<section id="reviews" class="jluxe-product-section-anchor scroll-mt-16 py-6">
 			<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
 				<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
 				دیدگاه کاربران
@@ -384,19 +394,20 @@ if ( $jluxe_is_variable ) {
 				</div>
 			<?php endif; ?>
 
-			<div class="jluxe-reviews rounded-2xl border border-border bg-surface p-4 sm:p-5">
-				<?php comments_template(); ?>
+			<div class="jluxe-reviews jluxe-panel">
+				<?php jluxe_render_review_insights( (int) $product->get_id() ); comments_template(); ?>
 			</div>
 		</section>
 
 		<?php do_action( 'woocommerce_after_single_product_summary' ); ?>
+		<?php if ( function_exists( 'jluxe_render_recent_products_panel' ) ) { jluxe_render_recent_products_panel( 'product' ); } ?>
 	</div>
 </div>
-
 <?php if ( $product->is_purchasable() ) : ?>
+	<?php $jluxe_mobile_stock_status = jluxe_sticky_stock_presentation( $product ); ?>
 	<?php
 	/*
-	 * نوارِ چسبانِ موبایلِ قیمت+افزودن‌به‌سبد — الگوی پوسته‌ی Boom (کاربر
+	 * نوارِ چسبانِ موبایلِ قیمت+وضعیت+افزودن‌به‌سبد — الگوی پوسته‌ی Boom (کاربر
 	 * خودِ HTML مرجعِ Boom رو پیست کرد): یک کارتِ شناور (نه نوارِ چسبیده به
 	 * لبه) با margin دورش، و یک دکمه‌ی نیم‌دایره‌ای («دکمه‌ی کناری») که از
 	 * گوشه‌اش بیرون می‌زنه. توی صفحه‌ی محصول، به‌جایِ نوارِ ۵-آیکونیِ
@@ -421,20 +432,40 @@ if ( $jluxe_is_variable ) {
 	</button>
 	<div class="fixed inset-x-0 bottom-0 z-40 hidden md:hidden" data-jluxe-mobile-price-bar>
 		<div class="m-2" style="margin-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
-			<div class="jluxe-mobile-price-card flex items-center gap-2.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl backdrop-blur-md">
+			<div class="jluxe-mobile-price-card flex items-center gap-1.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl">
 				<div class="min-w-0 flex-1">
 					<span class="block text-[10px] text-text-muted">قیمت</span>
-					<span class="text-[15px] font-black text-foreground" data-jluxe-mobile-bar-price>
-						<?php echo wp_kses_post( $product->get_price_html() ); ?>
+					<span
+						class="text-[15px] font-black text-foreground"
+						data-jluxe-mobile-bar-price
+						<?php if ( $jluxe_is_variable ) : ?>data-jluxe-price-placeholder="" aria-live="polite" aria-atomic="true"<?php endif; ?>
+					>
+						<?php if ( ! $jluxe_is_variable ) : ?>
+							<?php echo wp_kses_post( $product->get_price_html() ); ?>
+						<?php endif; ?>
 					</span>
+					<?php if ( 'in-stock' !== $jluxe_mobile_stock_status['state'] ) : ?>
+						<span
+							class="jluxe-mobile-price-stock"
+							data-jluxe-mobile-bar-stock
+							data-jluxe-stock-state="<?php echo esc_attr( $jluxe_mobile_stock_status['state'] ); ?>"
+							data-jluxe-stock-placeholder="<?php echo esc_attr( $jluxe_mobile_stock_status['label'] ); ?>"
+							data-jluxe-stock-placeholder-state="<?php echo esc_attr( $jluxe_mobile_stock_status['state'] ); ?>"
+							aria-live="polite"
+							aria-atomic="true"
+						><?php echo esc_html( $jluxe_mobile_stock_status['label'] ); ?></span>
+					<?php endif; ?>
 				</div>
+				<?php jluxe_render_sticky_quantity_control(); ?>
 				<button
 					type="button"
 					data-jluxe-mobile-bar-add
-					class="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-5 text-[13px] font-bold text-primary-foreground shadow-[0_6px_16px_-6px_hsl(var(--primary))] transition-transform active:scale-95"
+					data-jluxe-mobile-bar-mode="<?php echo esc_attr( $jluxe_is_variable ? 'scroll' : 'add' ); ?>"
+					aria-label="<?php echo esc_attr( $jluxe_is_variable ? 'رفتن به انتخاب تنوع' : 'افزودن به سبد خرید' ); ?>"
+					class="flex h-11 shrink-0 items-center justify-center gap-1 rounded-xl bg-primary px-3 text-[12px] font-bold text-primary-foreground shadow-[0_6px_16px_-6px_hsl(var(--primary))] transition-transform active:scale-95"
 				>
 					<svg class="size-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-					افزودن به سبد
+					<span data-jluxe-mobile-bar-add-label><?php echo esc_html( $jluxe_is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد' ); ?></span>
 				</button>
 			</div>
 		</div>

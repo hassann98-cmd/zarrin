@@ -4,6 +4,8 @@
  * navigation.php/dashboard.php سبک‌شون رو خودشون دارن؛ این فایل فقط
  * container گرید رو جایگزین <div class="woocommerce-MyAccount-content">
  * خطیِ پیش‌فرض ووکامرس می‌کنه.
+
+ * @version 3.5.0
  */
 
 defined( 'ABSPATH' ) || exit;

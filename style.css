@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.49.1 — CHECKOUT SELECT2 WHEEL FIX
+Build: JLUXE 1.7.29 — TRANSPARENT NATURAL-SIZE IMAGE BANNER
 Author: زرین
-Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React (TypeScript, Tailwind, shadcn/ui).
-Version: 1.55.0
+Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
+Version: 1.7.29
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -94,8 +94,7 @@ Text Domain: jluxe
     border-radius: 20px;
     background: rgba(255,255,255,.96);
     box-shadow: 0 12px 34px -14px rgba(16,24,40,.34);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* R88 — blur(16px) پشتِ پس‌زمینهٔ ۹۶٪ مات دیده نمی‌شد و فقط هزینهٔ GPU داشت؛ حذف شد. */
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] {
     display: flex;
@@ -120,13 +119,13 @@ Text Domain: jluxe
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins {
     order: 1;
     text-decoration: none !important;
-    color: var(--primary, #087a68) !important;
+    color: hsl(var(--primary, 170 88% 25%)) !important;
     font-size: 17px !important;
     font-weight: 900 !important;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .woocommerce-Price-amount:not(:has(~ ins)),
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .amount {
-    color: var(--primary, #087a68);
+    color: hsl(var(--primary, 170 88% 25%));
     font-size: 17px;
     font-weight: 900;
   }
@@ -139,7 +138,7 @@ Text Domain: jluxe
     min-width: 132px;
     height: 46px;
     border-radius: 15px;
-    box-shadow: 0 9px 22px -10px var(--primary, #087a68);
+    box-shadow: 0 9px 22px -10px hsl(var(--primary, 170 88% 25%));
     transition: transform .18s ease, box-shadow .18s ease;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add]:active {
@@ -162,6 +161,202 @@ Text Domain: jluxe
   }
 }
 
+/* R112 — polished, scoped skin for the supplied #bottom-navigation markup. */
+@media (max-width: 767.98px) {
+  #bottom-navigation {
+    --jluxe-bottom-nav-surface: rgba(255, 255, 255, .9);
+    --jluxe-bottom-nav-border: rgba(255, 255, 255, .82);
+    --jluxe-bottom-nav-ink: #66736e;
+    --jluxe-bottom-nav-accent: hsl(var(--primary, 170 88% 25%));
+    --jluxe-bottom-nav-icon-bg: rgba(8, 122, 104, .065);
+    --jluxe-bottom-nav-active-bg: rgba(8, 122, 104, .11);
+    position: fixed !important;
+    inset-inline: 0 !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    width: calc(100% - 24px) !important;
+    max-width: 460px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    z-index: 50 !important;
+    pointer-events: none !important;
+    transform: translateZ(0);
+  }
+
+  #bottom-navigation #tabs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 7px !important;
+    gap: 0 !important;
+    box-sizing: border-box;
+    border: 1px solid var(--jluxe-bottom-nav-border) !important;
+    border-radius: 23px !important;
+    background: var(--jluxe-bottom-nav-surface) !important;
+    box-shadow: 0 12px 30px rgba(16, 24, 40, .16),
+      0 2px 7px rgba(16, 24, 40, .06),
+      inset 0 1px 0 rgba(255, 255, 255, .78) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(1.25);
+    backdrop-filter: blur(8px) saturate(1.25);
+    isolation: isolate;
+    pointer-events: auto;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    width: 100% !important;
+    gap: 2px !important;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a,
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div {
+    display: flex !important;
+    flex: none !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 0;
+    min-height: 60px;
+    margin: 0 !important;
+    padding: 4px 2px !important;
+    border-radius: 16px;
+    color: var(--jluxe-bottom-nav-ink) !important;
+    line-height: 1.2;
+    text-decoration: none !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: color .18s ease, background-color .18s ease, transform .18s ease;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:active {
+    transform: scale(.96);
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:focus-visible {
+    outline: 2px solid var(--jluxe-bottom-nav-accent) !important;
+    outline-offset: 1px;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:is([aria-current="page"], .is-active, .active, .current-menu-item),
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div:is(.is-active, .active) {
+    background: var(--jluxe-bottom-nav-active-bg) !important;
+    color: var(--jluxe-bottom-nav-accent) !important;
+  }
+
+  #bottom-navigation #tabs .py-1 {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    gap: 3px;
+    padding: 2px 0 !important;
+  }
+
+  #bottom-navigation #tabs .py-1 > span,
+  #bottom-navigation #tabs .py-1 > svg {
+    display: grid !important;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    border-radius: 11px;
+    background: var(--jluxe-bottom-nav-icon-bg);
+    color: inherit;
+    line-height: 0;
+    transition: background-color .18s ease, color .18s ease, transform .18s ease;
+  }
+
+  #bottom-navigation #tabs .py-1 > span svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+    margin: 0 !important;
+  }
+
+  #bottom-navigation #tabs .py-1 > svg {
+    box-sizing: border-box;
+    padding: 6px !important;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:is([aria-current="page"], .is-active, .active, .current-menu-item) .py-1 > :is(span, svg),
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div:is(.is-active, .active) .py-1 > :is(span, svg) {
+    background: rgba(8, 122, 104, .14);
+    color: var(--jluxe-bottom-nav-accent);
+    transform: translateY(-1px);
+  }
+
+  #bottom-navigation #tabs .tab {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit !important;
+    font-size: 10px !important;
+    font-weight: 600;
+    line-height: 1.35 !important;
+    white-space: nowrap;
+  }
+
+  .dark #bottom-navigation,
+  body.dark #bottom-navigation {
+    --jluxe-bottom-nav-surface: rgba(22, 29, 27, .93);
+    --jluxe-bottom-nav-border: rgba(255, 255, 255, .12);
+    --jluxe-bottom-nav-ink: #c0cbc6;
+    --jluxe-bottom-nav-icon-bg: rgba(255, 255, 255, .07);
+    --jluxe-bottom-nav-active-bg: rgba(87, 197, 164, .15);
+  }
+
+  /* Keep other floating controls clear of the 76px dock plus its 10px gap. */
+  body:has(#bottom-navigation) .jluxe-pwa-install,
+  body:has(#bottom-navigation) [data-jluxe-mobile-bar-toggle] {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+}
+
+html.jluxe-lite #bottom-navigation #tabs {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #bottom-navigation #tabs {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: rgba(255, 255, 255, .97) !important;
+  }
+  .dark #bottom-navigation #tabs,
+  body.dark #bottom-navigation #tabs {
+    background-color: rgba(22, 29, 27, .97) !important;
+  }
+}
+
+@media (max-width: 767.98px) and (hover: hover) and (pointer: fine) {
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:hover {
+    background: rgba(8, 122, 104, .065) !important;
+    color: var(--jluxe-bottom-nav-accent) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a,
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a > div,
+  #bottom-navigation #tabs .py-1 > span,
+  #bottom-navigation #tabs .py-1 > svg {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:active {
+    transform: none;
+  }
+}
 
 /* Homepage banners: consistent zoom + restrained light-sweep effect. */
 .jluxe-home-banner{isolation:isolate}

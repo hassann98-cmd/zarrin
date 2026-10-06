@@ -57,6 +57,7 @@ function jluxe_render_settings_nav( string $current_slug ): void {
 		),
 		'ظاهر و برند' => array(
 			array( 'jluxe-header', 'هدر و منوی هدر', 'align-center' ),
+			array( 'jluxe-announcement', 'نوار اطلاع‌رسانی', 'admin-comments' ),
 			array( 'jluxe-footer', 'فوتر', 'align-left' ),
 			array( 'jluxe-colors-typography', 'رنگ و تایپوگرافی', 'admin-customizer' ),
 			array( 'jluxe-mobile-contact', 'موبایل و تماس', 'smartphone' ),
@@ -65,7 +66,10 @@ function jluxe_render_settings_nav( string $current_slug ): void {
 			array( 'jluxe-product', 'محصول', 'products' ),
 			array( 'jluxe-product-card', 'کارت محصول', 'screenoptions' ),
 			array( 'jluxe-product-page', 'صفحه محصول', 'admin-page' ),
+			array( 'jluxe-purchase-addons', 'پیشنهادهای پس از خرید', 'cart' ),
 			array( 'jluxe-shop', 'فروشگاه و دسته‌بندی', 'store' ),
+			array( 'jluxe-categories-page', 'صفحهٔ دسته‌بندی‌ها', 'category' ),
+			array( 'jluxe-site-diagnosis', 'تشخیص سایت', 'shield' ),
 		),
 		'محتوا و ارتباط' => array(
 			array( 'jluxe-contact-pages', 'تماس و صفحات', 'admin-users' ),
@@ -76,6 +80,7 @@ function jluxe_render_settings_nav( string $current_slug ): void {
 		'ابزار و فنی' => array(
 			array( 'jluxe-sms', 'ورود با پیامک', 'smartphone' ),
 			array( 'jluxe-ai-assistant', 'دستیار هوش مصنوعی', 'admin-site-alt3' ),
+			array( 'jluxe-ai-comments', 'دیدگاه‌ها (AI)', 'admin-comments' ),
 			array( 'jluxe-ai-tickets', 'گزارش‌های دستیار', 'feedback' ),
 			array( 'jluxe-seo', 'سئو', 'search' ),
 			array( 'jluxe-performance', 'عملکرد', 'performance' ),
@@ -113,20 +118,22 @@ function jluxe_settings_submit_button( bool $with_reset = true, string $reset_ke
 }
 
 /** فیلد آپلود رسانه (لوگو/فاویکون/تصویر) — یک المان مینیمال، جاوااسکریپت مشترک در theme-settings-admin.js */
-function jluxe_render_media_field( string $name, int $current_id, string $empty_label ): void {
-	$field_id = 'jluxe-media-' . sanitize_key( $name );
+function jluxe_render_media_field( string $name, int $current_id, string $empty_label, string $preview_size = 'medium', string $preview_max_height = '60px', string $library_type = '' ): void {
+	$field_id    = 'jluxe-media-' . sanitize_key( $name );
+	$library_type = '' !== $library_type ? sanitize_key( $library_type ) : '';
+	$preview_url = $current_id ? wp_get_attachment_image_url( $current_id, $preview_size ) : false;
 	?>
 	<div class="jluxe-media-field">
 		<input type="hidden" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>" value="<?php echo esc_attr( $current_id ); ?>" />
 		<div class="jluxe-media-preview">
-			<?php if ( $current_id && wp_get_attachment_image_url( $current_id, 'medium' ) ) : ?>
-				<img src="<?php echo esc_url( wp_get_attachment_image_url( $current_id, 'medium' ) ); ?>" alt="" style="max-height:60px;" />
+			<?php if ( $preview_url ) : ?>
+				<img src="<?php echo esc_url( $preview_url ); ?>" alt="" style="max-height:<?php echo esc_attr( $preview_max_height ); ?>;max-width:100%;width:auto;height:auto;" />
 			<?php else : ?>
 				<span class="description"><?php echo esc_html( $empty_label ); ?></span>
 			<?php endif; ?>
 		</div>
 		<p>
-			<button type="button" class="button jluxe-media-select" data-target="<?php echo esc_attr( $field_id ); ?>" data-preview=".jluxe-media-field .jluxe-media-preview">انتخاب تصویر</button>
+			<button type="button" class="button jluxe-media-select" data-target="<?php echo esc_attr( $field_id ); ?>" data-preview=".jluxe-media-field .jluxe-media-preview" data-preview-size="<?php echo esc_attr( $preview_size ); ?>" data-preview-max-height="<?php echo esc_attr( $preview_max_height ); ?>"<?php if ( '' !== $library_type ) : ?> data-library-type="<?php echo esc_attr( $library_type ); ?>"<?php endif; ?>>انتخاب تصویر</button>
 			<button type="button" class="button jluxe-media-remove" data-target="<?php echo esc_attr( $field_id ); ?>" data-empty-label="<?php echo esc_attr( $empty_label ); ?>">حذف</button>
 		</p>
 	</div>
@@ -191,6 +198,80 @@ function jluxe_render_dashboard_page(): void {
 	} );
 }
 
+function jluxe_render_announcement_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-announcement' );
+	$settings = jluxe_get_fresh_settings();
+	$bar      = isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] )
+		? $settings['announcement_bar']
+		: jluxe_theme_settings_defaults()['announcement_bar'];
+
+	jluxe_settings_page_shell( 'نوار اطلاع‌رسانی', 'jluxe-announcement', $status, function () use ( $bar ) {
+		?>
+		<p class="description">این نوار بالای هدر نمایش داده می‌شود. پیش‌فرض، خود نوار هنگام اسکرول بالا نمی‌چسبد و فقط هدر ثابت می‌ماند؛ رفتار چسبندگی را از گزینهٔ زیر انتخاب کنید. تنظیمات نوار پایین موبایل تغییر نمی‌کند.</p>
+		<form method="post">
+			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">وضعیت</th>
+					<td><label><input type="checkbox" name="announcement_bar[enabled]" value="1" <?php checked( $bar['enabled'] ); ?> /> نمایش نوار اطلاع‌رسانی در سایت</label></td>
+				</tr>
+				<tr>
+					<th scope="row">چسبندگی هنگام اسکرول</th>
+					<td>
+						<label><input type="checkbox" name="announcement_bar[sticky]" value="1" <?php checked( ! empty( $bar['sticky'] ) ); ?> /> نوار اطلاع‌رسانی هنگام اسکرول به بالای صفحه بچسبد</label>
+						<p class="description">خاموش: نوار با صفحه بالا می‌رود و فقط هدر ثابت می‌ماند. روشن: نوار زیر نوار مدیریت می‌ماند و هدر زیر آن قرار می‌گیرد.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">نوع محتوا</th>
+					<td>
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="text" <?php checked( 'text', $bar['display_mode'] ?? 'text' ); ?> /> متن</label>
+						&nbsp;&nbsp;
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="image" <?php checked( 'image', $bar['display_mode'] ?? 'text' ); ?> /> تصویر یا GIF متحرک</label>
+						<p class="description">یکی از دو حالت را انتخاب کنید. برای GIF، فایل اصلی و متحرک استفاده می‌شود؛ تصویر در عرض صفحه جا می‌گیرد و نسبت ابعادش حفظ می‌شود.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="text">
+					<th scope="row"><label for="jluxe-announcement-message">متن پیام</label></th>
+					<td>
+						<textarea id="jluxe-announcement-message" name="announcement_bar[message]" rows="3" maxlength="500" class="large-text" placeholder="پیام کوتاه اطلاع‌رسانی را وارد کنید"><?php echo esc_textarea( $bar['message'] ); ?></textarea>
+						<p class="description">متن به‌صورت ساده نمایش داده می‌شود؛ برای فعال‌شدن نوار، هم تیکِ نمایش را بزنید و هم متن وارد کنید.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="image">
+					<th scope="row">تصویر / GIF</th>
+					<td>
+						<?php jluxe_render_media_field( 'announcement_bar[image_id]', absint( $bar['image_id'] ?? 0 ), 'هنوز تصویری انتخاب نشده است.', 'full', '88px', 'image' ); ?>
+						<p><label for="jluxe-announcement-image-alt">متن جایگزین (برای دسترس‌پذیری)</label><br /><input id="jluxe-announcement-image-alt" type="text" name="announcement_bar[image_alt]" value="<?php echo esc_attr( $bar['image_alt'] ?? '' ); ?>" class="regular-text" maxlength="250" /></p>
+						<p class="description">فقط تصویرهای کتابخانهٔ رسانه قابل انتخاب‌اند. برای حفظ انیمیشن، GIF با نشانی فایل اصلی بارگذاری می‌شود، نه thumbnail.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">پیوند اختیاری</th>
+					<td>
+						<p><label for="jluxe-announcement-link-text">متن پیوند</label><br /><input id="jluxe-announcement-link-text" type="text" name="announcement_bar[link_text]" value="<?php echo esc_attr( $bar['link_text'] ); ?>" class="regular-text" /></p>
+						<p><label for="jluxe-announcement-link-url">نشانی پیوند (مسیر داخلی یا URL با http/https)</label><br /><input id="jluxe-announcement-link-url" type="text" inputmode="url" name="announcement_bar[link_url]" value="<?php echo esc_attr( $bar['link_url'] ); ?>" class="regular-text code" dir="ltr" placeholder="/shipping/ یا https://example.com" /></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">ظاهر</th>
+					<td>
+						<label>پس‌زمینه <input type="color" name="announcement_bar[background_color]" value="<?php echo esc_attr( $bar['background_color'] ); ?>" /></label>
+						&nbsp;&nbsp;
+						<label>رنگ متن <input type="color" name="announcement_bar[text_color]" value="<?php echo esc_attr( $bar['text_color'] ); ?>" /></label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">بستن نوار</th>
+					<td><label><input type="checkbox" name="announcement_bar[dismissible]" value="1" <?php checked( $bar['dismissible'] ); ?> /> بازدیدکننده بتواند نوار را ببندد (تا پایان نشست مرورگر)</label></td>
+				</tr>
+			</table>
+			<?php jluxe_settings_submit_button( true, 'announcement_bar' ); ?>
+		</form>
+		<?php
+	} );
+}
+
 // =====================================================================
 // هویت سایت + هدر (یک صفحه — لوگو/فاویکون بخشی از هدرن منطقاً)
 // =====================================================================
@@ -218,6 +299,13 @@ function jluxe_render_header_page(): void {
 						<label><input type="checkbox" name="header[show_search_desktop]" value="1" <?php checked( $settings['header']['show_search_desktop'] ?? true ); ?> /> دسکتاپ</label>
 						&nbsp;&nbsp;
 						<label><input type="checkbox" name="header[show_search_mobile]" value="1" <?php checked( $settings['header']['show_search_mobile'] ?? true ); ?> /> موبایل</label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-header-search-placeholder">متن راهنمای جستجو</label></th>
+					<td>
+						<input id="jluxe-header-search-placeholder" type="text" class="regular-text" maxlength="120" name="header[search_placeholder]" value="<?php echo esc_attr( $settings['header']['search_placeholder'] ?? 'جستجو در فروشگاه' ); ?>" />
+						<p class="description">در کادر جستجوی موبایل، دسکتاپ و پنجرهٔ جستجو نمایش داده می‌شود.</p>
 					</td>
 				</tr>
 				<tr>
@@ -362,11 +450,11 @@ function jluxe_render_urls_page(): void {
 	$urls = $settings['urls'] ?? array();
 	jluxe_settings_page_shell( 'آدرس‌های ورود و کاربر', 'jluxe-urls', $status, function () use ( $urls ) {
 		$fields = array(
-			'login' => array( 'آدرس صفحه ورود به سایت', '/sign', 'آدرس صفحه ورود به سایت (پیش‌فرض: /sign)' ),
-			'dashboard' => array( 'آدرس صفحه داشبورد پنل کاربری', '/account', 'آدرس صفحه داشبورد پنل کاربری (پیش‌فرض: /account)' ),
-			'orders' => array( 'آدرس صفحه سفارش‌های کاربر', '/account?tab=orders', 'آدرس صفحه سفارش‌های کاربر (پیش‌فرض: /account?tab=orders)' ),
+			'login' => array( 'آدرس صفحه ورود به سایت', jluxe_route_url( 'login' ), 'خالی = صفحهٔ حساب کاربری واقعی ووکامرس.' ),
+			'dashboard' => array( 'آدرس صفحه داشبورد پنل کاربری', jluxe_route_url( 'dashboard' ), 'خالی = داشبورد واقعی ووکامرس؛ مسیر نسبی از ریشهٔ همین نصب سایت محاسبه می‌شود.' ),
+			'orders' => array( 'آدرس صفحه سفارش‌های کاربر', jluxe_route_url( 'orders' ), 'خالی = مسیر سفارش‌های واقعی ووکامرس.' ),
 			'track_order' => array( 'آدرس صفحه پیگیری سفارش', '/track-order', 'آدرس صفحه پیگیری سفارش (پیش‌فرض: /track-order)' ),
-			'thankyou_orders' => array( 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید', '/account?tab=orders', 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید (پیش‌فرض: /account?tab=orders)' ),
+			'thankyou_orders' => array( 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید', jluxe_route_url( 'thankyou_orders' ), 'خالی = سفارش‌های کاربر واردشده، یا پیگیری سفارش برای مهمان.' ),
 		); ?>
 		<form method="post"><?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?><table class="form-table" role="presentation">
 		<?php foreach ( $fields as $key => $field ) : ?><tr><th scope="row"><label for="jluxe-url-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field[0] ); ?></label></th><td><div class="custom-url-field"><input type="text" id="jluxe-url-<?php echo esc_attr( $key ); ?>" name="urls[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $urls[ $key ] ?? $field[1] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( $field[1] ); ?>" dir="ltr"><p class="description"><?php echo esc_html( $field[2] ); ?></p></div></td></tr><?php endforeach; ?>
@@ -936,7 +1024,7 @@ function jluxe_render_product_page(): void {
 							<th scope="row">رنگ نقطه‌ی «موجود است»</th>
 							<td>
 								<input type="text" name="product_card[in_stock_color]" value="<?php echo esc_attr( $pc['in_stock_color'] ); ?>" class="jluxe-color-field" />
-								<p class="description">نقطه‌ی کوچکِ سبز روی عکس، وقتی محصول تخفیف یا بج ناموجود نداره.</p>
+								<p class="description">خالی بگذارید تا از رنگِ semantic موفقیتِ پوسته استفاده شود؛ رنگِ انتخابی فقط همین نقطه را override می‌کند.</p>
 							</td>
 						</tr>
 					</table>
@@ -955,6 +1043,8 @@ function jluxe_render_product_page(): void {
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<p class="description">گالری، قیمت، انتخاب تنوع، افزودن به سبد و توضیحات همیشه واقعی و متصل به ووکامرسن (<code>woocommerce/content-single-product.php</code>) — این‌جا فقط چند تنظیم نمایشی کنترل می‌شه.</p>
+					<p class="description">تنظیمات پنجرهٔ محصولات پیشنهادی در تبِ <strong>فروشگاه ← پیشنهادهای پس از خرید</strong> است. پنجره پس از افزودن موفق به سبد باز می‌شود؛ در ویرایش هر محصول هم از «داده‌های محصول ← همگانی ← پاپ‌آپ محصولات پیشنهادی» می‌توانید آن را خاموش کنید.</p>
+					<p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-purchase-addons' ) ); ?>">رفتن به تنظیمات پیشنهادهای پس از خرید</a></p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">چیدمانِ صفحه‌ی محصول</th>
@@ -978,6 +1068,7 @@ function jluxe_render_product_page(): void {
 					</table>
 
 					<h3>رنگ‌های صفحه‌ی محصول</h3>
+					<p class="description">خالی‌بودنِ هر فیلد یعنی استفاده از توکنِ semantic (تخفیف: خطا، سود: موفقیت، ستاره: هشدارِ پرکنتراست). مقدارِ انتخاب‌شدهٔ مدیر بدونِ تغییر حفظ می‌شود.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">رنگ بج/درصد تخفیف</th>
@@ -1020,6 +1111,192 @@ function jluxe_render_product_page(): void {
 // =====================================================================
 // فروشگاه و دسته‌بندی
 // =====================================================================
+/**
+ * «اضافه خرید» — مودالِ پیشنهادِ هنگامِ افزودن به سبد، مطابقِ قالبِ مرجع.
+ * خدمات (مثل بیمه) به‌شکلِ ردیف‌های تکرارشونده مدیریت می‌شوند؛ دکمه‌های
+ * افزودن/حذفِ ردیف فقط سمتِ مرورگر DOM را می‌سازند و ذخیره‌سازی از همان
+ * dispatcher عمومی (jluxe_handle_generic_settings_save) با sanitize
+ * سخت‌گیرِ jluxe_sanitize_purchase_addons می‌گذرد.
+ */
+function jluxe_render_purchase_addons_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-purchase-addons' );
+	$settings = jluxe_get_fresh_settings();
+	$pa       = $settings['purchase_addons'];
+
+	jluxe_settings_page_shell( 'پیشنهادهای پس از خرید', 'jluxe-purchase-addons', $status, function () use ( $pa ) {
+		?>
+		<form method="post">
+		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">فعال‌سازی آیتم‌های اضافه خرید</th>
+				<td>
+					<label>
+						<input type="checkbox" name="purchase_addons[enabled]" value="1" <?php checked( $pa['enabled'] ); ?> />
+						پس از افزودن موفق به سبد، مودال باز می‌شود. اگر محصول یا خدمت پیشنهادی نداشته باشید، پیامِ نبود پیشنهاد نمایش داده می‌شود؛ در صورت غیرفعال بودن، فرایند خرید به‌صورت عادی ادامه می‌یابد.
+					</label>
+				</td>
+			</tr>
+		</table>
+
+		<h2>بخش‌های مودال و متن‌ها</h2>
+		<p class="description">بخش‌های غیرضروری را خاموش کنید تا مودال خلوت بماند. خدمات را می‌توانید در جدول پایین به‌صورت ردیف‌های دلخواه اضافه یا حذف کنید؛ تعداد محصولات پیشنهادی حداکثر ۴ است.</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">بخش‌های قابل نمایش</th>
+				<td>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_main_product]" value="1" <?php checked( $pa['show_main_product'] ?? false ); ?> /> کارت محصولی که به سبد اضافه شد</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_products]" value="1" <?php checked( $pa['show_products'] ?? true ); ?> /> محصولات پیشنهادی</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_services]" value="1" <?php checked( $pa['show_services'] ?? false ); ?> /> خدمات تعریف‌شده</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_cart_summary]" value="1" <?php checked( $pa['show_cart_summary'] ?? false ); ?> /> خلاصهٔ سبد خرید</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_total]" value="1" <?php checked( $pa['show_total'] ?? true ); ?> /> مبلغ قابل پرداخت</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_cart_link]" value="1" <?php checked( $pa['show_cart_link'] ?? false ); ?> /> دکمهٔ مشاهدهٔ سبد خرید</label>
+					<label style="display:block"><input type="checkbox" name="purchase_addons[show_continue]" value="1" <?php checked( $pa['show_continue'] ?? false ); ?> /> دکمهٔ ادامهٔ خرید</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-pa-max-products">تعداد محصولات پیشنهادی</label></th>
+				<td><input type="number" id="jluxe-pa-max-products" name="purchase_addons[max_products]" value="<?php echo esc_attr( (string) ( $pa['max_products'] ?? 4 ) ); ?>" min="1" max="4" class="small-text" /></td>
+			</tr>
+			<tr>
+				<th scope="row">متن‌های مودال</th>
+				<td>
+					<label style="display:block;margin:8px 0">عنوان مودال<br /><input type="text" name="purchase_addons[modal_title]" value="<?php echo esc_attr( $pa['modal_title'] ?? 'افزودن به سبد خرید' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان بخش محصولات<br /><input type="text" name="purchase_addons[products_heading]" value="<?php echo esc_attr( 'این محصولات را هم اضافه کنید' === ( $pa['products_heading'] ?? '' ) ? 'ممکن است این‌ها را هم لازم داشته باشید' : ( $pa['products_heading'] ?? 'ممکن است این‌ها را هم لازم داشته باشید' ) ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان بخش خدمات<br /><input type="text" name="purchase_addons[services_heading]" value="<?php echo esc_attr( $pa['services_heading'] ?? 'این خدمات را هم اضافه کنید' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن مبلغ قابل پرداخت<br /><input type="text" name="purchase_addons[total_label]" value="<?php echo esc_attr( $pa['total_label'] ?? 'مبلغ قابل پرداخت' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">دکمه هنگام انتخاب پیشنهاد<br /><input type="text" name="purchase_addons[confirm_selected_label]" value="<?php echo esc_attr( $pa['confirm_selected_label'] ?? 'افزودن انتخاب‌ها به سبد' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">دکمه بدون انتخاب پیشنهاد<br /><input type="text" name="purchase_addons[confirm_empty_label]" value="<?php echo esc_attr( $pa['confirm_empty_label'] ?? 'ادامه بدون افزودن' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان خلاصهٔ سبد<br /><input type="text" name="purchase_addons[cart_summary_label]" value="<?php echo esc_attr( $pa['cart_summary_label'] ?? 'سبد شما' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن دکمهٔ مشاهدهٔ سبد<br /><input type="text" name="purchase_addons[view_cart_label]" value="<?php echo esc_attr( $pa['view_cart_label'] ?? 'مشاهده سبد' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن دکمهٔ ادامهٔ خرید<br /><input type="text" name="purchase_addons[continue_label]" value="<?php echo esc_attr( $pa['continue_label'] ?? 'ادامه خرید' ); ?>" class="regular-text" maxlength="100" /></label>
+				</td>
+			</tr>
+		</table>
+
+		<h2>منبع محصولات پیشنهادی</h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">حالت محصولات پیشنهادی</th>
+				<td>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="fixed" <?php checked( $pa['mode'], 'fixed' ); ?> />
+						ثابت (انتخاب سراسری محصولات)
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="per_product" <?php checked( $pa['mode'], 'per_product' ); ?> />
+						انتخاب در هر محصول (صفحه ویرایش محصول)
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="per_category" <?php checked( $pa['mode'], 'per_category' ); ?> />
+						انتخاب در هر دسته‌بندی
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="random" <?php checked( $pa['mode'], 'random' ); ?> />
+						اتفاقی بین کالاهای موجود (R72)
+					</label>
+					<p class="description">در همهٔ حالت‌ها فقط کالای واقعاً موجود پیشنهاد می‌شود (برای محصول متغیر: حداقل یک تنوعِ موجود) و کالای مخفی/پیش‌نویس هرگز. «انتخاب در هر محصول» از فیلدِ رسمیِ Cross-sells ووکامرس (ویرایش محصول ← داده‌های محصول ← محصولات پیوسته) می‌خواند و اسلات‌های خالی را با کالای موجودِ همان دسته و بعد کلِ فروشگاه پر می‌کند. «در هر دسته‌بندی» فقط از دستهٔ خودِ محصول. «اتفاقی» بین کالاهای موجودِ کلِ فروشگاه می‌چرخد.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-pa-fixed">محصولات پیشنهادی ثابت</label></th>
+				<td>
+					<input type="text" id="jluxe-pa-fixed" name="purchase_addons[fixed_ids_csv]" value="<?php echo esc_attr( implode( '، ', $pa['fixed_ids'] ) ); ?>" class="regular-text" dir="ltr" placeholder="1024, 1028, 1041" />
+					<p class="description">شناسهٔ محصولات را با کاما جدا کنید (فقط در حالت «ثابت» استفاده می‌شود). شناسه را از ستون ID در فهرست محصولات بردارید. محصولاتِ ناموجود یا غیرقابل‌خرید به‌طورِ خودکار نمایش داده نمی‌شوند.</p>
+				</td>
+			</tr>
+		</table>
+
+		<h2>خدمات قابل افزودن</h2>
+		<p class="description">خدماتی مثل بیمه را تعریف کنید. برای هر خدمت می‌توانید محل نمایش (مودال / سبد خرید / هردو) و انتخاب خودکار را تعیین کنید. مبلغِ خدمات در سرور از همین تنظیمات خوانده می‌شود و به‌شکلِ فِی استانداردِ ووکامرس به جمعِ سفارش اضافه می‌شود.</p>
+		<table class="widefat striped" id="jluxe-pa-services">
+			<thead><tr><th>عنوان خدمت</th><th>مبلغ (واحدِ پولِ فروشگاه)</th><th>محل نمایش</th><th>انتخاب خودکار</th><th></th></tr></thead>
+			<tbody>
+			<?php if ( empty( $pa['services'] ) ) : ?>
+				<tr class="jluxe-pa-empty-row"><td colspan="5">هنوز خدمتی اضافه نشده است. روی «افزودن خدمت» بزنید.</td></tr>
+			<?php else : ?>
+				<?php foreach ( $pa['services'] as $jluxe_pa_service ) : ?>
+					<?php jluxe_pa_service_row_fields( $jluxe_pa_service ); ?>
+				<?php endforeach; ?>
+			<?php endif; ?>
+			</tbody>
+		</table>
+		<p>
+			<button type="button" class="button" id="jluxe-pa-add-service">+ افزودن خدمت</button>
+		</p>
+		<p class="submit">
+			<button type="submit" class="button button-primary">ذخیرهٔ تغییرات</button>
+		</p>
+		</form>
+		<template id="jluxe-pa-service-template"><?php jluxe_pa_service_row_fields( null ); ?></template>
+		<script>
+		( function () {
+			var tbody = document.querySelector( '#jluxe-pa-services tbody' );
+			var tpl = document.getElementById( 'jluxe-pa-service-template' );
+			var nextIndex = tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length;
+			function refreshEmpty() {
+				var empty = tbody.querySelector( '.jluxe-pa-empty-row' );
+				if ( empty && tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length ) { empty.remove(); }
+				if ( ! empty && ! tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length ) {
+					var tr = document.createElement( 'tr' );
+					tr.className = 'jluxe-pa-empty-row';
+					tr.innerHTML = '<td colspan="5">هنوز خدمتی اضافه نشده است. روی «افزودن خدمت» بزنید.</td>';
+					tbody.appendChild( tr );
+				}
+			}
+			document.getElementById( 'jluxe-pa-add-service' ).addEventListener( 'click', function () {
+				if ( tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length >= 8 ) { return; }
+				var row = tpl.content.cloneNode( true );
+				row.querySelectorAll( '[name]' ).forEach( function ( field ) {
+					field.name = field.name.replace( /__i__/g, String( nextIndex ) );
+				} );
+				nextIndex += 1;
+				tbody.appendChild( row );
+				refreshEmpty();
+			} );
+			tbody.addEventListener( 'click', function ( e ) {
+				if ( e.target && e.target.classList.contains( 'jluxe-pa-remove' ) ) {
+					e.target.closest( 'tr' ).remove();
+					refreshEmpty();
+				}
+			} );
+		}() );
+		</script>
+		<?php
+	} );
+}
+
+/**
+ * یک ردیفِ خدمت در جدولِ خدمات؛ null یعنی قالبِ ردیفِ جدید (ایندکسِ
+ * __i__ که JS موقعِ افزودن به ایندکسِ واقعیِ بعدی تبدیلش می‌کند).
+ */
+function jluxe_pa_service_row_fields( ?array $service ): void {
+	static $row_index = 0;
+	$row = null === $service ? '__i__' : $row_index;
+	if ( null !== $service ) {
+		$row_index++;
+	}
+	$title   = $service['title'] ?? '';
+	$amount  = $service['amount'] ?? '';
+	$context = $service['context'] ?? 'modal';
+	$auto    = ! empty( $service['auto'] );
+	?>
+	<tr>
+		<td><input type="text" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][title]" value="<?php echo esc_attr( (string) $title ); ?>" class="regular-text" placeholder="مثلاً بیمهٔ شکست" /></td>
+		<td><input type="text" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][amount]" value="<?php echo esc_attr( (string) $amount ); ?>" class="small-text" dir="ltr" /></td>
+		<td>
+			<select name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][context]">
+				<option value="modal" <?php selected( $context, 'modal' ); ?>>مودال</option>
+				<option value="cart" <?php selected( $context, 'cart' ); ?>>سبد خرید</option>
+				<option value="both" <?php selected( $context, 'both' ); ?>>هردو</option>
+			</select>
+		</td>
+		<td><input type="checkbox" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][auto]" value="1" <?php checked( $auto ); ?> /></td>
+		<td><button type="button" class="button jluxe-pa-remove" aria-label="حذف خدمت">حذف</button></td>
+	</tr>
+	<?php
+}
+
 function jluxe_render_shop_page(): void {
 	$icon_status = jluxe_handle_category_icons_save();
 	$status   = jluxe_handle_generic_settings_save( 'jluxe-shop' );
@@ -1044,6 +1321,15 @@ function jluxe_render_shop_page(): void {
 				<tr>
 					<th scope="row"><label for="jluxe-shop-per-page">تعداد محصول در هر صفحه</label></th>
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-shop-oos-last">ناموجودها در انتهای لیست</label></th>
+					<td>
+						<label>
+							<input type="checkbox" id="jluxe-shop-oos-last" name="shop[out_of_stock_last]" value="1" <?php checked( ! empty( $shop['out_of_stock_last'] ) ); ?> />
+							محصولات ناموجود همیشه در انتهای فهرست نمایش داده شوند — در همهٔ حالت‌ها: آرشیو/دسته، بخش‌های صفحهٔ اصلی، محصولات مرتبط و پیشنهادیِ «اضافه خرید»
+						</label>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-cols-desktop">تعداد ستون — دسکتاپ</label></th>
@@ -1818,6 +2104,14 @@ function jluxe_render_advanced_page(): void {
 							<td><textarea id="jluxe-meta-desc" name="seo[default_meta_description]" rows="3" class="large-text"><?php echo esc_textarea( $seo['default_meta_description'] ); ?></textarea></td>
 						</tr>
 						<tr>
+							<th scope="row"><label for="jluxe-verification-meta-tags">تگ تأیید مالکیت سایت</label></th>
+							<td>
+								<textarea id="jluxe-verification-meta-tags" name="seo[verification_meta_tags]" rows="6" class="large-text code" dir="ltr" spellcheck="false"><?php echo esc_textarea( jluxe_verification_meta_tags_text( $seo['verification_meta_tags'] ?? array() ) ); ?></textarea>
+								<p class="description">تگ کاملِ تأیید Search Console، Ahrefs یا سرویس‌های مشابه را وارد کنید؛ هر تگ در یک خط. فقط تگ‌های <code>&lt;meta name="…verification…" content="…"&gt;</code> (و نام‌های شناخته‌شدهٔ تأیید) پذیرفته می‌شوند؛ اسکریپت و HTML دیگر اجرا نمی‌شود.</p>
+								<p class="description">نمونه: <code>&lt;meta name="ahrefs-site-verification" content="توکنِ سرویس"&gt;</code></p>
+							</td>
+						</tr>
+						<tr>
 							<th scope="row">تصویر اشتراک‌گذاری (og:image)</th>
 							<td><?php jluxe_render_media_field( 'seo[og_image_id]', (int) $seo['og_image_id'], 'تنظیم نشده.' ); ?></td>
 						</tr>
@@ -1848,7 +2142,7 @@ function jluxe_render_advanced_page(): void {
 					<tr><th scope="row">max_execution_time (PHP)</th><td><?php echo esc_html( ini_get( 'max_execution_time' ) ); ?> ثانیه</td></tr>
 					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#b32d2e">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">نسخه‌ی تنظیمات پوسته</th><td><?php echo esc_html( (string) JLUXE_SETTINGS_VERSION ); ?></td></tr>
-					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (dist/ واقعی)'; ?></td></tr>
+					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (assets/compiled)'; ?></td></tr>
 					<tr><th scope="row">آخرین به‌روزرسانی تنظیمات</th><td><?php echo esc_html( get_option( 'jluxe_theme_settings_updated_at', '—' ) ); ?></td></tr>
 				</table>
 				<p class="description">این بخش فقط تشخیصیه — چیزی رو خودکار تغییر نمی‌ده (مثلاً تنظیمات LiteSpeed/کش دست‌نخورده می‌مونه).</p>
@@ -1870,8 +2164,19 @@ function jluxe_render_advanced_page(): void {
 							<td>
 								<label><input type="checkbox" name="performance[defer_third_party_scripts]" value="1" <?php checked( $perf['defer_third_party_scripts'] ?? false ); ?> /> اسکریپت‌های افزونه‌های دیگه (مثلِ Code Snippets) رو defer کن</label>
 								<p class="description">
-									طبقِ گزارشِ PageSpeed، jQuery و استایل‌های ووکامرس از قبل defer شدن (بالاتر توضیح داده شده)، ولی چند اسکریپتِ کوچیکِ دیگه (با اسم‌های هش‌مانند، معمولاً خروجیِ افزونه‌ی Code Snippets) هنوز مسدودکننده‌ان. این گزینه همون تکنیکِ defer رو — فقط برای اسکریپت‌هایی که از خودِ هسته‌ی وردپرس یا این پوسته نیستن — فعال می‌کنه.
-									<strong>قبل از فعال‌کردن روی سایتِ اصلی، حتماً اول امتحانش کن</strong> — اگه یکی از اون اسکریپت‌ها فرض کرده باشه بلافاصله (نه بعدِ پارسِ کاملِ صفحه) اجرا می‌شه، ممکنه اون قابلیتِ خاص از کار بیفته؛ در اون صورت همین‌جا خاموشش کن.
+									پوسته اسکریپت‌های شناخته‌شدهٔ خودش و وابستگی‌های هسته/ووکامرس را با حفظ ترتیب defer می‌کند؛ افزونهٔ بهینه‌سازی ممکن است تگ‌ها را دوباره ترکیب یا بازنویسی کند، پس بعد از تغییر، کش را پاک و خروجی نهایی را دوباره بررسی کنید. این گزینه فقط اسکریپت‌های افزونه‌های دیگر را هدف می‌گیرد.
+									<strong>قبل از فعال‌کردن روی سایتِ اصلی، حتماً اول امتحانش کن</strong> — اگر یک اسکریپت به اجرای هم‌زمان وابسته باشد، ممکن است همان قابلیت از کار بیفتد؛ در آن صورت این گزینه را خاموش کنید. فایل CSS ترکیب‌شدهٔ LiteSpeed از این گزینه پیروی نمی‌کند؛ برای بارگذاری غیرمسدودکنندهٔ CSS، Critical CSS را در تنظیمات LiteSpeed کامل و روی صفحات واقعی آزمایش کنید.
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">اپلیکیشنِ وب (PWA)</th>
+							<td>
+								<label><input type="checkbox" name="performance[pwa_enabled]" value="1" <?php checked( $perf['pwa_enabled'] ?? true ); ?> /> قابلِ نصب روی گوشی + صفحهٔ «اتصال برقرار نیست» هنگامِ قطعیِ اینترنت</label><br>
+								<label><input type="checkbox" name="performance[pwa_install_prompt]" value="1" <?php checked( $perf['pwa_install_prompt'] ?? true ); ?> /> نوارِ کوچکِ «افزودن به صفحهٔ اصلی» در موبایل (بیرون از سبد، تسویه، حساب و صفحهٔ محصول)</label>
+								<p class="description">
+									هیچ صفحه‌ای (HTML) کش نمی‌شود — قیمت، موجودی، سبد و ورود همیشه زنده از سرور می‌آیند. فقط فایل‌های هش‌دارِ خودِ پوسته (JS/CSS/فونت) و یک صفحهٔ آفلاینِ کوچک ذخیره می‌شوند. سبد، تسویه، حساب کاربری، پیگیری سفارش، wp-admin، REST و بازگشتِ درگاه اصلاً از service worker عبور نمی‌کنند.
+									با خاموش‌کردن، service workerِ نصب‌شده روی گوشیِ کاربران در بازدیدِ بعدی خودش را پاک می‌کند.
 								</p>
 							</td>
 						</tr>
@@ -1890,11 +2195,11 @@ function jluxe_render_advanced_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">این کد مستقیم روی هر صفحه‌ی سایت لود می‌شه — فقط برای ادمین‌های مطمئن (<code>manage_options</code>).</p>
+					<p class="description">این کد مستقیم روی هر صفحه‌ی سایت لود می‌شه — ویرایش آن علاوه بر مدیریت تنظیمات، به مجوز <code>unfiltered_html</code> نیاز دارد.</p>
 					<h3>CSS سفارشی</h3>
-					<textarea name="custom_code[css]" rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['css'] ); ?></textarea>
+					<textarea name="custom_code[css]" <?php echo current_user_can( 'unfiltered_html' ) ? '' : 'readonly'; ?> rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['css'] ); ?></textarea>
 					<h3>JavaScript سفارشی</h3>
-					<textarea name="custom_code[js]" rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['js'] ); ?></textarea>
+					<textarea name="custom_code[js]" <?php echo current_user_can( 'unfiltered_html' ) ? '' : 'readonly'; ?> rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['js'] ); ?></textarea>
 					<?php jluxe_settings_submit_button( true, 'custom_code' ); ?>
 				</form>
 			</div>

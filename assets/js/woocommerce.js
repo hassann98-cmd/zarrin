@@ -1,6 +1,6 @@
 /**
- * دکمه‌های +/- تعداد روی سبد خرید. مقدار input.qty رو تغییر می‌ده و بعد
- * دقیقاً همون مسیر رسمی ووکامرس رو صدا می‌زنه: کلیک روی دکمه‌ی مخفیِ
+ * دکمه‌های +/- تعداد در صفحهٔ محصول و سبد خرید. مقدار input.qty رو تغییر
+ * می‌ده و در سبد خرید دقیقاً همان مسیر رسمی ووکامرس را صدا می‌زند: کلیک روی دکمهٔ مخفیِ
  * name="update_cart" (که assets/js/frontend/cart.js خودِ ووکامرس روش
  * گوش می‌ده و AJAX واقعی رو انجام می‌ده). صرفاً dispatch کردن رویداد
  * change کافی نیست — ووکامرس کلاسیک AJAX رو فقط با submit واقعی فرم
@@ -125,74 +125,7 @@
 	});
 })();
 
-/**
- * علاقه‌مندی‌ها (localStorage، واقعاً پایدار بین بازدیدها — نه صرفاً بصری
- * برای یک لود صفحه) و اشتراک‌گذاری (Web Share API واقعی، با fallback به
- * کپی لینک در کلیپ‌بورد اگر مرورگر پشتیبانی نکنه).
- */
-(function () {
-	var STORAGE_KEY = "jluxe_wishlist";
 
-	function getWishlist() {
-		try {
-			return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-		} catch (e) {
-			return [];
-		}
-	}
-
-	function setButtonState(btn, active) {
-		btn.setAttribute("aria-pressed", active ? "true" : "false");
-		btn.classList.toggle("text-boom-sale", active);
-		var svg = btn.querySelector("svg");
-		if (svg) {
-			svg.setAttribute("fill", active ? "currentColor" : "none");
-		}
-	}
-
-	document.querySelectorAll("[data-jluxe-wishlist-toggle]").forEach(function (btn) {
-		var id = btn.getAttribute("data-jluxe-wishlist-toggle");
-		setButtonState(btn, getWishlist().indexOf(id) !== -1);
-	});
-
-	document.addEventListener("click", function (event) {
-		var btn = event.target.closest("[data-jluxe-wishlist-toggle]");
-		if (!btn) {
-			return;
-		}
-		var id = btn.getAttribute("data-jluxe-wishlist-toggle");
-		var list = getWishlist();
-		var index = list.indexOf(id);
-		if (index === -1) {
-			list.push(id);
-		} else {
-			list.splice(index, 1);
-		}
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-		setButtonState(btn, index === -1);
-	});
-
-	document.addEventListener("click", function (event) {
-		var btn = event.target.closest("[data-jluxe-share]");
-		if (!btn) {
-			return;
-		}
-		var shareData = { title: document.title, url: window.location.href };
-		if (navigator.share) {
-			navigator.share(shareData).catch(function () {});
-			return;
-		}
-		if (navigator.clipboard) {
-			navigator.clipboard.writeText(shareData.url).then(function () {
-				var original = btn.getAttribute("aria-label");
-				btn.setAttribute("aria-label", "لینک کپی شد");
-				setTimeout(function () {
-					btn.setAttribute("aria-label", original);
-				}, 2000);
-			});
-		}
-	});
-})();
 
 /**
  * جعبه‌ی قیمتِ صفحه‌ی محصولِ متغیر (woocommerce/single-product/price.php):
@@ -486,6 +419,124 @@ function jluxeBindQtyAvailability(form) {
 jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_variations]"));
 
 /**
+ * R65: تنوعِ ناموجود هیچ‌وقت قابلِ انتخاب نیست — در همهٔ UI ها.
+ *
+ * منبعِ حقیقت: data-product_variations فرم (خروجیِ get_available_variations
+ * خودِ ووکامرس) که تنوع‌های ناموجود را هم با is_in_stock=false دارد.
+ * قانون: گزینه‌ای در ویژگیِ X «انتخاب‌پذیر» است فقط اگر تنوعی موجود باشد که
+ * هم آن مقدار را بپذیرد (مقدارِ برابر یا خالی = هرچیزی) و هم با بقیهٔ
+ * ویژگی‌های «الان انتخاب‌شده» سازگار باشد (فیلترِ تدریجیِ استاندارد).
+ * سپس وضعیت روی همهٔ رابط‌ها اعمال می‌شود: <option> خودِ select،
+ * سواچ‌ها (data-jluxe-variation-value) و قرص‌های چیدمانِ classic (cp3-pill).
+ */
+function jluxeSyncVariationAvailability(form) {
+	var raw = form.getAttribute("data-product_variations") || "[]";
+	var variations;
+	try { variations = JSON.parse(raw) || []; } catch (e) { variations = []; }
+	if (!Array.isArray(variations) || !variations.length) { return; }
+
+	/* R68: کلیدِ ویژگی در data-product_variations و name ی select هر دو
+	sanitize_title اند ولی برای نام‌های فارسی percent-encoded ذخیره می‌شوند —
+	تطبیق با decodeURIComponent تا طرفین حتی با تفاوتِ encode بخوانند. */
+	var decodeKey = function (key) { return (key || "").replace(/^attribute_/, ""); };
+	var sameKey = function (a, b) {
+		if (a === b) { return true; }
+		try { return decodeURIComponent(a) === decodeURIComponent(b); } catch (e) { return false; }
+	};
+	var selects = form.querySelectorAll("select[name^=\"attribute_\"]");
+	selects.forEach(function (select) {
+		var name = decodeKey(select.getAttribute("name"));
+		var current = {};
+		selects.forEach(function (other) {
+			if (other !== select && other.value) { current[decodeKey(other.getAttribute("name"))] = other.value; }
+		});
+		var optionValues = {};
+		Array.prototype.forEach.call(select.options, function (opt) {
+			if (!opt.value) { return; }
+			var selectable = variations.some(function (v) {
+				if (!v || v.is_in_stock === false) { return false; }
+				var attrs = v.attributes || {};
+				var suffixes = {};
+				Object.keys(attrs).forEach(function (k) { suffixes[decodeKey(k)] = attrs[k]; });
+				var own = null;
+				Object.keys(suffixes).forEach(function (k) { if (sameKey(k, name)) { own = suffixes[k]; } });
+				if (own !== null && own !== "" && own !== opt.value) { return false; }
+				for (var otherName in current) {
+					if (!Object.prototype.hasOwnProperty.call(current, otherName)) { continue; }
+					var otherVal = null;
+					Object.keys(suffixes).forEach(function (k) { if (sameKey(k, otherName)) { otherVal = suffixes[k]; } });
+					if (otherVal !== null && otherVal !== "" && otherVal !== current[otherName]) { return false; }
+				}
+				return true;
+			});
+			optionValues[select.name + "|" + opt.value] = selectable;
+			opt.disabled = !selectable;
+		});
+
+		// سواچ‌های همان ویژگی (چیدمان پیش‌فرض/مودال انتخاب سریع).
+		var group = select.closest("[data-jluxe-variation-group]");
+		if (group) {
+			group.querySelectorAll("[data-jluxe-variation-value]").forEach(function (btn) {
+				var value = btn.getAttribute("data-jluxe-variation-value");
+				/* R71: رگرسیونِ R68 — کلیدِ optionValues با پیشوندِ select.name
+				ساخته می‌شود؛ خواندنِ بدونِ پیشوند همیشه undefined برمی‌گرداند
+				و «همهٔ» سواچ‌ها (چیدمانِ پیش‌فرض + مودالِ انتخابِ سریع)
+				برایِ همیشه disable می‌شدند — همان که کاربر دید. مثلِ قرص‌ها:
+				=== true فقط وقتی واقعاً موجود است. */
+				var selectable = optionValues[select.name + "|" + value] === true;
+				btn.disabled = !selectable;
+				btn.classList.toggle("jluxe-swatch-disabled", !selectable);
+				if (!selectable) { btn.removeAttribute("data-active"); }
+			});
+		}
+	});
+
+	// قرص‌های چیدمان classic — نگاشتِ دقیق با data-cp3-select روی خودِ select
+	// و وضعیت از optionValues (منبعِ موجودی) نه از opt.disabled — تا فیلترِ
+	// «بدونِ انتخاب همه فعال» ووکامرس نتواند آن را پاک کند.
+	form.querySelectorAll("select[name^=\"attribute_\"]").forEach(function (select) {
+		var slug = select.getAttribute("data-cp3-select");
+		if (!slug) { return; }
+		var root = form.closest(".jluxe-cp3") || document;
+		var cssEscape = function (value) { return (window.CSS && CSS.escape) ? CSS.escape(value) : value; };
+		var pillGroup = root.querySelector('[data-cp3-pills="' + cssEscape(slug) + '"]');
+		if (!pillGroup) { return; }
+		pillGroup.querySelectorAll(".cp3-pill").forEach(function (pill) {
+			var value = pill.getAttribute("data-value") || "";
+			var selectable = optionValues[select.name + "|" + value] === true;
+			pill.disabled = !selectable;
+			pill.setAttribute("aria-disabled", selectable ? "false" : "true");
+			pill.classList.toggle("is-disabled", !selectable);
+			pill.title = pill.textContent.trim() + (selectable ? "" : " (ناموجود)");
+			if (pill.classList.contains("is-active") && !selectable) { pill.classList.remove("is-active"); }
+		});
+	});
+}
+
+function jluxeSyncAllVariationForms() {
+	document.querySelectorAll(".variations_form[data-product_variations]").forEach(function (form) {
+		if (form.jluxeAvailabilityBound) { return; }
+		form.jluxeAvailabilityBound = true;
+		form.addEventListener("change", function () {
+			window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+		});
+		/* R68: ووکامرس در init «همه فعال» را منتشر می‌کند و اسکریپتِ
+		درون‌خطیِ classic طبق آن کلاس‌ها را پاک می‌کند — این قلابِ بعد از
+		رویدادِ وو، وضعیتِ موجودیِ درست را دوباره می‌نشاند (+ تاخیرِ اطمینان). */
+		if (window.jQuery) {
+			window.jQuery(form).on("woocommerce_update_variation_values", function () {
+				window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+			});
+		}
+		window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 0);
+		window.setTimeout(function () { jluxeSyncVariationAvailability(form); }, 600);
+	});
+}
+jluxeSyncAllVariationForms();
+document.addEventListener("DOMContentLoaded", jluxeSyncAllVariationForms);
+window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
+
+/**
  * سواچ‌های pill محصول متغیر (woocommerce/single-product/add-to-cart/variable.php):
  * کلیک روی دکمه، مقدار select واقعی (مخفی، sr-only) رو ست کرده و change
  * واقعی dispatch می‌کنه تا wc-add-to-cart-variation.js خودِ ووکامرس
@@ -505,6 +556,11 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 		var select = group.querySelector("select");
 		if (!select) {
+			return;
+		}
+
+		/* R65: سواچِ غیرقابل‌انتخاب (تنوعِ ناموجود) کلیک را نمی‌پذیرد. */
+		if (swatch.disabled || swatch.classList.contains("jluxe-swatch-disabled")) {
 			return;
 		}
 
@@ -575,7 +631,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		}
 		// فقط ترکیبِ کاملاً مشخص (بدون مقدار خالی/"هرکدوم") و موجود، چون باید
 		// بشه هر ویژگی رو روی یک سواچِ مشخص کلیک کرد.
-		var jluxeTarget = jluxeVariations.filter(function (v) {
+		var jluxeTarget = (Array.isArray(jluxeVariations) ? jluxeVariations : []).filter(function (v) {
 			return v && v.is_in_stock && v.attributes && Object.keys(v.attributes).every(function (k) {
 				return v.attributes[k] !== "";
 			});
@@ -671,6 +727,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 	var jluxeFilterForm = document.querySelector("[data-jluxe-filter-form]");
 	if (jluxeFilterForm) {
+		jluxeFilterForm.addEventListener("input", function (event) { if (event.target.setCustomValidity) event.target.setCustomValidity(""); });
 		jluxeFilterForm.addEventListener("submit", function (event) {
 			event.preventDefault();
 
@@ -680,38 +737,37 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			var maxPrice = jluxeFilterForm.querySelector('[name="max_price"]');
 			var inStock = jluxeFilterForm.querySelector('[name="filter_stock"]');
 
-			var baseUrl = null;
-			[catSelect, brandSelect].forEach(function (select) {
-				if (!baseUrl && select && select.value) {
-					var opt = select.options[select.selectedIndex];
-					if (opt && opt.dataset.url) {
-						baseUrl = opt.dataset.url;
-					}
+			var onSale = jluxeFilterForm.querySelector('[name="on_sale"]');
+			var settings = window.JLuxeThemeSettings || {};
+			var baseUrl = settings.shopUrl || (settings.urls && settings.urls.shop);
+			if (!baseUrl) return;
+			function priceValue(input) {
+				if (!input) return "";
+				var value = JLuxeStorefrontUtils.normalizeDigits(input.value).replace(/[,،٬]/g, "").trim();
+				input.setCustomValidity("");
+				if (value && (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))) {
+					input.setCustomValidity("مبلغ معتبر وارد کنید.");
+					input.reportValidity();
+					return null;
 				}
+				return value;
+			}
+			var minimum = priceValue(minPrice);
+			var maximum = priceValue(maxPrice);
+			if (minimum === null || maximum === null) return;
+			if (minimum && maximum && Number(minimum) > Number(maximum)) {
+				maxPrice.setCustomValidity("حداکثر قیمت باید از حداقل کمتر نباشد.");
+				maxPrice.reportValidity();
+				return;
+			}
+			window.location.href = JLuxeStorefrontUtils.buildFilterUrl(baseUrl, window.location.href, {
+				product_cat: catSelect ? catSelect.value : "",
+				product_brand: brandSelect ? brandSelect.value : "",
+				min_price: minimum,
+				max_price: maximum,
+				filter_stock: inStock && inStock.checked ? "instock" : "",
+				on_sale: onSale && onSale.checked ? "1" : ""
 			});
-			if (!baseUrl) {
-				baseUrl = window.JLuxeThemeSettings && window.JLuxeThemeSettings.shopUrl
-					? window.JLuxeThemeSettings.shopUrl
-					: "/shop/";
-			}
-
-			// قیمتِ ذخیره‌شده در ووکامرس همیشه ریاله (inc/woocommerce.php:
-			// jluxe_toman_price تقسیم‌بر-۱۰ برای نمایش)؛ فیلتر native ووکامرس
-			// هم روی همون مقدار ریالی مقایسه می‌کنه، پس ورودیِ تومانیِ کاربر
-			// باید قبل از رفتن به querystring در ۱۰ ضرب بشه.
-			var params = new URLSearchParams();
-			if (minPrice && minPrice.value) {
-				params.set("min_price", String(Math.round(Number(minPrice.value) * 10)));
-			}
-			if (maxPrice && maxPrice.value) {
-				params.set("max_price", String(Math.round(Number(maxPrice.value) * 10)));
-			}
-			if (inStock && inStock.checked) {
-				params.set("filter_stock", "instock");
-			}
-
-			var query = params.toString();
-			window.location.href = baseUrl + (query ? "?" + query : "");
 		});
 	}
 })();
@@ -763,6 +819,10 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			return select.options[select.selectedIndex];
 		}
 
+		function cleanOptionLabel(text) {
+			return String(text || "").replace(/^\s*مرتب[\u200c\s]*سازی(?:\s+بر\s+اساس)?\s*[:：]?\s*/, "").trim();
+		}
+
 		function buildOptions() {
 			listbox.innerHTML = "";
 			Array.prototype.forEach.call(select.options, function (opt) {
@@ -772,9 +832,10 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 				var selected = opt.value === select.value;
 				li.setAttribute("aria-selected", selected ? "true" : "false");
 				li.className = "jluxe-sort-option" + (selected ? " jluxe-sort-option-active" : "");
-				li.innerHTML =
-					'<svg class="jluxe-sort-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
-					'<span>' + opt.textContent + '</span>';
+				li.innerHTML = '<svg class="jluxe-sort-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+				var optionLabel = document.createElement("span");
+				optionLabel.textContent = cleanOptionLabel(opt.textContent);
+				li.appendChild(optionLabel);
 				li.tabIndex = -1;
 				listbox.appendChild(li);
 			});
@@ -782,7 +843,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 		function syncLabel() {
 			var opt = currentOption();
-			label.textContent = opt ? opt.textContent : "";
+			label.textContent = opt ? cleanOptionLabel(opt.textContent) : "";
 		}
 
 		// باز/بسته‌شدنِ لیست دو‌مرحله‌ایه (دقیقاً هم‌الگو با پنلِ فیلتر بالاتر
@@ -984,8 +1045,16 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			return;
 		}
 		if (!img.dataset.jluxeOriginalSrc) {
-			img.dataset.jluxeOriginalSrc = img.src;
+			img.dataset.jluxeOriginalSrc = img.getAttribute("src") || "";
+			img.dataset.jluxeOriginalSrcset = img.getAttribute("srcset") || "";
+			img.dataset.jluxeOriginalSizes = img.getAttribute("sizes") || "";
 		}
+		img.removeAttribute("srcset");
+		img.removeAttribute("sizes");
+		var fullSrcset = thumb.getAttribute("data-srcset");
+		var fullSizes = thumb.getAttribute("data-sizes");
+		if (fullSrcset) { img.setAttribute("srcset", fullSrcset); }
+		if (fullSizes) { img.setAttribute("sizes", fullSizes); }
 		img.src = thumb.getAttribute("data-full");
 	});
 
@@ -1008,6 +1077,10 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		}
 		var img = card.querySelector("[data-jluxe-card-main-img]");
 		if (img && img.dataset.jluxeOriginalSrc) {
+			img.removeAttribute("srcset");
+			img.removeAttribute("sizes");
+			if (img.dataset.jluxeOriginalSrcset) { img.setAttribute("srcset", img.dataset.jluxeOriginalSrcset); }
+			if (img.dataset.jluxeOriginalSizes) { img.setAttribute("sizes", img.dataset.jluxeOriginalSizes); }
 			img.src = img.dataset.jluxeOriginalSrc;
 		}
 		card.removeAttribute("data-thumbs-active");
@@ -1058,6 +1131,13 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		if (!button) {
 			return null;
 		}
+		// انتخابِ تنوعِ یک پیشنهاد، داخلِ یک فرمِ .cart قرار دارد؛ عنوانِ
+		// مودالِ تنوع را بخوان تا توست نامِ محصولِ اصلیِ صفحه را اشتباه نگوید.
+		var variantModal = button.closest(".jluxe-variant-modal");
+		var variantTitle = variantModal && variantModal.querySelector(".jluxe-variant-modal-title");
+		if (variantTitle && variantTitle.textContent.trim()) {
+			return variantTitle.textContent.trim();
+		}
 		/*
 		 * ترتیب عمداً مهمه: اول صفحه‌ی تکیِ محصول (marker اختصاصیِ
 		 * data-jluxe-product-title در content-single-product.php) چک
@@ -1078,37 +1158,107 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		return titleEl && titleEl.textContent.trim() ? titleEl.textContent.trim() : null;
 	}
 
-	function showToast(message) {
-		var existing = document.querySelector(".jluxe-toast");
-		if (existing) {
-			existing.remove();
-		}
-		var toast = document.createElement("div");
-		toast.className = "jluxe-toast";
-		toast.innerHTML =
-			'<span class="jluxe-toast-icon" aria-hidden="true">' +
-			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>' +
-			"</span>" +
-			'<span class="jluxe-toast-msg"></span>' +
-			'<button type="button" class="jluxe-toast-cta">مشاهده سبد</button>';
-		toast.querySelector(".jluxe-toast-msg").textContent = message;
-		document.body.appendChild(toast);
-		requestAnimationFrame(function () {
-			toast.classList.add("jluxe-toast-visible");
+	function suggestedProductNames(html) {
+		if (!html) { return []; }
+		var wrapper = document.createElement("div");
+		wrapper.innerHTML = String(html);
+		var names = [];
+		wrapper.querySelectorAll("[data-pa-product], [data-pa-service]").forEach(function (row) {
+			var name = row.querySelector(".jluxe-pa-name");
+			var text = name && name.textContent ? name.textContent.trim() : "";
+			if (text && names.indexOf(text) === -1) { names.push(text); }
 		});
+		return names.slice(0, 2);
+	}
 
-		var timer = window.setTimeout(dismiss, 3500);
-		function dismiss() {
-			window.clearTimeout(timer);
-			toast.classList.remove("jluxe-toast-visible");
-			window.setTimeout(function () {
-				toast.remove();
-			}, 250);
+	function showToast(message, options) {
+		options = options || {};
+		var existing = document.querySelector(".jluxe-toast");
+		if (existing) { existing.remove(); }
+		var toast = document.createElement("section");
+		toast.className = "jluxe-toast";
+		toast.setAttribute("role", "status");
+		toast.setAttribute("aria-live", "polite");
+		toast.setAttribute("aria-atomic", "true");
+		toast.setAttribute("dir", "rtl");
+		toast.innerHTML =
+			'<div class="jluxe-toast-main">' +
+				'<span class="jluxe-toast-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>' +
+				'<div class="jluxe-toast-copy"><strong class="jluxe-toast-msg"></strong><span class="jluxe-toast-product"></span><p class="jluxe-toast-suggestions" hidden></p></div>' +
+				'<button type="button" class="jluxe-toast-close" aria-label="بستن پیام">×</button>' +
+			'</div>' +
+			'<div class="jluxe-toast-actions">' +
+				'<a class="jluxe-toast-cta jluxe-toast-cta-primary" href="#">مشاهده سبد</a>' +
+				'<button type="button" class="jluxe-toast-continue">ادامه خرید</button>' +
+				'<button type="button" class="jluxe-toast-suggestions-cta" hidden>دیدن پیشنهادها</button>' +
+			'</div>';
+		toast.querySelector(".jluxe-toast-msg").textContent = message || "✓ به سبد اضافه شد";
+		var productLine = toast.querySelector(".jluxe-toast-product");
+		if (options.productName) { productLine.textContent = options.productName; }
+		else { productLine.hidden = true; }
+		var cartUrl = (window.jluxeWcSettings && window.jluxeWcSettings.cartUrl) || "/cart/";
+		toast.querySelector(".jluxe-toast-cta-primary").href = cartUrl;
+
+		var names = suggestedProductNames(options.suggestedHtml);
+		var suggestionLine = toast.querySelector(".jluxe-toast-suggestions");
+		var suggestionButton = toast.querySelector(".jluxe-toast-suggestions-cta");
+		if (names.length) {
+			suggestionLine.hidden = false;
+			suggestionLine.textContent = "ممکن است این‌ها را هم لازم داشته باشید: " + names.join("، ");
+			suggestionButton.hidden = false;
+			suggestionButton.addEventListener("click", function () {
+				if (typeof window.jluxeOpenSuggestedProductsModal === "function") {
+					window.jluxeOpenSuggestedProductsModal();
+					dismiss();
+				}
+			});
 		}
-		toast.querySelector(".jluxe-toast-cta").addEventListener("click", function () {
-			window.dispatchEvent(new CustomEvent("jluxe:open-cart"));
+
+		document.body.appendChild(toast);
+		window.requestAnimationFrame(function () { toast.classList.add("jluxe-toast-visible"); });
+
+		var timeout = null;
+		var remaining = 8000;
+		var startedAt = Date.now();
+		function clearTimer() {
+			if (timeout !== null) { window.clearTimeout(timeout); timeout = null; }
+		}
+		function startTimer() {
+			clearTimer();
+			startedAt = Date.now();
+			timeout = window.setTimeout(dismiss, remaining);
+		}
+		function pauseTimer() {
+			if (timeout === null) { return; }
+			remaining = Math.max(1000, remaining - (Date.now() - startedAt));
+			clearTimer();
+		}
+		function dismiss() {
+			clearTimer();
+			toast.classList.remove("jluxe-toast-visible");
+			window.setTimeout(function () { toast.remove(); }, 220);
+		}
+		toast.addEventListener("mouseenter", pauseTimer);
+		toast.addEventListener("mouseleave", startTimer);
+		toast.addEventListener("focusin", pauseTimer);
+		toast.addEventListener("focusout", function (event) {
+			if (!toast.contains(event.relatedTarget)) { startTimer(); }
+		});
+		toast.querySelector(".jluxe-toast-close").addEventListener("click", dismiss);
+		toast.querySelector(".jluxe-toast-cta-primary").addEventListener("click", function (event) {
+			if (document.querySelector('[data-jluxe-island="mini-cart"]')) {
+				event.preventDefault();
+				window.dispatchEvent(new CustomEvent("jluxe:open-cart"));
+			}
 			dismiss();
 		});
+		toast.querySelector(".jluxe-toast-continue").addEventListener("click", function () {
+			dismiss();
+			if (options.sourceButton && options.sourceButton.isConnected && typeof options.sourceButton.focus === "function") {
+				try { options.sourceButton.focus({ preventScroll: true }); } catch (error) { options.sourceButton.focus(); }
+			}
+		});
+		startTimer();
 	}
 
 	/**
@@ -1224,16 +1374,42 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			});
 		}, 0);
 		var isMobile = window.innerWidth < 768;
-		// دسکتاپ: همون توستِ متنیِ قبلی. موبایل: به‌جای توست، خودِ دکمه یک
-		// لحظه محو/پالس می‌شه و دایره‌ی پروازی جای پیغام رو می‌گیره — طبقِ
-		// درخواستِ صریحِ کاربر (فضای کمِ موبایل برای توستِ متنی مناسب نبود).
-		if (isMobile) {
-			fadeButtonPulse(button);
-		} else {
-			var name = productNameFromButton(button);
-			showToast(name ? name + " به سبد خرید اضافه شد" : "محصول به سبد خرید اضافه شد");
+		// Mobile keeps the quick visual pulse, but the same accessible confirmation/actions stay available at every width.
+		if (isMobile) { fadeButtonPulse(button); }
+		var name = productNameFromButton(button);
+		var fromSuggestion = !!(button && button.closest("[data-jluxe-suggested-modal], .jluxe-variant-modal"));
+		var suggestedHtml = !fromSuggestion && cartSnapshot && typeof cartSnapshot.suggested_html === "string"
+			? cartSnapshot.suggested_html
+			: "";
+		if (suggestedHtml && typeof window.jluxeMountSuggestedModal === "function") {
+			window.jluxeMountSuggestedModal(suggestedHtml);
+		} else if (!suggestedHtml && button && button.closest("form.cart")) {
+			var staleSuggested = document.querySelector("[data-jluxe-suggested-modal]");
+			if (staleSuggested && staleSuggested.parentNode) { staleSuggested.parentNode.removeChild(staleSuggested); }
 		}
+		showToast("✓ به سبد اضافه شد", {
+			productName: name,
+			suggestedHtml: suggestedHtml,
+			sourceButton: button,
+		});
 		animateAddToCart(button);
+		/* R63 (فاز ۲): Quick Add واقعی روی دکمهٔ دایره‌ای کارت — آیکون +
+		تبدیل به تیک و برچسبِ «به سبد اضافه شد»، بعدِ ~۲ ثانیه بازگشت.
+		(بجِ سبد/مینی‌کارت توسطِ رویدادِ jluxe:cart-updatedِ همین هندلر —
+		چند خط پایین‌تر — از مسیرِ REST رفرش می‌شود.) */
+		if (button && button.classList && button.classList.contains("add_to_cart_button")) {
+			if (button._jluxeAddedTimer) { window.clearTimeout(button._jluxeAddedTimer); button._jluxeAddedTimer = null; }
+			if (button.dataset.jluxeOrigHtml === undefined) { button.dataset.jluxeOrigHtml = button.innerHTML; }
+			button.classList.add("jluxe-btn-added");
+			button.setAttribute("aria-label", "به سبد اضافه شد");
+			button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="size-4"><path d="m5 12 5 5 9-10"/></svg>';
+			button._jluxeAddedTimer = window.setTimeout(function () {
+				button.classList.remove("jluxe-btn-added");
+				button.setAttribute("aria-label", "افزودن به سبد خرید");
+				button.innerHTML = button.dataset.jluxeOrigHtml;
+				button._jluxeAddedTimer = null;
+			}, 2200);
+		}
 		/*
 		 * باگِ واقعیِ گزارش‌شده («لگ زیاد موقعِ افزودن به سبد، دوباره‌کلیک
 		 * لگِ بیشتر»): سرورِ این سایت روی هر دورِ رفت‌وبرگشتِ AJAX ~۱.۵
@@ -1253,19 +1429,182 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		 * و use-cart.ts طبقِ قبل fallback به fetch می‌کنه.)
 		 */
 		window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: cartSnapshot || null }));
-		// پاپ‌آپِ «محصولات پیشنهادی» فقط وقتی باز می‌شه که خودِ دکمه‌ی اصلیِ
-		// افزودنِ همین صفحه‌ی محصول کلیک شده باشه (کلاسِ single_add_to_cart_button
-		// فقط مالِ اونه، نه کارت‌های گرید — چه همین صفحه چه بخشِ «محصولات
-		// مرتبط»ِ زیرش که خودشون هم می‌تونن added_to_cart رو صدا بزنن). با
-		// کمی تاخیر بعدِ اینکه توست/انیمیشنِ پرواز دیده بشه.
-		if (button && button.classList.contains("single_add_to_cart_button")) {
-			window.setTimeout(function () {
-				if (typeof window.jluxeOpenSuggestedProductsModal === "function") {
-					window.jluxeOpenSuggestedProductsModal();
-				}
-			}, isMobile ? 550 : 750);
-		}
+		/* R61: بازشدنِ مودالِ «اضافه خرید» از هندلرِ رویدادِ عمومی برداشته شد —
+		شرطِ کلاسِ single_add_to_cart_button شکننده بود (چند مسیرِ افزودن داریم:
+		صفحهٔ محصول ساده/متغیر، sticky، quick-variant، گرید). حالا فقط مسیرِ
+		واحدِ درست بازش می‌کند: پاسخِ موفقِ endpoint افزودنِ صفحهٔ محصول
+		(پایینِ همین فایل، در submit interceptor). */
 	});
+})();
+
+/*
+ * R73: پاپ‌آپِ «ثبت دیدگاه» — فرمِ واقعیِ ووکامرس (#review_form_wrapper با
+ * ستارهٔ کلی + ستاره‌های معیارها از تنظیماتِ پوسته) به‌صورتِ Progressive
+ * Enhancement به داخلِ مودال منتقل می‌شود؛ بدونِ JS همان فرمِ درون‌خطیِ
+ * همیشگی می‌ماند. ارسال با fetch و redirect:"manual" به wp-comments-post.php
+ * خودِ وردپرس انجام می‌شود (ریدایرکتِ 302 یعنی موفق؛ wp-die های هسته — فیلدِ
+ * خالی/تکراری/سیلاب — متنشان استخراج و داخلِ مودال نشان داده می‌شود)؛ پس از
+ * موفقیت: پیامِ «ثبت شد، منتظرِ تأییدِ مدیر» — چون دیدگاه‌ها طبقِ قانونِ
+ * پوسته همیشه مودِارت می‌شوند. تلهٔ فوکوس + Escape + قفلِ اسکرول مثل بقیهٔ
+ * مودال‌ها.
+ */
+(function () {
+	var modalRoot = null;
+	var releaseDialogFocus = null;
+	var lastFocused = null;
+	var formNode = null;
+	/* R73.1: فرمِ وو قرضی است — هنگامِ بستن باید به خانه‌اش (#review_form)
+	برگردد، وگرنه با remove() مودال برای همیشه از DOM حذف می‌شد و باز
+	کردنِ دومِ پاپ‌آپ ممکن نبود. */
+	var reviewWrapper = null;
+	var reviewFormHome = null;
+
+	function closeReviewModal() {
+		if (!modalRoot) { return; }
+		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
+		document.body.style.overflow = "";
+		if (reviewWrapper && reviewFormHome && reviewFormHome.parentNode) {
+			reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild);
+		}
+		modalRoot.remove();
+		modalRoot = null;
+		if (lastFocused && lastFocused.focus) { lastFocused.focus(); }
+	}
+
+	function showReviewSuccess() {
+		if (!modalRoot) { return; }
+		var body = modalRoot.querySelector(".jluxe-review-modal-body");
+		if (body) {
+			body.innerHTML = '<div class="jluxe-review-modal-success" role="status">' +
+				'<span class="jluxe-review-modal-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>' +
+				'<strong>دیدگاه شما ثبت شد</strong>' +
+				'<span>پس از بررسی و تأیید مدیر منتشر می‌شود؛ از همراهی شما سپاسگزاریم.</span>' +
+				"</div>";
+		}
+		if (formNode) { formNode.reset(); }
+		window.setTimeout(closeReviewModal, 3200);
+	}
+
+	function showReviewError(message) {
+		if (!modalRoot) { return; }
+		var body = modalRoot.querySelector(".jluxe-review-modal-body");
+		if (!body) { return; }
+		var box = modalRoot.querySelector(".jluxe-review-modal-error");
+		if (!box) {
+			box = document.createElement("p");
+			box.className = "jluxe-review-modal-error";
+			box.setAttribute("role", "alert");
+			body.insertBefore(box, body.firstChild);
+		}
+		box.textContent = message;
+	}
+
+	function showReviewUnavailable(trigger) {
+		var toolbar = trigger && trigger.closest(".cp3-reviewtoolbar");
+		if (!toolbar) { return; }
+		var message = toolbar.querySelector(".cp3-review-unavailable");
+		if (!message) {
+			message = document.createElement("p");
+			message.className = "cp3-review-unavailable";
+			message.setAttribute("role", "status");
+			toolbar.appendChild(message);
+		}
+		message.textContent = "فرم ثبت دیدگاه برای این محصول در دسترس نیست؛ ممکن است دیدگاه‌ها بسته باشند.";
+	}
+
+	function openReviewModal(trigger) {
+		var wrapper = document.getElementById("review_form_wrapper");
+		if (!wrapper || !wrapper.querySelector("form#commentform")) {
+			showReviewUnavailable(trigger);
+			return;
+		}
+		if (modalRoot) { closeReviewModal(); return; }
+		lastFocused = document.activeElement;
+		modalRoot = document.createElement("div");
+		modalRoot.className = "jluxe-review-modal-backdrop";
+		modalRoot.innerHTML =
+			'<div class="jluxe-review-modal" role="dialog" aria-modal="true" aria-labelledby="jluxe-review-modal-title">' +
+			'<button type="button" class="jluxe-review-modal-close" aria-label="بستن">' +
+			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+			"</button>" +
+			'<div class="jluxe-review-modal-head"><h2 id="jluxe-review-modal-title">ثبت دیدگاه</h2><p>به هر معیار امتیازِ ستاره بدهید؛ دیدگاه شما پس از تأیید مدیر منتشر می‌شود.</p></div>' +
+			'<div class="jluxe-review-modal-body"></div>' +
+			"</div>";
+		document.body.appendChild(modalRoot);
+		formNode = wrapper.querySelector("form#commentform") || null;
+		reviewWrapper = wrapper;
+		reviewFormHome = wrapper.parentNode;
+		modalRoot.querySelector(".jluxe-review-modal-body").appendChild(wrapper);
+		document.body.style.overflow = "hidden";
+		if (window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.activateDialog === "function") {
+			releaseDialogFocus = window.JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeReviewModal);
+		}
+		modalRoot.addEventListener("click", function (event) {
+			if (event.target === modalRoot || event.target.closest(".jluxe-review-modal-close")) {
+				closeReviewModal();
+			}
+		});
+	}
+
+	document.addEventListener("click", function (event) {
+		var trigger = event.target.closest("[data-jluxe-review-modal]");
+		if (!trigger) { return; }
+		event.preventDefault();
+		openReviewModal(trigger);
+	});
+
+	document.addEventListener("keydown", function (event) {
+		if (event.key === "Escape" && modalRoot) { closeReviewModal(); }
+	});
+
+	document.addEventListener("submit", function (event) {
+		var form = event.target.closest(".jluxe-review-modal form#commentform");
+		if (!form || !window.fetch) { return; }
+		var actionUrl;
+		try {
+			actionUrl = new URL(form.getAttribute("action") || window.location.href, window.location.href);
+		} catch (error) {
+			return; // Keep the browser's native POST as the safe fallback.
+		}
+		/* A cross-origin wp-comments-post.php action cannot receive same-origin
+		 * login cookies through fetch. Let the browser's ordinary form POST handle it. */
+		if (actionUrl.origin !== window.location.origin) { return; }
+		event.preventDefault();
+		var submit = form.querySelector("[type=submit]");
+		if (submit) { submit.disabled = true; }
+		fetch(form.getAttribute("action") || window.location.href, {
+			method: "POST",
+			body: new FormData(form),
+			redirect: "manual",
+			credentials: "same-origin",
+		}).then(function (res) {
+			if (res.type === "opaqueredirect" || 0 === res.status) { showReviewSuccess(); return null; }
+			return res.text().then(function (html) {
+				if (res.ok && -1 === html.indexOf("wp-die-message")) {
+					/* پاسخِ پیش‌بینی‌نشده — صفحهٔ کامل نتیجه را نشان می‌دهد. */
+					window.location.reload();
+					return null;
+				}
+				var doc = new DOMParser().parseFromString(html, "text/html");
+				var el = doc.querySelector(".wp-die-message");
+				var msg = el ? String(el.textContent || "").replace(/\s+/g, " ").trim() : "";
+				showReviewError(msg ? msg.slice(0, 240) : "ثبت دیدگاه انجام نشد؛ دوباره تلاش کنید.");
+			});
+		}).catch(function () {
+			showReviewError("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
+		}).finally(function () {
+			if (submit) { submit.disabled = false; }
+		});
+	});
+
+	/* Hide the inline form only after the modal handler is ready; without JS the anchor falls back to it. */
+	var availableReviewForm = document.getElementById("review_form_wrapper");
+	if (availableReviewForm && availableReviewForm.querySelector("form#commentform")) {
+		document.querySelectorAll("[data-jluxe-review-modal]").forEach(function (trigger) {
+			var productRoot = trigger.closest(".jluxe-cp3");
+			if (productRoot) { productRoot.classList.add("jluxe-review-modal-ready"); }
+		});
+	}
 })();
 
 /**
@@ -1277,42 +1616,251 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
  * می‌کنن.
  */
 (function () {
-	var modal = document.querySelector("[data-jluxe-suggested-modal]");
-	if (!modal) {
-		// محصولی که پیشنهادی براش پیدا نشد (jluxe_get_suggested_products_for_cart
-		// خالی بود) اصلاً این عنصر رو تویِ صفحه نداره — window.jluxeOpenSuggestedProductsModal
-		// هیچ‌وقت تعریف نمی‌شه، و فراخوانی‌اش تویِ IIFEِ بالا با typeof چک
-		// می‌شه، پس امنه.
-		return;
-	}
+	/* R61 — بازسازی به‌صورتِ بایندِ تابعی: مودال می‌تواند (۱) در لودِ صفحه به‌صورتِ
+	SSR حاضر باشد (رفتارِ قبلی) یا (۲) بعدِ افزودنِ موفق، با HTML تازه‌ای که
+	خودِ endpoint افزودن در پاسخ برمی‌گرداند سوار شود (موجودی/قابل‌خریدِ لحظه‌ای).
+	keydown به‌صورتِ سراسری یک‌بار بسته می‌شود و همیشه «مودالِ فعلیِ DOM» را
+	می‌بندد — وگرنه بعد از جایگزینیِ مودال، Escape گره‌ی قدیمیِ حذف‌شده را
+	می‌بست و مودالِ تازه با Esc بسته نمی‌شد. */
+	function jluxeBindSuggestedModal(modal) {
+		if (!modal || modal.getAttribute("data-cp3-pa-bound") === "1") { return; }
+		modal.setAttribute("data-cp3-pa-bound", "1");
 
-	window.jluxeOpenSuggestedProductsModal = function () {
-		modal.classList.remove("hidden");
-		modal.setAttribute("aria-hidden", "false");
-		document.body.style.overflow = "hidden";
+		var releaseDialogFocus = null;
+		window.jluxeOpenSuggestedProductsModal = function () {
+			modal.classList.remove("hidden");
+			modal.setAttribute("aria-hidden", "false");
+			document.body.style.overflow = "hidden";
+			/* R63 (فاز ۶): تلهٔ فوکوسِ مشترک (storefront-utils.js) — Tab داخل
+			شیت می‌ماند، فوکوس اول به خودِ مودال می‌رود و بعد از بستن به
+			عنصرِ قبلی برمی‌گردد. */
+			if (!releaseDialogFocus && window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.activateDialog === "function") {
+				releaseDialogFocus = window.JLuxeStorefrontUtils.activateDialog(modal.querySelector(".jluxe-pa-sheet") || modal, function () {
+					if (typeof window.jluxeCloseSuggestedProductsModal === "function") { window.jluxeCloseSuggestedProductsModal(); }
+				});
+			}
+		};
+
+		function closeSuggestedProductsModal() {
+			modal.classList.add("hidden");
+			modal.setAttribute("aria-hidden", "true");
+			document.body.style.overflow = "";
+			if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
+		}
+		window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
+
+		modal.querySelectorAll("[data-jluxe-suggested-close]").forEach(function (el) {
+			el.addEventListener("click", closeSuggestedProductsModal);
+		});
+
+		var paTotal = modal.querySelector("[data-pa-total]");
+		var paConfirm = modal.querySelector("[data-pa-confirm]");
+		var paConfirmLabel = paConfirm && paConfirm.querySelector("[data-pa-confirm-label]");
+		var paMainAmount = parseFloat(modal.getAttribute("data-pa-main")) || 0;
+
+		function paFormat(amount) {
+			/* R64: اعدادِ مبلغِ مودال همیشه فارسی — قبلاً به window.jluxeFaDigits
+			تکیه می‌کرد که سراسری تعریف نشده بود و بعدِ اولین بازمحاسبهٔ JS،
+			ارقامِ لاتین («795,000») جای ارقامِ فارسیِ سرور می‌نشست. */
+			var rounded = Math.max(0, Math.round(amount));
+			var withSeparators = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			return withSeparators.replace(/[0-9]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹".charAt(+d); });
+		}
+
+		function paUpdateTotal() {
+			var total = paMainAmount;
+			var selectedRows = modal.querySelectorAll("[data-pa-service][aria-pressed='true'], [data-pa-product][aria-pressed='true']");
+			selectedRows.forEach(function (row) {
+				total += parseFloat(row.getAttribute("data-pa-amount")) || 0;
+			});
+			if (paTotal) { paTotal.textContent = paFormat(total); }
+			if (paConfirmLabel && paConfirm) {
+				var labelAttribute = selectedRows.length ? "data-pa-confirm-selected" : "data-pa-confirm-empty";
+				paConfirmLabel.textContent = paConfirm.getAttribute(labelAttribute) || "ادامه بدون افزودن";
+			}
+		}
+
+		function clearSuggestedError() {
+			var error = modal.querySelector("[data-pa-error]");
+			if (error) { error.remove(); }
+		}
+
+		function showSuggestedError(message) {
+			var error = modal.querySelector("[data-pa-error]");
+			if (!error) {
+				error = document.createElement("div");
+				error.className = "jluxe-pa-error";
+				error.setAttribute("data-pa-error", "");
+				error.setAttribute("role", "alert");
+				var body = modal.querySelector(".jluxe-pa-body");
+				if (body) { body.insertBefore(error, body.firstChild); }
+			}
+			var decoder = new DOMParser().parseFromString(String(message || "خطا در ثبتِ انتخاب‌ها. دوباره تلاش کنید."), "text/html");
+			error.textContent = String(decoder.body.textContent || "").trim();
+		}
+
+		function restorePaConfirm() {
+			if (!paConfirm) { return; }
+			paConfirm.disabled = false;
+			paConfirm.classList.remove("opacity-60", "pointer-events-none");
+		}
+
+		function releaseAddedProducts(productIds) {
+			if (!productIds.length) { return; }
+			modal.querySelectorAll("[data-pa-product][aria-pressed='true']").forEach(function (row) {
+				if (productIds.indexOf(row.getAttribute("data-pa-product")) === -1) { return; }
+				row.setAttribute("aria-pressed", "false");
+				row.classList.remove("is-selected");
+			});
+			paUpdateTotal();
+		}
+
+		modal.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
+			row.addEventListener("click", function () {
+				var pressed = row.getAttribute("aria-pressed") === "true";
+				row.setAttribute("aria-pressed", pressed ? "false" : "true");
+				row.classList.toggle("is-selected", !pressed);
+				clearSuggestedError();
+				paUpdateTotal();
+			});
+		});
+		modal.addEventListener("jluxe:pa-refresh", paUpdateTotal);
+		paUpdateTotal();
+
+		var cartCfg = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
+		if (paConfirm && cartCfg && cartCfg.ajaxUrl) {
+			paConfirm.addEventListener("click", function () {
+				clearSuggestedError();
+				var productIds = Array.prototype.map.call(
+					modal.querySelectorAll("[data-pa-product][aria-pressed='true']"),
+					function (row) { return row.getAttribute("data-pa-product"); }
+				);
+				var serviceKeys = Array.prototype.map.call(
+					modal.querySelectorAll("[data-pa-service][aria-pressed='true']"),
+					function (row) { return row.getAttribute("data-pa-service"); }
+				);
+				var hasModalServices = modal.querySelector("[data-pa-service]") !== null;
+				if (!productIds.length && !serviceKeys.length) {
+					closeSuggestedProductsModal();
+					return;
+				}
+				paConfirm.disabled = true;
+				paConfirm.classList.add("opacity-60", "pointer-events-none");
+
+				function postOp(fields) {
+					var body = new FormData();
+					body.set("action", "jluxe_cart");
+					body.set("nonce", cartCfg.nonce);
+					Object.keys(fields).forEach(function (key) { body.set(key, fields[key]); });
+					return fetch(cartCfg.ajaxUrl, { method: "POST", body: body, credentials: "same-origin" })
+						.then(function (res) { return res.json(); });
+				}
+
+				var addedProductIds = [];
+				var errors = [];
+				var chain = Promise.resolve();
+				productIds.forEach(function (productId) {
+					chain = chain.then(function () {
+						// Add independent offers sequentially; retain failed rows so they can be retried.
+						return postOp({ op: "add", product_id: productId, quantity: 1 }).then(function (response) {
+							if (!response || !response.success) {
+								var message = response && response.data && response.data.message ? response.data.message : "افزودنِ پیشنهاد انجام نشد.";
+								errors.push(message);
+								return null;
+							}
+							addedProductIds.push(String(productId));
+							return response.data;
+						});
+					});
+				});
+				chain = chain.then(function () {
+					// If the services section is absent, leave its existing session state untouched.
+					if (!hasModalServices) { return null; }
+					return postOp({ op: "pa_services", pa_services: serviceKeys.join(",") }).then(function (response) {
+						if (!response || !response.success) {
+							var message = response && response.data && response.data.message ? response.data.message : "ثبتِ خدمات انتخاب‌شده انجام نشد.";
+							errors.push(message);
+							return null;
+						}
+						return response.data;
+					});
+				});
+
+				function keepModalOpen(message) {
+					releaseAddedProducts(addedProductIds);
+					restorePaConfirm();
+					showSuggestedError(message);
+				}
+
+				chain.then(function () {
+					if (errors.length) {
+						keepModalOpen(errors.join(" "));
+						return;
+					}
+					releaseAddedProducts(addedProductIds);
+					restorePaConfirm();
+					closeSuggestedProductsModal();
+				}).catch(function () {
+					var message = errors.concat(["ارتباط با سرور برقرار نشد؛ انتخاب‌های ناموفق را دوباره امتحان کنید."]).join(" ");
+					keepModalOpen(message);
+				});
+			});
+	}
+}
+
+	jluxeBindSuggestedModal(document.querySelector("[data-jluxe-suggested-modal]"));
+
+	window.jluxeCaptureSuggestedModalSelections = function (modal) {
+		var selections = {};
+		if (!modal) { return selections; }
+		modal.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
+			var productId = row.getAttribute("data-pa-product");
+			var key;
+			if (productId) {
+				key = "product:" + productId;
+			} else {
+				var serviceTitle = row.querySelector(".jluxe-pa-name");
+				key = "service:" + row.getAttribute("data-pa-service") + ":" + (row.getAttribute("data-pa-amount") || "") + ":" + (serviceTitle ? serviceTitle.textContent.trim() : "");
+			}
+			selections[key] = row.getAttribute("aria-pressed") === "true";
+		});
+		return selections;
 	};
 
-	function closeSuggestedProductsModal() {
-		modal.classList.add("hidden");
-		modal.setAttribute("aria-hidden", "true");
-		document.body.style.overflow = "";
-	}
-	// روی window هم قرار می‌گیره چون مودالِ انتخابِ سریعِ تنوع (پایین‌ترِ
-	// همین فایل) باید بتونه این مودال رو ببنده وقتی از داخلش (روی یک
-	// محصولِ متغیرِ پیشنهادی) باز می‌شه — وگرنه دو بک‌دراپِ تیره‌ی
-	// تمام‌صفحه (این‌جا bg-foreground/50 و اونجا rgb(0 0 0 / 0.5)) روی هم
-	// می‌افتن و صفحه با هر کلیک تیره‌تر به‌نظر می‌رسه، بدونِ اینکه خودِ
-	// مودالِ تنوع (که z-index پایین‌تری داره) اصلاً دیده بشه — باگِ واقعیِ
-	// گزارش‌شده.
-	window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
-
-	modal.querySelectorAll("[data-jluxe-suggested-close]").forEach(function (el) {
-		el.addEventListener("click", closeSuggestedProductsModal);
-	});
+	window.jluxeMountSuggestedModal = function (html, selectionState) {
+		var old = document.querySelector("[data-jluxe-suggested-modal]");
+		if (old && old.parentNode) { old.parentNode.removeChild(old); }
+		var wrap = document.createElement("div");
+		wrap.innerHTML = html;
+		var fresh = wrap.firstElementChild;
+		if (!fresh) { return null; }
+		document.body.appendChild(fresh);
+		jluxeBindSuggestedModal(fresh);
+		if (selectionState && typeof selectionState === "object") {
+			fresh.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
+				var productId = row.getAttribute("data-pa-product");
+				var key;
+				if (productId) {
+					key = "product:" + productId;
+				} else {
+					var serviceTitle = row.querySelector(".jluxe-pa-name");
+					key = "service:" + row.getAttribute("data-pa-service") + ":" + (row.getAttribute("data-pa-amount") || "") + ":" + (serviceTitle ? serviceTitle.textContent.trim() : "");
+				}
+				if (!Object.prototype.hasOwnProperty.call(selectionState, key)) { return; }
+				var selected = !!selectionState[key];
+				row.setAttribute("aria-pressed", selected ? "true" : "false");
+				row.classList.toggle("is-selected", selected);
+			});
+			fresh.dispatchEvent(new Event("jluxe:pa-refresh"));
+		}
+		return fresh;
+	};
 
 	document.addEventListener("keydown", function (event) {
-		if (event.key === "Escape" && !modal.classList.contains("hidden")) {
-			closeSuggestedProductsModal();
+		if (event.key !== "Escape") { return; }
+		var current = document.querySelector("[data-jluxe-suggested-modal]");
+		if (current && !current.classList.contains("hidden") && typeof window.jluxeCloseSuggestedProductsModal === "function") {
+			window.jluxeCloseSuggestedProductsModal();
 		}
 	});
 })();
@@ -1432,6 +1980,8 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		// همون فیلدی که اسکریپتِ سواچِ ووکامرس (wc-add-to-cart-variation)
 		// موقعِ انتخابِ یک تنوعِ معتبر مقدارش رو ست می‌کنه.
 		var formData = new FormData(form);
+		// Keep the native field in the DOM, but never send it to our AJAX protocol.
+		formData.delete("add-to-cart");
 		formData.set("action", "jluxe_cart");
 		formData.set("nonce", cartCfg.nonce);
 		formData.set("op", "add");
@@ -1449,6 +1999,13 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 					return;
 				}
 				window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(button), response.data]);
+				/* Recommendation HTML is refreshed and mounted hidden by the shared toast handler.
+				   Opening it is now an explicit customer choice, never an automatic post-add interruption. */
+				var paHtml = response.data && response.data.suggested_html ? response.data.suggested_html : "";
+				if (!paHtml) {
+					var staleModal = document.querySelector("[data-jluxe-suggested-modal]");
+					if (staleModal && staleModal.parentNode) { staleModal.parentNode.removeChild(staleModal); }
+				}
 			})
 			.catch(function () {
 				restoreButton();
@@ -1470,17 +2027,41 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 (function () {
 	var modalRoot = null;
 	var lastFocused = null;
+	var releaseDialogFocus = null;
+	/* باز شدنِ picker از پیشنهاد، مودالِ زیرین را می‌بندد تا بک‌دراپ‌ها
+	روی‌هم نیفتند. لغو/خطا شیت را برمی‌گرداند؛ افزودنِ موفق هر دو را می‌بندد
+	تا فهرستِ پیشنهادی بعد از انتخابِ تنوع دوباره ظاهر نشود. */
+	var pickerFromSuggested = false;
+	var pickerAdded = false;
+	var pickerSuggestedContext = "";
 
 	function closeModal() {
 		if (!modalRoot) {
 			return;
 		}
+		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
 		modalRoot.remove();
 		modalRoot = null;
 		document.body.style.overflow = "";
-		if (lastFocused && lastFocused.focus) {
+		if (!pickerFromSuggested && lastFocused && lastFocused.focus) {
 			lastFocused.focus();
 		}
+		if (pickerFromSuggested) {
+			var staleSuggested = document.querySelector("[data-jluxe-suggested-modal]");
+			if (!pickerAdded && staleSuggested && typeof window.jluxeOpenSuggestedProductsModal === "function") {
+				window.jluxeOpenSuggestedProductsModal();
+			} else if (pickerAdded) {
+				if (staleSuggested && staleSuggested.parentNode) {
+					staleSuggested.parentNode.removeChild(staleSuggested);
+				}
+				// A fresh main-product add will mount its own current suggestion sheet.
+				window.jluxeOpenSuggestedProductsModal = null;
+				window.jluxeCloseSuggestedProductsModal = null;
+			}
+		}
+		pickerFromSuggested = false;
+		pickerAdded = false;
+		pickerSuggestedContext = "";
 	}
 
 	function openModal(productId, triggerEl) {
@@ -1494,13 +2075,20 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		// modalRoot قبلی هیچ‌وقت remove نمی‌شد و بک‌دراپِ ۵۰٪-سیاهش زیرِ
 		// نمونه‌ی جدید می‌موند، با هر کلیک یک لایه‌ی تیره‌ی دیگه روی هم.
 		if (modalRoot) {
+			pickerFromSuggested = false;
+			pickerAdded = false;
 			closeModal();
 		}
-		// اگه از داخلِ مودالِ «محصولات پیشنهادی» باز شده (یک محصولِ متغیرِ
-		// پیشنهادی)، اون مودال هم باید بسته بشه — وگرنه دو بک‌دراپِ
-		// تمام‌صفحه روی هم می‌افتن و چون z-index این مودال (۶۰) از اون
-		// (۷۰) پایین‌تره، مودالِ تنوع اصلاً دیده نمی‌شد؛ کاربر فقط تیره‌تر
-		// شدنِ صفحه رو می‌دید، نه خودِ فرمِ انتخابِ تنوع رو.
+		pickerFromSuggested = !!(triggerEl && triggerEl.closest && triggerEl.closest("[data-jluxe-suggested-modal]"));
+		pickerAdded = false;
+		pickerSuggestedContext = "";
+		if (pickerFromSuggested) {
+			var suggestedSource = triggerEl.closest("[data-jluxe-suggested-modal]");
+			pickerSuggestedContext = suggestedSource.getAttribute("data-pa-context") || "";
+		}
+		// If this picker was opened from the suggested-products sheet, close
+		// the sheet first so the two full-screen backdrops never stack. The
+		// picker has its own higher overlay layer and focus trap.
 		if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
 			window.jluxeCloseSuggestedProductsModal();
 		}
@@ -1509,7 +2097,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		modalRoot = document.createElement("div");
 		modalRoot.className = "jluxe-variant-modal-backdrop";
 		modalRoot.innerHTML =
-			'<div class="jluxe-variant-modal" role="dialog" aria-modal="true">' +
+			'<div class="jluxe-variant-modal" role="dialog" aria-modal="true" aria-label="انتخاب گزینه‌های محصول">' +
 			'<button type="button" class="jluxe-variant-modal-close" aria-label="بستن">' +
 			'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
 			"</button>" +
@@ -1517,6 +2105,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			'<div class="jluxe-variant-modal-body"><div class="jluxe-variant-modal-loading">در حال بارگذاری...</div></div>' +
 			"</div>";
 		document.body.appendChild(modalRoot);
+		releaseDialogFocus = JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeModal);
 		document.body.style.overflow = "hidden";
 
 		modalRoot.addEventListener("click", function (event) {
@@ -1525,13 +2114,14 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			}
 		});
 
+		var requestedModal = modalRoot;
 		var body = new URLSearchParams({ action: "jluxe_variation_picker", nonce: cart.nonce, product_id: String(productId) });
 		fetch(cart.ajaxUrl, { method: "POST", body: body, credentials: "same-origin" })
 			.then(function (res) {
 				return res.json();
 			})
 			.then(function (response) {
-				if (!modalRoot) {
+				if (!modalRoot || modalRoot !== requestedModal) {
 					return;
 				}
 				if (!response.success) {
@@ -1544,6 +2134,8 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 					'<img src="' + data.image + '" alt="" class="jluxe-variant-modal-img" />' +
 					'<a href="' + data.url + '" class="jluxe-variant-modal-title">' + data.name + "</a>";
 				modalRoot.querySelector(".jluxe-variant-modal-body").innerHTML = data.html;
+				/* R65: مودالِ تازه‌تزریق‌شده هم بلافاصله گیتِ «ناموجود = غیرقابل‌انتخاب» می‌گیرد. */
+				if (typeof window.jluxeSyncAllVariationForms === "function") { window.jluxeSyncAllVariationForms(); }
 
 				var form = modalRoot.querySelector("form.variations_form");
 				if (form && window.jQuery && window.jQuery.fn.wc_variation_form) {
@@ -1553,7 +2145,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 				}
 			})
 			.catch(function () {
-				if (modalRoot) {
+				if (modalRoot && modalRoot === requestedModal) {
 					modalRoot.querySelector(".jluxe-variant-modal-body").innerHTML =
 						'<p class="jluxe-variant-modal-error">مشکلی پیش آمد، دوباره تلاش کنید.</p>';
 				}
@@ -1607,10 +2199,15 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		 * رو جدا جدا و صریح می‌گیره.
 		 */
 		var formData = new FormData(form);
+		// Keep the native field in the DOM, but never send it to our AJAX protocol.
+		formData.delete("add-to-cart");
 		formData.set("action", "jluxe_cart");
 		formData.set("nonce", cart.nonce);
 		formData.set("op", "add");
 		formData.set("product_id", form.dataset.product_id || "");
+		if (pickerFromSuggested && pickerSuggestedContext) {
+			formData.set("pa_context_id", pickerSuggestedContext);
+		}
 
 		if (addButton) {
 			addButton.disabled = true;
@@ -1647,6 +2244,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 				if (window.jQuery) {
 					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), response.data]);
 				}
+				pickerAdded = true;
 				closeModal();
 			})
 			.catch(function () {
@@ -1717,6 +2315,292 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 })();
 
 /**
+ * کنترلِ تعدادِ نوارهای چسبانِ موبایل (چیدمانِ پیش‌فرض و classic).
+ * نمایشگر و دکمه‌ها فقط proxy هستند؛ تنها input[name=quantity] داخلِ فرمِ
+ * واقعیِ cart تغییر می‌کند. برایِ تنوع، min_qty/max_qty و فروشِ تکی از
+ * همان payload رویدادِ رسمیِ found_variation ووکامرس خوانده می‌شود.
+ */
+(function ($) {
+	var controls = document.querySelectorAll("[data-jluxe-mobile-qty-control]");
+	var form = document.querySelector("form.cart");
+	if (!controls.length || !form) {
+		return;
+	}
+
+	var isVariableForm = form.classList.contains("variations_form");
+	var activeVariation = null;
+	var writingQuantity = false;
+	var epsilon = 0.00000001;
+	var faDigitsMap = { "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹" };
+
+	function quantityInput() {
+		return form.querySelector(".quantity input.qty") || form.querySelector("input.qty") || form.querySelector('input[name="quantity"]');
+	}
+
+	function numberOr(value, fallback) {
+		if (value === null || value === undefined || value === "") {
+			return fallback;
+		}
+		var number = Number(value);
+		return Number.isFinite(number) ? number : fallback;
+	}
+
+	function hasOwn(object, key) {
+		return !!object && Object.prototype.hasOwnProperty.call(object, key);
+	}
+
+	function isSoldIndividually(variation) {
+		return !!variation && (variation.is_sold_individually === true || variation.is_sold_individually === 1 || variation.is_sold_individually === "1" || variation.is_sold_individually === "yes");
+	}
+
+	function quantityRules(input) {
+		var min = numberOr(input.getAttribute("min"), 0);
+		var max = numberOr(input.getAttribute("max"), Infinity);
+		if (max <= 0) {
+			max = Infinity;
+		}
+		var step = numberOr(input.getAttribute("step"), 1);
+		if (!(step > 0)) {
+			step = 1;
+		}
+
+		if (activeVariation) {
+			if (hasOwn(activeVariation, "min_qty")) {
+				min = numberOr(activeVariation.min_qty, min);
+			}
+			if (hasOwn(activeVariation, "max_qty")) {
+				var variationMax = numberOr(activeVariation.max_qty, Infinity);
+				max = variationMax > 0 ? variationMax : Infinity;
+			}
+			if (isSoldIndividually(activeVariation)) {
+				min = 1;
+				max = 1;
+			}
+		}
+
+		return {
+			min: min,
+			max: max,
+			step: step,
+			fixed: input.readOnly || max <= min + epsilon,
+			valid: max + epsilon >= min,
+		};
+	}
+
+	function variationIsPurchasable() {
+		if (!activeVariation) {
+			return true;
+		}
+		return activeVariation.is_purchasable !== false && activeVariation.is_in_stock !== false && activeVariation.variation_is_visible !== false;
+	}
+
+	function isReady(input) {
+		if (!input || input.disabled) {
+			return false;
+		}
+		if (!isVariableForm) {
+			return true;
+		}
+
+		var variationIdInput = form.querySelector("input.variation_id");
+		var variationId = variationIdInput ? parseInt(variationIdInput.value, 10) : 0;
+		if (!(variationId > 0) && !(activeVariation && parseInt(activeVariation.variation_id, 10) > 0)) {
+			return false;
+		}
+		var addButton = form.querySelector(".single_add_to_cart_button");
+		if (!addButton || addButton.disabled || addButton.classList.contains("disabled") || addButton.classList.contains("wc-variation-selection-needed")) {
+			return false;
+		}
+		return variationIsPurchasable();
+	}
+
+	function decimalPlaces(value) {
+		var text = String(Math.abs(value));
+		var dot = text.indexOf(".");
+		return dot < 0 ? 0 : Math.min(8, text.length - dot - 1);
+	}
+
+	function roundQuantity(value, rules) {
+		var places = Math.max(decimalPlaces(rules.min), decimalPlaces(rules.step));
+		if (Number.isFinite(rules.max)) {
+			places = Math.max(places, decimalPlaces(rules.max));
+		}
+		var scale = Math.pow(10, Math.min(8, places));
+		return Math.round((value + Number.EPSILON) * scale) / scale;
+	}
+
+	function normalizeQuantity(value, rules) {
+		/* max_qty is only an availability ceiling; keep the user's actual
+		 * quantity (normally one) unless it falls outside WooCommerce bounds. */
+		if (!Number.isFinite(value)) {
+			value = rules.min > 0 ? rules.min : 1;
+		}
+		value = Math.min(rules.max, Math.max(rules.min, value));
+		value = roundQuantity(value, rules);
+		return Math.min(rules.max, Math.max(rules.min, value));
+	}
+
+	function toFaDigits(value) {
+		return String(value).replace(/[0-9]/g, function (digit) {
+			return faDigitsMap[digit];
+		});
+	}
+
+	function setSourceQuantity(input, value) {
+		var current = numberOr(input.value, NaN);
+		if (Number.isFinite(current) && Math.abs(current - value) <= epsilon) {
+			return;
+		}
+		writingQuantity = true;
+		try {
+			input.value = String(value);
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+			input.dispatchEvent(new Event("change", { bubbles: true }));
+		} finally {
+			writingQuantity = false;
+		}
+	}
+
+	function setControlVisible(control, visible) {
+		control.hidden = !visible;
+		control.style.display = visible ? "" : "none";
+	}
+
+	function refresh(clampValue) {
+		var input = quantityInput();
+		if (!input || !isReady(input)) {
+			for (var hiddenIndex = 0; hiddenIndex < controls.length; hiddenIndex++) {
+				setControlVisible(controls[hiddenIndex], false);
+			}
+			return;
+		}
+
+		var rules = quantityRules(input);
+		if (!rules.valid) {
+			for (var invalidIndex = 0; invalidIndex < controls.length; invalidIndex++) {
+				setControlVisible(controls[invalidIndex], false);
+			}
+			return;
+		}
+
+		var value = numberOr(input.value, NaN);
+		if (clampValue) {
+			value = normalizeQuantity(value, rules);
+			setSourceQuantity(input, value);
+		} else if (!Number.isFinite(value)) {
+			value = rules.min > 0 ? rules.min : 1;
+		}
+
+		for (var controlIndex = 0; controlIndex < controls.length; controlIndex++) {
+			var control = controls[controlIndex];
+			setControlVisible(control, true);
+			var output = control.querySelector("[data-jluxe-mobile-qty-value]");
+			var decrease = control.querySelector('[data-jluxe-mobile-qty-step="decrease"]');
+			var increase = control.querySelector('[data-jluxe-mobile-qty-step="increase"]');
+			if (output) {
+				output.textContent = toFaDigits(value);
+			}
+			if (decrease) {
+				decrease.disabled = rules.fixed || input.readOnly || value <= rules.min + epsilon;
+			}
+			if (increase) {
+				increase.disabled = rules.fixed || input.readOnly || value >= rules.max - epsilon;
+			}
+		}
+	}
+
+	function findPreselectedVariation() {
+		if (!isVariableForm) {
+			return null;
+		}
+		var variationIdInput = form.querySelector("input.variation_id");
+		var selectedId = variationIdInput ? parseInt(variationIdInput.value, 10) : 0;
+		var raw = form.getAttribute("data-product_variations") || "";
+		if (!(selectedId > 0) || !raw || raw === "false") {
+			return null;
+		}
+		try {
+			var variations = JSON.parse(raw);
+			if (Array.isArray(variations)) {
+				for (var variationIndex = 0; variationIndex < variations.length; variationIndex++) {
+					if (parseInt(variations[variationIndex].variation_id, 10) === selectedId) {
+						return variations[variationIndex];
+					}
+				}
+			}
+		} catch (error) {
+			return null;
+		}
+		return null;
+	}
+
+	for (var controlIndex = 0; controlIndex < controls.length; controlIndex++) {
+		controls[controlIndex].addEventListener("click", function (event) {
+			var button = event.target.closest("[data-jluxe-mobile-qty-step]");
+			if (!button || !event.currentTarget.contains(button) || button.disabled) {
+				return;
+			}
+			event.preventDefault();
+			var input = quantityInput();
+			if (!isReady(input)) {
+				refresh(false);
+				return;
+			}
+			var rules = quantityRules(input);
+			if (!rules.valid || rules.fixed || input.readOnly) {
+				refresh(true);
+				return;
+			}
+			var current = numberOr(input.value, rules.min > 0 ? rules.min : 1);
+			var direction = button.getAttribute("data-jluxe-mobile-qty-step") === "increase" ? 1 : -1;
+			var next = normalizeQuantity(current + direction * rules.step, rules);
+			if (Math.abs(next - current) <= epsilon) {
+				refresh(true);
+				return;
+			}
+			setSourceQuantity(input, next);
+			refresh(true);
+		});
+	}
+
+	document.addEventListener("input", function (event) {
+		if (!writingQuantity && event.target === quantityInput()) {
+			refresh(false);
+		}
+	});
+	document.addEventListener("change", function (event) {
+		if (!writingQuantity && event.target === quantityInput()) {
+			refresh(true);
+		}
+	});
+
+	if (isVariableForm) {
+		activeVariation = findPreselectedVariation();
+		if ($) {
+			$(form).on("found_variation.jluxeMobileQty", function (event, variation) {
+				activeVariation = variation || null;
+				refresh(true);
+			});
+			$(form).on("reset_data.jluxeMobileQty hide_variation.jluxeMobileQty woocommerce_variation_has_changed.jluxeMobileQty", function () {
+				activeVariation = null;
+				refresh(false);
+				window.setTimeout(function () { refresh(true); }, 0);
+			});
+		}
+		form.addEventListener("change", function (event) {
+			if (event.target !== quantityInput() && !event.target.matches(".variation_id")) {
+				activeVariation = null;
+				refresh(false);
+				window.setTimeout(function () { refresh(true); }, 0);
+			}
+		});
+	}
+
+	refresh(true);
+	window.setTimeout(function () { refresh(true); }, 0);
+})(window.jQuery);
+
+/**
  * نوارِ چسبانِ موبایلِ قیمت+افزودن‌به‌سبدِ صفحه‌ی محصول (الگوی Boom) —
  * woocommerce/content-single-product.php این نوار رو رندر می‌کنه؛ این‌جا
  * فقط رفتارش وصل می‌شه: دکمه‌ی افزودن دکمه‌ی واقعیِ فرم رو کلیک می‌کنه،
@@ -1735,10 +2619,57 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	}
 	var addBtn = priceBar.querySelector("[data-jluxe-mobile-bar-add]");
 
+	function guideToVariationChoice() {
+		var variationForm = document.querySelector("form.variations_form.cart");
+		if (!variationForm) {
+			return;
+		}
+		var target = variationForm.querySelector("[data-cp3-pills], [data-jluxe-variation-group]") || variationForm.querySelector(".variations") || variationForm;
+		var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		var behavior = reducedMotion ? "auto" : "smooth";
+		if (typeof target.scrollIntoView === "function") {
+			target.scrollIntoView({ behavior: behavior, block: "center" });
+		} else if (typeof window.scrollTo === "function" && typeof target.getBoundingClientRect === "function") {
+			var targetTop = target.getBoundingClientRect().top + (window.pageYOffset || 0) - 120;
+			window.scrollTo({ top: Math.max(0, targetTop), behavior: behavior });
+		}
+		var choice = variationForm.querySelector("[data-cp3-pills] .cp3-pill:not(:disabled), [data-jluxe-variation-swatches] button:not(:disabled)");
+		if (!choice) {
+			var selects = variationForm.querySelectorAll(".variations select:not(:disabled)");
+			for (var index = 0; index < selects.length; index++) {
+				var style = window.getComputedStyle(selects[index]);
+				if (!selects[index].hasAttribute("data-cp3-select") && style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0") {
+					choice = selects[index];
+					break;
+				}
+			}
+		}
+		if (choice) {
+			window.setTimeout(function () {
+				if (!choice.isConnected) {
+					return;
+				}
+				try {
+					choice.focus({ preventScroll: true });
+				} catch (error) {
+					choice.focus();
+				}
+			}, 350);
+		}
+	}
+
 	addBtn.addEventListener("click", function () {
+		var mode = addBtn.getAttribute("data-jluxe-mobile-bar-mode") || "add";
+		var variationForm = document.querySelector("form.variations_form.cart");
 		var realBtn = document.querySelector("form.cart .single_add_to_cart_button");
-		if (realBtn) {
+		if (mode === "scroll" || (variationForm && (!realBtn || realBtn.disabled))) {
+			guideToVariationChoice();
+			return;
+		}
+		if (realBtn && typeof realBtn.click === "function" && !realBtn.disabled) {
 			realBtn.click();
+		} else if (variationForm) {
+			guideToVariationChoice();
 		}
 	});
 
@@ -1760,21 +2691,134 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	if (!$) {
 		return;
 	}
-	var priceSlot = document.querySelector("[data-jluxe-mobile-bar-price]");
-	if (!priceSlot) {
+	var priceSlots = [];
+	var stockSlots = document.querySelectorAll("[data-jluxe-mobile-bar-stock], [data-jluxe-sticky-stock-status]");
+	var mobilePriceSlot = document.querySelector("[data-jluxe-mobile-bar-price]");
+	var stickyPriceSlots = document.querySelectorAll("[data-jluxe-sticky-variation-price]");
+	if (mobilePriceSlot) {
+		priceSlots.push(mobilePriceSlot);
+	}
+	for (var slotIndex = 0; slotIndex < stickyPriceSlots.length; slotIndex++) {
+		priceSlots.push(stickyPriceSlots[slotIndex]);
+	}
+	var stickyAddButton = document.querySelector("[data-jluxe-sticky-add]");
+	var mobileAddButton = document.querySelector("[data-jluxe-mobile-bar-add]");
+	if (!priceSlots.length && !stockSlots.length && !stickyAddButton && !mobileAddButton) {
 		return;
 	}
 	var $form = $(".variations_form[data-product_variations]").first();
 	if (!$form.length) {
 		return;
 	}
-	var defaultHtml = priceSlot.innerHTML;
+	var initialHtml = priceSlots.map(function (slot) { return slot.innerHTML; });
+
+	function setVariationButton(button, labelSelector, ready, isSticky) {
+		if (!button) {
+			return;
+		}
+		var mode = ready ? "add" : "scroll";
+		var label = ready ? "افزودن به سبد" : "انتخاب گزینه‌ها";
+		button.setAttribute(isSticky ? "data-jluxe-sticky-mode" : "data-jluxe-mobile-bar-mode", mode);
+		button.setAttribute("aria-label", ready ? "افزودن به سبد خرید" : "رفتن به انتخاب تنوع");
+		var labelNode = button.querySelector(labelSelector);
+		if (labelNode) {
+			labelNode.textContent = label;
+		}
+	}
+
+	function setAddState(ready) {
+		setVariationButton(stickyAddButton, "[data-jluxe-sticky-label]", ready, true);
+		setVariationButton(mobileAddButton, "[data-jluxe-mobile-bar-add-label]", ready, false);
+	}
+
+	function resetPrices() {
+		priceSlots.forEach(function (slot, index) {
+			var placeholder = slot.getAttribute("data-jluxe-price-placeholder");
+			slot.innerHTML = placeholder !== null ? placeholder : initialHtml[index];
+		});
+	}
+
+	function setStockStatus(label, state) {
+		for (var stockIndex = 0; stockIndex < stockSlots.length; stockIndex++) {
+			stockSlots[stockIndex].textContent = label;
+			stockSlots[stockIndex].setAttribute("data-jluxe-stock-state", state);
+		}
+	}
+
+	function resetStockStatus() {
+		for (var stockIndex = 0; stockIndex < stockSlots.length; stockIndex++) {
+			var stockSlot = stockSlots[stockIndex];
+			var placeholder = stockSlot.getAttribute("data-jluxe-stock-placeholder");
+			var placeholderState = stockSlot.getAttribute("data-jluxe-stock-placeholder-state");
+			if (placeholder !== null) {
+				stockSlot.textContent = placeholder;
+			}
+			if (placeholderState !== null) {
+				stockSlot.setAttribute("data-jluxe-stock-state", placeholderState);
+			}
+		}
+	}
+
+	function updateStockStatus(variation) {
+		if (!variation || !(parseInt(variation.variation_id, 10) > 0)) {
+			resetStockStatus();
+			return;
+		}
+		if (variation.is_in_stock === false) {
+			setStockStatus("ناموجود", "out-of-stock");
+		} else if (variation.is_purchasable === false) {
+			setStockStatus("در حال حاضر قابل خرید نیست", "unavailable");
+		} else if (variation.is_in_stock === true) {
+			setStockStatus("", "in-stock");
+		} else {
+			setStockStatus("وضعیت موجودی مشخص نیست", "unknown");
+		}
+	}
+
+	function isPurchasableVariation(variation) {
+		return !!variation && parseInt(variation.variation_id, 10) > 0 && variation.is_purchasable !== false && variation.is_in_stock !== false;
+	}
+
 	$form.on("found_variation", function (event, variation) {
-		priceSlot.innerHTML = variation.price_html || defaultHtml;
+		updateStockStatus(variation);
+		if (!isPurchasableVariation(variation)) {
+			resetPrices();
+			setAddState(false);
+			return;
+		}
+		var priceHtml = typeof variation.price_html === "string" ? variation.price_html : "";
+		if (priceHtml) {
+			priceSlots.forEach(function (slot) {
+				slot.innerHTML = priceHtml;
+			});
+		}
+		setAddState(true);
 	});
-	$form.on("reset_data", function () {
-		priceSlot.innerHTML = defaultHtml;
+	$form.on("reset_data hide_variation", function () {
+		resetPrices();
+		resetStockStatus();
+		setAddState(false);
 	});
+
+	var selectedVariationId = parseInt($form.find("input.variation_id").val(), 10);
+	if (selectedVariationId > 0) {
+		var availableVariations = $form.data("product_variations");
+		var selectedVariation = null;
+		if (Array.isArray(availableVariations)) {
+			for (var variationIndex = 0; variationIndex < availableVariations.length; variationIndex++) {
+				if (parseInt(availableVariations[variationIndex].variation_id, 10) === selectedVariationId) {
+					selectedVariation = availableVariations[variationIndex];
+					break;
+				}
+			}
+		}
+		if (selectedVariation) {
+			updateStockStatus(selectedVariation);
+			setAddState(isPurchasableVariation(selectedVariation));
+		} else {
+			setAddState(true);
+		}
+	}
 })(window.jQuery);
 
 /**
@@ -1801,6 +2845,7 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		}
 		var isOpen = trigger.getAttribute("aria-expanded") === "true";
 		trigger.setAttribute("aria-expanded", isOpen ? "false" : "true");
+		panel.setAttribute("aria-hidden", isOpen ? "true" : "false");
 		panel.classList.toggle("grid-rows-[0fr]", isOpen);
 		panel.classList.toggle("grid-rows-[1fr]", !isOpen);
 		var chevron = trigger.querySelector(".jluxe-faq-chevron");
@@ -2115,12 +3160,25 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	 * منطقِ دیگه‌ای از چک‌اوت) خنثی می‌کنیم — با تأخیرِ کوتاه تا مطمئن
 	 * بشیم بعد از اجرای اسکریپتِ خودِ ووکامرس اجرا می‌شه، نه قبلش.
 	 */
+	var jluxeManualPaymentMethod = null;
+	document.addEventListener("change", function (event) {
+		if (event.isTrusted && event.target.matches("#payment input.payment_method") && event.target.checked) {
+			jluxeManualPaymentMethod = event.target.value;
+		}
+	}, true);
 	function clearAutoSelectedPaymentMethod() {
 		var payment = document.getElementById("payment");
 		if (!payment) {
 			return;
 		}
 		var radios = payment.querySelectorAll("input.payment_method");
+		if (jluxeManualPaymentMethod) {
+			var selected = Array.prototype.find.call(radios, function (radio) { return radio.value === jluxeManualPaymentMethod; });
+			if (selected) {
+				if (!selected.checked) window.jQuery(selected).trigger("click");
+				return;
+			}
+		}
 		if (radios.length !== 1 || !radios[0].checked) {
 			return;
 		}
@@ -2247,6 +3305,36 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 			.join("");
 	}
 
+	function imageZoomState(img) {
+		return {
+			scale: parseFloat(img.getAttribute("data-jluxe-zoom-scale")) || 1,
+			x: parseFloat(img.getAttribute("data-jluxe-zoom-x")) || 0,
+			y: parseFloat(img.getAttribute("data-jluxe-zoom-y")) || 0,
+		};
+	}
+
+	function setImageZoom(img, scale, x, y) {
+		scale = Math.max(1, Math.min(3.5, scale));
+		var width = img.offsetWidth || img.clientWidth || 0;
+		var height = img.offsetHeight || img.clientHeight || 0;
+		var maxX = Math.max(0, (width * (scale - 1)) / 2);
+		var maxY = Math.max(0, (height * (scale - 1)) / 2);
+		x = Math.max(-maxX, Math.min(maxX, x));
+		y = Math.max(-maxY, Math.min(maxY, y));
+		img.setAttribute("data-jluxe-zoom-scale", String(Math.round(scale * 1000) / 1000));
+		img.setAttribute("data-jluxe-zoom-x", String(x));
+		img.setAttribute("data-jluxe-zoom-y", String(y));
+		img.style.transform = "translate3d(" + x + "px," + y + "px,0) scale(" + scale + ")";
+	}
+
+	function resetImageZoom(img) {
+		img.setAttribute("data-jluxe-zoom-scale", "1");
+		img.setAttribute("data-jluxe-zoom-x", "0");
+		img.setAttribute("data-jluxe-zoom-y", "0");
+		img.style.transform = "translate3d(0,0,0) scale(1)";
+		img.style.cursor = "zoom-in";
+	}
+
 	function showImage(modal, index) {
 		var images = modal.querySelectorAll("[data-jluxe-gallery-modal-image]");
 		if (index < 0 || index >= images.length) {
@@ -2256,8 +3344,25 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 		images.forEach(function (img, i) {
 			var active = i === index;
 			img.style.opacity = active ? "1" : "0";
-			img.style.transform = active ? "scale(1)" : "scale(0.95)";
+			img.setAttribute("aria-hidden", active ? "false" : "true");
 			img.classList.toggle("pointer-events-none", !active);
+			if (active) {
+				var src = img.getAttribute("data-src");
+				var srcset = img.getAttribute("data-srcset");
+				var sizes = img.getAttribute("data-sizes");
+				if (src && !img.getAttribute("src")) {
+					img.setAttribute("src", src);
+				}
+				if (srcset && !img.getAttribute("srcset")) {
+					img.setAttribute("srcset", srcset);
+				}
+				if (sizes && !img.getAttribute("sizes")) {
+					img.setAttribute("sizes", sizes);
+				}
+				resetImageZoom(img);
+			} else {
+				img.style.transform = "scale(0.96)";
+			}
 		});
 		var counter = modal.querySelector("[data-jluxe-gallery-modal-counter]");
 		if (counter) {
@@ -2274,10 +3379,21 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	 * استفاده می‌شه، نه یک setTimeout ساده.
 	 */
 	function openModal(modal, index) {
+		if (modal._jluxeCloseTimer) {
+			window.clearTimeout(modal._jluxeCloseTimer);
+			modal._jluxeCloseTimer = null;
+		}
+		modal._jluxeReturnFocus = document.activeElement;
+		modal._jluxePreviousOverflow = document.body.style.overflow;
 		modal.classList.remove("hidden");
 		modal.classList.add("flex");
+		modal.setAttribute("aria-hidden", "false");
 		document.body.style.overflow = "hidden";
 		showImage(modal, index);
+		var closeButton = modal.querySelector("[data-jluxe-gallery-modal-close]");
+		if (closeButton && closeButton.focus) {
+			closeButton.focus();
+		}
 		/*
 		 * باگِ واقعیِ کشف‌شده حینِ تست: تکیه‌کردنِ صرف روی double-rAF (بدونِ
 		 * fallback) باعث می‌شد پاپ‌آپ ساختاری باز بشه (hidden برداشته بشه) ولی
@@ -2302,11 +3418,17 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 
 	function closeModal(modal) {
 		modal.classList.add("opacity-0");
-		document.body.style.overflow = "";
-		window.setTimeout(function () {
+		modal.setAttribute("aria-hidden", "true");
+		document.body.style.overflow = modal._jluxePreviousOverflow || "";
+		modal._jluxeCloseTimer = window.setTimeout(function () {
 			modal.classList.add("hidden");
 			modal.classList.remove("flex");
-		}, 300);
+			modal._jluxeCloseTimer = null;
+			var returnFocus = modal._jluxeReturnFocus;
+			if (returnFocus && document.contains(returnFocus) && returnFocus.focus) {
+				returnFocus.focus();
+			}
+		}, 240);
 	}
 
 	function currentIndex(modal) {
@@ -2355,54 +3477,236 @@ jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_v
 	});
 
 	document.addEventListener("keydown", function (event) {
-		if ("Escape" !== event.key) {
+		var openModalEl = document.querySelector("[data-jluxe-gallery-modal]:not(.hidden)");
+		if (!openModalEl) {
 			return;
 		}
-		var openModalEl = document.querySelector("[data-jluxe-gallery-modal]:not(.hidden)");
-		if (openModalEl) {
+		if ("Escape" === event.key) {
 			closeModal(openModalEl);
+			return;
+		}
+		var images = openModalEl.querySelectorAll("[data-jluxe-gallery-modal-image]");
+		if ("ArrowRight" === event.key) {
+			event.preventDefault();
+			showImage(openModalEl, (currentIndex(openModalEl) - 1 + images.length) % images.length);
+		} else if ("ArrowLeft" === event.key) {
+			event.preventDefault();
+			showImage(openModalEl, (currentIndex(openModalEl) + 1) % images.length);
+		} else if ("Tab" === event.key) {
+			var focusable = openModalEl.querySelectorAll('button:not([disabled]), [tabindex="0"]');
+			if (!focusable.length) {
+				return;
+			}
+			var first = focusable[0];
+			var last = focusable[focusable.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
 		}
 	});
 
-	// Swipe (لمسی) روی خودِ ترکِ تصویر — آستانه‌ی ۴۰px برایِ جلوگیری از
-	// قاطی‌شدن با یک تپ/کلیکِ ساده.
-	var touchStartX = null;
+	// Touch gestures: swipe between slides at 1x; pinch/double-tap to zoom;
+	// drag the zoomed image in either direction and clamp it inside the frame.
+	var touchGesture = null;
+	var lastTap = { img: null, x: 0, y: 0, time: 0 };
+	var mousePan = null;
+
+	function activeModalImage(track) {
+		return track.querySelector('[data-jluxe-gallery-modal-image][aria-hidden="false"]') || track.querySelector("[data-jluxe-gallery-modal-image]");
+	}
+
+	function pointDistance(a, b) {
+		var dx = b.clientX - a.clientX;
+		var dy = b.clientY - a.clientY;
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	function pointMidpoint(a, b) {
+		return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+	}
+
+	function localPoint(track, point) {
+		var rect = track.getBoundingClientRect();
+		return { x: point.x - rect.left - rect.width / 2, y: point.y - rect.top - rect.height / 2 };
+	}
+
+	function startPinchGesture(gesture, touches) {
+		var midpoint = pointMidpoint(touches[0], touches[1]);
+		var local = localPoint(gesture.track, midpoint);
+		var state = imageZoomState(gesture.img);
+		gesture.mode = "pinch";
+		gesture.startDistance = Math.max(1, pointDistance(touches[0], touches[1]));
+		gesture.startScale = state.scale;
+		gesture.startPanX = state.x;
+		gesture.startPanY = state.y;
+		gesture.startMidX = local.x;
+		gesture.startMidY = local.y;
+		gesture.moved = true;
+	}
+
 	document.addEventListener(
 		"touchstart",
 		function (event) {
-			var track = event.target.closest("[data-jluxe-gallery-modal-track]");
-			if (!track || event.touches.length !== 1) {
+			var track = event.target.closest && event.target.closest("[data-jluxe-gallery-modal-track]");
+			if (!track) {
 				return;
 			}
-			touchStartX = event.touches[0].clientX;
+			var img = activeModalImage(track);
+			if (!img) {
+				return;
+			}
+			var state = imageZoomState(img);
+			var touch = event.touches[0];
+			touchGesture = {
+				track: track,
+				modal: track.closest("[data-jluxe-gallery-modal]"),
+				img: img,
+				mode: state.scale > 1.01 ? "pan" : "swipe",
+				startX: touch ? touch.clientX : 0,
+				startY: touch ? touch.clientY : 0,
+				lastX: touch ? touch.clientX : 0,
+				lastY: touch ? touch.clientY : 0,
+				startAt: Date.now(),
+				startScale: state.scale,
+				startPanX: state.x,
+				startPanY: state.y,
+				moved: false,
+				doubleTapTarget: event.target.closest("[data-jluxe-gallery-modal-image]") === img,
+			};
+			if (event.touches.length >= 2) {
+				startPinchGesture(touchGesture, event.touches);
+				if (event.cancelable) event.preventDefault();
+			}
 		},
-		{ passive: true }
+		{ passive: false }
 	);
+
+	document.addEventListener(
+		"touchmove",
+		function (event) {
+			if (!touchGesture) {
+				return;
+			}
+			if (event.touches.length >= 2) {
+				if (touchGesture.mode !== "pinch") {
+					startPinchGesture(touchGesture, event.touches);
+				}
+				var midpoint = pointMidpoint(event.touches[0], event.touches[1]);
+				var local = localPoint(touchGesture.track, midpoint);
+				var ratio = pointDistance(event.touches[0], event.touches[1]) / touchGesture.startDistance;
+				var scale = Math.max(1, Math.min(3.5, touchGesture.startScale * ratio));
+				var relative = scale / touchGesture.startScale;
+				setImageZoom(
+					touchGesture.img,
+					scale,
+					local.x - relative * (touchGesture.startMidX - touchGesture.startPanX),
+					local.y - relative * (touchGesture.startMidY - touchGesture.startPanY),
+				);
+				if (event.cancelable) event.preventDefault();
+				touchGesture.moved = true;
+				return;
+			}
+			if (event.touches.length !== 1) {
+				return;
+			}
+			var point = event.touches[0];
+			var dx = point.clientX - touchGesture.startX;
+			var dy = point.clientY - touchGesture.startY;
+			touchGesture.lastX = point.clientX;
+			touchGesture.lastY = point.clientY;
+			if (touchGesture.mode === "pan") {
+				setImageZoom(touchGesture.img, touchGesture.startScale, touchGesture.startPanX + dx, touchGesture.startPanY + dy);
+				if (event.cancelable) event.preventDefault();
+				touchGesture.moved = Math.abs(dx) > 2 || Math.abs(dy) > 2;
+			} else if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+				if (event.cancelable) event.preventDefault();
+				touchGesture.moved = true;
+			}
+		},
+		{ passive: false }
+	);
+
 	document.addEventListener(
 		"touchend",
 		function (event) {
-			if (touchStartX === null) {
+			if (!touchGesture) {
 				return;
 			}
-			var track = event.target.closest("[data-jluxe-gallery-modal-track]");
-			if (!track) {
-				touchStartX = null;
+			if (event.touches.length > 0) {
+				if (touchGesture.mode === "pinch") {
+					var remaining = event.touches[0];
+					var state = imageZoomState(touchGesture.img);
+					touchGesture.mode = "pan";
+					touchGesture.startX = remaining.clientX;
+					touchGesture.startY = remaining.clientY;
+					touchGesture.startScale = state.scale;
+					touchGesture.startPanX = state.x;
+					touchGesture.startPanY = state.y;
+					touchGesture.moved = true;
+				}
 				return;
 			}
-			var modalEl = track.closest("[data-jluxe-gallery-modal]");
-			var deltaX = (event.changedTouches[0] ? event.changedTouches[0].clientX : touchStartX) - touchStartX;
-			touchStartX = null;
-			if (!modalEl || Math.abs(deltaX) < 40) {
+			var gesture = touchGesture;
+			touchGesture = null;
+			if (!gesture.modal) {
 				return;
 			}
-			var images = modalEl.querySelectorAll("[data-jluxe-gallery-modal-image]");
-			// dir=rtl: کشیدن به راست (deltaX>0) یعنی «قبلی» بصری، به چپ یعنی «بعدی».
-			if (deltaX > 0) {
-				showImage(modalEl, (currentIndex(modalEl) - 1 + images.length) % images.length);
+			var changed = event.changedTouches[0];
+			var endX = changed ? changed.clientX : gesture.lastX;
+			var endY = changed ? changed.clientY : gesture.lastY;
+			var dx = endX - gesture.startX;
+			var dy = endY - gesture.startY;
+			if (gesture.mode === "swipe" && gesture.moved && Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
+				var images = gesture.modal.querySelectorAll("[data-jluxe-gallery-modal-image]");
+				// dir=rtl: کشیدن به راست (deltaX>0) یعنی «قبلی»، به چپ یعنی «بعدی».
+				showImage(gesture.modal, dx > 0 ? (currentIndex(gesture.modal) - 1 + images.length) % images.length : (currentIndex(gesture.modal) + 1) % images.length);
+				lastTap = { img: null, x: 0, y: 0, time: 0 };
+				return;
+			}
+			if ((gesture.mode !== "swipe" && gesture.mode !== "pan") || gesture.moved || !gesture.doubleTapTarget || Math.abs(dx) > 16 || Math.abs(dy) > 16 || Date.now() - gesture.startAt > 350) {
+				return;
+			}
+			var now = Date.now();
+			if (lastTap.img === gesture.img && now - lastTap.time < 350 && Math.abs(endX - lastTap.x) < 32 && Math.abs(endY - lastTap.y) < 32) {
+				var zoom = imageZoomState(gesture.img);
+				if (zoom.scale > 1.01) {
+					resetImageZoom(gesture.img);
+				} else {
+					setImageZoom(gesture.img, 2.5, 0, 0);
+				}
+				lastTap = { img: null, x: 0, y: 0, time: 0 };
+				if (event.cancelable) event.preventDefault();
 			} else {
-				showImage(modalEl, (currentIndex(modalEl) + 1) % images.length);
+				lastTap = { img: gesture.img, x: endX, y: endY, time: now };
 			}
 		},
-		{ passive: true }
+		{ passive: false }
 	);
+	document.addEventListener("touchcancel", function () { touchGesture = null; }, { passive: true });
+
+	// Mouse drag is useful for panning a zoomed product on desktop as well.
+	document.addEventListener("mousedown", function (event) {
+		if (event.button !== 0) return;
+		var img = event.target.closest && event.target.closest('[data-jluxe-gallery-modal-image][aria-hidden="false"]');
+		if (!img) return;
+		var state = imageZoomState(img);
+		if (state.scale <= 1.01) return;
+		event.preventDefault();
+		img.style.cursor = "grabbing";
+		mousePan = { img: img, x: event.clientX, y: event.clientY, panX: state.x, panY: state.y, scale: state.scale };
+	});
+	document.addEventListener("mousemove", function (event) {
+		if (!mousePan) return;
+		setImageZoom(mousePan.img, mousePan.scale, mousePan.panX + event.clientX - mousePan.x, mousePan.panY + event.clientY - mousePan.y);
+	});
+	document.addEventListener("mouseup", function () {
+		if (mousePan) {
+			mousePan.img.style.cursor = "grab";
+			mousePan = null;
+		}
+	});
 })();

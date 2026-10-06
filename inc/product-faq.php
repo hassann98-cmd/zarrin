@@ -36,6 +36,7 @@ function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
 		#jluxe-faq-item-template { display: none; }
 	</style>
 	<p class="description">سوالات متداولِ مربوط به این محصول رو اضافه کن — زیرِ «معرفی محصول» تو صفحه‌ی محصول، به‌صورتِ آکاردئون (با کلیک/لمس باز می‌شه) نشون داده می‌شه.</p>
+	<input type="hidden" name="jluxe_product_faq_present" value="1" />
 	<div id="jluxe-faq-items" class="jluxe-faq-items">
 		<?php foreach ( $items as $index => $item ) : ?>
 			<?php jluxe_render_product_faq_item_fields( $index, $item ); ?>
@@ -85,15 +86,20 @@ function jluxe_render_product_faq_item_fields( $index, array $item ): void {
 }
 
 /**
- * ذخیره‌سازی — به هوکِ رسمیِ woocommerce_process_product_meta وصله (نه
- * save_post مستقیم)، چون این هوک فقط وقتی صدا زده می‌شه که خودِ ووکامرس
- * nonce صفحه‌ی ویرایشِ محصول رو از قبل تأیید کرده باشه — نیازی به
- * nonce/چکِ دسترسیِ جداگانه نیست.
+ * ذخیره‌سازی — هم به هوکِ رسمیِ product-object (ویرایشگرِ جدیدِ محصول) و
+ * هم به هوکِ legacyِ woocommerce_process_product_meta وصله؛ هر دو در مسیرِ
+ * ذخیرهٔ تأییدشدهٔ خودِ ووکامرس اجرا می‌شن. نشانگرِ hidden هم از پاک‌شدنِ
+ * ناخواستهٔ FAQ هنگامِ ذخیرهٔ REST/ویرایشگرهای بدونِ این متاباکس جلوگیری می‌کنه.
  */
-function jluxe_save_product_faq_meta( int $post_id ): void {
-	$posted = isset( $_POST['jluxe_product_faq'] ) && is_array( $_POST['jluxe_product_faq'] ) ? wp_unslash( $_POST['jluxe_product_faq'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce توسطِ خودِ ووکامرس قبل از این هوک تأیید شده؛ مقادیر پایین‌تر یک‌به‌یک sanitize می‌شن.
+function jluxe_product_faq_posted_items(): ?array {
+	// فقط وقتی متاباکسِ ما در فرم حضور داشته مقدار را تغییر بده؛ ذخیرهٔ محصول
+	// از REST/ویرایشگرهای دیگر نباید FAQ موجود را تصادفاً خالی کند.
+	if ( ! isset( $_POST['jluxe_product_faq_present'] ) ) {
+		return null;
+	}
 
-	$clean = array();
+	$posted = isset( $_POST['jluxe_product_faq'] ) && is_array( $_POST['jluxe_product_faq'] ) ? wp_unslash( $_POST['jluxe_product_faq'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce توسطِ هوکِ ووکامرس تأیید شده؛ مقادیر پایین‌تر یک‌به‌یک sanitize می‌شن.
+	$clean  = array();
 	foreach ( $posted as $item ) {
 		if ( ! is_array( $item ) ) {
 			continue;
@@ -108,8 +114,23 @@ function jluxe_save_product_faq_meta( int $post_id ): void {
 			'answer'   => $answer,
 		);
 	}
+	return $clean;
+}
 
-	update_post_meta( $post_id, '_jluxe_product_faq', $clean );
+/** Save on both the current product-object flow and the classic product editor. */
+function jluxe_save_product_faq_meta_object( WC_Product $product ): void {
+	$clean = jluxe_product_faq_posted_items();
+	if ( null !== $clean ) {
+		$product->update_meta_data( '_jluxe_product_faq', $clean );
+	}
+}
+add_action( 'woocommerce_admin_process_product_object', 'jluxe_save_product_faq_meta_object' );
+
+function jluxe_save_product_faq_meta( int $post_id ): void {
+	$clean = jluxe_product_faq_posted_items();
+	if ( null !== $clean ) {
+		update_post_meta( $post_id, '_jluxe_product_faq', $clean );
+	}
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_faq_meta' );
 
@@ -212,21 +233,24 @@ function jluxe_render_product_faq_section( WC_Product $product ): void {
 		return;
 	}
 	?>
-	<section id="faq" class="scroll-mt-16 py-6">
-		<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
-			<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
-			سوالات متداول
+	<section id="faq" class="jluxe-product-faq jluxe-product-section-anchor scroll-mt-16 py-6" aria-labelledby="jluxe-product-faq-title" dir="rtl">
+		<h2 id="jluxe-product-faq-title" class="jluxe-product-faq-heading">
+			<span class="jluxe-product-faq-heading__icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.6 1.4c-.8 1-2.2 1.2-2.2 2.6"/><path d="M12 16.5h.01"/></svg>
+			</span>
+			<span>سوالات متداول</span>
 		</h2>
-		<div class="overflow-hidden rounded-2xl border border-border bg-surface">
+		<div class="jluxe-product-faq-list overflow-hidden rounded-2xl border border-border bg-surface">
 			<?php foreach ( $items as $i => $item ) : ?>
+				<?php $jluxe_faq_panel_id = 'jluxe-product-faq-' . $product->get_id() . '-' . (int) $i; ?>
 				<div class="jluxe-faq-accordion-item<?php echo 0 === $i ? '' : ' border-t border-border'; ?>">
-					<button type="button" class="jluxe-faq-trigger flex w-full items-center justify-between gap-3 p-4 text-start transition-colors hover:bg-muted" aria-expanded="false">
-						<span class="text-[13.5px] font-medium text-foreground"><?php echo esc_html( $item['question'] ); ?></span>
+					<button type="button" class="jluxe-faq-trigger flex w-full items-center justify-between gap-3 p-4 text-start transition-colors hover:bg-muted" aria-expanded="false" aria-controls="<?php echo esc_attr( $jluxe_faq_panel_id ); ?>">
+						<span class="jluxe-faq-question text-[13.5px] font-medium text-foreground"><?php echo esc_html( $item['question'] ); ?></span>
 						<svg class="jluxe-faq-chevron size-4 shrink-0 text-text-muted transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 					</button>
-					<div class="jluxe-faq-panel grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out">
+					<div id="<?php echo esc_attr( $jluxe_faq_panel_id ); ?>" class="jluxe-faq-panel grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-out" aria-hidden="true">
 						<div class="overflow-hidden">
-							<p class="px-4 pb-4 text-[13px] leading-6 text-text-secondary"><?php echo nl2br( esc_html( $item['answer'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_html قبلاً روی مقدار اعمال شده، nl2br فقط <br> اضافه می‌کنه. ?></p>
+							<p class="jluxe-faq-answer px-4 pb-4 text-[13px] leading-6 text-text-secondary"><?php echo nl2br( esc_html( $item['answer'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_html قبلاً روی مقدار اعمال شده، nl2br فقط <br> اضافه می‌کنه. ?></p>
 						</div>
 					</div>
 				</div>

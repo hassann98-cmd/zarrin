@@ -1,0 +1,78 @@
+name: Theme quality
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.0", "8.3", "8.5"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_sqlite
+          coverage: none
+      - run: npm ci
+      - name: Audit the locked root dependency tree
+        run: npm audit --audit-level=moderate
+      - run: npm run check
+      - name: Committed build must match source
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain -- assets/compiled)" ]]; then
+            echo 'Rebuild and include all of assets/compiled in this change.'
+            git diff --stat -- assets/compiled
+            exit 1
+          fi
+      - name: Build installable source and runtime archive
+        if: matrix.php == '8.3'
+        run: npm run package
+      - uses: actions/upload-artifact@v4
+        if: matrix.php == '8.3'
+        with:
+          name: zarrin-theme
+          path: artifacts/zarrin-*.zip
+          if-no-files-found: error
+  wordpress-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.3", "8.5"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.18.0"
+          cache: npm
+          cache-dependency-path: tests/integration/package-lock.json
+      - name: Use the optional integration SDK's supported npm
+        run: npm install --global npm@11.16.0
+      - name: Install isolated integration tooling without lifecycle scripts
+        run: npm ci --prefix tests/integration --ignore-scripts
+      - name: Audit the locked integration dependency tree
+        run: npm audit --prefix tests/integration --audit-level=moderate
+      - name: Prepare checksum-pinned upstream test fixtures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm --prefix tests/integration run prepare:fixtures
+      - name: Exercise real WordPress and SQLite (no WooCommerce or external providers)
+        env:
+          ZARRIN_TEST_PHP: ${{ matrix.php }}
+        run: npm run test:integration
