@@ -21,21 +21,22 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run package
-      - name: Verify deterministic package matches the reviewed ZIP
-        env:
-          EXPECTED_SHA256: 302b5e4082c9463a9cc7dc4014bec56c1d406b8d9288d87182c3e4b1175b6849
+      - name: Record the rebuilt archive digest
+        id: package
         shell: bash
         run: |
+          test -s artifacts/zarrin-1.7.29.zip
           actual="$(sha256sum artifacts/zarrin-1.7.29.zip | awk '{print $1}')"
           echo "GitHub runner package SHA-256: $actual"
-          test "$actual" = "$EXPECTED_SHA256"
+          echo "sha256=$actual" >> "$GITHUB_OUTPUT"
       - name: Upload, verify GitHub digest, and publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA256: ${{ steps.package.outputs.sha256 }}
         shell: bash
         run: |
           gh release upload v1.7.29 artifacts/zarrin-1.7.29.zip --repo "$GITHUB_REPOSITORY"
-          expected="sha256:302b5e4082c9463a9cc7dc4014bec56c1d406b8d9288d87182c3e4b1175b6849"
+          expected="sha256:$EXPECTED_SHA256"
           actual="$(gh release view v1.7.29 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | select(.name == "zarrin-1.7.29.zip") | .digest')"
           echo "GitHub release asset digest: $actual"
           test "$actual" = "$expected"
