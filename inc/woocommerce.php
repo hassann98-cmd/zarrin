@@ -11,6 +11,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** false asks wc-add-to-cart-variation to resolve a selection over AJAX. */
+function jluxe_available_variations_for_form( $product ) {
+	$threshold = max( 0, (int) apply_filters( 'woocommerce_ajax_variation_threshold', 30, $product ) );
+	return count( $product->get_children() ) <= $threshold ? $product->get_available_variations() : false;
+}
+
+
 /**
  * شمارشگرِ ترتیبِ رندرِ کارتِ محصول در طولِ یک درخواست — برای تشخیصِ اینکه
  * کدوم عکس‌ها واقعاً بالای صفحه‌ن (باید eager/fetchpriority=high باشن) و
@@ -27,55 +34,8 @@ function jluxe_next_product_card_index(): int {
 	return $i;
 }
 
-/**
- * باگِ واقعیِ گزارش‌شده (با تستِ زنده پیدا شد): بخشِ «دیدگاه کاربران»
- * (content-single-product.php → comments_template()) کاملاً خالی رندر
- * می‌شد — مشتری اصلاً نمی‌تونست دیدگاه/امتیاز ثبت کنه. علتِ ریشه‌ای:
- * woocommerce/templates/single-product-reviews.php خودِ ووکامرس همین اول
- * `if ( ! comments_open() ) return;` داره، و comments_open() برای محصول
- * هم به آپشنِ woocommerce_enable_reviews (که فقط موقعِ register_post_type
- * یک‌بار در init خونده می‌شه، نه هر بار) و هم به comment_status تک‌تک
- * محصولات وابسته‌ست. طبقِ درخواستِ صریحِ کاربر («مشتری باید بتونه دیدگاه
- * بفرسته») سه لایه‌ی این قفل این‌جا باز می‌شن:
- * ۱) آپشن‌های ووکامرس enable_reviews/enable_review_rating — این دو فقط با
- *    get_option خام خونده می‌شن (فیلترپذیر نیستن، wc-conditional-functions.php)
- *    پس مستقیم ست می‌شن.
- * ۲) post_type_supports('product','comments') — چون خودِ ووکامرس این رو
- *    فقط زمانِ register_post_type بر اساسِ همون آپشن ست می‌کنه، این‌جا با
- *    یک اکشنِ init با priority بالاتر (دیرتر) همیشه دوباره فعالش می‌کنیم.
- * ۳) comments_open() برای محصولاتی که قبلاً با comment_status بسته
- *    ساخته/ایمپورت شدن — فیلترِ نهایی همیشه بازش می‌کنه.
- *
- * تاییدِ مدیر قبل از انتشار (خواستِ صریحِ دیگرِ کاربر) تنظیمِ استانداردِ
- * سراسریِ خودِ وردپرسه (تنظیمات ← نظرات ← «نظر باید پیش از نمایش تایید
- * شود»)، ولی چون اون روی هر پستی اثر می‌ذاره (نه فقط محصول)، این‌جا با
- * pre_comment_approved مستقلاً فقط برای نظراتِ محصول اجرا می‌شه — صرف‌نظر
- * از تنظیمِ سراسریِ نظراتِ سایت.
- */
-add_action(
-	'init',
-	function () {
-		if ( 'yes' !== get_option( 'woocommerce_enable_reviews' ) ) {
-			update_option( 'woocommerce_enable_reviews', 'yes' );
-		}
-		if ( 'yes' !== get_option( 'woocommerce_enable_review_rating' ) ) {
-			update_option( 'woocommerce_enable_review_rating', 'yes' );
-		}
-		add_post_type_support( 'product', 'comments' );
-	},
-	20
-);
-add_filter(
-	'comments_open',
-	function ( $open, $post_id ) {
-		if ( 'product' === get_post_type( $post_id ) ) {
-			return true;
-		}
-		return $open;
-	},
-	20,
-	2
-);
+/** Keep product reviews moderated; never overwrite WooCommerce's enable/disable settings. */
+// Review enablement and per-product comment status belong to the store administrator.
 add_filter(
 	'pre_comment_approved',
 	function ( $approved, $commentdata ) {
@@ -117,6 +77,13 @@ function jluxe_allow_svg_in_kses_post( array $tags, string $context ): array {
 	return $tags;
 }
 add_filter( 'wp_kses_allowed_html', 'jluxe_allow_svg_in_kses_post', 10, 2 );
+
+/** Amounts and filters always use WooCommerce's configured storage currency, with no hidden x10. */
+function jluxe_currency_label( string $currency ): string {
+	if ( 'IRR' === $currency ) { return 'ریال'; }
+	if ( 'IRT' === $currency ) { return 'تومان'; }
+	return html_entity_decode( wp_strip_all_tags( get_woocommerce_currency_symbol( $currency ) ), ENT_QUOTES, 'UTF-8' );
+}
 
 /**
  * تبدیل ارقام لاتین به فارسی — برای جاهایی که خودِ ووکامرس/افزونه‌ی فارسی
@@ -198,7 +165,7 @@ function jluxe_toman_symbol( string $symbol, string $currency ): string {
 	if ( is_admin() && ! wp_doing_ajax() ) {
 		return $symbol;
 	}
-	if ( in_array( $currency, array( 'IRR', 'IRT' ), true ) ) {
+	if ( 'IRT' === $currency ) {
 		return jluxe_toman_icon_svg();
 	}
 	return $symbol;
@@ -294,17 +261,18 @@ function jluxe_add_website_search_action( array $markup ): array {
 }
 add_filter( 'woocommerce_structured_data_website', 'jluxe_add_website_search_action' );
 
+/** Keep the product LCP preload's responsive slot size aligned with the rendered image. */
+function jluxe_single_product_image_sizes( string $layout ): string {
+	if ( 'classic' === $layout ) {
+		return '(max-width: 767px) calc(100vw - 64px), 420px';
+	}
+	return '(max-width: 1024px) 100vw, 26rem';
+}
+
 /**
- * پیش‌بارگذاریِ (preload) تصویرِ اصلیِ محصول برای بهبودِ LCP — دقیقاً
- * همون استراتژیِ هیروی صفحه‌ی اصلی.
- *
- * نکته‌ی مهم: سایزِ عکس باید دقیقاً با همون سایزی که خودِ صفحه واقعاً
- * درخواست می‌کنه یکی باشه، وگرنه preload بی‌فایده‌ست (مرورگر بازم باید
- * URL واقعی رو جدا دانلود کنه) — چیدمانِ پیش‌فرض
- * (woocommerce/single-product/product-image.php) از سایزِ
- * 'woocommerce_single' استفاده می‌کنه، ولی چیدمانِ کلاسیک
- * (content-single-product-classic.php) از 'full' — پس این‌جا بر اساسِ
- * تنظیمِ فعلیِ layout، سایزِ درست انتخاب می‌شه.
+ * Preload the main product image using the same responsive candidates as the
+ * rendered image. The classic layout uses `large` plus srcset (rather than
+ * downloading the original full-size file for a 420px image).
  */
 function jluxe_preload_single_product_lcp_image(): void {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -321,21 +289,242 @@ function jluxe_preload_single_product_lcp_image(): void {
 		return;
 	}
 
-	$layout = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
-	$size   = 'classic' === $layout ? 'full' : 'woocommerce_single';
-
-	$url    = wp_get_attachment_image_url( $image_id, $size );
-	$srcset = wp_get_attachment_image_srcset( $image_id, $size );
+	$layout    = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
+	$size      = 'classic' === $layout ? 'large' : 'woocommerce_single';
+	$imagesizes = jluxe_single_product_image_sizes( (string) $layout );
+	$url       = wp_get_attachment_image_url( $image_id, $size );
+	$srcset    = wp_get_attachment_image_srcset( $image_id, $size );
 
 	if ( $url ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" fetchpriority="high"%2$s>' . "\n",
 			esc_url( $url ),
-			$srcset ? sprintf( ' imagesrcset="%s" imagesizes="(max-width: 1024px) 100vw, 26rem"', esc_attr( $srcset ) ) : ''
+			$srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $srcset ), esc_attr( $imagesizes ) ) : ''
 		);
 	}
 }
 add_action( 'wp_head', 'jluxe_preload_single_product_lcp_image', 1 );
+
+/* -------------------------------------------------------------------------
+ * صفحهٔ محصول: بردکرامب (دادهٔ ساخت‌یافته) + نوار چسبانِ افزودن به سبد موبایل.
+ * هر دو در هر دو چیدمان (default/classic) استفاده می‌شوند.
+ * ---------------------------------------------------------------------- */
+
+/** نوار چسبانِ افزودن به سبد — اسکریپت فقط صفحهٔ محصول. */
+function jluxe_enqueue_sticky_cta(): void {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return;
+	}
+	$path = JLUXE_THEME_DIR . '/assets/js/sticky-cta.js';
+	wp_enqueue_script(
+		'jluxe-sticky-cta',
+		JLUXE_THEME_URI . '/assets/js/sticky-cta.js',
+		array(),
+		file_exists( $path ) ? (string) filemtime( $path ) : null,
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_sticky_cta' );
+
+
+/** زنجیرهٔ بردکرامب: خانه → فروشگاه → دستهٔ فعلی و والدهایش (حداکثر ۳ سطح) → محصول. */
+function jluxe_breadcrumb_items( $product ): array {
+	$items = array(
+		array( 'خانه', home_url( '/' ) ),
+	);
+	if ( function_exists( 'wc_get_page_id' ) && wc_get_page_id( 'shop' ) > 0 ) {
+		$items[] = array( 'فروشگاه', get_permalink( wc_get_page_id( 'shop' ) ) );
+	}
+	if ( $product instanceof WC_Product && function_exists( 'wc_get_product_terms' ) ) {
+		$terms = wc_get_product_terms( $product->get_id(), 'product_cat', array( 'fields' => 'all' ) );
+		$chain = array();
+		foreach ( $terms as $term ) {
+			if ( ! isset( $term->term_id ) ) {
+				continue;
+			}
+			$walk   = array();
+			$cursor = $term;
+			$depth  = 0;
+			while ( $cursor instanceof WP_Term && $depth < 3 ) {
+				array_unshift( $walk, array( $cursor->name, get_term_link( $cursor ) ) );
+				if ( ! $cursor->parent ) {
+					break;
+				}
+				$parent = get_term( $cursor->parent, 'product_cat' );
+				if ( $parent instanceof WP_Error ) {
+					break;
+				}
+				$cursor = $parent;
+				++$depth;
+			}
+			if ( count( $walk ) > count( $chain ) ) {
+				$chain = array_slice( $walk, -3 );
+			}
+		}
+		$items = array_merge( $items, $chain );
+	}
+	if ( $product instanceof WC_Product ) {
+		$items[] = array( (string) $product->get_name(), get_permalink( $product->get_id() ) );
+	}
+	return $items;
+}
+
+/** چاپ BreadcrumbList JSON-LD — فقط داده؛ نمایشِ مرئی همان nav خود قالب‌هاست. */
+function jluxe_print_breadcrumb_jsonld( $product ): void {
+	$items = jluxe_breadcrumb_items( $product );
+	if ( count( $items ) < 2 ) {
+		return;
+	}
+	$elements = array();
+	$position = 0;
+	foreach ( $items as $item ) {
+		$label = trim( (string) $item[0] );
+		$url   = (string) $item[1];
+		if ( '' === $label || '' === $url ) {
+			continue;
+		}
+		++$position;
+		$elements[] = array(
+			'@type'    => 'ListItem',
+			'position' => $position,
+			'name'     => $label,
+			'item'     => esc_url_raw( $url ),
+		);
+	}
+	if ( count( $elements ) < 2 ) {
+		return;
+	}
+	echo '<script type="application/ld+json">' . wp_json_encode( array(
+		'@context'        => 'https://schema.org',
+		'@type'           => 'BreadcrumbList',
+		'itemListElement' => $elements,
+	) ) . '</script>' . "\n";
+}
+
+/**
+ * متن و حالتِ موجودی برای CTA چسبان؛ فقط از موجودی واقعی WooCommerce استفاده می‌کند.
+ * تنوع تا پیش از انتخاب، موجودیِ کلیِ والد را به‌جای گزینهٔ انتخاب‌شده جا نمی‌زند.
+ */
+function jluxe_sticky_stock_presentation( $product ): array {
+	if ( ! $product instanceof WC_Product ) {
+		return array( 'state' => 'out-of-stock', 'label' => 'ناموجود' );
+	}
+
+	$is_variable = $product->is_type( 'variable' );
+	if ( $is_variable ) {
+		$default_attributes = function_exists( 'jluxe_default_variation_pick' ) ? jluxe_default_variation_pick( $product ) : array();
+		if ( ! empty( $default_attributes ) ) {
+			// The product form selects this purchasable, in-stock variation on
+			// first render, so the sticky CTA can add it without a false prompt.
+			return array( 'state' => 'in-stock', 'label' => '' );
+		}
+		$variation_ids = method_exists( $product, 'get_children' ) ? (array) $product->get_children() : array();
+		if ( ! empty( $variation_ids ) ) {
+			// A variable parent can still say "instock" after its child stock is
+			// exhausted (or when all children are not purchasable). Trust the
+			// eligible-variation scan, not the cached parent status.
+			return array( 'state' => 'out-of-stock', 'label' => 'ناموجود' );
+		}
+	}
+
+	$available = $product->is_in_stock() && $product->is_purchasable();
+	if ( ! $available ) {
+		return array( 'state' => 'out-of-stock', 'label' => 'ناموجود' );
+	}
+	if ( $is_variable ) {
+		return array( 'state' => 'choose', 'label' => 'انتخاب گزینه برای بررسی موجودی' );
+	}
+
+	if ( method_exists( $product, 'managing_stock' ) && $product->managing_stock() && method_exists( $product, 'get_stock_quantity' ) ) {
+		$quantity = $product->get_stock_quantity();
+		if ( is_numeric( $quantity ) && (int) $quantity > 0 && (int) $quantity <= 5 ) {
+			return array(
+				'state' => 'low-stock',
+				'label' => sprintf( 'فقط %s عدد باقی مانده', jluxe_fa_digits( (string) (int) $quantity ) ),
+			);
+		}
+	}
+
+	/* حالتِ موجودی برای منطقِ JS لازم است، اما برچسبِ معمولِ «موجود در انبار»
+	 * عمداً چاپ نمی‌شود؛ خودِ دکمهٔ خرید برای موجودبودن کافی است. */
+	return array( 'state' => 'in-stock', 'label' => '' );
+}
+
+/**
+ * کنترلِ تعدادِ نوارِ چسبان؛ فقط دکمه و نمایشگر است و هیچ input/form موازی
+ * نمی‌سازد. جاوااسکریپت مقدار را به input.qty واقعیِ فرم ووکامرس می‌نویسد.
+ */
+function jluxe_render_sticky_quantity_control(): void {
+	?>
+	<div class="jluxe-mobile-quantity" data-jluxe-mobile-qty-control hidden role="group" aria-label="تعداد محصول">
+		<button type="button" class="jluxe-mobile-quantity-step" data-jluxe-mobile-qty-step="decrease" aria-label="کاهش تعداد" disabled>
+			<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+		</button>
+		<output class="jluxe-mobile-quantity-value" data-jluxe-mobile-qty-value aria-live="polite" aria-atomic="true">۱</output>
+		<button type="button" class="jluxe-mobile-quantity-step" data-jluxe-mobile-qty-step="increase" aria-label="افزایش تعداد" disabled>
+			<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+		</button>
+	</div>
+	<?php
+}
+
+/**
+ * نوار چسبانِ افزودن به سبد — فقط موبایل (CSS بالای 768px مخفی است).
+ * رندر سروری دارد تا بدون JS هم قیمت/وضعیت/مسیر دیده شود؛ برای محصول متغیر،
+ * پس از انتخابِ تنوع همین نوار قیمت و وضعیت گزینه را نشان می‌دهد.
+ */
+function jluxe_render_sticky_add_to_cart( $product ): void {
+	if ( ! $product instanceof WC_Product ) {
+		return;
+	}
+	$is_variable  = $product->is_type( 'variable' );
+	$stock_status = jluxe_sticky_stock_presentation( $product );
+	$in_stock     = 'out-of-stock' !== $stock_status['state'];
+	$purchasable  = $product->is_purchasable();
+	$has_default_variation = $is_variable && 'in-stock' === $stock_status['state'];
+	$price_html   = $is_variable ? '' : jluxe_reference_price_html( $product->get_price_html() );
+	if ( $in_stock && $purchasable ) {
+		$mode   = $is_variable && ! $has_default_variation ? 'scroll' : 'add';
+		$label  = 'scroll' === $mode ? 'انتخاب گزینه‌ها' : 'افزودن به سبد';
+		$aria   = 'scroll' === $mode ? 'رفتن به انتخاب تنوع' : 'افزودن به سبد خرید';
+		$button = '<button type="button" class="jluxe-btn jluxe-btn-primary" data-jluxe-sticky-add data-jluxe-sticky-mode="' . esc_attr( $mode ) . '" aria-label="' . esc_attr( $aria ) . '">' . jluxe_icon_markup( 'cart', 'size-5' ) . '<span data-jluxe-sticky-label>' . esc_html( $label ) . '</span></button>';
+	} else {
+		$button = '<span class="jluxe-sticky-cta-out">ناموجود</span>';
+	}
+	?>
+	<div class="jluxe-sticky-cta" data-jluxe-sticky-cta>
+		<div class="jluxe-sticky-cta-info">
+			<?php if ( $is_variable ) : ?>
+				<span class="jluxe-sticky-cta-price" data-jluxe-sticky-variation-price data-jluxe-price-placeholder="" aria-live="polite" aria-atomic="true"></span>
+			<?php elseif ( '' !== (string) $price_html ) : ?>
+				<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>
+			<?php endif; ?>
+			<?php if ( 'in-stock' !== $stock_status['state'] ) : ?>
+				<span
+					class="jluxe-sticky-cta-stock"
+					data-jluxe-sticky-stock-status
+					data-jluxe-stock-state="<?php echo esc_attr( $stock_status['state'] ); ?>"
+					data-jluxe-stock-placeholder="<?php echo esc_attr( $stock_status['label'] ); ?>"
+					data-jluxe-stock-placeholder-state="<?php echo esc_attr( $stock_status['state'] ); ?>"
+					aria-live="polite"
+					aria-atomic="true"
+				><?php echo esc_html( $stock_status['label'] ); ?></span>
+			<?php endif; ?>
+		</div>
+		<?php if ( $in_stock && $purchasable ) : ?>
+			<?php jluxe_render_sticky_quantity_control(); ?>
+		<?php endif; ?>
+		<?php echo $button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- اجزای داخلی escape شده‌اند. ?>
+	</div>
+	<?php
+}
+
+/** نسخهٔ برگشت‌دهندهٔ SVG آیکون (برای چاپ داخل رشته‌ها) — از inc/icons.php. */
+function jluxe_icon_markup( string $name, string $class = 'size-5' ): string {
+	ob_start();
+	jluxe_icon( $name, $class );
+	return (string) ob_get_clean();
+}
 
 /**
  * خطِ سبزِ «سود شما از این خرید» برای محصولِ متغیر — طبقِ درخواستِ صریحِ
@@ -355,6 +544,10 @@ function jluxe_variation_saving_html( array $data, $product, $variation ): array
 	$sale    = (float) $variation->get_price();
 	if ( $regular > 0 && $sale > 0 && $sale < $regular ) {
 		$data['jluxe_saving_html'] = wp_kses_post( wc_price( $regular - $sale ) ) . ' سود شما از این خرید';
+	}
+	/* R55: قیمتِ تنویع که با found_variation جابه‌جا می‌شود هم همان فرمتِ مرجع (عدد + گلیف) — JS آن را دست‌نخورده innerHTML می‌کند. */
+	if ( ! empty( $data['price_html'] ) ) {
+		$data['price_html'] = jluxe_reference_price_html( (string) $data['price_html'] );
 	}
 	return $data;
 }
@@ -478,46 +671,225 @@ function jluxe_fa_digits_wc_price( string $formatted_price ): string {
 add_filter( 'wc_price', 'jluxe_fa_digits_wc_price' );
 
 /**
- * نگاشتِ نام‌های رایج فارسیِ رنگ به کدِ HEX — برای نمایش سواچ رنگی واقعی
- * (دایره‌ی رنگی) به‌جای پیل متنی، دقیقاً مثل مرجع (Boom). فقط برای
- * ویژگی‌هایی که واقعاً «رنگ» هستن استفاده می‌شه؛ اگر نام رنگ در این
- * فهرست نبود، به همون پیل متنیِ امن قبلی برمی‌گرده (چیزی حدس زده نمی‌شه).
+ * قراردادِ نمایشِ قیمتِ این پوسته: «عدد، بعد نماد/واحد» — «۱۰۰۰ ریال»،
+ * نه «ریال ۱۰۰۰». فرمتِ پیش‌فرضِ هستهٔ ووکامرس «نماد، بعد عدد» است و در
+ * متنِ RTL همین باعث می‌شد نماد/واحد اول دیده شود. فقط ترتیبِ همان span
+ * استانداردِ هسته جابه‌جا می‌شود؛ رقم‌ها، فاصله‌ها، آیکونِ SVG تومان،
+ * <del>/<ins> حراج و بقیهٔ ساختار دست‌نخورده می‌مانند. اگر خروجی از قبل
+ * «عدد بعد نماد» باشد، الگو مطابقت نمی‌کند و رشته دست‌نخورده برمی‌گردد
+ * (idempotent) — پس با تنظیمِ «موقعیت نماد پول» خودِ ووکامرس هم تداخلی نیست.
  */
-function jluxe_persian_color_to_hex( string $name ): ?string {
-	static $map = array(
-		'سفید'      => '#FFFFFF',
-		'مشکی'      => '#18181B',
-		'سیاه'      => '#18181B',
-		'قرمز'      => '#ED1A45',
-		'آبی'       => '#1D4ED8',
-		'ابی'       => '#1D4ED8',
-		'سرمه‌ای'   => '#1E293B',
-		'سرمه ای'   => '#1E293B',
-		'سبز'       => '#16A34A',
-		'زرد'       => '#EAB308',
-		'نارنجی'    => '#F97316',
-		'صورتی'     => '#EC4899',
-		'بنفش'      => '#7C3AED',
-		'قهوه‌ای'   => '#78350F',
-		'قهوه ای'   => '#78350F',
-		'طلایی'     => '#D4AF37',
-		'نقره‌ای'   => '#C0C0C0',
-		'نقره ای'   => '#C0C0C0',
-		'طوسی'      => '#9CA3AF',
-		'خاکستری'   => '#9CA3AF',
-		'کرم'       => '#E9DFC7',
-		'بژ'        => '#E9DFC7',
+function jluxe_reorder_price_amounts( string $price ): string {
+	/* تگِ آغازین ممکن است attributeهای اضافه داشته باشد (مثلاً aria-hidden="true"
+	 * در خروجیِ نسخه‌های جدیدِ ووکامرس) — الگو نباید به بسته‌بودنِ فوریِ
+	 * class="..." وابسته بماند. دو شکلِ واقعیِ wc_price پوشش داده می‌شود:
+	 * ① مدرن (ووکامرس 9.10+): <span amount><bdi><span symbol translate="no">﷼</span> ۱۰۰</bdi></span>
+	 * ② قدیمی: <span amount><span symbol>﷼</span> ۱۰۰</span>
+	 * باگِ واقعی (R54): الگوی قدیمیِ ما هرگز شکلِ ① را نمی‌گرفت — چون
+	 * <bdi> و translate="no" بینِ amount span و نماد می‌آمدند — در نتیجه
+	 * همه‌جا دوباره «نماد اول» چاپ می‌شد. اگر از قبل «عدد بعد نماد» باشد
+	 * هیچ الگویی مچ نمی‌کند و رشته دست‌نخورده برمی‌گردد (idempotent). */
+	$reordered = preg_replace(
+		'/(<span class="woocommerce-Price-amount amount"[^>]*>\s*<bdi>\s*)(<span class="woocommerce-Price-currencySymbol"[^>]*>.*?<\/span>)(\s*)(.*?)(\s*<\/bdi>)/s',
+		'$1$4$3$2$5',
+		$price
 	);
-	$name = trim( $name );
-	return $map[ $name ] ?? null;
+	if ( ! is_string( $reordered ) ) {
+		$reordered = $price;
+	}
+	$reordered = preg_replace(
+		'/(<span class="woocommerce-Price-amount amount"[^>]*>\s*)(<span class="woocommerce-Price-currencySymbol"[^>]*>.*?<\/span>)(\s*)(.*?)(\s*<\/span>)/s',
+		'$1$4$3$2$5',
+		$reordered
+	);
+	if ( ! is_string( $reordered ) ) {
+		$reordered = $price;
+	}
+	/* متنِ screen-reader (بازهٔ قیمت و قدیم/جدید) بدونِ span نماد است:
+	 * «محدوده قیمت: ﷼ ۱۰۰,۰۰۰ تا ...» — بازچینیِ متنیِ «عدد سپس واحد». */
+	$reordered = preg_replace_callback(
+		'/(<span class="screen-reader-text">)(.*?)(<\/span>)/s',
+		static function ( array $m ): string {
+			$t = preg_replace( '/(﷼|ریال|تومان)\s*([۰-۹0-9][۰-۹0-9,،\.]*)/u', '$2 $1', $m[2] );
+			return is_string( $t ) ? $m[1] . $t . $m[3] : $m[0];
+		},
+		$reordered
+	);
+	return is_string( $reordered ) ? $reordered : $price;
+}
+
+function jluxe_amount_first_wc_price( string $price ): string {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $price;
+	}
+	return jluxe_reorder_price_amounts( $price );
+}
+add_filter( 'wc_price', 'jluxe_amount_first_wc_price', 20 );
+
+/**
+ * فرصتِ دوم — روی خروجیِ نهاییِ get_price_html (فیلترِ رسمیِ ووکامرس).
+ * باگِ واقعیِ رویِ سایتِ کاربر: با وجودِ فیلترِ wc_price، خروجیِ برخی
+ * قیمت‌ها (مثل بازهٔ محصولِ متغیر که افزونه‌ها/کش‌های افزونه‌ای دوباره
+ * می‌سازند یا اولویت‌های جابه‌جا شده‌اند) هنوز «نماد اول» بود. این فیلترِ
+ * دیرهنگام (بعد از همهٔ افزونه‌ها) همان بازچینیِ idempotent را روی HTML
+ * نهایی اجرا می‌کند؛ چون الگو فقط «نماداول» را می‌گیرد، هیچ‌وقت دوباره‌کاری
+ * نمی‌شود و متنِ screen-reader-text (بدونِ span نماد) دست‌نخورده می‌ماند.
+ */
+function jluxe_amount_first_price_html( string $price_html ): string {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $price_html;
+	}
+	return jluxe_reorder_price_amounts( $price_html );
+}
+add_filter( 'woocommerce_get_price_html', 'jluxe_amount_first_price_html', 99 );
+add_filter( 'woocommerce_variation_price_html', 'jluxe_amount_first_price_html', 99 );
+
+/** گلیفِ SVG تومان — دقیقاً همان مارک‌آپ مرجعی که کاربر معیار قرار داد (viewBox 22x18، fill ثابت). */
+function jluxe_toman_glyph_svg(): string {
+	return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 22 18" fill="none" aria-hidden="true"><g clip-path="url(#jluxe-toman-clip)"><path d="M16.8984 0.750259H14.5224C14.1425 0.750259 13.8346 1.05819 13.8346 1.43805C13.8346 1.8179 14.1425 2.12583 14.5224 2.12583H16.8984C17.2782 2.12583 17.5862 1.8179 17.5862 1.43805C17.5862 1.05819 17.2782 0.750259 16.8984 0.750259Z" fill="#8f9bad"/><path d="M21.2474 3.81424C21.2265 3.43908 21.164 2.94669 21.0598 2.33706C20.999 1.98275 20.9365 1.65014 20.8722 1.33925C20.8002 0.991882 20.4528 0.776514 20.1106 0.866829C19.7945 0.950197 19.5983 1.26456 19.6625 1.58414C19.7268 1.90372 19.7876 2.2233 19.8484 2.56372C19.9474 3.11603 20.0073 3.54329 20.0281 3.8455C20.049 4.22066 19.9369 4.51245 19.6921 4.72087C19.4472 4.92929 19.0225 5.0335 18.4181 5.0335H6.67273V3.47035C6.67273 2.8034 6.55289 2.21201 6.31321 1.69617C6.07353 1.18033 5.72963 0.776514 5.28153 0.484725C4.83343 0.192937 4.31237 0.0470428 3.71838 0.0470428C3.15564 0.0470428 2.65283 0.198148 2.20993 0.500357C1.76704 0.802566 1.42315 1.2142 1.17825 1.73525C0.93336 2.2563 0.810913 2.83466 0.810913 3.47035C0.810913 4.40824 1.07925 5.13771 1.61594 5.65876C2.15262 6.17981 2.85864 6.44034 3.73401 6.44034H5.42221V6.53412C5.42221 6.78423 5.32321 6.98223 5.12521 7.12812C4.92721 7.27402 4.63543 7.39907 4.24985 7.50328C3.86427 7.60749 3.21817 7.75338 2.31154 7.94096L2.2907 7.9453C1.91641 8.01999 1.67673 8.3882 1.76009 8.76075C1.84086 9.12201 2.19517 9.35214 2.5573 9.28006C2.70493 9.25054 2.8517 9.22101 2.99933 9.19148C3.9789 8.99348 4.7214 8.79548 5.22682 8.59749C5.73224 8.39949 6.09958 8.14157 6.32884 7.82373C6.5581 7.50588 6.67273 7.07602 6.67273 6.53412V6.44034H18.4181C19.0538 6.44034 19.5878 6.31528 20.0203 6.06518C20.4528 5.81507 20.7706 5.48942 20.9738 5.08821C21.177 4.687 21.2682 4.26234 21.2474 3.81424ZM5.45347 5.0335H3.73401C3.14001 5.0335 2.70754 4.91626 2.43659 4.68179C2.16565 4.44732 2.03017 4.0435 2.03017 3.47035C2.03017 2.85551 2.17867 2.36311 2.47567 1.99317C2.77267 1.62322 3.1869 1.43825 3.71838 1.43825C4.29153 1.43825 4.724 1.61801 5.01579 1.97754C5.30758 2.33706 5.45347 2.83466 5.45347 3.47035V5.0335Z" fill="#8f9bad"/><path d="M6.23507 12.8413C6.23507 12.4097 5.88515 12.0597 5.4535 12.0597C5.02184 12.0597 4.67192 12.4097 4.67192 12.8413C6.23507 13.273 5.02184 13.6229 5.4535 13.6229C5.88515 13.6229 6.23507 13.273 6.23507 12.8413Z" fill="#8f9bad"/><path d="M20.7724 12.3489C20.5432 11.8123 20.2201 11.3859 19.8033 11.0672C19.3864 10.7493 18.9071 10.5904 18.3652 10.5904C17.6878 10.5904 17.1094 10.8231 16.6301 11.286C16.1507 11.7497 15.7964 12.388 15.5671 13.2009L15.0669 14.9985C15.0148 15.2173 14.9132 15.3815 14.7621 15.4909C14.611 15.6003 14.4104 15.655 14.1603 15.655C13.6913 15.655 13.3553 15.6064 13.152 15.5065C12.9488 15.4075 12.8134 15.233 12.7456 14.9829C12.6779 14.7328 12.644 14.3263 12.644 13.7636L12.6284 9.74629C12.6284 9.3503 12.5607 9.00206 12.4252 8.69898C12.2897 8.39677 12.0761 8.15969 11.7843 7.98775C11.4925 7.8158 11.1226 7.72983 10.6744 7.72983H10.1586C9.70008 7.72983 9.32232 7.8158 9.02532 7.98775C8.72832 8.15969 8.51469 8.39417 8.38443 8.69117C8.25417 8.98817 8.18904 9.33987 8.18904 9.74629L8.20467 14.1075C8.20467 14.7119 8.1213 15.1887 7.95456 15.5378C7.78783 15.8877 7.50646 16.1422 7.11046 16.3037C6.71446 16.4661 6.16215 16.546 5.45352 16.546H5.226C4.57989 16.546 4.04842 16.4114 3.63158 16.1396C3.21474 15.8686 2.90732 15.497 2.70932 15.0219C2.51132 14.5478 2.41232 14.0041 2.41232 13.3884C2.41232 13.1705 2.44619 12.8743 2.48787 12.593C2.54953 12.1744 2.18306 11.8192 1.76622 11.8922C1.49874 11.939 1.29467 12.1544 1.25819 12.4236C1.21477 12.7406 1.19306 13.0619 1.19306 13.3884C1.19306 14.1804 1.34677 14.9264 1.65419 15.6237C1.96161 16.322 2.41753 16.8847 3.02195 17.312C3.62637 17.7401 4.36105 17.9528 5.226 17.9528H5.45352C6.38099 17.9528 7.13912 17.7965 7.72791 17.4839C8.31669 17.1713 8.74917 16.7284 9.02532 16.1552C9.30148 15.5829 9.43435 14.8995 9.42393 14.1075L9.4083 9.74629C9.4083 9.50661 9.4578 9.34595 9.5568 9.26172C9.6558 9.17835 9.8564 9.13666 10.1586 9.13666H10.6744C10.9558 9.13666 11.1486 9.18356 11.2528 9.27735C11.357 9.37114 11.4091 9.52745 11.4091 9.74629L11.4248 13.7636C11.4248 14.4731 11.5055 15.0671 11.6671 15.5456C11.8286 16.025 12.1073 16.3975 12.5033 16.6632C12.8993 16.929 13.4517 17.0618 14.1603 17.0618C14.4625 17.0618 14.7543 16.9941 15.0356 16.8586C15.317 16.724 15.5619 16.5365 15.7703 16.2959L15.8329 16.3272C16.6457 16.744 17.2501 17.0288 17.6461 17.1791C18.0421 17.3302 18.4381 17.4057 18.8341 17.4057C19.2301 17.4057 19.587 17.2946 19.9361 17.0697C20.2852 16.8456 20.5692 16.4861 20.788 15.9911C21.0069 15.497 21.1163 14.8639 21.1163 14.0919C21.1163 13.4666 21.0017 12.8865 20.7724 12.3489ZM19.6313 15.6003C19.4542 15.866 19.1884 15.9989 18.8341 15.9989C18.5632 15.9989 18.2766 15.939 17.9744 15.8191C17.6722 15.7002 17.1667 15.4622 16.4581 15.1079L16.3487 15.0454L16.7551 13.576C16.901 13.0445 17.112 12.6485 17.3882 12.388C17.6643 12.1284 17.99 11.9972 18.3652 11.9972C18.8654 11.9972 19.2457 12.1831 19.5063 12.5522C19.7668 12.9221 19.897 13.4353 19.897 14.0919C19.897 14.8326 19.8085 15.3346 19.6313 15.6003Z" fill="#8f9bad"/></g><defs><clipPath id="jluxe-toman-clip"><rect width="20.4391" height="17.9059" fill="white" transform="translate(0.810913 0.0470428)"/></clipPath></defs></svg>';
 }
 
 /**
- * آیا این ویژگی از نوع «رنگ»ه؟ بر اساس نام ویژگی (نه مقداردهی حدسی).
+ * فرمتِ مرجعِ قیمت (R55 — معیارِ DOMِ فرستاده‌شدهٔ کاربر):
+ * قیمتِ قدیمی فقط عددِ خط‌خورده (بدونِ نماد)، قیمتِ جدید/مقدارها با گلیفِ
+ * SVG تومان بعد از عدد با شفافیتِ ۷۵٪ — «عدد سپس واحد». idempotent:
+ * گلیفِ جاگذاری‌شده دیگر الگوی نماد را ندارد.
+ */
+function jluxe_reference_price_html( string $price_html ): string {
+	$html = jluxe_reorder_price_amounts( $price_html );
+	/* داخلِ <del>: نماد حذف می‌شود — مرجع: <span class="line-through ...">۲,۵۸۱,۰۰۰</span> */
+	$stripped = preg_replace(
+		'/(<del[^>]*>.*?)\s*<span class="woocommerce-Price-currencySymbol"[^>]*>.*?<\/span>(.*?<\/del>)/s',
+		'$1$2',
+		$html
+	);
+	$html = is_string( $stripped ) ? $stripped : $html;
+	/* بقیهٔ نمادها (قیمتِ جدید/ins/مقدارهای بازه) → گلیفِ تومان */
+	$glyph = '<span class="jluxe-toman-glyph">' . jluxe_toman_glyph_svg() . '</span>';
+	$replaced = preg_replace(
+		'/<span class="woocommerce-Price-currencySymbol"[^>]*>.*?<\/span>/s',
+		$glyph,
+		$html
+	);
+	return is_string( $replaced ) ? $replaced : $html;
+}
+
+/** kses با اجازهٔ svg برای گلیفِ داخلِ قیمت — برخلافِ wp_kses_post که svg را می‌کند پاک. */
+function jluxe_price_kses( string $html ): string {
+	$allowed = wp_kses_allowed_html( 'post' );
+	$allowed['svg'] = array( 'xmlns' => true, 'width' => true, 'height' => true, 'viewbox' => true, 'fill' => true, 'aria-hidden' => true, 'id' => true, 'clip-path' => true );
+	$allowed['path'] = array( 'id' => true, 'd' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true );
+	$allowed['g'] = array( 'id' => true, 'fill' => true, 'clip-path' => true );
+	$allowed['defs'] = array();
+	$allowed['clippath'] = array( 'id' => true );
+	$allowed['rect'] = array( 'width' => true, 'height' => true, 'fill' => true, 'transform' => true );
+	return wp_kses( $html, $allowed );
+}
+
+/**
+ * نگاشتِ نام‌های رایج فارسیِ رنگ به کدِ HEX — برای نمایش سواچ رنگی واقعی
+ * (دایره‌ی رنگی) به‌جای پیل متنی، دقیقاً مثل مرجع (Boom). فقط برای
+ * ویژگی‌هایی که واقعاً «رنگ» هستن استفاده می‌شه؛ نامِ کاملِ شناخته‌شده
+ * یا یک عبارتِ رنگِ کامل داخلِ برچسب/نامک پذیرفته می‌شود. اگر هیچ عبارتِ
+ * موجود در نقشه پیدا نشود، به پیل متنی برمی‌گردد و رنگی حدس زده نمی‌شود.
+ */
+function jluxe_persian_color_to_hex( string $name ): ?string {
+	static $map = null;
+	static $en_map = null;
+	if ( null === $map ) {
+		$map = array(
+			'سفید' => '#FFFFFF', 'سفید صدفی' => '#F5F0E8', 'شیری' => '#F6F1E7', 'استخوانی' => '#EFEAE0',
+			'مشکی' => '#18181B', 'سیاه' => '#18181B', 'مشکی مات' => '#1C1C1E',
+			'قرمز' => '#ED1A45', 'قرمز تیره' => '#B91C1C', 'قرمز روشن' => '#F87171', 'زرشکی' => '#9F1239', 'سرخابی' => '#DB2777', 'گلبهی' => '#FDA4AF', 'هلویی' => '#FDBA96',
+			'آبی' => '#1D4ED8', 'ابی' => '#1D4ED8', 'آبی تیره' => '#1E3A8A', 'آبی سیر' => '#1E3A8A', 'آبی روشن' => '#93C5FD', 'آبی آسمانی' => '#7DD3FC', 'سرمه ای' => '#1E293B',
+			'سبز' => '#16A34A', 'سبز تیره' => '#166534', 'سبز روشن' => '#86EFAC', 'زیتونی' => '#6B8E23', 'پسته ای' => '#93C572', 'فیروزه ای' => '#2DD4BF', 'نیلی' => '#312E81', 'لاجوردی' => '#2563EB',
+			'زرد' => '#EAB308', 'زرد روشن' => '#FDE047', 'زرد تیره' => '#CA8A04', 'خردلی' => '#A16207', 'طلایی' => '#D4AF37', 'طلایی روشن' => '#E9C46A', 'طلایی تیره' => '#B8860B',
+			'نارنجی' => '#F97316', 'نارنجی روشن' => '#FDBA74', 'نارنجی سوخته' => '#C2410C', 'مسی' => '#B87333',
+			'صورتی' => '#EC4899', 'صورتی روشن' => '#F9A8D4', 'صورتی تیره' => '#BE185D',
+			'بنفش' => '#7C3AED', 'بنفش تیره' => '#5B21B6', 'بنفش روشن' => '#C4B5FD', 'یاسی' => '#A78BFA',
+			'قهوه ای' => '#78350F', 'قهوه ای روشن' => '#A16207', 'قهوه ای تیره' => '#451A03', 'شکلاتی' => '#5C3317', 'کالباسی' => '#8A3324',
+			'طوسی' => '#9CA3AF', 'طوسی تیره' => '#4B5563', 'طوسی روشن' => '#D1D5DB', 'خاکستری' => '#9CA3AF', 'خاکستری تیره' => '#4B5563', 'خاکستری روشن' => '#D1D5DB', 'دودی' => '#6B7280',
+			'نقره ای' => '#C0C0C0', 'نقره ای تیره' => '#94A3B8',
+			'کرم' => '#E9DFC7', 'کرم روشن' => '#F5EEDC', 'کرم تیره' => '#D9C9A8', 'وانیلی' => '#F3E5AB', 'بژ' => '#E9DFC7', 'بژ روشن' => '#F5EEDC', 'بژ تیره' => '#CBB896', 'پنبه ای' => '#F2EFE6',
+		);
+		$en_map = array(
+			'white' => '#FFFFFF', 'ivory' => '#F6F1E7', 'vanilla' => '#F3E5AB', 'cream' => '#E9DFC7', 'beige' => '#E9DFC7', 'black' => '#18181B', 'charcoal' => '#374151',
+			'red' => '#ED1A45', 'dark red' => '#B91C1C', 'light red' => '#F87171', 'maroon' => '#9F1239', 'burgundy' => '#9F1239', 'wine' => '#9F1239', 'hot pink' => '#DB2777', 'pink' => '#EC4899', 'light pink' => '#F9A8D4', 'dark pink' => '#BE185D', 'rose' => '#FDA4AF', 'peach' => '#FDBA96', 'coral' => '#F97355',
+			'blue' => '#1D4ED8', 'dark blue' => '#1E3A8A', 'light blue' => '#93C5FD', 'sky blue' => '#7DD3FC', 'navy' => '#1E293B',
+			'green' => '#16A34A', 'dark green' => '#166534', 'light green' => '#86EFAC', 'olive' => '#6B8E23', 'mint' => '#93C572', 'turquoise' => '#2DD4BF', 'teal' => '#0D9488', 'indigo' => '#312E81', 'violet' => '#A78BFA',
+			'yellow' => '#EAB308', 'light yellow' => '#FDE047', 'dark yellow' => '#CA8A04', 'mustard' => '#A16207', 'khaki' => '#A16207', 'gold' => '#D4AF37', 'golden' => '#D4AF37',
+			'orange' => '#F97316', 'light orange' => '#FDBA74', 'burnt orange' => '#C2410C', 'copper' => '#B87333',
+			'purple' => '#7C3AED', 'dark purple' => '#5B21B6', 'light purple' => '#C4B5FD', 'lavender' => '#C4B5FD',
+			'brown' => '#78350F', 'light brown' => '#A16207', 'dark brown' => '#451A03', 'chocolate' => '#5C3317', 'tan' => '#D2B48C',
+			'gray' => '#9CA3AF', 'grey' => '#9CA3AF', 'dark gray' => '#4B5563', 'dark grey' => '#4B5563', 'light gray' => '#D1D5DB', 'light grey' => '#D1D5DB', 'silver' => '#C0C0C0', 'smoke' => '#6B7280',
+		);
+	}
+	/*
+	 * R65/R99/R113: یکسان‌سازیِ نامِ فارسی و انگلیسی، چه از term name
+	 * بیاید چه از نامکِ percent-encoded. جداکننده‌هایِ نامک و نشانه‌گذاری
+	 * به فاصله تبدیل می‌شوند؛ این‌طوری «قهوه-ای» و نیز برچسبِ توصیفیِ
+	 * «کرپ (صورتی تیره)» به همان رنگِ شناخته‌شده می‌رسند.
+	 */
+	$normalize = static function ( string $candidate ): string {
+		$candidate = rawurldecode( $candidate );
+		$candidate = str_replace( array( 'ي', 'ى', 'ك' ), array( 'ی', 'ی', 'ک' ), $candidate );
+		$candidate = (string) preg_replace( '/[\x{200B}-\x{200F}\x{FEFF}\x{00A0}]/u', ' ', $candidate );
+		$candidate = (string) preg_replace( '/[-_]+/u', ' ', $candidate );
+		$candidate = (string) preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $candidate );
+		return strtolower( trim( (string) preg_replace( '/\s+/u', ' ', $candidate ) ) );
+	};
+
+	$color_lookup = array();
+	foreach ( array_merge( $map, $en_map ) as $color_name => $hex ) {
+		$color_lookup[ $normalize( (string) $color_name ) ] = (string) $hex;
+	}
+
+	$key = $normalize( $name );
+	if ( isset( $color_lookup[ $key ] ) ) {
+		return $color_lookup[ $key ];
+	}
+
+	/*
+	 * نامِ ویژگی ممکن است توضیحِ جنس را کنارِ رنگ داشته باشد یا نامک با
+	 * پیشوندِ جنس ساخته شده باشد («کرپ (صورتی تیره)» / «crepe-dark-pink»).
+	 * فقط عبارت‌هایِ کاملِ موجود در نقشه را می‌پذیریم، بلندترین رنگ را
+	 * ترجیح می‌دهیم و اگر چند رنگِ هم‌طول/مبهم پیدا شد، حدس نمی‌زنیم.
+	 */
+	$tokens = '' === $key ? array() : explode( ' ', $key );
+	for ( $word_count = count( $tokens ); $word_count > 0; $word_count-- ) {
+		$matches = array();
+		for ( $start = 0; $start + $word_count <= count( $tokens ); $start++ ) {
+			$phrase = implode( ' ', array_slice( $tokens, $start, $word_count ) );
+			if ( isset( $color_lookup[ $phrase ] ) ) {
+				$matches[ $color_lookup[ $phrase ] ] = true;
+			}
+		}
+		if ( $matches ) {
+			return 1 === count( $matches ) ? (string) array_key_first( $matches ) : null;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * آیا این ویژگی از نوع «رنگ»ه؟ نامِ نمایشیِ ویژگی اولویت دارد؛ نامک‌هایِ
+ * color/colour/rang هم پوشش داده می‌شوند تا taxonomy فارسیِ encode‌شده
+ * حتی وقتی label در cache/فیلترها موجود نیست، درست تشخیص داده شود.
  */
 function jluxe_is_color_attribute( string $attribute_name ): bool {
-	$label = wc_attribute_label( $attribute_name );
-	return false !== mb_strpos( $label, 'رنگ' ) || false !== stripos( $attribute_name, 'color' );
+	$names = array_values( array_unique( array( $attribute_name, rawurldecode( $attribute_name ) ) ) );
+	foreach ( $names as $name ) {
+		$label = wc_attribute_label( $name );
+		if ( false !== jluxe_strpos( $label, 'رنگ' ) || false !== stripos( $label, 'color' ) || false !== stripos( $label, 'colour' ) ) {
+			return true;
+		}
+		$slug = preg_replace( '/^pa_/i', '', $name );
+		if ( is_string( $slug ) && preg_match( '/(?:^|[_\-\s])(?:colou?rs?|rangi?)(?:$|[_\-\s])/i', $slug ) ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -526,6 +898,341 @@ function jluxe_is_color_attribute( string $attribute_name ): bool {
  * روی محصول متغیر در گرید، inc/woocommerce.php: jluxe_ajax_variation_picker)
  * دقیقاً یک منطق رندر داشته باشن، نه دو کپیِ جدا که ممکنه از هم جدا بیفتن.
  */
+/** Normalize WooCommerce default/variation attribute keys to their unprefixed form. */
+function jluxe_normalize_variable_attributes( $attributes, bool $keep_empty = false ): array {
+	if ( ! is_array( $attributes ) ) {
+		return array();
+	}
+
+	$normalized = array();
+	foreach ( $attributes as $name => $value ) {
+		if ( ! is_scalar( $value ) && null !== $value ) {
+			continue;
+		}
+		$name = (string) $name;
+		if ( 0 === strpos( $name, 'attribute_' ) ) {
+			$name = substr( $name, 10 );
+		}
+		$name  = sanitize_title( $name );
+		$value = null === $value ? '' : (string) $value;
+		if ( '' === $name || ( '' === $value && ! $keep_empty ) ) {
+			continue;
+		}
+		$normalized[ $name ] = $value;
+	}
+
+	return $normalized;
+}
+
+/** Attribute values may be URL-encoded by WooCommerce/third-party variation tools. */
+function jluxe_variable_attribute_values_match( string $left, string $right ): bool {
+	return $left === $right || rawurldecode( $left ) === rawurldecode( $right );
+}
+
+/** Return normalized attributes from either WooCommerce variation objects or its legacy array payload. */
+function jluxe_variable_variation_attributes( $variation ): array {
+	if ( is_object( $variation ) && method_exists( $variation, 'get_variation_attributes' ) ) {
+		$attributes = $variation->get_variation_attributes();
+	} elseif ( is_array( $variation ) ) {
+		$attributes = $variation['attributes'] ?? array();
+	} else {
+		$attributes = array();
+	}
+
+	return jluxe_normalize_variable_attributes( $attributes, true );
+}
+
+/** Normalize a WooCommerce boolean or a common serialized yes/no value. */
+function jluxe_variable_flag_is_true( $value ): bool {
+	if ( is_bool( $value ) ) {
+		return $value;
+	}
+	return in_array( strtolower( trim( (string) $value ) ), array( '1', 'yes', 'true', 'on' ), true );
+}
+
+/** Only an enabled, purchasable, in-stock variation can become a default offer. */
+function jluxe_variable_variation_is_available( $variation ): bool {
+	if ( is_array( $variation ) ) {
+		if ( ! jluxe_variable_flag_is_true( $variation['is_in_stock'] ?? false ) ) {
+			return false;
+		}
+		foreach ( array( 'is_purchasable', 'variation_is_active', 'variation_is_visible' ) as $flag ) {
+			if ( array_key_exists( $flag, $variation ) && ! jluxe_variable_flag_is_true( $variation[ $flag ] ) ) { return false; }
+		}
+		$minimum = max( 1, (float) ( $variation['min_qty'] ?? 1 ) );
+		$maximum = $variation['max_qty'] ?? '';
+		return ! is_numeric( $maximum ) || (float) $maximum < 0 || (float) $maximum >= $minimum;
+	}
+	if ( ! is_object( $variation ) || ! method_exists( $variation, 'is_in_stock' ) || ! method_exists( $variation, 'is_purchasable' ) ) {
+		return false;
+	}
+	if ( method_exists( $variation, 'is_type' ) && ! $variation->is_type( 'variation' ) ) { return false; }
+	if ( ! $variation->is_in_stock() || ! $variation->is_purchasable() ) { return false; }
+	foreach ( array( 'variation_is_active', 'variation_is_visible' ) as $method ) {
+		if ( method_exists( $variation, $method ) && ! $variation->$method() ) { return false; }
+	}
+	$minimum = method_exists( $variation, 'get_min_purchase_quantity' ) ? max( 1, (float) $variation->get_min_purchase_quantity() ) : 1;
+	if ( method_exists( $variation, 'has_enough_stock' ) && ! $variation->has_enough_stock( $minimum ) ) { return false; }
+	$maximum = method_exists( $variation, 'get_max_purchase_quantity' ) ? $variation->get_max_purchase_quantity() : -1;
+	return ! is_numeric( $maximum ) || (float) $maximum < 0 || (float) $maximum >= $minimum;
+}
+
+/** Yield visible variation objects in WooCommerce order, stopping work as soon as a match is found. */
+function jluxe_variable_default_variation_candidates( WC_Product $product ): iterable {
+	$children = method_exists( $product, 'get_children' ) ? (array) $product->get_children() : array();
+	if ( ! empty( $children ) && function_exists( 'wc_get_product' ) ) {
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $children );
+		}
+		$hide_out_of_stock = 'yes' === get_option( 'woocommerce_hide_out_of_stock_items', 'no' );
+		foreach ( $children as $variation_id ) {
+			$variation = wc_get_product( absint( $variation_id ) );
+			if ( ! $variation instanceof WC_Product || ! $variation->exists() || ! $variation->is_type( 'variation' ) ) {
+				continue;
+			}
+			if ( $hide_out_of_stock && ! $variation->is_in_stock() ) {
+				continue;
+			}
+			$hide_invisible = apply_filters( 'woocommerce_hide_invisible_variations', true, $product->get_id(), $variation );
+			if ( $hide_invisible && method_exists( $variation, 'variation_is_visible' ) && ! $variation->variation_is_visible() ) {
+				continue;
+			}
+			yield $variation;
+		}
+		return;
+	}
+
+	// Lightweight test doubles and compatible extensions may expose only the public getter.
+	$variations = $product->get_available_variations( 'objects' );
+	if ( is_array( $variations ) ) {
+		foreach ( $variations as $variation ) {
+			yield $variation;
+		}
+	}
+}
+
+/**
+ * R168: initial selection always follows WooCommerce menu/variation order.
+ * A saved later default no longer outranks the first available row (owner policy).
+ * Resolve wildcard attributes inside that row (valid saved option or first option); never guess another
+ * product/variation or build expensive price/image HTML for every candidate.
+ * $stored_defaults only fills wildcards inside the selected row; it never changes row order.
+ */
+function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_defaults = array() ): array {
+	if ( ! $product->is_type( 'variable' ) || ! method_exists( $product, 'get_available_variations' ) ) { return array(); }
+	$requested = jluxe_normalize_variable_attributes( $stored_defaults );
+	$options = array();
+	if ( method_exists( $product, 'get_variation_attributes' ) ) {
+		foreach ( (array) $product->get_variation_attributes() as $name => $values ) {
+			$name = sanitize_title( (string) $name );
+			if ( '' === $name ) { continue; }
+			$options[ $name ] = array();
+			foreach ( (array) $values as $value ) {
+				if ( is_scalar( $value ) && '' !== (string) $value ) { $options[ $name ][] = (string) $value; }
+			}
+			$options[ $name ] = array_values( array_unique( $options[ $name ] ) );
+		}
+	}
+	foreach ( jluxe_variable_default_variation_candidates( $product ) as $variation ) {
+		if ( ! jluxe_variable_variation_is_available( $variation ) ) { continue; }
+		$attributes = jluxe_variable_variation_attributes( $variation );
+		if ( ! $attributes ) { continue; }
+		$resolved = array();
+		foreach ( array_keys( $options ?: $attributes ) as $name ) {
+			$value = $attributes[ $name ] ?? '';
+			if ( '' === $value ) {
+				$wanted = $requested[ $name ] ?? '';
+				foreach ( $options[ $name ] ?? array() as $option ) {
+					if ( '' !== $wanted && jluxe_variable_attribute_values_match( $option, $wanted ) ) { $value = $option; break; }
+				}
+				if ( '' === $value && '' !== $wanted && empty( $options[ $name ] ) ) { $value = $wanted; }
+				if ( '' === $value ) { $value = $options[ $name ][0] ?? ''; }
+			}
+			if ( '' === $value ) { $resolved = array(); break; }
+			$resolved[ $name ] = (string) $value;
+		}
+		if ( $resolved ) { return $resolved; }
+	}
+	return array();
+}
+
+/** Same variation-aware availability for the product page and recently-viewed cards. */
+function jluxe_product_has_available_offer( $product ): bool {
+	if ( ! $product instanceof WC_Product ) { return false; }
+	return $product->is_type( 'variable' ) ? ! empty( jluxe_default_variation_pick( $product ) ) : (bool) $product->is_in_stock();
+}
+
+/** Find the purchasable variation represented by an effective default attribute set. */
+function jluxe_find_default_variable_variation( WC_Product $product, $defaults = null ) {
+	if ( ! $product->is_type( 'variable' ) ) {
+		return false;
+	}
+	if ( ! is_array( $defaults ) ) {
+		$defaults = jluxe_pick_variable_default_attributes( $product, method_exists( $product, 'get_default_attributes' ) ? $product->get_default_attributes( 'edit' ) : array() );
+	}
+	$defaults = jluxe_normalize_variable_attributes( $defaults );
+	if ( empty( $defaults ) ) {
+		return false;
+	}
+
+	foreach ( jluxe_variable_default_variation_candidates( $product ) as $variation ) {
+		if ( ! jluxe_variable_variation_is_available( $variation ) ) {
+			continue;
+		}
+		$attributes = jluxe_variable_variation_attributes( $variation );
+		$matches    = true;
+		foreach ( $defaults as $name => $value ) {
+			if ( ! array_key_exists( $name, $attributes ) ) {
+				$matches = false;
+				break;
+			}
+			$variation_value = $attributes[ $name ];
+			if ( '' !== $variation_value && ! jluxe_variable_attribute_values_match( $variation_value, $value ) ) {
+				$matches = false;
+				break;
+			}
+		}
+		if ( $matches ) {
+			return $variation;
+		}
+	}
+
+	return false;
+}
+
+/** Return the exact initial price for the chosen variation, never the variable product's price range. */
+function jluxe_default_variable_variation_price_html( WC_Product $product, $defaults = null ): string {
+	$variation = jluxe_find_default_variable_variation( $product, $defaults );
+	if ( false === $variation ) {
+		return '';
+	}
+
+	$price_html = '';
+	if ( is_array( $variation ) ) {
+		$price_html = (string) ( $variation['price_html'] ?? '' );
+	} elseif ( method_exists( $product, 'get_available_variation' ) ) {
+		$data = $product->get_available_variation( $variation );
+		if ( is_array( $data ) ) {
+			$price_html = (string) ( $data['price_html'] ?? '' );
+		}
+	}
+	if ( '' === trim( $price_html ) && is_object( $variation ) && method_exists( $variation, 'get_price_html' ) ) {
+		$price_html = (string) $variation->get_price_html();
+	}
+	if ( '' === trim( $price_html ) ) {
+		return '';
+	}
+
+	return jluxe_price_kses( jluxe_reference_price_html( $price_html ) );
+}
+
+/** Produce one concise choice label even when the saved attribute name already contains an instruction. */
+function jluxe_variable_attribute_prompt( string $attribute_name ): string {
+	$label = trim( (string) wc_attribute_label( $attribute_name ) );
+	$label = preg_replace( '/\s*[:：]\s*$/u', '', $label );
+	$label = preg_replace( '/\s*(?:(?:مورد\s+نظر\s+)?را\s+)?انتخاب\s+کنید\s*[.!؟?،؛:：]*$/u', '', (string) $label );
+	$label = trim( (string) $label, " \t\n\r\0\x0B:：" );
+	if ( '' === $label ) {
+		$label = 'تنوع';
+	}
+	return 'انتخاب ' . $label . ':';
+}
+
+/** Dynamic first-available default: applies to existing products without a frontend database write. */
+function jluxe_auto_variable_default_attributes( $defaults, $product ): array {
+	if ( ! $product instanceof WC_Product || ! $product->is_type( 'variable' ) ) {
+		return is_array( $defaults ) ? $defaults : array();
+	}
+	return jluxe_pick_variable_default_attributes( $product, $defaults );
+}
+add_filter( 'woocommerce_product_get_default_attributes', 'jluxe_auto_variable_default_attributes', 20, 2 );
+
+/** Used by the custom variation swatches as well as the standard WooCommerce default values. */
+function jluxe_default_variation_pick( WC_Product $product ): array {
+	$stored_defaults = method_exists( $product, 'get_default_attributes' ) ? $product->get_default_attributes( 'edit' ) : array();
+	return jluxe_pick_variable_default_attributes( $product, $stored_defaults );
+}
+
+/** Compare defaults without treating attribute ordering as a data change. */
+function jluxe_variable_default_attributes_equal( $left, $right ): bool {
+	$left  = jluxe_normalize_variable_attributes( $left );
+	$right = jluxe_normalize_variable_attributes( $right );
+	ksort( $left );
+	ksort( $right );
+	return $left === $right;
+}
+
+/** Persist the computed defaults so Torob/feed integrations reading saved product data stay in sync. */
+function jluxe_sync_variable_default_attributes( WC_Product $product ): bool {
+	if ( ! $product->is_type( 'variable' ) || ! method_exists( $product, 'set_default_attributes' ) || ! method_exists( $product, 'save' ) ) {
+		return false;
+	}
+	$stored = method_exists( $product, 'get_default_attributes' ) ? $product->get_default_attributes( 'edit' ) : array();
+	$chosen = jluxe_pick_variable_default_attributes( $product, $stored );
+	if ( jluxe_variable_default_attributes_equal( $stored, $chosen ) ) {
+		return false;
+	}
+	$product->set_default_attributes( $chosen );
+	$product->save();
+	return true;
+}
+
+/** Recompute defaults after product/variation saves and WooCommerce stock changes. */
+function jluxe_sync_variable_defaults_from_change( ...$args ): void {
+	static $syncing = array();
+	$source = null;
+	foreach ( $args as $argument ) {
+		if ( $argument instanceof WC_Product ) {
+			$source = $argument;
+		}
+	}
+	if ( ! $source ) {
+		foreach ( $args as $argument ) {
+			if ( is_numeric( $argument ) && absint( $argument ) > 0 && function_exists( 'wc_get_product' ) ) {
+				$source = wc_get_product( absint( $argument ) );
+				if ( $source instanceof WC_Product ) {
+					break;
+				}
+			}
+		}
+	}
+	if ( ! $source instanceof WC_Product ) {
+		return;
+	}
+
+	$parent_id = $source->is_type( 'variation' ) ? (int) $source->get_parent_id() : (int) $source->get_id();
+	if ( $parent_id < 1 || ! function_exists( 'wc_get_product' ) ) {
+		return;
+	}
+	$parent = $source->is_type( 'variable' ) ? $source : wc_get_product( $parent_id );
+	if ( ! $parent instanceof WC_Product || ! $parent->is_type( 'variable' ) || isset( $syncing[ $parent_id ] ) ) {
+		return;
+	}
+
+	$syncing[ $parent_id ] = true;
+	try {
+		jluxe_sync_variable_default_attributes( $parent );
+	} finally {
+		unset( $syncing[ $parent_id ] );
+	}
+}
+add_action( 'woocommerce_after_product_object_save', 'jluxe_sync_variable_defaults_from_change', 20, 2 );
+add_action( 'woocommerce_product_set_stock', 'jluxe_sync_variable_defaults_from_change', 20, 1 );
+add_action( 'woocommerce_variation_set_stock', 'jluxe_sync_variable_defaults_from_change', 20, 1 );
+add_action( 'woocommerce_product_set_stock_status', 'jluxe_sync_variable_defaults_from_change', 20, 3 );
+add_action( 'woocommerce_variation_set_stock_status', 'jluxe_sync_variable_defaults_from_change', 20, 3 );
+
+/** Small admin guide beside WooCommerce's default-variation controls (also clarifies the Torob setup). */
+function jluxe_variable_variations_feed_guidance(): void {
+	?>
+	<div class="notice notice-info inline" style="margin:10px 0 14px">
+		<p><strong>ترب و فید محصولات:</strong> زرین همیشه اولین تنوعِ فعال، قابل‌خرید و موجود را به ترتیب فهرست ووکامرس انتخاب می‌کند؛ پیش‌فرض ذخیره‌شدهٔ بعدی اولویت این ترتیب را عوض نمی‌کند؛ اگر همهٔ تنوع‌ها ناموجود/غیرقابل‌خرید باشند، پیش‌فرض خالی می‌ماند. برای نمایش دقیق‌تر، برای هر تنوع SKU یکتا، قیمت و موجودی واقعی، ویژگی‌های کامل و در صورت تفاوت تصویر همان تنوع را ثبت کنید. اگر افزونهٔ ترب شما ارسال جداگانهٔ تنوع‌ها را پشتیبانی می‌کند، آن گزینه را هم فعال کنید.
+		</p>
+	</div>
+	<?php
+}
+add_action( 'woocommerce_variable_product_before_variations', 'jluxe_variable_variations_feed_guidance', 10 );
+
 function jluxe_render_variation_swatches( WC_Product $product, array $variation_attributes ): void {
 	/*
 	 * باگِ واقعیِ گزارش‌شده («انتخابِ سایزِ X، ولی درخواستِ واقعی برایِ سایزِ
@@ -547,10 +1254,23 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 	 * استفاده می‌کنن، پس دیگه هیچ‌وقت از هم جدا نمی‌افتن.
 	 */
 	$jluxe_valid_options = array();
+	$jluxe_stocky_options = array();
 	$jluxe_has_wildcard   = array();
+	/* R138: انتخابِ پیش‌فرضِ مؤثر (پیش‌فرضِ ذخیره‌شدهٔ معتبر یا اولین تنوعِ موجود). */
+	$jluxe_defaults = jluxe_default_variation_pick( $product );
+	$_jluxe_same_pick = static function ( $option, $pick ): bool {
+		$option = (string) $option;
+		$pick   = (string) $pick;
+		return '' !== $pick && ( $option === $pick || rawurldecode( $option ) === rawurldecode( $pick ) );
+	};
 	foreach ( $product->get_available_variations() as $jluxe_variation ) {
+		/* R65: تنوعِ ناموجود نباید قابلِ انتخاب باشد — جدا از «معتبر»،
+		مجموعهٔ «موجود» (is_in_stock) هم ساخته می‌شود؛ گزینه‌ای که فقط در
+		تنوعِ ناموجود حاضر است، disabled رندر می‌شود (نه حذف، تا کاربر
+		بداند چنین گزینه‌ای وجود دارد اما فعلاً خریدنی نیست). */
+		$jluxe_in_stock = ! empty( $jluxe_variation['is_in_stock'] );
 		foreach ( $jluxe_variation['attributes'] as $jluxe_attr_key => $jluxe_attr_value ) {
-			$jluxe_attr_name = str_replace( 'attribute_', '', $jluxe_attr_key );
+			$jluxe_attr_name = sanitize_title( str_replace( 'attribute_', '', $jluxe_attr_key ) );
 			if ( '' === $jluxe_attr_value ) {
 				// مقدارِ خالی یعنی «هر مقداری» — این Variation با هر گزینه‌ای
 				// از این ویژگی مچ می‌شه، پس فیلترکردن برایِ این ویژگی معنی
@@ -559,36 +1279,49 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 				continue;
 			}
 			$jluxe_valid_options[ $jluxe_attr_name ][ $jluxe_attr_value ] = true;
+			if ( $jluxe_in_stock ) {
+				$jluxe_stocky_options[ $jluxe_attr_name ][ $jluxe_attr_value ] = true;
+			}
 		}
 	}
 
 	foreach ( $variation_attributes as $attr_name => $attr_options ) {
-		$attr_label       = wc_attribute_label( $attr_name );
-		$select_id        = sanitize_title( $attr_name );
-		$is_color_attr    = jluxe_is_color_attribute( $attr_name );
-		$is_taxonomy_attr = 0 === strpos( $attr_name, 'pa_' );
+		$attr_label         = wc_attribute_label( rawurldecode( $attr_name ) );
+		$select_id          = sanitize_title( $attr_name );
+		$is_color_attr      = jluxe_is_color_attribute( $attr_name );
+		$is_taxonomy_attr   = 0 === strpos( rawurldecode( $attr_name ), 'pa_' );
+		$jluxe_default_pick = isset( $jluxe_defaults[ $select_id ] ) ? (string) $jluxe_defaults[ $select_id ] : '';
 
-		if ( empty( $jluxe_has_wildcard[ $attr_name ] ) && ! empty( $jluxe_valid_options[ $attr_name ] ) ) {
-			$attr_options = array_values( array_filter( $attr_options, fn( $o ) => isset( $jluxe_valid_options[ $attr_name ][ $o ] ) ) );
+		if ( empty( $jluxe_has_wildcard[ $select_id ] ) && ! empty( $jluxe_valid_options[ $select_id ] ) ) {
+			$attr_options = array_values( array_filter( $attr_options, fn( $o ) => isset( $jluxe_valid_options[ $select_id ][ $o ] ) ) );
+		}
+		$jluxe_default_label = '';
+		foreach ( $attr_options as $jluxe_candidate_option ) {
+			if ( $_jluxe_same_pick( $jluxe_candidate_option, $jluxe_default_pick ) ) {
+				$jluxe_default_label = jluxe_attribute_option_label( (string) $jluxe_candidate_option, $attr_name, $product );
+				break;
+			}
 		}
 		?>
 		<div class="mt-4" data-jluxe-variation-group="<?php echo esc_attr( $select_id ); ?>">
 			<?php if ( $is_color_attr ) : ?>
 				<p class="text-[12.5px] font-medium text-foreground" data-jluxe-variation-label>
-					انتخاب <?php echo esc_html( $attr_label ); ?>: <span data-jluxe-variation-selected></span>
+					انتخاب <?php echo esc_html( $attr_label ); ?>: <span data-jluxe-variation-selected><?php echo esc_html( $jluxe_default_label ); ?></span>
 				</p>
 			<?php else : ?>
 				<p class="text-[12.5px] font-medium text-foreground"><?php echo esc_html( $attr_label ); ?></p>
 			<?php endif; ?>
 			<div class="mt-1.5 flex flex-wrap items-center gap-2" data-jluxe-variation-swatches>
 				<?php foreach ( $attr_options as $option ) :
-					if ( $is_taxonomy_attr ) {
-						$term         = get_term_by( 'slug', $option, $attr_name );
-						$option_label = $term ? $term->name : $option;
-					} else {
-						$option_label = apply_filters( 'woocommerce_variation_option_name', $option, null, $attr_name, $product );
-					}
+					$option_label = jluxe_attribute_option_label( (string) $option, $attr_name, $product );
 					$jluxe_swatch = jluxe_resolve_variation_swatch( $attr_name, (string) $option, $option_label, $is_color_attr );
+					/* R65/R74: وضعیتِ ناموجودیِ واقعیِ هر گزینه از همان منبعِ «موجود» —
+					این دو متغیر قبلاً هرگز تعریف نشده بودند (نالِ بی‌صدا → سواچِ
+					ناموجودِ رندرشدهٔ سرور هرگز disable نمی‌شد و فقط JS جبران
+					می‌کرد؛ در فرم‌های بالای آستانه که سینک early-return می‌کند،
+					سواچ کاملاً آزاد دیده می‌شد). */
+					$jluxe_oos = ( empty( $jluxe_stocky_options[ $select_id ]['*'] ) && ! empty( $jluxe_valid_options[ $select_id ] ) && empty( $jluxe_stocky_options[ $select_id ][ $option ] ) );
+					$jluxe_oos_attrs = $jluxe_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( (string) $option_label . ' (ناموجود)' ) . '"' : '';
 					?>
 					<?php if ( $jluxe_swatch && 'color' === $jluxe_swatch['type'] ) : ?>
 						<button
@@ -596,7 +1329,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform hover:scale-110 active:scale-95"
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<span class="size-7 rounded-full border border-black/10 shadow-inner" style="background:<?php echo esc_attr( $jluxe_swatch['value'] ); ?>"></span>
 							<span data-jluxe-variation-ring class="pointer-events-none absolute inset-0 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-surface opacity-0"></span>
@@ -607,7 +1340,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform hover:scale-110 active:scale-95"
+							class="relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-transform<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<span class="size-7 overflow-hidden rounded-full border border-black/10 shadow-inner">
 								<img src="<?php echo esc_url( $jluxe_swatch['value'] ); ?>" alt="" class="size-full object-cover" />
@@ -620,7 +1353,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 							data-jluxe-variation-value="<?php echo esc_attr( $option ); ?>"
 							title="<?php echo esc_attr( $option_label ); ?>"
 							aria-label="<?php echo esc_attr( $option_label ); ?>"
-							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary"
+							class="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-medium text-text-secondary transition-colors hover:border-primary/50 data-[active]:border-primary data-[active]:bg-primary/5 data-[active]:text-primary<?php echo $jluxe_oos ? ' jluxe-swatch-disabled' : '' ; ?>"<?php echo $jluxe_oos_attrs; ?><?php echo $_jluxe_same_pick( $option, $jluxe_default_pick ) ? ' data-active=""' : ''; ?>
 						>
 							<?php echo esc_html( $option_label ); ?>
 						</button>
@@ -634,12 +1367,215 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 						'options'   => $attr_options,
 						'attribute' => $attr_name,
 						'product'   => $product,
+						'selected'  => $jluxe_default_pick,
 					)
 				);
 				?>
 			</div>
 		</div>
 	<?php }
+}
+
+/**
+ * سواچِ رنگ/تصویر در دکمه‌هایِ variation چیدمانِ classic.
+ * مقدارِ data-value عمداً نامکِ ووکامرس می‌ماند؛ نامِ انسانی هم به‌صورت
+ * متن، title و aria-label حفظ می‌شود تا هم رنگ دیده شود و هم نوعش مشخص باشد.
+ * رشتهٔ خالی یعنی این ترم سواچِ معتبر ندارد و قالب باید قرصِ متنیِ معمول را نشان دهد.
+ */
+function jluxe_classic_variation_swatch_html( string $value, string $attribute_name, string $label, bool $is_color_attr, bool $disabled = false, bool $active = false ): string {
+	if ( ! function_exists( 'jluxe_resolve_variation_swatch' ) ) {
+		return '';
+	}
+
+	$swatch = jluxe_resolve_variation_swatch( $attribute_name, $value, $label, $is_color_attr );
+	if ( ! is_array( $swatch ) || empty( $swatch['type'] ) || ! isset( $swatch['value'] ) ) {
+		return '';
+	}
+
+	$visual = '';
+	if ( 'color' === $swatch['type'] ) {
+		$color = sanitize_hex_color( (string) $swatch['value'] );
+		if ( $color ) {
+			$visual = '<span class="cp3-swatch-color" style="background-color:' . esc_attr( $color ) . '" aria-hidden="true"></span>';
+		}
+	} elseif ( 'image' === $swatch['type'] ) {
+		$image = esc_url( (string) $swatch['value'] );
+		if ( $image ) {
+			$visual = '<img class="cp3-swatch-image" src="' . $image . '" alt="" aria-hidden="true" />';
+		}
+	}
+
+	if ( '' === $visual ) {
+		return '';
+	}
+
+	$class = 'cp3-pill cp3-pill--swatch';
+	if ( $disabled ) {
+		$class .= ' is-disabled';
+	} elseif ( $active ) {
+		$class .= ' is-active';
+	}
+	$accessible_label = $label . ( $disabled ? ' (ناموجود)' : '' );
+	$html              = '<button type="button" class="' . esc_attr( $class ) . '" data-value="' . esc_attr( $value ) . '" title="' . esc_attr( $accessible_label ) . '" aria-label="' . esc_attr( $accessible_label ) . '"';
+	if ( $disabled ) {
+		$html .= ' disabled="disabled" aria-disabled="true"';
+	}
+	$html .= '>' . $visual . '<span class="cp3-swatch-label">' . esc_html( $label ) . '</span></button>';
+
+	return $html;
+}
+
+/**
+ * سواچ‌های ایستای یک ویژگی رنگ؛ هم برای انتخابِ تنوع و هم برای ویژگی‌های
+ * غیرتنوعیِ محصولِ ساده استفاده می‌شود. مقادیر می‌توانند term object، نامک
+ * یا گزینه‌ی متنیِ ویژگی سفارشی باشند.
+ *
+ * @return array<int, array{type: string, value: string, label: string}>
+ */
+function jluxe_attribute_swatch_options( string $attribute_name, array $options, ?WC_Product $product = null ): array {
+	if ( ! jluxe_is_color_attribute( $attribute_name ) || ! function_exists( 'jluxe_resolve_variation_swatch' ) ) {
+		return array();
+	}
+
+	$resolved = array();
+	foreach ( $options as $option ) {
+		if ( is_object( $option ) ) {
+			$value = isset( $option->slug ) ? (string) $option->slug : (string) ( $option->name ?? '' );
+			$label = isset( $option->name ) ? (string) $option->name : '';
+		} else {
+			$value = (string) $option;
+			$label = '';
+		}
+		if ( '' === $value ) {
+			continue;
+		}
+		if ( '' === $label ) {
+			$label = jluxe_attribute_option_label( $value, $attribute_name, $product );
+		}
+
+		$swatch = jluxe_resolve_variation_swatch( $attribute_name, $value, $label, true );
+		if ( ! is_array( $swatch ) || empty( $swatch['type'] ) || ! isset( $swatch['value'] ) ) {
+			continue;
+		}
+		$type  = (string) $swatch['type'];
+		$value = (string) $swatch['value'];
+		if ( 'color' === $type ) {
+			$value = (string) sanitize_hex_color( $value );
+			if ( '' === $value ) {
+				continue;
+			}
+		} elseif ( 'image' === $type ) {
+			$value = (string) esc_url_raw( $value );
+			if ( '' === $value ) {
+				continue;
+			}
+		} else {
+			continue;
+		}
+
+		$key = strtolower( $type . '|' . $value );
+		if ( ! isset( $resolved[ $key ] ) ) {
+			$resolved[ $key ] = array(
+				'type'  => $type,
+				'value' => $value,
+				'label' => $label,
+			);
+		}
+	}
+
+	return array_values( $resolved );
+}
+
+/**
+ * رنگ‌های قابل‌نمایشِ محصول، چه از variation attribute یک محصولِ متغیر
+ * بیایند چه از ویژگیِ ساده/غیرتنوعی. این تابع یک منبعِ داده برای کارت‌ها و
+ * جدول مشخصات است تا هر دو نوع محصول term name/slug را به یک شکل resolve کنند.
+ *
+ * @return array<int, array{type: string, value: string, label: string}>
+ */
+function jluxe_product_color_swatch_options( WC_Product $product ): array {
+	$is_variable = $product->is_type( 'variable' );
+
+	if ( $is_variable && method_exists( $product, 'get_variation_attributes' ) ) {
+		foreach ( $product->get_variation_attributes() as $attribute_name => $options ) {
+			if ( ! jluxe_is_color_attribute( (string) $attribute_name ) ) {
+				continue;
+			}
+			$swatches = jluxe_attribute_swatch_options( (string) $attribute_name, (array) $options, $product );
+			if ( $swatches ) {
+				return $swatches;
+			}
+		}
+	}
+
+	if ( ! method_exists( $product, 'get_attributes' ) ) {
+		return array();
+	}
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
+			continue;
+		}
+		$attribute_name = (string) $attribute->get_name();
+		if ( ! jluxe_is_color_attribute( $attribute_name ) ) {
+			continue;
+		}
+		if ( $is_variable && method_exists( $attribute, 'get_variation' ) && $attribute->get_variation() ) {
+			continue;
+		}
+
+		if ( method_exists( $attribute, 'is_taxonomy' ) && $attribute->is_taxonomy() ) {
+			$options = wc_get_product_terms( $product->get_id(), $attribute_name, array( 'fields' => 'all' ) );
+			if ( is_wp_error( $options ) ) {
+				continue;
+			}
+		} else {
+			$options = method_exists( $attribute, 'get_options' ) ? (array) $attribute->get_options() : array();
+		}
+
+		$swatches = jluxe_attribute_swatch_options( $attribute_name, (array) $options, $product );
+		if ( $swatches ) {
+			return $swatches;
+		}
+	}
+
+	return array();
+}
+
+/** Accessible markup for read-only color/image swatches in product specs. */
+function jluxe_render_attribute_swatches_html( array $swatches, string $attribute_label, string $class = '' ): string {
+	$swatches = array_values( array_filter( $swatches, 'is_array' ) );
+	if ( ! $swatches ) {
+		return '';
+	}
+
+	$labels = array_values( array_filter( array_map( static fn( $swatch ) => (string) ( $swatch['label'] ?? '' ), $swatches ) ) );
+	$group_label = $attribute_label;
+	if ( $labels ) {
+		$group_label .= ': ' . implode( '، ', $labels );
+	}
+	$classes = 'jluxe-attribute-swatches' . ( '' !== trim( $class ) ? ' ' . esc_attr( trim( $class ) ) : '' );
+	$html    = '<span class="' . $classes . '" role="group" aria-label="' . esc_attr( $group_label ) . '">';
+
+	foreach ( $swatches as $swatch ) {
+		$type  = (string) ( $swatch['type'] ?? '' );
+		$value = (string) ( $swatch['value'] ?? '' );
+		$label = (string) ( $swatch['label'] ?? $attribute_label );
+		if ( 'color' === $type ) {
+			$color = sanitize_hex_color( $value );
+			if ( ! $color ) {
+				continue;
+			}
+			$html .= '<span class="jluxe-attribute-swatch" role="img" title="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '" style="background-color:' . esc_attr( $color ) . '"></span>';
+		} elseif ( 'image' === $type ) {
+			$url = esc_url( $value );
+			if ( '' === $url ) {
+				continue;
+			}
+			$html .= '<span class="jluxe-attribute-swatch jluxe-attribute-swatch-image" role="img" title="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '"><img src="' . $url . '" alt="" loading="lazy" /></span>';
+		}
+	}
+
+	return $html . '</span>';
 }
 
 /**
@@ -784,7 +1720,7 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 		$active_index = 0;
 	}
 	?>
-	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto flex max-w-[1296px] items-center justify-center gap-1 px-4 py-6 sm:gap-3">
+	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto flex max-w-[1320px] items-center justify-center gap-1 px-3 md:px-4 py-6 sm:gap-3">
 		<?php foreach ( $ids as $i => $id ) : ?>
 			<?php if ( $i > 0 ) : ?>
 				<span class="h-px w-3 bg-border sm:w-16" aria-hidden="true"></span>
@@ -1044,13 +1980,19 @@ add_filter( 'woocommerce_order_button_text', fn() => 'پرداخت', 9999 );
 
 /**
  * استایل مینیمال سبد/چک‌اوت با استایل کلی سایت هماهنگه (فونت/رنگ از
- * dist/assets/main-*.css که همه‌جا لود می‌شه)، پس فقط یک فایل کوچیک برای
+ * assets/compiled/assets/main-*.css که همه‌جا لود می‌شه)، پس فقط یک فایل کوچیک برای
  * رفتار JS (دکمه‌های +/- تعداد) اضافه می‌کنیم — بدون دست زدن به AJAX واقعی
  * ووکامرس (assets/js/frontend/cart.js خودش روی change شدن input.qty گوش
  * می‌ده و سبد رو sync می‌کنه).
  */
 function jluxe_enqueue_woocommerce_assets(): void {
 	if ( ! function_exists( 'is_cart' ) ) {
+		return;
+	}
+	/* R62: enqueue سیستماتیک — فقط بافت‌هایی که برنامهٔ asset (inc/assets.php)
+	گروهِ theme_woo_ux را روشن کرده؛ بلاگ/404/آرشیوِ غیرمحصولی دیگر این
+	فایل (و وابستگی jquery آن) را بار نمی‌کنند. */
+	if ( empty( jluxe_asset_plan()['theme_woo_ux'] ) ) {
 		return;
 	}
 	// هر جا ممکنه کارت محصول باشه (شاپ/دسته/برچسب/جستجو/صفحه اصلی با گرید
@@ -1061,7 +2003,7 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	wp_enqueue_script(
 		'jluxe-woocommerce',
 		JLUXE_THEME_URI . '/assets/js/woocommerce.js',
-		array( 'jquery' ),
+		array( 'jquery', 'jluxe-storefront-utils', 'wc-add-to-cart-variation' ),
 		file_exists( $jluxe_wc_js_path ) ? (string) filemtime( $jluxe_wc_js_path ) : '1.0.0',
 		/*
 		 * اخطارِ Lighthouse («Render-blocking requests»، jquery/jquery-migrate):
@@ -1121,8 +2063,16 @@ add_action( 'init', 'jluxe_remove_default_product_tabs' );
  */
 function jluxe_get_mega_menu_categories(): array {
 	$cache_key = 'jluxe_mega_menu_tree_v1';
+	/* R62: دو لایهٔ کش — Object Cache (با Redis واقعی می‌ماند؛ بدونِ آن فقط
+	حافظهٔ همین درخواست است) و بعد Transient (fallback برای نصب‌های بدونِ
+	object-cache.php). خروجی در هر دو لایه «آرایهٔ» دیتاست است، نه HTML. */
+	$cached = wp_cache_get( $cache_key, 'jluxe' );
+	if ( is_array( $cached ) ) {
+		return $cached;
+	}
 	$cached = get_transient( $cache_key );
 	if ( false !== $cached && is_array( $cached ) ) {
+		wp_cache_set( $cache_key, $cached, 'jluxe', HOUR_IN_SECONDS );
 		return $cached;
 	}
 
@@ -1201,15 +2151,18 @@ function jluxe_get_mega_menu_categories(): array {
 	}
 
 	set_transient( $cache_key, $categories, DAY_IN_SECONDS );
+	wp_cache_set( $cache_key, $categories, 'jluxe', HOUR_IN_SECONDS );
 	return $categories;
 }
 
 /**
- * پاک‌سازی کش درخت مگامنو پس از تغییر دسته‌های محصول.
+ * پاک‌سازی کش درخت مگامنو پس از تغییر دسته‌های محصول — هر دو لایه
+ * (Object Cache و Transient) با هم.
  */
 function jluxe_clear_mega_menu_cache( $term_id = 0, $taxonomy = '' ): void {
 	if ( 'product_cat' === $taxonomy ) {
 		delete_transient( 'jluxe_mega_menu_tree_v1' );
+		wp_cache_delete( 'jluxe_mega_menu_tree_v1', 'jluxe' );
 	}
 }
 add_action( 'created_product_cat', 'jluxe_clear_mega_menu_cache', 10, 2 );
@@ -1313,60 +2266,479 @@ function jluxe_maybe_disable_related_products(): void {
 add_action( 'wp', 'jluxe_maybe_disable_related_products' );
 
 function jluxe_related_products_args( array $args ): array {
-	$count            = max( 2, min( 8, (int) jluxe_get_setting( 'product_page.related_count', 4 ) ) );
+	$count                = max( 2, min( 8, (int) jluxe_get_setting( 'product_page.related_count', 4 ) ) );
 	$args['posts_per_page'] = $count;
 	$args['columns']        = min( 4, $count );
+	// The IDs are explicitly ranked below; WooCommerce's default "rand" would erase that order.
+	$args['orderby']       = 'none';
+	$args['order']         = 'asc';
 	return $args;
 }
-add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_args' );
+add_filter( 'woocommerce_output_related_products_args', 'jluxe_related_products_args', 99 );
+
+/** Keep our category/availability ranking instead of WooCommerce's final shuffle. */
+function jluxe_related_products_shuffle( $shuffle ): bool {
+	return function_exists( 'is_product' ) && is_product() ? false : (bool) $shuffle;
+}
+add_filter( 'woocommerce_product_related_posts_shuffle', 'jluxe_related_products_shuffle', 99 );
+
+/** Render the product-level related product selector in WooCommerce's Linked Products tab. */
+function jluxe_render_manual_related_products_field(): void {
+	global $post;
+
+	if ( ! $post instanceof WP_Post ) {
+		return;
+	}
+
+	$product_id = absint( $post->ID );
+	$selected   = get_post_meta( $product_id, '_jluxe_related_product_ids', true );
+	$selected   = is_array( $selected ) ? array_values( array_unique( array_filter( array_map( 'absint', $selected ) ) ) ) : array();
+
+	echo '<p class="form-field _jluxe_related_product_ids_field">';
+	echo '<label for="_jluxe_related_product_ids">' . esc_html__( 'محصولات مرتبطِ دستی', 'jluxe' ) . '</label>';
+	echo '<select id="_jluxe_related_product_ids" name="_jluxe_related_product_ids[]" class="wc-product-search" style="width: 50%;" multiple="multiple" data-placeholder="' . esc_attr( __( 'برای جستجو نام محصول را وارد کنید…', 'jluxe' ) ) . '" data-action="woocommerce_json_search_products">';
+
+	foreach ( $selected as $related_id ) {
+		$related_product = wc_get_product( $related_id );
+		if ( ! $related_product instanceof WC_Product ) {
+			continue;
+		}
+		echo '<option value="' . esc_attr( (string) $related_id ) . '" selected="selected">' . esc_html( $related_product->get_name() ) . '</option>';
+	}
+
+	echo '</select>';
+	echo '<input type="hidden" name="_jluxe_related_product_order" value="' . esc_attr( implode( ',', $selected ) ) . '" />';
+	echo '<input type="hidden" name="_jluxe_related_product_ids_present" value="1" />';
+	echo '<span class="description">' . esc_html__( 'ترتیب انتخاب‌شده حفظ می‌شود. اگر این فهرست خالی باشد، محصولات هم‌دستهٔ موجود و سپس ناموجودها نمایش داده می‌شوند؛ در صورت کمبود، پیشنهادهای ووکامرس هم اضافه می‌شوند.', 'jluxe' ) . '</span>';
+	echo '</p>';
+}
+add_action( 'woocommerce_product_options_related', 'jluxe_render_manual_related_products_field' );
+
+/** Save the ordered list submitted by the product editor. */
+function jluxe_save_manual_related_products( int $product_id ): void {
+	if ( ! isset( $_POST['_jluxe_related_product_ids_present'] ) || ! current_user_can( 'edit_post', $product_id ) ) {
+		return;
+	}
+
+	$raw_ids        = isset( $_POST['_jluxe_related_product_ids'] ) ? wp_unslash( $_POST['_jluxe_related_product_ids'] ) : array();
+	$raw_ids        = is_array( $raw_ids ) ? array_values( array_filter( array_map( 'absint', $raw_ids ) ) ) : array();
+	$selected_lookup = array_fill_keys( $raw_ids, true );
+	$ordered_raw     = isset( $_POST['_jluxe_related_product_order'] ) ? (string) wp_unslash( $_POST['_jluxe_related_product_order'] ) : '';
+	$ordered_ids     = '' !== $ordered_raw ? array_map( 'absint', explode( ',', $ordered_raw ) ) : array();
+	$ordered_ids     = array_values( array_filter( array_unique( $ordered_ids ), static function ( $id ) use ( $selected_lookup ) {
+		return isset( $selected_lookup[ $id ] );
+	} ) );
+	$raw_ids         = array_merge( $ordered_ids, array_values( array_diff( $raw_ids, $ordered_ids ) ) );
+	$ids             = array();
+
+	foreach ( $raw_ids as $raw_id ) {
+		$related_id = absint( $raw_id );
+		if ( ! $related_id || $related_id === $product_id || in_array( $related_id, $ids, true ) ) {
+			continue;
+		}
+
+		$related_product = wc_get_product( $related_id );
+		if ( ! $related_product instanceof WC_Product || 'publish' !== $related_product->get_status() || 'hidden' === $related_product->get_catalog_visibility() ) {
+			continue;
+		}
+
+		$ids[] = $related_id;
+	}
+
+	update_post_meta( $product_id, '_jluxe_related_product_ids', $ids );
+}
+add_action( 'woocommerce_process_product_meta', 'jluxe_save_manual_related_products', 20 );
+
+/** Load the order-preservation helper only in the product editor. */
+function jluxe_related_products_admin_assets( string $hook_suffix ): void {
+	if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) || ! function_exists( 'get_current_screen' ) ) {
+		return;
+	}
+
+	$screen = get_current_screen();
+	if ( ! is_object( $screen ) || 'product' !== ( $screen->post_type ?? '' ) ) {
+		return;
+	}
+
+	$file = JLUXE_THEME_DIR . '/assets/js/related-products-admin.js';
+	if ( ! is_readable( $file ) ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'jluxe-related-products-admin',
+		JLUXE_THEME_URI . '/assets/js/related-products-admin.js',
+		array( 'jquery', 'wc-enhanced-select' ),
+		(string) filemtime( $file ),
+		true
+	);
+}
+add_action( 'admin_enqueue_scripts', 'jluxe_related_products_admin_assets', 20 );
+
+/** Get public, non-hidden category IDs for an automatic related-products query. */
+function jluxe_related_category_slugs( array $category_ids ): array {
+	$slugs = array();
+
+	foreach ( array_unique( array_filter( array_map( 'absint', $category_ids ) ) ) as $category_id ) {
+		$term = get_term( $category_id, 'product_cat' );
+		if ( is_wp_error( $term ) || ! is_object( $term ) || empty( $term->slug ) ) {
+			continue;
+		}
+		$slugs[] = (string) $term->slug;
+	}
+
+	return array_values( array_unique( $slugs ) );
+}
+
+/** True when a related product can be shown in the public catalog. */
+function jluxe_related_product_is_public( $product ): bool {
+	if ( ! $product instanceof WC_Product || 'publish' !== $product->get_status() || 'hidden' === $product->get_catalog_visibility() ) {
+		return false;
+	}
+
+	return ! method_exists( $product, 'is_visible' ) || $product->is_visible();
+}
 
 /**
- * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول): اول
- * سراغِ Cross-sells واقعیِ خودِ ووکامرس می‌ره (Product data → Linked
- * Products → Cross-sells) — یعنی همون فیلدِ رسمی که ادمین می‌تونه دستی
- * ۳ محصول انتخاب کنه، نه یک متای سفارشیِ جدید. اگه چیزی انتخاب نشده
- * باشه (حالتِ رایج‌تر)، به‌جاش چند محصولِ موجودِ تصادفی از همون
- * دسته‌بندیِ اصلیِ این محصول پیشنهاد می‌ده (بدونِ خودِ محصول). همیشه فقط
- * محصولاتِ purchasable/instock برمی‌گرده — یک محصولِ ناموجود یا مخفی
- * پیشنهاد دادن فایده‌ای نداره.
+ * Query a bounded set of same-category products by stock status. We make the stock buckets
+ * explicit so catalog hide-out-of-stock settings do not silently drop the final fallback.
  */
-function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit = 3 ): array {
-	$cross_sell_ids = $product->get_cross_sell_ids();
+function jluxe_related_category_stock_pools( array $category_slugs, int $product_id, array $excluded_ids, int $limit ): array {
+	$pools = array(
+		'available'   => array(),
+		'unavailable' => array(),
+	);
 
-	if ( ! empty( $cross_sell_ids ) ) {
-		$suggested = array();
-		foreach ( $cross_sell_ids as $cross_id ) {
-			$cross_product = wc_get_product( $cross_id );
-			if ( $cross_product && $cross_product->is_purchasable() && $cross_product->is_in_stock() ) {
-				$suggested[] = $cross_product;
+	if ( empty( $category_slugs ) || ! function_exists( 'wc_get_products' ) ) {
+		return $pools;
+	}
+
+	$query_limit      = max( 20, min( 100, $limit * 5 ) );
+	$query_exclusions = array_values( array_unique( array_merge( array_map( 'absint', $excluded_ids ), array( $product_id ) ) ) );
+	$seen             = array_fill_keys( $query_exclusions, true );
+
+	foreach ( array( 'instock', 'onbackorder', 'outofstock' ) as $stock_status ) {
+		$products = wc_get_products(
+			array(
+				'status'       => 'publish',
+				'stock_status' => $stock_status,
+				'exclude'      => $query_exclusions,
+				'category'     => $category_slugs,
+				'limit'        => $query_limit,
+				'orderby'      => 'rand',
+				'return'       => 'objects',
+			)
+		);
+
+		if ( ! is_array( $products ) ) {
+			continue;
+		}
+
+		foreach ( $products as $related_product ) {
+			if ( ! jluxe_related_product_is_public( $related_product ) ) {
+				continue;
 			}
-			if ( count( $suggested ) >= $limit ) {
+
+			$related_id = absint( $related_product->get_id() );
+			if ( ! $related_id || isset( $seen[ $related_id ] ) ) {
+				continue;
+			}
+
+			$seen[ $related_id ] = true;
+			$bucket              = jluxe_suggested_is_available( $related_product ) ? 'available' : 'unavailable';
+			$pools[ $bucket ][]  = $related_id;
+		}
+	}
+
+	return $pools;
+}
+
+/**
+ * Rank product-page related products: selected IDs first, then same-category products
+ * (available before unavailable), then WooCommerce's remaining tag-based suggestions.
+ * WooCommerce limits the final rendered list using its existing related-products setting.
+ */
+function jluxe_order_related_products( $related_posts, $product_id, $args = array() ): array {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return is_array( $related_posts ) ? $related_posts : array();
+	}
+
+	$product_id = absint( $product_id );
+	if ( ! $product_id ) {
+		return is_array( $related_posts ) ? $related_posts : array();
+	}
+
+	$excluded_ids   = isset( $args['excluded_ids'] ) && is_array( $args['excluded_ids'] ) ? array_map( 'absint', $args['excluded_ids'] ) : array();
+	$excluded_ids[] = $product_id;
+	$excluded       = array_fill_keys( $excluded_ids, true );
+
+	$manual_ids = get_post_meta( $product_id, '_jluxe_related_product_ids', true );
+	if ( is_array( $manual_ids ) && ! empty( $manual_ids ) ) {
+		$ordered_manual = array();
+		foreach ( $manual_ids as $manual_id ) {
+			$manual_id = absint( $manual_id );
+			if ( ! $manual_id || isset( $excluded[ $manual_id ] ) || in_array( $manual_id, $ordered_manual, true ) ) {
+				continue;
+			}
+
+			$manual_product = wc_get_product( $manual_id );
+			if ( jluxe_related_product_is_public( $manual_product ) ) {
+				$ordered_manual[] = $manual_id;
+			}
+		}
+
+		if ( ! empty( $ordered_manual ) ) {
+			return $ordered_manual;
+		}
+	}
+
+	$current_product = wc_get_product( $product_id );
+	$category_ids    = $current_product instanceof WC_Product
+		? ( method_exists( $current_product, 'get_category_ids' ) ? $current_product->get_category_ids() : array() )
+		: array();
+	$category_ids    = array_values( array_unique( array_filter( array_map( 'absint', (array) $category_ids ) ) ) );
+	$category_slugs  = jluxe_related_category_slugs( $category_ids );
+	$limit           = isset( $args['limit'] ) ? max( 1, absint( $args['limit'] ) ) : max( 2, min( 8, (int) jluxe_get_setting( 'product_page.related_count', 4 ) ) );
+	$pools           = jluxe_related_category_stock_pools( $category_slugs, $product_id, array_keys( $excluded ), $limit );
+	$ordered         = array_merge( $pools['available'], $pools['unavailable'] );
+
+	$core_category_available   = array();
+	$core_category_unavailable = array();
+	$core_available            = array();
+	$core_unavailable          = array();
+	foreach ( is_array( $related_posts ) ? $related_posts : array() as $related_post_id ) {
+		$related_id = absint( $related_post_id );
+		if ( ! $related_id || isset( $excluded[ $related_id ] ) ) {
+			continue;
+		}
+
+		$related_product = wc_get_product( $related_id );
+		if ( ! jluxe_related_product_is_public( $related_product ) ) {
+			continue;
+		}
+
+		$related_category_ids = method_exists( $related_product, 'get_category_ids' ) ? $related_product->get_category_ids() : array();
+		$is_same_category    = ! empty( array_intersect( $category_ids, array_map( 'absint', (array) $related_category_ids ) ) );
+		$is_available        = jluxe_suggested_is_available( $related_product );
+
+		if ( $is_same_category && $is_available ) {
+			$core_category_available[] = $related_id;
+		} elseif ( $is_same_category ) {
+			$core_category_unavailable[] = $related_id;
+		} elseif ( $is_available ) {
+			$core_available[] = $related_id;
+		} else {
+			$core_unavailable[] = $related_id;
+		}
+	}
+
+	$ordered = array_merge( $ordered, $core_category_available, $core_category_unavailable, $core_available, $core_unavailable );
+	$unique  = array();
+	foreach ( $ordered as $related_id ) {
+		$related_id = absint( $related_id );
+		if ( $related_id && ! isset( $excluded[ $related_id ] ) && ! in_array( $related_id, $unique, true ) ) {
+			$unique[] = $related_id;
+		}
+	}
+
+	return $unique;
+}
+add_filter( 'woocommerce_related_products', 'jluxe_order_related_products', 99, 3 );
+
+/**
+ * R85 — اسکریپتِ اسلایدرِ «محصولات مرتبط» (یک ردیف با فلشِ قبلی/بعدی).
+ *
+ * فقط در صفحهٔ محصول بارگذاری می‌شود، فایلِ مستقل و بدونِ وابستگی است (بدونِ
+ * jQuery/فریم‌ورک) و نسخه‌اش از زمانِ تغییرِ خودِ فایل می‌آید تا کشِ مرورگر
+ * پس از هر آپدیت تازه شود. اگر فایل نباشد، هیچ چیز بارگذاری نمی‌شود و ردیف
+ * همچنان با اسکرولِ لمسی کار می‌کند.
+ */
+function jluxe_related_slider_assets(): void {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return;
+	}
+	$file = JLUXE_THEME_DIR . '/assets/js/related-slider.js';
+	if ( ! is_readable( $file ) ) {
+		return;
+	}
+	wp_enqueue_script(
+		'jluxe-related-slider',
+		JLUXE_THEME_URI . '/assets/js/related-slider.js',
+		array(),
+		(string) filemtime( $file ),
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_related_slider_assets', 20 );
+
+/**
+ * محصولاتِ پیشنهادیِ پاپ‌آپِ بعدِ افزودن به سبد (صفحه‌ی تکیِ محصول).
+ *
+ * R72 — بازبینیِ کاملِ شرط‌ها. حالت‌ها (پنل زرین ← اضافه خرید):
+ *  - fixed: فقط شناسه‌های انتخاب‌شدهٔ سراسریِ مدیر (محد به خودِ همین فهرست می‌ماند).
+ *  - per_product (پیش‌فرض): اول Cross-sells واقعیِ خودِ ووکامرس (ویرایش محصول ←
+ *    داده‌های محصول ← محصولات پیوسته — یعنی انتخابِ مدیر برای همان محصول)، بعد
+ *    پرکردنِ اسلات‌های خالی با محصولاتِ موجودِ همان دسته، بعد کلِ فروشگاه.
+ *  - per_category: همیشه فقط محصولاتِ موجودِ همان دسته.
+ *  - random: اتفاقی بین کالاهای موجودِ کلِ فروشگاه.
+ *
+ * «موجود» (R72) دیگر فقط وضعیتِ والدِ محصول متغیر نیست: is_in_stock() روی
+ * WC_Product_Variable فقط متای _stock_status والد را می‌خواند — محصولی که
+ * همهٔ تنوع‌هایش ناموجودند ولی والدش «موجود» ثبت شده، قبلاً پیشنهاد می‌شد و
+ * مودالِ تنوعِ آن همهٔ سواچ‌هایش بسته بود. حالا برای محصول متغیر باید حداقلِ
+ * یک تنوعِ purchasable و در-انبارِ واقعی وجود داشته باشد (کشِ استاتیک در
+ * طولِ یک درخواست). کوئری‌هایِ تصادفی هم «visibility=visible» می‌خواهند
+ * (کالای مخفی از کاتالوگ پیشنهاد نمی‌شود) و «orderby=rand» — خروجیِ این
+ * تابع داخلِ پاسخِ POST افزودن‌به‌سبد رندر می‌شود (غیرقابلِ کشِ صفحه)، پس
+ * رندومِ به‌روز مشکلی برای کش ندارد (تصمیمِ قطعیِ R61 با درخواستِ صریحِ
+ * کاربر در R72 به رندومِ بینِ کالاهای موجود تغییر کرد). هر گزینه‌ای بعد از
+ * کوئری دوباره با همین شرطِ سخت‌گیرانه فیلتر می‌شود (استخرِ بزرگ‌تر از limit
+ * کشیده می‌شود تا فیلتر بعد از limit اسلات هدر ندهد — باگِ واقعیِ نسخهٔ قبل).
+ */
+function jluxe_suggested_is_available( $product ): bool {
+	if ( ! $product instanceof WC_Product || 'publish' !== $product->get_status() || ! $product->is_purchasable() ) {
+		return false;
+	}
+	static $cache = array();
+	$id = $product->get_id();
+	if ( array_key_exists( $id, $cache ) ) {
+		return (bool) $cache[ $id ];
+	}
+	if ( $product->is_type( 'variable' ) ) {
+		$available = false;
+		foreach ( $product->get_children() as $child_id ) {
+			$variation = wc_get_product( $child_id );
+			if ( $variation && $variation->is_purchasable() && $variation->is_in_stock() ) {
+				$available = true;
 				break;
 			}
 		}
-		if ( ! empty( $suggested ) ) {
-			return $suggested;
+	} else {
+		$available = $product->is_in_stock();
+	}
+	$cache[ $id ] = $available;
+	return $available;
+}
+
+/**
+ * استخرِ اتفاقیِ کالاهای موجود — برایِ پرکردنِ اسلات‌های پیشنهاد.
+ * stock_status=instock در کوئری فقط وضعیتِ والد را می‌بیند؛ به همین دلیل
+ * استخر کمی بزرگ‌تر از نیاز کشیده می‌شود و هر گزینه دوباره با
+ * jluxe_suggested_is_available (بررسیِ تنوعِ واقعی) فیلتر می‌شود.
+ */
+function jluxe_suggested_random_pool( array $exclude_ids, array $category_ids = array(), int $pool_size = 12 ): array {
+	$args = array(
+		'status'       => 'publish',
+		'visibility'   => 'visible',
+		'exclude'      => array_map( 'absint', $exclude_ids ),
+		'stock_status' => 'instock',
+		'orderby'      => 'rand',
+		'limit'        => max( 1, $pool_size ),
+		'return'       => 'objects',
+	);
+	if ( ! empty( $category_ids ) ) {
+		$args['category'] = array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids );
+	}
+	$found = wc_get_products( $args );
+	$out   = array();
+	foreach ( (array) $found as $candidate ) {
+		if ( jluxe_suggested_is_available( $candidate ) ) {
+			$out[] = $candidate;
+		}
+	}
+	return $out;
+}
+
+function jluxe_get_suggested_products_for_cart( WC_Product $product, int $limit = 4 ): array {
+	$limit = max( 1, min( 4, $limit ) );
+	$mode  = (string) jluxe_get_setting( 'purchase_addons.mode', 'per_product' );
+	if ( ! in_array( $mode, array( 'fixed', 'per_product', 'per_category', 'random' ), true ) ) {
+		$mode = 'per_product';
+	}
+
+	// پیشنهادِ کالایی که همین حالا در سبد است، دوباره نمایش داده نمی‌شود.
+	// WooCommerce برای سطرِ تنوع هم product_id والد را نگه می‌دارد؛ فالبکِ
+	// data هم برای cart itemهای سفارشی/آزمون‌ها پوشش داده شده است.
+	$seen = array( $product->get_id() => true );
+	if ( function_exists( 'WC' ) && WC()->cart && method_exists( WC()->cart, 'get_cart' ) ) {
+		foreach ( (array) WC()->cart->get_cart() as $cart_item ) {
+			if ( ! is_array( $cart_item ) ) {
+				continue;
+			}
+			$cart_product_id = absint( $cart_item['product_id'] ?? 0 );
+			if ( ! $cart_product_id && ( $cart_item['data'] ?? null ) instanceof WC_Product ) {
+				$cart_product_id = (int) ( $cart_item['data']->get_parent_id() ?: $cart_item['data']->get_id() );
+			}
+			if ( $cart_product_id > 0 ) {
+				$seen[ $cart_product_id ] = true;
+			}
+		}
+	}
+	$out  = array();
+	$take = static function ( array $candidates ) use ( &$out, &$seen, $limit ): bool {
+		foreach ( $candidates as $candidate ) {
+			$pid = $candidate instanceof WC_Product ? $candidate->get_id() : 0;
+			if ( ! $pid || isset( $seen[ $pid ] ) || ! jluxe_suggested_is_available( $candidate ) ) {
+				continue;
+			}
+			$seen[ $pid ] = true;
+			$out[]        = $candidate;
+			if ( count( $out ) >= $limit ) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	if ( 'fixed' === $mode ) {
+		// حالتِ ثابت: فقط و فقط فهرستِ مدیر — اسلاتِ خالی با جایگزین پر نمی‌شود.
+		$picked = array();
+		foreach ( (array) jluxe_get_setting( 'purchase_addons.fixed_ids', array() ) as $fixed_id ) {
+			$fixed = wc_get_product( absint( $fixed_id ) );
+			if ( $fixed ) {
+				$picked[] = $fixed;
+			}
+		}
+		$take( $picked );
+		return $out;
+	}
+
+	if ( 'random' === $mode ) {
+		// R72: حالتِ اتفاقی — بینِ کالاهای موجودِ کلِ فروشگاه.
+		$take( jluxe_suggested_random_pool( array_keys( $seen ), array(), $limit * 4 ) );
+		return $out;
+	}
+
+	if ( 'per_product' === $mode ) {
+		// ① انتخابِ مدیر برای همین محصول (فیلدِ رسمیِ Cross-sells ووکامرس).
+		// اگر مدیر برای این محصول چیزی انتخاب کرده باشد، «همان» نهایی است —
+		// گزینه‌های از-دست-رفته (ناموجود/مخفی) حذف می‌شوند ولی با پیشنهادِ
+		// تصادفی رقیق نمی‌شوند؛ fallback فقط وقتی است که چیزی انتخاب نشده باشد.
+		$cross = array();
+		foreach ( (array) $product->get_cross_sell_ids() as $cross_id ) {
+			$cross_product = wc_get_product( absint( $cross_id ) );
+			if ( $cross_product ) {
+				$cross[] = $cross_product;
+			}
+		}
+		if ( ! empty( $cross ) ) {
+			$take( $cross );
+			return $out;
 		}
 	}
 
+	// ② (per_product بدونِ cross-sell) همان دسته ③ (per_product) کلِ
+	//    فروشگاه / (per_category) فقط همان دسته.
 	$category_ids = $product->get_category_ids();
-	if ( empty( $category_ids ) ) {
-		return array();
+	if ( ! empty( $category_ids ) ) {
+		if ( $take( jluxe_suggested_random_pool( array_keys( $seen ), $category_ids, $limit * 4 ) ) ) {
+			return $out;
+		}
 	}
-
-	$random_ids = wc_get_products(
-		array(
-			'status'       => 'publish',
-			'category'     => array_map( 'jluxe_term_id_to_slug_product_cat', $category_ids ),
-			'exclude'      => array( $product->get_id() ),
-			'stock_status' => 'instock',
-			'orderby'      => 'rand',
-			'limit'        => $limit,
-			'return'       => 'objects',
-		)
-	);
-
-	return array_filter( $random_ids, fn( $p ) => $p instanceof WC_Product && $p->is_purchasable() );
+	if ( 'per_product' === $mode ) {
+		$take( jluxe_suggested_random_pool( array_keys( $seen ), array(), $limit * 4 ) );
+	}
+	return $out;
 }
 
 /**
@@ -1379,81 +2751,333 @@ function jluxe_term_id_to_slug_product_cat( int $term_id ): string {
 }
 
 /**
- * پاپ‌آپِ «محصولات پیشنهادی» — بعدِ کلیکِ موفقِ افزودن به سبد روی دکمه‌ی
- * اصلیِ صفحه‌ی تکیِ محصول (نه هرجای دیگه‌ی سایت) با JS باز می‌شه
- * (assets/js/woocommerce.js، رویدادِ added_to_cart، فقط وقتی دکمه واقعاً
- * .single_add_to_cart_button یا دکمه‌ی نوارِ چسبانِ موبایل باشه). محتوا
- * کاملاً سمتِ سرور رندر می‌شه (بدونِ AJAX جدا) — چون داده‌اش
- * (jluxe_get_suggested_products_for_cart) از قبل موقعِ لودِ صفحه معلومه.
- * دکمه‌ی افزودنِ هر آیتم دقیقاً همون کلاس/data-attributeِ کارتِ گریدِ
- * محصول (content-product.php) رو داره تا اسکریپتِ AJAX واقعیِ خودِ
- * ووکامرس بدونِ کدِ اضافه بگیرتش.
+ * خدماتِ «اضافه خرید» از تنظیمات — با کلیدِ پایدارِ s0..s7 (ایندکس) تا
+ * کلاینت فقط کلید را بفرستد و مبلغ/عنوان همیشه از سرور خوانده شود.
  */
-function jluxe_render_suggested_products_modal( WC_Product $product ): void {
+function jluxe_pa_services(): array {
+	$out = array();
+	foreach ( (array) jluxe_get_setting( 'purchase_addons.services', array() ) as $i => $service ) {
+		if ( ! is_array( $service ) || '' === (string) ( $service['title'] ?? '' ) ) {
+			continue;
+		}
+		$out[ 's' . $i ] = array(
+			'title'   => (string) $service['title'],
+			'amount'  => (float) ( $service['amount'] ?? 0 ),
+			'context' => in_array( (string) ( $service['context'] ?? 'modal' ), array( 'modal', 'cart', 'both' ), true ) ? (string) $service['context'] : 'modal',
+			'auto'    => ! empty( $service['auto'] ),
+		);
+	}
+	return $out;
+}
+
+/**
+ * فِیِ خدماتِ انتخاب‌شده — کلاینت فقط «کلید» خدمات را POST می‌کند؛ مبلغ و
+ * عنوان در همین‌جا از تنظیماتِ ذخیره‌شده خوانده می‌شود (بدونِ اعتماد به
+ * POST). فِی در session سبد ثبت می‌شود و روی هر محاسبهٔ totals از هوکِ
+ * رسمیِ ووکامرس اعمال می‌گردد؛ خالی‌شدنِ سبد، session را هم پاک می‌کند.
+ */
+function jluxe_pa_session_service_keys(): array {
+	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
+		return array();
+	}
+	$stored = WC()->session->get( 'jluxe_pa_services' );
+	return is_array( $stored ) ? $stored : array();
+}
+
+function jluxe_pa_apply_service_fees(): void {
+	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+		return;
+	}
+	if ( ! function_exists( 'WC' ) || ! WC()->cart || ! WC()->session ) {
+		return;
+	}
+	$services = jluxe_pa_services();
+	foreach ( jluxe_pa_session_service_keys() as $key ) {
+		if ( isset( $services[ (string) $key ] ) ) {
+			$service = $services[ (string) $key ];
+			WC()->cart->add_fee( $service['title'], $service['amount'], false );
+		}
+	}
+}
+add_action( 'woocommerce_cart_calculate_fees', 'jluxe_pa_apply_service_fees' );
+
+function jluxe_pa_clear_service_fees(): void {
+	if ( function_exists( 'WC' ) && WC()->session ) {
+		WC()->session->set( 'jluxe_pa_services', array() );
+	}
+}
+add_action( 'woocommerce_cart_emptied', 'jluxe_pa_clear_service_fees' );
+
+/**
+ * پاپ‌آپِ «اضافه خرید» — بعدِ کلیکِ موفقِ افزودن به سبد روی دکمه‌ی
+ * اصلیِ صفحه‌ی تکی محصول با JS باز می‌شود (assets/js/woocommerce.js).
+ * مطابقِ نمونهٔ مرجع: سربرگِ «افزودن به سبد خرید»، کارتِ خلاصهٔ محصول با
+ * قیمتِ خط‌خورده/درصدِ تخفیف، بخشِ «این محصولات را هم اضافه کنید» با
+ * ردیف‌های انتخابی (چک‌باکس)، خدماتِ قابل‌انتخاب، و پایین‌برگِ «مبلغ قابل
+ * پرداخت» + دکمهٔ تأیید. انتخاب‌ها سمتِ مرورگر جمع می‌شوند و تأیید، فقط
+ * کلیدِ خدمات + شناسهٔ محصولات را به endpointهای واقعی می‌فرستد.
+ */
+function jluxe_suggested_modal_html_for( WC_Product $product ): string {
+	// کلیدِ سراسریِ «فعال‌سازی آیتم‌های اضافه خرید» (پنل زرین ← اضافه خرید).
+	if ( ! jluxe_get_setting( 'purchase_addons.enabled', false ) ) {
+		return '';
+	}
 	// چک‌باکسِ «پاپ‌آپ محصولات پیشنهادی» توی تبِ عمومیِ ویرایشِ همین محصول
 	// (jluxe_render_suggested_modal_toggle_field) — پیش‌فرض روشنه، فقط
-	// مقدارِ صریحِ 'no' خاموشش می‌کنه.
+	// مقدارِ صریحِ 'no' خاموشش می‌کند.
 	if ( 'no' === get_post_meta( $product->get_id(), '_jluxe_suggested_modal_enabled', true ) ) {
-		return;
+		return '';
 	}
 
-	$suggested = jluxe_get_suggested_products_for_cart( $product, 3 );
-	if ( empty( $suggested ) ) {
-		return;
+	$show_products = (bool) jluxe_get_setting( 'purchase_addons.show_products', true );
+	$show_services = (bool) jluxe_get_setting( 'purchase_addons.show_services', false );
+	$max_products  = max( 1, min( 4, (int) jluxe_get_setting( 'purchase_addons.max_products', 4 ) ) );
+	$show_main     = (bool) jluxe_get_setting( 'purchase_addons.show_main_product', false );
+	$show_summary  = (bool) jluxe_get_setting( 'purchase_addons.show_cart_summary', false );
+	$show_cart     = (bool) jluxe_get_setting( 'purchase_addons.show_cart_link', false );
+	$show_continue = (bool) jluxe_get_setting( 'purchase_addons.show_continue', false );
+	$show_total    = (bool) jluxe_get_setting( 'purchase_addons.show_total', true );
+
+	$suggested = $show_products ? jluxe_get_suggested_products_for_cart( $product, $max_products ) : array();
+	$services  = $show_services ? jluxe_pa_services() : array();
+	$services  = array_filter( $services, static fn( $service ) => in_array( $service['context'], array( 'modal', 'both' ), true ) );
+	$show_empty_state = ! $show_main && empty( $suggested ) && empty( $services );
+
+	// اگر محصولِ اصلی متغیر بوده، خلاصهٔ اختیاریِ کارت از همان variation
+	// افزوده‌شده خوانده شود؛ نه از قیمتِ والد/بازهٔ تنوع‌ها.
+	$main_product = $product;
+	$cart         = function_exists( 'WC' ) && WC()->cart ? WC()->cart : null;
+	if ( $cart && method_exists( $cart, 'get_cart' ) ) {
+		foreach ( (array) $cart->get_cart() as $cart_item ) {
+			if ( ! is_array( $cart_item ) || absint( $cart_item['product_id'] ?? 0 ) !== $product->get_id() ) {
+				continue;
+			}
+			if ( ( $cart_item['data'] ?? null ) instanceof WC_Product ) {
+				$main_product = $cart_item['data'];
+				break;
+			}
+		}
 	}
+
+	$main_amount   = (float) $main_product->get_price( 'edit' );
+	$main_regular  = (float) $main_product->get_regular_price( 'edit' );
+	$main_discount = 0;
+	if ( $main_regular > 0 && $main_amount > 0 && $main_amount < $main_regular ) {
+		$main_discount = (int) round( ( $main_regular - $main_amount ) * 100 / $main_regular );
+	}
+
+	// مبلغِ پایه از جمعِ فعلیِ سبد می‌آید تا مودال بدونِ کارتِ محصولِ اصلی
+	// هم جمعِ معناداری نشان بدهد. کارمزدهای خدماتِ ازقبل‌ثبت‌شده کم می‌شوند؛
+	// چون انتخاب‌های این مودال جایگزینِ فهرستِ خدماتِ session خواهند شد.
+	$cart_total = $main_amount > 0 ? $main_amount : 0.0;
+	$cart_count = 0;
+	$old_service_total = 0.0;
+	if ( $cart && method_exists( $cart, 'get_total' ) ) {
+		$cart_total = (float) $cart->get_total( 'edit' );
+		if ( method_exists( $cart, 'get_cart_contents_count' ) ) {
+			$cart_count = (int) $cart->get_cart_contents_count();
+		}
+		if ( $show_services && ! empty( $services ) && isset( WC()->session ) && WC()->session ) {
+			$known_services = jluxe_pa_services();
+			foreach ( jluxe_pa_session_service_keys() as $service_key ) {
+				if ( isset( $known_services[ (string) $service_key ] ) && in_array( $known_services[ (string) $service_key ]['context'], array( 'modal', 'both' ), true ) ) {
+					$old_service_total += (float) $known_services[ (string) $service_key ]['amount'];
+				}
+			}
+		}
+	}
+	$total_base = max( 0, $cart_total - $old_service_total );
+	$unit       = jluxe_currency_label( get_woocommerce_currency() );
+	$cart_url   = $show_cart && function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '';
+
+	$modal_title            = (string) jluxe_get_setting( 'purchase_addons.modal_title', 'افزودن به سبد خرید' );
+	$products_heading       = (string) jluxe_get_setting( 'purchase_addons.products_heading', 'ممکن است این‌ها را هم لازم داشته باشید' );
+	if ( 'این محصولات را هم اضافه کنید' === trim( $products_heading ) ) {
+		$products_heading = 'ممکن است این‌ها را هم لازم داشته باشید';
+	}
+	$services_heading       = (string) jluxe_get_setting( 'purchase_addons.services_heading', 'این خدمات را هم اضافه کنید' );
+	$total_label            = (string) jluxe_get_setting( 'purchase_addons.total_label', 'مبلغ قابل پرداخت' );
+	$confirm_selected_label = (string) jluxe_get_setting( 'purchase_addons.confirm_selected_label', 'افزودن انتخاب‌ها به سبد' );
+	$confirm_empty_label    = (string) jluxe_get_setting( 'purchase_addons.confirm_empty_label', 'ادامه بدون افزودن' );
+	$cart_summary_label     = (string) jluxe_get_setting( 'purchase_addons.cart_summary_label', 'سبد شما' );
+	$view_cart_label        = (string) jluxe_get_setting( 'purchase_addons.view_cart_label', 'مشاهده سبد' );
+	$continue_label         = (string) jluxe_get_setting( 'purchase_addons.continue_label', 'ادامه خرید' );
+
+	$initial_selection_count = 0;
+	foreach ( $services as $service ) {
+		if ( ! empty( $service['auto'] ) ) {
+			++$initial_selection_count;
+		}
+	}
+
+	ob_start();
 	?>
-	<div class="fixed inset-0 z-[70] hidden" data-jluxe-suggested-modal aria-hidden="true">
-		<div class="absolute inset-0 bg-foreground/50" data-jluxe-suggested-close></div>
-		<div class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl bg-surface shadow-2xl sm:inset-0 sm:m-auto sm:h-fit sm:max-w-md sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="محصولات پیشنهادی">
-			<div class="flex items-center justify-between border-b border-border p-4">
-				<div>
-					<h2 class="text-body font-bold text-foreground">شاید این‌ها رو هم بپسندید</h2>
-					<p class="mt-0.5 text-caption text-text-muted">محصول قبلی به سبد خرید اضافه شد</p>
-				</div>
-				<button type="button" data-jluxe-suggested-close aria-label="بستن" class="grid size-9 shrink-0 place-items-center rounded-lg text-text-muted transition-all hover:bg-muted active:scale-90">
-					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+	<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-pa-unit="<?php echo esc_attr( $unit ); ?>" data-pa-main="<?php echo esc_attr( (string) $total_base ); ?>">
+		<div class="jluxe-pa-backdrop" data-jluxe-suggested-close></div>
+		<div class="jluxe-pa-sheet" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr( $modal_title ); ?>">
+			<header class="jluxe-pa-head">
+				<span class="jluxe-pa-head-ic" aria-hidden="true">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 8.5a2 2 0 0 1-2 1.5H8.6a2 2 0 0 1-2-1.6L4.6 3.7A1 1 0 0 0 3.6 3H2"/><circle cx="9.5" cy="20" r="1.5"/><circle cx="17.5" cy="20" r="1.5"/></svg>
+				</span>
+				<span class="jluxe-pa-head-title"><?php echo esc_html( $modal_title ); ?></span>
+				<button type="button" data-jluxe-suggested-close aria-label="بستن" class="jluxe-pa-close">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
 				</button>
-			</div>
+			</header>
 
-			<div class="flex flex-col gap-3 overflow-y-auto p-4">
-				<?php foreach ( $suggested as $sp ) :
-					$sp_is_variable = $sp->is_type( 'variable' );
-					$sp_out_of_stock = ! $sp->is_in_stock();
-					$sp_thumb = wp_get_attachment_image_url( $sp->get_image_id(), 'thumbnail' );
-					?>
-					<div class="flex items-center gap-3 rounded-2xl border border-border p-2.5">
-						<a href="<?php echo esc_url( $sp->get_permalink() ); ?>" class="size-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-							<?php if ( $sp_thumb ) : ?>
-								<img src="<?php echo esc_url( $sp_thumb ); ?>" alt="<?php echo esc_attr( $sp->get_name() ); ?>" class="size-full object-contain mix-blend-multiply" <?php echo jluxe_lazy_attr(); ?> />
+			<div class="jluxe-pa-body">
+				<?php if ( $show_empty_state ) : ?>
+					<div class="jluxe-pa-empty" role="status">در حال حاضر پیشنهاد محصول یا خدمت دیگری برای نمایش وجود ندارد.</div>
+				<?php endif; ?>
+				<?php if ( $show_main ) : ?>
+					<div class="jluxe-pa-main">
+						<span class="jluxe-pa-thumb">
+							<?php $jluxe_pa_thumb = wp_get_attachment_image_url( $main_product->get_image_id(), 'thumbnail' ); ?>
+							<?php if ( $jluxe_pa_thumb ) : ?>
+								<img src="<?php echo esc_url( $jluxe_pa_thumb ); ?>" alt="<?php echo esc_attr( $main_product->get_name() ); ?>" <?php echo jluxe_lazy_attr(); ?> />
 							<?php endif; ?>
-						</a>
-						<div class="min-w-0 flex-1">
-							<a href="<?php echo esc_url( $sp->get_permalink() ); ?>" class="line-clamp-2 text-caption font-medium text-foreground hover:text-primary">
-								<?php echo esc_html( $sp->get_name() ); ?>
-							</a>
-							<div class="mt-1 text-caption font-bold text-foreground"><?php echo wp_kses_post( $sp->get_price_html() ); ?></div>
-						</div>
-						<a
-							href="<?php echo esc_url( $sp_out_of_stock ? '#' : ( $sp_is_variable ? $sp->get_permalink() : $sp->add_to_cart_url() ) ); ?>"
-							aria-label="<?php echo esc_attr( $sp_is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد خرید' ); ?>"
-							data-product_id="<?php echo esc_attr( $sp->get_id() ); ?>"
-							<?php echo ( $sp_is_variable && ! $sp_out_of_stock ) ? 'data-jluxe-quick-variant="' . esc_attr( $sp->get_id() ) . '"' : ''; ?>
-							class="grid size-10 shrink-0 place-items-center rounded-xl text-button font-medium transition-all active:scale-90 <?php echo $sp_out_of_stock ? 'pointer-events-none bg-muted text-muted-foreground opacity-50' : ( $sp_is_variable ? 'bg-foreground text-surface hover:bg-primary' : 'ajax_add_to_cart add_to_cart_button bg-foreground text-surface hover:bg-primary' ); ?>"
-						>
-							<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-						</a>
+						</span>
+						<span class="jluxe-pa-maininfo">
+							<span class="jluxe-pa-mainname"><?php echo esc_html( $main_product->get_name() ); ?></span>
+							<span class="jluxe-pa-mainprice">
+								<?php if ( $main_discount > 0 ) : ?>
+									<del><?php echo wp_kses_post( wc_price( $main_regular ) ); ?></del>
+									<span class="jluxe-pa-badge"><?php echo esc_html( jluxe_fa_digits( $main_discount ) ); ?>٪</span>
+									<span class="jluxe-pa-now"><?php echo wp_kses_post( wc_price( $main_amount ) ); ?></span>
+								<?php else : ?>
+									<span class="jluxe-pa-now"><?php echo wp_kses_post( $main_product->get_price_html() ); ?></span>
+								<?php endif; ?>
+							</span>
+						</span>
 					</div>
-				<?php endforeach; ?>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $services ) ) : ?>
+					<div class="jluxe-pa-secthead">
+						<span><?php echo esc_html( $services_heading ); ?></span>
+						<small>اختیاری</small>
+					</div>
+					<div class="jluxe-pa-rows">
+						<?php foreach ( $services as $jluxe_pa_key => $jluxe_pa_service ) : ?>
+							<button type="button" class="jluxe-pa-row<?php echo $jluxe_pa_service['auto'] ? ' is-selected' : ''; ?>" data-pa-service="<?php echo esc_attr( $jluxe_pa_key ); ?>" data-pa-amount="<?php echo esc_attr( (string) $jluxe_pa_service['amount'] ); ?>" aria-pressed="<?php echo $jluxe_pa_service['auto'] ? 'true' : 'false'; ?>">
+								<span class="jluxe-pa-rowinfo">
+									<span class="jluxe-pa-name"><?php echo esc_html( $jluxe_pa_service['title'] ); ?></span>
+									<span class="jluxe-pa-price"><?php echo wp_kses_post( wc_price( $jluxe_pa_service['amount'] ) ); ?></span>
+								</span>
+								<span class="jluxe-pa-check" aria-hidden="true">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>
+								</span>
+							</button>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $suggested ) ) : ?>
+					<div class="jluxe-pa-secthead">
+						<span><?php echo esc_html( $products_heading ); ?></span>
+						<small>اختیاری</small>
+					</div>
+					<div class="jluxe-pa-rows">
+						<?php foreach ( $suggested as $sp ) : ?>
+							<?php
+							$sp_simple = ! $sp->is_type( 'variable' ) && ! $sp->is_type( 'grouped' ) && ! $sp->is_type( 'external' );
+							$sp_amount = (float) $sp->get_price( 'edit' );
+							$sp_thumb  = wp_get_attachment_image_url( $sp->get_image_id(), 'thumbnail' );
+							?>
+							<?php if ( $sp_simple && $sp_amount > 0 ) : ?>
+								<button type="button" class="jluxe-pa-row" data-pa-product="<?php echo esc_attr( (string) $sp->get_id() ); ?>" data-pa-amount="<?php echo esc_attr( (string) $sp_amount ); ?>" aria-pressed="false">
+									<span class="jluxe-pa-thumb">
+										<?php if ( $sp_thumb ) : ?>
+											<img src="<?php echo esc_url( $sp_thumb ); ?>" alt="<?php echo esc_attr( $sp->get_name() ); ?>" <?php echo jluxe_lazy_attr(); ?> />
+										<?php endif; ?>
+									</span>
+									<span class="jluxe-pa-rowinfo">
+										<span class="jluxe-pa-name"><?php echo esc_html( $sp->get_name() ); ?></span>
+										<span class="jluxe-pa-price"><?php echo wp_kses_post( $sp->get_price_html() ); ?></span>
+									</span>
+									<span class="jluxe-pa-check" aria-hidden="true">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>
+									</span>
+								</button>
+							<?php else : ?>
+								<?php if ( $sp->is_type( 'variable' ) ) : ?>
+									<button type="button" class="jluxe-pa-row jluxe-pa-rowlink" data-jluxe-quick-variant="<?php echo esc_attr( (string) $sp->get_id() ); ?>">
+										<span class="jluxe-pa-thumb">
+											<?php if ( $sp_thumb ) : ?>
+												<img src="<?php echo esc_url( $sp_thumb ); ?>" alt="<?php echo esc_attr( $sp->get_name() ); ?>" <?php echo jluxe_lazy_attr(); ?> />
+											<?php endif; ?>
+										</span>
+										<span class="jluxe-pa-rowinfo">
+											<span class="jluxe-pa-name"><?php echo esc_html( $sp->get_name() ); ?></span>
+											<span class="jluxe-pa-price"><?php echo wp_kses_post( $sp->get_price_html() ); ?></span>
+										</span>
+										<span class="jluxe-pa-goto">انتخاب گزینه‌ها</span>
+									</button>
+								<?php else : ?>
+									<a class="jluxe-pa-row jluxe-pa-rowlink" href="<?php echo esc_url( $sp->get_permalink() ); ?>">
+										<span class="jluxe-pa-thumb">
+											<?php if ( $sp_thumb ) : ?>
+												<img src="<?php echo esc_url( $sp_thumb ); ?>" alt="<?php echo esc_attr( $sp->get_name() ); ?>" <?php echo jluxe_lazy_attr(); ?> />
+											<?php endif; ?>
+										</span>
+										<span class="jluxe-pa-rowinfo">
+											<span class="jluxe-pa-name"><?php echo esc_html( $sp->get_name() ); ?></span>
+											<span class="jluxe-pa-price"><?php echo wp_kses_post( $sp->get_price_html() ); ?></span>
+										</span>
+										<span class="jluxe-pa-goto">مشاهدهٔ محصول</span>
+									</a>
+								<?php endif; ?>
+							<?php endif; ?>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
 			</div>
 
-			<div class="border-t border-border p-4">
-				<button type="button" data-jluxe-suggested-close class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">
-					ادامه‌ی خرید
-				</button>
-			</div>
+			<footer class="jluxe-pa-foot">
+				<?php $show_foot_top = ( $show_summary && $cart_count > 0 ) || ( $show_cart && '' !== $cart_url ) || $show_continue; ?>
+				<?php if ( $show_foot_top ) : ?>
+					<div class="jluxe-pa-foot-top">
+						<?php if ( $show_summary && $cart_count > 0 ) : ?>
+							<span class="jluxe-pa-cartinfo"><?php echo esc_html( $cart_summary_label ); ?>: <?php echo esc_html( jluxe_fa_digits( $cart_count ) ); ?> کالا · <?php echo esc_html( jluxe_fa_digits( number_format( $cart_total, 0, '.', ',' ) ) ); ?> <?php echo esc_html( $unit ); ?></span>
+						<?php endif; ?>
+						<span class="jluxe-pa-foot-links">
+							<?php if ( $show_cart && '' !== $cart_url ) : ?>
+								<a class="jluxe-pa-viewcart" href="<?php echo esc_url( $cart_url ); ?>"><?php echo esc_html( $view_cart_label ); ?></a>
+							<?php endif; ?>
+							<?php if ( $show_continue ) : ?>
+								<button type="button" class="jluxe-pa-continue" data-jluxe-suggested-close><?php echo esc_html( $continue_label ); ?></button>
+							<?php endif; ?>
+						</span>
+					</div>
+				<?php endif; ?>
+				<div class="jluxe-pa-foot-main">
+					<?php if ( $show_total ) : ?>
+						<span class="jluxe-pa-totalwrap">
+							<small><?php echo esc_html( $total_label ); ?></small>
+							<span class="jluxe-pa-totalrow">
+								<strong class="jluxe-pa-total" data-pa-total><?php echo esc_html( jluxe_fa_digits( number_format( $total_base, 0, '.', ',' ) ) ); ?></strong>
+								<small><?php echo esc_html( $unit ); ?></small>
+							</span>
+						</span>
+					<?php endif; ?>
+					<button type="button" class="jluxe-pa-confirm" data-pa-confirm data-pa-confirm-selected="<?php echo esc_attr( $confirm_selected_label ); ?>" data-pa-confirm-empty="<?php echo esc_attr( $confirm_empty_label ); ?>">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+						<span data-pa-confirm-label><?php echo esc_html( $initial_selection_count > 0 ? $confirm_selected_label : $confirm_empty_label ); ?></span>
+					</button>
+				</div>
+			</footer>
 		</div>
 	</div>
 	<?php
+	return (string) ob_get_clean();
+}
+
+/** چاپِ مودال در تمپلیت‌ها — API قدیمی حفظ شد (R61: builder جدا شد تا endpoint هم از همان HTML استفاده کند). */
+function jluxe_render_suggested_products_modal( WC_Product $product ): void {
+	$html = jluxe_suggested_modal_html_for( $product );
+	if ( '' !== $html ) {
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- اجزای داخلی escape شده‌اند.
+	}
 }
 
 /**
@@ -1464,6 +3088,51 @@ function jluxe_render_suggested_products_modal( WC_Product $product ): void {
 function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName, Squiz.Commenting.FunctionComment
 	return (int) jluxe_get_setting( 'shop.products_per_page', $per_page );
 }
+
+/**
+ * R64: تیکِ «ناموجودها همیشه انتهای لیست» (پنل زرین ← فروشگاه).
+ *
+ * یک فیلترِ مرکزیِ posts_clauses برای «همهٔ» کوئری‌های محصولِ فرانت —
+ * آرشیو/دسته/جستجوی محصول، بخش‌های صفحهٔ اصلی، محصولاتِ مرتبط و پیشنهادی
+ * (همه سرانجام WP_Query با post_type=product می‌شوند، شاملِ مسیرِ
+ * wc_get_products خودِ ووکامرس). ناموجودها حذف نمی‌شوند؛ فقط بعدِ
+ * موجودها می‌نشینند و ترتیبِ اصلی (تاریخ/محبوبیت/post__in) داخلِ هر گروه
+ * حفظ می‌شود. ادمین (و AJAX ادمین) مستثناست؛ مقدارِ گمشدهٔ
+ * _stock_status «موجود» فرض می‌شود تا رفتارِ محتاطانه باشد.
+ */
+function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $clauses;
+	}
+	if ( ! jluxe_get_setting( 'shop.out_of_stock_last', true ) ) {
+		return $clauses;
+	}
+	$post_type = $query->get( 'post_type' );
+	if ( 'product' !== $post_type && ! ( is_array( $post_type ) && array( 'product' ) === $post_type ) ) {
+		return $clauses;
+	}
+	global $wpdb;
+	if ( false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
+		$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
+	}
+	$base = trim( (string) $clauses['orderby'] );
+	if ( '' === $base ) {
+		$base = "{$wpdb->posts}.post_date DESC";
+	}
+	$clauses['orderby'] = "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
+	return $clauses;
+}
+add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 );
+
+/**
+ * R69: پاراگرافِ «اطلاعات شخصی شما برای پردازش سفارش…» در صفحهٔ پرداخت
+ * حذف شد (درخواستِ صریحِ کاربر) — فقط برای type=checkout؛ متن‌های ثبت‌نام
+ * دست‌نخورده می‌مانند. اگر ادمین بعداً خواست برگردد: این فیلتر را بردارید.
+ */
+function jluxe_hide_checkout_privacy_text( string $text, string $type ): string {
+	return 'checkout' === $type ? '' : $text;
+}
+add_filter( 'woocommerce_get_privacy_policy_text', 'jluxe_hide_checkout_privacy_text', 10, 2 );
 add_filter( 'loop_shop_per_page', 'jluxe_shop_per_page', 20 );
 
 function jluxe_shop_columns( $columns ) { // phpcs:ignore Squiz.Commenting.FunctionComment
@@ -1503,23 +3172,47 @@ function jluxe_output_shop_columns_css(): void {
 add_action( 'wp_head', 'jluxe_output_shop_columns_css', 30 );
 
 /**
- * رنگ‌های صفحه‌ی محصول (تنظیمات → صفحه محصول) — بج تخفیف/خط سود/ستاره‌ی
- * امتیاز قبلاً فقط با متغیرهای CSS ثابتِ src/styles/single-product-fallback.css
- * (--boom-sale/--boom-success/--boom-star) قابل تغییر بودن. این‌جا همون
- * متغیرها رو override می‌کنیم — چون کارت محصول/دیدگاه‌ها هم از همین
- * کلاس‌ها (bg-boom-sale، text-boom-success، text-boom-star) استفاده
- * می‌کنن، بدون نیاز به تغییرِ هر تمپلیت این تنظیم همه‌جا اعمال می‌شه.
+ * رنگ‌های صفحه‌ی محصول (تنظیمات → صفحه محصول). پیش‌فرض‌ها از توکن‌های
+ * semantic در storefront.css می‌آیند؛ فقط انتخابِ صریحِ مدیر روی aliasهای
+ * قدیمی اعمال می‌شود تا تنظیماتِ سفارشیِ فعلی بدونِ تغییر باقی بمانند.
  */
 function jluxe_output_product_page_colors_css(): void {
 	$pp = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings()['product_page'] : array();
-	printf(
-		'<style id="jluxe-product-page-colors">:root{--boom-sale:%1$s;--boom-success:%2$s;--boom-star:%3$s;}</style>',
-		esc_attr( $pp['discount_color'] ?? '#ef4056' ),
-		esc_attr( $pp['savings_color'] ?? '#00a049' ),
-		esc_attr( $pp['star_color'] ?? '#f7b731' )
-	);
+	$overrides = array();
+	foreach (
+		array(
+			'discount_color' => '--jluxe-sale-color',
+			'savings_color'  => '--jluxe-savings-color',
+			'star_color'     => '--jluxe-rating-color',
+		) as $setting_key => $variable
+	) {
+		$color = isset( $pp[ $setting_key ] ) ? sanitize_hex_color( $pp[ $setting_key ] ) : '';
+		if ( $color ) {
+			$overrides[] = $variable . ':' . $color;
+		}
+	}
+	if ( empty( $overrides ) ) {
+		return;
+	}
+	printf( '<style id="jluxe-product-page-colors">:root{%s}</style>', esc_html( implode( ';', $overrides ) ) );
 }
+
 add_action( 'wp_head', 'jluxe_output_product_page_colors_css', 30 );
+
+/** Remove the redundant «مرتب‌سازی بر اساس» prefix from WooCommerce options. */
+function jluxe_shop_orderby_labels( array $labels ): array {
+	foreach ( $labels as $value => $label ) {
+		if ( ! is_string( $label ) ) {
+			continue;
+		}
+		$clean = preg_replace( '/^\\s*مرتب[\\x{200C}\\s]*سازی(?:\\s+بر\\s+اساس)?\\s*[:：]?\\s*/u', '', $label );
+		if ( is_string( $clean ) ) {
+			$labels[ $value ] = $clean;
+		}
+	}
+	return $labels;
+}
+add_filter( 'woocommerce_catalog_orderby', 'jluxe_shop_orderby_labels', 20 );
 
 /**
  * نوار بالای گرید محصولات («نمایش X از Y نتیجه» + مرتب‌سازی). پیش‌فرضِ
@@ -1582,27 +3275,35 @@ function jluxe_render_shop_toolbar(): void {
 			$current_brand_id = $queried->term_id;
 		}
 	}
-	// min_price/max_price در querystring همیشه به ریال‌اند (چون فیلتر native
-	// ووکامرس مستقیماً با متای قیمتِ ریالی مقایسه می‌کنه)؛ برای نمایش در پنل
-	// باید مثل جای‌جای بقیه‌ی سایت به تومان (تقسیم‌بر-۱۰) برگردونده بشن.
-	$current_min_price = isset( $_GET['min_price'] ) ? (string) ( (float) wp_unslash( $_GET['min_price'] ) / 10 ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$current_max_price = isset( $_GET['max_price'] ) ? (string) ( (float) wp_unslash( $_GET['max_price'] ) / 10 ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	foreach ( array( 'product_cat', 'product_brand' ) as $taxonomy ) {
+		if ( isset( $_GET[ $taxonomy ] ) && is_string( $_GET[ $taxonomy ] ) && taxonomy_exists( $taxonomy ) ) {
+			$term = get_term_by( 'slug', sanitize_title( wp_unslash( $_GET[ $taxonomy ] ) ), $taxonomy );
+			if ( $term ) {
+				if ( 'product_cat' === $taxonomy ) { $current_cat_id = $term->term_id; }
+				else { $current_brand_id = $term->term_id; }
+			}
+		}
+	}
+	$current_min_price = isset( $_GET['min_price'] ) && is_scalar( $_GET['min_price'] ) ? wc_format_decimal( wp_unslash( $_GET['min_price'] ) ) : '';
+	$current_max_price = isset( $_GET['max_price'] ) && is_scalar( $_GET['max_price'] ) ? wc_format_decimal( wp_unslash( $_GET['max_price'] ) ) : '';
+	$current_on_sale = isset( $_GET['on_sale'] ) && '1' === $_GET['on_sale'];
+
 	$current_in_stock  = isset( $_GET['filter_stock'] ) && 'instock' === $_GET['filter_stock']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 	$cat_terms   = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
 	$cat_terms   = is_wp_error( $cat_terms ) ? array() : $cat_terms;
 	$brand_terms = taxonomy_exists( 'product_brand' ) ? get_terms( array( 'taxonomy' => 'product_brand', 'hide_empty' => true ) ) : array();
 	$brand_terms = is_wp_error( $brand_terms ) ? array() : $brand_terms;
-	$has_filters = $current_cat_id || $current_brand_id || $current_min_price || $current_max_price || $current_in_stock;
+	$has_filters = $current_cat_id || $current_brand_id || $current_min_price || $current_max_price || $current_in_stock || $current_on_sale;
 	?>
-	<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-		<button type="button" data-jluxe-filter-toggle class="relative flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-caption font-medium text-foreground transition-all hover:bg-muted active:scale-95">
+	<div class="jluxe-shop-toolbar mb-4">
+		<button type="button" data-jluxe-filter-toggle class="jluxe-shop-toolbar-filter relative flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-caption font-medium text-foreground transition-all hover:bg-muted active:scale-95 sm:px-4">
 			<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-			فیلتر محصولات
+			فیلتر
 			<?php if ( $has_filters ) : ?><span class="absolute -end-1 -top-1 size-2.5 rounded-full bg-primary" aria-hidden="true"></span><?php endif; ?>
 		</button>
-		<div class="flex items-center gap-3">
-			<div class="text-caption text-text-muted"><?php echo $result_count; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+		<div class="jluxe-shop-toolbar-controls">
+			<div class="jluxe-shop-toolbar-count text-caption text-text-muted"><?php echo $result_count; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 			<div class="jluxe-shop-sort relative inline-flex items-center">
 				<?php echo $ordering; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<svg class="pointer-events-none absolute end-3 size-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -1640,13 +3341,13 @@ function jluxe_render_shop_toolbar(): void {
 
 					<details class="group border-b border-border py-3.5" open>
 						<summary class="flex cursor-pointer list-none items-center justify-between text-small font-medium text-foreground">
-							محدوده قیمت (تومان)
+							محدوده قیمت (<?php echo esc_html( jluxe_currency_label( get_woocommerce_currency() ) ); ?>)
 							<svg class="size-4 text-text-muted transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 						</summary>
 						<div class="mt-3 flex items-center gap-2">
-							<input type="number" min="0" name="min_price" value="<?php echo esc_attr( $current_min_price ); ?>" placeholder="حداقل" class="h-11 w-full min-w-0 rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none" />
+							<input type="text" inputmode="decimal" aria-label="حداقل قیمت" name="min_price" value="<?php echo esc_attr( $current_min_price ); ?>" placeholder="حداقل" class="h-11 w-full min-w-0 rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none" />
 							<span class="shrink-0 text-text-muted">تا</span>
-							<input type="number" min="0" name="max_price" value="<?php echo esc_attr( $current_max_price ); ?>" placeholder="حداکثر" class="h-11 w-full min-w-0 rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none" />
+							<input type="text" inputmode="decimal" aria-label="حداکثر قیمت" name="max_price" value="<?php echo esc_attr( $current_max_price ); ?>" placeholder="حداکثر" class="h-11 w-full min-w-0 rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none" />
 						</div>
 					</details>
 
@@ -1655,7 +3356,7 @@ function jluxe_render_shop_toolbar(): void {
 							دسته‌بندی
 							<svg class="size-4 text-text-muted transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 						</summary>
-						<select name="filter_cat" class="mt-3 h-11 w-full rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none">
+						<select aria-label="دسته‌بندی محصول" name="filter_cat" class="mt-3 h-11 w-full rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none">
 							<option value="">همه‌ی دسته‌ها</option>
 							<?php foreach ( $cat_terms as $term ) :
 								$term_link = get_term_link( $term );
@@ -1663,7 +3364,7 @@ function jluxe_render_shop_toolbar(): void {
 									continue;
 								}
 								?>
-								<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" data-url="<?php echo esc_url( $term_link ); ?>" <?php selected( $current_cat_id, $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
+								<option value="<?php echo esc_attr( $term->slug ); ?>" data-url="<?php echo esc_url( $term_link ); ?>" <?php selected( $current_cat_id, $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</details>
@@ -1674,7 +3375,7 @@ function jluxe_render_shop_toolbar(): void {
 								برند
 								<svg class="size-4 text-text-muted transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 							</summary>
-							<select name="filter_brand" class="mt-3 h-11 w-full rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none">
+							<select aria-label="برند محصول" name="filter_brand" class="mt-3 h-11 w-full rounded-lg border border-border bg-muted px-3 text-small text-foreground focus:border-primary focus:bg-surface focus:outline-none">
 								<option value="">همه‌ی برندها</option>
 								<?php foreach ( $brand_terms as $term ) :
 									$term_link = get_term_link( $term );
@@ -1682,12 +3383,18 @@ function jluxe_render_shop_toolbar(): void {
 										continue;
 									}
 									?>
-									<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" data-url="<?php echo esc_url( $term_link ); ?>" <?php selected( $current_brand_id, $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
+									<option value="<?php echo esc_attr( $term->slug ); ?>" data-url="<?php echo esc_url( $term_link ); ?>" <?php selected( $current_brand_id, $term->term_id ); ?>><?php echo esc_html( $term->name ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						</details>
 					<?php endif; ?>
 
+					<div class="py-3.5">
+						<label class="flex h-11 cursor-pointer items-center justify-between rounded-lg border border-border px-3 text-small">
+							فقط محصولات تخفیف‌دار
+							<input type="checkbox" name="on_sale" value="1" <?php checked( $current_on_sale ); ?> class="size-4 accent-primary" />
+						</label>
+					</div>
 					<div class="py-3.5">
 						<label class="flex h-11 cursor-pointer items-center justify-between rounded-lg border border-border px-3 text-small text-foreground transition-colors hover:border-primary/40">
 							فقط کالاهای موجود
@@ -1710,7 +3417,7 @@ function jluxe_render_shop_toolbar(): void {
  * دارای ضمانت») — قبلاً «گارانتی اصالت کالا» برای همه‌ی محصولات به‌صورت
  * ثابت نمایش داده می‌شد (باگِ واقعیِ گزارش‌شده: باید فقط برای محصولاتی که
  * واقعاً همچین ضمانتی دارن قابل‌انتخاب باشه، نه ثابت روی همه). این‌جا دو
- * چک‌باکس توی تبِ «عمومی»ِ ویرایشِ محصولِ ووکامرس اضافه می‌شه؛ خروجی توی
+ * چک‌باکس توی تبِ «گزینه‌های زرین»ِ ویرایشِ محصولِ ووکامرس اضافه می‌شه؛ خروجی توی
  * woocommerce/content-single-product.php با jluxe_get_product_trust_badges()
  * خونده می‌شه.
  */
@@ -1722,7 +3429,7 @@ function jluxe_render_product_badge_fields(): void {
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_badge_authenticity',
-			'value'       => get_post_meta( $post->ID, '_jluxe_badge_authenticity', true ),
+			'value'       => get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_badge_authenticity', true ),
 			'label'       => 'گارانتی اصالت کالا',
 			'description' => 'روی صفحه‌ی محصول، زیرِ عنوان، یک بج سبز «گارانتی اصالت کالا» نمایش داده می‌شه.',
 		)
@@ -1731,7 +3438,7 @@ function jluxe_render_product_badge_fields(): void {
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_badge_warranty',
-			'value'       => get_post_meta( $post->ID, '_jluxe_badge_warranty', true ),
+			'value'       => get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_badge_warranty', true ),
 			'label'       => 'کالای دارای ضمانت',
 			'description' => 'روی صفحه‌ی محصول، زیرِ عنوان، یک بج «کالای دارای ضمانت» نمایش داده می‌شه.',
 		)
@@ -1739,18 +3446,13 @@ function jluxe_render_product_badge_fields(): void {
 
 	echo '</div>';
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_product_badge_fields' );
+
 
 /**
  * ذخیره‌ی دو چک‌باکسِ بالا. woocommerce_wp_checkbox() خودش مقدار رو
  * ('yes'/'no') می‌خونه؛ چون چک‌باکس‌های خاموش اصلاً توی $_POST نمیان،
  * نبودشون یعنی 'no'.
  */
-function jluxe_save_product_badge_fields( int $post_id ): void {
-	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
-	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
-}
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields' );
 
 /**
  * چک‌باکسِ روشن/خاموش‌کردنِ دستیِ پاپ‌آپِ «محصولات پیشنهادی» برایِ هر
@@ -1763,7 +3465,7 @@ add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields
 function jluxe_render_suggested_modal_toggle_field(): void {
 	global $post;
 
-	$stored  = get_post_meta( $post->ID, '_jluxe_suggested_modal_enabled', true );
+	$stored  = get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_suggested_modal_enabled', true );
 	$checked = 'no' !== $stored ? 'yes' : '';
 
 	echo '<div class="options_group">';
@@ -1772,17 +3474,13 @@ function jluxe_render_suggested_modal_toggle_field(): void {
 			'id'          => '_jluxe_suggested_modal_enabled',
 			'value'       => $checked,
 			'label'       => 'پاپ‌آپ محصولات پیشنهادی',
-			'description' => 'بعدِ افزودنِ این محصول به سبد خرید (از صفحه‌ی تکیِ محصول)، پاپ‌آپِ «شاید این‌ها رو هم بپسندید» نشون داده بشه. اگه محصولاتِ پیشنهادیِ واقعی (کراس‌سل یا هم‌دسته) نداشته باشه، پاپ‌آپ به‌هرحال نمایش داده نمی‌شه.',
+			'description' => 'پس از افزودن موفق این محصول به سبد (بعد از انتخاب رنگ/سایز در محصول متغیر)، پاپ‌آپ نمایش داده می‌شود. پیشنهادها و خدمات از «زرین ← اضافه خرید» تنظیم می‌شوند؛ اگر موردی برای پیشنهاد تعریف نشده باشد، پاپ‌آپ پیامِ نبود پیشنهاد را نشان می‌دهد.',
 		)
 	);
 	echo '</div>';
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_suggested_modal_toggle_field' );
 
-function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
-	update_post_meta( $post_id, '_jluxe_suggested_modal_enabled', isset( $_POST['_jluxe_suggested_modal_enabled'] ) ? 'yes' : 'no' );
-}
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
+
 
 /**
  * بج‌های واقعاً فعالِ یک محصول، آماده برای رندر — woocommerce/
@@ -1938,8 +3636,9 @@ function jluxe_save_review_criteria_ratings( int $comment_id, $comment_approved 
 		if ( ! in_array( $key, $valid_keys, true ) ) {
 			continue; // فقط معیارهایِ واقعاً تعریف‌شده — جلوگیری از تزریقِ کلیدِ دلخواه.
 		}
-		$rating = absint( $value );
-		if ( $rating < 1 || $rating > 5 ) {
+		$value = is_scalar( $value ) ? trim( jluxe_ascii_digits( (string) $value ) ) : '';
+		$rating = (int) $value;
+		if ( ! preg_match( '/^[1-5]$/D', $value ) ) {
 			continue;
 		}
 		$clean[ $key ] = $rating;
@@ -1965,68 +3664,32 @@ function jluxe_render_review_criteria_inputs(): string {
 	$html = '<div class="jluxe-review-criteria-fields">';
 	foreach ( $criteria as $item ) {
 		$field_id = 'jluxe-crit-' . esc_attr( $item['key'] );
-		$html    .= '<div class="jluxe-review-criteria-row">';
-		$html    .= '<span class="jluxe-review-criteria-label">' . esc_html( $item['label'] ) . '</span>';
+		$html    .= '<fieldset class="jluxe-review-criteria-row">';
+		$html    .= '<legend class="jluxe-review-criteria-label">' . esc_html( $item['label'] ) . '</legend>';
 		$html    .= '<div class="jluxe-review-criteria-stars" dir="ltr">';
 		for ( $i = 5; $i >= 1; $i-- ) {
 			$input_id = $field_id . '-' . $i;
 			$html    .= '<input type="radio" id="' . esc_attr( $input_id ) . '" name="jluxe_review_criteria[' . esc_attr( $item['key'] ) . ']" value="' . esc_attr( (string) $i ) . '" />';
 			$html    .= '<label for="' . esc_attr( $input_id ) . '" aria-label="' . esc_attr( (string) $i ) . ' از ۵">★</label>';
 		}
-		$html .= '</div></div>';
+		$html .= '</div></fieldset>';
 	}
 	$html .= '</div>';
 
 	return $html;
 }
 
-/**
- * میانگینِ هر معیار برایِ یک محصول — فقط رویِ دیدگاه‌هایِ واقعاً
- * approved (منتشرشده) حساب می‌شه، نه پیش‌نویس/در انتظار.
- *
- * @return array<string, array{label: string, average: float, percent: int, count: int}>
- */
-function jluxe_get_review_criteria_averages( int $product_id ): array {
-	$criteria = jluxe_get_theme_settings()['review_criteria']['items'];
-	if ( empty( $criteria ) ) {
-		return array();
+
+
+
+/** Apply the sale flag to the main WooCommerce product query, not unrelated queries. */
+function jluxe_filter_sale_query( $query ): void {
+	if ( is_admin() || ! isset( $_GET['on_sale'] ) || '1' !== $_GET['on_sale'] ) {
+		return;
 	}
-
-	$comments = get_comments(
-		array(
-			'post_id' => $product_id,
-			'status'  => 'approve',
-			'type'    => 'review',
-		)
-	);
-
-	$sums   = array();
-	$counts = array();
-	foreach ( $comments as $comment ) {
-		$ratings = get_comment_meta( $comment->comment_ID, '_jluxe_review_criteria', true );
-		if ( ! is_array( $ratings ) ) {
-			continue;
-		}
-		foreach ( $ratings as $key => $value ) {
-			$sums[ $key ]   = ( $sums[ $key ] ?? 0 ) + (int) $value;
-			$counts[ $key ] = ( $counts[ $key ] ?? 0 ) + 1;
-		}
-	}
-
-	$result = array();
-	foreach ( $criteria as $item ) {
-		$key = $item['key'];
-		if ( empty( $counts[ $key ] ) ) {
-			continue; // معیاری که هیچ دیدگاهی امتیازش نداده، نمایش داده نمی‌شه.
-		}
-		$average          = $sums[ $key ] / $counts[ $key ];
-		$result[ $key ] = array(
-			'label'   => $item['label'],
-			'average' => round( $average, 1 ),
-			'percent' => (int) round( ( $average / 5 ) * 100 ),
-			'count'   => $counts[ $key ],
-		);
-	}
-
-	return $result;
+	$sale_ids = array_map( 'absint', wc_get_product_ids_on_sale() );
+	$existing = $query->get( 'post__in' );
+	$ids = $existing ? array_values( array_intersect( (array) $existing, $sale_ids ) ) : $sale_ids;
+	$query->set( 'post__in', $ids ?: array( 0 ) );
 }
+add_action( 'woocommerce_product_query', 'jluxe_filter_sale_query' );

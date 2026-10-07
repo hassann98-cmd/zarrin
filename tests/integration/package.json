@@ -1,0 +1,19 @@
+{
+  "name": "zarrin-wordpress-integration-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.0",
+    "npm": ">=11.16.0"
+  },
+  "scripts": {
+    "prepare:fixtures": "node download.mjs",
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "@php-wasm/node": "3.1.55",
+    "@php-wasm/universal": "3.1.55",
+    "@wp-playground/wordpress": "3.1.55"
+  }
+}

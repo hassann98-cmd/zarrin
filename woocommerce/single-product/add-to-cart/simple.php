@@ -4,6 +4,8 @@
  * (input[name=quantity], name=add-to-cart) تا assets/js/frontend/add-to-cart.js
  * خودِ ووکامرس بدون تغییر کار کنه؛ فقط ظاهرش با استپر/دکمه‌ی سفارشی
  * (همون الگوی data-jluxe-qty-step که در سبد خرید هم استفاده شده) بازطراحی شده.
+
+ * @version 10.2.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -30,11 +32,11 @@ $is_in_stock = $product->is_in_stock();
 		$jluxe_qty_max   = apply_filters( 'woocommerce_quantity_input_max', $product->get_max_purchase_quantity(), $product );
 		$jluxe_qty_fixed = $jluxe_qty_min > 0 && $jluxe_qty_min === $jluxe_qty_max;
 		?>
-		<div class="flex items-center justify-between gap-2 rounded-xl bg-surface px-2 py-1.5">
-			<span class="ps-1 text-[12px] text-text-muted">تعداد</span>
-			<div class="quantity flex items-center gap-1">
+		<div class="jluxe-simple-qty-row flex items-center justify-between gap-2 rounded-xl bg-surface px-2 py-1.5">
+			<span class="jluxe-simple-qty-label ps-1 text-[12px] text-text-muted">تعداد</span>
+			<div class="quantity jluxe-simple-qty-controls flex items-center gap-1">
 				<?php if ( ! $jluxe_qty_fixed ) : ?>
-					<button type="button" data-jluxe-qty-step="decrease" aria-label="کاهش تعداد" class="grid size-7 place-items-center rounded-lg text-text-secondary transition-all hover:bg-muted active:scale-90 active:bg-muted">
+					<button type="button" data-jluxe-qty-step="decrease" aria-label="کاهش تعداد" class="jluxe-simple-qty-step grid size-7 place-items-center rounded-lg text-text-secondary transition-all hover:bg-muted active:scale-90 active:bg-muted">
 						<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
 					</button>
 				<?php endif; ?>
@@ -50,7 +52,7 @@ $is_in_stock = $product->is_in_stock();
 				);
 				?>
 				<?php if ( ! $jluxe_qty_fixed ) : ?>
-					<button type="button" data-jluxe-qty-step="increase" aria-label="افزایش تعداد" class="grid size-7 place-items-center rounded-lg text-text-secondary transition-all hover:bg-muted active:scale-90 active:bg-muted">
+					<button type="button" data-jluxe-qty-step="increase" aria-label="افزایش تعداد" class="jluxe-simple-qty-step grid size-7 place-items-center rounded-lg text-text-secondary transition-all hover:bg-muted active:scale-90 active:bg-muted">
 						<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
 					</button>
 				<?php endif; ?>
@@ -72,9 +74,10 @@ $is_in_stock = $product->is_in_stock();
 		 * موبایل دکمه اصلاً کار نمی‌کنه»، فقط برای محصولِ ساده).
 		 */
 		?>
-		<button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="single_add_to_cart_button group/cta mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.97]">
+		<button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="single_add_to_cart_button group/cta mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.97]" aria-label="افزودن به سبد خرید">
 			<svg class="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-			افزودن به سبد خرید
+			<span class="jluxe-simple-add-label-full">افزودن به سبد خرید</span>
+			<span class="jluxe-simple-add-label-short" aria-hidden="true">افزودن</span>
 		</button>
 	</form>
 	<?php do_action( 'woocommerce_after_add_to_cart_form' ); ?>

@@ -490,7 +490,7 @@
 	document.addEventListener("DOMContentLoaded", function () {
 		initStories();
 		initSliders("[data-jluxe-banner-slider]");
-		initSliders("[data-jluxe-hero-slider]");
+		// R89 — هیرو حالا assets/js/hero-slider.js است (افکت‌ها، حلقه، کشیدن).
 		initScrollArrows();
 		initScrollArrowVisibility();
 		initDragScroll();

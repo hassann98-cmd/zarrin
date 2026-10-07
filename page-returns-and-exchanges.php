@@ -288,7 +288,7 @@ $jluxe_re_btn_style   = ! empty( $jluxe_re['button_color'] ) ? ' style="backgrou
 			<?php if ( $jluxe_re_intro ) : ?><p><?php echo esc_html( $jluxe_re_intro ); ?></p><?php endif; ?>
 		</header>
 		<div class="jluxe-guide-body"><?php echo wp_kses_post( $jluxe_re_body ); ?></div>
-		<?php if ( $jluxe_re_btn_text ) : ?><div class="jrp-footer-cta"><a href="<?php echo esc_url( $jluxe_re_btn_url ); ?>" class="jrp-btn"<?php echo $jluxe_re_btn_style; ?>><?php echo esc_html( $jluxe_re_btn_text ); ?></a></div><?php endif; ?>
+		<?php if ( $jluxe_re_btn_text ) : ?><div class="jrp-footer-cta"><a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_re_btn_url ) ); ?>" class="jrp-btn"<?php echo $jluxe_re_btn_style; ?>><?php echo esc_html( $jluxe_re_btn_text ); ?></a></div><?php endif; ?>
 
 </main>
 

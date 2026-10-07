@@ -20,7 +20,7 @@ do_action( 'woocommerce_before_cart' );
 jluxe_render_checkout_stepper( 'cart' );
 ?>
 
-<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
+<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 	<h1 class="mb-6 text-h2 text-foreground">سبد خرید</h1>
 
 	<div class="grid gap-6 lg:grid-cols-[1fr_320px]">

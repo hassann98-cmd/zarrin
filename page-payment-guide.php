@@ -320,7 +320,7 @@ $jluxe_pg_body = strtr( $jluxe_pg['body_html'] ?? '', array( '{site_name}' => $j
 			<?php if ( $jluxe_pg_intro ) : ?><p><?php echo esc_html( $jluxe_pg_intro ); ?></p><?php endif; ?>
 		</header>
 		<div class="jluxe-guide-body"><?php echo wp_kses_post( $jluxe_pg_body ); ?></div>
-		<?php if ( $jluxe_pg_btn_text ) : ?><div class="jpp-footer-cta"><a href="<?php echo esc_url( $jluxe_pg_btn_url ); ?>" class="jpp-btn"<?php echo $jluxe_pg_btn_style; ?>><?php echo esc_html( $jluxe_pg_btn_text ); ?></a></div><?php endif; ?>
+		<?php if ( $jluxe_pg_btn_text ) : ?><div class="jpp-footer-cta"><a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_pg_btn_url ) ); ?>" class="jpp-btn"<?php echo $jluxe_pg_btn_style; ?>><?php echo esc_html( $jluxe_pg_btn_text ); ?></a></div><?php endif; ?>
 
 </main>
 

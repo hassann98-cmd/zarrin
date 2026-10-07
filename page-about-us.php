@@ -7,7 +7,7 @@
  *
  * چیدمان طبقِ درخواستِ صریحِ کاربر («تمام‌صفحه و کاملا ریسپانسیو») از
  * یک کارتِ باریکِ max-w-[900px] به عرضِ استانداردِ سراسرِ سایت
- * (max-w-[1296px]) تغییر کرد؛ برای اینکه پاراگراف‌های متنی رو صفحه‌نمایشِ
+ * (max-w-[1320px]) تغییر کرد؛ برای اینکه پاراگراف‌های متنی رو صفحه‌نمایشِ
  * پهن خیلی کشیده/کم‌خوانا نشن، خودِ متن‌ها تو یک max-w-2xl داخلی محدود
  * موندن، ولی گریدِ «چرا ما» و باکسِ CTA کاملِ عرض رو استفاده می‌کنن.
  */
@@ -28,7 +28,7 @@ $jluxe_about_cta_button_style = ! empty( $jluxe_about_info['cta_button_color'] )
 ?>
 
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-10 sm:py-14">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10 sm:py-14">
 
 		<div class="mx-auto max-w-2xl text-center">
 			<?php if ( $jluxe_about_logo ) : ?>
@@ -86,7 +86,7 @@ $jluxe_about_cta_button_style = ! empty( $jluxe_about_info['cta_button_color'] )
 					<p class="mb-5 text-[16px] font-bold leading-8 text-primary-foreground sm:text-[18px]"><?php echo esc_html( $jluxe_about_cta_text ); ?></p>
 				<?php endif; ?>
 				<?php if ( $jluxe_about_cta_button_text ) : ?>
-					<a href="<?php echo esc_url( $jluxe_about_cta_button_url ); ?>" class="inline-block rounded-full bg-surface px-8 py-3.5 text-[14px] font-bold text-foreground transition-transform hover:scale-[1.03] active:scale-95"<?php echo $jluxe_about_cta_button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_about_cta_button_text ); ?></a>
+					<a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_about_cta_button_url ) ); ?>" class="inline-block rounded-full bg-surface px-8 py-3.5 text-[14px] font-bold text-foreground transition-transform hover:scale-[1.03] active:scale-95"<?php echo $jluxe_about_cta_button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_about_cta_button_text ); ?></a>
 				<?php endif; ?>
 			</div>
 		<?php endif; ?>

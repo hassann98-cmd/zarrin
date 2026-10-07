@@ -7,6 +7,8 @@
  * نه کوئری جدا، تا فیلتر/pagination اصلیِ ووکامرس دست‌نخورده بمونه.
  *
  * @see woocommerce/templates/myaccount/orders.php (نسخه‌ی اصلی)
+
+ * @version 9.5.0
  */
 
 defined( 'ABSPATH' ) || exit;

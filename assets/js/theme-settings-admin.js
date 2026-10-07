@@ -80,17 +80,34 @@ jQuery(function ($) {
 		var targetInput = $("#" + button.data("target"));
 		var previewEl = button.closest(".jluxe-media-field").find(".jluxe-media-preview");
 
-		var frame = wp.media({
-			title: "انتخاب تصویر",
+		var previewSize = button.data("previewSize") || "medium";
+		var libraryType = button.data("libraryType");
+		var frameOptions = {
+			title: libraryType ? "انتخاب تصویر یا GIF" : "انتخاب رسانه",
 			button: { text: "استفاده از این تصویر" },
 			multiple: false,
-		});
+		};
+		// محدودکردن رسانه به تصویر فقط برای فیلدهایی که نیاز به آن دارند
+		// (از جمله بنر)؛ دیگر فیلدهای رسانه رفتار قبلی wp.media را نگه می‌دارند.
+		if (libraryType) frameOptions.library = { type: libraryType };
+		var frame = wp.media(frameOptions);
 
 		frame.on("select", function () {
 			var attachment = frame.state().get("selection").first().toJSON();
 			targetInput.val(attachment.id);
-			var previewUrl = attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url;
-			previewEl.html('<img src="' + previewUrl + '" alt="" style="max-height:60px;" />');
+			// برای بنر previewSize برابر full است: GIF با فایل اصلی لود می‌شود
+			// تا thumbnail ثابتِ وردپرس، انیمیشن را از بین نبرد.
+			var previewUrl = previewSize === "full" || !attachment.sizes || !attachment.sizes[previewSize]
+				? attachment.url
+				: attachment.sizes[previewSize].url;
+			var maxHeight = button.data("previewMaxHeight") || "60px";
+			var previewImage = $("<img>", { src: previewUrl, alt: "" }).css({
+				maxHeight: maxHeight,
+				maxWidth: "100%",
+				width: "auto",
+				height: "auto",
+			});
+			previewEl.empty().append(previewImage);
 		});
 
 		frame.open();
@@ -107,6 +124,18 @@ jQuery(function ($) {
 			.find(".jluxe-media-preview")
 			.html('<span class="description">' + emptyLabel + "</span>");
 	});
+
+	// نمایش یکی از دو فرم محتوای بنر (متن یا تصویر/GIF).
+	function syncAnnouncementMode() {
+		var mode = $(".jluxe-announcement-mode:checked").val() || "text";
+		$("[data-announcement-mode]").each(function () {
+			var panel = $(this);
+			var active = panel.data("announcementMode") === mode;
+			panel.toggle(active).attr("aria-hidden", active ? "false" : "true");
+		});
+	}
+	$(document).on("change", ".jluxe-announcement-mode", syncAnnouncementMode);
+	syncAnnouncementMode();
 
 	// ===================================================================
 	// Repeater عمومی (اسلایدهای هیرو، آیتم‌های دسته‌بندی و هر لیست پویای

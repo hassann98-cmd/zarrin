@@ -7,6 +7,8 @@
  * آیتم‌ها همچنان از wc_get_account_menu_items() واقعی میان (نه هاردکد)،
  * پس اگر افزونه‌ای بعداً endpoint جدید اضافه/کم کنه، سایدبار خودش همگام
  * می‌مونه — فقط آیکونش fallback عمومی می‌گیره.
+
+ * @version 9.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $jluxe_account_icons = array(
+	'home'            => '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
 	'dashboard'       => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 	'orders'          => '<path d="M20.5 7.3 12 12l-8.5-4.7"/><path d="M12 22V12"/><path d="m20.5 7.3-8.4-4.6a1 1 0 0 0-1 0L3 7.3"/><path d="M3 7.3v9.4a1 1 0 0 0 .5.9l8 4.5a1 1 0 0 0 1 0l8-4.5a1 1 0 0 0 .5-.9V7.3"/>',
 	'downloads'       => '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>',
@@ -38,13 +41,25 @@ do_action( 'woocommerce_before_account_navigation' );
 	</div>
 
 	<ul class="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-2">
+		<li class="jluxe-account-home-item mb-1">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="jluxe-account-home-link group flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-3 text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5">
+				<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $jluxe_account_icons['home']; ?></svg>
+				</span>
+				<span class="min-w-0 flex-1">
+					<strong class="block text-small font-bold">صفحهٔ اصلی</strong>
+					<span class="mt-0.5 block text-caption text-text-secondary">بازگشت به فروشگاه زرین</span>
+				</span>
+				<svg class="size-4 shrink-0 text-text-muted transition-colors group-hover:text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+			</a>
+		</li>
 		<?php foreach ( wc_get_account_menu_items() as $endpoint => $label ) :
 			$is_current = wc_is_current_account_menu_item( $endpoint );
 			$icon_path  = $jluxe_account_icons[ $endpoint ] ?? '<circle cx="12" cy="12" r="8"/>';
 			?>
 			<li class="<?php echo esc_attr( wc_get_account_menu_item_classes( $endpoint ) ); ?>">
 				<a
-					href="<?php echo esc_url( wc_get_account_endpoint_url( $endpoint ) ); ?>"
+					href="<?php echo esc_url( in_array( $endpoint, array( 'dashboard', 'orders' ), true ) ? jluxe_route_url( $endpoint ) : wc_get_account_endpoint_url( $endpoint ) ); ?>"
 					<?php echo $is_current ? 'aria-current="page"' : ''; ?>
 					class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-small font-medium transition-colors <?php echo $is_current ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-muted hover:text-foreground'; ?>"
 				>

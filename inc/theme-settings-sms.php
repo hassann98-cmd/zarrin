@@ -9,7 +9,8 @@
 defined( 'ABSPATH' ) || exit;
 
 function jluxe_render_sms_page(): void {
-	$status = null;
+	$status   = null;
+	$warnings = array();
 
 	if ( isset( $_POST['jluxe_settings_nonce'] ) && current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['jluxe_settings_nonce'] ) ), 'jluxe_save_settings' ) ) {
 		if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -22,24 +23,25 @@ function jluxe_render_sms_page(): void {
 			$clean    = jluxe_sanitize_sms( $posted, $defaults['sms'] );
 			jluxe_update_settings_section( 'sms', $clean );
 
-			if ( ! empty( $_POST['sms_api_key'] ) ) {
-				jluxe_set_sms_api_key( sanitize_text_field( wp_unslash( $_POST['sms_api_key'] ) ) );
-			}
-			if ( ! empty( $_POST['sms_api_key_clear'] ) ) {
-				jluxe_set_sms_api_key( '' );
-			}
+			// R90 — همان محافظتِ کلیدِ AI (inc/theme-settings-secrets.php).
+			$warnings[] = jluxe_apply_posted_secret( 'sms_api_key', jluxe_get_sms_api_key(), 'jluxe_set_sms_api_key', 'کلید API / رمز عبورِ پیامک', false );
 			$status = 'saved';
 		}
 	}
 
 	$settings = jluxe_get_fresh_settings();
 	$sms      = $settings['sms'];
-	$has_key  = '' !== jluxe_get_sms_api_key();
+	$sms_key  = jluxe_get_sms_api_key();
+	$has_key  = '' !== $sms_key;
+	$key_hint = jluxe_secret_hint( $sms_key );
+	unset( $sms_key );
+	$webotp_host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
 
-	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key ) {
+	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key, $key_hint, $warnings, $webotp_host ) {
 		?>
-		<p class="description">صفحه‌ی «ورود و عضویت» (my-account) همیشه با نام‌کاربری/ایمیل کار می‌کنه. تب «شماره موبایل» هم توی همون صفحه نمایش داده می‌شه، ولی تا وقتی این‌جا provider و کلید واقعی ست نکنی، غیرفعاله و پیام «سرویس پیامکی هنوز وصل نشده» نشون می‌ده — هیچ کدی به‌صورت فیک ارسال/تایید نمی‌شه.</p>
-		<form method="post">
+		<p class="description">در صفحهٔ «ورود و عضویت»، کدِ درستِ پیامکی هم ورود را انجام می‌دهد و هم برای شمارهٔ تازه یک حساب مشتریِ کمینه می‌سازد؛ اگر شماره در billing phone یک حساب موجود باشد، همان حساب پس از تأیید OTP به شماره پیوند می‌خورد. این مسیر مستقل از فعال‌بودن ثبت‌نامِ نام‌کاربری/رمز در WooCommerce است و نام/نشانی را می‌توان هنگام تسویه‌حساب گرفت. تب موبایل تا تنظیم provider و کلید واقعی غیرفعال می‌ماند و هیچ کدی به‌صورت فیک ارسال یا تأیید نمی‌شود. برای WebOTP در Chrome/Android، صفحه باید HTTPS باشد و متنِ نهاییِ الگوی تأییدشده باید با دامنهٔ همین سایت و کد پایان یابد؛ نمونهٔ انتهای پیام: <code dir="ltr">@<?php echo esc_html( $webotp_host ); ?> #123456</code> (عدد با کد واقعی جایگزین می‌شود). اگر پنل پیامکی امکانِ این قالب را ندهد، دریافتِ مستقیمِ خودکار ممکن نیست؛ پیشنهادِ سیستم‌عامل یا ورود دستی همچنان در دسترس است.</p>
+		<?php jluxe_render_secret_warnings( $warnings ); ?>
+		<form method="post" autocomplete="off">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
 			<h2>عمومی</h2>
@@ -47,6 +49,13 @@ function jluxe_render_sms_page(): void {
 				<tr>
 					<th scope="row">فعال‌سازی ورود با پیامک</th>
 					<td><label><input type="checkbox" name="sms[enabled]" value="1" <?php checked( $sms['enabled'] ); ?> /> نمایش تب «شماره موبایل» در صفحه‌ی ورود</label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">ورود فقط با رمز پیامکی</th>
+					<td>
+						<label><input type="checkbox" name="sms[otp_only]" value="1" <?php checked( ! empty( $sms['otp_only'] ) ); ?> /> مشتری فقط با رمز پیامکی وارد شود — بدونِ نام‌کاربری/رمز عبور</label>
+						<p class="description">در این حالت تبِ «نام کاربری» از صفحهٔ ورود حذف می‌شود. با تأیید کد، حساب مشتریِ دارای همین billing phone خودکار پیوند می‌خورد یا ـ اگر حسابی نباشد ـ حساب کمینه با همان شماره ساخته می‌شود؛ این ثبت‌نام پیامکی مستقل از تنظیم ثبت‌نام عادی WooCommerce است و اطلاعات خرید در تسویه‌حساب گرفته می‌شود. مدیران همیشه از <code>wp-login.php</code> وارد می‌شوند و این مسیر باز می‌ماند.</p>
 						<?php if ( $sms['enabled'] && ( ! $has_key || '' === $sms['provider'] ) ) : ?>
 							<p class="description" style="color:#b32d2e">فعاله ولی provider/کلید تنظیم نشده — تب تا زمان تکمیل تنظیمات پایین غیرفعال می‌مونه.</p>
 						<?php endif; ?>
@@ -69,18 +78,25 @@ function jluxe_render_sms_page(): void {
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-username">نام کاربری</label></th>
-					<td><input type="text" id="jluxe-sms-username" name="sms[username]" value="<?php echo esc_attr( $sms['username'] ); ?>" class="regular-text" dir="ltr" placeholder="فقط برای ملی‌پیامک — نام کاربری پنل" />
+					<td><input type="text" id="jluxe-sms-username" name="sms[username]" value="<?php echo esc_attr( $sms['username'] ); ?>" class="regular-text" dir="ltr" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="فقط برای ملی‌پیامک — نام کاربری پنل" />
 						<p class="description">سرویس ارسال ملی‌پیامک (REST کلاسیک) به نام‌کاربری و رمز، هر دو، نیاز داره — رمز رو پایین به‌عنوان «کلید API» وارد کن.</p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-key">کلید API / رمز عبور</label></th>
 					<td>
-						<input type="password" id="jluxe-sms-key" name="sms_api_key" value="" class="regular-text" placeholder="<?php echo $has_key ? '•••••••••••••••• (تنظیم شده — برای تغییر، مقدار جدید بنویس)' : 'هنوز تنظیم نشده'; ?>" dir="ltr" autocomplete="off" />
+						<?php
+						jluxe_render_secret_field(
+							array(
+								'id'            => 'jluxe-sms-key',
+								'name'          => 'sms_api_key',
+								'has_key'       => $has_key,
+								'hint'          => $key_hint,
+								'confirm_clear' => 'کلید API حذف بشه؟ ورود با پیامک تا تنظیم دوباره کار نمی‌کنه.',
+							)
+						);
+						?>
 						<p class="description">کاوه‌نگار: توکن API. ملی‌پیامک: مقدار <strong>APIKey جهت استفاده از وب‌سرویس</strong> در پنل ملی‌پیامک.</p>
-						<?php if ( $has_key ) : ?>
-							<label><input type="checkbox" name="sms_api_key_clear" value="1" onclick="return confirm('کلید API حذف بشه؟ ورود با پیامک تا تنظیم دوباره کار نمی‌کنه.');" /> حذف کلید فعلی</label>
-						<?php endif; ?>
 					</td>
 				</tr>
 				<tr>
@@ -97,6 +113,23 @@ function jluxe_render_sms_page(): void {
 						<input type="text" id="jluxe-sms-body-id" name="sms[body_id]" value="<?php echo esc_attr( $sms['body_id'] ?? '' ); ?>" class="regular-text" dir="ltr" inputmode="numeric" placeholder="مثلاً 532701" />
 						<p class="description">برای ملی‌پیامک: کد متنِ وب‌سرویس خدماتی/پترن. این مقدار از پنل شما خوانده می‌شود و در کد هاردکد نشده است.</p>
 					</td>
+				</tr>
+			</table>
+
+			<h2>اعلانِ موجودشدن محصول</h2>
+			<p class="description">این قابلیت جدا از ورود پیامکی است و فقط پس از ثبتِ صریح شماره توسط مشتری پیامک می‌فرستد. الگوی جداگانه بسازید؛ از الگوی OTP استفاده نمی‌شود. برای کاوه‌نگار، الگوی Verify Lookup باید یک متغیر داشته باشد که نام محصول را می‌گیرد؛ برای ملی‌پیامک، Body ID یک پترن خدماتی با یک متغیرِ نام محصول باشد.</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">فعال‌سازی اعلان موجودی</th>
+					<td><label><input type="checkbox" name="sms[stock_alert_enabled]" value="1" <?php checked( ! empty( $sms['stock_alert_enabled'] ) ); ?> /> ارسال یک پیامک به مشتریانی که برای همان محصول درخواست داده‌اند</label></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-stock-alert-template">الگوی کاوه‌نگار</label></th>
+					<td><input type="text" id="jluxe-stock-alert-template" name="sms[stock_alert_template]" value="<?php echo esc_attr( $sms['stock_alert_template'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="نام الگوی Verify Lookup" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-stock-alert-body-id">Body ID ملی‌پیامک</label></th>
+					<td><input type="text" id="jluxe-stock-alert-body-id" name="sms[stock_alert_body_id]" value="<?php echo esc_attr( $sms['stock_alert_body_id'] ?? '' ); ?>" class="regular-text" dir="ltr" inputmode="numeric" placeholder="شناسهٔ پترن خدماتی" /></td>
 				</tr>
 			</table>
 
@@ -123,6 +156,9 @@ function jluxe_register_sms_rest_routes(): void {
 				'phone' => array(
 					'required'          => true,
 					'type'              => 'string',
+					'minLength'         => 1,
+					'maxLength'         => 64,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
@@ -139,146 +175,255 @@ function jluxe_register_sms_rest_routes(): void {
 				'phone' => array(
 					'required'          => true,
 					'type'              => 'string',
+					'minLength'         => 1,
+					'maxLength'         => 64,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'code'  => array(
 					'required'          => true,
 					'type'              => 'string',
+					'minLength'         => 1,
+					'maxLength'         => 64,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
 		)
 	);
+	register_rest_route( 'jluxe/v1', '/auth/otp-link', array(
+		'methods' => 'POST',
+		'callback' => 'jluxe_handle_otp_link',
+		'permission_callback' => function () { return is_user_logged_in(); },
+		'args' => array(
+			'phone' => array( 'required' => true, 'type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field' ),
+			'code' => array( 'required' => true, 'type' => 'string', 'minLength' => 1, 'maxLength' => 64, 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field' ),
+		),
+	) );
 }
 add_action( 'rest_api_init', 'jluxe_register_sms_rest_routes' );
 
-/**
- * شماره‌ی موبایل رو به فرمت یکتای ۱۰ رقمیِ بدون صفر/کد کشور نرمال می‌کنه —
- * دقیقاً همون منطق نرمال‌سازی تلفن در inc/order-tracking.php، برای یکسان
- * موندن رفتار بین دو ویژگی.
- */
-function jluxe_normalize_phone( string $phone ): string {
-	$digits = preg_replace( '/\D/', '', $phone );
-	$digits = preg_replace( '/^0098/', '', $digits );
-	$digits = preg_replace( '/^98/', '', $digits );
-	$digits = ltrim( $digits, '0' );
-	return substr( $digits, -10 );
+/** OTP records contain a keyed hash, expiry and attempt budget, never the code itself. */
+function jluxe_otp_key( string $phone ): string {
+	return 'jluxe_otp_v2_' . hash_hmac( 'sha256', $phone, wp_salt( 'auth' ) );
+}
+
+function jluxe_otp_hash( string $phone, string $code, string $intent, int $user_id ): string {
+	return hash_hmac( 'sha256', $phone . '|' . $intent . '|' . $user_id . '|' . $code, wp_salt( 'auth' ) );
+}
+
+function jluxe_expire_otp_challenge( string $key ): void {
+	$record = get_option( $key );
+	if ( is_array( $record ) && (int) $record['expires'] <= time() ) {
+		jluxe_consume_option( $key, $record );
+	}
+}
+add_action( 'jluxe_expire_otp_challenge', 'jluxe_expire_otp_challenge' );
+
+function jluxe_otp_limit_error(): WP_Error {
+	return new WP_Error( 'jluxe_sms_rate_limited', 'تعداد تلاش‌ها زیاد است؛ چند دقیقه دیگر دوباره تلاش کنید.', array( 'status' => 429 ) );
+}
+
+function jluxe_otp_available(): bool {
+	// A customer on one blog may be staff on another; network-wide OTP authorization is not implemented.
+	if ( function_exists( 'is_multisite' ) && is_multisite() ) { return false; }
+	$settings = jluxe_get_theme_settings()['sms'];
+	return ! empty( $settings['enabled'] ) && '' !== jluxe_get_sms_api_key() && in_array( $settings['provider'], array( 'kavenegar', 'melipayamak' ), true );
 }
 
 function jluxe_handle_otp_request( WP_REST_Request $request ) {
-	$settings = jluxe_get_theme_settings()['sms'];
-	$api_key  = jluxe_get_sms_api_key();
-
-	if ( ! $settings['enabled'] || '' === $api_key || '' === $settings['provider'] ) {
-		return new WP_Error( 'jluxe_sms_disabled', 'سرویس پیامکی هنوز به سایت وصل نشده — فعلاً از تب «نام کاربری» استفاده کن.', array( 'status' => 503 ) );
+	if ( ! jluxe_otp_available() ) {
+		return new WP_Error( 'jluxe_sms_disabled', 'ورود پیامکی فعال نیست؛ از نام کاربری و رمز استفاده کنید.', array( 'status' => 503 ) );
 	}
-
-	$phone = jluxe_normalize_phone( (string) $request->get_param( 'phone' ) );
-	if ( 10 !== strlen( $phone ) || '9' !== $phone[0] ) {
+	$phone_raw = $request->get_param( 'phone' );
+	$phone = is_string( $phone_raw ) && jluxe_strlen( $phone_raw ) <= 64 ? jluxe_normalize_phone( $phone_raw ) : '';
+	if ( '' === $phone ) {
 		return new WP_Error( 'jluxe_sms_bad_phone', 'شماره موبایل معتبر نیست.', array( 'status' => 400 ) );
 	}
-
-	// rate limit: حداکثر ۳ درخواست کد در ۱۰ دقیقه برای هر شماره + هر IP.
-	$ip        = jluxe_theme_get_client_ip();
-	$rl_phone  = 'jluxe_otp_rl_p_' . md5( $phone );
-	$rl_ip     = 'jluxe_otp_rl_i_' . md5( $ip );
-	if ( (int) get_transient( $rl_phone ) >= 3 || (int) get_transient( $rl_ip ) >= 10 ) {
-		return new WP_Error( 'jluxe_sms_rate_limited', 'تعداد درخواست‌ها زیاده — چند دقیقه دیگه دوباره تلاش کن.', array( 'status' => 429 ) );
+	$intent = 'link' === $request->get_param( 'intent' ) ? 'link' : 'login';
+	$user_id = 'link' === $intent ? get_current_user_id() : 0;
+	if ( 'link' === $intent && ! jluxe_otp_user_allowed( get_userdata( $user_id ) ) ) {
+		return new WP_Error( 'jluxe_sms_link_forbidden', 'ابتدا با رمز وارد حساب مشتری شوید.', array( 'status' => 403 ) );
 	}
 
-	$code = (string) wp_rand( 10000, 99999 );
-
-	$sent = jluxe_send_otp_sms( $settings, $api_key, $phone, $code );
-	if ( is_wp_error( $sent ) ) {
-		return $sent;
+	// Reserve the budget BEFORE contacting the paid provider, including failed sends.
+	if ( ! jluxe_security_rate_limit( 'otp_send_ip', jluxe_theme_get_client_ip(), 10, 10 * MINUTE_IN_SECONDS ) ||
+		! jluxe_security_rate_limit( 'otp_send_phone', $phone, 3, 10 * MINUTE_IN_SECONDS ) ) {
+		return jluxe_otp_limit_error();
 	}
-
-	set_transient( 'jluxe_otp_code_' . md5( $phone ), $code, 2 * MINUTE_IN_SECONDS );
-	set_transient( $rl_phone, (int) get_transient( $rl_phone ) + 1, 10 * MINUTE_IN_SECONDS );
-	set_transient( $rl_ip, (int) get_transient( $rl_ip ) + 1, 10 * MINUTE_IN_SECONDS );
-
-	return array( 'sent' => true );
+	$lock = jluxe_security_lock( 'otp:' . $phone );
+	if ( ! $lock ) {
+		return jluxe_otp_limit_error();
+	}
+	try {
+		$code = (string) wp_rand( 100000, 999999 );
+		$key = jluxe_otp_key( $phone );
+		$record = array(
+			'hash' => jluxe_otp_hash( $phone, $code, $intent, $user_id ),
+			'expires' => time() + 2 * MINUTE_IN_SECONDS,
+			'attempts' => 0,
+			'intent' => $intent,
+			'user_id' => $user_id,
+		);
+		if ( ! update_option( $key, $record, false ) ) {
+			return new WP_Error( 'jluxe_sms_storage', 'امکان ایجاد کد وجود ندارد؛ دوباره تلاش کنید.', array( 'status' => 503 ) );
+		}
+		wp_schedule_single_event( $record['expires'] + 1, 'jluxe_expire_otp_challenge', array( $key ) );
+		$sent = jluxe_send_otp_sms( jluxe_get_theme_settings()['sms'], jluxe_get_sms_api_key(), $phone, $code );
+		if ( is_wp_error( $sent ) ) {
+			jluxe_consume_option( $key, $record );
+			return $sent;
+		}
+		return array( 'sent' => true, 'expiresIn' => 120, 'codeLength' => 6 );
+	} finally {
+		jluxe_security_unlock( $lock );
+	}
 }
 
 function jluxe_handle_otp_verify( WP_REST_Request $request ) {
-	$settings = jluxe_get_theme_settings()['sms'];
-	if ( ! $settings['enabled'] || '' === jluxe_get_sms_api_key() || '' === $settings['provider'] ) {
-		return new WP_Error( 'jluxe_sms_disabled', 'سرویس پیامکی هنوز به سایت وصل نشده.', array( 'status' => 503 ) );
+	return jluxe_verify_otp( $request, false );
+}
+
+function jluxe_handle_otp_link( WP_REST_Request $request ) {
+	return jluxe_verify_otp( $request, true );
+}
+
+function jluxe_verify_otp( WP_REST_Request $request, bool $link ) {
+	if ( ! jluxe_otp_available() ) {
+		return new WP_Error( 'jluxe_sms_disabled', 'ورود پیامکی فعال نیست.', array( 'status' => 503 ) );
 	}
-
-	$phone = jluxe_normalize_phone( (string) $request->get_param( 'phone' ) );
-	$code  = sanitize_text_field( (string) $request->get_param( 'code' ) );
-
-	$key      = 'jluxe_otp_code_' . md5( $phone );
-	$expected = get_transient( $key );
-
-	if ( false === $expected || ! hash_equals( (string) $expected, $code ) ) {
-		return new WP_Error( 'jluxe_sms_bad_code', 'کد وارد شده اشتباه یا منقضی‌شده است.', array( 'status' => 400 ) );
+	if ( ! jluxe_security_rate_limit( 'otp_verify_ip', jluxe_theme_get_client_ip(), 30, 10 * MINUTE_IN_SECONDS ) ) {
+		return jluxe_otp_limit_error();
 	}
+	$phone_raw = $request->get_param( 'phone' );
+	$code_raw  = $request->get_param( 'code' );
+	$phone = is_string( $phone_raw ) && jluxe_strlen( $phone_raw ) <= 64 ? jluxe_normalize_phone( $phone_raw ) : '';
+	$code  = is_string( $code_raw ) && jluxe_strlen( $code_raw ) <= 64 ? trim( jluxe_ascii_digits( $code_raw ) ) : '';
+	if ( '' === $phone ) {
+		return new WP_Error( 'jluxe_sms_bad_phone', 'شماره موبایل معتبر نیست.', array( 'status' => 400 ) );
+	}
+	if ( ! jluxe_security_rate_limit( 'otp_verify_phone', $phone, 10, 10 * MINUTE_IN_SECONDS ) ) {
+		return jluxe_otp_limit_error();
+	}
+	$lock = jluxe_security_lock( 'otp:' . $phone );
+	if ( ! $lock ) {
+		return jluxe_otp_limit_error();
+	}
+	try {
+		$key = jluxe_otp_key( $phone );
+		$record = get_option( $key );
+		$intent = $link ? 'link' : 'login';
+		$user_id = $link ? get_current_user_id() : 0;
+		if ( $link && ! jluxe_otp_user_allowed( get_userdata( $user_id ) ) ) {
+			return new WP_Error( 'jluxe_sms_link_forbidden', 'ابتدا با رمز وارد حساب مشتری شوید.', array( 'status' => 403 ) );
+		}
+		$bad_code = new WP_Error( 'jluxe_sms_bad_code', 'کد وارد شده اشتباه یا منقضی شده است؛ کد جدید بگیرید.', array( 'status' => 400 ) );
+		if ( ! is_array( $record ) || (int) $record['expires'] <= time() ) {
+			jluxe_expire_otp_challenge( $key );
+			return $bad_code;
+		}
+		if ( (int) $record['attempts'] >= 5 ) {
+			jluxe_consume_option( $key, $record );
+			return jluxe_otp_limit_error();
+		}
+		if ( ! preg_match( '/^[0-9]{6}$/D', $code ) || $record['intent'] !== $intent || (int) $record['user_id'] !== $user_id ||
+			! hash_equals( $record['hash'], jluxe_otp_hash( $phone, $code, $intent, $user_id ) ) ) {
+			++$record['attempts'];
+			if ( $record['attempts'] >= 5 ) {
+				// Read the original record for conditional deletion, not the incremented copy.
+				$original = $record;
+				--$original['attempts'];
+				jluxe_consume_option( $key, $original );
+				return jluxe_otp_limit_error();
+			}
+			if ( ! update_option( $key, $record, false ) ) {
+				return jluxe_otp_limit_error();
+			}
+			return $bad_code;
+		}
+		// No two requests can authenticate with this record, even if a mutex lease expires.
+		if ( ! jluxe_consume_option( $key, $record ) ) {
+			return $bad_code;
+		}
 
-	delete_transient( $key );
-
-	/*
-	 * باگِ واقعیِ کشف‌شده حینِ ممیزیِ امنیتی (دقیقاً همون کلاسِ باگی که تویِ
-	 * پوسته‌ی قبلی/Boom هم بود): این‌جا قبلاً فقط متای jluxe_phone چک می‌شد —
-	 * متایی که فقط توسطِ خودِ همین تابع، فقط موقعِ ساختِ حسابِ جدیدِ OTP، ست
-	 * می‌شه. یعنی مشتری‌ای که قبلاً با ایمیل/رمز ثبت‌نام کرده (inc/auth.php)
-	 * و بعد در چک‌اوت شماره‌ی موبایلش رو به‌عنوانِ billing_phone (متای
-	 * استانداردِ خودِ ووکامرس) ثبت کرده، اگه بعداً بخواد با همون شماره از
-	 * تبِ «ورود با پیامک» وارد بشه، اصلاً پیدا نمی‌شد — یک حسابِ کاملاً جدید و
-	 * جدا (با ایمیلِ ساختگی) براش ساخته می‌شد، بدونِ دسترسی به سفارش‌های
-	 * قبلی‌اش (دقیقاً مشکلِ «مالکیتِ سفارش» که در order-pay هم می‌تونست خودش
-	 * رو نشون بده). الان علاوه‌بر jluxe_phone، billing_phone هم (با چند
-	 * فرمتِ محتملِ ذخیره‌شدن: با/بدونِ صفرِ ابتدایی، با/بدونِ کدِ کشور) چک
-	 * می‌شه؛ اگه پیدا شد، jluxe_phone هم روی همون حسابِ موجود ست می‌شه تا
-	 * دفعه‌ی بعد مستقیم از مسیرِ سریع‌تر پیدا بشه.
-	 */
-	$billing_phone_candidates = array_unique( array( $phone, '0' . $phone, '98' . $phone, '+98' . $phone, '0098' . $phone ) );
-
-	$users = get_users( array(
-		'meta_query' => array(
-			'relation' => 'OR',
-			array( 'key' => 'jluxe_phone', 'value' => $phone, 'compare' => '=' ),
-			array( 'key' => 'billing_phone', 'value' => $billing_phone_candidates, 'compare' => 'IN' ),
-		),
-		'number' => 1,
-		'fields' => 'ID',
-	) );
-
-	if ( ! empty( $users ) ) {
-		$user_id = (int) $users[0];
-		// بک‌فیل — اگه از مسیرِ billing_phone پیدا شده (نه jluxe_phone)، دفعه‌ی
-		// بعد مستقیم از مسیرِ سریع‌تر پیدا بشه.
-		if ( '' === (string) get_user_meta( $user_id, 'jluxe_phone', true ) ) {
+		$users = get_users( array( 'meta_key' => 'jluxe_phone', 'meta_value' => $phone, 'number' => 2, 'fields' => 'ID' ) );
+		if ( count( $users ) > 1 || ( $link && $users && (int) $users[0] !== $user_id ) ) {
+			return new WP_Error( 'jluxe_sms_ambiguous_phone', 'این شماره قابل اتصال خودکار نیست؛ با رمز وارد شوید یا با پشتیبانی تماس بگیرید.', array( 'status' => 409 ) );
+		}
+		if ( $link ) {
 			update_user_meta( $user_id, 'jluxe_phone', $phone );
+			if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+				return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ دوباره تلاش کنید.', array( 'status' => 503 ) );
+			}
+			return array( 'success' => true );
 		}
-	} else {
-		$username = 'user_' . $phone;
-		$suffix   = 0;
-		while ( username_exists( $suffix ? $username . $suffix : $username ) ) {
-			$suffix++;
+		if ( $users ) {
+			$user_id = (int) $users[0];
+		} else {
+			// Billing metadata alone is not proof. A successful OTP is; use it to
+			// link exactly one eligible account without asking for its password.
+			$candidates = array( $phone, '0' . $phone, '98' . $phone, '+98' . $phone, '0098' . $phone );
+			foreach ( array( '۰۱۲۳۴۵۶۷۸۹', '٠١٢٣٤٥٦٧٨٩' ) as $digits ) {
+				$map = array_combine( str_split( '0123456789' ), preg_split( '//u', $digits, -1, PREG_SPLIT_NO_EMPTY ) );
+				foreach ( array_slice( $candidates, 0, 5 ) as $candidate ) {
+					$candidates[] = strtr( $candidate, $map );
+				}
+			}
+			$billing_accounts = get_users( array( 'meta_query' => array( array( 'key' => 'billing_phone', 'value' => $candidates, 'compare' => 'IN' ) ), 'number' => 2, 'fields' => 'ID' ) );
+			if ( count( $billing_accounts ) > 1 ) {
+				return new WP_Error( 'jluxe_sms_ambiguous_phone', 'این شماره برای چند حساب ثبت شده و اتصال خودکار امن نیست؛ با پشتیبانی تماس بگیرید.', array( 'status' => 409 ) );
+			}
+			if ( $billing_accounts ) {
+				$user_id = (int) $billing_accounts[0];
+				$billing_user = get_userdata( $user_id );
+				if ( ! jluxe_otp_user_allowed( $billing_user ) ) {
+					return new WP_Error( 'jluxe_sms_account_restricted', 'برای این حساب از ورود با رمز استفاده کنید.', array( 'status' => 403 ) );
+				}
+				$linked_phone = trim( (string) get_user_meta( $user_id, 'jluxe_phone', true ) );
+				if ( '' !== $linked_phone && jluxe_normalize_phone( $linked_phone ) !== $phone ) {
+					return new WP_Error( 'jluxe_sms_ambiguous_phone', 'این شماره از قبل به حساب دیگری متصل است؛ با پشتیبانی تماس بگیرید.', array( 'status' => 409 ) );
+				}
+				if ( $linked_phone !== $phone ) {
+					update_user_meta( $user_id, 'jluxe_phone', $phone );
+					if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+						return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ دوباره تلاش کنید.', array( 'status' => 503 ) );
+					}
+				}
+			} else {
+				// SMS-verified signup is intentionally independent of the ordinary
+				// WooCommerce username/password registration setting. The verified
+				// phone is the only initial identity; checkout can collect customer data.
+				$user_id = wp_insert_user( array(
+					'user_login' => 'customer_' . strtolower( wp_generate_password( 16, false, false ) ),
+					'user_pass' => wp_generate_password( 32 ),
+					// No fabricated email that could send a password reset to an unrelated mailbox.
+					'user_email' => '',
+					'display_name' => 'مشتری',
+					'role' => get_role( 'customer' ) ? 'customer' : 'subscriber',
+					'meta_input' => array( 'jluxe_phone' => $phone, 'billing_phone' => '0' . $phone ),
+				) );
+				if ( is_wp_error( $user_id ) ) {
+					return new WP_Error( 'jluxe_sms_user_create_failed', 'ساخت حساب ناموفق بود.', array( 'status' => 500 ) );
+				}
+				if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+					return new WP_Error( 'jluxe_sms_storage', 'ذخیرهٔ شماره انجام نشد؛ با پشتیبانی تماس بگیرید.', array( 'status' => 503 ) );
+				}
+			}
 		}
-		$final_username = $suffix ? $username . $suffix : $username;
-
-		$user_id = wp_insert_user( array(
-			'user_login' => $final_username,
-			'user_pass'  => wp_generate_password( 20 ),
-			'user_email' => $final_username . '@' . wp_parse_url( home_url(), PHP_URL_HOST ),
-			'role'       => 'customer',
-		) );
-
-		if ( is_wp_error( $user_id ) ) {
-			return new WP_Error( 'jluxe_sms_user_create_failed', 'ساخت حساب کاربری ناموفق بود.', array( 'status' => 500 ) );
+		$user = get_userdata( $user_id );
+		if ( ! jluxe_otp_user_allowed( $user ) ) {
+			return new WP_Error( 'jluxe_sms_account_restricted', 'برای این حساب از ورود با رمز استفاده کنید.', array( 'status' => 403 ) );
 		}
-
-		update_user_meta( $user_id, 'jluxe_phone', $phone );
-		update_user_meta( $user_id, 'billing_phone', $phone );
+		if ( (string) get_user_meta( $user_id, 'jluxe_phone', true ) !== $phone ) {
+			return new WP_Error( 'jluxe_sms_phone_changed', 'شمارهٔ حساب تغییر کرده است؛ دوباره وارد شوید.', array( 'status' => 409 ) );
+		}
+		wp_set_current_user( $user_id );
+		wp_set_auth_cookie( $user_id, true, is_ssl() );
+		do_action( 'wp_login', $user->user_login, $user );
+		return array( 'success' => true );
+	} finally {
+		jluxe_security_unlock( $lock );
 	}
-
-	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id, true );
-
-	return array( 'success' => true );
 }
 
 /**
@@ -299,7 +444,8 @@ function jluxe_send_otp_sms( array $settings, string $api_key, string $phone, st
 			return new WP_Error( 'jluxe_sms_upstream', 'ارسال پیامک ناموفق بود.', array( 'status' => 502 ) );
 		}
 		$code_http = wp_remote_retrieve_response_code( $response );
-		if ( $code_http < 200 || $code_http >= 300 ) {
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( $code_http < 200 || $code_http >= 300 || ! is_array( $body ) || 200 !== (int) ( $body['return']['status'] ?? 0 ) ) {
 			return new WP_Error( 'jluxe_sms_upstream', 'ارسال پیامک ناموفق بود.', array( 'status' => 502 ) );
 		}
 		return true;

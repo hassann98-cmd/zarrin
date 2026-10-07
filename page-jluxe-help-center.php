@@ -187,37 +187,37 @@ get_header();
 			<div class="jhh-card">
 				<h2>راهنمای خرید از سایت</h2>
 				<p>آموزش گام‌به‌گام و تصویری مراحل پیدا‌کردن محصول، افزودن به سبد خرید و ثبت آسان سفارش در <?php echo esc_html( $jluxe_site_name ); ?>.</p>
-				<a class="jhh-btn" href="/shopping-guide/">مشاهدهٔ راهنما ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/shopping-guide/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>روش‌ها و راهنمای پرداخت سفارشات</h2>
 				<p>آشنایی با شیوه‌های پرداخت امن آنلاین (درگاه بانکی) و راهنمای واریز به‌صورت کارت‌به‌کارت یا شبا.</p>
-				<a class="jhh-btn" href="/payment-guide/">مشاهدهٔ راهنما ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/payment-guide/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>روش‌های ارسال و راهنمای پیگیری سفارشات</h2>
 				<p>بررسی گزینه‌های ارسال (پست، تیپاکس و چاپار)، هزینه‌ها، قوانین بسته‌های شکستنی و آشنایی با وضعیت‌های سفارش.</p>
-				<a class="jhh-btn" href="/shipping-and-order-tracking/">مشاهدهٔ راهنما ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/shipping-and-order-tracking/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>رویهٔ شرایط مرجوعی و تعویض کالا</h2>
 				<p>قوانین مربوط به مهلت ۷ روزهٔ تست کالا، استثنائات بهداشتی و ضوابط تعویض کالاهای آسیب‌دیده.</p>
-				<a class="jhh-btn" href="/returns-and-exchanges/">مشاهدهٔ راهنما ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/returns-and-exchanges/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card jhh-card-wide">
 				<h2>پیگیری سریع سفارش</h2>
 				<p>مشاهدهٔ آنی و لحظه‌ای وضعیت بستهٔ خود، تنها با واردکردن شمارهٔ سفارش و شمارهٔ موبایل — بدون نیاز به ورود به حساب کاربری.</p>
-				<a class="jhh-btn" href="/track-order/">پیگیری سفارش ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( jluxe_route_url( 'track_order' ) ); ?>">پیگیری سفارش ←</a>
 			</div>
 
 			<div class="jhh-card jhh-card-wide">
 				<h2>تماس با ما</h2>
 				<p>راه‌های ارتباط مستقیم با پشتیبانی <?php echo esc_html( $jluxe_site_name ); ?>، شمارهٔ تماس، ساعات پاسخگویی و شبکه‌های اجتماعی.</p>
-				<a class="jhh-btn" href="/contact-us/">تماس با ما ←</a>
+				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/contact-us/' ) ); ?>">تماس با ما ←</a>
 			</div>
 
 		</div>

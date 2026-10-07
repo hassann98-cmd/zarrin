@@ -9,7 +9,7 @@ get_header();
 ?>
 
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 		<?php
 		if ( class_exists( 'WooCommerce' ) ) {
 			woocommerce_content();
