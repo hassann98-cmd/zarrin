@@ -105,22 +105,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          run_cmd() {
+            if "$@" > "$RUNNER_TEMP/wp-product-command.log" 2>&1; then
+              cat "$RUNNER_TEMP/wp-product-command.log"
+            else
+              python3 -c 'import os,pathlib; s=pathlib.Path(os.environ["RUNNER_TEMP"]+"/wp-product-command.log").read_text(errors="replace")[-5000:]; p=os.environ.get("WP_TEST_ADMIN_PASSWORD",""); s=s.replace(p,"[test-password]") if p else s; print("::error::"+s.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+              return 1
+            fi
+          }
           site="$RUNNER_TEMP/wordpress-products"
-          wp core download --version=6.9 --path="$site" --skip-content
-          wp config create --path="$site" --dbname=zarrin_test --dbuser=root --dbpass=isolated-fixture-only --dbhost=127.0.0.1:33306
-          wp config set DISABLE_WP_CRON true --raw --path="$site"
-          wp config set WP_DEBUG true --raw --path="$site"
-          wp config set WP_DEBUG_LOG true --raw --path="$site"
-          wp config set WP_DEBUG_DISPLAY false --raw --path="$site"
+          run_cmd wp core download --version=6.9 --path="$site" --skip-content
+          run_cmd wp config create --path="$site" --dbname=zarrin_test --dbuser=root --dbpass=isolated-fixture-only --dbhost=127.0.0.1:33306
+          run_cmd wp config set DISABLE_WP_CRON true --raw --path="$site"
+          run_cmd wp config set WP_DEBUG true --raw --path="$site"
+          run_cmd wp config set WP_DEBUG_LOG true --raw --path="$site"
+          run_cmd wp config set WP_DEBUG_DISPLAY false --raw --path="$site"
           password="$(openssl rand -hex 20)"
-          wp core install --path="$site" --url=http://wordpress.test --title='Isolated product regressions' --admin_user=fixture-admin --admin_password="$password" --admin_email=fixture@example.invalid --skip-email
-          curl --fail --location --retry 2 https://github.com/woocommerce/woocommerce/releases/download/11.1.2/woocommerce.zip -o "$RUNNER_TEMP/woocommerce.zip"
+          export WP_TEST_ADMIN_PASSWORD="$password"
+          run_cmd wp core install --path="$site" --url=http://wordpress.test --title='Isolated product regressions' --admin_user=fixture-admin --admin_password="$password" --admin_email=fixture@example.invalid --skip-email
+          run_cmd curl --fail --location --retry 2 https://github.com/woocommerce/woocommerce/releases/download/11.1.2/woocommerce.zip -o "$RUNNER_TEMP/woocommerce.zip"
           printf '%s  %s\n' '697b54ebdc55f8c0de30ff41ffdb9fb5b0ca4e51132313b90c107632a79a0b8a' "$RUNNER_TEMP/woocommerce.zip" | sha256sum --check --strict -
-          wp config set WP_HTTP_BLOCK_EXTERNAL true --raw --path="$site"
-          wp plugin install "$RUNNER_TEMP/woocommerce.zip" --activate --path="$site"
+          run_cmd wp config set WP_HTTP_BLOCK_EXTERNAL true --raw --path="$site"
+          run_cmd wp plugin install "$RUNNER_TEMP/woocommerce.zip" --activate --path="$site"
           mkdir -p "$site/wp-content/themes/zarrin"
           rsync -a --exclude=.git --exclude=node_modules --exclude=.cache --exclude=artifacts --exclude=downloads --exclude=dist "$GITHUB_WORKSPACE/" "$site/wp-content/themes/zarrin/"
-          wp theme activate zarrin --path="$site"
+          run_cmd wp theme activate zarrin --path="$site"
       - name: Exercise real product defaults, badges, templates and post-add recommendations
         shell: bash
         run: |
