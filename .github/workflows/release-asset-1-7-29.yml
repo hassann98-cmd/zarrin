@@ -1,0 +1,42 @@
+name: Temporary Zarrin 1.7.29 release asset upload
+on:
+  push:
+    branches:
+      - arena/01a0cf86-zarrin
+permissions:
+  contents: write
+jobs:
+  upload:
+    if: github.event.head_commit.message == 'Temporary release asset uploader for v1.7.29'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.7.29
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run package
+      - name: Verify deterministic package matches the reviewed ZIP
+        env:
+          EXPECTED_SHA256: 302b5e4082c9463a9cc7dc4014bec56c1d406b8d9288d87182c3e4b1175b6849
+        shell: bash
+        run: |
+          actual="$(sha256sum artifacts/zarrin-1.7.29.zip | awk '{print $1}')"
+          echo "GitHub runner package SHA-256: $actual"
+          test "$actual" = "$EXPECTED_SHA256"
+      - name: Upload, verify GitHub digest, and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload v1.7.29 artifacts/zarrin-1.7.29.zip --repo "$GITHUB_REPOSITORY"
+          expected="sha256:302b5e4082c9463a9cc7dc4014bec56c1d406b8d9288d87182c3e4b1175b6849"
+          actual="$(gh release view v1.7.29 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | select(.name == "zarrin-1.7.29.zip") | .digest')"
+          echo "GitHub release asset digest: $actual"
+          test "$actual" = "$expected"
+          gh release edit v1.7.29 --draft=false --repo "$GITHUB_REPOSITORY"
