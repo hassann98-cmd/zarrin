@@ -17,7 +17,7 @@ $jluxe_sg_title     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg
 $jluxe_sg_intro     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['intro'] ?? '' );
 $jluxe_sg_steps     = isset( $jluxe_sg['steps'] ) && is_array( $jluxe_sg['steps'] ) ? $jluxe_sg['steps'] : array();
 $jluxe_sg_btn_text  = $jluxe_sg['button_text'] ?? 'شروع خرید ←';
-if ( mb_strlen( wp_strip_all_tags( (string) $jluxe_sg_btn_text ) ) > 80 ) { $jluxe_sg_btn_text = 'شروع خرید ←'; }
+if ( jluxe_strlen(wp_strip_all_tags( (string) $jluxe_sg_btn_text )) > 80 ) { $jluxe_sg_btn_text = 'شروع خرید ←'; }
 $jluxe_sg_btn_url   = $jluxe_sg['button_url'] ?? '/';
 $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_sg['button_color'] ) . '"' : '';
 ?>
@@ -289,7 +289,7 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 
 		<div class="jsg-footer-cta">
 			<?php if ( ! empty( $jluxe_sg['button_enabled'] ) ) : ?>
-			<a href="<?php echo esc_url( $jluxe_sg_btn_url ); ?>" class="jsg-btn"<?php echo $jluxe_sg_btn_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_sg_btn_text ); ?></a>
+			<a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_sg_btn_url ) ); ?>" class="jsg-btn"<?php echo $jluxe_sg_btn_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $jluxe_sg_btn_text ); ?></a>
 			<?php endif; ?>
 		</div>
 

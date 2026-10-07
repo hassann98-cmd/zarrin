@@ -18,6 +18,8 @@ $jluxe_st_btn_text  = $jluxe_st['button_text'] ?? '';
 $jluxe_st_btn_url   = $jluxe_st['button_url'] ?? '/';
 $jluxe_st_btn_style = ! empty( $jluxe_st['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_st['button_color'] ) . '"' : '';
 $jluxe_st_body = str_replace( '{site_name}', $jluxe_st_site_name, $jluxe_st['body_html'] ?? '' );
+// R87 — لینکِ پیش‌فرضِ «پیگیری سریع سفارش» داخلِ متن به آدرسِ تنظیم‌شدهٔ پیگیری برود، نه مسیرِ ثابت.
+$jluxe_st_body = str_replace( 'href="/track-order/"', 'href="' . esc_url( jluxe_route_url( 'track_order' ) ) . '"', $jluxe_st_body );
 ?>
 
 <main id="primary" class="site-main">
@@ -370,7 +372,7 @@ $jluxe_st_body = str_replace( '{site_name}', $jluxe_st_site_name, $jluxe_st['bod
 			<?php if ( $jluxe_st_intro ) : ?><p><?php echo esc_html( $jluxe_st_intro ); ?></p><?php endif; ?>
 		</header>
 		<div class="jluxe-guide-body"><?php echo wp_kses_post( $jluxe_st_body ); ?></div>
-		<?php if ( $jluxe_st_btn_text ) : ?><div class="jst-footer-cta"><a href="<?php echo esc_url( $jluxe_st_btn_url ); ?>" class="jst-track-order-btn"<?php echo $jluxe_st_btn_style; ?>><?php echo esc_html( $jluxe_st_btn_text ); ?></a></div><?php endif; ?>
+		<?php if ( $jluxe_st_btn_text ) : ?><div class="jst-footer-cta"><a href="<?php echo esc_url( jluxe_resolve_site_link( (string) $jluxe_st_btn_url ) ); ?>" class="jst-track-order-btn"<?php echo $jluxe_st_btn_style; ?>><?php echo esc_html( $jluxe_st_btn_text ); ?></a></div><?php endif; ?>
 
 </main>
 

@@ -1,0 +1,162 @@
+{
+  "originalCommit": "4f62ac518d5668806125454042e0f321070741c2",
+  "note": "Readable JavaScript recovered from shipped modules, not the missing original TypeScript/Tailwind source. Vendor bridges replaced with declared npm dependencies.",
+  "modules": [
+    {
+      "from": "dist/assets/AiAssistant-BvSJN7Qe.js",
+      "to": "src/islands/AiAssistant.js"
+    },
+    {
+      "from": "dist/assets/AuthPage-cHQ8sWOs.js",
+      "to": "src/islands/AuthPage.js"
+    },
+    {
+      "from": "dist/assets/CartCheckout-C29u7Mou.js",
+      "to": "src/islands/CartCheckout.js"
+    },
+    {
+      "from": "dist/assets/CategoryDrawer-BpnDyFdW.js",
+      "to": "src/islands/CategoryDrawer.js"
+    },
+    {
+      "from": "dist/assets/Footer-BS2iFX4K.js",
+      "to": "src/islands/Footer.js"
+    },
+    {
+      "from": "dist/assets/Header-D-46UI8C.js",
+      "to": "src/islands/Header.js"
+    },
+    {
+      "from": "dist/assets/MegaMenu-D1be47Pt.js",
+      "to": "src/islands/MegaMenu.js"
+    },
+    {
+      "from": "dist/assets/MiniCart-VOTwr0MM.js",
+      "to": "src/islands/MiniCart.js"
+    },
+    {
+      "from": "dist/assets/MobileNav-bCgkS98v.js",
+      "to": "src/islands/MobileNav.js"
+    },
+    {
+      "from": "dist/assets/ProductDetails-B-TciLZy.js",
+      "to": "src/islands/ProductDetails.js"
+    },
+    {
+      "from": "dist/assets/ShopArchive-trPpzms3.js",
+      "to": "src/islands/ShopArchive.js"
+    },
+    {
+      "from": "dist/assets/button-i99LoTKF.js",
+      "to": "src/components/button.js"
+    },
+    {
+      "from": "dist/assets/check-BBj6MSPR.js",
+      "to": "src/icons/check.js"
+    },
+    {
+      "from": "dist/assets/chevron-down-C5SXlYVL.js",
+      "to": "src/icons/chevron-down.js"
+    },
+    {
+      "from": "dist/assets/chevron-left-Buj0E7uj.js",
+      "to": "src/icons/chevron-left.js"
+    },
+    {
+      "from": "dist/assets/chevron-right-BMQlnbsT.js",
+      "to": "src/icons/chevron-right.js"
+    },
+    {
+      "from": "dist/assets/createLucideIcon-BXLLT58L.js",
+      "to": "src/lib/icons.js"
+    },
+    {
+      "from": "dist/assets/grid-2x2-CLLrc6cj.js",
+      "to": "src/icons/grid-2x2.js"
+    },
+    {
+      "from": "dist/assets/heart-DYQmxDcj.js",
+      "to": "src/icons/heart.js"
+    },
+    {
+      "from": "dist/assets/index-BwW7yQmc.js",
+      "to": "src/lib/react-dom.js"
+    },
+    {
+      "from": "dist/assets/main-CPzaaPhe.js",
+      "to": "src/lib/jsx.js"
+    },
+    {
+      "from": "dist/assets/nav-icons-CmlYgSrg.js",
+      "to": "src/components/nav-icons.js"
+    },
+    {
+      "from": "dist/assets/phone-D7yXgUe8.js",
+      "to": "src/icons/phone.js"
+    },
+    {
+      "from": "dist/assets/plus-2uhvPe5f.js",
+      "to": "src/icons/plus.js"
+    },
+    {
+      "from": "dist/assets/product-card-B5E1UBhv.js",
+      "to": "src/components/product-card.js"
+    },
+    {
+      "from": "dist/assets/search-B9R7_6YP.js",
+      "to": "src/icons/search.js"
+    },
+    {
+      "from": "dist/assets/send-Ds1cox5c.js",
+      "to": "src/icons/send.js"
+    },
+    {
+      "from": "dist/assets/shield-check-DKdCQIs5.js",
+      "to": "src/icons/shield-check.js"
+    },
+    {
+      "from": "dist/assets/shopping-cart-DygYdICR.js",
+      "to": "src/icons/shopping-cart.js"
+    },
+    {
+      "from": "dist/assets/tag-CKH4q8F1.js",
+      "to": "src/icons/tag.js"
+    },
+    {
+      "from": "dist/assets/theme-settings-a1jC9HtP.js",
+      "to": "src/lib/theme-settings.js"
+    },
+    {
+      "from": "dist/assets/trash-2-Br0IQ6JW.js",
+      "to": "src/icons/trash-2.js"
+    },
+    {
+      "from": "dist/assets/truck-BzCLe9Y5.js",
+      "to": "src/icons/truck.js"
+    },
+    {
+      "from": "dist/assets/use-cart-Ci258hek.js",
+      "to": "src/lib/use-cart.js"
+    },
+    {
+      "from": "dist/assets/user-DT12-yTF.js",
+      "to": "src/icons/user.js"
+    },
+    {
+      "from": "dist/assets/utils-DhHD1gr_.js",
+      "to": "src/lib/utils.js"
+    },
+    {
+      "from": "dist/assets/x-BEl27Njq.js",
+      "to": "src/icons/x.js"
+    }
+  ],
+  "replacements": {
+    "src/islands/AuthPage.js": "Rewritten as src/islands/AuthPage.jsx for the corrected authentication flow.",
+    "src/lib/use-cart.js": "Rewritten with serialized requests, explicit errors, one pre-mutation nonce refresh and event-scoped refresh deduplication."
+  },
+  "additions": {
+    "src/lib/islands.js": "Authored in remediation phase 2 for load/render error boundaries and optional-animation isolation.",
+    "assets/js/order-tracking.js": "Extracted from page-track-order.php, then maintained for explicit owner-only detail, private POST requests and history cleanup."
+  }
+}

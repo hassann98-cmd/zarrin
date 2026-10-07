@@ -1,0 +1,16 @@
+{
+  "releases": [
+    {
+      "version": "1.7.32",
+      "file": "zarrin-1.7.32.zip",
+      "url": "https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.32/zarrin-1.7.32.zip",
+      "sizeBytes": 1877459
+    },
+    {
+      "version": "1.7.29",
+      "file": "zarrin-1.7.29.zip",
+      "url": "https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.29/zarrin-1.7.29.zip",
+      "sizeBytes": 1859587
+    }
+  ]
+}

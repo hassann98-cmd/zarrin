@@ -18,6 +18,11 @@ function jluxe_handle_export(): void {
 
 	$settings = jluxe_get_theme_settings();
 	// چیزی به‌جز jluxe_theme_settings صادر نمی‌شه — بدون کاربران/سفارش/محصول/کلید API.
+	// R59 (دفاع در عمق): نام کاربری پنل پیامک هم به فایلِ خروجی نمی‌رود؛
+	// کلید/رمز از قبل در آپشنِ جدا هستند و اصلاً داخلِ تنظیمات نیستند.
+	if ( isset( $settings['sms'] ) && is_array( $settings['sms'] ) ) {
+		$settings['sms']['username'] = '';
+	}
 	$payload = array(
 		'jluxe_export_version' => JLUXE_SETTINGS_VERSION,
 		'exported_at'           => current_time( 'mysql' ),
@@ -51,7 +56,11 @@ function jluxe_handle_import(): ?string {
 		return 'import_error';
 	}
 
-	$raw = file_get_contents( $_FILES['jluxe_import_file']['tmp_name'] );
+	$file = $_FILES['jluxe_import_file']['tmp_name'];
+	if ( ! is_uploaded_file( $file ) || filesize( $file ) > 2 * MB_IN_BYTES ) {
+		return 'import_error';
+	}
+	$raw = file_get_contents( $file );
 	if ( false === $raw || strlen( $raw ) > 2 * MB_IN_BYTES ) {
 		return 'import_error';
 	}
@@ -61,35 +70,35 @@ function jluxe_handle_import(): ?string {
 		return 'import_error';
 	}
 
-	$defaults = jluxe_theme_settings_defaults();
-	$sanitizers = array(
-		'colors'       => 'jluxe_sanitize_colors',
-		'identity'     => 'jluxe_sanitize_identity',
-		'typography'   => 'jluxe_sanitize_typography',
-		'header'       => 'jluxe_sanitize_header',
-		'footer'       => 'jluxe_sanitize_footer',
-		'social'       => 'jluxe_sanitize_social',
-		'contact'      => 'jluxe_sanitize_contact',
-		'mobile'       => 'jluxe_sanitize_mobile',
-		'product_card' => 'jluxe_sanitize_product_card',
-		'product_page' => 'jluxe_sanitize_product_page',
-		'seo'          => 'jluxe_sanitize_seo',
-		'performance'  => 'jluxe_sanitize_performance',
-		'custom_code'  => 'jluxe_sanitize_custom_code',
-		'homepage'     => 'jluxe_sanitize_homepage',
-		'ai_assistant' => 'jluxe_sanitize_ai_assistant',
-	);
-
-	$clean = array( 'version' => JLUXE_SETTINGS_VERSION );
-	foreach ( $sanitizers as $key => $fn ) {
-		$incoming        = is_array( $data['settings'][ $key ] ?? null ) ? $data['settings'][ $key ] : array();
-		$clean[ $key ]   = call_user_func( $fn, $incoming, $defaults[ $key ] );
+	$version = (int) ( $data['jluxe_export_version'] ?? $data['settings']['version'] ?? 1 );
+	if ( $version < 1 || $version > JLUXE_SETTINGS_VERSION ) {
+		return 'import_error';
 	}
-	// توجه امنیتی: اگر فایل import شده حاوی api_key بود (نباید باشه چون
-	// export هیچ‌وقت شاملش نمی‌کنه) این‌جا هم عمداً نادیده گرفته می‌شه —
-	// کلید API فقط از فرم اختصاصی «دستیار هوش مصنوعی» قابل تنظیمه.
+	$incoming = $version < 2 ? jluxe_migrate_settings_v2( $data['settings'] ) : $data['settings'];
+	if ( $version < 3 ) {
+		$incoming = jluxe_migrate_settings_v3( $incoming );
+	}
+	if ( $version < 4 ) {
+		$incoming = jluxe_migrate_settings_v4( $incoming );
+	}
+	if ( $version < 5 ) {
+		$incoming = jluxe_migrate_settings_v5( $incoming );
+	}
+	try {
+		$clean = jluxe_sanitize_settings_payload( $incoming, jluxe_get_theme_settings() );
+	} catch ( Throwable $error ) {
+		return 'import_error';
+	}
+	// One bounded, non-autoloaded backup. API credentials live in separate options and are untouched.
+	update_option( 'jluxe_theme_settings_before_import', array(
+		'saved_at' => current_time( 'mysql' ),
+		'settings' => get_option( JLUXE_SETTINGS_OPTION, array() ),
+	), false );
 
-	update_option( JLUXE_SETTINGS_OPTION, $clean, false );
+	if ( ! update_option( JLUXE_SETTINGS_OPTION, $clean, false ) && get_option( JLUXE_SETTINGS_OPTION ) !== $clean ) {
+		return 'import_error';
+	}
+	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 

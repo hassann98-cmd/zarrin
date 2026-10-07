@@ -4,7 +4,7 @@
  * (جزئیات در ابتدای همین کامنت‌بلاک قبلاً توضیح داده شده بود، حذف نشده،
  * فقط چیدمان عوض شد). طبقِ درخواستِ صریحِ کاربر («باید تمام‌صفحه و کاملا
  * ریسپانسیو باشه») عرضِ کانتینر از max-w-[720px] (خیلی باریک‌تر از بقیه‌ی
- * سایت) به همون max-w-[1296px]ِ استانداردِ سراسرِ سایت تغییر کرد و
+ * سایت) به همون max-w-[1320px]ِ استانداردِ سراسرِ سایت تغییر کرد و
  * چیدمان از یک کارتِ باریکِ عمودی به یک گریدِ کارتِ ریسپانسیو (۱ ستون رو
  * موبایل → ۳ ستون رو دسکتاپ، بسته به تعدادِ بخش‌هایی که واقعاً فعالن)
  * تغییر کرد.
@@ -49,7 +49,7 @@ $jluxe_grid_cols_class    = $jluxe_visible_card_count >= 3 ? 'lg:grid-cols-3' : 
 ?>
 
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-10 sm:py-14">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10 sm:py-14">
 		<div class="mx-auto max-w-2xl text-center">
 			<?php if ( $jluxe_page_logo ) : ?>
 				<img src="<?php echo esc_url( $jluxe_page_logo ); ?>" alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" />

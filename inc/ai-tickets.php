@@ -37,6 +37,52 @@ add_action( 'init', 'jluxe_register_ai_ticket_post_type' );
  * REST endpoint — دقیقاً همون سطحِ اعتمادِ /assistant (بدونِ لاگین، فقط
  * rate-limit بر اساسِ IP)، چون از همون ویجتِ چتِ عمومی صدا زده می‌شه.
  */
+function jluxe_ticket_page_url( string $raw_url ): string {
+	$raw_url = trim( $raw_url );
+	if ( '' === $raw_url || strlen( $raw_url ) > 2048 ) {
+		return '';
+	}
+
+	$parts = wp_parse_url( $raw_url );
+	$site  = wp_parse_url( home_url( '/' ) );
+	if ( ! is_array( $parts ) || ! is_array( $site ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) || empty( $site['scheme'] ) || empty( $site['host'] ) ) {
+		return '';
+	}
+
+	$scheme      = strtolower( (string) $parts['scheme'] );
+	$site_scheme = strtolower( (string) $site['scheme'] );
+	$host        = strtolower( (string) $parts['host'] );
+	$site_host   = strtolower( (string) $site['host'] );
+	if ( ! in_array( $scheme, array( 'http', 'https' ), true ) || $scheme !== $site_scheme || $host !== $site_host || isset( $parts['user'] ) || isset( $parts['pass'] ) ) {
+		return '';
+	}
+
+	$default_port = 'https' === $scheme ? 443 : 80;
+	$page_port    = isset( $parts['port'] ) ? (int) $parts['port'] : $default_port;
+	$site_port    = isset( $site['port'] ) ? (int) $site['port'] : $default_port;
+	if ( $page_port !== $site_port ) {
+		return '';
+	}
+
+	// Keep only a same-origin path. Query strings can contain order keys,
+	// password-reset tokens or other secrets and are unnecessary in the admin link.
+	$path = isset( $parts['path'] ) && '' !== $parts['path'] ? (string) $parts['path'] : '/';
+	$url  = $scheme . '://' . $host;
+	if ( $page_port !== $default_port ) {
+		$url .= ':' . $page_port;
+	}
+	return esc_url_raw( $url . $path );
+}
+
+function jluxe_ticket_contact_is_valid( string $contact ): bool {
+	if ( function_exists( 'is_email' ) && is_email( $contact ) ) {
+		return true;
+	}
+
+	$phone = preg_replace( '/[\\s().-]+/u', '', jluxe_ascii_digits( $contact ) );
+	return is_string( $phone ) && (bool) preg_match( '/^\\+?[0-9]{7,24}$/D', $phone );
+}
+
 function jluxe_register_ai_ticket_rest_route(): void {
 	register_rest_route(
 		'jluxe/v1',
@@ -49,21 +95,29 @@ function jluxe_register_ai_ticket_rest_route(): void {
 				'name'     => array(
 					'required'          => true,
 					'type'              => 'string',
+					'maxLength'         => 80,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'contact'  => array(
 					'required'          => true,
 					'type'              => 'string',
+					'maxLength'         => 254,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				'message'  => array(
 					'required'          => true,
 					'type'              => 'string',
+					'maxLength'         => 2000,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_textarea_field',
 				),
 				'page_url' => array(
 					'required'          => false,
 					'type'              => 'string',
+					'maxLength'         => 2048,
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'esc_url_raw',
 				),
 			),
@@ -78,27 +132,31 @@ function jluxe_handle_ai_ticket_submit( WP_REST_Request $request ) {
 		return new WP_Error( 'jluxe_ticket_disabled', 'این قابلیت فعال نیست.', array( 'status' => 503 ) );
 	}
 
-	// rate limit مشترک با الگویِ بقیه‌ی endpointهای عمومی: حداکثر ۵ تیکت
-	// در ۱۰ دقیقه به‌ازایِ هر IP — جلوگیری از اسپم بدونِ نیاز به لاگین/کپچا.
-	$ip  = jluxe_theme_get_client_ip();
-	$key = 'jluxe_ticket_rl_' . md5( $ip );
-	if ( (int) get_transient( $key ) >= 5 ) {
+	// The shared DB-mutex limiter is atomic across concurrent PHP workers.
+	// Keep the public endpoint limited to five tickets per IP in ten minutes.
+	if ( ! jluxe_security_rate_limit( 'ai_ticket_ip', jluxe_theme_get_client_ip(), 5, 10 * MINUTE_IN_SECONDS ) ) {
 		return new WP_Error( 'jluxe_ticket_rate_limited', 'تعداد درخواست‌ها زیاده — کمی صبر کن.', array( 'status' => 429 ) );
 	}
-	set_transient( $key, (int) get_transient( $key ) + 1, 10 * MINUTE_IN_SECONDS );
 
-	$name    = trim( (string) $request->get_param( 'name' ) );
-	$contact = trim( (string) $request->get_param( 'contact' ) );
-	$message = trim( (string) $request->get_param( 'message' ) );
+	$name_raw    = $request->get_param( 'name' );
+	$contact_raw = $request->get_param( 'contact' );
+	$message_raw = $request->get_param( 'message' );
+	$name        = is_scalar( $name_raw ) ? trim( sanitize_text_field( (string) $name_raw ) ) : '';
+	$contact     = is_scalar( $contact_raw ) ? trim( sanitize_text_field( (string) $contact_raw ) ) : '';
+	$message     = is_scalar( $message_raw ) ? trim( sanitize_textarea_field( (string) $message_raw ) ) : '';
 
 	if ( '' === $name || '' === $contact || '' === $message ) {
 		return new WP_Error( 'jluxe_ticket_missing_fields', 'نام، راه ارتباطی و پیام الزامی هستن.', array( 'status' => 400 ) );
 	}
-	if ( mb_strlen( $message ) > 2000 ) {
-		return new WP_Error( 'jluxe_ticket_too_long', 'پیام خیلی طولانیه.', array( 'status' => 400 ) );
+	if ( jluxe_strlen( $name ) > 80 || jluxe_strlen( $contact ) > 254 || jluxe_strlen( $message ) > 2000 ) {
+		return new WP_Error( 'jluxe_ticket_too_long', 'یکی از فیلدها بیش از حد طولانی است.', array( 'status' => 400 ) );
+	}
+	if ( ! jluxe_ticket_contact_is_valid( $contact ) ) {
+		return new WP_Error( 'jluxe_ticket_invalid_contact', 'ایمیل یا شماره تماس معتبر وارد کنید.', array( 'status' => 400 ) );
 	}
 
-	$page_url = (string) $request->get_param( 'page_url' );
+	$page_url_raw = $request->get_param( 'page_url' );
+	$page_url     = is_string( $page_url_raw ) ? jluxe_ticket_page_url( $page_url_raw ) : '';
 	$user_id  = get_current_user_id();
 
 	$post_id = wp_insert_post(
