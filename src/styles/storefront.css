@@ -8686,3 +8686,22 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
 .jluxe-stock-alert-dialog__submit:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 639px) { .jluxe-stock-alert-dialog__panel { padding: 20px 16px; border-radius: var(--jluxe-radius-lg, 16px); } .jluxe-stock-alert-trigger { align-items: stretch; } .jluxe-stock-alert-trigger__button { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .jluxe-recent-products__list { scroll-behavior: auto; } }
+
+/* R168 — raise the header stacking context, not just a child inside its glass/transform layer.
+   Product section navigation is 30; header/search is 50; body-portaled dialogs remain above. */
+#masthead { position: relative; z-index: 50; }
+#masthead .jluxe-header-bar { z-index: 50; }
+.jluxe-search-dialog { z-index: 80; }
+.jluxe-search-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y pinch-zoom;
+  scrollbar-gutter: stable;
+}
+.jluxe-search-scroll:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+/* The inline mobile field is narrow; its result sheet can use the viewport without moving the field. */
+.jluxe-header-search-results--mobile {
+  width: min(420px, calc(100vw - 24px));
+  inset-inline-end: auto;
+}

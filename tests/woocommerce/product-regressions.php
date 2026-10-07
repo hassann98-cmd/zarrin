@@ -25,12 +25,12 @@ foreach(array('قرمز','آبی') as $i=>$color){
 WC_Product_Variable::sync($parent->get_id());
 $parent=wc_get_product($parent->get_id());$parent->set_default_attributes(array($key=>'آبی'));$parent->save();
 $parent=wc_get_product($parent->get_id());
-jluxe_woo_check($parent->get_default_attributes('edit')[$key]==='آبی', 'Saving a non-first merchant default preserves it in WooCommerce storage');
-jluxe_woo_check(jluxe_default_variation_pick($parent)===array($key=>'آبی'), 'Effective default uses the canonical Persian attribute key');
+jluxe_woo_check($parent->get_default_attributes('edit')[$key]==='قرمز', 'R168 saved defaults synchronize to the first available Woo variation');
+jluxe_woo_check(jluxe_default_variation_pick($parent)===array($key=>'قرمز'), 'Effective default uses the canonical Persian attribute key');
 $chosen=jluxe_find_default_variable_variation($parent);
-jluxe_woo_check($chosen instanceof WC_Product_Variation && $chosen->get_id()===$children['آبی'], 'The effective default resolves to the intended real child variation');
+jluxe_woo_check($chosen instanceof WC_Product_Variation && $chosen->get_id()===$children['قرمز'], 'The effective default resolves to the intended real child variation');
 ob_start();jluxe_render_variation_swatches($parent,$parent->get_variation_attributes());$swatches=ob_get_clean();
-jluxe_woo_check((bool)preg_match('~<option\b[^>]*value="آبی"[^>]*\bselected\b~u',$swatches), 'Real Woo dropdown marks the stored non-first default selected');
+jluxe_woo_check((bool)preg_match('~<option\b[^>]*value="قرمز"[^>]*\bselected\b~u',$swatches), 'Real Woo dropdown marks the first available default selected');
 jluxe_woo_check(false!==strpos($swatches,'data-active=""'), 'Visible swatches are selected before JavaScript');
 
 $admin=get_user_by('login','fixture-admin');wp_set_current_user($admin->ID);
@@ -53,7 +53,7 @@ foreach(array('default','classic') as $layout){
 	$GLOBALS['product']=wc_get_product($parent->get_id());
 	ob_start();wc_get_template('content-single-product.php');$html=ob_get_clean();
 	jluxe_woo_check(false!==strpos($html,'گارانتی اصالت کالا') && false!==strpos($html,'کالای دارای ضمانت'), 'Real '.$layout.' product template displays both checked guarantees');
-	jluxe_woo_check((bool)preg_match('~<option\b[^>]*value="آبی"[^>]*\bselected\b~u',$html), 'Real '.$layout.' product template renders the correct selected default');
+	jluxe_woo_check((bool)preg_match('~<option\b[^>]*value="قرمز"[^>]*\bselected\b~u',$html), 'Real '.$layout.' product template renders the correct selected default');
 }
 
 $offer=new WC_Product_Simple();$offer->set_name('پیشنهاد آزمایشی');$offer->set_status('publish');$offer->set_regular_price('25');$offer->set_stock_status('instock');$offer->save();
@@ -81,5 +81,27 @@ jluxe_woo_check(''===$read['data']['suggested_html'], 'Explicitly disabled recom
 $purged=array();add_action('litespeed_purge_post',static function($id)use(&$purged){$purged[]=(int)$id;});
 $child=wc_get_product($children['آبی']);$child->set_stock_quantity(4);$child->save();
 jluxe_woo_check(in_array($parent->get_id(),$purged,true), 'Saving a real child variation requests a scoped LiteSpeed purge for the parent');
+// R168: one unit in a child is enough; neither parent flag direction is authoritative.
+update_option('woocommerce_hide_out_of_stock_items','no');
+$red=wc_get_product($children['قرمز']);$blue=wc_get_product($children['آبی']);
+$red->set_stock_quantity(1);$red->set_stock_status('instock');$red->set_menu_order(2);$red->save();
+$blue->set_stock_quantity(1);$blue->set_stock_status('instock');$blue->set_menu_order(1);$blue->save();
+wc_delete_product_transients($parent->get_id());
+$parent=wc_get_product($parent->get_id());$parent->set_stock_status('outofstock');$parent->save();
+$parent=wc_get_product($parent->get_id());
+$first=jluxe_find_default_variable_variation($parent);
+jluxe_woo_check($first && $first->get_id()===$children['آبی'], 'R168 real Woo menu_order wins over ID order and later saved choices');
+$request=new WP_REST_Request('GET');$request->set_param('ids',(string)$parent->get_id());
+$history=jluxe_rest_recent_products($request)->get_data()['items'];
+jluxe_woo_check(count($history)===1 && $history[0]['inStock'], 'R168 history is available with one unit in each child even when the parent flag is outofstock');
+$blue->set_stock_quantity(0);$blue->set_stock_status('outofstock');$blue->save();$parent=wc_get_product($parent->get_id());
+jluxe_woo_check(jluxe_default_variation_pick($parent)===array($key=>'قرمز'), 'R168 selection advances to the next available variation when the first is sold out');
+$red->set_stock_quantity(0);$red->set_stock_status('outofstock');$red->save();
+$parent=wc_get_product($parent->get_id());$parent->set_stock_status('instock');$parent->save();$parent=wc_get_product($parent->get_id());
+$history=jluxe_rest_recent_products($request)->get_data()['items'];
+jluxe_woo_check(array()===jluxe_default_variation_pick($parent) && !jluxe_product_has_available_offer($parent) && count($history)===1 && !$history[0]['inStock'], 'R168 zero available children makes both default and history unavailable despite an instock parent');
+$blue->set_stock_quantity(1);$blue->set_stock_status('instock');$blue->save();$parent=wc_get_product($parent->get_id());
+jluxe_woo_check(jluxe_default_variation_pick($parent)===array($key=>'آبی') && jluxe_rest_recent_products($request)->get_data()['items'][0]['inStock'], 'R168 restocking one child restores the first available default and recent-product state');
+
 echo 'WOOCOMMERCE_PRODUCT_REGRESSIONS_PASSED: '.$GLOBALS['jluxe_woo_checks']."\n";
 echo 'Scope: isolated WordPress/WooCommerce/MySQL product CRUD, templates and cart protocol. No production, real payment, SMS or LiteSpeed web-server execution.' . "\n";

@@ -3629,5 +3629,6 @@ update_test_settings( jluxe_theme_settings_defaults() );
 
 require __DIR__ . '/performance.php';
 require __DIR__ . '/product-options.php';
+require __DIR__ . '/variation-order.php';
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

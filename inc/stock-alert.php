@@ -139,7 +139,7 @@ function jluxe_handle_stock_alert_signup(): void {
 			wp_send_json_error( array( 'message' => 'این تنوع اکنون موجود است؛ می‌توانید آن را به سبد خرید اضافه کنید.' ), 409 );
 		}
 		$alert_product = $variation;
-	} elseif ( $product->is_in_stock() ) {
+	} elseif ( jluxe_product_has_available_offer( $product ) ) {
 		wp_send_json_error( array( 'message' => 'این محصول اکنون موجود است؛ می‌توانید آن را به سبد خرید اضافه کنید.' ), 409 );
 	}
 
@@ -343,7 +343,7 @@ function jluxe_render_stock_alert_trigger( $product ): void {
 		return;
 	}
 	$is_variable = $product->is_type( 'variable' );
-	$visible     = ! $product->is_in_stock();
+	$visible     = ! jluxe_product_has_available_offer( $product );
 	if ( ! $visible && ! $is_variable ) {
 		return;
 	}

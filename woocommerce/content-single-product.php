@@ -102,6 +102,7 @@ $key_attributes = array_slice( $attributes, 0, 3 );
 $jluxe_is_variable = $product->is_type( 'variable' );
 $jluxe_variation_attributes = array();
 $jluxe_available_variations = array();
+$jluxe_has_offer = jluxe_product_has_available_offer( $product );
 if ( $jluxe_is_variable ) {
 	$jluxe_variation_attributes = $product->get_variation_attributes();
 	$jluxe_available_variations = jluxe_available_variations_for_form( $product );
@@ -113,7 +114,7 @@ if ( $jluxe_is_variable ) {
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $jluxe_has_offer ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
@@ -187,7 +188,7 @@ if ( $jluxe_is_variable ) {
 				<?php jluxe_render_product_trust_badges( $product->get_id() ); ?>
 
 				<?php if ( $jluxe_is_variable ) : ?>
-					<?php if ( empty( $jluxe_available_variations ) && false !== $jluxe_available_variations ) : ?>
+					<?php if ( ! $jluxe_has_offer || ( empty( $jluxe_available_variations ) && false !== $jluxe_available_variations ) ) : ?>
 						<p class="mt-4 rounded-xl bg-muted px-3 py-2.5 text-center text-small font-medium text-text-secondary">این محصول در حال حاضر ناموجود است</p>
 					<?php else : ?>
 						<?php jluxe_render_variation_swatches( $product, $jluxe_variation_attributes ); ?>
@@ -236,7 +237,7 @@ if ( $jluxe_is_variable ) {
 					<?php // تک‌فروشنده‌ست (نه مارکت‌پلیس) — کارت فروشگاه/فروشنده عمداً حذف شده. ?>
 					<?php wc_get_template_part( 'single-product/price' ); ?>
 					<?php if ( $jluxe_is_variable ) : ?>
-						<?php if ( ! empty( $jluxe_available_variations ) || false === $jluxe_available_variations ) : ?>
+						<?php if ( $jluxe_has_offer && ( ! empty( $jluxe_available_variations ) || false === $jluxe_available_variations ) ) : ?>
 							<div class="single_variation_wrap">
 								<?php
 								do_action( 'woocommerce_before_single_variation' );

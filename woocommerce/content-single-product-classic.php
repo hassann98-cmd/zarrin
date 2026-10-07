@@ -377,7 +377,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-related .button{display:none}
 </style>
 
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-2">
 
 		<nav aria-label="مسیر صفحه" class="cp3-bc">

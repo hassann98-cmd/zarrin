@@ -43,9 +43,9 @@ check(!in_array('litespeed_purge_all',array_column($GLOBALS['action_calls'],0),t
 $GLOBALS['test_sanitize_title']=static function($value){return strtolower(rawurlencode(preg_replace('/\s+/u','-',rawurldecode((string)$value))));};
 $key=sanitize_title('رنگ');$p=new JLuxe_Var_Product(9173);$p->jluxe_defs=array($key=>'آبی');$p->jluxe_option_map=array('رنگ'=>array('قرمز','آبی'));
 $p->jluxe_rows=array(array('attributes'=>array('attribute_'.$key=>'قرمز'),'is_in_stock'=>true,'is_purchasable'=>true),array('attributes'=>array('attribute_'.$key=>'آبی'),'is_in_stock'=>true,'is_purchasable'=>true));
-check(array($key=>'آبی')===jluxe_default_variation_pick($p),'R167 a Persian-name attribute keeps its explicit non-first default');
+check(array($key=>'قرمز')===jluxe_default_variation_pick($p),'R168 the first available Persian attribute option wins over a later saved default');
 ob_start();jluxe_render_variation_swatches($p,array('رنگ'=>array('قرمز','آبی')));$choices=ob_get_clean();
-check(false!==strpos($choices,'value="آبی" selected') && false!==strpos($choices,'data-active=""'),'R167 raw Persian attribute labels resolve through the same sanitized key as stored defaults');
+check(false!==strpos($choices,'value="قرمز" selected') && false!==strpos($choices,'data-active=""'),'R167 raw Persian attribute labels resolve through the same sanitized key as stored defaults');
 unset($GLOBALS['test_sanitize_title']);
 
 $GLOBALS['denied_caps']=$old_caps;$GLOBALS['can_manage']=$old_manage;$_POST=$old_post_data;$GLOBALS['post']=$old_post;$GLOBALS['query_kind']=$old_query;

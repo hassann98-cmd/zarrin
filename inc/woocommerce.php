@@ -959,6 +959,10 @@ function jluxe_variable_variation_is_available( $variation ): bool {
 		if ( array_key_exists( 'is_purchasable', $variation ) && ! jluxe_variable_flag_is_true( $variation['is_purchasable'] ) ) {
 			return false;
 		}
+		foreach ( array( 'variation_is_active', 'variation_is_visible' ) as $flag ) {
+			if ( array_key_exists( $flag, $variation ) && ! jluxe_variable_flag_is_true( $variation[ $flag ] ) ) { return false; }
+		}
+		if ( isset( $variation['max_qty'] ) && is_numeric( $variation['max_qty'] ) && (float) $variation['max_qty'] >= 0 && (float) $variation['max_qty'] < max( 1, (float) ( $variation['min_qty'] ?? 1 ) ) ) { return false; }
 		return true;
 	}
 
@@ -968,6 +972,11 @@ function jluxe_variable_variation_is_available( $variation ): bool {
 	if ( method_exists( $variation, 'is_type' ) && ! $variation->is_type( 'variation' ) ) {
 		return false;
 	}
+	foreach ( array( 'variation_is_active', 'variation_is_visible' ) as $method ) {
+		if ( method_exists( $variation, $method ) && ! $variation->$method() ) { return false; }
+	}
+	$minimum = method_exists( $variation, 'get_min_purchase_quantity' ) ? max( 1, (float) $variation->get_min_purchase_quantity() ) : 1;
+	if ( method_exists( $variation, 'has_enough_stock' ) && ! $variation->has_enough_stock( $minimum ) ) { return false; }
 	return method_exists( $variation, 'is_in_stock' )
 		&& $variation->is_in_stock()
 		&& method_exists( $variation, 'is_purchasable' )
@@ -1009,9 +1018,9 @@ function jluxe_variable_default_variation_candidates( WC_Product $product ): ite
 }
 
 /**
- * Resolve one complete default combination. Keep an explicit default when it
- * still identifies a purchasable in-stock variation; otherwise use the first
- * available variation in WooCommerce's variation/menu order. A wildcard value
+ * R168: always resolve the FIRST complete available offer in WooCommerce menu order.
+ * A saved default never promotes a later variation over an earlier available one.
+ * A wildcard value
  * is filled with the requested option or the first option used by the product.
  */
 function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_defaults = array() ): array {
@@ -1038,7 +1047,6 @@ function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_de
 	}
 
 	// Do not generate the expensive price/image HTML for the whole variation set.
-	$first_available = array();
 	foreach ( jluxe_variable_default_variation_candidates( $product ) as $variation ) {
 		if ( ! jluxe_variable_variation_is_available( $variation ) ) {
 			continue;
@@ -1047,30 +1055,6 @@ function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_de
 		$variation_attributes = jluxe_variable_variation_attributes( $variation );
 		if ( empty( $variation_attributes ) ) {
 			continue;
-		}
-
-		$matches_requested = true;
-		foreach ( $requested as $name => $value ) {
-			if ( ! array_key_exists( $name, $variation_attributes ) ) {
-				$matches_requested = false;
-				continue;
-			}
-			$variation_value = $variation_attributes[ $name ];
-			if ( '' !== $variation_value && ! jluxe_variable_attribute_values_match( $variation_value, $value ) ) {
-				$matches_requested = false;
-			}
-			if ( '' === $variation_value && ! empty( $options[ $name ] ) ) {
-				$option_exists = false;
-				foreach ( $options[ $name ] as $option ) {
-					if ( jluxe_variable_attribute_values_match( $option, $value ) ) {
-						$option_exists = true;
-						break;
-					}
-				}
-				if ( ! $option_exists ) {
-					$matches_requested = false;
-				}
-			}
 		}
 
 		$attribute_names = array_keys( $options );
@@ -1105,15 +1089,15 @@ function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_de
 		if ( empty( $resolved ) ) {
 			continue;
 		}
-		if ( empty( $first_available ) ) {
-			$first_available = $resolved;
-		}
-		if ( $matches_requested ) {
-			return $resolved;
-		}
+		return $resolved;
 	}
 
-	return $first_available;
+	return array();
+}
+
+/** R168: variable availability is a real child offer, never the possibly stale parent flag. */
+function jluxe_product_has_available_offer( WC_Product $product ): bool {
+	return $product->is_type( 'variable' ) ? ! empty( jluxe_default_variation_pick( $product ) ) : (bool) $product->is_in_stock();
 }
 
 /** Find the purchasable variation represented by an effective default attribute set. */
@@ -1280,7 +1264,7 @@ add_action( 'woocommerce_variation_set_stock_status', 'jluxe_sync_variable_defau
 function jluxe_variable_variations_feed_guidance(): void {
 	?>
 	<div class="notice notice-info inline" style="margin:10px 0 14px">
-		<p><strong>ترب و فید محصولات:</strong> اگر پیش‌فرض خالی یا ناموجود باشد، زرین اولین تنوعِ فعال، قابل‌خرید و موجود را انتخاب می‌کند؛ اگر همهٔ تنوع‌ها ناموجود/غیرقابل‌خرید باشند، پیش‌فرض خالی می‌ماند. برای نمایش دقیق‌تر، برای هر تنوع SKU یکتا، قیمت و موجودی واقعی، ویژگی‌های کامل و در صورت تفاوت تصویر همان تنوع را ثبت کنید. اگر افزونهٔ ترب شما ارسال جداگانهٔ تنوع‌ها را پشتیبانی می‌کند، آن گزینه را هم فعال کنید.
+		<p><strong>ترب و فید محصولات:</strong> زرین همیشه اولین تنوعِ فعال، قابل‌خرید و موجود را به ترتیب فهرست تنوع‌های ووکامرس انتخاب می‌کند؛ اگر همهٔ تنوع‌ها ناموجود/غیرقابل‌خرید باشند، پیش‌فرض خالی می‌ماند. برای نمایش دقیق‌تر، برای هر تنوع SKU یکتا، قیمت و موجودی واقعی، ویژگی‌های کامل و در صورت تفاوت تصویر همان تنوع را ثبت کنید. اگر افزونهٔ ترب شما ارسال جداگانهٔ تنوع‌ها را پشتیبانی می‌کند، آن گزینه را هم فعال کنید.
 		</p>
 	</div>
 	<?php

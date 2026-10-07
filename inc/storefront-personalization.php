@@ -162,7 +162,7 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 				'imageAlt'     => (string) $product->get_name(),
 				'price'        => $prices['price'],
 				'regularPrice' => $prices['regularPrice'],
-				'inStock'      => (bool) $product->is_in_stock(),
+				'inStock'      => jluxe_product_has_available_offer( $product ),
 			);
 			if ( count( $items ) >= 8 ) {
 				break;
@@ -170,7 +170,10 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 		}
 	}
 
-	return new WP_REST_Response( array( 'items' => $items ), 200 );
+	$response = new WP_REST_Response( array( 'items' => $items ), 200 );
+	foreach ( jluxe_private_rest_headers() as $name => $value ) { $response->header( $name, $value ); }
+	$response->header( 'X-LiteSpeed-Cache-Control', 'no-cache' );
+	return $response;
 }
 
 function jluxe_register_recent_products_rest_route(): void {

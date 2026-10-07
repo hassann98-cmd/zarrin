@@ -1,3 +1,4 @@
+import { containSearchScroll } from "../lib/search-scroll.js";
 import { useDialog } from "../lib/use-dialog.js";
 import { siteUrl } from "../lib/api.js";
 import { fetchLiveSearch } from "../lib/live-search.js";
@@ -13,6 +14,30 @@ import { S as $ } from "../icons/shopping-cart.js";
 import { U as A } from "../icons/user.js";
 import { X as D } from "../icons/x.js";
 import "../lib/utils.js";
+// Shared by the desktop dropdown, inline mobile search and mobile dialog.
+function SearchScrollPanel({ children, className, fraction = 0.7 }) {
+  const ref = c.useRef(null);
+  c.useEffect(() => containSearchScroll(ref.current, window, fraction), [fraction]);
+  return e.jsx("div", {
+    ref,
+    className: "jluxe-search-scroll " + className,
+    "data-lenis-prevent": "",
+    role: "region",
+    "aria-label": "نتایج جستجو",
+    tabIndex: 0,
+    children,
+  });
+}
+function closeSearchOnBlur(event, close) {
+  if (!event.currentTarget.contains(event.relatedTarget)) close(false);
+}
+function closeSearchOnEscape(event, close) {
+  if (event.key !== "Escape") return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.querySelector('input[type="search"]')?.focus();
+  close(false); // Last update wins over the input's onFocus when Escape came from a result link.
+}
 const p = {
   products: [],
   categories: [],
@@ -310,6 +335,8 @@ function J() {
         ? e.jsxs("div", {
             className: "relative hidden w-full min-w-0 md:block",
             "data-jluxe-header-grid": "search",
+            onBlur: (event) => closeSearchOnBlur(event, d),
+            onKeyDown: (event) => closeSearchOnEscape(event, d),
             children: [
               e.jsxs("form", {
                 role: "search",
@@ -326,9 +353,9 @@ function J() {
                     type: "search",
                     name: "s",
                     value: n,
-                    onChange: (a) => o(a.target.value),
+                    onChange: (a) => { o(a.target.value); d(!0); },
                     onFocus: () => d(!0),
-                    onBlur: () => d(!1),
+
                     placeholder: searchPlaceholder,
                     "aria-label": "جستجو در فروشگاه",
                     enterKeyHint: "search",
@@ -345,8 +372,7 @@ function J() {
                 ],
               }),
               t && n.trim().length >= 2
-                ? e.jsx("div", {
-                    onMouseDown: (a) => a.preventDefault(),
+                ? e.jsx(SearchScrollPanel, {
                     className:
                       "jluxe-header-search-results--desktop absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-lg",
                     children: e.jsx(C, { query: n, results: x, loading: h }),
@@ -401,7 +427,8 @@ function J() {
         ? L.createPortal(
             e.jsxs("div", {
               className:
-                "fixed inset-0 z-50 flex flex-col bg-surface md:hidden",
+                "jluxe-search-dialog fixed inset-0 z-50 flex flex-col bg-surface md:hidden",
+              "data-lenis-prevent": "",
               role: "dialog",
               "aria-modal": true,
               "aria-label": "جستجو در فروشگاه",
@@ -458,7 +485,8 @@ function J() {
                     }),
                   ],
                 }),
-                e.jsx("div", {
+                e.jsx(SearchScrollPanel, {
+                  fraction: 1,
                   className: "flex-1 overflow-y-auto p-4",
                   children:
                     n.trim().length >= 2
@@ -494,6 +522,8 @@ function MobileSearch() {
   return enabled
     ? e.jsxs("div", {
         className: "relative h-10 w-full min-w-0 md:hidden",
+        onBlur: (event) => closeSearchOnBlur(event, setFocused),
+        onKeyDown: (event) => closeSearchOnEscape(event, setFocused),
         children: [
           e.jsxs("form", {
             role: "search",
@@ -510,9 +540,9 @@ function MobileSearch() {
                 type: "search",
                 name: "s",
                 value: query,
-                onChange: (event) => setQuery(event.target.value),
+                onChange: (event) => { setQuery(event.target.value); setFocused(!0); },
                 onFocus: () => setFocused(!0),
-                onBlur: () => setFocused(!1),
+
                 placeholder: searchPlaceholder,
                 "aria-label": "جستجو در فروشگاه",
                 enterKeyHint: "search",
@@ -528,8 +558,8 @@ function MobileSearch() {
             ],
           }),
           focused && query.trim().length >= 2
-            ? e.jsx("div", {
-                onMouseDown: (event) => event.preventDefault(),
+            ? e.jsx(SearchScrollPanel, {
+                fraction: 0.6,
                 className:
                   "jluxe-header-search-results--mobile absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-lg",
                 children: e.jsx(C, {
