@@ -394,12 +394,13 @@ function jluxe_ajax_cart(): void {
 	// Let WooCommerce own session persistence; compute the snapshot after totals are current.
 	$cart->calculate_totals();
 	$snapshot = jluxe_cart_snapshot();
-	if ( 'add' === $op ) {
+	if ( 'add' === $op || ( 'get' === $op && '1' === jluxe_cart_post_string( 'include_suggestions' ) ) ) {
 		/* R61 — مودالِ «اضافه خرید» به‌جای اتکا به مارک‌آپِ از پیشِ لودشده،
 		 * HTML تازه‌اش را در همین پاسخ می‌گیرد: وضعیتِ موجودی/قابل‌خریدِ
 		 * پیشنهادها بعد از افزودنِ واقعی محاسبه می‌شود و کلاینتِ موفقِ
 		 * «افزودن به سبد» همیشه همان نسخهٔ معتبرِ لحظهٔ افزودن را نشان می‌دهد. */
-		$added_product = wc_get_product( absint( jluxe_cart_post_string( 'product_id' ) ) );
+		$added_product = 'add' === $op ? wc_get_product( absint( jluxe_cart_post_string( 'product_id' ) ) ) : null;
+		if ( $added_product && $added_product->is_type( 'variation' ) ) { $added_product = wc_get_product( $added_product->get_parent_id() ); }
 		$modal_product = $added_product;
 		$context_id    = absint( jluxe_cart_post_string( 'pa_context_id' ) );
 		if ( $context_id ) {
@@ -408,7 +409,8 @@ function jluxe_ajax_cart(): void {
 				$modal_product = $context_product;
 			}
 		}
-		if ( $modal_product && function_exists( 'jluxe_suggested_modal_html_for' ) ) {
+		$snapshot['suggested_html'] = '';
+		if ( jluxe_product_is_public( $modal_product ) && function_exists( 'jluxe_suggested_modal_html_for' ) ) {
 			$snapshot['suggested_html'] = jluxe_suggested_modal_html_for( $modal_product );
 		}
 	}

@@ -42,6 +42,35 @@
 	});
 })();
 
+/** R167: a cached nonce may be refreshed ONCE only after an explicit pre-mutation rejection. */
+var jluxeCartRequest = (function () {
+	var nonceRefresh = null;
+	return function (config, body) {
+		function send(retried) {
+			return fetch(config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin', cache: 'no-store' }).then(function (res) {
+				return res.json().then(function (result) {
+					if (!retried && res.status === 403 && result && result.data && result.data.code === 'jluxe_cart_invalid_nonce') {
+						var sessionUrl = window.JLuxeThemeSettings && window.JLuxeThemeSettings.rest && window.JLuxeThemeSettings.rest.sessionUrl;
+						if (!sessionUrl) { return result; }
+						if (!nonceRefresh) {
+							nonceRefresh = fetch(sessionUrl, { method: 'POST', credentials: 'same-origin', cache: 'no-store', body: new URLSearchParams({ action: 'jluxe_session' }) }).then(function (response) {
+								return response.json().then(function (session) {
+									if (response.ok === false || !session.success || !session.data || !session.data.cartNonce) { throw new Error('Session refresh failed'); }
+									return session.data.cartNonce;
+								});
+							}).finally(function () { nonceRefresh = null; });
+						}
+						return nonceRefresh.then(function (nonce) { config.nonce = nonce; body.set('nonce', nonce); return send(true); });
+					}
+					if (res.ok === false && result && result.success) { throw new Error('Invalid cart response'); }
+					return result;
+				});
+			});
+		}
+		return send(false); // Never replay timeouts, stock failures, malformed JSON or arbitrary 5xx.
+	};
+})();
+
 /**
  * گالری تصویر صفحه‌ی محصول (woocommerce/single-product/product-image.php):
  * جابه‌جایی بین تصاویر با opacity + به‌روزرسانی شمارنده‌ی فعال. ناوبری هم با
@@ -444,17 +473,17 @@ function jluxeSyncVariationAvailability(form) {
 		try { return decodeURIComponent(a) === decodeURIComponent(b); } catch (e) { return false; }
 	};
 	var selects = form.querySelectorAll("select[name^=\"attribute_\"]");
+	var optionValues = {}; // Shared across both the modern and classic passes.
 	selects.forEach(function (select) {
 		var name = decodeKey(select.getAttribute("name"));
 		var current = {};
 		selects.forEach(function (other) {
 			if (other !== select && other.value) { current[decodeKey(other.getAttribute("name"))] = other.value; }
 		});
-		var optionValues = {};
 		Array.prototype.forEach.call(select.options, function (opt) {
 			if (!opt.value) { return; }
 			var selectable = variations.some(function (v) {
-				if (!v || v.is_in_stock === false) { return false; }
+				if (!v || v.is_in_stock === false || v.is_purchasable === false || v.variation_is_active === false) { return false; }
 				var attrs = v.attributes || {};
 				var suffixes = {};
 				Object.keys(attrs).forEach(function (k) { suffixes[decodeKey(k)] = attrs[k]; });
@@ -568,31 +597,8 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		select.value = value;
 		select.dispatchEvent(new Event("change", { bubbles: true }));
 
-		group.querySelectorAll("[data-jluxe-variation-value]").forEach(function (btn) {
-			if (btn === swatch) {
-				btn.setAttribute("data-active", "");
-			} else {
-				btn.removeAttribute("data-active");
-			}
-		});
+		syncSelectedOptions(select.closest('form.variations_form'));
 
-		/*
-		 * برای گروه‌های رنگ (variable.php: data-jluxe-variation-label فقط
-		 * روی ویژگی‌های رنگ رندر می‌شه)، اسمِ رنگِ انتخاب‌شده هم توی عنوانِ
-		 * بالای سواچ‌ها («انتخاب رنگ: قهوه‌ای») و هم توی ردیفِ متناظرش در
-		 * «ویژگی‌های کلیدی» (که قبلاً همیشه لیستِ کاملِ همه‌ی رنگ‌های ممکن
-		 * رو نشون می‌داد، نه فقط رنگِ واقعاً انتخاب‌شده) به‌روزرسانی می‌شه.
-		 */
-		var selectedLabel = swatch.getAttribute("title") || swatch.getAttribute("aria-label") || value;
-		var labelSpan = group.querySelector("[data-jluxe-variation-selected]");
-		if (labelSpan) {
-			labelSpan.textContent = selectedLabel;
-		}
-		var groupAttr = group.getAttribute("data-jluxe-variation-group");
-		var keyspecValue = document.querySelector('[data-jluxe-keyspec-attr="' + groupAttr + '"] [data-jluxe-keyspec-value]');
-		if (keyspecValue) {
-			keyspecValue.textContent = selectedLabel;
-		}
 	});
 
 	// «پاک کردن گزینه‌ها» (reset_variations) که خودِ ووکامرس با JS تزریق می‌کنه —
@@ -614,42 +620,50 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		});
 	});
 
-	/**
-	 * انتخاب خودکار اولین ترکیبِ واقعاً موجود در بارگذاری صفحه‌ی محصولِ
-	 * متغیر — وگرنه چون هیچ variation ای پیش‌فرض انتخاب‌شده نیست، قیمت
-	 * "۰ تومان" و وضعیت اشتباهاً "ناموجود" نشون داده می‌شد (باگ گزارش‌شده).
-	 * اگه هیچ ترکیبی موجود نباشه دست نمی‌زنیم — همون متن "ناموجود" واقعیِ
-	 * ووکامرس (get_availability) می‌مونه.
-	 */
-	var jluxeVariationForm = document.querySelector(".variations_form[data-product_variations]");
-	if (jluxeVariationForm) {
-		var jluxeVariations = [];
-		try {
-			jluxeVariations = JSON.parse(jluxeVariationForm.getAttribute("data-product_variations") || "[]");
-		} catch (e) {
-			jluxeVariations = [];
-		}
-		// فقط ترکیبِ کاملاً مشخص (بدون مقدار خالی/"هرکدوم") و موجود، چون باید
-		// بشه هر ویژگی رو روی یک سواچِ مشخص کلیک کرد.
-		var jluxeTarget = (Array.isArray(jluxeVariations) ? jluxeVariations : []).filter(function (v) {
-			return v && v.is_in_stock && v.attributes && Object.keys(v.attributes).every(function (k) {
-				return v.attributes[k] !== "";
+	// R167: defaults are resolved in PHP. Never click the first variation here:
+	// doing so overwrote the merchant's selected default and later user choices.
+	function syncSelectedOptions(form) {
+		if (!form || !form.querySelectorAll) { return; }
+		form.querySelectorAll('.variations select').forEach(function (select) {
+			var group = select.closest('[data-jluxe-variation-group]');
+			var slug = select.getAttribute('data-cp3-select');
+			var classicRoot = form.closest('.jluxe-cp3') || form;
+			var classic = slug && Array.prototype.find.call(classicRoot.querySelectorAll('[data-cp3-pills]'), function (el) { return el.getAttribute('data-cp3-pills') === slug; });
+			var buttons = group ? group.querySelectorAll('[data-jluxe-variation-value]') : classic ? classic.querySelectorAll('.cp3-pill') : [];
+			var label = '';
+			Array.prototype.forEach.call(buttons, function (button) {
+				var selected = !!select.value && (button.getAttribute('data-jluxe-variation-value') || button.getAttribute('data-value')) === select.value;
+				if (group) { button.toggleAttribute('data-active', selected); }
+				else { button.classList.toggle('is-active', selected); }
+				button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+				if (selected) { label = button.getAttribute('aria-label') || button.textContent.trim(); }
 			});
-		})[0];
-		if (jluxeTarget) {
-			Object.keys(jluxeTarget.attributes).forEach(function (attrKey) {
-				var select = jluxeVariationForm.querySelector('select[name="' + attrKey + '"]');
-				var group = select && select.closest("[data-jluxe-variation-group]");
-				if (!group) {
-					return;
-				}
-				var value = jluxeTarget.attributes[attrKey];
-				var swatch = group.querySelector('[data-jluxe-variation-value="' + value.replace(/"/g, '\\"') + '"]');
-				if (swatch) {
-					swatch.click();
-				}
-			});
-		}
+			var display = group && group.querySelector('[data-jluxe-variation-selected]');
+			if (display) { display.textContent = label; }
+			var productRoot = form.closest('.product');
+			if (group && productRoot) {
+				productRoot.querySelectorAll('[data-jluxe-keyspec-attr]').forEach(function (spec) {
+					if (spec.getAttribute('data-jluxe-keyspec-attr') !== group.getAttribute('data-jluxe-variation-group')) { return; }
+					var value = spec.querySelector('[data-jluxe-keyspec-value]');
+					if (value) { value.textContent = label || value.getAttribute('data-jluxe-keyspec-default') || ''; }
+				});
+			}
+		});
+	}
+	function syncInitialSelections() {
+		document.querySelectorAll('form.variations_form').forEach(syncSelectedOptions);
+	}
+	syncInitialSelections();
+	document.addEventListener('DOMContentLoaded', syncInitialSelections, { once: true });
+	document.addEventListener('change', function (event) {
+		var form = event.target.closest && event.target.closest('form.variations_form');
+		if (form) { syncSelectedOptions(form); }
+	});
+	if (window.jQuery) {
+		window.jQuery(document).on('wc_variation_form.jluxeSelected found_variation.jluxeSelected reset_data.jluxeSelected woocommerce_update_variation_values.jluxeSelected', 'form.variations_form', function () {
+			syncSelectedOptions(this);
+		});
+		window.jQuery(document).on('change.jluxeSelected', 'form.variations_form .variations select', function () { syncSelectedOptions(this.closest('form')); });
 	}
 
 	/**
@@ -1123,6 +1137,19 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
  * می‌شه تا هدر (شمارنده‌ی سبد) و دراور کشویی (اگه باز باشه) رفرش بشن.
  */
 (function () {
+	var suggestedRequest = 0;
+	var cartReadRevision = 0;
+	window.addEventListener('pagehide', function () { suggestedRequest++; cartReadRevision++; });
+	window.addEventListener('jluxe:open-cart', function () { suggestedRequest++; });
+	function openFreshSuggestions(html) {
+		if (!html || typeof window.jluxeMountSuggestedModal !== 'function') { return false; }
+		var modal = window.jluxeMountSuggestedModal(html);
+		if (!modal || typeof window.jluxeOpenSuggestedProductsModal !== 'function') { return false; }
+		document.querySelectorAll('.jluxe-toast').forEach(function (toast) { toast.remove(); });
+		window.jluxeOpenSuggestedProductsModal();
+		return true;
+	}
+
 	if (typeof window.jQuery === "undefined") {
 		return;
 	}
@@ -1244,7 +1271,7 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		toast.addEventListener("focusout", function (event) {
 			if (!toast.contains(event.relatedTarget)) { startTimer(); }
 		});
-		toast.querySelector(".jluxe-toast-close").addEventListener("click", dismiss);
+		toast.querySelector(".jluxe-toast-close").addEventListener("click", function () { suggestedRequest++; dismiss(); });
 		toast.querySelector(".jluxe-toast-cta-primary").addEventListener("click", function (event) {
 			if (document.querySelector('[data-jluxe-island="mini-cart"]')) {
 				event.preventDefault();
@@ -1253,6 +1280,7 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			dismiss();
 		});
 		toast.querySelector(".jluxe-toast-continue").addEventListener("click", function () {
+			suggestedRequest++;
 			dismiss();
 			if (options.sourceButton && options.sourceButton.isConnected && typeof options.sourceButton.focus === "function") {
 				try { options.sourceButton.focus({ preventScroll: true }); } catch (error) { options.sourceButton.focus(); }
@@ -1350,7 +1378,9 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		}, 420);
 	}
 
-	window.jQuery(document.body).on("added_to_cart", function (event, fragments, cartHash, $button, cartSnapshot) {
+	window.jQuery(document.body).off("added_to_cart.jluxeFeedback").on("added_to_cart.jluxeFeedback", function (event, fragments, cartHash, $button, cartSnapshot, addContext) {
+		var requestId = ++suggestedRequest;
+		var readRevision = ++cartReadRevision;
 		var button = $button && $button.length ? $button[0] : null;
 		// خودِ اسکریپتِ هسته‌ی ووکامرس (assets/js/frontend/add-to-cart.js) روی
 		// همین رویداد یک لینکِ خامِ «مشاهده سبد خرید» (.added_to_cart.wc-forward)
@@ -1377,21 +1407,32 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		// Mobile keeps the quick visual pulse, but the same accessible confirmation/actions stay available at every width.
 		if (isMobile) { fadeButtonPulse(button); }
 		var name = productNameFromButton(button);
-		var fromSuggestion = !!(button && button.closest("[data-jluxe-suggested-modal], .jluxe-variant-modal"));
+		var fromSuggestion = !!(addContext && addContext.suppressSuggestions) || !!(button && button.closest("[data-jluxe-suggested-modal], .jluxe-variant-modal-backdrop[data-jluxe-from-suggestions]"));
 		var suggestedHtml = !fromSuggestion && cartSnapshot && typeof cartSnapshot.suggested_html === "string"
 			? cartSnapshot.suggested_html
 			: "";
-		if (suggestedHtml && typeof window.jluxeMountSuggestedModal === "function") {
-			window.jluxeMountSuggestedModal(suggestedHtml);
-		} else if (!suggestedHtml && button && button.closest("form.cart")) {
+		var popupOpened = !fromSuggestion && openFreshSuggestions(suggestedHtml);
+		if (!suggestedHtml && !fromSuggestion && button && button.closest("form.cart")) {
 			var staleSuggested = document.querySelector("[data-jluxe-suggested-modal]");
-			if (staleSuggested && staleSuggested.parentNode) { staleSuggested.parentNode.removeChild(staleSuggested); }
+			if (staleSuggested && staleSuggested.parentNode) { if (typeof window.jluxeCloseSuggestedProductsModal === 'function') { window.jluxeCloseSuggestedProductsModal(); } staleSuggested.parentNode.removeChild(staleSuggested); }
 		}
-		showToast("✓ به سبد اضافه شد", {
-			productName: name,
-			suggestedHtml: suggestedHtml,
-			sourceButton: button,
-		});
+		if (!popupOpened) {
+			showToast("✓ به سبد اضافه شد", { productName: name, suggestedHtml: suggestedHtml, sourceButton: button });
+		}
+		// Native Woo loop adds do not carry our HTML. Read fresh suggestions; never add again.
+		var nativeRead = false;
+		var contextId = button && button.getAttribute('data-product_id');
+		var config = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
+		if (!fromSuggestion && !cartSnapshot && /^[1-9][0-9]*$/.test(contextId || '') && config && config.ajaxUrl) {
+			nativeRead = true;
+			jluxeCartRequest(config, new URLSearchParams({ action: 'jluxe_cart', nonce: config.nonce, op: 'get', include_suggestions: '1', pa_context_id: contextId })).then(function (result) {
+				if (readRevision !== cartReadRevision) { return; }
+				if (result && result.success && result.data) {
+					window.dispatchEvent(new CustomEvent('jluxe:cart-updated', { detail: result.data }));
+					if (requestId === suggestedRequest) { openFreshSuggestions(result.data.suggested_html); }
+				} else { window.dispatchEvent(new CustomEvent('jluxe:cart-updated')); }
+			}).catch(function () { if (readRevision === cartReadRevision) { window.dispatchEvent(new CustomEvent('jluxe:cart-updated')); } });
+		}
 		animateAddToCart(button);
 		/* R63 (فاز ۲): Quick Add واقعی روی دکمهٔ دایره‌ای کارت — آیکون +
 		تبدیل به تیک و برچسبِ «به سبد اضافه شد»، بعدِ ~۲ ثانیه بازگشت.
@@ -1428,12 +1469,9 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		 * ساده‌ی گرید که از AJAX خامِ خودِ ووکامرس میاد، cartSnapshot خالیه
 		 * و use-cart.ts طبقِ قبل fallback به fetch می‌کنه.)
 		 */
-		window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: cartSnapshot || null }));
-		/* R61: بازشدنِ مودالِ «اضافه خرید» از هندلرِ رویدادِ عمومی برداشته شد —
-		شرطِ کلاسِ single_add_to_cart_button شکننده بود (چند مسیرِ افزودن داریم:
-		صفحهٔ محصول ساده/متغیر، sticky، quick-variant، گرید). حالا فقط مسیرِ
-		واحدِ درست بازش می‌کند: پاسخِ موفقِ endpoint افزودنِ صفحهٔ محصول
-		(پایینِ همین فایل، در submit interceptor). */
+		if (!nativeRead) { window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: cartSnapshot || null })); }
+		// R167: automatic recommendations are owned by this shared successful-add event.
+
 	});
 })();
 
@@ -1829,10 +1867,11 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 
 	window.jluxeMountSuggestedModal = function (html, selectionState) {
 		var old = document.querySelector("[data-jluxe-suggested-modal]");
+		if (old && typeof window.jluxeCloseSuggestedProductsModal === 'function') { window.jluxeCloseSuggestedProductsModal(); }
 		if (old && old.parentNode) { old.parentNode.removeChild(old); }
 		var wrap = document.createElement("div");
 		wrap.innerHTML = html;
-		var fresh = wrap.firstElementChild;
+		var fresh = wrap.querySelector("[data-jluxe-suggested-modal]");
 		if (!fresh) { return null; }
 		document.body.appendChild(fresh);
 		jluxeBindSuggestedModal(fresh);
@@ -1891,9 +1930,10 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 (function () {
 	var form = document.querySelector("form.cart");
 	var cartCfg = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
-	if (!form || !cartCfg || !cartCfg.ajaxUrl || !window.jQuery) {
+	if (!form || !cartCfg || !cartCfg.ajaxUrl || !window.jQuery || form.dataset.jluxeSubmitBound) {
 		return;
 	}
+	form.dataset.jluxeSubmitBound = '1';
 	/*
 	 * باگِ واقعیِ دیگه‌ای که همینِ‌جا کشف شد (گزارشِ کاربر: «پاپ‌آپِ
 	 * محصولاتِ پیشنهادی فقط برایِ محصولِ ساده میاد، برایِ متغیر نه»):
@@ -1950,8 +1990,8 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 	}
 
 	form.addEventListener("submit", function (event) {
-		var button = form.querySelector('[name="add-to-cart"], .single_add_to_cart_button');
-		if (button && button.disabled) {
+		var button = form.querySelector('.single_add_to_cart_button, button[name="add-to-cart"], input[type="submit"][name="add-to-cart"]');
+		if (form.dataset.jluxeSubmitting || (button && button.disabled)) {
 			event.preventDefault();
 			return;
 		}
@@ -1961,7 +2001,9 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			button.classList.add("opacity-60", "pointer-events-none");
 		}
 
+		form.dataset.jluxeSubmitting = '1';
 		function restoreButton() {
+			delete form.dataset.jluxeSubmitting;
 			if (button) {
 				button.disabled = false;
 				button.classList.remove("opacity-60", "pointer-events-none");
@@ -1985,12 +2027,10 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		formData.set("action", "jluxe_cart");
 		formData.set("nonce", cartCfg.nonce);
 		formData.set("op", "add");
-		formData.set("product_id", (button && button.value) || form.dataset.product_id || "");
+		var productField = form.querySelector('input[name="product_id"], input[name="add-to-cart"]');
+		formData.set("product_id", form.dataset.product_id || (productField && productField.value) || (button && button.value) || "");
 
-		fetch(cartCfg.ajaxUrl, { method: "POST", body: formData, credentials: "same-origin" })
-			.then(function (res) {
-				return res.json();
-			})
+		jluxeCartRequest(cartCfg, formData)
 			.then(function (response) {
 				restoreButton();
 				if (!response || !response.success) {
@@ -1999,12 +2039,11 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 					return;
 				}
 				window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(button), response.data]);
-				/* Recommendation HTML is refreshed and mounted hidden by the shared toast handler.
-				   Opening it is now an explicit customer choice, never an automatic post-add interruption. */
+				/* The shared successful-add handler opens the fresh modal at every viewport width. */
 				var paHtml = response.data && response.data.suggested_html ? response.data.suggested_html : "";
 				if (!paHtml) {
 					var staleModal = document.querySelector("[data-jluxe-suggested-modal]");
-					if (staleModal && staleModal.parentNode) { staleModal.parentNode.removeChild(staleModal); }
+					if (staleModal && staleModal.parentNode) { if (typeof window.jluxeCloseSuggestedProductsModal === 'function') { window.jluxeCloseSuggestedProductsModal(); } staleModal.parentNode.removeChild(staleModal); }
 				}
 			})
 			.catch(function () {
@@ -2096,6 +2135,7 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		lastFocused = triggerEl || document.activeElement;
 		modalRoot = document.createElement("div");
 		modalRoot.className = "jluxe-variant-modal-backdrop";
+		if (pickerFromSuggested) { modalRoot.setAttribute('data-jluxe-from-suggestions', '1'); }
 		modalRoot.innerHTML =
 			'<div class="jluxe-variant-modal" role="dialog" aria-modal="true" aria-label="انتخاب گزینه‌های محصول">' +
 			'<button type="button" class="jluxe-variant-modal-close" aria-label="بستن">' +
@@ -2175,7 +2215,7 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		event.preventDefault();
 
 		var addButton = form.querySelector(".single_add_to_cart_button");
-		if (addButton && addButton.classList.contains("disabled")) {
+		if (form.dataset.jluxeSubmitting || (addButton && (addButton.disabled || addButton.classList.contains("disabled")))) {
 			return;
 		}
 
@@ -2198,6 +2238,9 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		 * (jluxe_ajax_cart_add) استفاده می‌کنیم که product_id/variation_id
 		 * رو جدا جدا و صریح می‌گیره.
 		 */
+		form.dataset.jluxeSubmitting = '1';
+		var submittedModal = modalRoot;
+		var submittedFromSuggestion = pickerFromSuggested;
 		var formData = new FormData(form);
 		// Keep the native field in the DOM, but never send it to our AJAX protocol.
 		formData.delete("add-to-cart");
@@ -2214,16 +2257,15 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			addButton.classList.add("jluxe-loading");
 		}
 
-		fetch(cart.ajaxUrl, { method: "POST", body: formData, credentials: "same-origin" })
-			.then(function (res) {
-				return res.json();
-			})
+		jluxeCartRequest(cart, formData)
 			.then(function (response) {
+				delete form.dataset.jluxeSubmitting;
 				if (addButton) {
 					addButton.disabled = false;
 					addButton.classList.remove("jluxe-loading");
 				}
 				if (!response || !response.success) {
+					if (modalRoot !== submittedModal) { return; }
 					var message = response && response.data && response.data.message ? response.data.message : "لطفاً یک گزینه انتخاب کنید.";
 					var errorEl = modalRoot && modalRoot.querySelector(".jluxe-variant-modal-error");
 					if (!errorEl && modalRoot) {
@@ -2241,13 +2283,14 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 					}
 					return;
 				}
+				var cancelledOrReplaced = modalRoot !== submittedModal;
+				if (!cancelledOrReplaced) { pickerAdded = true; closeModal(); }
 				if (window.jQuery) {
-					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), response.data]);
+					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), response.data, { suppressSuggestions: submittedFromSuggestion || cancelledOrReplaced }]);
 				}
-				pickerAdded = true;
-				closeModal();
 			})
 			.catch(function () {
+				delete form.dataset.jluxeSubmitting;
 				if (addButton) {
 					addButton.disabled = false;
 					addButton.classList.remove("jluxe-loading");

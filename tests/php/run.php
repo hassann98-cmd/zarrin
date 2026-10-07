@@ -1475,7 +1475,7 @@ $GLOBALS['terms_by_slug']['pa_size'] = array(
 $attribute_swatches_source=(string) file_get_contents(ABSPATH.'inc/attribute-swatches.php');
 check(strpos($cp3,'jluxe_attribute_option_label( $cp3_value, $cp3_name, $product )')!==false && strpos($attribute_swatches_source,"get_term_by( 'slug', \$slug, \$taxonomy )")!==false && strpos($attribute_swatches_source,'woocommerce_variation_option_name')!==false, 'R48 variation pill labels use the shared slug/name resolver and never expose an unresolved percent-encoded slug');
 // 2) pills are filtered to options that actually have variations (wildcard attributes keep everything).
-check(strpos($cp3,'str_replace( \'attribute_\', \'\', (string) $cp3_attr_key )')!==false && strpos($cp3,'[\'*\'] = true;')!==false && strpos($cp3,'cp3_valid_options[ $cp3_attr_name ]')!==false, 'R48 pills only offer options backed by real variations (or wildcard attributes)');
+check(strpos($cp3,'str_replace( \'attribute_\', \'\', (string) $cp3_attr_key )')!==false && strpos($cp3,'[\'*\'] = true;')!==false && strpos($cp3,'cp3_valid_options[ $cp3_attr_slug ]')!==false, 'R48 pills only offer options backed by real variations (or wildcard attributes)');
 $pa_r48_orig = jluxe_get_theme_settings();
 check(function_exists('jluxe_render_site_diagnosis_page') && function_exists('jluxe_diagnosis_repair_pages'), 'R48 the site diagnosis page and repair routine ship');
 $GLOBALS['existing_pages'] = array();
@@ -1747,7 +1747,7 @@ check(strpos($woo_js,'function jluxeBindSuggestedModal')!==false && strpos($woo_
 $r160_submit_start = strpos( $woo_js, 'function showErrorToast' );
 $r160_submit_end   = strpos( $woo_js, "/**\n * مودالِ انتخاب سریعِ تنوع", $r160_submit_start === false ? 0 : $r160_submit_start );
 $r160_submit_js    = false !== $r160_submit_start && false !== $r160_submit_end ? substr( $woo_js, $r160_submit_start, $r160_submit_end - $r160_submit_start ) : '';
-check( strpos( $woo_js, 'window.jluxeMountSuggestedModal(suggestedHtml);' ) !== false && strpos( $woo_js, 'suggestionButton.addEventListener("click"' ) !== false && strpos( $woo_js, 'window.jluxeOpenSuggestedProductsModal();' ) !== false && strpos( $r160_submit_js, 'window.jluxeOpenSuggestedProductsModal();' ) === false && strpos( $r160_submit_js, 'staleModal.parentNode.removeChild(staleModal)' ) !== false, 'R160 recommendations are mounted without auto-opening; the customer explicitly opens them from the add-confirmation, while disabled suggestions clean up stale markup' );
+check( strpos( $woo_js, 'openFreshSuggestions(suggestedHtml)' ) !== false && strpos( $woo_js, 'window.jluxeOpenSuggestedProductsModal();' ) !== false && strpos( $r160_submit_js, 'staleModal.parentNode.removeChild(staleModal)' ) !== false, 'R167 successful adds automatically open fresh recommendations; disabled suggestions still remove stale markup' );
 check(strpos($woo_inc,'jluxe-pa-empty')!==false && strpos($woo_inc,'data-jluxe-suggested-modal')!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-render.php'),'admin.php?page=jluxe-purchase-addons')!==false, 'R121 an empty-but-enabled post-purchase modal gets an explanatory state, and product-page settings link directly to the add-on configuration');
 ob_start();jluxe_render_settings_nav('jluxe-product-page');$suggestion_nav=ob_get_clean();
 check(strpos($suggestion_nav,'page=jluxe-purchase-addons')!==false && strpos($suggestion_nav,'پیشنهادهای پس از خرید')!==false, 'R127 post-purchase product suggestions are directly accessible from the theme settings navigation');
@@ -3628,5 +3628,6 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 update_test_settings( jluxe_theme_settings_defaults() );
 
 require __DIR__ . '/performance.php';
+require __DIR__ . '/product-options.php';
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

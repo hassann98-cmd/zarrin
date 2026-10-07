@@ -458,7 +458,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 
 				<!-- اطلاعات -->
 				<div class="cp3-info">
-					<h1 class="cp3-title"><?php the_title(); ?></h1>
+					<h1 class="cp3-title" data-jluxe-product-title><?php the_title(); ?></h1>
+					<?php jluxe_render_product_trust_badges( $product->get_id() ); ?>
 
 					<div class="cp3-meta">
 						<button type="button" class="cp3-wishline" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" aria-pressed="false">
@@ -494,7 +495,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					$cp3_valid_options = array();
 					foreach ( (array) $jluxe_available_variations as $cp3_variation ) {
 						foreach ( (array) ( $cp3_variation['attributes'] ?? array() ) as $cp3_attr_key => $cp3_attr_value ) {
-							$cp3_valid_name = str_replace( 'attribute_', '', (string) $cp3_attr_key );
+							$cp3_valid_name = sanitize_title( str_replace( 'attribute_', '', (string) $cp3_attr_key ) );
 							if ( '' === (string) $cp3_attr_value ) {
 								$cp3_valid_options[ $cp3_valid_name ]['*'] = true;
 							} else {
@@ -518,7 +519,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								continue;
 							}
 							foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
-								$cp3_stocky_name = str_replace( 'attribute_', '', (string) $cp3_stocky_key );
+								$cp3_stocky_name = sanitize_title( str_replace( 'attribute_', '', (string) $cp3_stocky_key ) );
 								if ( '' === (string) $cp3_stocky_value ) {
 									$cp3_stocky_options[ $cp3_stocky_name ]['*'] = true;
 								} else {
@@ -530,9 +531,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						$cp3_attr_slug      = sanitize_title( $cp3_attr_name );
 						$cp3_attr_prompt    = jluxe_variable_attribute_prompt( $cp3_attr_name );
 						$cp3_attr_is_color  = jluxe_is_color_attribute( $cp3_attr_name );
-						$cp3_default_pick   = isset( $cp3_defaults[ $cp3_attr_name ] ) ? (string) $cp3_defaults[ $cp3_attr_name ] : '';
-						if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
-							$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
+						$cp3_default_pick   = isset( $cp3_defaults[ $cp3_attr_slug ] ) ? (string) $cp3_defaults[ $cp3_attr_slug ] : '';
+						if ( ! empty( $cp3_valid_options[ $cp3_attr_slug ] ) && empty( $cp3_valid_options[ $cp3_attr_slug ]['*'] ) ) {
+							$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_slug ][ (string) $cp3_opt ] ) ) );
 						}
 						?>
 						<div style="margin-top:16px">
@@ -541,7 +542,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
 									<?php $cp3_opt = (string) $cp3_opt; ?>
 									<?php
-										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
+										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_slug ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_slug ] ) && empty( $cp3_stocky_options[ $cp3_attr_slug ][ $cp3_opt ] ) );
 									?>
 									<?php
 										$cp3_opt_label       = $cp3_option_label( $cp3_opt, $cp3_attr_name );
@@ -898,7 +899,7 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 ?>
 <?php jluxe_render_sticky_add_to_cart( $product ); ?>
 
-<script>
+<script data-no-optimize="1">
 ( function () {
 	'use strict';
 	var root = document.querySelector( '.jluxe-cp3' );

@@ -165,6 +165,10 @@ test("variable recommendations restore the sheet on cancel/error and close witho
   assert.ok(suggestionsStart > suggestionsMarker && suggestionsEnd > suggestionsStart);
   window.eval(source.slice(suggestionsStart, suggestionsEnd + "\n})();".length));
 
+  const requestStart = source.indexOf("var jluxeCartRequest =");
+  const requestEnd = source.indexOf("\n})();", requestStart) + "\n})();".length;
+  window.eval(source.slice(requestStart, requestEnd));
+
   const pickerMarker = source.indexOf("مودالِ انتخاب سریعِ تنوع");
   const pickerStart = source.indexOf("(function () {", pickerMarker);
   const pickerEnd = source.indexOf("\n})();\n\n/**\n * توضیحاتِ کوتاهِ محصول", pickerStart);

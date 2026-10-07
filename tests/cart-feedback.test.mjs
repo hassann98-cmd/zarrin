@@ -25,15 +25,15 @@ function boot() {
   const { window } = dom;
   window.jQuery = jquery(window);
   window.jluxeWcSettings = { cartUrl: "https://shop.test/basket/" };
-  window.jluxeMountSuggestedModal = (html) => { window.mountedSuggestions = html; };
+  window.jluxeMountSuggestedModal = (html) => { window.mountedSuggestions = html; return {}; };
   window.jluxeOpenSuggestedProductsModal = () => { window.openedSuggestions = (window.openedSuggestions || 0) + 1; };
   window.eval(cartFeedbackScript);
   return dom;
 }
 
-function addToCart(window, button) {
+function addToCart(window, button, enabled = false) {
   const suggestions = '<div data-jluxe-suggested-modal><button data-pa-product="55"><span class="jluxe-pa-name">کیف چرمی</span></button><button data-pa-product="56"><span class="jluxe-pa-name">کمربند</span></button></div>';
-  window.jQuery(window.document.body).trigger("added_to_cart", [null, null, window.jQuery(button), { suggested_html: suggestions }]);
+  window.jQuery(window.document.body).trigger("added_to_cart", [null, null, window.jQuery(button), { suggested_html: enabled ? suggestions : "" }]);
 }
 
 test("successful desktop and mobile adds show the exact status and keep all actions available", (t) => {
@@ -56,13 +56,8 @@ test("successful desktop and mobile adds show the exact status and keep all acti
   assert.equal(toast.querySelector(".jluxe-toast-continue").textContent, "ادامه خرید");
   assert.equal(toast.querySelector(".jluxe-toast-cta-primary").hidden, false);
   assert.equal(toast.querySelector(".jluxe-toast-continue").hidden, false);
-  assert.match(toast.querySelector(".jluxe-toast-suggestions").textContent, /ممکن است این‌ها را هم لازم داشته باشید: کیف چرمی، کمربند/);
-  assert.equal(window.openedSuggestions || 0, 0, "recommendations are mounted hidden, never auto-opened after an add");
-  assert.match(window.mountedSuggestions, /data-jluxe-suggested-modal/);
-
-  toast.querySelector(".jluxe-toast-suggestions-cta").click();
-  assert.equal(window.openedSuggestions, 1, "the customer can opt in to seeing recommendations");
-  assert.equal(toast.classList.contains("jluxe-toast-visible"), false);
+  assert.equal(toast.querySelector(".jluxe-toast-suggestions").hidden, true);
+  assert.equal(window.openedSuggestions || 0, 0, "explicitly disabled suggestions retain the normal confirmation");
 
   addToCart(window, button);
   toast = window.document.querySelector(".jluxe-toast");
@@ -95,4 +90,18 @@ test("feedback CSS provides safe-area mobile sizing, 44px actions, and the share
   assert.match(css, /\.jluxe-toast\s*\{[\s\S]*?bottom: max\(12px, env\(safe-area-inset-bottom\)\)/);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /border-radius: var\(--jluxe-radius-xl, 24px\)/);
+});
+
+
+test("R167 enabled recommendations open automatically on desktop and mobile without a toast covering the sheet", (t) => {
+  const dom = boot(); t.after(() => dom.window.close());
+  const { window } = dom;
+  for (const width of [390, 1280]) {
+    window.innerWidth = width;
+    const before = window.openedSuggestions || 0;
+    addToCart(window, window.document.getElementById("add"), true);
+    assert.equal(window.openedSuggestions, before + 1);
+    assert.match(window.mountedSuggestions, /data-jluxe-suggested-modal/);
+    assert.equal(window.document.querySelector('.jluxe-toast'), null);
+  }
 });

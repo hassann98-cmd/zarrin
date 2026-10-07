@@ -1324,7 +1324,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		بداند چنین گزینه‌ای وجود دارد اما فعلاً خریدنی نیست). */
 		$jluxe_in_stock = ! empty( $jluxe_variation['is_in_stock'] );
 		foreach ( $jluxe_variation['attributes'] as $jluxe_attr_key => $jluxe_attr_value ) {
-			$jluxe_attr_name = str_replace( 'attribute_', '', $jluxe_attr_key );
+			$jluxe_attr_name = sanitize_title( str_replace( 'attribute_', '', $jluxe_attr_key ) );
 			if ( '' === $jluxe_attr_value ) {
 				// مقدارِ خالی یعنی «هر مقداری» — این Variation با هر گزینه‌ای
 				// از این ویژگی مچ می‌شه، پس فیلترکردن برایِ این ویژگی معنی
@@ -1344,10 +1344,10 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		$select_id          = sanitize_title( $attr_name );
 		$is_color_attr      = jluxe_is_color_attribute( $attr_name );
 		$is_taxonomy_attr   = 0 === strpos( rawurldecode( $attr_name ), 'pa_' );
-		$jluxe_default_pick = isset( $jluxe_defaults[ $attr_name ] ) ? (string) $jluxe_defaults[ $attr_name ] : '';
+		$jluxe_default_pick = isset( $jluxe_defaults[ $select_id ] ) ? (string) $jluxe_defaults[ $select_id ] : '';
 
-		if ( empty( $jluxe_has_wildcard[ $attr_name ] ) && ! empty( $jluxe_valid_options[ $attr_name ] ) ) {
-			$attr_options = array_values( array_filter( $attr_options, fn( $o ) => isset( $jluxe_valid_options[ $attr_name ][ $o ] ) ) );
+		if ( empty( $jluxe_has_wildcard[ $select_id ] ) && ! empty( $jluxe_valid_options[ $select_id ] ) ) {
+			$attr_options = array_values( array_filter( $attr_options, fn( $o ) => isset( $jluxe_valid_options[ $select_id ][ $o ] ) ) );
 		}
 		$jluxe_default_label = '';
 		foreach ( $attr_options as $jluxe_candidate_option ) {
@@ -1374,7 +1374,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 					ناموجودِ رندرشدهٔ سرور هرگز disable نمی‌شد و فقط JS جبران
 					می‌کرد؛ در فرم‌های بالای آستانه که سینک early-return می‌کند،
 					سواچ کاملاً آزاد دیده می‌شد). */
-					$jluxe_oos = ( empty( $jluxe_stocky_options[ $attr_name ]['*'] ) && ! empty( $jluxe_valid_options[ $attr_name ] ) && empty( $jluxe_stocky_options[ $attr_name ][ $option ] ) );
+					$jluxe_oos = ( empty( $jluxe_stocky_options[ $select_id ]['*'] ) && ! empty( $jluxe_valid_options[ $select_id ] ) && empty( $jluxe_stocky_options[ $select_id ][ $option ] ) );
 					$jluxe_oos_attrs = $jluxe_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( (string) $option_label . ' (ناموجود)' ) . '"' : '';
 					?>
 					<?php if ( $jluxe_swatch && 'color' === $jluxe_swatch['type'] ) : ?>
@@ -2057,7 +2057,7 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	wp_enqueue_script(
 		'jluxe-woocommerce',
 		JLUXE_THEME_URI . '/assets/js/woocommerce.js',
-		array( 'jquery', 'jluxe-storefront-utils' ),
+		array( 'jquery', 'jluxe-storefront-utils', 'wc-add-to-cart-variation' ),
 		file_exists( $jluxe_wc_js_path ) ? (string) filemtime( $jluxe_wc_js_path ) : '1.0.0',
 		/*
 		 * اخطارِ Lighthouse («Render-blocking requests»، jquery/jquery-migrate):
@@ -3471,7 +3471,7 @@ function jluxe_render_shop_toolbar(): void {
  * دارای ضمانت») — قبلاً «گارانتی اصالت کالا» برای همه‌ی محصولات به‌صورت
  * ثابت نمایش داده می‌شد (باگِ واقعیِ گزارش‌شده: باید فقط برای محصولاتی که
  * واقعاً همچین ضمانتی دارن قابل‌انتخاب باشه، نه ثابت روی همه). این‌جا دو
- * چک‌باکس توی تبِ «عمومی»ِ ویرایشِ محصولِ ووکامرس اضافه می‌شه؛ خروجی توی
+ * چک‌باکس توی تبِ «گزینه‌های زرین»ِ ویرایشِ محصولِ ووکامرس اضافه می‌شه؛ خروجی توی
  * woocommerce/content-single-product.php با jluxe_get_product_trust_badges()
  * خونده می‌شه.
  */
@@ -3483,7 +3483,7 @@ function jluxe_render_product_badge_fields(): void {
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_badge_authenticity',
-			'value'       => get_post_meta( $post->ID, '_jluxe_badge_authenticity', true ),
+			'value'       => get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_badge_authenticity', true ),
 			'label'       => 'گارانتی اصالت کالا',
 			'description' => 'روی صفحه‌ی محصول، زیرِ عنوان، یک بج سبز «گارانتی اصالت کالا» نمایش داده می‌شه.',
 		)
@@ -3492,7 +3492,7 @@ function jluxe_render_product_badge_fields(): void {
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_badge_warranty',
-			'value'       => get_post_meta( $post->ID, '_jluxe_badge_warranty', true ),
+			'value'       => get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_badge_warranty', true ),
 			'label'       => 'کالای دارای ضمانت',
 			'description' => 'روی صفحه‌ی محصول، زیرِ عنوان، یک بج «کالای دارای ضمانت» نمایش داده می‌شه.',
 		)
@@ -3500,18 +3500,13 @@ function jluxe_render_product_badge_fields(): void {
 
 	echo '</div>';
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_product_badge_fields' );
+
 
 /**
  * ذخیره‌ی دو چک‌باکسِ بالا. woocommerce_wp_checkbox() خودش مقدار رو
  * ('yes'/'no') می‌خونه؛ چون چک‌باکس‌های خاموش اصلاً توی $_POST نمیان،
  * نبودشون یعنی 'no'.
  */
-function jluxe_save_product_badge_fields( int $post_id ): void {
-	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
-	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
-}
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields' );
 
 /**
  * چک‌باکسِ روشن/خاموش‌کردنِ دستیِ پاپ‌آپِ «محصولات پیشنهادی» برایِ هر
@@ -3524,7 +3519,7 @@ add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields
 function jluxe_render_suggested_modal_toggle_field(): void {
 	global $post;
 
-	$stored  = get_post_meta( $post->ID, '_jluxe_suggested_modal_enabled', true );
+	$stored  = get_post_meta( (int) ( $post->ID ?? 0 ), '_jluxe_suggested_modal_enabled', true );
 	$checked = 'no' !== $stored ? 'yes' : '';
 
 	echo '<div class="options_group">';
@@ -3538,12 +3533,8 @@ function jluxe_render_suggested_modal_toggle_field(): void {
 	);
 	echo '</div>';
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_suggested_modal_toggle_field' );
 
-function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
-	update_post_meta( $post_id, '_jluxe_suggested_modal_enabled', isset( $_POST['_jluxe_suggested_modal_enabled'] ) ? 'yes' : 'no' );
-}
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
+
 
 /**
  * بج‌های واقعاً فعالِ یک محصول، آماده برای رندر — woocommerce/

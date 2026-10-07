@@ -22,7 +22,7 @@ $GLOBALS['create_calls']=0;
 function add_action(...$a){$GLOBALS['actions'][]=$a;}
 function add_filter(...$a){$GLOBALS['filters'][]=$a;}
 function remove_action(...$a){}
-function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
+function do_action(...$a){$GLOBALS['fired'][]=$a[0];$GLOBALS['action_calls'][]=$a;}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}
 function get_bloginfo($k){return 'Audit shop';}
@@ -72,7 +72,7 @@ function check_admin_referer(...$a){return true;}
 
 function wp_doing_ajax(){return $GLOBALS['doing_ajax']??false;}
 function check_ajax_referer(...$a){return $GLOBALS['valid_ajax_nonce'] ?? true;}
-function wp_verify_nonce(...$a){return true;}
+function wp_verify_nonce(...$a){return $GLOBALS['verify_nonce_result']??true;}
 function current_time($v){return '2026-09-23 00:00:00';}
 function wp_cache_delete($key,$group=''){unset($GLOBALS['objcache'][$group][$key]);return true;}
 function get_users($a){$GLOBALS['users_query']=$a; return isset($a['meta_query']) ? ($GLOBALS['billing_users']??[]) : ($GLOBALS['phone_users']??[]);}
@@ -165,7 +165,7 @@ function comments_open($post_id=0){
  return (bool)$open;
 }
 function post_password_required($id=0){return (bool)get_post_field('post_password',$id);}
-function sanitize_title($value){return (string)$value;}
+function sanitize_title($value){return isset($GLOBALS['test_sanitize_title'])?($GLOBALS['test_sanitize_title'])($value):(string)$value;}
 function wc_clean($value){return sanitize_text_field($value);}
 function wc_stock_amount($value){return (int)$value;}
 function wc_get_product($id=0){return $GLOBALS['products'][$id]??false;}
@@ -524,3 +524,5 @@ if(!function_exists('term_exists')){function term_exists($id,$tax=''){return iss
 if(!function_exists('get_term_meta')){function get_term_meta($id,$key='',$single=false){return $GLOBALS['term_meta'][(int)$id][$key]??'';}}
 if(!function_exists('wp_dropdown_pages')){function wp_dropdown_pages($a=array()){echo '<select name="'.htmlspecialchars((string)($a['name']??''),ENT_QUOTES).'"></select>';}}
 if(!function_exists('is_page')){function is_page(...$a){return !empty($GLOBALS['is_page']);}}
+
+function woocommerce_wp_checkbox($args){echo '<p class="form-field"><label for="'.esc_attr($args['id']).'">'.esc_html($args['label']).'</label><input type="checkbox" name="'.esc_attr($args['id']).'" id="'.esc_attr($args['id']).'" value="yes"'.(($args['value']??'')==='yes'?' checked':'').'></p>';}
