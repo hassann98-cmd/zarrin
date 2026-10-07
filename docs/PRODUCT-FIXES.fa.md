@@ -61,6 +61,6 @@
 
 ## مرز آزمون
 
-تست‌های Node/JSDOM شامل کنترلر واقعی تنوع ووکامرس، سناریوهای popup و retry امن هستند. تست‌های PHP ایزوله ذخیره/نمایش/نام فارسی و قرارداد LiteSpeed را می‌پوشانند. تست مستقل `tests/woocommerce/product-regressions.php` برای WordPress 6.9 + WooCommerce 11.1.2 + MySQL/PHP 8.3 در CI اضافه شده است تا CRUD، قالب‌های واقعی و افزودن/خواندن پیشنهادها را نیز بررسی کند.
+تست‌های Node/JSDOM شامل کنترلر واقعی تنوع ووکامرس، سناریوهای popup و retry امن هستند. تست‌های PHP ایزوله ذخیره/نمایش/نام فارسی و قرارداد LiteSpeed را می‌پوشانند. تست مستقل `tests/woocommerce/product-regressions.php` برای WordPress 7.0 + WooCommerce 11.1.2 + MySQL/PHP 8.3 در CI اضافه شده است تا CRUD، قالب‌های واقعی و افزودن/خواندن پیشنهادها را نیز بررسی کند.
 
 پیش‌نمایش Chromium از PHP helperها، CSS/JS واقعی و داده/پاسخ AJAX نمایشی استفاده می‌کند. این سنجش، نصب production، درگاه/SMS واقعی، سرور LiteSpeed واقعی یا اندازه‌گیری جدید PageSpeed نیست.

@@ -6,6 +6,8 @@ Source: https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommer
 
 SHA-256: `e901d7dd32a89f3bdbaefcd7589949c35176cc58b5b307be07bdbe579db7cdc9`
 
-Copyright WooCommerce contributors. WooCommerce is licensed under GNU GPL v3 or later: https://github.com/woocommerce/woocommerce/blob/11.1.2/license.txt
+Copyright WooCommerce contributors. WooCommerce is licensed under GNU GPL v3 or later: https://github.com/woocommerce/woocommerce/blob/11.1.2/plugins/woocommerce/license.txt
 
 The fixtures supply synthetic products and mock network/HTML-template I/O. They exercise real WooCommerce selection, initialization and events, but are not a payment or live-shop test.
+
+A full copy of the upstream license is included in `LICENSE.txt`.

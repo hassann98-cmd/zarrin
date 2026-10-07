@@ -114,7 +114,7 @@ jobs:
             fi
           }
           site="$RUNNER_TEMP/wordpress-products"
-          run_cmd wp core download --version=6.9 --path="$site" --skip-content
+          run_cmd wp core download --version=7.0 --path="$site" --skip-content
           run_cmd wp config create --path="$site" --dbname=zarrin_test --dbuser=root --dbpass=isolated-fixture-only --dbhost=127.0.0.1:33306
           run_cmd wp config set DISABLE_WP_CRON true --raw --path="$site"
           run_cmd wp config set WP_DEBUG true --raw --path="$site"
@@ -134,7 +134,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          wp eval-file "$GITHUB_WORKSPACE/tests/woocommerce/product-regressions.php" --path="$RUNNER_TEMP/wordpress-products" --user=fixture-admin
+          log="$RUNNER_TEMP/product-regressions.log"
+          if wp eval-file "$GITHUB_WORKSPACE/tests/woocommerce/product-regressions.php" --path="$RUNNER_TEMP/wordpress-products" --user=fixture-admin > "$log" 2>&1; then
+            cat "$log"
+            grep 'WOOCOMMERCE_PRODUCT_REGRESSIONS_PASSED:' "$log" | sed 's/^/::notice::/'
+          else
+            python3 -c 'import os,pathlib; s=pathlib.Path(os.environ["RUNNER_TEMP"]+"/product-regressions.log").read_text(errors="replace")[-6000:]; print("::error::"+s.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit 1
+          fi
       - name: Preserve isolated WordPress debug output for diagnosis
         if: always()
         uses: actions/upload-artifact@v4
