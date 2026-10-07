@@ -1,0 +1,65 @@
+name: Temporary Zarrin 1.7.32 release asset upload
+on:
+  push:
+    branches:
+      - arena/01a0cf86-zarrin
+    paths:
+      - .github/workflows/release-asset-1-7-32.yml
+permissions:
+  contents: read
+concurrency:
+  group: zarrin-verified-asset-1-7-32
+  cancel-in-progress: false
+jobs:
+  upload:
+    if: startsWith(github.event.head_commit.message, 'Upload verified Zarrin 1.7.32 release assets')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      EXPECTED_SHA256: 64f0de601bed03fc6ec9f5089e807545d7392fe2d74735fb277cb0c9de266908
+      SOURCE_DATE_EPOCH: '1790101606'
+      RELEASE_ID: '406007845'
+      RELEASE_COMMIT: dccd59cee84ffa2ccb7cb69528cf32052a99eccf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dccd59cee84ffa2ccb7cb69528cf32052a99eccf
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Recreate the exact already-verified ZIP
+        shell: bash
+        run: |
+          test "$(node -p 'require("./package.json").version')" = '1.7.32'
+          test -z "$(git status --porcelain -- assets/compiled)"
+          npm run package
+          printf '%s  %s\n' "$EXPECTED_SHA256" artifacts/zarrin-1.7.32.zip | sha256sum --check --strict -
+          printf '%s  %s\n' "$EXPECTED_SHA256" zarrin-1.7.32.zip > artifacts/zarrin-1.7.32.zip.sha256
+      - name: Upload assets without overwriting, verify server digests, and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > /tmp/release.json
+          jq -e --arg target "$RELEASE_COMMIT" '.tag_name == "v1.7.32" and .target_commitish == $target' /tmp/release.json
+          for name in zarrin-1.7.32.zip zarrin-1.7.32.zip.sha256; do
+            expected="sha256:$(sha256sum "artifacts/$name" | awk '{print $1}')"
+            gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" > /tmp/assets.json
+            if jq -e --arg name "$name" 'any(.[]; .name == $name)' /tmp/assets.json > /dev/null; then
+              jq -e --arg name "$name" --arg digest "$expected" 'any(.[]; .name == $name and .state == "uploaded" and .digest == $digest)' /tmp/assets.json
+            else
+              gh release upload v1.7.32 "artifacts/$name" --repo "$GITHUB_REPOSITORY"
+            fi
+            gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" > /tmp/assets.json
+            jq -e --arg name "$name" --arg digest "$expected" 'any(.[]; .name == $name and .state == "uploaded" and .digest == $digest)' /tmp/assets.json
+          done
+          gh release edit v1.7.32 --draft=false --latest --repo "$GITHUB_REPOSITORY"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq '{tag_name,draft,html_url,assets:[.assets[]|{name,size,state,digest,browser_download_url}]}'
