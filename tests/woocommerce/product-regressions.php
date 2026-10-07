@@ -4,10 +4,12 @@ if ( PHP_SAPI !== 'cli' || ! defined('WP_CLI') || ! WP_CLI ) { http_response_cod
 if ( ! defined('WC_VERSION') || ! class_exists('WC_Product_Variable') ) { throw new RuntimeException('WooCommerce must be activated'); }
 if ( ! defined('DOING_AJAX') ) { define('DOING_AJAX', true); }
 wc_load_cart();
-$checks = 0;
+$GLOBALS['jluxe_woo_checks'] = 0;
+// WP-CLI does not load Woo's wp-admin form helpers automatically.
+require_once WC_ABSPATH . 'includes/admin/wc-meta-box-functions.php';
 function jluxe_woo_check($condition, $label) {
 	if (!$condition) { throw new RuntimeException('FAIL: '.$label); }
-	$GLOBALS['checks']++;
+	$GLOBALS['jluxe_woo_checks']++;
 	echo 'PASS: '.$label."\n";
 }
 jluxe_woo_check(WC_VERSION === '11.1.2', 'Pinned real WooCommerce 11.1.2 is active');
@@ -79,5 +81,5 @@ jluxe_woo_check(''===$read['data']['suggested_html'], 'Explicitly disabled recom
 $purged=array();add_action('litespeed_purge_post',static function($id)use(&$purged){$purged[]=(int)$id;});
 $child=wc_get_product($children['آبی']);$child->set_stock_quantity(4);$child->save();
 jluxe_woo_check(in_array($parent->get_id(),$purged,true), 'Saving a real child variation requests a scoped LiteSpeed purge for the parent');
-echo 'WOOCOMMERCE_PRODUCT_REGRESSIONS_PASSED: '.$checks."\n";
+echo 'WOOCOMMERCE_PRODUCT_REGRESSIONS_PASSED: '.$GLOBALS['jluxe_woo_checks']."\n";
 echo 'Scope: isolated WordPress/WooCommerce/MySQL product CRUD, templates and cart protocol. No production, real payment, SMS or LiteSpeed web-server execution.' . "\n";
