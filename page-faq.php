@@ -14,7 +14,7 @@ $jluxe_faq_items = jluxe_get_setting( 'faq.items', array() );
 ?>
 
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 		<h1 class="text-h1 text-foreground mb-6">سوالات متداول</h1>
 
 		<?php if ( $jluxe_faq_items ) : ?>

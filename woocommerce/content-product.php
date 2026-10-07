@@ -2,11 +2,13 @@
 /**
  * کارت محصول در گرید (آرشیو فروشگاه + محصولات مرتبط + صفحه اصلی). طراحی
  * دقیقاً مطابق نمونه‌ی HTML/عکسِ ارسالیِ کاربر (باکس تصویر با پس‌زمینه‌ی
- * خاکستری روشن + object-contain، بج تخفیف/موجودی، ردیف امتیاز، دکمه‌ی
- * دایره‌ای افزودن سریع کنار قیمت) — با این تفاوت که گالریِ تامبنیلِ هاور
- * (نمایش عکس‌های دیگر محصول با هاور/لمس‌طولانی، قبلاً به‌درخواستِ صریحِ
+ * خاکستری روشن + object-contain، بج تخفیف/موجودی، ردیف عنوان/امتیاز و
+ * CTA سریع (دکمهٔ + آیکونیِ فشرده در همهٔ اندازه‌ها) — با حفظ گالریِ
+ * تامبنیلِ هاور (نمایش عکس‌های دیگر با هاور/لمس‌طولانی، قبلاً به‌درخواستِ صریحِ
  * کاربر ساخته شده) عمداً حفظ و روی همین طراحیِ جدید سوار شده — چیزی از
  * قبل حذف نشده.
+
+ * @version 9.4.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -29,16 +31,14 @@ $rating        = (float) $product->get_average_rating();
 $review_count  = (int) $product->get_review_count();
 $image_id      = $product->get_image_id();
 /*
- * برگردوندنِ سایزِ عکس به woocommerce_thumbnail — تلاشِ قبلی (سایزِ
- * 'medium'ِ بدونِ کراپ) باعثِ رگرسیونِ واقعی شد: خیلی از عکس‌های محصول با
- * object-contain داخلِ قابِ مربع هم دیگه کاملاً پر نمی‌شدن (شکافِ خالیِ
- * نامتقارن برایِ عکس‌های غیرمربعی)، و چون تمامِ سه نسبت (۱:۱/۳:۴/۴:۵) به
- * هم خیلی نزدیکن، این شکاف باعث می‌شد عوض‌کردنِ نسبت اصلاً محسوس نباشه.
- * راه‌حلِ درست این نبود که سایزِ عکس رو عوض کنیم؛ راه‌حل تغییرِ
- * object-fit بود (پایین‌تر، همین فایل): object-cover.
+ * منبعِ کارت عمداً از سایزِ uncropped «large» می‌آید: woocommerce_thumbnail
+ * و jluxe-product-thumb-sm می‌توانند فایلِ مربعِ hard-crop‌شده باشند؛ در آن
+ * صورت object-fit:contain هم محتوای بریده‌شده را برنمی‌گرداند. «large» نسبتِ
+ * ذاتیِ تصویر را نگه می‌دارد و srcset هم فقط کاندیدهای هم‌نسبت را ارائه می‌کند؛
+ * نسبتِ قابِ کارت همچنان از تنظیمِ square / classic / portrait می‌آید.
  */
-$image_url     = $image_id ? ( wp_get_attachment_image_url( $image_id, 'jluxe-product-thumb-sm' ) ?: wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-$image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'woocommerce_thumbnail' ) : '';
+$image_url     = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
+$image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'large' ) : '';
 /*
  * اخطارِ واقعیِ Lighthouse («This image file is larger than it needs to
  * be … use responsive images»): مقدارِ خودکارِ wp_get_attachment_image_sizes()
@@ -84,6 +84,8 @@ $jluxe_show_rating = $jluxe_pc['show_rating'] ?? true;
 $jluxe_show_sale   = $jluxe_pc['show_sale_badge'] ?? true;
 $jluxe_show_stock  = $jluxe_pc['show_stock_badge'] ?? true;
 $jluxe_price_style = ! empty( $jluxe_pc['price_color'] ) ? ' style="color:' . esc_attr( $jluxe_pc['price_color'] ) . '"' : '';
+$jluxe_stock_color = isset( $jluxe_pc['in_stock_color'] ) ? sanitize_hex_color( $jluxe_pc['in_stock_color'] ) : '';
+$jluxe_stock_style = $jluxe_stock_color ? ' style="background-color:' . esc_attr( $jluxe_stock_color ) . '"' : '';
 /*
  * نگاشتِ گردیِ گوشه‌ها (تنظیمِ «کارت محصول» → گردی گوشه‌ها) — طبقِ درخواستِ
  * صریحِ کاربر («دور عکسا گرد بشه مثل کارت») جعبه‌ی تصویر دیگه یک گردیِ
@@ -164,19 +166,11 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 					<?php echo 1 === $jluxe_card_render_count ? ' fetchpriority="high"' : ''; ?>
 					<?php
 					/*
-					 * باگِ واقعیِ گزارش‌شده («عوض‌کردنِ نسبت ۱:۱/۳:۴/۴:۵ اصلاً اثر
-					 * نداره»): با object-contain، وقتی عکسِ منبع (woocommerce_thumbnail،
-					 * همیشه مربعِ هارد-کراپ‌شده) با قابی غیرِمربعی فرق داره،
-					 * فقط یک شکافِ خالیِ نامتقارن ایجاد می‌شد؛ چون هر سه نسبت
-					 * به‌هم نزدیکن، این شکاف تقریباً یکسان به‌نظر می‌رسید —
-					 * یعنی تغییرِ نسبت عملاً «دیده نمی‌شد». راه‌حل: object-cover
-					 * (نه contain) — عکس همیشه کاملِ قاب رو پر می‌کنه (بدونِ
-					 * شکافِ خالی) و با هر نسبتی، واقعاً یک برشِ متفاوتِ محسوس
-					 * نشون می‌ده. الگویِ استانداردِ گریدِ محصولِ اکثرِ فروشگاه‌های
-					 * آنلاینه.
+					 * قابِ aspect-* نسبتِ تنظیم‌شده را نگه می‌دارد؛ خودِ منبع uncropped
+					 * است و object-contain کلِ کالا را بدونِ تغییرِ رنگ نمایش می‌دهد.
 					 */
 					?>
-					class="size-full object-cover mix-blend-multiply <?php echo esc_attr( $jluxe_image_inner_class ); ?><?php echo $out_of_stock ? ' opacity-60 grayscale' : ''; ?>"
+					class="size-full object-contain <?php echo esc_attr( $jluxe_image_inner_class ); ?><?php echo $out_of_stock ? ' opacity-60 grayscale' : ''; ?>"
 				/>
 			</div>
 
@@ -185,20 +179,21 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 			<?php elseif ( $out_of_stock && $jluxe_show_stock ) : ?>
 				<span class="absolute top-2 end-2 rounded-lg bg-muted-foreground/80 px-2 py-0.5 text-[11px] font-bold text-white">ناموجود</span>
 			<?php else : ?>
-				<span class="absolute top-2.5 start-2.5 size-2 rounded-full ring-2 ring-surface" style="background:<?php echo esc_attr( $jluxe_pc['in_stock_color'] ?? '#34d399' ); ?>" aria-hidden="true"></span>
+				<span class="absolute top-2.5 start-2.5 size-2 rounded-full bg-success ring-2 ring-surface"<?php echo $jluxe_stock_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-hidden="true"></span>
 			<?php endif; ?>
 
 			<?php if ( ! empty( $jluxe_gallery_ids ) ) : ?>
 				<div data-jluxe-card-thumbs class="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-hover:pointer-events-auto group-data-[thumbs-active]:opacity-100 group-data-[thumbs-active]:pointer-events-auto">
 					<?php foreach ( $jluxe_gallery_ids as $jluxe_gid ) :
-						$jluxe_thumb_url = wp_get_attachment_image_url( $jluxe_gid, 'woocommerce_gallery_thumbnail' );
-						$jluxe_full_url  = wp_get_attachment_image_url( $jluxe_gid, 'woocommerce_thumbnail' );
+						$jluxe_thumb_url   = wp_get_attachment_image_url( $jluxe_gid, 'medium' );
+						$jluxe_full_url    = wp_get_attachment_image_url( $jluxe_gid, 'large' ) ?: wp_get_attachment_image_url( $jluxe_gid, 'full' );
+						$jluxe_full_srcset = wp_get_attachment_image_srcset( $jluxe_gid, 'large' );
 						if ( ! $jluxe_thumb_url || ! $jluxe_full_url ) {
 							continue;
 						}
 						?>
-						<span data-jluxe-card-thumb data-full="<?php echo esc_url( $jluxe_full_url ); ?>" class="size-8 shrink-0 overflow-hidden rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
-							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>" alt="" class="size-full object-cover" loading="lazy" />
+						<span data-jluxe-card-thumb data-full="<?php echo esc_url( $jluxe_full_url ); ?>"<?php if ( $jluxe_full_srcset ) : ?> data-srcset="<?php echo esc_attr( $jluxe_full_srcset ); ?>" data-sizes="<?php echo esc_attr( $image_sizes ); ?>"<?php endif; ?> class="size-8 shrink-0 overflow-hidden rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
+							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>" alt="" class="size-full object-contain" loading="lazy" />
 						</span>
 					<?php endforeach; ?>
 					<?php if ( $jluxe_gallery_overflow > 0 ) : ?>
@@ -210,46 +205,47 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 	</div>
 
 	<div class="flex flex-1 flex-col px-3 pb-3 md:px-4 md:pb-4">
-		<?php
-		// این ردیف همیشه رندر می‌شه (حتی بدون امتیاز) تا ارتفاعش برای همه‌ی
-		// کارت‌های یک ردیف گرید یکسان بمونه؛ وقتی امتیازی نیست با invisible
-		// فقط از دید مخفی می‌شه ولی جای خودش رو نگه می‌داره.
-		$jluxe_show_rating_row = $jluxe_show_rating && $review_count > 0;
-		?>
-		<div class="mb-1.5 flex min-h-[16px] items-center gap-1<?php echo $jluxe_show_rating_row ? '' : ' invisible'; ?>">
-			<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<span class="text-[10px] text-text-muted"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?></span>
-		</div>
-
-		<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="mb-3 min-h-[40px] text-[13px] leading-5 line-clamp-2 break-words text-text-secondary hover:text-primary">
+		<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="jluxe-product-card-title min-h-[40px] text-[13px] leading-5 line-clamp-2 break-words text-text-secondary hover:text-primary">
 			<?php echo esc_html( $product->get_name() ); ?>
 		</a>
 
-		<div class="mt-auto flex items-end justify-between gap-2">
+		<?php
+		// عنوان پیش از امتیاز می‌آید تا کارت در اسکن سریع، اول خود محصول را
+		// معرفی کند. ردیف امتیاز همیشه ارتفاع ثابت دارد تا کارت‌های گرید
+		// هم‌تراز بمانند؛ اگر امتیازی نیست فقط از دید مخفی می‌شود.
+		$jluxe_show_rating_row = $jluxe_show_rating && $review_count > 0;
+		?>
+		<div class="mb-3 mt-1 flex min-h-[16px] items-center gap-1<?php echo $jluxe_show_rating_row ? '' : ' invisible'; ?>" role="img" aria-label="<?php echo esc_attr( sprintf( 'امتیاز %s از ۵ بر اساس %s دیدگاه', jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ), jluxe_fa_digits( $review_count ) ) ); ?>">
+			<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<span aria-hidden="true" class="text-[10px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ) ); ?></span>
+			<span aria-hidden="true" class="text-[10px] text-text-muted">(<?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?>)</span>
+		</div>
+
+		<div class="jluxe-product-card-footer">
+			<div class="jluxe-product-card-price">
+				<span class="jluxe-product-card-current-price text-[14px] font-semibold text-foreground md:text-[15px]"<?php echo $jluxe_price_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo wp_kses_post( wc_price( $has_discount ? $sale_price : ( $is_variable ? $product->get_variation_price( 'min' ) : $regular_price ) ) ); ?></span>
+				<?php if ( $has_discount ) : ?>
+					<del class="jluxe-product-card-old-price text-[11px] text-text-muted line-through"><?php echo wp_kses_post( wc_price( $regular_price ) ); ?></del>
+				<?php endif; ?>
+			</div>
+
 			<?php
 			/*
-			 * دکمه‌ی دایره‌ای افزودن سریع — مطابق نمونه‌ی ارسالی، همیشه دیده
-			 * می‌شه (نه فقط روی هاور). برای محصولِ متغیر data-jluxe-quick-variant
-			 * می‌ذاریم تا assets/js/woocommerce.js کلیک رو بگیره و مودالِ
-			 * انتخاب سریعِ تنوع (inc/cart-ux.php: jluxe_ajax_variation_picker)
-			 * رو باز کنه؛ برای محصول ساده مستقیم AJAX add-to-cart واقعیِ خودِ
-			 * ووکامرس (کلاس‌های ajax_add_to_cart/add_to_cart_button).
+			 * CTA در همهٔ اندازه‌ها دکمهٔ + فشرده است؛ زمینهٔ تیره در hover/press
+			 * به رنگ اصلی فروشگاه درمی‌آید و آیکون می‌چرخد. aria-label نامِ
+			 * دسترس‌پذیر را می‌دهد؛ تنوع quick-pick و افزودنِ AJAX دست‌نخورده‌اند.
 			 */
 			?>
 			<a
 				href="<?php echo esc_url( $out_of_stock || $is_variable ? get_permalink( $product->get_id() ) : $product->add_to_cart_url() ); ?>"
 				aria-label="<?php echo esc_attr( $out_of_stock ? 'ناموجود' : ( $is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد خرید' ) ); ?>"
 				data-product_id="<?php echo esc_attr( $product->get_id() ); ?>"
+				<?php echo ( $is_variable && ! $out_of_stock ) ? '' : 'data-quantity="1"'; ?>
 				<?php echo ( $is_variable && ! $out_of_stock ) ? 'data-jluxe-quick-variant="' . esc_attr( $product->get_id() ) . '"' : ''; ?>
-				class="group/btn flex size-9 md:size-10 shrink-0 items-center justify-center rounded-2xl text-button font-medium transition-all duration-300 active:scale-90 <?php echo $out_of_stock ? 'bg-muted text-muted-foreground opacity-50' : ( $is_variable ? 'bg-foreground text-surface hover:bg-primary' : 'ajax_add_to_cart add_to_cart_button bg-foreground text-surface hover:bg-primary' ); ?>"
+				class="jluxe-product-card-cta product_type_<?php echo esc_attr( $is_variable ? 'variable' : 'simple' ); ?> <?php echo $out_of_stock ? 'is-unavailable' : 'is-available'; ?> <?php echo ( ! $is_variable && ! $out_of_stock ) ? 'ajax_add_to_cart add_to_cart_button' : ''; ?>"
 			>
-				<svg class="size-4 transition-transform duration-300 group-hover/btn:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+				<svg class="jluxe-product-card-cta-icon size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
 			</a>
-
-			<div class="flex flex-col items-end gap-0">
-				<span class="text-[11px] text-text-muted line-through<?php echo $has_discount ? '' : ' invisible'; ?>"><?php echo wp_kses_post( wc_price( $regular_price ) ); ?></span>
-				<span class="text-[14px] md:text-[15px] font-semibold text-foreground"<?php echo $jluxe_price_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo wp_kses_post( wc_price( $has_discount ? $sale_price : ( $is_variable ? $product->get_variation_price( 'min' ) : $regular_price ) ) ); ?></span>
-			</div>
 		</div>
 	</div>
 </li>

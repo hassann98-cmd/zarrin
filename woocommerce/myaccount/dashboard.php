@@ -8,6 +8,8 @@
  *
  * «کیف پول» چون هیچ افزونه‌ی کیف‌پولی (مثل woo-wallet) روی سایت نصب
  * نیست، به‌جای عدد ساختگی با وضعیت صریح «غیرفعال» نشون داده می‌شه.
+
+ * @version 4.4.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,15 +17,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function jluxe_account_order_count( int $user_id, string $status ): int {
-	$ids = wc_get_orders(
+	if ( $user_id < 1 ) {
+		return 0;
+	}
+	$result = wc_get_orders(
 		array(
 			'customer' => $user_id,
 			'status'   => $status,
 			'return'   => 'ids',
-			'limit'    => -1,
+			'limit'    => 1,
+			'paginate' => true,
 		)
 	);
-	return count( $ids );
+	if ( is_object( $result ) && isset( $result->total ) ) {
+		return max( 0, (int) $result->total );
+	}
+	return is_countable( $result ) ? count( $result ) : 0;
 }
 
 $jluxe_user_id  = get_current_user_id();

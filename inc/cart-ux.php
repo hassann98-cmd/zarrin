@@ -22,8 +22,8 @@ function jluxe_ajax_variation_picker(): void {
 	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 	$product    = $product_id ? wc_get_product( $product_id ) : null;
 
-	if ( ! $product || ! $product->is_type( 'variable' ) ) {
-		wp_send_json_error();
+	if ( ! jluxe_product_is_public( $product ) || ! $product->is_type( 'variable' ) ) {
+		wp_send_json_error( array( 'message' => 'محصول در دسترس نیست.' ), 404 );
 	}
 
 	// قالب‌های single-product/price.php و variation-add-to-cart-button.php
@@ -36,7 +36,7 @@ function jluxe_ajax_variation_picker(): void {
 	wc_setup_product_data( $product_id );
 
 	$variation_attributes = $product->get_variation_attributes();
-	$available_variations  = $product->get_available_variations();
+	$available_variations  = jluxe_available_variations_for_form( $product );
 	$image_id              = $product->get_image_id();
 
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
@@ -90,23 +90,7 @@ function jluxe_cart_snapshot(): array {
 	foreach ( $cart->get_cart() as $key => $cart_item ) {
 		$product = $cart_item['data'];
 		if ( ! $product ) {
-			/*
-			 * باگِ واقعیِ ریشه‌ایِ کلِ ماجرایِ «سبد خالیه ولی خطایِ موجودی
-			 * می‌ده» (تأییدشده با تستِ زنده روی noghrehmilad.ir): یک آیتمِ
-			 * سبد که $cart_item['data'] اش نامعتبره (مثلاً از یک دورِ خیلی
-			 * قدیمیِ تست، قبل از راه‌حلِ round 2 که variation_id رو درست
-			 * می‌فرستاد) قبلاً این‌جا فقط continue می‌شد — یعنی از نمایشِ
-			 * سبد/شمارنده‌ی هدر (که همینجا حساب می‌شه) کاملاً حذف می‌شد،
-			 * ولی همچنان توی WC()->cart->get_cart() خامِ خودِ ووکامرس
-			 * (که WC_Cart::add_to_cart از موجودیِ مشترکِ سطحِ محصول بر
-			 * همین اساس چک می‌کنه) باقی می‌موند. نتیجه: سبد و شمارنده صفر
-			 * نشون می‌دادن، ولی افزودنِ هر سایزِ دیگه‌ای از همون محصول با
-			 * «قبلاً ۱ عدد در سبد شما موجوده» رد می‌شد — چون از دیدِ خودِ
-			 * ووکامرس واقعاً یک چیزی اونجا بود، فقط ما دیدنش رو بهِ کاربر
-			 * قایم کرده بودیم. راه‌حل: به‌جایِ صرفاً نادیده‌گرفتنش توی
-			 * نمایش، همین‌جا واقعاً از سبد حذفش می‌کنیم تا خودشو درست کنه.
-			 */
-			$cart->remove_cart_item( $key );
+			// A read-only snapshot must not mutate a valid/custom WooCommerce session.
 			continue;
 		}
 		$image_id   = $product->get_image_id();
@@ -239,185 +223,246 @@ function jluxe_get_free_shipping_progress(): ?array {
 	);
 }
 
-function jluxe_ajax_cart(): void {
-	check_ajax_referer( 'jluxe_cart', 'nonce' );
+/** Report WooCommerce validation notices without leaking markup or claiming false success. */
+function jluxe_cart_error( string $fallback, int $status = 400 ): void {
+	$errors = wc_get_notices( 'error' );
+	$message = ! empty( $errors ) ? wp_strip_all_tags( $errors[0]['notice'] ) : $fallback;
+	wc_clear_notices();
+	wp_send_json_error( array( 'message' => $message ), $status );
+}
 
-	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-		wp_send_json_error();
+function jluxe_cart_post_string( string $key, string $default = '' ): string {
+	return isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? (string) wp_unslash( $_POST[ $key ] ) : $default;
+}
+
+/** Reject malformed/negative/infinite amounts rather than silently turning them into another action. */
+function jluxe_cart_quantity( string $raw ) {
+	$raw = trim( jluxe_ascii_digits( $raw ) );
+	if ( ! preg_match( '/^[0-9]+(?:\.[0-9]+)?$/D', $raw ) || ! is_finite( (float) $raw ) ) {
+		return null;
 	}
+	$quantity = wc_stock_amount( $raw );
+	return is_numeric( $quantity ) && is_finite( (float) $quantity ) && $quantity >= 0 ? $quantity : null;
+}
 
-	$op = isset( $_POST['op'] ) ? sanitize_key( $_POST['op'] ) : 'get';
+/**
+ * Native variable forms contain an add-to-cart field. On admin-ajax requests,
+ * Woo's wp_loaded form handler can otherwise act BEFORE our nonce/validation,
+ * then add the same item again in jluxe_ajax_cart. Isolate this custom protocol
+ * only; leave standard form submissions, cart links and other AJAX actions alone.
+ */
+function jluxe_isolate_cart_ajax_request(): void {
+	if ( wp_doing_ajax() && 'jluxe_cart' === ( $_REQUEST['action'] ?? '' ) ) {
+		unset( $_GET['add-to-cart'], $_POST['add-to-cart'], $_REQUEST['add-to-cart'] );
+	}
+}
+add_action( 'wp_loaded', 'jluxe_isolate_cart_ajax_request', 1 );
 
-	if ( 'remove' === $op && ! empty( $_POST['key'] ) ) {
-		WC()->cart->remove_cart_item( sanitize_text_field( wp_unslash( $_POST['key'] ) ) );
-	} elseif ( 'update_qty' === $op && ! empty( $_POST['key'] ) ) {
-		$qty = max( 0, (int) ( $_POST['qty'] ?? 1 ) );
-		WC()->cart->set_quantity( sanitize_text_field( wp_unslash( $_POST['key'] ) ), $qty, true );
-	} elseif ( 'apply_coupon' === $op && ! empty( $_POST['coupon_code'] ) ) {
-		$code = sanitize_text_field( wp_unslash( $_POST['coupon_code'] ) );
-		wc_clear_notices();
-		$applied = WC()->cart->apply_coupon( $code );
-		if ( ! $applied ) {
-			$errors  = wc_get_notices( 'error' );
-			$message = ! empty( $errors ) ? wp_strip_all_tags( $errors[0]['notice'] ) : 'کد تخفیف معتبر نیست.';
-			wc_clear_notices();
-			wp_send_json_error( array( 'message' => $message ) );
+/**
+ * وضعیتِ واقعیِ WooCommerce 11: add_to_cart و set_quantity پس از تغییر، موجودی
+ * را دوباره بررسی نمی‌کنند؛ اعتبارسنجی رسمی همین check_cart_item_stock است
+ * (شمارش دوبارهٔ اقلام + سهامِ رزروشدهٔ سفارش‌های در انتظار). اگر این بررسی
+ * بعد از جهش شکست بخورد، فقط نوشتنِ خودِ همین درخواست پس گرفته می‌شود و
+ * پاسخ، خطای صریح است — نه موفقیتِ جعلی و نه حذفِ بقیهٔ اقلامِ کاربر.
+ *
+ * WC 11 status: add_to_cart/set_quantity themselves do not re-check stock;
+ * this public API is their post-mutation validator. Cart-replacing plugins
+ * without this method keep the previous behaviour instead of failing.
+ */
+function jluxe_cart_stock_check() {
+	$cart = WC()->cart;
+	if ( ! method_exists( $cart, 'check_cart_item_stock' ) ) {
+		return true;
+	}
+	$result = $cart->check_cart_item_stock();
+	if ( is_wp_error( $result ) ) {
+		return 'تغییر سبد ثبت نشد؛ موجودی کافی نیست. لطفاً سبد را به‌روزرسانی و دوباره تلاش کنید.';
+	}
+	return false === $result
+		? 'تغییر سبد ثبت نشد؛ موجودی کافی نیست. لطفاً سبد را به‌روزرسانی و دوباره تلاش کنید.'
+		: true;
+}
+
+function jluxe_ajax_cart(): void {
+	nocache_headers();
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		wp_send_json_error( array( 'message' => 'Method not allowed' ), 405 );
+	}
+	// A distinct pre-mutation rejection lets the client safely refresh a cached nonce once.
+	if ( ! check_ajax_referer( 'jluxe_cart', 'nonce', false ) ) {
+		wp_send_json_error( array( 'code' => 'jluxe_cart_invalid_nonce', 'message' => 'نشست منقضی شده است؛ صفحه را تازه کنید.' ), 403 );
+	}
+	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+		wp_send_json_error( array( 'message' => 'سبد خرید در دسترس نیست.' ), 503 );
+	}
+	$op = sanitize_key( jluxe_cart_post_string( 'op', 'get' ) );
+	$cart = WC()->cart;
+	wc_clear_notices();
+
+	if ( in_array( $op, array( 'remove', 'update_qty' ), true ) ) {
+		$key = sanitize_text_field( jluxe_cart_post_string( 'key' ) );
+		$item = $cart->get_cart_item( $key );
+		if ( ! $item || empty( $item['data'] ) ) {
+			jluxe_cart_error( 'این قلم در سبد خرید وجود ندارد.', 404 );
 		}
-		wc_clear_notices();
-	} elseif ( 'remove_coupon' === $op && ! empty( $_POST['coupon_code'] ) ) {
-		WC()->cart->remove_coupon( sanitize_text_field( wp_unslash( $_POST['coupon_code'] ) ) );
+		if ( 'remove' === $op ) {
+			if ( ! $cart->remove_cart_item( $key ) ) {
+				jluxe_cart_error( 'حذف محصول انجام نشد.' );
+			}
+		} else {
+			$qty = jluxe_cart_quantity( jluxe_cart_post_string( 'qty' ) );
+			if ( null === $qty ) {
+				jluxe_cart_error( 'تعداد معتبر نیست.' );
+			}
+			$qty = apply_filters( 'woocommerce_stock_amount_cart_item', $qty, $key );
+			$product = $item['data'];
+			$valid = apply_filters( 'woocommerce_update_cart_validation', true, $key, $item, $qty );
+			if ( ! $valid || ! is_numeric( $qty ) || ! is_finite( (float) $qty ) || $qty < 0 ) {
+				jluxe_cart_error( 'تغییر تعداد مجاز نیست.' );
+			}
+			if ( $qty > 0 ) {
+				$max = $product->get_max_purchase_quantity();
+				if ( ! $product->is_purchasable() || ! $product->is_in_stock() || ( $product->is_sold_individually() && $qty > 1 ) || ( $max >= 0 && $qty > $max ) ) {
+					jluxe_cart_error( 'تعداد درخواستی قابل خرید نیست.' );
+				}
+				// Include sibling variations and other cart lines sharing the same stock owner.
+				$quantities = $cart->get_cart_item_quantities();
+				$stock_id = $product->get_stock_managed_by_id();
+				$desired = ( $quantities[ $stock_id ] ?? $item['quantity'] ) - $item['quantity'] + $qty;
+				if ( ! $product->has_enough_stock( $desired ) ) {
+					jluxe_cart_error( 'موجودی کافی برای این تعداد وجود ندارد.' );
+				}
+			}
+			$previous_quantity = isset( $item['quantity'] ) ? $item['quantity'] : null;
+			if ( false === $cart->set_quantity( $key, $qty, true ) ) {
+				jluxe_cart_error( 'تغییر تعداد انجام نشد.' );
+			}
+			$stock = jluxe_cart_stock_check();
+			if ( true !== $stock ) {
+				// Roll back only this request's write; the pre-update quantity was validated above.
+				if ( null !== $previous_quantity ) {
+					$cart->set_quantity( $key, $previous_quantity, true );
+				}
+				jluxe_cart_error( $stock, 409 );
+			}
+		}
+	} elseif ( 'apply_coupon' === $op ) {
+		$code = wc_format_coupon_code( jluxe_cart_post_string( 'coupon_code' ) );
+		if ( '' === $code || ! $cart->apply_coupon( $code ) ) {
+			jluxe_cart_error( 'کد تخفیف معتبر نیست.' );
+		}
+	} elseif ( 'remove_coupon' === $op ) {
+		if ( ! $cart->remove_coupon( wc_format_coupon_code( jluxe_cart_post_string( 'coupon_code' ) ) ) ) {
+			jluxe_cart_error( 'کد تخفیف در سبد نیست.' );
+		}
 	} elseif ( 'add' === $op ) {
 		jluxe_ajax_cart_add();
+	} elseif ( 'pa_services' === $op ) {
+		/* کلیدهای خدماتِ انتخابیِ مودالِ «اضافه خرید» — فقط کلید پذیرفته
+		 * می‌شود؛ مبلغ/عنوان هنگامِ اعمالِ فِی از تنظیماتِ سرور خوانده
+		 * می‌شود (jluxe_pa_apply_service_fees). خدماتِ فقط-سبدی از مودال
+		 * نمی‌آیند، پس کلیدشان این‌جا پذیرفته نمی‌شود. */
+		$services = jluxe_pa_services();
+		$valid = array();
+		foreach ( $services as $pa_key => $pa_service ) {
+			if ( in_array( $pa_service['context'], array( 'modal', 'both' ), true ) ) {
+				$valid[] = $pa_key;
+			}
+		}
+		$chosen_raw = $_POST['pa_services'] ?? array();
+		$chosen = is_array( $chosen_raw ) ? $chosen_raw : explode( ',', (string) $chosen_raw );
+		$stored = array();
+		// The modal owns only modal/both services. Keep cart-only fees intact.
+		foreach ( jluxe_pa_session_service_keys() as $existing_key ) {
+			if ( isset( $services[ (string) $existing_key ] ) && 'cart' === $services[ (string) $existing_key ]['context'] ) {
+				$stored[] = (string) $existing_key;
+			}
+		}
+		foreach ( $chosen as $pa_key ) {
+			if ( is_string( $pa_key ) && in_array( $pa_key, $valid, true ) ) {
+				$stored[] = $pa_key;
+			}
+		}
+		$stored = array_values( array_unique( $stored ) );
+		if ( function_exists( 'WC' ) && WC()->session ) {
+			WC()->session->set( 'jluxe_pa_services', $stored );
+		}
+	} elseif ( 'get' !== $op ) {
+		jluxe_cart_error( 'عملیات معتبر نیست.' );
 	}
-
-	/*
-	 * باگِ ریشه‌ایِ واقعیِ کلِ ماجرا («سبد خالیه ولی خطایِ موجودی می‌ده،
-	 * بعدِ رفرش معلوم می‌شه واقعاً اضافه/حذف شده»؛ پیدا و تأییدشده با
-	 * خوندنِ مستقیمِ سورسِ ووکامرس + تستِ زنده روی جدولِ خامِ
-	 * wp_woocommerce_sessions، حتی روی لوکالِ تک‌کاربره بدونِ هیچ کشی):
-	 * WC_Cart_Session تنها زمانی سبدِ توی حافظه رو واقعاً رویِ سشن ذخیره
-	 * می‌کنه (متدِ set_session) که هوکِ woocommerce_after_calculate_totals
-	 * شلیک بشه — و اون فقط داخلِ WC_Cart::calculate_totals() صدا زده
-	 * می‌شه. remove_cart_item()/remove_coupon() هیچ‌کدوم خودشون
-	 * calculate_totals() رو صدا نمی‌زنن؛ فقط $this->cart_contents رو توی
-	 * حافظه (همین درخواست) عوض می‌کنن. یعنی پاسخِ همین درخواست («حذف
-	 * شد») درسته، ولی چون set_session() هیچ‌وقت صدا زده نشده، سشنِ واقعیِ
-	 * ذخیره‌شده هیچ‌وقت آپدیت نمی‌شه — درخواستِ بعدی (مثلاً افزودنِ یک
-	 * سایزِ دیگه) هنوز آیتمِ «حذف‌شده» رو از سشن می‌خونه و چکِ موجودیِ
-	 * ووکامرس رو غلط رد می‌کنه. راه‌حل: بعدِ هر عملیاتی که سبد رو تغییر
-	 * می‌ده، صریحاً calculate_totals() رو خودمون صدا می‌زنیم تا set_session()
-	 * حتماً اجرا بشه و سشن واقعاً به‌روز بمونه.
-	 *
-	 * نکته‌ی مهم: این‌جا (بعد از jluxe_cart_snapshot، نه قبلش) صدا زده
-	 * می‌شه — چون خودِ jluxe_cart_snapshot() هم ممکنه یک آیتمِ خراب/نامعتبر
-	 * رو خودش از سبد حذف کنه (خودترمیمیِ توضیح‌داده‌شده در تعریفِ همون
-	 * تابع)، حتی برایِ یک op=get ساده. اگه calculate_totals() قبل از
-	 * snapshot صدا زده بشه، اون حذفِ خودترمیم هیچ‌وقت ذخیره نمی‌شه.
-	 */
+	wc_clear_notices();
+	// Let WooCommerce own session persistence; compute the snapshot after totals are current.
+	$cart->calculate_totals();
 	$snapshot = jluxe_cart_snapshot();
-	WC()->cart->calculate_totals();
-
+	if ( 'add' === $op ) {
+		/* R61 — مودالِ «اضافه خرید» به‌جای اتکا به مارک‌آپِ از پیشِ لودشده،
+		 * HTML تازه‌اش را در همین پاسخ می‌گیرد: وضعیتِ موجودی/قابل‌خریدِ
+		 * پیشنهادها بعد از افزودنِ واقعی محاسبه می‌شود و کلاینتِ موفقِ
+		 * «افزودن به سبد» همیشه همان نسخهٔ معتبرِ لحظهٔ افزودن را نشان می‌دهد. */
+		$added_product = wc_get_product( absint( jluxe_cart_post_string( 'product_id' ) ) );
+		$modal_product = $added_product;
+		$context_id    = absint( jluxe_cart_post_string( 'pa_context_id' ) );
+		if ( $context_id ) {
+			$context_product = wc_get_product( $context_id );
+			if ( function_exists( 'jluxe_product_is_public' ) && jluxe_product_is_public( $context_product ) ) {
+				$modal_product = $context_product;
+			}
+		}
+		if ( $modal_product && function_exists( 'jluxe_suggested_modal_html_for' ) ) {
+			$snapshot['suggested_html'] = jluxe_suggested_modal_html_for( $modal_product );
+		}
+	}
 	wp_send_json_success( $snapshot );
 }
 add_action( 'wp_ajax_jluxe_cart', 'jluxe_ajax_cart' );
 add_action( 'wp_ajax_nopriv_jluxe_cart', 'jluxe_ajax_cart' );
 
-/**
- * افزودنِ واقعی به سبد — جایگزینِ endpoint خامِ ووکامرس (wc-ajax=add_to_cart)
- * که assets/js/woocommerce.js قبلاً برای فرمِ صفحه‌ی تکیِ محصول استفاده
- * می‌کرد. باگِ واقعیِ گزارش‌شده (روی سایتِ زنده‌ی دیگه‌ای که همین تمِ زرین رو
- * داره، noghrehmilad.ir — و همین کدِ دقیقاً یکسان توی این ریپازیتوری هم بود،
- * پس jluxe.ir هم موقعِ لانچ همین باگ رو می‌گرفت): برای محصولِ متغیر، فرم
- * variation_id رو جدا از product_id می‌فرسته، ولی WC_AJAX::add_to_cart
- * سمتِ سرور فقط $_POST['product_id'] رو می‌خونه و با ۲ آرگومان
- * ($product_id, $quantity) صدا می‌زنه WC()->cart->add_to_cart() رو — یعنی
- * variation_id همیشه ۰ فرض می‌شه مگر اینکه صریحاً بشه product_id. تلاشِ
- * قبلی (ست‌کردنِ product_id = variation_id، با این استدلال که خودِ
- * WC_Cart::add_to_cart «تشخیص می‌ده» چون نوعِ پستش product_variation-ه)
- * تقریباً درسته — واقعاً هم آیتم درست به سبد اضافه می‌شه — ولی
- * WC_AJAX::add_to_cart بعد از فراخوانی، $product_status = get_post_status
- * ($product_id) رو هنوز روی همون product_id اصلی (که تنوعه، نه والد) چک
- * می‌کنه و شرطِ موفقیت رو fail می‌کنه؛ نتیجه دقیقاً همون چیزی که کاربر دید:
- * پاسخِ AJAX {error:true} (پس توستِ «لطفاً گزینه‌های محصول را انتخاب کنید»
- * نشون داده می‌شه) با این‌حال آیتم واقعاً توی سبد نشسته (session واقعاً
- * mutate شده) — فقط با رفتن به صفحه‌ی دیگه معلوم می‌شه.
- *
- * راه‌حلِ درست: یک endpoint خودمون که product_id (والد) و variation_id رو
- * جدا جدا می‌گیره و دقیقاً همون امضای ۴تاییِ استانداردِ خودِ ووکامرس رو صدا
- * می‌زنه (WC_Form_Handler::add_to_cart_action غیرِ AJAX هم دقیقاً همین
- * امضا رو استفاده می‌کنه) — بدونِ حدس‌زدن/سوءاستفاده از تشخیصِ خودکارِ
- * نوعِ پست.
- */
 function jluxe_ajax_cart_add(): void {
-	$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-	$variation_id = isset( $_POST['variation_id'] ) ? absint( $_POST['variation_id'] ) : 0;
-	$quantity     = isset( $_POST['quantity'] ) ? wc_stock_amount( wp_unslash( $_POST['quantity'] ) ) : 1;
-
-	if ( ! $product_id || $quantity <= 0 ) {
-		wp_send_json_error( array( 'message' => 'محصول نامعتبر است.' ) );
+	$product_id = absint( jluxe_cart_post_string( 'product_id' ) );
+	$variation_id = absint( jluxe_cart_post_string( 'variation_id' ) );
+	$quantity = jluxe_cart_quantity( jluxe_cart_post_string( 'quantity', '1' ) );
+	$product = wc_get_product( $product_id );
+	if ( $product && $product->is_type( 'variation' ) ) {
+		$variation_id = $product_id;
+		$product_id = $product->get_parent_id();
+		$product = wc_get_product( $product_id );
 	}
-
-	// فیلدهای attribute_* دقیقاً همون‌هایی‌ان که خودِ فرمِ ووکامرس
-	// (variation-add-to-cart-button.php/select های ویژگی) می‌سازه — کلید و
-	// مقدار همین‌جوری خام (بدونِ اسلش/HTML خطرناک) عیناً نگه داشته می‌شن،
-	// چون jluxe_cart_snapshot() بعداً همین کلیدها رو با پیشوندِ attribute_
-	// از cart_item['variation'] می‌خونه (باید دقیقاً هم‌شکل بمونه).
-	$variation_attributes = array();
-	foreach ( $_POST as $post_key => $post_value ) {
-		if ( 0 === strpos( $post_key, 'attribute_' ) ) {
-			$variation_attributes[ $post_key ] = sanitize_text_field( wp_unslash( $post_value ) );
-		}
+	if ( ! $product || 'publish' !== $product->get_status() || post_password_required( $product_id ) || null === $quantity || $quantity <= 0 ) {
+		jluxe_cart_error( 'محصول یا تعداد معتبر نیست.' );
 	}
-
-	/*
-	 * باگِ ریشه‌ایِ واقعیِ کلِ ماجرا (با تستِ سنگین، خطبه‌خط، مقایسه‌ی
-	 * مستقیمِ همین یک درخواست تأییدشده): WC()->cart->get_cart() گاهی یک
-	 * آیتمِ کاملاً حذف‌شده (توسطِ یک درخواستِ درست‌وحسابی‌ی قبلی، که
-	 * calculate_totals/set_session ش هم درست اجرا شده) رو هنوز نشون
-	 * می‌ده — درحالی‌که یک کوئریِ خامِ $wpdb، توی همین دقیقاً همون
-	 * درخواست، رویِ جدولِ wp_woocommerce_sessions می‌بینه که واقعاً خالیه.
-	 * یعنی خودِ bootstrap اولیه‌ی ووکامرس (روی wp_loaded، قبل از اینکه
-	 * کدِ ما اصلاً اجرا بشه) گاهی یک نسخه‌ی قدیمی رو خونده — این دیگه به
-	 * کدِ ما، به کشِ آبجکت (که رویِ این سرورها اصلاً فعال نیست)، به
-	 * OPcache، یا به وضعیتِ لاگین ربطی نداره. راه‌حل: به‌جایِ اعتماد به
-	 * WC()->cart->get_cart()، خودِ جدولِ خام رو منبعِ حقیقت می‌گیریم — اگه
-	 * فرقی با حافظه داشت، دستی آیتمِ فانتومِ همین variation رو از حافظه
-	 * حذف می‌کنیم تا add_to_cart() یک بارِ دیگه، این‌بار درست، امتحان کنه.
-	 */
-	global $wpdb;
-	$fresh_customer_id = WC()->session ? WC()->session->get_customer_id() : '';
-	$fresh_raw          = $fresh_customer_id ? $wpdb->get_var( $wpdb->prepare( "SELECT session_value FROM {$wpdb->prefix}woocommerce_sessions WHERE session_key = %s", $fresh_customer_id ) ) : null;
-	$fresh_session_data = $fresh_raw ? (array) maybe_unserialize( $fresh_raw ) : array();
-	$fresh_cart         = isset( $fresh_session_data['cart'] ) ? (array) maybe_unserialize( $fresh_session_data['cart'] ) : array();
-
-	foreach ( WC()->cart->get_cart() as $stale_key => $stale_item ) {
-		$still_in_db = false;
-		foreach ( $fresh_cart as $fresh_item ) {
-			if ( (int) $fresh_item['product_id'] === (int) $stale_item['product_id'] && (int) $fresh_item['variation_id'] === (int) $stale_item['variation_id'] ) {
-				$still_in_db = true;
-				break;
-			}
-		}
-		if ( ! $still_in_db ) {
-			WC()->cart->remove_cart_item( $stale_key );
-		}
+	$selected = $variation_id ? wc_get_product( $variation_id ) : $product;
+	if ( ! $selected || ( $variation_id && ( ! $selected->is_type( 'variation' ) || $selected->get_parent_id() !== $product_id || 'publish' !== $selected->get_status() ) ) || ( $product->is_type( 'variable' ) && ! $variation_id ) ) {
+		jluxe_cart_error( 'لطفاً گزینه‌های معتبر محصول را انتخاب کنید.' );
 	}
-
-	// کلیدهایِ سبد قبل از فراخوانی — برایِ فال‌بکِ دفاعیِ زیر لازمه.
-	$cart_keys_before = array_keys( WC()->cart->get_cart() );
-
-	wc_clear_notices();
-	$cart_item_key = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variation_attributes );
-
-	/*
-	 * باگِ واقعیِ گزارش‌شده و با تستِ زنده (روی noghrehmilad.ir) تأییدشده:
-	 * وقتی محصول موجودی‌اش در سطحِ کلِ محصول مدیریت می‌شه (نه هر تنوع
-	 * جداگانه)، چکِ «قبلاً X در سبدِ شما هست» (بخشِ managing_stock توی
-	 * WC_Cart::add_to_cart) گاهی استثنا پرت می‌کنه و add_to_cart() مقدارِ
-	 * false برمی‌گردونه — ولی با این‌حال آیتم واقعاً به cart_contents سشن
-	 * اضافه می‌شه (با یک درخواستِ تنها، بدونِ ارسالِ دوباره، با ابزارِ شبکه
-	 * تأیید شد: پاسخ success:false بود ولی بلافاصله بعدش سبد واقعاً همون
-	 * تنوع رو داشت). یعنی add_to_cart() به‌جایِ گزارشِ راستِ نتیجه، دروغ
-	 * می‌گه. به‌جایِ اینکه به این return value اعتماد کنیم، مستقیم چک
-	 * می‌کنیم آیا یک کلیدِ جدید واقعاً به سبد اضافه شده — اگه شده، محصول
-	 * واقعاً مالِ مشتریه، پس بی‌خودی بهش خطا نشون نمی‌دیم.
-	 */
-	if ( ! $cart_item_key ) {
-		$cart_keys_after = array_keys( WC()->cart->get_cart() );
-		$new_keys        = array_diff( $cart_keys_after, $cart_keys_before );
-
-		if ( ! empty( $new_keys ) ) {
-			wc_clear_notices();
-			do_action( 'woocommerce_ajax_added_to_cart', $product_id );
-			return;
+	if ( $selected->is_sold_individually() && $quantity > 1 ) {
+		jluxe_cart_error( 'این محصول فقط به صورت تکی قابل خرید است.' );
+	}
+	$variations = array();
+	foreach ( $_POST as $key => $value ) {
+		if ( 0 === strpos( (string) $key, 'attribute_' ) && is_scalar( $value ) ) {
+			$variations[ sanitize_title( wp_unslash( $key ) ) ] = wc_clean( wp_unslash( $value ) );
 		}
-
-		$errors  = wc_get_notices( 'error' );
-		$message = ! empty( $errors ) ? wp_strip_all_tags( $errors[0]['notice'] ) : 'محصول به سبد خرید اضافه نشد.';
-		wc_clear_notices();
-		wp_send_json_error( array( 'message' => $message ) );
 	}
 	wc_clear_notices();
-
+	$valid = $variation_id
+		? apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variations )
+		: apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity );
+	if ( ! $valid ) {
+		// Extension veto: WooCommerce's own add_to_cart must not run at all.
+		jluxe_cart_error( 'محصول به سبد خرید اضافه نشد.' );
+	}
+	$added = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variations );
+	if ( ! $added ) {
+		jluxe_cart_error( 'محصول به سبد خرید اضافه نشد.' );
+	}
+	$stock = jluxe_cart_stock_check();
+	if ( true !== $stock ) {
+		// Undo only our own just-added line; never touch the customer's other items.
+		if ( method_exists( WC()->cart, 'remove_cart_item' ) ) {
+			WC()->cart->remove_cart_item( $added );
+		}
+		jluxe_cart_error( $stock, 409 );
+	}
+	wc_clear_notices();
 	do_action( 'woocommerce_ajax_added_to_cart', $product_id );
 }

@@ -7,9 +7,9 @@
  * سخاوتمندانه) — بدون دست‌زدن به منطقِ ذخیره‌سازی/nonce/routeing هیچ بخشی.
  */
 
-@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileRegular-DznhMjrm.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileMedium-BvCVdR3v.ttf") format("truetype"); font-weight: 500 600; font-style: normal; font-display: swap; }
-@font-face { font-family: "IRANYekan"; src: url("../../dist/assets/IRANYekanMobileExtraBold-CkTerGWQ.ttf") format("truetype"); font-weight: 700 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANYekan"; src: url("../compiled/assets/IRANYekanMobileRegular-BdVpDEyu.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANYekan"; src: url("../compiled/assets/IRANYekanMobileMedium-I6jb8KnV.woff2") format("woff2"); font-weight: 500 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "IRANYekan"; src: url("../compiled/assets/IRANYekanMobileExtraBold-N-nBJY2W.woff2") format("woff2"); font-weight: 700 900; font-style: normal; font-display: swap; }
 
 .jluxe-settings {
 	--jluxe-admin-primary: #087A68;
@@ -608,3 +608,40 @@
 .jluxe-site-badges-editor .jluxe-site-badge-remove:hover{color:#b32d2e!important;border-color:#b32d2e!important}
 .jluxe-site-badges-actions{display:block!important;width:100%!important;margin:12px 0 0!important;padding:0!important}
 .jluxe-site-badges-actions .jluxe-site-badge-add{display:inline-block!important;position:static!important;float:none!important;margin:0!important}
+
+/* R89 — گروه‌بندیِ تنظیماتِ اسلایدرِ هیرو */
+.jluxe-hero-admin{border:1px solid #dcdcde;border-radius:6px;padding:4px 12px 8px;margin:0 0 12px}
+.jluxe-hero-admin legend{padding:0 6px}
+
+/* R90 — فیلدِ کلیدِ مخفی (AI/پیامک): وضعیتِ «ذخیره شده» + «تغییر کلید» */
+.jluxe-secret__status{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
+.jluxe-secret__saved{color:#007017;font-weight:600}
+.jluxe-secret__saved code{font-weight:400}
+.jluxe-secret__box{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
+.jluxe-secret__box[hidden]{display:none}
+
+/* R91 — صفحهٔ «همه دسته‌بندی‌ها»: انتخابِ مدلِ قرارگیری با پیش‌نمایشِ کوچک */
+.jluxe-cats-layouts{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 8px;border:0;padding:0}
+.jluxe-cats-layout-option{display:flex;flex-direction:column;align-items:center;gap:8px;width:180px;padding:12px;border:1px solid #dcdcde;border-radius:10px;background:#fff;cursor:pointer;text-align:center;font-size:12px;line-height:1.7}
+.jluxe-cats-layout-option:has(input:checked){border-color:#2271b1;box-shadow:0 0 0 1px #2271b1}
+.jluxe-cats-layout-demo{display:grid;gap:5px;width:120px;padding:6px;border-radius:6px;background:#f0f0f1}
+.jluxe-cats-layout-demo i{display:block;border-radius:4px;background:#fff;position:relative}
+.jluxe-cats-layout-demo i:after{content:"";position:absolute;background:#c3c4c7;border-radius:3px}
+.jluxe-cats-layout-demo--list{grid-template-columns:1fr 1fr}.jluxe-cats-layout-demo--list i{height:22px}.jluxe-cats-layout-demo--list i:after{left:3px;top:3px;width:16px;height:16px}
+.jluxe-cats-layout-demo--tiles{grid-template-columns:repeat(4,1fr)}.jluxe-cats-layout-demo--tiles i{height:40px}.jluxe-cats-layout-demo--tiles i:after{left:50%;top:4px;width:16px;height:16px;transform:translateX(-50%)}
+.jluxe-cats-layout-demo--compact{grid-template-columns:1fr 1fr}.jluxe-cats-layout-demo--compact i{height:14px}.jluxe-cats-layout-demo--compact i:after{right:3px;top:3px;width:8px;height:8px}
+.jluxe-cats-columns label,.jluxe-cats-admin-page td>label{margin-inline-end:14px;display:inline-block}
+.jluxe-cats-item-visible{margin-inline-start:auto;font-weight:400}
+.jluxe-cats-admin-preview{max-width:900px;padding:16px;border-radius:12px;background:#F7F3EE}
+/* R92 — نحوهٔ مرور (پیش‌نمایشِ کوچکِ هر حالت) */
+.jluxe-cats-browse-demo{display:grid;gap:5px;width:120px;height:64px;padding:6px;border-radius:6px;background:#f0f0f1;box-sizing:border-box}
+.jluxe-cats-browse-demo i{display:block;border-radius:4px;background:#fff}
+.jluxe-cats-browse-demo--panel{grid-template-columns:1fr 26px;grid-template-rows:1fr}
+.jluxe-cats-browse-demo--panel i:first-child{background:repeating-linear-gradient(90deg,#c3c4c7 0 14px,transparent 14px 20px) 6px 8px/100% 12px no-repeat,repeating-linear-gradient(90deg,#c3c4c7 0 14px,transparent 14px 20px) 6px 28px/100% 12px no-repeat,#fff}
+.jluxe-cats-browse-demo--panel i:last-child{background:repeating-linear-gradient(180deg,#c3c4c7 0 8px,transparent 8px 12px) 50% 4px/12px 100% no-repeat,#fff;box-shadow:inset -2px 0 0 #2271b1}
+.jluxe-cats-browse-demo--stack{grid-template-columns:1fr 1fr 16px;align-items:center}
+.jluxe-cats-browse-demo--stack i{height:100%}
+.jluxe-cats-browse-demo--stack i:last-child{background:none;height:auto;text-align:center;font-style:normal;color:#2271b1;font-size:14px}
+.jluxe-cats-browse-demo--stack i:last-child:before{content:"←"}
+.jluxe-cats-browse-demo--grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.jluxe-cats-admin-preview .jc-rail{position:static;max-height:none}
