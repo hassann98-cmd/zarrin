@@ -18,7 +18,10 @@ add_action( 'wp', function () {
 		'page_id'       => get_query_var( 'page_id' ),
 		'pagename'      => get_query_var( 'pagename' ),
 		'show_on_front' => get_option( 'show_on_front' ),
-		'page_on_front' => get_option( 'page_on_front' ),
+		'page_on_front'       => get_option( 'page_on_front' ),
+		'queried_slug'         => is_object( get_queried_object() ) && isset( get_queried_object()->post_name ) ? get_queried_object()->post_name : '',
+		'page_template'        => get_page_template(),
+		'page_template_lookup' => locate_template( array( 'page-checkout.php' ) ),
 	), false );
 }, PHP_INT_MAX );
 add_filter( 'template_include', function ( $template ) {
