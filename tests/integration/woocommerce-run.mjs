@@ -258,6 +258,7 @@ try {
     );
 
     const fixtures = await phpJson(`
+      switch_theme('zarrin');
       update_option('woocommerce_allow_tracking','no');
       update_option('woocommerce_currency','USD');
       update_option('woocommerce_default_country','US:CA');
