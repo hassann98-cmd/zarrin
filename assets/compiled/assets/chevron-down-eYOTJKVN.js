@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-CsP0lnks.js";import"./icons-PvB8cvUY.js";var t=e(`ChevronDown`,[[`path`,{d:`m6 9 6 6 6-6`,key:`qrunsl`}]]);export{t};

@@ -69,6 +69,8 @@
  * کلاس jluxe-header-bar-sticky در storefront.css فاصلهٔ باقی‌مانده تا خروجِ نوار
  * غیرچسبان را تا وقتی در دید است دنبال می‌کند؛ اگر خود نوار sticky باشد، کلِ
  * ارتفاعش همواره به offset اضافه می‌شود.
+ * z-40 عمداً از نوارِ چسبانِ بخش‌های محصولِ کلاسیک (z-30) بالاتر است تا
+ * پنلِ نتایجِ جست‌وجوی هدر پشتِ تب‌های مشخصات/دیدگاه‌ها پنهان نشود.
  */
 	?>
 	<?php
@@ -77,7 +79,7 @@
 	 * فضای باقی‌مانده را می‌گیرد تا لوگو و اندازهٔ دکمه‌های حساب/سبد دست‌نخورده بماند.
 	 */
 	?>
-	<div class="<?php echo $jluxe_header_sticky ? 'fixed inset-x-0 z-30 jluxe-header-bar-sticky' : 'relative'; ?> jluxe-header-bar border-b border-white/10 bg-surface/60 shadow-sm backdrop-blur-xl">
+	<div class="<?php echo $jluxe_header_sticky ? 'fixed inset-x-0 z-40 jluxe-header-bar-sticky' : 'relative'; ?> jluxe-header-bar border-b border-white/10 bg-surface/60 shadow-sm backdrop-blur-xl">
 		<div class="jluxe-header-row mx-auto grid h-[72px] max-w-[1320px] items-center px-4 md:h-[90px]<?php echo $jluxe_header_has_mobile_search ? ' jluxe-header-row--has-mobile-search' : ''; ?>">
 			<?php if ( $jluxe_header_has_mobile_search ) : ?>
 				<div class="md:hidden" data-jluxe-island="header-mobile-search" data-jluxe-header-grid="search"></div>

@@ -129,10 +129,9 @@ function jluxe_recent_product_is_in_stock( WC_Product $product ): bool {
 	return false;
 }
 
-/** Return a compact plain-text price for the private recent-products REST payload. */
-function jluxe_recent_product_price_text( WC_Product $product ): string {
-	$price_html = (string) $product->get_price_html();
-	$text       = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $price_html ) : strip_tags( $price_html );
+/** Normalize WooCommerce-generated price markup for a compact, safe REST text value. */
+function jluxe_recent_price_markup_text( string $price_html ): string {
+	$text = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $price_html ) : strip_tags( $price_html );
 
 	// WooCommerce price filters sometimes double-escape entities (for example, &amp;ndash;).
 	for ( $pass = 0; $pass < 3; $pass++ ) {
@@ -184,6 +183,123 @@ function jluxe_recent_product_price_text( WC_Product $product ): string {
 	return is_string( $normalized ) ? $normalized : trim( $text );
 }
 
+/** Return WooCommerce's compact plain-text price as a fallback for product types without numeric getters. */
+function jluxe_recent_product_price_text( WC_Product $product ): string {
+	return jluxe_recent_price_markup_text( (string) $product->get_price_html() );
+}
+
+/** Format one WooCommerce amount using the store's active currency and display rules. */
+function jluxe_recent_price_amount_text( $amount ): string {
+	if ( ! is_numeric( $amount ) || ! function_exists( 'wc_price' ) ) {
+		return '';
+	}
+	return jluxe_recent_price_markup_text( (string) wc_price( $amount ) );
+}
+
+/** Format a variable product range without leaking any extension's duplicate range label. */
+function jluxe_recent_price_range_text( $minimum, $maximum ): string {
+	$minimum_text = jluxe_recent_price_amount_text( $minimum );
+	$maximum_text = jluxe_recent_price_amount_text( $maximum );
+	if ( '' === $minimum_text ) {
+		return $maximum_text;
+	}
+	if ( '' === $maximum_text || $minimum_text === $maximum_text ) {
+		return $minimum_text;
+	}
+
+	if ( function_exists( 'wc_format_price_range' ) ) {
+		$range_text = jluxe_recent_price_markup_text( (string) wc_format_price_range( $minimum, $maximum ) );
+		if ( '' !== $range_text ) {
+			return $range_text;
+		}
+	}
+
+	return $minimum_text . ' – ' . $maximum_text;
+}
+
+/** Return display-tax-aware, structured prices for cards in recently viewed history. */
+function jluxe_recent_product_price_data( WC_Product $product ): array {
+	$fallback = jluxe_recent_product_price_text( $product );
+	$data     = array(
+		'currentPrice' => $fallback,
+		'regularPrice' => '',
+		'priceIsRange' => false,
+		'onSale'       => false,
+	);
+
+	if (
+		$product->is_type( 'variable' )
+		&& method_exists( $product, 'get_variation_price' )
+		&& method_exists( $product, 'get_variation_regular_price' )
+		&& function_exists( 'wc_price' )
+	) {
+		try {
+			$current_min = $product->get_variation_price( 'min', true );
+			$current_max = $product->get_variation_price( 'max', true );
+			if ( is_numeric( $current_min ) && is_numeric( $current_max ) && ( (float) $current_min > 0 || (float) $current_max > 0 ) ) {
+				$current_text = jluxe_recent_price_range_text( $current_min, $current_max );
+				if ( '' !== $current_text ) {
+					$data['currentPrice'] = $current_text;
+					$minimum_text         = jluxe_recent_price_amount_text( $current_min );
+					$maximum_text         = jluxe_recent_price_amount_text( $current_max );
+					$data['priceIsRange'] = '' !== $maximum_text && $minimum_text !== $maximum_text;
+					$data['onSale']       = method_exists( $product, 'is_on_sale' ) && (bool) $product->is_on_sale();
+
+					if ( $data['onSale'] ) {
+						$regular_min = $product->get_variation_regular_price( 'min', true );
+						$regular_max = $product->get_variation_regular_price( 'max', true );
+						if (
+							is_numeric( $regular_min )
+							&& is_numeric( $regular_max )
+							&& ( (float) $regular_min > (float) $current_min || (float) $regular_max > (float) $current_max )
+						) {
+							$data['regularPrice'] = jluxe_recent_price_range_text( $regular_min, $regular_max );
+					}
+					}
+					return $data;
+				}
+			}
+		} catch ( Throwable $error ) {
+			// A third-party price getter can fail; the safe, stripped WooCommerce HTML remains available.
+		}
+	}
+
+	if ( ! $product->is_type( 'variable' ) && method_exists( $product, 'get_price' ) && method_exists( $product, 'get_regular_price' ) && function_exists( 'wc_price' ) ) {
+		try {
+			$raw_current    = $product->get_price();
+			$raw_regular    = $product->get_regular_price();
+			$current_amount = is_numeric( $raw_current ) ? $raw_current : null;
+			$regular_amount = is_numeric( $raw_regular ) ? $raw_regular : null;
+			if ( function_exists( 'wc_get_price_to_display' ) ) {
+				if ( null !== $current_amount ) {
+					$current_amount = wc_get_price_to_display( $product, array( 'price' => $raw_current ) );
+				}
+				if ( null !== $regular_amount ) {
+					$regular_amount = wc_get_price_to_display( $product, array( 'price' => $raw_regular ) );
+				}
+			}
+
+			$current_text = null !== $current_amount ? jluxe_recent_price_amount_text( $current_amount ) : '';
+			if ( '' !== $current_text ) {
+				$data['currentPrice'] = $current_text;
+			}
+			$data['onSale'] =
+				method_exists( $product, 'is_on_sale' )
+				&& (bool) $product->is_on_sale()
+				&& is_numeric( $raw_current )
+				&& is_numeric( $raw_regular )
+				&& (float) $raw_regular > (float) $raw_current;
+			if ( $data['onSale'] && null !== $regular_amount ) {
+				$data['regularPrice'] = jluxe_recent_price_amount_text( $regular_amount );
+			}
+		} catch ( Throwable $error ) {
+			// Retain the stripped WooCommerce price HTML as the error-safe fallback.
+		}
+	}
+
+	return $data;
+}
+
 /** Read at most eight public products, in the order supplied by localStorage. */
 function jluxe_rest_recent_products( WP_REST_Request $request ) {
 	$raw_ids = $request->get_param( 'ids' );
@@ -209,19 +325,24 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 				continue;
 			}
 
-			$image_id = (int) $product->get_image_id();
-			$image    = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
+			$image_id   = (int) $product->get_image_id();
+			$image      = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
+			$price_data = jluxe_recent_product_price_data( $product );
 			if ( ! $image && function_exists( 'wc_placeholder_img_src' ) ) {
 				$image = wc_placeholder_img_src( 'woocommerce_thumbnail' );
 			}
 			$items[] = array(
-				'id'        => $product_id,
-				'name'      => (string) $product->get_name(),
-				'url'       => (string) $product->get_permalink(),
-				'image'     => (string) $image,
-				'imageAlt'  => (string) $product->get_name(),
-				'price'     => jluxe_recent_product_price_text( $product ),
-				'inStock'   => jluxe_recent_product_is_in_stock( $product ),
+				'id'           => $product_id,
+				'name'         => (string) $product->get_name(),
+				'url'          => (string) $product->get_permalink(),
+				'image'        => (string) $image,
+				'imageAlt'     => (string) $product->get_name(),
+				'price'        => $price_data['currentPrice'],
+				'currentPrice' => $price_data['currentPrice'],
+				'regularPrice' => $price_data['regularPrice'],
+				'priceIsRange' => $price_data['priceIsRange'],
+				'onSale'       => $price_data['onSale'],
+				'inStock'      => jluxe_recent_product_is_in_stock( $product ),
 			);
 			if ( count( $items ) >= 8 ) {
 				break;
@@ -229,7 +350,10 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 		}
 	}
 
-	return new WP_REST_Response( array( 'items' => $items ), 200 );
+	$response = new WP_REST_Response( array( 'items' => $items ), 200 );
+	$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+	$response->header( 'Pragma', 'no-cache' );
+	return $response;
 }
 
 function jluxe_register_recent_products_rest_route(): void {
@@ -267,6 +391,8 @@ function jluxe_render_recent_products_panel( string $context = 'product' ): void
 		class="jluxe-recent-products"
 		data-jluxe-recent-products
 		data-jluxe-recent-context="<?php echo esc_attr( $is_home ? 'home' : 'product' ); ?>"
+		data-jluxe-recent-item-count="0"
+		dir="rtl"
 		hidden
 		aria-labelledby="<?php echo esc_attr( $panel_id . '-title' ); ?>"
 	>
@@ -277,14 +403,25 @@ function jluxe_render_recent_products_panel( string $context = 'product' ): void
 					<h2 id="<?php echo esc_attr( $panel_id . '-title' ); ?>" class="jluxe-recent-products__title"><?php echo esc_html( $heading ); ?></h2>
 					<p class="jluxe-recent-products__subtitle"><?php echo esc_html( $subtitle ); ?></p>
 				</div>
-				<span class="jluxe-recent-products__icon" aria-hidden="true">
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="12" cy="12" r="8.5" />
-						<path d="M12 7v5l3 2" />
-					</svg>
-				</span>
+				<div class="jluxe-recent-products__tools">
+					<span class="jluxe-recent-products__count" data-jluxe-recent-count hidden aria-live="polite" aria-atomic="true"></span>
+					<div class="jluxe-recent-products__nav" data-jluxe-recent-nav role="group" aria-label="پیمایش محصولات بازدیدشده" hidden>
+						<button type="button" class="jluxe-recent-products__nav-button" data-jluxe-recent-prev aria-controls="<?php echo esc_attr( $panel_id . '-list' ); ?>" aria-label="محصول جدیدتر">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+						</button>
+						<button type="button" class="jluxe-recent-products__nav-button" data-jluxe-recent-next aria-controls="<?php echo esc_attr( $panel_id . '-list' ); ?>" aria-label="محصول قدیمی‌تر">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+						</button>
+					</div>
+					<span class="jluxe-recent-products__icon" aria-hidden="true">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="8.5" />
+							<path d="M12 7v5l3 2" />
+						</svg>
+					</span>
+				</div>
 			</div>
-			<div class="jluxe-recent-products__list" data-jluxe-recent-list role="list" aria-label="محصولات بازدیدشده"></div>
+			<div id="<?php echo esc_attr( $panel_id . '-list' ); ?>" class="jluxe-recent-products__list" data-jluxe-recent-list role="list" aria-label="محصولات بازدیدشده؛ برای پیمایش از کلیدهای جهت‌دار استفاده کنید" aria-keyshortcuts="ArrowLeft ArrowRight Home End" tabindex="0"></div>
 		</div>
 	</section>
 	<?php

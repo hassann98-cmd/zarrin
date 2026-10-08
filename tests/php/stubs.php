@@ -324,7 +324,8 @@ class WC_Product {
  // رندر کند و خطاهای زمانِ اجرا (مثل «Undefined constant» نسخهٔ 1.65) دیده
  // نمی‌شدند — همان شکافی که یک باگِ واقعی را تا روی سرورِ زنده برد.
  function is_visible(){return true;}
- function get_variation_price($min_or_max='min'){return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
+ function get_variation_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['price']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
+ function get_variation_regular_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['regular']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['regular']??0.0;}
  function get_sale_price($context='view'){return ($GLOBALS['product_prices'][$this->id]['regular']??0.0)>($GLOBALS['product_prices'][$this->id]['price']??0.0)?($GLOBALS['product_prices'][$this->id]['price']??0.0):'';}
  function get_review_count(){return (int)($GLOBALS['product_review_counts'][$this->id]??0);}
  function get_average_rating(){return (float)($GLOBALS['product_avg_ratings'][$this->id]??0.0);}
