@@ -127,7 +127,7 @@ jobs:
         shell: bash
         run: |
           if [[ -f .cache/integration/woocommerce-test.log ]]; then
-            grep -aE 'PASS:|AssertionError|PHP fixture (failed|execution)|Unexpected PHP stderr|WOOCOMMERCE_INTEGRATION|PHP\.run|PHP Fatal|critical error|Error:|ERR_ASSERTION|Node\.js v' .cache/integration/woocommerce-test.log | tail -n 35 | while IFS= read -r line; do
+            grep -aE 'AssertionError|TypeError|PHP fixture (failed|execution)|Unexpected PHP stderr|WOOCOMMERCE_INTEGRATION|PHP\.run|PHP Fatal|critical error|ERR_ASSERTION|Node\.js v' .cache/integration/woocommerce-test.log | tail -n 12 | while IFS= read -r line; do
               escaped="${line//'%'/'%25'}"
               escaped="${escaped//$'\r'/'%0D'}"
               escaped="${escaped:0:800}"
