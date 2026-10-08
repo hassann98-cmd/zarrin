@@ -76,3 +76,45 @@ jobs:
         env:
           ZARRIN_TEST_PHP: ${{ matrix.php }}
         run: npm run test:integration
+  woocommerce-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.18.0"
+          cache: npm
+          cache-dependency-path: tests/integration/package-lock.json
+      - name: Use the optional integration SDK's supported npm
+        run: npm install --global npm@11.16.0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_sqlite
+          coverage: none
+      - name: Install isolated integration tooling without lifecycle scripts
+        run: npm ci --prefix tests/integration --ignore-scripts
+      - name: Prepare checksum-pinned WordPress and SQLite fixtures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm --prefix tests/integration run prepare:fixtures
+      - name: Download checksum-pinned official WooCommerce 11.2.0 build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p .cache/integration/archives
+          gh release download 11.2.0 \
+            --repo woocommerce/woocommerce \
+            --pattern woocommerce.zip \
+            --dir .cache/integration/archives
+          echo '14e7539a4988c3654c637804301b430b30530d3421558313949cd2998d57cfa5  .cache/integration/archives/woocommerce.zip' | sha256sum --check --status
+          mv .cache/integration/archives/woocommerce.zip .cache/integration/archives/woocommerce-11.2.0.zip
+      - name: Exercise real WooCommerce cart and checkout render (no order or payment)
+        env:
+          ZARRIN_TEST_PHP: "8.3"
+          ZARRIN_WOOCOMMERCE_ARCHIVE: .cache/integration/archives/woocommerce-11.2.0.zip
+        run: npm run test:integration:woo

@@ -15,6 +15,7 @@
     "package": "python3 scripts/package-theme.py",
     "release": "node scripts/release-theme.mjs",
     "test:integration": "node tests/integration/run.mjs",
+    "test:integration:woo": "node tests/integration/woocommerce-run.mjs",
     "php:cli": "node scripts/php-wasm-cli.mjs",
     "verify:woo": "node scripts/verify-woo-contract.mjs"
   },

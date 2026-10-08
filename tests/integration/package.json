@@ -9,7 +9,8 @@
   },
   "scripts": {
     "prepare:fixtures": "node download.mjs",
-    "test": "node run.mjs"
+    "test": "node run.mjs",
+    "test:woocommerce": "node woocommerce-run.mjs"
   },
   "dependencies": {
     "@php-wasm/node": "3.1.55",

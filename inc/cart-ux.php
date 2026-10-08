@@ -457,14 +457,19 @@ function jluxe_ajax_cart_add(): void {
 		// Extension veto: WooCommerce's own add_to_cart must not run at all.
 		jluxe_cart_error( 'محصول به سبد خرید اضافه نشد.' );
 	}
-	$added = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variations );
+	// add_to_cart() can merge into an existing matching line. Keep its prior
+	// quantity so a post-mutation stock failure rolls back only this request's
+	// increment instead of deleting the customer's pre-existing cart item.
+	$cart_before = WC()->cart->get_cart();
+	$added       = WC()->cart->add_to_cart( $product_id, $quantity, $variation_id, $variations );
 	if ( ! $added ) {
 		jluxe_cart_error( 'محصول به سبد خرید اضافه نشد.' );
 	}
 	$stock = jluxe_cart_stock_check();
 	if ( true !== $stock ) {
-		// Undo only our own just-added line; never touch the customer's other items.
-		if ( method_exists( WC()->cart, 'remove_cart_item' ) ) {
+		if ( isset( $cart_before[ $added ] ) ) {
+			WC()->cart->set_quantity( $added, $cart_before[ $added ]['quantity'], true );
+		} elseif ( method_exists( WC()->cart, 'remove_cart_item' ) ) {
 			WC()->cart->remove_cart_item( $added );
 		}
 		jluxe_cart_error( $stock, 409 );
