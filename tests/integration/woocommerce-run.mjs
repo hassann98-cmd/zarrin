@@ -275,8 +275,12 @@ try {
       global $wp_rewrite;
       $wp_rewrite->set_permalink_structure('');
       flush_rewrite_rules(false);
-      $cart_page=wp_insert_post(array('post_type'=>'page','post_name'=>'cart','post_title'=>'Cart fixture','post_status'=>'publish'));
-      $checkout_page=wp_insert_post(array('post_type'=>'page','post_name'=>'checkout','post_title'=>'Checkout fixture','post_status'=>'publish'));
+      $cart_post=get_page_by_path('cart',OBJECT,'page');
+      $cart_page=$cart_post?$cart_post->ID:wp_insert_post(array('post_type'=>'page','post_name'=>'cart','post_title'=>'Cart fixture','post_status'=>'publish'));
+      wp_update_post(array('ID'=>$cart_page,'post_title'=>'Cart fixture','post_status'=>'publish'));
+      $checkout_post=get_page_by_path('checkout',OBJECT,'page');
+      $checkout_page=$checkout_post?$checkout_post->ID:wp_insert_post(array('post_type'=>'page','post_name'=>'checkout','post_title'=>'Checkout fixture','post_status'=>'publish'));
+      wp_update_post(array('ID'=>$checkout_page,'post_title'=>'Checkout fixture','post_status'=>'publish'));
       update_option('woocommerce_cart_page_id',$cart_page);
       update_option('woocommerce_checkout_page_id',$checkout_page);
 
@@ -326,11 +330,11 @@ try {
       $variation->set_stock_quantity(2);
       $variation->set_stock_status('instock');
       $variation_id=$variation->save();
-      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy);
+      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy);
     `);
     check(
-      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0,
-      "Actual WooCommerce data stores persist published simple/variable products, a stocked variation, coupon and checkout pages",
+      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout",
+      "Actual WooCommerce data stores persist published simple/variable products, a stocked variation, coupon and the custom-checkout page slug",
     );
 
     const home = await request(root, { method: "GET" });
