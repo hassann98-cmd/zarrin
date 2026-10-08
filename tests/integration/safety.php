@@ -7,6 +7,13 @@ if ( ! defined( 'ZARRIN_INTEGRATION_TEST' ) || ! ZARRIN_INTEGRATION_TEST ) {
 
 // No mail, network, paid API calls, gateway requests or real SMS delivery.
 add_filter( 'pre_wp_mail', '__return_false', PHP_INT_MAX );
+// Capture which real theme template WordPress resolves for the most recent
+// front-end request; this is test-only state in the disposable database.
+add_filter( 'template_include', function ( $template ) {
+	update_option( 'zarrin_test_last_template', $template, false );
+	return $template;
+}, PHP_INT_MAX );
+
 add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	if ( 0 === strpos( $url, 'https://api.kavenegar.com/v1/integration-only-no-real-provider/verify/lookup.json?' ) ) {
 		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $parameters );
