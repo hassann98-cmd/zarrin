@@ -1215,7 +1215,7 @@ $r169_expected_sizes = array(
 check(
 	$r169_expected_sizes === array_intersect_key( $GLOBALS['registered_image_sizes'], $r169_expected_sizes ) &&
 	true === ( $GLOBALS['registered_image_sizes']['jluxe-product-thumb-sm']['crop'] ?? false ),
-	'R169 four uncropped image widths are additive; the existing cropped product thumbnail stays unchanged'
+	'R169 four uncropped responsive widths are additive; the existing cropped product thumbnail stays unchanged'
 );
 
 $GLOBALS['attachment_image_urls'][901] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/photo-320.webp' );
@@ -3099,9 +3099,126 @@ jluxe_render_collage_slot( array( 'image_id' => 85 ), 'test-collage', 0 );
 $r169_collage_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r169_collage_html, 'srcset="https://shop.test/store/image-1024.jpg 1024w' ) &&
-	false !== strpos( $r169_collage_html, 'sizes="(max-width: 639px) 100vw, 50vw"' ),
+	false !== strpos( $r169_collage_html, 'sizes="(max-width: 639px) calc(100vw - 24px), 50vw"' ),
 	'R169 collage banners use uncropped responsive candidates and preserve their existing cover/contain choice'
 );
+// R175: mobile banner sources are saved, art-directed with picture, and given independent frame ratios.
+$r175_banner_saved = jluxe_sanitize_homepage_section(
+	array(
+		'type'  => 'banner_two',
+		'id'    => 'mobile-two',
+		'items' => array(
+			array( 'image_id' => '951', 'mobile_image_id' => '952' ),
+			array( 'image_id' => '953', 'mobile_image_id' => '954' ),
+		),
+	)
+);
+$r175_slider_saved = jluxe_sanitize_homepage_section(
+	array(
+		'type'  => 'banner_slider',
+		'id'    => 'mobile-slider',
+		'items' => array( array( 'image_id' => '961', 'mobile_image_id' => '962' ) ),
+	)
+);
+$r175_collage_saved = jluxe_sanitize_homepage_section(
+	array(
+		'type'  => 'banner_collage',
+		'id'    => 'mobile-collage',
+		'slots' => array( array( 'image_id' => '971', 'mobile_image_id' => '972' ) ),
+	)
+);
+check(
+	952 === $r175_banner_saved['items'][0]['mobile_image_id'] &&
+	962 === $r175_slider_saved['items'][0]['mobile_image_id'] &&
+	972 === $r175_collage_saved['slots'][0]['mobile_image_id'],
+	'R175 mobile attachment IDs are sanitized and retained for banners, banner sliders, and collage slots'
+);
+
+$GLOBALS['attachment_image_urls'][951] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-desktop-951.jpg' );
+$GLOBALS['attachment_srcsets'][951] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-desktop-951.jpg 900w' );
+$GLOBALS['attachment_image_sources'][951] = array( 'https://shop.test/store/two-desktop-951.jpg', 900, 500, true );
+$GLOBALS['attachment_image_urls'][952] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-mobile-952.jpg' );
+$GLOBALS['attachment_srcsets'][952] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-mobile-952.jpg 900w' );
+$GLOBALS['attachment_image_sources'][952] = array( 'https://shop.test/store/two-mobile-952.jpg', 900, 1200, true );
+$GLOBALS['attachment_image_urls'][953] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-desktop-953.jpg' );
+$GLOBALS['attachment_srcsets'][953] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-desktop-953.jpg 900w' );
+$GLOBALS['attachment_image_sources'][953] = array( 'https://shop.test/store/two-desktop-953.jpg', 900, 500, true );
+$GLOBALS['attachment_image_urls'][954] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-mobile-954.jpg' );
+$GLOBALS['attachment_srcsets'][954] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/two-mobile-954.jpg 900w' );
+$GLOBALS['attachment_image_sources'][954] = array( 'https://shop.test/store/two-mobile-954.jpg', 900, 1200, true );
+ob_start();
+jluxe_render_homepage_banners(
+	array(
+		'type'  => 'banner_two',
+		'items' => array(
+			array( 'image_id' => 951, 'mobile_image_id' => 952 ),
+			array( 'image_id' => 953, 'mobile_image_id' => 954 ),
+		),
+	)
+);
+$r175_two_banner_html = (string) ob_get_clean();
+$r175_mobile_source_at = strpos( $r175_two_banner_html, '<source media="(max-width: 639px)" srcset="https://shop.test/store/two-mobile-952.jpg 900w"' );
+$r175_desktop_image_at = strpos( $r175_two_banner_html, '<img src="https://shop.test/store/two-desktop-951.jpg"' );
+check(
+	false !== $r175_mobile_source_at && false !== $r175_desktop_image_at && $r175_mobile_source_at < $r175_desktop_image_at &&
+	false !== strpos( $r175_two_banner_html, '--jluxe-home-banner-aspect:9/5;--jluxe-home-banner-mobile-aspect:900/1200' ) &&
+	false !== strpos( $r175_two_banner_html, 'sizes="(max-width: 639px) calc(100vw - 24px)' ),
+	'R175 two-column banners emit a mobile-only picture source and switch from the 900×500 desktop frame to the mobile aspect ratio'
+);
+
+$GLOBALS['attachment_image_urls'][961] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/slider-desktop-961.jpg' );
+$GLOBALS['attachment_srcsets'][961] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/slider-desktop-961.jpg 1920w' );
+$GLOBALS['attachment_image_sources'][961] = array( 'https://shop.test/store/slider-desktop-961.jpg', 1920, 600, true );
+$GLOBALS['attachment_image_urls'][962] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/slider-mobile-962.jpg' );
+$GLOBALS['attachment_srcsets'][962] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/slider-mobile-962.jpg 900w' );
+$GLOBALS['attachment_image_sources'][962] = array( 'https://shop.test/store/slider-mobile-962.jpg', 900, 1200, true );
+ob_start();
+jluxe_render_homepage_banner_slider( array( 'items' => array( array( 'image_id' => 961, 'mobile_image_id' => 962 ) ) ) );
+$r175_slider_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r175_slider_html, 'src="https://shop.test/store/slider-desktop-961.jpg"' ) &&
+	false !== strpos( $r175_slider_html, '<source media="(max-width: 639px)" srcset="https://shop.test/store/slider-mobile-962.jpg 900w"' ) &&
+	false !== strpos( $r175_slider_html, '--jluxe-banner-slider-aspect-desktop:16/5;--jluxe-banner-slider-aspect-mobile:900/1200' ),
+	'R175 banner-slider desktop and mobile candidates are separated; the frame follows 16:5 desktop and the mobile asset ratio'
+);
+
+$GLOBALS['attachment_image_urls'][971] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/collage-desktop-971.jpg' );
+$GLOBALS['attachment_srcsets'][971] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/collage-desktop-971.jpg 1280w' );
+$GLOBALS['attachment_image_sources'][971] = array( 'https://shop.test/store/collage-desktop-971.jpg', 1280, 700, true );
+$GLOBALS['attachment_image_urls'][972] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/collage-mobile-972.jpg' );
+$GLOBALS['attachment_srcsets'][972] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/collage-mobile-972.jpg 900w' );
+$GLOBALS['attachment_image_sources'][972] = array( 'https://shop.test/store/collage-mobile-972.jpg', 900, 560, true );
+ob_start();
+jluxe_render_collage_slot( array( 'image_id' => 971, 'mobile_image_id' => 972 ), 'test-collage', 0 );
+$r175_collage_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r175_collage_html, 'src="https://shop.test/store/collage-desktop-971.jpg"' ) &&
+	false !== strpos( $r175_collage_html, '<source media="(max-width: 639px)" srcset="https://shop.test/store/collage-mobile-972.jpg 900w"' ) &&
+	false !== strpos( $r175_collage_html, 'sizes="calc(100vw - 24px)"' ),
+	'R175 collage slots use a separate mobile-only source and a mobile-sized srcset'
+);
+ob_start();
+jluxe_render_homepage_banner_collage(
+	array(
+		'id'             => 'two-col-mobile',
+		'desktop_layout' => 'grid_4',
+		'mobile_layout'  => 'grid_2',
+		'slots'          => array( array( 'image_id' => 971, 'mobile_image_id' => 972 ) ),
+	)
+);
+$r175_two_col_collage_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r175_two_col_collage_html, 'sizes="calc((100vw - 24px) / 2)"' ) &&
+	false !== strpos( $r175_two_col_collage_html, 'sizes="(max-width: 639px) calc((100vw - 24px) / 2), 50vw"' ),
+	'R175 two-column mobile collage advertises a half-screen slot to both the mobile source and desktop-image fallback'
+);
+$r175_mobile_banner_css = (string) file_get_contents( ABSPATH . 'style.css' );
+check(
+	false !== strpos( $r175_mobile_banner_css, '@media(max-width:639px){.jluxe-home-banner{aspect-ratio:var(--jluxe-home-banner-mobile-aspect' ) &&
+	false !== strpos( $r175_mobile_banner_css, '@media(max-width:639px){.jluxe-home-banner-slider-frame{aspect-ratio:var(--jluxe-banner-slider-aspect-mobile' ),
+	'R175 responsive banner frame ratios switch at the same 639px breakpoint as the mobile picture sources'
+);
+
 ob_start();
 jluxe_render_homepage_brand_marquee( array( 'items' => array( array( 'image_id' => 86, 'title' => 'Brand' ) ) ) );
 $r169_brand_html = (string) ob_get_clean();

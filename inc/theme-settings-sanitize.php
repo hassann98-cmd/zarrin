@@ -1262,8 +1262,9 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			for ( $i = 0; $i < 5; $i++ ) {
 				$item = $posted['items'][ $i ] ?? array();
 				$section['items'][] = array(
-					'image_id'    => isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0,
-					'category'    => isset( $item['category'] ) ? sanitize_text_field( $item['category'] ) : '',
+					'image_id'        => isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0,
+					'mobile_image_id' => isset( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : 0,
+					'category'        => isset( $item['category'] ) ? sanitize_text_field( $item['category'] ) : '',
 					'title'       => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
 					'description' => isset( $item['description'] ) ? sanitize_text_field( $item['description'] ) : '',
 					'link'        => isset( $item['link'] ) ? esc_url_raw( $item['link'] ) : '',
@@ -1352,8 +1353,9 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				}
 
 				$section['slots'][] = array(
-					'image_id'  => isset( $bc_slot['image_id'] ) ? absint( $bc_slot['image_id'] ) : 0,
-					'link'      => isset( $bc_slot['link'] ) ? esc_url_raw( $bc_slot['link'] ) : '',
+					'image_id'        => isset( $bc_slot['image_id'] ) ? absint( $bc_slot['image_id'] ) : 0,
+					'mobile_image_id' => isset( $bc_slot['mobile_image_id'] ) ? absint( $bc_slot['mobile_image_id'] ) : 0,
+					'link'            => isset( $bc_slot['link'] ) ? esc_url_raw( $bc_slot['link'] ) : '',
 					'image_fit' => in_array( $bc_fit, array( 'cover', 'contain' ), true ) ? $bc_fit : 'cover',
 					'bg'        => isset( $bc_slot['bg'] ) ? ( sanitize_hex_color( $bc_slot['bg'] ) ?: '' ) : '',
 					'shadow'    => ! empty( $bc_slot['shadow'] ),
@@ -1489,6 +1491,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				$b_style  = isset( $item['button_style'] ) ? sanitize_key( $item['button_style'] ) : 'solid';
 				$section['items'][] = array(
 					'image_id'         => isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0,
+					'mobile_image_id'  => isset( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : 0,
 					'title'            => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
 					'subtitle'         => isset( $item['subtitle'] ) ? sanitize_text_field( $item['subtitle'] ) : '',
 					'button'           => isset( $item['button'] ) ? sanitize_text_field( $item['button'] ) : '',

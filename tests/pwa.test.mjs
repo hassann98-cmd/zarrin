@@ -4,6 +4,8 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { JSDOM } from "jsdom";
 import {
+  AUTO_DISMISS_MS,
+  AUTO_DISMISS_SESSION_KEY,
   DISMISS_KEY,
   canShowInstallPrompt,
   recentlyDismissed,
@@ -108,6 +110,28 @@ test("banner appears after the delay; «بعداً» and Escape remember the dis
   win.document.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape" }));
   assert.equal(win.document.querySelector(".jluxe-pwa-install"), null);
   assert.ok(Number(win.localStorage.getItem(DISMISS_KEY)) > 0);
+});
+
+test("install prompt self-dismisses after its timeout, pauses while hovered, and only snoozes this session", async () => {
+  const { win } = makeWindow();
+  assert.equal(AUTO_DISMISS_MS, 4000, "the default visible time is four seconds");
+  setupInstallPrompt(win, settings, { delay: 1, autoDismissAfter: 15 });
+  const event = installEvent(win);
+  win.dispatchEvent(event);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const banner = win.document.querySelector(".jluxe-pwa-install");
+  assert.ok(banner);
+
+  banner.dispatchEvent(new win.Event("pointerenter"));
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.equal(win.document.querySelector(".jluxe-pwa-install"), banner, "interaction pauses the auto-dismiss timer");
+
+  banner.dispatchEvent(new win.Event("pointerleave"));
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.equal(win.document.querySelector(".jluxe-pwa-install"), null, "the idle install prompt removes itself after its timeout");
+  assert.equal(win.localStorage.getItem(DISMISS_KEY), null, "automatic removal does not pretend the user chose «later» for 30 days");
+  assert.equal(win.sessionStorage.getItem(AUTO_DISMISS_SESSION_KEY), "1");
+  assert.equal(canShowInstallPrompt(win, settings), false, "the prompt will not reappear on every page during this tab session");
 });
 
 test("«نصب» calls the browser prompt once; appinstalled removes the banner", async () => {

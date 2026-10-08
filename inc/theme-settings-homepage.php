@@ -185,14 +185,9 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						?>
 					</fieldset>
 					<p class="description">
-						هر اسلاید یک «عکس دسکتاپ» (اجباری) و یک «عکس موبایل» (اختیاری ولی توصیه‌شده) دارد. مرورگر فقط یکی از این دو را دانلود می‌کند.
-						اگر عکس موبایل خالی بماند، همان عکس دسکتاپ روی موبایل کامل و بدون کراپ نشان داده می‌شود.
+						برای هر اسلاید عکسِ دسکتاپ و موبایل جدا انتخاب کنید. وقتی عکس موبایل ثبت شده، در عرضِ موبایل فقط همان منبع و نسخه‌های کوچک‌ترِ خودش دانلود می‌شود؛ فایل دسکتاپ درخواست نمی‌شود. اگر خالی باشد، srcset نسخهٔ کم‌عرض‌ترِ عکس دسکتاپ را انتخاب می‌کند.
 						<br /><br />
-						<strong>ابعادِ پیشنهادی (با ارتفاع‌های پیش‌فرض):</strong><br />
-						دسکتاپ، حالتِ کانتینر: <strong>۲۶۰۰ × ۷۲۰</strong> پیکسل (نسبتِ حدودِ ۳٫۶ به ۱)<br />
-						دسکتاپ، حالتِ تمام صفحه: <strong>۲۵۶۰ × ۴۸۰</strong> پیکسل (نسبتِ حدودِ ۵٫۳ به ۱)<br />
-						موبایل: <strong>۱۰۸۰ × ۹۶۰</strong> پیکسل (تقریباً مربع). عکس مربعِ ۱۰۸۰ × ۱۰۸۰ هم با کمی کراپ از بالا و پایین جا می‌شود.<br />
-						اگر ارتفاع را عوض کنید، نسبت هم به همان اندازه تغییر می‌کند. موضوعِ اصلی را وسطِ عکس بگذارید.
+						<strong>ابعادِ پیشنهادیِ فایل‌ها:</strong> دسکتاپ <strong>۱۹۲۰ × ۷۰۰</strong> پیکسل؛ موبایل <strong>۹۰۰ × ۱۲۰۰</strong> پیکسل (نسبتِ ۳:۴). این‌ها اندازهٔ فایلِ منبع‌اند؛ ارتفاعِ نمایشی همچنان از فیلدهای دسکتاپ/موبایل بالا کنترل می‌شود. همهٔ اسلایدها را با نسبتِ یکسان بسازید تا هنگامِ جابه‌جایی ارتفاع نپرد.
 					</p>
 					<div class="jluxe-repeater" data-max="10">
 						<div class="jluxe-repeater-list" data-group="items">
@@ -353,6 +348,22 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 				case 'banner_two':
 				case 'banner_three':
 					$count = 'banner' === $type ? 1 : ( 'banner_two' === $type ? 2 : 3 );
+					if ( 'banner' === $type ) {
+						$desktop_dimensions = '۱۹۲۰ × ۶۰۰';
+						$mobile_dimensions  = '۹۰۰ × ۱۲۰۰ (۳:۴)';
+					} elseif ( 'banner_two' === $type ) {
+						$desktop_dimensions = '۹۰۰ × ۵۰۰ برای هر بنر';
+						$mobile_dimensions  = '۹۰۰ × ۱۲۰۰ (۳:۴) برای هر بنر';
+					} else {
+						$desktop_dimensions = '۶۰۰ × ۶۰۰ (مربع)';
+						$mobile_dimensions  = '۶۰۰ × ۶۰۰ (مربع)';
+					}
+					?>
+					<p class="description">
+						<strong>اندازهٔ پیشنهادی فایل‌ها:</strong> دسکتاپ <?php echo esc_html( $desktop_dimensions ); ?>؛ موبایل <?php echo esc_html( $mobile_dimensions ); ?>.
+						نسخهٔ موبایل اختیاری است؛ با ثبت آن، مرورگر در موبایل فقط فایل/مشتقات موبایل را می‌گیرد. بدونِ آن، srcset نسخهٔ کم‌عرضِ تصویر دسکتاپ را انتخاب می‌کند.
+					</p>
+					<?php
 					for ( $b = 0; $b < $count; $b++ ) :
 						$item = $section['items'][ $b ] ?? array();
 						// اگه هنوز هیچ‌وقت با این نسخه ذخیره نشده (کلید overlay اصلاً
@@ -362,7 +373,10 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						?>
 						<div class="jluxe-hb-banner-item">
 							<strong>بنر <?php echo esc_html( jluxe_fa_digits( $b + 1 ) ); ?></strong>
+							<label>تصویر دسکتاپ</label>
 							<?php jluxe_render_media_field( "{$name}[items][{$b}][image_id]", (int) ( $item['image_id'] ?? 0 ), 'تصویری انتخاب نشده' ); ?>
+							<label>نسخهٔ موبایل (اختیاری)</label>
+							<?php jluxe_render_media_field( "{$name}[items][{$b}][mobile_image_id]", (int) ( $item['mobile_image_id'] ?? 0 ), 'تصویر موبایل انتخاب نشده' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$b}]", 'title', 'عنوان', $item['title'] ?? '' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$b}]", 'subtitle', 'زیرعنوان', $item['subtitle'] ?? '' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$b}]", 'button', 'متن دکمه', $item['button'] ?? '' ); ?>
@@ -409,14 +423,17 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 
 				case 'banner_slider':
 					jluxe_hb_field_text( $name, 'title', 'عنوان بخش (اختیاری)', $section['title'] ?? '' );
-					echo '<p class="description">اسلات‌های خالی نمایش داده نمی‌شن. حداقل ۲ اسلاید پر برای فعال‌شدن چرخش خودکار لازمه.</p>';
+					echo '<p class="description">ابعاد پیشنهادی هر اسلاید: دسکتاپ <strong>۱۹۲۰ × ۶۰۰</strong>؛ موبایل <strong>۹۰۰ × ۱۲۰۰ (۳:۴)</strong>. نسخهٔ موبایل اختیاری است و با تگ picture جداگانه سرو می‌شود؛ بدون آن، srcset اندازهٔ متناسب را انتخاب می‌کند. اسلات‌های خالی نمایش داده نمی‌شوند. حداقل ۲ اسلاید پر برای فعال‌شدن چرخش خودکار لازم است.</p>';
 					$items = $section['items'] ?? array();
 					for ( $s = 0; $s < 5; $s++ ) :
 						$item = $items[ $s ] ?? array();
 						?>
 						<div class="jluxe-hb-banner-item">
 							<strong>اسلاید <?php echo esc_html( jluxe_fa_digits( $s + 1 ) ); ?></strong>
+							<label>تصویر دسکتاپ</label>
 							<?php jluxe_render_media_field( "{$name}[items][{$s}][image_id]", (int) ( $item['image_id'] ?? 0 ), 'تصویری انتخاب نشده' ); ?>
+							<label>نسخهٔ موبایل (اختیاری)</label>
+							<?php jluxe_render_media_field( "{$name}[items][{$s}][mobile_image_id]", (int) ( $item['mobile_image_id'] ?? 0 ), 'تصویر موبایل انتخاب نشده' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'category', 'برچسب دسته (مثل iPhone)', $item['category'] ?? '' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'title', 'عنوان', $item['title'] ?? '' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'description', 'توضیح', $item['description'] ?? '' ); ?>
@@ -539,7 +556,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					jluxe_hb_field_select( $name, 'desktop_layout', 'چیدمان — دسکتاپ', $bc_desktop_key, $bc_desktop_options );
 					jluxe_hb_field_select( $name, 'mobile_layout', 'چیدمان — موبایل', $bc_mobile_key, $bc_mobile_layouts );
 					?>
-					<p class="description">چیدمانِ دسکتاپ و موبایل کاملاً مستقلن — مثلاً می‌تونی تو دسکتاپ «نامتقارن» و تو موبایل «دوتا-دوتا» رو انتخاب کنی. پایین، شکلِ واقعیِ چیدمانِ دسکتاپِ انتخاب‌شده رو می‌بینی — همون‌جا هم می‌تونی عکسِ هر اسلات رو عوض کنی. اسلات‌های بیشتر از تعدادِ لازمِ این چیدمان، ذخیره می‌مونن ولی نمایش داده نمی‌شن (اگه بعداً چیدمانِ پرتعدادتری انتخاب کنی، محتواشون از دست نمی‌ره).</p>
+					<p class="description">چیدمانِ دسکتاپ و موبایل مستقل است. تصویرِ موبایل برای هر اسلات جدا انتخاب می‌شود و فقط در موبایل دانلود می‌شود؛ اگر خالی باشد، srcset نسخهٔ کوچک‌ترِ تصویر دسکتاپ را می‌دهد. برای چیدمانِ «دوتا-دوتا» تصویرِ مربعِ ۶۰۰ × ۶۰۰ و برای «پشت‌سرهم» تصویرِ افقیِ حدودِ ۹۰۰ × ۵۶۰ مناسب است. تصویر دسکتاپ را با نسبتِ کادرِ چیدمانِ انتخاب‌شده آماده کنید. اسلات‌های اضافه ذخیره می‌مانند، حتی اگر فعلاً در چیدمان نمایش داده نشوند.</p>
 
 					<?php
 					$bc_current_def = $bc_layouts[ $bc_desktop_key ];
@@ -574,6 +591,8 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						?>
 						<div class="jluxe-hb-banner-item">
 							<strong><?php echo esc_html( jluxe_hb_collage_slot_label( $bc ) ); ?></strong>
+							<label>تصویر موبایل (اختیاری — فقط در موبایل دانلود می‌شود)</label>
+							<?php jluxe_render_media_field( "{$name}[slots][{$bc}][mobile_image_id]", (int) ( $slot['mobile_image_id'] ?? 0 ), 'تصویر موبایل انتخاب نشده' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[slots][{$bc}]", 'link', 'لینک مقصد بنر (پس‌زمینه)', $slot['link'] ?? '' ); ?>
 							<?php jluxe_hb_field_select( "{$name}[slots][{$bc}]", 'image_fit', 'نحوه نمایش عکس در کادر', $slot['image_fit'] ?? 'cover', array( 'cover' => 'پر کردن کامل کادر (ممکنه برش بخوره)', 'contain' => 'نمایش کامل عکس بدون برش' ) ); ?>
 							<?php jluxe_hb_field_color( "{$name}[slots][{$bc}]", 'bg', 'رنگ پس‌زمینه (پشتِ عکس/قبل از لود شدنش)', $slot['bg'] ?? '' ); ?>
@@ -839,7 +858,7 @@ function jluxe_render_hero_item_fields( string $name, int $index, array $item ):
 				<?php jluxe_render_media_field( "{$name}[items][{$index}][image_id]", (int) ( $item['image_id'] ?? 0 ), 'تصویری انتخاب نشده' ); ?>
 			</div>
 			<div>
-				<label>عکس موبایل (اختیاری — خالی = همون عکس دسکتاپ، بدون کراپ)</label>
+				<label>عکس موبایل (اختیاری — پیشنهاد: ۹۰۰ × ۱۲۰۰؛ در موبایل فقط همین تصویر دانلود می‌شود)</label>
 				<?php jluxe_render_media_field( "{$name}[items][{$index}][mobile_image_id]", (int) ( $item['mobile_image_id'] ?? 0 ), 'از عکس دسکتاپ استفاده می‌شه' ); ?>
 			</div>
 		</div>
@@ -1611,8 +1630,12 @@ function jluxe_render_homepage_banner_collage( array $section ): void {
 		</style>
 		<div class="<?php echo esc_html( $id ); ?>-ctx"><div class="<?php echo esc_html( $id ); ?>-wrap">
 			<?php for ( $i = 0; $i < $slot_count; $i++ ) : ?>
+				<?php
+				$mobile_slot_is_half = 'grid_2' === $mobile_key && !( 1 === ( $slot_count % 2 ) && $i === $slot_count - 1 );
+				$slot_mobile_sizes = $mobile_slot_is_half ? 'calc((100vw - 24px) / 2)' : 'calc(100vw - 24px)';
+				?>
 				<div class="<?php echo esc_html( $id ); ?>-slot" style="grid-area:s<?php echo (int) ( $i + 1 ); ?>">
-					<?php jluxe_render_collage_slot( $slots[ $i ] ?? array(), $id, $i ); ?>
+					<?php jluxe_render_collage_slot( $slots[ $i ] ?? array(), $id, $i, $slot_mobile_sizes ); ?>
 				</div>
 			<?php endfor; ?>
 		</div></div>
@@ -1627,9 +1650,18 @@ function jluxe_render_homepage_banner_collage( array $section ): void {
  * برای هر دستگاه نداره (بالاتر توضیح داده شد)، اینجا فقط object-fit
  * ثابت اعمال می‌شه.
  */
-function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): void {
+function jluxe_render_collage_slot( array $slot, string $id, int $slot_index, string $mobile_sizes = 'calc(100vw - 24px)' ): void {
 	$image_id = (int) ( $slot['image_id'] ?? 0 );
-	$image    = $image_id ? jluxe_get_responsive_attachment_image( $image_id, 'jluxe-uncropped-1280', '(max-width: 639px) 100vw, 50vw' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 639px) 100vw, 50vw' );
+	$desktop_sizes = '(max-width: 639px) ' . $mobile_sizes . ', 50vw';
+	$image = $image_id ? jluxe_get_responsive_attachment_image( $image_id, 'jluxe-uncropped-1280', $desktop_sizes ) : array( 'src' => '', 'srcset' => '', 'sizes' => $desktop_sizes );
+	$mobile_id = ! empty( $slot['mobile_image_id'] ) ? absint( $slot['mobile_image_id'] ) : 0;
+	$mobile_image = $mobile_id && $mobile_id !== $image_id
+		? jluxe_get_responsive_attachment_image( $mobile_id, 'jluxe-uncropped-960', $mobile_sizes )
+		: $image;
+	$has_mobile_image = $mobile_id && $mobile_id !== $image_id && ! empty( $mobile_image['src'] );
+	if ( ! $has_mobile_image ) {
+		$mobile_image = $image;
+	}
 	$img_url  = $image['src'];
 	$fit      = 'contain' === ( $slot['image_fit'] ?? 'cover' ) ? 'contain' : 'cover';
 	$bg       = ! empty( $slot['bg'] ) ? $slot['bg'] : 'hsl(var(--muted))';
@@ -1639,14 +1671,20 @@ function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): 
 	<div style="position:relative;width:100%;height:100%;background:<?php echo esc_attr( $bg ); ?>;overflow:hidden;<?php echo esc_attr( $shadow ); ?>">
 		<?php if ( $link ) : ?>
 			<a href="<?php echo $link; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>" style="display:block;width:100%;height:100%;text-decoration:none;position:absolute;inset:0;">
-				<?php if ( $img_url ) : ?>
-					<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
-				<?php endif; ?>
+					<?php if ( $img_url ) : ?>
+						<picture style="display:block;width:100%;height:100%;">
+							<?php jluxe_homepage_mobile_picture_source( $mobile_image, (bool) $has_mobile_image, $mobile_sizes ); ?>
+							<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
+						</picture>
+					<?php endif; ?>
 			</a>
-		<?php elseif ( $img_url ) : ?>
-			<div style="position:absolute;inset:0;">
-				<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
-			</div>
+			<?php elseif ( $img_url ) : ?>
+				<div style="position:absolute;inset:0;">
+					<picture style="display:block;width:100%;height:100%;">
+						<?php jluxe_homepage_mobile_picture_source( $mobile_image, (bool) $has_mobile_image, $mobile_sizes ); ?>
+						<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
+					</picture>
+				</div>
 		<?php endif; ?>
 
 		<?php foreach ( $slot['layers'] ?? array() as $li => $layer ) :
@@ -2047,6 +2085,26 @@ function jluxe_home_banner_grid_image_sizes( int $column_count ): string {
 	);
 }
 
+/** Emit an art-directed mobile source before the responsive desktop img fallback. */
+function jluxe_homepage_mobile_picture_source( array $mobile_image, bool $has_mobile, string $mobile_sizes = 'calc(100vw - 24px)' ): void {
+	if ( ! $has_mobile || empty( $mobile_image['src'] ) ) {
+		return;
+	}
+	$srcset = ! empty( $mobile_image['srcset'] ) ? $mobile_image['srcset'] : $mobile_image['src'];
+	printf(
+		'<source media="(max-width: 639px)" srcset="%s" sizes="%s">',
+		esc_attr( $srcset ),
+		esc_attr( $mobile_sizes )
+	);
+}
+
+/** A safe width/height aspect token for responsive section CSS. */
+function jluxe_homepage_image_aspect( array $image, string $fallback ): string {
+	$width  = absint( $image['width'] ?? 0 );
+	$height = absint( $image['height'] ?? 0 );
+	return $width && $height ? $width . '/' . $height : $fallback;
+}
+
 function jluxe_render_homepage_banners( array $section ): void {
 	$items = array_values( array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
 	if ( empty( $items ) ) {
@@ -2054,27 +2112,33 @@ function jluxe_render_homepage_banners( array $section ): void {
 	}
 	$cols = count( $items ) > 1 ? 'sm:grid-cols-' . count( $items ) : '';
 	$sizes = jluxe_home_banner_grid_image_sizes( count( $items ) );
+	$banner_type = $section['type'] ?? ( 1 === count( $items ) ? 'banner' : ( 2 === count( $items ) ? 'banner_two' : 'banner_three' ) );
+	$desktop_size = array( 'banner' => 'jluxe-uncropped-1280', 'banner_two' => 'jluxe-uncropped-960', 'banner_three' => 'jluxe-uncropped-640' )[ $banner_type ] ?? 'jluxe-uncropped-1280';
+	$desktop_ratio = array( 'banner' => '16/5', 'banner_two' => '9/5', 'banner_three' => '1/1' )[ $banner_type ] ?? '';
+	$mobile_sizes = 'calc(100vw - 24px)';
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<div class="grid grid-cols-1 gap-4 <?php echo esc_attr( $cols ); ?>">
 			<?php foreach ( $items as $item ) :
-				/*
-				 * باگِ واقعیِ CLS: <img> فقط w-full داشت، بدونِ ارتفاع/نسبت‌تصویرِ
-				 * ثابت — یعنی تا لحظه‌ی واقعیِ لودشدنِ عکس، مرورگر هیچ فضایی
-				 * براش رزرو نمی‌کرد و کل صفحه (هرچی زیرِ این بنر بود) یک جهشِ
-				 * لِیاوتی می‌خورد. چون این بخش هر عکسِ آپلودی‌ای می‌تونه داشته
-				 * باشه (نسبتِ ثابتِ از‌پیش‌معلوم نداره)، aspect-ratio از رویِ
-				 * ابعادِ واقعیِ همون فایل (wp_get_attachment_image_src) محاسبه
-				 * و inline ست می‌شه — دقیقاً فضای لازم، نه یک عددِ حدسی.
-				 */
-				$banner_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $sizes );
-				if ( empty( $banner_image['src'] ) ) {
-					continue;
-				}
-				$img_url = $banner_image['src'];
-				$img_w   = $banner_image['width'];
-				$img_h   = $banner_image['height'];
-				$img_ratio_style = ( $img_w && $img_h ) ? sprintf( 'aspect-ratio:%d/%d;', (int) $img_w, (int) $img_h ) : '';
+					/* Reserve the exact layout ratio; mobile art direction has its own frame ratio. */
+					$desktop_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], $desktop_size, $sizes );
+					if ( empty( $desktop_image['src'] ) ) {
+						continue;
+					}
+					$mobile_id = ! empty( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : 0;
+					$mobile_image = $mobile_id && $mobile_id !== (int) $item['image_id']
+						? jluxe_get_responsive_attachment_image( $mobile_id, 'jluxe-uncropped-960', $mobile_sizes )
+						: $desktop_image;
+					$has_mobile_image = $mobile_id && $mobile_id !== (int) $item['image_id'] && ! empty( $mobile_image['src'] );
+					if ( ! $has_mobile_image ) {
+						$mobile_image = $desktop_image;
+					}
+					$desktop_ratio = $desktop_ratio ?: jluxe_homepage_image_aspect( $desktop_image, '16/9' );
+					$mobile_ratio = 'banner_three' === $banner_type
+						? '1/1'
+						: ( $has_mobile_image ? jluxe_homepage_image_aspect( $mobile_image, $desktop_ratio ) : $desktop_ratio );
+					$img_ratio_style = '--jluxe-home-banner-aspect:' . $desktop_ratio . ';--jluxe-home-banner-mobile-aspect:' . $mobile_ratio . ';';
+					$img_url = $desktop_image['src'];
 				$tag    = ! empty( $item['link'] ) ? 'a' : 'div';
 				$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 				$has_overlay = array_key_exists( 'overlay', $item ) ? ! empty( $item['overlay'] ) : true;
@@ -2088,8 +2152,11 @@ function jluxe_render_homepage_banners( array $section ): void {
 				// عکسِ روشن ممکنه ناخوانا بشه — در اون حالت رنگ پیش‌فرض متن اصلی سایته.
 				$text_color_class = empty( $item['text_color'] ) ? ( $has_overlay ? 'text-white' : 'text-foreground' ) : '';
 				?>
-				<<?php echo esc_html( $tag ) . $href; ?> class="jluxe-home-card jluxe-home-banner group relative block overflow-hidden rounded-2xl<?php echo $shine_enabled ? ' jluxe-banner-shine' : ''; ?>" style="<?php echo esc_attr( $img_ratio_style ); ?>">
-					<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $banner_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="jluxe-home-media size-full object-cover transition-transform duration-500<?php echo $zoom_enabled ? ' group-hover:scale-105' : ''; ?>" <?php echo jluxe_lazy_attr(); ?> />
+					<<?php echo esc_html( $tag ) . $href; ?> class="jluxe-home-card jluxe-home-banner group relative block overflow-hidden rounded-2xl<?php echo $shine_enabled ? ' jluxe-banner-shine' : ''; ?>" style="<?php echo esc_attr( $img_ratio_style ); ?>">
+						<picture class="absolute inset-0 block size-full">
+							<?php jluxe_homepage_mobile_picture_source( $mobile_image, (bool) $has_mobile_image, $mobile_sizes ); ?>
+							<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $desktop_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="jluxe-home-media size-full object-cover transition-transform duration-500<?php echo $zoom_enabled ? ' group-hover:scale-105' : ''; ?>" <?php echo jluxe_lazy_attr(); ?> />
+						</picture>
 					<?php if ( $has_overlay ) : ?>
 						<div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 					<?php endif; ?>
@@ -2573,31 +2640,54 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 	}
 	$slides = array();
 	$image_sizes = '(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(100vw - 32px), 1288px';
+	$mobile_sizes = 'calc(100vw - 24px)';
 	foreach ( $items as $item ) {
-		$image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $image_sizes );
-		if ( ! empty( $image['src'] ) ) {
-			$slides[] = array( 'item' => $item, 'image' => $image );
+		$desktop_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $image_sizes );
+		if ( empty( $desktop_image['src'] ) ) {
+			continue;
 		}
+		$mobile_id = ! empty( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : 0;
+		$mobile_image = $mobile_id && $mobile_id !== (int) $item['image_id']
+			? jluxe_get_responsive_attachment_image( $mobile_id, 'jluxe-uncropped-960', $mobile_sizes )
+			: $desktop_image;
+		$has_mobile_image = $mobile_id && $mobile_id !== (int) $item['image_id'] && ! empty( $mobile_image['src'] );
+		if ( ! $has_mobile_image ) {
+			$mobile_image = $desktop_image;
+		}
+		$slides[] = array(
+			'item' => $item,
+			'desktop' => $desktop_image,
+			'mobile' => $mobile_image,
+			'has_mobile' => (bool) $has_mobile_image,
+		);
 	}
 	if ( empty( $slides ) ) {
 		return;
 	}
+	$frame_desktop_aspect = '16/5';
+	$frame_mobile_aspect = ! empty( $slides[0]['has_mobile'] )
+		? jluxe_homepage_image_aspect( $slides[0]['mobile'], '3/4' )
+		: $frame_desktop_aspect;
+	$frame_style = '--jluxe-banner-slider-aspect-desktop:' . $frame_desktop_aspect . ';--jluxe-banner-slider-aspect-mobile:' . $frame_mobile_aspect . ';';
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<?php if ( ! empty( $section['title'] ) ) : ?>
 			<h2 class="mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
 		<?php endif; ?>
-		<div class="relative overflow-hidden rounded-2xl" data-jluxe-banner-slider>
-			<div class="relative aspect-[21/9] w-full sm:aspect-[3/1]">
-				<?php foreach ( $slides as $i => $slide ) :
-					$item   = $slide['item'];
-					$image  = $slide['image'];
-					$img_url = $image['src'];
-					$tag    = ! empty( $item['link'] ) ? 'a' : 'div';
+			<div class="relative overflow-hidden rounded-2xl" data-jluxe-banner-slider>
+				<div class="jluxe-home-banner-slider-frame relative w-full" style="<?php echo esc_attr( $frame_style ); ?>">
+					<?php foreach ( $slides as $i => $slide ) :
+						$item = $slide['item'];
+						$desktop_image = $slide['desktop'];
+						$mobile_image = $slide['mobile'];
+						$tag = ! empty( $item['link'] ) ? 'a' : 'div';
 					$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 					?>
-					<<?php echo esc_html( $tag ) . $href; ?> data-jluxe-bs-slide class="absolute inset-0 transition-opacity duration-700" style="opacity:<?php echo 0 === $i ? '1' : '0'; ?>">
-						<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"<?php echo 0 === $i ? ' data-no-lazy="1"' : ''; ?> />
+						<<?php echo esc_html( $tag ) . $href; ?> data-jluxe-bs-slide class="absolute inset-0 transition-opacity duration-700" style="opacity:<?php echo 0 === $i ? '1' : '0'; ?>">
+							<picture class="block size-full">
+								<?php jluxe_homepage_mobile_picture_source( $mobile_image, (bool) $slide['has_mobile'], $mobile_sizes ); ?>
+								<img src="<?php echo esc_url( $desktop_image['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $desktop_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"<?php echo 0 === $i ? ' data-no-lazy="1"' : ''; ?> />
+							</picture>
 						<?php if ( ! empty( $item['title'] ) || ! empty( $item['category'] ) ) : ?>
 							<div class="absolute inset-y-0 start-6 flex flex-col justify-center gap-1.5 sm:start-10">
 								<?php if ( ! empty( $item['category'] ) ) : ?><span class="text-caption font-medium text-white/80"><?php echo esc_html( $item['category'] ); ?></span><?php endif; ?>

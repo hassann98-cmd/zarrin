@@ -6,14 +6,17 @@
  * - اگر PWA در تنظیمات خاموش باشد، هر service workerِ قبلیِ همین پوسته
  *   (scriptURL شاملِ jluxe_pwa=sw) از ثبت خارج می‌شود — افزون بر نسخهٔ
  *   «خودحذف‌کن» که سرور در همان آدرس برمی‌گرداند.
- * - نوار فقط در موبایل/تبلت، فقط وقتی مرورگر واقعاً قابلِ نصب بودن را اعلام
- *   کند (beforeinstallprompt)، بیرون از سبد/تسویه/حساب/محصول، و با «بعداً»
- *   تا ۳۰ روز دوباره نشان داده نمی‌شود.
+ * - نوار فقط در موبایل/تبلت، وقتی مرورگر واقعاً نصب‌پذیری را اعلام کند
+ *   (beforeinstallprompt)، و بیرون از سبد/تسویه/حساب/محصول نشان داده می‌شود.
+ * - PROMPT_DELAY فقط تأخیرِ پیش از نمایش است؛ پس از ظاهرشدن، ۴ ثانیهٔ بی‌تعامل
+ *   بعد خودکار بسته می‌شود. «بعداً» انتخابِ کاربر است و ۳۰ روز snooze می‌کند.
  */
 
 export const DISMISS_KEY = "jluxe-pwa-dismissed";
+export const AUTO_DISMISS_SESSION_KEY = "jluxe-pwa-auto-dismissed";
 export const DISMISS_DAYS = 30;
 export const PROMPT_DELAY = 4000;
+export const AUTO_DISMISS_MS = 4000;
 const SW_MARKER = "jluxe_pwa=sw";
 
 function storage(win) {
@@ -21,6 +24,22 @@ function storage(win) {
     return win.localStorage || null;
   } catch {
     return null;
+  }
+}
+
+function autoDismissedThisSession(win) {
+  try {
+    return win.sessionStorage?.getItem(AUTO_DISMISS_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberAutoDismiss(win) {
+  try {
+    win.sessionStorage?.setItem(AUTO_DISMISS_SESSION_KEY, "1");
+  } catch {
+    /* حالت خصوصی/فضای ذخیرهٔ مسدود — فقط همین صفحه بسته می‌شود. */
   }
 }
 
@@ -41,7 +60,7 @@ export function rememberDismiss(win, now = Date.now()) {
 }
 
 export function canShowInstallPrompt(win, settings) {
-  if (!settings?.enabled || !settings.installPrompt || settings.suppressPrompt) {
+  if (!settings?.enabled || !settings.installPrompt || settings.suppressPrompt || autoDismissedThisSession(win)) {
     return false;
   }
   const mq = (query) => Boolean(win.matchMedia?.(query).matches);
@@ -111,17 +130,46 @@ export function buildInstallBanner(doc, { name, onInstall, onDismiss }) {
   return banner;
 }
 
-export function setupInstallPrompt(win, settings, { delay = PROMPT_DELAY } = {}) {
+export function setupInstallPrompt(
+  win,
+  settings,
+  { delay = PROMPT_DELAY, autoDismissAfter = AUTO_DISMISS_MS } = {},
+) {
   const doc = win.document;
   let deferred = null;
   let banner = null;
   let timer = 0;
+  let autoDismissTimer = 0;
 
   const remove = () => {
     win.clearTimeout(timer);
+    win.clearTimeout(autoDismissTimer);
+    timer = 0;
+    autoDismissTimer = 0;
     banner?.remove();
     banner = null;
     doc.removeEventListener("keydown", onKey);
+  };
+  const scheduleAutoDismiss = () => {
+    win.clearTimeout(autoDismissTimer);
+    if (!banner || autoDismissAfter <= 0) return;
+    autoDismissTimer = win.setTimeout(() => {
+      if (!banner) return;
+      if (banner.contains(doc.activeElement)) {
+        scheduleAutoDismiss();
+        return;
+      }
+      rememberAutoDismiss(win);
+      deferred = null;
+      remove();
+    }, autoDismissAfter);
+  };
+  const pauseAutoDismiss = () => {
+    win.clearTimeout(autoDismissTimer);
+    autoDismissTimer = 0;
+  };
+  const resumeAutoDismiss = () => {
+    if (banner) scheduleAutoDismiss();
   };
   const dismiss = () => {
     rememberDismiss(win);
@@ -154,6 +202,13 @@ export function setupInstallPrompt(win, settings, { delay = PROMPT_DELAY } = {})
       banner = buildInstallBanner(doc, { name: settings.name, onInstall: install, onDismiss: dismiss });
       doc.body.append(banner);
       doc.addEventListener("keydown", onKey);
+      banner.addEventListener("pointerenter", pauseAutoDismiss);
+      banner.addEventListener("pointerleave", resumeAutoDismiss);
+      banner.addEventListener("focusin", pauseAutoDismiss);
+      banner.addEventListener("focusout", (focusEvent) => {
+        if (!banner?.contains(focusEvent.relatedTarget)) resumeAutoDismiss();
+      });
+      scheduleAutoDismiss();
     }, delay);
   });
   win.addEventListener("appinstalled", () => {
