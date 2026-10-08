@@ -448,11 +448,19 @@ try {
     );
 
     response = await request(`${root}?page_id=${fixtures.checkoutPage}`, { method: "GET" });
+    const checkoutText = response.text
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 400);
+    const checkoutDiagnostic = `HTTP ${response.status}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
         response.text.includes("payment_method"),
-      "The classic checkout shortcode renders from the theme's checkout page with an offline-only gateway fixture",
+      `The classic checkout shortcode renders from the theme's checkout page with an offline-only gateway fixture (${checkoutDiagnostic})`,
     );
 
     response = await ajax({
