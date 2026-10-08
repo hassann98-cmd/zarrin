@@ -644,7 +644,7 @@ test("R26 classic product and picker requests strip the native auto-add flag wit
   assert.equal(positions.length, 2);
   const cart = { nonce: "fresh", ajaxUrl: base + "wp-admin/admin-ajax.php" };
   for (const start of positions) {
-    const end = source.indexOf("\n\t\tfetch(", start);
+    const end = source.indexOf("\n\t\twindow.jluxeCartPost(", start);
     assert.ok(end > start);
     const result = vm.runInNewContext(
       `(function(){ ${source.slice(start, end)} return formData; })()`,
@@ -668,7 +668,7 @@ test("R26 classic product and picker requests strip the native auto-add flag wit
     assert.equal(result.get("quantity"), "1", "the AJAX protocol submits the real requested quantity, not the stock maximum");
   }
   const pickerStart = positions[1];
-  const pickerEnd = source.indexOf("\n\t\tfetch(", pickerStart);
+  const pickerEnd = source.indexOf("\n\t\twindow.jluxeCartPost(", pickerStart);
   const suggestedFormData = vm.runInNewContext(
     `(function(){ ${source.slice(pickerStart, pickerEnd)} return formData; })()`,
     {

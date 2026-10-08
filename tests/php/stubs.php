@@ -241,6 +241,12 @@ function get_comment($id){return $GLOBALS['comment_objects'][$id]??null;}
 function wp_strip_all_shortcodes($text){return $text;}
 function wp_insert_post($data,$errors=false){$GLOBALS['inserted_posts'][]=$data;return count($GLOBALS['inserted_posts']);}
 function update_post_meta($id,$key,$value){$GLOBALS['post_meta'][$id][$key]=$value;}
+function clean_post_cache($id){$GLOBALS['cleaned_posts'][]=(int)$id;}
+function wc_delete_product_transients($id){$GLOBALS['deleted_product_transients'][]=(int)$id;}
+function woocommerce_wp_checkbox($args){
+ $id=(string)($args['id']??'');$value=(string)($args['value']??'');
+ echo '<p class="form-field"><label for="'.esc_attr($id).'">'.esc_html($args['label']??'').'</label><input type="checkbox" id="'.esc_attr($id).'" name="'.esc_attr($id).'" value="1"'.('yes'===$value?' checked="checked"':'').' /></p>';
+}
 function wp_trim_words($text,$count,$more=''){return implode(' ',array_slice(explode(' ',$text),0,$count)).$more;}
 function wp_trim_excerpt($text){return $text;}
 function wp_parse_str($text,&$out){parse_str($text,$out);}

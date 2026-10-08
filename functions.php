@@ -441,6 +441,25 @@ function jluxe_module_script_attrs( $tag, $handle ) {
 }
 add_filter( 'script_loader_tag', 'jluxe_module_script_attrs', 10, 2 );
 
+/** Keep only the purchase-critical script chain out of optimizer delay/combine rewrites. */
+function jluxe_protect_purchase_script_optimization( $tag, $handle ) {
+	$purchase_handles = array( 'jluxe-woocommerce', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
+	if ( ! in_array( $handle, $purchase_handles, true ) || false !== strpos( $tag, 'data-no-optimize' ) ) {
+		return $tag;
+	}
+	return preg_replace( '/<script\\b/i', '<script data-no-optimize="1"', $tag, 1 );
+}
+add_filter( 'script_loader_tag', 'jluxe_protect_purchase_script_optimization', 20, 2 );
+
+/** Mark only localized settings inline blocks; leave inline behavior scripts optimizable. */
+function jluxe_protect_inline_public_settings( array $attributes, string $data ): array {
+	if ( preg_match( '/\\b(?:JLuxeThemeSettings|jluxeWcSettings)\\b/', $data ) ) {
+		$attributes['data-no-optimize'] = '1';
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'jluxe_protect_inline_public_settings', 10, 2 );
+
 /**
  * اخطارِ واقعیِ Lighthouse («Render-blocking requests»، ~۱۶۵۰ میلی‌ثانیه فقط
  * برای jquery+jquery-migrate): این‌ها هنوز به‌صورتِ اسکریپتِ ساده/مسدودکننده

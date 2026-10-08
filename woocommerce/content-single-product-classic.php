@@ -460,6 +460,19 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 				<!-- اطلاعات -->
 				<div class="cp3-info">
 					<h1 class="cp3-title"><?php the_title(); ?></h1>
+					<?php
+					$cp3_trust_badges = function_exists( 'jluxe_get_product_trust_badges' ) ? jluxe_get_product_trust_badges( (int) $product->get_id() ) : array();
+					if ( $cp3_trust_badges ) :
+						?>
+						<div class="mt-3 flex flex-wrap items-center gap-2" data-jluxe-trust-badges>
+							<?php foreach ( $cp3_trust_badges as $cp3_badge ) : ?>
+								<span class="inline-flex w-fit items-center gap-1 rounded-full <?php echo esc_attr( $cp3_badge['bg_class'] ); ?> px-2 py-1 text-[11px] font-bold <?php echo esc_attr( $cp3_badge['text_class'] ); ?>">
+									<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+									<?php echo esc_html( $cp3_badge['label'] ); ?>
+								</span>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
 
 					<div class="cp3-meta">
 						<button type="button" class="cp3-wishline" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" aria-pressed="false">

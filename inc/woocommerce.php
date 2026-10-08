@@ -3505,14 +3505,29 @@ function jluxe_render_shop_toolbar(): void {
  * دو بج‌ِ اعتماد زیرِ عنوانِ صفحه‌ی محصول («گارانتی اصالت کالا» و «کالای
  * دارای ضمانت») — قبلاً «گارانتی اصالت کالا» برای همه‌ی محصولات به‌صورت
  * ثابت نمایش داده می‌شد (باگِ واقعیِ گزارش‌شده: باید فقط برای محصولاتی که
- * واقعاً همچین ضمانتی دارن قابل‌انتخاب باشه، نه ثابت روی همه). این‌جا دو
- * چک‌باکس توی تبِ «عمومی»ِ ویرایشِ محصولِ ووکامرس اضافه می‌شه؛ خروجی توی
- * woocommerce/content-single-product.php با jluxe_get_product_trust_badges()
- * خونده می‌شه.
+ * واقعاً چنین ضمانتی دارند نمایش داده شود، نه برای همه). دو کنترلِ مستقل در
+ * تبِ «گزینه‌های زرین»ِ اطلاعات محصول قرار می‌گیرند؛ خروجی در هر دو چیدمان
+ * با jluxe_get_product_trust_badges() خوانده می‌شود.
  */
+function jluxe_register_product_data_tab( array $tabs ): array {
+	$tabs['jluxe_options'] = array(
+		'label'    => 'گزینه‌های زرین',
+		'target'   => 'jluxe_product_options',
+		'priority' => 80,
+	);
+	return $tabs;
+}
+add_filter( 'woocommerce_product_data_tabs', 'jluxe_register_product_data_tab' );
+
 function jluxe_render_product_badge_fields(): void {
 	global $post;
 
+	if ( ! $post || empty( $post->ID ) ) {
+		return;
+	}
+
+	echo '<div id="jluxe_product_options" class="panel woocommerce_options_panel">';
+	echo '<input type="hidden" name="jluxe_product_options_present" value="1" />';
 	echo '<div class="options_group">';
 
 	woocommerce_wp_checkbox(
@@ -3534,17 +3549,51 @@ function jluxe_render_product_badge_fields(): void {
 	);
 
 	echo '</div>';
+	echo '</div>';
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_product_badge_fields' );
+add_action( 'woocommerce_product_data_panels', 'jluxe_render_product_badge_fields' );
+
+/** Invalidate only this product and its parent; never flush the site-wide page/object cache. */
+function jluxe_purge_product_related_caches( int $product_id ): void {
+	$product = wc_get_product( $product_id );
+	$ids     = array( $product_id );
+	if ( $product instanceof WC_Product && $product->is_type( 'variation' ) && $product->get_parent_id() ) {
+		$ids[] = $product->get_parent_id();
+	}
+	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+
+	foreach ( $ids as $id ) {
+		if ( function_exists( 'clean_post_cache' ) ) {
+			clean_post_cache( $id );
+		}
+		if ( function_exists( 'wc_delete_product_transients' ) ) {
+			wc_delete_product_transients( $id );
+		}
+		if ( function_exists( 'rocket_clean_post' ) ) {
+			rocket_clean_post( $id );
+		}
+		if ( function_exists( 'w3tc_flush_post' ) ) {
+			w3tc_flush_post( $id );
+		}
+		if ( defined( 'LSCWP_V' ) ) {
+			do_action( 'litespeed_purge_post', $id );
+		}
+	}
+}
 
 /**
- * ذخیره‌ی دو چک‌باکسِ بالا. woocommerce_wp_checkbox() خودش مقدار رو
- * ('yes'/'no') می‌خونه؛ چون چک‌باکس‌های خاموش اصلاً توی $_POST نمیان،
- * نبودشون یعنی 'no'.
+ * The option-panel marker distinguishes an intentional checkbox save from
+ * stock, REST, import, and bulk updates that do not submit this panel. An
+ * absent checkbox means "off" only when the panel itself was submitted.
  */
 function jluxe_save_product_badge_fields( int $post_id ): void {
+	if ( ! isset( $_POST['jluxe_product_options_present'] ) || '1' !== (string) $_POST['jluxe_product_options_present'] ) {
+		return;
+	}
+
 	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
 	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
+	jluxe_purge_product_related_caches( $post_id );
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields' );
 

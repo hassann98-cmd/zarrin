@@ -17,7 +17,9 @@ defined( 'ABSPATH' ) || exit;
  * روی گرید محصولات.
  */
 function jluxe_ajax_variation_picker(): void {
-	check_ajax_referer( 'jluxe_cart', 'nonce' );
+	if ( ! check_ajax_referer( 'jluxe_cart', 'nonce', false ) ) {
+		wp_send_json_error( array( 'code' => 'jluxe_cart_invalid_nonce', 'message' => 'نشست منقضی شده است؛ صفحه را تازه کنید.' ), 403 );
+	}
 
 	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 	$product    = $product_id ? wc_get_product( $product_id ) : null;
@@ -394,21 +396,25 @@ function jluxe_ajax_cart(): void {
 	// Let WooCommerce own session persistence; compute the snapshot after totals are current.
 	$cart->calculate_totals();
 	$snapshot = jluxe_cart_snapshot();
-	if ( 'add' === $op ) {
-		/* R61 — مودالِ «اضافه خرید» به‌جای اتکا به مارک‌آپِ از پیشِ لودشده،
-		 * HTML تازه‌اش را در همین پاسخ می‌گیرد: وضعیتِ موجودی/قابل‌خریدِ
-		 * پیشنهادها بعد از افزودنِ واقعی محاسبه می‌شود و کلاینتِ موفقِ
-		 * «افزودن به سبد» همیشه همان نسخهٔ معتبرِ لحظهٔ افزودن را نشان می‌دهد. */
-		$added_product = wc_get_product( absint( jluxe_cart_post_string( 'product_id' ) ) );
-		$modal_product = $added_product;
-		$context_id    = absint( jluxe_cart_post_string( 'pa_context_id' ) );
+	if ( in_array( $op, array( 'add', 'get' ), true ) ) {
+		/* A successful add already has a fresh snapshot. Native WooCommerce
+		 * loop adds request op=get with product_id, which returns that same
+		 * snapshot plus fresh suggestions without running add_to_cart again. */
+		$modal_product = wc_get_product( absint( jluxe_cart_post_string( 'product_id' ) ) );
+		if ( $modal_product instanceof WC_Product && $modal_product->is_type( 'variation' ) ) {
+			$modal_product = wc_get_product( $modal_product->get_parent_id() );
+		}
+		$context_id = absint( jluxe_cart_post_string( 'pa_context_id' ) );
 		if ( $context_id ) {
 			$context_product = wc_get_product( $context_id );
-			if ( function_exists( 'jluxe_product_is_public' ) && jluxe_product_is_public( $context_product ) ) {
+			if ( $context_product instanceof WC_Product && $context_product->is_type( 'variation' ) ) {
+				$context_product = wc_get_product( $context_product->get_parent_id() );
+			}
+			if ( $context_product instanceof WC_Product && function_exists( 'jluxe_product_is_public' ) && jluxe_product_is_public( $context_product ) ) {
 				$modal_product = $context_product;
 			}
 		}
-		if ( $modal_product && function_exists( 'jluxe_suggested_modal_html_for' ) ) {
+		if ( $modal_product instanceof WC_Product && function_exists( 'jluxe_product_is_public' ) && jluxe_product_is_public( $modal_product ) && function_exists( 'jluxe_suggested_modal_html_for' ) ) {
 			$snapshot['suggested_html'] = jluxe_suggested_modal_html_for( $modal_product );
 		}
 	}

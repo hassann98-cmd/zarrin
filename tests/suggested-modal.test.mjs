@@ -46,6 +46,7 @@ test("suggested-product modal retains selections, retries only failed adds, and 
     }
     return { json: async () => ({ success: true, data: { cartCount: requests.length } }) };
   };
+  window.jluxeCartPost = (url, body) => window.fetch(url, { method: "POST", body, credentials: "same-origin" }).then((response) => response.json());
 
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
@@ -157,6 +158,7 @@ test("variable recommendations restore the sheet on cancel/error and close witho
     }
     throw new Error(`Unexpected modal request: ${JSON.stringify(request)}`);
   };
+  window.jluxeCartPost = (url, body) => window.fetch(url, { method: "POST", body, credentials: "same-origin" }).then((response) => response.json());
 
   const source = read("../assets/js/woocommerce.js");
   const suggestionsMarker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
