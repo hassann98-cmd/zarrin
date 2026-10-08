@@ -3528,11 +3528,12 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			closeModal(openModalEl);
 			return;
 		}
+		// R169: physical left = previous, physical right = next, matching the LTR control row.
 		var images = openModalEl.querySelectorAll("[data-jluxe-gallery-modal-image]");
-		if ("ArrowRight" === event.key) {
+		if ("ArrowLeft" === event.key) {
 			event.preventDefault();
 			showImage(openModalEl, (currentIndex(openModalEl) - 1 + images.length) % images.length);
-		} else if ("ArrowLeft" === event.key) {
+		} else if ("ArrowRight" === event.key) {
 			event.preventDefault();
 			showImage(openModalEl, (currentIndex(openModalEl) + 1) % images.length);
 		} else if ("Tab" === event.key) {

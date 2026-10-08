@@ -14,7 +14,7 @@ assert.ok(marker >= 0 && start > marker && galleryIife.endsWith("})();"));
 
 function setup() {
   const dom = new JSDOM(
-    `<!doctype html><html><body style="overflow:auto"><main>
+    `<!doctype html><html dir="rtl"><body style="overflow:auto"><main>
       <div data-jluxe-gallery data-jluxe-gallery-current="1">
         <button id="open-current" type="button" data-jluxe-gallery-open-current>Open current</button>
         <button id="open-first" type="button" data-jluxe-gallery-open="0">Open first</button>
@@ -85,10 +85,14 @@ test("classic gallery opens the selected slide, lazy-loads it, keeps keyboard/ar
   assert.equal(modal.querySelector("[data-jluxe-gallery-modal-close]"), document.activeElement);
   assert.equal(document.body.style.overflow, "hidden");
 
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
-  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "2", "RTL left-arrow navigation advances to the next slide");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "2", "the physical right arrow advances, matching the right-hand next button");
   assert.equal(images[2].getAttribute("aria-hidden"), "false");
   assert.equal(images[2].getAttribute("src"), "/large-3.jpg");
+
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1", "physical left-arrow returns to the previous image even on an RTL page");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
 
   click(dom.window, "[data-jluxe-gallery-modal-prev]");
   assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1");
@@ -157,4 +161,30 @@ test("classic gallery double-tap, pinch, touch drag, swipe, and mouse drag gestu
   assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1", "left swipe advances to the next slide");
   assert.equal(modal.querySelector('[data-jluxe-gallery-modal-image][aria-hidden="false"]').getAttribute("src"), "/large-2.jpg");
   dom.window.close();
+});
+
+
+test("R169 modal arrows have explicit physical left/right placement and no visible instruction below the image", () => {
+  const template = fs.readFileSync(new URL("../woocommerce/content-single-product-classic.php", import.meta.url), "utf8");
+  const stage = template.match(/\.jluxe-cp3-gallery-modal__stage\{([^}]+)\}/)?.[1];
+  assert.match(stage, /direction:ltr/);
+  const start = template.indexOf('<div class="jluxe-cp3-gallery-modal__stage">');
+  const end = template.indexOf('<!-- اطلاعات -->', start);
+  const markup = template.slice(start, end);
+  assert.ok(markup.indexOf('data-jluxe-gallery-modal-prev') < markup.indexOf('data-jluxe-gallery-modal-track'));
+  assert.ok(markup.indexOf('data-jluxe-gallery-modal-track') < markup.indexOf('data-jluxe-gallery-modal-next'));
+  assert.match(markup, /data-jluxe-gallery-modal-prev[^>]*aria-label="تصویر قبلی"[^>]*>[\s\S]*?d="m14 6-6 6 6 6"/);
+  assert.match(markup, /data-jluxe-gallery-modal-next[^>]*aria-label="تصویر بعدی"[^>]*>[\s\S]*?d="m10 6 6 6-6 6"/);
+  assert.doesNotMatch(template, /gallery-modal__hint|برای بزرگ‌نمایی دو بار بزنید/);
+});
+
+test("R169 selecting a classic variation changes only its border, not fill, label color or weight", () => {
+  const template = fs.readFileSync(new URL("../woocommerce/content-single-product-classic.php", import.meta.url), "utf8");
+  const active = template.match(/\.jluxe-cp3 \.cp3-pill\.is-active\{([^}]+)\}/)?.[1];
+  assert.match(active, /^border-color:hsl\(var\(--primary\)\);?$/);
+  const normal = template.match(/\.jluxe-cp3 \.cp3-pill\{([^}]+)\}/)?.[1];
+  assert.match(normal, /background:transparent/);
+  assert.match(normal, /color:hsl\(var\(--foreground\)\)/);
+  assert.match(template, /\.cp3-swatch-color/);
+  assert.match(template, /\.cp3-pill\[aria-disabled="true"\]/);
 });

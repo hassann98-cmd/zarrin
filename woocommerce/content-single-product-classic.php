@@ -135,7 +135,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3-gallery-modal:not(.opacity-0){opacity:1}
 .jluxe-cp3-gallery-modal__top{display:flex;align-items:center;justify-content:space-between;gap:16px;width:min(100%,1200px);min-height:44px}
 .jluxe-cp3-gallery-modal__counter{font-size:13px;font-variant-numeric:tabular-nums;color:hsl(var(--surface)/.82)}
-.jluxe-cp3-gallery-modal__stage{display:flex;align-items:center;justify-content:center;gap:12px;width:min(100%,1280px);height:min(82vh,900px);min-height:0}
+.jluxe-cp3-gallery-modal__stage{display:flex;direction:ltr;align-items:center;justify-content:center;gap:12px;width:min(100%,1280px);height:min(82vh,900px);min-height:0}
 .jluxe-cp3-gallery-modal__track{position:relative;display:flex;flex:1 1 auto;align-items:center;justify-content:center;align-self:stretch;min-width:0;overflow:hidden;touch-action:none}
 .jluxe-cp3-gallery-modal__track img{position:absolute;inset:0;display:block;width:auto;height:auto;max-width:100%;max-height:100%;margin:auto;object-fit:contain;opacity:0;pointer-events:none;user-select:none;-webkit-user-drag:none;transform:scale(.96);transform-origin:center center;transition:opacity .18s ease,transform .15s ease-out;will-change:transform}
 .jluxe-cp3-gallery-modal__track img[aria-hidden="false"]{opacity:1;pointer-events:auto;transform:translate3d(0,0,0) scale(1);cursor:zoom-in}
@@ -144,8 +144,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3-gallery-modal__button:hover{background:hsl(var(--surface)/.2)}
 .jluxe-cp3-gallery-modal__button:focus-visible{outline:2px solid hsl(var(--accent));outline-offset:3px}
 .jluxe-cp3-gallery-modal__close{border-color:transparent;background:transparent}
-.jluxe-cp3-gallery-modal__hint{margin:0;font-size:12px;color:hsl(var(--surface)/.66);text-align:center}
-@media(max-width:767px){.jluxe-cp3-gallery-modal{gap:8px;padding:10px}.jluxe-cp3-gallery-modal__stage{gap:4px;width:100%;height:78vh}.jluxe-cp3-gallery-modal__button{width:40px;height:40px;border-radius:12px}.jluxe-cp3-gallery-modal__track img{max-width:100%;max-height:100%}.jluxe-cp3-gallery-modal__hint{font-size:11px}}
+@media(max-width:767px){.jluxe-cp3-gallery-modal{gap:8px;padding:10px}.jluxe-cp3-gallery-modal__stage{gap:4px;width:100%;height:78vh}.jluxe-cp3-gallery-modal__button{width:40px;height:40px;border-radius:12px}.jluxe-cp3-gallery-modal__track img{max-width:100%;max-height:100%}}
 @media (prefers-reduced-motion:reduce){.jluxe-cp3-gallery-modal,.jluxe-cp3-gallery-modal__button,.jluxe-cp3-gallery-modal__track img{transition:none}}
 .jluxe-cp3 .cp3-info{flex:1 1 0;min-width:min(250px,100%);padding-inline-start:0;margin-top:16px}
 @media(min-width:768px){.jluxe-cp3 .cp3-info{padding-inline-start:16px;margin-top:0}}
@@ -168,7 +167,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-swatch-image{object-fit:cover;border:1px solid rgba(15,23,42,.18)}
 .jluxe-cp3 .cp3-swatch-label{line-height:1.3}
 .jluxe-cp3 .cp3-pill:hover{border-color:hsl(var(--primary)/.5)}
-.jluxe-cp3 .cp3-pill.is-active{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground));font-weight:700}
+.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary))}
 /* گزینه‌ای که ووکامرس در update_variation_values کارت می‌کند — مثل مرجع: کم‌رنگ + خط‌خورده */
 .jluxe-cp3 .cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through;cursor:not-allowed}
 .jluxe-cp3 .cp3-pill.is-disabled:hover,.jluxe-cp3 .cp3-pill[disabled]:hover,.jluxe-cp3 .cp3-pill[aria-disabled="true"]:hover{border-color:hsl(var(--panel-border))}
@@ -453,7 +452,6 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<button type="button" class="jluxe-cp3-gallery-modal__button" data-jluxe-gallery-modal-next aria-label="تصویر بعدی"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m10 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 						<?php endif; ?>
 					</div>
-					<p class="jluxe-cp3-gallery-modal__hint">برای بزرگ‌نمایی دو بار بزنید؛ برای جابه‌جایی عکسِ زوم‌شده بکشید.</p>
 				</div>
 
 				<!-- اطلاعات -->
