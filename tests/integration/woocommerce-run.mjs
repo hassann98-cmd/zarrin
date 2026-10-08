@@ -333,9 +333,17 @@ try {
     );
 
     const home = await request(root, { method: "GET" });
+    const homeText = home.text
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 360);
+    const homeDiagnostic = `HTTP ${home.status}; header=${home.text.includes('id="masthead"')}; assets=${home.text.includes("/assets/compiled/")}; body=${homeText}`;
     check(
-      home.status === 200 && home.text.includes("/assets/compiled/"),
-      "The theme renders on an active WooCommerce storefront",
+      home.status === 200 && home.text.includes('id="masthead"') && home.text.includes("/assets/compiled/"),
+      `The theme renders on an active WooCommerce storefront (${homeDiagnostic})`,
     );
     const session = await getSession();
     check(
