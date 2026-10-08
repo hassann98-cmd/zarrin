@@ -164,9 +164,35 @@ try {
     await copyRuntime(wooSource, pluginPath);
 
     async function phpJson(code) {
-      const response = await php.run({
-        code: `<?php require '/wordpress/wp-load.php'; $result = (function() { ${code}\n})(); echo '__ZARRIN_WOO_JSON__'.wp_json_encode($result);`,
-      });
+      let response;
+      try {
+        response = await php.run({
+          code: `<?php require '/wordpress/wp-load.php'; $result = (function() { ${code}\n})(); echo '__ZARRIN_WOO_JSON__'.wp_json_encode($result);`,
+        });
+      } catch (error) {
+        const failedResponse = error?.response;
+        const debugLog = php.isFile("/wordpress/wp-content/debug.log")
+          ? php.readFileAsText("/wordpress/wp-content/debug.log")
+          : "";
+        const phpErrors = String(failedResponse?.errors || "");
+        const fatalLines = `${phpErrors}\n${debugLog}`
+          .split(/\r?\n/)
+          .filter((line) => /fatal|uncaught|parse error|warning|database error/i.test(line))
+          .slice(-8)
+          .join(" | ")
+          .slice(0, 1400);
+        const htmlText = String(failedResponse?.text || "")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&(?:nbsp|amp|lt|gt|quot);/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 1000);
+        throw new Error(
+          `PHP fixture execution failed (exit ${failedResponse?.exitCode ?? "unknown"}); PHP/debug: ${fatalLines || "no fatal line captured"}; page: ${htmlText || "no response body"}`,
+        );
+      }
       assert.ok(
         response.text.startsWith("__ZARRIN_WOO_JSON__"),
         `PHP fixture failed: ${response.text.slice(0, 1200)} ${response.errors}`,
