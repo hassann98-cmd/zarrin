@@ -86,14 +86,16 @@ test("classic gallery opens the selected slide, lazy-loads it, keeps keyboard/ar
   assert.equal(document.body.style.overflow, "hidden");
 
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
-  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "2", "RTL left-arrow navigation advances to the next slide");
-  assert.equal(images[2].getAttribute("aria-hidden"), "false");
-  assert.equal(images[2].getAttribute("src"), "/large-3.jpg");
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "0", "the left-arrow key matches the physically left previous button");
+  assert.equal(images[0].getAttribute("aria-hidden"), "false");
+  assert.equal(images[0].getAttribute("src"), "/large-1.jpg");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1", "the right-arrow key matches the physically right next button");
 
   click(dom.window, "[data-jluxe-gallery-modal-prev]");
-  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1");
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "0");
   click(dom.window, "[data-jluxe-gallery-modal-next]");
-  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "2");
+  assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1");
 
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true }));
   assert.equal(document.activeElement, modal.querySelector("[data-jluxe-gallery-modal-next]"), "focus wraps inside the dialog");

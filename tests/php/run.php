@@ -1355,6 +1355,24 @@ check(strpos($cp3,'.cp3-fab{width:40px;height:40px;border-radius:10px;background
 check(strpos($cp3,'woocommerce_output_related_products')!==false, 'R45 related products render inside the new card grid');
 check(strpos($cp3,'woocommerce_template_single_add_to_cart')!==false && strpos($cp3,'do_action( \'woocommerce_single_variation\' )')!==false, 'R45 the real add-to-cart pipeline stays intact for both simple and variable products');
 check(strpos($cp3,'mix-blend-mode:multiply')===false && strpos($cp3,'cursor:zoom-in')!==false && strpos($cp3,'data-jluxe-gallery-open-current')!==false && strpos($cp3,'data-jluxe-gallery-modal-track')!==false, 'R45 the classic gallery keeps unaltered product colors and opens the full-screen image viewer');
+$r176_modal_prev = strpos( $cp3, 'data-jluxe-gallery-modal-prev' );
+$r176_modal_track = strpos( $cp3, 'data-jluxe-gallery-modal-track', $r176_modal_prev );
+$r176_modal_next = strpos( $cp3, 'data-jluxe-gallery-modal-next', $r176_modal_track );
+check(
+	false !== strpos( $cp3, '.jluxe-cp3-gallery-modal__stage{display:flex;flex-direction:row;direction:ltr;' ) &&
+	false !== $r176_modal_prev && false !== $r176_modal_track && false !== $r176_modal_next &&
+	$r176_modal_prev < $r176_modal_track && $r176_modal_track < $r176_modal_next &&
+	false === strpos( $cp3, 'jluxe-cp3-gallery-modal__hint' ) &&
+	false === strpos( $cp3, 'برای بزرگ‌نمایی دو بار بزنید' ),
+	'R176 the classic modal keeps previous/next controls physically left/right in RTL and omits the zoom hint'
+);
+check(
+	false !== strpos( $cp3, '.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary))}' ) &&
+	false !== strpos( $cp3, '.jluxe-cp3 .cp3-pill--swatch{gap:8px}' ) &&
+	false !== strpos( $cp3, '.jluxe-cp3 .cp3-swatch-color,.jluxe-cp3 .cp3-swatch-image{display:inline-block;width:18px;height:18px' ) &&
+	false === strpos( $cp3, '.jluxe-cp3 .cp3-pill.is-active{background:' ),
+	'R176 classic selected variations change only the border while actual color/image swatches stay rendered'
+);
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
 	strpos( $r152_gallery_js, 'startPinchGesture' ) !== false &&

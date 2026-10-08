@@ -1,3 +1,17 @@
+/* Keep over-wide descendants from enlarging the page canvas. Component rails retain their own overflow-x scrolling. */
+html,
+body {
+  max-width: 100%;
+}
+html {
+  overflow-x: clip;
+}
+@supports not (overflow-x: clip) {
+  html {
+    overflow-x: hidden;
+  }
+}
+
 :root {
   --jluxe-radius-sm: 8px;
   --jluxe-radius-md: 12px;
