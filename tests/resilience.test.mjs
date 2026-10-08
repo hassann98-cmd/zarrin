@@ -560,7 +560,7 @@ test("R88 Lenis is no longer in the main bundle — it is a lazy chunk", () => {
   assert.ok(entry.dynamicImports?.some((k) => /lenis/.test(k)), "lenis is a dynamic import of the entry");
 });
 
-test("R169 the shared storefront closure has 11 JS files under the gzip budget while route islands stay lazy", () => {
+test("R170 the shared storefront closure has 10 JS files under the gzip budget while route islands stay lazy", () => {
   const root = new URL("../assets/compiled/", import.meta.url);
   const manifest = JSON.parse(fs.readFileSync(new URL("manifest.json", root), "utf8"));
   const entry = manifest["src/main.js"];
@@ -593,7 +593,7 @@ test("R169 the shared storefront closure has 11 JS files under the gzip budget w
   const jsFiles = [...closure]
     .map((key) => manifest[key]?.file)
     .filter((file) => file?.endsWith(".js"));
-  assert.equal(jsFiles.length, 11, `initial home closure: ${jsFiles.join(", ")}`);
+  assert.equal(jsFiles.length, 10, `initial home closure: ${jsFiles.join(", ")}`);
   const gzipBytes = jsFiles.reduce(
     (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
     0,
@@ -608,6 +608,24 @@ test("R169 the shared storefront closure has 11 JS files under the gzip budget w
   }
   assert.ok(staticClosure.has("src/main.js"));
   assert.ok(routeIslands.every((key) => !staticClosure.has(key)));
+});
+
+test("R170 compiled shared UI and shell islands evaluate without cross-chunk ESM cycles", async () => {
+  const root = new URL("../assets/compiled/", import.meta.url);
+  const manifest = JSON.parse(fs.readFileSync(new URL("manifest.json", root), "utf8"));
+  const shellIslands = [
+    "src/islands/Header.js",
+    "src/islands/Footer.js",
+    "src/islands/MobileNav.js",
+    "src/islands/MegaMenu.js",
+    "src/islands/MiniCart.js",
+    "src/islands/CategoryDrawer.js",
+  ];
+  for (const key of shellIslands) {
+    assert.ok(manifest[key]?.file, `compiled entry exists for ${key}`);
+    const loaded = await import(new URL(manifest[key].file, root));
+    assert.ok(loaded && Object.keys(loaded).length, `${key} exports its initialized island`);
+  }
 });
 
 // Run both ACTUAL classic form-preparation blocks, not a duplicate implementation.

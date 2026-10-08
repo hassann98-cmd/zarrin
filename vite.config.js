@@ -6,9 +6,10 @@ const origins = [/^https?:\/\/([a-z0-9-]+\.e2b\.app|localhost)(:\d+)?$/];
 if (process.env.JLUXE_DEV_ORIGIN)
   origins.push(new URL(process.env.JLUXE_DEV_ORIGIN).origin);
 
-// Deduplicate the shared chrome's tiny icon leaves and the common UI/runtime
-// helpers without capturing any route island itself. The route islands remain
-// dynamic manifest entries; send.js stays isolated to the optional AI widget.
+// Keep the chrome's icons and their shared factories in one chunk. Splitting
+// those groups apart creates a cross-chunk ESM cycle (icons -> factory -> icon
+// exports) that prevents every shell island from evaluating. Route islands
+// remain dynamic and send.js stays isolated to the optional AI widget.
 const sharedShellSupportModules = new Set([
   "button.js",
   "nav-icons.js",
@@ -21,21 +22,13 @@ const sharedShellSupportModules = new Set([
 ]);
 const sharedShellGroups = [
   {
-    name: "shared-shell-icons",
-    test: (id) => {
-      const normalized = id.replaceAll(String.fromCharCode(92), "/");
-      return normalized.includes("/src/icons/") && !normalized.endsWith("/send.js");
-    },
-    priority: 20,
-    includeDependenciesRecursively: false,
-  },
-  {
-    name: "shared-shell-support",
+    name: "shared-shell-ui",
     test: (id) => {
       const normalized = id.replaceAll(String.fromCharCode(92), "/");
       return (
-        (normalized.includes("/src/components/") || normalized.includes("/src/lib/")) &&
-        sharedShellSupportModules.has(normalized.split("/").at(-1))
+        (normalized.includes("/src/icons/") && !normalized.endsWith("/send.js")) ||
+        ((normalized.includes("/src/components/") || normalized.includes("/src/lib/")) &&
+          sharedShellSupportModules.has(normalized.split("/").at(-1)))
       );
     },
     priority: 10,
