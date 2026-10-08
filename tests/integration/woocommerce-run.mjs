@@ -437,12 +437,14 @@ try {
       op: "apply_coupon",
       coupon_code: "integration-fixed",
     });
-    snapshot = response.json().data;
+    const couponResult = response.json();
+    snapshot = couponResult.data || {};
+    const couponDiagnostic = JSON.stringify({ status: response.status, result: couponResult }).slice(0, 700);
     check(
-      response.status === 200 && response.json().success === true &&
-        snapshot.coupons.some((coupon) => coupon.code === "integration-fixed") &&
+      response.status === 200 && couponResult.success === true &&
+        snapshot.coupons?.some((coupon) => coupon.code === "integration-fixed") &&
         snapshot.discountHtml !== null,
-      "Theme coupon action applies a real WooCommerce fixed-cart coupon and returns the current discount",
+      `Theme coupon action applies a real WooCommerce fixed-cart coupon and returns the current discount (${couponDiagnostic})`,
     );
 
     response = await request(`${root}?page_id=${fixtures.checkoutPage}`, { method: "GET" });
