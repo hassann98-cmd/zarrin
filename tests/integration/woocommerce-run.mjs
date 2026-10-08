@@ -451,6 +451,9 @@ try {
       `Theme coupon action applies a real WooCommerce fixed-cart coupon and returns the current discount (${couponDiagnostic})`,
     );
 
+    const checkoutResolution = await phpJson(`
+      return array('theme'=>get_stylesheet(),'themeDirectory'=>get_template_directory(),'templateFile'=>is_file(get_template_directory().'/page-checkout.php'),'checkoutSlug'=>get_post_field('post_name',${fixtures.checkoutPage}),'templateMeta'=>get_post_meta(${fixtures.checkoutPage},'_wp_page_template',true),'configuredPage'=>wc_get_page_id('checkout'));
+    `);
     response = await request(`${root}?page_id=${fixtures.checkoutPage}`, { method: "GET" });
     const checkoutText = response.text
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -459,7 +462,7 @@ try {
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 400);
-    const checkoutDiagnostic = `HTTP ${response.status}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP ${response.status}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
