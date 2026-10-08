@@ -1440,6 +1440,16 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['image_bg_mode'] = in_array( $image_bg_mode, array( 'color', 'transparent' ), true ) ? $image_bg_mode : 'color';
 			$section['image_bg_color'] = sanitize_hex_color( $posted['image_bg_color'] ?? '' ) ?: '#FFFFFF';
 			if ( 'category_showcase' === $type ) {
+				$image_fit = sanitize_key( $posted['image_fit'] ?? 'cover' );
+				$section['image_fit'] = in_array( $image_fit, array( 'cover', 'contain', 'original' ), true ) ? $image_fit : 'cover';
+				$section['image_width'] = max( 40, min( 600, absint( $posted['image_width'] ?? $posted['image_size'] ?? 146 ) ) );
+				$section['image_height'] = max( 40, min( 600, absint( $posted['image_height'] ?? $posted['image_size'] ?? 146 ) ) );
+				$section['show_section_heading'] = ! array_key_exists( 'show_section_heading', $posted ) || '1' === (string) $posted['show_section_heading'];
+				$section['show_category_names'] = ! array_key_exists( 'show_category_names', $posted ) || '1' === (string) $posted['show_category_names'];
+				$section['image_frame_enabled'] = ! array_key_exists( 'image_frame_enabled', $posted ) || '1' === (string) $posted['image_frame_enabled'];
+				$section['card_frame_enabled'] = ! array_key_exists( 'card_frame_enabled', $posted ) || '1' === (string) $posted['card_frame_enabled'];
+				$section['section_background_enabled'] = ! array_key_exists( 'section_background_enabled', $posted ) || '1' === (string) $posted['section_background_enabled'];
+				$section['section_border_enabled'] = array_key_exists( 'section_border_enabled', $posted ) && '1' === (string) $posted['section_border_enabled'];
 				$section_bg_mode = sanitize_key( $posted['section_bg_mode'] ?? 'color' );
 				$section['section_bg_mode'] = in_array( $section_bg_mode, array( 'color', 'transparent' ), true ) ? $section_bg_mode : 'color';
 				$section['section_bg_color'] = sanitize_hex_color( $posted['section_bg_color'] ?? '' ) ?: '#F7F7F5';
@@ -1503,9 +1513,11 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				$item     = $posted['items'][ $i ] ?? array();
 				$position = isset( $item['content_position'] ) ? sanitize_key( $item['content_position'] ) : 'bottom-start';
 				$b_style  = isset( $item['button_style'] ) ? sanitize_key( $item['button_style'] ) : 'solid';
+				$image_fit = sanitize_key( $item['image_fit'] ?? 'cover' );
 				$section['items'][] = array(
 					'image_id'         => isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0,
 					'mobile_image_id'  => isset( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : 0,
+					'image_fit'        => in_array( $image_fit, array( 'cover', 'contain', 'original' ), true ) ? $image_fit : 'cover',
 					'title'            => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
 					'subtitle'         => isset( $item['subtitle'] ) ? sanitize_text_field( $item['subtitle'] ) : '',
 					'button'           => isset( $item['button'] ) ? sanitize_text_field( $item['button'] ) : '',

@@ -3522,6 +3522,102 @@ check(
 	'R178 legacy category renderer aligns cards rather than image content and emits the selected six-column mobile grid'
 );
 
+// R179 — selectable original-size banners and transparent, name-optional showcase cards.
+$r179_banner_saved = jluxe_sanitize_homepage_section( array(
+	'id' => 'r179-two', 'type' => 'banner_two',
+	'items' => array(
+		array( 'image_id' => 981, 'mobile_image_id' => 982, 'image_fit' => 'original' ),
+		array( 'image_id' => 983, 'image_fit' => 'contain' ),
+	),
+) );
+$r179_banner_default = jluxe_sanitize_homepage_section( array(
+	'id' => 'r179-default-banner', 'type' => 'banner_two',
+	'items' => array( array( 'image_id' => 981 ), array( 'image_id' => 983 ) ),
+) );
+check(
+	'original' === $r179_banner_saved['items'][0]['image_fit'] && 'contain' === $r179_banner_saved['items'][1]['image_fit'] &&
+	'cover' === $r179_banner_default['items'][0]['image_fit'],
+	'R179 banner-fit values are allow-listed while existing banners retain the cover default'
+);
+$GLOBALS['attachment_image_urls'][981] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-original.jpg' );
+$GLOBALS['attachment_srcsets'][981] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-original.jpg 900w' );
+$GLOBALS['attachment_image_sources'][981] = array( 'https://shop.test/store/r179-two-original.jpg', 900, 400, true );
+$GLOBALS['attachment_image_urls'][982] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-mobile.jpg' );
+$GLOBALS['attachment_srcsets'][982] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-mobile.jpg 900w' );
+$GLOBALS['attachment_image_sources'][982] = array( 'https://shop.test/store/r179-two-mobile.jpg', 900, 1200, true );
+$GLOBALS['attachment_image_urls'][983] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-contain.jpg' );
+$GLOBALS['attachment_srcsets'][983] = array( 'jluxe-uncropped-960' => 'https://shop.test/store/r179-two-contain.jpg 900w' );
+$GLOBALS['attachment_image_sources'][983] = array( 'https://shop.test/store/r179-two-contain.jpg', 900, 500, true );
+ob_start();
+jluxe_render_homepage_banners( $r179_banner_saved );
+$r179_two_banner_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_two_banner_html, '--jluxe-home-banner-aspect:900/400;--jluxe-home-banner-mobile-aspect:900/1200' ) &&
+	false !== strpos( $r179_two_banner_html, 'object-contain' ) &&
+	false !== strpos( $r179_two_banner_html, '<source media="(max-width: 639px)" srcset="https://shop.test/store/r179-two-mobile.jpg 900w"' ) &&
+	false !== strpos( $r179_two_banner_html, '--jluxe-home-banner-aspect:9/5;' ),
+	'R179 two-column banners preserve per-file original ratios, use the mobile asset ratio, and keep contain separate from legacy cover'
+);
+$r179_three_saved = jluxe_sanitize_homepage_section( array(
+	'id' => 'r179-three', 'type' => 'banner_three', 'items' => array( array( 'image_id' => 984, 'image_fit' => 'original' ) ),
+) );
+$GLOBALS['attachment_image_urls'][984] = array( 'jluxe-uncropped-640' => 'https://shop.test/store/r179-three-original.jpg' );
+$GLOBALS['attachment_srcsets'][984] = array( 'jluxe-uncropped-640' => 'https://shop.test/store/r179-three-original.jpg 640w' );
+$GLOBALS['attachment_image_sources'][984] = array( 'https://shop.test/store/r179-three-original.jpg', 800, 400, true );
+ob_start();
+jluxe_render_homepage_banners( $r179_three_saved );
+$r179_three_banner_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_three_banner_html, '--jluxe-home-banner-aspect:800/400;--jluxe-home-banner-mobile-aspect:800/400' ) &&
+	false !== strpos( $r179_three_banner_html, 'object-contain' ),
+	'R179 three-column banners can switch from the legacy square crop to the uploaded image ratio'
+);
+
+$r179_showcase_defaults = jluxe_sanitize_homepage_section( array(
+	'id' => 'r179-showcase-defaults', 'type' => 'category_showcase', 'items' => array( array( 'term_id' => 901 ) ),
+) );
+$r179_showcase_saved = jluxe_sanitize_homepage_section( array(
+	'id' => 'r179-showcase', 'type' => 'category_showcase', 'title' => 'ویژه', 'layout' => 'grid',
+	'mobile_layout' => 'grid', 'mobile_columns' => '4', 'image_fit' => 'original', 'image_width' => '900', 'image_height' => '72',
+	'alignment' => 'start', 'cards_alignment' => 'end', 'show_section_heading' => '0', 'show_category_names' => '0',
+	'image_frame_enabled' => '0', 'card_frame_enabled' => '0', 'section_background_enabled' => '0', 'section_border_enabled' => '1',
+	'image_bg_mode' => 'transparent', 'section_border_color' => '#123ABC',
+	'items' => array( array( 'term_id' => 901, 'image_id' => 985, 'display_name' => 'نام دلخواه' ) ),
+) );
+check(
+	'cover' === $r179_showcase_defaults['image_fit'] && false === $r179_showcase_defaults['section_border_enabled'] &&
+	true === $r179_showcase_defaults['show_category_names'] && true === $r179_showcase_defaults['card_frame_enabled'] &&
+	600 === $r179_showcase_saved['image_width'] && 72 === $r179_showcase_saved['image_height'] &&
+	'original' === $r179_showcase_saved['image_fit'] && false === $r179_showcase_saved['show_category_names'] &&
+	false === $r179_showcase_saved['show_section_heading'] && false === $r179_showcase_saved['image_frame_enabled'] &&
+	false === $r179_showcase_saved['card_frame_enabled'] && true === $r179_showcase_saved['section_border_enabled'] &&
+	'#123ABC' === $r179_showcase_saved['section_border_color'],
+	'R179 showcase settings sanitize dimensions, optional labels, frame toggles, original fit, and the default-off section border'
+);
+$GLOBALS['attachment_image_urls'][985] = array( 'full' => 'https://shop.test/store/r179-transparent-full.png' );
+$GLOBALS['attachment_srcsets'][985] = array( 'full' => 'https://shop.test/store/r179-transparent-full.png 1200w' );
+$GLOBALS['attachment_image_sources'][985] = array( 'https://shop.test/store/r179-transparent-full.png', 1200, 600, true );
+ob_start();
+jluxe_render_homepage_category_showcase( $r179_showcase_saved );
+$r179_showcase_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-transparent-full.png"' ) &&
+	false !== strpos( $r179_showcase_html, 'width="1200" height="600"' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-cards-justify:flex-end' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-section-align:flex-start' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-image-width:600px;--jluxe-image-height:72px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-image-frame-border-width:0px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-card-border-width:0px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-bg:transparent' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-section-border-width:1px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-section-border:#123ABC' ) &&
+	false !== strpos( $r179_showcase_html, 'data-mobile-layout="grid"' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-mobile-columns:4' ) &&
+	false === strpos( $r179_showcase_html, '<span class="jluxe-category-showcase-name">' ) &&
+	false === strpos( $r179_showcase_html, '<div class="jluxe-category-showcase-head">' ),
+	'R179 original transparent category artwork keeps its aspect ratio while mobile/group alignment, image-only mode, and optional section border render'
+);
+
 $r91rows = jluxe_categories_page_rows( $r91s );
 $r91names = array_column( $r91rows, 'name' );
 check( array( 'حمام', 'فروش ویژه', 'لوازم آشپزخانه' ) === $r91names, 'R91 order: manual rows first, then new top-level categories; hidden row, «بدون دسته‌بندی», empty and child categories are not auto-added' );
