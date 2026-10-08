@@ -271,6 +271,9 @@ try {
       update_option('woocommerce_checkout_page_id',0);
       update_option('woocommerce_cart_page_id',0);
       update_option('woocommerce_hold_stock_minutes',5);
+      update_option('show_on_front','posts');
+      update_option('page_on_front',0);
+      update_option('page_for_posts',0);
       update_option('woocommerce_bacs_settings',array('enabled'=>'yes','title'=>'Offline test transfer','description'=>'Sandbox only','instructions'=>''));
       global $wp_rewrite;
       $wp_rewrite->set_permalink_structure('');
