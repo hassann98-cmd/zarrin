@@ -467,7 +467,8 @@ try {
       .slice(0, 400);
     const selectedTemplate = await phpJson("return get_option('zarrin_test_last_template','');");
     const queryState = await phpJson("return get_option('zarrin_test_last_query',array());");
-    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const templateFlow = await phpJson("return get_option('zarrin_test_template_flow',array());");
+    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; templateFlow=${JSON.stringify(templateFlow)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
