@@ -9,7 +9,7 @@
 
   var CARRIERS = {
     پست: { url: "https://tracking.post.ir/", color: "#fcba24" },
-    تیپاکس: { url: "https://tipaxco.com/tracking", color: "#0ea5e9" },
+    تیپاکس: { url: "https://tipaxco.com/en/tracking", color: "#0ea5e9" },
     چاپار: { url: "https://www.chaparnet.com/track/%CODE%", color: "#16a34a" },
   };
 

@@ -373,7 +373,7 @@ function jluxe_get_tracking_url( $company, $tracking_code ): string {
 			return 'https://tracking.post.ir/';
 		case 'tipax':
 			// The official page requires manual entry; no supported prefill parameter is documented.
-			return 'https://tipaxco.com/tracking';
+			return 'https://tipaxco.com/en/tracking';
 		case 'chapar':
 			// Chapar's official route accepts the bill number as its path segment.
 			return 'https://www.chaparnet.com/track/' . $encoded_code;

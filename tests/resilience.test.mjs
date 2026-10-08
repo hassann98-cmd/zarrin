@@ -410,6 +410,25 @@ test("R21 phone-matched tracking shows timeline and limited shipment data while 
   assert.equal(win.localStorage.length, 0);
 });
 
+test("R21 Tipax tracking uses its official English tracking route", async () => {
+  const { window: win } = trackingDom();
+  win.fetch = async (url) => {
+    if (url.includes("admin-ajax.php"))
+      return json({ success: true, data: { restNonce: "" } });
+    const payload = trackedOrder("status_only");
+    payload.data.shipping.shipping_company = "تیپاکس";
+    payload.data.shipping.tracking_url = "";
+    return json(payload);
+  };
+  const completed = trackingResult(win);
+  submitTracking(win);
+  await completed;
+  assert.equal(
+    win.document.querySelector(".jto-carrier-link").href,
+    "https://tipaxco.com/en/tracking",
+  );
+});
+
 test("R21 terminal and unknown statuses never render fake shipment progress", async () => {
   for (const terminal of [true, false]) {
     const { window: win } = trackingDom();

@@ -758,7 +758,9 @@ check($response->get_headers()===jluxe_private_rest_headers(), 'R21 even core RE
 $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/wp/v2/posts')));
 check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
 check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
-check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages and only prefill Chapar where its official route supports a bill-number path');
+check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/en/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages and only prefill Chapar where its official route supports a bill-number path');
+$r21_shipping_guide_defaults=jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html']??'';
+check(strpos($r21_shipping_guide_defaults,'href="https://tipaxco.com/en/tracking"')!==false && strpos($r21_shipping_guide_defaults,'https://tipaxco.com/tracking')===false, 'R21 default shipping guide links to Tipax official English tracking page');
 $order->meta['_jsms_tracking']='';
 $order->status='pending';
 $timeline=jluxe_build_timeline_data($order);
