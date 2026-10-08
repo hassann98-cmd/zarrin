@@ -457,7 +457,7 @@ try {
     const checkoutResolution = await phpJson(`
       return array('theme'=>get_stylesheet(),'themeDirectory'=>get_template_directory(),'templateFile'=>is_file(get_template_directory().'/page-checkout.php'),'checkoutSlug'=>get_post_field('post_name',${fixtures.checkoutPage}),'templateMeta'=>get_post_meta(${fixtures.checkoutPage},'_wp_page_template',true),'configuredPage'=>wc_get_page_id('checkout'));
     `);
-    response = await request(`${root}?page_id=${fixtures.checkoutPage}`, { method: "GET" });
+    response = await request(`${root}?pagename=checkout`, { method: "GET" });
     const checkoutText = response.text
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
