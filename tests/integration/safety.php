@@ -10,48 +10,7 @@ add_filter( 'pre_wp_mail', '__return_false', PHP_INT_MAX );
 // Capture which real theme template WordPress resolves for the most recent
 // front-end request; this is test-only state in the disposable database.
 add_action( 'wp', function () {
-	global $wp_filter;
-	$template_callbacks = array();
-	$template_flow      = array();
-	$hook               = $wp_filter['template_include'] ?? null;
-	if ( $hook instanceof WP_Hook ) {
-		foreach ( $hook->callbacks as $priority => $callbacks ) {
-			foreach ( $callbacks as $entry ) {
-				$callback = $entry['function'];
-				$file     = '';
-				$line     = 0;
-				$name     = '';
-				try {
-					if ( is_array( $callback ) ) {
-						$name       = ( is_object( $callback[0] ) ? get_class( $callback[0] ) : $callback[0] ) . '::' . $callback[1];
-						$reflection = new ReflectionMethod( $callback[0], $callback[1] );
-					} elseif ( is_string( $callback ) ) {
-						$name       = $callback;
-						$reflection = new ReflectionFunction( $callback );
-					} else {
-						$name       = 'closure';
-						$reflection = new ReflectionFunction( $callback );
-					}
-					$file = (string) $reflection->getFileName();
-					$line = $reflection->getStartLine();
-				} catch ( Throwable $error ) {
-					$name = 'unresolved';
-				}
-				$template_callbacks[] = array( 'priority' => $priority, 'callback' => $name, 'file' => $file, 'line' => $line );
-			}
-		}
-		$GLOBALS['zarrin_test_template_flow'] = &$template_flow;
-		foreach ( array_keys( $hook->callbacks ) as $priority ) {
-			add_filter( 'template_include', function ( $template ) use ( &$template_flow, $priority ) {
-				$template_flow[] = array( 'after_priority' => $priority, 'template' => $template );
-				return $template;
-			}, $priority );
-		}
-		add_filter( 'template_include', function ( $template ) use ( &$template_flow ) {
-			update_option( 'zarrin_test_template_flow', $template_flow, false );
-			return $template;
-		}, PHP_INT_MAX );
-	}
+	$queried_object = get_queried_object();
 	update_option( 'zarrin_test_last_query', array(
 		'is_front_page'        => is_front_page(),
 		'is_home'              => is_home(),
@@ -61,10 +20,9 @@ add_action( 'wp', function () {
 		'pagename'             => get_query_var( 'pagename' ),
 		'show_on_front'        => get_option( 'show_on_front' ),
 		'page_on_front'        => get_option( 'page_on_front' ),
-		'queried_slug'         => is_object( get_queried_object() ) && isset( get_queried_object()->post_name ) ? get_queried_object()->post_name : '',
+		'queried_slug'         => is_object( $queried_object ) && isset( $queried_object->post_name ) ? $queried_object->post_name : '',
 		'page_template'        => get_page_template(),
 		'page_template_lookup' => locate_template( array( 'page-checkout.php' ) ),
-		'template_callbacks'   => $template_callbacks,
 	), false );
 }, PHP_INT_MAX );
 add_filter( 'template_include', function ( $template ) {
