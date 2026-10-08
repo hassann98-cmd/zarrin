@@ -787,7 +787,7 @@ test("R88 CSS budget: blur is capped on touch, removed in lite mode, and the dea
   assert.match(css, /html\.jluxe-lite \.backdrop-blur-xl,[\s\S]*?backdrop-filter: none;/);
   assert.match(css, /@media \(prefers-reduced-transparency: reduce\)/);
   const important = (css.match(/!important/g) || []).length;
-  assert.ok(important <= 83, `!important budget: ${important} (was 89 in the source before R88); new ones need a reason`);
+  assert.ok(important <= 84, `!important budget: ${important}; the single allowance above the 83 baseline is WooCommerce's inline opacity:0 on the default product gallery`);
   const style = fs.readFileSync(new URL("../style.css", import.meta.url), "utf8");
   assert.ok(!/jluxe-mobile-price-card \{[^}]*backdrop-filter/.test(style), "no blur behind the 96%-opaque sticky price card");
   const header = fs.readFileSync(new URL("../header.php", import.meta.url), "utf8");

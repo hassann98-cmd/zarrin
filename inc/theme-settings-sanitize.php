@@ -1426,6 +1426,13 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['image_shape'] = in_array( $shape, array( 'circle', 'square', 'none' ), true ) ? $shape : 'circle';
 			$alignment = isset( $posted['alignment'] ) ? sanitize_key( $posted['alignment'] ) : 'center';
 			$section['alignment'] = in_array( $alignment, array( 'start', 'center', 'end' ), true ) ? $alignment : 'center';
+			$cards_alignment = sanitize_key( $posted['cards_alignment'] ?? 'center' );
+			$section['cards_alignment'] = in_array( $cards_alignment, array( 'start', 'center', 'end' ), true ) ? $cards_alignment : 'center';
+			$mobile_layout_default = 'category_grid' === $type ? 'row' : 'inherit';
+			$mobile_layout = sanitize_key( $posted['mobile_layout'] ?? $mobile_layout_default );
+			$mobile_layouts = 'category_grid' === $type ? array( 'row', 'grid' ) : array( 'inherit', 'row', 'grid' );
+			$section['mobile_layout'] = in_array( $mobile_layout, $mobile_layouts, true ) ? $mobile_layout : $mobile_layout_default;
+			$section['mobile_columns'] = max( 2, min( 6, absint( $posted['mobile_columns'] ?? 3 ) ) );
 			$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 40 ) ) );
 			$section['card_radius'] = max( 0, min( 40, absint( $posted['card_radius'] ?? 20 ) ) );
 			$section['image_size'] = max( 48, min( 140, absint( $posted['image_size'] ?? ( 'category_grid' === $type ? 80 : 146 ) ) ) );
@@ -1436,6 +1443,13 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				$section_bg_mode = sanitize_key( $posted['section_bg_mode'] ?? 'color' );
 				$section['section_bg_mode'] = in_array( $section_bg_mode, array( 'color', 'transparent' ), true ) ? $section_bg_mode : 'color';
 				$section['section_bg_color'] = sanitize_hex_color( $posted['section_bg_color'] ?? '' ) ?: '#F7F7F5';
+				$section['section_border_color'] = sanitize_hex_color( $posted['section_border_color'] ?? '' ) ?: '#E0E4E1';
+				$section['card_bg_color'] = sanitize_hex_color( $posted['card_bg_color'] ?? '' ) ?: '#FFFFFF';
+				$section['card_border_color'] = sanitize_hex_color( $posted['card_border_color'] ?? '' ) ?: '#E1E5E2';
+				$section['accent_color'] = sanitize_hex_color( $posted['accent_color'] ?? '' ) ?: '#B58A3A';
+				$section['heading_color'] = sanitize_hex_color( $posted['heading_color'] ?? '' ) ?: '#18201D';
+				$section['muted_color'] = sanitize_hex_color( $posted['muted_color'] ?? '' ) ?: '#747C78';
+				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#303936';
 			}
 			$card_shadow = sanitize_key( $posted['card_shadow'] ?? 'soft' );
 			$section['card_shadow'] = in_array( $card_shadow, array( 'none', 'soft', 'medium', 'strong' ), true ) ? $card_shadow : 'soft';

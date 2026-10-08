@@ -160,7 +160,13 @@ if ( $jluxe_is_variable ) {
 		?>
 
 		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]">
-			<?php wc_get_template_part( 'single-product/product-image' ); ?>
+			<?php
+			// Use WooCommerce's own gallery callback (which loads product-image.php
+			// via wc_get_template) instead of treating a nested template as a loop part.
+			// The matching CSS also keeps the server-rendered gallery visible if its
+			// optional gallery initializer is delayed or unavailable.
+			woocommerce_show_product_images();
+			?>
 
 			<div>
 				<?php if ( $categories ) : ?>

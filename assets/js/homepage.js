@@ -242,6 +242,9 @@
 
 			function update() {
 				var max = scroller.scrollWidth - scroller.clientWidth;
+				var overflowing = max >= 20;
+				scroller.classList.toggle("is-overflowing", overflowing);
+				scroller.classList.toggle("is-centered", !overflowing);
 				if (max < 20) {
 					setVisible(prevBtn, false);
 					setVisible(nextBtn, false);

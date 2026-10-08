@@ -8542,6 +8542,12 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
 @media (max-width: 639px) { .jluxe-stock-alert-dialog__panel { padding: 20px 16px; border-radius: var(--jluxe-radius-lg, 16px); } .jluxe-stock-alert-trigger { align-items: stretch; } .jluxe-stock-alert-trigger__button { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .jluxe-recent-products__list { scroll-behavior: auto; } }
 
+/* The core single-product template starts its gallery at opacity:0 and relies on wc-single-product.js to reveal it. Keep the real server-rendered featured image visible when optimization or a delayed initializer postpones that script. */
+.single-product .product[data-jluxe-layout="default"] .woocommerce-product-gallery {
+  /* WooCommerce's product-image.php prints inline opacity:0 before its gallery initializer runs. */
+  opacity: 1 !important;
+}
+
 /* WooCommerce account order progress and shipment details. */
 .jluxe-order-timeline {
   position: relative;

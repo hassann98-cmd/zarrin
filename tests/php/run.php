@@ -1454,14 +1454,18 @@ check(
 );
 $r152_default_product_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r152_theme_setup = (string) file_get_contents( ABSPATH . 'functions.php' );
+$r152_product_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
-	strpos( $r152_default_product_tpl, "wc_get_template_part( 'single-product/product-image' )" ) !== false &&
+	strpos( $r152_default_product_tpl, 'woocommerce_show_product_images();' ) !== false &&
+	strpos( $r152_default_product_tpl, "wc_get_template_part( 'single-product/product-image' )" ) === false &&
 	strpos( $r152_default_product_tpl, "wc_product_class( 'bg-background', \$product )" ) !== false &&
 	strpos( $r152_default_product_tpl, 'style="background:#F7F8FA"' ) === false &&
+	strpos( $r152_product_css, '.single-product .product[data-jluxe-layout="default"] .woocommerce-product-gallery' ) !== false &&
+	strpos( $r152_product_css, 'opacity: 1 !important;' ) !== false &&
 	strpos( $r152_theme_setup, "add_theme_support( 'wc-product-gallery-lightbox' )" ) !== false &&
 	strpos( $r152_theme_setup, "add_theme_support( 'wc-product-gallery-slider' )" ) !== false &&
 	strpos( $r152_theme_setup, "add_theme_support( 'wc-product-gallery-zoom' )" ) !== false,
-	'R152 the default WooCommerce gallery is explicitly enhanced with its native full-screen/swipe/zoom behavior on the semantic warm page background'
+	'R152 the default layout calls WooCommerce’s real gallery template and keeps its initially transparent gallery visible with native enhancement support'
 );
 check(strpos($cp3,'border-radius:24px')!==false && strpos($cp3,'cp3-descfade')!==false, 'R45 the reference 24px cards and the description fade/expand ship with the layout');
 
@@ -3459,6 +3463,64 @@ $r91s = jluxe_sanitize_categories_page( array( 'auto_append' => '1', 'hide_empty
 ) ), $r91d );
 check( 'list' === $r91s['layout'] && 6 === $r91s['columns_desktop'] && 1 === $r91s['columns_mobile'] && 32 === $r91s['image_size'] && '#FFFFFF' === $r91s['card_bg'] && 'circle' === $r91s['image_shape'], 'R91 sanitizer clamps layout/columns/size/colour' );
 check( 3 === count( $r91s['items'] ) && 902 === $r91s['items'][0]['term_id'] && 77 === $r91s['items'][0]['image_id'] && 'فروش ویژه' === $r91s['items'][1]['title'] && 906 === $r91s['items'][2]['term_id'] && false === $r91s['items'][2]['visible'], 'R91 sanitizer drops duplicates/deleted terms/incomplete links; unticked «نمایش» is stored as hidden' );
+
+// R178 — live category alignment, mobile layout, and showcase colour variables.
+$r178_grid_sanitized = jluxe_sanitize_homepage_section( array(
+	'id' => 'r178-grid', 'type' => 'category_grid', 'title' => 'دسته‌ها', 'layout' => 'row',
+	'alignment' => 'start', 'cards_alignment' => 'end', 'mobile_layout' => 'grid', 'mobile_columns' => '99',
+	'items' => array( array( 'term_id' => '901' ), array( 'term_id' => '902' ) ),
+) );
+$r178_showcase_sanitized = jluxe_sanitize_homepage_section( array(
+	'id' => 'r178-showcase', 'type' => 'category_showcase', 'title' => 'ویژه', 'layout' => 'grid',
+	'alignment' => 'center', 'cards_alignment' => 'center', 'mobile_layout' => 'row', 'mobile_columns' => '3',
+	'section_bg_mode' => 'color', 'section_bg_color' => '#112233', 'section_border_color' => '#223344',
+	'card_bg_color' => '#334455', 'card_border_color' => '#445566', 'accent_color' => '#556677',
+	'heading_color' => '#667788', 'muted_color' => '#778899', 'card_text_color' => '#8899AA',
+	'items' => array( array( 'term_id' => '901' ), array( 'term_id' => '902' ) ),
+) );
+check(
+	'end' === $r178_grid_sanitized['cards_alignment'] && 'start' === $r178_grid_sanitized['alignment'] &&
+	'grid' === $r178_grid_sanitized['mobile_layout'] && 6 === $r178_grid_sanitized['mobile_columns'],
+	'R178 the legacy category section sanitizes card-group alignment independently from inside-card alignment and clamps mobile columns'
+);
+check(
+	'row' === $r178_showcase_sanitized['mobile_layout'] && '#223344' === $r178_showcase_sanitized['section_border_color'] &&
+	'#334455' === $r178_showcase_sanitized['card_bg_color'] && '#445566' === $r178_showcase_sanitized['card_border_color'] &&
+	'#556677' === $r178_showcase_sanitized['accent_color'] && '#667788' === $r178_showcase_sanitized['heading_color'] &&
+	'#778899' === $r178_showcase_sanitized['muted_color'] && '#8899AA' === $r178_showcase_sanitized['card_text_color'],
+	'R178 the category showcase sanitizer preserves every requested card, border, accent, title, subtitle, and text color'
+);
+ob_start();
+jluxe_render_homepage_category_showcase( array_merge( $r178_showcase_sanitized, array( 'mobile_layout' => 'grid', 'mobile_columns' => 3 ) ) );
+$r178_showcase_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r178_showcase_html, 'data-mobile-layout="grid"' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-cards-justify:center' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-bg:#112233' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-section-border:#223344' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-bg:#334455' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-border:#445566' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-accent:#556677' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-heading:#667788' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-muted:#778899' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-text:#8899AA' ) &&
+	false !== strpos( $r178_showcase_html, '.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card' ) &&
+	false !== strpos( $r178_showcase_html, '.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered' ),
+	'R178 category showcase outputs its mobile grid, centered card group, and configured section/card/accent colors'
+);
+ob_start();
+jluxe_render_homepage_category_grid( array(
+	'id' => 'r178-grid-render', 'title' => 'دسته‌ها', 'cards_alignment' => 'end', 'alignment' => 'start',
+	'mobile_layout' => 'grid', 'mobile_columns' => 6, 'items' => array( array( 'term_id' => 901 ), array( 'term_id' => 902 ) ),
+) );
+$r178_grid_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r178_grid_html, 'data-mobile-layout="grid"' ) &&
+	false !== strpos( $r178_grid_html, '--jluxe-cat-cards-justify:flex-end' ) &&
+	false !== strpos( $r178_grid_html, '--jluxe-cat-mobile-card-width:calc((100% - 40px) / 6)' ) &&
+	false !== strpos( $r178_grid_html, '.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll' ),
+	'R178 legacy category renderer aligns cards rather than image content and emits the selected six-column mobile grid'
+);
 
 $r91rows = jluxe_categories_page_rows( $r91s );
 $r91names = array_column( $r91rows, 'name' );
