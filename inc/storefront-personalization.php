@@ -101,6 +101,34 @@ function jluxe_register_wishlist_rest_route(): void {
 }
 add_action( 'rest_api_init', 'jluxe_register_wishlist_rest_route' );
 
+/**
+ * A variable product is available when at least one purchasable child variation has stock.
+ * WooCommerce can leave a variable parent's cached stock status stale after variation edits.
+ */
+function jluxe_recent_product_is_in_stock( WC_Product $product ): bool {
+	if ( ! $product->is_type( 'variable' ) ) {
+		return (bool) $product->is_in_stock();
+	}
+
+	if ( ! method_exists( $product, 'get_children' ) || ! function_exists( 'wc_get_product' ) ) {
+		return false;
+	}
+
+	foreach ( (array) $product->get_children() as $variation_id ) {
+		$variation = wc_get_product( absint( $variation_id ) );
+		if (
+			$variation instanceof WC_Product
+			&& $variation->is_type( 'variation' )
+			&& $variation->is_purchasable()
+			&& $variation->is_in_stock()
+		) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /** Read at most eight public products, in the order supplied by localStorage. */
 function jluxe_rest_recent_products( WP_REST_Request $request ) {
 	$raw_ids = $request->get_param( 'ids' );
@@ -138,7 +166,7 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 				'image'     => (string) $image,
 				'imageAlt'  => (string) $product->get_name(),
 				'price'     => function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( (string) $product->get_price_html() ) : strip_tags( (string) $product->get_price_html() ),
-				'inStock'   => (bool) $product->is_in_stock(),
+				'inStock'   => jluxe_recent_product_is_in_stock( $product ),
 			);
 			if ( count( $items ) >= 8 ) {
 				break;
@@ -172,8 +200,11 @@ add_action( 'rest_api_init', 'jluxe_register_recent_products_rest_route' );
 
 /** A hidden client-rendered panel has zero height until private local history exists. */
 function jluxe_render_recent_products_panel( string $context = 'product' ): void {
-	$is_home = 'home' === $context;
-	$heading = $is_home ? 'ادامه خرید شما' : 'اخیراً دیده‌اید';
+	$is_home  = 'home' === $context;
+	$heading  = $is_home ? 'ادامه خرید شما' : 'اخیراً دیده‌اید';
+	$subtitle = $is_home
+		? 'محصولاتی که اخیراً بررسی کرده‌اید، اینجا نگه داشته‌ایم.'
+		: 'برای مقایسه و انتخاب دوباره، به محصولات بازدیدشده برگردید.';
 	$panel_id = $is_home ? 'jluxe-recent-products-home' : 'jluxe-recent-products-product';
 	?>
 	<section
@@ -185,8 +216,20 @@ function jluxe_render_recent_products_panel( string $context = 'product' ): void
 		aria-labelledby="<?php echo esc_attr( $panel_id . '-title' ); ?>"
 	>
 		<div class="jluxe-recent-products__inner">
-			<h2 id="<?php echo esc_attr( $panel_id . '-title' ); ?>" class="jluxe-recent-products__title"><?php echo esc_html( $heading ); ?></h2>
-			<div class="jluxe-recent-products__list" data-jluxe-recent-list role="list"></div>
+			<div class="jluxe-recent-products__heading">
+				<div class="jluxe-recent-products__copy">
+					<span class="jluxe-recent-products__eyebrow">بازدیدهای اخیر</span>
+					<h2 id="<?php echo esc_attr( $panel_id . '-title' ); ?>" class="jluxe-recent-products__title"><?php echo esc_html( $heading ); ?></h2>
+					<p class="jluxe-recent-products__subtitle"><?php echo esc_html( $subtitle ); ?></p>
+				</div>
+				<span class="jluxe-recent-products__icon" aria-hidden="true">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="12" cy="12" r="8.5" />
+						<path d="M12 7v5l3 2" />
+					</svg>
+				</span>
+			</div>
+			<div class="jluxe-recent-products__list" data-jluxe-recent-list role="list" aria-label="محصولات بازدیدشده"></div>
 		</div>
 	</section>
 	<?php

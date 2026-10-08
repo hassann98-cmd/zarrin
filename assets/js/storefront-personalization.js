@@ -321,22 +321,66 @@
 					var link = document.createElement("a");
 					link.className = "jluxe-recent-card__link";
 					link.href = targetUrl.href;
+
+					var media = document.createElement("span");
+					media.className = "jluxe-recent-card__media";
 					var image = document.createElement("img");
 					image.className = "jluxe-recent-card__image";
 					image.alt = String(item.imageAlt || item.name);
 					image.loading = "lazy";
 					image.decoding = "async";
-					if (item.image) { image.src = String(item.image); } else { image.hidden = true; }
+					image.addEventListener("error", function () {
+						image.hidden = true;
+						media.setAttribute("data-empty-image", "true");
+					});
+					if (item.image) {
+						image.src = String(item.image);
+					} else {
+						image.hidden = true;
+						media.setAttribute("data-empty-image", "true");
+					}
+					media.appendChild(image);
+					if (typeof item.inStock === "boolean") {
+						var stock = document.createElement("span");
+						stock.className = "jluxe-recent-card__stock " + (item.inStock ? "is-in-stock" : "is-out-of-stock");
+						stock.textContent = item.inStock ? "موجود" : "فعلاً ناموجود";
+						media.appendChild(stock);
+					}
+
+					var body = document.createElement("span");
+					body.className = "jluxe-recent-card__body";
 					var name = document.createElement("span");
 					name.className = "jluxe-recent-card__name";
 					name.textContent = String(item.name);
-					link.appendChild(image);
-					link.appendChild(name);
-					card.appendChild(link);
+					body.appendChild(name);
+
+					var footer = document.createElement("span");
+					footer.className = "jluxe-recent-card__footer";
 					var price = document.createElement("span");
 					price.className = "jluxe-recent-card__price";
-					price.textContent = item.inStock ? String(item.price || "") : "فعلاً ناموجود";
-					card.appendChild(price);
+					price.textContent = String(item.price || "");
+					footer.appendChild(price);
+					var cta = document.createElement("span");
+					cta.className = "jluxe-recent-card__cta";
+					cta.textContent = "مشاهده";
+					var arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+					arrow.setAttribute("viewBox", "0 0 24 24");
+					arrow.setAttribute("fill", "none");
+					arrow.setAttribute("stroke", "currentColor");
+					arrow.setAttribute("stroke-width", "2");
+					arrow.setAttribute("stroke-linecap", "round");
+					arrow.setAttribute("stroke-linejoin", "round");
+					arrow.setAttribute("aria-hidden", "true");
+					var arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+					arrowPath.setAttribute("d", "M19 12H5m7 7-7-7 7-7");
+					arrow.appendChild(arrowPath);
+					cta.appendChild(arrow);
+					footer.appendChild(cta);
+					body.appendChild(footer);
+
+					link.appendChild(media);
+					link.appendChild(body);
+					card.appendChild(link);
 					list.appendChild(card);
 				});
 				if (list.children.length) { panel.hidden = false; }

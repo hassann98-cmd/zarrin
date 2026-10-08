@@ -37,28 +37,48 @@ test("recently viewed history renders separate mobile-friendly product and homep
         <h2>ادامه خرید شما</h2><div data-jluxe-recent-list role="list"></div>
       </section>`,
     settings: { recentProductsUrl: "/wp-json/jluxe/v1/recent-products" },
-    recent: ["51", "52"],
+    recent: ["51", "52", "53"],
     fetch: async (url) => {
       const ids = new URL(String(url), "https://shop.test").searchParams.get("ids");
       requests.push(ids);
       return response({ items: [
         { id: 51, name: "چراغ رومیزی", url: "/product/51/", image: "/lamp.jpg", imageAlt: "چراغ", price: "۱۰۰ تومان", inStock: true },
-        { id: 52, name: "محصول <script>نامطمئن</script>", url: "/product/52/", image: "", price: "", inStock: false },
+        { id: 52, name: "محصول <script>نامطمئن</script>", url: "/product/52/", image: "", price: "۲۰۰ تومان", inStock: false },
+        { id: 53, name: "چارپایه لیمون 2143 رنگ موکا", url: "/product/53/", image: "/stool.jpg", imageAlt: "چارپایه رنگ موکا", price: "۱٬۲۰۰٬۰۰۰ تومان", inStock: true },
       ] });
     },
   });
   t.after(() => dom.window.close());
   await tick();
 
-  assert.deepEqual(requests.sort(), ["100,51,52", "51,52"].sort(), "product detail excludes its own current item while the homepage retains the full history");
-  assert.deepEqual(JSON.parse(dom.window.localStorage.getItem("jluxe_recently_viewed")), ["100", "51", "52"]);
+  assert.deepEqual(requests.sort(), ["100,51,52,53", "51,52,53"].sort(), "product detail excludes its own current item while the homepage retains the full history");
+  assert.deepEqual(JSON.parse(dom.window.localStorage.getItem("jluxe_recently_viewed")), ["100", "51", "52", "53"]);
   const panels = [...dom.window.document.querySelectorAll("[data-jluxe-recent-products]")];
   assert.equal(panels[0].hidden, false);
   assert.equal(panels[1].hidden, false);
-  assert.equal(panels[0].querySelectorAll('[role="listitem"]').length, 2);
+  assert.equal(panels[0].querySelectorAll('[role="listitem"]').length, 3);
   assert.equal(panels[0].querySelector(".jluxe-recent-card__price").textContent, "۱۰۰ تومان");
   assert.equal(panels[0].querySelectorAll("script").length, 0, "product names use textContent rather than HTML injection");
-  assert.equal(panels[0].querySelectorAll(".jluxe-recent-card")[1].querySelector(".jluxe-recent-card__price").textContent, "فعلاً ناموجود");
+  const cards = [...panels[0].querySelectorAll(".jluxe-recent-card")];
+  assert.equal(cards[1].querySelector(".jluxe-recent-card__stock").textContent, "فعلاً ناموجود");
+  assert.equal(cards[1].querySelector(".jluxe-recent-card__price").textContent, "۲۰۰ تومان", "availability no longer replaces the product price");
+  assert.equal(cards[1].querySelector(".jluxe-recent-card__media").getAttribute("data-empty-image"), "true", "a missing photo keeps a designed media placeholder");
+  assert.equal(cards[2].querySelector(".jluxe-recent-card__name").textContent, "چارپایه لیمون 2143 رنگ موکا");
+  assert.equal(cards[2].querySelector(".jluxe-recent-card__stock").textContent, "موجود", "an in-stock variable parent is presented as available");
+  assert.equal(cards[2].querySelector(".jluxe-recent-card__price").textContent, "۱٬۲۰۰٬۰۰۰ تومان");
+  assert.equal(cards[2].querySelector(".jluxe-recent-card__cta").textContent, "مشاهده");
+});
+
+test("recent-product history uses a polished responsive rail and clear stock styling", () => {
+  const styles = read("../src/styles/storefront.css");
+  assert.match(styles, /\.jluxe-recent-products__heading\s*\{/);
+  assert.match(styles, /\.jluxe-recent-products__subtitle\s*\{/);
+  assert.match(styles, /\.jluxe-recent-card__media\s*\{/);
+  assert.match(styles, /\.jluxe-recent-card__stock\.is-in-stock\s*\{/);
+  assert.match(styles, /\.jluxe-recent-card:hover\s*\{/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card\s*\{\s*flex-basis: min\(76vw, 236px\)/);
+  const reducedMotionRule = styles.indexOf(".jluxe-recent-card, .jluxe-recent-card__image { transition: none;");
+  assert.ok(reducedMotionRule > 0 && styles.lastIndexOf("@media (prefers-reduced-motion: reduce)", reducedMotionRule) >= 0, "card motion respects reduced-motion preferences");
 });
 
 test("variation stock state opens an accessible mobile alert dialog and sends a phone opt-in", async (t) => {
