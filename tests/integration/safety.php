@@ -9,6 +9,18 @@ if ( ! defined( 'ZARRIN_INTEGRATION_TEST' ) || ! ZARRIN_INTEGRATION_TEST ) {
 add_filter( 'pre_wp_mail', '__return_false', PHP_INT_MAX );
 // Capture which real theme template WordPress resolves for the most recent
 // front-end request; this is test-only state in the disposable database.
+add_action( 'wp', function () {
+	update_option( 'zarrin_test_last_query', array(
+		'is_front_page' => is_front_page(),
+		'is_home'       => is_home(),
+		'is_page'       => is_page(),
+		'object_id'     => get_queried_object_id(),
+		'page_id'       => get_query_var( 'page_id' ),
+		'pagename'      => get_query_var( 'pagename' ),
+		'show_on_front' => get_option( 'show_on_front' ),
+		'page_on_front' => get_option( 'page_on_front' ),
+	), false );
+}, PHP_INT_MAX );
 add_filter( 'template_include', function ( $template ) {
 	update_option( 'zarrin_test_last_template', $template, false );
 	return $template;
