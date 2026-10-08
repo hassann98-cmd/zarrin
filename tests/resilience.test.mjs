@@ -2,6 +2,7 @@ import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { gzipSync } from "node:zlib";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -557,6 +558,56 @@ test("R88 Lenis is no longer in the main bundle — it is a lazy chunk", () => {
   );
   const entry = manifest["src/main.js"];
   assert.ok(entry.dynamicImports?.some((k) => /lenis/.test(k)), "lenis is a dynamic import of the entry");
+});
+
+test("R169 the shared storefront closure has 11 JS files under the gzip budget while route islands stay lazy", () => {
+  const root = new URL("../assets/compiled/", import.meta.url);
+  const manifest = JSON.parse(fs.readFileSync(new URL("manifest.json", root), "utf8"));
+  const entry = manifest["src/main.js"];
+  const initialIslands = [
+    "src/islands/Header.js",
+    "src/islands/MegaMenu.js",
+    "src/islands/MiniCart.js",
+    "src/islands/CategoryDrawer.js",
+    "src/islands/MobileNav.js",
+    "src/islands/AiAssistant.js",
+  ];
+  const routeIslands = [
+    "src/islands/Footer.js",
+    "src/islands/ProductDetails.js",
+    "src/islands/ShopArchive.js",
+    "src/islands/CartCheckout.js",
+    "src/islands/AuthPage.jsx",
+    "src/islands/CategoriesBrowser.js",
+  ];
+  const visit = (key, seen) => {
+    if (seen.has(key)) return;
+    assert.ok(manifest[key], `manifest entry exists for ${key}`);
+    seen.add(key);
+    for (const dependency of manifest[key].imports ?? []) visit(dependency, seen);
+  };
+  const closure = new Set();
+  visit("src/main.js", closure);
+  for (const key of initialIslands) visit(key, closure);
+
+  const jsFiles = [...closure]
+    .map((key) => manifest[key]?.file)
+    .filter((file) => file?.endsWith(".js"));
+  assert.equal(jsFiles.length, 11, `initial home closure: ${jsFiles.join(", ")}`);
+  const gzipBytes = jsFiles.reduce(
+    (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
+    0,
+  );
+  assert.ok(gzipBytes >= 100_000 && gzipBytes <= 100_751, `gzip closure is ${gzipBytes} bytes`);
+
+  const staticClosure = new Set();
+  visit("src/main.js", staticClosure);
+  for (const key of routeIslands) {
+    assert.ok(entry.dynamicImports?.includes(key), `${key} remains a dynamic island entry`);
+    assert.ok(!closure.has(key), `${key} is outside the initial home closure`);
+  }
+  assert.ok(staticClosure.has("src/main.js"));
+  assert.ok(routeIslands.every((key) => !staticClosure.has(key)));
 });
 
 // Run both ACTUAL classic form-preparation blocks, not a duplicate implementation.

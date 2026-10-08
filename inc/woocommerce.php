@@ -289,21 +289,56 @@ function jluxe_preload_single_product_lcp_image(): void {
 		return;
 	}
 
-	$layout    = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
-	$size      = 'classic' === $layout ? 'large' : 'woocommerce_single';
+	$layout     = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
+	$size       = 'classic' === $layout ? 'large' : 'woocommerce_single';
 	$imagesizes = jluxe_single_product_image_sizes( (string) $layout );
-	$url       = wp_get_attachment_image_url( $image_id, $size );
-	$srcset    = wp_get_attachment_image_srcset( $image_id, $size );
+	$image      = jluxe_get_responsive_attachment_image( (int) $image_id, $size, $imagesizes );
+	$url        = $image['src'];
+	$srcset     = $image['srcset'];
 
 	if ( $url ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" fetchpriority="high"%2$s>' . "\n",
 			esc_url( $url ),
-			$srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $srcset ), esc_attr( $imagesizes ) ) : ''
+			$srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $srcset ), esc_attr( $image['sizes'] ) ) : ''
 		);
 	}
 }
 add_action( 'wp_head', 'jluxe_preload_single_product_lcp_image', 1 );
+
+/**
+ * Mark only the featured image on the default product page as critical. Classic
+ * layout emits its own image tag and adds the same attributes in its template.
+ *
+ * @param array         $attr Image HTML attributes.
+ * @param WP_Post|int   $attachment Attachment being rendered.
+ * @param string|int[]  $size Requested image size.
+ * @return array
+ */
+function jluxe_product_lcp_image_attributes( array $attr, $attachment, $size ): array {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return $attr;
+	}
+
+	$attachment_id = is_object( $attachment ) ? absint( $attachment->ID ?? 0 ) : absint( $attachment );
+	$product       = function_exists( 'wc_get_product' ) ? wc_get_product( get_queried_object_id() ) : false;
+	if ( ! $product || ! $attachment_id || $attachment_id !== (int) $product->get_image_id() ) {
+		return $attr;
+	}
+
+	$layout = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
+	if ( 'classic' === $layout || 'woocommerce_single' !== $size ) {
+		return $attr;
+	}
+
+	$attr['data-no-lazy'] = '1';
+	$attr['loading']      = 'eager';
+	$attr['fetchpriority'] = 'high';
+	$attr['sizes']        = jluxe_single_product_image_sizes( 'default' );
+
+	return $attr;
+}
+add_filter( 'wp_get_attachment_image_attributes', 'jluxe_product_lcp_image_attributes', 10, 3 );
 
 /* -------------------------------------------------------------------------
  * صفحهٔ محصول: بردکرامب (دادهٔ ساخت‌یافته) + نوار چسبانِ افزودن به سبد موبایل.

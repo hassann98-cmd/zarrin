@@ -14,6 +14,8 @@ if ( ! defined( 'JLUXE_VITE_DEV_SERVER' ) ) {
 define( 'JLUXE_ASSET_DIR', JLUXE_THEME_DIR . '/assets/compiled' );
 define( 'JLUXE_ASSET_URI', JLUXE_THEME_URI . '/assets/compiled' );
 
+require_once JLUXE_THEME_DIR . '/inc/responsive-images.php';
+
 /**
  * Theme supports.
  */
@@ -58,6 +60,12 @@ function jluxe_setup() {
 	 * Thumbnails) تا همین سایزِ کوچیک براشون هم ساخته بشه.
 	 */
 	add_image_size( 'jluxe-product-thumb-sm', 320, 320, true );
+
+	// چهار عرضِ uncropped برای srcsetِ لوگوها، بنرها و thumbnailها.
+	// ارتفاعِ صفر و crop=false نسبتِ اصلیِ هر فایل را حفظ می‌کند.
+	foreach ( array( 320, 640, 960, 1280 ) as $width ) {
+		add_image_size( 'jluxe-uncropped-' . $width, $width, 0, false );
+	}
 }
 add_action( 'after_setup_theme', 'jluxe_setup' );
 
@@ -183,6 +191,53 @@ function jluxe_vite_manifest(): array {
 
 	return $manifest;
 }
+
+/**
+ * Preload only the static module graph of the Vite entry. Dynamic island
+ * imports stay lazy; their own dependency graphs are fetched when mounted.
+ */
+function jluxe_preload_module_dependencies(): void {
+	if ( jluxe_is_dev() ) {
+		return;
+	}
+
+	$manifest = jluxe_vite_manifest();
+	$entry    = $manifest['src/main.js'] ?? array();
+	if ( empty( $entry['file'] ) || empty( $entry['imports'] ) ) {
+		return;
+	}
+
+	$seen_keys = array();
+	$seen_files = array();
+	$ordered_files = array();
+	$visit = function ( $key ) use ( &$visit, &$seen_keys, &$seen_files, &$ordered_files, $manifest ) {
+		if ( isset( $seen_keys[ $key ] ) || empty( $manifest[ $key ] ) ) {
+			return;
+		}
+		$seen_keys[ $key ] = true;
+		$module = $manifest[ $key ];
+		foreach ( $module['imports'] ?? array() as $dependency ) {
+			$visit( $dependency );
+		}
+		$file = $module['file'] ?? '';
+		if ( $file && empty( $seen_files[ $file ] ) ) {
+			$seen_files[ $file ] = true;
+			$ordered_files[] = $file;
+		}
+	};
+
+	foreach ( $entry['imports'] as $dependency ) {
+		$visit( $dependency );
+	}
+
+	foreach ( $ordered_files as $file ) {
+		printf(
+			'<link rel="modulepreload" crossorigin href="%s">' . "\n",
+			esc_url( JLUXE_ASSET_URI . '/' . ltrim( $file, '/' ) )
+		);
+	}
+}
+add_action( 'wp_head', 'jluxe_preload_module_dependencies', 4 );
 
 /**
  * پیش‌بارگذاریِ فونتِ متنِ اصلی — طبقِ اولویتِ کاربر («Regular/Medium فقط،

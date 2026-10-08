@@ -7,11 +7,12 @@ const source = await readFile(
   "utf8",
 );
 
-test("brand marquee uses original logo assets and fits them without cropping", () => {
+test("brand marquee uses uncropped responsive logo assets and fits them without cropping", () => {
   assert.match(
     source,
-    /wp_get_attachment_image_url\( \(int\) \$item\['image_id'\], 'full' \)/,
+    /jluxe_get_responsive_attachment_image\( \(int\) \$item\['image_id'\], 'jluxe-uncropped-320', '\(max-width: 639px\) 78px, 96px' \)/,
   );
+  assert.match(source, /jluxe_responsive_image_attributes\( \$logo_image \)/);
   assert.match(
     source,
     /\.jluxe-brand-strip-logo img\{[^}]*width:auto!important;height:auto!important;max-width:96px!important;max-height:40px!important;object-fit:contain!important;object-position:50% 50%!important/s,

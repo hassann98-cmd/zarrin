@@ -14,6 +14,45 @@ jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
 
+// R169: modulepreload follows only static manifest imports, not route islands.
+$r169_manifest = jluxe_vite_manifest();
+$r169_entry = $r169_manifest['src/main.js'] ?? array();
+$r169_expected_files = array();
+$r169_seen_keys = array();
+$r169_seen_files = array();
+$r169_walk = function ( $key ) use ( &$r169_walk, &$r169_seen_keys, &$r169_seen_files, &$r169_expected_files, $r169_manifest ) {
+	if ( isset( $r169_seen_keys[ $key ] ) || empty( $r169_manifest[ $key ] ) ) {
+		return;
+	}
+	$r169_seen_keys[ $key ] = true;
+	foreach ( $r169_manifest[ $key ]['imports'] ?? array() as $dependency ) {
+		$r169_walk( $dependency );
+	}
+	$file = $r169_manifest[ $key ]['file'] ?? '';
+	if ( $file && empty( $r169_seen_files[ $file ] ) ) {
+		$r169_seen_files[ $file ] = true;
+		$r169_expected_files[] = $file;
+	}
+};
+foreach ( $r169_entry['imports'] ?? array() as $dependency ) {
+	$r169_walk( $dependency );
+}
+ob_start();
+jluxe_preload_module_dependencies();
+$r169_modulepreload_html = (string) ob_get_clean();
+check(
+	count( $r169_expected_files ) > 0 && substr_count( $r169_modulepreload_html, 'rel="modulepreload"' ) === count( $r169_expected_files ),
+	'R169 modulepreload outputs each unique static dependency exactly once'
+);
+foreach ( $r169_expected_files as $r169_file ) {
+	check( false !== strpos( $r169_modulepreload_html, JLUXE_ASSET_URI . '/' . $r169_file ), 'R169 modulepreload includes static dependency: ' . basename( $r169_file ) );
+}
+$r169_route_file = $r169_manifest['src/islands/ProductDetails.js']['file'] ?? '';
+check(
+	$r169_route_file && false === strpos( $r169_modulepreload_html, $r169_route_file ),
+	'R169 dynamic product-route island is not preloaded with the static shell graph'
+);
+
 // R161: the shared storefront helper and its jQuery-based dependencies must not hold up first paint.
 $r161_previous_helper = $GLOBALS['scripts']['jluxe-storefront-utils'] ?? null;
 jluxe_enqueue_storefront_utils();
@@ -1130,8 +1169,8 @@ $cp3=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-clas
 $r149_product_sizes = '(max-width: 767px) calc(100vw - 64px), 420px';
 check(
 	strpos($cp3, "\$cp3_main_size   = 'large';") !== false &&
-	strpos($cp3, 'wp_get_attachment_image_srcset( $jluxe_gallery_ids[0], $cp3_main_size )') !== false &&
-	strpos($cp3, 'sizes="<?php echo esc_attr( $cp3_main_sizes ); ?>"') !== false &&
+	strpos($cp3, "jluxe_get_responsive_attachment_image( (int) \$jluxe_gallery_ids[0], \$cp3_main_size, \$cp3_main_sizes )") !== false &&
+	strpos($cp3, 'jluxe_responsive_image_attributes( $cp3_main_image )') !== false &&
 	strpos($cp3, "jluxe_single_product_image_sizes( 'classic' )") !== false &&
 	strpos($cp3, "wp_get_attachment_image_url( \$jluxe_gallery_ids[0], 'full' )") === false,
 	'R151 classic product LCP starts with the responsive large image; full-size images remain deferred to gallery selection'
@@ -1160,6 +1199,120 @@ check(
 $GLOBALS['products'][1]->image_id = $r149_previous_image_id;
 $GLOBALS['query_kind'] = $r149_previous_query;
 update_test_settings( $r149_previous_settings );
+
+// R169: registered uncropped sizes, shared responsive markup, GIF safety, and stale-logo fallback.
+$GLOBALS['registered_image_sizes'] = array();
+jluxe_setup();
+$r169_expected_sizes = array(
+	'jluxe-uncropped-320'  => array( 'width' => 320, 'height' => 0, 'crop' => false ),
+	'jluxe-uncropped-640'  => array( 'width' => 640, 'height' => 0, 'crop' => false ),
+	'jluxe-uncropped-960'  => array( 'width' => 960, 'height' => 0, 'crop' => false ),
+	'jluxe-uncropped-1280' => array( 'width' => 1280, 'height' => 0, 'crop' => false ),
+);
+check(
+	$r169_expected_sizes === array_intersect_key( $GLOBALS['registered_image_sizes'], $r169_expected_sizes ) &&
+	true === ( $GLOBALS['registered_image_sizes']['jluxe-product-thumb-sm']['crop'] ?? false ),
+	'R169 four uncropped image widths are additive; the existing cropped product thumbnail stays unchanged'
+);
+
+$GLOBALS['attachment_image_urls'][901] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/photo-320.webp' );
+$GLOBALS['attachment_srcsets'][901] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/photo-320.webp 320w, https://shop.test/store/photo-640.webp 640w' );
+$GLOBALS['attachment_mimes'][901] = 'image/webp';
+$r169_responsive = jluxe_get_responsive_attachment_image( 901, 'jluxe-uncropped-320', '96px' );
+check(
+	'https://shop.test/store/photo-320.webp' === $r169_responsive['src'] &&
+	false !== strpos( $r169_responsive['srcset'], 'photo-640.webp 640w' ) &&
+	'96px' === $r169_responsive['sizes'] &&
+	false !== strpos( jluxe_responsive_image_attributes( $r169_responsive ), 'sizes="96px"' ),
+	'R169 the shared responsive-image helper returns escaped uncropped srcset/sizes data'
+);
+
+$GLOBALS['attachment_image_urls'][902] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/static-frame.gif' );
+$GLOBALS['attachment_srcsets'][902] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/static-frame.gif 320w' );
+$GLOBALS['attachment_urls'][902] = 'https://shop.test/store/animated-original.gif';
+$GLOBALS['attachment_mimes'][902] = 'image/gif';
+$GLOBALS['attachment_metadata'][902] = array( 'width' => 800, 'height' => 600 );
+$r169_gif = jluxe_get_responsive_attachment_image( 902, 'jluxe-uncropped-320', '96px' );
+$r169_gif_downsize = jluxe_keep_animated_gif_original( array( 'https://shop.test/store/static-frame.gif', 320, 240, true ), 902, 'thumbnail' );
+check(
+	'https://shop.test/store/animated-original.gif' === $r169_gif['src'] &&
+	'' === $r169_gif['srcset'] &&
+	'https://shop.test/store/animated-original.gif' === $r169_gif_downsize[0] &&
+	false === $r169_gif_downsize[3] &&
+	false === jluxe_disable_animated_gif_srcset( array( '320w' => array() ), array( 320, 240 ), '', array(), 902 ),
+	'R169 animated GIFs keep the original file and never expose a static intermediate srcset'
+);
+
+$GLOBALS['attachment_image_urls'][903] = false;
+$GLOBALS['attachment_srcsets'][903] = false;
+$GLOBALS['attachment_urls'][903] = false;
+$GLOBALS['attachment_mimes'][903] = 'image/jpeg';
+check(
+	'' === jluxe_get_responsive_attachment_image( 903, 'large', '100vw' )['src'],
+	'R169 deleted attachments resolve to an empty image instead of a broken URL'
+);
+
+$r169_logo_previous_settings = get_option( JLUXE_SETTINGS_OPTION, jluxe_theme_settings_defaults() );
+$r169_logo_previous_mods = $GLOBALS['theme_mods'] ?? array();
+$r169_logo_settings = jluxe_theme_settings_defaults();
+$r169_logo_settings['identity']['logo_id'] = 904;
+$r169_logo_settings['identity']['mobile_logo_id'] = 905;
+$GLOBALS['attachment_image_urls'][904] = array( 'full' => 'https://shop.test/store/logo-main.svg', 'jluxe-uncropped-320' => 'https://shop.test/store/logo-main-320.webp' );
+$GLOBALS['attachment_image_urls'][905] = array( 'full' => 'https://shop.test/store/logo-mobile.svg', 'jluxe-uncropped-320' => 'https://shop.test/store/logo-mobile-320.webp' );
+$GLOBALS['attachment_srcsets'][904] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/logo-main-320.webp 320w' );
+$GLOBALS['attachment_srcsets'][905] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/logo-mobile-320.webp 320w' );
+update_test_settings( $r169_logo_settings );
+check(
+	'https://shop.test/store/logo-main-320.webp' === jluxe_get_logo_image_data()['src'] &&
+	'https://shop.test/store/logo-mobile-320.webp' === jluxe_get_mobile_logo_image_data()['src'] &&
+	'https://shop.test/store/logo-main.svg' === jluxe_get_logo_url(),
+	'R169 primary and mobile logos use responsive sources while legacy URL consumers retain the full-resolution logo'
+);
+$GLOBALS['attachment_image_urls'][905] = false;
+$GLOBALS['attachment_urls'][905] = false;
+check(
+	904 === jluxe_get_mobile_logo_attachment_id() &&
+	'https://shop.test/store/logo-main-320.webp' === jluxe_get_mobile_logo_image_data()['src'] &&
+	'https://shop.test/store/logo-main.svg' === jluxe_get_mobile_logo_url(),
+	'R169 a deleted mobile logo falls back to the valid desktop attachment in both URL and rendered image paths'
+);
+$GLOBALS['attachment_image_urls'][904] = false;
+$GLOBALS['attachment_urls'][904] = false;
+$GLOBALS['theme_mods']['custom_logo'] = 906;
+$GLOBALS['attachment_image_urls'][906] = array( 'full' => 'https://shop.test/store/wp-custom-logo.svg', 'jluxe-uncropped-320' => 'https://shop.test/store/wp-custom-logo-320.webp' );
+check(
+	906 === jluxe_get_logo_attachment_id() && 'https://shop.test/store/wp-custom-logo-320.webp' === jluxe_get_logo_image_data()['src'],
+	'R169 a removed panel logo falls back to the valid WordPress custom logo'
+);
+$GLOBALS['theme_mods'] = $r169_logo_previous_mods;
+update_test_settings( $r169_logo_previous_settings );
+
+$r169_lcp_previous_query = $GLOBALS['query_kind'] ?? '';
+$r169_lcp_previous_image = $GLOBALS['products'][1]->image_id ?? 0;
+$r169_lcp_settings = jluxe_theme_settings_defaults();
+$r169_lcp_settings['product_page']['layout'] = 'default';
+$GLOBALS['products'][1]->image_id = 907;
+$GLOBALS['query_kind'] = 'product';
+update_test_settings( $r169_lcp_settings );
+$r169_lcp_attr = jluxe_product_lcp_image_attributes( array( 'loading' => 'lazy' ), (object) array( 'ID' => 907 ), 'woocommerce_single' );
+$r169_other_image_attr = jluxe_product_lcp_image_attributes( array(), (object) array( 'ID' => 908 ), 'woocommerce_single' );
+check(
+	'1' === ( $r169_lcp_attr['data-no-lazy'] ?? '' ) &&
+	'eager' === ( $r169_lcp_attr['loading'] ?? '' ) &&
+	'high' === ( $r169_lcp_attr['fetchpriority'] ?? '' ) &&
+	'(max-width: 1024px) 100vw, 26rem' === ( $r169_lcp_attr['sizes'] ?? '' ) &&
+	! isset( $r169_other_image_attr['data-no-lazy'] ),
+	'R169 only the default product featured image receives LiteSpeed no-lazy, eager, high-priority, and matching responsive sizes'
+);
+$r169_lcp_settings['product_page']['layout'] = 'classic';
+update_test_settings( $r169_lcp_settings );
+check(
+	! isset( jluxe_product_lcp_image_attributes( array(), (object) array( 'ID' => 907 ), 'woocommerce_single' )['data-no-lazy'] ),
+	'R169 the classic template owns its critical-image attributes without eagerly marking WooCommerce gallery siblings'
+);
+$GLOBALS['products'][1]->image_id = $r169_lcp_previous_image;
+$GLOBALS['query_kind'] = $r169_lcp_previous_query;
+update_test_settings( $r169_logo_previous_settings );
 check(strpos($cp3,'cp3-pills')!==false && strpos($cp3,'data-cp3-select')!==false && strpos($cp3,'dispatchEvent( new Event( \'change\'')!==false, 'R45 variation pills are wired to the real WooCommerce select with a change event');
 check(strpos($cp3,'cp3-rate')!==false && strpos($cp3,'get_rating_counts')!==false, 'R45 the rating summary card computes positive/neutral/negative from real rating counts');
 check(strpos($cp3,'data-cp3-nav')!==false && strpos($cp3,'IntersectionObserver')!==false && strpos($cp3,'scroll-margin-top')!==false, 'R45 the sticky section navbar has scrollspy sections');
@@ -1518,7 +1671,7 @@ $pa_r50_out = jluxe_amount_first_wc_price( $pa_r50_input );
 check(strpos($pa_r50_out,'100,000 <span class="woocommerce-Price-currencySymbol"')!==false && strpos($pa_r50_out,'1,500,000 <span class="woocommerce-Price-currencySymbol"')!==false && strpos($pa_r50_out,'"><span class="woocommerce-Price-currencySymbol">')===false, 'R50 the amount-first reorder survives the aria-hidden amount markup (symbol never leads, both range amounts fixed)');
 check(jluxe_amount_first_wc_price( $pa_r50_out ) === $pa_r50_out, 'R50 the reorder is idempotent');
 check(strpos($cp3,'.cp3-zoom::after')!==false && strpos($cp3,'img.is-loaded')!==false && strpos($cp3,"zoomImg.addEventListener( 'load', cp3MarkLoaded )")!==false && strpos($cp3,'scroll-snap-type:x mandatory')!==false && strpos($cp3,'.cp3-thumb:hover{background:hsl(var(--muted-foreground)/.15);transform:translateY(-2px)}')!==false, 'R50 the gallery ships the polished presentation: framed zoom box, load fade, snapped thumb strip with hover lift');
-check(strpos($cp3,'.cp3-thumb img{width:100%;height:100%;object-fit:contain')!==false && strpos($cp3,'data-jluxe-gallery-open=')!==false && strpos($cp3,'data-jluxe-gallery-modal-prev')!==false && strpos($cp3,'data-jluxe-gallery-modal-next')!==false, 'R152 classic thumbnails keep their arrows and select full-item uncropped images into the accessible modal');
+check(strpos($cp3,'.cp3-thumb img{width:100%;height:100%;object-fit:contain')!==false && strpos($cp3,"'jluxe-uncropped-320', '96px'")!==false && strpos($cp3,'jluxe_responsive_image_attributes( $cp3_thumb_image )')!==false && strpos($cp3,'data-jluxe-gallery-open=')!==false && strpos($cp3,'data-jluxe-gallery-modal-prev')!==false && strpos($cp3,'data-jluxe-gallery-modal-next')!==false, 'R152 classic thumbnails use the uncropped responsive size while arrows and full-item accessible modal behavior remain');
 check(strpos($cp3,'.cp3-fabs{display:flex;gap:10px;margin-top:16px}')!==false && strpos($cp3,'position:absolute;bottom:23px')===false, 'R49 the gallery action buttons sit in flow so they can never overlap the buy box');
 check(strpos($cp3,'.cp3-gallery{flex:none;width:460px;')!==false && strpos($cp3,'.cp3-info{flex:1 1 0;min-width:min(250px,100%)')!==false, 'R49 the gallery column has explicit reference width and the info column can never be crushed');
 check(strpos($cp3,'background:hsl(var(--primary)) !important')!==false && strpos($cp3,'border-radius:16px !important')!==false && strpos($cp3,'width:100% !important;max-width:100%')!==false, 'R48 the add-to-cart button beats WooCommerce ID-based styles and can never collapse');
@@ -2828,7 +2981,7 @@ check( 1 === substr_count( $h89html, 'id="jluxe-hero-style"' ) && false !== strp
 check( false !== strpos( $h89html, '.jluxe-hero[data-jluxe-mobile-center="true"]{left:var(--jluxe-hero-mobile-shift,0px)}' ), 'R118 mobile hero centering uses a measured, section-scoped horizontal correction' );
 check( false !== strpos( $h89html, '--jh-h-m:320px;--jh-h-d:360px;--jh-r-m:24px;--jh-r-d:32px;--jh-mt-m:16px;--jh-mt-d:64px' ), 'R89 reference dimensions reach the markup as CSS variables' );
 check( 3 === substr_count( $h89html, 'data-jluxe-hero-slide ' ) && 3 === substr_count( $h89html, '<picture>' ) && 3 === substr_count( $h89html, '<source media="(min-width: 768px)"' ), 'R89 one <picture> per slide: the browser downloads only the mobile OR the desktop image' );
-check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_count( $h89html, 'loading="eager"' ) && 2 === substr_count( $h89html, 'loading="lazy"' ), 'R89 only the first slide is eager/high priority' );
+check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_count( $h89html, 'loading="eager"' ) && 2 === substr_count( $h89html, 'loading="lazy"' ) && 1 === substr_count( $h89html, 'data-no-lazy="1"' ), 'R89 only the first slide is eager/high priority and carries LiteSpeed’s no-lazy guard' );
 check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
 check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
 check( false !== strpos( $h89html, 'sizes="(min-width: 2560px) 2304px, (min-width: 2072px) 2048px, (min-width: 1920px) calc(100vw - 24px), (min-width: 1784px) 1760px, calc(100vw - 24px)"' ), 'R89 container srcset sizes match the fluid desktop width' );
@@ -2860,7 +3013,88 @@ ob_start(); jluxe_render_homepage_hero( array( 'items' => array( array( 'image_i
 check( false !== strpos( $h89html, 'data-autoplay="0"' ) && false === strpos( $h89html, 'data-jluxe-hero-next' ), 'R89 a single slide: no autoplay, no arrows' );
 ob_start(); jluxe_render_homepage_hero( array( 'items' => array() ) ); check( '' === (string) ob_get_clean(), 'R89 no slides → nothing rendered' );
 
+$r169_banner_sizes = jluxe_home_banner_grid_image_sizes( 2 );
+check(
+	'(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(50.0000vw - 24.00px), 636.00px' === $r169_banner_sizes,
+	'R169 normal banner sizes match their responsive two-column grid slot'
+);
+ob_start();
+jluxe_render_homepage_banners( array( 'items' => array( array( 'image_id' => 81, 'title' => 'Banner', 'zoom_enabled' => true, 'shine_enabled' => true ), array( 'image_id' => 82 ) ) ) );
+$r169_banner_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r169_banner_html, 'srcset="https://shop.test/store/image-1024.jpg 1024w' ) &&
+	false !== strpos( $r169_banner_html, 'sizes="' . $r169_banner_sizes . '"' ) &&
+	false !== strpos( $r169_banner_html, 'jluxe-banner-shine' ) &&
+	false !== strpos( $r169_banner_html, 'group-hover:scale-105' ),
+	'R169 normal banners use uncropped responsive candidates without changing shine or zoom effects'
+);
+ob_start();
+jluxe_render_homepage_banner_slider( array( 'items' => array( array( 'image_id' => 83 ), array( 'image_id' => 84 ) ) ) );
+$r169_slider_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r169_slider_html, 'sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(100vw - 32px), 1288px"' ) &&
+	false !== strpos( $r169_slider_html, 'data-no-lazy="1"' ),
+	'R169 banner slider uses responsive uncropped images and guards its visible first slide from LiteSpeed lazy loading'
+);
+ob_start();
+jluxe_render_collage_slot( array( 'image_id' => 85 ), 'test-collage', 0 );
+$r169_collage_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r169_collage_html, 'srcset="https://shop.test/store/image-1024.jpg 1024w' ) &&
+	false !== strpos( $r169_collage_html, 'sizes="(max-width: 639px) 100vw, 50vw"' ),
+	'R169 collage banners use uncropped responsive candidates and preserve their existing cover/contain choice'
+);
+ob_start();
+jluxe_render_homepage_brand_marquee( array( 'items' => array( array( 'image_id' => 86, 'title' => 'Brand' ) ) ) );
+$r169_brand_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r169_brand_html, 'srcset="https://shop.test/store/image-1024.jpg 1024w' ) &&
+	false !== strpos( $r169_brand_html, 'sizes="(max-width: 639px) 78px, 96px"' ) &&
+	false !== strpos( $r169_brand_html, 'grayscale(1)' ),
+	'R169 brand logos become responsive while retaining the existing grayscale marquee treatment'
+);
+
 $GLOBALS['query_kind'] = 'front';
+
+$r169_hero_url = 'https://shop.test/store/hero-desktop-914.jpg';
+$r169_hero_srcset = 'https://shop.test/store/hero-desktop-914.jpg 1280w';
+foreach ( array( 912, 913, 915 ) as $r169_missing_id ) {
+	$GLOBALS['attachment_image_urls'][ $r169_missing_id ] = false;
+	$GLOBALS['attachment_srcsets'][ $r169_missing_id ] = false;
+	$GLOBALS['attachment_urls'][ $r169_missing_id ] = false;
+	$GLOBALS['attachment_mimes'][ $r169_missing_id ] = 'image/jpeg';
+}
+$GLOBALS['attachment_image_urls'][914] = array( 'large' => $r169_hero_url );
+$GLOBALS['attachment_srcsets'][914] = array( 'large' => $r169_hero_srcset );
+$r169_hero_settings = jluxe_theme_settings_defaults();
+$r169_hero_section = $r169_hero_settings['homepage']['sections'][0];
+$r169_hero_section['enabled'] = true;
+$r169_hero_section['items'] = array(
+	array( 'image_id' => 913, 'mobile_image_id' => 912 ),
+	array( 'image_id' => 914, 'mobile_image_id' => 915, 'title' => 'Fallback slide' ),
+);
+$r169_hero_settings['homepage']['sections'][0] = $r169_hero_section;
+update_test_settings( $r169_hero_settings );
+$r169_resolved_hero = jluxe_resolve_homepage_hero_slides( $r169_hero_section, jluxe_hero_image_sizes( jluxe_hero_options( $r169_hero_section ) ) );
+ob_start();
+jluxe_preload_homepage_hero_lcp_image();
+$r169_hero_preload = (string) ob_get_clean();
+ob_start();
+jluxe_render_homepage_hero( $r169_hero_section );
+$r169_hero_markup = (string) ob_get_clean();
+check(
+	1 === count( $r169_resolved_hero ) &&
+	914 === $r169_resolved_hero[0]['item']['image_id'] &&
+	false === $r169_resolved_hero[0]['has_mobile'] &&
+	$r169_hero_url === $r169_resolved_hero[0]['mobile_url'] &&
+	false !== strpos( $r169_hero_preload, 'href="' . $r169_hero_url . '" media="(max-width: 767px)"' ) &&
+	false !== strpos( $r169_hero_preload, 'href="' . $r169_hero_url . '" media="(min-width: 768px)"' ) &&
+	false !== strpos( $r169_hero_markup, 'src="' . $r169_hero_url . '"' ) &&
+	false !== strpos( $r169_hero_markup, $r169_hero_srcset ) &&
+	false !== strpos( $r169_hero_markup, 'data-no-lazy="1"' ),
+	'R169 preload and hero markup share deleted-desktop skipping, desktop fallback for deleted mobile media, responsive sources, and the no-lazy guard'
+);
+
 $h89set = jluxe_theme_settings_defaults();
 $h89set['homepage']['sections'][0]['items'] = $h89items;
 update_test_settings( $h89set );

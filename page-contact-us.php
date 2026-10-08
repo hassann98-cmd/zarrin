@@ -17,7 +17,7 @@ $jluxe_contact          = $jluxe_contact_settings['contact'] ?? array();
 $jluxe_hours            = $jluxe_contact_settings['footer']['support_hours'] ?? '';
 $jluxe_social           = $jluxe_contact_settings['social'] ?? array();
 $jluxe_page_info        = $jluxe_contact_settings['info_pages']['contact'] ?? array();
-$jluxe_page_logo        = ! empty( $jluxe_page_info['show_logo'] ) && function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
+$jluxe_page_logo        = ! empty( $jluxe_page_info['show_logo'] ) && function_exists( 'jluxe_get_logo_image_data' ) ? jluxe_get_logo_image_data() : array( 'src' => '', 'srcset' => '', 'sizes' => '' );
 
 $jluxe_phones = array_filter(
 	array(
@@ -51,8 +51,8 @@ $jluxe_grid_cols_class    = $jluxe_visible_card_count >= 3 ? 'lg:grid-cols-3' : 
 <main id="primary" class="site-main">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10 sm:py-14">
 		<div class="mx-auto max-w-2xl text-center">
-			<?php if ( $jluxe_page_logo ) : ?>
-				<img src="<?php echo esc_url( $jluxe_page_logo ); ?>" alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" />
+			<?php if ( ! empty( $jluxe_page_logo['src'] ) ) : ?>
+				<img src="<?php echo esc_url( $jluxe_page_logo['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_page_logo ); ?> alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" data-no-lazy="1" loading="eager" />
 			<?php endif; ?>
 			<span class="text-[12px] font-bold tracking-wide text-primary">— تماس با ما</span>
 			<h1 class="mb-3 mt-2 text-[26px] font-extrabold leading-relaxed text-foreground sm:text-[32px]"><?php echo esc_html( $jluxe_page_info['intro_title'] ?? 'همیشه در دسترس شما هستیم' ); ?></h1>

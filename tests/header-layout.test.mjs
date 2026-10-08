@@ -158,3 +158,17 @@ test("R124 product breadcrumbs wrap and break unusually long category/product la
   assert.match(classicProductTemplate, /\.cp3-bc \.is-current\{[^}]*flex-basis:100%;font-size:12px/s);
   assert.match(classicProductTemplate, /\.cp3-bc\{gap:5px 7px;padding-top:10px;font-size:11\.5px\}/);
 });
+
+test("R169 header/footer brand logo uses one responsive picture and keeps LiteSpeed's no-lazy guard", () => {
+  const start = headerIsland.indexOf("function K({ className: l })");
+  const end = headerIsland.indexOf("export {", start);
+  const brandLogo = headerIsland.slice(start, end);
+
+  assert.match(brandLogo, /r\.logoImage/);
+  assert.match(brandLogo, /r\.mobileLogoImage/);
+  assert.match(brandLogo, /media: "\(min-width: 768px\)"/);
+  assert.match(brandLogo, /srcSet: a\.srcset \|\| n \|\| o/);
+  assert.match(brandLogo, /srcSet: m\.srcset,/);
+  assert.match(brandLogo, /"data-no-lazy": "1"/);
+  assert.equal((brandLogo.match(/e\.jsx\("img"/g) ?? []).length, 1);
+});

@@ -1629,7 +1629,8 @@ function jluxe_render_homepage_banner_collage( array $section ): void {
  */
 function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): void {
 	$image_id = (int) ( $slot['image_id'] ?? 0 );
-	$img_url  = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : '';
+	$image    = $image_id ? jluxe_get_responsive_attachment_image( $image_id, 'jluxe-uncropped-1280', '(max-width: 639px) 100vw, 50vw' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 639px) 100vw, 50vw' );
+	$img_url  = $image['src'];
 	$fit      = 'contain' === ( $slot['image_fit'] ?? 'cover' ) ? 'contain' : 'cover';
 	$bg       = ! empty( $slot['bg'] ) ? $slot['bg'] : 'hsl(var(--muted))';
 	$shadow   = ! empty( $slot['shadow'] ) ? 'box-shadow:0 8px 24px rgba(0,0,0,.15);' : '';
@@ -1639,12 +1640,12 @@ function jluxe_render_collage_slot( array $slot, string $id, int $slot_index ): 
 		<?php if ( $link ) : ?>
 			<a href="<?php echo $link; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>" style="display:block;width:100%;height:100%;text-decoration:none;position:absolute;inset:0;">
 				<?php if ( $img_url ) : ?>
-					<img src="<?php echo esc_url( $img_url ); ?>" alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
+					<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
 				<?php endif; ?>
 			</a>
 		<?php elseif ( $img_url ) : ?>
 			<div style="position:absolute;inset:0;">
-				<img src="<?php echo esc_url( $img_url ); ?>" alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
+				<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="" style="width:100%;height:100%;object-fit:<?php echo esc_attr( $fit ); ?>;display:block;" <?php echo jluxe_lazy_attr(); ?> />
 			</div>
 		<?php endif; ?>
 
@@ -1917,10 +1918,16 @@ function jluxe_render_homepage_brand_marquee( array $section ): void {
 			<?php if ( ! empty( $section['title'] ) ) : ?><span class="jluxe-brand-strip-title"><?php echo esc_html( $section['title'] ); ?></span><?php endif; ?>
 			<div class="jluxe-brand-strip-viewport">
 				<div class="<?php echo esc_attr( $classes ); ?>" style="--jluxe-brand-speed:<?php echo esc_attr( $duration ); ?>s;">
-					<?php for ( $copy = 0; $copy < 2; $copy++ ) foreach ( $items as $item ) : $url = ! empty( $item['link'] ) ? $item['link'] : ''; ?>
+					<?php for ( $copy = 0; $copy < 2; $copy++ ) foreach ( $items as $item ) :
+						$logo_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-320', '(max-width: 639px) 78px, 96px' );
+						if ( empty( $logo_image['src'] ) ) {
+							continue;
+						}
+						$url = ! empty( $item['link'] ) ? $item['link'] : '';
+					?>
 						<div class="jluxe-brand-strip-item">
 							<?php if ( $url ) : ?><a href="<?php echo esc_url( $url ); ?>" class="jluxe-brand-strip-link" aria-label="<?php echo esc_attr( $item['title'] ?? 'برند' ); ?>"><?php endif; ?>
-								<span class="jluxe-brand-strip-logo"><img src="<?php echo esc_url( wp_get_attachment_image_url( (int) $item['image_id'], 'full' ) ); ?>" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" loading="lazy" class="<?php echo $gray ? 'is-gray' : ''; ?>" /></span>
+								<span class="jluxe-brand-strip-logo"><img src="<?php echo esc_url( $logo_image['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $logo_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" loading="lazy" class="<?php echo $gray ? 'is-gray' : ''; ?>" /></span>
 							<?php if ( $url ) : ?></a><?php endif; ?>
 						</div>
 					<?php endforeach; ?>
@@ -2025,12 +2032,28 @@ function jluxe_banner_button_style_attr( string $style, string $button_color ): 
 	return ' style="background-color:' . esc_attr( $button_color ) . '"';
 }
 
+function jluxe_home_banner_grid_image_sizes( int $column_count ): string {
+	$column_count = max( 1, $column_count );
+	$gap_total    = 16 * ( $column_count - 1 );
+	$vw_fraction  = 100 / $column_count;
+	$vw_offset    = ( 32 + $gap_total ) / $column_count;
+	$max_width    = ( 1320 - 32 - $gap_total ) / $column_count;
+
+	return sprintf(
+		'(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(%.4fvw - %.2fpx), %.2fpx',
+		$vw_fraction,
+		$vw_offset,
+		$max_width
+	);
+}
+
 function jluxe_render_homepage_banners( array $section ): void {
-	$items = array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) );
+	$items = array_values( array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
 	if ( empty( $items ) ) {
 		return;
 	}
 	$cols = count( $items ) > 1 ? 'sm:grid-cols-' . count( $items ) : '';
+	$sizes = jluxe_home_banner_grid_image_sizes( count( $items ) );
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<div class="grid grid-cols-1 gap-4 <?php echo esc_attr( $cols ); ?>">
@@ -2044,11 +2067,13 @@ function jluxe_render_homepage_banners( array $section ): void {
 				 * ابعادِ واقعیِ همون فایل (wp_get_attachment_image_src) محاسبه
 				 * و inline ست می‌شه — دقیقاً فضای لازم، نه یک عددِ حدسی.
 				 */
-				$img_src = wp_get_attachment_image_src( (int) $item['image_id'], 'large' );
-				if ( ! $img_src ) {
+				$banner_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $sizes );
+				if ( empty( $banner_image['src'] ) ) {
 					continue;
 				}
-				list( $img_url, $img_w, $img_h ) = $img_src;
+				$img_url = $banner_image['src'];
+				$img_w   = $banner_image['width'];
+				$img_h   = $banner_image['height'];
 				$img_ratio_style = ( $img_w && $img_h ) ? sprintf( 'aspect-ratio:%d/%d;', (int) $img_w, (int) $img_h ) : '';
 				$tag    = ! empty( $item['link'] ) ? 'a' : 'div';
 				$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
@@ -2064,7 +2089,7 @@ function jluxe_render_homepage_banners( array $section ): void {
 				$text_color_class = empty( $item['text_color'] ) ? ( $has_overlay ? 'text-white' : 'text-foreground' ) : '';
 				?>
 				<<?php echo esc_html( $tag ) . $href; ?> class="jluxe-home-card jluxe-home-banner group relative block overflow-hidden rounded-2xl<?php echo $shine_enabled ? ' jluxe-banner-shine' : ''; ?>" style="<?php echo esc_attr( $img_ratio_style ); ?>">
-					<img src="<?php echo esc_url( $img_url ); ?>" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="jluxe-home-media size-full object-cover transition-transform duration-500<?php echo $zoom_enabled ? ' group-hover:scale-105' : ''; ?>" <?php echo jluxe_lazy_attr(); ?> />
+					<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $banner_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="jluxe-home-media size-full object-cover transition-transform duration-500<?php echo $zoom_enabled ? ' group-hover:scale-105' : ''; ?>" <?php echo jluxe_lazy_attr(); ?> />
 					<?php if ( $has_overlay ) : ?>
 						<div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 					<?php endif; ?>
@@ -2288,6 +2313,47 @@ function jluxe_hero_image_sizes( array $opt ): array {
 }
 
 /**
+ * Resolve the same viable hero-slide set for both HTML output and LCP preload.
+ * Missing desktop attachments are skipped; a missing mobile override falls
+ * back to the desktop image and its responsive candidates.
+ */
+function jluxe_resolve_homepage_hero_slides( array $section, array $sizes ): array {
+	$items = array_values( array_filter( $section['items'] ?? array(), fn( $item ) => ! empty( $item['image_id'] ) ) );
+	$slides = array();
+
+	foreach ( $items as $item ) {
+		$desktop_id = absint( $item['image_id'] );
+		$desktop    = jluxe_get_responsive_attachment_image( $desktop_id, 'large', $sizes['desktop'] ?? '100vw' );
+		if ( empty( $desktop['src'] ) ) {
+			continue;
+		}
+
+		$mobile_id = ! empty( $item['mobile_image_id'] ) ? absint( $item['mobile_image_id'] ) : $desktop_id;
+		$mobile    = $mobile_id !== $desktop_id
+			? jluxe_get_responsive_attachment_image( $mobile_id, 'large', $sizes['mobile'] ?? '100vw' )
+			: $desktop;
+		$has_mobile = $mobile_id !== $desktop_id && ! empty( $mobile['src'] );
+		if ( ! $has_mobile ) {
+			$mobile = $desktop;
+		}
+		$mobile['sizes'] = $sizes['mobile'] ?? '100vw';
+
+		$slides[] = array(
+			'item'           => $item,
+			'desktop'        => $desktop,
+			'mobile'         => $mobile,
+			'desktop_url'    => $desktop['src'],
+			'desktop_srcset' => $desktop['srcset'],
+			'mobile_url'     => $mobile['src'],
+			'mobile_srcset'  => $mobile['srcset'],
+			'has_mobile'     => $has_mobile,
+		);
+	}
+
+	return $slides;
+}
+
+/**
  * پیش‌بارگذاریِ عکسِ اسلایدِ اولِ هیرو (کاندیدِ اصلیِ LCP). دو نسخه با media
  * جدا تا فقط یکی دانلود شود؛ srcset/sizes دقیقاً همانِ <picture> پایین.
  */
@@ -2306,31 +2372,28 @@ function jluxe_preload_homepage_hero_lcp_image(): void {
 	if ( ! $hero ) {
 		return;
 	}
-	$items = array_values( array_filter( $hero['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
-	if ( empty( $items ) ) {
+
+	$sizes  = jluxe_hero_image_sizes( jluxe_hero_options( $hero ) );
+	$slides = jluxe_resolve_homepage_hero_slides( $hero, $sizes );
+	if ( empty( $slides ) ) {
 		return;
 	}
-	$first = $items[0];
-	$sizes = jluxe_hero_image_sizes( jluxe_hero_options( $hero ) );
+	$first  = $slides[0];
+	$mobile = $first['mobile'];
+	$desktop = $first['desktop'];
 
-	$desktop_url     = wp_get_attachment_image_url( (int) $first['image_id'], 'large' );
-	$desktop_srcset  = wp_get_attachment_image_srcset( (int) $first['image_id'], 'large' );
-	$mobile_image_id = ! empty( $first['mobile_image_id'] ) ? (int) $first['mobile_image_id'] : (int) $first['image_id'];
-	$mobile_url      = wp_get_attachment_image_url( $mobile_image_id, 'large' );
-	$mobile_srcset   = wp_get_attachment_image_srcset( $mobile_image_id, 'large' );
-
-	if ( $mobile_url ) {
+	if ( ! empty( $mobile['src'] ) ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" media="(max-width: 767px)"%2$s fetchpriority="high">' . "\n",
-			esc_url( $mobile_url ),
-			$mobile_srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $mobile_srcset ), esc_attr( $sizes['mobile'] ) ) : ''
+			esc_url( $mobile['src'] ),
+			! empty( $mobile['srcset'] ) ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $mobile['srcset'] ), esc_attr( $mobile['sizes'] ) ) : ''
 		);
 	}
-	if ( $desktop_url ) {
+	if ( ! empty( $desktop['src'] ) ) {
 		printf(
 			'<link rel="preload" as="image" href="%1$s" media="(min-width: 768px)"%2$s fetchpriority="high">' . "\n",
-			esc_url( $desktop_url ),
-			$desktop_srcset ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $desktop_srcset ), esc_attr( $sizes['desktop'] ) ) : ''
+			esc_url( $desktop['src'] ),
+			! empty( $desktop['srcset'] ) ? sprintf( ' imagesrcset="%s" imagesizes="%s"', esc_attr( $desktop['srcset'] ), esc_attr( $desktop['sizes'] ) ) : ''
 		);
 	}
 }
@@ -2383,30 +2446,9 @@ function jluxe_hero_css(): string {
 }
 
 function jluxe_render_homepage_hero( array $section ): void {
-	$items = array_values( array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
-	if ( empty( $items ) ) {
-		return;
-	}
-	$opt   = jluxe_hero_options( $section );
-	$sizes = jluxe_hero_image_sizes( $opt );
-
-	// ساختِ اسلایدها اول (تا شمارشِ نهایی — بعد از حذفِ عکس‌های پاک‌شده — درست باشد).
-	$slides = array();
-	foreach ( $items as $item ) {
-		$img_url = wp_get_attachment_image_url( (int) $item['image_id'], 'large' );
-		if ( ! $img_url ) {
-			continue;
-		}
-		$has_mobile = ! empty( $item['mobile_image_id'] ) && wp_get_attachment_image_url( (int) $item['mobile_image_id'], 'large' );
-		$slides[]   = array(
-			'item'           => $item,
-			'desktop_url'    => $img_url,
-			'desktop_srcset' => (string) wp_get_attachment_image_srcset( (int) $item['image_id'], 'large' ),
-			'mobile_url'     => $has_mobile ? (string) wp_get_attachment_image_url( (int) $item['mobile_image_id'], 'large' ) : $img_url,
-			'mobile_srcset'  => (string) wp_get_attachment_image_srcset( $has_mobile ? (int) $item['mobile_image_id'] : (int) $item['image_id'], 'large' ),
-			'has_mobile'     => (bool) $has_mobile,
-		);
-	}
+	$opt    = jluxe_hero_options( $section );
+	$sizes  = jluxe_hero_image_sizes( $opt );
+	$slides = jluxe_resolve_homepage_hero_slides( $section, $sizes );
 	if ( empty( $slides ) ) {
 		return;
 	}
@@ -2486,6 +2528,7 @@ function jluxe_render_homepage_hero( array $section ): void {
 								decoding="<?php echo $first ? 'sync' : 'async'; ?>"
 								loading="<?php echo $first ? 'eager' : 'lazy'; ?>"
 								fetchpriority="<?php echo $first ? 'high' : 'low'; ?>"
+								<?php echo $first ? 'data-no-lazy="1"' : ''; ?>
 							/>
 						</picture>
 						<?php if ( ! empty( $item['title'] ) || ! empty( $item['subtitle'] ) || ! empty( $item['button'] ) ) : ?>
@@ -2528,6 +2571,17 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 	if ( empty( $items ) ) {
 		return;
 	}
+	$slides = array();
+	$image_sizes = '(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(100vw - 32px), 1288px';
+	foreach ( $items as $item ) {
+		$image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $image_sizes );
+		if ( ! empty( $image['src'] ) ) {
+			$slides[] = array( 'item' => $item, 'image' => $image );
+		}
+	}
+	if ( empty( $slides ) ) {
+		return;
+	}
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<?php if ( ! empty( $section['title'] ) ) : ?>
@@ -2535,16 +2589,15 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 		<?php endif; ?>
 		<div class="relative overflow-hidden rounded-2xl" data-jluxe-banner-slider>
 			<div class="relative aspect-[21/9] w-full sm:aspect-[3/1]">
-				<?php foreach ( $items as $i => $item ) :
-					$img_url = wp_get_attachment_image_url( (int) $item['image_id'], 'large' );
-					if ( ! $img_url ) {
-						continue;
-					}
-					$tag  = ! empty( $item['link'] ) ? 'a' : 'div';
-					$href = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
+				<?php foreach ( $slides as $i => $slide ) :
+					$item   = $slide['item'];
+					$image  = $slide['image'];
+					$img_url = $image['src'];
+					$tag    = ! empty( $item['link'] ) ? 'a' : 'div';
+					$href   = ! empty( $item['link'] ) ? ' href="' . esc_url( jluxe_resolve_site_link( (string) $item['link'] ) ) . '"' : '';
 					?>
 					<<?php echo esc_html( $tag ) . $href; ?> data-jluxe-bs-slide class="absolute inset-0 transition-opacity duration-700" style="opacity:<?php echo 0 === $i ? '1' : '0'; ?>">
-						<img src="<?php echo esc_url( $img_url ); ?>" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>" />
+						<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"<?php echo 0 === $i ? ' data-no-lazy="1"' : ''; ?> />
 						<?php if ( ! empty( $item['title'] ) || ! empty( $item['category'] ) ) : ?>
 							<div class="absolute inset-y-0 start-6 flex flex-col justify-center gap-1.5 sm:start-10">
 								<?php if ( ! empty( $item['category'] ) ) : ?><span class="text-caption font-medium text-white/80"><?php echo esc_html( $item['category'] ); ?></span><?php endif; ?>
@@ -2555,7 +2608,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 					</<?php echo esc_html( $tag ); ?>>
 				<?php endforeach; ?>
 			</div>
-			<?php if ( count( $items ) > 1 ) : ?>
+			<?php if ( count( $slides ) > 1 ) : ?>
 				<button type="button" data-jluxe-bs-prev aria-label="قبلی" class="absolute end-3 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-foreground shadow">
 					<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
 				</button>
@@ -2563,7 +2616,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 					<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
 				</button>
 				<div class="absolute bottom-3 start-1/2 flex -translate-x-1/2 gap-1.5">
-					<?php foreach ( $items as $i => $item ) : ?>
+					<?php foreach ( $slides as $i => $slide ) : ?>
 						<span data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-1.5 w-5 rounded-full bg-white/50 transition-colors data-[active=true]:bg-white"></span>
 					<?php endforeach; ?>
 				</div>

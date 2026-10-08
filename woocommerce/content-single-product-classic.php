@@ -409,19 +409,20 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<button type="button" class="cp3-zoom" data-cp3-zoom-box data-jluxe-gallery-open-current aria-label="نمایش تصویر محصول به‌صورت تمام‌صفحه">
 						<?php
 						$cp3_main_size   = 'large';
-						$cp3_main_url    = wp_get_attachment_image_url( $jluxe_gallery_ids[0], $cp3_main_size );
-						$cp3_main_srcset = wp_get_attachment_image_srcset( $jluxe_gallery_ids[0], $cp3_main_size );
 						$cp3_main_sizes  = jluxe_single_product_image_sizes( 'classic' );
+						$cp3_main_image  = jluxe_get_responsive_attachment_image( (int) $jluxe_gallery_ids[0], $cp3_main_size, $cp3_main_sizes );
+						$cp3_main_url    = $cp3_main_image['src'];
 						?>
-						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php if ( $cp3_main_srcset ) : ?> srcset="<?php echo esc_attr( $cp3_main_srcset ); ?>" sizes="<?php echo esc_attr( $cp3_main_sizes ); ?>"<?php endif; ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img loading="eager" fetchpriority="high" />
+						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
 					</button>
 					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
 						<div class="cp3-thumbsrow">
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-prev aria-label="تصاویر قبلی" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 							<div class="cp3-thumbs">
 							<?php foreach ( $jluxe_gallery_ids as $cp3_i => $cp3_att ) : ?>
+								<?php $cp3_thumb_image = jluxe_get_responsive_attachment_image( (int) $cp3_att, 'jluxe-uncropped-320', '96px' ); ?>
 								<button type="button" class="cp3-thumb<?php echo 0 === $cp3_i ? ' is-active' : ''; ?>" data-cp3-thumb data-jluxe-gallery-open="<?php echo esc_attr( (string) $cp3_i ); ?>" data-full="<?php echo esc_url( wp_get_attachment_image_url( $cp3_att, 'full' ) ?: '' ); ?>" aria-label="نمایش عکس <?php echo esc_attr( (string) ( $cp3_i + 1 ) ); ?>">
-									<img src="<?php echo esc_url( wp_get_attachment_image_url( $cp3_att, 'medium' ) ?: wc_placeholder_img_src( 'medium' ) ); ?>" alt="" loading="lazy" />
+									<img src="<?php echo esc_url( $cp3_thumb_image['src'] ?: wc_placeholder_img_src( 'medium' ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_thumb_image ); ?> alt="" loading="lazy" />
 								</button>
 							<?php endforeach; ?>
 						</div>
@@ -442,11 +443,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						<div class="jluxe-cp3-gallery-modal__track" data-jluxe-gallery-modal-track>
 							<?php foreach ( $jluxe_gallery_ids as $cp3_modal_i => $cp3_modal_att ) : ?>
 								<?php
-								$cp3_modal_full   = $cp3_modal_att ? wp_get_attachment_image_url( $cp3_modal_att, 'full' ) : false;
-								$cp3_modal_srcset = $cp3_modal_att ? wp_get_attachment_image_srcset( $cp3_modal_att, 'full' ) : '';
-								$cp3_modal_alt    = $cp3_modal_att ? get_post_meta( $cp3_modal_att, '_wp_attachment_image_alt', true ) : '';
+								$cp3_modal_image = $cp3_modal_att ? jluxe_get_responsive_attachment_image( (int) $cp3_modal_att, 'full', '90vw' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '90vw' );
+								$cp3_modal_full  = $cp3_modal_image['src'];
+								$cp3_modal_alt   = $cp3_modal_att ? get_post_meta( $cp3_modal_att, '_wp_attachment_image_alt', true ) : '';
 								?>
-								<img data-jluxe-gallery-modal-image data-src="<?php echo esc_url( $cp3_modal_full ?: wc_placeholder_img_src( 'full' ) ); ?>"<?php if ( $cp3_modal_srcset ) : ?> data-srcset="<?php echo esc_attr( $cp3_modal_srcset ); ?>" data-sizes="90vw"<?php endif; ?> alt="<?php echo esc_attr( $cp3_modal_alt ?: $product->get_name() ); ?>" aria-hidden="true" draggable="false" />
+								<img data-jluxe-gallery-modal-image data-src="<?php echo esc_url( $cp3_modal_full ?: wc_placeholder_img_src( 'full' ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_modal_image, 'data-' ); ?> alt="<?php echo esc_attr( $cp3_modal_alt ?: $product->get_name() ); ?>" aria-hidden="true" draggable="false" />
 							<?php endforeach; ?>
 						</div>
 						<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>

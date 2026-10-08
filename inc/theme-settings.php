@@ -1266,23 +1266,31 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_color_variables', 20 );
  * برمی‌گرده — سمتِ React (BrandLogo در Header.tsx) این حالت رو با نمایشِ
  * فقط اسمِ سایت (بدون هیچ عکسی) پاسخ می‌ده، نه یک عکسِ هاردکدشده.
  */
-function jluxe_get_logo_url(): string {
+function jluxe_get_logo_attachment_id(): int {
 	$settings = jluxe_get_theme_settings();
-	$logo_id  = (int) $settings['identity']['logo_id'];
-	if ( $logo_id ) {
-		$url = wp_get_attachment_image_url( $logo_id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+	$logo_id  = absint( $settings['identity']['logo_id'] ?? 0 );
+	if ( $logo_id && ! empty( jluxe_get_responsive_attachment_image( $logo_id, 'full', '240px' )['src'] ) ) {
+		return $logo_id;
 	}
-	$custom_logo_id = (int) get_theme_mod( 'custom_logo' );
-	if ( $custom_logo_id ) {
-		$url = wp_get_attachment_image_url( $custom_logo_id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+
+	$custom_logo_id = function_exists( 'get_theme_mod' ) ? absint( get_theme_mod( 'custom_logo' ) ) : 0;
+	if ( $custom_logo_id && ! empty( jluxe_get_responsive_attachment_image( $custom_logo_id, 'full', '240px' )['src'] ) ) {
+		return $custom_logo_id;
 	}
-	return ''; // خالی یعنی: هیچ لوگویی ست نشده — فرانت‌اند فقط اسمِ سایت رو متنی نشون می‌ده.
+
+	return 0;
+}
+
+/** Resolve logo variants to one shared uncropped responsive payload. */
+function jluxe_get_logo_image_data(): array {
+	$logo_id = jluxe_get_logo_attachment_id();
+	return $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'jluxe-uncropped-320', '(max-width: 767px) 160px, 240px' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 767px) 160px, 240px', 'width' => 0, 'height' => 0, 'mime_type' => '' );
+}
+
+function jluxe_get_logo_url(): string {
+	$logo_id = jluxe_get_logo_attachment_id();
+	$image   = $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'full', '100vw' ) : array();
+	return ! empty( $image['src'] ) ? (string) $image['src'] : '';
 }
 
 /**
@@ -1312,16 +1320,24 @@ function jluxe_get_favicon_url(): string {
 /**
  * لوگوی موبایل — اگر جدا آپلود نشده، از همون لوگوی اصلی استفاده می‌شه.
  */
-function jluxe_get_mobile_logo_url(): string {
+function jluxe_get_mobile_logo_attachment_id(): int {
 	$settings = jluxe_get_theme_settings();
-	$id       = (int) $settings['identity']['mobile_logo_id'];
-	if ( $id ) {
-		$url = wp_get_attachment_image_url( $id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+	$id       = absint( $settings['identity']['mobile_logo_id'] ?? 0 );
+	if ( $id && ! empty( jluxe_get_responsive_attachment_image( $id, 'full', '160px' )['src'] ) ) {
+		return $id;
 	}
-	return jluxe_get_logo_url();
+	return jluxe_get_logo_attachment_id();
+}
+
+function jluxe_get_mobile_logo_image_data(): array {
+	$logo_id = jluxe_get_mobile_logo_attachment_id();
+	return $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'jluxe-uncropped-320', '(max-width: 767px) 160px, 240px' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 767px) 160px, 240px', 'width' => 0, 'height' => 0, 'mime_type' => '' );
+}
+
+function jluxe_get_mobile_logo_url(): string {
+	$logo_id = jluxe_get_mobile_logo_attachment_id();
+	$image   = $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'full', '100vw' ) : array();
+	return ! empty( $image['src'] ) ? (string) $image['src'] : '';
 }
 
 /**
@@ -1499,6 +1515,8 @@ function jluxe_localize_public_settings(): void {
 		array(
 			'logoUrl'          => jluxe_get_logo_url(),
 			'mobileLogoUrl'    => jluxe_get_mobile_logo_url(),
+			'logoImage'        => jluxe_get_logo_image_data(),
+			'mobileLogoImage'  => jluxe_get_mobile_logo_image_data(),
 			'shopUrl'          => jluxe_shop_url(),
 			'urls' => jluxe_public_urls(),
 			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),

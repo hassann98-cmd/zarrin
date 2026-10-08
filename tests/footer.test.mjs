@@ -107,13 +107,25 @@ test("R108 the footer logo portal has a scoped compact-image rule", async () => 
   const win = dom(shell());
   win.JLuxeThemeSettings.logoUrl = `${base}logo-desktop.svg`;
   win.JLuxeThemeSettings.mobileLogoUrl = `${base}logo-mobile.svg`;
+  win.JLuxeThemeSettings.logoImage = {
+    src: `${base}logo-desktop-320.webp`,
+    srcset: `${base}logo-desktop-320.webp 320w`,
+    sizes: "(max-width: 767px) 160px, 240px",
+  };
+  win.JLuxeThemeSettings.mobileLogoImage = {
+    src: `${base}logo-mobile-320.webp`,
+    srcset: `${base}logo-mobile-320.webp 320w`,
+    sizes: "(max-width: 767px) 160px, 240px",
+  };
   await render();
 
   const logo = document.querySelector(
     '[data-jluxe-footer-slot="columns"] a.jluxe-footer-logo',
   );
   assert.ok(logo, "the portal-mounted BrandLogo receives its footer-only class");
-  assert.equal(logo.querySelectorAll("img").length, 2, "mobile and desktop logos share the scoped size rule");
+  assert.equal(logo.querySelectorAll("picture img").length, 1, "one responsive image serves both mobile and desktop logo variants");
+  assert.equal(logo.querySelector("picture source")?.getAttribute("media"), "(min-width: 768px)");
+  assert.equal(logo.querySelector("picture img")?.getAttribute("data-no-lazy"), "1");
 
   const css = fs.readFileSync(
     new URL("../src/styles/storefront.css", import.meta.url),

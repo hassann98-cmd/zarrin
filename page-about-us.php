@@ -16,7 +16,7 @@ get_header();
 
 $jluxe_about_settings = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings() : array();
 $jluxe_about_info     = $jluxe_about_settings['info_pages']['about'] ?? array();
-$jluxe_about_logo     = ! empty( $jluxe_about_info['show_logo'] ) && function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
+$jluxe_about_logo     = ! empty( $jluxe_about_info['show_logo'] ) && function_exists( 'jluxe_get_logo_image_data' ) ? jluxe_get_logo_image_data() : array( 'src' => '', 'srcset' => '', 'sizes' => '' );
 
 // طبقِ درخواستِ صریحِ کاربر: بخشِ «داستانِ ما» + CTA کاملاً از تنظیمات میان
 // (jluxe-contact-pages ← «متنِ صفحاتِ تماس/درباره»)، نه دیگه هاردکد.
@@ -31,8 +31,8 @@ $jluxe_about_cta_button_style = ! empty( $jluxe_about_info['cta_button_color'] )
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10 sm:py-14">
 
 		<div class="mx-auto max-w-2xl text-center">
-			<?php if ( $jluxe_about_logo ) : ?>
-				<img src="<?php echo esc_url( $jluxe_about_logo ); ?>" alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" />
+			<?php if ( ! empty( $jluxe_about_logo['src'] ) ) : ?>
+				<img src="<?php echo esc_url( $jluxe_about_logo['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_about_logo ); ?> alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" data-no-lazy="1" loading="eager" />
 			<?php endif; ?>
 			<div class="mb-3 flex items-center justify-center gap-1">
 				<span class="size-1.5 rounded-full bg-primary"></span>

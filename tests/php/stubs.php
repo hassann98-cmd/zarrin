@@ -21,6 +21,9 @@ $GLOBALS['user_meta']=[];
 $GLOBALS['create_calls']=0;
 function add_action(...$a){$GLOBALS['actions'][]=$a;}
 function add_filter(...$a){$GLOBALS['filters'][]=$a;}
+function add_theme_support(...$a){$GLOBALS['theme_supports'][]=$a;}
+function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
+function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
 function remove_action(...$a){}
 function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
 function wp_footer(){do_action('wp_footer');}
@@ -208,11 +211,13 @@ function wc_get_price_decimal_separator(){return '.';}
 function wc_get_price_thousand_separator(){return ',';}
 function wc_price($amount){return '<span>'.$amount.'</span>';}
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
-function wp_get_attachment_image_url(...$args){return home_url('/image.jpg');}
-function wp_get_attachment_image_srcset(...$args){return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w';}
-function wp_get_attachment_url($id){return $GLOBALS['attachment_urls'][$id]??home_url('/uploads/'.$id.'.gif');}
+function wp_get_attachment_image_url(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$images=$GLOBALS['attachment_image_urls']??[];if(array_key_exists($id,$images)){$value=$images[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return home_url('/image.jpg');}
+function wp_get_attachment_image_srcset(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$sets=$GLOBALS['attachment_srcsets']??[];if(array_key_exists($id,$sets)){$value=$sets[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w';}
+function wp_get_attachment_url($id){if(array_key_exists($id,$GLOBALS['attachment_urls']??[]))return $GLOBALS['attachment_urls'][$id];return home_url('/uploads/'.$id.'.gif');}
 function get_post_mime_type($id){return $GLOBALS['attachment_mimes'][$id]??'';}
-function wp_get_attachment_image_src($id,$size='thumbnail'){$url=wp_get_attachment_image_url($id,$size);return [$url,1200,300,true];}
+function wp_get_attachment_metadata($id){if(array_key_exists($id,$GLOBALS['attachment_metadata']??[]))return $GLOBALS['attachment_metadata'][$id];return ['width'=>1200,'height'=>300];}
+function wp_get_attachment_image_src($id,$size='thumbnail'){if(array_key_exists($id,$GLOBALS['attachment_image_sources']??[]))return $GLOBALS['attachment_image_sources'][$id];$url=wp_get_attachment_image_url($id,$size);return [$url,1200,300,true];}
+function get_theme_mod($name,$default=false){return $GLOBALS['theme_mods'][$name]??$default;}
 function wp_remote_get($url,$args=[]){$GLOBALS['provider_calls']=($GLOBALS['provider_calls']??0)+1; $GLOBALS['provider_url']=$url;return $GLOBALS['provider_response']??['response'=>['code'=>200],'body'=>'{"return":{"status":200},"entries":[]}'];}
 function wp_remote_post($url,$args=[]){$GLOBALS['provider_args']=$args;$GLOBALS['http_posts'][]=['url'=>$url,'args'=>$args];$GLOBALS['provider_calls']=($GLOBALS['provider_calls']??0)+1;$GLOBALS['provider_url']=$url;if(!empty($GLOBALS['http_post_responses'])&&is_array($GLOBALS['http_post_responses'])){return array_shift($GLOBALS['http_post_responses']);}return $GLOBALS['http_post_response']??$GLOBALS['provider_response']??['response'=>['code'=>200],'body'=>''];}
 function wp_remote_retrieve_response_code($response){return $response['response']['code'];}

@@ -545,34 +545,41 @@ function MobileSearch() {
 }
 function K({ className: l }) {
   const r = b(),
-    n = r.logoUrl || "",
-    o = r.mobileLogoUrl || n,
+    a = r.logoImage || {},
+    m = r.mobileLogoImage || {},
+    n = a.src || "",
+    o = m.src || n,
     t = r.siteName || "زرین";
-  return !(n || o)
-    ? e.jsx("a", {
-        href: siteUrl("home"),
-        className: `inline-block text-lg font-bold text-foreground ${l ?? ""}`,
-        "aria-label": t,
-        children: t,
-      })
-    : e.jsxs("a", {
-        href: siteUrl("home"),
-        className: `jluxe-logo-shine group inline-block ${l ?? ""}`,
-        "aria-label": t,
-        children: [
-          e.jsx("img", {
-            src: o || n,
-            alt: t,
-            className: "h-16 w-auto md:hidden",
-            "data-jluxe-no-skeleton": !0,
-          }),
-          e.jsx("img", {
-            src: n || o,
-            alt: t,
-            className: "hidden h-16 w-auto md:block",
-            "data-jluxe-no-skeleton": !0,
-          }),
-        ],
-      });
+  if (!o)
+    return e.jsx("a", {
+      href: siteUrl("home"),
+      className: `inline-block text-lg font-bold text-foreground ${l ?? ""}`,
+      "aria-label": t,
+      children: t,
+    });
+
+  return e.jsx("a", {
+    href: siteUrl("home"),
+    className: `jluxe-logo-shine group inline-block ${l ?? ""}`,
+    "aria-label": t,
+    children: e.jsx("picture", {
+      children: [
+        e.jsx("source", {
+          media: "(min-width: 768px)",
+          srcSet: a.srcset || n || o,
+          sizes: a.sizes,
+        }, 0),
+        e.jsx("img", {
+          src: o,
+          srcSet: m.srcset,
+          sizes: m.sizes,
+          alt: t,
+          className: "h-16 w-auto",
+          "data-no-lazy": "1",
+          "data-jluxe-no-skeleton": !0,
+        }, 1),
+      ],
+    }),
+  });
 }
 export { K as BrandLogo, J as default, MobileSearch as MobileHeaderSearch };
