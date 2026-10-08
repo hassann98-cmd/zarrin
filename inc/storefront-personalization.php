@@ -129,6 +129,61 @@ function jluxe_recent_product_is_in_stock( WC_Product $product ): bool {
 	return false;
 }
 
+/** Return a compact plain-text price for the private recent-products REST payload. */
+function jluxe_recent_product_price_text( WC_Product $product ): string {
+	$price_html = (string) $product->get_price_html();
+	$text       = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $price_html ) : strip_tags( $price_html );
+
+	// WooCommerce price filters sometimes double-escape entities (for example, &amp;ndash;).
+	for ( $pass = 0; $pass < 3; $pass++ ) {
+		$decoded = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		if ( $decoded === $text ) {
+			break;
+		}
+		$text = $decoded;
+	}
+
+	$text = str_replace( array( "\xC2\xA0", "\xE2\x80\xAF" ), ' ', $text );
+	$dashed_text = preg_replace( '/\s*([–—])\s*/u', ' $1 ', $text );
+	if ( is_string( $dashed_text ) ) {
+		$text = $dashed_text;
+	}
+
+	// Some price-range extensions append a second textual range after WooCommerce's range.
+	$range_pattern = '/محدوده[\s\p{Z}]*قیمت[\s\p{Z}]*:\s*([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬،٫.]*)\s*تا\s*([0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬،٫.]*)/u';
+	if ( preg_match( $range_pattern, $text, $range, PREG_OFFSET_CAPTURE ) ) {
+		$prefix = rtrim( substr( $text, 0, $range[0][1] ) );
+		if ( preg_match_all( '/[0-9۰-۹٠-٩][0-9۰-۹٠-٩,٬،٫.]*/u', $prefix, $prefix_numbers ) && count( $prefix_numbers[0] ) >= 2 ) {
+			$digit_map = array(
+				'۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+				'۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+				'٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+				'٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+			);
+			$normalize_number = static function ( string $number ) use ( $digit_map ): string {
+				$number = strtr( $number, $digit_map );
+				$number = str_replace( array( ',', '٬', '،', '٫' ), array( '', '', '', '.' ), $number );
+				$number = preg_replace( '/[^0-9.]/', '', $number );
+				$parts  = explode( '.', (string) $number, 2 );
+				$whole  = ltrim( $parts[0], '0' );
+				$whole  = '' === $whole ? '0' : $whole;
+				$fraction = isset( $parts[1] ) ? rtrim( $parts[1], '0' ) : '';
+				return $whole . ( '' !== $fraction ? '.' . $fraction : '' );
+			};
+			$last_two = array_slice( $prefix_numbers[0], -2 );
+			if (
+				$normalize_number( $last_two[0] ) === $normalize_number( $range[1][0] )
+				&& $normalize_number( $last_two[1] ) === $normalize_number( $range[2][0] )
+			) {
+				$text = $prefix;
+			}
+		}
+	}
+
+	$normalized = preg_replace( '/[\s\p{Z}]+/u', ' ', trim( $text ) );
+	return is_string( $normalized ) ? $normalized : trim( $text );
+}
+
 /** Read at most eight public products, in the order supplied by localStorage. */
 function jluxe_rest_recent_products( WP_REST_Request $request ) {
 	$raw_ids = $request->get_param( 'ids' );
@@ -165,7 +220,7 @@ function jluxe_rest_recent_products( WP_REST_Request $request ) {
 				'url'       => (string) $product->get_permalink(),
 				'image'     => (string) $image,
 				'imageAlt'  => (string) $product->get_name(),
-				'price'     => function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( (string) $product->get_price_html() ) : strip_tags( (string) $product->get_price_html() ),
+				'price'     => jluxe_recent_product_price_text( $product ),
 				'inStock'   => jluxe_recent_product_is_in_stock( $product ),
 			);
 			if ( count( $items ) >= 8 ) {

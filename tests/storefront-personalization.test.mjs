@@ -37,7 +37,7 @@ test("recently viewed history renders separate mobile-friendly product and homep
         <h2>ادامه خرید شما</h2><div data-jluxe-recent-list role="list"></div>
       </section>`,
     settings: { recentProductsUrl: "/wp-json/jluxe/v1/recent-products" },
-    recent: ["51", "52", "53"],
+    recent: ["51", "52", "53", "54"],
     fetch: async (url) => {
       const ids = new URL(String(url), "https://shop.test").searchParams.get("ids");
       requests.push(ids);
@@ -45,18 +45,19 @@ test("recently viewed history renders separate mobile-friendly product and homep
         { id: 51, name: "چراغ رومیزی", url: "/product/51/", image: "/lamp.jpg", imageAlt: "چراغ", price: "۱۰۰ تومان", inStock: true },
         { id: 52, name: "محصول <script>نامطمئن</script>", url: "/product/52/", image: "", price: "۲۰۰ تومان", inStock: false },
         { id: 53, name: "چارپایه لیمون 2143 رنگ موکا", url: "/product/53/", image: "/stool.jpg", imageAlt: "چارپایه رنگ موکا", price: "۱٬۲۰۰٬۰۰۰ تومان", inStock: true },
+        { id: 54, name: "محصول متغیر با بازهٔ قیمت", url: "/product/54/", image: "/range.jpg", imageAlt: "محصول با بازهٔ قیمت", price: "۱,۷۸۰,۰۰۰ &amp;amp;ndash; ۱,۸۵۰,۰۰۰", inStock: true },
       ] });
     },
   });
   t.after(() => dom.window.close());
   await tick();
 
-  assert.deepEqual(requests.sort(), ["100,51,52,53", "51,52,53"].sort(), "product detail excludes its own current item while the homepage retains the full history");
-  assert.deepEqual(JSON.parse(dom.window.localStorage.getItem("jluxe_recently_viewed")), ["100", "51", "52", "53"]);
+  assert.deepEqual(requests.sort(), ["100,51,52,53,54", "51,52,53,54"].sort(), "product detail excludes its own current item while the homepage retains the full history");
+  assert.deepEqual(JSON.parse(dom.window.localStorage.getItem("jluxe_recently_viewed")), ["100", "51", "52", "53", "54"]);
   const panels = [...dom.window.document.querySelectorAll("[data-jluxe-recent-products]")];
   assert.equal(panels[0].hidden, false);
   assert.equal(panels[1].hidden, false);
-  assert.equal(panels[0].querySelectorAll('[role="listitem"]').length, 3);
+  assert.equal(panels[0].querySelectorAll('[role="listitem"]').length, 4);
   assert.equal(panels[0].querySelector(".jluxe-recent-card__price").textContent, "۱۰۰ تومان");
   assert.equal(panels[0].querySelectorAll("script").length, 0, "product names use textContent rather than HTML injection");
   const cards = [...panels[0].querySelectorAll(".jluxe-recent-card")];
@@ -67,6 +68,8 @@ test("recently viewed history renders separate mobile-friendly product and homep
   assert.equal(cards[2].querySelector(".jluxe-recent-card__stock").textContent, "موجود", "an in-stock variable parent is presented as available");
   assert.equal(cards[2].querySelector(".jluxe-recent-card__price").textContent, "۱٬۲۰۰٬۰۰۰ تومان");
   assert.equal(cards[2].querySelector(".jluxe-recent-card__cta").textContent, "مشاهده");
+  assert.equal(cards[3].querySelector(".jluxe-recent-card__price").textContent, "۱,۷۸۰,۰۰۰ – ۱,۸۵۰,۰۰۰", "escaped price separators render as a single clean Persian range");
+  assert.equal(cards[3].querySelector(".jluxe-recent-card__price").dir, "auto");
 });
 
 test("recent-product history uses a polished responsive rail and clear stock styling", () => {
@@ -76,7 +79,12 @@ test("recent-product history uses a polished responsive rail and clear stock sty
   assert.match(styles, /\.jluxe-recent-card__media\s*\{/);
   assert.match(styles, /\.jluxe-recent-card__stock\.is-in-stock\s*\{/);
   assert.match(styles, /\.jluxe-recent-card:hover\s*\{/);
-  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card\s*\{\s*flex-basis: min\(76vw, 236px\)/);
+  assert.match(styles, /\.jluxe-recent-products\s*\{[^}]*font-family: IRANYekan/);
+  assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*font-family: IRANYekan/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card\s*\{\s*flex-basis: min\(78vw, 296px\)/);
+  assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card__link \{ display: grid; grid-template-columns: 98px minmax\(0, 1fr\);/);
+  assert.match(styles, /\.jluxe-recent-card__price \{ display: block; max-width: 100%; font-size: 14px; font-weight: 800;/);
+  assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*white-space: normal;/);
   const reducedMotionRule = styles.indexOf(".jluxe-recent-card, .jluxe-recent-card__image { transition: none;");
   assert.ok(reducedMotionRule > 0 && styles.lastIndexOf("@media (prefers-reduced-motion: reduce)", reducedMotionRule) >= 0, "card motion respects reduced-motion preferences");
 });

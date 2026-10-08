@@ -270,6 +270,20 @@
 	var STORAGE_KEY = "jluxe_recently_viewed";
 	var MAX_RECENT = 8;
 
+	function normalizeRecentPrice(value) {
+		var text = String(value == null ? "" : value);
+		for (var pass = 0; pass < 3; pass++) {
+			var decoded = text
+				.replace(/&amp;/gi, "&")
+				.replace(/&ndash;|&#0*8211;|&#x0*2013;/gi, "–")
+				.replace(/&mdash;|&#0*8212;|&#x0*2014;/gi, "—")
+				.replace(/&nbsp;|&#0*160;|&#x0*a0;/gi, " ");
+			if (decoded === text) { break; }
+			text = decoded;
+		}
+		return text.replace(/[\u00a0\u202f]/g, " ").replace(/\s*([–—])\s*/g, " $1 ").replace(/\s+/g, " ").trim();
+	}
+
 	function normalizeIds(ids) {
 		if (!Array.isArray(ids)) { return []; }
 		var seen = Object.create(null);
@@ -358,7 +372,9 @@
 					footer.className = "jluxe-recent-card__footer";
 					var price = document.createElement("span");
 					price.className = "jluxe-recent-card__price";
-					price.textContent = String(item.price || "");
+					price.dir = "auto";
+					price.lang = "fa";
+					price.textContent = normalizeRecentPrice(item.price);
 					footer.appendChild(price);
 					var cta = document.createElement("span");
 					cta.className = "jluxe-recent-card__cta";

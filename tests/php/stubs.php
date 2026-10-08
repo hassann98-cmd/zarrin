@@ -309,7 +309,7 @@ class WC_Product {
  function get_image_id(){return $this->image_id;}
  function get_name(){return 'Public product';}
  function get_attributes(){return [];}
- function get_price_html(){return '100';}
+ function get_price_html(){return $GLOBALS['product_price_html'][$this->id]??'100';}
  function is_on_sale(){return true;}
  function get_price($context='view'){return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
  function get_regular_price($context='view'){return $GLOBALS['product_prices'][$this->id]['regular']??0.0;}
