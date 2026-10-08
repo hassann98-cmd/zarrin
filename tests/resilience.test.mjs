@@ -341,9 +341,24 @@ function trackedOrder(access) {
         address: "Private Address",
         phone: "09120000000",
       },
+      timeline: {
+        is_cancelled: false,
+        current_step: 3,
+        step_count: 4,
+        steps: [
+          { step: 1, label: "پرداخت", done: true, active: false },
+          { step: 2, label: "آماده‌سازی", done: true, active: false },
+          { step: 3, label: "ارسال", done: false, active: true },
+          { step: 4, label: "تکمیل", done: false, active: false },
+        ],
+      },
       shipping: {
-        tracking_code: "private-tracking-token",
+        shipping_method: "پست پیشتاز",
+        tracking_code: "12345678901234567890",
         shipping_company: "پست",
+        tracking_url: "https://tracking.post.ir/",
+        requires_captcha: true,
+        shipping_note: "مرسوله تحویل پست شد",
       },
       items: [
         {
@@ -356,7 +371,7 @@ function trackedOrder(access) {
   };
 }
 
-test("R21 public tracking UI omits extra legacy details and sends phone only in a POST body", async () => {
+test("R21 phone-matched tracking shows timeline and limited shipment data while keeping personal details private", async () => {
   const { window: win } = trackingDom();
   const calls = [];
   win.fetch = async (url, options) => {
@@ -384,13 +399,49 @@ test("R21 public tracking UI omits extra legacy details and sends phone only in 
     phone: "9120000000",
   });
   const result = win.document.getElementById("jto-result-area");
-  assert.doesNotMatch(
-    result.textContent,
-    /Private|private-tracking-token|Secret/,
-  );
-  assert.match(result.textContent, /فقط وضعیت سفارش/);
+  assert.doesNotMatch(result.textContent, /Private|Secret/);
+  assert.match(result.textContent, /آماده‌سازی|ارسال/);
+  assert.match(result.textContent, /پست پیشتاز|مرسوله تحویل پست شد|کپچا/);
+  assert.match(result.textContent, /۱۲۳۴۵۶۷۸۹۰۱۲۳۴۵۶۷۸۹۰/);
+  assert.equal(result.querySelectorAll(".jto-timeline__step").length, 4);
+  assert.equal(result.querySelector('.jto-timeline__step[aria-current="step"] .jto-timeline__label').textContent, "ارسال");
+  assert.equal(result.querySelector(".jto-carrier-link").href, "https://tracking.post.ir/");
   assert.equal(result.querySelector("a").href, base + "native-account/");
   assert.equal(win.localStorage.length, 0);
+});
+
+test("R21 terminal and unknown statuses never render fake shipment progress", async () => {
+  for (const terminal of [true, false]) {
+    const { window: win } = trackingDom();
+    win.fetch = async (url) =>
+      url.includes("admin-ajax.php")
+        ? json({ success: true, data: { restNonce: "" } })
+        : (() => {
+            const payload = trackedOrder("status_only");
+            payload.data.order.status_label = terminal ? "پرداخت ناموفق" : "وضعیت سفارشی";
+            payload.data.timeline = {
+              is_cancelled: terminal,
+              cancel_label: terminal ? "پرداخت ناموفق" : null,
+              current_step: 0,
+              step_count: 4,
+              steps: payload.data.timeline.steps.map((step) => ({
+                ...step,
+                done: false,
+                active: false,
+              })),
+            };
+            payload.data.shipping = {};
+            return json(payload);
+          })();
+    const completed = trackingResult(win);
+    submitTracking(win);
+    await completed;
+    const result = win.document.getElementById("jto-result-area");
+    assert.equal(result.querySelector(".jto-timeline"), null);
+    assert.equal(result.querySelector(".jto-terminal-status") !== null, terminal);
+    assert.equal(result.querySelector('[class*="bg-default-300"]'), null);
+    if (!terminal) assert.match(result.textContent, /به‌روزرسانی ووکامرس/);
+  }
 });
 
 test("R21 owner view uses a fresh REST nonce, escapes markup and clears private results on pagehide", async () => {

@@ -110,11 +110,13 @@ ob_start();
 require ABSPATH . 'woocommerce/myaccount/dashboard.php';
 $r129_dashboard_html = ob_get_clean();
 $r129_queries = $GLOBALS['wc_order_queries'];
-$r129_bounded = 3 === count( $r129_queries );
+$r129_bounded = 4 === count( $r129_queries );
 foreach ( $r129_queries as $r129_query ) {
 	$r129_bounded = $r129_bounded && 42 === $r129_query['customer'] && 1 === $r129_query['limit'] && true === $r129_query['paginate'] && 'ids' === $r129_query['return'];
 }
-check( $r129_bounded && false !== strpos( $r129_dashboard_html, '۱۲۳ سفارش' ), 'R129 account order cards use paginated total counts rather than loading every order ID' );
+$r129_statuses = array_column( $r129_queries, 'status' );
+$r129_bounded  = $r129_bounded && in_array( array( 'wc-pending', 'wc-on-hold' ), $r129_statuses, true ) && in_array( array( 'wc-cancelled', 'wc-failed', 'wc-refunded' ), $r129_statuses, true );
+check( $r129_bounded && false !== strpos( $r129_dashboard_html, '۱۲۳ سفارش' ) && false !== strpos( $r129_dashboard_html, 'در حال آماده‌سازی' ), 'R129 account dashboard counts real WooCommerce order groups with four paginated, customer-scoped queries' );
 $r129_query_count = count( $GLOBALS['wc_order_queries'] );
 check( 0 === jluxe_account_order_count( 0, 'wc-completed' ) && $r129_query_count === count( $GLOBALS['wc_order_queries'] ), 'R129 an anonymous/zero account ID cannot query customer orders' );
 $GLOBALS['authenticated_user'] = $r129_previous_user;
@@ -734,9 +736,9 @@ $GLOBALS['orders'][51] = $order;
 $track = new WP_REST_Request(array('order_number'=>'۵۱','phone'=>'۰۹۱۲۰۰۰۰۰۰۰'));
 $response = jluxe_order_track_handler($track);
 $data = $response->get_data()['data'];
-check($response->get_status()===200 && $data['access']==='status_only', 'R21 guest tracking returns only a status summary');
-check(array_keys($data)===array('access','order','timeline') && array_intersect(array_keys($data['order']),array('total','payment_method','order_id'))===array(), 'R21 public payload omits customer, items, carrier token, payment and internal ID');
-check(strpos(json_encode($data),'Private')===false && strpos(json_encode($data),'private-tracking-token')===false, 'R21 neither customer identity nor carrier token leaks through nested output');
+check($response->get_status()===200 && $data['access']==='status_only', 'R21 guest tracking returns a status-only access level after exact order/mobile matching');
+check(array_keys($data)===array('access','order','timeline','shipping') && array_intersect(array_keys($data['order']),array('total','payment_method','order_id'))===array(), 'R21 public payload includes only status and limited fulfillment fields, never payment or internal order data');
+check(strpos(json_encode($data),'Private')===false && $data['shipping']['tracking_code']==='private-tracking-token' && $data['shipping']['shipping_method']==='Test shipping', 'R21 phone-matched public tracking exposes shipment details but not customer identity');
 check(strpos($response->get_headers()['Cache-Control'],'no-store')!==false, 'R21 successful tracking is private/no-store');
 $GLOBALS['authenticated_user']=43;
 check(jluxe_order_track_handler($track)->get_data()['data']['access']==='status_only', 'R21 another signed-in customer cannot obtain the owner details');
@@ -756,6 +758,74 @@ check($response->get_headers()===jluxe_private_rest_headers(), 'R21 even core RE
 $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/wp/v2/posts')));
 check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
 check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
+check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages and only prefill Chapar where its official route supports a bill-number path');
+$order->meta['_jsms_tracking']='';
+$order->status='pending';
+$timeline=jluxe_build_timeline_data($order);
+check($timeline['current_step']===1 && $timeline['steps'][0]['active'] && $timeline['steps'][0]['label']==='پرداخت', 'R21 pending orders show only the payment step as active');
+$order->status='on-hold';
+check(jluxe_get_order_display_status_label($order)==='در انتظار تأیید پرداخت' && jluxe_build_timeline_data($order)['current_step']===1, 'R21 on-hold orders clearly await payment confirmation without false preparation progress');
+$order->status='processing';
+check(jluxe_get_order_display_status_label($order)==='در حال آماده‌سازی' && jluxe_build_timeline_data($order)['current_step']===2, 'R21 processing without a tracking code stays in preparation');
+$order->meta['_jsms_tracking']='ABC123';
+check(jluxe_get_order_display_status_label($order)==='ارسال شده' && jluxe_build_timeline_data($order)['current_step']===3, 'R21 processing with a real saved tracking code is shown as shipped');
+$order->status='completed';
+$timeline=jluxe_build_timeline_data($order);
+check($timeline['current_step']===4 && $timeline['steps'][3]['active'], 'R21 completed orders reach the fourth timeline step');
+foreach(array('failed','cancelled','refunded') as $terminal_status){
+ $order->status=$terminal_status;
+ $timeline=jluxe_build_timeline_data($order);
+ check($timeline['is_cancelled'] && $timeline['current_step']===0 && $timeline['steps'][0]['done']===false && $timeline['steps'][0]['active']===false, 'R21 '.$terminal_status.' orders remain terminal without a fabricated timeline');
+}
+$order->status='custom-awaiting-verification';
+$timeline=jluxe_build_timeline_data($order);
+check($timeline['current_step']===0 && $timeline['steps'][0]['label']==='پرداخت' && !$timeline['steps'][0]['done'] && !$timeline['steps'][0]['active'], 'R21 unknown/custom status does not receive fake payment or shipping progress');
+$order->status='processing';
+$order->payment_method='card-to-card';
+$order->payment_method_title='انتقال بصورت کارت به کارت';
+check(jluxe_get_payment_method_label($order)==='کارت به کارت', 'R21 customer-facing card-to-card labels use the short approved wording');
+$order->payment_method='test_gateway';
+$order->payment_method_title='Test gateway';
+
+// R21: shipment editing validates capability/nonce and stores through WC_Order metadata APIs.
+$order->meta['_jsms_tracking']='stale-legacy-code';
+$order->save_count=0;
+$GLOBALS['valid_wp_nonce']=true;
+$GLOBALS['denied_caps']=array();
+$_POST=array(
+ 'jluxe_shipping_tracking_present'=>'1',
+ 'jluxe_shipping_tracking_nonce'=>'valid',
+ 'jluxe_shipping_company'=>'post',
+ 'jluxe_tracking_code'=>'۱۲۳۴۵۶۷۸۹۰',
+ 'jluxe_shipping_note'=>"مرسوله تحویل پست شد.\nکد را برای پیگیری نگه دارید.",
+);
+jluxe_save_order_tracking_admin_fields(51,$order);
+$shipping=jluxe_build_shipping_data($order);
+check($order->save_count===1 && $order->meta['_jluxe_tracking_configured']==='yes' && $order->meta['_jluxe_shipping_company']==='پست' && $order->meta['_jluxe_tracking_code']==='1234567890', 'R21 admin shipment save normalizes the tracking code and persists metadata through the order object');
+check($shipping['shipping_method']==='Test shipping' && $shipping['shipping_company']==='پست' && $shipping['tracking_url']==='https://tracking.post.ir/' && $shipping['requires_captcha'] && strpos($shipping['shipping_note'],'مرسوله تحویل پست شد.')===0, 'R21 customer shipping data combines WooCommerce method with official carrier link, manual CAPTCHA, and admin note');
+$r21_hpos_save_hook=false;
+foreach($GLOBALS['actions'] as $r21_hook){
+ if(($r21_hook[0]??'')==='woocommerce_process_shop_order_meta' && ($r21_hook[1]??'')==='jluxe_save_order_tracking_admin_fields' && ($r21_hook[2]??0)===45 && ($r21_hook[3]??0)===2){$r21_hpos_save_hook=true;break;}
+}
+check($r21_hpos_save_hook, 'R21 tracking fields save after WooCommerce order edits on both HPOS and legacy screens');
+$_POST['jluxe_tracking_code']='';
+$_POST['jluxe_shipping_company']='';
+$_POST['jluxe_shipping_note']='';
+jluxe_save_order_tracking_admin_fields(51,$order);
+check($order->get_meta('_jluxe_tracking_code')==='' && jluxe_get_tracking_info($order)['tracking_code']===null && $order->get_meta('_jluxe_tracking_configured')==='yes', 'R21 explicitly clearing the admin code prevents stale legacy tracking metadata from reappearing');
+$before_save_count=$order->save_count;
+$_POST['jluxe_tracking_code']='999999';
+$GLOBALS['valid_wp_nonce']=false;
+jluxe_save_order_tracking_admin_fields(51,$order);
+$GLOBALS['valid_wp_nonce']=true;
+check($order->save_count===$before_save_count && $order->get_meta('_jluxe_tracking_code')==='', 'R21 invalid nonce cannot change order shipment metadata');
+$GLOBALS['denied_caps']=array('edit_shop_order','edit_shop_orders');
+$_POST['jluxe_shipping_tracking_nonce']='valid';
+jluxe_save_order_tracking_admin_fields(51,$order);
+$GLOBALS['denied_caps']=array();
+check($order->save_count===$before_save_count && $order->get_meta('_jluxe_tracking_code')==='', 'R21 users without order-edit capability cannot change tracking data');
+$GLOBALS['valid_wp_nonce']=true;
+$_POST=array();
 
 // R22: nonce rejection is explicit and happens before a cart mutation.
 reset_cart();$_POST=array('op'=>'add','product_id'=>'2','quantity'=>'1');
@@ -787,9 +857,6 @@ $limited=jluxe_extract_ai_messages(new WP_REST_Request(array('messages'=>$histor
 check(count($limited)===12 && $limited[0]['content']==='message-18', 'R24 conversation extraction only processes the last twelve messages');
 $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/JLUXE/v1/auth/login')));
 check($response->get_headers()===jluxe_private_rest_headers(), 'R25 authentication privacy headers also cover case-insensitive WordPress route matches');
-$order->status='custom-awaiting-verification';
-$timeline=jluxe_build_timeline_data($order);
-check($timeline['current_step']===1 && $timeline['steps'][4]['label']==='ثبت کد رهگیری', 'R21 custom status or a carrier code alone is not treated as proof of payment or dispatch');
 // R26: no standard Woo form action may run before our AJAX callback's nonce gate.
 $GLOBALS['doing_ajax']=true;
 $_REQUEST=array('action'=>'jluxe_cart','add-to-cart'=>'51');$_GET=array('add-to-cart'=>'51');$_POST=array('add-to-cart'=>'51','product_id'=>'51','attribute_color'=>'red');
@@ -2764,7 +2831,7 @@ check( 'https://shop.test/store/order-status/' === jluxe_resolve_site_link( '/tr
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r87_view_order = (string) file_get_contents( ABSPATH . 'woocommerce/myaccount/view-order.php' );
-check( false === strpos( $r87_view_order, 'href="/track-order/"' ) && false !== strpos( $r87_view_order, "jluxe_route_url( 'track_order' )" ), 'R87 the order page «پیگیری سفارش» button uses the configured tracking address' );
+check( false === strpos( $r87_view_order, 'href="/track-order/"' ) && false !== strpos( $r87_view_order, 'tracking_url' ) && false !== strpos( $r87_view_order, 'esc_url(' ) && false !== strpos( $r87_view_order, 'target="_blank"' ), 'R87 order details link directly to the recorded carrier tracking page rather than the store lookup form' );
 foreach ( array(
 	'page-about-us.php'                    => '$jluxe_about_cta_button_url',
 	'page-payment-guide.php'               => '$jluxe_pg_btn_url',
@@ -3819,7 +3886,15 @@ $r145_product_crop = strpos( $r100_announcement_css, '/* R145: On product phones
 $r145_product_crop_css = false === $r145_product_crop ? '' : substr( $r100_announcement_css, $r145_product_crop, 1800 );
 check( false !== strpos( $r145_product_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_product_crop_css, 'body.single-product .jluxe-announcement-bar--image {' ) && false !== strpos( $r145_product_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_product_crop_css, 'height: 44px;' ) && false !== strpos( $r145_product_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_product_crop_css, 'position: relative;' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_product_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_product_crop_css, 'width: 100%;' ) && false !== strpos( $r145_product_crop_css, 'height: 100%;' ) && false !== strpos( $r145_product_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_product_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 only product-mobile image notices use a definite full-bleed 44px frame with a positioned cover-crop; homepage, text notices and desktop rules are untouched' );
 $r143_account_nav = file_get_contents( __DIR__ . '/../../woocommerce/myaccount/navigation.php' );
-check( false !== strpos( $r143_account_nav, 'jluxe-account-home-link' ) && false !== strpos( $r143_account_nav, "home_url( '/' )" ) && false !== strpos( $r143_account_nav, "\$jluxe_account_icons['home']" ) && false !== strpos( $r143_account_nav, 'بازگشت به فروشگاه زرین' ), 'R143 account navigation includes a styled, accessible home link with a house icon and site-relative URL' );
+check( false !== strpos( $r143_account_nav, 'jluxe-account-home-link' ) && false !== strpos( $r143_account_nav, "home_url( '/' )" ) && false !== strpos( $r143_account_nav, "\$jluxe_account_icons['home']" ) && false !== strpos( $r143_account_nav, 'بازگشت به فروشگاه' ) && false === strpos( $r143_account_nav, 'بازگشت به فروشگاه زرین' ), 'R143 account navigation uses the concise approved shop-return label on its site-relative link' );
+$r21_view_order = file_get_contents( __DIR__ . '/../../woocommerce/myaccount/view-order.php' );
+$r21_order_css  = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
+$r21_quick_js   = file_get_contents( __DIR__ . '/../../assets/js/order-tracking.js' );
+$r21_checkout_js = file_get_contents( __DIR__ . '/../../src/islands/CartCheckout.js' );
+$r21_thankyou = file_get_contents( __DIR__ . '/../../woocommerce/checkout/thankyou.php' );
+check( false !== strpos( $r21_view_order, 'jluxe-order-timeline' ) && false !== strpos( $r21_view_order, 'aria-current="step"' ) && false !== strpos( $r21_view_order, 'jluxe_build_timeline_data' ) && false !== strpos( $r21_view_order, 'jluxe-order-shipment__tracking-code' ) && false !== strpos( $r21_view_order, 'shipping_note' ) && false !== strpos( $r21_view_order, 'requires_captcha' ) && false !== strpos( $r21_view_order, 'target="_blank"' ), 'R21 account order details render accessible status steps, saved shipment code/note, official carrier link, and manual CAPTCHA guidance' );
+check( false !== strpos( $r21_order_css, '.jluxe-order-timeline' ) && false !== strpos( $r21_order_css, 'grid-template-columns: repeat(4, minmax(0, 1fr))' ) && false !== strpos( $r21_order_css, '@media (max-width: 480px)' ) && false !== strpos( $r21_order_css, '.jluxe-order-shipment__note' ), 'R21 account shipment/timeline styling keeps four clear, responsive steps and readable shipment notes' );
+check( false !== strpos( $r21_quick_js, 'jto-timeline__step' ) && false !== strpos( $r21_quick_js, 'shipping.tracking_url' ) && false !== strpos( $r21_quick_js, 'shipping.shipping_note' ) && false !== strpos( $r21_quick_js, 'requires_captcha' ) && false !== strpos( $r21_checkout_js, 'label: "کارت به کارت"' ) && false !== strpos( $r21_thankyou, 'jluxe_get_payment_method_label' ), 'R21 quick tracking presents verified fulfillment-only data and all customer payment labels use the short card-to-card wording' );
 
 // R144 — simple-product steppers stay visible in both product layouts and keep their bounds.
 $r144_simple_template = file_get_contents( __DIR__ . '/../../woocommerce/single-product/add-to-cart/simple.php' );

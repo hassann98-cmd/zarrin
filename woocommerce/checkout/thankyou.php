@@ -115,7 +115,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				</div>
 				<div class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface p-4 text-center">
 					<span class="text-caption text-text-muted">روش پرداخت</span>
-					<strong class="text-small text-foreground"><?php echo wp_kses_post( $order->get_payment_method_title() ?: '—' ); ?></strong>
+					<strong class="text-small text-foreground"><?php echo esc_html( function_exists( 'jluxe_get_payment_method_label' ) ? jluxe_get_payment_method_label( $order ) : ( $order->get_payment_method_title() ?: '—' ) ); ?></strong>
 				</div>
 			</div>
 

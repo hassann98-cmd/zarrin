@@ -75,7 +75,7 @@ function check_admin_referer(...$a){return true;}
 
 function wp_doing_ajax(){return $GLOBALS['doing_ajax']??false;}
 function check_ajax_referer(...$a){return $GLOBALS['valid_ajax_nonce'] ?? true;}
-function wp_verify_nonce(...$a){return true;}
+function wp_verify_nonce(...$a){return $GLOBALS['valid_wp_nonce']??true;}
 function current_time($v){return '2026-09-23 00:00:00';}
 function wp_cache_delete($key,$group=''){unset($GLOBALS['objcache'][$group][$key]);return true;}
 function get_users($a){$GLOBALS['users_query']=$a; return isset($a['meta_query']) ? ($GLOBALS['billing_users']??[]) : ($GLOBALS['phone_users']??[]);}
@@ -112,6 +112,10 @@ class WC_Order {
  public $customer_id=42;
  public $status='processing';
  public $phone='09120000000';
+ public $payment_method='test_gateway';
+ public $payment_method_title='Test gateway';
+ public $meta=array('_jsms_tracking'=>'private-tracking-token');
+ public $save_count=0;
  function get_id(){return 51;}
  function get_order_number(){return '51';}
  function get_customer_id(){return $this->customer_id;}
@@ -120,7 +124,8 @@ class WC_Order {
  function get_date_modified(){return null;}
  function get_total(){return 450000;}
  function get_currency(){return 'IRR';}
- function get_payment_method_title(){return 'Test gateway';}
+ function get_payment_method(){return $this->payment_method;}
+ function get_payment_method_title(){return $this->payment_method_title;}
  function get_billing_phone(){return $this->phone;}
  function get_billing_first_name(){return 'Private';}
  function get_billing_last_name(){return 'Customer';}
@@ -131,7 +136,10 @@ class WC_Order {
  function get_billing_address_2(){return 'Private unit';}
  function get_shipping_method(){return 'Test shipping';}
  function get_items(){return [];}
- function get_meta($key){return $key==='_jsms_tracking'?'private-tracking-token':'';}
+ function get_meta($key){return $this->meta[$key]??'';}
+ function update_meta_data($key,$value){$this->meta[$key]=$value;}
+ function delete_meta_data($key){unset($this->meta[$key]);}
+ function save(){$this->save_count++;}
 }
 function wc_get_order($id){return $GLOBALS['orders'][$id]??false;}
 function wc_get_orders($args){$GLOBALS['wc_order_queries']=$GLOBALS['wc_order_queries']??[];$GLOBALS['wc_order_queries'][]=$args;return $GLOBALS['wc_orders_result']??[];}

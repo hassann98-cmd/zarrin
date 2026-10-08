@@ -8,12 +8,9 @@
   var requestVersion = 0;
 
   var CARRIERS = {
-    پست: { url: "https://tracking.post.ir/?id=%CODE%", color: "#fcba24" },
-    تیپاکس: {
-      url: "https://tipaxco.com/tracking?code=%CODE%",
-      color: "#0ea5e9",
-    },
-    چاپار: { url: "https://www.chapar.io/tracking/%CODE%", color: "#16a34a" },
+    پست: { url: "https://tracking.post.ir/", color: "#fcba24" },
+    تیپاکس: { url: "https://tipaxco.com/tracking", color: "#0ea5e9" },
+    چاپار: { url: "https://www.chaparnet.com/track/%CODE%", color: "#16a34a" },
   };
 
   function init() {
@@ -293,17 +290,21 @@
     var order = data.order || {};
     var hasDetails = data.access === "owner";
     var customer = hasDetails ? data.customer || {} : {};
-    var shipping = hasDetails ? data.shipping || {} : {};
+    var shipping = data.shipping || {};
     var items = hasDetails ? data.items || [] : [];
     var timeline = data.timeline || {
       steps: [],
       is_cancelled: false,
-      current_step: 1,
+      current_step: 0,
+      step_count: 4,
     };
 
     var jalaliDate = (order.created_date && order.created_date.jalali) || "";
     var totalFormatted = (order.total && order.total.formatted) || "";
-    var percent = Math.round(((timeline.current_step || 1) / 6) * 100);
+    var stepCount = Math.max(1, Number(timeline.step_count || (timeline.steps || []).length || 4));
+    var percent = timeline.current_step > 0
+      ? Math.round((timeline.current_step / stepCount) * 100)
+      : 0;
     var isCancelled = !!timeline.is_cancelled;
 
     var html =
@@ -320,7 +321,7 @@
     html += '  <div class="flex flex-col gap-2 w-full">';
     html += '    <div class="jto-row-wrap">';
     html +=
-      '      <span class="text-medium">' +
+      '      <span class="text-medium' + (isCancelled ? ' jto-status-terminal' : '') + '">' +
       escapeHtml(
         isCancelled
           ? timeline.cancel_label || order.status_label
@@ -332,7 +333,7 @@
       escapeHtml(toPersianDigits(jalaliDate)) +
       "</span>";
     html += "    </div>";
-    if (!isCancelled) {
+    if (!isCancelled && timeline.current_step > 0) {
       html +=
         '    <div class="bg-default-300/50 overflow-hidden h-3 rounded-full">';
       html +=
@@ -344,10 +345,33 @@
     html += "  </div>";
     html += "</div>";
 
+    if (isCancelled) {
+      html +=
+        '<div class="jto-terminal-status jto-terminal-status--cancelled" role="status">' +
+        "برای این وضعیت، مراحل معمول سفارش نمایش داده نمی‌شود." +
+        "</div>";
+    } else if (timeline.current_step > 0 && timeline.steps && timeline.steps.length) {
+      html += '<ol class="jto-timeline" aria-label="مراحل سفارش">';
+      timeline.steps.forEach(function (step) {
+        var state = step.done ? "is-done" : step.active ? "is-active" : "is-upcoming";
+        html +=
+          '<li class="jto-timeline__step ' + state + '"' +
+          (step.active ? ' aria-current="step"' : "") +
+          '><span class="jto-timeline__marker" aria-hidden="true">' +
+          (step.done ? "✓" : escapeHtml(toPersianDigits(step.step))) +
+          '</span><span class="jto-timeline__label">' +
+          escapeHtml(step.label) +
+          "</span></li>";
+      });
+      html += "</ol>";
+    } else {
+      html += '<p class="jto-unknown-status">وضعیت سفارش پس از به‌روزرسانی ووکامرس در این بخش نمایش داده می‌شود.</p>';
+    }
+
     if (!hasDetails) {
       html +=
         '<div class="mb-3 bg-[#f7f8fa] dark:bg-gray-800 p-3 rounded-xl">' +
-        "<p>برای حفظ حریم خصوصی، فقط وضعیت سفارش نمایش داده می‌شود. برای جزئیات و کد رهگیری، وارد حساب ثبت‌کنندهٔ سفارش شوید. اگر مهمان خرید کرده‌اید، با پشتیبانی فروشگاه تماس بگیرید.</p>" +
+        "<p>فقط وضعیت و اطلاعات ارسال نمایش داده می‌شود؛ اطلاعات هویتی، نشانی، مبلغ، روش پرداخت و محصولات برای حفظ حریم خصوصی پنهان هستند.</p>" +
         '<a class="text-primary font-bold" href="' +
         escapeHtml(config.accountUrl || STORE_URL) +
         '">ورود به حساب کاربری</a></div>';
@@ -366,42 +390,49 @@
       }
     }
 
-    if (shipping.tracking_code) {
-      html += '<div class="mb-3 bg-primary-200 p-3 rounded-xl jto-row-wrap">';
-      html +=
-        '  <span class="jto-tracking-code-text">کد رهگیری: <span class="font-bold">' +
-        escapeHtml(shipping.tracking_code) +
-        "</span></span>";
-      html +=
-        '  <button type="button" class="text-xs font-bold" data-copy="' +
-        escapeHtml(shipping.tracking_code) +
-        '">کپی</button>';
-      html += "</div>";
-
-      var carrier = getCarrierInfo(
-        shipping.shipping_company,
-        shipping.tracking_code,
-      );
-      if (carrier) {
-        html +=
-          '<a href="' +
-          escapeHtml(carrier.url) +
-          '" target="_blank" rel="noopener noreferrer" ' +
-          'class="mb-3 flex items-center gap-3 rounded-[12px] p-4 hover:opacity-90 transition-colors cursor-pointer" ' +
-          'style="background-color:' +
-          escapeHtml(carrier.color) +
-          ';">' +
-          '  <div class="flex items-center justify-center w-10 h-10 bg-white/20 rounded-[10px]">' +
-          '    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM7 20a2 2 0 100-4 2 2 0 000 4zM18 20a2 2 0 100-4 2 2 0 000 4z"/></svg>' +
-          "  </div>" +
-          '  <div class="flex flex-col flex-1">' +
-          '    <span class="text-[14px] font-bold text-white">پیگیری سفارش</span>' +
-          '    <span class="text-[12px] text-white">پیگیری مرسوله از طریق ' +
-          escapeHtml(toPersianDigits(shipping.shipping_company || "شرکت حمل")) +
-          "</span>" +
-          "  </div>" +
-          "</a>";
+    if (shipping.shipping_method || shipping.tracking_code || shipping.shipping_note) {
+      html += '<section class="jto-shipping-card" aria-label="ارسال و پیگیری مرسوله">';
+      html += '<h3>ارسال و پیگیری مرسوله</h3>';
+      if (shipping.shipping_method) {
+        html += '<p class="jto-shipping-method">روش ارسال ثبت‌شده: <strong>' +
+          escapeHtml(shipping.shipping_method) +
+          "</strong></p>";
       }
+      if (shipping.tracking_code) {
+        html += '<div class="jto-tracking-code">' +
+          '<span class="jto-tracking-code-text">کد پیگیری' +
+          (shipping.shipping_company ? ' — ' + escapeHtml(shipping.shipping_company) : "") +
+          ': <bdi dir="ltr">' + escapeHtml(toPersianDigits(shipping.tracking_code)) + "</bdi></span>" +
+          '<button type="button" data-copy="' + escapeHtml(shipping.tracking_code) + '">کپی کد</button>' +
+          "</div>";
+        var carrier = getCarrierInfo(shipping.shipping_company, shipping.tracking_code);
+        if (shipping.tracking_url) {
+          carrier = {
+            url: String(shipping.tracking_url),
+            color: (carrier && carrier.color) || "#7c3aed",
+          };
+        }
+        if (carrier) {
+          html += '<a class="jto-carrier-link" href="' +
+            escapeHtml(carrier.url) +
+            '" target="_blank" rel="noopener noreferrer">پیگیری در سایت ' +
+            escapeHtml(shipping.shipping_company || "شرکت حمل") +
+            "</a>";
+        } else {
+          html += '<p class="jto-shipping-help">کد را در سامانهٔ رسمی شرکت حمل‌ونقل وارد کنید.</p>';
+        }
+        if (shipping.requires_captcha) {
+          html += '<p class="jto-captcha-note">کد را در سامانهٔ پست وارد کنید و برای ادامه، کپچا را خودتان تکمیل کنید.</p>';
+        }
+      } else if (shipping.shipping_method) {
+        html += '<p class="jto-shipping-help">کد رهگیری پس از تحویل مرسوله و ثبت آن توسط فروشگاه در این بخش نمایش داده می‌شود.</p>';
+      }
+      if (shipping.shipping_note) {
+        html += '<div class="jto-shipping-note"><strong>یادداشت فروشگاه</strong><p>' +
+          escapeHtml(shipping.shipping_note).replace(/\r?\n/g, "<br>") +
+          "</p></div>";
+      }
+      html += "</section>";
     }
 
     if (hasDetails) {

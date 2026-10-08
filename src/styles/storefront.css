@@ -8541,3 +8541,67 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
 .jluxe-stock-alert-dialog__submit:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 639px) { .jluxe-stock-alert-dialog__panel { padding: 20px 16px; border-radius: var(--jluxe-radius-lg, 16px); } .jluxe-stock-alert-trigger { align-items: stretch; } .jluxe-stock-alert-trigger__button { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .jluxe-recent-products__list { scroll-behavior: auto; } }
+
+/* WooCommerce account order progress and shipment details. */
+.jluxe-order-timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 17px 0 4px;
+  padding: 0;
+  list-style: none;
+  direction: rtl;
+}
+.jluxe-order-timeline::before {
+  position: absolute;
+  inset-inline: 12.5%;
+  top: 15px;
+  height: 2px;
+  border-radius: 999px;
+  background: hsl(var(--border));
+  content: "";
+}
+.jluxe-order-timeline__step {
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: hsl(var(--text-muted));
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.jluxe-order-timeline__marker {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 2px solid hsl(var(--border));
+  border-radius: 50%;
+  background: hsl(var(--surface));
+  color: hsl(var(--text-muted));
+  font-size: 12px;
+  font-weight: 800;
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.jluxe-order-timeline__label { max-width: 100%; overflow-wrap: anywhere; }
+.jluxe-order-timeline__step.is-done { color: hsl(var(--success)); font-weight: 750; }
+.jluxe-order-timeline__step.is-done .jluxe-order-timeline__marker { border-color: hsl(var(--success)); background: hsl(var(--success)); color: hsl(var(--success-foreground, 0 0% 100%)); }
+.jluxe-order-timeline__step.is-active { color: hsl(var(--primary)); font-weight: 850; }
+.jluxe-order-timeline__step.is-active .jluxe-order-timeline__marker { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); box-shadow: 0 0 0 4px hsl(var(--primary) / .12); }
+.jluxe-order-timeline__step.is-upcoming .jluxe-order-timeline__marker { background: hsl(var(--muted)); }
+.jluxe-order-shipment__method { margin: 0; color: hsl(var(--text-secondary)); font-size: 12px; line-height: 1.8; }
+.jluxe-order-shipment__tracking { margin-top: 12px; padding: 12px; border: 1px dashed hsl(var(--primary) / .28); border-radius: 13px; background: hsl(var(--primary) / .055); }
+.jluxe-order-shipment__tracking-code { display: block; margin-top: 4px; color: hsl(var(--foreground)); font-family: ui-monospace, monospace; font-size: 14px; font-weight: 850; overflow-wrap: anywhere; }
+.jluxe-order-shipment__note { margin-top: 12px; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: 13px; background: hsl(var(--muted) / .55); }
+.jluxe-order-shipment__note p { margin: 4px 0 0; color: hsl(var(--text-secondary)); font-size: 12px; line-height: 1.85; white-space: pre-line; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .jluxe-order-timeline { gap: 1px; margin-top: 14px; }
+  .jluxe-order-timeline__step { gap: 6px; font-size: 10px; line-height: 1.45; }
+  .jluxe-order-timeline__marker { width: 29px; height: 29px; font-size: 11px; }
+  .jluxe-order-timeline::before { top: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .jluxe-order-timeline__marker { transition: none; } }

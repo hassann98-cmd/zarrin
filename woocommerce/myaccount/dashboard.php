@@ -1,13 +1,9 @@
 <?php
 /**
- * داشبورد «حساب کاربری» — جایگزینِ متن پیش‌فرض ووکامرس («Hello X») با
- * کارت‌های آماریِ واقعی (تعداد واقعی سفارش‌های همین کاربر بر اساس وضعیت،
- * از wc_get_orders — نه عدد ساختگی) + یک پنل «دسترسی سریع» که هر آیتمش
- * فقط وقتی نشون داده می‌شه که واقعاً پیکربندی شده باشه (طبق قانون «بدون
- * محتوای جعلی» پروژه — نه placeholder، نه صفر قلابی به‌جای «غیرفعال»).
- *
- * «کیف پول» چون هیچ افزونه‌ی کیف‌پولی (مثل woo-wallet) روی سایت نصب
- * نیست، به‌جای عدد ساختگی با وضعیت صریح «غیرفعال» نشون داده می‌شه.
+ * داشبورد «حساب کاربری» — کارت‌های آماریِ واقعی و محدود به سفارش‌های همین
+ * کاربر (از wc_get_orders، بدون بارگذاری همهٔ سفارش‌ها)؛ وضعیت‌های پرداخت،
+ * آماده‌سازی، تکمیل و سفارش‌های بسته‌شده از خودِ WooCommerce خوانده می‌شوند.
+ * پنل «دسترسی سریع» هم فقط لینک‌های واقعاً پیکربندی‌شده را نمایش می‌دهد.
 
  * @version 4.4.0
  */
@@ -16,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function jluxe_account_order_count( int $user_id, string $status ): int {
+function jluxe_account_order_count( int $user_id, $status ): int {
 	if ( $user_id < 1 ) {
 		return 0;
 	}
@@ -37,9 +33,10 @@ function jluxe_account_order_count( int $user_id, string $status ): int {
 
 $jluxe_user_id  = get_current_user_id();
 $jluxe_counts   = array(
-	'cancelled' => jluxe_account_order_count( $jluxe_user_id, 'wc-cancelled' ),
-	'refunded'  => jluxe_account_order_count( $jluxe_user_id, 'wc-refunded' ),
-	'completed' => jluxe_account_order_count( $jluxe_user_id, 'wc-completed' ),
+	'pending'    => jluxe_account_order_count( $jluxe_user_id, array( 'wc-pending', 'wc-on-hold' ) ),
+	'processing' => jluxe_account_order_count( $jluxe_user_id, 'wc-processing' ),
+	'completed'  => jluxe_account_order_count( $jluxe_user_id, 'wc-completed' ),
+	'closed'     => jluxe_account_order_count( $jluxe_user_id, array( 'wc-cancelled', 'wc-failed', 'wc-refunded' ) ),
 );
 
 $jluxe_phone        = jluxe_get_setting( 'contact.phone', '' );
@@ -47,10 +44,10 @@ $jluxe_announcement = jluxe_get_setting( 'contact.dashboard_announcement', '' );
 $jluxe_announce_url = jluxe_get_setting( 'contact.dashboard_announcement_link', '' );
 
 $jluxe_stat_cards = array(
-	array( 'label' => 'کنسل شده', 'value' => jluxe_fa_digits( $jluxe_counts['cancelled'] ) . ' سفارش', 'icon' => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>' ),
-	array( 'label' => 'مرجوع شده', 'value' => jluxe_fa_digits( $jluxe_counts['refunded'] ) . ' سفارش', 'icon' => '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>' ),
+	array( 'label' => 'منتظر پرداخت یا تأیید', 'value' => jluxe_fa_digits( $jluxe_counts['pending'] ) . ' سفارش', 'icon' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' ),
+	array( 'label' => 'در حال آماده‌سازی', 'value' => jluxe_fa_digits( $jluxe_counts['processing'] ) . ' سفارش', 'icon' => '<path d="M20.5 7.3 12 12l-8.5-4.7"/><path d="M12 22V12"/><path d="m20.5 7.3-8.4-4.6a1 1 0 0 0-1 0L3 7.3"/>' ),
 	array( 'label' => 'تکمیل شده', 'value' => jluxe_fa_digits( $jluxe_counts['completed'] ) . ' سفارش', 'icon' => '<path d="M20 6 9 17l-5-5"/>' ),
-	array( 'label' => 'کیف پول', 'value' => 'غیرفعال', 'icon' => '<rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 12h.01"/><path d="M2 10h20"/>' ),
+	array( 'label' => 'لغو یا بازگشت وجه', 'value' => jluxe_fa_digits( $jluxe_counts['closed'] ) . ' سفارش', 'icon' => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>' ),
 );
 ?>
 

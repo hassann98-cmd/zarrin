@@ -22,12 +22,12 @@ do_action( 'woocommerce_before_account_orders', $has_orders );
 		<?php foreach ( $customer_orders->orders as $customer_order ) :
 			$order         = wc_get_order( $customer_order ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$status        = $order->get_status();
-			$status_label  = function_exists( 'jluxe_get_status_label' ) ? jluxe_get_status_label( $status ) : wc_get_order_status_name( $status );
+			$status_label  = function_exists( 'jluxe_get_order_display_status_label' ) ? jluxe_get_order_display_status_label( $order ) : wc_get_order_status_name( $status );
 			$date_created  = $order->get_date_created();
 			$jalali_date   = ( $date_created && function_exists( 'jluxe_gregorian_timestamp_to_jalali_string' ) )
 				? jluxe_gregorian_timestamp_to_jalali_string( $date_created->getTimestamp(), 'Y/m/d' )
 				: ( $date_created ? wc_format_datetime( $date_created ) : '' );
-			$status_color  = in_array( $status, array( 'cancelled', 'failed' ), true )
+			$status_color  = in_array( $status, array( 'cancelled', 'failed', 'refunded' ), true )
 				? 'text-error'
 				: ( in_array( $status, array( 'completed' ), true ) ? 'text-success' : 'text-primary' );
 			?>

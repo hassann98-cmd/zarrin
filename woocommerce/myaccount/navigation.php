@@ -47,8 +47,7 @@ do_action( 'woocommerce_before_account_navigation' );
 					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $jluxe_account_icons['home']; ?></svg>
 				</span>
 				<span class="min-w-0 flex-1">
-					<strong class="block text-small font-bold">صفحهٔ اصلی</strong>
-					<span class="mt-0.5 block text-caption text-text-secondary">بازگشت به فروشگاه زرین</span>
+					<strong class="block text-small font-bold">بازگشت به فروشگاه</strong>
 				</span>
 				<svg class="size-4 shrink-0 text-text-muted transition-colors group-hover:text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
 			</a>
