@@ -127,9 +127,10 @@ jobs:
         shell: bash
         run: |
           if [[ -f .cache/integration/woocommerce-test.log ]]; then
-            while IFS= read -r line; do
+            grep -aE 'PASS:|AssertionError|PHP fixture failed|Unexpected PHP stderr|WOOCOMMERCE_INTEGRATION|Error:|ERR_ASSERTION|Node\.js v' .cache/integration/woocommerce-test.log | tail -n 35 | while IFS= read -r line; do
               escaped="${line//'%'/'%25'}"
               escaped="${escaped//$'\r'/'%0D'}"
+              escaped="${escaped:0:800}"
               echo "::error title=WooCommerce integration output::$escaped"
-            done < <(tail -n 80 .cache/integration/woocommerce-test.log)
+            done
           fi
