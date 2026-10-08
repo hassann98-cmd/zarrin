@@ -37,7 +37,21 @@ if (
   sha256(fs.readFileSync(core)) !==
   "811bc36f11d587d8ae330b37e783f4b2d1e876c83f35409181e28613fc4dfb2a"
 )
-  throw new Error("Cached WordPress archive checksum mismatch.");
+  throw new Error("Cached WordPress 6.9 archive checksum mismatch.");
+
+// WooCommerce 11.2.0 requires WordPress 7.0. Keep the older 6.9 fixture for
+// the Woo-absent baseline, and pin a separate current core for the real plugin.
+const core70 = path.join(destination, "wordpress-7.0.zip");
+const core70Commit = "b16cd68ea199838d8f9daf0ff7e3f35042ba0ad0";
+const core70Digest = "b641eae7ea9a78c928596919644963198cd7b6c84e818c07403ec5ea9720ff8c";
+if (!fs.existsSync(core70)) {
+  const bytes = api(`repos/WordPress/WordPress/zipball/${core70Commit}`);
+  if (sha256(bytes) !== core70Digest)
+    throw new Error("WordPress 7.0 archive checksum mismatch; review upstream before changing this pin.");
+  fs.writeFileSync(core70, bytes);
+}
+if (sha256(fs.readFileSync(core70)) !== core70Digest)
+  throw new Error("Cached WordPress 7.0 archive checksum mismatch.");
 
 // GitHub's source archive excludes the SQLite runtime via export-ignore, and
 // release-asset downloads are unavailable in some sandboxes. Reproduce upstream's
@@ -89,6 +103,6 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_STORED) as z:
   fileURLToPath(new URL("sqlite-files.json", import.meta.url)),
 ]);
 console.log(
-  `Prepared pinned WordPress 6.9 + SQLite 2.2.23 fixtures in ${destination}`,
+  `Prepared pinned WordPress 6.9/7.0 + SQLite 2.2.23 fixtures in ${destination}`,
 );
 console.log(`SQLite archive SHA-256: ${sha256(fs.readFileSync(archive))}`);

@@ -97,7 +97,7 @@ jobs:
           coverage: none
       - name: Install isolated integration tooling without lifecycle scripts
         run: npm ci --prefix tests/integration --ignore-scripts
-      - name: Prepare checksum-pinned WordPress and SQLite fixtures
+      - name: Prepare checksum-pinned WordPress 6.9/7.0 and SQLite fixtures
         env:
           GH_TOKEN: ${{ github.token }}
         run: npm --prefix tests/integration run prepare:fixtures

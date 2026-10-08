@@ -86,8 +86,8 @@ try {
   assert.ok(wooSource, "Official archive must contain the built woocommerce/woocommerce.php plugin");
 
   const core = await verifiedArchive(
-    "wordpress-6.9.zip",
-    "811bc36f11d587d8ae330b37e783f4b2d1e876c83f35409181e28613fc4dfb2a",
+    "wordpress-7.0.zip",
+    "b641eae7ea9a78c928596919644963198cd7b6c84e818c07403ec5ea9720ff8c",
   );
   const sqlite = await verifiedArchive(
     "sqlite-built-2.2.23.zip",
@@ -250,11 +250,11 @@ try {
       require_once ABSPATH . 'wp-admin/includes/plugin.php';
       $activated = activate_plugin('woocommerce/woocommerce.php', '', false, false);
       if (is_wp_error($activated)) throw new RuntimeException($activated->get_error_message());
-      return array('active'=>is_plugin_active('woocommerce/woocommerce.php'),'version'=>defined('WC_VERSION')?WC_VERSION:'missing');
+      return array('active'=>is_plugin_active('woocommerce/woocommerce.php'),'version'=>defined('WC_VERSION')?WC_VERSION:'missing','wpVersion'=>get_bloginfo('version'));
     `);
     check(
-      activation.active && activation.version === "11.2.0",
-      `The official WooCommerce ${activation.version} plugin activates in real WordPress ${phpVersion} + SQLite`,
+      activation.active && activation.version === "11.2.0" && activation.wpVersion === "7.0",
+      `Official WooCommerce ${activation.version} activates on real WordPress ${activation.wpVersion}, PHP-WASM ${phpVersion} + SQLite`,
     );
 
     const fixtures = await phpJson(`
@@ -495,7 +495,7 @@ try {
     );
     console.log(`WOOCOMMERCE_INTEGRATION_PASSED: ${results.length}`);
     console.log(
-      "Scope: WordPress 6.9, PHP-WASM, SQLite, built WooCommerce 11.2.0; simple/variable cart, stock, coupon and checkout render. No order submission, live gateway, SMS, browser, MySQL or production data.",
+      "Scope: WordPress 7.0, PHP-WASM, SQLite, built WooCommerce 11.2.0; simple/variable cart, stock, coupon and checkout render. No order submission, live gateway, SMS, browser, MySQL or production data.",
     );
   } finally {
     await handler[Symbol.asyncDispose]();
