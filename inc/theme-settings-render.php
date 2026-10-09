@@ -660,16 +660,22 @@ function jluxe_render_footer_page(): void {
 					<th scope="row">رنگ متن فوتر</th>
 					<td>
 						<input type="text" name="footer[text_color]" value="<?php echo esc_attr( $settings['footer']['text_color'] ); ?>" class="jluxe-color-field" />
-						<p class="description">عنوان کارت‌های مزیت، توضیح کوتاه، ساعات پشتیبانی، عنوان ستون‌های لینک، کپی‌رایت.</p>
+						<p class="description">متن معرفی برند، عنوان و توضیح کارت‌های مزیت، ساعات و متن پشتیبانی، عنوان ستون‌های لینک و کپی‌رایت.</p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row">رنگ لینک‌ها</th>
-					<td><input type="text" name="footer[link_color]" value="<?php echo esc_attr( $settings['footer']['link_color'] ); ?>" class="jluxe-color-field" /></td>
+					<td>
+						<input type="text" name="footer[link_color]" value="<?php echo esc_attr( $settings['footer']['link_color'] ); ?>" class="jluxe-color-field" />
+						<p class="description">رنگ لینک‌های ستون‌ها، شماره‌های تماس و شبکه‌های اجتماعی.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row">رنگ لینک‌ها (هاور/انتخاب)</th>
-					<td><input type="text" name="footer[link_hover_color]" value="<?php echo esc_attr( $settings['footer']['link_hover_color'] ); ?>" class="jluxe-color-field" /></td>
+					<td>
+						<input type="text" name="footer[link_hover_color]" value="<?php echo esc_attr( $settings['footer']['link_hover_color'] ); ?>" class="jluxe-color-field" />
+						<p class="description">برای هاور، فوکوس صفحه‌کلید و فعال‌سازی لینک.</p>
+					</td>
 				</tr>
 			</table>
 

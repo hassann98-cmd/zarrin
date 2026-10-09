@@ -104,7 +104,13 @@ test("recently viewed history renders separate mobile-friendly product and homep
 test("recent-product history uses a polished responsive rail and clear stock styling", () => {
   const styles = read("../src/styles/storefront.css");
   assert.match(styles, /\.jluxe-recent-products__heading\s*\{/);
+  assert.match(styles, /\.jluxe-recent-products__intro\s*\{[^}]*display:\s*flex/);
   assert.match(styles, /\.jluxe-recent-products__subtitle\s*\{/);
+  assert.match(styles, /\.jluxe-recent-products\s*\{[^}]*background:\s*hsl\(var\(--surface\)\)/);
+  assert.match(styles, /@media \(max-width: 379\.98px\)[\s\S]*?\.jluxe-recent-products__heading \{ display: grid;/);
+  assert.match(styles, /\.jluxe-recent-products__tools \{ width: 100%; justify-content: space-between;/);
+  assert.match(styles, /data-jluxe-recent-item-count="1"\] \.jluxe-recent-products__list \{ justify-content: center;/);
+  assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*?\.jluxe-recent-card:hover\s*\{/);
   assert.match(styles, /\.jluxe-recent-card__media\s*\{/);
   assert.match(styles, /\.jluxe-recent-card__stock\.is-in-stock\s*\{/);
   assert.match(styles, /\.jluxe-recent-card:hover\s*\{/);
@@ -118,8 +124,14 @@ test("recent-product history uses a polished responsive rail and clear stock sty
   assert.match(styles, /\.jluxe-recent-card__image\[hidden\] \{ display: none; \}/);
   assert.match(styles, /data-jluxe-recent-item-count=\"1\"[\s\S]*?grid-template-columns: 128px minmax\(0, 1fr\)/);
   assert.match(styles, /\.jluxe-recent-card__price-before \{[^}]*text-decoration: line-through;/);
-  const reducedMotionRule = styles.indexOf(".jluxe-recent-card, .jluxe-recent-card__image { transition: none;");
-  assert.ok(reducedMotionRule > 0 && styles.lastIndexOf("@media (prefers-reduced-motion: reduce)", reducedMotionRule) >= 0, "card motion respects reduced-motion preferences");
+  const recentStyles = styles.slice(
+    styles.indexOf("/* R160 — local browsing history"),
+    styles.indexOf(".jluxe-stock-alert-trigger {"),
+  );
+  const reducedMotionRule = recentStyles.indexOf("@media (prefers-reduced-motion: reduce)");
+  assert.ok(reducedMotionRule > 0, "the history rail keeps a reduced-motion override");
+  assert.match(recentStyles.slice(reducedMotionRule), /\.jluxe-recent-card:hover \{ transform: none; \}/);
+  assert.match(recentStyles.slice(reducedMotionRule), /\.jluxe-recent-card:hover \.jluxe-recent-card__image \{ transform: none; \}/);
 });
 
 test("history refreshes after bfcache return, tab visibility and storage updates without stale responses", async (t) => {

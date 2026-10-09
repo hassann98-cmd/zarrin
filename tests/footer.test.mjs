@@ -97,7 +97,7 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   assert.match(bottom.textContent, /© زرین/);
   assert.ok(bottom.querySelector('a[aria-label="اینستاگرام"]'), "icon-only social link keeps its aria-label");
   assert.equal(
-    columns.querySelector("a[data-jluxe-footer-link]").getAttribute("href"),
+    columns.querySelector("a.jluxe-footer-nav-link").getAttribute("href"),
     base + "order-status/",
     "R87 mapping still applies inside the portal",
   );
@@ -221,6 +221,53 @@ test("R191 footer is compact, keeps phone numbers together, and merges configure
   assert.doesNotMatch(badgeRenderer, /var\(--primary\)|rgba\(0,\s*0,\s*0|translateY/);
 });
 
+test("R193 footer text, link, and hover colors apply to every configured interactive link", async () => {
+  const win = dom(shell(), {
+    text_color: "#123456",
+    link_color: "#234567",
+    link_hover_color: "#345678",
+    support_text: "پشتیبانیِ ثبت‌شده در تنظیمات.",
+  });
+  win.JLuxeThemeSettings.contact = {
+    phone: "021-12345678",
+    phone_secondary: "09120000000",
+  };
+  win.JLuxeThemeSettings.social = {
+    instagram: { enabled: true, url: "https://instagram.com/example" },
+    telegram: { enabled: true, url: "https://t.me/example" },
+  };
+  await render();
+
+  const footer = document.querySelector("#jluxe-footer-root");
+  const configuredLinks = [...footer.querySelectorAll("[data-jluxe-footer-link]")];
+  assert.ok(configuredLinks.length >= 6, "navigation, phone, and social links share the settings-backed color hook");
+  for (const link of configuredLinks) {
+    assert.equal(link.style.color, "rgb(35, 69, 103)");
+  }
+  const supportCopy = footer.querySelector(".jluxe-footer-social-support");
+  assert.equal(supportCopy?.style.color, "rgb(18, 52, 86)");
+  const followCopy = footer.querySelector(".jluxe-footer-social-follow");
+  assert.equal(followCopy?.style.color, "rgb(18, 52, 86)");
+  const hoverRule = footer.querySelector('[data-jluxe-footer-slot="bottom"] style')?.textContent;
+  assert.match(hoverRule, /\[data-jluxe-footer-link\]:hover/);
+  assert.match(hoverRule, /\[data-jluxe-footer-link\]:focus-visible/);
+  assert.match(hoverRule, /\[data-jluxe-footer-link\]:active/);
+  assert.match(hoverRule, /#345678!important/);
+});
+
+test("R193 the contact-page fallback link follows configured footer link colors", async () => {
+  const win = dom(shell(), { link_color: "#234567", link_hover_color: "#345678" });
+  win.JLuxeThemeSettings.contact = {};
+  win.JLuxeThemeSettings.social = {};
+  await render();
+
+  const contactLink = document.querySelector(".jluxe-footer-contact-link");
+  assert.equal(contactLink?.style.color, "rgb(35, 69, 103)");
+  assert.equal(contactLink?.getAttribute("data-jluxe-footer-link"), "true");
+  const hoverRule = document.querySelector('[data-jluxe-footer-slot="bottom"] style')?.textContent;
+  assert.match(hoverRule, /\[data-jluxe-footer-link\]:focus-visible/);
+});
+
 test("R192 no social row is emitted when no social account or support copy is configured", async () => {
   const win = dom(shell());
   win.JLuxeThemeSettings.social = {};
@@ -239,7 +286,7 @@ test("R192 empty footer settings do not fabricate brand, schedule, feature, or p
 
   const footer = document.querySelector("#jluxe-footer-root");
   const columns = footer.querySelector('[data-jluxe-footer-slot="columns"]');
-  assert.equal(columns.querySelector(".jluxe-footer-brand-description")?.textContent, "");
+  assert.equal(columns.querySelector(".jluxe-footer-brand-description"), null, "an empty optional brand description leaves no blank paragraph gap");
   assert.equal(columns.querySelector(".jluxe-footer-support-card p"), null);
   assert.equal(columns.querySelector(".jluxe-footer-support-card h3")?.textContent, "راه‌های تماس");
   assert.equal(footer.querySelector('[data-jluxe-footer-slot="features"] .jluxe-footer-feature-grid'), null);

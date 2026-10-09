@@ -182,6 +182,7 @@ function Footer() {
   const socials = findSocialLinks(settings.social);
   const textStyle = footer?.text_color ? { color: footer.text_color } : undefined;
   const linkColor = footer?.link_color || undefined;
+  const linkStyle = linkColor ? { color: linkColor } : undefined;
   const hoverColor = footer?.link_hover_color || undefined;
   const featureIconColor = footer?.feature_cards_icon_color || undefined;
   const featureIconStyle = featureIconColor
@@ -269,7 +270,9 @@ function Footer() {
             const tag = href ? "a" : "span";
             const props = {
               className: "jluxe-footer-phone-link",
+              "data-jluxe-footer-link": true,
               dir: "ltr",
+              style: linkStyle,
               children: number,
             };
             if (href) {
@@ -281,7 +284,9 @@ function Footer() {
         })
       : e.jsx("a", {
           href: siteLink("/contact-us/"),
+          "data-jluxe-footer-link": true,
           className: "jluxe-footer-contact-link",
+          style: linkStyle,
           children: "مشاهدهٔ راه‌های تماس",
         });
 
@@ -347,7 +352,7 @@ function Footer() {
                       "data-jluxe-footer-link": true,
                       className:
                         "jluxe-footer-nav-link flex items-center gap-1.5 text-caption text-text-muted transition-colors hover:text-primary",
-                      style: linkColor ? { color: linkColor } : undefined,
+                      style: linkStyle,
                       children: [
                         link.svg
                           ? e.jsx("span", {
@@ -412,12 +417,14 @@ function Footer() {
     className: "jluxe-footer-brand-column sm:col-span-2 lg:col-span-1",
     children: [
       e.jsx(BrandLogo, { className: "jluxe-footer-logo" }),
-      e.jsx("p", {
-        className:
-          "jluxe-footer-brand-description mt-3 text-caption text-text-muted",
-        style: textStyle,
-        children: brandDescription,
-      }),
+      brandDescription
+        ? e.jsx("p", {
+            className:
+              "jluxe-footer-brand-description mt-3 text-caption text-text-muted",
+            style: textStyle,
+            children: brandDescription,
+          })
+        : null,
       supportNode,
     ],
   });
@@ -438,6 +445,7 @@ function Footer() {
                 supportText
                   ? e.jsx("span", {
                       className: "jluxe-footer-social-support",
+                      style: textStyle,
                       children: supportText,
                     })
                   : null,
@@ -450,6 +458,7 @@ function Footer() {
                 socials.length > 0
                   ? e.jsx("span", {
                       className: "jluxe-footer-social-follow",
+                      style: textStyle,
                       children: "ما را دنبال کنید",
                     })
                   : null,
@@ -467,7 +476,9 @@ function Footer() {
                         target: "_blank",
                         rel: "noopener noreferrer",
                         "aria-label": socialLabels[network] ?? network,
+                        "data-jluxe-footer-link": true,
                         className: "jluxe-footer-social-link",
+                        style: linkStyle,
                         children: networkSettings.svg
                           ? e.jsx("span", {
                               className: "size-4 [&>svg]:size-full",
@@ -497,7 +508,7 @@ function Footer() {
   });
   const hoverNode = hoverColor
     ? e.jsx("style", {
-        children: `[data-jluxe-footer-link]:hover{color:${hoverColor}!important}`,
+        children: `#jluxe-footer-root [data-jluxe-footer-link]:hover,#jluxe-footer-root [data-jluxe-footer-link]:focus-visible,#jluxe-footer-root [data-jluxe-footer-link]:active{color:${hoverColor}!important}`,
       })
     : null;
 

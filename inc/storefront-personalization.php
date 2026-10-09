@@ -398,10 +398,18 @@ function jluxe_render_recent_products_panel( string $context = 'product' ): void
 	>
 		<div class="jluxe-recent-products__inner">
 			<div class="jluxe-recent-products__heading">
-				<div class="jluxe-recent-products__copy">
-					<span class="jluxe-recent-products__eyebrow">بازدیدهای اخیر</span>
-					<h2 id="<?php echo esc_attr( $panel_id . '-title' ); ?>" class="jluxe-recent-products__title"><?php echo esc_html( $heading ); ?></h2>
-					<p class="jluxe-recent-products__subtitle"><?php echo esc_html( $subtitle ); ?></p>
+				<div class="jluxe-recent-products__intro">
+					<span class="jluxe-recent-products__icon" aria-hidden="true">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="8.5" />
+							<path d="M12 7v5l3 2" />
+						</svg>
+					</span>
+					<div class="jluxe-recent-products__copy">
+						<span class="jluxe-recent-products__eyebrow">بازدیدهای اخیر</span>
+						<h2 id="<?php echo esc_attr( $panel_id . '-title' ); ?>" class="jluxe-recent-products__title"><?php echo esc_html( $heading ); ?></h2>
+						<p class="jluxe-recent-products__subtitle"><?php echo esc_html( $subtitle ); ?></p>
+					</div>
 				</div>
 				<div class="jluxe-recent-products__tools">
 					<span class="jluxe-recent-products__count" data-jluxe-recent-count hidden aria-live="polite" aria-atomic="true"></span>
@@ -413,12 +421,6 @@ function jluxe_render_recent_products_panel( string $context = 'product' ): void
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
 						</button>
 					</div>
-					<span class="jluxe-recent-products__icon" aria-hidden="true">
-						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-							<circle cx="12" cy="12" r="8.5" />
-							<path d="M12 7v5l3 2" />
-						</svg>
-					</span>
 				</div>
 			</div>
 			<div id="<?php echo esc_attr( $panel_id . '-list' ); ?>" class="jluxe-recent-products__list" data-jluxe-recent-list role="list" aria-label="محصولات بازدیدشده؛ برای پیمایش از کلیدهای جهت‌دار استفاده کنید" aria-keyshortcuts="ArrowLeft ArrowRight Home End" tabindex="0"></div>
