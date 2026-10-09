@@ -6,12 +6,20 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "utf8");
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
+const mainSource = await readFile(new URL("src/main.js", root), "utf8");
+const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
 const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
-const { isMobileNavItemActive, mobileNavContainerStyle } = await import("../src/lib/mobile-navigation.js");
+const {
+  isMobileNavItemActive,
+  mobileNavContainerStyle,
+} = await import("../src/lib/mobile-navigation.js");
+const { resolveMobileNavItem, MOBILE_NAV_ACTIONS, siteLink } = await import(
+  "../src/lib/mobile-nav-actions.js"
+);
 
 function runStickyLayout(markup, measurements) {
   const dom = new JSDOM(markup, {
@@ -100,7 +108,7 @@ test("R121 mobile navigation matches same-origin routes, normalizes slashes, and
   assert.equal(isMobileNavItemActive("https://shop.test/store/members-orders/", account, "account"), false);
   assert.equal(isMobileNavItemActive("https://outside.test/store/members/", account, "account"), false);
   assert.equal(isMobileNavItemActive("https://shop.test/store/members/orders/", account, "shop"), false);
-  assert.match(mobileNavSource, /matchesCurrentRoute\(p, t, e\)/);
+  assert.match(mobileNavSource, /isActive\(currentHref, item\.href, item\.id\)/);
 });
 
 test("R121 the mobile dock adds the safe-area inset outside its configured touch row", () => {
@@ -115,6 +123,92 @@ test("R121 the mobile dock adds the safe-area inset outside its configured touch
   assert.equal(mobileNavContainerStyle("invalid").height, `calc(68px + ${safeArea})`);
   assert.match(footerTemplate, /jluxe-footer-content-wrap/);
   assert.match(storefrontStyles, /margin-bottom: calc\(90px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+});
+
+test("R182 floating navigation resolves its built-in support, category, shop, cart, and account actions", () => {
+  const urls = {
+    home: "https://shop.test/store/",
+    shop: "https://shop.test/store/store/",
+    dashboard: "https://shop.test/store/members/",
+    login: "https://shop.test/store/login/",
+    cart: "https://shop.test/store/cart/",
+    track_order: "https://shop.test/store/track-order/",
+  };
+
+  assert.deepEqual(MOBILE_NAV_ACTIONS, [
+    "assistant",
+    "categories",
+    "home",
+    "shop",
+    "account",
+    "track",
+    "cart",
+    "link",
+  ]);
+  assert.equal(
+    resolveMobileNavItem({ action: "assistant" }, { urls, assistantUrl: "https://shop.test/store/faq/#open-ai-assistant" }).href,
+    "https://shop.test/store/faq/#open-ai-assistant",
+  );
+  assert.deepEqual(
+    (({ href, opensDrawer }) => ({ href, opensDrawer }))(
+      resolveMobileNavItem({ action: "categories" }, { urls, categoriesUrl: "https://shop.test/store/product-categories/" }),
+    ),
+    { href: "https://shop.test/store/product-categories/", opensDrawer: "categories" },
+  );
+  assert.equal(resolveMobileNavItem({ action: "shop" }, { urls }).opensDrawer, undefined);
+  assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: false }).href, urls.login);
+  assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: true }).href, urls.dashboard);
+  assert.deepEqual(
+    (({ href, opensDrawer }) => ({ href, opensDrawer }))(
+      resolveMobileNavItem({ action: "cart" }, { urls }),
+    ),
+    { href: urls.cart, opensDrawer: "cart" },
+  );
+  assert.equal(resolveMobileNavItem({ action: "track" }, { urls }).href, urls.track_order);
+});
+
+test("R182 custom floating-menu links support new tabs while invalid actions fail closed", () => {
+  const resolved = resolveMobileNavItem(
+    { id: "support", label: "تماس", action: "link", url: "https://contact.test/", target_blank: true },
+    { urls: { home: "https://shop.test/" } },
+  );
+  assert.equal(resolved.href, "https://contact.test/");
+  assert.equal(resolved.targetBlank, true);
+  assert.equal(resolveMobileNavItem({ action: "not-allowed" }, { urls: { home: "/" } }).href, "/");
+  assert.match(mainSource, /mobile-nav-floating.*FloatingMobileNav\.js/);
+  assert.match(footerTemplate, /mobile-nav-floating/);
+  assert.match(floatingNavSource, /jluxe-mobile-nav--floating/);
+  assert.match(floatingNavSource, /data-jluxe-mobile-nav-variant/);
+  assert.match(floatingNavSource, /jluxe:toggle-mobile-bar/);
+  assert.match(floatingNavSource, /data-jluxe-mobile-price-bar/);
+});
+
+test("R182 floating links follow configured routes and retain a WordPress subdirectory", () => {
+  const urls = {
+    home: "https://shop.test/store/",
+    shop: "https://shop.test/store/catalog/",
+  };
+  assert.equal(siteLink("/faq#open-ai-assistant", urls), "https://shop.test/store/faq#open-ai-assistant");
+  assert.equal(siteLink("/cats", urls), "https://shop.test/store/cats");
+  assert.equal(siteLink("/shop", urls), urls.shop);
+  const configuredFaq = { ...urls, faq: "https://shop.test/store/help-center/" };
+  assert.equal(
+    `${siteLink(configuredFaq.faq, configuredFaq)}#open-ai-assistant`,
+    "https://shop.test/store/help-center/#open-ai-assistant",
+  );
+  assert.equal(siteLink("https://external.test/contact", urls), "https://external.test/contact");
+  assert.equal(siteLink("/faq", {}), "http://localhost/faq");
+});
+
+test("R182 floating dock matches the supplied pill layout and leaves the classic dock intact", () => {
+  assert.match(storefrontStyles, /\.jluxe-mobile-nav\.jluxe-mobile-nav--floating/);
+  assert.match(storefrontStyles, /bottom: calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(storefrontStyles, /border: 1px solid hsl\(var\(--border\)\)/);
+  assert.match(storefrontStyles, /\.jluxe-mobile-nav--floating \.jluxe-mobile-nav-item--floating:focus-visible/);
+  assert.match(floatingNavSource, /prefers-reduced-motion: reduce/);
+  assert.match(floatingNavSource, /urls\.faq \|\| "\/faq"/);
+  assert.match(footerTemplate, /mobile\.nav_variant/);
+  assert.match(mobileNavSource, /nav_items \?\? \[\]/);
 });
 
 test("R121 product tabs and in-page targets account for the live sticky header and announcement offsets", () => {

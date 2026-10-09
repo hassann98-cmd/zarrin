@@ -1421,23 +1421,27 @@ function jluxe_render_contact_page(): void {
 }
 
 function jluxe_render_mobile_contact_page(): void {
-	$status   = jluxe_handle_mobile_contact_combined_save();
-	$settings = jluxe_get_fresh_settings();
-	$icons    = jluxe_nav_icon_options();
-
-	// نقش/لینکِ واقعیِ هر تب در MobileNav.tsx ثابته (بعضی‌ها رفتار خاص
-	// دارن، مثلاً «سبد»/«دسته‌بندی‌ها» دراور کشویی باز می‌کنن نه ناوبریِ
-	// معمولی) — پس id قابل تغییر نیست، فقط برای نمایشِ اسمِ واقعیِ هر ردیف
-	// این‌جا استفاده می‌شه.
-	$id_names = array(
-		'track'   => 'پیگیری سفارش (لینک به صفحه‌ی پیگیری سریع)',
-		'shop'    => 'دسته‌بندی‌ها (باز کردن دراورِ دسته‌بندی)',
+	$status         = jluxe_handle_mobile_contact_combined_save();
+	$settings       = jluxe_get_fresh_settings();
+	$icons          = jluxe_nav_icon_options();
+	$floating_icons = jluxe_mobile_nav_icon_options();
+	$nav_actions    = jluxe_mobile_nav_action_options();
+	$id_names       = array(
+		'track'   => 'پیگیری سفارش',
+		'shop'    => 'دسته‌بندی‌ها',
 		'home'    => 'خانه',
-		'account' => 'حساب کاربری (ورود/حساب بسته به وضعیتِ لاگین)',
-		'cart'    => 'سبد خرید (باز کردن دراورِ سبد)',
+		'account' => 'حساب کاربری',
+		'cart'    => 'سبد خرید',
+	);
+	$floating_names = array(
+		'support'    => 'پشتیبانی',
+		'categories' => 'دسته‌ها',
+		'home'       => 'خانه',
+		'account'    => 'اکانت',
+		'cart'       => 'سبد خرید',
 	);
 
-	jluxe_settings_page_shell( 'موبایل و تماس', 'jluxe-mobile-contact', $status, function () use ( $settings, $icons, $id_names ) {
+	jluxe_settings_page_shell( 'موبایل و تماس', 'jluxe-mobile-contact', $status, function () use ( $settings, $icons, $floating_icons, $nav_actions, $id_names, $floating_names ) {
 		$social_labels = array(
 			'instagram' => 'اینستاگرام',
 			'telegram'  => 'تلگرام',
@@ -1456,7 +1460,21 @@ function jluxe_render_mobile_contact_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">نوار پایین موبایل (<code>MobileNav.tsx</code>) — همیشه همین ۵ تبِ واقعی‌ان (چون هرکدوم رفتار واقعیِ خودشون رو دارن)، ولی می‌تونی با درگ‌کردنِ دستگیره ترتیب‌شون رو عوض کنی، برچسب/آیکون هرکدوم رو تغییر بدی، یا هرکدوم رو غیرفعال کنی.</p>
+					<h3>طرح نوار پایین</h3>
+					<p class="description">می‌توانی طرح فعلی را نگه داری یا نوار شناورِ کپسولیِ نمونه را انتخاب کنی. انتخاب طرح فقط ظاهر و مجموعهٔ آیتم‌های همان نوار را عوض می‌کند؛ طرح فعلی پیش‌فرض می‌ماند.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="jluxe-mobile-nav-variant">طرح فعال</label></th>
+							<td>
+								<select id="jluxe-mobile-nav-variant" name="mobile[nav_variant]">
+									<option value="classic" <?php selected( $settings['mobile']['nav_variant'] ?? 'classic', 'classic' ); ?>>نوار فعلی (تمام‌عرض)</option>
+									<option value="floating" <?php selected( $settings['mobile']['nav_variant'] ?? 'classic', 'floating' ); ?>>نوار شناورِ کپسولی (طرح نمونه)</option>
+								</select>
+							</td>
+						</tr>
+					</table>
+					<h3>آیتم‌های نوار فعلی</h3>
+					<p class="description">این طرح همان رفتار قبلی را حفظ می‌کند. ترتیب، برچسب، آیکون و نمایش هر آیتم قابل تغییر است.</p>
 					<div class="jluxe-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="nav_items">
 							<?php foreach ( $settings['mobile']['nav_items'] as $i => $item ) : ?>
@@ -1483,8 +1501,51 @@ function jluxe_render_mobile_contact_page(): void {
 							<?php endforeach; ?>
 						</div>
 					</div>
+
+					<h3>آیتم‌های نوار شناورِ نمونه</h3>
+					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
+					<div class="jluxe-repeater jluxe-mobile-floating-nav-repeater" data-sortable="true">
+						<div class="jluxe-repeater-list" data-group="floating_nav_items">
+							<?php foreach ( $settings['mobile']['floating_nav_items'] as $i => $item ) : ?>
+								<div class="jluxe-repeater-item jluxe-mobile-floating-nav-item">
+									<div class="jluxe-repeater-item-head">
+										<span class="jluxe-repeater-handle dashicons dashicons-menu" aria-hidden="true"></span>
+										<strong><?php echo esc_html( $floating_names[ $item['id'] ] ?? $item['id'] ); ?></strong>
+									</div>
+									<input type="hidden" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][id]" value="<?php echo esc_attr( $item['id'] ); ?>" />
+									<div class="jluxe-repeater-row jluxe-mobile-floating-nav-fields">
+										<label>برچسب<br />
+											<input type="text" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $item['label'] ); ?>" class="regular-text" />
+										</label>
+										<label>آیکون<br />
+											<select name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][icon]">
+												<?php foreach ( $floating_icons as $val => $label ) : ?>
+													<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'], $val ); ?>><?php echo esc_html( $label ); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</label>
+										<label>عملکرد<br />
+											<select class="jluxe-mobile-nav-action" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][action]">
+												<?php foreach ( $nav_actions as $action => $action_label ) : ?>
+													<option value="<?php echo esc_attr( $action ); ?>" <?php selected( $item['action'], $action ); ?>><?php echo esc_html( $action_label ); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</label>
+										<div class="jluxe-mobile-nav-link-options" data-mobile-nav-link-options>
+											<label>لینک دلخواه (مسیر نسبی یا https)<br />
+												<input type="text" dir="ltr" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][url]" value="<?php echo esc_attr( $item['url'] ); ?>" class="regular-text" placeholder="/faq/ یا https://example.com/" />
+											</label>
+											<label class="jluxe-mobile-nav-new-tab"><input type="checkbox" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][target_blank]" value="1" <?php checked( ! empty( $item['target_blank'] ) ); ?> /> بازشدن در زبانهٔ جدید</label>
+										</div>
+										<label class="jluxe-mobile-nav-enabled"><input type="checkbox" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][enabled]" value="1" <?php checked( $item['enabled'] ); ?> /> نمایش</label>
+									</div>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					</div>
+
 					<h3>استایل نوار موبایل</h3>
-					<p class="description">ظاهر نوار پایین موبایل را بدون دستکاری کد تنظیم کن. رنگ آیکون‌ها، حالت فعال، سایه، گردی، ارتفاع، شفافیت و افکت ورود از همین بخش کنترل می‌شود.</p>
+					<p class="description">رنگ نوار، رنگ آیکون/حالت فعال و سایه در هر دو طرح استفاده می‌شوند. پس‌زمینهٔ جداگانهٔ آیکون‌ها، گردی و ارتفاع فقط روی طرح فعلی اثر دارند؛ طرح شناور به شکل کپسولی و دارای قاب ظریف می‌ماند.</p>
 					<?php $mstyle = $settings['mobile']['nav_style'] ?? array(); ?>
 					<table class="form-table" role="presentation">
 						<tr>

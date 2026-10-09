@@ -137,6 +137,21 @@ jQuery(function ($) {
 	$(document).on("change", ".jluxe-announcement-mode", syncAnnouncementMode);
 	syncAnnouncementMode();
 
+	// لینکِ دستی فقط وقتی لازم است که عملکردِ آیتم روی «لینک دلخواه» باشد.
+	function syncMobileNavActionFields(scope) {
+		var $scope = scope ? $(scope) : $(document);
+		$scope.find(".jluxe-mobile-nav-action").each(function () {
+			var $action = $(this);
+			var isCustomLink = $action.val() === "link";
+			var $options = $action.closest(".jluxe-repeater-item").find("[data-mobile-nav-link-options]").first();
+			$options.toggle(isCustomLink).attr("aria-hidden", isCustomLink ? "false" : "true");
+		});
+	}
+	$(document).on("change", ".jluxe-mobile-nav-action", function () {
+		syncMobileNavActionFields($(this).closest(".jluxe-repeater-item"));
+	});
+	syncMobileNavActionFields(document);
+
 	// ===================================================================
 	// Repeater عمومی (اسلایدهای هیرو، آیتم‌های دسته‌بندی و هر لیست پویای
 	// مشابه دیگه) — افزودن/حذف ردیف + renumber کردن index داخل name="...".

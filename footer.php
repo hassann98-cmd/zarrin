@@ -34,7 +34,12 @@
 	<?php endif; ?>
 
 
-	<div data-jluxe-island="mobile-nav"></div>
+	<?php
+	$jluxe_mobile_nav_island = 'floating' === jluxe_get_setting( 'mobile.nav_variant', 'classic' )
+		? 'mobile-nav-floating'
+		: 'mobile-nav';
+	?>
+	<div data-jluxe-island="<?php echo esc_attr( $jluxe_mobile_nav_island ); ?>"></div>
 
 	<?php
 	// این آیلند فقط وقتی داخلش واقعاً چیزی رندر می‌کنه که سرور enabled=true

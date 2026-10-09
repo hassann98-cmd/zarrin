@@ -586,28 +586,29 @@ function jluxe_sanitize_contact( array $posted, array $defaults ): array {
 }
 
 /**
- * ترتیبِ آرایه‌ی ورودی (posted) حفظ می‌شه — چون همون چیزیه که با درگ‌ودراپ
- * در ادمین جابه‌جا شده. id فقط از یک whitelist ثابت (همون ۵ آیتمِ واقعی
- * که در MobileNav.tsx رفتار/لینکِ خودشون رو دارن) پذیرفته می‌شه؛ هر id
- * ناشناس یا تکراری رد می‌شه، و اگه آیتمی کلاً جا بمونه (مثلاً فرم دستکاری
- * شده) از پیش‌فرض همون id اضافه می‌شه تا هیچ‌وقت یکی از ۵ تب گم نشه.
+ * ترتیبِ درگ‌شده حفظ می‌شود؛ شناسه، عملکرد، آیکون و URL فقط از فهرست‌های امن
+ * پذیرفته می‌شوند. آیتم‌های حذف‌شده از POST نیز با مقدارِ پیش‌فرض برمی‌گردند.
  */
 function jluxe_sanitize_mobile( array $posted, array $defaults ): array {
-	$valid_ids     = wp_list_pluck( $defaults['nav_items'], 'id' );
+	$valid_ids      = wp_list_pluck( $defaults['nav_items'], 'id' );
 	$defaults_by_id = array();
 	foreach ( $defaults['nav_items'] as $default_item ) {
 		$defaults_by_id[ $default_item['id'] ] = $default_item;
 	}
 
-	$nav_items = array();
-	$seen_ids  = array();
-	foreach ( $posted['nav_items'] ?? array() as $item ) {
-		$id = isset( $item['id'] ) ? sanitize_key( $item['id'] ) : '';
+	$nav_items        = array();
+	$seen_ids         = array();
+	$posted_nav_items = isset( $posted['nav_items'] ) && is_array( $posted['nav_items'] ) ? $posted['nav_items'] : array();
+	foreach ( $posted_nav_items as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		$id = isset( $item['id'] ) && is_scalar( $item['id'] ) ? sanitize_key( (string) $item['id'] ) : '';
 		if ( ! in_array( $id, $valid_ids, true ) || in_array( $id, $seen_ids, true ) ) {
 			continue;
 		}
 		$seen_ids[] = $id;
-		$label      = isset( $item['label'] ) ? sanitize_text_field( $item['label'] ) : '';
+		$label      = isset( $item['label'] ) && is_scalar( $item['label'] ) ? sanitize_text_field( (string) $item['label'] ) : '';
 		$nav_items[] = array(
 			'id'      => $id,
 			'label'   => '' !== $label ? $label : $defaults_by_id[ $id ]['label'],
@@ -622,19 +623,87 @@ function jluxe_sanitize_mobile( array $posted, array $defaults ): array {
 		}
 	}
 
-	$style = $posted['nav_style'] ?? array();
-	$hex = static function ( $value, $fallback ) {
-		$value = sanitize_hex_color( (string) $value );
+	$floating_defaults = $defaults['floating_nav_items'] ?? array();
+	$floating_ids      = wp_list_pluck( $floating_defaults, 'id' );
+	$floating_by_id    = array();
+	foreach ( $floating_defaults as $default_item ) {
+		$floating_by_id[ $default_item['id'] ] = $default_item;
+	}
+	$valid_icons   = array_keys( function_exists( 'jluxe_mobile_nav_icon_options' ) ? jluxe_mobile_nav_icon_options() : ( function_exists( 'jluxe_nav_icon_options' ) ? jluxe_nav_icon_options() : array() ) );
+	$valid_actions = array_keys( function_exists( 'jluxe_mobile_nav_action_options' ) ? jluxe_mobile_nav_action_options() : array() );
+	$sanitize_url  = static function ( $value ): string {
+		$url = trim( sanitize_text_field( is_scalar( $value ) ? (string) $value : '' ) );
+		if ( '' === $url || 0 === strpos( $url, '//' ) || preg_match( '/^\s*(?:javascript|data|vbscript):/i', $url ) ) {
+			return '';
+		}
+		$scheme = parse_url( $url, PHP_URL_SCHEME );
+		if ( $scheme && ! in_array( strtolower( $scheme ), array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+			return '';
+		}
+		return esc_url_raw( $url );
+	};
+
+	$floating_items        = array();
+	$floating_seen         = array();
+	$posted_floating_items = isset( $posted['floating_nav_items'] ) && is_array( $posted['floating_nav_items'] ) ? $posted['floating_nav_items'] : array();
+	foreach ( $posted_floating_items as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		$id = isset( $item['id'] ) && is_scalar( $item['id'] ) ? sanitize_key( (string) $item['id'] ) : '';
+		if ( ! in_array( $id, $floating_ids, true ) || in_array( $id, $floating_seen, true ) ) {
+			continue;
+		}
+		$floating_seen[] = $id;
+		$default         = $floating_by_id[ $id ];
+		$label           = isset( $item['label'] ) && is_scalar( $item['label'] ) ? sanitize_text_field( (string) $item['label'] ) : '';
+		$icon            = isset( $item['icon'] ) && is_scalar( $item['icon'] ) ? sanitize_key( (string) $item['icon'] ) : $default['icon'];
+		$action          = isset( $item['action'] ) && is_scalar( $item['action'] ) ? sanitize_key( (string) $item['action'] ) : $default['action'];
+		$url             = $sanitize_url( $item['url'] ?? '' );
+		if ( ! in_array( $icon, $valid_icons, true ) ) {
+			$icon = $default['icon'];
+		}
+		if ( ! in_array( $action, $valid_actions, true ) ) {
+			$action = $default['action'];
+		}
+		if ( 'link' === $action && '' === $url ) {
+			$action = $default['action'];
+		}
+		$floating_items[] = array(
+			'id'           => $id,
+			'label'        => '' !== $label ? $label : $default['label'],
+			'icon'         => $icon,
+			'action'       => $action,
+			'url'          => $url,
+			'target_blank' => ! empty( $item['target_blank'] ),
+			'enabled'      => ! empty( $item['enabled'] ),
+		);
+	}
+	foreach ( $floating_ids as $id ) {
+		if ( ! in_array( $id, $floating_seen, true ) ) {
+			$floating_items[] = $floating_by_id[ $id ];
+		}
+	}
+
+	$style          = isset( $posted['nav_style'] ) && is_array( $posted['nav_style'] ) ? $posted['nav_style'] : array();
+	$hex            = static function ( $value, $fallback ) {
+		$value = sanitize_hex_color( is_scalar( $value ) ? (string) $value : '' );
 		return $value ?: $fallback;
 	};
 	$style_defaults = $defaults['nav_style'];
-	$shadow = sanitize_key( $style['shadow'] ?? $style_defaults['shadow'] );
-	$radius = max( 12, min( 32, absint( $style['radius'] ?? $style_defaults['radius'] ) ) );
-	$height = max( 60, min( 82, absint( $style['height'] ?? $style_defaults['height'] ) ) );
+	$shadow_raw     = $style['shadow'] ?? $style_defaults['shadow'];
+	$radius_raw     = $style['radius'] ?? $style_defaults['radius'];
+	$height_raw     = $style['height'] ?? $style_defaults['height'];
+	$shadow         = sanitize_key( is_scalar( $shadow_raw ) ? (string) $shadow_raw : $style_defaults['shadow'] );
+	$radius         = max( 12, min( 32, absint( is_scalar( $radius_raw ) ? $radius_raw : $style_defaults['radius'] ) ) );
+	$height         = max( 60, min( 82, absint( is_scalar( $height_raw ) ? $height_raw : $style_defaults['height'] ) ) );
+	$variant        = isset( $posted['nav_variant'] ) && is_scalar( $posted['nav_variant'] ) ? sanitize_key( (string) $posted['nav_variant'] ) : 'classic';
 
 	return array(
-		'nav_items' => $nav_items,
-		'nav_style' => array(
+		'nav_variant'        => 'floating' === $variant ? 'floating' : 'classic',
+		'nav_items'          => $nav_items,
+		'floating_nav_items' => $floating_items,
+		'nav_style'          => array(
 			'background'   => $hex( $style['background'] ?? '', $style_defaults['background'] ),
 			'active_color' => $hex( $style['active_color'] ?? '', $style_defaults['active_color'] ),
 			'icon_color'   => $hex( $style['icon_color'] ?? '', $style_defaults['icon_color'] ),

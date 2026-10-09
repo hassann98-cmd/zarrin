@@ -21,6 +21,7 @@ const islands = {
   "mini-cart": () => import("./islands/MiniCart.js"),
   "category-drawer": () => import("./islands/CategoryDrawer.js"),
   "mobile-nav": () => import("./islands/MobileNav.js"),
+  "mobile-nav-floating": () => import("./islands/FloatingMobileNav.js"),
   "product-details-demo": () => import("./islands/ProductDetails.js"),
   "shop-archive-demo": () => import("./islands/ShopArchive.js"),
   "cart-checkout-demo": () => import("./islands/CartCheckout.js"),

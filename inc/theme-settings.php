@@ -546,19 +546,24 @@ function jluxe_theme_settings_defaults(): array {
 			'bank_name'   => '',
 		),
 		'mobile' => array(
-			// آیتم‌های نوار پایین موبایل — id ثابته (رفتار واقعی/لینک هر
-			// آیتم در MobileNav.tsx به id وصله، قابل تغییر نیست چون بعضی
-			// آیتم‌ها رفتار خاص دارن مثل باز کردن دراور سبد/دسته‌بندی به‌جای
-			// ناوبری معمولی)، ولی برچسب، آیکون، فعال/غیرفعال، و مهم‌تر از
-			// همه ترتیبِ خودِ آرایه (قابل جابه‌جایی با درگ در ادمین) واقعاً
-			// زنده‌ن. آیتمِ account برچسبش رو فقط وقتی کاربر لاگین باشه
-			// همینجا نشون می‌ده؛ حالتِ خروج همچنان «ورود» ثابت می‌مونه.
+			// طرح قدیمی همان پیش‌فرض می‌ماند؛ طرح شناور نمونه جداگانه انتخاب می‌شود.
+			'nav_variant' => 'classic', // classic | floating
+			// آیتم‌های نوار فعلی، برای حفظ رفتار قبلی بدون تغییر.
 			'nav_items' => array(
 				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'package', 'enabled' => true ),
 				array( 'id' => 'shop', 'label' => 'دسته‌بندی‌ها', 'icon' => 'grid', 'enabled' => true ),
 				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'enabled' => true ),
 				array( 'id' => 'account', 'label' => 'حساب', 'icon' => 'user', 'enabled' => true ),
 				array( 'id' => 'cart', 'label' => 'سبد', 'icon' => 'cart', 'enabled' => true ),
+			),
+			// پنج جایگاهِ طرح نمونه؛ برچسب، آیکون، عملکرد، URL و ترتیب
+			// هرکدام در پنل قابل تغییر است.
+			'floating_nav_items' => array(
+				array( 'id' => 'support', 'label' => 'پشتیبانی', 'icon' => 'headphones', 'action' => 'assistant', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'categories', 'label' => 'دسته‌ها', 'icon' => 'menu', 'action' => 'categories', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'action' => 'home', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'account', 'label' => 'اکانت', 'icon' => 'user', 'action' => 'account', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'cart', 'label' => 'سبد خرید', 'icon' => 'cart', 'action' => 'cart', 'url' => '', 'target_blank' => false, 'enabled' => true ),
 			),
 			'nav_style' => array(
 				'background'   => '#ffffff',
@@ -890,8 +895,29 @@ function jluxe_nav_icon_options(): array {
 	);
 }
 
+/** مجموعهٔ آیکونِ نوار شناور؛ «فهرست» فقط در همین گزینه به مجموعهٔ عمومی افزوده می‌شود. */
+function jluxe_mobile_nav_icon_options(): array {
+	$icons          = jluxe_nav_icon_options();
+	$icons['menu']  = 'فهرست';
+	return $icons;
+}
+
+/** عملکردهای امن و محدودِ قابل‌اتصال به دکمه‌های نوار شناور موبایل. */
+function jluxe_mobile_nav_action_options(): array {
+	return array(
+		'assistant'  => 'بازکردن دستیار پشتیبانی',
+		'categories' => 'بازکردن پنل دسته‌بندی‌ها',
+		'home'       => 'رفتن به خانه',
+		'shop'       => 'رفتن به فروشگاه',
+		'account'    => 'ورود / حساب کاربری',
+		'track'      => 'پیگیری سفارش',
+		'cart'       => 'بازکردن سبد خرید',
+		'link'       => 'رفتن به لینک دلخواه',
+	);
+}
+
 /**
- * SVG آیکون منو — از همون مجموعه‌ی جluxe_nav_icon_options. اگه نام معتبر
+ * SVG آیکون منو — از همون مجموعه‌ی jLuxe_nav_icon_options. اگه نام معتبر
  * نباشه رشته‌ی خالی برمی‌گرده (یعنی هیچ آیکونی چاپ نشه، نه یک آیکون شکسته).
  */
 function jluxe_nav_icon_svg( string $name, string $class = 'size-4' ): string {
@@ -914,7 +940,8 @@ function jluxe_nav_icon_svg( string $name, string $class = 'size-4' ): string {
 		'heart'        => '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
 		'gift'         => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/>',
 		'cart'         => '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
-		'grid'         => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+		'grid'          => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+		'menu'          => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
 		'headphones'   => '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
 	);
 	if ( '' === $name || ! isset( $paths[ $name ] ) ) {

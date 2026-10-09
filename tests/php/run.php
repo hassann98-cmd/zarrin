@@ -1220,6 +1220,77 @@ check(
 	'R112 mobile-menu restyle is scoped to the supplied navigation, five equal tabs, safe-area-aware, accessible, motion-respecting, and avoids global width/overflow hacks'
 );
 
+// R182: keep the existing mobile dock as default and offer an independently configurable pill dock.
+$r182_mobile_defaults = jluxe_theme_settings_defaults()['mobile'];
+$r182_mobile_clean = jluxe_sanitize_mobile( array(
+	'nav_variant' => 'floating',
+	'floating_nav_items' => array(
+		array( 'id' => 'cart', 'label' => 'سبد تازه', 'icon' => 'menu', 'action' => 'link', 'url' => 'https://links.test/basket/', 'target_blank' => '1', 'enabled' => '1' ),
+		array( 'id' => 'support', 'label' => 'پشتیبانی', 'icon' => 'script-tag', 'action' => 'javascript', 'url' => 'javascript:alert(1)', 'enabled' => '1' ),
+		array( 'id' => 'cart', 'label' => 'تکراری', 'icon' => 'cart', 'action' => 'cart', 'enabled' => '1' ),
+	),
+), $r182_mobile_defaults );
+check(
+	'classic' === $r182_mobile_defaults['nav_variant'] &&
+	'floating' === $r182_mobile_clean['nav_variant'] &&
+	array( 'support', 'categories', 'home', 'account', 'cart' ) === array_column( $r182_mobile_defaults['floating_nav_items'], 'id' ) &&
+	'cart' === $r182_mobile_clean['floating_nav_items'][0]['id'] &&
+	'https://links.test/basket/' === $r182_mobile_clean['floating_nav_items'][0]['url'] &&
+	'menu' === $r182_mobile_clean['floating_nav_items'][0]['icon'] &&
+	true === $r182_mobile_clean['floating_nav_items'][0]['target_blank'] &&
+	'assistant' === $r182_mobile_clean['floating_nav_items'][1]['action'] &&
+	'headphones' === $r182_mobile_clean['floating_nav_items'][1]['icon'] &&
+	'' === $r182_mobile_clean['floating_nav_items'][1]['url'] &&
+	5 === count( $r182_mobile_clean['floating_nav_items'] ),
+	'R182 floating-nav sanitizer keeps reorder/custom action and https URL, rejects unsafe scheme/icon/action/duplicates, and restores omitted slots'
+);
+$r182_malformed_mobile = jluxe_sanitize_mobile( array(
+	'nav_variant'        => array( 'floating' ),
+	'nav_items'          => 'not-an-array',
+	'floating_nav_items' => 'not-an-array',
+	'nav_style'          => 'not-an-array',
+), $r182_mobile_defaults );
+check(
+	'classic' === $r182_malformed_mobile['nav_variant'] &&
+	5 === count( $r182_malformed_mobile['nav_items'] ) &&
+	5 === count( $r182_malformed_mobile['floating_nav_items'] ) &&
+	$r182_mobile_defaults['nav_style']['background'] === $r182_malformed_mobile['nav_style']['background'] &&
+	$r182_mobile_defaults['nav_style']['radius'] === $r182_malformed_mobile['nav_style']['radius'] &&
+	$r182_mobile_defaults['nav_style']['height'] === $r182_malformed_mobile['nav_style']['height'],
+	'R182 malformed mobile settings fail closed to safe defaults without warnings'
+);
+check(
+	isset( jluxe_mobile_nav_action_options()['assistant'], jluxe_mobile_nav_action_options()['categories'], jluxe_mobile_nav_action_options()['link'] ) &&
+	isset( jluxe_mobile_nav_icon_options()['menu'] ) &&
+	! isset( jluxe_nav_icon_options()['menu'] ) &&
+	false !== strpos( jluxe_nav_icon_svg( 'menu' ), '<line' ) &&
+	false !== strpos( (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' ), 'mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][action]' ),
+	'R182 admin exposes the alternate style, safe action picker, and hamburger icon'
+);
+check(
+	'https://shop.test/store/faq/' === ( jluxe_public_urls()['faq'] ?? '' ),
+	'R182 assistant destination is a public WordPress FAQ URL and respects a subdirectory install'
+);
+$r182_saved_settings = jluxe_get_theme_settings();
+$r182_saved_query = $GLOBALS['query_kind'] ?? null;
+$r182_floating_settings = $r182_saved_settings;
+$r182_floating_settings['mobile']['nav_variant'] = 'floating';
+update_test_settings( $r182_floating_settings );
+$GLOBALS['query_kind'] = 'shop';
+ob_start();
+include ABSPATH . 'footer.php';
+$r182_floating_footer = ob_get_clean();
+check(
+	false !== strpos( $r182_floating_footer, 'data-jluxe-island="mobile-nav-floating"' ),
+	'R182 choosing the floating variant loads its separate lazy island from the footer'
+);
+update_test_settings( $r182_saved_settings );
+if ( null === $r182_saved_query ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r182_saved_query;
+}
+
 // R44: reviews section rebuilt in the user's reference design language (22px white card,
 // hairline border, soft 0 2px 14px shadow, recessed #f7f8fa-style panels).
 $tpl_def=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');

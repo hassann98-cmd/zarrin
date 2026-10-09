@@ -420,6 +420,35 @@
 	flex: 1 1 220px;
 }
 
+.jluxe-mobile-floating-nav-fields .jluxe-mobile-nav-link-options {
+	display: flex;
+	flex: 2 1 380px;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 10px;
+}
+
+.jluxe-mobile-nav-link-options > label:first-child {
+	flex: 1 1 260px;
+}
+
+.jluxe-mobile-nav-new-tab,
+.jluxe-mobile-nav-enabled {
+	flex: 0 0 auto !important;
+	align-self: center;
+}
+
+@media (max-width: 782px) {
+	.jluxe-mobile-floating-nav-fields {
+		align-items: stretch;
+	}
+
+	.jluxe-mobile-floating-nav-fields > label,
+	.jluxe-mobile-nav-link-options > label:first-child {
+		flex: 1 1 100%;
+	}
+}
+
 /*
  * پیش‌نمایشِ چیدمانِ «کلاژ بنر» — grid-template-columns/rows/areas و
  * grid-area هرکدوم مستقیماً از PHP (jluxe_hb_collage_desktop_layouts()،

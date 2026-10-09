@@ -94,5 +94,7 @@ function jluxe_public_urls(): array {
 	foreach ( array( 'home', 'shop', 'login', 'dashboard', 'orders', 'cart', 'checkout', 'track_order', 'thankyou_orders', 'lost_password' ) as $key ) {
 		$out[ $key ] = jluxe_route_url( $key );
 	}
+	$faq_url      = function_exists( 'jluxe_ai_page_url_by_slug' ) ? jluxe_ai_page_url_by_slug( 'faq' ) : '';
+	$out['faq']   = $faq_url ?: home_url( '/faq/' );
 	return $out;
 }
