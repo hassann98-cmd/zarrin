@@ -42,6 +42,16 @@ for (const element of document.querySelectorAll("[data-jluxe-island]")) {
   const name = element.dataset.jluxeIsland;
   const load = islands[name];
   if (!load) continue;
+  if (name === "ai-assistant") {
+    // The optional floating support UI is not part of first paint. Skip its
+    // chunk entirely when disabled; when enabled, fetch/mount it after eager
+    // content (especially the LCP image) has finished loading.
+    if (!window.JLuxeThemeSettings?.aiAssistant?.enabled) continue;
+    const mountAssistant = () => mountIsland(element, load);
+    if (document.readyState === "complete") window.setTimeout(mountAssistant, 0);
+    else window.addEventListener("load", mountAssistant, { once: true });
+    continue;
+  }
   if (name !== "footer" || !("IntersectionObserver" in window)) {
     mountIsland(element, load);
     continue;

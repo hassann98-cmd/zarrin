@@ -8868,3 +8868,31 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
     animation: none;
   }
 }
+
+/* R184: tiny, CSS-only cross-document transitions on mobile. SSR and the
+   browser's normal navigation stay authoritative; unsupported browsers ignore it. */
+@media (max-width: 767.98px) and (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-old(root) {
+    animation: jluxe-mobile-page-out 110ms ease-out both;
+  }
+  ::view-transition-new(root) {
+    animation: jluxe-mobile-page-in 150ms cubic-bezier(.2, .7, .2, 1) both;
+  }
+  [data-jluxe-soft-nav].jluxe-soft-nav-enter {
+    animation: jluxe-mobile-soft-nav-in 150ms cubic-bezier(.2, .7, .2, 1) both;
+  }
+  @keyframes jluxe-mobile-page-out {
+    to { opacity: .9; transform: translateY(-2px); }
+  }
+  @keyframes jluxe-mobile-page-in {
+    from { opacity: .96; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes jluxe-mobile-soft-nav-in {
+    from { opacity: .88; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

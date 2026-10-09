@@ -630,17 +630,17 @@ test("R88 Lenis is no longer in the main bundle — it is a lazy chunk", () => {
   assert.ok(entry.dynamicImports?.some((k) => /lenis/.test(k)), "lenis is a dynamic import of the entry");
 });
 
-test("R170 the shared storefront closure has 10 JS files under the gzip budget while route islands stay lazy", () => {
+test("R184 the optional assistant waits until after page load and stays outside the initial shell budget", () => {
   const root = new URL("../assets/compiled/", import.meta.url);
   const manifest = JSON.parse(fs.readFileSync(new URL("manifest.json", root), "utf8"));
   const entry = manifest["src/main.js"];
+  const mainSource = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   const initialIslands = [
     "src/islands/Header.js",
     "src/islands/MegaMenu.js",
     "src/islands/MiniCart.js",
     "src/islands/CategoryDrawer.js",
     "src/islands/MobileNav.js",
-    "src/islands/AiAssistant.js",
   ];
   const routeIslands = [
     "src/islands/Footer.js",
@@ -650,6 +650,12 @@ test("R170 the shared storefront closure has 10 JS files under the gzip budget w
     "src/islands/AuthPage.jsx",
     "src/islands/CategoriesBrowser.js",
   ];
+  const optionalIslands = ["src/islands/AiAssistant.js"];
+  assert.match(
+    mainSource,
+    /if \(name === "ai-assistant"\)[\s\S]*?if \(!window\.JLuxeThemeSettings\?\.aiAssistant\?\.enabled\) continue;[\s\S]*?document\.readyState === "complete"[\s\S]*?window\.addEventListener\("load", mountAssistant, \{ once: true \}\);[\s\S]*?continue;/,
+    "the assistant is skipped when disabled and otherwise mounted only after load",
+  );
   const visit = (key, seen) => {
     if (seen.has(key)) return;
     assert.ok(manifest[key], `manifest entry exists for ${key}`);
@@ -663,21 +669,21 @@ test("R170 the shared storefront closure has 10 JS files under the gzip budget w
   const jsFiles = [...closure]
     .map((key) => manifest[key]?.file)
     .filter((file) => file?.endsWith(".js"));
-  assert.equal(jsFiles.length, 10, `initial home closure: ${jsFiles.join(", ")}`);
+  assert.equal(jsFiles.length, 8, `initial home closure: ${jsFiles.join(", ")}`);
   const gzipBytes = jsFiles.reduce(
     (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
     0,
   );
-  assert.ok(gzipBytes >= 100_000 && gzipBytes <= 100_751, `gzip closure is ${gzipBytes} bytes`);
+  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 94_000, `gzip closure is ${gzipBytes} bytes`);
 
   const staticClosure = new Set();
   visit("src/main.js", staticClosure);
-  for (const key of routeIslands) {
+  for (const key of [...routeIslands, ...optionalIslands]) {
     assert.ok(entry.dynamicImports?.includes(key), `${key} remains a dynamic island entry`);
     assert.ok(!closure.has(key), `${key} is outside the initial home closure`);
   }
   assert.ok(staticClosure.has("src/main.js"));
-  assert.ok(routeIslands.every((key) => !staticClosure.has(key)));
+  assert.ok([...routeIslands, ...optionalIslands].every((key) => !staticClosure.has(key)));
 });
 
 test("R170 compiled shared UI and shell islands evaluate without cross-chunk ESM cycles", async () => {
