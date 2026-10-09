@@ -10,8 +10,13 @@ import { S as CartIcon } from "../icons/shopping-cart.js";
 import { useDialog } from "../lib/use-dialog.js";
 
 const h = React.createElement;
+const DEFAULT_ASSISTANT_ACCENT = "#2f7468";
 const MessageIcon = createIcon("MessageCircle", [
   ["path", { d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z", key: "message" }],
+]);
+const SparklesIcon = createIcon("Sparkles", [
+  ["path", { d: "m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z", key: "main-sparkle" }],
+  ["path", { d: "m19 14 1.2 2.8L23 18l-2.8 1.2L19 22l-1.2-2.8L15 18l2.8-1.2L19 14Z", key: "small-sparkle" }],
 ]);
 const HeadsetIcon = createIcon("Headset", [
   ["path", { d: "M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z", key: "headset" }],
@@ -361,6 +366,7 @@ function Assistant() {
   const assistant = settings.aiAssistant;
   const auth = settings.auth || {};
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -387,9 +393,37 @@ function Assistant() {
   const dialogRef = useRef(null);
   const lightboxRef = useRef(null);
   const rootRef = useRef(null);
+  const closeTimerRef = useRef(null);
 
-  useDialog(open && !lightbox, dialogRef, () => setOpen(false));
+  function openAssistant() {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setClosing(false);
+    setOpen(true);
+  }
+
+  function closeAssistant() {
+    if (!open || closing) return;
+    setClosing(true);
+    setContactOpen(false);
+    const prefersReducedMotion = typeof window.matchMedia === "function"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setOpen(false);
+      setClosing(false);
+      setTicketMode(false);
+    }, prefersReducedMotion ? 0 : 180);
+  }
+
+  useDialog(open && !lightbox, dialogRef, closeAssistant);
   useDialog(!!lightbox, lightboxRef, () => setLightbox(null));
+
+  useEffect(() => () => {
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const resize = () => setViewportWidth(window.innerWidth);
@@ -541,7 +575,7 @@ function Assistant() {
       setTicketMode(false);
       setContactOpen(false);
       setError(null);
-      setOpen(true);
+      openAssistant();
     };
     const click = (event) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -575,12 +609,64 @@ function Assistant() {
         }
       })
       .catch(() => {});
-    const timer = window.setTimeout(() => inputRef.current?.focus(), 60);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
+    return () => { active = false; };
   }, [open]);
+
+  useEffect(() => {
+    if (!open || closing || isMobile) return undefined;
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 60);
+    return () => window.clearTimeout(timer);
+  }, [open, closing, isMobile]);
+
+  useEffect(() => {
+    if (!open || !isMobile || !rootRef.current) return undefined;
+    const root = rootRef.current;
+    const visualViewport = window.visualViewport;
+    let animationFrame = 0;
+    let fallbackTimer = 0;
+    const requestFrame = typeof window.requestAnimationFrame === "function"
+      ? window.requestAnimationFrame.bind(window)
+      : (callback) => window.setTimeout(callback, 16);
+    const cancelFrame = typeof window.cancelAnimationFrame === "function"
+      ? window.cancelAnimationFrame.bind(window)
+      : window.clearTimeout.bind(window);
+
+    function updateViewport() {
+      animationFrame = 0;
+      fallbackTimer = 0;
+      const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+      const visibleHeight = Math.max(1, Math.min(layoutHeight, visualViewport?.height || layoutHeight));
+      const visibleTop = Math.max(0, visualViewport?.offsetTop || 0);
+      root.style.setProperty("--aia-visual-viewport-height", `${visibleHeight}px`);
+      root.style.setProperty("--aia-visual-viewport-offset-top", `${visibleTop}px`);
+      root.style.setProperty("--aia-quick-replies-max-height", `${Math.min(160, Math.max(76, Math.round(visibleHeight * 0.2)))}px`);
+    }
+
+    function scheduleViewportUpdate() {
+      if (animationFrame || fallbackTimer) return;
+      if (typeof window.requestAnimationFrame === "function") {
+        animationFrame = requestFrame(updateViewport);
+      } else {
+        fallbackTimer = requestFrame(updateViewport);
+      }
+    }
+
+    scheduleViewportUpdate();
+    visualViewport?.addEventListener("resize", scheduleViewportUpdate, { passive: true });
+    visualViewport?.addEventListener("scroll", scheduleViewportUpdate, { passive: true });
+    window.addEventListener("resize", scheduleViewportUpdate, { passive: true });
+    window.addEventListener("orientationchange", scheduleViewportUpdate, { passive: true });
+    return () => {
+      visualViewport?.removeEventListener("resize", scheduleViewportUpdate);
+      visualViewport?.removeEventListener("scroll", scheduleViewportUpdate);
+      window.removeEventListener("resize", scheduleViewportUpdate);
+      window.removeEventListener("orientationchange", scheduleViewportUpdate);
+      if (animationFrame || fallbackTimer) cancelFrame(animationFrame || fallbackTimer);
+      root.style.removeProperty("--aia-visual-viewport-height");
+      root.style.removeProperty("--aia-visual-viewport-offset-top");
+      root.style.removeProperty("--aia-quick-replies-max-height");
+    };
+  }, [open, isMobile]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -596,11 +682,13 @@ function Assistant() {
   const bottom = isMobile ? assistant.offsetBottomMobile : assistant.offsetBottomDesktop;
   const offset = isMobile ? assistant.offsetSideMobile : assistant.offsetSideDesktop;
   const launcherBottom = Math.max(Number(bottom) || 0, dockClearance);
+  const assistantAccent = assistant.primaryColor || DEFAULT_ASSISTANT_ACCENT;
   const rootStyle = {
     position: "fixed",
     zIndex: 90,
-    "--aia-primary": assistant.primaryColor || "hsl(var(--primary))",
-    bottom: isMobile && open ? "max(8px, env(safe-area-inset-bottom))" : `${launcherBottom}px`,
+    "--aia-primary": assistantAccent,
+    top: isMobile && open ? "calc(var(--aia-visual-viewport-offset-top, 0px) + max(8px, env(safe-area-inset-top)))" : undefined,
+    bottom: isMobile && open ? "auto" : `${launcherBottom}px`,
     [configuredSide]: isMobile && open ? `max(8px, env(safe-area-inset-${safeAreaSide}))` : `${offset}px`,
   };
   const handoffEnabled = !!(assistant.handoffWhatsapp || assistant.handoffTelegram || assistant.handoffFormUrl || assistant.enableTicketForm);
@@ -736,16 +824,16 @@ function Assistant() {
         "section",
         {
           ref: dialogRef,
-          className: `jluxe-ai-window flex flex-col overflow-hidden border border-border bg-surface shadow-xl ${isMobile ? "is-mobile" : "is-desktop"}`,
+          className: `jluxe-ai-window flex flex-col overflow-hidden border border-border bg-surface shadow-xl ${isMobile ? "is-mobile" : "is-desktop"}${closing ? " is-closing" : ""}`,
           style: {
             width: isMobile ? "min(520px, calc(100vw - 16px))" : `min(${assistant.windowWidth || 380}px, calc(100vw - 24px))`,
             height: isMobile
-              ? "min(820px, calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))))"
+              ? "min(820px, calc(var(--aia-visual-viewport-height, 100dvh) - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))))"
               : "min(680px, calc(100dvh - 36px))",
             borderRadius: isMobile ? "24px" : `${assistant.borderRadius || 16}px`,
             transformOrigin: isMobile ? "bottom center" : assistant.position === "start" ? "bottom right" : "bottom left",
             color: assistant.textColor || undefined,
-            "--aia-primary": assistant.primaryColor || "hsl(var(--primary))",
+            "--aia-primary": assistantAccent,
           },
           key: "panel",
           role: "dialog",
@@ -779,7 +867,7 @@ function Assistant() {
                         : null,
                     ] })
                   : null,
-                h("button", { key: "close", type: "button", onClick: () => { setOpen(false); setContactOpen(false); }, "aria-label": "بستن گفتگو", className: "jluxe-ai-header-action flex size-9 items-center justify-center rounded-full", children: h(CloseIcon, { className: "size-4", "aria-hidden": true }) }),
+                h("button", { key: "close", type: "button", onClick: closeAssistant, "aria-label": "بستن گفتگو", className: "jluxe-ai-header-action flex size-9 items-center justify-center rounded-full", children: h(CloseIcon, { className: "size-4", "aria-hidden": true }) }),
               ],
             }),
             ticketMode
@@ -796,8 +884,8 @@ function Assistant() {
                         h("input", { key: "ticket-name", type: "text", value: name, onChange: (event) => setName(event.target.value), placeholder: "نام شما", required: true, maxLength: 80, disabled: ticketLoading, className: "rounded-lg border border-border bg-surface px-3 py-2 text-small outline-none focus:border-primary disabled:opacity-60" }),
                         h("input", { key: "ticket-contact", type: "text", value: email, onChange: (event) => setEmail(event.target.value), placeholder: "ایمیل یا شماره تماس", required: true, maxLength: 254, disabled: ticketLoading, className: "rounded-lg border border-border bg-surface px-3 py-2 text-small outline-none focus:border-primary disabled:opacity-60" }),
                         h("textarea", { key: "ticket-message", value: ticketMessage, onChange: (event) => setTicketMessage(event.target.value), placeholder: "پیامت رو بنویس…", required: true, maxLength: 2000, rows: 4, disabled: ticketLoading, className: "flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-small outline-none focus:border-primary disabled:opacity-60" }),
-                        ticketError ? h("p", { key: "ticket-error", role: "alert", className: "text-caption", style: { color: assistant.negativeColor || undefined }, children: ticketError }) : null,
-                        h("button", { key: "ticket-submit", type: "submit", disabled: ticketLoading || !name.trim() || !email.trim() || !ticketMessage.trim(), className: "rounded-lg bg-primary py-2.5 text-small font-medium text-primary-foreground disabled:opacity-40", children: ticketLoading ? "در حال ارسال…" : "ارسال پیام" }),
+                        ticketError ? h("p", { key: "ticket-error", role: "alert", className: "jluxe-ai-error text-caption", style: { color: assistant.negativeColor || undefined }, children: ticketError }) : null,
+                        h("button", { key: "ticket-submit", type: "submit", disabled: ticketLoading || !name.trim() || !email.trim() || !ticketMessage.trim(), className: "rounded-lg bg-primary py-2.5 text-small font-medium text-primary-foreground disabled:opacity-40", style: { background: assistantAccent }, children: ticketLoading ? "در حال ارسال…" : "ارسال پیام" }),
                       ] }),
                 ] })
               : h(React.Fragment, { key: "chat", children: [
@@ -812,7 +900,7 @@ function Assistant() {
                     ...messages.map((message, index) => h("div", {
                       key: `${message.role}-${index}`,
                       className: ["jluxe-ai-bubble max-w-[92%] rounded-xl p-2.5 text-small leading-6", message.role === "user" ? "jluxe-ai-bubble--user text-primary-foreground" : "jluxe-ai-bubble--assistant text-foreground"].join(" "),
-                      style: { background: message.role === "user" ? assistant.bgUserColor || "hsl(var(--primary))" : assistant.bgBotColor || "hsl(var(--muted))" },
+                      style: { background: message.role === "user" ? assistant.bgUserColor || assistantAccent : assistant.bgBotColor || "hsl(var(--muted))" },
                       children: message.role === "assistant" ? renderReply(message.text, { ...assistant, products: message.products || [] }, (src, alt) => setLightbox({ src, alt })) : message.text,
                     })),
                     loading && !hasStreamingReply ? h("div", { key: "typing", className: "jluxe-ai-typing", role: "status", children: [
@@ -823,10 +911,25 @@ function Assistant() {
                     error ? h("div", { key: "error", className: "jluxe-ai-error text-caption", role: "alert", style: { color: assistant.negativeColor || undefined }, children: error }) : null,
                   ] }),
                   messages.length === 0 && Array.isArray(assistant.quickReplies) && assistant.quickReplies.length
-                    ? h("div", { key: "quick-replies", className: "jluxe-ai-quick-replies", children: assistant.quickReplies.map((reply) => h("button", { key: reply, type: "button", onClick: () => sendMessage(reply), className: "jluxe-ai-quick-reply", children: reply })) })
+                    ? h("div", {
+                        key: "quick-replies",
+                        className: "jluxe-ai-quick-replies",
+                        role: "group",
+                        "aria-label": "پیشنهادهای شروع گفتگو",
+                        children: assistant.quickReplies.map((reply, index) => h("button", {
+                          key: `${reply}-${index}`,
+                          type: "button",
+                          onClick: () => sendMessage(reply),
+                          className: "jluxe-ai-quick-reply",
+                          children: [
+                            h(SparklesIcon, { key: "icon", className: "jluxe-ai-quick-reply-icon", "aria-hidden": true }),
+                            h("span", { key: "text", className: "jluxe-ai-quick-reply-text", children: reply }),
+                          ],
+                        })),
+                      })
                     : null,
                   h("form", { key: "chat-form", className: "jluxe-ai-chat-form", onSubmit: (event) => { event.preventDefault(); sendMessage(); }, children: [
-                    h("input", { key: "chat-input", ref: inputRef, type: "text", value: input, onChange: (event) => setInput(event.target.value), placeholder: "پیامت رو بنویس…", "aria-label": "پیام شما", autoComplete: "off", maxLength: 1000, className: "jluxe-ai-chat-input" }),
+                    h("input", { key: "chat-input", ref: inputRef, type: "text", value: input, onChange: (event) => setInput(event.target.value), placeholder: "پیامت رو بنویس…", "aria-label": "پیام شما", autoComplete: "off", enterKeyHint: "send", maxLength: 1000, className: "jluxe-ai-chat-input" }),
                     h("button", { key: "send", type: "submit", disabled: loading || !input.trim(), "aria-label": "ارسال", className: "jluxe-ai-send", children: h(SendIcon, { className: "size-4", "aria-hidden": true }) }),
                   ] }),
                 ] }),
@@ -836,10 +939,10 @@ function Assistant() {
     : h("button", {
         key: "launcher",
         type: "button",
-        onClick: () => setOpen(true),
+        onClick: openAssistant,
         "aria-label": productLauncher ? `راهنمای خرید با ${assistant.name}` : `گفتگو با ${assistant.name}`,
         className: `jluxe-ai-launcher flex size-14 items-center justify-center rounded-full text-white shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2${productLauncher ? " jluxe-ai-launcher--product" : ""}`,
-        style: { background: assistant.primaryColor || "hsl(var(--primary))" },
+        style: { background: assistantAccent },
         children: [
           h("span", {
             key: "mark",
@@ -864,15 +967,15 @@ function Assistant() {
         key: "backdrop",
         type: "button",
         tabIndex: -1,
-        className: "jluxe-ai-backdrop",
+        className: `jluxe-ai-backdrop${closing ? " is-closing" : ""}`,
         "aria-label": "بستن گفتگوی دستیار",
-        onClick: () => setOpen(false),
+        onClick: closeAssistant,
       })
     : null;
 
   return h("div", {
     ref: rootRef,
-    className: `jluxe-ai-root ${isMobile ? "is-mobile" : "is-desktop"}${isProductPage ? " is-product" : ""} ${open ? "is-open" : "is-closed"}`,
+    className: `jluxe-ai-root ${isMobile ? "is-mobile" : "is-desktop"}${isProductPage ? " is-product" : ""} ${open ? "is-open" : "is-closed"}${closing ? " is-closing" : ""}`,
     style: rootStyle,
     children: [mobileBackdrop, panel, imageModal],
   });

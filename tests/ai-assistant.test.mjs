@@ -16,6 +16,23 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   };
   Object.defineProperty(dom.window, "innerWidth", { configurable: true, writable: true, value: 390 });
   Object.defineProperty(dom.window, "innerHeight", { configurable: true, writable: true, value: 800 });
+  const visualViewportListeners = new Map();
+  const visualViewport = {
+    width: 390,
+    height: 760,
+    offsetTop: 0,
+    addEventListener(type, listener) {
+      if (!visualViewportListeners.has(type)) visualViewportListeners.set(type, new Set());
+      visualViewportListeners.get(type).add(listener);
+    },
+    removeEventListener(type, listener) {
+      visualViewportListeners.get(type)?.delete(listener);
+    },
+    dispatch(type) {
+      visualViewportListeners.get(type)?.forEach((listener) => listener());
+    },
+  };
+  Object.defineProperty(dom.window, "visualViewport", { configurable: true, value: visualViewport });
   dom.window.document.title = "x".repeat(150);
   dom.window.document.getElementById("bottom-navigation").getBoundingClientRect = () => ({
     top: 714,
@@ -134,7 +151,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
       offsetSideDesktop: 22,
       windowWidth: 380,
       borderRadius: 16,
-      quickReplies: ["معرفی محصول"],
+      quickReplies: ["معرفی محصول", "راهنمای انتخاب محصول بر اساس نیاز و بودجه", "پیگیری وضعیت سفارش"],
       handoffFormUrl: "https://shop.test/shopping-guide/",
       enableTicketForm: true,
       contact: {
@@ -175,6 +192,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   });
   assert.ok(mount.querySelector(".jluxe-ai-launcher"), "mobile launcher is visible by default");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-product"), "single-product pages receive the refined product launcher treatment");
+  assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#2f7468", "the assistant has a calm teal default accent when no admin color is configured");
   assert.equal(mount.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the product launcher clears the measured price-and-add bar with a 12px gap");
 
@@ -247,15 +265,34 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   const click = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
   await act(async () => {
     trigger.dispatchEvent(click);
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 90));
   });
   assert.equal(click.defaultPrevented, true, "#open-ai-assistant clicks are intercepted without navigation");
   assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "a hash link also opens the assistant");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-mobile.is-open .jluxe-ai-backdrop"), "mobile opens as a focused, dismissible app-like sheet");
   assert.match(mount.querySelector(".jluxe-ai-window").style.width, /100vw/);
   assert.match(mount.querySelector(".jluxe-ai-window").style.height, /100dvh/);
+  const mobileRoot = mount.querySelector(".jluxe-ai-root");
+  assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-height"), "760px", "the open sheet follows the visible mobile viewport rather than only the layout viewport");
+  assert.equal(mobileRoot.style.getPropertyValue("--aia-quick-replies-max-height"), "152px", "suggestion space is sized to the available viewport");
+  assert.ok(mount.querySelector(".jluxe-ai-window").classList.contains("is-mobile"));
+  assert.notEqual(document.activeElement, mount.querySelector(".jluxe-ai-chat-input"), "opening the assistant does not force the mobile keyboard to appear");
+  const quickReplyGroup = mount.querySelector('.jluxe-ai-quick-replies[role="group"]');
+  assert.equal(quickReplyGroup?.getAttribute("aria-label"), "پیشنهادهای شروع گفتگو");
+  assert.equal(quickReplyGroup?.querySelectorAll(".jluxe-ai-quick-reply").length, 3, "long quick prompts remain separate, readable buttons");
   assert.ok(mount.querySelector(".jluxe-ai-welcome"), "the opening message is presented as a styled welcome card");
   assert.equal(mount.querySelector(".jluxe-ai-chat-input").maxLength, 1000, "chat input matches the server-side message bound");
+
+  visualViewport.height = 420;
+  visualViewport.offsetTop = 24;
+  await act(async () => {
+    visualViewport.dispatch("resize");
+    visualViewport.dispatch("scroll");
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  });
+  assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-height"), "420px", "opening the on-screen keyboard resizes the assistant sheet to the visible viewport");
+  assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-offset-top"), "24px", "visual viewport panning keeps the sheet aligned with the visible area");
+  assert.equal(mobileRoot.style.getPropertyValue("--aia-quick-replies-max-height"), "84px", "quick replies compact when the keyboard reduces available height");
 
   await act(async () => {
     mount.querySelector('button[aria-label="ارتباط با پشتیبانی انسانی"]').click();
@@ -310,6 +347,11 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
     mount.querySelector('button[aria-label="بستن گفتگو"]').click();
     await Promise.resolve();
   });
+  assert.ok(mount.querySelector(".jluxe-ai-root.is-closing .jluxe-ai-window"), "closing plays the exit transition before unmounting the chat");
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  });
+  assert.equal(mount.querySelector(".jluxe-ai-window"), null, "the panel unmounts after the close animation completes");
   Object.defineProperty(dom.window, "innerWidth", { configurable: true, writable: true, value: 1024 });
   await act(async () => {
     dom.window.dispatchEvent(new dom.window.Event("resize"));
