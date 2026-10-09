@@ -475,7 +475,7 @@ function jluxe_render_trust_badge_item_fields( int $index, array $badge ): void 
 	if ( '' === trim( $html ) && ! empty( $badge['image_id'] ) ) {
 		$image_url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 		if ( $image_url ) {
-			$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد سایت" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+			$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
 			$html = ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img;
 		}
 	}
@@ -675,13 +675,20 @@ function jluxe_render_footer_page(): void {
 
 			<table class="form-table" role="presentation">
 				<tr>
+					<th scope="row"><label for="jluxe-footer-brand-description">معرفی برند در فوتر</label></th>
+					<td>
+						<textarea id="jluxe-footer-brand-description" name="footer[brand_description]" rows="4" class="large-text"><?php echo esc_textarea( $settings['footer']['brand_description'] ?? '' ); ?></textarea>
+						<p class="description">این متن فقط در فوتر نمایش داده می‌شود و با توضیح کوتاه هویت سایت و متادیتای سئو یکی نیست.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-support-hours">ساعات پشتیبانی</label></th>
 					<td><input type="text" id="jluxe-support-hours" name="footer[support_hours]" value="<?php echo esc_attr( $settings['footer']['support_hours'] ); ?>" class="regular-text" /></td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-support-text">متن پشتیبانی متنی</label></th>
 					<td>
-						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="مثلاً پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله" />
+						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="مثلاً پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی" />
 						<p class="description">این متن در خط «پشتیبانی متنی» فوتر نمایش داده می‌شود.</p>
 					</td>
 				</tr>
@@ -765,7 +772,7 @@ function jluxe_render_footer_page(): void {
 				<tr>
 					<th scope="row">عنوانِ بخشِ نمادها</th>
 					<td>
-						<input type="text" name="footer[trust_badges_title]" class="regular-text" value="<?php echo esc_attr( $settings['footer']['trust_badges_title'] ?? 'نمادهای سایت' ); ?>" />
+						<input type="text" name="footer[trust_badges_title]" class="regular-text" value="<?php echo esc_attr( $settings['footer']['trust_badges_title'] ?? 'نمادهای اعتماد' ); ?>" />
 						<p class="description">متنی که بالای نمادهای سایت (اینماد، ساماندهی و ...) در فوتر نشون داده می‌شه.</p>
 					</td>
 				</tr>

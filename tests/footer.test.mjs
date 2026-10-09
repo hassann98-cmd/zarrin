@@ -59,6 +59,7 @@ function dom(markup, footer = {}) {
       ...footer,
     },
     social: { instagram: { enabled: true, url: "https://instagram.com/x" } },
+    contact: {},
   };
   globalThis.window = win;
   globalThis.document = win.document;
@@ -84,7 +85,7 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   const columns = grid.querySelector('[data-jluxe-footer-slot="columns"]');
   assert.ok(columns.querySelector("h3"), "link columns render inside the columns slot");
   assert.equal(
-    [...columns.querySelectorAll("h3")].map((h) => h.textContent).join("|"),
+    [...columns.querySelectorAll(".jluxe-footer-link-column h3")].map((h) => h.textContent).join("|"),
     "راهنما|شرکت",
   );
   assert.equal(document.getElementById("badges"), badges, "the badge node is the very same node (never re-created)");
@@ -101,6 +102,50 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
     "R87 mapping still applies inside the portal",
   );
   assert.equal(document.querySelectorAll("footer").length, 1, "no second <footer> is created");
+});
+
+test("R189 footer copy, configured phone links, feature claims, and touch/focus styling stay clear", async () => {
+  const win = dom(shell(), {
+    brand_description:
+      "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. معرفی جدا از توضیح کوتاه سایت.",
+    support_hours: "در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.",
+    support_text: "پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.",
+  });
+  win.JLuxeThemeSettings.shortDescription = "این tagline عمومی نباید متن فوتر را جایگزین کند.";
+  win.JLuxeThemeSettings.contact = {
+    phone: "021-12345678",
+    phone_secondary: "۰۹۱۲۱۲۳۴۵۶۷",
+  };
+  await render();
+
+  const columns = document.querySelector('[data-jluxe-footer-slot="columns"]');
+  assert.match(
+    columns.querySelector(".jluxe-footer-brand-description").textContent,
+    /JLuxe \| هنرِ انتخاب/,
+  );
+  assert.doesNotMatch(
+    columns.querySelector(".jluxe-footer-brand-description").textContent,
+    /tagline عمومی/,
+  );
+  assert.match(columns.textContent, /در روزهای کاری، از ساعت ۹ صبح تا ۸ شب/);
+  assert.match(columns.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  const features = document.querySelector('[data-jluxe-footer-slot="features"]');
+  assert.match(features.textContent, /ارسال سریع و مطمئن/);
+  assert.match(features.textContent, /به سراسر ایران/);
+  assert.match(features.textContent, /کف قیمت بازار/);
+  assert.match(features.textContent, /پرداخت از درگاه مطمئن/);
+  assert.equal(columns.querySelectorAll('a[href^="tel:"]').length, 2);
+  assert.equal(columns.querySelector('a[href="tel:02112345678"]')?.dir, "ltr");
+  assert.equal(columns.querySelector('a[href="tel:09121234567"]')?.dir, "ltr");
+
+  const css = fs.readFileSync(
+    new URL("../src/styles/storefront.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /\.jluxe-footer-social-link\s*\{[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;/s);
+  assert.match(css, /\.jluxe-footer-nav-link:focus-visible/);
+  assert.match(css, /\.jluxe-site-badge-card:focus-within/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
 test("R108 the footer logo portal has a scoped compact-image rule", async () => {

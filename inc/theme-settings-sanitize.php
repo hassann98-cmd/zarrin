@@ -350,7 +350,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 		if ( '' === $html && ! empty( $badge['image_id'] ) ) {
 			$image_url = wp_get_attachment_image_url( absint( $badge['image_id'] ), 'full' );
 			if ( $image_url ) {
-				$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد سایت" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+				$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
 				$html = ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img;
 			}
 		}
@@ -431,6 +431,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 		'text_color'                   => isset( $posted['text_color'] ) ? ( sanitize_hex_color( $posted['text_color'] ) ?: '' ) : $defaults['text_color'],
 		'link_color'                   => isset( $posted['link_color'] ) ? ( sanitize_hex_color( $posted['link_color'] ) ?: '' ) : $defaults['link_color'],
 		'link_hover_color'             => isset( $posted['link_hover_color'] ) ? ( sanitize_hex_color( $posted['link_hover_color'] ) ?: '' ) : $defaults['link_hover_color'],
+		'brand_description'            => isset( $posted['brand_description'] ) ? sanitize_textarea_field( $posted['brand_description'] ) : $defaults['brand_description'],
 		'support_hours'                => isset( $posted['support_hours'] ) ? sanitize_text_field( $posted['support_hours'] ) : $defaults['support_hours'],
 		'support_text'                 => isset( $posted['support_text'] ) ? sanitize_text_field( $posted['support_text'] ) : $defaults['support_text'],
 		'feature_cards'                => $feature_cards,

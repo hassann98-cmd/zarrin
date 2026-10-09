@@ -449,6 +449,10 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 		}
 		if ( $stored_version < 5 ) {
 			$stored = jluxe_migrate_settings_v5( $stored );
+			$stored_version = 5;
+		}
+		if ( $stored_version < 6 ) {
+			$stored = jluxe_migrate_settings_v6( $stored );
 		}
 	}
 	$stored['version']       = JLUXE_SETTINGS_VERSION;

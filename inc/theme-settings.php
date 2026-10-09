@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 5;
+const JLUXE_SETTINGS_VERSION = 6;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -294,13 +294,15 @@ function jluxe_theme_settings_defaults(): array {
 			'text_color'          => '',
 			'link_color'          => '',
 			'link_hover_color'    => '',
-			'support_hours'       => 'هر روز ۹ تا ۲۲',
-			'support_text'        => 'پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله',
+			// متن معرفی فوتر مستقل از tagline هویت سایت/متادیتای آن است؛ مدیر می‌تواند همین‌جا ویرایشش کند.
+			'brand_description'   => 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
+			'support_hours'       => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.',
+			'support_text'        => 'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.',
 			'feature_cards'  => array(
-				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال سریع', 'subtitle' => 'ارسال فوری تهران و شهرستان' ),
-				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی خوب', 'subtitle' => 'همیشه آنلاینیم' ),
-				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'مطمئن باش کف قیمت بازار' ),
-				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت کامل', 'subtitle' => 'دارای درگاه ایمن و مطمئن' ),
+				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال سریع و مطمئن', 'subtitle' => 'به سراسر ایران' ),
+				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی آنلاین', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
+				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'کف قیمت بازار' ),
+				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
 			),
 			// در دسکتاپ همیشه یک ردیف ۴تایی‌ان (ثابت)؛ فقط تعداد ستون در موبایل قابل تنظیمه.
 			'feature_cards_mobile_columns' => 1,
@@ -338,7 +340,7 @@ function jluxe_theme_settings_defaults(): array {
 			'trust_badges'       => array(),
 			// طبقِ درخواستِ کاربر: عنوانِ بالای نمادها («نمادهای سایت») باید
 			// از ادمین قابل تغییر باشه، نه ثابت توی کد.
-			'trust_badges_title' => 'نمادهای سایت',
+			'trust_badges_title' => 'نمادهای اعتماد',
 		),
 		/*
 		 * طبقِ درخواستِ صریحِ کاربر: قبلاً فقط اینستاگرام آیکونِ واقعی
@@ -1007,6 +1009,12 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 		$stored             = jluxe_migrate_settings_v5( $stored );
 		$stored['version']  = 5;
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+		$stored_version     = 5;
+	}
+	if ( ! empty( $stored ) && $stored_version < 6 ) {
+		$stored             = jluxe_migrate_settings_v6( $stored );
+		$stored['version']  = 6;
+		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
 	$cached = jluxe_array_merge_deep( jluxe_theme_settings_defaults(), $stored );
@@ -1099,6 +1107,58 @@ function jluxe_migrate_settings_v5( array $settings ): array {
 	if ( ! is_array( $items ) || empty( $items ) ) {
 		$settings['faq']['items'] = jluxe_faq_default_items();
 	}
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ v5→v6: فقط متن‌هایی را که دقیقاً با پیش‌فرض‌های قدیمیِ
+ * فوتر برابرند به نسخهٔ تازهٔ درخواست‌شده تبدیل می‌کند؛ هر متن سفارشی، شماره،
+ * لینک و HTML رسمیِ نمادها دست‌نخورده می‌ماند.
+ */
+function jluxe_migrate_settings_v6( array $settings ): array {
+	if ( empty( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$footer = &$settings['footer'];
+	$legacy_text = array(
+		'support_hours' => array(
+			'هر روز ۹ تا ۲۲' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.',
+		),
+		'support_text' => array(
+			'پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله' => 'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.',
+		),
+		'trust_badges_title' => array(
+			'نمادهای سایت' => 'نمادهای اعتماد',
+		),
+	);
+	foreach ( $legacy_text as $key => $replacements ) {
+		$current = $footer[ $key ] ?? null;
+		if ( is_string( $current ) && isset( $replacements[ $current ] ) ) {
+			$footer[ $key ] = $replacements[ $current ];
+		}
+	}
+
+	$legacy_features = array(
+		0 => array( 'title' => array( 'ارسال سریع' => 'ارسال سریع و مطمئن' ), 'subtitle' => array( 'ارسال فوری تهران و شهرستان' => 'به سراسر ایران' ) ),
+		1 => array( 'title' => array( 'پشتیبانی خوب' => 'پشتیبانی آنلاین' ), 'subtitle' => array( 'همیشه آنلاینیم' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ) ),
+		2 => array( 'subtitle' => array( 'مطمئن باش کف قیمت بازار' => 'کف قیمت بازار' ) ),
+		3 => array( 'title' => array( 'امنیت کامل' => 'امنیت خرید' ), 'subtitle' => array( 'دارای درگاه ایمن و مطمئن' => 'پرداخت از درگاه مطمئن' ) ),
+	);
+	if ( isset( $footer['feature_cards'] ) && is_array( $footer['feature_cards'] ) ) {
+		foreach ( $legacy_features as $index => $fields ) {
+			if ( empty( $footer['feature_cards'][ $index ] ) || ! is_array( $footer['feature_cards'][ $index ] ) ) {
+				continue;
+			}
+			foreach ( $fields as $field => $replacements ) {
+				$current = $footer['feature_cards'][ $index ][ $field ] ?? null;
+				if ( is_string( $current ) && isset( $replacements[ $current ] ) ) {
+					$footer['feature_cards'][ $index ][ $field ] = $replacements[ $current ];
+				}
+			}
+		}
+	}
+
 	return $settings;
 }
 
@@ -1472,7 +1532,7 @@ function jluxe_get_site_trust_badges(): array {
 					if ( ! empty( $badge['image_id'] ) ) {
 						$url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 						if ( $url ) {
-							$img = '<img src="' . esc_url( $url ) . '" alt="نماد سایت" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+							$img = '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
 							return array( 'html' => ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img, 'link' => ! empty( $badge['link'] ) ? esc_url_raw( $badge['link'] ) : '' );
 						}
 					}
@@ -1495,7 +1555,7 @@ function jluxe_render_site_trust_badges(): void {
     if ( empty( $badges ) ) {
         return;
     }
-    $title = jluxe_get_setting( 'footer.trust_badges_title', 'نمادهای سایت' );
+    $title = jluxe_get_setting( 'footer.trust_badges_title', 'نمادهای اعتماد' );
     $count = count( $badges );
 
     /*
@@ -1514,22 +1574,23 @@ function jluxe_render_site_trust_badges(): void {
     $mobile_cols   = min( max( $count, 1 ), 4 );
     $desktop_cols  = $count <= 3 ? $count : 2;
     $size_by_count = array(
-        1 => array( 'mobile' => 4.5, 'desktop' => 5 ),
-        2 => array( 'mobile' => 4, 'desktop' => 4.5 ),
-        3 => array( 'mobile' => 3.25, 'desktop' => 4 ),
+        1 => array( 'mobile' => 4.75, 'desktop' => 5.25 ),
+        2 => array( 'mobile' => 4.25, 'desktop' => 4.75 ),
+        3 => array( 'mobile' => 3.75, 'desktop' => 4.25 ),
     );
     $sizes = $size_by_count[ $count ] ?? array(
-        'mobile'  => 3,
-        'desktop' => 3.75,
+        'mobile'  => 3.5,
+        'desktop' => 4.25,
     );
+    $mobile_max_width  = $sizes['mobile'] * $mobile_cols + ( 0.5 * max( 0, $mobile_cols - 1 ) );
+    $desktop_max_width = $sizes['desktop'] * $desktop_cols + ( 0.5 * max( 0, $desktop_cols - 1 ) );
     ?>
-    <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-label="<?php echo esc_attr( $title ); ?>">
+    <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-labelledby="jluxe-site-badges-heading">
         <style>
-            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:center;}
-            .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;background:#fff;}
+            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,minmax(0,1fr));justify-content:center;width:100%;max-width:<?php echo esc_attr( $mobile_max_width ); ?>rem;margin-inline:auto;}
+            .jluxe-site-badges-grid .jluxe-site-badge-card{width:100%;height:auto;aspect-ratio:1;background:#fff;}
             @media (min-width:640px){
-                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);justify-content:start;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
+                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,minmax(0,1fr));justify-content:start;max-width:<?php echo esc_attr( $desktop_max_width ); ?>rem;margin-inline:0;}
             }
             /* افکتِ هاور فقط روی دستگاهِ دارای ماوس (قاعدهٔ پروژه: hover داخلِ @media (hover:hover)). */
             @media (hover:hover){
@@ -1537,7 +1598,7 @@ function jluxe_render_site_trust_badges(): void {
                 .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--primary) / .35);box-shadow:0 4px 14px -6px rgba(0,0,0,.18);transform:translateY(-2px);}
             }
         </style>
-        <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
+        <h3 id="jluxe-site-badges-heading" class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
         <div class="jluxe-site-badges-grid">
             <?php foreach ( $badges as $badge ) : ?>
                 <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border p-1.5 mx-auto">

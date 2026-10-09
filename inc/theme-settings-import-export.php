@@ -81,6 +81,9 @@ function jluxe_handle_import(): ?string {
 	if ( $version < 4 ) {
 		$incoming = jluxe_migrate_settings_v4( $incoming );
 	}
+	if ( $version < 6 ) {
+		$incoming = jluxe_migrate_settings_v6( $incoming );
+	}
 	try {
 		$clean = jluxe_sanitize_settings_payload( $incoming, jluxe_get_theme_settings() );
 	} catch ( Throwable $error ) {
