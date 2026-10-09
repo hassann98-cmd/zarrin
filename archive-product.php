@@ -6,9 +6,11 @@
  */
 
 get_header();
+global $wp_rewrite;
+$jluxe_pagination_base = isset( $wp_rewrite->pagination_base ) ? (string) $wp_rewrite->pagination_base : 'page';
 ?>
 
-<main id="primary" class="site-main">
+<main id="primary" class="site-main" data-jluxe-soft-nav="catalog" data-jluxe-pagination-base="<?php echo esc_attr( $jluxe_pagination_base ); ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 		<?php
 		if ( class_exists( 'WooCommerce' ) ) {

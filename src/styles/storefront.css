@@ -8845,3 +8845,26 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   .jluxe-order-timeline::before { top: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .jluxe-order-timeline__marker { transition: none; } }
+
+/* Progressive archive navigation: keep SSR content visible while the next server-rendered listing is fetched. */
+[data-jluxe-soft-nav].jluxe-soft-nav-busy .jluxe-blog-grid,
+[data-jluxe-soft-nav].jluxe-soft-nav-busy .woocommerce ul.products {
+  opacity: .62;
+  transition: opacity .14s ease;
+}
+[data-jluxe-soft-nav].jluxe-soft-nav-enter {
+  animation: jluxe-soft-nav-enter .18s ease-out both;
+}
+@keyframes jluxe-soft-nav-enter {
+  from { opacity: .72; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-jluxe-soft-nav].jluxe-soft-nav-busy .jluxe-blog-grid,
+  [data-jluxe-soft-nav].jluxe-soft-nav-busy .woocommerce ul.products {
+    transition: none;
+  }
+  [data-jluxe-soft-nav].jluxe-soft-nav-enter {
+    animation: none;
+  }
+}

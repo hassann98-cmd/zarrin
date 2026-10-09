@@ -4394,6 +4394,62 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 	check( true, 'R160 encrypted subscription delivery is conditionally skipped when the PHP runtime has no OpenSSL extension' );
 }
 
+
+// R183 — selective, server-rendered archive navigation stays a progressive enhancement.
+$r183_soft_navigation_php = (string) file_get_contents( ABSPATH . 'inc/soft-navigation.php' );
+$r183_archive_template = (string) file_get_contents( ABSPATH . 'archive-product.php' );
+$r183_blog_template = (string) file_get_contents( ABSPATH . 'index.php' );
+check(
+	false !== strpos( $r183_soft_navigation_php, "'strategy'  => 'defer'" ) &&
+	false !== strpos( $r183_soft_navigation_php, "function jluxe_soft_navigation_kind(): string" ) &&
+	false !== strpos( $r183_archive_template, 'data-jluxe-soft-nav="catalog"' ) &&
+	false !== strpos( $r183_archive_template, 'data-jluxe-pagination-base=' ) &&
+	false !== strpos( $r183_blog_template, 'data-jluxe-soft-nav="blog"' ),
+	'R183 archive enhancement is deferred, explicitly opted in by SSR catalog/blog markup, and receives the configured pagination base'
+);
+$r183_previous_query_kind = $GLOBALS['query_kind'] ?? null;
+$r183_previous_query_vars = $GLOBALS['query_vars'] ?? null;
+$r183_previous_script = $GLOBALS['scripts']['jluxe-soft-navigation'] ?? null;
+unset( $GLOBALS['scripts']['jluxe-soft-navigation'] );
+$GLOBALS['query_vars'] = array();
+$GLOBALS['query_kind'] = 'front';
+check( '' === jluxe_soft_navigation_kind(), 'R183 the posts-as-front-page template is not mistaken for an opted-in blog archive' );
+$GLOBALS['query_kind'] = 'blog';
+check( 'blog' === jluxe_soft_navigation_kind(), 'R183 a separate posts index opts into the blog archive enhancement' );
+$GLOBALS['query_kind'] = 'search';
+$GLOBALS['query_vars']['post_type'] = 'product';
+check( '' === jluxe_soft_navigation_kind(), 'R183 product search results do not enter the blog archive router' );
+$GLOBALS['query_kind'] = 'shop';
+check( 'catalog' === jluxe_soft_navigation_kind(), 'R183 WooCommerce shop archives opt into catalog navigation' );
+$GLOBALS['query_kind'] = 'front';
+jluxe_enqueue_soft_navigation();
+check( ! isset( $GLOBALS['scripts']['jluxe-soft-navigation'] ), 'R183 front pages do not enqueue archive-navigation JavaScript' );
+$GLOBALS['query_kind'] = 'shop';
+jluxe_enqueue_soft_navigation();
+$r183_enqueued_script = $GLOBALS['scripts']['jluxe-soft-navigation'] ?? array();
+check(
+	isset( $r183_enqueued_script[0], $r183_enqueued_script[3]['in_footer'] ) &&
+	JLUXE_THEME_URI . '/assets/js/soft-navigation.js' === $r183_enqueued_script[0] &&
+	true === $r183_enqueued_script[3]['in_footer'] &&
+	'defer' === ( $r183_enqueued_script[3]['strategy'] ?? '' ),
+	'R183 archive navigation is loaded only for an opted-in page and uses a deferred footer script'
+);
+if ( null === $r183_previous_script ) {
+	unset( $GLOBALS['scripts']['jluxe-soft-navigation'] );
+} else {
+	$GLOBALS['scripts']['jluxe-soft-navigation'] = $r183_previous_script;
+}
+if ( null === $r183_previous_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r183_previous_query_kind;
+}
+if ( null === $r183_previous_query_vars ) {
+	unset( $GLOBALS['query_vars'] );
+} else {
+	$GLOBALS['query_vars'] = $r183_previous_query_vars;
+}
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

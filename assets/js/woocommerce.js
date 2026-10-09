@@ -754,51 +754,71 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 		}
 	});
 
-	var jluxeFilterForm = document.querySelector("[data-jluxe-filter-form]");
-	if (jluxeFilterForm) {
-		jluxeFilterForm.addEventListener("input", function (event) { if (event.target.setCustomValidity) event.target.setCustomValidity(""); });
-		jluxeFilterForm.addEventListener("submit", function (event) {
-			event.preventDefault();
+	function jluxeSubmitCatalogFilters(jluxeFilterForm, event) {
+		event.preventDefault();
 
-			var catSelect = jluxeFilterForm.querySelector('[name="filter_cat"]');
-			var brandSelect = jluxeFilterForm.querySelector('[name="filter_brand"]');
-			var minPrice = jluxeFilterForm.querySelector('[name="min_price"]');
-			var maxPrice = jluxeFilterForm.querySelector('[name="max_price"]');
-			var inStock = jluxeFilterForm.querySelector('[name="filter_stock"]');
+		var catSelect = jluxeFilterForm.querySelector('[name="filter_cat"]');
+		var brandSelect = jluxeFilterForm.querySelector('[name="filter_brand"]');
+		var minPrice = jluxeFilterForm.querySelector('[name="min_price"]');
+		var maxPrice = jluxeFilterForm.querySelector('[name="max_price"]');
+		var inStock = jluxeFilterForm.querySelector('[name="filter_stock"]');
+		var onSale = jluxeFilterForm.querySelector('[name="on_sale"]');
+		var settings = window.JLuxeThemeSettings || {};
+		var baseUrl = settings.shopUrl || (settings.urls && settings.urls.shop);
+		if (!baseUrl) {
+			window.location.href = jluxeFilterForm.getAttribute("action") || window.location.href;
+			return;
+		}
 
-			var onSale = jluxeFilterForm.querySelector('[name="on_sale"]');
-			var settings = window.JLuxeThemeSettings || {};
-			var baseUrl = settings.shopUrl || (settings.urls && settings.urls.shop);
-			if (!baseUrl) return;
-			function priceValue(input) {
-				if (!input) return "";
-				var value = JLuxeStorefrontUtils.normalizeDigits(input.value).replace(/[,،٬]/g, "").trim();
-				input.setCustomValidity("");
-				if (value && (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))) {
-					input.setCustomValidity("مبلغ معتبر وارد کنید.");
-					input.reportValidity();
-					return null;
-				}
-				return value;
+		function priceValue(input) {
+			if (!input) return "";
+			var value = JLuxeStorefrontUtils.normalizeDigits(input.value).replace(/[,،٬]/g, "").trim();
+			input.setCustomValidity("");
+			if (value && (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(Number(value)))) {
+				input.setCustomValidity("مبلغ معتبر وارد کنید.");
+				input.reportValidity();
+				return null;
 			}
-			var minimum = priceValue(minPrice);
-			var maximum = priceValue(maxPrice);
-			if (minimum === null || maximum === null) return;
-			if (minimum && maximum && Number(minimum) > Number(maximum)) {
-				maxPrice.setCustomValidity("حداکثر قیمت باید از حداقل کمتر نباشد.");
-				maxPrice.reportValidity();
-				return;
-			}
-			window.location.href = JLuxeStorefrontUtils.buildFilterUrl(baseUrl, window.location.href, {
-				product_cat: catSelect ? catSelect.value : "",
-				product_brand: brandSelect ? brandSelect.value : "",
-				min_price: minimum,
-				max_price: maximum,
-				filter_stock: inStock && inStock.checked ? "instock" : "",
-				on_sale: onSale && onSale.checked ? "1" : ""
-			});
+			return value;
+		}
+
+		var minimum = priceValue(minPrice);
+		var maximum = priceValue(maxPrice);
+		if (minimum === null || maximum === null) return;
+		if (minimum && maximum && Number(minimum) > Number(maximum)) {
+			maxPrice.setCustomValidity("حداکثر قیمت باید از حداقل کمتر نباشد.");
+			maxPrice.reportValidity();
+			return;
+		}
+
+		var destination = JLuxeStorefrontUtils.buildFilterUrl(baseUrl, window.location.href, {
+			product_cat: catSelect ? catSelect.value : "",
+			product_brand: brandSelect ? brandSelect.value : "",
+			min_price: minimum,
+			max_price: maximum,
+			filter_stock: inStock && inStock.checked ? "instock" : "",
+			on_sale: onSale && onSale.checked ? "1" : ""
 		});
+		var softNavigation = window.JLuxeSoftNavigation;
+		if (softNavigation && typeof softNavigation.navigate === "function" && softNavigation.isEnabled()) {
+			Promise.resolve(softNavigation.navigate(destination)).then(function (handled) {
+				if (handled === false) window.location.href = destination;
+			}).catch(function () {
+				window.location.href = destination;
+			});
+			return;
+		}
+		window.location.href = destination;
 	}
+
+	document.addEventListener("input", function (event) {
+		var form = event.target.closest && event.target.closest("[data-jluxe-filter-form]");
+		if (form && event.target.setCustomValidity) event.target.setCustomValidity("");
+	});
+	document.addEventListener("submit", function (event) {
+		var jluxeFilterForm = event.target.closest && event.target.closest("[data-jluxe-filter-form]");
+		if (jluxeFilterForm) jluxeSubmitCatalogFilters(jluxeFilterForm, event);
+	});
 })();
 
 /**
@@ -815,8 +835,15 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
  * select.orderby) از همون رویداد برای submit خودکارِ فرم استفاده می‌کنه،
  * پس نیازی به بازنویسیِ منطقِ ارسال نیست.
  */
-(function () {
-	document.querySelectorAll(".jluxe-shop-sort").forEach(function (wrap) {
+function jluxeEnhanceShopSort(root) {
+	root = root || document;
+	var wraps = [];
+	if (root.matches && root.matches(".jluxe-shop-sort")) wraps.push(root);
+	if (root.querySelectorAll) {
+		Array.prototype.forEach.call(root.querySelectorAll(".jluxe-shop-sort"), function (wrap) { wraps.push(wrap); });
+	}
+	wraps.forEach(function (wrap) {
+		if (wrap.getAttribute("data-jluxe-sort-enhanced") === "1") return;
 		var select = wrap.querySelector("select.orderby");
 		if (!select) {
 			return;
@@ -969,16 +996,25 @@ window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 			}, 0);
 		});
 
-		document.addEventListener("click", function (event) {
-			if (!listbox.hidden && !wrap.contains(event.target)) {
-				closeListbox();
-			}
-		});
-
 		syncLabel();
+		wrap._jluxeCloseSortListbox = closeListbox;
 		wrap.appendChild(trigger);
 		wrap.appendChild(listbox);
+		wrap.setAttribute("data-jluxe-sort-enhanced", "1");
 	});
+}
+
+(function () {
+	// One delegated listener avoids retaining removed archive nodes after navigation.
+	document.addEventListener("click", function (event) {
+		var listbox = document.querySelector(".jluxe-sort-listbox:not([hidden])");
+		var wrap = listbox && listbox.closest(".jluxe-shop-sort");
+		if (wrap && !wrap.contains(event.target) && typeof wrap._jluxeCloseSortListbox === "function") {
+			wrap._jluxeCloseSortListbox();
+		}
+	});
+	window.jluxeEnhanceShopSort = jluxeEnhanceShopSort;
+	jluxeEnhanceShopSort(document);
 })();
 
 /**

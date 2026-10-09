@@ -164,24 +164,24 @@ const legacy = fs.readFileSync(
   "utf8",
 );
 function submitFilters(fields) {
-  const marker =
-    'jluxeFilterForm.addEventListener("submit", function (event) {';
+  const marker = "function jluxeSubmitCatalogFilters(jluxeFilterForm, event) {";
   const start = legacy.indexOf(marker);
-  const end = legacy.indexOf("\n\t\t});", start);
-  assert.ok(start >= 0 && end > start, "production filter callback exists");
+  const end = legacy.indexOf('\n\t}\n\n\tdocument.addEventListener("input"', start);
+  assert.ok(start >= 0 && end > start, "production filter submit function exists");
   const body = legacy.slice(start + marker.length, end);
   const window = {
     JLuxeThemeSettings: { shopUrl: root + "catalog/" },
     location: { href: root + "catalog/page/3/?orderby=price" },
   };
   const form = {
+    getAttribute: () => "",
     querySelector: (selector) =>
       fields[selector.match(/name="([^"]+)"/)[1]] ?? null,
   };
-  vm.runInNewContext(`(function(event){${body}})({preventDefault(){}})`, {
-    window,
-    jluxeFilterForm: form,
+  vm.runInNewContext(`(function(jluxeFilterForm,event){${body}})(window.__form,{preventDefault(){}})`, {
+    window: Object.assign(window, { __form: form }),
     JLuxeStorefrontUtils: { normalizeDigits, buildFilterUrl },
+    Promise,
   });
   return window.location.href;
 }

@@ -8,7 +8,7 @@ get_header();
 $jluxe_search_types = (array) get_query_var( 'post_type' );
 $jluxe_is_blog_listing = is_home() || is_category() || is_tag() || is_date() || is_author() || ( is_search() && ! in_array( 'product', $jluxe_search_types, true ) );
 ?>
-<main id="primary" class="site-main">
+<main id="primary" class="site-main"<?php echo $jluxe_is_blog_listing ? ' data-jluxe-soft-nav="blog"' : ''; ?>>
 	<?php if ( $jluxe_is_blog_listing ) : ?>
 		<div class="jluxe-blog-listing" dir="rtl">
 			<header class="jluxe-blog-listing__header">

@@ -624,6 +624,7 @@ add_filter( 'script_loader_tag', 'jluxe_defer_third_party_scripts', 10, 3 );
 
 require_once JLUXE_THEME_DIR . '/inc/compat.php'; // R86 — هلپرهای رشته‌ای (بدونِ وابستگیِ اجباری به mbstring)
 require_once JLUXE_THEME_DIR . '/inc/assets.php';
+require_once JLUXE_THEME_DIR . '/inc/soft-navigation.php';
 require_once JLUXE_THEME_DIR . '/inc/page-skeleton.php';
 require_once JLUXE_THEME_DIR . '/inc/security.php';
 require_once JLUXE_THEME_DIR . '/inc/icons.php';

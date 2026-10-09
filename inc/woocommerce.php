@@ -2089,10 +2089,15 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	// صفحه‌ی تکی محصول/سبد/چک‌اوت — پس این اسکریپت سراسری لود می‌شه (فایل
 	// کوچیکه و با .closest() امن نوشته شده، جایی که چیزی نباشه کاری نمی‌کنه).
 	$jluxe_wc_js_path = JLUXE_THEME_DIR . '/assets/js/woocommerce.js';
+	$jluxe_wc_dependencies = array( 'jquery', 'jluxe-storefront-utils' );
+	if ( function_exists( 'jluxe_soft_navigation_kind' ) && 'catalog' === jluxe_soft_navigation_kind() ) {
+		// The archive helper must execute before filter/sort listeners bind.
+		$jluxe_wc_dependencies[] = 'jluxe-soft-navigation';
+	}
 	wp_enqueue_script(
 		'jluxe-woocommerce',
 		JLUXE_THEME_URI . '/assets/js/woocommerce.js',
-		array( 'jquery', 'jluxe-storefront-utils' ),
+		$jluxe_wc_dependencies,
 		file_exists( $jluxe_wc_js_path ) ? (string) filemtime( $jluxe_wc_js_path ) : '1.0.0',
 		/*
 		 * اخطارِ Lighthouse («Render-blocking requests»، jquery/jquery-migrate):
@@ -3425,7 +3430,7 @@ function jluxe_render_shop_toolbar(): void {
 			<form data-jluxe-filter-form class="flex flex-1 flex-col overflow-hidden">
 				<div class="flex-1 overflow-y-auto px-4">
 					<?php if ( $has_filters ) : ?>
-						<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" class="mt-3 inline-block text-caption font-medium text-primary hover:text-primary-hover">حذف فیلترها</a>
+						<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" data-jluxe-catalog-clear class="mt-3 inline-block text-caption font-medium text-primary hover:text-primary-hover">حذف فیلترها</a>
 					<?php endif; ?>
 
 					<details class="group border-b border-border py-3.5" open>
