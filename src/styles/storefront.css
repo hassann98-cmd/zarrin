@@ -7710,6 +7710,11 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
   }
 }
 
+/* R186: descriptive category labels stay complete in HTML without widening the compact CTA past its share of the header. */
+.jluxe-home-panel__category-link {
+  max-width: 45%;
+}
+
 /* R111: leave a stable slice of the following recommended category panel visible on phones. */
 @media (max-width: 639px) {
   .jluxe-recommended-panels-scroller > .jluxe-home-panel {

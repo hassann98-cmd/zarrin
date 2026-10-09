@@ -387,14 +387,17 @@ check(
 	false === strpos( $recommended_panels_renderer, 'data-jluxe-peek-hint' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_html( $panel' ) &&
 	false !== strpos( $recommended_panels_renderer, 'button_text' ) &&
-	false === strpos( $recommended_panels_renderer, " . ': ' . " ) &&
+	false !== strpos( $recommended_panels_renderer, 'sprintf( \'%s: %s\', $button_label, $panel_title )' ) &&
+	false !== strpos( $recommended_panels_renderer, 'class="jluxe-home-panel__category-link' ) &&
 	false !== strpos( $recommended_panels_renderer, "sprintf( 'مشاهده‌ی محصولاتِ بیشتر در دسته‌ی %s'" ) &&
 	false !== strpos( $recommended_panels_renderer, 'aria-label="<?php echo esc_attr( $button_aria_label ); ?>"' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_url( $button_link )' ) &&
+	false !== strpos( $recommended_panels_css, '.jluxe-home-panel__category-link' ) &&
+	false !== strpos( $recommended_panels_css, 'max-width: 45%;' ) &&
 	false !== strpos( $recommended_panels_css, '@media (max-width: 639px)' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-scroller > .jluxe-home-panel' ) &&
 	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 68px);' ),
-	'R111 recommended panels keep the category-specific accessible link name, show only the short button label, and reveal 52px of the next panel on mobile only when multiple panels exist'
+	'R186 recommended category CTAs expose category names in link text while CSS constrains the compact badge and preserves mobile panel preview'
 );
 $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settings-admin.css' );
 check(
@@ -427,11 +430,13 @@ check(
 	2 === substr_count( $recommended_panels_html, 'class="jluxe-home-panel snap-start' ) &&
 	false !== strpos( $recommended_panels_html, 'jluxe-recommended-panels-scroller' ) &&
 	false === strpos( $recommended_panels_html, 'data-jluxe-peek-hint' ) &&
-	2 === substr_count( $recommended_panels_html, '>بیشتر</a>' ) &&
-	false === strpos( $recommended_panels_html, 'بیشتر: کالای خواب و منسوجات' ) &&
+	false === strpos( $recommended_panels_html, '>بیشتر</a>' ) &&
+	false !== strpos( $recommended_panels_html, '>بیشتر: کالای خواب و منسوجات</a>' ) &&
+	false !== strpos( $recommended_panels_html, '>بیشتر: نظافت و شستشو</a>' ) &&
+	false !== strpos( $recommended_panels_html, 'jluxe-home-panel__category-link shrink-0 truncate' ) &&
 	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ بیشتر در دسته‌ی کالای خواب و منسوجات"' ) &&
 	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ بیشتر در دسته‌ی نظافت و شستشو"' ),
-	'R111 real renderer keeps crawlable category links and descriptive per-category accessible labels while visibly showing only «بیشتر»'
+	'R186 real renderer gives category CTAs descriptive visible link text, constrains its mobile width, and retains per-category accessible labels'
 );
 $_POST = array();
 update_test_settings( $defaults );

@@ -3074,14 +3074,22 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 						<?php if ( $button_link ) : ?>
 							<?php
 							/*
-							 * برچسبِ بصری فقط «بیشتر» می‌ماند تا هدر شلوغ نشود؛ چون این
-							 * متن بین پنل‌ها تکرار می‌شود، aria-label مقصد را با نامِ همین
-							 * دسته مشخص می‌کند. بنابراین نامِ accessible هر لینک یکتا و
-							 * توصیفی است، درحالی‌که عنوانِ دسته از دکمه حذف می‌شود.
+							 * متنِ لینک باید مستقل از aria-label هم مقصد را روشن کند؛
+							 * «بیشتر» به‌تنهایی برای خزنده‌ها توصیفی نیست. نامِ دسته به
+							 * برچسبِ تنظیم‌شده افزوده می‌شود و فقط در عرضِ کوچک بصری کوتاه
+							 * می‌شود؛ متنِ کامل در HTML و accessible name باقی می‌ماند.
 							 */
-							$button_aria_label = sprintf( 'مشاهده‌ی محصولاتِ بیشتر در دسته‌ی %s', $panel['title'] );
+							$button_label = trim( (string) ( $panel['button_text'] ?? 'بیشتر' ) );
+							$panel_title = trim( (string) ( $panel['title'] ?? '' ) );
+							if ( '' === $button_label ) {
+								$button_label = 'مشاهده';
+							}
+							if ( '' !== $panel_title && false === strpos( $button_label, $panel_title ) ) {
+								$button_label = sprintf( '%s: %s', $button_label, $panel_title );
+							}
+							$button_aria_label = sprintf( 'مشاهده‌ی محصولاتِ بیشتر در دسته‌ی %s', $panel_title );
 							?>
-							<a href="<?php echo esc_url( $button_link ); ?>" aria-label="<?php echo esc_attr( $button_aria_label ); ?>" class="shrink-0 rounded-xl bg-primary px-4 py-1.5 text-[12px] font-bold text-primary-foreground transition-transform hover:scale-105 sm:text-[13px]"<?php echo $button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $panel['button_text'] ?? 'بیشتر' ); ?></a>
+							<a href="<?php echo esc_url( $button_link ); ?>" aria-label="<?php echo esc_attr( $button_aria_label ); ?>" class="jluxe-home-panel__category-link shrink-0 truncate rounded-xl bg-primary px-4 py-1.5 text-[12px] font-bold text-primary-foreground transition-transform hover:scale-105 sm:text-[13px]"<?php echo $button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $button_label ); ?></a>
 						<?php endif; ?>
 					</div>
 					<?php
