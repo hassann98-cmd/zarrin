@@ -232,8 +232,11 @@ function Footer() {
               children: `.jluxe-feature-grid{grid-template-columns:repeat(${mobileFeatureColumns},minmax(0,1fr))}@media (min-width:640px){.jluxe-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (min-width:1024px){.jluxe-feature-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}`,
             }),
             e.jsx("div", {
-              className:
-                "jluxe-feature-grid jluxe-footer-feature-grid grid gap-3 border-b border-border p-4",
+              className: `jluxe-feature-grid jluxe-footer-feature-grid ${
+                mobileFeatureColumns === 2
+                  ? "jluxe-footer-feature-grid--mobile-two"
+                  : "jluxe-footer-feature-grid--mobile-one"
+              } grid gap-3 border-b border-border p-4`,
               children: features.map((feature, index) => {
                 const Icon = featureIcons[feature.icon] ?? ShieldCheck;
                 return e.jsxs(
@@ -370,9 +373,10 @@ function Footer() {
     className: "jluxe-footer-link-columns grid grid-cols-2 gap-6 sm:contents",
     children: columns.map((column, columnIndex) =>
       e.jsxs(
-        "div",
+        "nav",
         {
           className: "jluxe-footer-link-column",
+          "aria-label": column.title || "لینک‌های فوتر",
           children: [
             e.jsx("h3", {
               className:
@@ -381,7 +385,7 @@ function Footer() {
               children: column.title,
             }),
             e.jsx("ul", {
-              className: "jluxe-footer-nav-list space-y-2.5",
+              className: "jluxe-footer-nav-list",
               children: (column.links ?? []).map((link, linkIndex) => {
                 const Icon = link.icon ? navIcons[link.icon] : undefined;
                 return e.jsx(

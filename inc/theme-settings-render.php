@@ -738,7 +738,7 @@ function jluxe_render_footer_page(): void {
 					<option value="1" <?php selected( $settings['footer']['feature_cards_mobile_columns'], 1 ); ?>>۱ ستونه (هر مزیت یک ردیف کامل)</option>
 					<option value="2" <?php selected( $settings['footer']['feature_cards_mobile_columns'], 2 ); ?>>۲ ستونه</option>
 				</select>
-				— در دسکتاپ همیشه هر ۴ مزیت در یک ردیف نمایش داده می‌شن.
+				— طرح پیشنهادیِ موبایل دو ستونه است؛ در دسکتاپ هر ۴ مزیت در یک ردیف نمایش داده می‌شن.
 			</p>
 
 			<h3>ستون‌های لینک فوتر</h3>

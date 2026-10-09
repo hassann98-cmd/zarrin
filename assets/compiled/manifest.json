@@ -113,7 +113,7 @@
     ]
   },
   "src/islands/Footer.js": {
-    "file": "assets/Footer-Brvfb4l8.js",
+    "file": "assets/Footer-C4-S0upE.js",
     "name": "Footer",
     "src": "src/islands/Footer.js",
     "isDynamicEntry": true,
@@ -182,7 +182,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-woDZKoqI.js",
+    "file": "assets/main-ClS4Sfya.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -207,7 +207,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-CYB9lsAU.css"
+      "assets/main-DJYrje3K.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

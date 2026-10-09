@@ -305,7 +305,7 @@ function jluxe_theme_settings_defaults(): array {
 				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
 			),
 			// در دسکتاپ همیشه یک ردیف ۴تایی‌ان (ثابت)؛ فقط تعداد ستون در موبایل قابل تنظیمه.
-			'feature_cards_mobile_columns' => 1,
+			'feature_cards_mobile_columns' => 2,
 			// خالی = آیکون‌ها از --primary زنده پیروی می‌کنن (پیش‌فرض، طبقِ
 			// درخواستِ کاربر که این بخش هم با تغییرِ پالت عوض بشه)؛ یک هگزِ
 			// دستی یعنی ادمین می‌خواد فقط همین ۴ آیکون رنگِ اختصاصیِ خودشون

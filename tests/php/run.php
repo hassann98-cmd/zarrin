@@ -1121,6 +1121,7 @@ function rel_lum($rgb){$out=array();foreach($rgb as $v){$v/=255;$out[]=$v<=0.039
 function contrast($a,$b){$x=rel_lum($a);$y=rel_lum($b);$hi=max($x,$y);$lo=min($x,$y);return ($hi+0.05)/($lo+0.05);}
 function tok_rgb($t){return hsl_rgb($t[0],$t[1],$t[2]);}
 $white=array(255,255,255);$fg=tok_rgb($tokens['foreground']);$bg=tok_rgb($tokens['background']);
+check(contrast(tok_rgb($tokens['secondary']),$bg)>=4.5, 'R190 deep-teal footer links and keyboard focus reach AA on warm card surfaces');
 check(contrast($fg,$bg)>=7, 'R35 body text contrast is AAA (>=7:1)');
 check(contrast(tok_rgb($tokens['text-muted']),$bg)>=4.5 && contrast(tok_rgb($tokens['text-muted']),$white)>=4.5, 'R35 muted text reaches AA on background and surface');
 check(contrast(tok_rgb($tokens['text-secondary']),$bg)>=4.5, 'R35 secondary text reaches AA');
@@ -3240,6 +3241,10 @@ check(
 );
 
 $r189_footer_defaults = jluxe_theme_settings_defaults()['footer'];
+check(
+	2 === $r189_footer_defaults['feature_cards_mobile_columns'],
+	'R190 fresh footer defaults use the more scannable two-column mobile benefit layout'
+);
 check(
 	false !== strpos( $r189_footer_defaults['brand_description'], 'JLuxe | هنرِ انتخاب' ) &&
 	false !== strpos( $r189_footer_defaults['support_hours'], '۹ صبح تا ۸ شب' ) &&

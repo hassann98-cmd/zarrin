@@ -148,6 +148,40 @@ test("R189 footer copy, configured phone links, feature claims, and touch/focus 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
+test("R190 footer uses labeled navigation, premium color bands, and mobile-first cards", async () => {
+  const win = dom(shell(), { feature_cards_mobile_columns: 2 });
+  await render();
+
+  const featureGrid = document.querySelector(
+    '[data-jluxe-footer-slot="features"] .jluxe-footer-feature-grid',
+  );
+  assert.ok(featureGrid.classList.contains("jluxe-footer-feature-grid--mobile-two"));
+  assert.equal(
+    document.querySelectorAll("nav.jluxe-footer-link-column").length,
+    2,
+    "link groups expose separate navigation landmarks",
+  );
+  assert.deepEqual(
+    [...document.querySelectorAll("nav.jluxe-footer-link-column")].map((nav) => nav.getAttribute("aria-label")),
+    ["راهنما", "شرکت"],
+  );
+
+  const css = fs.readFileSync(
+    new URL("../src/styles/storefront.css", import.meta.url),
+    "utf8",
+  );
+  const r190 = css.slice(css.indexOf("/* R190 —"));
+  assert.match(r190, /\.jluxe-footer-feature-grid\s*\{[^}]*background:\s*hsl\(var\(--secondary\)\)/s);
+  assert.match(r190, /\.jluxe-footer-feature-card\s*\{[^}]*background:\s*hsl\(var\(--background\)\)/s);
+  assert.match(r190, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(r190, /min-height:\s*2\.75rem/);
+  assert.match(r190, /@media \(min-width:\s*1200px\)/);
+  assert.match(r190, /@media \(max-width:\s*359\.98px\)/);
+  assert.match(r190, /background:\s*transparent/);
+  assert.match(r190, /prefers-reduced-motion:\s*reduce/);
+  assert.ok(!r190.includes("backdrop-filter"), "the footer uses solid, readable surfaces instead of decorative blur");
+});
+
 test("R108 the footer logo portal has a scoped compact-image rule", async () => {
   const win = dom(shell());
   win.JLuxeThemeSettings.logoUrl = `${base}logo-desktop.svg`;
