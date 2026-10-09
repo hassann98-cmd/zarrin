@@ -73,8 +73,8 @@ const defaultFeatures = [
   {
     enabled: true,
     icon: "truck",
-    title: "ارسال سریع و مطمئن",
-    subtitle: "ارسال فوری به سراسر ایران",
+    title: "ارسال فوری",
+    subtitle: "به سراسر ایران",
   },
   {
     enabled: true,

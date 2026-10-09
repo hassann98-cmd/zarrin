@@ -104,7 +104,7 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   assert.equal(document.querySelectorAll("footer").length, 1, "no second <footer> is created");
 });
 
-test("R194 missing footer settings fall back to the exact approved brand and benefit copy", async () => {
+test("R195 footer benefit headings use one consistent short, bold pattern", async () => {
   dom(shell());
   await render();
 
@@ -120,7 +120,7 @@ test("R194 missing footer settings fall back to the exact approved brand and ben
       card.querySelector(".jluxe-footer-feature-subtitle")?.textContent,
     ]),
     [
-      ["ارسال سریع و مطمئن", "ارسال فوری به سراسر ایران"],
+      ["ارسال فوری", "به سراسر ایران"],
       ["پشتیبانی آنلاین", "۲۴ ساعته از طریق شبکه‌های اجتماعی"],
       ["بهترین قیمت", "کف قیمت بازار"],
       ["امنیت خرید", "پرداخت از درگاه مطمئن"],
@@ -130,6 +130,13 @@ test("R194 missing footer settings fall back to the exact approved brand and ben
     document.querySelector("footer")?.textContent ?? "",
     /ساعات تماس|آدرس|تضمینِ مرجوعی|نمادِ جدید/,
   );
+  const css = fs.readFileSync(
+    new URL("../src/styles/storefront.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-grid\s*\{[^}]*font-family:\s*IRANYekan,/s);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-title\s*\{[^}]*font-size:\s*\.9rem;[^}]*font-weight:\s*700;/s);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-subtitle\s*\{[^}]*font-size:\s*\.77rem;/s);
 });
 
 test("R192 configured footer copy, optional features, phone links, and touch/focus styling stay clear", async () => {
@@ -164,7 +171,7 @@ test("R192 configured footer copy, optional features, phone links, and touch/foc
   assert.equal(columns.querySelectorAll(".jluxe-footer-support-card").length, 1);
   const features = document.querySelector('[data-jluxe-footer-slot="features"]');
   assert.equal(features.querySelector(".jluxe-footer-feature-grid"), null, "no feature claim is added until the merchant configures one");
-  assert.doesNotMatch(document.querySelector("footer").textContent, /ارسال سریع و مطمئن|۲۴ ساعته|کف قیمت بازار|پرداخت از درگاه مطمئن/);
+  assert.doesNotMatch(document.querySelector("footer").textContent, /ارسال فوری|به سراسر ایران|ارسال سریع و مطمئن|۲۴ ساعته|کف قیمت بازار|پرداخت از درگاه مطمئن/);
   assert.equal(columns.querySelectorAll('a[href^="tel:"]').length, 2);
   assert.equal(columns.querySelector('a[href="tel:02112345678"]')?.dir, "ltr");
   assert.equal(columns.querySelector('a[href="tel:09121234567"]')?.dir, "ltr");

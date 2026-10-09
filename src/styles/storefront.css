@@ -9017,39 +9017,44 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   content: none;
 }
 
-/* Quiet service strip: theme secondary color is used only as a soft tint. */
+/* One calm, theme-native benefit strip with shared Persian type and even hierarchy. */
 #jluxe-footer-root .jluxe-footer-feature-grid {
   display: grid;
   gap: 0;
   border: 0;
   border-block: 1px solid hsl(var(--border) / .72);
   background: color-mix(in srgb, hsl(var(--secondary)) 4%, hsl(var(--background)));
-  padding: .42rem clamp(.45rem, 2vw, 1.25rem);
+  padding: .48rem clamp(.45rem, 2vw, 1.25rem);
+  font-family: IRANYekan, Vazirmatn, ui-sans-serif, system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
 }
 #jluxe-footer-root .jluxe-footer-feature-card {
   min-width: 0;
-  min-height: 3.5rem;
-  gap: .55rem;
+  min-height: 3.7rem;
+  gap: .65rem;
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: .35rem .55rem;
+  padding: .42rem .62rem;
   box-shadow: none;
-  transition: background-color .16s ease;
 }
 #jluxe-footer-root .jluxe-footer-feature-icon {
-  width: 1.9rem;
-  height: 1.9rem;
-  flex: 0 0 1.9rem;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
   border: 0;
   border-radius: 50%;
   background: color-mix(in srgb, hsl(var(--secondary)) 9%, hsl(var(--surface)));
   color: hsl(var(--secondary));
 }
+#jluxe-footer-root .jluxe-footer-feature-copy {
+  min-width: 0;
+  text-align: start;
+}
 #jluxe-footer-root .jluxe-footer-feature-title,
 #jluxe-footer-root .jluxe-footer-feature-subtitle {
   margin: 0;
-  line-height: 1.55;
+  font-family: inherit;
+  line-height: 1.6;
   overflow-wrap: normal;
   word-break: normal;
   hyphens: none;
@@ -9057,13 +9062,14 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
 }
 #jluxe-footer-root .jluxe-footer-feature-title {
   color: hsl(var(--foreground));
-  font-size: .82rem;
-  font-weight: 750;
+  font-size: .9rem;
+  font-weight: 700;
 }
 #jluxe-footer-root .jluxe-footer-feature-subtitle {
-  margin-top: .08rem;
+  margin-top: .05rem;
   color: hsl(var(--text-secondary));
-  font-size: .75rem;
+  font-size: .77rem;
+  font-weight: 400;
 }
 
 /* Remove the old card treatment; spacing and headings now define the content groups. */
@@ -9356,9 +9362,6 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
 }
 
 @media (hover: hover) {
-  #jluxe-footer-root .jluxe-footer-feature-card:hover {
-    background: color-mix(in srgb, hsl(var(--secondary)) 4%, transparent);
-  }
   #jluxe-footer-root .jluxe-footer-nav-link:hover,
   #jluxe-footer-root .jluxe-footer-phone-link:hover,
   #jluxe-footer-root .jluxe-footer-contact-link:hover,
