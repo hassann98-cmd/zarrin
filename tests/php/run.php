@@ -386,18 +386,18 @@ check(
 	false !== strpos( $recommended_panels_renderer, 'jluxe-recommended-panels-scroller' ) &&
 	false === strpos( $recommended_panels_renderer, 'data-jluxe-peek-hint' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_html( $panel' ) &&
-	false !== strpos( $recommended_panels_renderer, 'button_text' ) &&
-	false !== strpos( $recommended_panels_renderer, 'sprintf( \'%s: %s\', $button_label, $panel_title )' ) &&
-	false !== strpos( $recommended_panels_renderer, 'class="jluxe-home-panel__category-link' ) &&
-	false !== strpos( $recommended_panels_renderer, "sprintf( 'مشاهده‌ی محصولاتِ بیشتر در دسته‌ی %s'" ) &&
-	false !== strpos( $recommended_panels_renderer, 'aria-label="<?php echo esc_attr( $button_aria_label ); ?>"' ) &&
+	false === strpos( $recommended_panels_renderer, 'button_text' ) &&
+	false !== strpos( $recommended_panels_renderer, 'class="jluxe-home-panel__category-link"' ) &&
+	false !== strpos( $recommended_panels_renderer, "مشاهده‌ی محصولاتِ دسته‌ی %s" ) &&
+	false !== strpos( $recommended_panels_renderer, 'aria-hidden="true"' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_url( $button_link )' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-home-panel__category-link' ) &&
-	false !== strpos( $recommended_panels_css, 'max-width: 45%;' ) &&
+	false !== strpos( $recommended_panels_css, '.jluxe-home-panel__category-arrow' ) &&
+	false !== strpos( $recommended_panels_css, 'justify-content: space-between;' ) &&
 	false !== strpos( $recommended_panels_css, '@media (max-width: 639px)' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-scroller > .jluxe-home-panel' ) &&
 	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 68px);' ),
-	'R186 recommended category CTAs expose category names in link text while CSS constrains the compact badge and preserves mobile panel preview'
+	'R187 the category heading itself is a descriptive link with a decorative arrow, replacing generic long CTA text and preserving the mobile panel preview'
 );
 $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settings-admin.css' );
 check(
@@ -431,12 +431,14 @@ check(
 	false !== strpos( $recommended_panels_html, 'jluxe-recommended-panels-scroller' ) &&
 	false === strpos( $recommended_panels_html, 'data-jluxe-peek-hint' ) &&
 	false === strpos( $recommended_panels_html, '>بیشتر</a>' ) &&
-	false !== strpos( $recommended_panels_html, '>بیشتر: کالای خواب و منسوجات</a>' ) &&
-	false !== strpos( $recommended_panels_html, '>بیشتر: نظافت و شستشو</a>' ) &&
-	false !== strpos( $recommended_panels_html, 'jluxe-home-panel__category-link shrink-0 truncate' ) &&
-	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ بیشتر در دسته‌ی کالای خواب و منسوجات"' ) &&
-	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ بیشتر در دسته‌ی نظافت و شستشو"' ),
-	'R186 real renderer gives category CTAs descriptive visible link text, constrains its mobile width, and retains per-category accessible labels'
+	false === strpos( $recommended_panels_html, 'بیشتر: کالای خواب و منسوجات' ) &&
+	2 === substr_count( $recommended_panels_html, 'class="jluxe-home-panel__category-link"' ) &&
+	false !== strpos( $recommended_panels_html, 'jluxe-home-panel__category-title">کالای خواب و منسوجات</span>' ) &&
+	false !== strpos( $recommended_panels_html, 'jluxe-home-panel__category-title">نظافت و شستشو</span>' ) &&
+	false !== strpos( $recommended_panels_html, 'class="jluxe-home-panel__category-arrow" aria-hidden="true"' ) &&
+	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ دسته‌ی کالای خواب و منسوجات"' ) &&
+	false !== strpos( $recommended_panels_html, 'aria-label="مشاهده‌ی محصولاتِ دسته‌ی نظافت و شستشو"' ),
+	'R187 real renderer replaces long CTA text with one descriptive category-title link and an accessible-hidden arrow icon'
 );
 $_POST = array();
 update_test_settings( $defaults );

@@ -646,9 +646,9 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 									'rand'       => 'تصادفی',
 								)
 							);
-							jluxe_hb_field_text( "{$name}[panels][{$p}]", 'button_text', 'متن دکمه', $panel['button_text'] ?? 'بیشتر' );
-							jluxe_hb_field_text( "{$name}[panels][{$p}]", 'button_link', 'لینک دکمه (خالی = صفحه‌ی آرشیو دسته)', $panel['button_link'] ?? '' );
-							jluxe_hb_field_color( "{$name}[panels][{$p}]", 'button_color', 'رنگ دکمه', $panel['button_color'] ?? '' );
+							echo '<p class="description">نامِ دسته خودش لینک توصیفی است؛ فلش فقط راهنمای دیداریِ همان لینک است و متن تکراری ندارد.</p>';
+							jluxe_hb_field_text( "{$name}[panels][{$p}]", 'button_link', 'لینک عنوان و فلش (خالی = صفحه‌ی آرشیو دسته)', $panel['button_link'] ?? '' );
+							jluxe_hb_field_color( "{$name}[panels][{$p}]", 'button_color', 'رنگ فلش', $panel['button_color'] ?? '' );
 							?>
 						</div>
 						<?php
@@ -3063,34 +3063,25 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 				<?php foreach ( $panels as $panel ) :
 				$term_link   = get_term_link( $panel['term'] );
 				$button_link = ! empty( $panel['button_link'] ) ? $panel['button_link'] : ( is_wp_error( $term_link ) ? '' : $term_link );
-				$button_style = ! empty( $panel['button_color'] ) ? ' style="background-color:' . esc_attr( $panel['button_color'] ) . '"' : '';
+				$arrow_style = ! empty( $panel['button_color'] ) ? ' style="background-color:' . esc_attr( $panel['button_color'] ) . '"' : '';
 				?>
 				<div class="jluxe-home-panel snap-start shrink-0 basis-full rounded-3xl bg-surface p-4 shadow-[0_2px_18px_rgba(0,0,0,0.05)] lg:basis-0 lg:flex-1">
-					<div class="mb-3 flex items-start justify-between gap-3">
+					<div class="mb-3">
 						<div class="min-w-0 text-right">
-							<h3 class="truncate text-base font-extrabold text-foreground sm:text-lg"><?php echo esc_html( $panel['title'] ); ?></h3>
+							<h3 class="min-w-0 text-base font-extrabold text-foreground sm:text-lg">
+								<?php if ( $button_link ) : ?>
+									<a href="<?php echo esc_url( $button_link ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده‌ی محصولاتِ دسته‌ی %s', $panel['title'] ) ); ?>" class="jluxe-home-panel__category-link">
+										<span class="jluxe-home-panel__category-title"><?php echo esc_html( $panel['title'] ); ?></span>
+										<span class="jluxe-home-panel__category-arrow" aria-hidden="true"<?php echo $arrow_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+											<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M19 12H5m7 7-7-7 7-7"></path></svg>
+										</span>
+									</a>
+								<?php else : ?>
+									<?php echo esc_html( $panel['title'] ); ?>
+								<?php endif; ?>
+							</h3>
 							<p class="mt-1 truncate text-[12px] text-text-muted sm:text-[13px]"><?php echo esc_html( ! empty( $panel['subtitle'] ) ? $panel['subtitle'] : 'محصولات پیشنهادی از دسته' ); ?></p>
 						</div>
-						<?php if ( $button_link ) : ?>
-							<?php
-							/*
-							 * متنِ لینک باید مستقل از aria-label هم مقصد را روشن کند؛
-							 * «بیشتر» به‌تنهایی برای خزنده‌ها توصیفی نیست. نامِ دسته به
-							 * برچسبِ تنظیم‌شده افزوده می‌شود و فقط در عرضِ کوچک بصری کوتاه
-							 * می‌شود؛ متنِ کامل در HTML و accessible name باقی می‌ماند.
-							 */
-							$button_label = trim( (string) ( $panel['button_text'] ?? 'بیشتر' ) );
-							$panel_title = trim( (string) ( $panel['title'] ?? '' ) );
-							if ( '' === $button_label ) {
-								$button_label = 'مشاهده';
-							}
-							if ( '' !== $panel_title && false === strpos( $button_label, $panel_title ) ) {
-								$button_label = sprintf( '%s: %s', $button_label, $panel_title );
-							}
-							$button_aria_label = sprintf( 'مشاهده‌ی محصولاتِ بیشتر در دسته‌ی %s', $panel_title );
-							?>
-							<a href="<?php echo esc_url( $button_link ); ?>" aria-label="<?php echo esc_attr( $button_aria_label ); ?>" class="jluxe-home-panel__category-link shrink-0 truncate rounded-xl bg-primary px-4 py-1.5 text-[12px] font-bold text-primary-foreground transition-transform hover:scale-105 sm:text-[13px]"<?php echo $button_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_html( $button_label ); ?></a>
-						<?php endif; ?>
 					</div>
 					<?php
 					/*

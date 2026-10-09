@@ -7710,9 +7710,48 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
   }
 }
 
-/* R186: descriptive category labels stay complete in HTML without widening the compact CTA past its share of the header. */
+/* R187: the visible category name is the link text; the arrow replaces the redundant long CTA copy. */
 .jluxe-home-panel__category-link {
-  max-width: 45%;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.jluxe-home-panel__category-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jluxe-home-panel__category-arrow {
+  display: grid;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  transition: transform 180ms ease;
+}
+.jluxe-home-panel__category-link:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .jluxe-home-panel__category-link:hover .jluxe-home-panel__category-arrow {
+    transform: translateX(-2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-home-panel__category-arrow {
+    transition: none;
+  }
 }
 
 /* R111: leave a stable slice of the following recommended category panel visible on phones. */
