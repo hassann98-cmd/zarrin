@@ -1,24 +1,17 @@
 {
-  "_product-card-DUzyIGXQ.js": {
-    "file": "assets/product-card-DUzyIGXQ.js",
-    "name": "product-card",
-    "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
-    ]
-  },
   "_rolldown-runtime-CbXtAM7H.js": {
     "file": "assets/rolldown-runtime-CbXtAM7H.js",
     "name": "rolldown-runtime"
   },
-  "_send-CXtv6lDU.js": {
-    "file": "assets/send-CXtv6lDU.js",
+  "_send-B75fyiVX.js": {
+    "file": "assets/send-B75fyiVX.js",
     "name": "send",
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
-  "_shared-shell-ui-BM1FAjNT.js": {
-    "file": "assets/shared-shell-ui-BM1FAjNT.js",
+  "_shared-shell-ui-D0AWYI3J.js": {
+    "file": "assets/shared-shell-ui-D0AWYI3J.js",
     "name": "shared-shell-ui",
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js"
@@ -55,140 +48,110 @@
     "src": "src/assets/fonts/IRANYekanMobileRegular.woff2"
   },
   "src/islands/AiAssistant.js": {
-    "file": "assets/AiAssistant-CIR1Pwf-.js",
+    "file": "assets/AiAssistant-5BFy2PNx.js",
     "name": "AiAssistant",
     "src": "src/islands/AiAssistant.js",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js",
-      "_shared-shell-ui-BM1FAjNT.js",
-      "_send-CXtv6lDU.js"
+      "_shared-shell-ui-D0AWYI3J.js",
+      "_send-B75fyiVX.js"
     ]
   },
   "src/islands/AuthPage.jsx": {
-    "file": "assets/AuthPage-DkXlJpeW.js",
+    "file": "assets/AuthPage-Cocv8cAl.js",
     "name": "AuthPage",
     "src": "src/islands/AuthPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js",
-      "_shared-shell-ui-BM1FAjNT.js"
-    ]
-  },
-  "src/islands/CartCheckout.js": {
-    "file": "assets/CartCheckout-m0Ncw_V1.js",
-    "name": "CartCheckout",
-    "src": "src/islands/CartCheckout.js",
-    "isDynamicEntry": true,
-    "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/CategoriesBrowser.js": {
-    "file": "assets/CategoriesBrowser-cfkxZyG2.js",
+    "file": "assets/CategoriesBrowser-OfDio3wI.js",
     "name": "CategoriesBrowser",
     "src": "src/islands/CategoriesBrowser.js",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js",
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/CategoryDrawer.js": {
-    "file": "assets/CategoryDrawer-D9Qq8Ci_.js",
+    "file": "assets/CategoryDrawer-DacOYGcx.js",
     "name": "CategoryDrawer",
     "src": "src/islands/CategoryDrawer.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/FloatingMobileNav.js": {
-    "file": "assets/FloatingMobileNav-Cz4ooub6.js",
+    "file": "assets/FloatingMobileNav-CYZIMZOj.js",
     "name": "FloatingMobileNav",
     "src": "src/islands/FloatingMobileNav.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/Footer.js": {
-    "file": "assets/Footer-BIZ4qqgN.js",
+    "file": "assets/Footer-8RIZ1cP5.js",
     "name": "Footer",
     "src": "src/islands/Footer.js",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js",
-      "_shared-shell-ui-BM1FAjNT.js",
-      "_send-CXtv6lDU.js",
+      "_shared-shell-ui-D0AWYI3J.js",
+      "_send-B75fyiVX.js",
       "src/islands/Header.js"
     ]
   },
   "src/islands/Header.js": {
-    "file": "assets/Header-5f_0e-Dn.js",
+    "file": "assets/Header-D3knKHGh.js",
     "name": "Header",
     "src": "src/islands/Header.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/MegaMenu.js": {
-    "file": "assets/MegaMenu-Bv-ee0SS.js",
+    "file": "assets/MegaMenu-DitKGkJL.js",
     "name": "MegaMenu",
     "src": "src/islands/MegaMenu.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/MiniCart.js": {
-    "file": "assets/MiniCart-CYEzilsi.js",
+    "file": "assets/MiniCart-CdU0Dmh7.js",
     "name": "MiniCart",
     "src": "src/islands/MiniCart.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/islands/MobileNav.js": {
-    "file": "assets/MobileNav-D3YiUZ8p.js",
+    "file": "assets/MobileNav-BGnhVzl9.js",
     "name": "MobileNav",
     "src": "src/islands/MobileNav.js",
     "isDynamicEntry": true,
     "imports": [
-      "_shared-shell-ui-BM1FAjNT.js"
-    ]
-  },
-  "src/islands/ProductDetails.js": {
-    "file": "assets/ProductDetails-BUf2Jd7-.js",
-    "name": "ProductDetails",
-    "src": "src/islands/ProductDetails.js",
-    "isDynamicEntry": true,
-    "imports": [
-      "_shared-shell-ui-BM1FAjNT.js",
-      "_send-CXtv6lDU.js",
-      "_product-card-DUzyIGXQ.js"
-    ]
-  },
-  "src/islands/ShopArchive.js": {
-    "file": "assets/ShopArchive-DzwKr9Wm.js",
-    "name": "ShopArchive",
-    "src": "src/islands/ShopArchive.js",
-    "isDynamicEntry": true,
-    "imports": [
-      "_shared-shell-ui-BM1FAjNT.js",
-      "_product-card-DUzyIGXQ.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ]
   },
   "src/main.js": {
-    "file": "assets/main-CJJ7nlX0.js",
+    "file": "assets/main-B0XEN0ub.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
       "_rolldown-runtime-CbXtAM7H.js",
-      "_shared-shell-ui-BM1FAjNT.js"
+      "_shared-shell-ui-D0AWYI3J.js"
     ],
     "dynamicImports": [
       "src/islands/AuthPage.jsx",
@@ -199,9 +162,6 @@
       "src/islands/CategoryDrawer.js",
       "src/islands/MobileNav.js",
       "src/islands/FloatingMobileNav.js",
-      "src/islands/ProductDetails.js",
-      "src/islands/ShopArchive.js",
-      "src/islands/CartCheckout.js",
       "src/islands/AiAssistant.js",
       "src/islands/CategoriesBrowser.js",
       "node_modules/lenis/dist/lenis.mjs"

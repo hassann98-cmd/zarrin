@@ -47,10 +47,10 @@ check(
 foreach ( $r169_expected_files as $r169_file ) {
 	check( false !== strpos( $r169_modulepreload_html, JLUXE_ASSET_URI . '/' . $r169_file ), 'R169 modulepreload includes static dependency: ' . basename( $r169_file ) );
 }
-$r169_route_file = $r169_manifest['src/islands/ProductDetails.js']['file'] ?? '';
+$r169_demo_entries = array_intersect_key( $r169_manifest, array_flip( array( 'src/islands/ProductDetails.js', 'src/islands/ShopArchive.js', 'src/islands/CartCheckout.js' ) ) );
 check(
-	$r169_route_file && false === strpos( $r169_modulepreload_html, $r169_route_file ),
-	'R169 dynamic product-route island is not preloaded with the static shell graph'
+	array() === $r169_demo_entries && false === strpos( $r169_modulepreload_html, 'ProductDetails' ) && false === strpos( $r169_modulepreload_html, 'CartCheckout' ),
+	'R192 mock product, archive, and checkout demos are not built into or preloaded by the storefront'
 );
 
 // R161: the shared storefront helper and its jQuery-based dependencies must not hold up first paint.
@@ -774,8 +774,8 @@ $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new W
 check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
 check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
 check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/en/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages and only prefill Chapar where its official route supports a bill-number path');
-$r21_shipping_guide_defaults=jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html']??'';
-check(strpos($r21_shipping_guide_defaults,'href="https://tipaxco.com/en/tracking"')!==false && strpos($r21_shipping_guide_defaults,'https://tipaxco.com/tracking')===false, 'R21 default shipping guide links to Tipax official English tracking page');
+$r192_shipping_guide_defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html'] ?? '';
+check( false === strpos( $r192_shipping_guide_defaults, 'tipax' ) && false === strpos( $r192_shipping_guide_defaults, 'چاپار' ) && false !== strpos( $r192_shipping_guide_defaults, 'تسویه‌حساب' ), 'R192 default shipping guide describes only the checkout-configured options, not guessed carriers' );
 $order->meta['_jsms_tracking']='';
 $order->status='pending';
 $timeline=jluxe_build_timeline_data($order);
@@ -2011,7 +2011,7 @@ $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 4, 'faq' => a
 jluxe_update_settings_section( 'faq', array( 'items' => array() ) );
 $r180_saved_empty_faq = jluxe_get_theme_settings( true );
 check(
-	6 === $r180_saved_empty_faq['version'] && empty( $r180_saved_empty_faq['faq']['items'] ),
+	7 === $r180_saved_empty_faq['version'] && empty( $r180_saved_empty_faq['faq']['items'] ),
 	'R180 once the administrator clears the FAQ, saving it empty does not reseed defaults on later reads'
 );
 update_test_settings( $defaults );
@@ -3246,11 +3246,13 @@ check(
 	'R191 fresh footer defaults use the more scannable two-column mobile benefit layout'
 );
 check(
-	false !== strpos( $r189_footer_defaults['brand_description'], 'JLuxe | هنرِ انتخاب' ) &&
-	false !== strpos( $r189_footer_defaults['support_hours'], '۹ صبح تا ۸ شب' ) &&
-	false !== strpos( $r189_footer_defaults['support_text'], '۲۴ ساعته از طریق شبکه‌های اجتماعی' ) &&
-	array() === $r189_footer_defaults['trust_badges'],
-	'R189 footer copy follows the supplied brand/support wording while no official trust mark is fabricated'
+	'' === $r189_footer_defaults['brand_description'] && '' === $r189_footer_defaults['support_hours'] &&
+	'' === $r189_footer_defaults['support_text'] &&
+	array() === $r189_footer_defaults['trust_badges'] &&
+	array_reduce( $r189_footer_defaults['feature_cards'], static function ( $empty, $card ) {
+		return $empty && empty( $card['enabled'] ) && '' === $card['title'] && '' === $card['subtitle'];
+	}, true ),
+	'R192 fresh footer defaults contain no invented brand/support, feature, or trust-mark claims'
 );
 $r189_footer_clean = jluxe_sanitize_footer(
 	array( 'brand_description' => 'JLuxe <script>bad()</script> معرفی فوتر' ),
@@ -3279,22 +3281,100 @@ $r189_legacy['footer']['trust_badges'] = $r189_original_badges;
 update_option( JLUXE_SETTINGS_OPTION, $r189_legacy, false );
 $r189_migrated = jluxe_get_theme_settings( true );
 check(
-	6 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] &&
-	'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' === $r189_migrated['footer']['support_hours'] &&
-	'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.' === $r189_migrated['footer']['support_text'] &&
+	7 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] &&
+	'' === $r189_migrated['footer']['support_hours'] && '' === $r189_migrated['footer']['support_text'] &&
 	'نمادهای اعتماد' === $r189_migrated['footer']['trust_badges_title'] &&
-	'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.' === $r189_migrated['footer']['brand_description'],
-	'R189 v5 settings migrate only old default footer copy and receive the new footer-only description'
+	'' === $r189_migrated['footer']['brand_description'],
+	'R192 v5 settings pass through v6 and v7: exact legacy claims are cleared and the trust-mark title/custom badge data survive'
 );
 check(
 	'ارسال سفارشی' === $r189_migrated['footer']['feature_cards'][0]['title'] &&
-	'به سراسر ایران' === $r189_migrated['footer']['feature_cards'][0]['subtitle'] &&
-	'پشتیبانی آنلاین' === $r189_migrated['footer']['feature_cards'][1]['title'] &&
-	'کف قیمت بازار' === $r189_migrated['footer']['feature_cards'][2]['subtitle'] &&
+	'' === $r189_migrated['footer']['feature_cards'][0]['subtitle'] &&
+	'' === $r189_migrated['footer']['feature_cards'][1]['title'] &&
+	'' === $r189_migrated['footer']['feature_cards'][1]['subtitle'] &&
+	false === $r189_migrated['footer']['feature_cards'][1]['enabled'] &&
+	'' === $r189_migrated['footer']['feature_cards'][2]['title'] &&
+	'' === $r189_migrated['footer']['feature_cards'][2]['subtitle'] &&
+	false === $r189_migrated['footer']['feature_cards'][2]['enabled'] &&
 	$r189_original_badges === $r189_migrated['footer']['trust_badges'],
-	'R189 migration preserves customized card text and every real trust-badge HTML payload'
+	'R192 migration clears exact default feature claims but preserves custom card titles and real trust-badge HTML payloads'
 );
+
+$r192_legacy_v6 = array(
+	'footer' => array(
+		'brand_description' => 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
+		'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.',
+		'support_text' => 'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.',
+		'feature_cards' => array(
+			array( 'enabled' => true, 'title' => 'ارسال سریع و مطمئن', 'subtitle' => 'به سراسر ایران' ),
+			array( 'enabled' => true, 'title' => 'مزیتِ نوشته‌شده', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
+		),
+	),
+	'header_nav' => array( 'items' => array( array( 'id' => 'other', 'label' => 'درباره زرین' ), array( 'id' => 'about', 'label' => 'درباره زرین' ) ) ),
+	'info_pages' => array( 'about' => array( 'story_html' => '<p>داستان واقعیِ ثبت‌شده</p>' ) ),
+	'ai_assistant' => array(
+		'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ),
+		'phone_timezone' => 'Asia/Tehran',
+		'contact_icons' => array(
+			'phone' => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
+			'whatsapp' => 'https://merchant.example/custom-whatsapp.webp',
+		),
+	),
+);
+$r192_migrated_v6 = jluxe_migrate_settings_to_current_version( $r192_legacy_v6, 6 );
+check(
+	7 === $r192_migrated_v6['version'] && '' === $r192_migrated_v6['footer']['brand_description'] &&
+	'' === $r192_migrated_v6['footer']['support_hours'] && '' === $r192_migrated_v6['footer']['support_text'] &&
+	'' === $r192_migrated_v6['footer']['feature_cards'][0]['title'] && false === $r192_migrated_v6['footer']['feature_cards'][0]['enabled'] &&
+	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
+	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
+	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
+	'R192 v7 migration clears only exact old defaults, finds reordered nav items by ID, and preserves merchant-edited text'
+);
+check(
+	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
+	'UTC' === $r192_migrated_v6['ai_assistant']['phone_timezone'] && '' === $r192_migrated_v6['ai_assistant']['contact_icons']['phone'] &&
+	'https://merchant.example/custom-whatsapp.webp' === $r192_migrated_v6['ai_assistant']['contact_icons']['whatsapp'],
+	'R192 legacy guessed phone hours/timezone and hard-coded JLuxe icons are removed without clearing merchant URLs'
+);
+$r192_custom_schedule = $r192_legacy_v6;
+$r192_custom_schedule['ai_assistant']['phone_hours']['start'] = '11:00';
+$r192_custom_schedule['ai_assistant']['phone_timezone'] = 'America/Chicago';
+$r192_custom_schedule['footer']['support_hours'] = 'ساعاتِ ویژهٔ ثبت‌شده توسط مدیر';
+$r192_custom_migrated = jluxe_migrate_settings_v7( $r192_custom_schedule );
+check(
+	true === $r192_custom_migrated['ai_assistant']['phone_hours']['enabled'] && '11:00' === $r192_custom_migrated['ai_assistant']['phone_hours']['start'] &&
+	'America/Chicago' === $r192_custom_migrated['ai_assistant']['phone_timezone'] && 'ساعاتِ ویژهٔ ثبت‌شده توسط مدیر' === $r192_custom_migrated['footer']['support_hours'],
+	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
+);
+$r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
+check( 7 === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R192 the centralized version migrator executes the missing v5 FAQ seed before v6 and v7' );
+$r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-import-export.php' );
+check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
+jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
+check( 7 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'], 'R192 saving an unrelated settings section applies the v7 migration before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
+
+$r192_info_templates = array(
+	'page-about-us.php' => 'درباره ما',
+	'page-contact-us.php' => 'راه‌های تماس',
+	'page-payment-guide.php' => 'روش‌ها و راهنمای پرداخت سفارشات',
+	'page-shipping-and-order-tracking.php' => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
+	'page-returns-and-exchanges.php' => 'رویهٔ شرایط مرجوعی و تعویض کالا',
+	'page-jluxe-help-center.php' => 'مرکز راهنمایی',
+);
+foreach ( $r192_info_templates as $r192_template => $r192_expected_copy ) {
+	ob_start();
+	require ABSPATH . $r192_template;
+	$r192_template_html = (string) ob_get_clean();
+	check( false !== strpos( $r192_template_html, $r192_expected_copy ) && false === strpos( $r192_template_html, 'Warning:' ), 'R192 ' . $r192_template . ' renders its neutral settings-backed copy without runtime warnings' );
+}
+$r192_non_woo_templates = array( 'single-product.php', 'archive-product.php', 'page-cart.php', 'page-checkout.php' );
+foreach ( $r192_non_woo_templates as $r192_template ) {
+	$r192_template_source = (string) file_get_contents( ABSPATH . $r192_template );
+	check( false !== strpos( $r192_template_source, 'ووکامرس باید نصب و فعال باشد' ) && false === strpos( $r192_template_source, 'product-details-demo' ) && false === strpos( $r192_template_source, 'shop-archive-demo' ) && false === strpos( $r192_template_source, 'cart-checkout-demo' ), 'R192 ' . $r192_template . ' has a safe WooCommerce-missing state and no mock storefront route' );
+}
 
 check( '' === jluxe_footer_background_style( array( 'mode' => 'default' ) ), 'R88 default footer background adds no style' );
 check( 'background-color:#112233;' === jluxe_footer_background_style( array( 'mode' => 'solid', 'solid_color' => '#112233' ) ), 'R88 solid footer background' );
@@ -4210,15 +4290,15 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( 6 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ), 'R96/R180 stored v2 settings migrate once through v6: legacy color/launcher fixes, FAQ defaults and footer-safe migration are upgraded' );
+check( 7 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ), 'R96/R180 stored v2 settings migrate once through v7: legacy colors/launcher fixes, FAQ defaults and v7 clean-copy migration are upgraded' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( 6 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180 saving another settings section applies migrations through v6 and seeds FAQ defaults exactly once' );
+check( 7 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180 saving another settings section applies migrations through v7 and seeds FAQ defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
-check( 'tel:+989120902336' === $r94_contact['tel'] && 'Asia/Tehran' === $r94_contact['timezone'] && in_array( 5, $r94_contact['hours']['closedDays'], true ), 'R94 contact data exposes a normalized phone link and Tehran-Friday schedule without API credentials' );
-check( 'شنبه تا پنجشنبه' === jluxe_ai_days_label( $r94_defaults ), 'R95 the default phone schedule is rendered as readable response days' );
+check( 'tel:+989120902336' === $r94_contact['tel'] && 'UTC' === $r94_contact['timezone'] && false === $r94_contact['hours']['enabled'] && '' === $r94_contact['hoursLabel'] && array() === $r94_contact['hours']['closedDays'], 'R192 default AI contact exposes a normalized phone link but no assumed schedule or locale' );
+check( '' === jluxe_ai_days_label( $r94_defaults ) && '' === jluxe_ai_hours_label( $r94_defaults ), 'R192 default phone schedule produces no response days or hours until configured' );
 $r95_availability = jluxe_sanitize_ai_assistant(
 	array(
 		'phone_hours' => array( 'present' => '1', 'enabled' => '1', 'start' => '11:30', 'end' => '19:00', 'open_days_present' => '1', 'open_days' => array( '6', '0', '2', '8', 'invalid' ) ),
@@ -4235,7 +4315,12 @@ check( false !== strpos( $r95_admin_source, 'phone_hours][open_days][]' ) && fal
 $r94_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), 'phone_timezone' => 'Asia/Tehran' );
 $r94_friday = ( new DateTimeImmutable( '2026-09-25 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
 $r94_saturday = ( new DateTimeImmutable( '2026-09-26 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
-check( ! jluxe_ai_phone_is_open( $r94_schedule, $r94_friday ) && jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday ) && ! jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday - 2 * 60 * 60 ), 'R94 phone-hours schedule uses Tehran time and excludes Friday/closed hours' );
+check( ! jluxe_ai_phone_is_open( $r94_schedule, $r94_friday ) && jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday ) && ! jluxe_ai_phone_is_open( $r94_schedule, $r94_saturday - 2 * 60 * 60 ), 'R94 phone-hours schedule uses its configured timezone and excludes closed days/hours' );
+$r192_utc_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '20:00', 'end' => '22:00', 'closed_days' => array() ), 'phone_timezone' => 'Etc/UTC' );
+$r192_tehran_2100 = ( new DateTimeImmutable( '2026-09-26 21:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
+check( false === jluxe_ai_phone_is_open( $r192_utc_schedule, $r192_tehran_2100 ), 'R192 server-side phone status follows the configured UTC schedule, not the WordPress test timezone' );
+$r192_store_utc = jluxe_ai_store_brief( $r192_utc_schedule, $r192_tehran_2100 );
+check( false !== strpos( $r192_store_utc, 'شنبه ساعت ۱۷:۳۰' ), 'R192 the assistant store-time context uses the same configured timezone as phone-hours status' );
 $r94_external_page = jluxe_ai_page_context( array( 'url' => 'https://evil.example/secret', 'title' => 'private' ) );
 check( '' === $r94_external_page, 'R94 current-page context refuses an external host' );
 unset( $GLOBALS['test_filters']['jluxe_ai_knowledge_documents'] );
@@ -4382,11 +4467,11 @@ check( false !== strpos( $r143_account_nav, 'jluxe-account-home-link' ) && false
 $r21_view_order = file_get_contents( __DIR__ . '/../../woocommerce/myaccount/view-order.php' );
 $r21_order_css  = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
 $r21_quick_js   = file_get_contents( __DIR__ . '/../../assets/js/order-tracking.js' );
-$r21_checkout_js = file_get_contents( __DIR__ . '/../../src/islands/CartCheckout.js' );
+$r21_payment_labels = file_get_contents( __DIR__ . '/../../inc/order-tracking.php' );
 $r21_thankyou = file_get_contents( __DIR__ . '/../../woocommerce/checkout/thankyou.php' );
 check( false !== strpos( $r21_view_order, 'jluxe-order-timeline' ) && false !== strpos( $r21_view_order, 'aria-current="step"' ) && false !== strpos( $r21_view_order, 'jluxe_build_timeline_data' ) && false !== strpos( $r21_view_order, 'jluxe-order-shipment__tracking-code' ) && false !== strpos( $r21_view_order, 'shipping_note' ) && false !== strpos( $r21_view_order, 'requires_captcha' ) && false !== strpos( $r21_view_order, 'target="_blank"' ), 'R21 account order details render accessible status steps, saved shipment code/note, official carrier link, and manual CAPTCHA guidance' );
 check( false !== strpos( $r21_order_css, '.jluxe-order-timeline' ) && false !== strpos( $r21_order_css, 'grid-template-columns: repeat(4, minmax(0, 1fr))' ) && false !== strpos( $r21_order_css, '@media (max-width: 480px)' ) && false !== strpos( $r21_order_css, '.jluxe-order-shipment__note' ), 'R21 account shipment/timeline styling keeps four clear, responsive steps and readable shipment notes' );
-check( false !== strpos( $r21_quick_js, 'jto-timeline__step' ) && false !== strpos( $r21_quick_js, 'shipping.tracking_url' ) && false !== strpos( $r21_quick_js, 'shipping.shipping_note' ) && false !== strpos( $r21_quick_js, 'requires_captcha' ) && false !== strpos( $r21_checkout_js, 'label: "کارت به کارت"' ) && false !== strpos( $r21_thankyou, 'jluxe_get_payment_method_label' ), 'R21 quick tracking presents verified fulfillment-only data and all customer payment labels use the short card-to-card wording' );
+check( false !== strpos( $r21_quick_js, 'jto-timeline__step' ) && false !== strpos( $r21_quick_js, 'shipping.tracking_url' ) && false !== strpos( $r21_quick_js, 'shipping.shipping_note' ) && false !== strpos( $r21_quick_js, 'requires_captcha' ) && false !== strpos( $r21_payment_labels, 'function jluxe_get_payment_method_label' ) && false !== strpos( $r21_payment_labels, "'card-to-card'" ) && false !== strpos( $r21_payment_labels, "return 'کارت به کارت'" ) && false !== strpos( $r21_thankyou, 'jluxe_get_payment_method_label' ), 'R21 live order views use the normalized gateway label while quick tracking exposes only verified shipment data' );
 
 // R144 — simple-product steppers stay visible in both product layouts and keep their bounds.
 $r144_simple_template = file_get_contents( __DIR__ . '/../../woocommerce/single-product/add-to-cart/simple.php' );

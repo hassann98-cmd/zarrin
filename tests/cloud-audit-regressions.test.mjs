@@ -43,34 +43,28 @@ test("R-AUDIT mobile and desktop header search results both have explicit viewpo
   );
 });
 
-test("R-AUDIT React product cards are confined to mock demos; WooCommerce uses configured PHP cards", () => {
+test("R192 mock storefronts are unreachable and non-WooCommerce fallbacks never fabricate products or payment data", () => {
   const srcRoot = path.join(root, "src");
   const consumers = walk(srcRoot)
     .filter((file) => /\.jsx?$/.test(file))
     .filter((file) => /from\s+["'][^"']*components\/product-card\.js["']/.test(read(path.relative(root, file))))
     .map((file) => path.relative(root, file).split(path.sep).join("/"))
     .sort();
-
   assert.deepEqual(consumers, [
     "src/islands/ProductDetails.js",
     "src/islands/ShopArchive.js",
-  ]);
+  ], "React product cards remain only in unreferenced visual mocks");
 
   const entry = read("src/main.js");
-  assert.match(entry, /"product-details-demo"\s*:\s*\(\)\s*=>\s*import\("\.\/islands\/ProductDetails\.js"\)/);
-  assert.match(entry, /"shop-archive-demo"\s*:\s*\(\)\s*=>\s*import\("\.\/islands\/ShopArchive\.js"\)/);
+  assert.doesNotMatch(entry, /ProductDetails\.js|ShopArchive\.js|CartCheckout\.js|product-details-demo|shop-archive-demo|cart-checkout-demo/);
 
-  for (const [templatePath, demoIsland] of [
-    ["single-product.php", "product-details-demo"],
-    ["archive-product.php", "shop-archive-demo"],
-  ]) {
+  for (const templatePath of ["single-product.php", "archive-product.php", "page-cart.php", "page-checkout.php"]) {
     const template = read(templatePath);
-    assert.match(
-      template,
-      new RegExp(
-        `if\\s*\\(\\s*class_exists\\(\\s*'WooCommerce'\\s*\\)\\s*\\)\\s*\\{\\s*woocommerce_content\\(\\);\\s*\\}\\s*else\\s*\\{[\\s\\S]*data-jluxe-island="${demoIsland}"`,
-      ),
-    );
+    assert.match(template, /class_exists\( 'WooCommerce' \)/);
+    assert.match(template, /ووکامرس باید نصب و فعال باشد/);
+    assert.match(template, /role="status"/);
+    assert.doesNotMatch(template, /product-details-demo|shop-archive-demo|cart-checkout-demo/);
+    assert.doesNotMatch(template, /سرویس ۱۲ پارچه|پرداخت امن زرین|درگاه پارسیان|تیپاکس/);
   }
 
   const phpCard = read("woocommerce/content-product.php");
@@ -78,6 +72,14 @@ test("R-AUDIT React product cards are confined to mock demos; WooCommerce uses c
   assert.match(phpCard, /\$jluxe_pc\s*\[\s*'image_ratio'\s*\]/);
   assert.match(phpCard, /\$jluxe_pc\s*\[\s*'radius'\s*\]/);
   assert.match(phpCard, /\$jluxe_pc\s*\[\s*'image_corners'\s*\]/);
+});
+
+test("R192 the assistant never invents phone hours or silently falls back to the visitor's timezone", () => {
+  const assistant = read("src/islands/AiAssistant.js");
+  assert.doesNotMatch(assistant, /hours\.(?:start|end)\s*\|\|\s*["'](?:10:00|20:00)["']/);
+  assert.match(assistant, /timePattern\.test\(start\).*timePattern\.test\(end\)/s);
+  assert.match(assistant, /if \(startHour \* 60 \+ startMinute >= endHour \* 60 \+ endMinute\) return null;/);
+  assert.match(assistant, /catch\s*\{[\s\S]*?return null;/);
 });
 
 test("R-AUDIT classic product layout shares the standard desktop horizontal padding", () => {

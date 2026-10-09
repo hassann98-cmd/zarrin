@@ -16,10 +16,12 @@ $jluxe_pagination_base = isset( $wp_rewrite->pagination_base ) ? (string) $wp_re
 		if ( class_exists( 'WooCommerce' ) ) {
 			woocommerce_content();
 		} else {
-			// موقتی: پیش‌نمایش صفحه‌ی شاپ/آرشیو دسته با داده‌ی mock تا در فاز طراحی بصری تأیید بشه.
-			// در سایت واقعی (WooCommerce فعال) این شاخه هیچ‌وقت اجرا نمی‌شه.
 			?>
-			<div data-jluxe-island="shop-archive-demo"></div>
+			<section class="mx-auto max-w-xl px-4 py-16 text-center" role="status">
+				<h1 class="text-xl font-bold text-foreground">فروشگاه در دسترس نیست</h1>
+				<p class="mt-3 text-sm leading-7 text-text-secondary">برای نمایش محصولات و دسته‌بندی‌های واقعی، افزونهٔ ووکامرس باید نصب و فعال باشد.</p>
+				<a class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground" href="<?php echo esc_url( home_url( '/' ) ); ?>">بازگشت به صفحهٔ اصلی</a>
+			</section>
 			<?php
 		}
 		?>

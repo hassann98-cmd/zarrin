@@ -8,8 +8,8 @@
  * میاد. کلاس‌های CSS این صفحه (jpp-*) کاملاً مستقل و خوداتکا هستن (بدون
  * وابستگی به Tailwind کامپایل‌شده‌ی قالب).
  *
- * توجه: «زرین‌پال» در متنِ بخشِ ۱ نامِ واقعیِ درگاهِ پرداخته، نه نامِ برند —
- * عمداً دست‌نخورده مونده.
+ * متن و اطلاعاتِ پرداخت فقط از پیکربندیِ واقعیِ فروشگاه خوانده می‌شوند؛ هیچ
+ * درگاه یا روشِ پرداختِ نمونه‌ای از طرفِ پوسته معرفی نمی‌شود.
  */
 
 get_header();
@@ -29,10 +29,7 @@ $jluxe_pg_btn_text  = $jluxe_pg['button_text'] ?? '';
 $jluxe_pg_btn_url   = $jluxe_pg['button_url'] ?? '/';
 $jluxe_pg_btn_style = ! empty( $jluxe_pg['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_pg['button_color'] ) . '"' : '';
 
-// بخشِ کارت‌به‌کارت فقط وقتی نمایش داده می‌شه که ادمین واقعاً شماره‌کارت رو
-// پر کرده باشه — پیش‌فرضِ همه‌چی خالیه تا اطلاعاتِ حسابِ اشتباه/متعلق‌به‌
-// کس‌دیگه به مشتری نشون داده نشه.
-$jluxe_pg_has_account = ! empty( $jluxe_pg_account['card_number'] );
+// اطلاعات حساب فقط جای placeholderهای متنِ نوشته‌شده توسط مدیر را می‌گیرد.
 $jluxe_pg_body = strtr( $jluxe_pg['body_html'] ?? '', array( '{site_name}' => $jluxe_pg_site_name, '{card_number}' => $jluxe_pg_account['card_number'] ?? '', '{sheba}' => $jluxe_pg_account['sheba'] ?? '', '{holder_name}' => $jluxe_pg_account['holder_name'] ?? '', '{bank_name}' => $jluxe_pg_account['bank_name'] ?? '' ) );
 ?>
 

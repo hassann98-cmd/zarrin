@@ -90,6 +90,14 @@ function safeHref(rawHref, contact, assistant) {
 function getPhoneHoursState(contact) {
   const hours = contact?.hours || {};
   if (!hours.enabled) return null;
+  const timePattern = /^(?:[01]?\d|2[0-3]):[0-5]\d$/;
+  const start = String(hours.start || "");
+  const end = String(hours.end || "");
+  if (!timePattern.test(start) || !timePattern.test(end)) return null;
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  if (startHour * 60 + startMinute >= endHour * 60 + endMinute) return null;
+
   try {
     const options = {
       hour: "2-digit",
@@ -103,19 +111,13 @@ function getPhoneHoursState(contact) {
     const minute = Number(parts.find((part) => part.type === "minute")?.value);
     const weekday = parts.find((part) => part.type === "weekday")?.value;
     const day = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekday];
+    if (!Number.isInteger(day) || !Number.isFinite(hour) || !Number.isFinite(minute)) return null;
     const closedDays = Array.isArray(hours.closedDays) ? hours.closedDays.map(Number) : [];
-    const [startHour, startMinute] = String(hours.start || "10:00").split(":").map(Number);
-    const [endHour, endMinute] = String(hours.end || "20:00").split(":").map(Number);
     const now = hour * 60 + minute;
     return !closedDays.includes(day) && now >= startHour * 60 + startMinute && now < endHour * 60 + endMinute;
   } catch {
-    // اگر مرورگر timezone نامعتبر داشت، زمانِ سیستمِ کاربر را جایگزین می‌کنیم.
-    const now = new Date();
-    const day = now.getDay();
-    const mins = now.getHours() * 60 + now.getMinutes();
-    const [sh, sm] = String(hours.start || "10:00").split(":").map(Number);
-    const [eh, em] = String(hours.end || "20:00").split(":").map(Number);
-    return !(hours.closedDays || []).map(Number).includes(day) && mins >= sh * 60 + sm && mins < eh * 60 + em;
+    // ساعت نامعتبر یا timezone ناشناخته نباید با ساعتِ محلیِ مرورگر حدس زده شود.
+    return null;
   }
 }
 
@@ -132,7 +134,7 @@ const DAY_LABELS = {
 
 function getDaysLabel(hours = {}) {
   if (hours.daysLabel) return String(hours.daysLabel);
-  const closed = new Set(Array.isArray(hours.closedDays) ? hours.closedDays.map(Number) : [5]);
+  const closed = new Set(Array.isArray(hours.closedDays) ? hours.closedDays.map(Number) : []);
   const open = DAY_ORDER.filter((day) => !closed.has(day));
   if (open.length === DAY_ORDER.length) return "هر روز";
   if (!open.length) return "روزِ پاسخگویی ثبت نشده";
@@ -155,7 +157,8 @@ function getDaysLabel(hours = {}) {
 function getHoursLabel(contact) {
   const hours = contact?.hours || {};
   if (contact?.hoursLabel) return String(contact.hoursLabel);
-  return `${hours.start || "10:00"} تا ${hours.end || "20:00"}`;
+  if (!hours.start || !hours.end) return "";
+  return `${hours.start} تا ${hours.end}`;
 }
 
 function iconMark(key, contact, nodeKey) {
@@ -297,31 +300,33 @@ function renderReply(text, assistant, onImage) {
       const hasPhone = group.some((item) => item.key === "phone" || item.href.startsWith("tel:"));
       if (hasPhone && contact.hours?.enabled) {
         const isOpen = getPhoneHoursState(contact);
-        const notice = isOpen ? contact.openText : contact.closedText;
-        const hoursLabel = getHoursLabel(contact);
-        const daysLabel = getDaysLabel(contact.hours);
-        rows.push(
-          h("div", {
-            key: `hours-${i}`,
-            className: `jluxe-ai-hours-notice ${isOpen ? "is-open" : "is-closed"}`,
-            role: "status",
-            children: [
-              h("span", { key: "icon", className: "jluxe-ai-hours-icon", "aria-hidden": true, children: isOpen ? "✓" : "◷" }),
-              h("div", { key: "content", className: "jluxe-ai-hours-content", children: [
-                h("div", { key: "head", className: "jluxe-ai-hours-head", children: [
-                  h("strong", { key: "title", className: "jluxe-ai-hours-title", children: "ساعت پاسخگویی" }),
-                  h("span", { key: "state", className: "jluxe-ai-hours-state", children: isOpen ? "اکنون پاسخگو" : "خارج از ساعت" }),
+        if (isOpen !== null) {
+          const notice = isOpen ? contact.openText : contact.closedText;
+          const hoursLabel = getHoursLabel(contact);
+          const daysLabel = getDaysLabel(contact.hours);
+          rows.push(
+            h("div", {
+              key: `hours-${i}`,
+              className: `jluxe-ai-hours-notice ${isOpen ? "is-open" : "is-closed"}`,
+              role: "status",
+              children: [
+                h("span", { key: "icon", className: "jluxe-ai-hours-icon", "aria-hidden": true, children: isOpen ? "✓" : "◷" }),
+                h("div", { key: "content", className: "jluxe-ai-hours-content", children: [
+                  h("div", { key: "head", className: "jluxe-ai-hours-head", children: [
+                    h("strong", { key: "title", className: "jluxe-ai-hours-title", children: "ساعت پاسخگویی" }),
+                    h("span", { key: "state", className: "jluxe-ai-hours-state", children: isOpen ? "اکنون پاسخگو" : "خارج از ساعت" }),
+                  ] }),
+                  notice ? h("p", { key: "notice", className: "jluxe-ai-hours-copy", children: notice }) : null,
+                  h("div", { key: "schedule", className: "jluxe-ai-hours-meta", children: [
+                    h("span", { key: "days", children: daysLabel }),
+                    h("span", { key: "separator", className: "jluxe-ai-hours-separator", "aria-hidden": true, children: "•" }),
+                    h("span", { key: "time", children: hoursLabel }),
+                  ] }),
                 ] }),
-                notice ? h("p", { key: "notice", className: "jluxe-ai-hours-copy", children: notice }) : null,
-                h("div", { key: "schedule", className: "jluxe-ai-hours-meta", children: [
-                  h("span", { key: "days", children: daysLabel }),
-                  h("span", { key: "separator", className: "jluxe-ai-hours-separator", "aria-hidden": true, children: "•" }),
-                  h("span", { key: "time", children: hoursLabel }),
-                ] }),
-              ] }),
-            ],
-          }),
-        );
+              ],
+            }),
+          );
+        }
       }
       rows.push(
         h(

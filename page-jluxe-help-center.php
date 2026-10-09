@@ -1,19 +1,14 @@
 <?php
 /**
- * صفحه‌ی «مرکز راهنمایی» (اسلاگ jluxe-help-center — دقیقاً همون اسلاگِ
- * واقعیِ فعلیِ jluxe.ir، نه «help-hub»؛ بررسی‌شده زنده روی سایت واقعی).
- * لینک‌های داخلی نسخهٔ اصلی به‌صورت مطلق (https://jluxe.ir/...) بودن؛
- * این‌جا به مسیر نسبی تبدیل شدن تا در پوسته‌ی جدید به خودِ همین سایت
- * لینک بدن، نه به دامنه‌ی خارجی.
+ * مرکز راهنمایی: متن‌های وضعیت‌وابسته باید با روش‌ها و سیاست‌های واقعی
+ * ثبت‌شده توسط مدیر هماهنگ بمانند؛ این صفحه فقط به مسیرهای قابل‌بررسی لینک می‌دهد.
  */
-
-/*
- * طبقِ درخواستِ صریحِ کاربر: هر جا نامِ برند («زرین») توی متنِ این صفحات
- * هارد-کد بود، باید از تنظیماتِ پوسته خونده بشه — چون این صفحات عیناً از
- * jluxe.ir کپی شده بودن و همون‌جا «زرین» جا مونده بود؛ برای سایتی مثلِ
- * noghrehmilad.ir که اسمِ واقعیش چیزِ دیگه‌ایه، این متنِ ثابت اشتباهه.
- */
-$jluxe_site_name = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'identity.site_name', 'زرین' ) : 'زرین';
+$jluxe_site_name = function_exists( 'jluxe_get_setting' )
+	? (string) jluxe_get_setting( 'identity.site_name', get_bloginfo( 'name' ) )
+	: (string) get_bloginfo( 'name' );
+if ( '' === trim( $jluxe_site_name ) ) {
+	$jluxe_site_name = (string) get_bloginfo( 'name' );
+}
 
 get_header();
 ?>
@@ -78,7 +73,7 @@ get_header();
 
 		.jhh-grid {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+			grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
 			gap: 16px;
 		}
 
@@ -92,10 +87,16 @@ get_header();
 			background: #ffffff;
 			border: 1px solid var(--hh-line);
 			border-radius: 16px;
+			min-width: 0;
 			padding: 26px 24px;
+			opacity: 1;
+			transform: none;
+			transition: box-shadow 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+		}
+
+		#jluxe-help-hub[data-jhh-animate="1"] .jhh-card:not(.jhh-visible) {
 			opacity: 0;
 			transform: translateY(14px);
-			transition: box-shadow 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
 		}
 
 		.jhh-card.jhh-visible {
@@ -179,44 +180,44 @@ get_header();
 		<header class="jhh-hero">
 			<span class="jhh-eyebrow">— مرکز راهنمایی</span>
 			<h1>لیست صفحات و راهنمای <?php echo esc_html( $jluxe_site_name ); ?></h1>
-			<p>همهٔ آنچه برای خرید، پرداخت، ارسال، مرجوعی و پیگیری سفارش نیاز دارید، یک‌جا در همین صفحه.</p>
+			<p>راهنماهای موجود را مرور کنید و پیش از خرید، گزینه‌های درج‌شده در صفحهٔ محصول و تسویه‌حساب را بررسی کنید.</p>
 		</header>
 
 		<div class="jhh-grid">
 
 			<div class="jhh-card">
 				<h2>راهنمای خرید از سایت</h2>
-				<p>آموزش گام‌به‌گام و تصویری مراحل پیدا‌کردن محصول، افزودن به سبد خرید و ثبت آسان سفارش در <?php echo esc_html( $jluxe_site_name ); ?>.</p>
+				<p>مراحل عمومیِ انتخاب کالا و مرور سبد را بخوانید؛ گزینه‌های نهایی برای هر سفارش در تسویه‌حساب نمایش داده می‌شوند.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/shopping-guide/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>روش‌ها و راهنمای پرداخت سفارشات</h2>
-				<p>آشنایی با شیوه‌های پرداخت امن آنلاین (درگاه بانکی) و راهنمای واریز به‌صورت کارت‌به‌کارت یا شبا.</p>
+				<p>روش‌های پرداختِ قابل انتخاب برای سفارش خود را در تسویه‌حساب بررسی کنید؛ فقط از گزینه‌های ارائه‌شده در مسیر رسمی خرید استفاده کنید.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/payment-guide/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>روش‌های ارسال و راهنمای پیگیری سفارشات</h2>
-				<p>بررسی گزینه‌های ارسال (پست، تیپاکس و چاپار)، هزینه‌ها، قوانین بسته‌های شکستنی و آشنایی با وضعیت‌های سفارش.</p>
+				<p>روش‌ها و هزینه‌های در دسترس را برای سبد و نشانیِ خود در تسویه‌حساب ببینید. صفحهٔ پیگیری، اطلاعات ثبت‌شدهٔ سفارش را نمایش می‌دهد.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/shipping-and-order-tracking/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card">
 				<h2>رویهٔ شرایط مرجوعی و تعویض کالا</h2>
-				<p>قوانین مربوط به مهلت ۷ روزهٔ تست کالا، استثنائات بهداشتی و ضوابط تعویض کالاهای آسیب‌دیده.</p>
+				<p>شرایط مرجوعی و تعویض باید توسط فروشگاه در صفحهٔ این رویه درج شود. پیش از خرید، متنِ ثبت‌شده را بررسی کنید.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/returns-and-exchanges/' ) ); ?>">مشاهدهٔ راهنما ←</a>
 			</div>
 
 			<div class="jhh-card jhh-card-wide">
 				<h2>پیگیری سریع سفارش</h2>
-				<p>مشاهدهٔ آنی و لحظه‌ای وضعیت بستهٔ خود، تنها با واردکردن شمارهٔ سفارش و شمارهٔ موبایل — بدون نیاز به ورود به حساب کاربری.</p>
+				<p>صفحهٔ پیگیری، وضعیت و اطلاعاتی را نشان می‌دهد که برای سفارش ثبت شده‌اند؛ ممکن است برای احراز، شمارهٔ سفارش و شمارهٔ تماسِ ثبت‌شده درخواست شود.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( jluxe_route_url( 'track_order' ) ); ?>">پیگیری سفارش ←</a>
 			</div>
 
 			<div class="jhh-card jhh-card-wide">
 				<h2>تماس با ما</h2>
-				<p>راه‌های ارتباط مستقیم با پشتیبانی <?php echo esc_html( $jluxe_site_name ); ?>، شمارهٔ تماس، ساعات پاسخگویی و شبکه‌های اجتماعی.</p>
+				<p>راه‌های تماس و ساعات پاسخ‌گویی، در صورت ثبت، در صفحهٔ تماس با ما نمایش داده می‌شوند.</p>
 				<a class="jhh-btn" href="<?php echo esc_url( home_url( '/contact-us/' ) ); ?>">تماس با ما ←</a>
 			</div>
 
@@ -242,29 +243,38 @@ get_header();
 
 			var cards = container.querySelectorAll(".jhh-card");
 
-			if (!window.IntersectionObserver) {
+			var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			if (!window.IntersectionObserver || reduceMotion) {
 				cards.forEach(function (card) {
 					card.classList.add("jhh-visible");
 				});
 				return;
 			}
 
-			var observer = new IntersectionObserver(
-				function (entries) {
-					entries.forEach(function (entry) {
-						if (entry.isIntersecting) {
-							entry.target.classList.add("jhh-visible");
-							observer.unobserve(entry.target);
-						}
-					});
-				},
-				{ threshold: 0.15 }
-			);
+			container.setAttribute("data-jhh-animate", "1");
+			try {
+				var observer = new IntersectionObserver(
+					function (entries) {
+						entries.forEach(function (entry) {
+							if (entry.isIntersecting) {
+								entry.target.classList.add("jhh-visible");
+								observer.unobserve(entry.target);
+							}
+						});
+					},
+					{ threshold: 0.15 }
+				);
 
-			cards.forEach(function (card, index) {
-				card.style.transitionDelay = (index * 60) + "ms";
-				observer.observe(card);
-			});
+				cards.forEach(function (card, index) {
+					card.style.transitionDelay = (index * 60) + "ms";
+					observer.observe(card);
+				});
+			} catch (error) {
+				container.removeAttribute("data-jhh-animate");
+				cards.forEach(function (card) {
+					card.classList.add("jhh-visible");
+				});
+			}
 		}
 
 		if (document.readyState === "loading") {

@@ -1,6 +1,6 @@
 # پوستهٔ زرین — Zarrin
 
-پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.52** است.
+پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.53** است.
 
 - [فهرست اصلاحات و نتیجهٔ تست‌ها](docs/FIXES.fa.md)
 - [آزمون یکپارچهٔ وردپرس: روش اجرا و محدودیت‌ها](docs/INTEGRATION.fa.md)
@@ -61,7 +61,7 @@ npm run test:integration
 ZARRIN_TEST_PHP=8.5 npm run test:integration
 ```
 
-۴۹ کنترل در WordPress 6.9 واقعی و دیتابیس موقت SQLite روی PHP-WASM 8.3.33/8.5.10 پاس شده‌اند. cookie، nonce، role/capability، options و REST واقعی‌اند؛ ارسال SMS شبیه‌سازی و mail/شبکه مسدود است. این مجموعه WooCommerce یا خرید واقعی را اجرا نمی‌کند. [جزئیات و روش بازتولید](docs/INTEGRATION.fa.md).
+۶۳ کنترل در WordPress 6.9 واقعی و دیتابیس موقت SQLite روی PHP-WASM 8.3.33/8.5.10 پاس شده‌اند. cookie، nonce، role/capability، options و REST واقعی‌اند؛ ارسال SMS شبیه‌سازی و mail/شبکه مسدود است. این مجموعه WooCommerce یا خرید واقعی را اجرا نمی‌کند. [جزئیات و روش بازتولید](docs/INTEGRATION.fa.md).
 
 ### بستهٔ نصب و به‌روزرسانی لینک دانلود
 

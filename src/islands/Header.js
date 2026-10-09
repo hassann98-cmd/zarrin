@@ -549,7 +549,7 @@ function K({ className: l }) {
     m = r.mobileLogoImage || {},
     n = a.src || "",
     o = m.src || n,
-    t = r.siteName || "زرین";
+    t = r.siteName || "فروشگاه";
   if (!o)
     return e.jsx("a", {
       href: siteUrl("home"),

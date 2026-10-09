@@ -104,12 +104,11 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   assert.equal(document.querySelectorAll("footer").length, 1, "no second <footer> is created");
 });
 
-test("R189 footer copy, configured phone links, feature claims, and touch/focus styling stay clear", async () => {
+test("R192 configured footer copy, optional features, phone links, and touch/focus styling stay clear", async () => {
   const win = dom(shell(), {
-    brand_description:
-      "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. معرفی جدا از توضیح کوتاه سایت.",
-    support_hours: "در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.",
-    support_text: "پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.",
+    brand_description: "معرفیِ ثبت‌شده توسط مدیر.",
+    support_hours: "ساعات تماسِ ثبت‌شده در تنظیمات.",
+    support_text: "راه‌های پشتیبانیِ ثبت‌شده در تنظیمات.",
   });
   win.JLuxeThemeSettings.shortDescription = "این tagline عمومی نباید متن فوتر را جایگزین کند.";
   win.JLuxeThemeSettings.contact = {
@@ -121,24 +120,22 @@ test("R189 footer copy, configured phone links, feature claims, and touch/focus 
   const columns = document.querySelector('[data-jluxe-footer-slot="columns"]');
   assert.match(
     columns.querySelector(".jluxe-footer-brand-description").textContent,
-    /JLuxe \| هنرِ انتخاب/,
+    /معرفیِ ثبت‌شده توسط مدیر/,
   );
   assert.doesNotMatch(
     columns.querySelector(".jluxe-footer-brand-description").textContent,
     /tagline عمومی/,
   );
-  assert.match(columns.textContent, /در روزهای کاری، از ساعت ۹ صبح تا ۸ شب/);
+  assert.match(columns.textContent, /ساعات تماسِ ثبت‌شده در تنظیمات/);
   assert.doesNotMatch(columns.textContent, /پشتیبانی متنی ۲۴ ساعته/);
   const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
   const socialRow = bottom.querySelector(".jluxe-footer-social-row");
-  assert.match(socialRow.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.match(socialRow.textContent, /راه‌های پشتیبانیِ ثبت‌شده در تنظیمات/);
   assert.match(socialRow.textContent, /ما را دنبال کنید/);
   assert.equal(columns.querySelectorAll(".jluxe-footer-support-card").length, 1);
   const features = document.querySelector('[data-jluxe-footer-slot="features"]');
-  assert.match(features.textContent, /ارسال سریع و مطمئن/);
-  assert.match(features.textContent, /به سراسر ایران/);
-  assert.match(features.textContent, /کف قیمت بازار/);
-  assert.match(features.textContent, /پرداخت از درگاه مطمئن/);
+  assert.equal(features.querySelector(".jluxe-footer-feature-grid"), null, "no feature claim is added until the merchant configures one");
+  assert.doesNotMatch(document.querySelector("footer").textContent, /ارسال سریع و مطمئن|۲۴ ساعته|کف قیمت بازار|پرداخت از درگاه مطمئن/);
   assert.equal(columns.querySelectorAll('a[href^="tel:"]').length, 2);
   assert.equal(columns.querySelector('a[href="tel:02112345678"]')?.dir, "ltr");
   assert.equal(columns.querySelector('a[href="tel:09121234567"]')?.dir, "ltr");
@@ -153,16 +150,25 @@ test("R189 footer copy, configured phone links, feature claims, and touch/focus 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("R191 footer is compact, keeps phone numbers together, and merges social support with follow links", async () => {
-  const win = dom(shell(), { feature_cards_mobile_columns: 2 });
-  win.JLuxeThemeSettings.footer.support_text =
-    "پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.";
+test("R191 footer is compact, keeps phone numbers together, and merges configured support with follow links", async () => {
+  const win = dom(shell(), {
+    feature_cards_mobile_columns: 2,
+    feature_cards: [
+      { enabled: true, icon: "truck", title: "مزیتِ ثبت‌شده", subtitle: "توضیحِ واردشده توسط مدیر" },
+    ],
+    support_text: "راه‌های پشتیبانیِ ثبت‌شده در تنظیمات.",
+  });
+  win.JLuxeThemeSettings.contact = { phone: "09120000000", phone_secondary: "02100000000" };
   await render();
 
   const columns = document.querySelector('[data-jluxe-footer-slot="columns"]');
   const supportCards = columns.querySelectorAll(".jluxe-footer-support-card");
   assert.equal(supportCards.length, 1, "only the phone support block remains in the brand column");
   assert.equal(supportCards[0].querySelector("h3")?.textContent, "پشتیبانی تلفنی");
+  assert.deepEqual(
+    [...supportCards[0].querySelectorAll(".jluxe-footer-phone-link")].map((node) => node.textContent),
+    ["09120000000", "02100000000"],
+  );
   assert.doesNotMatch(supportCards[0].textContent, /پشتیبانی آنلاین/);
 
   const featureGrid = document.querySelector(
@@ -181,7 +187,7 @@ test("R191 footer is compact, keeps phone numbers together, and merges social su
 
   const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
   const socialRow = bottom.querySelector(".jluxe-footer-social-row");
-  assert.match(socialRow.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.match(socialRow.textContent, /راه‌های پشتیبانیِ ثبت‌شده در تنظیمات/);
   assert.match(socialRow.textContent, /ما را دنبال کنید/);
   assert.equal(socialRow.querySelectorAll(".jluxe-footer-social-link").length, 1);
 
@@ -215,15 +221,30 @@ test("R191 footer is compact, keeps phone numbers together, and merges social su
   assert.doesNotMatch(badgeRenderer, /var\(--primary\)|rgba\(0,\s*0,\s*0|translateY/);
 });
 
-test("R191 social support text remains available when no social account is configured", async () => {
+test("R192 no social row is emitted when no social account or support copy is configured", async () => {
   const win = dom(shell());
   win.JLuxeThemeSettings.social = {};
+  win.JLuxeThemeSettings.footer.support_text = "";
   await render();
   const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
-  const row = bottom.querySelector(".jluxe-footer-social-row");
-  assert.match(row.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
-  assert.doesNotMatch(row.textContent, /ما را دنبال کنید/);
-  assert.equal(row.querySelectorAll(".jluxe-footer-social-link").length, 0);
+  assert.equal(bottom.querySelector(".jluxe-footer-social-row"), null);
+});
+
+test("R192 empty footer settings do not fabricate brand, schedule, feature, or payment claims", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.shortDescription = "";
+  win.JLuxeThemeSettings.social = {};
+  win.JLuxeThemeSettings.contact = {};
+  await render();
+
+  const footer = document.querySelector("#jluxe-footer-root");
+  const columns = footer.querySelector('[data-jluxe-footer-slot="columns"]');
+  assert.equal(columns.querySelector(".jluxe-footer-brand-description")?.textContent, "");
+  assert.equal(columns.querySelector(".jluxe-footer-support-card p"), null);
+  assert.equal(columns.querySelector(".jluxe-footer-support-card h3")?.textContent, "راه‌های تماس");
+  assert.equal(footer.querySelector('[data-jluxe-footer-slot="features"] .jluxe-footer-feature-grid'), null);
+  assert.equal(footer.querySelector('[data-jluxe-footer-slot="bottom"] .jluxe-footer-social-row'), null);
+  assert.doesNotMatch(footer.textContent, /JLuxe|ارسال سریع|۲۴ ساعته|کف قیمت بازار|درگاه مطمئن|روز ضمانت/);
 });
 
 test("R108 the footer logo portal has a scoped compact-image rule", async () => {

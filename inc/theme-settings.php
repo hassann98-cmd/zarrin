@@ -3,9 +3,8 @@
  * پنل تنظیمات JLuxe (wp-admin → JLuxe → تنظیمات ظاهری).
  *
  * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). مقادیر
- * پیش‌فرض دقیقاً همون چیزیه که همین الان در globals.css/Footer.tsx/
- * functions.php هاردکد شده — یعنی فعال‌سازی این پنل به‌تنهایی هیچ تغییر
- * بصری‌ای در سایت ایجاد نمی‌کنه، فقط وقتی ادمین واقعاً چیزی رو عوض کنه.
+ * پیش‌فرض فقط رفتار عمومیِ پوسته را تعریف می‌کنند؛ اطلاعات تجاری و متن‌های
+ * وابسته به پیکربندی فروشگاه باید توسط مدیر وارد شوند، نه از محتوای نمونه.
  *
  * فقط بخش‌هایی که واقعاً به frontend وصل شدن پیاده‌سازی شدن (رنگ‌ها، هویت
  * سایت/لوگو/فاویکون، فوتر) — نه یک پنل نمایشی با تنظیماتی که به جایی وصل
@@ -15,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 6;
+const JLUXE_SETTINGS_VERSION = 7;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -49,7 +48,7 @@ function jluxe_faq_default_items(): array {
 	return array(
 		array(
 			'question' => 'آیا برای ثبت سفارش، حتماً باید در سایت ثبت‌نام کنم؟',
-			'answer'   => 'راهنمای خرید سایت ثبت‌نام را الزامی نمی‌داند؛ بااین‌حال گزینه‌هایی که در تسویه‌حسابِ همین فروشگاه می‌بینید ملاک‌اند. ساخت حساب، دسترسی به سفارش‌های قبلی و مدیریت خریدهای بعدی را آسان می‌کند.',
+			'answer'   => 'در صفحهٔ تسویه‌حساب مشخص است آیا ورود یا ساخت حساب برای سفارش لازم است؛ تنظیمات فروشگاه و قابلیت‌های فعال ممکن است این شرط را تغییر دهند.'
 		),
 		array(
 			'question' => 'آیا رنگ و ظاهر محصول دقیقاً مشابه عکس‌های سایت است؟',
@@ -69,7 +68,7 @@ function jluxe_faq_default_items(): array {
 		),
 		array(
 			'question' => 'شرایط و قوانین بازگشت کالا (مرجوعی) چیست؟',
-			'answer'   => 'شرایط، مهلت‌ها و استثناهای مرجوعی در صفحهٔ «رویهٔ شرایط مرجوعی و تعویض کالا» توضیح داده شده‌اند. چون جزئیات ممکن است به نوع و وضعیت کالا بستگی داشته باشد، پیش از ارسال مرجوعی متن همان صفحه را بررسی و با پشتیبانی هماهنگ کنید.',
+			'answer'   => 'شرایط مرجوعی فقط در صورتی روشن است که فروشگاه آن را در صفحهٔ رویهٔ مرجوعی درج کرده باشد. اگر متن کامل نیست یا پرسشی دارید، پیش از خرید از راه تماسِ فعلیِ فروشگاه راهنمایی بگیرید.'
 		),
 		array(
 			'question' => 'آیا می‌توانم به اطلاعات و سوابق خریدهای قبلی خود دسترسی داشته باشم؟',
@@ -91,7 +90,8 @@ function jluxe_faq_default_items(): array {
 }
 
 /**
- * مقادیر پیش‌فرض — عیناً همون مقادیر فعلی هاردکدشده‌ی پروژه.
+ * مقادیر پیش‌فرضِ عمومی؛ متن‌ها و مشخصاتِ تجاریِ وابسته به هر فروشگاه
+ * فقط پس از ثبتِ مدیر در تنظیمات واردِ فرانت می‌شوند.
  */
 function jluxe_theme_settings_defaults(): array {
 	return array(
@@ -179,8 +179,8 @@ function jluxe_theme_settings_defaults(): array {
 			// مثلاً روی این سایت واقعاً «j1» بود ولی این‌جا هاردکد «جهیزیه لوکس»
 			// نشون می‌داد). اگه ادمین توی همین پنل مقدار دیگه‌ای ذخیره کنه، طبق
 			// معمول همون مقدار ذخیره‌شده (نه این پیش‌فرض) خونده می‌شه.
-			'site_name'          => get_bloginfo( 'name' ) ?: 'زرین',
-			'short_description'  => get_bloginfo( 'description' ) ?: 'فروشگاه تخصصی جهیزیه با تضمین اصالت کالا و ارسال مطمئن به سراسر ایران.',
+			'site_name'          => get_bloginfo( 'name' ) ?: '',
+			'short_description'  => get_bloginfo( 'description' ) ?: '',
 		),
 		'urls' => array(
 			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
@@ -263,7 +263,7 @@ function jluxe_theme_settings_defaults(): array {
 				array(
 					'id'       => 'about',
 					'type'     => 'dropdown',
-					'label'    => 'درباره زرین',
+					'label'    => 'درباره ما',
 					'url'      => '/about-us/',
 					'icon'     => '',
 					'children' => array(
@@ -294,15 +294,16 @@ function jluxe_theme_settings_defaults(): array {
 			'text_color'          => '',
 			'link_color'          => '',
 			'link_hover_color'    => '',
-			// متن معرفی فوتر مستقل از tagline هویت سایت/متادیتای آن است؛ مدیر می‌تواند همین‌جا ویرایشش کند.
-			'brand_description'   => 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
-			'support_hours'       => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.',
-			'support_text'        => 'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.',
+			// دادهٔ واقعیِ معرفی و پشتیبانی را مدیر وارد می‌کند؛ در نصب تازه
+			// هیچ برند، ساعت تماس یا وعدهٔ تجاری از پیش فرض نمی‌شود.
+			'brand_description'   => '',
+			'support_hours'       => '',
+			'support_text'        => '',
 			'feature_cards'  => array(
-				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال سریع و مطمئن', 'subtitle' => 'به سراسر ایران' ),
-				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی آنلاین', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
-				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'کف قیمت بازار' ),
-				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
+				array( 'enabled' => false, 'icon' => 'truck', 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'icon' => 'headphones', 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'icon' => 'badge-percent', 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'icon' => 'shield-check', 'title' => '', 'subtitle' => '' ),
 			),
 			// در دسکتاپ همیشه یک ردیف ۴تایی‌ان (ثابت)؛ فقط تعداد ستون در موبایل قابل تنظیمه.
 			'feature_cards_mobile_columns' => 2,
@@ -397,88 +398,78 @@ function jluxe_theme_settings_defaults(): array {
 			'dashboard_announcement'      => '',
 			'dashboard_announcement_link' => '',
 		),
-		// متنِ صفحاتِ «تماس با ما»/«درباره ما» (page-contact-us.php،
-		// page-about-us.php) — قبلاً این دو صفحه یک متنِ کاملاً هاردکد
-		// داشتن (باگِ واقعیِ گزارش‌شده: نصبِ این تم رو یه سایتِ دیگه یعنی
-		// دیدنِ متنِ یک برندِ کاملاً غیرمرتبط). پیش‌فرض‌ها همون متنِ فعلی‌ان
-		// تا فعال‌سازیِ این تنظیمات به‌تنهایی چیزی رو عوض نکنه.
+		// محتوای هویت و صفحات تماس/درباره عمداً خالی می‌ماند تا مدیر
+		// اطلاعات واقعی فروشگاه را پیش از انتشار وارد کند.
 		'info_pages' => array(
 			'contact' => array(
-				'intro_title' => 'همیشه در دسترس شما هستیم',
-				'intro_text'  => 'به بخش پشتیبانی ما خوش آمدید! ما در تمامی مراحل خرید، پاسخگوی سوالات و راهنمای شما هستیم. اگر نیاز به مشاوره قبل از خرید، هماهنگی برای روش‌های ارسال خاص یا ارتباط با پشتیبانی دارید، از راه‌های زیر با ما در تماس باشید.',
+				'intro_title' => 'راه‌های تماس',
+				'intro_text'  => '',
 				'show_logo'   => false,
 				'phone_title' => 'شماره‌ی تماس',
 				'hours_title' => 'ساعات پاسخگویی',
 				'social_title' => 'شبکه‌های اجتماعی',
 			),
 			'about' => array(
-				'intro_title' => 'همیشه در کنار شما',
-				'intro_text'  => 'ما تلاش می‌کنیم با انتخابِ دقیقِ محصولات و کیفیتی که بهش مطمئنیم، همراهِ لحظه‌های خاصِ زندگیِ شما باشیم.',
+				'intro_title' => 'درباره ما',
+				'intro_text'  => '',
 				'show_logo'   => true,
-				// بخشِ «داستانِ ما» + «چرا ما» + CTA — طبقِ درخواستِ صریحِ
-				// کاربر («این متن‌ها کاملاً باید توی تنظیمات قابلِ ادیت
-				// باشن») به‌جای متنِ هاردکدِ page-about-us.php، از این‌جا
-				// (یک HTMLِ آزاد، با wp_editor در پنلِ ادمین) میاد. پیش‌فرض
-				// همون متنِ فعلیِ صفحه‌ست.
-				'story_html'  => '<span class="jluxe-about-eyebrow">— داستان ما</span><h2>از یک فروشگاه حضوری، تا خانهٔ آنلاین شما</h2><p>مجموعه‌ی ما سال‌هاست به‌صورت حضوری در کنار مشتریان عزیز بوده و با عرضه‌ی زیورآلاتِ نقره و استیلِ باکیفیت و قیمتی منصفانه، افتخارِ همراهی در لحظه‌های خاصِ زندگی‌شان را داشته است.</p><p>حالا با هدفِ دسترسیِ بی‌واسطه، همان تجربه‌ی موردِ اعتماد را به‌صورتِ آنلاین ادامه می‌دهیم؛ دست‌چین‌کردنِ بهترین طرح‌ها با مخراج‌کاریِ حرفه‌ای و آبکاریِ باکیفیت، برای زیوری که واقعاً بازتابِ سلیقه‌ی شماست.</p>',
-				'cta_text'    => 'با درخششِ اصیلِ نقره، لحظه‌های خاصِ زندگی‌تان را کامل کنید',
+				// این بخش‌ها از پنل ویرایش می‌شوند و تا ثبت محتوای واقعی
+				// مدیر خالی‌اند؛ به‌خصوص داستان، مزیت‌ها و CTA تجاری.
+				'story_html'  => '',
+				'cta_text'    => '',
 				'cta_button_text'  => 'گشتی در فروشگاه بزنید ←',
 				'cta_button_url'   => '/shop/',
 				'cta_button_color' => '',
-				'why_html' => '<span class="jluxe-about-eyebrow">— چرا ما</span><h2>هر جزئیات، برای آسودگی خیال شما</h2><ul><li><strong>اصالتِ تضمین‌شده</strong></li><li><strong>قیمتی منصفانه، بدون واسطه</strong></li><li><strong>ارسال مطمئن و بسته‌بندی ایمن</strong></li><li><strong>همراهی صمیمانه</strong></li></ul>',
+				'why_html' => '',
 			),
 		),
 		/*
-		 * محتوای صفحاتِ راهنما — طبقِ درخواستِ صریحِ کاربر («این متن‌های
-		 * راهنما کاملاً باید توی تنظیمات قابلِ ادیت باشن») — این صفحات
-		 * (page-shopping-guide.php و...) قبلاً عیناً همون متنی بودن که از
-		 * jluxe.ir کپی شده بود (با «زرین» هاردکد)؛ پیش‌فرض‌های زیر همون متن
-		 * هستن (با نامِ واقعیِ سایت جایگزینِ «زرین» در همین لحظه‌ی ساختِ
-		 * پیش‌فرض)، ولی از این به بعد کاملاً از پنلِ ادمین (jluxe-guide-pages،
-		 * با wp_editor واقعی) قابلِ ویرایشن — content به‌صورتِ HTMLِ خام
-		 * (wp_kses_post) ذخیره/رندر می‌شه، پس همیشه سمتِ سرور و کاملاً
-		 * قابلِ‌خزشِ گوگل می‌مونه، نه چیزی که با جاوااسکریپت بعداً پر بشه.
+		 * راهنماهای خرید، پرداخت و ارسال فقط رفتار عمومی checkout و گزینه‌های
+		 * واقعاً نمایش‌داده‌شده را توضیح می‌دهند. سیاست مرجوعی، روش حمل/پرداخت
+		 * و هر وعدهٔ تجاری باید از دادهٔ تأییدشدهٔ مدیر بیاید؛ به همین دلیل
+		 * متنِ آن سیاست‌ها در نصب تازه خالی است. محتوای HTML از پنل sanitize
+		 * می‌شود و همچنان server-rendered و قابل‌خزش است.
 		 */
 		'guide_pages' => array(
 			'shopping_guide' => array(
 				'eyebrow'       => '— راهنمای خرید',
 				'title'         => 'راهنمای گام‌به‌گام خرید از {site_name}',
-				'intro'         => 'خرید از سایت ما بسیار ساده و سریع طراحی شده است. برای ثبت سفارش خود کافی است مراحل زیر را دنبال کنید:',
+				'intro'         => 'گزینه‌ها و مراحل در دسترس برای این سفارش را در صفحه‌های محصول، سبد و تسویه‌حساب بررسی کنید.',
 				'steps'         => array(
 					array(
 						'title' => 'انتخاب کالا و افزودن به سبد خرید',
-						'content' => '<p>با کلیک روی تصویر یا نام کالای موردنظر خود، وارد صفحهٔ محصول شوید.</p><p>پس از انتخاب مشخصات (مانند رنگ یا سایز)، روی دکمهٔ «افزودن به سبد خرید» کلیک کنید.</p><p>پس از افزودن کالا، لیستی از محصولات پیشنهادی و مرتبط نیز به شما نمایش داده می‌شود که در صورت تمایل می‌توانید آن‌ها را هم به سبد خرید خود اضافه کنید.</p><p>شما می‌توانید در هر زمان با استفاده از کادر جستجوی بالای سایت یا گشت‌وگذار در دسته‌بندی‌ها، سایر کالاهای موردنیاز خود را پیدا کرده و به سبد خرید اضافه کنید.</p>',
+						'content' => '<p>در صفحهٔ محصول، توضیحات و ویژگی‌هایی را که برای همان کالا درج شده‌اند مطالعه کنید.</p><p>اگر گزینه‌ای برای محصول نمایش داده می‌شود، آن را انتخاب و کالا را به سبد اضافه کنید.</p>',
 						'callout_type' => '',
 						'callout_title' => '',
 						'callout_text' => '',
 					),
 					array(
 						'title' => 'بازبینی سبد خرید',
-						'content' => '<p>برای مشاهدهٔ کالاهای انتخابی خود، در حالت موبایل روی آیکون سبد خرید و در حالت دسکتاپ روی سبد خرید بالای صفحه کلیک کنید.</p><p>در این صفحه می‌توانید تعداد کالاها یا رنگ آن‌ها را بازبینی کرده و در صورت نیاز تغییر دهید یا آیتمی را حذف کنید.</p><p>پس از اطمینان از لیست کالاها، دکمهٔ «ثبت سفارش» یا «ادامه جهت تسویه‌حساب» را انتخاب کنید.</p>',
+						'content' => '<p>اقلام، تعداد و گزینه‌های انتخاب‌شده را در سبد بررسی و در صورت نیاز ویرایش کنید.</p><p>برای ادامه، دکمهٔ رفتن به تسویه‌حساب را انتخاب کنید.</p>',
 						'callout_type' => 'tip',
 						'callout_title' => 'نکته',
-						'callout_text' => 'برای خرید از سایت ما، نیازی به ثبت‌نام اجباری نیست؛ اما پیشنهاد می‌کنیم برای پیگیری راحت‌تر سفارش‌های بعدی و مدیریت تاریخچهٔ خرید خود، ابتدا در سایت ثبت‌نام کنید.',
+						'callout_text' => '',
 					),
 					array(
 						'title' => 'ورود اطلاعات و آدرس ارسال',
-						'content' => '<p>در این مرحله وارد صفحهٔ دریافت اطلاعات خواهید شد. مشخصات فردی، شمارهٔ تماس و آدرس دقیق خود را به‌صورت کامل وارد کنید.</p><p>اگر نکته یا توضیحات خاصی دربارهٔ زمان ارسال یا نحوهٔ بسته‌بندی سفارش خود دارید، می‌توانید آن را در کادر «یادداشت سفارش» بنویسید.</p>',
+						'content' => '<p>فیلدهایی را که برای سفارش در فرم تسویه‌حساب نمایش داده می‌شوند تکمیل کنید؛ موارد الزامی در همان فرم مشخص می‌شوند.</p><p>پیش از ثبت سفارش، اطلاعات واردشده را بازبینی کنید.</p>',
 						'callout_type' => '',
 						'callout_title' => '',
 						'callout_text' => '',
 					),
 					array(
 						'title' => 'انتخاب روش ارسال و پرداخت',
-						'content' => '<p>شیوهٔ ارسال موردنظر خود (پست، تیپاکس و...) را متناسب با شرایط خود انتخاب کنید.</p><p>روش پرداخت را تعیین کرده و روی دکمهٔ نهایی «ثبت سفارش» کلیک کنید تا به درگاه امن بانکی منتقل شوید.</p>',
+						'content' => '<p>روش‌های ارسال و پرداختی که برای سبد و نشانیِ فعلی در دسترس‌اند، در تسویه‌حساب نمایش داده می‌شوند.</p><p>توضیحات و هزینهٔ هر گزینه را همان‌جا بررسی کنید و فقط از روش‌هایی استفاده کنید که در فرایند رسمی خرید نمایش داده می‌شوند.</p>',
 						'callout_type' => '',
 						'callout_title' => '',
 						'callout_text' => '',
 					),
 					array(
 						'title' => 'تکمیل خرید و پیگیری',
-						'content' => '<p>پس از پرداخت موفقیت‌آمیز مبلغ سفارش، به سایت بازگردانده می‌شوید و وضعیت سفارش شما به حالت «در حال انجام» تغییر می‌یابد.</p>',
+						'content' => '<p>خلاصهٔ سفارش و مبلغ نهایی را پیش از تأیید بازبینی کنید.</p><p>پس از ثبت سفارش، از حساب کاربری یا صفحهٔ پیگیری برای مشاهدهٔ اطلاعاتی که فروشگاه ثبت کرده است استفاده کنید.</p>',
 						'callout_type' => 'note',
 						'callout_title' => 'توجه داشته باشید',
-						'callout_text' => 'در تمامی مراحل — از زمان ثبت و تایید تا بسته‌بندی و ارسال کد رهگیری پستی — تغییرات وضعیت سفارش از طریق پیامک به اطلاع شما خواهد رسید.',
+						'callout_text' => '',
 					),
 				),
 				'button_text'   => 'مشاهده فروشگاه ←',
@@ -488,40 +479,36 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'payment_guide' => array(
 				'title'        => 'روش‌ها و راهنمای پرداخت سفارشات',
-				'intro'        => 'در فروشگاه {site_name}، جهت رفاه حال شما مشتریان گرامی، امکان پرداخت از ۳ طریق امن فراهم شده است.',
+				'intro'        => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<h2>پرداخت آنلاین از طریق درگاه بانکی</h2><p>شما می‌توانید در تمامی ساعات شبانه‌روز، با استفاده از همهٔ کارت‌های بانکی عضو شبکهٔ شتاب، هزینهٔ سفارش خود را به‌صورت آنلاین و آنی پرداخت کنید.</p><p><strong>درگاه مستقیم بانک پارسیان:</strong> امن و متصل به شبکهٔ شاپرک.</p><p><strong>درگاه واسط زرین‌پال:</strong> پشتیبان و تضمین‌کنندهٔ پرداخت.</p><div class="jluxe-guide-callout tip"><p><strong>مزیت پرداخت آنلاین:</strong> تایید مالی سفارش شما به‌صورت آنی و خودکار انجام می‌شود.</p></div><h2>پرداخت به‌صورت کارت‌به‌کارت یا شبا</h2><p>اگر به هر دلیلی به رمز پویا دسترسی ندارید یا تمایل به واریز مستقیم دارید، می‌توانید سفارش خود را به‌صورت کارت‌به‌کارت یا پایا/ساتنا ثبت کنید.</p><div class="jluxe-guide-callout warning"><p><strong>قانون رزرو موقت کالا:</strong> پس از انتخاب این روش، اقلام سبد خرید شما فقط تا ۳۰ دقیقه در سیستم رزرو می‌مانند.</p></div><p><strong>شماره کارت:</strong> {card_number}</p><p><strong>شماره شبا:</strong> {sheba}</p><p><strong>نام صاحب حساب:</strong> {holder_name}</p><p><strong>بانک:</strong> {bank_name}</p><h3>مراحل تکمیل و ثبت نهایی سفارش کارت‌به‌کارت</h3><p><strong>۱. واریز وجه:</strong> مبلغ کل سفارش را به شمارهٔ کارت یا شبای فوق واریز کنید.</p><p><strong>۲. ارسال رسید یا ثبت شمارهٔ پیگیری:</strong> تصویر رسید یا شمارهٔ پیگیری واریز را ثبت کنید.</p><p><strong>۳. نام واریزکننده:</strong> نام و نام‌خانوادگی صاحب حساب را وارد کنید.</p><p><strong>۴. ثبت نهایی:</strong> روی دکمهٔ «ارسال» یا «ثبت فیش واریزی» کلیک کنید.</p><div class="jluxe-guide-callout note"><p>سفارش پس از بررسی و تایید مالی توسط کارشناسان {site_name} وارد مرحلهٔ پردازش و ارسال خواهد شد.</p></div>',
+				'body_html' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
 			),
 			'shipping_tracking' => array(
 				'title'        => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
-				'intro'        => 'در فروشگاه {site_name}، تحویل به‌موقع و سالم کالاها اولویت اصلی ماست. ارسال مرسولات به ۳ روش متنوع انجام می‌شود تا بتوانید بهترین گزینه را بر اساس بودجه، ابعاد کالا و زمان خود انتخاب کنید.',
+				'intro'        => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<div class="jluxe-guide-callout warning"><p><strong>نکتهٔ بسیار مهم:</strong> لطفاً قبل از ثبت سفارش و انتخاب روش ارسال، از وجود نمایندگی و پوشش‌دهی شرکت‌های باربری در محدودهٔ شهر خود اطمینان حاصل کنید.</p></div><h2>بخش اول — روش‌های ارسال کالا</h2><h3>روش پست پیشتاز</h3><p>این روش برای تمامی شهرهای ایران، روستاها و مناطق دوردست فعال است.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> هزینهٔ ارسال به‌صورت آنلاین و در زمان ثبت سفارش، با توجه به وزن و سایز محصول محاسبه و پرداخت می‌شود.</p><p><strong>مدت زمان تحویل:</strong> زمان تحویل مرسوله در این روش نسبت به سایر سرویس‌ها کمی طولانی‌تر است.</p><p><strong>محدودیت ابعادی:</strong> ادارهٔ پست بسته‌های بسیار بزرگ و با طول بیش از ۱ متر را پذیرش نمی‌کند.</p><p><strong>نحوهٔ پیگیری:</strong> پس از تحویل بسته به پست، کد رهگیری ۲۴ رقمی برای شما پیامک می‌شود.</p><p><a href="https://tracking.post.ir/">پیگیری مرسولهٔ پست</a></p><h3>روش ارسال تیپاکس</h3><p>این روش برای شهرهایی که دارای نمایندگی فعال تیپاکس هستند، بسیار مناسب است.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> ارسال به‌صورت پس‌کرایه است و مبلغ کرایه هنگام تحویل کالا پرداخت می‌شود.</p><p><strong>مزایا:</strong> سرعت ارسال بالا و مناسب برای کالاهای با سایز متوسط و نیمه‌سنگین.</p><p><a href="https://tipaxco.com/en/tracking">پیگیری مرسولهٔ تیپاکس</a></p><h3>روش ارسال چاپار</h3><p>چاپار برای کالاهای سبک تا بسیار سنگین خدمات ارائه می‌دهد.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> این روش نیز به‌صورت پس‌کرایه است و مبلغ نهایی به وزن، ابعاد و شهر مقصد بستگی دارد.</p><p><a href="https://chaparnet.com/">پیگیری مرسولهٔ چاپار</a></p><h2>بخش دوم — راهنمای پیگیری وضعیت سفارشات</h2><p>پس از ثبت خرید در {site_name}، سفارش شما گام‌به‌گام پردازش می‌شود و تغییر هر مرحله از طریق پیامک به اطلاع شما خواهد رسید.</p><h3>در انتظار تایید رسید بانکی</h3><p>اگر روش کارت‌به‌کارت را انتخاب کرده باشید، سفارش تا زمان تایید فیش واریزی در این حالت می‌ماند.</p><h3>در حال انجام</h3><p>پرداخت تایید شده و سفارش آماده‌سازی و بسته‌بندی است.</p><h3>تکمیل شده</h3><p>کالا بسته‌بندی و تحویل شرکت فرستنده شده و کد رهگیری برای شما ارسال می‌شود.</p><h3>لغو شده</h3><p>در صورت بروز مشکل یا انصراف، سفارش به حالت لغوشده درمی‌آید.</p><p><a href="/track-order/">پیگیری سریع سفارش ←</a></p>',
+				'body_html' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
 			),
 			'returns_exchanges' => array(
 				'title'        => 'رویهٔ شرایط مرجوعی و تعویض کالا',
-				'intro'        => 'رضایتمندی مشتریان همواره از اولویت‌های اصلی {site_name} بوده تا تمامی سفارش‌ها در شرایط مطلوب و مطابق انتظار شما ارسال شوند.',
-				// طبقِ درخواستِ صریحِ کاربر — قبلاً این‌ها هاردکد بودن؛ الان از
-				// همین آرایه خونده می‌شن (page-returns-and-exchanges.php).
-				// دو قلمِ «حوله»/«کالای خواب» عمداً دو اسلاتِ ثابتن (نه یک
-				// repeaterِ داینامیک) چون همیشه همین دو مورد بودن — دقیقاً
-				// همون الگویی که feature_cards برای این نوع لیستِ کوچیک و
-				// باثباتِ محتوا استفاده می‌کنه.
-				'deny_title'        => 'استثنائات مرجوعی — اقلام غیرقابل تعویض به دلایل بهداشتی',
-				'deny_item_1_label' => 'انواع حوله',
-				'deny_item_1_text'  => 'به دلیل رعایت کامل اصول بهداشتی، امکان تعویض یا مرجوعی انواع حوله به هیچ عنوان وجود ندارد.',
-				'deny_item_2_label' => 'کالای خواب (روتختی، ملحفه و پتو)',
-				'deny_item_2_text'  => 'به دلیل حساسیت‌های بهداشتی (احتمال انتقال باکتری یا حشرات ریز میکروسکوپی)، امکان مرجوعی روتختی و پتو وجود ندارد.',
-				'tip_label'         => 'نکته برای خرید مطمئن',
-				'tip_text'          => 'جهت اطمینان کامل شما از جنس و رنگ، قبل از ارسال کالای خواب، در صورت درخواست شما عکس‌های واقعی و باکیفیت از تمام جزئیات کالا از طریق پیام‌رسان‌ها برایتان ارسال خواهد شد.',
+				'intro'        => '',
+				// فیلدهای سیاست مرجوعی فقط زمانی در صفحه نمایش می‌یابند که مدیر
+				// متن و استثناهای واقعی فروشگاه را ثبت کند.
+				'deny_title'        => '',
+				'deny_item_1_label' => '',
+				'deny_item_1_text'  => '',
+				'deny_item_2_label' => '',
+				'deny_item_2_text'  => '',
+				'tip_label'         => '',
+				'tip_text'          => '',
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<h2>شرایط انصراف از خرید (مهلت ۷ روزه)</h2><p>مشتریان محترم می‌توانند ظرف مدت ۷ روز کاری از خرید خود منصرف شده و کالا را مرجوع کنند، مشروط بر اینکه:</p><p><strong>حفظ سلامت کالا:</strong> کالای خریداری‌شده کاملاً در وضعیت اولیه و بدون استفاده باشد.</p><p><strong>هزینهٔ ارسال:</strong> در صورت انصراف سلیقه‌ای مشتری، هزینهٔ بازپس‌فرستادن کالا برعهدهٔ خریدار خواهد بود.</p><p><strong>عیوب فنی:</strong> چنانچه کالا دارای عیب یا نقص فنی داخلی باشد، مشمول شرایط تعویض خواهد بود.</p><h3>{deny_title}</h3><p><strong>{deny_item_1_label}:</strong> {deny_item_1_text}</p><p><strong>{deny_item_2_label}:</strong> {deny_item_2_text}</p><div class="jluxe-guide-callout tip"><p><strong>{tip_label}:</strong> {tip_text}</p></div><h2>تحویل کالاهای شکستنی و ظاهری</h2><p>خریدار مکلف است بلافاصله در زمان دریافت کالا و در حضور مأمور کالارسان، بسته را باز کرده و سلامت فیزیکی کالا را بررسی کند.</p><p>چنانچه کالا دارای عیوب ظاهری ناشی از حمل‌ونقل باشد، خریدار باید از تحویل‌گرفتن آن خودداری کرده و بسته را به مأمور ارجاع دهد.</p><p><strong>نکتهٔ بسیار مهم:</strong> تحویل‌گرفتن کالا از مأمور ارسال به‌منزلهٔ تایید سلامت فیزیکی آن است.</p><h2>نحوه و زمان عودت وجه</h2><p>پس از برگشت کالا به انبار {site_name} و تایید اصالت و سلامت آن، مبلغ پرداختی حداکثر ظرف ۴۸ ساعت کاری عودت داده خواهد شد.</p><h2>کالاهای غیرقابل مرجوع (خاص)</h2><p>کالاهای خاصی که قابل مرجوع‌شدن نیستند در صفحهٔ خرید همان کالا با برچسب «غیرقابل مرجوع» مشخص می‌شوند.</p>',
+				'body_html' => '',
 			),
 			'track_order' => array(
 				'title'        => 'پیگیری سفارش سریع',
@@ -607,28 +594,12 @@ function jluxe_theme_settings_defaults(): array {
 			'discount_color' => '',
 			'savings_color'  => '',
 			'star_color'     => '',
-			// سه ردیفِ اعتماد زیرِ جعبه‌ی خرید (ضمانت بازگشت/ارسال/پرداخت
-			// امن) قبلاً کاملاً ثابت توی content-single-product.php بودن —
-			// حالا عنوان/توضیح/فعال‌بودنِ هرکدوم قابل‌ویرایشه (آیکون‌ها
-			// همچنان ثابتن، چون سیستم آیکون‌پیکرِ سمت PHP برای این بخش
-			// وجود نداره و درخواستِ کاربر صرفاً متن+روشن/خاموش بود).
-			// مقادیرِ پیش‌فرض دقیقاً همون متن‌های قبلی‌ان.
+			// ردیف‌های اعتماد فقط پس از واردکردن و فعال‌کردن متنِ تأییدشده
+			// توسط مدیر نمایش داده می‌شوند؛ مهلت، شرکت حمل یا درگاه فرض نمی‌شود.
 			'trust_items'    => array(
-				array(
-					'enabled'  => true,
-					'title'    => '۷ روز ضمانت بازگشت کالا',
-					'subtitle' => 'به‌جز حوله، ملحفه، پتو',
-				),
-				array(
-					'enabled'  => true,
-					'title'    => 'ارسال با پست/تیپاکس/چاپار',
-					'subtitle' => 'با کد رهگیری پیامکی',
-				),
-				array(
-					'enabled'  => true,
-					'title'    => 'پرداخت امن',
-					'subtitle' => 'زرین‌پال یا کارت‌به‌کارت',
-				),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
 			),
 		),
 		// بخش «AI دیدگاه‌ها»: پاسخ خودکار + خلاصهٔ قابل‌ویرایش هر محصول.
@@ -688,7 +659,7 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'ai_assistant' => array(
 			'enabled'          => false,
-			'name'             => 'دستیار زرین',
+			'name'             => 'دستیار فروشگاه',
 			'welcome_message'  => 'سلام! چطور می‌تونم کمکتون کنم؟',
 			'avatar_id'        => 0,
 			'button_id'        => 0,
@@ -774,23 +745,23 @@ function jluxe_theme_settings_defaults(): array {
 			// R94 — دکمه‌های تماس داخلِ پاسخ + اعلانِ ساعتِ پاسخگوییِ تلفنی (بومیِ اسنیپت‌های قبلی).
 			'contact_phone'     => '', // خالی = شمارهٔ اصلیِ «اطلاعات تماس».
 			'phone_hours'       => array(
-				'enabled'     => true,
-				'start'       => '10:00',
-				'end'         => '20:00',
-				'closed_days' => array( 5 ), // 0=یکشنبه … 5=جمعه، 6=شنبه
+				'enabled'     => false,
+				'start'       => '',
+				'end'         => '',
+				'closed_days' => array(), // روز/ساعت فقط پس از ورود اطلاعات واقعی فعال شود.
 			),
-			'phone_timezone'    => 'Asia/Tehran', // مطابقِ کدِ قبلی؛ تغییر از همین بخش ممکن است.
+			'phone_timezone'    => 'UTC', // UTC خنثی است؛ مدیر باید منطقهٔ واقعی فروشگاه را انتخاب کند.
 
 			'phone_open_text'   => '🟢 اکنون پاسخگوی تلفنی هستیم؛ {days}، {hours}.',
 			'phone_closed_text' => '🔴 اکنون خارج از ساعت پاسخگویی تلفنی هستیم. ساعات پاسخگویی: {days}، {hours}. می‌تونید همینجا با دستیار ادامه بدید یا پیام بگذارید.',
 			// آیکونِ دلخواه برای هر کانال (نشانیِ تصویر)؛ خالی = آیکونِ داخلیِ پوسته.
 			'contact_icons'     => array(
-				'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
-				'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
-				'telegram'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-143.png',
-				'instagram' => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-140.png',
-				'rubika'    => 'https://jluxe.ir/wp-content/uploads/2026/05/rubika.png',
-				'bale'      => 'https://jluxe.ir/wp-content/uploads/2026/05/bale.png',
+				'phone'     => '',
+				'whatsapp'  => '',
+				'telegram'  => '',
+				'instagram' => '',
+				'rubika'    => '',
+				'bale'      => '',
 				'eitaa'     => '',
 			),
 			// زیرِ این عرض «موبایل» حساب می‌شود (نمایش/مخفی‌بودنِ دکمهٔ شناور).
@@ -988,32 +959,8 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 	}
 
 	$stored_version = (int) ( $stored['version'] ?? 1 );
-	if ( ! empty( $stored ) && $stored_version < 2 ) {
-		$stored             = jluxe_migrate_settings_v2( $stored );
-		$stored['version']  = 2;
-		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
-		$stored_version     = 2;
-	}
-	if ( ! empty( $stored ) && $stored_version < 3 ) {
-		$stored             = jluxe_migrate_settings_v3( $stored );
-		$stored['version']  = 3;
-		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
-		$stored_version     = 3;
-	}
-	if ( ! empty( $stored ) && $stored_version < 4 ) {
-		$stored             = jluxe_migrate_settings_v4( $stored );
-		$stored['version']  = 4;
-		$stored_version     = 4;
-	}
-	if ( ! empty( $stored ) && $stored_version < 5 ) {
-		$stored             = jluxe_migrate_settings_v5( $stored );
-		$stored['version']  = 5;
-		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
-		$stored_version     = 5;
-	}
-	if ( ! empty( $stored ) && $stored_version < 6 ) {
-		$stored             = jluxe_migrate_settings_v6( $stored );
-		$stored['version']  = 6;
+	if ( ! empty( $stored ) && $stored_version < JLUXE_SETTINGS_VERSION ) {
+		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
@@ -1159,6 +1106,276 @@ function jluxe_migrate_settings_v6( array $settings ): array {
 		}
 	}
 
+	return $settings;
+}
+
+/**
+ * v6→v7: remove only exact, known theme defaults that made claims about
+ * this particular store. SHA-256 fingerprints keep even partially edited
+ * merchant copy untouched; long HTML is not duplicated in migration code.
+ */
+function jluxe_migrate_settings_v7( array $settings ): array {
+	$updates = array(
+		'identity.short_description' => array(
+			'1f7ddc314e18d3048fab90bb5006402d5584e20f5ce6d4695202fef7ba05c513' => '',
+		),
+		'header_nav.items.4.label' => array(
+			'c75a183aab6162b719d2d10c091cf9b1888d941acf106ed51168aea9b61ae830' => 'درباره ما',
+		),
+		'footer.brand_description' => array(
+			'0efcad7d1508c1609d2ba7f7114400b20d35029a5138537955e8aa9851d42f19' => '',
+		),
+		'footer.support_hours' => array(
+			'74237dff531d874e563d1324037aeaab4d75044e6c56c824cda6995cacb92fcc' => '',
+		),
+		'footer.support_text' => array(
+			'eedccc2730f87a0bf1db2975ba4113bc3326e08745e0042584a61155a5f67c59' => '',
+		),
+		'footer.feature_cards.0.title' => array(
+			'caecd8b3ed46f79e805c6fa883c4e008b78a807d1d1d089703b6d53b6bef465f' => '',
+		),
+		'footer.feature_cards.0.subtitle' => array(
+			'34601faf1d7a3a386d158a395a7b37f5c10a39524bd0432c60a0908c7ad3c735' => '',
+		),
+		'footer.feature_cards.1.title' => array(
+			'e64dd4de8d5b9276beff683fe4bf81c04e6da5fb54cf059e350e229746acbc4c' => '',
+		),
+		'footer.feature_cards.1.subtitle' => array(
+			'a3f95c6d096ad99d76b2a20d588a595f3e1b132662340f9e10dc781c3b8e5fec' => '',
+		),
+		'footer.feature_cards.2.title' => array(
+			'64fce78df7f5b165a9b7c40e82af9ce47b72f507b4bfafb3d37026cb769ff7f0' => '',
+		),
+		'footer.feature_cards.2.subtitle' => array(
+			'fc1dff9d011afc20e20e924238c68ed0799709b8d96812b840110b5ca451c95d' => '',
+		),
+		'footer.feature_cards.3.title' => array(
+			'aa28ad8c210f121bce21c36ea73ea04c4b5eae21e1cebb55eb27fd87c61517a2' => '',
+		),
+		'footer.feature_cards.3.subtitle' => array(
+			'26c032c1456eddebdecbda4eaa99eb418af2a76aeeb3ebf9eb97c54f6ae27d27' => '',
+		),
+		'info_pages.contact.intro_title' => array(
+			'90bf28a43f6daa1f5ba89a8f6bacfae05b500ae55e67e60d67dee9d37d1175ef' => 'راه‌های تماس',
+		),
+		'info_pages.contact.intro_text' => array(
+			'011a1fffc42067e5499593f6025673572c4d6af82baa0f2c0c1e08d65f99d542' => '',
+		),
+		'info_pages.about.intro_title' => array(
+			'50754969224dde588f7d295a53809ffaaebcb3d2fc1847137cc42ec2bfbc2568' => 'درباره ما',
+		),
+		'info_pages.about.intro_text' => array(
+			'9c7f5c5fa93a07156ea20007fe97112bb71b7c154e9ab54714d5530393ebe8f7' => '',
+		),
+		'info_pages.about.story_html' => array(
+			'9a9f0c2309dd4acd1048ae39c79dce0c81e022ccdacff1bfbb12756d2a69f281' => '',
+		),
+		'info_pages.about.cta_text' => array(
+			'bd9e8a121527dad3a91a455581342796554002dea3a7b052c57e1581f0597cb6' => '',
+		),
+		'info_pages.about.why_html' => array(
+			'a6103d99258f29a4f6c3481383a876bec77cca21e71bc83de1ccb8f10892198f' => '',
+		),
+		'guide_pages.shopping_guide.intro' => array(
+			'9dce837280c78b620f04017f13512359cd06744a8a375d54f5c26d2f86848795' => 'گزینه‌ها و مراحل در دسترس برای این سفارش را در صفحه‌های محصول، سبد و تسویه‌حساب بررسی کنید.',
+		),
+		'guide_pages.shopping_guide.steps.0.content' => array(
+			'e770786b00f9b7c3a3a26916d87e97db63ba9f99d7b047ca3f8f111e90ac4050' => '<p>در صفحهٔ محصول، توضیحات و ویژگی‌هایی را که برای همان کالا درج شده‌اند مطالعه کنید.</p><p>اگر گزینه‌ای برای محصول نمایش داده می‌شود، آن را انتخاب و کالا را به سبد اضافه کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.content' => array(
+			'd8029039a9e38e8c4775ac4b72af282338ab2eea1cbe8d3256aa3d0f39c908bf' => '<p>اقلام، تعداد و گزینه‌های انتخاب‌شده را در سبد بررسی و در صورت نیاز ویرایش کنید.</p><p>برای ادامه، دکمهٔ رفتن به تسویه‌حساب را انتخاب کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.callout_text' => array(
+			'6c487bf168c43c58d43e303848498db5ee8c183e82340b9d485db5f63d6d47b0' => '',
+		),
+		'guide_pages.shopping_guide.steps.2.content' => array(
+			'96a536ff63e302b7edc73a86225c126486d21a4d98330abc5fb1764eb5568586' => '<p>فیلدهایی را که برای سفارش در فرم تسویه‌حساب نمایش داده می‌شوند تکمیل کنید؛ موارد الزامی در همان فرم مشخص می‌شوند.</p><p>پیش از ثبت سفارش، اطلاعات واردشده را بازبینی کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.3.content' => array(
+			'f5ac21f7ccc59f047c57ac733b9c4454f126b900b844f6dc70f067f30056f494' => '<p>روش‌های ارسال و پرداختی که برای سبد و نشانیِ فعلی در دسترس‌اند، در تسویه‌حساب نمایش داده می‌شوند.</p><p>توضیحات و هزینهٔ هر گزینه را همان‌جا بررسی کنید و فقط از روش‌هایی استفاده کنید که در فرایند رسمی خرید نمایش داده می‌شوند.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.content' => array(
+			'3c0c9389999b29e6ddaf3f3a181c574539c9bdaf840452ba36b7024db69afe76' => '<p>خلاصهٔ سفارش و مبلغ نهایی را پیش از تأیید بازبینی کنید.</p><p>پس از ثبت سفارش، از حساب کاربری یا صفحهٔ پیگیری برای مشاهدهٔ اطلاعاتی که فروشگاه ثبت کرده است استفاده کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.callout_text' => array(
+			'b230b7974e6d0f640aa685b3210b31ef92dfe9bdb2f68d2c316654d4cc002cf4' => '',
+		),
+		'guide_pages.payment_guide.intro' => array(
+			'17a2a183c3c023ad3df5f63454ad5dcaa50e82002942858443979fe876154a6f' => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+		),
+		'guide_pages.payment_guide.body_html' => array(
+			'43e093ca272fd7b1d40543350ca1b37d2b16c2db0aafecb4c41f47fbee959a64' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+		),
+		'guide_pages.shipping_tracking.intro' => array(
+			'0b69796c62afa0fbc8493d80c57a23a28f5a6528689cfef87c0fbed1e7d24a51' => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
+		),
+		'guide_pages.shipping_tracking.body_html' => array(
+			'17671cc26590dc3c3ba3cbf74245435ea57465d0632ddf7086ddefe125ca9fab' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+		),
+		'guide_pages.returns_exchanges.intro' => array(
+			'2e9972729c58fbb7dad5c99f71f66b49ed7765fac12cb23081e4ccb315822efd' => '',
+		),
+		'guide_pages.returns_exchanges.deny_title' => array(
+			'ba54aa90c3253882c6c5b87a4186b0754fbc2b6aaf8cfe31cfc4943b1b4ed032' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_1_label' => array(
+			'bb9e449696ca0a06ca0f878e1b5fb6bb7681d676069f301f5073874afc2e5a66' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_1_text' => array(
+			'219a10ff16b633396559e0673f4327fbeed710d3ba0114ec691b12cec76703f9' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_2_label' => array(
+			'74753f83809dec1309c2bd1f4272fb62d67d2938fd0755d689e06095b7368202' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_2_text' => array(
+			'd024fe565624d70de680fd87ed162345fe68bc25c79d83f0251d390b66fa85e0' => '',
+		),
+		'guide_pages.returns_exchanges.tip_label' => array(
+			'851a50e88f5a630a80af9d23f632ad06ef95e4f8121a4cd4c6864bc79efb9181' => '',
+		),
+		'guide_pages.returns_exchanges.tip_text' => array(
+			'9962dcb99c3c689dd592cc19f967568f7224fb1f47561a8df3a896d6ebb1bb8d' => '',
+		),
+		'guide_pages.returns_exchanges.body_html' => array(
+			'388484698bba0a4457f7b55b9c461fec8e571491cdaccb576500871cd40cbe0d' => '',
+		),
+		'product_page.trust_items.0.title' => array(
+			'fbf3a627ed0cd0a9ee580857f86d4c4f341daafd81e2a49cc2b61e9e54ad40f9' => '',
+		),
+		'product_page.trust_items.0.subtitle' => array(
+			'c7cd2fcdd16bba45aea7571920bf9b2da4c9ffb66d1aaf580e36e0ac4e704f8c' => '',
+		),
+		'product_page.trust_items.1.title' => array(
+			'd08174fb600295fb29d2e47332aa5cb39de36d75cf937e422ea64c6537802cad' => '',
+		),
+		'product_page.trust_items.1.subtitle' => array(
+			'4bd3ca33963c6236ad1fbbb75a77ee0e7e7c47bf13a0f6d9c4ec26c8aeaaf9ad' => '',
+		),
+		'product_page.trust_items.2.title' => array(
+			'32c7f180e0a91811ba376a936509b2f7c006152ff38188e728f06d2466027026' => '',
+		),
+		'product_page.trust_items.2.subtitle' => array(
+			'af7b635cc9cf2081749468e65bebee496ae620711da88ec6a8fb4ac030af475a' => '',
+		),
+		'faq.items.0.answer' => array(
+			'68c5314a6c568b4a8f70247f09cf011a84a3e09ab5ddece79b81ea3187f6a716' => 'در صفحهٔ تسویه‌حساب مشخص است آیا ورود یا ساخت حساب برای سفارش لازم است؛ تنظیمات فروشگاه و قابلیت‌های فعال ممکن است این شرط را تغییر دهند.',
+		),
+		'faq.items.5.answer' => array(
+			'341241c5c222354568a6b61080ee72bd786c4ff0a700f85b18d1bb868e79bff7' => 'شرایط مرجوعی فقط در صورتی روشن است که فروشگاه آن را در صفحهٔ رویهٔ مرجوعی درج کرده باشد. اگر متن کامل نیست یا پرسشی دارید، پیش از خرید از راه تماسِ فعلیِ فروشگاه راهنمایی بگیرید.',
+		),
+		'ai_assistant.name' => array(
+			'18d7b487a88850a867525de608abe08c533544720baaae2ea1ae721a94a27d51' => 'دستیار فروشگاه',
+		),
+	);
+
+	$clear_or_update = static function ( array &$root, string $path, array $replacements ): void {
+		$segments = explode( '.', $path );
+		$leaf     = array_pop( $segments );
+		$cursor   = &$root;
+		$exists   = true;
+		foreach ( $segments as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				$exists = false;
+				break;
+			}
+			$cursor = &$cursor[ $segment ];
+		}
+		if ( $exists && is_array( $cursor ) && isset( $cursor[ $leaf ] ) && is_string( $cursor[ $leaf ] ) ) {
+			$signature = hash( 'sha256', $cursor[ $leaf ] );
+			if ( array_key_exists( $signature, $replacements ) ) {
+				$cursor[ $leaf ] = $replacements[ $signature ];
+			}
+		}
+		unset( $cursor );
+	};
+
+	foreach ( $updates as $path => $replacements ) {
+		$clear_or_update( $settings, $path, $replacements );
+	}
+
+	// v6's migration replaced a few older card labels with the exact v6 defaults.
+	// A v7 migration clears only those now-known default subtitles/titles.
+	foreach ( array( 0, 1, 2, 3 ) as $index ) {
+		if ( ! isset( $settings['footer']['feature_cards'][ $index ] ) || ! is_array( $settings['footer']['feature_cards'][ $index ] ) ) {
+			continue;
+		}
+		$card = &$settings['footer']['feature_cards'][ $index ];
+		if ( '' === (string) ( $card['title'] ?? '' ) && '' === (string) ( $card['subtitle'] ?? '' ) ) {
+			$card['enabled'] = false;
+		}
+		unset( $card );
+	}
+	if ( isset( $settings['product_page']['trust_items'] ) && is_array( $settings['product_page']['trust_items'] ) ) {
+		foreach ( $settings['product_page']['trust_items'] as &$item ) {
+			if ( is_array( $item ) && '' === (string) ( $item['title'] ?? '' ) && '' === (string) ( $item['subtitle'] ?? '' ) ) {
+				$item['enabled'] = false;
+			}
+		}
+		unset( $item );
+	}
+
+	// Disable only the exact legacy schedule and remove the old implicit
+	// timezone default; custom hours and explicitly configured zones survive.
+	$hours = $settings['ai_assistant']['phone_hours'] ?? null;
+	if (
+		is_array( $hours ) && ! empty( $hours['enabled'] ) &&
+		'10:00' === ( $hours['start'] ?? null ) && '20:00' === ( $hours['end'] ?? null ) &&
+		array( 5 ) === array_values( array_map( 'intval', (array) ( $hours['closed_days'] ?? array() ) ) )
+	) {
+		$settings['ai_assistant']['phone_hours'] = array(
+			'enabled'     => false,
+			'start'       => '',
+			'end'         => '',
+			'closed_days' => array(),
+		);
+	}
+	if ( 'Asia/Tehran' === ( $settings['ai_assistant']['phone_timezone'] ?? null ) ) {
+		$settings['ai_assistant']['phone_timezone'] = 'UTC';
+	}
+
+	$legacy_icons = array(
+		'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
+		'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
+		'telegram'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-143.png',
+		'instagram' => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-140.png',
+		'rubika'    => 'https://jluxe.ir/wp-content/uploads/2026/05/rubika.png',
+		'bale'      => 'https://jluxe.ir/wp-content/uploads/2026/05/bale.png',
+	);
+	foreach ( $legacy_icons as $channel => $url ) {
+		if ( ( $settings['ai_assistant']['contact_icons'][ $channel ] ?? null ) === $url ) {
+			$settings['ai_assistant']['contact_icons'][ $channel ] = '';
+		}
+	}
+
+	// Header items may have been reordered, so locate the old default by ID rather than position.
+	if ( isset( $settings['header_nav']['items'] ) && is_array( $settings['header_nav']['items'] ) ) {
+		foreach ( $settings['header_nav']['items'] as &$item ) {
+			if ( is_array( $item ) && 'about' === ( $item['id'] ?? '' ) && 'درباره زرین' === ( $item['label'] ?? '' ) ) {
+				$item['label'] = 'درباره ما';
+			}
+		}
+		unset( $item );
+	}
+
+	return $settings;
+}
+
+/** Apply all versioned migrations in order and stamp the current schema version. */
+function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
+	$migrations = array(
+		2 => 'jluxe_migrate_settings_v2',
+		3 => 'jluxe_migrate_settings_v3',
+		4 => 'jluxe_migrate_settings_v4',
+		5 => 'jluxe_migrate_settings_v5',
+		6 => 'jluxe_migrate_settings_v6',
+		7 => 'jluxe_migrate_settings_v7',
+	);
+	foreach ( $migrations as $target_version => $migration ) {
+		if ( $stored_version < $target_version ) {
+			$settings = $migration( $settings );
+		}
+	}
+	$settings['version'] = JLUXE_SETTINGS_VERSION;
 	return $settings;
 }
 

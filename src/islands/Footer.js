@@ -67,32 +67,8 @@ const Instagram = createIcon("Instagram", [
 ]);
 
 const featureIcons = { ...navIcons, "badge-percent": BadgePercent };
-const defaultFeatures = [
-  {
-    enabled: true,
-    icon: "truck",
-    title: "ارسال سریع و مطمئن",
-    subtitle: "به سراسر ایران",
-  },
-  {
-    enabled: true,
-    icon: "headphones",
-    title: "پشتیبانی آنلاین",
-    subtitle: "۲۴ ساعته از طریق شبکه‌های اجتماعی",
-  },
-  {
-    enabled: true,
-    icon: "badge-percent",
-    title: "بهترین قیمت",
-    subtitle: "کف قیمت بازار",
-  },
-  {
-    enabled: true,
-    icon: "shield-check",
-    title: "امنیت خرید",
-    subtitle: "پرداخت از درگاه مطمئن",
-  },
-];
+// Merchant claims are opt-in in settings; the JS fallback must not invent them.
+const defaultFeatures = [];
 const defaultColumns = [
   {
     title: "راهنما",
@@ -137,12 +113,9 @@ const socialLabels = {
   rubika: "روبیکا",
   bale: "بله",
 };
-const defaultBrandDescription =
-  "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.";
-const defaultSupportHours =
-  "در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.";
-const defaultSupportText =
-  "پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.";
+const defaultBrandDescription = "";
+const defaultSupportHours = "";
+const defaultSupportText = "";
 
 function findFooterSlots(doc = typeof document === "undefined" ? null : document) {
   if (!doc) return null;
@@ -192,12 +165,11 @@ function Footer() {
   const footer = settings.footer;
   if (footer && !footer.enabled) return null;
 
-  const siteName = settings.siteName || "زرین";
+  const siteName = settings.siteName || "فروشگاه";
   const brandDescription =
-    (typeof footer?.brand_description === "string" &&
-      footer.brand_description.trim()) ||
-    settings.shortDescription ||
-    defaultBrandDescription;
+    typeof footer?.brand_description === "string"
+      ? footer.brand_description.trim()
+      : defaultBrandDescription;
   const supportHours = footer?.support_hours || defaultSupportHours;
   const supportText = footer?.support_text || defaultSupportText;
   const features = (footer?.feature_cards ?? defaultFeatures).filter(
@@ -223,6 +195,7 @@ function Footer() {
     .filter((phone) => typeof phone === "string" && phone.trim().length > 0)
     .map((phone) => phone.trim())
     .filter((phone, index, all) => all.indexOf(phone) === index);
+  const phoneSupportTitle = phoneNumbers.length > 0 ? "پشتیبانی تلفنی" : "راه‌های تماس";
 
   const featuresNode =
     features.length > 0
@@ -314,7 +287,7 @@ function Footer() {
 
   const supportNode = e.jsxs("section", {
     className: "jluxe-footer-support-list",
-    "aria-label": "پشتیبانی تلفنی",
+    "aria-label": phoneSupportTitle,
     children: [
       e.jsxs("div", {
         className: "jluxe-footer-support-card",
@@ -330,13 +303,15 @@ function Footer() {
               e.jsx("h3", {
                 className: "jluxe-footer-support-title",
                 style: textStyle,
-                children: "پشتیبانی تلفنی",
+                children: phoneSupportTitle,
               }),
-              e.jsx("p", {
-                className: "jluxe-footer-support-copy",
-                style: textStyle,
-                children: supportHours,
-              }),
+              supportHours
+                ? e.jsx("p", {
+                    className: "jluxe-footer-support-copy",
+                    style: textStyle,
+                    children: supportHours,
+                  })
+                : null,
               phoneLinks,
             ],
           }),

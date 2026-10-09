@@ -1141,7 +1141,7 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	// R94 — ساعتِ پاسخگویی/آیکون‌ها/دانشِ اختصاصی.
 	$time_re      = '/^([01]?\d|2[0-3]):[0-5]\d$/';
 	$hours_posted = is_array( $posted['phone_hours'] ?? null ) ? $posted['phone_hours'] : array();
-	$hours_def    = $defaults['phone_hours'] ?? array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) );
+	$hours_def    = $defaults['phone_hours'] ?? array( 'enabled' => false, 'start' => '', 'end' => '', 'closed_days' => array() );
 	$start        = trim( (string) ( $hours_posted['start'] ?? $hours_def['start'] ) );
 	$end          = trim( (string) ( $hours_posted['end'] ?? $hours_def['end'] ) );
 	$closed_days = array();
@@ -1168,9 +1168,9 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	}
 	$prompt_mode = isset( $posted['system_prompt_mode'] ) ? sanitize_key( $posted['system_prompt_mode'] ) : 'append';
 	$breakpoint  = isset( $posted['mobile_breakpoint'] ) ? absint( $posted['mobile_breakpoint'] ) : ( $defaults['mobile_breakpoint'] ?? 820 );
-	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'Asia/Tehran' );
+	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'UTC' );
 	if ( '' === $phone_tz || ( function_exists( 'timezone_identifiers_list' ) && ! in_array( $phone_tz, timezone_identifiers_list(), true ) ) ) {
-		$phone_tz = $defaults['phone_timezone'] ?? 'Asia/Tehran';
+		$phone_tz = $defaults['phone_timezone'] ?? 'UTC';
 	}
 
 	return array(

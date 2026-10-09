@@ -22,7 +22,7 @@ class IslandBoundary extends React.Component {
 export function mountIsland(element, load) {
   const name = element.dataset.jluxeIsland;
   const existing = element.querySelector("a[href]");
-  const isCart = name === "mini-cart" || name === "cart-checkout-demo";
+  const isCart = name === "mini-cart";
   const href =
     existing?.getAttribute("href") || siteUrl(isCart ? "cart" : "shop");
   const label =

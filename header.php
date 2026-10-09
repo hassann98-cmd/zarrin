@@ -30,26 +30,10 @@
  */
 ?>
 
-<!--
-	شیشه‌ای (glassmorphism) — نسخه‌ی استاندارد (بلور + شفافیت + خط ظریف روشن)، چون به HTML
-	واقعی هدر d.acchi.ir دسترسی نداشتم (دسترسی کروم به این دامنه مسدود بود) تا دقیق کپی کنم.
--->
+<?php /* Theme-colored translucent surface; keep header controls and navigation as separate rows. */ ?>
 <a class="jluxe-skip-link" href="#primary">پرش به محتوای اصلی</a>
 <header id="masthead" class="site-header">
-	<!--
-		ترتیب DOM و چیدمان هدر برای RTL در هر breakpoint هماهنگ می‌ماند:
-		در دسکتاپ لوگو، جستجو، حساب و سبد؛ در موبایل جستجو، لوگو، حساب و سبد همگی در یک ردیف‌اند.
-	-->
-	<!--
-		فقط ردیف اول (اکشن‌ها + لوگو) چسبانه؛ ردیف منو/دسته‌بندی عمداً چسبان نیست و با اسکرول
-		از بالا خارج می‌شه — طبق درخواست صریح کاربر. هر دو ردیف هم‌عرض و در وسط صفحه‌ان
-		(mx-auto max-w-[1320px])، با کمی فاصله از بالا برای ردیف اول (pt-8 ≈ ۳۲px، طبق algetshop.ir).
-
-		fixed به‌جای sticky عمدیه: چون ردیف اول و دوم داخل یک <header> کوتاه بودن، sticky فقط
-		تا ارتفاع خود هدر (~۱۵۴px) چسبیده می‌موند و بعدش کلاً از بالا خارج می‌شد — محدودیت ذاتی
-		CSS sticky (containing block هدره، نه کل صفحه). با fixed + یک spacer هم‌ارتفاع، ردیف اول
-		واقعاً برای کل طول اسکرول صفحه بالا می‌مونه.
-	-->
+<?php /* The action row may be fixed independently; the navigation row stays in normal document flow. */ ?>
 	<?php
 	// header.sticky (JLuxe Theme → هدر) — وقتی خاموشه، ردیف اول یک بلوک عادی
 	// (static) می‌مونه، بدون fixed/spacer. پیش‌فرض روشنه (رفتار فعلی، بدون تغییر).
@@ -84,12 +68,7 @@
 			<?php if ( $jluxe_header_has_mobile_search ) : ?>
 				<div class="md:hidden" data-jluxe-island="header-mobile-search" data-jluxe-header-grid="search"></div>
 			<?php endif; ?>
-			<!--
-				لوگو به‌صورت React island mount می‌شه (src/islands/Header.tsx → BrandLogo) که
-				خودش یک <a href="/"> واقعی داخلش رندر می‌کنه؛ برای همین این wrapper عمداً
-				<span> است نه <a> — تا بعد از mount شدن یک anchor تودرتوی نامعتبر
-				(<a><a>...</a></a>) ساخته نشه. fallback متنی زیرش برای قبل از هیدریشن/بدون JS.
-			-->
+			<?php /* The logo island owns its home link; this wrapper remains non-interactive for valid nested markup. */ ?>
 			<span class="site-title shrink-0" data-jluxe-island="header-logo" data-jluxe-header-grid="logo">
 				<?php bloginfo( 'name' ); ?>
 			</span>
@@ -99,7 +78,7 @@
 		<div data-jluxe-island="category-drawer"></div>
 	</div>
 	<?php if ( $jluxe_header_sticky ) : ?>
-		<!-- spacer هم‌ارتفاعِ ردیف ۷۲px موبایل یا ۹۰px دسکتاپِ هدرِ fixed. -->
+		<?php /* Reserve the fixed action row's space in normal document flow. */ ?>
 		<div class="jluxe-header-spacer h-[72px] md:h-[90px]<?php echo $jluxe_header_has_mobile_search ? ' jluxe-header-spacer--has-mobile-search' : ''; ?>" aria-hidden="true"></div>
 	<?php endif; ?>
 

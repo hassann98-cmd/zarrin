@@ -510,23 +510,43 @@ function jluxe_ai_fa_time_label( string $time ): string {
 }
 
 function jluxe_ai_phone_hours( array $settings ): array {
-	$h = (array) ( $settings['phone_hours'] ?? array() );
+	$h     = (array) ( $settings['phone_hours'] ?? array() );
+	$start = trim( (string) ( $h['start'] ?? '' ) );
+	$end   = trim( (string) ( $h['end'] ?? '' ) );
+	$valid_time = static function ( string $time ): bool {
+		return 1 === preg_match( '/^(?:[01]?[0-9]|2[0-3]):[0-5][0-9]$/', $time );
+	};
+	$valid = $valid_time( $start ) && $valid_time( $end );
+	if ( $valid ) {
+		list( $start_hour, $start_minute ) = array_map( 'intval', explode( ':', $start ) );
+		list( $end_hour, $end_minute )     = array_map( 'intval', explode( ':', $end ) );
+		$valid = ( $start_hour * 60 + $start_minute ) < ( $end_hour * 60 + $end_minute );
+	}
+	$closed_days = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $h['closed_days'] ?? array() ) ), static function ( $day ) {
+		return $day >= 0 && $day <= 6;
+	} ) ) );
 	return array(
-		'enabled'     => ! empty( $h['enabled'] ),
-		'start'       => (string) ( $h['start'] ?? '10:00' ),
-		'end'         => (string) ( $h['end'] ?? '20:00' ),
-		'closed_days' => array_values( array_map( 'intval', (array) ( $h['closed_days'] ?? array( 5 ) ) ) ),
+		'enabled'     => ! empty( $h['enabled'] ) && $valid && 7 !== count( $closed_days ),
+		'start'       => $start,
+		'end'         => $end,
+		'closed_days' => $closed_days,
 	);
 }
 
 function jluxe_ai_hours_label( array $settings ): string {
 	$h = jluxe_ai_phone_hours( $settings );
+	if ( ! $h['enabled'] ) {
+		return '';
+	}
 	return jluxe_ai_fa_time_label( $h['start'] ) . ' تا ' . jluxe_ai_fa_time_label( $h['end'] );
 }
 
 /** نامِ خوانای روزهای پاسخگویی، با همان شماره‌گذاریِ استانداردِ PHP. */
 function jluxe_ai_days_label( array $settings ): string {
-	$h     = jluxe_ai_phone_hours( $settings );
+	$h = jluxe_ai_phone_hours( $settings );
+	if ( ! $h['enabled'] ) {
+		return '';
+	}
 	$order = array( 6 => 'شنبه', 0 => 'یکشنبه', 1 => 'دوشنبه', 2 => 'سه‌شنبه', 3 => 'چهارشنبه', 4 => 'پنجشنبه', 5 => 'جمعه' );
 	$open  = array_values( array_filter( array_keys( $order ), static function ( $day ) use ( $h ) {
 		return ! in_array( $day, $h['closed_days'], true );
@@ -557,13 +577,15 @@ function jluxe_ai_days_label( array $settings ): string {
 	return implode( '، ', $labels );
 }
 
-/** پاسخگوییِ تلفنی الان باز است؟ (منطقهٔ زمانیِ سایت؛ روزِ ۰=یکشنبه … ۵=جمعه). */
-function jluxe_ai_phone_is_open( array $settings, ?int $now = null ): bool {
+/** پاسخگوییِ تلفنی الان باز است؟ (منطقهٔ زمانیِ برنامهٔ پاسخگویی؛ روزِ ۰=یکشنبه … ۵=جمعه). */
+function jluxe_ai_phone_is_open( array $settings, ?int $now = null ): ?bool {
 	$h = jluxe_ai_phone_hours( $settings );
 	if ( ! $h['enabled'] ) {
-		return true;
+		return null;
 	}
-	$zone_name = (string) ( $settings['phone_timezone'] ?? '' );
+	// Use the configured schedule timezone for both the status and its prompt;
+	// if an imported legacy value is invalid, fall back to WordPress's timezone.
+	$zone_name = trim( (string) ( $settings['phone_timezone'] ?? '' ) );
 	try {
 		$zone = '' !== $zone_name ? new DateTimeZone( $zone_name ) : wp_timezone();
 	} catch ( Throwable $error ) {
@@ -940,7 +962,7 @@ function jluxe_ai_public_contact( array $settings ): array {
 			'daysLabel'  => $days_label,
 		),
 		'hoursLabel' => $hours_label,
-		'timezone'   => (string) ( $settings['phone_timezone'] ?? 'Asia/Tehran' ),
+		'timezone'   => (string) ( $settings['phone_timezone'] ?? 'UTC' ),
 		'openText'   => strtr( (string) ( $settings['phone_open_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
 		'closedText' => strtr( (string) ( $settings['phone_closed_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
 	);

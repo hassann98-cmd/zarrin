@@ -11,14 +11,8 @@ get_header();
 $jluxe_re_settings = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings() : array();
 $jluxe_re           = $jluxe_re_settings['guide_pages']['returns_exchanges'] ?? array();
 $jluxe_re_site_name = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'identity.site_name', get_bloginfo( 'name' ) ) : get_bloginfo( 'name' );
-$jluxe_re_title     = $jluxe_re['title'] ?? 'رویهٔ شرایط مرجوعی و تعویض کالا';
+$jluxe_re_title     = str_replace( '{site_name}', $jluxe_re_site_name, $jluxe_re['title'] ?? 'رویهٔ شرایط مرجوعی و تعویض کالا' );
 $jluxe_re_intro     = str_replace( '{site_name}', $jluxe_re_site_name, $jluxe_re['intro'] ?? '' );
-/*
- * طبقِ درخواستِ صریحِ کاربر — این متن‌ها قبلاً هاردکد بودن، الان از تنظیمات
- * (زرین ← صفحات راهنما ← رویه‌ی شرایط مرجوعی) میان. دکمه‌ی پایینِ صفحه هم
- * از قبل توی تنظیمات وجود داشت ولی این تمپلیت بهش وصل نبود — همون‌جا وصلش
- * کردیم (button_text/button_url/button_color، مثلِ بقیه‌ی صفحاتِ راهنما).
- */
 $jluxe_re_deny_title  = $jluxe_re['deny_title'] ?? '';
 $jluxe_re_deny1_label = $jluxe_re['deny_item_1_label'] ?? '';
 $jluxe_re_deny1_text  = $jluxe_re['deny_item_1_text'] ?? '';
@@ -26,6 +20,16 @@ $jluxe_re_deny2_label = $jluxe_re['deny_item_2_label'] ?? '';
 $jluxe_re_deny2_text  = $jluxe_re['deny_item_2_text'] ?? '';
 $jluxe_re_tip_label   = $jluxe_re['tip_label'] ?? '';
 $jluxe_re_tip_text    = $jluxe_re['tip_text'] ?? '';
+$jluxe_re_body = strtr( $jluxe_re['body_html'] ?? '', array(
+	'{site_name}'          => $jluxe_re_site_name,
+	'{deny_title}'         => $jluxe_re_deny_title,
+	'{deny_item_1_label}'  => $jluxe_re_deny1_label,
+	'{deny_item_1_text}'   => $jluxe_re_deny1_text,
+	'{deny_item_2_label}'  => $jluxe_re_deny2_label,
+	'{deny_item_2_text}'   => $jluxe_re_deny2_text,
+	'{tip_label}'          => $jluxe_re_tip_label,
+	'{tip_text}'           => $jluxe_re_tip_text,
+) );
 $jluxe_re_btn_text    = $jluxe_re['button_text'] ?? 'بازگشت به فروشگاه ←';
 $jluxe_re_btn_url     = $jluxe_re['button_url'] ?? '/';
 $jluxe_re_btn_style   = ! empty( $jluxe_re['button_color'] ) ? ' style="background:' . esc_attr( $jluxe_re['button_color'] ) . '"' : '';

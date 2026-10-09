@@ -74,16 +74,7 @@ function jluxe_handle_import(): ?string {
 	if ( $version < 1 || $version > JLUXE_SETTINGS_VERSION ) {
 		return 'import_error';
 	}
-	$incoming = $version < 2 ? jluxe_migrate_settings_v2( $data['settings'] ) : $data['settings'];
-	if ( $version < 3 ) {
-		$incoming = jluxe_migrate_settings_v3( $incoming );
-	}
-	if ( $version < 4 ) {
-		$incoming = jluxe_migrate_settings_v4( $incoming );
-	}
-	if ( $version < 6 ) {
-		$incoming = jluxe_migrate_settings_v6( $incoming );
-	}
+	$incoming = jluxe_migrate_settings_to_current_version( $data['settings'], $version );
 	try {
 		$clean = jluxe_sanitize_settings_payload( $incoming, jluxe_get_theme_settings() );
 	} catch ( Throwable $error ) {

@@ -688,7 +688,7 @@ function jluxe_render_footer_page(): void {
 				<tr>
 					<th scope="row"><label for="jluxe-support-text">متن پشتیبانی متنی</label></th>
 					<td>
-						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="مثلاً پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی" />
+						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="فقط راه‌های پشتیبانیِ فعال و تأییدشده را بنویسید" />
 						<p class="description">این متن در خط «پشتیبانی متنی» فوتر نمایش داده می‌شود.</p>
 					</td>
 				</tr>

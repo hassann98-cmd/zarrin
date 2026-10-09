@@ -436,24 +436,7 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 	$stored = is_array( $stored ) ? $stored : array();
 	if ( ! empty( $stored ) ) {
 		$stored_version = (int) ( $stored['version'] ?? 1 );
-		if ( $stored_version < 2 ) {
-			$stored = jluxe_migrate_settings_v2( $stored );
-		}
-		if ( $stored_version < 3 ) {
-			$stored = jluxe_migrate_settings_v3( $stored );
-			$stored_version = 3;
-		}
-		if ( $stored_version < 4 ) {
-			$stored = jluxe_migrate_settings_v4( $stored );
-			$stored_version = 4;
-		}
-		if ( $stored_version < 5 ) {
-			$stored = jluxe_migrate_settings_v5( $stored );
-			$stored_version = 5;
-		}
-		if ( $stored_version < 6 ) {
-			$stored = jluxe_migrate_settings_v6( $stored );
-		}
+		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
 	}
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;

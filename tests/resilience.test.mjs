@@ -644,13 +644,17 @@ test("R184 the optional assistant waits until after page load and stays outside 
   ];
   const routeIslands = [
     "src/islands/Footer.js",
-    "src/islands/ProductDetails.js",
-    "src/islands/ShopArchive.js",
-    "src/islands/CartCheckout.js",
     "src/islands/AuthPage.jsx",
     "src/islands/CategoriesBrowser.js",
   ];
   const optionalIslands = ["src/islands/AiAssistant.js"];
+  const retiredMockIslands = [
+    "src/islands/ProductDetails.js",
+    "src/islands/ShopArchive.js",
+    "src/islands/CartCheckout.js",
+  ];
+  assert.doesNotMatch(mainSource, /ProductDetails\.js|ShopArchive\.js|CartCheckout\.js|product-details-demo|shop-archive-demo|cart-checkout-demo/);
+  assert.ok(retiredMockIslands.every((key) => !manifest[key]), "mock storefront files are not compiled as theme entry points");
   assert.match(
     mainSource,
     /if \(name === "ai-assistant"\)[\s\S]*?if \(!window\.JLuxeThemeSettings\?\.aiAssistant\?\.enabled\) continue;[\s\S]*?document\.readyState === "complete"[\s\S]*?window\.addEventListener\("load", mountAssistant, \{ once: true \}\);[\s\S]*?continue;/,
