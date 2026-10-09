@@ -1592,10 +1592,10 @@ function jluxe_render_site_trust_badges(): void {
             @media (min-width:640px){
                 .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,minmax(0,1fr));justify-content:start;max-width:<?php echo esc_attr( $desktop_max_width ); ?>rem;margin-inline:0;}
             }
-            /* افکتِ هاور فقط روی دستگاهِ دارای ماوس (قاعدهٔ پروژه: hover داخلِ @media (hover:hover)). */
+            /* افکتِ ظریف فقط روی دستگاهِ دارای ماوس؛ رنگ از پالتِ جاریِ پوسته پیروی می‌کند. */
             @media (hover:hover){
-                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--primary) / .35);box-shadow:0 4px 14px -6px rgba(0,0,0,.18);transform:translateY(-2px);}
+                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .18s ease;}
+                .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--secondary) / .35);}
             }
         </style>
         <h3 id="jluxe-site-badges-heading" class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>

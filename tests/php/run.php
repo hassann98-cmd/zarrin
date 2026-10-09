@@ -1121,7 +1121,7 @@ function rel_lum($rgb){$out=array();foreach($rgb as $v){$v/=255;$out[]=$v<=0.039
 function contrast($a,$b){$x=rel_lum($a);$y=rel_lum($b);$hi=max($x,$y);$lo=min($x,$y);return ($hi+0.05)/($lo+0.05);}
 function tok_rgb($t){return hsl_rgb($t[0],$t[1],$t[2]);}
 $white=array(255,255,255);$fg=tok_rgb($tokens['foreground']);$bg=tok_rgb($tokens['background']);
-check(contrast(tok_rgb($tokens['secondary']),$bg)>=4.5, 'R190 deep-teal footer links and keyboard focus reach AA on warm card surfaces');
+check(contrast(tok_rgb($tokens['secondary']),$bg)>=4.5, 'R191 theme-secondary footer links and keyboard focus reach AA on the theme background');
 check(contrast($fg,$bg)>=7, 'R35 body text contrast is AAA (>=7:1)');
 check(contrast(tok_rgb($tokens['text-muted']),$bg)>=4.5 && contrast(tok_rgb($tokens['text-muted']),$white)>=4.5, 'R35 muted text reaches AA on background and surface');
 check(contrast(tok_rgb($tokens['text-secondary']),$bg)>=4.5, 'R35 secondary text reaches AA');
@@ -3220,7 +3220,7 @@ $r88_badges = (string) ob_get_clean();
 check( false !== strpos( $r88_badges, '<section class="jluxe-site-badges-section' ) && 2 === substr_count( $r88_badges, 'jluxe-site-badge-card flex' ), 'R88 both badges are printed directly as one visible grid item' );
 check( false !== strpos( $r88_badges, 'aria-labelledby="jluxe-site-badges-heading"' ) && false !== strpos( $r88_badges, 'id="jluxe-site-badges-heading"' ), 'R189 the server-rendered trust-badge region has an explicit accessible heading' );
 check( false === strpos( $r88_badges, 'staging' ) && false === strpos( $r88_badges, '<script' ) && false === strpos( $r88_badges, ' hidden' ), 'R88 no hidden staging div and no mover script are printed any more' );
-check( false !== strpos( $r88_badges, '@media (hover:hover)' ), 'R88 the badge hover lift only applies on hover-capable devices' );
+check( false !== strpos( $r88_badges, '@media (hover:hover)' ) && false !== strpos( $r88_badges, 'hsl(var(--secondary) / .35)' ) && false === strpos( $r88_badges, 'translateY' ), 'R191 trust-badge hover uses only a restrained theme-color border change' );
 check( false !== strpos( $r88_badges, 'grid-template-columns:repeat(2,minmax(0,1fr))' ) && false !== strpos( $r88_badges, 'max-width:9rem' ) && false !== strpos( $r88_badges, 'max-width:10rem' ), 'R189 two genuine trust marks use readable, shrink-to-fit responsive cards on mobile and desktop' );
 update_test_settings( jluxe_theme_settings_defaults() );
 ob_start();
@@ -3243,7 +3243,7 @@ check(
 $r189_footer_defaults = jluxe_theme_settings_defaults()['footer'];
 check(
 	2 === $r189_footer_defaults['feature_cards_mobile_columns'],
-	'R190 fresh footer defaults use the more scannable two-column mobile benefit layout'
+	'R191 fresh footer defaults use the more scannable two-column mobile benefit layout'
 );
 check(
 	false !== strpos( $r189_footer_defaults['brand_description'], 'JLuxe | هنرِ انتخاب' ) &&
@@ -3303,6 +3303,7 @@ check( '' === jluxe_footer_background_style( array( 'mode' => 'gradient', 'gradi
 check( false === strpos( jluxe_footer_background_style( array( 'mode' => 'gradient', 'gradient_direction' => 'to bottom);background:url(x', 'gradient_colors' => array( '#111111', '#222222' ) ) ), 'url(' ), 'R88 a tampered gradient direction cannot inject CSS' );
 $r88_footer = (string) file_get_contents( ABSPATH . 'footer.php' );
 check( false !== strpos( $r88_footer, 'data-jluxe-footer-slot="features"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) && false !== strpos( $r88_footer, 'data-jluxe-footer-slot="bottom"' ), 'R88 footer.php provides the three island slots' );
+check( false !== strpos( $r88_footer, 'class="jluxe-footer-content-grid grid gap-8' ), 'R191 the PHP-rendered footer grid carries the responsive redesign scope class' );
 check( strpos( $r88_footer, 'data-jluxe-footer-slot="columns"' ) < strpos( $r88_footer, 'jluxe_render_site_trust_badges();' ), 'R88 the badge column comes after the link columns inside the same grid' );
 
 // ---------------------------------------------------------------- R88d PWA

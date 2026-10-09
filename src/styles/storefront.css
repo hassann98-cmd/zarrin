@@ -8976,215 +8976,245 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   }
 }
 
-/* R190 — premium home-lifestyle footer: deep teal, warm paper and restrained gold.
-   The shell stays transparent so the administrator's footer background remains visible. */
+/* R191 — a compact, theme-native footer: no dark panels, heavy cards or gold accents. */
 #jluxe-footer-root .jluxe-footer-shell {
-  position: relative;
-  border-color: color-mix(in srgb, hsl(var(--accent)) 28%, hsl(var(--border)));
-  border-radius: 1.5rem;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  box-shadow: 0 20px 54px -40px hsl(var(--foreground) / .48);
+  box-shadow: none;
 }
-#jluxe-footer-root .jluxe-footer-shell::before {
-  display: block;
-  height: .2rem;
-  background: hsl(var(--accent));
-  content: "";
+#jluxe-footer-root .jluxe-footer-shell::before,
+#jluxe-footer-root .jluxe-footer-shell::after {
+  display: none;
+  content: none;
 }
 
-/* A strong, quiet brand-color band makes the four service promises easy to scan. */
+/* Quiet service strip: theme secondary color is used only as a soft tint. */
 #jluxe-footer-root .jluxe-footer-feature-grid {
-  gap: .875rem;
+  display: grid;
+  gap: 0;
   border: 0;
-  border-bottom: 1px solid hsl(var(--secondary-foreground) / .2);
-  background: hsl(var(--secondary));
-  padding: clamp(1rem, 2.6vw, 1.5rem);
+  border-block: 1px solid hsl(var(--border) / .72);
+  background: color-mix(in srgb, hsl(var(--secondary)) 4%, hsl(var(--background)));
+  padding: .42rem clamp(.45rem, 2vw, 1.25rem);
 }
 #jluxe-footer-root .jluxe-footer-feature-card {
   min-width: 0;
-  min-height: 5rem;
-  gap: .875rem;
-  border: 1px solid color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--border)));
-  border-inline-start: .22rem solid hsl(var(--accent));
-  border-radius: 1rem;
-  background: hsl(var(--background));
-  padding: .875rem 1rem;
-  box-shadow: 0 5px 16px -13px hsl(var(--foreground) / .48);
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  min-height: 3.5rem;
+  gap: .55rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: .35rem .55rem;
+  box-shadow: none;
+  transition: background-color .16s ease;
 }
 #jluxe-footer-root .jluxe-footer-feature-icon {
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)));
-  border-radius: .875rem;
-  background: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--surface)));
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 1.9rem;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, hsl(var(--secondary)) 9%, hsl(var(--surface)));
   color: hsl(var(--secondary));
 }
 #jluxe-footer-root .jluxe-footer-feature-title,
 #jluxe-footer-root .jluxe-footer-feature-subtitle {
   margin: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.75;
+  line-height: 1.55;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-wrap: pretty;
 }
 #jluxe-footer-root .jluxe-footer-feature-title {
   color: hsl(var(--foreground));
-  font-size: .94rem;
-  font-weight: 800;
+  font-size: .82rem;
+  font-weight: 750;
 }
 #jluxe-footer-root .jluxe-footer-feature-subtitle {
-  margin-top: .16rem;
+  margin-top: .08rem;
   color: hsl(var(--text-secondary));
-  font-size: .86rem;
+  font-size: .75rem;
 }
 
-/* Separate, white content cards create a clear scan path without masking custom backgrounds. */
+/* Remove the old card treatment; spacing and headings now define the content groups. */
 #jluxe-footer-root .jluxe-footer-content-grid {
-  align-items: stretch;
+  display: grid;
+  align-items: start;
   grid-template-columns: minmax(0, 1fr);
-  gap: .875rem;
-  padding: clamp(.875rem, 2.4vw, 1.5rem);
+  gap: .8rem 1rem;
+  padding: .85rem clamp(.85rem, 2.5vw, 1.5rem);
 }
 #jluxe-footer-root .jluxe-footer-brand-column,
 #jluxe-footer-root .jluxe-footer-link-column,
 #jluxe-footer-root .jluxe-site-badges-section {
   min-width: 0;
-  border: 1px solid color-mix(in srgb, hsl(var(--border)) 82%, hsl(var(--accent)) 18%);
-  border-radius: 1.125rem;
-  background: hsl(var(--surface));
-  padding: clamp(.95rem, 1.8vw, 1.25rem);
-  box-shadow: 0 5px 18px -15px hsl(var(--foreground) / .4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
-#jluxe-footer-root .jluxe-footer-brand-column {
+#jluxe-footer-root .jluxe-footer-brand-column,
+#jluxe-footer-root .jluxe-site-badges-section {
   grid-column: 1 / -1;
 }
 #jluxe-footer-root .jluxe-footer-link-columns {
+  display: grid;
   min-width: 0;
-  gap: .75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
 }
 #jluxe-footer-root .jluxe-footer-brand-description {
   max-width: 38rem;
-  margin-top: .75rem;
+  margin: .38rem 0 0;
   color: hsl(var(--text-secondary));
-  font-size: .9rem;
-  line-height: 1.95;
-  overflow-wrap: anywhere;
+  font-size: .84rem;
+  line-height: 1.72;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-wrap: pretty;
 }
 
-/* Contact options are distinct, comfortable-to-tap panels rather than tiny text rows. */
+/* Phone details stay compact; configured numbers remain together in one LTR row. */
 #jluxe-footer-root .jluxe-footer-support-list {
-  display: grid;
-  gap: .65rem;
-  margin-top: 1rem;
+  display: block;
+  margin-top: .58rem;
 }
 #jluxe-footer-root .jluxe-footer-support-card {
   display: flex;
   min-width: 0;
   align-items: flex-start;
-  gap: .75rem;
-  border: 1px solid color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--border)));
-  border-radius: .95rem;
-  background: hsl(var(--background));
-  padding: .85rem;
+  gap: .5rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 #jluxe-footer-root .jluxe-footer-support-icon {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: 0 0 2.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
   place-items: center;
-  border: 1px solid color-mix(in srgb, hsl(var(--secondary)) 18%, hsl(var(--border)));
-  border-radius: .85rem;
-  background: color-mix(in srgb, hsl(var(--secondary)) 10%, hsl(var(--surface)));
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, hsl(var(--secondary)) 9%, hsl(var(--surface)));
   color: hsl(var(--secondary));
 }
-#jluxe-footer-root .jluxe-footer-support-title {
+#jluxe-footer-root .jluxe-footer-support-title,
+#jluxe-footer-root .jluxe-footer-support-copy {
+  display: inline;
   margin: 0;
-  color: hsl(var(--foreground));
-  font-size: .94rem;
-  font-weight: 800;
   line-height: 1.7;
 }
+#jluxe-footer-root .jluxe-footer-support-title {
+  margin-inline-end: .28rem;
+  color: hsl(var(--foreground));
+  font-size: .82rem;
+  font-weight: 750;
+}
 #jluxe-footer-root .jluxe-footer-support-copy {
-  margin: .2rem 0 0;
   color: hsl(var(--text-secondary));
-  font-size: .875rem;
-  line-height: 1.85;
-  overflow-wrap: anywhere;
+  font-size: .78rem;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-wrap: pretty;
 }
 #jluxe-footer-root .jluxe-footer-phone-links {
   display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  margin-top: .55rem;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: .42rem;
+  margin-top: .3rem;
+  overflow-x: auto;
+  padding-block: 1px;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+#jluxe-footer-root .jluxe-footer-phone-links::-webkit-scrollbar {
+  display: none;
 }
 #jluxe-footer-root .jluxe-footer-phone-link,
 #jluxe-footer-root .jluxe-footer-contact-link {
   display: inline-flex;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, hsl(var(--accent)) 46%, hsl(var(--border)));
-  border-radius: .8rem;
-  background: hsl(var(--surface));
-  padding: .4rem .75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: .65rem;
+  background: transparent;
+  padding: .35rem .55rem;
   color: hsl(var(--secondary));
-  font-size: .875rem;
-  font-weight: 750;
-  line-height: 1.55;
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.4;
   text-decoration: none;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  word-break: normal;
   touch-action: manipulation;
 }
 #jluxe-footer-root .jluxe-footer-contact-link {
-  margin-top: .5rem;
+  margin-top: .3rem;
 }
 
-/* Gold side rule and 44px rows give link groups a stronger heading/action hierarchy. */
-#jluxe-footer-root .jluxe-footer-column-title {
-  margin: 0 0 .75rem;
+/* Small theme-color marker; link rows wrap only at Persian word boundaries. */
+#jluxe-footer-root .jluxe-footer-column-title,
+#jluxe-footer-root .jluxe-site-badges-section > h3 {
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+  margin: 0 0 .28rem;
   border: 0;
-  border-inline-start: .2rem solid hsl(var(--accent));
-  padding: .15rem .65rem .15rem 0;
-  color: hsl(var(--foreground));
-  font-size: .98rem;
-  font-weight: 800;
-  line-height: 1.8;
+  padding: 0;
+  color: hsl(var(--secondary));
+  font-size: .88rem;
+  font-weight: 750;
+  line-height: 1.65;
+}
+#jluxe-footer-root .jluxe-footer-column-title::before,
+#jluxe-footer-root .jluxe-site-badges-section > h3::before {
+  width: .2rem;
+  height: .9rem;
+  flex: 0 0 .2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, hsl(var(--secondary)) 48%, hsl(var(--border)));
+  content: "";
 }
 #jluxe-footer-root .jluxe-footer-nav-list {
   display: grid;
-  gap: .25rem;
+  gap: .03rem;
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 #jluxe-footer-root .jluxe-footer-nav-link {
   display: flex;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 2.4rem;
   align-items: center;
-  border-radius: .75rem;
-  padding: .5rem .6rem;
+  gap: .35rem;
+  border-radius: .45rem;
+  padding: .28rem .38rem;
   color: hsl(var(--secondary));
-  font-size: .875rem;
-  line-height: 1.75;
+  font-size: .84rem;
+  line-height: 1.65;
   text-decoration: none;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-wrap: pretty;
   touch-action: manipulation;
   transition: color .16s ease, background-color .16s ease;
 }
-#jluxe-footer-root .jluxe-site-badges-section {
-  grid-column: 1 / -1;
-}
-#jluxe-footer-root .jluxe-site-badges-section > h3 {
-  margin: 0 0 .75rem;
-  border: 0;
-  border-inline-start: .2rem solid hsl(var(--accent));
-  padding: .15rem .65rem .15rem 0;
-  color: hsl(var(--foreground));
-  font-size: .98rem;
-  font-weight: 800;
-  line-height: 1.8;
-}
+
+/* Official marks retain their real supplied HTML; their frame follows theme neutrals. */
 #jluxe-footer-root .jluxe-site-badges-grid {
   width: 100%;
 }
@@ -9193,10 +9223,11 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   max-width: 100%;
   aspect-ratio: 1;
   border-color: hsl(var(--border));
-  border-radius: .85rem;
+  border-radius: .65rem;
   background: hsl(var(--surface));
-  padding: .5rem;
-  box-shadow: 0 3px 12px -9px hsl(var(--foreground) / .3);
+  padding: .42rem;
+  box-shadow: none;
+  transition: border-color .16s ease;
 }
 #jluxe-footer-root .jluxe-site-badge-card a {
   display: flex;
@@ -9204,7 +9235,7 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   height: 100%;
   align-items: center;
   justify-content: center;
-  border-radius: .55rem;
+  border-radius: .45rem;
 }
 #jluxe-footer-root .jluxe-site-badge-card img {
   display: block;
@@ -9213,65 +9244,151 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   object-fit: contain;
 }
 
-/* A soft footer closing row keeps social and legal information visually grouped. */
+/* One compact closing row combines online support and the social follow links. */
 #jluxe-footer-root .jluxe-footer-social-row {
-  border-color: hsl(var(--border));
-  background: hsl(var(--background));
-  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .32rem .8rem;
+  border: 0;
+  border-top: 1px solid hsl(var(--border) / .78);
+  background: transparent;
+  padding: .5rem clamp(.85rem, 2.5vw, 1.5rem);
 }
-#jluxe-footer-root .jluxe-footer-social-row > span {
+#jluxe-footer-root .jluxe-footer-social-copy {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem .48rem;
+  text-align: center;
+  line-height: 1.6;
+}
+#jluxe-footer-root .jluxe-footer-social-support {
+  color: hsl(var(--text-secondary));
+  font-size: .79rem;
+  text-wrap: pretty;
+}
+#jluxe-footer-root .jluxe-footer-social-divider {
+  width: 1px;
+  height: .85rem;
+  flex: 0 0 1px;
+  background: hsl(var(--border));
+}
+#jluxe-footer-root .jluxe-footer-social-follow {
   color: hsl(var(--secondary));
-  font-size: .875rem;
+  font-size: .81rem;
   font-weight: 750;
+  white-space: nowrap;
+}
+#jluxe-footer-root .jluxe-footer-social-links {
+  display: flex;
+  align-items: center;
+  gap: .12rem;
 }
 #jluxe-footer-root .jluxe-footer-social-link {
+  display: grid;
   width: 2.75rem;
   height: 2.75rem;
-  border-color: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)));
-  background: hsl(var(--secondary));
-  color: hsl(var(--secondary-foreground));
+  place-items: center;
+  border: 0;
+  border-radius: .6rem;
+  background: transparent;
+  color: hsl(var(--secondary));
   text-decoration: none;
   touch-action: manipulation;
-  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+  transition: color .16s ease, background-color .16s ease;
 }
 #jluxe-footer-root .jluxe-footer-copyright {
-  border-color: hsl(var(--border));
-  background: hsl(var(--background));
-  padding: .8rem 1rem;
-  line-height: 1.8;
+  border: 0;
+  border-top: 1px solid hsl(var(--border) / .72);
+  background: transparent;
+  padding: .55rem 1rem;
+  line-height: 1.7;
 }
 #jluxe-footer-root .jluxe-footer-copyright p {
+  margin: 0;
   color: hsl(var(--text-secondary));
-  font-size: .82rem;
+  font-size: .79rem;
 }
 
-/* Visible keyboard focus uses the dark brand token on light cards (7:1+ with the default palette). */
+/* Visible keyboard focus, without bringing back dark outlines or decorative cards. */
 #jluxe-footer-root .jluxe-footer-nav-link:focus-visible,
 #jluxe-footer-root .jluxe-footer-social-link:focus-visible,
 #jluxe-footer-root .jluxe-footer-phone-link:focus-visible,
 #jluxe-footer-root .jluxe-footer-contact-link:focus-visible,
 #jluxe-footer-root .jluxe-site-badge-card:focus-within,
 #jluxe-footer-root .jluxe-site-badge-card a:focus-visible {
-  outline: 3px solid hsl(var(--secondary));
-  outline-offset: 3px;
+  outline: 2px solid hsl(var(--secondary));
+  outline-offset: 2px;
 }
 
 @media (hover: hover) {
   #jluxe-footer-root .jluxe-footer-feature-card:hover {
-    transform: translateY(-2px);
-    border-color: hsl(var(--accent));
-    box-shadow: 0 10px 22px -15px hsl(var(--foreground) / .44);
+    background: color-mix(in srgb, hsl(var(--secondary)) 4%, transparent);
   }
   #jluxe-footer-root .jluxe-footer-nav-link:hover,
   #jluxe-footer-root .jluxe-footer-phone-link:hover,
-  #jluxe-footer-root .jluxe-footer-contact-link:hover {
-    background: color-mix(in srgb, hsl(var(--accent)) 10%, hsl(var(--surface)));
-    color: hsl(var(--primary));
-  }
+  #jluxe-footer-root .jluxe-footer-contact-link:hover,
   #jluxe-footer-root .jluxe-footer-social-link:hover {
-    border-color: hsl(var(--accent));
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+    background: color-mix(in srgb, hsl(var(--secondary)) 8%, hsl(var(--surface)));
+    color: hsl(var(--secondary));
+  }
+  #jluxe-footer-root .jluxe-site-badge-card:hover {
+    border-color: hsl(var(--secondary) / .38);
+  }
+}
+
+@media (max-width: 639.98px) {
+  #jluxe-footer-root .jluxe-footer-content-grid {
+    gap: .72rem;
+    padding: .75rem .85rem;
+  }
+  #jluxe-footer-root .jluxe-footer-link-columns {
+    gap: .55rem;
+  }
+  #jluxe-footer-root .jluxe-footer-social-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-content: initial;
+    gap: .18rem .35rem;
+    padding: .42rem .65rem;
+  }
+  #jluxe-footer-root .jluxe-footer-social-copy {
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: flex-start;
+    gap: .1rem .35rem;
+    text-align: start;
+  }
+  #jluxe-footer-root .jluxe-footer-social-support {
+    flex: 1 1 100%;
+  }
+  #jluxe-footer-root .jluxe-footer-social-divider {
+    display: none;
+  }
+  #jluxe-footer-root .jluxe-footer-social-links {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-content: center;
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card:nth-child(odd) {
+    border-inline-start: 0;
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card:nth-child(even) {
+    border-inline-start: 1px solid hsl(var(--border) / .65);
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card:nth-child(n + 3) {
+    border-top: 1px solid hsl(var(--border) / .65);
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-one .jluxe-footer-feature-card + .jluxe-footer-feature-card {
+    border-top: 1px solid hsl(var(--border) / .65);
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-one .jluxe-footer-feature-card {
+    border-inline-start: 0;
   }
 }
 
@@ -9283,48 +9400,40 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   #jluxe-footer-root .jluxe-site-badges-section {
     grid-column: 1 / -1;
   }
+  #jluxe-footer-root .jluxe-footer-link-columns {
+    display: contents;
+  }
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(odd) {
+    border-inline-start: 0;
+  }
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(even) {
+    border-inline-start: 1px solid hsl(var(--border) / .65);
+  }
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(n + 3) {
+    border-top: 1px solid hsl(var(--border) / .65);
+  }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   #jluxe-footer-root .jluxe-footer-content-grid {
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, .88fr) minmax(0, .88fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, .82fr) minmax(0, .82fr) minmax(0, .78fr);
+  }
+  #jluxe-footer-root .jluxe-footer-content-grid:not(:has(.jluxe-site-badges-section)) {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, .9fr) minmax(0, .9fr);
   }
   #jluxe-footer-root .jluxe-footer-brand-column,
   #jluxe-footer-root .jluxe-site-badges-section {
     grid-column: auto;
   }
-}
-
-@media (max-width: 639.98px) {
-  #jluxe-footer-root .jluxe-footer-feature-grid {
-    gap: .7rem;
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(odd),
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(even) {
+    border-inline-start: 0;
   }
-  #jluxe-footer-root .jluxe-footer-feature-card {
-    min-height: 4.75rem;
-    padding: .8rem .9rem;
+  #jluxe-footer-root .jluxe-footer-feature-card:nth-child(n + 3) {
+    border-top: 0;
   }
-  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card {
-    min-height: 7.2rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .55rem;
-    padding: .8rem;
-  }
-  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-  #jluxe-footer-root .jluxe-footer-content-grid {
-    gap: .75rem;
-    padding: .75rem;
-  }
-  #jluxe-footer-root .jluxe-footer-brand-column,
-  #jluxe-footer-root .jluxe-footer-link-column,
-  #jluxe-footer-root .jluxe-site-badges-section {
-    padding: 1rem;
-  }
-  #jluxe-footer-root .jluxe-footer-social-row {
-    padding: 1rem;
+  #jluxe-footer-root .jluxe-footer-feature-card:not(:nth-child(4n + 1)) {
+    border-inline-start: 1px solid hsl(var(--border) / .65);
   }
 }
 
@@ -9333,9 +9442,17 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
   #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card {
-    min-height: 4.75rem;
+    min-height: 3.35rem;
     flex-direction: row;
     align-items: center;
+    border-inline-start: 0;
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-card + .jluxe-footer-feature-card {
+    border-top: 1px solid hsl(var(--border) / .65);
+  }
+  #jluxe-footer-root .jluxe-footer-feature-grid--mobile-two .jluxe-footer-feature-icon {
+    width: 1.8rem;
+    height: 1.8rem;
   }
   #jluxe-footer-root .jluxe-footer-link-columns {
     grid-template-columns: minmax(0, 1fr);
@@ -9350,9 +9467,5 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   #jluxe-footer-root .jluxe-footer-social-link,
   #jluxe-footer-root .jluxe-site-badge-card {
     transition: none;
-  }
-  #jluxe-footer-root .jluxe-footer-feature-card:hover,
-  #jluxe-footer-root .jluxe-site-badge-card:hover {
-    transform: none;
   }
 }

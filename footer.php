@@ -18,7 +18,7 @@
 		<div class="jluxe-footer-content-wrap mx-auto mt-4 mb-24 w-full max-w-[1320px] px-3 md:px-4 md:mb-6">
 			<div class="jluxe-footer-shell overflow-hidden rounded-2xl border border-border bg-muted/40">
 				<div data-jluxe-footer-slot="features"></div>
-				<div class="grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4">
+				<div class="jluxe-footer-content-grid grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4">
 					<div data-jluxe-footer-slot="columns" style="display:contents"></div>
 					<?php jluxe_render_site_trust_badges(); ?>
 				</div>

@@ -16,7 +16,7 @@ const shell = (badges = true) => `
 <footer id="jluxe-footer-root" class="flow-root" data-jluxe-footer>
   <div class="mx-auto"><div class="card">
     <div data-jluxe-footer-slot="features"></div>
-    <div class="grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4" id="main-grid">
+    <div class="jluxe-footer-content-grid grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4" id="main-grid">
       <div data-jluxe-footer-slot="columns" style="display:contents"></div>
       ${badges ? '<section class="jluxe-site-badges-section" id="badges"><h3>نمادهای سایت</h3><div class="jluxe-site-badge-card"><img src="https://trustseal.enamad.ir/logo.png" alt="enamad"></div></section>' : ""}
     </div>
@@ -128,7 +128,12 @@ test("R189 footer copy, configured phone links, feature claims, and touch/focus 
     /tagline عمومی/,
   );
   assert.match(columns.textContent, /در روزهای کاری، از ساعت ۹ صبح تا ۸ شب/);
-  assert.match(columns.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.doesNotMatch(columns.textContent, /پشتیبانی متنی ۲۴ ساعته/);
+  const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
+  const socialRow = bottom.querySelector(".jluxe-footer-social-row");
+  assert.match(socialRow.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.match(socialRow.textContent, /ما را دنبال کنید/);
+  assert.equal(columns.querySelectorAll(".jluxe-footer-support-card").length, 1);
   const features = document.querySelector('[data-jluxe-footer-slot="features"]');
   assert.match(features.textContent, /ارسال سریع و مطمئن/);
   assert.match(features.textContent, /به سراسر ایران/);
@@ -148,9 +153,17 @@ test("R189 footer copy, configured phone links, feature claims, and touch/focus 
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("R190 footer uses labeled navigation, premium color bands, and mobile-first cards", async () => {
+test("R191 footer is compact, keeps phone numbers together, and merges social support with follow links", async () => {
   const win = dom(shell(), { feature_cards_mobile_columns: 2 });
+  win.JLuxeThemeSettings.footer.support_text =
+    "پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.";
   await render();
+
+  const columns = document.querySelector('[data-jluxe-footer-slot="columns"]');
+  const supportCards = columns.querySelectorAll(".jluxe-footer-support-card");
+  assert.equal(supportCards.length, 1, "only the phone support block remains in the brand column");
+  assert.equal(supportCards[0].querySelector("h3")?.textContent, "پشتیبانی تلفنی");
+  assert.doesNotMatch(supportCards[0].textContent, /پشتیبانی آنلاین/);
 
   const featureGrid = document.querySelector(
     '[data-jluxe-footer-slot="features"] .jluxe-footer-feature-grid',
@@ -166,20 +179,51 @@ test("R190 footer uses labeled navigation, premium color bands, and mobile-first
     ["راهنما", "شرکت"],
   );
 
+  const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
+  const socialRow = bottom.querySelector(".jluxe-footer-social-row");
+  assert.match(socialRow.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.match(socialRow.textContent, /ما را دنبال کنید/);
+  assert.equal(socialRow.querySelectorAll(".jluxe-footer-social-link").length, 1);
+
   const css = fs.readFileSync(
     new URL("../src/styles/storefront.css", import.meta.url),
     "utf8",
   );
-  const r190 = css.slice(css.indexOf("/* R190 —"));
-  assert.match(r190, /\.jluxe-footer-feature-grid\s*\{[^}]*background:\s*hsl\(var\(--secondary\)\)/s);
-  assert.match(r190, /\.jluxe-footer-feature-card\s*\{[^}]*background:\s*hsl\(var\(--background\)\)/s);
-  assert.match(r190, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(r190, /min-height:\s*2\.75rem/);
-  assert.match(r190, /@media \(min-width:\s*1200px\)/);
-  assert.match(r190, /@media \(max-width:\s*359\.98px\)/);
-  assert.match(r190, /background:\s*transparent/);
-  assert.match(r190, /prefers-reduced-motion:\s*reduce/);
-  assert.ok(!r190.includes("backdrop-filter"), "the footer uses solid, readable surfaces instead of decorative blur");
+  const r191 = css.slice(css.indexOf("/* R191 —"));
+  assert.match(r191, /\.jluxe-footer-feature-grid\s*\{[^}]*display:\s*grid;/s);
+  assert.match(r191, /\.jluxe-footer-content-grid\s*\{[^}]*display:\s*grid;/s);
+  assert.match(r191, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(r191, /flex-wrap:\s*nowrap/);
+  assert.match(r191, /overflow-wrap:\s*normal/);
+  assert.match(r191, /word-break:\s*normal/);
+  assert.match(r191, /@media \(min-width:\s*1024px\)/);
+  assert.match(r191, /:not\(:has\(\.jluxe-site-badges-section\)\)/);
+  assert.match(r191, /@media \(max-width:\s*359\.98px\)/);
+  assert.match(r191, /prefers-reduced-motion:\s*reduce/);
+  assert.match(r191, /background:\s*transparent/);
+  assert.doesNotMatch(r191, /var\(--primary|var\(--accent|#[0-9a-f]{3,8}/i);
+  assert.ok(!r191.includes("backdrop-filter"), "the footer uses flat, theme-colored surfaces");
+
+  const php = fs.readFileSync(
+    new URL("../inc/theme-settings.php", import.meta.url),
+    "utf8",
+  );
+  const badgeRenderer = php.slice(
+    php.indexOf("function jluxe_render_site_trust_badges"),
+    php.indexOf("function jluxe_footer_background_style"),
+  );
+  assert.doesNotMatch(badgeRenderer, /var\(--primary\)|rgba\(0,\s*0,\s*0|translateY/);
+});
+
+test("R191 social support text remains available when no social account is configured", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.social = {};
+  await render();
+  const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
+  const row = bottom.querySelector(".jluxe-footer-social-row");
+  assert.match(row.textContent, /پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی/);
+  assert.doesNotMatch(row.textContent, /ما را دنبال کنید/);
+  assert.equal(row.querySelectorAll(".jluxe-footer-social-link").length, 0);
 });
 
 test("R108 the footer logo portal has a scoped compact-image rule", async () => {
@@ -245,7 +289,7 @@ test("R88 the old staging/polling mover is gone from the PHP renderer", () => {
   for (const banned of ["jluxe-site-badges-staging", "setInterval", "MutationObserver", "appendChild", "<script"])
     assert.ok(!code.includes(banned), `renderer no longer contains ${banned}`);
   const footer = fs.readFileSync(new URL("../footer.php", import.meta.url), "utf8");
-  const grid = footer.indexOf('class="grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4"');
+  const grid = footer.indexOf('class="jluxe-footer-content-grid grid gap-8 p-5 sm:grid-cols-2 lg:grid-cols-4"');
   assert.ok(grid > 0 && footer.indexOf("jluxe_render_site_trust_badges()", grid) > grid, "badges are printed inside the server grid");
   assert.ok(footer.indexOf('data-jluxe-footer-slot="columns"', grid) > grid);
 });

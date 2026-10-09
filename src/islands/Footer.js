@@ -312,8 +312,9 @@ function Footer() {
           children: "مشاهدهٔ راه‌های تماس",
         });
 
-  const supportNode = e.jsxs("div", {
+  const supportNode = e.jsxs("section", {
     className: "jluxe-footer-support-list",
+    "aria-label": "پشتیبانی تلفنی",
     children: [
       e.jsxs("div", {
         className: "jluxe-footer-support-card",
@@ -337,31 +338,6 @@ function Footer() {
                 children: supportHours,
               }),
               phoneLinks,
-            ],
-          }),
-        ],
-      }),
-      e.jsxs("div", {
-        className: "jluxe-footer-support-card",
-        children: [
-          e.jsx("span", {
-            className: "jluxe-footer-support-icon",
-            "aria-hidden": true,
-            children: e.jsx(navIcons.headphones, { className: "size-5" }),
-          }),
-          e.jsxs("div", {
-            className: "min-w-0",
-            children: [
-              e.jsx("h3", {
-                className: "jluxe-footer-support-title",
-                style: textStyle,
-                children: "پشتیبانی آنلاین",
-              }),
-              e.jsx("p", {
-                className: "jluxe-footer-support-copy",
-                style: textStyle,
-                children: supportText,
-              }),
             ],
           }),
         ],
@@ -477,40 +453,59 @@ function Footer() {
     e.jsx(e.Fragment, { children: badgeNode }, "trust-badges"),
   ];
   const socialNode =
-    socials.length > 0
+    socials.length > 0 || supportText
       ? e.jsxs("div", {
-          className:
-            "jluxe-footer-social-row flex flex-col items-center justify-center gap-3 border-t border-border p-5 sm:flex-row",
+          className: "jluxe-footer-social-row",
           children: [
-            e.jsx("span", {
-              className: "text-caption font-medium text-text-secondary",
-              children: "ما را دنبال کنید:",
+            e.jsxs("div", {
+              className: "jluxe-footer-social-copy",
+              children: [
+                supportText
+                  ? e.jsx("span", {
+                      className: "jluxe-footer-social-support",
+                      children: supportText,
+                    })
+                  : null,
+                socials.length > 0
+                  ? e.jsx("span", {
+                      className: "jluxe-footer-social-divider",
+                      "aria-hidden": true,
+                    })
+                  : null,
+                socials.length > 0
+                  ? e.jsx("span", {
+                      className: "jluxe-footer-social-follow",
+                      children: "ما را دنبال کنید",
+                    })
+                  : null,
+              ],
             }),
-            e.jsx("div", {
-              className: "flex items-center gap-2",
-              children: socials.map(([network, networkSettings]) => {
-                const Icon = socialIcons[network] ?? Send;
-                return e.jsx(
-                  "a",
-                  {
-                    href: siteLink(networkSettings.url),
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    "aria-label": socialLabels[network] ?? network,
-                    className:
-                      "jluxe-footer-social-link grid size-11 place-items-center rounded-xl border border-border text-text-muted transition-colors hover:border-primary/40 hover:text-primary",
-                    children: networkSettings.svg
-                      ? e.jsx("span", {
-                          className: "size-4 [&>svg]:size-full",
-                          "aria-hidden": true,
-                          dangerouslySetInnerHTML: { __html: networkSettings.svg },
-                        })
-                      : e.jsx(Icon, { className: "size-4", "aria-hidden": true }),
-                  },
-                  network,
-                );
-              }),
-            }),
+            socials.length > 0
+              ? e.jsx("div", {
+                  className: "jluxe-footer-social-links",
+                  children: socials.map(([network, networkSettings]) => {
+                    const Icon = socialIcons[network] ?? Send;
+                    return e.jsx(
+                      "a",
+                      {
+                        href: siteLink(networkSettings.url),
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        "aria-label": socialLabels[network] ?? network,
+                        className: "jluxe-footer-social-link",
+                        children: networkSettings.svg
+                          ? e.jsx("span", {
+                              className: "size-4 [&>svg]:size-full",
+                              "aria-hidden": true,
+                              dangerouslySetInnerHTML: { __html: networkSettings.svg },
+                            })
+                          : e.jsx(Icon, { className: "size-4", "aria-hidden": true }),
+                      },
+                      network,
+                    );
+                  }),
+                })
+              : null,
           ],
         })
       : null;
