@@ -1,8 +1,8 @@
 # آزمون یکپارچهٔ دورریختنی وردپرس
 
-**نسخهٔ پوستهٔ فعلی و آخرین اجرای CI: 1.7.55 · commit `91152cf` (۲۰۲۶-۱۰-۱۰)**
+**نسخهٔ پوستهٔ فعلی و آخرین اجرای CI: 1.7.56 · commit `acfed03` (۲۰۲۶-۱۰-۱۰)**
 
-این سند دو مسیر دورریختنی را جدا گزارش می‌کند: آزمون پایهٔ WordPress بدون WooCommerce برای کنترل رفتار در نبود افزونه، و آزمون همراه WooCommerce واقعی برای سبد و رندر checkout. هیچ‌کدام جای آزمون نهایی فروشگاه روی staging را نمی‌گیرند. برای `1.7.55`، `npm run check` با ۲۲۰ تست JavaScript و ۱٬۰۶۷ assertion PHP-WASM 8.3.33 گذشت؛ GitHub Actions همان commit، WordPress/SQLite را روی PHP-WASM 8.3 و 8.5 و WooCommerce 11.2.0 واقعی را نیز گذراند. هیچ سفارش ثبت یا پرداخت/درگاه زنده اجرا نشد.
+این سند دو مسیر دورریختنی را جدا گزارش می‌کند: آزمون پایهٔ WordPress بدون WooCommerce برای کنترل رفتار در نبود افزونه، و آزمون همراه WooCommerce واقعی برای سبد و رندر checkout. هیچ‌کدام جای آزمون نهایی فروشگاه روی staging را نمی‌گیرند. برای `1.7.56`، `npm run check` با ۲۲۰ تست JavaScript و ۱٬۰۶۹ assertion PHP-WASM گذشت؛ GitHub Actions همان commit، checkهای PHP 8.0/8.3/8.5، WordPress/SQLite را روی PHP 8.3 و 8.5 و WooCommerce 11.2.0 واقعی با WordPress 7.0 را نیز گذراند. هیچ سفارشی ثبت یا پرداخت/درگاه زنده‌ای اجرا نشد.
 
 ## چه چیزی واقعاً اجرا شد؟
 
@@ -12,6 +12,7 @@
 - درخواست‌ها از request handler وردپرس می‌گذرند؛ listener شبکه یا مرورگر واقعی راه‌اندازی نمی‌شود.
 - SMS **شبیه‌سازی می‌شود**؛ هیچ کد واقعی ارسال نمی‌شود. mail و درخواست‌های خارجی از طریق APIهای HTTP وردپرس مسدودند. کلید و رمز موجود در fixture فقط مقادیر آزمایشی‌اند، نه credential فروشگاه.
 - اجرای پایهٔ `npm run test:integration` WooCommerce **نصب نمی‌کند** و مسیر نبودِ افزونه را می‌سنجد. اجرای جداگانهٔ `npm run test:integration:woo` در GitHub Actions با **WordPress 7.0 + WooCommerce 11.2.0 واقعی**، PHP-WASM 8.3 و SQLite **۱۷ کنترل** را روی رندر storefront، سبد ساده/متغیر، اعتبارسنجی موجودی، کوپن و نمایش checkout کلاسیک گذراند؛ همین job در commitهای `492a07a` و `91152cf` موفق شد. این آزمون فقط سبد را دست‌کاری و پاک می‌کند؛ هیچ order ثبت، stock واقعی فروشگاه کم، یا درگاه/پرداخت/پیامک زنده اجرا نمی‌شود. بررسی استاتیک قرارداد با آرشیو WooCommerce 11.1.2 نیز ۷۰ تابع و ۱۱۴ متد مورد استفاده را یافت؛ ۲۳ template بررسی شد که ۲۲ نسخه‌برچسب با upstream منطبق بود.
+- اجرای کیفیت commit `acfed03` روی [GitHub Actions](https://github.com/hassann98-cmd/zarrin/actions/runs/37995040934) موفق بود: checkهای PHP 8.0/8.3/8.5، WordPress 6.9 + SQLite روی PHP-WASM 8.3/8.5 و WooCommerce 11.2.0 واقعی با WordPress 7.0. انتشار [v1.7.56](https://github.com/hassann98-cmd/zarrin/actions/runs/37995040735) ZIP را ساخت، به [Release عمومی](https://github.com/hassann98-cmd/zarrin/releases/tag/v1.7.56) پیوست، دانلود کرد و بایت‌به‌بایت تطبیق داد؛ هیچ order، پرداخت/درگاه یا پیامک زنده‌ای اجرا نشد.
 - اجرای کیفیت commit `91152cf` روی [GitHub Actions](https://github.com/hassann98-cmd/zarrin/actions/runs/37992707258) کامل و سبز بود: checkهای PHP 8.0/8.3/8.5، WordPress/SQLite روی PHP-WASM 8.3 و 8.5 و WooCommerce. `checks (8.3)` که در دو run قبلی 1.7.54 ناموفق شده بود، این بار هم موفق شد. انتشار [v1.7.55](https://github.com/hassann98-cmd/zarrin/actions/runs/37992706976) ZIP را از همان commit ساخت، در Release ضمیمه کرد و دانلود را بایت‌به‌بایت تطبیق داد.
 
 بنابراین مسیر «ووکامرس غیرفعال است و پاسخ کنترل‌شده می‌گیریم» در WordPress 6.9 واقعی آزموده شده و مسیر cart/stock/coupon/checkout-render در WooCommerce 11.2.0 واقعی نیز در محیط جداگانه اجرا شده است. مالکیت سفارش در `tests/php` همچنان با doubles پوشش دارد؛ هیچ سفارش واقعی/fixture ثبت نمی‌شود. این نتایج MySQL، HPOS، Redis، هم‌زمانی چند worker، ارسال سفارش/پرداخت، بانک، تحویل پیامک، Safari/Chrome یا رفتار سایت فعال را تأیید نمی‌کنند.
