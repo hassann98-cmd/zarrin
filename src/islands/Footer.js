@@ -67,8 +67,34 @@ const Instagram = createIcon("Instagram", [
 ]);
 
 const featureIcons = { ...navIcons, "badge-percent": BadgePercent };
-// Merchant claims are opt-in in settings; the JS fallback must not invent them.
-const defaultFeatures = [];
+// Fallbacks mirror the footer copy explicitly approved by the site owner/user;
+// settings can still override or intentionally clear any of these entries.
+const defaultFeatures = [
+  {
+    enabled: true,
+    icon: "truck",
+    title: "ارسال سریع و مطمئن",
+    subtitle: "ارسال فوری به سراسر ایران",
+  },
+  {
+    enabled: true,
+    icon: "headphones",
+    title: "پشتیبانی آنلاین",
+    subtitle: "۲۴ ساعته از طریق شبکه‌های اجتماعی",
+  },
+  {
+    enabled: true,
+    icon: "badge-percent",
+    title: "بهترین قیمت",
+    subtitle: "کف قیمت بازار",
+  },
+  {
+    enabled: true,
+    icon: "shield-check",
+    title: "امنیت خرید",
+    subtitle: "پرداخت از درگاه مطمئن",
+  },
+];
 const defaultColumns = [
   {
     title: "راهنما",
@@ -113,7 +139,8 @@ const socialLabels = {
   rubika: "روبیکا",
   bale: "بله",
 };
-const defaultBrandDescription = "";
+const defaultBrandDescription =
+  "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.";
 const defaultSupportHours = "";
 const defaultSupportText = "";
 

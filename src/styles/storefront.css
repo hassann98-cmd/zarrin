@@ -9242,7 +9242,7 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   transition: color .16s ease, background-color .16s ease;
 }
 
-/* Official marks retain their real supplied HTML; their frame follows theme neutrals. */
+/* Official marks retain their real supplied HTML; responsive frames and logos follow theme neutrals. */
 #jluxe-footer-root .jluxe-site-badges-grid {
   width: 100%;
 }
@@ -9251,9 +9251,9 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   max-width: 100%;
   aspect-ratio: 1;
   border-color: hsl(var(--border));
-  border-radius: .65rem;
+  border-radius: .75rem;
   background: hsl(var(--surface));
-  padding: .42rem;
+  padding: .32rem;
   box-shadow: none;
   transition: border-color .16s ease;
 }
@@ -9263,10 +9263,12 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   height: 100%;
   align-items: center;
   justify-content: center;
-  border-radius: .45rem;
+  border-radius: .55rem;
 }
 #jluxe-footer-root .jluxe-site-badge-card img {
   display: block;
+  width: 100%;
+  height: auto;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;

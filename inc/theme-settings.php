@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 7;
+const JLUXE_SETTINGS_VERSION = 8;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -294,16 +294,16 @@ function jluxe_theme_settings_defaults(): array {
 			'text_color'          => '',
 			'link_color'          => '',
 			'link_hover_color'    => '',
-			// دادهٔ واقعیِ معرفی و پشتیبانی را مدیر وارد می‌کند؛ در نصب تازه
-			// هیچ برند، ساعت تماس یا وعدهٔ تجاری از پیش فرض نمی‌شود.
-			'brand_description'   => '',
+			// متن معرفی و چهار مزیت زیر، عیناً به تأیید کاربر برای فوتر ثبت شده‌اند؛
+			// ساعت تماس و متن پشتیبانیِ جداگانه فقط از تنظیم واقعی مدیر می‌آیند.
+			'brand_description'   => 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
 			'support_hours'       => '',
 			'support_text'        => '',
 			'feature_cards'  => array(
-				array( 'enabled' => false, 'icon' => 'truck', 'title' => '', 'subtitle' => '' ),
-				array( 'enabled' => false, 'icon' => 'headphones', 'title' => '', 'subtitle' => '' ),
-				array( 'enabled' => false, 'icon' => 'badge-percent', 'title' => '', 'subtitle' => '' ),
-				array( 'enabled' => false, 'icon' => 'shield-check', 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال سریع و مطمئن', 'subtitle' => 'ارسال فوری به سراسر ایران' ),
+				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی آنلاین', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
+				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'کف قیمت بازار' ),
+				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
 			),
 			// در دسکتاپ همیشه یک ردیف ۴تایی‌ان (ثابت)؛ فقط تعداد ستون در موبایل قابل تنظیمه.
 			'feature_cards_mobile_columns' => 2,
@@ -1360,6 +1360,52 @@ function jluxe_migrate_settings_v7( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v7→v8: restore only the user-approved footer description/benefits. Older v7
+ * migrations intentionally emptied their exact defaults; custom copy survives.
+ */
+function jluxe_migrate_settings_v8( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$defaults = jluxe_theme_settings_defaults()['footer'];
+	$footer   = &$settings['footer'];
+	$brand    = $footer['brand_description'] ?? null;
+	if ( ! is_string( $brand ) || '' === trim( $brand ) ) {
+		$footer['brand_description'] = $defaults['brand_description'];
+	}
+
+	$cards = $footer['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) ) {
+		$footer['feature_cards'] = $defaults['feature_cards'];
+		unset( $footer );
+		return $settings;
+	}
+
+	for ( $index = 0; $index < count( $defaults['feature_cards'] ); $index++ ) {
+		$default_card = $defaults['feature_cards'][ $index ];
+		if ( ! isset( $cards[ $index ] ) || ! is_array( $cards[ $index ] ) ) {
+			$footer['feature_cards'][ $index ] = $default_card;
+			continue;
+		}
+
+		$card_title    = is_string( $cards[ $index ]['title'] ?? null ) ? trim( $cards[ $index ]['title'] ) : '';
+		$card_subtitle = is_string( $cards[ $index ]['subtitle'] ?? null ) ? trim( $cards[ $index ]['subtitle'] ) : '';
+		if ( '' === $card_title && '' === $card_subtitle ) {
+			$footer['feature_cards'][ $index ]['enabled']  = true;
+			$footer['feature_cards'][ $index ]['title']    = $default_card['title'];
+			$footer['feature_cards'][ $index ]['subtitle'] = $default_card['subtitle'];
+			if ( ! is_string( $cards[ $index ]['icon'] ?? null ) || '' === trim( $cards[ $index ]['icon'] ) ) {
+				$footer['feature_cards'][ $index ]['icon'] = $default_card['icon'];
+			}
+		}
+	}
+
+	unset( $footer );
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1369,6 +1415,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		5 => 'jluxe_migrate_settings_v5',
 		6 => 'jluxe_migrate_settings_v6',
 		7 => 'jluxe_migrate_settings_v7',
+		8 => 'jluxe_migrate_settings_v8',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -1791,13 +1838,13 @@ function jluxe_render_site_trust_badges(): void {
     $mobile_cols   = min( max( $count, 1 ), 4 );
     $desktop_cols  = $count <= 3 ? $count : 2;
     $size_by_count = array(
-        1 => array( 'mobile' => 4.75, 'desktop' => 5.25 ),
-        2 => array( 'mobile' => 4.25, 'desktop' => 4.75 ),
-        3 => array( 'mobile' => 3.75, 'desktop' => 4.25 ),
+        1 => array( 'mobile' => 6, 'desktop' => 7 ),
+        2 => array( 'mobile' => 5, 'desktop' => 5.5 ),
+        3 => array( 'mobile' => 4.5, 'desktop' => 5 ),
     );
     $sizes = $size_by_count[ $count ] ?? array(
-        'mobile'  => 3.5,
-        'desktop' => 4.25,
+        'mobile'  => 3.75,
+        'desktop' => 5,
     );
     $mobile_max_width  = $sizes['mobile'] * $mobile_cols + ( 0.5 * max( 0, $mobile_cols - 1 ) );
     $desktop_max_width = $sizes['desktop'] * $desktop_cols + ( 0.5 * max( 0, $desktop_cols - 1 ) );
@@ -1805,7 +1852,7 @@ function jluxe_render_site_trust_badges(): void {
     <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-labelledby="jluxe-site-badges-heading">
         <style>
             .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,minmax(0,1fr));justify-content:center;width:100%;max-width:<?php echo esc_attr( $mobile_max_width ); ?>rem;margin-inline:auto;}
-            .jluxe-site-badges-grid .jluxe-site-badge-card{width:100%;height:auto;aspect-ratio:1;background:#fff;}
+            .jluxe-site-badges-grid .jluxe-site-badge-card{width:100%;height:auto;aspect-ratio:1;background:hsl(var(--surface));}
             @media (min-width:640px){
                 .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,minmax(0,1fr));justify-content:start;max-width:<?php echo esc_attr( $desktop_max_width ); ?>rem;margin-inline:0;}
             }

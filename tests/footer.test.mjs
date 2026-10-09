@@ -104,11 +104,40 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   assert.equal(document.querySelectorAll("footer").length, 1, "no second <footer> is created");
 });
 
+test("R194 missing footer settings fall back to the exact approved brand and benefit copy", async () => {
+  dom(shell());
+  await render();
+
+  const brand = document.querySelector(".jluxe-footer-brand-description");
+  assert.equal(
+    brand?.textContent,
+    "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.",
+  );
+  const cards = [...document.querySelectorAll(".jluxe-footer-feature-card")];
+  assert.deepEqual(
+    cards.map((card) => [
+      card.querySelector(".jluxe-footer-feature-title")?.textContent,
+      card.querySelector(".jluxe-footer-feature-subtitle")?.textContent,
+    ]),
+    [
+      ["ارسال سریع و مطمئن", "ارسال فوری به سراسر ایران"],
+      ["پشتیبانی آنلاین", "۲۴ ساعته از طریق شبکه‌های اجتماعی"],
+      ["بهترین قیمت", "کف قیمت بازار"],
+      ["امنیت خرید", "پرداخت از درگاه مطمئن"],
+    ],
+  );
+  assert.doesNotMatch(
+    document.querySelector("footer")?.textContent ?? "",
+    /ساعات تماس|آدرس|تضمینِ مرجوعی|نمادِ جدید/,
+  );
+});
+
 test("R192 configured footer copy, optional features, phone links, and touch/focus styling stay clear", async () => {
   const win = dom(shell(), {
     brand_description: "معرفیِ ثبت‌شده توسط مدیر.",
     support_hours: "ساعات تماسِ ثبت‌شده در تنظیمات.",
     support_text: "راه‌های پشتیبانیِ ثبت‌شده در تنظیمات.",
+    feature_cards: [],
   });
   win.JLuxeThemeSettings.shortDescription = "این tagline عمومی نباید متن فوتر را جایگزین کند.";
   win.JLuxeThemeSettings.contact = {
@@ -147,6 +176,7 @@ test("R192 configured footer copy, optional features, phone links, and touch/foc
   assert.match(css, /\.jluxe-footer-social-link\s*\{[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;/s);
   assert.match(css, /\.jluxe-footer-nav-link:focus-visible/);
   assert.match(css, /\.jluxe-site-badge-card:focus-within/);
+  assert.match(css, /#jluxe-footer-root \.jluxe-site-badge-card img\s*\{[^}]*width:\s*100%/s);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
@@ -277,8 +307,13 @@ test("R192 no social row is emitted when no social account or support copy is co
   assert.equal(bottom.querySelector(".jluxe-footer-social-row"), null);
 });
 
-test("R192 empty footer settings do not fabricate brand, schedule, feature, or payment claims", async () => {
-  const win = dom(shell());
+test("R194 intentionally empty footer settings stay empty instead of restoring defaults", async () => {
+  const win = dom(shell(), {
+    brand_description: "",
+    support_hours: "",
+    support_text: "",
+    feature_cards: [],
+  });
   win.JLuxeThemeSettings.shortDescription = "";
   win.JLuxeThemeSettings.social = {};
   win.JLuxeThemeSettings.contact = {};
