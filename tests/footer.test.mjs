@@ -104,7 +104,7 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   assert.equal(document.querySelectorAll("footer").length, 1, "no second <footer> is created");
 });
 
-test("R195 footer benefit headings use one consistent short, bold pattern", async () => {
+test("R196 shipping slogan is a full bold heading in the shared footer hierarchy", async () => {
   dom(shell());
   await render();
 
@@ -120,7 +120,7 @@ test("R195 footer benefit headings use one consistent short, bold pattern", asyn
       card.querySelector(".jluxe-footer-feature-subtitle")?.textContent,
     ]),
     [
-      ["ارسال فوری", "به سراسر ایران"],
+      ["ارسال فوری به سراسر ایران", ""],
       ["پشتیبانی آنلاین", "۲۴ ساعته از طریق شبکه‌های اجتماعی"],
       ["بهترین قیمت", "کف قیمت بازار"],
       ["امنیت خرید", "پرداخت از درگاه مطمئن"],
@@ -136,7 +136,8 @@ test("R195 footer benefit headings use one consistent short, bold pattern", asyn
   );
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-grid\s*\{[^}]*font-family:\s*IRANYekan,/s);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-title\s*\{[^}]*font-size:\s*\.9rem;[^}]*font-weight:\s*700;/s);
-  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-subtitle\s*\{[^}]*font-size:\s*\.77rem;/s);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-subtitle\s*\{[^}]*font-size:\s*\.77rem;[^}]*min-height:\s*1\.2em;/s);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-copy\s*\{[^}]*display:\s*grid;[^}]*min-height:\s*2\.85rem;/s);
 });
 
 test("R192 configured footer copy, optional features, phone links, and touch/focus styling stay clear", async () => {

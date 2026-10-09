@@ -73,8 +73,8 @@ const defaultFeatures = [
   {
     enabled: true,
     icon: "truck",
-    title: "ارسال فوری",
-    subtitle: "به سراسر ایران",
+    title: "ارسال فوری به سراسر ایران",
+    subtitle: "",
   },
   {
     enabled: true,
@@ -237,18 +237,16 @@ function Footer() {
                 mobileFeatureColumns === 2
                   ? "jluxe-footer-feature-grid--mobile-two"
                   : "jluxe-footer-feature-grid--mobile-one"
-              } grid gap-3 border-b border-border p-4`,
+              } grid`,
               children: features.map((feature, index) => {
                 const Icon = featureIcons[feature.icon] ?? ShieldCheck;
                 return e.jsxs(
                   "div",
                   {
-                    className:
-                      "jluxe-footer-feature-card flex items-center gap-3 rounded-xl border border-border bg-surface/70 p-3",
+                    className: "jluxe-footer-feature-card flex items-center",
                     children: [
                       e.jsx("span", {
-                        className:
-                          "jluxe-footer-feature-icon grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary",
+                        className: "jluxe-footer-feature-icon grid shrink-0 place-items-center",
                         style: featureIconStyle,
                         children: feature.svg
                           ? e.jsx("span", {
@@ -265,14 +263,12 @@ function Footer() {
                         className: "jluxe-footer-feature-copy min-w-0",
                         children: [
                           e.jsx("p", {
-                            className:
-                              "jluxe-footer-feature-title text-caption font-bold text-foreground",
+                            className: "jluxe-footer-feature-title",
                             style: textStyle,
                             children: feature.title,
                           }),
                           e.jsx("p", {
-                            className:
-                              "jluxe-footer-feature-subtitle text-caption text-text-secondary",
+                            className: "jluxe-footer-feature-subtitle",
                             style: textStyle,
                             children: feature.subtitle,
                           }),

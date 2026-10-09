@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 9;
+const JLUXE_SETTINGS_VERSION = 10;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -300,7 +300,7 @@ function jluxe_theme_settings_defaults(): array {
 			'support_hours'       => '',
 			'support_text'        => '',
 			'feature_cards'  => array(
-				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال فوری', 'subtitle' => 'به سراسر ایران' ),
+				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال فوری به سراسر ایران', 'subtitle' => '' ),
 				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی آنلاین', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
 				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'کف قیمت بازار' ),
 				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
@@ -1431,6 +1431,31 @@ function jluxe_migrate_settings_v9( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v9→v10: show the complete approved shipping slogan as the first card's bold
+ * title, matching the other benefit headings. Preserve partially edited copy.
+ */
+function jluxe_migrate_settings_v10( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$cards = $settings['footer']['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) || ! isset( $cards[0] ) || ! is_array( $cards[0] ) ) {
+		return $settings;
+	}
+
+	if (
+		'ارسال فوری' === ( $cards[0]['title'] ?? null ) &&
+		'به سراسر ایران' === ( $cards[0]['subtitle'] ?? null )
+	) {
+		$settings['footer']['feature_cards'][0]['title']    = 'ارسال فوری به سراسر ایران';
+		$settings['footer']['feature_cards'][0]['subtitle'] = '';
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1441,7 +1466,8 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		6 => 'jluxe_migrate_settings_v6',
 		7 => 'jluxe_migrate_settings_v7',
 		8 => 'jluxe_migrate_settings_v8',
-		9 => 'jluxe_migrate_settings_v9',
+		9  => 'jluxe_migrate_settings_v9',
+		10 => 'jluxe_migrate_settings_v10',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
