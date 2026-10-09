@@ -1809,6 +1809,55 @@ check(
 	'#456789' === $r152_migrated_overrides['product_page']['star_color'],
 	'R152 v4 migration preserves every explicit non-default stock and product-page color override'
 );
+$r180_faq_defaults = jluxe_faq_default_items();
+$r180_expected_questions = array(
+	'آیا برای ثبت سفارش، حتماً باید در سایت ثبت‌نام کنم؟',
+	'آیا رنگ و ظاهر محصول دقیقاً مشابه عکس‌های سایت است؟',
+	'آیا امکان ثبت سفارش از طریق تلگرام، واتس‌اپ، اینستاگرام، روبیکا و بله وجود دارد؟',
+	'چطور می‌توانم هزینه سفارش خود را پرداخت کنم؟',
+	'سفارش من چه زمانی ارسال می‌شود؟ (آیا ارسال در همان روز انجام می‌شود؟)',
+	'شرایط و قوانین بازگشت کالا (مرجوعی) چیست؟',
+	'آیا می‌توانم به اطلاعات و سوابق خریدهای قبلی خود دسترسی داشته باشم؟',
+	'آیا امکان ویرایش مشخصات کاربری (مانند شماره موبایل یا ایمیل) وجود دارد؟',
+	'چطور می‌توانم با پشتیبانی تماس بگیرم؟',
+	'چطور می‌توانم به سایر راهنماهای خرید، پرداخت و ارسال دسترسی داشته باشم؟',
+);
+check(
+	10 === count( $r180_faq_defaults ) && $r180_expected_questions === array_column( $r180_faq_defaults, 'question' ) &&
+	count( array_filter( array_column( $r180_faq_defaults, 'answer' ) ) ) === 10 &&
+	false === strpos( implode( ' ', array_column( $r180_faq_defaults, 'answer' ) ), '09120902336' ),
+	'R180 FAQ defaults include the ten requested questions with useful answers and no invented contact number'
+);
+$r180_faq_migrated = jluxe_migrate_settings_v5( array( 'version' => 4, 'faq' => array( 'items' => array() ) ) );
+$r180_faq_custom = jluxe_migrate_settings_v5( array( 'version' => 4, 'faq' => array( 'items' => array( array( 'question' => 'سوال سفارشی', 'answer' => 'پاسخ سفارشی' ) ) ) ) );
+check(
+	10 === count( $r180_faq_migrated['faq']['items'] ) &&
+	1 === count( $r180_faq_custom['faq']['items'] ) &&
+	'سوال سفارشی' === $r180_faq_custom['faq']['items'][0]['question'],
+	'R180 v5 seeds a previously empty FAQ once while preserving customized FAQ content'
+);
+$r180_faq_page_defaults = jluxe_theme_settings_defaults();
+update_test_settings( $r180_faq_page_defaults );
+ob_start();
+require ABSPATH . 'page-faq.php';
+$r180_faq_page_html = (string) ob_get_clean();
+$r180_faq_script = $GLOBALS['scripts']['jluxe-site-faq'] ?? array();
+check(
+	10 === substr_count( $r180_faq_page_html, 'class="jluxe-site-faq__item"' ) &&
+	false !== strpos( $r180_faq_page_html, 'سوال داری؟' ) &&
+	false !== strpos( $r180_faq_page_html, 'راهنمای پرداخت سایت را ببینید' ) &&
+	'site-faq.js' === basename( (string) ( $r180_faq_script[0] ?? '' ) ) &&
+	'defer' === ( $r180_faq_script[3]['strategy'] ?? '' ),
+	'R180 FAQ page renders the settings-backed default list and defers its page-only disclosure script'
+);
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 4, 'faq' => array( 'items' => array() ) );
+jluxe_update_settings_section( 'faq', array( 'items' => array() ) );
+$r180_saved_empty_faq = jluxe_get_theme_settings( true );
+check(
+	5 === $r180_saved_empty_faq['version'] && empty( $r180_saved_empty_faq['faq']['items'] ),
+	'R180 once the administrator clears the FAQ, saving it empty does not reseed defaults on later reads'
+);
+update_test_settings( $defaults );
 $r152_card_override = jluxe_sanitize_product_card( array( 'in_stock_color' => '#123456' ), $r152_color_defaults['product_card'] );
 $r152_page_override = jluxe_sanitize_product_page(
 	array( 'discount_color' => '#234567', 'savings_color' => '#345678', 'star_color' => '#456789' ),
@@ -3014,6 +3063,7 @@ $r88_badges = (string) ob_get_clean();
 check( false !== strpos( $r88_badges, '<section class="jluxe-site-badges-section' ) && 2 === substr_count( $r88_badges, 'jluxe-site-badge-card flex' ), 'R88 both badges are printed directly as one visible grid item' );
 check( false === strpos( $r88_badges, 'staging' ) && false === strpos( $r88_badges, '<script' ) && false === strpos( $r88_badges, ' hidden' ), 'R88 no hidden staging div and no mover script are printed any more' );
 check( false !== strpos( $r88_badges, '@media (hover:hover)' ), 'R88 the badge hover lift only applies on hover-capable devices' );
+check( false !== strpos( $r88_badges, 'justify-content:center' ) && false !== strpos( $r88_badges, 'justify-content:start;' ), 'R180 trust badge icons center on mobile while desktop alignment remains unchanged' );
 update_test_settings( jluxe_theme_settings_defaults() );
 ob_start();
 jluxe_render_site_trust_badges();
@@ -3878,10 +3928,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( 4 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'], 'R96 stored v2 settings migrate once through v4: legacy frozen UI defaults become semantic tokens while preserving the mobile launcher change' );
+check( 5 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ), 'R96/R180 stored v2 settings migrate once through v5: legacy color/launcher fixes and empty FAQ defaults are upgraded' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( 4 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'], 'R96 saving another settings section cannot skip the legacy launcher and semantic-color migrations' );
+check( 5 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180 saving another settings section applies the legacy migrations and seeds FAQ defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );

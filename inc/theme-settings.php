@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 4;
+const JLUXE_SETTINGS_VERSION = 5;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -39,6 +39,56 @@ function jluxe_maybe_disable_theme_options_autoload(): void {
 	update_option( 'jluxe_autoload_cleanup_v1', 'done', false );
 }
 add_action( 'after_setup_theme', 'jluxe_maybe_disable_theme_options_autoload', 20 );
+
+/**
+ * FAQ عمومیِ شروع — پاسخ‌ها عمداً به تنظیمات/صفحات واقعی فروشگاه ارجاع
+ * می‌دهند و برای شماره تماس، مهلت مرجوعی، روش پرداخت یا زمان ارسال مقدار
+ * حدسی نمی‌سازند. مدیر می‌تواند هر ردیف را در پنل ویرایش یا حذف کند.
+ */
+function jluxe_faq_default_items(): array {
+	return array(
+		array(
+			'question' => 'آیا برای ثبت سفارش، حتماً باید در سایت ثبت‌نام کنم؟',
+			'answer'   => 'راهنمای خرید سایت ثبت‌نام را الزامی نمی‌داند؛ بااین‌حال گزینه‌هایی که در تسویه‌حسابِ همین فروشگاه می‌بینید ملاک‌اند. ساخت حساب، دسترسی به سفارش‌های قبلی و مدیریت خریدهای بعدی را آسان می‌کند.',
+		),
+		array(
+			'question' => 'آیا رنگ و ظاهر محصول دقیقاً مشابه عکس‌های سایت است؟',
+			'answer'   => 'عکس‌ها برای نمایش محصول تهیه شده‌اند؛ نور عکاسی و تنظیمات نمایشگر ممکن است رنگ را کمی متفاوت نشان دهد. توضیحات و گزینه‌های ثبت‌شده در صفحهٔ همان محصول را هم بررسی کنید.',
+		),
+		array(
+			'question' => 'آیا امکان ثبت سفارش از طریق تلگرام، واتس‌اپ، اینستاگرام، روبیکا و بله وجود دارد؟',
+			'answer'   => 'برای ثبت و پیگیری مطمئن سفارش، جزئیات خرید و نهایی‌کردن آن را از مسیر فروشگاه انجام دهید. راه‌های ارتباطی فعالی که فروشگاه معرفی کرده، در صفحهٔ «تماس با ما» آمده‌اند؛ از همان صفحه برای هماهنگی پیش از خرید استفاده کنید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم هزینه سفارش خود را پرداخت کنم؟',
+			'answer'   => 'روش‌های پرداختِ فعال برای سبد شما هنگام تسویه‌حساب نمایش داده می‌شوند. برای توضیح هر روش، راهنمای پرداخت سایت را ببینید و اگر روش کارت‌به‌کارت فعال است، فقط از اطلاعات درج‌شده در همان راهنمای رسمی استفاده کنید.',
+		),
+		array(
+			'question' => 'سفارش من چه زمانی ارسال می‌شود؟ (آیا ارسال در همان روز انجام می‌شود؟)',
+			'answer'   => 'روش‌های ارسالِ قابل انتخاب و هزینهٔ آن‌ها هنگام تسویه‌حساب مشخص می‌شوند. زمان رسیدن مرسوله به مقصد و روش حمل بستگی دارد؛ ارسال در همان روز را پیش از ثبت سفارش با پشتیبانی هماهنگ کنید و قطعی فرض نکنید.',
+		),
+		array(
+			'question' => 'شرایط و قوانین بازگشت کالا (مرجوعی) چیست؟',
+			'answer'   => 'شرایط، مهلت‌ها و استثناهای مرجوعی در صفحهٔ «رویهٔ شرایط مرجوعی و تعویض کالا» توضیح داده شده‌اند. چون جزئیات ممکن است به نوع و وضعیت کالا بستگی داشته باشد، پیش از ارسال مرجوعی متن همان صفحه را بررسی و با پشتیبانی هماهنگ کنید.',
+		),
+		array(
+			'question' => 'آیا می‌توانم به اطلاعات و سوابق خریدهای قبلی خود دسترسی داشته باشم؟',
+			'answer'   => 'اگر هنگام خرید وارد حساب کاربری بوده‌اید، سفارش‌های قبلی در بخش «سفارش‌ها»ی حساب شما قرار دارند. برای سفارش مهمان، از صفحهٔ پیگیری سفارش و با شمارهٔ سفارش و موبایل ثبت‌شده استفاده کنید.',
+		),
+		array(
+			'question' => 'آیا امکان ویرایش مشخصات کاربری (مانند شماره موبایل یا ایمیل) وجود دارد؟',
+			'answer'   => 'اطلاعات قابل‌ویرایش را از بخش «جزئیات حساب» در حساب کاربری تغییر دهید. اگر ویرایش شمارهٔ موبایل یا ایمیل به تأیید نیاز دارد یا گزینهٔ آن نمایش داده نمی‌شود، از راه‌های تماس صفحهٔ «تماس با ما» کمک بگیرید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم با پشتیبانی تماس بگیرم؟',
+			'answer'   => 'راه‌های تماس و ساعات پاسخ‌گوییِ به‌روز در صفحهٔ «تماس با ما» درج می‌شوند. لطفاً همان اطلاعات فعلیِ سایت را بررسی کنید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم به سایر راهنماهای خرید، پرداخت و ارسال دسترسی داشته باشم؟',
+			'answer'   => 'از بخش «مرکز راهنمایی» یا پیوندهای راهنما در فوتر، صفحه‌های راهنمای خرید، پرداخت، ارسال و پیگیری سفارش و شرایط مرجوعی را باز کنید.',
+		),
+	);
+}
 
 /**
  * مقادیر پیش‌فرض — عیناً همون مقادیر فعلی هاردکدشده‌ی پروژه.
@@ -774,10 +824,9 @@ function jluxe_theme_settings_defaults(): array {
 			'verification_meta_tags'   => array(),
 		),
 		'faq' => array(
-			// سؤالات واقعیِ سایت — پیش‌فرض خالی، مدیر خودش از پیشخوان پر
-			// می‌کنه؛ هیچ سوال/جواب عمومیِ کپی‌شده از قالب‌های دیگه از قبل
-			// ست نمی‌شه (طبق قانون «بدون تنظیمات جعلی» پروژه).
-			'items' => array(),
+			// ده پرسش نمونهٔ قابل‌ویرایش؛ مواردِ وابسته به شرایط فروشگاه
+			// در پاسخ‌ها به صفحه/تنظیم واقعی ارجاع می‌شوند، نه اطلاعات ساختگی.
+			'items' => jluxe_faq_default_items(),
 		),
 		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
 		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
@@ -925,6 +974,11 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 	if ( ! empty( $stored ) && $stored_version < 4 ) {
 		$stored             = jluxe_migrate_settings_v4( $stored );
 		$stored['version']  = 4;
+		$stored_version     = 4;
+	}
+	if ( ! empty( $stored ) && $stored_version < 5 ) {
+		$stored             = jluxe_migrate_settings_v5( $stored );
+		$stored['version']  = 5;
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
@@ -1002,6 +1056,22 @@ function jluxe_migrate_settings_v4( array $settings ): array {
 		}
 	}
 
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ تنظیماتِ قدیمی به v5: پرسش‌های نمونهٔ FAQ را فقط وقتی
+ * فهرستِ قبلی خالی/نامعتبر است اضافه می‌کند. هر FAQ سفارشی حفظ می‌شود و پس
+ * از ذخیره یا حذفِ مدیر، این مهاجرت دوباره اجرا نخواهد شد.
+ */
+function jluxe_migrate_settings_v5( array $settings ): array {
+	if ( ! isset( $settings['faq'] ) || ! is_array( $settings['faq'] ) ) {
+		$settings['faq'] = array();
+	}
+	$items = $settings['faq']['items'] ?? array();
+	if ( ! is_array( $items ) || empty( $items ) ) {
+		$settings['faq']['items'] = jluxe_faq_default_items();
+	}
 	return $settings;
 }
 
@@ -1428,10 +1498,10 @@ function jluxe_render_site_trust_badges(): void {
     ?>
     <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-label="<?php echo esc_attr( $title ); ?>">
         <style>
-            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
+            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:center;}
             .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;background:#fff;}
             @media (min-width:640px){
-                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
+                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);justify-content:start;}
                 .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
             }
             /* افکتِ هاور فقط روی دستگاهِ دارای ماوس (قاعدهٔ پروژه: hover داخلِ @media (hover:hover)). */

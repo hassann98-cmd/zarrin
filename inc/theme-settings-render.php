@@ -1947,7 +1947,7 @@ function jluxe_render_faq_page(): void {
 	jluxe_settings_page_shell( 'سوالات متداول', 'jluxe-faq', $status, function () use ( $settings ) {
 		$items = $settings['faq']['items'];
 		?>
-		<p class="description">این سوال‌ها دقیقاً همون‌هایی هستن که در صفحه‌ی <code><?php echo esc_html( home_url( '/faq/' ) ); ?></code> نمایش داده می‌شن. برای حذف یک مورد تیک «حذف این سوال» رو بزنید و ذخیره کنید؛ برای افزودن، ردیف‌های خالیِ پایین صفحه رو پر کنید و ذخیره کنید — بعد از ذخیره، ۳ ردیف خالیِ تازه برای افزودن بیشتر ظاهر می‌شه.</p>
+		<p class="description">پرسش‌های آغازین قابل‌ویرایش‌اند و همین‌جا می‌توانید پاسخ‌ها را با اطلاعات واقعی فروشگاه هماهنگ کنید؛ در پاسخ‌های نمونه شماره تماس یا شرایط حدسی درج نشده است. این فهرست در صفحه‌ی <code><?php echo esc_html( home_url( '/faq/' ) ); ?></code> نمایش داده می‌شود. برای حذف موردی، تیک «حذف این سوال» را بزنید و ذخیره کنید؛ برای افزودن، ردیف‌های خالیِ پایین صفحه را پر کنید — پس از ذخیره، ۳ ردیف خالیِ تازه ظاهر می‌شود.</p>
 		<form method="post">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 			<table class="form-table" role="presentation">
