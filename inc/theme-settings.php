@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 10;
+const JLUXE_SETTINGS_VERSION = 11;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -1456,6 +1456,36 @@ function jluxe_migrate_settings_v10( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v10→v11: repair the legacy footer row where the approved shipping slogan
+ * was saved as a subtitle with an empty title, so it receives the shared
+ * bold-heading style. Only that exact orphaned copy is moved.
+ */
+function jluxe_migrate_settings_v11( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$cards = $settings['footer']['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) || ! isset( $cards[0] ) || ! is_array( $cards[0] ) ) {
+		return $settings;
+	}
+
+	$title    = $cards[0]['title'] ?? null;
+	$subtitle = $cards[0]['subtitle'] ?? null;
+	if (
+		is_string( $title ) &&
+		'' === trim( $title ) &&
+		is_string( $subtitle ) &&
+		'ارسال فوری به سراسر ایران' === trim( $subtitle )
+	) {
+		$settings['footer']['feature_cards'][0]['title']    = 'ارسال فوری به سراسر ایران';
+		$settings['footer']['feature_cards'][0]['subtitle'] = '';
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1468,6 +1498,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		8 => 'jluxe_migrate_settings_v8',
 		9  => 'jluxe_migrate_settings_v9',
 		10 => 'jluxe_migrate_settings_v10',
+		11 => 'jluxe_migrate_settings_v11',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {

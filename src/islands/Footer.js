@@ -95,6 +95,24 @@ const defaultFeatures = [
     subtitle: "پرداخت از درگاه مطمئن",
   },
 ];
+// Runtime guard for pre-v11 stored data: the exact shipping slogan used to
+// arrive in the subtitle while its heading was blank. Promote only that
+// unambiguous legacy pair; the PHP migration also persists the correction.
+function normalizeLegacyShippingFeature(feature) {
+  if (!feature || typeof feature !== "object") return feature;
+  const title = typeof feature.title === "string" ? feature.title.trim() : "";
+  const subtitle =
+    typeof feature.subtitle === "string" ? feature.subtitle.trim() : "";
+  if (title === "" && subtitle === "ارسال فوری به سراسر ایران") {
+    return {
+      ...feature,
+      title: "ارسال فوری به سراسر ایران",
+      subtitle: "",
+    };
+  }
+  return feature;
+}
+
 const defaultColumns = [
   {
     title: "راهنما",
@@ -199,9 +217,9 @@ function Footer() {
       : defaultBrandDescription;
   const supportHours = footer?.support_hours || defaultSupportHours;
   const supportText = footer?.support_text || defaultSupportText;
-  const features = (footer?.feature_cards ?? defaultFeatures).filter(
-    (feature) => feature.enabled,
-  );
+  const features = (footer?.feature_cards ?? defaultFeatures)
+    .filter((feature) => feature.enabled)
+    .map(normalizeLegacyShippingFeature);
   const mobileFeatureColumns = footer?.feature_cards_mobile_columns === 2 ? 2 : 1;
   const columns = footer?.link_columns ?? defaultColumns;
   const badges = Array.isArray(footer?.trust_badges) ? footer.trust_badges : [];

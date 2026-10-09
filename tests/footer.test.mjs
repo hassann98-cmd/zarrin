@@ -140,6 +140,33 @@ test("R196 shipping slogan is a full bold heading in the shared footer hierarchy
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-copy\s*\{[^}]*display:\s*grid;[^}]*min-height:\s*2\.85rem;/s);
 });
 
+test("R197 a legacy blank shipping heading is promoted without rewriting other copy", async () => {
+  dom(shell(), {
+    feature_cards: [
+      {
+        enabled: true,
+        icon: "truck",
+        title: "",
+        subtitle: "ارسال فوری به سراسر ایران",
+      },
+      {
+        enabled: true,
+        icon: "truck",
+        title: "",
+        subtitle: "متن سفارشی مدیر",
+      },
+    ],
+  });
+  await render();
+
+  const cards = [...document.querySelectorAll(".jluxe-footer-feature-card")];
+  assert.equal(cards.length, 2);
+  assert.equal(cards[0].querySelector(".jluxe-footer-feature-title")?.textContent, "ارسال فوری به سراسر ایران");
+  assert.equal(cards[0].querySelector(".jluxe-footer-feature-subtitle")?.textContent, "");
+  assert.equal(cards[1].querySelector(".jluxe-footer-feature-title")?.textContent, "");
+  assert.equal(cards[1].querySelector(".jluxe-footer-feature-subtitle")?.textContent, "متن سفارشی مدیر");
+});
+
 test("R192 configured footer copy, optional features, phone links, and touch/focus styling stay clear", async () => {
   const win = dom(shell(), {
     brand_description: "معرفیِ ثبت‌شده توسط مدیر.",
