@@ -1,8 +1,8 @@
 # آزمون یکپارچهٔ دورریختنی وردپرس
 
-**نسخهٔ پوسته: 1.7.28 — تاریخ اجرا: ۲۰۲۶-۱۰-۰۶**
+**نسخهٔ پوسته: 1.7.53 — آخرین اجرا: ۲۰۲۶-۱۰-۰۹**
 
-این مجموعه مکمل تست‌های ایزولهٔ `tests/php` است؛ جایگزین آزمون خرید واقعی WooCommerce نیست.
+این سند دو مسیر دورریختنی را جدا گزارش می‌کند: آزمون پایهٔ WordPress بدون WooCommerce برای کنترل رفتار در نبود افزونه، و آزمون همراه WooCommerce واقعی برای سبد و رندر checkout. هیچ‌کدام جای آزمون کامل خرید با درگاه روی staging را نمی‌گیرند.
 
 ## چه چیزی واقعاً اجرا شد؟
 
@@ -11,9 +11,9 @@
 - حساب‌ها، نقش‌ها، هش رمز، cookie ورود، nonce وردپرس، REST routing/schema، جدول options، transientها و cache داخلی وردپرس واقعی‌اند.
 - درخواست‌ها از request handler وردپرس می‌گذرند؛ listener شبکه یا مرورگر واقعی راه‌اندازی نمی‌شود.
 - SMS **شبیه‌سازی می‌شود**؛ هیچ کد واقعی ارسال نمی‌شود. mail و درخواست‌های خارجی از طریق APIهای HTTP وردپرس مسدودند. کلید و رمز موجود در fixture فقط مقادیر آزمایشی‌اند، نه credential فروشگاه.
-- WooCommerce **در اجرای integration نصب نشده است**؛ این suite عمداً رفتارِ نبودِ افزونه را هم می‌سنجد. دانلود ZIP رسمی 11.0.0 در اجرای قبلی (۲۰۲۶-۰۹-۲۴) ناموفق بود؛ در ممیزی ۲۰۲۶-۱۰-۰۶ آرشیو source رسمی WooCommerce 11.1.2 جداگانه فقط برای **بررسی استاتیک قرارداد** استفاده شد (۶۶ تابع، ۱۱۲ متد و ۲۴۳ hook؛ بدون بوت‌کردن افزونه، checkout یا درگاه). این بررسی استاتیک جای runtime واقعی WooCommerce را نمی‌گیرد.
+- اجرای پایهٔ `npm run test:integration` WooCommerce **نصب نمی‌کند** و مسیر نبودِ افزونه را می‌سنجد. اجرای جداگانهٔ `npm run test:integration:woo` در GitHub Actions با **WordPress 7.0 + WooCommerce 11.2.0 واقعی**، PHP-WASM 8.3 و SQLite **۱۷ کنترل** را روی رندر storefront، سبد ساده/متغیر، اعتبارسنجی موجودی، کوپن و نمایش checkout کلاسیک گذراند. این آزمون فقط سبد را دست‌کاری و پاک می‌کند؛ هیچ order ثبت، stock واقعی فروشگاه کم، یا درگاه/پرداخت/پیامک زنده اجرا نمی‌شود. بررسی استاتیک قرارداد با آرشیو WooCommerce 11.1.2 نیز ۷۰ تابع و ۱۱۴ متد مورد استفاده را یافت؛ ۲۳ template بررسی شد که ۲۲ نسخه‌برچسب با upstream منطبق بود.
 
-بنابراین تست «ووکامرس غیرفعال است و پاسخ کنترل‌شده می‌گیریم» یک تست واقعی است؛ اما آزمون مالکیت سفارش، سبد و موجودی در `tests/php` هنوز از WooCommerce شبیه‌سازی‌شده استفاده می‌کند. هیچ ادعایی دربارهٔ MySQL، HPOS، Redis، هم‌زمانی چند worker، checkout، بانک، تحویل پیامک، Safari/Chrome یا فروشگاه فعال نداریم.
+بنابراین مسیر «ووکامرس غیرفعال است و پاسخ کنترل‌شده می‌گیریم» در WordPress 6.9 واقعی آزموده شده و مسیر cart/stock/coupon/checkout-render در WooCommerce 11.2.0 واقعی نیز در محیط جداگانه اجرا شده است. مالکیت سفارش در `tests/php` همچنان با doubles پوشش دارد؛ هیچ سفارش واقعی/fixture ثبت نمی‌شود. این نتایج MySQL، HPOS، Redis، هم‌زمانی چند worker، ارسال سفارش/پرداخت، بانک، تحویل پیامک، Safari/Chrome یا رفتار سایت فعال را تأیید نمی‌کنند.
 
 ## کنترل‌های مهم
 
@@ -41,7 +41,10 @@ npm ci --prefix tests/integration --ignore-scripts
 npm --prefix tests/integration run prepare:fixtures
 npm run test:integration
 
-# نسخهٔ دوم مفسر؛ داده‌ها دوباره از صفر ساخته می‌شوند:
+# مسیر جدا با WooCommerce 11.2.0 رسمی؛ فایل را پیشاپیش طبق workflow و checksum pin تهیه کنید:
+ZARRIN_WOOCOMMERCE_ARCHIVE=/absolute/path/to/woocommerce-11.2.0.zip npm run test:integration:woo
+
+# نسخهٔ دوم مفسر برای suite پایه؛ داده‌ها دوباره از صفر ساخته می‌شوند:
 ZARRIN_TEST_PHP=8.5 npm run test:integration
 ```
 
@@ -72,4 +75,4 @@ ZARRIN_TEST_PHP=8.5 npm run test:integration
 
 ریسک اجرای دو مسیر افزودن به سبد با بررسی [فرم‌هندلر WooCommerce 11.0.0](https://github.com/woocommerce/woocommerce/blob/11.0.0/plugins/woocommerce/includes/class-wc-form-handler.php) و payload فرم‌های خود پوسته مشخص شد. حذف فیلد فقط از payload AJAX، حفظ فرم استاندارد و ترتیب hook وردپرس تست دارند؛ شمارش واقعی اقلام بعد از خرید/افزودن هنوز باید روی WooCommerce نصب‌شده تأیید شود.
 
-job یکپارچه به `.github/workflows/quality.yml` اضافه شده، ولی اجرای remote آن در GitHub Actions در این نوبت مشاهده نشده است. نتایج بالا مربوط به اجرای محلی همین کد هستند.
+در commit `6d5e550`، اجرای GitHub Actions با نتیجهٔ success کامل شد: jobهای build/test روی PHP 8.0/8.3/8.5، WordPress 6.9 روی PHP-WASM 8.3/8.5، و WooCommerce 11.2.0 واقعی همگی پاس شدند ([run 37959765669](https://github.com/hassann98-cmd/zarrin/actions/runs/37959765669)). workflow انتشار نیز ZIP نسخهٔ 1.7.53 را ساخت، به Release عمومی پیوست و دانلود asset را بایت‌به‌بایت با خروجی build تطبیق داد ([run 37959765805](https://github.com/hassann98-cmd/zarrin/actions/runs/37959765805)). این CI همچنان staging فروشگاه واقعی را جایگزین نمی‌کند.

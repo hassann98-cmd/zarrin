@@ -7,7 +7,7 @@
 - [گزارش تاریخی بررسی روی 4f62ac5](docs/AUDIT.fa.md)
 - [منشأ بازیابی فایل‌های فرانت‌اند](docs/FRONTEND-RECOVERY.json)
 
-> نصب روی فروشگاه فعال فقط بعد از backup و تست staging. وردپرس واقعی فقط در محیط دورریختنی PHP-WASM/SQLite تست شده؛ WooCommerce نصب‌شده، MySQL، درگاه و provider واقعی در این آزمون وجود ندارند. تست‌های مخزن جای خرید سرتاسری را نمی‌گیرند.
+> نصب روی فروشگاه فعال فقط بعد از backup و تست staging. WordPress و WooCommerce واقعی در محیط‌های دورریختنی PHP-WASM/SQLite یکپارچه تست شده‌اند؛ آزمون سبد/موجودی/کوپن و رندر checkout انجام می‌شود، اما سفارش ثبت یا پرداخت زنده اجرا نمی‌شود. MySQL، تنظیمات/افزونه‌های فروشگاه فعال، مرورگر واقعی و providerهای پیامک/درگاه در این آزمون‌ها پوشش ندارند؛ تست مخزن جای خرید سرتاسری روی staging را نمی‌گیرد.
 
 ## پیش‌نیازها
 
@@ -61,7 +61,7 @@ npm run test:integration
 ZARRIN_TEST_PHP=8.5 npm run test:integration
 ```
 
-۶۳ کنترل در WordPress 6.9 واقعی و دیتابیس موقت SQLite روی PHP-WASM 8.3.33/8.5.10 پاس شده‌اند. cookie، nonce، role/capability، options و REST واقعی‌اند؛ ارسال SMS شبیه‌سازی و mail/شبکه مسدود است. این مجموعه WooCommerce یا خرید واقعی را اجرا نمی‌کند. [جزئیات و روش بازتولید](docs/INTEGRATION.fa.md).
+۶۳ کنترل در WordPress 6.9 واقعی و دیتابیس موقت SQLite روی PHP-WASM 8.3.33/8.5.10 پاس شده‌اند. cookie، nonce، role/capability، options و REST واقعی‌اند؛ ارسال SMS شبیه‌سازی و mail/شبکه مسدود است. این suite پایه WooCommerce نصب نمی‌کند تا مسیر نبودِ افزونه را هم بسنجد. job جداگانهٔ `npm run test:integration:woo` در GitHub Actions با WordPress 7.0 و WooCommerce 11.2.0 واقعی **۱۷ کنترل** سبد، موجودی، کوپن و رندر checkout کلاسیک را گذراند؛ هیچ سفارش یا پرداختی ثبت نمی‌شود. [جزئیات و روش بازتولید](docs/INTEGRATION.fa.md).
 
 ### بستهٔ نصب و به‌روزرسانی لینک دانلود
 
