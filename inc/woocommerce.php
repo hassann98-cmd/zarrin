@@ -220,7 +220,7 @@ function jluxe_emit_structured_data(): void {
 	 * Product/Website رو به خودش واگذار می‌کنیم؛ RANK_MATH_VERSION هم
 	 * نسخه‌ی رایگان هم Pro رو پوشش می‌ده (هر دو همین ثابت رو ست می‌کنن).
 	 */
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
+	if ( function_exists( 'jluxe_seo_plugin_is_active' ) && jluxe_seo_plugin_is_active() ) {
 		return;
 	}
 	/*
@@ -243,12 +243,16 @@ function jluxe_emit_structured_data(): void {
 add_action( 'wp_head', 'jluxe_emit_structured_data', 4 );
 
 /**
- * SearchAction روی WebSite schema — پیش‌نیازِ «کادرِ جستجوی سایت‌لینک»یِ
- * گوگل (یه فیلدِ جستجوی مستقیم زیرِ نتیجه‌ی سایت توی گوگل). خروجیِ
- * پیش‌فرضِ generate_website_data فقط name/url داره، این فیلتر
- * potentialAction رو اضافه می‌کنه.
+ * Connect WooCommerce's WebSite entity to the site's canonical Organization
+ * and expose the real internal search URL as a machine-readable action. Google
+ * retired its sitelinks-search-box feature; this is not a promise of a special
+ * search result or a ranking boost.
  */
 function jluxe_add_website_search_action( array $markup ): array {
+	$markup['@id'] = $markup['@id'] ?? home_url( '/#website' );
+	$publisher = isset( $markup['publisher'] ) && is_array( $markup['publisher'] ) ? $markup['publisher'] : array();
+	$publisher['@id'] = $publisher['@id'] ?? home_url( '/#organization' );
+	$markup['publisher'] = $publisher;
 	$markup['potentialAction'] = array(
 		'@type'       => 'SearchAction',
 		'target'      => array(
@@ -260,6 +264,22 @@ function jluxe_add_website_search_action( array $markup ): array {
 	return $markup;
 }
 add_filter( 'woocommerce_structured_data_website', 'jluxe_add_website_search_action' );
+
+/** Give WooCommerce Product entities a stable URL identity for linked JSON-LD graphs. */
+function jluxe_add_product_schema_identity( array $markup, $product = null ): array {
+	if ( ! $product instanceof WC_Product ) {
+		return $markup;
+	}
+	$url = (string) get_permalink( $product->get_id() );
+	if ( '' === $url ) {
+		return $markup;
+	}
+	$markup['@id'] = $markup['@id'] ?? $url . '#product';
+	$markup['url'] = $markup['url'] ?? $url;
+	$markup['mainEntityOfPage'] = $markup['mainEntityOfPage'] ?? array( '@id' => $url );
+	return $markup;
+}
+add_filter( 'woocommerce_structured_data_product', 'jluxe_add_product_schema_identity', 10, 2 );
 
 /** Keep the product LCP preload's responsive slot size aligned with the rendered image. */
 function jluxe_single_product_image_sizes( string $layout ): string {
@@ -406,6 +426,12 @@ function jluxe_breadcrumb_items( $product ): array {
 
 /** چاپ BreadcrumbList JSON-LD — فقط داده؛ نمایشِ مرئی همان nav خود قالب‌هاست. */
 function jluxe_print_breadcrumb_jsonld( $product ): void {
+	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+		return;
+	}
+	if ( function_exists( 'jluxe_seo_plugin_is_active' ) && jluxe_seo_plugin_is_active() ) {
+		return;
+	}
 	$items = jluxe_breadcrumb_items( $product );
 	if ( count( $items ) < 2 ) {
 		return;
@@ -429,7 +455,7 @@ function jluxe_print_breadcrumb_jsonld( $product ): void {
 	if ( count( $elements ) < 2 ) {
 		return;
 	}
-	echo '<script type="application/ld+json">' . wp_json_encode( array(
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( array(
 		'@context'        => 'https://schema.org',
 		'@type'           => 'BreadcrumbList',
 		'itemListElement' => $elements,

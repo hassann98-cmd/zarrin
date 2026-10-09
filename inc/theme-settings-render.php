@@ -2158,7 +2158,7 @@ function jluxe_render_advanced_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">اگر پلاگین سئوی جدایی (مثل Rank Math/Yoast) بعداً نصب بشه، این تنظیمات به‌عنوان fallback فقط برای صفحاتی اجرا می‌شن که اون پلاگین متا تعریف نکرده.</p>
+					<p class="description">اگر Rank Math یا Yoast فعال باشد، تنظیمات اینجا و عنوان/توضیح اختصاصیِ هر محصول، مطلب یا برگه فقط وقتی fallback می‌شوند که افزونه برای همان صفحه مقداری نداده باشد. برای هر صفحه از جعبهٔ «عنوان و توضیح سئو» استفاده کن؛ توضیح دسته‌بندی را در ویرایش خودِ دسته وارد کن.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-meta-desc">توضیحات متای پیش‌فرض</label></th>

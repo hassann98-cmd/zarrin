@@ -21,6 +21,7 @@ $GLOBALS['user_meta']=[];
 $GLOBALS['create_calls']=0;
 function add_action(...$a){$GLOBALS['actions'][]=$a;}
 function add_filter(...$a){$GLOBALS['filters'][]=$a;}
+function add_meta_box(...$a){$GLOBALS['meta_boxes'][]=$a;}
 function add_theme_support(...$a){$GLOBALS['theme_supports'][]=$a;}
 function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
 function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
@@ -28,7 +29,7 @@ function remove_action(...$a){}
 function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}
-function get_bloginfo($k){return 'Audit shop';}
+function get_bloginfo($k){if('language'===$k)return $GLOBALS['blog_language']??'fa-IR';return 'Audit shop';}
 function home_url($p=''){return 'https://shop.test/store' . ($p ? '/'.ltrim($p,'/') : '');}
 function __($s,...$a){return $s;}
 function get_option($k,$default=false){
@@ -166,6 +167,17 @@ function maybe_unserialize($value){$r=@unserialize($value);return $r!==false?$r:
 function get_post_field($field,$id=0){return $GLOBALS['post_fields'][$id][$field]??'';}
 function get_post_status($id=0){return $GLOBALS['posts'][$id]['post_status']??$GLOBALS['post_fields'][$id]['post_status']??false;}
 function get_post_type($id=0){return $GLOBALS['post_types'][$id]??'product';}
+function has_excerpt($id=0){return ''!==(string)get_post_field('post_excerpt',$id);}
+function get_the_excerpt($id=0){return (string)get_post_field('post_excerpt',$id);}
+function has_post_thumbnail($id=0){return !empty($GLOBALS['post_thumbnail_ids'][$id]??false);}
+function get_the_post_thumbnail_url($id=0,$size='post-thumbnail'){return $GLOBALS['post_thumbnail_urls'][$id]??home_url('/post-thumbnail.jpg');}
+function get_the_date($format='',$id=0){return $GLOBALS['post_dates'][$id]['published']??'2026-01-02T03:04:05+00:00';}
+function get_the_modified_date($format='',$id=0){return $GLOBALS['post_dates'][$id]['modified']??'2026-02-03T04:05:06+00:00';}
+function get_the_author_meta($field,$user_id=0){return $GLOBALS['author_meta'][$user_id][$field]??('display_name'===$field?'Test author':'');}
+function get_author_posts_url($author_id,$author_nicename=''){return home_url('/author/author-'.(int)$author_id.'/');}
+function get_the_category($id=0){return $GLOBALS['post_categories'][$id]??array();}
+function term_description($term_id=0,$taxonomy=''){if(!$term_id)$term_id=get_queried_object_id();return $GLOBALS['term_descriptions'][$term_id]??'';}
+function wp_get_document_title(){return $GLOBALS['document_title']??'Audit shop';}
 function comments_open($post_id=0){
  $open=get_post_field('comment_status',$post_id)==='open';
  foreach($GLOBALS['filters']??[] as $filter){
@@ -246,7 +258,7 @@ function get_comments($args){
 function get_comment_meta($id,$key,...$args){return $GLOBALS['comment_meta'][$id][$key]??'';}
 function update_comment_meta($id,$key,$value){$GLOBALS['comment_meta'][$id][$key]=$value;}
 function get_comment($id){return $GLOBALS['comment_objects'][$id]??null;}
-function wp_strip_all_shortcodes($text){return $text;}
+function wp_strip_all_shortcodes($text){return preg_replace('/\\[[^\\]]*\\]/u','',(string)$text);}
 function wp_insert_post($data,$errors=false){$GLOBALS['inserted_posts'][]=$data;return count($GLOBALS['inserted_posts']);}
 function update_post_meta($id,$key,$value){$GLOBALS['post_meta'][$id][$key]=$value;}
 function clean_post_cache($id){$GLOBALS['cleaned_posts'][]=(int)$id;}
@@ -259,7 +271,7 @@ function wp_trim_words($text,$count,$more=''){return implode(' ',array_slice(exp
 function wp_trim_excerpt($text){return $text;}
 function wp_parse_str($text,&$out){parse_str($text,$out);}
 function wc_format_decimal($value){return is_numeric($value)?(string)$value:'';}
-function get_queried_object_id(){return 1;}
+function get_queried_object_id(){return $GLOBALS['queried_object_id']??1;}
 function is_product(){return $GLOBALS['query_kind']==='product';}
 function is_shop(){return $GLOBALS['query_kind']==='shop';}
 function is_product_taxonomy(){return false;}
@@ -268,7 +280,14 @@ function wc_review_ratings_required(){return $GLOBALS['ratings_required']??true;
 function is_cart(){return $GLOBALS['query_kind']==='cart';}
 function is_checkout(){return $GLOBALS['query_kind']==='checkout';}
 function is_account_page(){return $GLOBALS['query_kind']==='account';}
-function is_date(){return false;}
+function is_author(){return $GLOBALS['query_kind']==='author';}
+function is_date(){return in_array($GLOBALS['query_kind']??'',array('date_year','date_month','date_day'),true);}
+function is_year(){return $GLOBALS['query_kind']==='date_year';}
+function is_month(){return $GLOBALS['query_kind']==='date_month';}
+function is_day(){return $GLOBALS['query_kind']==='date_day';}
+function get_year_link($year){return home_url('/date/'.(int)$year.'/');}
+function get_month_link($year,$month){return home_url('/date/'.(int)$year.'/'.sprintf('%02d',(int)$month).'/');}
+function get_day_link($year,$month,$day){return home_url('/date/'.(int)$year.'/'.sprintf('%02d',(int)$month).'/'.sprintf('%02d',(int)$day).'/');}
 function wp_cache_get($key,$group=''){return $GLOBALS['objcache'][$group][$key]??false;}
 function wp_cache_set($key,$value,$group='',$ttl=0){$GLOBALS['objcache'][$group][$key]=$value;return true;}
 function wp_dequeue_script($handle){$GLOBALS['dequeued_scripts'][]=$handle;}

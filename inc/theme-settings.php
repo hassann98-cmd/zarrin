@@ -1742,6 +1742,25 @@ function jluxe_current_canonical_url(): string {
 	if ( is_front_page() ) {
 		return jluxe_paginated_canonical_url( home_url( '/' ) );
 	}
+	if ( function_exists( 'is_author' ) && is_author() ) {
+		$author_id = absint( get_queried_object_id() );
+		$url       = $author_id ? get_author_posts_url( $author_id ) : '';
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
+	}
+	if ( function_exists( 'is_date' ) && is_date() ) {
+		$year  = (int) get_query_var( 'year', 0 );
+		$month = (int) get_query_var( 'monthnum', 0 );
+		$day   = (int) get_query_var( 'day', 0 );
+		$url   = '';
+		if ( $year && $month && $day && function_exists( 'is_day' ) && is_day() ) {
+			$url = get_day_link( $year, $month, $day );
+		} elseif ( $year && $month && function_exists( 'is_month' ) && is_month() ) {
+			$url = get_month_link( $year, $month );
+		} elseif ( $year && function_exists( 'is_year' ) && is_year() ) {
+			$url = get_year_link( $year );
+		}
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
+	}
 	if ( is_singular() ) {
 		return (string) ( wp_get_canonical_url() ?: '' );
 	}
@@ -1760,6 +1779,131 @@ function jluxe_current_canonical_url(): string {
 	}
 	return '';
 }
+
+/** Return whether a supported SEO plugin owns page metadata and structured data. */
+function jluxe_seo_plugin_is_active(): bool {
+	return defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' );
+}
+
+/**
+ * Convert editorial HTML/shortcodes to one compact plain-text snippet.
+ * Keeping the shortcode pass explicit prevents builder tokens leaking into
+ * search snippets, social previews and the Article description.
+ */
+function jluxe_seo_plain_text( string $content ): string {
+	if ( function_exists( 'wp_strip_all_shortcodes' ) ) {
+		$content = wp_strip_all_shortcodes( $content );
+	}
+	$content = wp_strip_all_tags( $content );
+	$content = preg_replace( '/[\\s\\p{Z}]+/u', ' ', $content );
+	return trim( (string) $content );
+}
+
+/** Safely encode JSON-LD so untrusted text can never close its script element. */
+function jluxe_jsonld_encode( array $markup ): string {
+	$json = wp_json_encode(
+		$markup,
+		JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+	);
+	return is_string( $json ) ? $json : '{}';
+}
+
+/** Return a valid BCP 47 language tag for structured data and social previews. */
+function jluxe_seo_language(): string {
+	$language = function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'language' ) : '';
+	$language = str_replace( '_', '-', trim( $language ) );
+	if ( ! preg_match( '/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i', $language ) ) {
+		return 'fa-IR';
+	}
+	return $language;
+}
+
+/** Return a sanitized per-post SEO field for a public singular page. */
+function jluxe_get_seo_post_field( string $field, int $post_id = 0 ): string {
+	$meta_keys = array(
+		'title'       => '_jluxe_seo_title',
+		'description' => '_jluxe_seo_description',
+	);
+	if ( ! isset( $meta_keys[ $field ] ) ) {
+		return '';
+	}
+	$post_id = $post_id ?: (int) get_queried_object_id();
+	$value   = get_post_meta( $post_id, $meta_keys[ $field ], true );
+	if ( ! is_scalar( $value ) ) {
+		return '';
+	}
+	return jluxe_seo_plain_text( (string) $value );
+}
+
+/** Add editable, page-specific search title and description fields in wp-admin. */
+function jluxe_add_seo_post_meta_box(): void {
+	add_meta_box(
+		'jluxe_seo_metadata',
+		'عنوان و توضیح سئو',
+		'jluxe_render_seo_post_meta_box',
+		array( 'post', 'page', 'product' ),
+		'normal',
+		'default'
+	);
+}
+add_action( 'add_meta_boxes', 'jluxe_add_seo_post_meta_box' );
+
+function jluxe_render_seo_post_meta_box( WP_Post $post ): void {
+	$title       = get_post_meta( $post->ID, '_jluxe_seo_title', true );
+	$description = get_post_meta( $post->ID, '_jluxe_seo_description', true );
+	wp_nonce_field( 'jluxe_save_seo_post_meta', 'jluxe_seo_post_meta_nonce' );
+	?>
+	<p class="description">برای همین محصول، مطلب یا برگه یک عنوان و توضیحِ مشخص بنویس. این دو مورد فقط وقتی پوسته مالکِ متادیتاست یا افزونهٔ سئو برای این صفحه مقداری نداده استفاده می‌شوند؛ موتور جستجو ممکن است متنِ دیگری را برای نتیجه انتخاب کند.</p>
+	<p>
+		<label for="jluxe-seo-title"><strong>عنوان نتیجهٔ جستجو</strong></label><br />
+		<input type="text" class="widefat" id="jluxe-seo-title" name="jluxe_seo_title" value="<?php echo esc_attr( is_scalar( $title ) ? (string) $title : '' ); ?>" />
+	</p>
+	<p>
+		<label for="jluxe-seo-description"><strong>توضیح نتیجهٔ جستجو</strong></label><br />
+		<textarea class="widefat" id="jluxe-seo-description" name="jluxe_seo_description" rows="3"><?php echo esc_textarea( is_scalar( $description ) ? (string) $description : '' ); ?></textarea>
+	</p>
+	<?php
+}
+
+function jluxe_save_seo_post_meta( int $post_id, $post ): void {
+	$nonce = isset( $_POST['jluxe_seo_post_meta_nonce'] ) && is_scalar( $_POST['jluxe_seo_post_meta_nonce'] )
+		? sanitize_text_field( wp_unslash( (string) $_POST['jluxe_seo_post_meta_nonce'] ) )
+		: '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_save_seo_post_meta' ) ) {
+		return;
+	}
+	if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ( function_exists( 'wp_is_post_revision' ) && wp_is_post_revision( $post_id ) ) || ( function_exists( 'wp_is_post_autosave' ) && wp_is_post_autosave( $post_id ) ) ) {
+		return;
+	}
+	if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, array( 'post', 'page', 'product' ), true ) || ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$fields = array(
+		'jluxe_seo_title'       => array( '_jluxe_seo_title', 'sanitize_text_field' ),
+		'jluxe_seo_description' => array( '_jluxe_seo_description', 'sanitize_textarea_field' ),
+	);
+	foreach ( $fields as $input_name => $field ) {
+		$raw   = isset( $_POST[ $input_name ] ) && is_scalar( $_POST[ $input_name ] ) ? (string) wp_unslash( $_POST[ $input_name ] ) : '';
+		$value = call_user_func( $field[1], $raw );
+		if ( '' === trim( $value ) ) {
+			delete_post_meta( $post_id, $field[0] );
+		} else {
+			update_post_meta( $post_id, $field[0], $value );
+		}
+	}
+}
+add_action( 'save_post', 'jluxe_save_seo_post_meta', 10, 2 );
+
+/** Prefer the custom singular title only when no supported SEO plugin owns it. */
+function jluxe_filter_seo_document_title( string $title ): string {
+	if ( is_admin() || jluxe_seo_plugin_is_active() || ! is_singular() ) {
+		return $title;
+	}
+	$custom_title = jluxe_get_seo_post_field( 'title' );
+	return '' !== $custom_title ? $custom_title : $title;
+}
+add_filter( 'pre_get_document_title', 'jluxe_filter_seo_document_title', 20 );
 
 /**
  * سئوی پایه — عنوان/توضیحات/canonical/Open Graph/Twitter Card. طبقِ
@@ -1790,20 +1934,38 @@ function jluxe_current_canonical_url(): string {
  * همیشه اول اولویت داشته باشه.
  */
 /**
- * توضیح پیش‌فرض صفحه اصلی برای Rank Math؛ از ایجاد meta description تکراری جلوگیری می‌کند.
+ * Use theme-authored SEO fields only as plugin fallbacks; a non-empty value
+ * configured in Rank Math or Yoast remains authoritative.
  */
-function jluxe_rank_math_fallback_description( $description ) {
+function jluxe_seo_plugin_fallback_description( $description ) {
 	if ( is_admin() || '' !== trim( (string) $description ) ) {
 		return $description;
+	}
+	if ( is_singular() ) {
+		$custom = jluxe_get_seo_post_field( 'description', (int) get_queried_object_id() );
+		if ( '' !== $custom ) {
+			return $custom;
+		}
 	}
 	$settings = jluxe_get_theme_settings();
 	$fallback = $settings['identity']['short_description'] ?? '';
 	if ( is_front_page() && '' !== trim( (string) $fallback ) ) {
-		return trim( wp_strip_all_tags( (string) $fallback ) );
+		return jluxe_seo_plain_text( (string) $fallback );
 	}
-	return $description;
+	$default_description = jluxe_seo_plain_text( (string) ( $settings['seo']['default_meta_description'] ?? '' ) );
+	return '' !== $default_description ? $default_description : $description;
 }
-add_filter( 'rank_math/frontend/description', 'jluxe_rank_math_fallback_description', 20 );
+add_filter( 'rank_math/frontend/description', 'jluxe_seo_plugin_fallback_description', 20 );
+add_filter( 'wpseo_metadesc', 'jluxe_seo_plugin_fallback_description', 20 );
+
+function jluxe_seo_plugin_fallback_title( $title ) {
+	if ( is_admin() || '' !== trim( (string) $title ) || ! is_singular() ) {
+		return $title;
+	}
+	return jluxe_get_seo_post_field( 'title', (int) get_queried_object_id() ) ?: $title;
+}
+add_filter( 'rank_math/frontend/title', 'jluxe_seo_plugin_fallback_title', 20 );
+add_filter( 'wpseo_title', 'jluxe_seo_plugin_fallback_title', 20 );
 
 /**
  * Site-ownership verification tags are independent of the theme's fallback SEO
@@ -1832,7 +1994,7 @@ function jluxe_output_seo_meta(): void {
 	}
 	// یه پلاگینِ سئوی واقعی (رنک‌مث/یوست) از قبل همینِ تگ‌ها رو چاپ می‌کنه —
 	// اگه فعاله، این تابع کاملاً ساکت می‌مونه تا تگِ تکراری/متناقض تولید نشه.
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
+	if ( jluxe_seo_plugin_is_active() ) {
 		return;
 	}
 	$settings  = jluxe_get_theme_settings();
@@ -1844,11 +2006,11 @@ function jluxe_output_seo_meta(): void {
 	$og_type     = 'website';
 
 	if ( function_exists( 'is_product' ) && is_product() ) {
-		$og_type   = 'product';
+		$og_type    = 'product';
 		$wc_product = function_exists( 'wc_get_product' ) ? wc_get_product( get_queried_object_id() ) : null;
 		if ( $wc_product instanceof WC_Product ) {
-			$description = wp_strip_all_tags( $wc_product->get_short_description() ?: $wc_product->get_description() );
-			$image_id     = $wc_product->get_image_id();
+			$description = $wc_product->get_short_description() ?: $wc_product->get_description();
+			$image_id    = $wc_product->get_image_id();
 			if ( $image_id ) {
 				$image_url = (string) wp_get_attachment_image_url( $image_id, 'large' );
 			}
@@ -1856,20 +2018,35 @@ function jluxe_output_seo_meta(): void {
 	} elseif ( is_front_page() ) {
 		$description = $settings['identity']['short_description'];
 	} elseif ( is_singular() ) {
-		$og_type      = 'article';
-		$description  = has_excerpt() ? get_the_excerpt() : wp_strip_all_tags( get_post_field( 'post_content', get_queried_object_id() ) );
-		if ( has_post_thumbnail() ) {
-			$image_url = (string) get_the_post_thumbnail_url( get_queried_object_id(), 'large' );
+		$post_id = get_queried_object_id();
+		$og_type = 'post' === get_post_type( $post_id ) ? 'article' : 'website';
+		$description = has_excerpt( $post_id ) ? get_the_excerpt( $post_id ) : get_post_field( 'post_content', $post_id );
+		if ( has_post_thumbnail( $post_id ) ) {
+			$image_url = (string) get_the_post_thumbnail_url( $post_id, 'large' );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$description = term_description();
+		if ( function_exists( 'get_term_meta' ) ) {
+			$term_image_id = absint( get_term_meta( get_queried_object_id(), 'thumbnail_id', true ) );
+			if ( $term_image_id ) {
+				$image_url = (string) wp_get_attachment_image_url( $term_image_id, 'large' );
+			}
+		}
+	} elseif ( function_exists( 'is_author' ) && is_author() ) {
+		$description = get_the_author_meta( 'description', get_queried_object_id() );
 	}
 
-	$description = trim( wp_strip_all_tags( (string) $description ) );
+	if ( is_singular() ) {
+		$custom_description = jluxe_get_seo_post_field( 'description', (int) get_queried_object_id() );
+		if ( '' !== $custom_description ) {
+			$description = $custom_description;
+		}
+	}
+	$description = jluxe_seo_plain_text( (string) $description );
 	if ( '' === $description ) {
 		$description = $seo['default_meta_description'] ?: $settings['identity']['short_description'];
 	}
-	$description = trim( wp_trim_words( $description, 40, '…' ) );
+	$description = trim( wp_trim_words( $description, 35, '…' ) );
 
 	if ( '' !== $description ) {
 		printf( '<meta name="description" content="%s">' . "\n", esc_attr( $description ) );
@@ -1898,7 +2075,7 @@ function jluxe_output_seo_meta(): void {
 	if ( $canonical ) {
 		printf( '<meta property="og:url" content="%s">' . "\n", esc_url( $canonical ) );
 	}
-	printf( '<meta property="og:locale" content="fa_IR">' . "\n" );
+	printf( '<meta property="og:locale" content="%s">' . "\n", esc_attr( str_replace( '-', '_', jluxe_seo_language() ) ) );
 	if ( $image_url ) {
 		printf( '<meta property="og:image" content="%s">' . "\n", esc_url( $image_url ) );
 	}
@@ -1946,59 +2123,25 @@ function jluxe_noindex_utility_pages(): void {
 add_action( 'wp_head', 'jluxe_noindex_utility_pages', 5 );
 
 /**
- * BreadcrumbList (JSON-LD) — قبل از این کاملاً غایب بود (هیچ خروجیِ
- * application/ld+json با @type:BreadcrumbList توی هیچ صفحه‌ای چاپ
- * نمی‌شد). این نوع schema همون چیزیه که به گوگل اجازه می‌ده به‌جای URL
- * خام، مسیرِ ناوبریِ صفحه (خانه › دسته‌بندی › محصول) رو توی نتایجِ جستجو
- * نشون بده، و به موتورهای پاسخ‌گوی هوش‌مصنوعی هم صریحاً ساختارِ سایت رو
- * می‌گه (نه این‌که از رویِ URL حدس بزنن). مسیر دقیقاً منطبق با همون
- * breadcrumbِ بصری‌ایه که خودِ صفحه (content-single-product.php/single.php)
- * نشون می‌ده — چیزی که کاربر نمی‌بینه رو ادعا نمی‌کنیم.
+ * BreadcrumbList JSON-LD for indexable blog, taxonomy and shop archives.
+ * Product templates print their own visible-path breadcrumb once; SEO plugins
+ * own the graph when active. Structured data describes the page but does not
+ * guarantee a rich result or ranking change.
  */
 function jluxe_output_breadcrumb_schema(): void {
-	if ( is_admin() || is_front_page() ) {
+	if ( is_admin() || is_front_page() || ( function_exists( 'is_product' ) && is_product() ) ) {
+		// صفحهٔ محصول بردکرامبِ قالب خودش را در همان‌جا چاپ می‌کند؛ این خروجیِ wp_head
+		// قبلاً با آن یک BreadcrumbList تکراری می‌ساخت.
 		return;
 	}
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
-		return; // این پلاگین‌ها معمولاً خودشون BreadcrumbList می‌سازن؛ از تکراری‌شدن جلوگیری می‌کنیم.
+	if ( jluxe_seo_plugin_is_active() ) {
+		return; // افزونهٔ سئو مالکِ دادهٔ ساختاریافته است؛ از تکرار جلوگیری می‌کنیم.
 	}
 
 	$items   = array();
 	$items[] = array( 'خانه', home_url( '/' ) );
 
-	if ( function_exists( 'is_product' ) && is_product() ) {
-		$product_id = get_queried_object_id();
-		$terms      = get_the_terms( $product_id, 'product_cat' );
-		if ( $terms && ! is_wp_error( $terms ) ) {
-			// اولین ترمِ بدونِ فرزند (یا اولین ترم اگه هیچ‌کدوم فرزند نداشتن) —
-			// نزدیک‌ترین دسته‌بندیِ واقعی به خودِ محصول.
-			$primary = $terms[0];
-			foreach ( $terms as $t ) {
-				if ( 0 !== (int) $t->parent ) {
-					$primary = $t;
-					break;
-				}
-			}
-			// مسیرِ کاملِ والدها (دسته‌ی مادر ← ... ← زیرترین دسته).
-			$chain = array( $primary );
-			$p     = $primary;
-			while ( $p->parent ) {
-				$parent = get_term( $p->parent, 'product_cat' );
-				if ( ! $parent || is_wp_error( $parent ) ) {
-					break;
-				}
-				array_unshift( $chain, $parent );
-				$p = $parent;
-			}
-			foreach ( $chain as $term ) {
-				$link = get_term_link( $term );
-				if ( ! is_wp_error( $link ) ) {
-					$items[] = array( $term->name, (string) $link );
-				}
-			}
-		}
-		$items[] = array( get_the_title( $product_id ), (string) get_permalink( $product_id ) );
-	} elseif ( is_singular( 'post' ) ) {
+	if ( is_singular( 'post' ) ) {
 		$blog_url = get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog' );
 		$items[]  = array( 'بلاگ', (string) $blog_url );
 		$cats     = get_the_category();
@@ -2051,46 +2194,73 @@ function jluxe_output_breadcrumb_schema(): void {
 		'@type'           => 'BreadcrumbList',
 		'itemListElement' => $list_items,
 	);
-	echo '<script type="application/ld+json">' . wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>' . "\n";
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( $markup ) . '</script>' . "\n";
 }
 add_action( 'wp_head', 'jluxe_output_breadcrumb_schema', 6 );
 
 /**
- * Article (JSON-LD) برای پست‌های بلاگ — از وقتی single.php ساخته شد،
- * هیچ schema ای همراهش نبود. این یکی هم دقیقاً همون شرطِ رنک‌مث/یوست رو
- * داره تا اگه اون پلاگین‌ها فعالن، تکراری چاپ نشه.
+ * Article JSON-LD for blog posts, linked to the site's Organization and the
+ * real WordPress author. Supported SEO plugins retain ownership of their graph.
  */
 function jluxe_output_article_schema(): void {
-	if ( is_admin() || ! is_singular( 'post' ) ) {
-		return;
-	}
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
+	if ( is_admin() || ! is_singular( 'post' ) || jluxe_seo_plugin_is_active() ) {
 		return;
 	}
 
-	$settings  = jluxe_get_theme_settings();
-	$site_name = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
-	$post_id   = get_queried_object_id();
+	$settings       = jluxe_get_theme_settings();
+	$site_name      = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
+	$post_id        = get_queried_object_id();
+	$post_url       = (string) get_permalink( $post_id );
+	$author_id      = absint( get_post_field( 'post_author', $post_id ) );
+	$author_name    = jluxe_seo_plain_text( (string) get_the_author_meta( 'display_name', $author_id ) );
+	$author_url     = $author_id ? (string) get_author_posts_url( $author_id ) : '';
+	$description    = has_excerpt( $post_id ) ? get_the_excerpt( $post_id ) : get_post_field( 'post_content', $post_id );
+	$description    = jluxe_seo_plain_text( (string) $description );
 
 	$markup = array(
 		'@context'         => 'https://schema.org',
 		'@type'            => 'Article',
-		'headline'         => get_the_title( $post_id ),
+		'@id'              => $post_url . '#article',
+		'url'              => $post_url,
+		'headline'         => jluxe_seo_plain_text( (string) get_the_title( $post_id ) ),
 		'mainEntityOfPage' => array(
 			'@type' => 'WebPage',
-			'@id'   => get_permalink( $post_id ),
+			'@id'   => $post_url,
 		),
 		'datePublished'    => get_the_date( 'c', $post_id ),
 		'dateModified'     => get_the_modified_date( 'c', $post_id ),
-		'author'           => array(
-			'@type' => 'Person',
-			'name'  => get_the_author_meta( 'display_name', get_post_field( 'post_author', $post_id ) ),
-		),
+		'inLanguage'       => jluxe_seo_language(),
 		'publisher'        => array(
 			'@type' => 'Organization',
+			'@id'   => home_url( '/#organization' ),
 			'name'  => $site_name,
 		),
 	);
+
+	if ( '' !== $description ) {
+		$markup['description'] = $description;
+	}
+	if ( '' !== $author_name ) {
+		$markup['author'] = array(
+			'@type' => 'Person',
+			'@id'   => $author_url ? $author_url . '#person' : $post_url . '#author',
+			'name'  => $author_name,
+		);
+		if ( $author_url ) {
+			$markup['author']['url'] = $author_url;
+		}
+	}
+
+	$categories = get_the_category( $post_id );
+	$sections   = array();
+	foreach ( (array) $categories as $category ) {
+		if ( isset( $category->name ) && '' !== trim( (string) $category->name ) ) {
+			$sections[] = (string) $category->name;
+		}
+	}
+	if ( ! empty( $sections ) ) {
+		$markup['articleSection'] = array_values( array_unique( $sections ) );
+	}
 
 	$logo_url = function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
 	if ( $logo_url ) {
@@ -2103,61 +2273,90 @@ function jluxe_output_article_schema(): void {
 		$markup['image'] = array( (string) get_the_post_thumbnail_url( $post_id, 'full' ) );
 	}
 
-	echo '<script type="application/ld+json">' . wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>' . "\n";
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( $markup ) . '</script>' . "\n";
 }
 add_action( 'wp_head', 'jluxe_output_article_schema', 6 );
 
 /**
- * JSON-LD سازمانی (Organization) — سراسریِ سایت، طبقِ درخواستِ صریحِ کاربر
- * («مناسبِ سئوی گوگل و هوش مصنوعی»). این نوع schema مستقل از هر پلاگین/
- * قالبِ خاصیه و به گوگل/موتورهای پاسخ‌گوی هوش‌مصنوعی (که برای شناختِ
- * «این سایت مالِ کدوم برنده» به همین JSON-LD تکیه می‌کنن، نه حدسِ متن)
- * می‌گه این سایت واقعاً مالِ کدوم برند/فروشگاهه — نام، آدرس، لوگو، شبکه‌های
- * اجتماعی (sameAs). خروجیِ ووکامرس (generate_website_data در
- * inc/woocommerce.php) این رو تکمیل می‌کنه، جایگزینش نمی‌شه.
+ * Organization identity is emitted once, from real site settings. Supported
+ * SEO plugins own their graph, so the theme yields instead of printing a
+ * second, potentially conflicting Organization entity.
  */
 function jluxe_output_organization_schema(): void {
-	if ( is_admin() ) {
+	if ( is_admin() || jluxe_seo_plugin_is_active() ) {
 		return;
 	}
-	$settings = jluxe_get_theme_settings();
+	$settings  = jluxe_get_theme_settings();
 	$site_name = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
-
-	$same_as = array();
-	foreach ( (array) ( $settings['social'] ?? array() ) as $row ) {
-		if ( ! empty( $row['enabled'] ) && ! empty( $row['url'] ) ) {
-			$same_as[] = $row['url'];
-		}
-	}
+	$site_url  = home_url( '/' );
 
 	$markup = array(
 		'@context' => 'https://schema.org',
 		'@type'    => 'Organization',
+		'@id'      => $site_url . '#organization',
 		'name'     => $site_name,
-		'url'      => home_url( '/' ),
+		'url'      => $site_url,
 	);
+
+	$description = jluxe_seo_plain_text( (string) ( $settings['identity']['short_description'] ?? '' ) );
+	if ( '' !== $description ) {
+		$markup['description'] = $description;
+	}
 
 	$logo_url = function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
 	if ( $logo_url ) {
-		$markup['logo'] = $logo_url;
-	}
-
-	$phone = $settings['contact']['phone'] ?? '';
-	if ( $phone ) {
-		$markup['contactPoint'] = array(
-			'@type'       => 'ContactPoint',
-			'telephone'   => $phone,
-			'contactType' => 'customer service',
+		$markup['logo'] = array(
+			'@type' => 'ImageObject',
+			'@id'   => $logo_url . '#logo',
+			'url'   => $logo_url,
 		);
 	}
 
+	$phones = array_filter(
+		array_unique(
+			array_map(
+				'sanitize_text_field',
+				array( $settings['contact']['phone'] ?? '', $settings['contact']['phone_secondary'] ?? '' )
+			)
+		)
+	);
+	$email   = sanitize_email( (string) ( $settings['contact']['email'] ?? '' ) );
+	$contact = array( '@type' => 'ContactPoint', 'contactType' => 'customer service' );
+	if ( ! empty( $phones ) ) {
+		$contact['telephone'] = 1 === count( $phones ) ? reset( $phones ) : array_values( $phones );
+	}
+	if ( is_email( $email ) ) {
+		$contact['email'] = $email;
+	}
+	if ( count( $contact ) > 2 ) {
+		$markup['contactPoint'] = $contact;
+	}
+
+	$address = jluxe_seo_plain_text( (string) ( $settings['contact']['address'] ?? '' ) );
+	if ( '' !== $address ) {
+		// Only the entered public address is emitted; no city, region or country is inferred.
+		$markup['address'] = array(
+			'@type'        => 'PostalAddress',
+			'streetAddress' => $address,
+		);
+	}
+
+	$same_as = array();
+	foreach ( (array) ( $settings['social'] ?? array() ) as $row ) {
+		if ( ! empty( $row['enabled'] ) && ! empty( $row['url'] ) ) {
+			$url = esc_url_raw( (string) $row['url'] );
+			if ( '' !== $url ) {
+				$same_as[] = $url;
+			}
+		}
+	}
 	if ( ! empty( $same_as ) ) {
-		$markup['sameAs'] = array_values( $same_as );
+		$markup['sameAs'] = array_values( array_unique( $same_as ) );
 	}
 
 	printf(
 		'<script type="application/ld+json">%s</script>' . "\n",
-		wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
+		jluxe_jsonld_encode( $markup )
 	);
 }
 add_action( 'wp_head', 'jluxe_output_organization_schema', 6 );

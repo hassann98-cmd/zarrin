@@ -140,14 +140,10 @@ function jluxe_get_product_faq_items( int $product_id ): array {
 }
 
 /**
- * FAQPage schema (JSON-LD) — طبقِ ممیزیِ سئو/GEO: این محتوا (سوال/پاسخِ
- * واقعیِ هر محصول) از قبل تویِ دیتابیس بود ولی هیچ‌جا به‌صورتِ ساختاریافته
- * (structured data) اعلام نمی‌شد — یعنی نه ریچ‌اسنیپتِ گوگل ازش استفاده
- * می‌کرد، نه موتورهای جستجویِ AI-محور (که برایِ فهمِ محتوا بیشتر از
- * schema.org استفاده می‌کنن تا صرفاً متنِ HTML). چون همون داده‌ی واقعی که
- * قبلاً در jluxe_render_product_faq_section نمایش داده می‌شه این‌جا هم
- * استفاده می‌شه، ریسکِ محتوایِ ساختگی/ناهماهنگ صفر است — اگه محصول سوالی
- * نداشته باشه، هیچ schema‌ای چاپ نمی‌شه (نه یک FAQPage خالی/جعلی).
+ * FAQPage JSON-LD mirrors the same editor-managed questions and answers that
+ * are visibly rendered on the product page. It gives parsers explicit Q/A
+ * boundaries without inventing facts; search engines decide whether to use it
+ * and it is not a promise of an FAQ rich result or ranking change.
  */
 function jluxe_output_product_faq_schema(): void {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -192,7 +188,7 @@ function jluxe_output_product_faq_schema(): void {
 
 	printf(
 		'<script type="application/ld+json">%s</script>' . "\n",
-		wp_json_encode( $schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode خودش escape امنِ JSON انجام می‌ده؛ متنِ داخلش هم قبلاً wp_strip_all_tags شده.
+		jluxe_jsonld_encode( $schema ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-LD encoder emits safe, hex-escaped JSON for script context.
 	);
 }
 add_action( 'wp_head', 'jluxe_output_product_faq_schema', 25 );
