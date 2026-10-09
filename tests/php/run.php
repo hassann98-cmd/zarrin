@@ -3521,12 +3521,12 @@ $r178_grid_sanitized = jluxe_sanitize_homepage_section( array(
 	'items' => array( array( 'term_id' => '901' ), array( 'term_id' => '902' ) ),
 ) );
 $r178_showcase_sanitized = jluxe_sanitize_homepage_section( array(
-	'id' => 'r178-showcase', 'type' => 'category_showcase', 'title' => 'ویژه', 'layout' => 'grid',
-	'alignment' => 'center', 'cards_alignment' => 'center', 'mobile_layout' => 'row', 'mobile_columns' => '3',
-	'section_bg_mode' => 'color', 'section_bg_color' => '#112233', 'section_border_color' => '#223344',
-	'card_bg_color' => '#334455', 'card_border_color' => '#445566', 'accent_color' => '#556677',
-	'heading_color' => '#667788', 'muted_color' => '#778899', 'card_text_color' => '#8899AA',
-	'items' => array( array( 'term_id' => '901' ), array( 'term_id' => '902' ) ),
+	'id' => 'r178-showcase', 'type' => 'category_showcase', 'layout' => 'grid',
+	'mobile_layout' => 'row', 'mobile_columns' => '3', 'image_shape' => 'circle',
+	'image_frame_mode' => 'transparent', 'card_text_color' => '#8899AA',
+	// مقادیر قدیمیِ رنگ عمداً نباید پس‌زمینه یا قاب اجباری ایجاد کنند.
+	'section_bg_mode' => 'color', 'section_bg_color' => '#112233', 'card_bg_color' => '#334455',
+	'items' => array( array( 'term_id' => '901' ) ),
 ) );
 check(
 	'end' === $r178_grid_sanitized['cards_alignment'] && 'start' === $r178_grid_sanitized['alignment'] &&
@@ -3534,29 +3534,26 @@ check(
 	'R178 the legacy category section sanitizes card-group alignment independently from inside-card alignment and clamps mobile columns'
 );
 check(
-	'row' === $r178_showcase_sanitized['mobile_layout'] && '#223344' === $r178_showcase_sanitized['section_border_color'] &&
-	'#334455' === $r178_showcase_sanitized['card_bg_color'] && '#445566' === $r178_showcase_sanitized['card_border_color'] &&
-	'#556677' === $r178_showcase_sanitized['accent_color'] && '#667788' === $r178_showcase_sanitized['heading_color'] &&
-	'#778899' === $r178_showcase_sanitized['muted_color'] && '#8899AA' === $r178_showcase_sanitized['card_text_color'],
-	'R178 the category showcase sanitizer preserves every requested card, border, accent, title, subtitle, and text color'
+	'row' === $r178_showcase_sanitized['mobile_layout'] && 'grid' === $r178_showcase_sanitized['layout'] &&
+	'circle' === $r178_showcase_sanitized['image_shape'] && 'transparent' === $r178_showcase_sanitized['image_frame_mode'] &&
+	'#8899AA' === $r178_showcase_sanitized['card_text_color'] && ! isset( $r178_showcase_sanitized['section_bg_color'] ) &&
+	! isset( $r178_showcase_sanitized['card_bg_color'] ) && 'category' === $r178_showcase_sanitized['items'][0]['mode'],
+	'R178 showcase sanitization keeps independent desktop/mobile layout and optional shape/text controls while discarding legacy background colors'
 );
 ob_start();
 jluxe_render_homepage_category_showcase( array_merge( $r178_showcase_sanitized, array( 'mobile_layout' => 'grid', 'mobile_columns' => 3 ) ) );
 $r178_showcase_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r178_showcase_html, 'data-mobile-layout="grid"' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-cards-justify:center' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-bg:#112233' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-section-border:#223344' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-bg:#334455' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-border:#445566' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-accent:#556677' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-heading:#667788' ) &&
-	false !== strpos( $r178_showcase_html, '--jluxe-showcase-muted:#778899' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-image-radius:9999px' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-image-frame-width:1px' ) &&
+	false !== strpos( $r178_showcase_html, '--jluxe-showcase-image-frame-color:transparent' ) &&
 	false !== strpos( $r178_showcase_html, '--jluxe-showcase-card-text:#8899AA' ) &&
-	false !== strpos( $r178_showcase_html, '.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card' ) &&
-	false !== strpos( $r178_showcase_html, '.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered' ),
-	'R178 category showcase outputs its mobile grid, centered card group, and configured section/card/accent colors'
+	false !== strpos( $r178_showcase_html, '--jluxe-mobile-columns:3' ) &&
+	false !== strpos( $r178_showcase_html, 'background:transparent' ) &&
+	false === strpos( $r178_showcase_html, '#112233' ) && false === strpos( $r178_showcase_html, '#334455' ) &&
+	false === strpos( $r178_showcase_html, 'jluxe-category-showcase-head' ),
+	'R178 showcase renders transparent backgrounds, an explicitly transparent frame, the chosen text color, and independent mobile layout without a heading'
 );
 ob_start();
 jluxe_render_homepage_category_grid( array(
@@ -3627,45 +3624,102 @@ $r179_showcase_defaults = jluxe_sanitize_homepage_section( array(
 	'id' => 'r179-showcase-defaults', 'type' => 'category_showcase', 'items' => array( array( 'term_id' => 901 ) ),
 ) );
 $r179_showcase_saved = jluxe_sanitize_homepage_section( array(
-	'id' => 'r179-showcase', 'type' => 'category_showcase', 'title' => 'ویژه', 'layout' => 'grid',
-	'mobile_layout' => 'grid', 'mobile_columns' => '4', 'image_fit' => 'original', 'image_width' => '900', 'image_height' => '72',
-	'alignment' => 'start', 'cards_alignment' => 'end', 'show_section_heading' => '0', 'show_category_names' => '0',
-	'image_frame_enabled' => '0', 'card_frame_enabled' => '0', 'section_background_enabled' => '0', 'section_border_enabled' => '1',
-	'image_bg_mode' => 'transparent', 'section_border_color' => '#123ABC',
-	'items' => array( array( 'term_id' => 901, 'image_id' => 985, 'display_name' => 'نام دلخواه' ) ),
+	'id' => 'r179-showcase', 'type' => 'category_showcase', 'layout' => 'row',
+	'mobile_layout' => 'grid', 'mobile_columns' => '4', 'image_shape' => 'square',
+	'image_frame_mode' => 'color', 'image_frame_color' => '#123ABC', 'card_text_color' => '#778899',
+	'show_category_names' => '0', 'section_background_enabled' => '1', 'section_bg_color' => '#AABBCC', 'card_bg_color' => '#CCDDEE',
+	'items' => array(
+		array( 'mode' => 'category', 'term_id' => 901, 'image_id' => 985, 'display_name' => 'نام دلخواه' ),
+		array( 'mode' => 'image', 'term_id' => 901, 'image_id' => 986, 'display_name' => 'تصویر ویژه', 'link' => 'https://shop.test/new-page/' ),
+		array( 'mode' => 'image', 'image_id' => 0, 'link' => 'https://shop.test/no-image/' ),
+		array( 'mode' => 'category', 'term_id' => 99999, 'image_id' => 987 ),
+	),
 ) );
 check(
-	'cover' === $r179_showcase_defaults['image_fit'] && false === $r179_showcase_defaults['section_border_enabled'] &&
-	true === $r179_showcase_defaults['show_category_names'] && true === $r179_showcase_defaults['card_frame_enabled'] &&
-	600 === $r179_showcase_saved['image_width'] && 72 === $r179_showcase_saved['image_height'] &&
-	'original' === $r179_showcase_saved['image_fit'] && false === $r179_showcase_saved['show_category_names'] &&
-	false === $r179_showcase_saved['show_section_heading'] && false === $r179_showcase_saved['image_frame_enabled'] &&
-	false === $r179_showcase_saved['card_frame_enabled'] && true === $r179_showcase_saved['section_border_enabled'] &&
-	'#123ABC' === $r179_showcase_saved['section_border_color'],
-	'R179 showcase settings sanitize dimensions, optional labels, frame toggles, original fit, and the default-off section border'
+	'grid' === $r179_showcase_defaults['layout'] && 'grid' === $r179_showcase_defaults['mobile_layout'] &&
+	3 === $r179_showcase_defaults['mobile_columns'] && 'none' === $r179_showcase_defaults['image_shape'] &&
+	'none' === $r179_showcase_defaults['image_frame_mode'] && true === $r179_showcase_defaults['show_category_names'] &&
+	'#303936' === $r179_showcase_defaults['card_text_color'] && 'category' === $r179_showcase_defaults['items'][0]['mode'] &&
+	! isset( $r179_showcase_defaults['section_bg_color'] ) && ! isset( $r179_showcase_defaults['card_bg_color'] ),
+	'R179 showcase defaults to independent grid layouts, optional frames, visible category names, and no saved background colors'
 );
-$GLOBALS['attachment_image_urls'][985] = array( 'full' => 'https://shop.test/store/r179-transparent-full.png' );
-$GLOBALS['attachment_srcsets'][985] = array( 'full' => 'https://shop.test/store/r179-transparent-full.png 1200w' );
-$GLOBALS['attachment_image_sources'][985] = array( 'https://shop.test/store/r179-transparent-full.png', 1200, 600, true );
+check(
+	2 === count( $r179_showcase_saved['items'] ) && 'category' === $r179_showcase_saved['items'][0]['mode'] &&
+	901 === $r179_showcase_saved['items'][0]['term_id'] && 'image' === $r179_showcase_saved['items'][1]['mode'] &&
+	0 === $r179_showcase_saved['items'][1]['term_id'] && 'https://shop.test/new-page/' === $r179_showcase_saved['items'][1]['link'] &&
+	false === $r179_showcase_saved['show_category_names'] && 'color' === $r179_showcase_saved['image_frame_mode'] &&
+	'#123ABC' === $r179_showcase_saved['image_frame_color'] && ! isset( $r179_showcase_saved['section_background_enabled'] ),
+	'R179 sanitizer supports category and custom-image/link items, drops incomplete entries, and never saves legacy section/card backgrounds'
+);
+
 ob_start();
-jluxe_render_homepage_category_showcase( $r179_showcase_saved );
+jluxe_render_homepage_section_editor( 0, array( 'id' => 'r179-editor', 'type' => 'category_showcase', 'enabled' => true ), jluxe_homepage_section_types() );
+$r179_showcase_editor_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_showcase_editor_html, 'items][0][mode]' ) &&
+	false !== strpos( $r179_showcase_editor_html, 'items][0][link]' ) &&
+	false !== strpos( $r179_showcase_editor_html, 'تصویر دلخواه + لینک' ) &&
+	false !== strpos( $r179_showcase_editor_html, 'رنگ عنوان زیر تصویر' ) &&
+	false !== strpos( $r179_showcase_editor_html, 'image_frame_mode' ) &&
+	false === strpos( $r179_showcase_editor_html, '[section_bg_color]' ) &&
+	false === strpos( $r179_showcase_editor_html, '[card_bg_color]' ) &&
+	false === strpos( $r179_showcase_editor_html, '[show_section_heading]' ) &&
+	false === strpos( $r179_showcase_editor_html, '[image_width]' ),
+	'R179 showcase editor exposes only category/image-link, optional frame/text, and layout controls—not the legacy forced-background fields'
+);
+
+$GLOBALS['attachment_image_urls'][985] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-category.png' );
+$GLOBALS['attachment_srcsets'][985] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-category.png 1200w' );
+$GLOBALS['attachment_image_sources'][985] = array( 'https://shop.test/store/r179-category.png', 1200, 600, true );
+$GLOBALS['attachment_image_urls'][986] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-custom.png' );
+$GLOBALS['attachment_srcsets'][986] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-custom.png 800w' );
+$GLOBALS['attachment_image_sources'][986] = array( 'https://shop.test/store/r179-custom.png', 800, 800, true );
+$r179_showcase_visible = array_merge( $r179_showcase_saved, array(
+	'show_category_names' => true,
+	// داده‌های ذخیره‌شدهٔ قدیمی نباید پس‌زمینه را دوباره فعال کنند.
+	'section_background_enabled' => true, 'section_bg_mode' => 'color', 'section_bg_color' => '#AABBCC',
+	'card_frame_enabled' => true, 'card_bg_color' => '#CCDDEE',
+) );
+ob_start();
+jluxe_render_homepage_category_showcase( $r179_showcase_visible );
 $r179_showcase_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-transparent-full.png"' ) &&
-	false !== strpos( $r179_showcase_html, 'width="1200" height="600"' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-cards-justify:flex-end' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-section-align:flex-start' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-image-width:600px;--jluxe-image-height:72px' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-image-frame-border-width:0px' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-card-border-width:0px' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-showcase-bg:transparent' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-showcase-section-border-width:1px' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-showcase-section-border:#123ABC' ) &&
+	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-category.png"' ) &&
+	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-custom.png"' ) &&
+	false !== strpos( $r179_showcase_html, 'href="https://shop.test/store/category/gold/"' ) &&
+	false !== strpos( $r179_showcase_html, 'href="https://shop.test/new-page/"' ) &&
+	false !== strpos( $r179_showcase_html, 'نام دلخواه' ) && false !== strpos( $r179_showcase_html, 'تصویر ویژه' ) &&
 	false !== strpos( $r179_showcase_html, 'data-mobile-layout="grid"' ) &&
-	false !== strpos( $r179_showcase_html, '--jluxe-mobile-columns:4' ) &&
-	false === strpos( $r179_showcase_html, '<span class="jluxe-category-showcase-name">' ) &&
-	false === strpos( $r179_showcase_html, '<div class="jluxe-category-showcase-head">' ),
-	'R179 original transparent category artwork keeps its aspect ratio while mobile/group alignment, image-only mode, and optional section border render'
+	false !== strpos( $r179_showcase_html, 'class="jluxe-category-showcase-row"' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-radius:14px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-width:1px' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-color:#123ABC' ) &&
+	false !== strpos( $r179_showcase_html, '--jluxe-showcase-card-text:#778899' ) &&
+	false !== strpos( $r179_showcase_html, 'background:transparent' ) &&
+	false === strpos( $r179_showcase_html, '#AABBCC' ) && false === strpos( $r179_showcase_html, '#CCDDEE' ) &&
+	false === strpos( $r179_showcase_html, 'jluxe-category-showcase-head' ),
+	'R179 frontend links custom artwork to its destination, keeps category destinations automatic, and renders the optional frame/text without backgrounds'
+);
+$r179_showcase_image_only = array_merge( $r179_showcase_visible, array( 'show_category_names' => false, 'image_frame_mode' => 'none', 'mobile_layout' => 'row' ) );
+ob_start();
+jluxe_render_homepage_category_showcase( $r179_showcase_image_only );
+$r179_showcase_image_only_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_showcase_image_only_html, 'jluxe-category-showcase-image-only' ) &&
+	false === strpos( $r179_showcase_image_only_html, '<span class="jluxe-category-showcase-name">' ) &&
+	false !== strpos( $r179_showcase_image_only_html, '--jluxe-showcase-image-frame-width:0px' ) &&
+	false !== strpos( $r179_showcase_image_only_html, '--jluxe-showcase-image-frame-color:transparent' ) &&
+	false !== strpos( $r179_showcase_image_only_html, 'data-mobile-layout="row"' ),
+	'R179 can show images alone, remove the frame entirely, and select a separate mobile row layout'
+);
+$r179_showcase_transparent_frame = array_merge( $r179_showcase_visible, array( 'image_frame_mode' => 'transparent' ) );
+ob_start();
+jluxe_render_homepage_category_showcase( $r179_showcase_transparent_frame );
+$r179_showcase_transparent_frame_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r179_showcase_transparent_frame_html, '--jluxe-showcase-image-frame-width:1px' ) &&
+	false !== strpos( $r179_showcase_transparent_frame_html, '--jluxe-showcase-image-frame-color:transparent' ),
+	'R179 transparent frame keeps its optional shape without requiring a visible frame color'
 );
 
 $r91rows = jluxe_categories_page_rows( $r91s );
@@ -3706,7 +3760,7 @@ check( 'custom' === $r91sec['view_all_mode'] && 'همه' === $r91sec['view_all_t
 $r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_showcase', 'id' => 'cs', 'view_all_mode' => 'nope' ) );
 check( 'categories_page' === $r91sec['view_all_mode'], 'R91 unknown mode → categories page' );
 $r91hp = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
-check( 2 === substr_count( $r91hp, 'jluxe_render_category_view_all_fields( $name, $section );' ) && 2 === substr_count( $r91hp, 'jluxe_category_section_view_all( $section )' ) && false === strpos( $r91hp, 'class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( \'مشاهده همه محصولات بخش' ), 'R91 both category sections use the editable button (no hard-coded shop link)' );
+check( 1 === substr_count( $r91hp, 'jluxe_render_category_view_all_fields( $name, $section );' ) && 1 === substr_count( $r91hp, 'jluxe_category_section_view_all( $section )' ) && false === strpos( $r91hp, 'jluxe-category-showcase-all' ) && false === strpos( $r91hp, 'class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( \'مشاهده همه محصولات بخش' ), 'R91 only the legacy category-grid section keeps its editable «show all» control; the simplified showcase omits the extra heading/button' );
 
 // قالب + پیشخوان
 check( is_file( ABSPATH . 'page-product-categories.php' ) && false !== strpos( (string) file_get_contents( ABSPATH . 'page-product-categories.php' ), 'jluxe_render_categories_page()' ), 'R91 page template exists' );

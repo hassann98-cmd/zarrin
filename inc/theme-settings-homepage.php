@@ -286,52 +286,29 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					break;
 
 				case 'category_showcase':
-					jluxe_hb_field_text( $name, 'title', 'عنوان', $section['title'] ?? '' );
-					jluxe_render_category_view_all_fields( $name, $section );
-					jluxe_hb_field_select( $name, 'layout', 'چیدمان دسکتاپ', $section['layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی اسکرول‌شونده' ) );
-					jluxe_hb_field_select( $name, 'cards_alignment', 'تراز گروه کادرهای دسته‌بندی', $section['cards_alignment'] ?? 'center', array( 'start' => 'راست', 'center' => 'وسط', 'end' => 'چپ' ) );
-					jluxe_hb_field_select( $name, 'mobile_layout', 'چیدمان دسته‌ها در موبایل', $section['mobile_layout'] ?? 'inherit', array( 'inherit' => 'مطابق چیدمان اصلی', 'row' => 'افقی با فلش‌های قبلی/بعدی', 'grid' => 'شبکه‌ای چندستونه' ) );
-					jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد کادر در هر ردیف موبایل', $section['mobile_columns'] ?? 3, array( 2 => '۲ کادر', 3 => '۳ کادر', 4 => '۴ کادر', 5 => '۵ کادر', 6 => '۶ کادر' ) );
-					jluxe_hb_field_select( $name, 'show_section_heading', 'عنوان و دکمهٔ بالای بخش', ( ! array_key_exists( 'show_section_heading', $section ) || ! empty( $section['show_section_heading'] ) ) ? '1' : '0', array( '1' => 'نمایش', '0' => 'مخفی؛ فقط کارت‌ها' ) );
-					jluxe_hb_field_select( $name, 'show_category_names', 'نام زیر تصویر دسته‌ها', ( ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] ) ) ? '1' : '0', array( '1' => 'نمایش نام انتخابی/دسته', '0' => 'مخفی؛ فقط تصویر' ) );
-					jluxe_hb_field_select( $name, 'image_shape', 'شکل تصویر', $section['image_shape'] ?? 'circle', array( 'circle' => 'دایره‌ای', 'square' => 'مربع با گوشه گرد', 'none' => 'بدون کادر' ) );
-					jluxe_hb_field_select( $name, 'image_fit', 'نحوهٔ نمایش و ابعاد تصویر', $section['image_fit'] ?? 'cover', array( 'cover' => 'پرکردن قاب (ممکن است برش بخورد)', 'contain' => 'نمایش کامل در اندازهٔ دلخواه، بدون برش', 'original' => 'نسبت اصلی فایل ارسالی، بدون برش' ) );
-					jluxe_hb_field_select( $name, 'alignment', 'تراز تصویر و نام داخل هر کارت', $section['alignment'] ?? 'center', array( 'start' => 'راست', 'center' => 'وسط', 'end' => 'چپ' ) );
-					jluxe_hb_field_number( $name, 'image_width', 'حداکثر عرض تصویر (px)', $section['image_width'] ?? $section['image_size'] ?? 146, 40, 600 );
-					jluxe_hb_field_number( $name, 'image_height', 'حداکثر ارتفاع تصویر (px)', $section['image_height'] ?? $section['image_size'] ?? 146, 40, 600 );
-					jluxe_hb_field_select( $name, 'image_frame_enabled', 'کادر/پس‌زمینهٔ زیر تصویر', ( ! array_key_exists( 'image_frame_enabled', $section ) || ! empty( $section['image_frame_enabled'] ) ) ? '1' : '0', array( '0' => 'خاموش؛ شفاف', '1' => 'روشن' ) );
-					jluxe_hb_field_select( $name, 'card_frame_enabled', 'پس‌زمینه و حاشیهٔ کارت دسته', ( ! array_key_exists( 'card_frame_enabled', $section ) || ! empty( $section['card_frame_enabled'] ) ) ? '1' : '0', array( '0' => 'خاموش؛ بدون کادر', '1' => 'روشن' ) );
-					jluxe_hb_field_select( $name, 'section_background_enabled', 'پس‌زمینهٔ رنگی سکشن', ( ! array_key_exists( 'section_background_enabled', $section ) || ! empty( $section['section_background_enabled'] ) ) ? '1' : '0', array( '0' => 'خاموش؛ هم‌رنگ صفحه', '1' => 'روشن' ) );
-					jluxe_hb_field_select( $name, 'section_border_enabled', 'کادر دور سکشن', ! empty( $section['section_border_enabled'] ) ? '1' : '0', array( '0' => 'خاموش', '1' => 'روشن' ) );
-					jluxe_hb_field_number( $name, 'section_radius', 'گردی کادر اصلی (px)', $section['section_radius'] ?? 40, 12, 56 );
-					jluxe_hb_field_number( $name, 'card_radius', 'گردی کارت دسته (px)', $section['card_radius'] ?? 20, 0, 40 );
-					jluxe_hb_field_select( $name, 'image_bg_mode', 'رنگ قاب تصویر (وقتی کادر روشن است)', $section['image_bg_mode'] ?? 'color', array( 'color' => 'رنگ دلخواه', 'transparent' => 'شفاف' ) );
-					jluxe_hb_field_color( $name, 'image_bg_color', 'رنگ پس‌زمینه‌ی قاب تصویر', $section['image_bg_color'] ?? '#FFFFFF' );
-					jluxe_hb_field_select( $name, 'section_bg_mode', 'نوع پس‌زمینهٔ سکشن', $section['section_bg_mode'] ?? 'color', array( 'color' => 'رنگ دلخواه', 'transparent' => 'شفاف' ) );
-					jluxe_hb_field_color( $name, 'section_bg_color', 'رنگ پس‌زمینه‌ی سکشن', $section['section_bg_color'] ?? '#F7F7F5' );
-					jluxe_hb_field_color( $name, 'section_border_color', 'رنگ کادر سکشن (خاکستری)', $section['section_border_color'] ?? '#E0E4E1' );
-					jluxe_hb_field_color( $name, 'card_bg_color', 'رنگ پس‌زمینه‌ی کادرهای دسته', $section['card_bg_color'] ?? '#FFFFFF' );
-					jluxe_hb_field_color( $name, 'card_border_color', 'رنگ کادرهای دسته و قاب عکس', $section['card_border_color'] ?? '#E1E5E2' );
-					jluxe_hb_field_color( $name, 'accent_color', 'رنگ تأکیدی و کادر قهوه‌ای', $section['accent_color'] ?? '#B58A3A' );
-					jluxe_hb_field_color( $name, 'heading_color', 'رنگ عنوان', $section['heading_color'] ?? '#18201D' );
-					jluxe_hb_field_color( $name, 'muted_color', 'رنگ زیرعنوان', $section['muted_color'] ?? '#747C78' );
-					jluxe_hb_field_color( $name, 'card_text_color', 'رنگ نام دسته‌ها', $section['card_text_color'] ?? '#303936' );
-					jluxe_hb_field_select( $name, 'card_shadow', 'سایه کارت', $section['card_shadow'] ?? 'soft', array( 'none' => 'بدون سایه', 'soft' => 'نرم', 'medium' => 'متوسط', 'strong' => 'قوی' ) );
-					jluxe_hb_field_checkbox( $name, 'hover_lift', 'افکت بالا آمدن کارت هنگام لمس/هاور', array_key_exists( 'hover_lift', $section ) ? ! empty( $section['hover_lift'] ) : true );
-					jluxe_hb_field_checkbox( $name, 'zoom_enabled', 'فعال‌سازی افکت بزرگنمایی تصویر', array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true );
+					jluxe_hb_field_select( $name, 'layout', 'چیدمان دسکتاپ', $section['layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی' ) );
+					jluxe_hb_field_select( $name, 'mobile_layout', 'چیدمان موبایل', $section['mobile_layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی' ) );
+					jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد ستون‌های شبکه در موبایل', (string) ( $section['mobile_columns'] ?? 3 ), array( 2 => '۲ ستون', 3 => '۳ ستون', 4 => '۴ ستون', 5 => '۵ ستون', 6 => '۶ ستون' ) );
+					jluxe_hb_field_select( $name, 'show_category_names', 'عنوان زیر تصویر', ( ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] ) ) ? '1' : '0', array( '1' => 'نمایش عنوان', '0' => 'فقط تصویر' ) );
+					jluxe_hb_field_color( $name, 'card_text_color', 'رنگ عنوان زیر تصویر', $section['card_text_color'] ?? '#303936' );
+					jluxe_hb_field_select( $name, 'image_shape', 'شکل تصویر', $section['image_shape'] ?? 'none', array( 'none' => 'بدون قاب/فرم', 'square' => 'مربع با گوشه‌های گرد', 'circle' => 'دایره‌ای' ) );
+					jluxe_hb_field_select( $name, 'image_frame_mode', 'کادر دور تصویر', $section['image_frame_mode'] ?? 'none', array( 'none' => 'بدون کادر', 'transparent' => 'کادر شفاف', 'color' => 'کادر رنگی' ) );
 					?>
-					<p class="description">دسته‌بندی‌ها رو خودت از پایین اضافه، مرتب (با کشیدن ☰) و حذف کن — فقط دسته‌های واقعیِ ووکامرس قابل انتخابن. نام هر دسته از فیلد «نام دلخواه» میاد و می‌تونی نمایش نام‌ها یا عنوان بخش رو خاموش کنی. حالت «نسبت اصلی» تصویر را بدون برش و با حفظ نسبت فایل ارسالی نشان می‌دهد؛ برای حالت تصویرِ تنها، کادر تصویر/کارت، پس‌زمینه و کادر سکشن جداگانه قابل خاموش‌کردن هستند.</p>
+					<div class="jluxe-showcase-frame-color" data-showcase-frame-mode="color"<?php echo 'color' === ( $section['image_frame_mode'] ?? 'none' ) ? '' : ' style="display:none" aria-hidden="true"'; ?>>
+						<?php jluxe_hb_field_color( $name, 'image_frame_color', 'رنگ کادر تصویر', $section['image_frame_color'] ?? '#D7D7D7' ); ?>
+					</div>
+					<p class="description">هر آیتم یا یک دستهٔ ووکامرس با پیوند خودکار است، یا یک تصویر دلخواه با لینک مقصد. عنوان تصویر دلخواه اختیاری است. پس‌زمینهٔ سکشن و کارت‌ها همیشه شفاف می‌ماند.</p>
 					<div class="jluxe-repeater" data-max="16">
 						<div class="jluxe-repeater-list" data-group="items">
 							<?php
-							$cat_options = jluxe_hb_category_options();
-							foreach ( $section['items'] ?? array() as $ci => $cat_item ) {
-								jluxe_render_category_grid_item_fields( $name, $ci, $cat_item, $cat_options );
+							$showcase_cat_options = jluxe_hb_category_options();
+							foreach ( $section['items'] ?? array() as $ci => $showcase_item ) {
+								jluxe_render_category_showcase_item_fields( $name, (int) $ci, $showcase_item, $showcase_cat_options );
 							}
 							?>
 						</div>
-						<script type="text/template" class="jluxe-repeater-template"><?php jluxe_render_category_grid_item_fields( $name, 0, array(), $cat_options ); ?></script>
-						<button type="button" class="button jluxe-repeater-add">+ افزودن دسته‌بندی</button>
+						<script type="text/template" class="jluxe-repeater-template"><?php jluxe_render_category_showcase_item_fields( $name, 0, array(), $showcase_cat_options ); ?></script>
+						<button type="button" class="button jluxe-repeater-add">+ افزودن آیتم</button>
 					</div>
 					<?php
 					break;
@@ -853,6 +830,36 @@ function jluxe_render_category_grid_item_fields( string $name, int $index, array
 				<label>تصویر (اختیاری — خالی = تصویر خودِ دسته)</label>
 				<?php jluxe_render_media_field( "{$name}[items][{$index}][image_id]", (int) ( $item['image_id'] ?? 0 ), 'از تصویر خودِ دسته استفاده می‌شه' ); ?>
 			</div>
+		</div>
+	</div>
+	<?php
+}
+
+/**
+ * یک ردیف برای «دسته‌بندی‌های ویژه»: یا دستهٔ محصول با لینک خودکار،
+ * یا تصویر دلخواه با لینک اختیاری. فرم عمداً فقط کنترل‌های لازم را نشان می‌دهد.
+ */
+function jluxe_render_category_showcase_item_fields( string $name, int $index, array $item, array $cat_options ): void {
+	$prefix = "{$name}[items][{$index}]";
+	$mode   = 'image' === ( $item['mode'] ?? '' ) ? 'image' : 'category';
+	?>
+	<div class="jluxe-repeater-item jluxe-category-showcase-item">
+		<div class="jluxe-repeater-item-head">
+			<span class="jluxe-repeater-handle dashicons dashicons-menu"></span>
+			<span>آیتم <span class="jluxe-repeater-index"><?php echo esc_html( jluxe_fa_digits( $index + 1 ) ); ?></span></span>
+			<a href="#" class="jluxe-repeater-remove" title="حذف">✕</a>
+		</div>
+		<?php jluxe_hb_field_select( $prefix, 'mode', 'محتوای آیتم', $mode, array( 'category' => 'دسته‌بندی محصول', 'image' => 'تصویر دلخواه + لینک' ) ); ?>
+		<div data-showcase-mode="category"<?php echo 'category' === $mode ? '' : ' style="display:none" aria-hidden="true"'; ?>>
+			<?php jluxe_hb_field_select( $prefix, 'term_id', 'دستهٔ محصول', (string) ( $item['term_id'] ?? 0 ), $cat_options ); ?>
+		</div>
+		<div>
+			<label>تصویر (برای تصویر دلخواه لازم؛ برای دسته اختیاری)</label>
+			<?php jluxe_render_media_field( "{$prefix}[image_id]", (int) ( $item['image_id'] ?? 0 ), 'برای تصویر دلخواه، تصویری انتخاب کنید', 'medium', '90px', 'image' ); ?>
+		</div>
+		<?php jluxe_hb_field_text( $prefix, 'display_name', 'عنوان زیر تصویر (اختیاری)', (string) ( $item['display_name'] ?? '' ) ); ?>
+		<div data-showcase-mode="image"<?php echo 'image' === $mode ? '' : ' style="display:none" aria-hidden="true"'; ?>>
+			<?php jluxe_hb_field_text( $prefix, 'link', 'لینک مقصد (اختیاری)', (string) ( $item['link'] ?? '' ) ); ?>
 		</div>
 	</div>
 	<?php
@@ -1742,147 +1749,122 @@ function jluxe_homepage_section_choice( array $section, string $key, array $allo
 }
 
 function jluxe_render_homepage_category_showcase( array $section ): void {
-	if ( ! class_exists( 'WooCommerce' ) ) return;
-	$is_showcase = 'category_showcase' === ( $section['type'] ?? '' );
-	$is_row = 'row' === ( $section['layout'] ?? 'grid' );
-	$image_fit = $is_showcase ? jluxe_homepage_section_choice( $section, 'image_fit', array( 'cover', 'contain', 'original' ), 'cover' ) : 'cover';
-	$image_width = max( 40, min( 600, (int) ( $section['image_width'] ?? $section['image_size'] ?? 146 ) ) );
-	$image_height = max( 40, min( 600, (int) ( $section['image_height'] ?? $section['image_size'] ?? 146 ) ) );
-	$mobile_layout_option = $is_showcase ? jluxe_homepage_section_choice( $section, 'mobile_layout', array( 'inherit', 'grid', 'row' ), 'inherit' ) : 'row';
-	$mobile_layout = 'inherit' === $mobile_layout_option ? ( $is_row ? 'row' : 'grid' ) : $mobile_layout_option;
+	$is_woocommerce_active = class_exists( 'WooCommerce' );
+	$desktop_layout = jluxe_homepage_section_choice( $section, 'layout', array( 'grid', 'row' ), 'grid' );
+	$mobile_layout = jluxe_homepage_section_choice( $section, 'mobile_layout', array( 'grid', 'row' ), 'grid' );
 	$mobile_columns = max( 2, min( 6, (int) ( $section['mobile_columns'] ?? 3 ) ) );
 	$mobile_gap_total = 8 * ( $mobile_columns - 1 );
-	if ( 'grid' === $mobile_layout ) {
-		$mobile_image_width = 'min(' . $image_width . 'px,calc((100vw - 32px - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ' - 16px),108px)';
-		$mobile_image_height = 'min(' . $image_height . 'px,calc((100vw - 32px - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ' - 16px),108px)';
-	} else {
-		$mobile_image_width = 'min(' . $image_width . 'px,108px)';
-		$mobile_image_height = 'min(' . $image_height . 'px,108px)';
-	}
-	$mobile_image_size = $mobile_image_width;
+	$mobile_card_width = 'calc((100% - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ')';
+	$mobile_image_size = 'min(96px,max(48px,calc((100vw - 32px - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ' - 16px)))';
+	$image_size = 'jluxe-uncropped-1280';
+	$image_sizes = '(max-width: 639px) ' . $mobile_image_size . ', 120px';
 	$rows = array();
-	foreach ( $section['items'] ?? array() as $item ) {
-		$term_id = (int) ( $item['term_id'] ?? 0 );
-		if ( ! $term_id ) continue;
-		$term = get_term( $term_id, 'product_cat' );
-		if ( ! $term || is_wp_error( $term ) ) continue;
-		$image_id = (int) ( $item['image_id'] ?? 0 );
-		if ( ! $image_id ) $image_id = (int) get_term_meta( $term_id, 'thumbnail_id', true );
-		$display_name = trim( (string) ( $item['display_name'] ?? '' ) );
-		if ( $is_showcase ) {
-			$source_size = 'original' === $image_fit ? 'full' : ( 'cover' === $image_fit && $image_width === $image_height ? 'thumbnail' : 'jluxe-uncropped-1280' );
-			$mobile_sizes = '(max-width: 639px) ' . $mobile_image_size;
-			$img_sizes = $image_id ? $mobile_sizes . ', (max-width: 1023px) ' . min( $image_width, 180 ) . 'px, ' . $image_width . 'px' : '';
-			$image_data = $image_id ? jluxe_get_responsive_attachment_image( $image_id, $source_size, $img_sizes ?: '100vw' ) : array();
-			$img_url = ! empty( $image_data['src'] ) ? $image_data['src'] : wc_placeholder_img_src( 'thumbnail' );
-			$img_srcset = $image_id ? (string) ( $image_data['srcset'] ?? '' ) : '';
-			$img_width = 'original' === $image_fit && ! empty( $image_data['width'] ) ? (int) $image_data['width'] : $image_width;
-			$img_height = 'original' === $image_fit && ! empty( $image_data['height'] ) ? (int) $image_data['height'] : $image_height;
-		} else {
-			$img_url = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : wc_placeholder_img_src( 'thumbnail' );
-			$img_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'thumbnail' ) : '';
-			$img_sizes = $image_id ? '(max-width: 639px) 96px, (max-width: 1023px) 120px, 150px' : '';
-			$img_width = $image_height = 150;
-		}
-		$rows[] = array( 'term' => $term, 'img_url' => $img_url, 'img_srcset' => $img_srcset, 'img_sizes' => $img_sizes, 'img_width' => $img_width, 'img_height' => $img_height, 'display_name' => $display_name ?: $term->name );
-	}
-	if ( empty( $rows ) ) return;
-	$shape = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'circle' );
-	$zoom = array_key_exists( 'zoom_enabled', $section ) ? ! empty( $section['zoom_enabled'] ) : true;
-	$align = jluxe_homepage_section_choice( $section, 'alignment', array( 'start', 'center', 'end' ), 'center' );
 
-	if ( $is_showcase ) {
-		$lift = array_key_exists( 'hover_lift', $section ) ? ! empty( $section['hover_lift'] ) : true;
-		$section_radius = max( 12, min( 56, (int) ( $section['section_radius'] ?? 32 ) ) );
-		$card_radius = max( 0, min( 40, (int) ( $section['card_radius'] ?? 18 ) ) );
-		$shadow_map = array( 'none' => 'none', 'soft' => '0 4px 16px rgba(16,24,40,.06)', 'medium' => '0 8px 24px rgba(16,24,40,.09)', 'strong' => '0 14px 34px rgba(16,24,40,.13)' );
-		$card_frame_enabled = ! empty( $section['card_frame_enabled'] );
-		$image_frame_enabled = ! empty( $section['image_frame_enabled'] );
-		$section_background_enabled = ! empty( $section['section_background_enabled'] );
-		$section_border_enabled = ! empty( $section['section_border_enabled'] );
-		$card_shadow = $card_frame_enabled ? ( $shadow_map[ $section['card_shadow'] ?? 'soft' ] ?? $shadow_map['soft'] ) : 'none';
-		$section_align = 'start' === $align ? 'flex-start' : ( 'end' === $align ? 'flex-end' : 'center' );
-		$text_align = 'start' === $align ? 'right' : ( 'end' === $align ? 'left' : 'center' );
-		$cards_alignment = jluxe_homepage_section_choice( $section, 'cards_alignment', array( 'start', 'center', 'end' ), 'center' );
-		$cards_justify = 'start' === $cards_alignment ? 'flex-start' : ( 'end' === $cards_alignment ? 'flex-end' : 'center' );
-		$mobile_card_width = 'calc((100% - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ')';
-		$image_object_fit = 'cover' === $image_fit ? 'cover' : 'contain';
-		$section_bg = ! $section_background_enabled || 'transparent' === ( $section['section_bg_mode'] ?? 'color' ) ? 'transparent' : ( sanitize_hex_color( $section['section_bg_color'] ?? '' ) ?: '#F7F7F5' );
-		$image_bg = ! $image_frame_enabled || 'transparent' === ( $section['image_bg_mode'] ?? 'color' ) ? 'transparent' : ( sanitize_hex_color( $section['image_bg_color'] ?? '' ) ?: '#FFFFFF' );
-		$section_border = sanitize_hex_color( $section['section_border_color'] ?? '' ) ?: '#E0E4E1';
-		$card_bg = $card_frame_enabled ? ( sanitize_hex_color( $section['card_bg_color'] ?? '' ) ?: '#FFFFFF' ) : 'transparent';
-		$card_border = sanitize_hex_color( $section['card_border_color'] ?? '' ) ?: '#E1E5E2';
-		$accent = sanitize_hex_color( $section['accent_color'] ?? '' ) ?: '#B58A3A';
-		$heading = sanitize_hex_color( $section['heading_color'] ?? '' ) ?: '#18201D';
-		$muted = sanitize_hex_color( $section['muted_color'] ?? '' ) ?: '#747C78';
-		$card_text = sanitize_hex_color( $section['card_text_color'] ?? '' ) ?: '#303936';
-		$img_radius = 'original' === $image_fit ? '0px' : ( 'circle' === $shape ? '9999px' : ( 'square' === $shape ? $card_radius . 'px' : '0px' ) );
-		$grid_class = $is_row ? 'jluxe-category-showcase-row' : 'jluxe-category-showcase-grid';
-		$show_section_heading = ! array_key_exists( 'show_section_heading', $section ) || ! empty( $section['show_section_heading'] );
-		$show_category_names = ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] );
-		$container_style = '--jluxe-showcase-radius:' . $section_radius . 'px;--jluxe-card-radius:' . $card_radius . 'px;--jluxe-image-width:' . $image_width . 'px;--jluxe-image-height:' . $image_height . 'px;--jluxe-card-width:' . max( 120, $image_width + 20 ) . 'px;--jluxe-card-shadow:' . $card_shadow . ';--jluxe-card-border-width:' . ( $card_frame_enabled ? '1px' : '0px' ) . ';--jluxe-image-object-fit:' . $image_object_fit . ';--jluxe-image-frame-border-width:' . ( $image_frame_enabled ? '1px' : '0px' ) . ';--jluxe-section-align:' . $section_align . ';--jluxe-text-align:' . $text_align . ';--jluxe-cards-justify:' . $cards_justify . ';--jluxe-mobile-columns:' . $mobile_columns . ';--jluxe-image-radius:' . $img_radius . ';--jluxe-image-bg:' . $image_bg . ';--jluxe-showcase-bg:' . $section_bg . ';--jluxe-showcase-section-border:' . $section_border . ';--jluxe-showcase-section-border-width:' . ( $section_border_enabled ? '1px' : '0px' ) . ';--jluxe-showcase-section-shadow:' . ( $section_border_enabled ? '0 8px 28px rgba(16,24,40,.045)' : 'none' ) . ';--jluxe-showcase-accent-line:' . ( $section_border_enabled ? 'block' : 'none' ) . ';--jluxe-showcase-card-bg:' . $card_bg . ';--jluxe-showcase-card-border:' . $card_border . ';--jluxe-showcase-accent:' . $accent . ';--jluxe-showcase-heading:' . $heading . ';--jluxe-showcase-muted:' . $muted . ';--jluxe-showcase-card-text:' . $card_text . ';--jluxe-mobile-card-width:' . $mobile_card_width . ';--jluxe-mobile-image-width:' . $mobile_image_width . ';--jluxe-mobile-image-height:' . $mobile_image_height . ';';
-		$show_arrows = $is_row || 'row' === $mobile_layout;
-		?>
-		<section class="jluxe-home-section jluxe-category-showcase jluxe-category-showcase-v2<?php echo $show_category_names ? '' : ' jluxe-category-showcase-image-only'; ?>" style="<?php echo esc_attr( $container_style ); ?>" dir="rtl" aria-label="<?php echo esc_attr( $section['title'] ?? 'دسته‌بندی‌های ویژه' ); ?>">
-			<?php if ( $show_section_heading ) : ?>
-			<div class="jluxe-category-showcase-head">
-				<div class="jluxe-category-showcase-heading"><span class="jluxe-category-showcase-mark" aria-hidden="true">✦</span><div class="jluxe-category-showcase-title-wrap"><h2><?php echo esc_html( $section['title'] ?? 'دسته‌بندی‌های ویژه' ); ?></h2><span class="jluxe-category-showcase-subtitle">انتخابی از دسته‌های محبوب فروشگاه</span></div></div>
-				<?php $view_all = jluxe_category_section_view_all( $section ); if ( $view_all ) : ?><a href="<?php echo esc_url( $view_all['url'] ); ?>" class="jluxe-category-showcase-all" aria-label="<?php echo esc_attr( $view_all['label'] ); ?>"><?php echo esc_html( $view_all['text'] ); ?> <span aria-hidden="true">←</span></a><?php endif; ?>
-			</div>
-			<?php endif; ?>
-			<div class="jluxe-category-showcase-scroll-wrap relative" data-mobile-layout="<?php echo esc_attr( $mobile_layout ); ?>">
-				<div class="<?php echo esc_attr( $grid_class ); ?>" data-jluxe-scroller>
-					<?php foreach ( $rows as $row ) : ?>
-						<a href="<?php echo esc_url( get_term_link( $row['term'] ) ); ?>" class="jluxe-category-showcase-card<?php echo $lift ? ' jluxe-category-showcase-lift' : ''; ?>" aria-label="<?php echo esc_attr( $row['display_name'] ); ?>">
-							<span class="jluxe-category-showcase-image"><img loading="lazy" decoding="async" width="<?php echo esc_attr( $row['img_width'] ); ?>" height="<?php echo esc_attr( $row['img_height'] ); ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( $row['img_sizes'] ); ?>"<?php endif; ?> alt="" aria-hidden="true" class="<?php echo $zoom ? 'jluxe-category-showcase-zoom ' : ''; ?>jluxe-category-showcase-image-fit-<?php echo esc_attr( $image_fit ); ?>" /></span>
-							<?php if ( $show_category_names ) : ?><span class="jluxe-category-showcase-name"><?php echo esc_html( $row['display_name'] ); ?></span><?php endif; ?>
-						</a>
-					<?php endforeach; ?>
-				</div>
-				<?php if ( $show_arrows ) jluxe_scroll_arrows(); ?>
-			</div>
-		</section>
-		<style>
-		.jluxe-category-showcase-v2{box-sizing:border-box;position:relative;isolation:isolate;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:34px auto 42px;padding:22px;background:var(--jluxe-showcase-bg);border:var(--jluxe-showcase-section-border-width,0px) solid var(--jluxe-showcase-section-border);border-radius:var(--jluxe-showcase-radius)!important;overflow:hidden;color:var(--jluxe-showcase-heading);box-shadow:var(--jluxe-showcase-section-shadow,none)}
-		.jluxe-category-showcase-v2:before{content:"";display:var(--jluxe-showcase-accent-line,none);position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,var(--jluxe-showcase-accent),transparent);pointer-events:none}
-		.jluxe-category-showcase-head{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.jluxe-category-showcase-heading{display:flex;align-items:center;gap:12px;min-width:0}.jluxe-category-showcase-mark{display:flex;align-items:center;justify-content:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--jluxe-showcase-accent);border-radius:14px;background:rgba(255,255,255,.72);color:var(--jluxe-showcase-accent);font-size:18px}.jluxe-category-showcase-title-wrap{min-width:0}.jluxe-category-showcase-title-wrap h2{margin:0!important;font-size:clamp(17px,1.7vw,24px)!important;line-height:1.45!important;font-weight:800!important;color:var(--jluxe-showcase-heading)}.jluxe-category-showcase-subtitle{display:block;margin-top:2px;font-size:12px;line-height:1.7;color:var(--jluxe-showcase-muted)}.jluxe-category-showcase-all{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;padding:8px 12px;border:1px solid var(--jluxe-showcase-section-border);border-radius:12px;background:rgba(255,255,255,.65);color:var(--jluxe-showcase-muted)!important;font-size:12px;font-weight:700;text-decoration:none!important}
-		.jluxe-category-showcase-scroll-wrap{position:relative;min-width:0}.jluxe-category-showcase-grid{display:flex;flex-wrap:wrap;align-items:stretch;justify-content:var(--jluxe-cards-justify);gap:10px}.jluxe-category-showcase-row{display:flex;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 44px 8px;scroll-behavior:smooth;scrollbar-width:none}.jluxe-category-showcase-row.is-centered{justify-content:var(--jluxe-cards-justify)}.jluxe-category-showcase-row.is-overflowing{justify-content:flex-start}.jluxe-category-showcase-row::-webkit-scrollbar{display:none}
-		.jluxe-category-showcase-card{box-sizing:border-box;position:relative;display:flex!important;flex:0 0 var(--jluxe-card-width);flex-direction:column;align-items:var(--jluxe-section-align);justify-content:flex-start;width:var(--jluxe-card-width);min-width:0;padding:8px;border:var(--jluxe-card-border-width,0px) solid var(--jluxe-showcase-card-border);border-radius:var(--jluxe-card-radius)!important;background:var(--jluxe-showcase-card-bg)!important;box-shadow:var(--jluxe-card-shadow)!important;color:var(--jluxe-showcase-card-text)!important;text-align:var(--jluxe-text-align)!important;text-decoration:none!important;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}.jluxe-category-showcase-row .jluxe-category-showcase-card{min-width:var(--jluxe-card-width)}.jluxe-category-showcase-image-only .jluxe-category-showcase-card{justify-content:center}.jluxe-category-showcase-lift:hover{transform:translateY(-4px);border-color:var(--jluxe-showcase-accent)!important}.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 auto;align-items:center;justify-content:center;width:var(--jluxe-image-width)!important;height:var(--jluxe-image-height)!important;min-width:0;overflow:hidden;border:var(--jluxe-image-frame-border-width,0px) solid var(--jluxe-showcase-card-border);border-radius:var(--jluxe-image-radius)!important;background:var(--jluxe-image-bg)!important;padding:0!important}.jluxe-category-showcase-image img{display:block!important;flex:0 0 auto;width:100%!important;height:100%!important;max-width:100%;max-height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:var(--jluxe-image-radius)!important;object-fit:var(--jluxe-image-object-fit,contain)!important;transition:transform .45s cubic-bezier(.2,.7,.2,1)!important}.jluxe-category-showcase-zoom:hover{transform:scale(1.075)!important}.jluxe-category-showcase-name{display:block!important;width:100%;margin-top:8px;padding:0 3px;font-size:13px!important;line-height:1.7!important;font-weight:700!important;color:var(--jluxe-showcase-card-text)!important;white-space:normal;overflow-wrap:anywhere}.jluxe-category-showcase-card:hover .jluxe-category-showcase-name{color:var(--jluxe-showcase-accent)!important}
-		.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-next]{background:var(--jluxe-showcase-card-bg)!important;border-color:var(--jluxe-showcase-card-border)!important;color:var(--jluxe-showcase-heading)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-		@media(max-width:639px){.jluxe-category-showcase-v2{width:calc(100% - 16px);margin:24px auto 30px;padding:16px 8px 14px;border-radius:min(var(--jluxe-showcase-radius),24px)!important}.jluxe-category-showcase-head{margin-bottom:13px;gap:8px}.jluxe-category-showcase-mark{width:34px;height:34px;flex-basis:34px;border-radius:10px;font-size:14px}.jluxe-category-showcase-title-wrap h2{font-size:16px!important}.jluxe-category-showcase-subtitle{font-size:10px}.jluxe-category-showcase-all{padding:6px 8px;font-size:10px;border-radius:9px}.jluxe-category-showcase-grid{gap:8px}.jluxe-category-showcase-row{gap:8px;padding:2px 40px 8px}.jluxe-category-showcase-card{padding:7px}.jluxe-category-showcase-row .jluxe-category-showcase-card{flex-basis:calc(min(var(--jluxe-image-width),108px) + 16px);width:calc(min(var(--jluxe-image-width),108px) + 16px);min-width:calc(min(var(--jluxe-image-width),108px) + 16px)}.jluxe-category-showcase-row .jluxe-category-showcase-image{width:min(var(--jluxe-image-width),108px)!important;height:min(var(--jluxe-image-height),108px)!important;min-width:0}.jluxe-category-showcase-name{font-size:12px!important;margin-top:6px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-row{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding:2px 40px 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered{justify-content:var(--jluxe-cards-justify)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-overflowing{justify-content:flex-start}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-card{flex:0 0 calc(min(var(--jluxe-image-width),108px) + 16px);width:calc(min(var(--jluxe-image-width),108px) + 16px);min-width:calc(min(var(--jluxe-image-width),108px) + 16px)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-row{display:flex;flex-wrap:wrap;justify-content:var(--jluxe-cards-justify);gap:8px;overflow:visible;padding:2px 2px 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card{flex:0 0 var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0;padding:6px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-image{width:var(--jluxe-mobile-image-width)!important;height:var(--jluxe-mobile-image-height)!important;min-width:0;flex-basis:var(--jluxe-mobile-image-width)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-name{font-size:clamp(10px,3.2vw,12px)!important;line-height:1.45!important;margin-top:5px;padding:0 1px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-next]{display:none}}
-		@media(prefers-reduced-motion:reduce){.jluxe-category-showcase-card,.jluxe-category-showcase-image img{transition:none!important}.jluxe-category-showcase-lift:hover,.jluxe-category-showcase-zoom:hover{transform:none!important}}
-		</style>
-		<?php
+	foreach ( $section['items'] ?? array() as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		$mode = 'image' === ( $item['mode'] ?? '' ) ? 'image' : 'category';
+		$term = null;
+		$term_id = (int) ( $item['term_id'] ?? 0 );
+		$image_id = (int) ( $item['image_id'] ?? 0 );
+		$display_name = trim( (string) ( $item['display_name'] ?? '' ) );
+		$link = '';
+
+		if ( 'category' === $mode ) {
+			if ( ! $is_woocommerce_active || ! $term_id ) {
+				continue;
+			}
+			$term = get_term( $term_id, 'product_cat' );
+			if ( ! $term || is_wp_error( $term ) ) {
+				continue;
+			}
+			if ( ! $image_id ) {
+				$image_id = (int) get_term_meta( $term_id, 'thumbnail_id', true );
+			}
+			$link = get_term_link( $term );
+			if ( is_wp_error( $link ) || ! $link ) {
+				continue;
+			}
+			$display_name = $display_name ?: (string) $term->name;
+		} else {
+			if ( ! $image_id ) {
+				continue;
+			}
+			$link = isset( $item['link'] ) ? trim( (string) $item['link'] ) : '';
+		}
+
+		$image_data = $image_id ? jluxe_get_responsive_attachment_image( $image_id, $image_size, $image_sizes ) : array();
+		$img_url = ! empty( $image_data['src'] ) ? $image_data['src'] : '';
+		if ( '' === $img_url && 'category' === $mode && function_exists( 'wc_placeholder_img_src' ) ) {
+			$img_url = wc_placeholder_img_src( 'thumbnail' );
+		}
+		if ( '' === $img_url ) {
+			continue;
+		}
+		$rows[] = array(
+			'link'       => $link,
+			'img_url'    => $img_url,
+			'img_srcset' => (string) ( $image_data['srcset'] ?? '' ),
+			'img_sizes'  => (string) ( $image_data['sizes'] ?? $image_sizes ),
+			'img_width'  => (int) ( $image_data['width'] ?? 0 ) ?: 120,
+			'img_height' => (int) ( $image_data['height'] ?? 0 ) ?: 120,
+			'display_name' => $display_name,
+		);
+	}
+
+	if ( empty( $rows ) ) {
 		return;
 	}
 
-	$is_row = 'row' === ( $section['layout'] ?? 'grid' );
-	$img_bg = 'transparent' === ( $section['image_bg_mode'] ?? 'color' ) ? 'transparent' : ( sanitize_hex_color( $section['image_bg_color'] ?? '' ) ?: '#FFFFFF' );
-	$shape_radius = 'circle' === $shape ? '9999px' : ( 'square' === $shape ? '18px' : '0px' );
-	$grid_count = count( $rows );
+	$shape = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'none' );
+	$frame_mode = jluxe_homepage_section_choice( $section, 'image_frame_mode', array( 'none', 'transparent', 'color' ), 'none' );
+	$frame_width = 'none' === $frame_mode ? '0px' : '1px';
+	$frame_color = 'color' === $frame_mode ? ( sanitize_hex_color( $section['image_frame_color'] ?? '' ) ?: '#D7D7D7' ) : 'transparent';
+	$image_radius = 'circle' === $shape ? '9999px' : ( 'square' === $shape ? '14px' : '0px' );
+	$text_color = sanitize_hex_color( $section['card_text_color'] ?? '' ) ?: '#303936';
+	$show_names = ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] );
+	$grid_class = 'row' === $desktop_layout ? 'jluxe-category-showcase-row' : 'jluxe-category-showcase-grid';
+	$show_arrows = 'row' === $desktop_layout || 'row' === $mobile_layout;
+	$container_style = '--jluxe-showcase-image-radius:' . $image_radius . ';--jluxe-showcase-image-frame-width:' . $frame_width . ';--jluxe-showcase-image-frame-color:' . $frame_color . ';--jluxe-showcase-card-text:' . $text_color . ';--jluxe-mobile-columns:' . $mobile_columns . ';--jluxe-mobile-card-width:' . $mobile_card_width . ';--jluxe-mobile-image-size:' . $mobile_image_size . ';';
 	?>
-	<section class="jluxe-category-grid-v3 mx-auto max-w-[1320px] px-3 md:px-4 py-5" dir="rtl">
-		<?php if ( ! empty( $section['title'] ) ) : ?><h2 class="jluxe-category-grid-v3-title mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2><?php endif; ?>
-		<div class="jluxe-category-grid-v3-wrap <?php echo $is_row ? 'is-row' : 'is-grid'; ?>" style="--jluxe-cat-image-bg:<?php echo esc_attr( $img_bg ); ?>;--jluxe-cat-image-radius:<?php echo esc_attr( $shape_radius ); ?>;">
-			<div class="jluxe-category-grid-v3-scroll" data-jluxe-scroller>
+	<section class="jluxe-home-section jluxe-category-showcase jluxe-category-showcase-v2<?php echo $show_names ? '' : ' jluxe-category-showcase-image-only'; ?>" style="<?php echo esc_attr( $container_style ); ?>" dir="rtl" aria-label="دسته‌بندی‌های ویژه">
+		<div class="jluxe-category-showcase-scroll-wrap" data-mobile-layout="<?php echo esc_attr( $mobile_layout ); ?>">
+			<div class="<?php echo esc_attr( $grid_class ); ?>" data-jluxe-scroller>
 				<?php foreach ( $rows as $row ) : ?>
-					<a href="<?php echo esc_url( get_term_link( $row['term'] ) ); ?>" class="jluxe-category-grid-v3-item group" aria-label="<?php echo esc_attr( $row['display_name'] ); ?>">
-						<span class="jluxe-category-grid-v3-image"><img src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( $row['img_sizes'] ); ?>"<?php endif; ?> alt="" aria-hidden="true" <?php echo jluxe_lazy_attr(); ?> /></span>
-						<span class="jluxe-category-grid-v3-name"><?php echo esc_html( $row['display_name'] ); ?></span>
-					</a>
+					<?php if ( $row['link'] ) : ?>
+						<a href="<?php echo esc_url( $row['link'] ); ?>" class="jluxe-category-showcase-card"<?php echo $row['display_name'] ? ' aria-label="' . esc_attr( $row['display_name'] ) . '"' : ' aria-label="تصویر"'; ?>>
+					<?php else : ?>
+						<div class="jluxe-category-showcase-card">
+					<?php endif; ?>
+						<span class="jluxe-category-showcase-image"><img loading="lazy" decoding="async" width="<?php echo esc_attr( $row['img_width'] ); ?>" height="<?php echo esc_attr( $row['img_height'] ); ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( $row['img_sizes'] ); ?>"<?php endif; ?> alt="" aria-hidden="true" /></span>
+						<?php if ( $show_names && $row['display_name'] ) : ?><span class="jluxe-category-showcase-name"><?php echo esc_html( $row['display_name'] ); ?></span><?php endif; ?>
+					<?php if ( $row['link'] ) : ?>
+						</a>
+					<?php else : ?>
+						</div>
+					<?php endif; ?>
 				<?php endforeach; ?>
 			</div>
-			<?php if ( $is_row ) jluxe_scroll_arrows(); ?>
+			<?php if ( $show_arrows ) jluxe_scroll_arrows(); ?>
 		</div>
 	</section>
 	<style>
-	.jluxe-category-grid-v3-title{display:block!important;width:100%!important;margin:0 0 16px!important;text-align:right!important;direction:rtl!important;font-weight:800!important}
-	.jluxe-category-grid-v3-wrap{position:relative;min-width:0}.jluxe-category-grid-v3-scroll{display:grid;grid-template-columns:repeat(<?php echo (int) min( $grid_count, 16 ); ?>,minmax(0,1fr));gap:10px;align-items:start;width:100%;min-width:0}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-scroll{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;scrollbar-width:none;padding:6px 42px 10px;scroll-behavior:smooth}.jluxe-category-grid-v3-scroll::-webkit-scrollbar{display:none}.jluxe-category-grid-v3-item{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;text-align:center;text-decoration:none;color:inherit}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-item{width:120px;min-width:120px;flex:0 0 120px}.jluxe-category-grid-v3-image{box-sizing:border-box;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:visible;background:var(--jluxe-cat-image-bg);border:0!important;outline:0!important;box-shadow:none!important;border-radius:var(--jluxe-cat-image-radius);padding:0}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-image{width:100px;height:100px;flex:0 0 100px}.jluxe-category-grid-v3-image img{display:block;width:100%;height:100%;object-fit:contain;border:0!important;outline:0!important;box-shadow:none!important;border-radius:inherit;transition:transform .35s ease;transform-origin:center center}.jluxe-category-grid-v3-item:hover .jluxe-category-grid-v3-image img{transform:scale(1.06)}.jluxe-category-grid-v3-name{box-sizing:border-box;width:100%;font-size:13px;font-weight:600;line-height:1.65;min-height:2.7em;display:flex;align-items:flex-start;justify-content:center;overflow-wrap:anywhere}.jluxe-category-grid-v3-wrap>[data-jluxe-scroll-prev],.jluxe-category-grid-v3-wrap>[data-jluxe-scroll-next]{background:rgba(255,255,255,.34)!important;border-color:rgba(255,255,255,.58)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-	@media(max-width:1100px){.jluxe-category-grid-v3-scroll{grid-template-columns:repeat(<?php echo (int) min( $grid_count, 10 ); ?>,minmax(0,1fr))}}@media(max-width:900px){.jluxe-category-grid-v3-scroll{grid-template-columns:repeat(<?php echo (int) min( $grid_count, 8 ); ?>,minmax(0,1fr))}}@media(max-width:639px){.jluxe-category-grid-v3{padding-top:4px;padding-bottom:14px}.jluxe-category-grid-v3-title{font-size:18px!important;margin-bottom:14px!important}.jluxe-category-grid-v3-scroll{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 8px}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-scroll{gap:8px;padding-inline:38px;padding-top:6px}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-item{width:104px;min-width:104px;flex-basis:104px}.jluxe-category-grid-v3-wrap.is-row .jluxe-category-grid-v3-image{width:88px;height:88px;flex-basis:88px}.jluxe-category-grid-v3-name{font-size:12px;min-height:2.8em}}
+	.jluxe-category-showcase-v2{box-sizing:border-box;position:relative;isolation:isolate;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto 32px;padding:0;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:inherit}
+	.jluxe-category-showcase-scroll-wrap{position:relative;min-width:0}
+	.jluxe-category-showcase-grid{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px}
+	.jluxe-category-showcase-row{display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:12px;overflow-x:auto;overflow-y:hidden;padding:2px 42px 8px;scroll-behavior:smooth;scrollbar-width:none}
+	.jluxe-category-showcase-row::-webkit-scrollbar{display:none}.jluxe-category-showcase-row.is-centered{justify-content:center}.jluxe-category-showcase-row.is-overflowing{justify-content:flex-start}
+	.jluxe-category-showcase-card{box-sizing:border-box;display:flex!important;flex:0 0 152px;flex-direction:column;align-items:center;justify-content:flex-start;width:152px;min-width:0;padding:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;text-align:center!important;text-decoration:none!important;overflow:visible}
+	.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 120px;align-items:center;justify-content:center;width:120px!important;height:120px!important;overflow:hidden;border:var(--jluxe-showcase-image-frame-width,0px) solid var(--jluxe-showcase-image-frame-color,transparent);border-radius:var(--jluxe-showcase-image-radius,0px)!important;background:transparent!important;padding:0!important}
+	.jluxe-category-showcase-image img{display:block!important;flex:0 0 auto;width:100%!important;height:100%!important;max-width:100%;max-height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:inherit!important;object-fit:contain!important;box-shadow:none!important}
+	.jluxe-category-showcase-name{display:block!important;width:100%;margin-top:8px;padding:0 3px;font-size:13px!important;line-height:1.65!important;font-weight:600!important;color:var(--jluxe-showcase-card-text,#303936)!important;white-space:normal;overflow-wrap:anywhere}
+	.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-next]{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:inherit!important}
+	@media(max-width:639px){.jluxe-category-showcase-v2{width:calc(100% - 16px);margin:20px auto 26px}.jluxe-category-showcase-grid{gap:12px 8px}.jluxe-category-showcase-row{gap:8px;padding:2px 36px 8px}.jluxe-category-showcase-card{flex-basis:var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-image{flex-basis:var(--jluxe-mobile-image-size);width:var(--jluxe-mobile-image-size)!important;height:var(--jluxe-mobile-image-size)!important}.jluxe-category-showcase-name{margin-top:6px;font-size:12px!important}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-row{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding:2px 36px 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered{justify-content:center}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-overflowing{justify-content:flex-start}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-card{flex:0 0 calc(var(--jluxe-mobile-image-size) + 16px);width:calc(var(--jluxe-mobile-image-size) + 16px);min-width:calc(var(--jluxe-mobile-image-size) + 16px)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 8px;overflow:visible;padding:2px 0 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card{flex:0 0 var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-next]{display:none}}
+	@media(prefers-reduced-motion:reduce){.jluxe-category-showcase-row{scroll-behavior:auto}}
 	</style>
 	<?php
 }
-
 
 function jluxe_render_homepage_category_grid( array $section ): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {

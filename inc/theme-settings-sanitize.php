@@ -1422,65 +1422,75 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			if ( 'category_grid' !== $type ) {
 				$section['layout'] = in_array( $layout, array( 'grid', 'row' ), true ) ? $layout : 'grid';
 			}
-			$shape = isset( $posted['image_shape'] ) ? sanitize_key( $posted['image_shape'] ) : 'circle';
-			$section['image_shape'] = in_array( $shape, array( 'circle', 'square', 'none' ), true ) ? $shape : 'circle';
-			$alignment = isset( $posted['alignment'] ) ? sanitize_key( $posted['alignment'] ) : 'center';
-			$section['alignment'] = in_array( $alignment, array( 'start', 'center', 'end' ), true ) ? $alignment : 'center';
-			$cards_alignment = sanitize_key( $posted['cards_alignment'] ?? 'center' );
-			$section['cards_alignment'] = in_array( $cards_alignment, array( 'start', 'center', 'end' ), true ) ? $cards_alignment : 'center';
-			$mobile_layout_default = 'category_grid' === $type ? 'row' : 'inherit';
+			$shape_default = 'category_grid' === $type ? 'circle' : 'none';
+			$shape = isset( $posted['image_shape'] ) ? sanitize_key( $posted['image_shape'] ) : $shape_default;
+			$section['image_shape'] = in_array( $shape, array( 'circle', 'square', 'none' ), true ) ? $shape : $shape_default;
+			if ( 'category_grid' === $type ) {
+				$alignment = isset( $posted['alignment'] ) ? sanitize_key( $posted['alignment'] ) : 'center';
+				$section['alignment'] = in_array( $alignment, array( 'start', 'center', 'end' ), true ) ? $alignment : 'center';
+				$cards_alignment = sanitize_key( $posted['cards_alignment'] ?? 'center' );
+				$section['cards_alignment'] = in_array( $cards_alignment, array( 'start', 'center', 'end' ), true ) ? $cards_alignment : 'center';
+			}
+			$mobile_layout_default = 'category_grid' === $type ? 'row' : 'grid';
 			$mobile_layout = sanitize_key( $posted['mobile_layout'] ?? $mobile_layout_default );
-			$mobile_layouts = 'category_grid' === $type ? array( 'row', 'grid' ) : array( 'inherit', 'row', 'grid' );
-			$section['mobile_layout'] = in_array( $mobile_layout, $mobile_layouts, true ) ? $mobile_layout : $mobile_layout_default;
+			$section['mobile_layout'] = in_array( $mobile_layout, array( 'row', 'grid' ), true ) ? $mobile_layout : $mobile_layout_default;
 			$section['mobile_columns'] = max( 2, min( 6, absint( $posted['mobile_columns'] ?? 3 ) ) );
-			$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 40 ) ) );
-			$section['card_radius'] = max( 0, min( 40, absint( $posted['card_radius'] ?? 20 ) ) );
-			$section['image_size'] = max( 48, min( 140, absint( $posted['image_size'] ?? ( 'category_grid' === $type ? 80 : 146 ) ) ) );
-			$image_bg_mode = sanitize_key( $posted['image_bg_mode'] ?? 'color' );
-			$section['image_bg_mode'] = in_array( $image_bg_mode, array( 'color', 'transparent' ), true ) ? $image_bg_mode : 'color';
-			$section['image_bg_color'] = sanitize_hex_color( $posted['image_bg_color'] ?? '' ) ?: '#FFFFFF';
-			if ( 'category_showcase' === $type ) {
-				$image_fit = sanitize_key( $posted['image_fit'] ?? 'cover' );
-				$section['image_fit'] = in_array( $image_fit, array( 'cover', 'contain', 'original' ), true ) ? $image_fit : 'cover';
-				$section['image_width'] = max( 40, min( 600, absint( $posted['image_width'] ?? $posted['image_size'] ?? 146 ) ) );
-				$section['image_height'] = max( 40, min( 600, absint( $posted['image_height'] ?? $posted['image_size'] ?? 146 ) ) );
-				$section['show_section_heading'] = ! array_key_exists( 'show_section_heading', $posted ) || '1' === (string) $posted['show_section_heading'];
+			if ( 'category_grid' === $type ) {
+				$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 40 ) ) );
+				$section['card_radius'] = max( 0, min( 40, absint( $posted['card_radius'] ?? 20 ) ) );
+				$section['image_size'] = max( 48, min( 140, absint( $posted['image_size'] ?? 80 ) ) );
+				$image_bg_mode = sanitize_key( $posted['image_bg_mode'] ?? 'color' );
+				$section['image_bg_mode'] = in_array( $image_bg_mode, array( 'color', 'transparent' ), true ) ? $image_bg_mode : 'color';
+				$section['image_bg_color'] = sanitize_hex_color( $posted['image_bg_color'] ?? '' ) ?: '#FFFFFF';
+				$card_shadow = sanitize_key( $posted['card_shadow'] ?? 'soft' );
+				$section['card_shadow'] = in_array( $card_shadow, array( 'none', 'soft', 'medium', 'strong' ), true ) ? $card_shadow : 'soft';
+				$section['hover_lift'] = array_key_exists( 'hover_lift', $posted ) && '1' === (string) $posted['hover_lift'];
+				$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
+			} else {
+				$frame_mode = sanitize_key( $posted['image_frame_mode'] ?? 'none' );
+				$section['image_frame_mode'] = in_array( $frame_mode, array( 'none', 'transparent', 'color' ), true ) ? $frame_mode : 'none';
+				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#D7D7D7';
 				$section['show_category_names'] = ! array_key_exists( 'show_category_names', $posted ) || '1' === (string) $posted['show_category_names'];
-				$section['image_frame_enabled'] = ! array_key_exists( 'image_frame_enabled', $posted ) || '1' === (string) $posted['image_frame_enabled'];
-				$section['card_frame_enabled'] = ! array_key_exists( 'card_frame_enabled', $posted ) || '1' === (string) $posted['card_frame_enabled'];
-				$section['section_background_enabled'] = ! array_key_exists( 'section_background_enabled', $posted ) || '1' === (string) $posted['section_background_enabled'];
-				$section['section_border_enabled'] = array_key_exists( 'section_border_enabled', $posted ) && '1' === (string) $posted['section_border_enabled'];
-				$section_bg_mode = sanitize_key( $posted['section_bg_mode'] ?? 'color' );
-				$section['section_bg_mode'] = in_array( $section_bg_mode, array( 'color', 'transparent' ), true ) ? $section_bg_mode : 'color';
-				$section['section_bg_color'] = sanitize_hex_color( $posted['section_bg_color'] ?? '' ) ?: '#F7F7F5';
-				$section['section_border_color'] = sanitize_hex_color( $posted['section_border_color'] ?? '' ) ?: '#E0E4E1';
-				$section['card_bg_color'] = sanitize_hex_color( $posted['card_bg_color'] ?? '' ) ?: '#FFFFFF';
-				$section['card_border_color'] = sanitize_hex_color( $posted['card_border_color'] ?? '' ) ?: '#E1E5E2';
-				$section['accent_color'] = sanitize_hex_color( $posted['accent_color'] ?? '' ) ?: '#B58A3A';
-				$section['heading_color'] = sanitize_hex_color( $posted['heading_color'] ?? '' ) ?: '#18201D';
-				$section['muted_color'] = sanitize_hex_color( $posted['muted_color'] ?? '' ) ?: '#747C78';
 				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#303936';
 			}
-			$card_shadow = sanitize_key( $posted['card_shadow'] ?? 'soft' );
-			$section['card_shadow'] = in_array( $card_shadow, array( 'none', 'soft', 'medium', 'strong' ), true ) ? $card_shadow : 'soft';
-			$section['hover_lift'] = array_key_exists( 'hover_lift', $posted ) && '1' === (string) $posted['hover_lift'];
-			$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
 			// دسته‌بندی‌ها دیگه خودکار از همه‌ی ترم‌های ووکامرس pull نمی‌شن
 			// (باگ واقعی: با hide_empty=true، دسته‌های تازه‌ساخته‌شده‌ی بدون
 			// محصول هیچ‌وقت نشون داده نمی‌شدن — دقیقاً چیزی که گزارش شد).
 			// حالا کاملاً دستیه: ادمین از یک لیست واقعی از دسته‌های ووکامرس
 			// انتخاب و مرتب می‌کنه؛ term_id نامعتبر/حذف‌شده نادیده گرفته می‌شه.
 			$section['items'] = array();
-			foreach ( $posted['items'] ?? array() as $item ) {
+			$posted_items = isset( $posted['items'] ) && is_array( $posted['items'] ) ? array_slice( $posted['items'], 0, 16 ) : array();
+			foreach ( $posted_items as $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				if ( 'category_showcase' === $type && 'image' === sanitize_key( $item['mode'] ?? 'category' ) ) {
+					$image_id = isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0;
+					if ( ! $image_id ) {
+						continue;
+					}
+					$section['items'][] = array(
+						'mode'         => 'image',
+						'term_id'      => 0,
+						'image_id'     => $image_id,
+						'display_name' => isset( $item['display_name'] ) ? sanitize_text_field( $item['display_name'] ) : '',
+						'link'         => isset( $item['link'] ) ? esc_url_raw( trim( (string) $item['link'] ) ) : '',
+					);
+					continue;
+				}
 				$term_id = isset( $item['term_id'] ) ? absint( $item['term_id'] ) : 0;
 				if ( ! $term_id || ! term_exists( $term_id, 'product_cat' ) ) {
 					continue;
 				}
-				$section['items'][] = array(
+				$category_item = array(
 					'term_id'      => $term_id,
 					'image_id'     => isset( $item['image_id'] ) ? absint( $item['image_id'] ) : 0,
 					'display_name' => isset( $item['display_name'] ) ? sanitize_text_field( $item['display_name'] ) : '',
 				);
+				if ( 'category_showcase' === $type ) {
+					$category_item['mode'] = 'category';
+				}
+				$section['items'][] = $category_item;
 			}
 			break;
 

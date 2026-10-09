@@ -176,6 +176,7 @@ jQuery(function ($) {
 			$field.find(".jluxe-media-select, .jluxe-media-remove").attr("data-target", uniqueId);
 		});
 		$list.append($newItem);
+		syncCategoryShowcaseFields($newItem);
 		renumberRepeater($list);
 		// اگه این ریپیتر داخلِ یک بخشِ صفحه‌ی اصلیه که همین الان (بدون رفرش)
 		// اضافه شده، تمپلیتِ ردیفِ جدید هنوز placeholder ایندکسِ بخش رو داره
@@ -266,6 +267,8 @@ jQuery(function ($) {
 		$(document).on("click", ".jluxe-hb-duplicate", function () {
 			var $clone = $(this).closest(".jluxe-hb-section").clone();
 			$(this).closest(".jluxe-hb-section").after($clone);
+			assignUniqueMediaFieldIds($clone);
+			syncCategoryShowcaseFields($clone);
 			renumberHomepageSections();
 		});
 
@@ -278,7 +281,11 @@ jQuery(function ($) {
 			// <template>.content یک DocumentFragmentِ جداست، نه رشته‌ی HTML —
 			// باید clone بشه و مستقیم append بشه (نه .html()/رشته‌سازی، که
 			// معنای اون فرگمنت رو از دست می‌ده).
-			$hbList.append(templateEl.content.cloneNode(true));
+			var sectionFragment = templateEl.content.cloneNode(true);
+			var $newSection = $(sectionFragment.firstElementChild);
+			$hbList.append(sectionFragment);
+			assignUniqueMediaFieldIds($newSection);
+			syncCategoryShowcaseFields($newSection);
 			renumberHomepageSections();
 		});
 	}
@@ -350,6 +357,53 @@ jQuery(function ($) {
 	}
 	$(document).on("change", "[data-jluxe-toggle-id]", applyConditionalFields);
 	applyConditionalFields();
+
+	function assignUniqueMediaFieldIds($scope) {
+		if (!$scope || !$scope.length) return;
+		$scope.find(".jluxe-media-field").each(function () {
+			var $field = $(this);
+			var $hidden = $field.find('input[type="hidden"]').first();
+			var uniqueId = "jluxe-media-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+			$hidden.attr("id", uniqueId);
+			$field.find(".jluxe-media-select, .jluxe-media-remove").attr("data-target", uniqueId);
+		});
+	}
+
+	function syncCategoryShowcaseFields($scope) {
+		if (!$scope || !$scope.length) return;
+
+		var $items = $scope.find(".jluxe-category-showcase-item");
+		if ($scope.is(".jluxe-category-showcase-item")) $items = $items.add($scope);
+		$items.each(function () {
+			var $item = $(this);
+			var mode = $item.find('select[name$="[mode]"]').val() || "category";
+			$item.find("[data-showcase-mode]").each(function () {
+				var $field = $(this);
+				var active = $field.attr("data-showcase-mode") === mode;
+				$field.toggle(active).attr("aria-hidden", active ? "false" : "true");
+			});
+		});
+
+		var $sections = $scope.find('.jluxe-hb-section[data-type="category_showcase"]');
+		if ($scope.is('.jluxe-hb-section[data-type="category_showcase"]')) $sections = $sections.add($scope);
+		if (!$sections.length) $sections = $scope.closest('.jluxe-hb-section[data-type="category_showcase"]');
+		$sections.each(function () {
+			var $section = $(this);
+			var frameMode = $section.find('select[name$="[image_frame_mode]"]').val() || "none";
+			$section.find("[data-showcase-frame-mode]").each(function () {
+				var $field = $(this);
+				var active = $field.attr("data-showcase-frame-mode") === frameMode;
+				$field.toggle(active).attr("aria-hidden", active ? "false" : "true");
+			});
+		});
+	}
+	$(document).on("change", ".jluxe-category-showcase-item select[name$=\"[mode]\"]", function () {
+		syncCategoryShowcaseFields($(this).closest(".jluxe-category-showcase-item"));
+	});
+	$(document).on("change", '.jluxe-hb-section[data-type="category_showcase"] select[name$="[image_frame_mode]"]', function () {
+		syncCategoryShowcaseFields($(this).closest('.jluxe-hb-section[data-type="category_showcase"]'));
+	});
+	syncCategoryShowcaseFields($(document));
 
 	// ===================================================================
 	// تست اتصالِ دستیار هوش مصنوعی (inc/theme-settings-ai.php) — یک
