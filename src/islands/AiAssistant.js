@@ -699,6 +699,7 @@ function Assistant() {
   };
   const handoffEnabled = !!(assistant.handoffWhatsapp || assistant.handoffTelegram || assistant.handoffFormUrl || assistant.enableTicketForm);
   const productLauncher = isMobile && isProductPage;
+  const customLauncherImage = !!assistant.buttonUrl && !productLauncher;
   const hasStreamingReply = messages.some((message) => message.role === "assistant" && message.streaming);
 
   async function submitTicket() {
@@ -947,8 +948,8 @@ function Assistant() {
         type: "button",
         onClick: openAssistant,
         "aria-label": productLauncher ? `راهنمای خرید با ${assistant.name}` : `گفتگو با ${assistant.name}`,
-        className: `jluxe-ai-launcher flex size-14 items-center justify-center rounded-full text-white shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2${productLauncher ? " jluxe-ai-launcher--product" : ""}`,
-        style: { background: assistantAccent },
+        className: `jluxe-ai-launcher flex size-14 items-center justify-center rounded-full text-white shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2${productLauncher ? " jluxe-ai-launcher--product" : ""}${customLauncherImage ? " jluxe-ai-launcher--custom-image" : ""}`,
+        style: { background: customLauncherImage ? "transparent" : assistantAccent },
         children: [
           h("span", {
             key: "mark",

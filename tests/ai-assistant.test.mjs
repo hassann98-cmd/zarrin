@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 
 async function waitFor(predicate, timeout = 1500) {
@@ -200,6 +201,9 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   });
   assert.ok(mount.querySelector(".jluxe-ai-launcher"), "mobile launcher is visible by default");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-product"), "single-product pages receive the refined product launcher treatment");
+  assert.ok(mount.querySelector(".jluxe-ai-launcher-mark svg"), "without a selected image, the existing assistant glyph remains the launcher content");
+  assert.equal(mount.querySelector(".jluxe-ai-launcher").classList.contains("jluxe-ai-launcher--custom-image"), false, "the product guide chip does not enter the circular custom-image mode");
+  assert.equal(mount.querySelector(".jluxe-ai-launcher").style.background, "rgb(47, 116, 104)", "without a selected image, the launcher keeps its accent-colored surface");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#2f7468", "the assistant has a calm teal default accent when no admin color is configured");
   assert.equal(mount.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the product launcher clears the measured price-and-add bar with a 12px gap");
@@ -404,5 +408,34 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.ok(desktopRoot.classList.contains("is-product") && desktopRoot.classList.contains("is-desktop"), "product context is retained on desktop, not only mobile");
   assert.equal(desktopRoot.style.insetInlineStart, "", "the launcher does not switch sides to avoid a product buy box");
   assert.equal(desktopRoot.style.insetInlineEnd, "22px", "on RTL desktop the launcher stays at its configured logical corner");
+
+  const selectedLauncherImage = "https://shop.test/wp-content/uploads/assistant-button.webp";
+  window.JLuxeThemeSettings.aiAssistant.buttonUrl = selectedLauncherImage;
+  await act(async () => {
+    root.render(React.createElement(Assistant));
+    await Promise.resolve();
+  });
+  const customImageLauncher = mount.querySelector(".jluxe-ai-launcher");
+  assert.ok(customImageLauncher.classList.contains("jluxe-ai-launcher--custom-image"), "a selected image opts the ordinary desktop launcher into its image treatment");
+  assert.equal(customImageLauncher.style.background, "transparent", "the accent-color bubble is removed behind the selected launcher image");
+  assert.equal(customImageLauncher.querySelector("img")?.getAttribute("src"), selectedLauncherImage, "the selected image remains the launcher content");
+
+  const launcherStyles = readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image\s*\{[^}]*overflow:\s*hidden;[^}]*border:\s*0;[^}]*box-shadow:\s*none;/s, "custom image mode removes the bubble border and shadow");
+  assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image \.jluxe-ai-launcher-mark\s*\{\s*width:\s*100%;\s*height:\s*100%;/s, "the image wrapper expands to the circular launcher bounds");
+  assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image \.jluxe-ai-launcher-image\s*\{\s*display:\s*block;\s*width:\s*100%;\s*height:\s*100%;/s, "the selected image fills the launcher instead of staying at 24 pixels");
+  assert.match(launcherStyles, /\.jluxe-ai-root\.is-product\.is-mobile\.is-closed \.jluxe-ai-launcher-image\s*\{ width: 24px; height: 24px; \}/, "the mobile product guide image keeps its compact chip sizing");
+
+  Object.defineProperty(dom.window, "innerWidth", { configurable: true, writable: true, value: 390 });
+  await act(async () => {
+    dom.window.dispatchEvent(new dom.window.Event("resize"));
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  });
+  const mobileProductLauncher = mount.querySelector(".jluxe-ai-launcher");
+  assert.ok(mobileProductLauncher.classList.contains("jluxe-ai-launcher--product"), "the product guide retains its chip layout when an image is configured");
+  assert.equal(mobileProductLauncher.classList.contains("jluxe-ai-launcher--custom-image"), false, "the circular image treatment is limited to ordinary launchers");
+  assert.equal(mobileProductLauncher.style.background, "rgb(47, 116, 104)", "the product guide retains its accent surface");
+  assert.equal(mobileProductLauncher.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید", "the product guide label remains alongside its compact image");
+
   await act(async () => root.unmount());
 });

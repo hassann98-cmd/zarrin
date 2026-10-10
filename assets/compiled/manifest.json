@@ -48,7 +48,7 @@
     "src": "src/assets/fonts/IRANYekanMobileRegular.woff2"
   },
   "src/islands/AiAssistant.js": {
-    "file": "assets/AiAssistant-A5K9JkJ6.js",
+    "file": "assets/AiAssistant-CAA_8OyP.js",
     "name": "AiAssistant",
     "src": "src/islands/AiAssistant.js",
     "isDynamicEntry": true,
@@ -145,7 +145,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-kAuc7ycd.js",
+    "file": "assets/main-B0edaenb.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -167,7 +167,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-DJm-1KcI.css"
+      "assets/main-AnXenaX0.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

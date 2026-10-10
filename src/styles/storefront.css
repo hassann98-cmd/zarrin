@@ -7381,6 +7381,27 @@ html.jluxe-lite .jluxe-header-bar {
   animation: jluxe-ai-launcher-ring 3s ease-out infinite;
 }
 .jluxe-ai-launcher-image { position: relative; z-index: 1; }
+/* A selected assistant image is the launcher itself; do not frame it with the accent-color bubble. */
+.jluxe-ai-launcher--custom-image {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background-image: none;
+  box-shadow: none;
+}
+.jluxe-ai-launcher--custom-image::before { display: none; }
+.jluxe-ai-launcher--custom-image .jluxe-ai-launcher-mark {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 100%;
+}
+.jluxe-ai-launcher--custom-image .jluxe-ai-launcher-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
 /* R117 — راهنمای محصول به‌جای حبابِ هم‌سطحِ کارتِ خرید، یک chip کوچک و خوش‌خوان بالای نوارِ قیمت است. */
 .jluxe-ai-root.is-product.is-mobile.is-closed .jluxe-ai-launcher--product {
   box-sizing: border-box;
@@ -7510,7 +7531,8 @@ html.jluxe-lite .jluxe-header-bar {
   }
   .jluxe-ai-lightbox-close:hover { background: rgb(255 255 255 / 26%); transform: scale(1.04); }
   .jluxe-ai-back-button:hover { color: hsl(var(--foreground)); }
-  .jluxe-ai-launcher:hover { transform: translateY(-2px) scale(1.035); box-shadow: 0 16px 34px -7px rgb(12 41 29 / 52%); }
+  .jluxe-ai-launcher:hover { transform: translateY(-2px) scale(1.035); }
+  .jluxe-ai-launcher:not(.jluxe-ai-launcher--custom-image):hover { box-shadow: 0 16px 34px -7px rgb(12 41 29 / 52%); }
 }
 @media (max-width: 600px) {
   .jluxe-ai-root.is-mobile .jluxe-ai-window.is-mobile { border-radius: 22px; }
