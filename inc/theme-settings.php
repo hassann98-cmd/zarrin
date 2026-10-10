@@ -791,8 +791,10 @@ function jluxe_theme_settings_defaults(): array {
 			'body_id'  => '', // ملی‌پیامک: کد متن / Body ID پترن OTP.
 			// اعلانِ موجودشدن یک opt-in جدا می‌خواهد تا الگوی ورود هرگز برای پیامِ محصول مصرف نشود.
 			'stock_alert_enabled'  => false,
+			'stock_alert_mode'     => 'pattern', // pattern | free_text (free text: ملی‌پیامک و خط مجاز برای ارسال عادی).
 			'stock_alert_template' => '', // کاوه‌نگار: Verify Lookup با یک متغیرِ نامِ محصول.
 			'stock_alert_body_id'  => '', // ملی‌پیامک: پترن خدماتی با یک متغیرِ نامِ محصول.
+			'stock_alert_message'  => '', // متن آزادِ اختیاری با متغیرهایِ مجازِ محصول/سایت.
 		),
 		'seo' => array(
 			'default_meta_title'       => '',

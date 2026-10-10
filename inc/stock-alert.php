@@ -2,7 +2,7 @@
 /** Explicit, privacy-conscious back-in-stock subscriptions for WooCommerce products. */
 defined( 'ABSPATH' ) || exit;
 
-const JLUXE_STOCK_ALERT_SCHEMA_VERSION = '1';
+const JLUXE_STOCK_ALERT_SCHEMA_VERSION = '2';
 
 function jluxe_stock_alerts_table(): string {
 	global $wpdb;
@@ -35,15 +35,40 @@ function jluxe_stock_alerts_maybe_install(): bool {
 		phone_cipher varchar(160) NOT NULL,
 		created_at datetime NOT NULL,
 		notification_sent_at datetime DEFAULT NULL,
+		manual_notification_sent_at datetime DEFAULT NULL,
 		PRIMARY KEY  (id),
 		UNIQUE KEY subscription (product_id,variation_id,phone_hash),
-		KEY pending (product_id,variation_id,notification_sent_at)
+		KEY pending (product_id,variation_id,notification_sent_at),
+		KEY manual_pending (product_id,variation_id,manual_notification_sent_at)
 	) {$charset_collate};";
 	dbDelta( $sql );
 	update_option( 'jluxe_stock_alerts_schema_version', JLUXE_STOCK_ALERT_SCHEMA_VERSION, false );
 	return true;
 }
 add_action( 'init', 'jluxe_stock_alerts_maybe_install', 5 );
+
+/** Resolve the independent restock delivery mode; older settings remain pattern-based. */
+function jluxe_stock_alert_sms_mode( ?array $sms = null ): string {
+	if ( null === $sms ) {
+		$sms = function_exists( 'jluxe_get_theme_settings' ) ? ( jluxe_get_theme_settings()['sms'] ?? array() ) : array();
+	}
+	$mode_value = $sms['stock_alert_mode'] ?? 'pattern';
+	$mode       = is_scalar( $mode_value ) ? sanitize_key( (string) $mode_value ) : 'pattern';
+	return in_array( $mode, array( 'pattern', 'free_text' ), true ) ? $mode : 'pattern';
+}
+
+function jluxe_stock_alert_sms_supported_variables(): array {
+	return array( 'mobile', 'phone', 'customer_mobile', 'site_name', 'site_url', 'product_name', 'product_url', 'post_id', 'stock_qty' );
+}
+
+function jluxe_stock_alert_sms_message_configuration_valid( string $template ): bool {
+	$template = trim( $template );
+	if ( '' === $template || ( function_exists( 'jluxe_strlen' ) && jluxe_strlen( $template ) > 1500 ) ) {
+		return false;
+	}
+	preg_match_all( '/\{([A-Za-z][A-Za-z0-9_]*)\}/', $template, $matches );
+	return empty( array_diff( array_unique( $matches[1] ?? array() ), jluxe_stock_alert_sms_supported_variables() ) );
+}
 
 /** A separate opt-in prevents borrowing an OTP template for product messages. */
 function jluxe_stock_alert_sms_available(): bool {
@@ -54,13 +79,17 @@ function jluxe_stock_alert_sms_available(): bool {
 	if ( empty( $sms['stock_alert_enabled'] ) || '' === jluxe_get_sms_api_key() ) {
 		return false;
 	}
+	$mode = jluxe_stock_alert_sms_mode( $sms );
 	if ( 'kavenegar' === ( $sms['provider'] ?? '' ) ) {
-		return '' !== trim( (string) ( $sms['stock_alert_template'] ?? '' ) );
+		return 'pattern' === $mode && '' !== trim( (string) ( $sms['stock_alert_template'] ?? '' ) );
 	}
-	if ( 'melipayamak' === ( $sms['provider'] ?? '' ) ) {
-		return '' !== trim( (string) ( $sms['username'] ?? '' ) ) && absint( $sms['stock_alert_body_id'] ?? 0 ) > 0;
+	if ( 'melipayamak' !== ( $sms['provider'] ?? '' ) || '' === trim( (string) ( $sms['username'] ?? '' ) ) ) {
+		return false;
 	}
-	return false;
+	if ( 'free_text' === $mode ) {
+		return '' !== trim( (string) ( $sms['sender'] ?? '' ) ) && jluxe_stock_alert_sms_message_configuration_valid( (string) ( $sms['stock_alert_message'] ?? '' ) );
+	}
+	return absint( $sms['stock_alert_body_id'] ?? 0 ) > 0;
 }
 
 function jluxe_stock_alert_phone_cipher( string $phone ): string {
@@ -170,12 +199,13 @@ function jluxe_handle_stock_alert_signup(): void {
 	 * that the unique key would reject when the same product goes out of stock again.
 	 */
 	$subscription_data = array(
-		'phone_cipher'         => $phone_cipher,
-		'created_at'           => current_time( 'mysql' ),
-		'notification_sent_at' => null,
+		'phone_cipher'                 => $phone_cipher,
+		'created_at'                   => current_time( 'mysql' ),
+		'notification_sent_at'         => null,
+		'manual_notification_sent_at'  => null,
 	);
 	if ( null !== $existing && '' !== (string) $existing ) {
-		$updated = $wpdb->update( $table, $subscription_data, array( 'id' => absint( $existing ) ), array( '%s', '%s', '%s' ), array( '%d' ) );
+		$updated = $wpdb->update( $table, $subscription_data, array( 'id' => absint( $existing ) ), array( '%s', '%s', '%s', '%s' ), array( '%d' ) );
 		if ( false === $updated ) {
 			wp_send_json_error( array( 'message' => 'ذخیرهٔ درخواست انجام نشد؛ دوباره تلاش کنید.' ), 503 );
 		}
@@ -190,7 +220,7 @@ function jluxe_handle_stock_alert_signup(): void {
 				),
 				$subscription_data
 			),
-			array( '%d', '%d', '%s', '%s', '%s', '%s' )
+			array( '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
 		);
 		if ( false === $inserted ) {
 			// A concurrent first opt-in may win the unique key; re-arm its row too.
@@ -203,7 +233,7 @@ function jluxe_handle_stock_alert_signup(): void {
 			if ( false === $duplicate || null === $duplicate || '' === (string) $duplicate ) {
 				wp_send_json_error( array( 'message' => 'ذخیرهٔ درخواست انجام نشد؛ دوباره تلاش کنید.' ), 503 );
 			}
-			$updated = $wpdb->update( $table, $subscription_data, array( 'id' => absint( $duplicate ) ), array( '%s', '%s', '%s' ), array( '%d' ) );
+			$updated = $wpdb->update( $table, $subscription_data, array( 'id' => absint( $duplicate ) ), array( '%s', '%s', '%s', '%s' ), array( '%d' ) );
 			if ( false === $updated ) {
 				wp_send_json_error( array( 'message' => 'ذخیرهٔ درخواست انجام نشد؛ دوباره تلاش کنید.' ), 503 );
 			}
@@ -215,8 +245,128 @@ function jluxe_handle_stock_alert_signup(): void {
 add_action( 'wp_ajax_jluxe_stock_alert_signup', 'jluxe_handle_stock_alert_signup' );
 add_action( 'wp_ajax_nopriv_jluxe_stock_alert_signup', 'jluxe_handle_stock_alert_signup' );
 
-/** Send only through a separately configured, single-variable transactional template. */
-function jluxe_send_stock_alert_sms( string $phone, string $product_name ) {
+/** Variables available to product-stock and manually addressed messages only. */
+function jluxe_stock_alert_sms_context( string $phone, ?WC_Product $product = null, string $product_name = '' ): array {
+	$phone      = jluxe_normalize_phone( $phone );
+	$product_id = $product instanceof WC_Product ? absint( $product->get_id() ) : 0;
+	$link_id    = $product instanceof WC_Product && $product->is_type( 'variation' ) && $product->get_parent_id()
+		? absint( $product->get_parent_id() )
+		: $product_id;
+	$name = $product instanceof WC_Product ? sanitize_text_field( (string) $product->get_name() ) : sanitize_text_field( $product_name );
+	$url  = $link_id ? esc_url_raw( (string) get_permalink( $link_id ) ) : '';
+	$qty  = '';
+	if ( $product instanceof WC_Product && method_exists( $product, 'get_stock_quantity' ) ) {
+		$quantity = $product->get_stock_quantity();
+		$qty      = null === $quantity ? '' : (string) $quantity;
+	}
+
+	return array(
+		'mobile'          => '' !== $phone ? '0' . $phone : '',
+		'phone'           => '' !== $phone ? '0' . $phone : '',
+		'customer_mobile' => '' !== $phone ? '0' . $phone : '',
+		'site_name'       => sanitize_text_field( (string) get_bloginfo( 'name' ) ),
+		'site_url'        => (string) home_url( '/' ),
+		'product_name'    => $name,
+		'product_url'     => $url,
+		'post_id'         => $product_id ? (string) $product_id : '',
+		'stock_qty'       => $qty,
+		'_has_product'    => $product instanceof WC_Product,
+	);
+}
+
+/** Expand only stock-alert placeholders; reject order/cart variables without real context. */
+function jluxe_stock_alert_render_message( string $template, array $context ) {
+	$template = trim( $template );
+	if ( '' === $template ) {
+		return new WP_Error( 'jluxe_stock_alert_empty_message', 'متن پیامک موجودشدن خالی است.', array( 'status' => 400 ) );
+	}
+	if ( function_exists( 'jluxe_strlen' ) && jluxe_strlen( $template ) > 1500 ) {
+		return new WP_Error( 'jluxe_stock_alert_message_too_long', 'متن پیامک از ۱۵۰۰ نویسه بیشتر است.', array( 'status' => 400 ) );
+	}
+
+	$allowed = jluxe_stock_alert_sms_supported_variables();
+	preg_match_all( '/\{([A-Za-z][A-Za-z0-9_]*)\}/', $template, $matches );
+	$tokens  = array_values( array_unique( $matches[1] ?? array() ) );
+	$unknown = array_values( array_diff( $tokens, $allowed ) );
+	if ( $unknown ) {
+		return new WP_Error( 'jluxe_stock_alert_unknown_variable', 'این متغیرها برای پیام موجودی داده‌ای ندارند: {' . implode( '}, {', $unknown ) . '}.', array( 'status' => 400 ) );
+	}
+
+	$has_product = ! empty( $context['_has_product'] );
+	foreach ( $tokens as $token ) {
+		if ( 'product_name' === $token && '' === (string) ( $context['product_name'] ?? '' ) ) {
+			return new WP_Error( 'jluxe_stock_alert_missing_product_context', 'برای متغیر {product_name} نام محصول را وارد کنید یا شناسهٔ محصول را انتخاب کنید.', array( 'status' => 400 ) );
+		}
+		if ( in_array( $token, array( 'product_url', 'post_id', 'stock_qty' ), true ) && ! $has_product ) {
+			return new WP_Error( 'jluxe_stock_alert_missing_product_context', 'برای متغیرهای لینک/شناسه/موجودی، در فرم ارسال به شمارهٔ دلخواه شناسهٔ محصول را وارد کنید.', array( 'status' => 400 ) );
+		}
+	}
+
+	$replacements = array();
+	foreach ( $allowed as $token ) {
+		$replacements[ '{' . $token . '}' ] = (string) ( $context[ $token ] ?? '' );
+	}
+	$message = trim( strtr( $template, $replacements ) );
+	if ( '' === $message ) {
+		return new WP_Error( 'jluxe_stock_alert_empty_message', 'بعد از جایگزینی متغیرها، متن پیامک خالی است.', array( 'status' => 400 ) );
+	}
+	if ( function_exists( 'jluxe_strlen' ) && jluxe_strlen( $message ) > 1500 ) {
+		return new WP_Error( 'jluxe_stock_alert_message_too_long', 'متن نهایی پیامک از ۱۵۰۰ نویسه بیشتر است.', array( 'status' => 400 ) );
+	}
+	return $message;
+}
+
+/** Send via the existing Melipayamak credentials; never reports an ambiguous API response as success. */
+function jluxe_stock_alert_send_melipayamak( array $sms, string $api_key, string $phone, string $text, string $mode ) {
+	if ( '' === trim( (string) ( $sms['username'] ?? '' ) ) ) {
+		return new WP_Error( 'jluxe_stock_alert_missing_username', 'نام کاربری ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
+	}
+	if ( 'pattern' === $mode && absint( $sms['stock_alert_body_id'] ?? 0 ) < 1 ) {
+		return new WP_Error( 'jluxe_stock_alert_missing_body_id', 'Body ID پترن موجودشدن تنظیم نشده است.', array( 'status' => 500 ) );
+	}
+	if ( 'free_text' === $mode && '' === trim( (string) ( $sms['sender'] ?? '' ) ) ) {
+		return new WP_Error( 'jluxe_stock_alert_missing_sender', 'شمارهٔ خط ارسال عادی ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
+	}
+
+	$endpoint = 'pattern' === $mode
+		? 'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber'
+		: 'https://rest.payamak-panel.com/api/SendSMS/SendSMS';
+	$body = array(
+		'username' => (string) $sms['username'],
+		'password' => $api_key,
+		'to'       => '0' . $phone,
+		'text'     => $text,
+	);
+	if ( 'pattern' === $mode ) {
+		$body['bodyId'] = absint( $sms['stock_alert_body_id'] );
+	} else {
+		$body['from'] = trim( (string) $sms['sender'] );
+	}
+	$response = wp_remote_post(
+		$endpoint,
+		array(
+			'timeout' => 20,
+			'headers' => array( 'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8' ),
+			'body'    => $body,
+		)
+	);
+	if ( is_wp_error( $response ) ) {
+		return new WP_Error( 'jluxe_stock_alert_sms_upstream', 'ارتباط با وب‌سرویس ملی‌پیامک ناموفق بود.', array( 'status' => 502 ) );
+	}
+	$http_code = (int) wp_remote_retrieve_response_code( $response );
+	$raw_body  = trim( (string) wp_remote_retrieve_body( $response ) );
+	$decoded   = json_decode( $raw_body, true );
+	$value     = is_array( $decoded ) && isset( $decoded['Value'] )
+		? (int) $decoded['Value']
+		: ( ctype_digit( $raw_body ) ? (int) $raw_body : 0 );
+	if ( $http_code < 200 || $http_code >= 300 || $value <= 0 ) {
+		return new WP_Error( 'jluxe_stock_alert_sms_upstream', 'ملی‌پیامک ارسال را نپذیرفت؛ مجازبودن خط، اعتبار، شماره و پترن را بررسی کنید.', array( 'status' => 502 ) );
+	}
+	return true;
+}
+
+/** Send one stock notice through its independently configured pattern or message. */
+function jluxe_send_stock_alert_sms( string $phone, string $product_name, ?WC_Product $product = null ) {
 	if ( ! jluxe_stock_alert_sms_available() ) {
 		return new WP_Error( 'jluxe_stock_alert_sms_disabled', 'هشدار موجودی پیامکی پیکربندی نشده است.', array( 'status' => 503 ) );
 	}
@@ -224,11 +374,14 @@ function jluxe_send_stock_alert_sms( string $phone, string $product_name ) {
 	$api_key = jluxe_get_sms_api_key();
 	$phone   = jluxe_normalize_phone( $phone );
 	$name    = function_exists( 'jluxe_substr' ) ? jluxe_substr( sanitize_text_field( $product_name ), 0, 100 ) : substr( sanitize_text_field( $product_name ), 0, 100 );
-	if ( '' === $phone || '' === $name ) {
-		return new WP_Error( 'jluxe_stock_alert_bad_payload', 'اطلاعات اعلان معتبر نیست.', array( 'status' => 400 ) );
+	if ( '' === $phone ) {
+		return new WP_Error( 'jluxe_stock_alert_bad_payload', 'شمارهٔ مقصد معتبر نیست.', array( 'status' => 400 ) );
 	}
 
 	if ( 'kavenegar' === $sms['provider'] ) {
+		if ( '' === $name ) {
+			return new WP_Error( 'jluxe_stock_alert_bad_payload', 'نام محصول برای پترن کاوه‌نگار لازم است.', array( 'status' => 400 ) );
+		}
 		$url = sprintf(
 			'https://api.kavenegar.com/v1/%s/verify/lookup.json?receptor=%s&token=%s&template=%s',
 			rawurlencode( $api_key ),
@@ -236,7 +389,7 @@ function jluxe_send_stock_alert_sms( string $phone, string $product_name ) {
 			rawurlencode( $name ),
 			rawurlencode( (string) $sms['stock_alert_template'] )
 		);
-		$response = wp_remote_get( $url, array( 'timeout' => 15 ) );
+		$response = wp_remote_get( $url, array( 'timeout' => 20 ) );
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error( 'jluxe_stock_alert_sms_upstream', 'ارسال پیامکِ موجودشدن ناموفق بود.', array( 'status' => 502 ) );
 		}
@@ -247,31 +400,19 @@ function jluxe_send_stock_alert_sms( string $phone, string $product_name ) {
 		return true;
 	}
 
-	$body_id = absint( $sms['stock_alert_body_id'] ?? 0 );
-	$response = wp_remote_post(
-		'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber',
-		array(
-			'timeout' => 15,
-			'headers' => array( 'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8' ),
-			'body'    => array(
-				'username' => (string) $sms['username'],
-				'password' => $api_key,
-				'to'       => '0' . $phone,
-				'text'     => $name,
-				'bodyId'   => $body_id,
-			),
-		)
-	);
-	if ( is_wp_error( $response ) ) {
-		return new WP_Error( 'jluxe_stock_alert_sms_upstream', 'ارسال پیامکِ موجودشدن ناموفق بود.', array( 'status' => 502 ) );
+	$mode = jluxe_stock_alert_sms_mode( $sms );
+	if ( 'free_text' === $mode ) {
+		$context = jluxe_stock_alert_sms_context( $phone, $product, $name );
+		$message = jluxe_stock_alert_render_message( (string) ( $sms['stock_alert_message'] ?? '' ), $context );
+		if ( is_wp_error( $message ) ) {
+			return $message;
+		}
+		return jluxe_stock_alert_send_melipayamak( $sms, $api_key, $phone, $message, 'free_text' );
 	}
-	$http_code = (int) wp_remote_retrieve_response_code( $response );
-	$body      = json_decode( wp_remote_retrieve_body( $response ), true );
-	$value     = is_array( $body ) && isset( $body['Value'] ) ? (int) $body['Value'] : ( ctype_digit( trim( (string) wp_remote_retrieve_body( $response ) ) ) ? (int) trim( (string) wp_remote_retrieve_body( $response ) ) : 0 );
-	if ( $http_code < 200 || $http_code >= 300 || $value <= 0 ) {
-		return new WP_Error( 'jluxe_stock_alert_sms_upstream', 'ارائه‌دهندهٔ پیامک ارسال را نپذیرفت.', array( 'status' => 502 ) );
+	if ( '' === $name ) {
+		return new WP_Error( 'jluxe_stock_alert_bad_payload', 'مقدار متغیرِ پترن (نام محصول) لازم است.', array( 'status' => 400 ) );
 	}
-	return true;
+	return jluxe_stock_alert_send_melipayamak( $sms, $api_key, $phone, $name, 'pattern' );
 }
 
 /** Send pending notices once, and leave provider failures retryable on a later stock update. */
@@ -295,7 +436,7 @@ function jluxe_dispatch_stock_alerts_for_target( int $product_id, int $variation
 		if ( '' === $phone ) {
 			continue;
 		}
-		if ( true !== jluxe_send_stock_alert_sms( $phone, $name ) ) {
+		if ( true !== jluxe_send_stock_alert_sms( $phone, $name, $available_product ) ) {
 			continue;
 		}
 		$wpdb->update(
@@ -337,6 +478,311 @@ function jluxe_stock_alert_on_stock_status_change( $product_id, $stock_status, $
 add_action( 'woocommerce_product_set_stock_status', 'jluxe_stock_alert_on_stock_status_change', 40, 3 );
 add_action( 'woocommerce_variation_set_stock_status', 'jluxe_stock_alert_on_stock_status_change', 40, 3 );
 
+/** Keep the admin list and send actions on the existing SMS settings tab. */
+function jluxe_stock_alert_admin_page_url( array $args = array() ): string {
+	return add_query_arg( array_merge( array( 'page' => 'jluxe-sms' ), $args ), admin_url( 'admin.php' ) );
+}
+
+function jluxe_stock_alert_admin_result_for_error( $error ): string {
+	if ( ! is_wp_error( $error ) ) {
+		return 'failed';
+	}
+	switch ( $error->get_error_code() ) {
+		case 'jluxe_stock_alert_sms_disabled':
+		case 'jluxe_stock_alert_missing_username':
+		case 'jluxe_stock_alert_missing_body_id':
+		case 'jluxe_stock_alert_missing_sender':
+			return 'not_ready';
+		case 'jluxe_stock_alert_bad_payload':
+		case 'jluxe_stock_alert_empty_message':
+		case 'jluxe_stock_alert_message_too_long':
+		case 'jluxe_stock_alert_unknown_variable':
+		case 'jluxe_stock_alert_missing_product_context':
+			return 'invalid_message';
+		case 'jluxe_stock_alert_rate_limited':
+			return 'rate_limited';
+		case 'jluxe_stock_alert_subscription_not_found':
+		case 'jluxe_stock_alert_product_not_found':
+			return 'not_found';
+		default:
+			return 'failed';
+	}
+}
+
+function jluxe_stock_alert_admin_notice(): void {
+	$result = isset( $_GET['jluxe_stock_alert_result'] ) && is_scalar( $_GET['jluxe_stock_alert_result'] )
+		? sanitize_key( wp_unslash( (string) $_GET['jluxe_stock_alert_result'] ) )
+		: '';
+	$messages = array(
+		'manual_sent'    => array( 'success', 'درخواست ارسال دستی توسط سرویس پیامکی پذیرفته شد؛ وضعیت ارسال خودکار جداگانه حفظ شد.' ),
+		'custom_sent'    => array( 'success', 'درخواست ارسال به شمارهٔ واردشده پذیرفته شد؛ شماره برای این ارسال ذخیره نشد.' ),
+		'not_ready'      => array( 'error', 'ارسال آماده نیست؛ فعال‌بودن اعلان، نام کاربری/کلید و تنظیمات روش انتخاب‌شده را بررسی کنید.' ),
+		'invalid_message'=> array( 'error', 'ارسال انجام نشد؛ متن، متغیرهای پشتیبانی‌شده یا اطلاعات محصول را بررسی کنید.' ),
+		'rate_limited'   => array( 'error', 'برای جلوگیری از ارسال تکراری، ارسال به این شماره موقتاً محدود شده است.' ),
+		'not_found'      => array( 'error', 'درخواست یا محصول موردنظر پیدا نشد؛ پیامکی ارسال نشد.' ),
+		'invalid_nonce'  => array( 'error', 'درخواست امن نبود یا منقضی شده است؛ صفحه را تازه کنید.' ),
+		'failed'         => array( 'error', 'ملی‌پیامک ارسال را تأیید نکرد؛ تنظیمات خط/پترن، اعتبار و پاسخ سرویس را بررسی کنید.' ),
+	);
+	if ( ! isset( $messages[ $result ] ) ) {
+		return;
+	}
+	[ $class, $message ] = $messages[ $result ];
+	?>
+	<div class="notice notice-<?php echo esc_attr( $class ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+	<?php
+}
+
+function jluxe_stock_alert_admin_rows( int $page = 1, int $per_page = 25 ): array {
+	if ( ! jluxe_stock_alerts_maybe_install() ) {
+		return array( 'rows' => array(), 'total' => 0, 'error' => true );
+	}
+	global $wpdb;
+	$table   = jluxe_stock_alerts_table();
+	$page    = max( 1, $page );
+	$per_page = max( 1, min( 100, $per_page ) );
+	$offset  = ( $page - 1 ) * $per_page;
+	$total   = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id > %d", 0 ) );
+	$rows    = $wpdb->get_results( $wpdb->prepare(
+		"SELECT id, product_id, variation_id, phone_cipher, created_at, notification_sent_at, manual_notification_sent_at FROM {$table} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+		$per_page,
+		$offset
+	), ARRAY_A );
+	if ( false === $total || ! is_array( $rows ) ) {
+		return array( 'rows' => array(), 'total' => 0, 'error' => true );
+	}
+	return array( 'rows' => $rows, 'total' => absint( $total ), 'error' => false );
+}
+
+function jluxe_stock_alert_subscription_row( int $subscription_id ) {
+	if ( $subscription_id < 1 || ! jluxe_stock_alerts_maybe_install() ) {
+		return null;
+	}
+	global $wpdb;
+	$table = jluxe_stock_alerts_table();
+	$rows  = $wpdb->get_results( $wpdb->prepare(
+		"SELECT id, product_id, variation_id, phone_cipher, created_at, notification_sent_at, manual_notification_sent_at FROM {$table} WHERE id = %d LIMIT 1",
+		$subscription_id
+	), ARRAY_A );
+	return is_array( $rows ) && isset( $rows[0] ) && is_array( $rows[0] ) ? $rows[0] : null;
+}
+
+/** One manual row action; manual state never suppresses the separate auto-restock delivery. */
+function jluxe_stock_alert_send_subscription_manually( int $subscription_id ) {
+	if ( ! jluxe_stock_alert_sms_available() ) {
+		return new WP_Error( 'jluxe_stock_alert_sms_disabled', 'اعلان پیامکی موجودی آماده نیست.', array( 'status' => 503 ) );
+	}
+	$row = jluxe_stock_alert_subscription_row( $subscription_id );
+	if ( ! is_array( $row ) ) {
+		return new WP_Error( 'jluxe_stock_alert_subscription_not_found', 'درخواست پیدا نشد.', array( 'status' => 404 ) );
+	}
+	$phone = jluxe_stock_alert_phone_decipher( (string) ( $row['phone_cipher'] ?? '' ) );
+	if ( '' === $phone ) {
+		return new WP_Error( 'jluxe_stock_alert_bad_payload', 'شمارهٔ ذخیره‌شده قابل رمزگشایی نیست.', array( 'status' => 400 ) );
+	}
+	if ( ! jluxe_stock_alert_admin_send_rate_limit( $phone ) ) {
+		return new WP_Error( 'jluxe_stock_alert_rate_limited', 'ارسال به این شماره موقتاً محدود شده است.', array( 'status' => 429 ) );
+	}
+	$product_id   = absint( $row['product_id'] ?? 0 );
+	$variation_id = absint( $row['variation_id'] ?? 0 );
+	$product      = $variation_id && function_exists( 'wc_get_product' ) ? wc_get_product( $variation_id ) : false;
+	if ( ! $product instanceof WC_Product && function_exists( 'wc_get_product' ) ) {
+		$product = wc_get_product( $product_id );
+	}
+	if ( ! $product instanceof WC_Product ) {
+		return new WP_Error( 'jluxe_stock_alert_product_not_found', 'محصول درخواست پیدا نشد.', array( 'status' => 404 ) );
+	}
+	if ( ! function_exists( 'jluxe_security_lock' ) || ! function_exists( 'jluxe_security_unlock' ) ) {
+		return new WP_Error( 'jluxe_stock_alert_storage', 'قفل امن ارسال در دسترس نیست.', array( 'status' => 503 ) );
+	}
+	$lock = jluxe_security_lock( 'stock-alert-manual:' . $subscription_id );
+	if ( ! $lock ) {
+		return new WP_Error( 'jluxe_stock_alert_rate_limited', 'ارسال دیگری برای این درخواست در حال انجام است.', array( 'status' => 429 ) );
+	}
+	try {
+		$result = jluxe_send_stock_alert_sms( $phone, (string) $product->get_name(), $product );
+		if ( true !== $result ) {
+			return $result;
+		}
+		global $wpdb;
+		$updated = $wpdb->update(
+			jluxe_stock_alerts_table(),
+			array( 'manual_notification_sent_at' => current_time( 'mysql' ) ),
+			array( 'id' => $subscription_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+		if ( false === $updated ) {
+			return new WP_Error( 'jluxe_stock_alert_storage', 'ارسال انجام شد اما ثبت وضعیت ارسال ممکن نشد.', array( 'status' => 503 ) );
+		}
+		return true;
+	} finally {
+		jluxe_security_unlock( $lock );
+	}
+}
+
+function jluxe_stock_alert_admin_send_rate_limit( string $phone ): bool {
+	if ( ! function_exists( 'jluxe_security_rate_limit' ) ) {
+		return false;
+	}
+	$identity = (string) get_current_user_id() . ':' . jluxe_normalize_phone( $phone );
+	return jluxe_security_rate_limit( 'stock_alert_admin_send', $identity, 5, HOUR_IN_SECONDS );
+}
+
+function jluxe_stock_alert_send_to_custom_phone( string $phone, string $product_name = '', ?WC_Product $product = null ) {
+	if ( ! jluxe_stock_alert_sms_available() ) {
+		return new WP_Error( 'jluxe_stock_alert_sms_disabled', 'اعلان پیامکی موجودی آماده نیست.', array( 'status' => 503 ) );
+	}
+	$phone = jluxe_normalize_phone( $phone );
+	if ( '' === $phone ) {
+		return new WP_Error( 'jluxe_stock_alert_bad_payload', 'شمارهٔ مقصد معتبر نیست.', array( 'status' => 400 ) );
+	}
+	if ( ! jluxe_stock_alert_admin_send_rate_limit( $phone ) ) {
+		return new WP_Error( 'jluxe_stock_alert_rate_limited', 'ارسال به این شماره موقتاً محدود شده است.', array( 'status' => 429 ) );
+	}
+	return jluxe_send_stock_alert_sms( $phone, $product_name, $product );
+}
+
+function jluxe_stock_alert_admin_redirect( string $result ): void {
+	wp_safe_redirect( jluxe_stock_alert_admin_page_url( array( 'jluxe_stock_alert_result' => sanitize_key( $result ) ) ) );
+	exit;
+}
+
+function jluxe_handle_admin_stock_alert_manual_send(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'اجازهٔ انجام این عملیات را ندارید.' );
+	}
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		wp_die( 'روش درخواست معتبر نیست.' );
+	}
+	$id    = isset( $_POST['subscription_id'] ) && is_scalar( $_POST['subscription_id'] ) ? absint( wp_unslash( $_POST['subscription_id'] ) ) : 0;
+	$nonce = isset( $_POST['_wpnonce'] ) && is_scalar( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+	if ( ! $id || ! wp_verify_nonce( $nonce, 'jluxe_stock_alert_manual_' . $id ) ) {
+		jluxe_stock_alert_admin_redirect( 'invalid_nonce' );
+	}
+	$result = jluxe_stock_alert_send_subscription_manually( $id );
+	jluxe_stock_alert_admin_redirect( true === $result ? 'manual_sent' : jluxe_stock_alert_admin_result_for_error( $result ) );
+}
+add_action( 'admin_post_jluxe_stock_alert_manual_send', 'jluxe_handle_admin_stock_alert_manual_send' );
+
+function jluxe_handle_admin_stock_alert_custom_send(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'اجازهٔ انجام این عملیات را ندارید.' );
+	}
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		wp_die( 'روش درخواست معتبر نیست.' );
+	}
+	$nonce = isset( $_POST['_wpnonce'] ) && is_scalar( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_stock_alert_custom_send' ) ) {
+		jluxe_stock_alert_admin_redirect( 'invalid_nonce' );
+	}
+	$phone_raw   = isset( $_POST['phone'] ) && is_scalar( $_POST['phone'] ) ? (string) wp_unslash( $_POST['phone'] ) : '';
+	$product_id  = isset( $_POST['product_id'] ) && is_scalar( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
+	$product_name = isset( $_POST['product_name'] ) && is_scalar( $_POST['product_name'] ) ? sanitize_text_field( wp_unslash( $_POST['product_name'] ) ) : '';
+	$product     = null;
+	if ( $product_id ) {
+		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
+		if ( ! $product instanceof WC_Product ) {
+			jluxe_stock_alert_admin_redirect( 'not_found' );
+		}
+		$product_name = (string) $product->get_name();
+	}
+	$result = jluxe_stock_alert_send_to_custom_phone( $phone_raw, $product_name, $product instanceof WC_Product ? $product : null );
+	jluxe_stock_alert_admin_redirect( true === $result ? 'custom_sent' : jluxe_stock_alert_admin_result_for_error( $result ) );
+}
+add_action( 'admin_post_jluxe_stock_alert_custom_send', 'jluxe_handle_admin_stock_alert_custom_send' );
+
+/** The SMS settings tab also contains the private request list and manual send forms. */
+function jluxe_render_stock_alert_admin_management(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	?>
+	<hr />
+	<h2>درخواست‌ها و ارسال دستی پیامکِ موجودی</h2>
+	<?php jluxe_stock_alert_admin_notice(); ?>
+	<?php if ( ! jluxe_stock_alert_sms_available() ) : ?>
+		<div class="notice notice-warning inline"><p>ارسال/ثبت درخواست فعلاً آماده نیست. provider، کلید پیامک، فعال‌سازی اعلان و روش انتخاب‌شده را کامل کنید؛ ورود OTP به‌تنهایی کافی نیست.</p></div>
+	<?php endif; ?>
+	<h3>ارسال به شمارهٔ دلخواه</h3>
+	<p class="description">شمارهٔ مقصد باید موبایل معتبر ایران باشد. از همین متن یا پترنِ بخش بالا استفاده می‌شود. شماره برای این ارسال جداگانه ذخیره نمی‌شود. در حالت پترن، مقدار متغیرِ الگو را وارد کنید؛ در حالت متن آزاد، شناسهٔ محصول اختیاری است و برای متغیرهای محصول به کار می‌رود. برای جلوگیری از ارسال ناخواسته، ارسال دستی به هر شماره حداکثر ۵ بار در ساعت مجاز است.</p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" autocomplete="off">
+		<input type="hidden" name="action" value="jluxe_stock_alert_custom_send" />
+		<?php wp_nonce_field( 'jluxe_stock_alert_custom_send' ); ?>
+		<table class="form-table" role="presentation">
+			<tr><th scope="row"><label for="jluxe-stock-alert-custom-phone">شمارهٔ مقصد</label></th><td><input id="jluxe-stock-alert-custom-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="64" dir="ltr" class="regular-text" required /></td></tr>
+			<tr><th scope="row"><label for="jluxe-stock-alert-custom-product-id">شناسهٔ محصول (اختیاری)</label></th><td><input id="jluxe-stock-alert-custom-product-id" name="product_id" type="number" min="1" step="1" inputmode="numeric" class="small-text" /><p class="description">با ورود شناسه، نام، لینک و موجودی واقعی محصول در متغیرهای پیام قرار می‌گیرد.</p></td></tr>
+			<tr><th scope="row"><label for="jluxe-stock-alert-custom-product-name">نام محصول / مقدار متغیر پترن</label></th><td><input id="jluxe-stock-alert-custom-product-name" name="product_name" type="text" maxlength="100" class="regular-text" /><p class="description">برای یک متغیر {product_name} در متن آزاد یا متغیرِ تک‌مقداریِ پترن؛ اگر شناسهٔ محصول وارد شود، نام واقعی محصول جایگزین می‌شود.</p></td></tr>
+		</table>
+		<p><button type="submit" class="button button-primary"<?php disabled( ! jluxe_stock_alert_sms_available() ); ?> onclick="return confirm('پیامک از طریق سرویس پیامکی ارسال شود؟');">ارسال پیامک</button></p>
+	</form>
+
+	<h3>فهرست درخواست‌های ثبت‌شده</h3>
+	<?php
+	$page = isset( $_GET['stock_page'] ) && is_scalar( $_GET['stock_page'] ) ? max( 1, absint( wp_unslash( $_GET['stock_page'] ) ) ) : 1;
+	$data = jluxe_stock_alert_admin_rows( $page, 25 );
+	if ( ! empty( $data['error'] ) ) :
+		?>
+		<div class="notice notice-error inline"><p>خواندن فهرست درخواست‌ها ممکن نشد؛ جدول اعلان موجودی را بررسی کنید.</p></div>
+		<?php
+		return;
+	endif;
+	if ( empty( $data['rows'] ) ) :
+		?>
+		<p class="description">هنوز درخواستی ثبت نشده است.</p>
+		<?php
+		return;
+	endif;
+	?>
+	<table class="widefat striped">
+		<thead><tr><th>محصول</th><th>شماره موبایل</th><th>تاریخ درخواست</th><th>ارسال خودکار</th><th>ارسال دستی</th><th>عملیات</th></tr></thead>
+		<tbody>
+		<?php foreach ( $data['rows'] as $row ) :
+			$id           = absint( $row['id'] ?? 0 );
+			$product_id   = absint( $row['product_id'] ?? 0 );
+			$variation_id = absint( $row['variation_id'] ?? 0 );
+			$product      = $variation_id && function_exists( 'wc_get_product' ) ? wc_get_product( $variation_id ) : false;
+			if ( ! $product instanceof WC_Product && function_exists( 'wc_get_product' ) ) {
+				$product = wc_get_product( $product_id );
+			}
+			$product_name = $product instanceof WC_Product ? (string) $product->get_name() : 'محصول #' . $product_id;
+			$product_url  = $product_id ? get_permalink( $product_id ) : '';
+			$phone        = jluxe_stock_alert_phone_decipher( (string) ( $row['phone_cipher'] ?? '' ) );
+			$manual_sent  = (string) ( $row['manual_notification_sent_at'] ?? '' );
+			?>
+			<tr>
+				<td>
+					<?php if ( '' !== (string) $product_url ) : ?><a href="<?php echo esc_url( $product_url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $product_name ); ?></a><?php else : ?><?php echo esc_html( $product_name ); ?><?php endif; ?>
+					<?php if ( $variation_id ) : ?><br /><small>شناسهٔ تنوع: <?php echo esc_html( (string) $variation_id ); ?></small><?php endif; ?>
+				</td>
+				<td dir="ltr"><?php echo '' !== $phone ? esc_html( '0' . $phone ) : '—'; ?></td>
+				<td><?php echo esc_html( (string) ( $row['created_at'] ?? '' ) ); ?></td>
+				<td><?php echo ! empty( $row['notification_sent_at'] ) ? 'پذیرفته‌شده: ' . esc_html( (string) $row['notification_sent_at'] ) : 'منتظر موجودی'; ?></td>
+				<td><?php echo '' !== $manual_sent ? 'پذیرفته‌شده: ' . esc_html( $manual_sent ) : 'ارسال نشده'; ?></td>
+				<td>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="jluxe_stock_alert_manual_send" />
+						<input type="hidden" name="subscription_id" value="<?php echo esc_attr( (string) $id ); ?>" />
+						<?php wp_nonce_field( 'jluxe_stock_alert_manual_' . $id ); ?>
+						<button type="submit" class="button"<?php disabled( ! jluxe_stock_alert_sms_available() ); ?> onclick="return confirm('<?php echo '' !== $manual_sent ? 'ارسال مجدد پیامک دستی؟' : 'پیامک دستی برای این شماره ارسال شود؟'; ?>');"><?php echo '' !== $manual_sent ? 'ارسال دوباره' : 'ارسال پیامک'; ?></button>
+					</form>
+				</td>
+			</tr>
+		<?php endforeach; ?>
+		</tbody>
+	</table>
+	<?php
+	$total_pages = max( 1, (int) ceil( $data['total'] / 25 ) );
+	if ( $total_pages > 1 ) :
+		?>
+		<p class="tablenav-pages">
+			<span class="displaying-num"><?php echo esc_html( (string) $data['total'] ); ?> درخواست</span>
+			<?php if ( $page > 1 ) : ?><a class="button" href="<?php echo esc_url( jluxe_stock_alert_admin_page_url( array( 'stock_page' => $page - 1 ) ) ); ?>">درخواست‌های جدیدتر</a><?php endif; ?>
+			<?php if ( $page < $total_pages ) : ?><a class="button" href="<?php echo esc_url( jluxe_stock_alert_admin_page_url( array( 'stock_page' => $page + 1 ) ) ); ?>">درخواست‌های قدیمی‌تر</a><?php endif; ?>
+		</p>
+		<?php
+	endif;
+}
+
 /** Server-rendered opt-in trigger sits beside the real purchase controls. */
 function jluxe_render_stock_alert_trigger( $product ): void {
 	if ( ! $product instanceof WC_Product ) {
@@ -376,7 +822,7 @@ function jluxe_render_stock_alert_dialog( $product ): void {
 				<input type="hidden" name="variation_id" value="0" data-jluxe-stock-alert-variation />
 				<label for="<?php echo esc_attr( $dialog_id . '-phone' ); ?>">شماره موبایل</label>
 				<input id="<?php echo esc_attr( $dialog_id . '-phone' ); ?>" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="64" dir="ltr" placeholder="۰۹۱۲۱۲۳۴۵۶۷" required />
-				<p class="jluxe-stock-alert-dialog__consent">با ثبت شماره، فقط برای اطلاع از موجودشدن این محصول پیامک دریافت می‌کنید. شمارهٔ شما به این درخواست متصل و به‌صورت رمزگذاری‌شده نگهداری می‌شود.</p>
+				<p class="jluxe-stock-alert-dialog__consent">با ثبت شماره، پیامک‌های مربوط به همین درخواست را دریافت می‌کنید: پیامک خودکار هنگام موجودشدن یا در صورت نیاز ارسال دستیِ مدیر فروشگاه. شماره به این درخواست متصل و رمزگذاری‌شده نگهداری می‌شود.</p>
 				<p class="jluxe-stock-alert-dialog__status" data-jluxe-stock-alert-status role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p>
 				<button type="submit" class="jluxe-stock-alert-dialog__submit">ثبت درخواست</button>
 			</form>

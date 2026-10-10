@@ -117,24 +117,49 @@ function jluxe_render_sms_page(): void {
 			</table>
 
 			<h2>اعلانِ موجودشدن محصول</h2>
-			<p class="description">این قابلیت جدا از ورود پیامکی است و فقط پس از ثبتِ صریح شماره توسط مشتری پیامک می‌فرستد. الگوی جداگانه بسازید؛ از الگوی OTP استفاده نمی‌شود. برای کاوه‌نگار، الگوی Verify Lookup باید یک متغیر داشته باشد که نام محصول را می‌گیرد؛ برای ملی‌پیامک، Body ID یک پترن خدماتی با یک متغیرِ نام محصول باشد.</p>
+			<p class="description">این بخش از ورود پیامکی جداست. درخواست‌ها با شمارهٔ رمزگذاری‌شده ذخیره می‌شوند؛ متن/پترن انتخابی برای ارسال خودکارِ هنگام موجودشدن و ارسال دستی استفاده می‌شود. ارسال دستی همان لحظه و مستقل است و پیام خودکارِ بعدی را لغو نمی‌کند؛ اگر محصول هنوز ناموجود است، متن را متناسب با آن بنویسید. از خط خدماتی اشتراکی فقط در چارچوب مجوزها و الگوهای پنل ملی‌پیامک استفاده کنید.</p>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">فعال‌سازی اعلان موجودی</th>
-					<td><label><input type="checkbox" name="sms[stock_alert_enabled]" value="1" <?php checked( ! empty( $sms['stock_alert_enabled'] ) ); ?> /> ارسال یک پیامک به مشتریانی که برای همان محصول درخواست داده‌اند</label></td>
+					<td><label><input type="checkbox" name="sms[stock_alert_enabled]" value="1" <?php checked( ! empty( $sms['stock_alert_enabled'] ) ); ?> /> پذیرش درخواست و ارسال خودکار پیامک هنگام موجودشدن</label></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-stock-alert-mode">روش ارسال ملی‌پیامک</label></th>
+					<td>
+						<select id="jluxe-stock-alert-mode" name="sms[stock_alert_mode]">
+							<option value="pattern" <?php selected( $sms['stock_alert_mode'] ?? 'pattern', 'pattern' ); ?>>پترن خدماتیِ تأییدشده (Body ID)</option>
+							<option value="free_text" <?php selected( $sms['stock_alert_mode'] ?? 'pattern', 'free_text' ); ?>>متن آزاد از خط ارسالِ تنظیم‌شده</option>
+						</select>
+						<p class="description">ارسال متن آزاد فقط برای ملی‌پیامک و در صورتی کار می‌کند که خط و حساب شما اجازهٔ ارسال عادی از وب‌سرویس را داشته باشند. اگر خط اشتراکی شما فقط پترن می‌پذیرد، «پترن خدماتی» را انتخاب کنید.</p>
+						<?php if ( 'free_text' === ( $sms['stock_alert_mode'] ?? 'pattern' ) && 'melipayamak' !== ( $sms['provider'] ?? '' ) ) : ?>
+							<p class="description" style="color:#b32d2e">متن آزاد اعلان موجودی فقط با ملی‌پیامک پشتیبانی می‌شود؛ کاوه‌نگار به الگوی Verify Lookup نیاز دارد.</p>
+						<?php endif; ?>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-stock-alert-template">الگوی کاوه‌نگار</label></th>
-					<td><input type="text" id="jluxe-stock-alert-template" name="sms[stock_alert_template]" value="<?php echo esc_attr( $sms['stock_alert_template'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="نام الگوی Verify Lookup" /></td>
+					<td><input type="text" id="jluxe-stock-alert-template" name="sms[stock_alert_template]" value="<?php echo esc_attr( $sms['stock_alert_template'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="نام الگوی Verify Lookup" /><p class="description">کاوه‌نگار همیشه از الگوی تأییدشده با نام محصول استفاده می‌کند.</p></td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-stock-alert-body-id">Body ID ملی‌پیامک</label></th>
-					<td><input type="text" id="jluxe-stock-alert-body-id" name="sms[stock_alert_body_id]" value="<?php echo esc_attr( $sms['stock_alert_body_id'] ?? '' ); ?>" class="regular-text" dir="ltr" inputmode="numeric" placeholder="شناسهٔ پترن خدماتی" /></td>
+					<td><input type="text" id="jluxe-stock-alert-body-id" name="sms[stock_alert_body_id]" value="<?php echo esc_attr( $sms['stock_alert_body_id'] ?? '' ); ?>" class="regular-text" dir="ltr" inputmode="numeric" placeholder="شناسهٔ پترن خدماتی" /><p class="description">برای حالت پترن: یک متغیرِ نام محصول در متن تأییدشده تعریف کنید.</p></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-stock-alert-message">متن پیامک سفارشی</label></th>
+					<td>
+						<textarea id="jluxe-stock-alert-message" name="sms[stock_alert_message]" rows="6" maxlength="1500" class="large-text code" dir="auto" placeholder="مثال: سلام؛ {product_name} دوباره موجود شد: {product_url}"><?php echo esc_textarea( $sms['stock_alert_message'] ?? '' ); ?></textarea>
+						<p class="description">در حالت «متن آزاد»، متن فارسی، فهرست، خط جدید و شکلک قابل استفاده است. حداکثر ۱۵۰۰ نویسه. متغیرهای این بخش: <code>{mobile}</code>، <code>{phone}</code>، <code>{customer_mobile}</code>، <code>{site_name}</code>، <code>{site_url}</code>، <code>{product_name}</code>، <code>{product_url}</code>، <code>{post_id}</code>، <code>{stock_qty}</code>. برای شمارهٔ دلخواه، متغیرهای محصول فقط با واردکردن شناسهٔ محصول پر می‌شوند؛ متغیرهای سفارش/سبد خرید در این سناریو پشتیبانی نمی‌شوند.</p>
+						<p class="description">متن آزاد از وب‌سرویس ارسال عادی ملی‌پیامک و «شماره خط ارسال» بالاتر استفاده می‌کند؛ هزینه/محدودیت و مجازبودن ارسال را در پنل خود بررسی کنید. تنظیم OTP و Body ID این حالت را فعال نمی‌کند.</p>
+						<?php if ( 'free_text' === ( $sms['stock_alert_mode'] ?? 'pattern' ) && ! jluxe_stock_alert_sms_message_configuration_valid( (string) ( $sms['stock_alert_message'] ?? '' ) ) ) : ?>
+							<p class="description" style="color:#b32d2e">متن خالی، بیش از ۱۵۰۰ نویسه، یا دارای متغیر خارج از فهرست بالا است؛ تا اصلاح متن، ثبت/ارسال اعلان فعال نمی‌شود.</p>
+						<?php endif; ?>
+					</td>
 				</tr>
 			</table>
 
 			<?php jluxe_settings_submit_button( true, 'sms' ); ?>
 		</form>
+		<?php jluxe_render_stock_alert_admin_management(); ?>
 		<?php
 	} );
 }

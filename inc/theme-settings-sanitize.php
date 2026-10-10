@@ -1231,7 +1231,13 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 }
 
 function jluxe_sanitize_sms( array $posted, array $defaults ): array {
-	$provider = isset( $posted['provider'] ) ? sanitize_key( $posted['provider'] ) : '';
+	$provider = isset( $posted['provider'] ) && is_scalar( $posted['provider'] ) ? sanitize_key( (string) $posted['provider'] ) : '';
+	$stock_alert_mode = isset( $posted['stock_alert_mode'] ) && is_scalar( $posted['stock_alert_mode'] )
+		? sanitize_key( (string) $posted['stock_alert_mode'] )
+		: ( $defaults['stock_alert_mode'] ?? 'pattern' );
+	$stock_alert_message = isset( $posted['stock_alert_message'] ) && is_scalar( $posted['stock_alert_message'] )
+		? jluxe_substr( sanitize_textarea_field( (string) $posted['stock_alert_message'] ), 0, 1500 )
+		: ( $defaults['stock_alert_message'] ?? '' );
 
 	return array(
 		'enabled'  => ! empty( $posted['enabled'] ),
@@ -1242,8 +1248,10 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
 		'template'            => isset( $posted['template'] ) ? sanitize_text_field( $posted['template'] ) : $defaults['template'],
 		'body_id'             => isset( $posted['body_id'] ) && '' !== (string) $posted['body_id'] ? (string) absint( $posted['body_id'] ) : ( $defaults['body_id'] ?? '' ),
 		'stock_alert_enabled' => ! empty( $posted['stock_alert_enabled'] ),
+		'stock_alert_mode' => in_array( $stock_alert_mode, array( 'pattern', 'free_text' ), true ) ? $stock_alert_mode : 'pattern',
 		'stock_alert_template' => isset( $posted['stock_alert_template'] ) ? sanitize_text_field( $posted['stock_alert_template'] ) : ( $defaults['stock_alert_template'] ?? '' ),
 		'stock_alert_body_id' => isset( $posted['stock_alert_body_id'] ) && '' !== (string) $posted['stock_alert_body_id'] ? (string) absint( $posted['stock_alert_body_id'] ) : ( $defaults['stock_alert_body_id'] ?? '' ),
+		'stock_alert_message' => $stock_alert_message,
 	);
 }
 

@@ -406,6 +406,7 @@ class FakeWpdb {
    foreach($GLOBALS['stock_alert_rows']??[] as $row){if($row['product_id']===(int)$args[0]&&$row['variation_id']===(int)$args[1]&&$row['phone_hash']===$args[2])return $row['id'];}
    return null;
   }
+  if(strpos($sql,'SELECT COUNT(*) FROM wp_jluxe_stock_alerts')===0){return count($GLOBALS['stock_alert_rows']??[]);}
   throw new RuntimeException('Unexpected SQL read: '.$sql);
  }
  function query($prepared){
@@ -425,6 +426,15 @@ class FakeWpdb {
    if(!empty($GLOBALS['stock_alert_db_error']))return null;
    $rows=[];foreach($GLOBALS['stock_alert_rows']??[] as $row){if($row['product_id']===(int)$args[0]&&$row['variation_id']===(int)$args[1]&&$row['notification_sent_at']===null){$rows[]=['id'=>$row['id'],'phone_cipher'=>$row['phone_cipher']];if(count($rows)>=100)break;}}
    return $rows;
+  }
+  if(strpos($sql,'SELECT id, product_id, variation_id, phone_cipher, created_at, notification_sent_at, manual_notification_sent_at FROM wp_jluxe_stock_alerts WHERE id = %d LIMIT 1')===0){
+   $row=$GLOBALS['stock_alert_rows'][(int)$args[0]]??null;
+   return $row?[$row]:[];
+  }
+  if(strpos($sql,'SELECT id, product_id, variation_id, phone_cipher, created_at, notification_sent_at, manual_notification_sent_at FROM wp_jluxe_stock_alerts ORDER BY')===0){
+   $rows=array_values($GLOBALS['stock_alert_rows']??[]);
+   usort($rows,function($a,$b){$date=strcmp((string)($b['created_at']??''),(string)($a['created_at']??''));return 0!==$date?$date:((int)$b['id']-(int)$a['id']);});
+   return array_slice($rows,(int)($args[1]??0),(int)($args[0]??25));
   }
   throw new RuntimeException('Unexpected SQL result read: '.$sql);
  }
@@ -512,6 +522,7 @@ if(!function_exists('wp_hash_password')){function wp_hash_password($p){return pa
 if(!function_exists('wp_check_password')){function wp_check_password($p,$h,$id=''){return password_verify((string)$p,(string)$h);}}
 if(!function_exists('checked')){function checked($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' checked=\'checked\'':'';if($echo)echo $r;return $r;}}
 if(!function_exists('selected')){function selected($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' selected=\'selected\'':'';if($echo)echo $r;return $r;}}
+if(!function_exists('disabled')){function disabled($a,$b=true,$echo=true){$r=((string)$a===(string)$b)?' disabled=\'disabled\'':'';if($echo)echo $r;return $r;}}
 if(!function_exists('esc_textarea')){function esc_textarea($s){return htmlspecialchars((string)$s,ENT_QUOTES);}}
 if(!function_exists('get_terms')){function get_terms($args=array()){
  $out=array();

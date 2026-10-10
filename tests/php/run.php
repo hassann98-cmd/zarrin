@@ -4764,6 +4764,30 @@ $GLOBALS['query_kind'] = 'front';
 jluxe_enqueue_storefront_personalization_assets();
 check( isset( $GLOBALS['localized']['jluxePersonalizationSettings']['ajaxUrl'], $GLOBALS['localized']['jluxePersonalizationSettings']['sessionUrl'], $GLOBALS['localized']['jluxePersonalizationSettings']['wishlistUrl'], $GLOBALS['localized']['jluxePersonalizationSettings']['recentProductsUrl'] ), 'R160 personalization localization supplies all private-session, wishlist, recent-products, and AJAX URLs' );
 
+$r160_sms_defaults = jluxe_theme_settings_defaults()['sms'];
+$r160_sms_text_clean = jluxe_sanitize_sms(
+	array(
+		'provider' => 'melipayamak',
+		'username' => 'sms-user',
+		'sender' => '300012345',
+		'stock_alert_enabled' => '1',
+		'stock_alert_mode' => 'free_text',
+		'stock_alert_message' => "موجود شد: {product_name} ✨\n{stock_qty}",
+	),
+	$r160_sms_defaults
+);
+$r160_sms_invalid_mode = jluxe_sanitize_sms( array( 'stock_alert_mode' => 'unknown' ), $r160_sms_defaults );
+$r160_sms_long_clean = jluxe_sanitize_sms( array( 'stock_alert_message' => str_repeat( 'x', 1600 ) ), $r160_sms_defaults );
+$r160_sms_array_input = jluxe_sanitize_sms( array( 'stock_alert_message' => array( 'unexpected' ) ), $r160_sms_defaults );
+check(
+	'free_text' === $r160_sms_text_clean['stock_alert_mode'] &&
+	false !== strpos( $r160_sms_text_clean['stock_alert_message'], '✨' ) &&
+	'pattern' === $r160_sms_invalid_mode['stock_alert_mode'] &&
+	1500 === strlen( $r160_sms_long_clean['stock_alert_message'] ) &&
+	'' === $r160_sms_array_input['stock_alert_message'],
+	'R213 SMS settings preserve emoji/newlines, cap custom text at the UI/renderer limit of 1500, reject array input, and restrict delivery mode'
+);
+
 $r160_stock_settings = jluxe_theme_settings_defaults();
 $r160_stock_settings['sms']['provider'] = 'kavenegar';
 $r160_stock_settings['sms']['stock_alert_enabled'] = true;
@@ -4798,6 +4822,102 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 	$GLOBALS['products'][601]->stock = 5;
 	jluxe_stock_alert_on_stock_change( $GLOBALS['products'][601] );
 	check( 1 === count( $GLOBALS['stock_alert_rows'] ) && null !== $GLOBALS['stock_alert_rows'][1]['notification_sent_at'] && ( $GLOBALS['provider_calls'] ?? 0 ) === $provider_calls_before + 1, 'R162 a re-armed subscription receives its next restock notice and is marked sent again' );
+	check( null === $GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'] && false !== strpos( end( $GLOBALS['dbdelta_calls'] ), 'manual_notification_sent_at datetime DEFAULT NULL' ), 'R213 stock-alert schema stores manual delivery separately from automatic restock delivery' );
+
+	$r212_sms_settings = jluxe_theme_settings_defaults();
+	$r212_sms_settings['sms']['provider'] = 'melipayamak';
+	$r212_sms_settings['sms']['username'] = 'test-user';
+	$r212_sms_settings['sms']['sender'] = '300012345';
+	$r212_sms_settings['sms']['stock_alert_enabled'] = true;
+	$r212_sms_settings['sms']['stock_alert_mode'] = 'free_text';
+	$r212_sms_settings['sms']['stock_alert_message'] = 'سلام {product_name} ✨ {product_url} | {stock_qty} | {phone}';
+	update_test_settings( $r212_sms_settings );
+	update_option( JLUXE_SMS_API_KEY_OPTION, 'dummy-test-key' );
+	$GLOBALS['http_post_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '7654321' );
+	$GLOBALS['http_posts'] = array();
+	$GLOBALS['products'][601]->stock = 5;
+	$r212_free_text_result = jluxe_send_stock_alert_sms( '۰۹۱۲۰۰۰۰۰۰۰', 'Public product', $GLOBALS['products'][601] );
+	$r212_free_text_request = end( $GLOBALS['http_posts'] );
+	$r212_free_text_body = $r212_free_text_request['args']['body'] ?? array();
+	check(
+		true === $r212_free_text_result &&
+		'https://rest.payamak-panel.com/api/SendSMS/SendSMS' === ( $r212_free_text_request['url'] ?? '' ) &&
+		'300012345' === ( $r212_free_text_body['from'] ?? '' ) &&
+		'09120000000' === ( $r212_free_text_body['to'] ?? '' ) &&
+		false !== strpos( (string) ( $r212_free_text_body['text'] ?? '' ), 'Public product ✨ https://shop.test/store/product/601/ | 5 | 09120000000' ),
+		'R213 free-text Melipayamak delivery expands product/site/mobile context, preserves emoji, and uses the configured sender line (mock HTTP only)'
+	);
+	$r212_calls_before_bad_variable = $GLOBALS['provider_calls'] ?? 0;
+	$r212_sms_settings['sms']['stock_alert_message'] = 'سفارش {order_id} برای {phone}';
+	update_test_settings( $r212_sms_settings );
+	$r212_unknown_variable = jluxe_send_stock_alert_sms( '09120000000', 'Public product', $GLOBALS['products'][601] );
+	check( ! jluxe_stock_alert_sms_message_configuration_valid( $r212_sms_settings['sms']['stock_alert_message'] ) && is_wp_error( $r212_unknown_variable ) && 'jluxe_stock_alert_sms_disabled' === $r212_unknown_variable->get_error_code() && ( $GLOBALS['provider_calls'] ?? 0 ) === $r212_calls_before_bad_variable, 'R213 order/cart placeholders make the stock-alert sender unavailable rather than sending unresolved or fabricated values' );
+
+	$r212_sms_settings['sms']['stock_alert_message'] = 'سلام {product_name} ✨ {product_url} | {stock_qty} | {phone}';
+	update_test_settings( $r212_sms_settings );
+	$GLOBALS['stock_alert_rows'][1]['notification_sent_at'] = null;
+	$GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'] = null;
+	reset_security();
+	$GLOBALS['http_post_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '7654322' );
+	$r212_manual_result = jluxe_stock_alert_send_subscription_manually( 1 );
+	check(
+		true === $r212_manual_result &&
+		null !== $GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'] &&
+		null === $GLOBALS['stock_alert_rows'][1]['notification_sent_at'],
+		'R213 an admin manual row send records its own status without consuming the later automatic restock notice'
+	);
+	ob_start();
+	jluxe_render_stock_alert_admin_management();
+	$r212_admin_list_html = (string) ob_get_clean();
+	check(
+		( false !== strpos( $r212_admin_list_html, '۰۹۱۲۰۰۰۰۰۰۰' ) || false !== strpos( $r212_admin_list_html, '09120000000' ) ) &&
+		false !== strpos( $r212_admin_list_html, 'https://shop.test/store/product/601/' ) &&
+		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_manual_send' ) &&
+		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_custom_send' ),
+		'R213 SMS settings show decrypted request phone, the product link, a per-request send action, and a custom-recipient form'
+	);
+	ob_start();
+	jluxe_render_sms_page();
+	$r212_sms_settings_html = (string) ob_get_clean();
+	check(
+		false !== strpos( $r212_sms_settings_html, 'name="sms[stock_alert_mode]"' ) &&
+		false !== strpos( $r212_sms_settings_html, 'name="sms[stock_alert_message]"' ) &&
+		false !== strpos( $r212_sms_settings_html, 'درخواست‌ها و ارسال دستی پیامکِ موجودی' ),
+		'R213 the existing SMS settings tab renders both delivery modes, the editable custom text, and request management'
+	);
+	$GLOBALS['authenticated_user'] = 42;
+	$GLOBALS['http_post_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '7654323' );
+	$r212_rows_before_custom_send = count( $GLOBALS['stock_alert_rows'] );
+	$r212_custom_result = jluxe_stock_alert_send_to_custom_phone( '۰۹۱۲۰۰۰۰۰۰۱', 'Public product', $GLOBALS['products'][601] );
+	$r212_custom_request = end( $GLOBALS['http_posts'] );
+	check(
+		true === $r212_custom_result &&
+		'09120000001' === ( $r212_custom_request['args']['body']['to'] ?? '' ) &&
+		$r212_rows_before_custom_send === count( $GLOBALS['stock_alert_rows'] ),
+		'R213 an administrator can send the configured stock-alert text to a custom Iranian number without adding it to the subscription table'
+	);
+	$provider_calls_before_manual_then_auto = $GLOBALS['provider_calls'] ?? 0;
+	$manual_sent_at_before_auto = $GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'];
+	$GLOBALS['products'][601]->stock = 9;
+	jluxe_stock_alert_on_stock_change( $GLOBALS['products'][601] );
+	check(
+		null !== $GLOBALS['stock_alert_rows'][1]['notification_sent_at'] &&
+		$GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'] === $manual_sent_at_before_auto &&
+		( $GLOBALS['provider_calls'] ?? 0 ) === $provider_calls_before_manual_then_auto + 1,
+		'R213 an automatic restock message still sends after a manual message because the two delivery states are independent'
+	);
+	reset_security();
+	$GLOBALS['authenticated_user'] = 42;
+	$r213_allowed_admin_sends = 0;
+	for ( $i = 0; $i < 5; $i++ ) {
+		if ( jluxe_stock_alert_admin_send_rate_limit( '09120000000' ) ) {
+			++$r213_allowed_admin_sends;
+		}
+	}
+	check(
+		5 === $r213_allowed_admin_sends && ! jluxe_stock_alert_admin_send_rate_limit( '۰۹۱۲۰۰۰۰۰۰۰' ),
+		'R213 administrator manual sends are limited to five per Iranian mobile number per hour'
+	);
 } else {
 	check( true, 'R160 encrypted subscription delivery is conditionally skipped when the PHP runtime has no OpenSSL extension' );
 }
