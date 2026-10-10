@@ -113,12 +113,26 @@ class WC_Order {
  public $customer_id=42;
  public $status='processing';
  public $phone='09120000000';
+ public $shipping_phone='';
+ public $order_number='51';
+ public $shipping_first_name='';
+ public $shipping_last_name='';
+ public $shipping_address_1='';
+ public $shipping_address_2='';
+ public $shipping_city='';
+ public $shipping_state='';
+ public $shipping_postcode='';
+ public $shipping_country='';
+ public $billing_postcode='Private postcode';
+ public $billing_country='IR';
+ public $customer_note='';
+ public $internal_admin_note='';
  public $payment_method='test_gateway';
  public $payment_method_title='Test gateway';
  public $meta=array('_jsms_tracking'=>'private-tracking-token');
  public $save_count=0;
  function get_id(){return 51;}
- function get_order_number(){return '51';}
+ function get_order_number(){return $this->order_number;}
  function get_customer_id(){return $this->customer_id;}
  function get_status(){return $this->status;}
  function get_date_created(){return null;}
@@ -128,6 +142,7 @@ class WC_Order {
  function get_payment_method(){return $this->payment_method;}
  function get_payment_method_title(){return $this->payment_method_title;}
  function get_billing_phone(){return $this->phone;}
+ function get_shipping_phone(){return $this->shipping_phone;}
  function get_billing_first_name(){return 'Private';}
  function get_billing_last_name(){return 'Customer';}
  function get_formatted_billing_full_name(){return 'Private Customer';}
@@ -135,6 +150,17 @@ class WC_Order {
  function get_billing_city(){return 'Private city';}
  function get_billing_address_1(){return 'Private address';}
  function get_billing_address_2(){return 'Private unit';}
+ function get_billing_postcode(){return $this->billing_postcode;}
+ function get_billing_country(){return $this->billing_country;}
+ function get_shipping_first_name(){return $this->shipping_first_name;}
+ function get_shipping_last_name(){return $this->shipping_last_name;}
+ function get_shipping_address_1(){return $this->shipping_address_1;}
+ function get_shipping_address_2(){return $this->shipping_address_2;}
+ function get_shipping_city(){return $this->shipping_city;}
+ function get_shipping_state(){return $this->shipping_state;}
+ function get_shipping_postcode(){return $this->shipping_postcode;}
+ function get_shipping_country(){return $this->shipping_country;}
+ function get_customer_note(){return $this->customer_note;}
  function get_shipping_method(){return 'Test shipping';}
  function get_items(){return [];}
  function get_meta($key){return $this->meta[$key]??'';}

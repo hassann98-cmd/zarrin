@@ -640,6 +640,7 @@ require_once JLUXE_THEME_DIR . '/inc/stock-alert.php';
 require_once JLUXE_THEME_DIR . '/inc/announcement-bar.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-comments.php';
 require_once JLUXE_THEME_DIR . '/inc/order-tracking.php';
+require_once JLUXE_THEME_DIR . '/inc/order-label.php';
 require_once JLUXE_THEME_DIR . '/inc/required-pages.php';
 require_once JLUXE_THEME_DIR . '/inc/site-diagnosis.php';
 /*

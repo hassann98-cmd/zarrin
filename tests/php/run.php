@@ -5091,6 +5091,148 @@ check(
 	'R210 thank-you item prices use WooCommerce order currency and do not promise unverified tracking SMS'
 );
 
+// R216 — private A6 shipping labels use only configured store/order data and customer checkout notes.
+$r216_settings = jluxe_theme_settings_defaults();
+$r216_settings['contact']['phone'] = '02112345678';
+$r216_settings['contact']['phone_secondary'] = '09120000000';
+$r216_settings['contact']['address'] = 'نشانی عمومی ثبت‌شده در پوسته';
+$r216_settings['identity']['logo_id'] = 77;
+update_test_settings( $r216_settings );
+$GLOBALS['attachment_image_urls'][77] = array( 'full' => 'https://shop.test/logo-print.png' );
+$GLOBALS['options']['woocommerce_store_address'] = 'خیابان نمونه، پلاک ۱۲';
+$GLOBALS['options']['woocommerce_store_address_2'] = 'واحد ۳';
+$GLOBALS['options']['woocommerce_store_city'] = 'تهران';
+$GLOBALS['options']['woocommerce_store_postcode'] = '۱۱۱۱۱۱۱۱۱۱';
+$r216_order = new WC_Order();
+$r216_order->order_number = '6838';
+$r216_order->shipping_first_name = 'الهام';
+$r216_order->shipping_last_name = 'برومندی';
+$r216_order->shipping_address_1 = 'خیابان مقصد، پلاک ۵';
+$r216_order->shipping_address_2 = 'واحد ۲';
+$r216_order->shipping_city = 'کرج';
+$r216_order->shipping_postcode = '۳۳۱۶۶۴۴۷۶۱';
+$r216_order->shipping_country = 'IR';
+$r216_order->shipping_phone = '09188715171';
+$r216_order->customer_note = '<img src=x onerror=alert(1)>لطفاً پیش از ارسال تماس بگیرید.';
+$r216_order->internal_admin_note = 'یادداشت داخلی محرمانه';
+$r216_label_data = jluxe_order_label_data( $r216_order );
+check(
+	'6838' === $r216_label_data['order_number'] &&
+	'https://shop.test/logo-print.png' === $r216_label_data['store']['logo'] &&
+	'خیابان نمونه، پلاک ۱۲، واحد ۳، تهران' === $r216_label_data['store']['address'] &&
+	'۱۱۱۱۱۱۱۱۱۱' === $r216_label_data['store']['postcode'] &&
+	'02112345678 — 09120000000' === $r216_label_data['store']['phone'],
+	'R216 sender block uses the configured logo, WooCommerce origin address/postcode, real contact numbers, and order number'
+);
+check(
+	'الهام برومندی' === $r216_label_data['recipient']['name'] &&
+	'خیابان مقصد، پلاک ۵، واحد ۲، کرج' === $r216_label_data['recipient']['address'] &&
+	'۳۳۱۶۶۴۴۷۶۱' === $r216_label_data['recipient']['postcode'] &&
+	'09188715171' === $r216_label_data['recipient']['phone'] &&
+	false !== strpos( $r216_label_data['recipient']['note'], 'لطفاً پیش از ارسال تماس بگیرید.' ),
+	'R216 recipient block prefers the shipping identity/address/phone and includes the customer checkout note'
+);
+check(
+	jluxe_order_label_user_can_print( 51 ),
+	'R216 authorized WooCommerce managers can open the order-label route'
+);
+$r216_previous_can_manage = $GLOBALS['can_manage'] ?? null;
+$r216_previous_denied_caps = $GLOBALS['denied_caps'] ?? null;
+$GLOBALS['can_manage'] = false;
+check( ! jluxe_order_label_user_can_print( 51 ), 'R216 users without WooCommerce order permissions cannot view customer shipping labels' );
+$GLOBALS['can_manage'] = true;
+$GLOBALS['denied_caps'] = array( 'manage_woocommerce' );
+check( jluxe_order_label_user_can_print( 51 ), 'R216 an order editor may print the label without the store-manager capability' );
+$GLOBALS['denied_caps'] = array( 'manage_woocommerce', 'edit_shop_order' );
+check( ! jluxe_order_label_user_can_print( 51 ), 'R216 users denied both WooCommerce capabilities cannot view the label' );
+if ( null === $r216_previous_can_manage ) {
+	unset( $GLOBALS['can_manage'] );
+} else {
+	$GLOBALS['can_manage'] = $r216_previous_can_manage;
+}
+if ( null === $r216_previous_denied_caps ) {
+	unset( $GLOBALS['denied_caps'] );
+} else {
+	$GLOBALS['denied_caps'] = $r216_previous_denied_caps;
+}
+$r216_label_url = jluxe_order_label_admin_url( 51 );
+parse_str( (string) parse_url( $r216_label_url, PHP_URL_QUERY ), $r216_label_query );
+check(
+	'jluxe_print_order_shipping_label' === ( $r216_label_query['action'] ?? '' ) &&
+	'51' === ( $r216_label_query['order_id'] ?? '' ) &&
+	'nonce-jluxe_print_order_shipping_label_51' === ( $r216_label_query['_wpnonce'] ?? '' ),
+	'R216 each print URL carries the order ID and an order-specific nonce'
+);
+$r216_admin_hooks = array();
+foreach ( $GLOBALS['actions'] as $r216_hook ) {
+	$r216_admin_hooks[ $r216_hook[0] ?? '' ] = $r216_hook;
+}
+$r216_filter_registered = false;
+foreach ( $GLOBALS['filters'] ?? array() as $r216_filter ) {
+	if ( 'woocommerce_admin_order_actions' === ( $r216_filter[0] ?? '' ) && 'jluxe_add_order_label_list_action' === ( $r216_filter[1] ?? '' ) ) {
+		$r216_filter_registered = true;
+	}
+}
+check(
+	isset( $r216_admin_hooks['admin_post_jluxe_print_order_shipping_label'], $r216_admin_hooks['woocommerce_admin_order_data_after_shipping_address'] ) && $r216_filter_registered,
+	'R216 print route, order-detail button, and order-list action are registered for WooCommerce admin'
+);
+$r216_list_actions = jluxe_add_order_label_list_action( array(), $r216_order );
+ob_start();
+jluxe_render_order_label_admin_button( $r216_order );
+$r216_admin_button_html = (string) ob_get_clean();
+check(
+	isset( $r216_list_actions['jluxe-shipping-label']['url'] ) &&
+	false !== strpos( $r216_admin_button_html, 'چاپ برچسب پستی (A6)' ) &&
+	false !== strpos( $r216_admin_button_html, 'target="_blank"' ),
+	'R216 authorized order lists and the order editor expose the A6 print action'
+);
+ob_start();
+$GLOBALS['can_manage'] = false;
+$GLOBALS['denied_caps'] = array( 'manage_woocommerce', 'edit_shop_order' );
+jluxe_render_order_label_admin_button( $r216_order );
+$r216_denied_button_html = (string) ob_get_clean();
+$r216_denied_actions = jluxe_add_order_label_list_action( array(), $r216_order );
+$GLOBALS['can_manage'] = true;
+$GLOBALS['denied_caps'] = array();
+check(
+	'' === trim( $r216_denied_button_html ) && ! isset( $r216_denied_actions['jluxe-shipping-label'] ),
+	'R216 unauthorized order users receive neither a print button nor a row action'
+);
+ob_start();
+jluxe_render_order_label_document( $r216_order );
+$r216_label_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r216_label_html, '@page{size:210mm 148mm;margin:0}' ) &&
+	false !== strpos( $r216_label_html, 'width:99mm;height:140mm' ) &&
+	false !== strpos( $r216_label_html, 'A5 افقی؛ برچسب در نیمهٔ چپ' ) &&
+	false !== strpos( $r216_label_html, 'اطلاعات گیرنده' ),
+	'R216 print view uses the reference A5 landscape sheet, an inset half-sheet label, and rounded receiver panel'
+);
+check(
+	false !== strpos( $r216_label_html, 'https://shop.test/logo-print.png' ) &&
+	false !== strpos( $r216_label_html, 'سفارش <bdi' ) &&
+	false !== strpos( $r216_label_html, 'خیابان مقصد، پلاک ۵' ) &&
+	false !== strpos( $r216_label_html, 'توضیحات سفارش' ) &&
+	false !== strpos( $r216_label_html, 'window.print()' ),
+	'R216 print document renders the logo/order/address/note and opens the browser print dialog'
+);
+check(
+	false === strpos( $r216_label_html, 'onerror=' ) &&
+	false === strpos( $r216_label_html, 'یادداشت داخلی محرمانه' ) &&
+	false === strpos( $r216_label_html, 'payment_method' ),
+	'R216 printed customer text is escaped and private admin notes/payment fields are not included'
+);
+$r216_order_without_shipping = new WC_Order();
+$r216_billing_fallback = jluxe_order_label_data( $r216_order_without_shipping );
+check(
+	'Private Customer' === $r216_billing_fallback['recipient']['name'] &&
+	'Private address، Private unit، Private city، Private state' === $r216_billing_fallback['recipient']['address'] &&
+	'Private postcode' === $r216_billing_fallback['recipient']['postcode'] &&
+	'09120000000' === $r216_billing_fallback['recipient']['phone'],
+	'R216 orders without a shipping address safely fall back to their billing recipient details'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
