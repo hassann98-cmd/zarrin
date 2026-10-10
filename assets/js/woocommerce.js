@@ -1655,12 +1655,10 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
- * پاپ‌آپِ «محصولات پیشنهادی» — محتوا کاملاً سمتِ سرور رندر شده
- * (inc/woocommerce.php: jluxe_render_suggested_products_modal)، این‌جا
- * فقط باز/بسته‌کردنشه. دکمه‌های افزودنِ داخلش همون کلاس‌های استانداردِ
- * ajax_add_to_cart/data-jluxe-quick-variant رو دارن، پس بدونِ کدِ اضافه
- * توسطِ همون اسکریپت‌های موجود (خودِ ووکامرس/مودالِ انتخابِ تنوع) کار
- * می‌کنن.
+ * پاپ‌آپِ «محصولات پیشنهادی» — HTML سمتِ سرور رندر می‌شود، اما این ماژول
+ * انتخاب‌ها و ثبتِ ترتیبیِ آن‌ها را مدیریت می‌کند. بعد از افزودنِ موفقِ
+ * تنوع از picker، انتخاب‌های باقی‌مانده این‌جا ثبت می‌شوند؛ موفقیت‌ها از
+ * انتخاب حذف می‌شوند و شکست‌ها برای تلاشِ آگاهانهٔ بعدی باقی می‌مانند.
  */
 (function () {
 	/* R61 — بازسازی به‌صورتِ بایندِ تابعی: مودال می‌تواند (۱) در لودِ صفحه به‌صورتِ
@@ -1689,6 +1687,7 @@ function jluxeEnhanceShopSort(root) {
 		};
 
 		function closeSuggestedProductsModal() {
+			if (isCommitting) { return; }
 			modal.classList.add("hidden");
 			modal.setAttribute("aria-hidden", "true");
 			document.body.style.overflow = "";
@@ -1764,6 +1763,7 @@ function jluxeEnhanceShopSort(root) {
 
 		modal.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
 			row.addEventListener("click", function () {
+				if (isCommitting) { return; }
 				var pressed = row.getAttribute("aria-pressed") === "true";
 				row.setAttribute("aria-pressed", pressed ? "false" : "true");
 				row.classList.toggle("is-selected", !pressed);
@@ -1775,83 +1775,228 @@ function jluxeEnhanceShopSort(root) {
 		paUpdateTotal();
 
 		var cartCfg = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
-		if (paConfirm && cartCfg && cartCfg.ajaxUrl) {
-			paConfirm.addEventListener("click", function () {
-				clearSuggestedError();
-				var productIds = Array.prototype.map.call(
-					modal.querySelectorAll("[data-pa-product][aria-pressed='true']"),
-					function (row) { return row.getAttribute("data-pa-product"); }
-				);
-				var serviceKeys = Array.prototype.map.call(
-					modal.querySelectorAll("[data-pa-service][aria-pressed='true']"),
-					function (row) { return row.getAttribute("data-pa-service"); }
-				);
-				var hasModalServices = modal.querySelector("[data-pa-service]") !== null;
-				if (!productIds.length && !serviceKeys.length) {
-					closeSuggestedProductsModal();
-					return;
-				}
-				paConfirm.disabled = true;
-				paConfirm.classList.add("opacity-60", "pointer-events-none");
+		var isCommitting = false;
+		var busyButtons = [];
+		var activeOperation = null;
 
-				function postOp(fields) {
-					var body = new FormData();
-					body.set("action", "jluxe_cart");
-					body.set("nonce", cartCfg.nonce);
-					Object.keys(fields).forEach(function (key) { body.set(key, fields[key]); });
-					return window.jluxeCartPost(cartCfg.ajaxUrl, body, cartCfg);
-				}
+		function clearSuggestedStatus() {
+			var status = modal.querySelector("[data-pa-status]");
+			if (status) { status.remove(); }
+		}
 
-				var addedProductIds = [];
-				var errors = [];
-				var chain = Promise.resolve();
-				productIds.forEach(function (productId) {
-					chain = chain.then(function () {
-						// Add independent offers sequentially; retain failed rows so they can be retried.
-						return postOp({ op: "add", product_id: productId, quantity: 1 }).then(function (response) {
-							if (!response || !response.success) {
-								var message = response && response.data && response.data.message ? response.data.message : "افزودنِ پیشنهاد انجام نشد.";
-								errors.push(message);
-								return null;
-							}
-							addedProductIds.push(String(productId));
-							return response.data;
-						});
-					});
+		function showSuggestedStatus(message) {
+			var status = modal.querySelector("[data-pa-status]");
+			if (!status) {
+				status = document.createElement("p");
+				status.className = "jluxe-pa-status";
+				status.setAttribute("data-pa-status", "");
+				status.setAttribute("role", "status");
+				status.setAttribute("aria-live", "polite");
+				status.setAttribute("tabindex", "-1");
+				var body = modal.querySelector(".jluxe-pa-body");
+				if (body) { body.insertBefore(status, body.firstChild); }
+			}
+			status.textContent = message;
+			try { status.focus({ preventScroll: true }); } catch (error) { status.focus(); }
+			return status;
+		}
+
+		function setModalBusy(busy) {
+			modal.setAttribute("aria-busy", busy ? "true" : "false");
+			if (busy) {
+				busyButtons = [];
+				modal.querySelectorAll("button").forEach(function (button) {
+					busyButtons.push({ button: button, wasDisabled: button.disabled });
+					button.disabled = true;
 				});
+				return;
+			}
+			busyButtons.forEach(function (entry) {
+				if (entry.button && entry.button.isConnected) { entry.button.disabled = entry.wasDisabled; }
+			});
+			busyButtons = [];
+		}
+
+		function updateSuggestedModalSnapshot(snapshot) {
+			var html = snapshot && typeof snapshot.suggested_html === "string" ? snapshot.suggested_html : "";
+			if (!html) { return; }
+			var wrapper = document.createElement("div");
+			wrapper.innerHTML = html;
+			var fresh = wrapper.querySelector("[data-jluxe-suggested-modal]");
+			if (!fresh) { return; }
+			var freshBase = parseFloat(fresh.getAttribute("data-pa-main"));
+			if (Number.isFinite(freshBase)) {
+				paMainAmount = Math.max(0, freshBase);
+				modal.setAttribute("data-pa-main", String(paMainAmount));
+			}
+			var freshSummary = fresh.querySelector(".jluxe-pa-cartinfo");
+			var currentSummary = modal.querySelector(".jluxe-pa-cartinfo");
+			if (freshSummary && currentSummary) { currentSummary.textContent = freshSummary.textContent; }
+			modal.dispatchEvent(new Event("jluxe:pa-refresh"));
+		}
+
+		function publishCartSnapshot(snapshot) {
+			if (!snapshot || typeof snapshot !== "object") { return; }
+			updateSuggestedModalSnapshot(snapshot);
+			window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: snapshot }));
+		}
+
+		function disposeSuggestedModal() {
+			var isCurrent = document.querySelector("[data-jluxe-suggested-modal]") === modal;
+			closeSuggestedProductsModal();
+			if (modal.parentNode) { modal.parentNode.removeChild(modal); }
+			if (isCurrent) {
+				window.jluxeOpenSuggestedProductsModal = null;
+				window.jluxeCloseSuggestedProductsModal = null;
+				window.jluxeCommitSuggestedSelection = null;
+				window.jluxeSyncSuggestedModalCart = null;
+				window.jluxeShowSuggestedAddWarning = null;
+			}
+		}
+
+		function selectedIds(selector, attribute) {
+			return Array.prototype.map.call(modal.querySelectorAll(selector), function (row) {
+				return row.getAttribute(attribute) || "";
+			}).filter(function (value, index, all) {
+				return value && all.indexOf(value) === index;
+			});
+		}
+
+		function postOp(fields) {
+			if (!cartCfg || !cartCfg.ajaxUrl || typeof window.jluxeCartPost !== "function") {
+				return Promise.reject(new Error("Cart endpoint is unavailable"));
+			}
+			var body = new FormData();
+			body.set("action", "jluxe_cart");
+			body.set("nonce", cartCfg.nonce);
+			Object.keys(fields).forEach(function (key) { body.set(key, fields[key]); });
+			var contextId = modal.getAttribute("data-pa-context");
+			if (contextId) { body.set("pa_context_id", contextId); }
+			return window.jluxeCartPost(cartCfg.ajaxUrl, body, cartCfg);
+		}
+
+		function commitSelectedSuggestions(options) {
+			options = options || {};
+			if (isCommitting) { return Promise.resolve({ success: false, busy: true }); }
+			var productIds = selectedIds("[data-pa-product][aria-pressed='true']", "data-pa-product");
+			var serviceKeys = selectedIds("[data-pa-service][aria-pressed='true']", "data-pa-service");
+			var hasModalServices = modal.querySelector("[data-pa-service]") !== null;
+			var removeAfterCommit = !!options.removeOnSuccess || modal.getAttribute("data-pa-variation-committed") === "1";
+			var removeIfEmpty = !!options.removeWhenEmpty || removeAfterCommit;
+
+			if (!productIds.length && !serviceKeys.length) {
+				if (removeIfEmpty) { disposeSuggestedModal(); }
+				else { closeSuggestedProductsModal(); }
+				return Promise.resolve({ success: true, empty: true });
+			}
+
+			if (options.openOnStart && modal.classList.contains("hidden") && typeof window.jluxeOpenSuggestedProductsModal === "function") {
+				window.jluxeOpenSuggestedProductsModal();
+			}
+			clearSuggestedError();
+			clearSuggestedStatus();
+			isCommitting = true;
+			setModalBusy(true);
+			showSuggestedStatus(options.source === "variation"
+				? "تنوع به سبد اضافه شد؛ در حال ثبت انتخاب‌های قبلی…"
+				: "در حال افزودن انتخاب‌ها به سبد…");
+			if (paConfirmLabel) { paConfirmLabel.textContent = "در حال ثبت انتخاب‌ها…"; }
+
+			var addedProductIds = [];
+			var errors = [];
+			var lastSnapshot = null;
+			var chain = Promise.resolve();
+			productIds.forEach(function (productId) {
 				chain = chain.then(function () {
-					// If the services section is absent, leave its existing session state untouched.
-					if (!hasModalServices) { return null; }
-					return postOp({ op: "pa_services", pa_services: serviceKeys.join(",") }).then(function (response) {
+					// WooCommerce revalidates every selected offer on the server.
+					activeOperation = { type: "add", productId: String(productId) };
+					return postOp({ op: "add", product_id: productId, quantity: 1 }).then(function (response) {
+						activeOperation = null;
 						if (!response || !response.success) {
-							var message = response && response.data && response.data.message ? response.data.message : "ثبتِ خدمات انتخاب‌شده انجام نشد.";
+							var message = response && response.data && response.data.message ? response.data.message : "افزودنِ پیشنهاد انجام نشد.";
 							errors.push(message);
 							return null;
 						}
+						addedProductIds.push(String(productId));
+						releaseAddedProducts([String(productId)]);
+						lastSnapshot = response.data || lastSnapshot;
+						publishCartSnapshot(response.data);
 						return response.data;
 					});
 				});
-
-				function keepModalOpen(message) {
-					releaseAddedProducts(addedProductIds);
-					restorePaConfirm();
-					showSuggestedError(message);
-				}
-
-				chain.then(function () {
-					if (errors.length) {
-						keepModalOpen(errors.join(" "));
-						return;
+			});
+			chain = chain.then(function () {
+				// A hidden services section must never overwrite its saved session state.
+				if (!hasModalServices) { return null; }
+				activeOperation = { type: "services" };
+				return postOp({ op: "pa_services", pa_services: serviceKeys.join(",") }).then(function (response) {
+					activeOperation = null;
+					if (!response || !response.success) {
+						var message = response && response.data && response.data.message ? response.data.message : "ثبتِ خدمات انتخاب‌شده انجام نشد.";
+						errors.push(message);
+						return null;
 					}
-					releaseAddedProducts(addedProductIds);
-					restorePaConfirm();
-					closeSuggestedProductsModal();
-				}).catch(function () {
-					var message = errors.concat(["ارتباط با سرور برقرار نشد؛ انتخاب‌های ناموفق را دوباره امتحان کنید."]).join(" ");
-					keepModalOpen(message);
+					lastSnapshot = response.data || lastSnapshot;
+					publishCartSnapshot(response.data);
+					return response.data;
 				});
 			});
-	}
+
+			function finishFailure(message) {
+				releaseAddedProducts(addedProductIds);
+				setModalBusy(false);
+				isCommitting = false;
+				restorePaConfirm();
+				clearSuggestedStatus();
+				paUpdateTotal();
+				showSuggestedError(message);
+				return { success: false, addedProductIds: addedProductIds.slice(), snapshot: lastSnapshot };
+			}
+
+			return chain.then(function () {
+				setModalBusy(false);
+				isCommitting = false;
+				restorePaConfirm();
+				releaseAddedProducts(addedProductIds);
+				clearSuggestedStatus();
+				paUpdateTotal();
+				if (errors.length) { return finishFailure(errors.join(" ")); }
+				if (removeAfterCommit) { disposeSuggestedModal(); }
+				else { closeSuggestedProductsModal(); }
+				return { success: true, addedProductIds: addedProductIds.slice(), snapshot: lastSnapshot };
+			}).catch(function () {
+				var uncertainty = "ارتباط با سرور برقرار نشد؛ نتیجهٔ یکی از درخواست‌ها تأیید نشد. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
+				if (activeOperation && activeOperation.type === "add") {
+					uncertainty = "ارتباط با سرور برقرار نشد؛ وضعیتِ افزودنِ این پیشنهاد مشخص نیست و ممکن است به سبد اضافه شده باشد. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
+				} else if (activeOperation && activeOperation.type === "services") {
+					uncertainty = "ارتباط با سرور برقرار نشد؛ وضعیتِ ثبتِ خدمات مشخص نیست. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
+				}
+				return finishFailure(errors.concat([uncertainty]).join(" "));
+			});
+		}
+
+		window.jluxeCommitSuggestedSelection = function (targetModal, options) {
+			if (targetModal && targetModal !== modal) { return Promise.resolve({ success: false, stale: true }); }
+			return commitSelectedSuggestions(options);
+		};
+		window.jluxeSyncSuggestedModalCart = function (targetModal, snapshot) {
+			if (targetModal && targetModal !== modal) { return; }
+			updateSuggestedModalSnapshot(snapshot);
+		};
+		window.jluxeShowSuggestedAddWarning = function (targetModal, message) {
+			if (targetModal && targetModal !== modal) { return; }
+			showSuggestedError(message);
+		};
+
+		if (paConfirm && cartCfg && cartCfg.ajaxUrl) {
+			paConfirm.addEventListener("click", function () { commitSelectedSuggestions(); });
+		}
+		modal.addEventListener("click", function (event) {
+			if (isCommitting) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+		}, true);
 }
 
 	jluxeBindSuggestedModal(document.querySelector("[data-jluxe-suggested-modal]"));
@@ -2058,21 +2203,26 @@ function jluxeEnhanceShopSort(root) {
  * خرید همون محصول رو (inc/cart-ux.php: jluxe_ajax_variation_picker) در
  * یک مودال باز می‌کنه. فرمِ داخلِ مودال با submit عادی navigate می‌کنه
  * (single_add_to_cart_button کلاسِ ajax_add_to_cart نداره)، پس submit
- * دستی گرفته و با fetch به همون endpoint واقعیِ AJAX افزودنِ ووکامرس
- * (wc-ajax=add_to_cart) فرستاده می‌شه.
+ * دستی گرفته و به endpoint امنِ پوسته برای افزودن به سبد
+ * (jluxe_cart با op=add) فرستاده می‌شود.
  */
 (function () {
 	var modalRoot = null;
 	var lastFocused = null;
 	var releaseDialogFocus = null;
 	/* باز شدنِ picker از پیشنهاد، مودالِ زیرین را می‌بندد تا بک‌دراپ‌ها
-	روی‌هم نیفتند. لغو/خطا شیت را برمی‌گرداند؛ افزودنِ موفق هر دو را می‌بندد
-	تا فهرستِ پیشنهادی بعد از انتخابِ تنوع دوباره ظاهر نشود. */
+	روی‌هم نیفتند. لغو/خطا شیت را برمی‌گرداند؛ پس از افزودنِ موفق، انتخاب‌های
+	ثابت/خدماتِ تیک‌خورده نیز در همان مسیر خرید ثبت می‌شوند. */
 	var pickerFromSuggested = false;
 	var pickerAdded = false;
+	var pickerAddInProgress = false;
 	var pickerSuggestedContext = "";
+	var pickerProductId = "";
+	var pickerTriggerEl = null;
+	var pickerUncertaintyMessage = "";
 
 	function closeModal() {
+		if (pickerAddInProgress) { return; }
 		if (!modalRoot) {
 			return;
 		}
@@ -2083,22 +2233,21 @@ function jluxeEnhanceShopSort(root) {
 		if (!pickerFromSuggested && lastFocused && lastFocused.focus) {
 			lastFocused.focus();
 		}
-		if (pickerFromSuggested) {
+		if (pickerFromSuggested && !pickerAdded) {
 			var staleSuggested = document.querySelector("[data-jluxe-suggested-modal]");
-			if (!pickerAdded && staleSuggested && typeof window.jluxeOpenSuggestedProductsModal === "function") {
+			if (staleSuggested && typeof window.jluxeOpenSuggestedProductsModal === "function") {
 				window.jluxeOpenSuggestedProductsModal();
-			} else if (pickerAdded) {
-				if (staleSuggested && staleSuggested.parentNode) {
-					staleSuggested.parentNode.removeChild(staleSuggested);
-				}
-				// A fresh main-product add will mount its own current suggestion sheet.
-				window.jluxeOpenSuggestedProductsModal = null;
-				window.jluxeCloseSuggestedProductsModal = null;
 			}
 		}
+		// A successful recommendation add keeps the old sheet alive briefly so
+		// its checked fixed products/services can be committed as one selection.
 		pickerFromSuggested = false;
 		pickerAdded = false;
+		pickerAddInProgress = false;
 		pickerSuggestedContext = "";
+		pickerProductId = "";
+		pickerTriggerEl = null;
+		pickerUncertaintyMessage = "";
 	}
 
 	function openModal(productId, triggerEl) {
@@ -2112,13 +2261,20 @@ function jluxeEnhanceShopSort(root) {
 		// modalRoot قبلی هیچ‌وقت remove نمی‌شد و بک‌دراپِ ۵۰٪-سیاهش زیرِ
 		// نمونه‌ی جدید می‌موند، با هر کلیک یک لایه‌ی تیره‌ی دیگه روی هم.
 		if (modalRoot) {
+			if (pickerAddInProgress) { return; }
 			pickerFromSuggested = false;
 			pickerAdded = false;
 			closeModal();
 		}
 		pickerFromSuggested = !!(triggerEl && triggerEl.closest && triggerEl.closest("[data-jluxe-suggested-modal]"));
 		pickerAdded = false;
+		pickerAddInProgress = false;
 		pickerSuggestedContext = "";
+		pickerProductId = String(productId || "");
+		pickerTriggerEl = triggerEl || null;
+		pickerUncertaintyMessage = triggerEl && triggerEl.getAttribute("data-jluxe-add-uncertain") === "1"
+			? (triggerEl.getAttribute("data-jluxe-add-uncertain-message") || "وضعیتِ افزودنِ قبلی مشخص نیست؛ پیش از تلاشِ دوباره، سبد را بررسی کنید.")
+			: "";
 		if (pickerFromSuggested) {
 			var suggestedSource = triggerEl.closest("[data-jluxe-suggested-modal]");
 			pickerSuggestedContext = suggestedSource.getAttribute("data-pa-context") || "";
@@ -2168,7 +2324,15 @@ function jluxeEnhanceShopSort(root) {
 				modalRoot.querySelector(".jluxe-variant-modal-head").innerHTML =
 					'<img src="' + data.image + '" alt="" class="jluxe-variant-modal-img" />' +
 					'<a href="' + data.url + '" class="jluxe-variant-modal-title">' + data.name + "</a>";
-				modalRoot.querySelector(".jluxe-variant-modal-body").innerHTML = data.html;
+				var pickerBody = modalRoot.querySelector(".jluxe-variant-modal-body");
+				pickerBody.innerHTML = data.html;
+				if (pickerUncertaintyMessage) {
+					var uncertaintyNotice = document.createElement("p");
+					uncertaintyNotice.className = "jluxe-variant-modal-error";
+					uncertaintyNotice.setAttribute("role", "alert");
+					uncertaintyNotice.textContent = pickerUncertaintyMessage;
+					pickerBody.prepend(uncertaintyNotice);
+				}
 				/* R65: مودالِ تازه‌تزریق‌شده هم بلافاصله گیتِ «ناموجود = غیرقابل‌انتخاب» می‌گیرد. */
 				if (typeof window.jluxeSyncAllVariationForms === "function") { window.jluxeSyncAllVariationForms(); }
 
@@ -2208,6 +2372,7 @@ function jluxeEnhanceShopSort(root) {
 			return;
 		}
 		event.preventDefault();
+		if (pickerAddInProgress) { return; }
 
 		var addButton = form.querySelector(".single_add_to_cart_button");
 		if (addButton && addButton.classList.contains("disabled")) {
@@ -2244,46 +2409,100 @@ function jluxeEnhanceShopSort(root) {
 			formData.set("pa_context_id", pickerSuggestedContext);
 		}
 
+		pickerAddInProgress = true;
 		if (addButton) {
 			addButton.disabled = true;
+			addButton.setAttribute("aria-busy", "true");
 			addButton.classList.add("jluxe-loading");
+		}
+		function restorePickerAdd(keepSubmitGuard) {
+			if (!keepSubmitGuard) { pickerAddInProgress = false; }
+			if (addButton) {
+				addButton.disabled = false;
+				addButton.removeAttribute("aria-busy");
+				addButton.classList.remove("jluxe-loading");
+			}
+		}
+
+		function showPickerError(message) {
+			var errorEl = modalRoot && modalRoot.querySelector(".jluxe-variant-modal-error");
+			if (!errorEl && modalRoot) {
+				errorEl = document.createElement("p");
+				errorEl.className = "jluxe-variant-modal-error";
+				errorEl.setAttribute("role", "alert");
+				var formBody = modalRoot.querySelector(".jluxe-variant-modal-body");
+				if (formBody) { formBody.prepend(errorEl); }
+			}
+			if (errorEl) {
+				var decoder = document.createElement("textarea");
+				decoder.innerHTML = String(message || "افزودن انجام نشد؛ دوباره تلاش کنید.");
+				errorEl.textContent = decoder.value;
+			}
 		}
 
 		window.jluxeCartPost(cart.ajaxUrl, formData, cart)
 			.then(function (response) {
-				if (addButton) {
-					addButton.disabled = false;
-					addButton.classList.remove("jluxe-loading");
-				}
 				if (!response || !response.success) {
 					var message = response && response.data && response.data.message ? response.data.message : "لطفاً یک گزینه انتخاب کنید.";
-					var errorEl = modalRoot && modalRoot.querySelector(".jluxe-variant-modal-error");
-					if (!errorEl && modalRoot) {
-						errorEl = document.createElement("p");
-						errorEl.className = "jluxe-variant-modal-error";
-						form.prepend(errorEl);
-					}
-					if (errorEl) {
-						// همون باگِ «&mdash; خام به‌جایِ خط‌تیره‌ی واقعی» که توی
-						// showErrorToast هم بود — پیام‌های خطایِ ووکامرس نویسه‌ی
-						// HTML دارن و با textContent decode نمی‌شن.
-						var decoder = document.createElement("textarea");
-						decoder.innerHTML = message;
-						errorEl.textContent = decoder.value;
-					}
+					restorePickerAdd();
+					showPickerError(message);
 					return;
 				}
+
+				var wasFromSuggested = pickerFromSuggested;
+				var suggestedModal = wasFromSuggested ? document.querySelector("[data-jluxe-suggested-modal]") : null;
+				var addedProductId = String(form.dataset.product_id || pickerProductId || "");
+				var snapshot = response.data || null;
+				restorePickerAdd(true);
 				if (window.jQuery) {
-					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), response.data]);
+					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), snapshot]);
+				} else if (snapshot) {
+					window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: snapshot }));
+				}
+				if (pickerTriggerEl) {
+					pickerTriggerEl.removeAttribute("data-jluxe-add-uncertain");
+					pickerTriggerEl.removeAttribute("data-jluxe-add-uncertain-message");
 				}
 				pickerAdded = true;
+				pickerAddInProgress = false;
 				closeModal();
+
+				if (wasFromSuggested && suggestedModal && suggestedModal.isConnected) {
+					suggestedModal.setAttribute("data-pa-variation-committed", "1");
+					suggestedModal.querySelectorAll("[data-jluxe-quick-variant]").forEach(function (row) {
+						if (row.getAttribute("data-jluxe-quick-variant") === addedProductId) { row.remove(); }
+					});
+					if (typeof window.jluxeSyncSuggestedModalCart === "function") {
+						window.jluxeSyncSuggestedModalCart(suggestedModal, snapshot);
+					}
+					if (typeof window.jluxeCommitSuggestedSelection === "function") {
+						window.jluxeCommitSuggestedSelection(suggestedModal, {
+							source: "variation",
+							openOnStart: true,
+							removeOnSuccess: true,
+							removeWhenEmpty: true,
+						});
+					} else if (typeof window.jluxeOpenSuggestedProductsModal === "function") {
+						// Fallback keeps selected offers visible rather than discarding them.
+						window.jluxeOpenSuggestedProductsModal();
+					}
+				}
 			})
 			.catch(function () {
-				if (addButton) {
-					addButton.disabled = false;
-					addButton.classList.remove("jluxe-loading");
+				restorePickerAdd();
+				var uncertainty = "ارتباط با سرور برقرار نشد؛ وضعیتِ افزودنِ این تنوع مشخص نیست و ممکن است به سبد اضافه شده باشد. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
+				pickerUncertaintyMessage = uncertainty;
+				if (pickerTriggerEl) {
+					pickerTriggerEl.setAttribute("data-jluxe-add-uncertain", "1");
+					pickerTriggerEl.setAttribute("data-jluxe-add-uncertain-message", uncertainty);
 				}
+				if (pickerFromSuggested) {
+					var suggestedModal = document.querySelector("[data-jluxe-suggested-modal]");
+					if (suggestedModal && typeof window.jluxeShowSuggestedAddWarning === "function") {
+						window.jluxeShowSuggestedAddWarning(suggestedModal, uncertainty);
+					}
+				}
+				showPickerError(uncertainty);
 			});
 	});
 })();

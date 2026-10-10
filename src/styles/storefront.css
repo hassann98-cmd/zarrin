@@ -6502,6 +6502,8 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 .jluxe-pa-body { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px; }
 .jluxe-pa-empty { padding: 18px 16px; border: 1px dashed hsl(var(--panel-border)); border-radius: 16px; background: hsl(var(--panel)); color: hsl(var(--text-secondary)); font-size: 13px; line-height: 1.9; text-align: center; }
 .jluxe-pa-error { padding: 10px 12px; border: 1px solid hsl(var(--error) / 0.28); border-radius: 12px; background: hsl(var(--error) / 0.07); color: hsl(var(--error)); font-size: 12px; line-height: 1.8; }
+.jluxe-pa-status { padding: 10px 12px; border: 1px solid hsl(var(--panel-border)); border-radius: 12px; background: hsl(var(--panel)); color: hsl(var(--text-secondary)); font-size: 12px; font-weight: 650; line-height: 1.8; }
+.jluxe-pa-status:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
 .jluxe-pa-main { display: flex; align-items: center; gap: 12px; background: hsl(var(--panel)); border-radius: 16px; padding: 12px; }
 .jluxe-pa-thumb { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; background: hsl(var(--surface)); border: 1px solid hsl(var(--border)); }
 .jluxe-pa-thumb img { width: 100%; height: 100%; object-fit: contain; }
