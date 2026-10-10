@@ -204,3 +204,188 @@
 		} );
 	}
 }() );
+
+/* Keep the original WooCommerce buy form in place, but let its visual surface
+ * follow the product details column after the summary card has scrolled away. */
+( function () {
+	'use strict';
+
+	var range = document.querySelector( '[data-jluxe-buybox-range]' );
+	var holder = document.querySelector( '[data-jluxe-product-buybox]' );
+	var surface = holder && holder.querySelector( '[data-jluxe-buybox-surface]' );
+	var rail = range && range.querySelector( '[data-jluxe-buybox-rail]' );
+	if ( ! range || ! holder || ! surface || ! rail ) {
+		return;
+	}
+
+	var desktopQuery = window.matchMedia ? window.matchMedia( '(min-width: 1200px)' ) : null;
+	var ready = false;
+	var pinned = false;
+	var natural = null;
+	var frame = 0;
+	var lastViewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+	var originalHolderMinHeight = holder.style.minHeight;
+	var originalSurfaceStyles = {
+		top: surface.style.top,
+		left: surface.style.left,
+		width: surface.style.width,
+		maxHeight: surface.style.maxHeight,
+		overflowY: surface.style.overflowY,
+	};
+
+	function isDesktop() {
+		return desktopQuery ? desktopQuery.matches : ( window.innerWidth || 0 ) >= 1200;
+	}
+
+	function setReady( value ) {
+		if ( ready === value ) {
+			return;
+		}
+		ready = value;
+		if ( ready ) {
+			range.setAttribute( 'data-jluxe-buybox-sticky-ready', '' );
+		} else {
+			range.removeAttribute( 'data-jluxe-buybox-sticky-ready' );
+		}
+	}
+
+	function resetPinned() {
+		if ( ! pinned ) {
+			return;
+		}
+		pinned = false;
+		surface.classList.remove( 'is-pinned-to-details' );
+		surface.style.top = originalSurfaceStyles.top;
+		surface.style.left = originalSurfaceStyles.left;
+		surface.style.width = originalSurfaceStyles.width;
+		surface.style.maxHeight = originalSurfaceStyles.maxHeight;
+		surface.style.overflowY = originalSurfaceStyles.overflowY;
+		holder.style.minHeight = originalHolderMinHeight;
+		natural = null;
+	}
+
+	function measureNaturalBox() {
+		var holderRect = holder.getBoundingClientRect();
+		var surfaceRect = surface.getBoundingClientRect();
+		return {
+			holderHeight: Math.max( holder.offsetHeight || 0, holderRect.height || 0 ),
+			width: surfaceRect.width || surface.offsetWidth || 0,
+			height: Math.max( surfaceRect.height || 0, surface.scrollHeight || 0 ),
+			leftInset: Math.max( 0, surfaceRect.left - holderRect.left ),
+			rightInset: Math.max( 0, holderRect.right - surfaceRect.right ),
+		};
+	}
+
+	function stickyOffsets() {
+		var nav = range.querySelector( '[data-cp3-nav], .jluxe-product-section-nav' );
+		var navTop = 90;
+		var navMargin = 32;
+		if ( nav && window.getComputedStyle ) {
+			var navStyle = window.getComputedStyle( nav );
+			var parsedTop = parseFloat( navStyle.top );
+			var parsedMargin = parseFloat( navStyle.marginTop );
+			if ( isFinite( parsedTop ) ) {
+				navTop = parsedTop;
+			} else if ( nav.matches( '[data-cp3-nav]' ) ) {
+				navTop = 96;
+			}
+			if ( isFinite( parsedMargin ) ) {
+				navMargin = Math.max( 0, parsedMargin );
+			}
+		}
+		var top = Math.max( 0, navTop ) + 8;
+		return { top: top, start: Math.max( 0, top - navMargin ) };
+	}
+
+	function update() {
+		frame = 0;
+		if ( ! isDesktop() ) {
+			resetPinned();
+			setReady( false );
+			return;
+		}
+		setReady( true );
+
+		var rangeRect = range.getBoundingClientRect();
+		var railRect = rail.getBoundingClientRect();
+		var offsets = stickyOffsets();
+		if ( rangeRect.bottom <= 0 || rangeRect.top > offsets.start || railRect.width <= 0 ) {
+			resetPinned();
+			return;
+		}
+
+		if ( ! pinned ) {
+			natural = measureNaturalBox();
+			if ( ! natural.width || ! natural.height ) {
+				return;
+			}
+			holder.style.minHeight = Math.ceil( natural.holderHeight ) + 'px';
+			pinned = true;
+			surface.classList.add( 'is-pinned-to-details' );
+		}
+
+		var railWidth = Math.max( 0, railRect.width - natural.leftInset - natural.rightInset );
+		var width = Math.min( natural.width, railWidth );
+		if ( width <= 0 ) {
+			resetPinned();
+			return;
+		}
+		var contentHeight = surface.scrollHeight || natural.height;
+		natural.height = Math.max( surface.getBoundingClientRect().height || 0, contentHeight );
+		var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+		var maxHeight = Math.max( 160, viewportHeight - offsets.top - 12 );
+		var visibleHeight = Math.min( natural.height, maxHeight );
+		var top = Math.min( offsets.top, rangeRect.bottom - visibleHeight );
+		var left = railRect.left + natural.leftInset;
+		var maxHolderHeight = Math.max( natural.holderHeight, natural.height );
+
+		if ( holder.style.minHeight !== Math.ceil( maxHolderHeight ) + 'px' ) {
+			holder.style.minHeight = Math.ceil( maxHolderHeight ) + 'px';
+		}
+		surface.style.top = Math.round( top ) + 'px';
+		surface.style.left = Math.round( left ) + 'px';
+		surface.style.width = Math.floor( width ) + 'px';
+		surface.style.maxHeight = Math.floor( maxHeight ) + 'px';
+		surface.style.overflowY = natural.height > maxHeight ? 'auto' : 'visible';
+	}
+
+	function schedule() {
+		if ( frame ) {
+			return;
+		}
+		if ( window.requestAnimationFrame ) {
+			frame = window.requestAnimationFrame( update );
+		} else {
+			frame = window.setTimeout( update, 16 );
+		}
+	}
+
+	function handleResize() {
+		var width = window.innerWidth || document.documentElement.clientWidth || 0;
+		if ( width !== lastViewportWidth ) {
+			lastViewportWidth = width;
+			resetPinned();
+		}
+		schedule();
+	}
+
+	window.addEventListener( 'scroll', schedule, { passive: true } );
+	window.addEventListener( 'resize', handleResize, { passive: true } );
+	window.addEventListener( 'pageshow', schedule, { passive: true } );
+	if ( desktopQuery ) {
+		if ( desktopQuery.addEventListener ) {
+			desktopQuery.addEventListener( 'change', schedule );
+		} else if ( desktopQuery.addListener ) {
+			desktopQuery.addListener( schedule );
+		}
+	}
+	if ( typeof window.ResizeObserver === 'function' ) {
+		var geometryObserver = new window.ResizeObserver( schedule );
+		geometryObserver.observe( range );
+		geometryObserver.observe( rail );
+		geometryObserver.observe( surface );
+	}
+
+	lastViewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+	schedule();
+}() );

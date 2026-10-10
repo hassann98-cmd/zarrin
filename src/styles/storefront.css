@@ -3099,7 +3099,7 @@ html {
   width: auto !important;
 }
 [data-jluxe-island="header-logo"] img {
-  height: 4rem !important;
+  height: var(--jluxe-header-logo-height, 4rem) !important;
 }
 [data-jluxe-card-main-img] {
   height: 100% !important;
@@ -7809,13 +7809,13 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
   }
 }
 
-/* R120: fluid desktop page shells — wide monitors get room without edge-to-edge text. */
+/* R120/R211: keep desktop page shells fluid but cap every shared container at 1460px. */
 :root {
   --jluxe-container-max: 1320px;
 }
 @media (min-width: 1280px) {
   :root {
-    --jluxe-container-max: 1600px;
+    --jluxe-container-max: 1460px;
   }
   .container,
   [class~="max-w-[1320px]"],
@@ -7827,22 +7827,7 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
   .jluxe-brand-strip,
   .jluxe-hero--container,
   .jluxe-cats-page {
-    max-width: var(--jluxe-container-max);
-  }
-}
-@media (min-width: 1600px) {
-  :root {
-    --jluxe-container-max: 1760px;
-  }
-}
-@media (min-width: 1920px) {
-  :root {
-    --jluxe-container-max: 2048px;
-  }
-}
-@media (min-width: 2560px) {
-  :root {
-    --jluxe-container-max: 2304px;
+    max-width: min(var(--jluxe-container-max), 1460px);
   }
 }
 
@@ -8042,6 +8027,25 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
 @media (min-width: 768px) {
   #masthead .jluxe-header-row {
     grid-template-columns: max-content minmax(0, clamp(220px, 37vw, 440px)) minmax(0, 1fr) max-content max-content;
+  }
+}
+
+/* R211 — modestly enlarge the desktop brand and search track; the account/cart tracks stay intrinsic. */
+@media (min-width: 1200px) {
+  #masthead .jluxe-header-row {
+    grid-template-columns: max-content minmax(0, clamp(460px, 34vw, 500px)) minmax(0, 1fr) max-content max-content;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1279.98px) {
+  #masthead [data-jluxe-header-grid="logo"] {
+    max-width: 160px;
+    --jluxe-header-logo-height: 4.25rem;
+  }
+}
+@media (min-width: 1280px) {
+  #masthead [data-jluxe-header-grid="logo"] {
+    max-width: 220px;
+    --jluxe-header-logo-height: 4.5rem;
   }
 }
 
@@ -9521,5 +9525,35 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   #jluxe-footer-root .jluxe-footer-social-link,
   #jluxe-footer-root .jluxe-site-badge-card {
     transition: none;
+  }
+}
+
+/* R211 — product details narrow into a reading column beside the persistent buy box on wide screens. */
+@media (min-width: 1200px) {
+  [data-jluxe-buybox-range][data-jluxe-buybox-sticky-ready] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 25%);
+    align-items: start;
+    padding-inline: 20px;
+  }
+
+  [data-jluxe-buybox-range][data-jluxe-buybox-sticky-ready] > [data-jluxe-product-detail-main] {
+    min-width: 0;
+  }
+
+  [data-jluxe-buybox-range][data-jluxe-buybox-sticky-ready] > [data-jluxe-buybox-rail] {
+    min-width: 0;
+    min-height: 1px;
+  }
+
+  .jluxe-product-detail-layout[data-jluxe-buybox-sticky-ready] > [data-jluxe-product-detail-main] > .jluxe-product-section-nav {
+    margin-inline: 0;
+  }
+
+  [data-jluxe-buybox-surface].is-pinned-to-details {
+    position: fixed;
+    z-index: 31;
+    box-sizing: border-box;
+    margin: 0;
   }
 }

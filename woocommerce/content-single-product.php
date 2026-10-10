@@ -257,6 +257,7 @@ if ( $jluxe_is_variable ) {
 			</div>
 
 			<div class="lg:sticky lg:top-24 lg:self-start" data-jluxe-product-buybox>
+				<div data-jluxe-buybox-surface>
 				<div class="rounded-2xl border border-border bg-muted/40 p-3.5">
 					<?php // تک‌فروشنده‌ست (نه مارکت‌پلیس) — کارت فروشگاه/فروشنده عمداً حذف شده. ?>
 					<?php wc_get_template_part( 'single-product/price' ); ?>
@@ -305,6 +306,7 @@ if ( $jluxe_is_variable ) {
 						</ul>
 					<?php endif; ?>
 				</div>
+				</div>
 			</div>
 		</div>
 
@@ -317,6 +319,8 @@ if ( $jluxe_is_variable ) {
 
 			<?php $jluxe_faq_items = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array(); ?>
 
+		<div class="jluxe-product-detail-layout" data-jluxe-buybox-range>
+		<div data-jluxe-product-detail-main>
 		<nav aria-label="بخش‌های محصول" class="jluxe-product-section-nav sticky z-20 mt-8 -mx-4 border-b border-border bg-background/95 px-4 backdrop-blur-md">
 			<ul class="flex gap-1 overflow-x-auto">
 				<li><a href="#description" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">معرفی</a></li>
@@ -404,6 +408,9 @@ if ( $jluxe_is_variable ) {
 				<?php jluxe_render_review_insights( (int) $product->get_id() ); comments_template(); ?>
 			</div>
 		</section>
+		</div>
+		<div data-jluxe-buybox-rail aria-hidden="true"></div>
+		</div>
 
 		<?php do_action( 'woocommerce_after_single_product_summary' ); ?>
 		<?php if ( function_exists( 'jluxe_render_recent_products_panel' ) ) { jluxe_render_recent_products_panel( 'product' ); } ?>

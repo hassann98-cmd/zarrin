@@ -1634,6 +1634,18 @@ check(strpos($cp3,'cp3-wishline')!==false && strpos($cp3,'۱۰۰٪ شاید ای
 check(strpos($cp3,'jluxe_variable_attribute_prompt( $cp3_attr_name )')!==false && strpos($cp3,'echo esc_html( $cp3_attr_prompt );')!==false, 'R46/R139 variation pill labels add one normalized prompt without duplicating instructions already in an attribute name');
 // 3) buy box column is sticky on desktop (reference keeps it pinned during section scroll)
 check(preg_match('/@media\(min-width:768px\)\{\.jluxe-cp3 \.cp3-side\{[^}]*position:sticky;top:calc\(88px \+ var\(--wp-admin--admin-bar--height,0px\)\);align-self:flex-start\}/',$cp3)===1, 'R46 the buy box column pins below the header while sections scroll');
+$r211_default_product = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+$r211_sticky_script = (string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
+check(
+	strpos($cp3,'class="jluxe-product-detail-layout cp3-details-layout" data-jluxe-buybox-range')!==false &&
+	strpos($cp3,'data-jluxe-buybox-rail')!==false &&
+	strpos($cp3,'data-jluxe-buybox-surface')!==false &&
+	strpos($r211_default_product,'class="jluxe-product-detail-layout" data-jluxe-buybox-range')!==false &&
+	strpos($r211_default_product,'data-jluxe-buybox-rail')!==false &&
+	strpos($r211_sticky_script,'is-pinned-to-details')!==false &&
+	strpos($r211_sticky_script,'rangeRect.bottom - visibleHeight')!==false,
+	'R211 both product layouts keep the real WooCommerce buy surface in place and pin it alongside the narrower description/spec/review column through its end'
+);
 // 4) CTA is a full pill with a trailing plus glyph drawn via CSS mask (real button untouched)
 check(preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*border-radius:16px !important;/',$cp3)===1 && strpos($cp3,'.single_add_to_cart_button::after')!==false, 'R46 the add-to-cart button keeps the masked plus glyph');
 // 5) sticky navbar: reference label + arrows moved to the far end
@@ -3621,7 +3633,7 @@ check( 3 === substr_count( $h89html, 'data-jluxe-hero-slide ' ) && 3 === substr_
 check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_count( $h89html, 'loading="eager"' ) && 2 === substr_count( $h89html, 'loading="lazy"' ) && 1 === substr_count( $h89html, 'data-no-lazy="1"' ), 'R89 only the first slide is eager/high priority and carries LiteSpeed’s no-lazy guard' );
 check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
 check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
-check( false !== strpos( $h89html, 'sizes="(min-width: 2560px) 2304px, (min-width: 2072px) 2048px, (min-width: 1920px) calc(100vw - 24px), (min-width: 1784px) 1760px, calc(100vw - 24px)"' ), 'R89 container srcset sizes match the fluid desktop width' );
+check( false !== strpos( $h89html, 'sizes="(min-width: 1484px) 1460px, calc(100vw - 24px)"' ), 'R89 container srcset sizes match the capped 1460px desktop width' );
 $h108home_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 check(
 	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px)' ) &&
@@ -3630,17 +3642,22 @@ check(
 	'R108 homepage sections use the fluid desktop container, retain the 12px mobile gutter, and align «مشاهده همه» content'
 );
 $r120_container_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-$r120_container_css_start = strpos( $r120_container_css, '/* R120: fluid desktop page shells' );
+$r120_container_css_start = strpos( $r120_container_css, '/* R120/R211: keep desktop page shells fluid' );
 $r120_container_css = false === $r120_container_css_start ? '' : substr( $r120_container_css, $r120_container_css_start );
 check(
 	false !== strpos( $r120_container_css, '@media (min-width: 1280px)' ) &&
-	false !== strpos( $r120_container_css, '--jluxe-container-max: 1600px' ) &&
-	false !== strpos( $r120_container_css, '--jluxe-container-max: 1760px' ) &&
-	false !== strpos( $r120_container_css, '--jluxe-container-max: 2048px' ) &&
-	false !== strpos( $r120_container_css, '--jluxe-container-max: 2304px' ) &&
+	false !== strpos( $r120_container_css, '--jluxe-container-max: 1460px' ) &&
 	false !== strpos( $r120_container_css, '[class~="max-w-[1320px]"]' ) &&
-	false !== strpos( $r120_container_css, 'max-width: var(--jluxe-container-max)' ),
-	'R120 desktop shells become fluid at 1280px and scale through 1600/1760/2048/2304px caps without changing mobile rules'
+	false !== strpos( $r120_container_css, 'max-width: min(var(--jluxe-container-max), 1460px)' ) &&
+	false === strpos( $r120_container_css, '--jluxe-container-max: 1600px' ) &&
+	false === strpos( $r120_container_css, '--jluxe-container-max: 2304px' ),
+	'R211 all shared desktop shells—including product pages—stop at 1460px while mobile/tablet container rules remain unchanged'
+);
+check(
+	false !== strpos( $h108home_source, "'boxed1489' => 'محدود به کانتینر (۱۴۶۰px)'" ) &&
+	false !== strpos( $h108home_source, 'max-width:1460px;margin:0 auto;' ) &&
+	false === strpos( $h108home_source, 'max-width:1489px' ),
+	'R211 legacy homepage collage width option is retained but rendered with the 1460px desktop cap'
 );
 check( false !== strpos( $h89html, 'data-jluxe-hero-prev' ) && false !== strpos( $h89html, 'jluxe-hero__dots--bars' ) && 3 === substr_count( $h89html, 'data-jluxe-hero-fill' ), 'R89 arrows + progress bars rendered' );
 check( false !== strpos( $h89html, '@media (hover:hover) and (pointer:fine){.jluxe-hero__arrow:hover' ) && false !== strpos( $h89html, 'prefers-reduced-motion:reduce' ), 'R89 hover only on mouse devices; reduced-motion honoured' );
@@ -3652,7 +3669,7 @@ ob_start(); jluxe_render_homepage_hero( array( 'items' => array() ) ); check( ''
 
 $r169_banner_sizes = jluxe_home_banner_grid_image_sizes( 2 );
 check(
-	'(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(50.0000vw - 24.00px), 636.00px' === $r169_banner_sizes,
+	'(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(50.0000vw - 24.00px), 706.00px' === $r169_banner_sizes,
 	'R169 normal banner sizes match their responsive two-column grid slot'
 );
 ob_start();
@@ -3669,7 +3686,7 @@ ob_start();
 jluxe_render_homepage_banner_slider( array( 'items' => array( array( 'image_id' => 83 ), array( 'image_id' => 84 ) ) ) );
 $r169_slider_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r169_slider_html, 'sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1320px) calc(100vw - 32px), 1288px"' ) &&
+	false !== strpos( $r169_slider_html, 'sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(100vw - 32px), 1428px"' ) &&
 	false !== strpos( $r169_slider_html, 'data-no-lazy="1"' ),
 	'R169 banner slider uses responsive uncropped images and guards its visible first slide from LiteSpeed lazy loading'
 );
@@ -3853,7 +3870,7 @@ $h89set = jluxe_theme_settings_defaults();
 $h89set['homepage']['sections'][0]['items'] = $h89items;
 update_test_settings( $h89set );
 ob_start(); jluxe_preload_homepage_hero_lcp_image(); $h89pre = (string) ob_get_clean();
-check( 2 === substr_count( $h89pre, 'rel="preload"' ) && false !== strpos( $h89pre, 'imagesizes="(min-width: 2560px) 2304px, (min-width: 2072px) 2048px, (min-width: 1920px) calc(100vw - 24px), (min-width: 1784px) 1760px, calc(100vw - 24px)"' ) && false !== strpos( $h89pre, 'imagesizes="calc(100vw - 24px)"' ), 'R89 LCP preload uses the same fluid-container sizes as the <picture>' );
+check( 2 === substr_count( $h89pre, 'rel="preload"' ) && false !== strpos( $h89pre, 'imagesizes="(min-width: 1484px) 1460px, calc(100vw - 24px)"' ) && false !== strpos( $h89pre, 'imagesizes="calc(100vw - 24px)"' ), 'R89 LCP preload uses the same capped-container sizes as the <picture>' );
 $GLOBALS['scripts'] = array();
 jluxe_enqueue_homepage_assets();
 check(

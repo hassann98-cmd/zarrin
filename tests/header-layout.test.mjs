@@ -84,6 +84,24 @@ test("R122 keeps the existing desktop search, cart, account controls and respons
   assert.match(headerIsland, /onFocus: \(\) => d\(!0\)/);
 });
 
+test("R211 widens the desktop search and modestly enlarges the logo without changing account/cart controls", () => {
+  assert.match(storefrontStyles, /@media \(min-width: 1200px\)\s*\{\s*#masthead \.jluxe-header-row\s*\{\s*grid-template-columns: max-content minmax\(0, clamp\(460px, 34vw, 500px\)\) minmax\(0, 1fr\) max-content max-content/);
+  assert.match(storefrontStyles, /@media \(min-width: 1200px\) and \(max-width: 1279\.98px\)[\s\S]*?max-width: 160px;\s*--jluxe-header-logo-height: 4\.25rem/);
+  assert.match(storefrontStyles, /@media \(min-width: 1280px\)[\s\S]*?max-width: 220px;\s*--jluxe-header-logo-height: 4\.5rem/);
+  assert.match(storefrontStyles, /\[data-jluxe-island="header-logo"\] img\s*\{\s*height: var\(--jluxe-header-logo-height, 4rem\) !important/);
+  assert.match(headerIsland, /md:w-\[151px\]/);
+  assert.match(headerIsland, /md:w-\[171px\]/);
+});
+
+test("R211 shared desktop containers never grow past 1460px, including product-width utilities", () => {
+  const cap = storefrontStyles.slice(storefrontStyles.indexOf("/* R120/R211: keep desktop page shells fluid"));
+  assert.match(cap, /--jluxe-container-max:\s*1460px/);
+  assert.match(cap, /\[class~="max-w-\[1320px\]"\]/);
+  assert.match(cap, /max-width:\s*min\(var\(--jluxe-container-max\), 1460px\)/);
+  assert.doesNotMatch(cap, /--jluxe-container-max:\s*(?:1600|1760|2048|2304)px/);
+  assert.match(classicProductTemplate, /class="mx-auto w-full max-w-\[1320px\] px-3 md:px-4 py-2"/);
+});
+
 test("R126 places the editable mobile search beside and before the logo in the same row", () => {
   assert.match(headerIsland, /function MobileSearch\(\)/);
   assert.match(headerIsland, /className:\s*"h-10 w-full rounded-xl border border-border bg-surface/);

@@ -609,6 +609,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 
 				<!-- جعبه‌ی خرید -->
 				<div class="cp3-side" data-jluxe-product-buybox>
+					<div data-jluxe-buybox-surface>
 					<div class="cp3-sidebox">
 						<div class="cp3-sidehead">مشخصات</div>
 						<div class="cp3-row">
@@ -672,6 +673,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3m17 5l-3.919 4.183a.5.5 0 0 1-.612.085L11.53 9.268a.5.5 0 0 0-.612.085L7 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						</a>
 					</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -681,6 +683,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 		<?php endif; ?>
 		<?php if ( function_exists( 'jluxe_render_stock_alert_dialog' ) ) { jluxe_render_stock_alert_dialog( $product ); } ?>
 
+		<div class="jluxe-product-detail-layout cp3-details-layout" data-jluxe-buybox-range>
+		<div class="cp3-details-main" data-jluxe-product-detail-main>
 		<!-- نوارِ چسبانِ بخش‌ها -->
 		<div class="cp3-nav" data-cp3-nav>
 			<div class="cp3-nav-cur">
@@ -866,6 +870,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					</div>
 				</section>
 			<?php endif; ?>
+		</div>
+		</div>
+		<div data-jluxe-buybox-rail aria-hidden="true"></div>
 		</div>
 
 		<!-- محصولات مرتبط -->
