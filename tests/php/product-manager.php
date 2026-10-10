@@ -12,8 +12,19 @@ if ( ! function_exists( 'wc_attribute_taxonomy_name' ) ) {
 if ( ! function_exists( 'get_edit_post_link' ) ) {
 	function get_edit_post_link( $post_id, $context = 'display' ) { return '/wp-admin/post.php?post=' . (int) $post_id; }
 }
-if ( ! function_exists( 'wp_enqueue_media' ) ) {
-	function wp_enqueue_media() { $GLOBALS['product_manager_media_enqueued'] = true; }
+if ( ! function_exists( 'add_menu_page' ) ) {
+	function add_menu_page( ...$args ) { $GLOBALS['product_manager_menu_page'] = $args; return 'toplevel_page_' . $args[3]; }
+}
+if ( ! function_exists( 'wp_set_object_terms' ) ) {
+	function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+		$GLOBALS['product_manager_object_terms'][ (int) $object_id ][ $taxonomy ] = array_map( 'absint', (array) $terms );
+		return $GLOBALS['product_manager_object_terms'][ (int) $object_id ][ $taxonomy ];
+	}
+}
+if ( ! function_exists( 'wp_get_object_terms' ) ) {
+	function wp_get_object_terms( $object_id, $taxonomy, $args = array() ) {
+		return $GLOBALS['product_manager_object_terms'][ (int) $object_id ][ $taxonomy ] ?? array();
+	}
 }
 if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
 	function wc_get_product_id_by_sku( $sku ) { return (int) ( $GLOBALS['product_manager_sku_map'][ (string) $sku ] ?? 0 ); }
@@ -149,8 +160,9 @@ function product_manager_json_call( callable $callback ): JsonReply {
 $encoded_attribute_slug = '%d8%b1%d9%86%da%af';
 $taxonomy = 'pa_' . $encoded_attribute_slug;
 $GLOBALS['taxonomies'] = array(
-	'product_cat' => true,
-	'product_tag' => true,
+	'product_cat'  => true,
+	'product_tag'  => true,
+	'product_brand'=> true,
 	$taxonomy      => true,
 );
 $GLOBALS['product_manager_attribute_taxonomies'] = array(
@@ -170,8 +182,23 @@ $blue->term_id = 602;
 $blue->name = 'آبی';
 $blue->slug = 'blue';
 $blue->taxonomy = $taxonomy;
-$GLOBALS['terms_by_id'] = array( 601 => $red, 602 => $blue );
-$GLOBALS['test_terms'] = array( $red, $blue );
+$category_term = new WP_Term();
+$category_term->term_id = 603;
+$category_term->name = 'پوشاک';
+$category_term->slug = 'clothing';
+$category_term->taxonomy = 'product_cat';
+$brand_term = new WP_Term();
+$brand_term->term_id = 610;
+$brand_term->name = 'برند آزمایشی';
+$brand_term->slug = 'test-brand';
+$brand_term->taxonomy = 'product_brand';
+$GLOBALS['terms_by_id'] = array( 601 => $red, 602 => $blue, 603 => $category_term, 610 => $brand_term );
+$GLOBALS['terms_by_slug'] = array(
+	'product_cat'   => array( 'clothing' => $category_term ),
+	'product_brand' => array( 'test-brand' => $brand_term ),
+	$taxonomy       => array( 'red' => $red, 'blue' => $blue ),
+);
+$GLOBALS['test_terms'] = array( $red, $blue, $category_term, $brand_term );
 
 $color = new WC_Product_Attribute();
 $color->set_id( 44 );
@@ -198,17 +225,46 @@ $second_variation->attributes = array( $taxonomy => 'blue' );
 $second_variation->stock_status = 'instock';
 $second_variation->backorders = 'no';
 $GLOBALS['products'] = array( 5301 => $parent, 5302 => $first_variation, 5303 => $second_variation );
+$simple_product = new ProductManagerTestProduct( 5304 );
+$simple_product->type = 'simple';
+$simple_product->product_name = 'محصول سادهٔ فیلتر';
+$simple_product->sku = 'SIMPLE-5304';
+$simple_product->regular_price = '80';
+$simple_product->stock_quantity = null;
+$GLOBALS['products'][5304] = $simple_product;
+$GLOBALS['product_category_ids'][5304] = array( 603 );
+$GLOBALS['product_manager_object_terms'][5304] = array(
+	'product_brand' => array( 610 ),
+	$taxonomy       => array( 601 ),
+);
 
 $GLOBALS['scripts'] = array();
 $GLOBALS['styles'] = array();
-$GLOBALS['product_manager_media_enqueued'] = false;
-jluxe_product_manager_enqueue_assets( 'plugins.php' );
-product_manager_check( empty( $GLOBALS['scripts']['jluxe-product-manager'] ) && empty( $GLOBALS['product_manager_media_enqueued'] ), 'product-manager assets stay unloaded outside their dedicated WooCommerce admin screen' );
-jluxe_product_manager_enqueue_assets( 'woocommerce_page_' . JLUXE_PRODUCT_MANAGER_PAGE );
+$GLOBALS['product_manager_menu_page'] = array();
+jluxe_product_manager_register_page();
 product_manager_check(
-	isset( $GLOBALS['scripts']['jluxe-product-manager'], $GLOBALS['styles']['jluxe-product-manager'] ) && $GLOBALS['product_manager_media_enqueued'] &&
-	isset( $GLOBALS['localized']['jluxeProductManager']['nonce'] ),
-	'dedicated admin screen enqueues the editor, style, media library, and a scoped AJAX nonce'
+	isset( $GLOBALS['product_manager_menu_page'][3] ) && JLUXE_PRODUCT_MANAGER_PAGE === $GLOBALS['product_manager_menu_page'][3] && 'edit_products' === $GLOBALS['product_manager_menu_page'][2],
+	'product manager is registered as its own top-level admin page with product-edit permission'
+);
+ob_start();
+jluxe_product_manager_render_page();
+$product_manager_markup = (string) ob_get_clean();
+product_manager_check(
+	false !== strpos( $product_manager_markup, 'id="jluxe-pm-brand-search"' ) &&
+	false !== strpos( $product_manager_markup, 'id="jluxe-pm-category-search"' ) &&
+	false !== strpos( $product_manager_markup, 'id="jluxe-pm-attribute-taxonomy"' ) &&
+	false === strpos( $product_manager_markup, 'jluxe-pm-bulk-panel' ),
+	'easy product manager keeps searchable category/brand and attribute filters without the redundant bulk panel'
+);
+jluxe_product_manager_enqueue_assets( 'plugins.php' );
+product_manager_check( empty( $GLOBALS['scripts']['jluxe-product-manager'] ), 'product-manager assets stay unloaded outside their dedicated admin screen' );
+jluxe_product_manager_enqueue_assets( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_PAGE );
+product_manager_check(
+	isset( $GLOBALS['scripts']['jluxe-product-manager'], $GLOBALS['styles']['jluxe-product-manager'] ) &&
+	isset( $GLOBALS['localized']['jluxeProductManager']['nonce'] ) &&
+	'product_brand' === $GLOBALS['localized']['jluxeProductManager']['brandTaxonomy'] &&
+	$GLOBALS['localized']['jluxeProductManager']['attributes'][0]['taxonomy'] === $taxonomy,
+	'dedicated top-level screen enqueues only the focused editor assets and its allowed taxonomy configuration'
 );
 
 $registered = jluxe_product_manager_registered_attributes();
@@ -339,7 +395,118 @@ product_manager_check(
 	$filtered_sku_search->success && array() === $filtered_sku_search->data['products'],
 	'exact variation-SKU lookup does not bypass the selected product-type filter'
 );
+$GLOBALS['product_manager_sku_map']['SIMPLE-5304'] = 5304;
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'search' => 'SIMPLE-5304',
+	'type' => 'simple',
+	'status' => '',
+	'stock' => '',
+	'category' => '603',
+	'brand' => '610',
+	'attribute_taxonomy' => $taxonomy,
+	'attribute_term' => '601',
+	'page' => '1',
+);
+$filtered_term_search = product_manager_json_call( 'jluxe_product_manager_list_ajax' );
+$filter_tax_query = $GLOBALS['product_manager_last_query']['tax_query'] ?? array();
+product_manager_check(
+	$filtered_term_search->success && 1 === count( $filtered_term_search->data['products'] ) && 5304 === $filtered_term_search->data['products'][0]['id'] &&
+	array( 'clothing' ) === ( $GLOBALS['product_manager_last_query']['category'] ?? array() ) &&
+	3 === count( $filter_tax_query ) && 'AND' === $filter_tax_query['relation'] && 'product_brand' === $filter_tax_query[0]['taxonomy'] && $taxonomy === $filter_tax_query[1]['taxonomy'],
+	'product list combines category, brand, and selected global-attribute filters, including exact SKU results'
+);
+$GLOBALS['product_manager_object_terms'][5304]['product_brand'] = array();
+$brand_mismatch = product_manager_json_call( 'jluxe_product_manager_list_ajax' );
+product_manager_check(
+	$brand_mismatch->success && array() === $brand_mismatch->data['products'],
+	'exact SKU lookup does not bypass a selected brand or attribute term filter'
+);
+$GLOBALS['product_manager_object_terms'][5304]['product_brand'] = array( 610 );
 unset( $GLOBALS['product_query_handler'], $GLOBALS['product_manager_last_query'] );
+
+$GLOBALS['valid_wp_nonce'] = true;
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'product_id' => '5304',
+	'regular_price' => '۱۲۵٫۵',
+	'sale_price' => '',
+	'manage_stock' => '1',
+	'stock_quantity' => '4',
+);
+$quick_save_reply = product_manager_json_call( 'jluxe_product_manager_save_quick_ajax' );
+product_manager_check(
+	$quick_save_reply->success && '125.5' === $simple_product->regular_price && true === $simple_product->manage_stock && '4' === (string) $simple_product->stock_quantity && 'instock' === $simple_product->stock_status,
+	'inline simple-product price and inventory saves use WooCommerce CRUD and accept Persian decimal digits'
+);
+
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'product_id' => '5304',
+	'category_ids' => array( 603 ),
+	'brand_taxonomy' => 'product_brand',
+	'brand_ids' => array( 610 ),
+);
+$organization_reply = product_manager_json_call( 'jluxe_product_manager_save_organization_ajax' );
+product_manager_check(
+	$organization_reply->success && array( 603 ) === $simple_product->saved_fields['category_ids'] &&
+	array( 610 ) === $GLOBALS['product_manager_object_terms'][5304]['product_brand'],
+	'search-selected category and brand values save through WooCommerce and the taxonomy API only'
+);
+$_POST['brand_ids'] = array( 601 );
+$invalid_brand_reply = product_manager_json_call( 'jluxe_product_manager_save_organization_ajax' );
+product_manager_check(
+	! $invalid_brand_reply->success && 400 === $invalid_brand_reply->status,
+	'organization save rejects a brand term from a different taxonomy before writing'
+);
+
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'parent_id' => '5301',
+	'variation_id' => '5302',
+	'page' => '1',
+	'variation' => json_encode(
+		array(
+			'id' => 5302,
+			'sku' => '',
+			'regularPrice' => '145',
+			'salePrice' => '',
+			'stockQuantity' => '2',
+			'manageStock' => true,
+			'stockStatus' => 'instock',
+			'backorders' => 'notify',
+			'enabled' => true,
+			'attributes' => array( $taxonomy => 'blue' ),
+		),
+		JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+	),
+);
+$duplicate_variation_reply = product_manager_json_call( 'jluxe_product_manager_save_variation_quick_ajax' );
+product_manager_check(
+	! $duplicate_variation_reply->success && 400 === $duplicate_variation_reply->status && 'red' === $first_variation->attributes[ $taxonomy ],
+	'quick variation editor refuses a duplicate size/color combination without changing the original variation'
+);
+$_POST['variation'] = json_encode(
+	array(
+		'id' => 5302,
+		'sku' => '',
+		'regularPrice' => '145',
+		'salePrice' => '',
+		'stockQuantity' => '2',
+		'manageStock' => true,
+		'stockStatus' => 'instock',
+		'backorders' => 'notify',
+		'enabled' => true,
+		'attributes' => array( $taxonomy => 'red' ),
+	),
+	JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+);
+$variation_quick_save_reply = product_manager_json_call( 'jluxe_product_manager_save_variation_quick_ajax' );
+product_manager_check(
+	$variation_quick_save_reply->success && '145' === $first_variation->regular_price && '2' === (string) $first_variation->stock_quantity &&
+	$variation_quick_save_reply->data['variation']['attributes'][ $taxonomy ] === 'red',
+	'variable-product size, price, and stock autosave with the validated WooCommerce variation data'
+);
 
 $GLOBALS['valid_wp_nonce'] = true;
 $full_save_payload = array(

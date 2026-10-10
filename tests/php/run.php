@@ -5109,6 +5109,7 @@ $r216_order->shipping_first_name = 'الهام';
 $r216_order->shipping_last_name = 'برومندی';
 $r216_order->shipping_address_1 = 'خیابان مقصد، پلاک ۵';
 $r216_order->shipping_address_2 = 'واحد ۲';
+$r216_order->shipping_state = 'البرز';
 $r216_order->shipping_city = 'کرج';
 $r216_order->shipping_postcode = '۳۳۱۶۶۴۴۷۶۱';
 $r216_order->shipping_country = 'IR';
@@ -5126,7 +5127,8 @@ check(
 );
 check(
 	'الهام برومندی' === $r216_label_data['recipient']['name'] &&
-	'خیابان مقصد، پلاک ۵، واحد ۲، کرج' === $r216_label_data['recipient']['address'] &&
+	'البرز' === $r216_label_data['recipient']['state'] && 'کرج' === $r216_label_data['recipient']['city'] &&
+	'خیابان مقصد، پلاک ۵، واحد ۲' === $r216_label_data['recipient']['address'] &&
 	'۳۳۱۶۶۴۴۷۶۱' === $r216_label_data['recipient']['postcode'] &&
 	'09188715171' === $r216_label_data['recipient']['phone'] &&
 	false !== strpos( $r216_label_data['recipient']['note'], 'لطفاً پیش از ارسال تماس بگیرید.' ),
@@ -5227,7 +5229,8 @@ $r216_order_without_shipping = new WC_Order();
 $r216_billing_fallback = jluxe_order_label_data( $r216_order_without_shipping );
 check(
 	'Private Customer' === $r216_billing_fallback['recipient']['name'] &&
-	'Private address، Private unit، Private city، Private state' === $r216_billing_fallback['recipient']['address'] &&
+	'Private state' === $r216_billing_fallback['recipient']['state'] && 'Private city' === $r216_billing_fallback['recipient']['city'] &&
+	'Private address، Private unit' === $r216_billing_fallback['recipient']['address'] &&
 	'Private postcode' === $r216_billing_fallback['recipient']['postcode'] &&
 	'09120000000' === $r216_billing_fallback['recipient']['phone'],
 	'R216 orders without a shipping address safely fall back to their billing recipient details'
@@ -5348,7 +5351,27 @@ check(
 	false !== strpos( $r218_pair_html, 'text-align:right' ) &&
 	false !== strpos( $r218_pair_html, '<strong>تلفن:</strong><bdi' ) &&
 	false !== strpos( $r218_pair_html, '<strong>کد پستی:</strong><bdi' ),
-	'R218 recipient name, address, postcode, and phone use larger right-aligned Persian typography with label-before-value order'
+	'R218 recipient name, address, postcode, and phone use right-aligned Persian typography with label-before-value order'
+);
+$r219_name_position = strpos( $r218_pair_html, 'class="jluxe-label-recipient-name">الهام برومندی</p>' );
+$r219_location_position = strpos( $r218_pair_html, 'class="jluxe-label-recipient-location"' );
+$r219_street_position = strpos( $r218_pair_html, 'class="jluxe-label-recipient-address">خیابان مقصد، پلاک ۵، واحد ۲</p>' );
+check(
+	false !== $r219_name_position && false !== $r219_location_position && false !== $r219_street_position &&
+	$r219_name_position < $r219_location_position && $r219_location_position < $r219_street_position &&
+	false !== strpos( $r218_pair_html, '<span class="jluxe-label-province">البرز</span>' ) &&
+	false !== strpos( $r218_pair_html, '<span class="jluxe-label-location-separator" aria-hidden="true"> — </span>' ) &&
+	false !== strpos( $r218_pair_html, '<span class="jluxe-label-city">کرج</span>' ),
+	'R219 group labels print recipient first, then province — city, then the remaining street address'
+);
+$r219_second_name = strpos( $r218_pair_html, 'class="jluxe-label-recipient-name">مریم رضایی</p>' );
+$r219_second_location = false === $r219_second_name ? false : strpos( $r218_pair_html, 'class="jluxe-label-recipient-location"', $r219_second_name );
+$r219_second_city = false === $r219_second_location ? false : strpos( $r218_pair_html, '<span class="jluxe-label-city">اصفهان</span>', $r219_second_location );
+$r219_second_street = false === $r219_second_city ? false : strpos( $r218_pair_html, 'class="jluxe-label-recipient-address">خیابان دوم، پلاک ۹</p>', $r219_second_city );
+check(
+	false !== $r219_second_city && false !== $r219_second_street && $r219_second_city < $r219_second_street &&
+	false === strpos( substr( $r218_pair_html, $r219_second_location, $r219_second_street - $r219_second_location ), 'jluxe-label-location-separator' ),
+	'R219 a city-only destination prints on its own line without a dangling separator'
 );
 $r218_third_order = new WC_Order();
 $r218_third_order->id = 53;

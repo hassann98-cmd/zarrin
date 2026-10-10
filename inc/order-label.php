@@ -111,12 +111,11 @@ function jluxe_order_label_data( WC_Order $order ): array {
 
 	$country = jluxe_order_label_address_value( $order, $address_type, 'country' );
 	$state   = jluxe_order_label_localized_state( $country, jluxe_order_label_address_value( $order, $address_type, 'state' ) );
+	$city    = jluxe_order_label_address_value( $order, $address_type, 'city' );
 	$address_parts = array_filter(
 		array(
 			jluxe_order_label_address_value( $order, $address_type, 'address_1' ),
 			jluxe_order_label_address_value( $order, $address_type, 'address_2' ),
-			jluxe_order_label_address_value( $order, $address_type, 'city' ),
-			$state,
 		),
 		static function ( $part ) {
 			return '' !== $part;
@@ -139,6 +138,8 @@ function jluxe_order_label_data( WC_Order $order ): array {
 		'store'        => jluxe_order_label_store_data(),
 		'recipient'    => array(
 			'name'     => $name,
+			'state'    => $state,
+			'city'     => $city,
 			'address'  => implode( '، ', $address_parts ),
 			'postcode' => jluxe_order_label_address_value( $order, $address_type, 'postcode' ),
 			'phone'    => $phone,
@@ -343,7 +344,8 @@ function jluxe_render_order_labels_document( array $orders ): void {
 			.jluxe-label-ltr{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap}
 			.jluxe-label-recipient{min-height:0;flex:1;margin-top:2mm;padding:3.5mm 3mm;border:.55mm solid #171717;border-radius:14mm;text-align:right;display:flex;flex-direction:column;align-items:stretch;overflow:visible}
 			.jluxe-label-recipient-title{flex:0 0 auto;align-self:center;margin:0 auto 2mm;padding:1mm 3.5mm;border-radius:999px;background:#050505;color:#fff;font-size:3.5mm;font-weight:700;line-height:1.55;text-align:center}
-			.jluxe-label-recipient-name{width:100%;margin:0 0 1.8mm;font-size:3.7mm;font-weight:700;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+			.jluxe-label-recipient-name{width:100%;margin:0 0 1.2mm;font-size:3.7mm;font-weight:700;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+			.jluxe-label-recipient-location{width:100%;margin:0 0 1.2mm;font-size:3.2mm;font-weight:700;line-height:1.5;text-align:right;overflow-wrap:anywhere}
 			.jluxe-label-recipient-address{width:100%;margin:0 0 1.4mm;font-size:4mm;font-weight:500;line-height:1.5;text-align:right;overflow-wrap:anywhere}
 			.jluxe-label-recipient-line{width:100%;margin:0 0 1.4mm;font-size:3.1mm;line-height:1.5;text-align:right;direction:rtl;display:flex;align-items:center;justify-content:flex-start;gap:1.2mm;overflow-wrap:anywhere}
 			.jluxe-label-recipient-line strong{font-weight:700;color:#333}
@@ -414,6 +416,13 @@ function jluxe_render_order_label_card( array $data, int $card_index ): void {
 			<h1 id="<?php echo esc_attr( $heading_id ); ?>" class="jluxe-label-recipient-title">اطلاعات گیرنده</h1>
 			<?php if ( '' !== $recipient['name'] ) : ?>
 				<p class="jluxe-label-recipient-name"><?php echo esc_html( $recipient['name'] ); ?></p>
+			<?php endif; ?>
+			<?php if ( '' !== $recipient['state'] || '' !== $recipient['city'] ) : ?>
+				<p class="jluxe-label-recipient-location">
+					<?php if ( '' !== $recipient['state'] ) : ?><span class="jluxe-label-province"><?php echo esc_html( $recipient['state'] ); ?></span><?php endif; ?>
+					<?php if ( '' !== $recipient['state'] && '' !== $recipient['city'] ) : ?><span class="jluxe-label-location-separator" aria-hidden="true"> — </span><?php endif; ?>
+					<?php if ( '' !== $recipient['city'] ) : ?><span class="jluxe-label-city"><?php echo esc_html( $recipient['city'] ); ?></span><?php endif; ?>
+				</p>
 			<?php endif; ?>
 			<?php if ( '' !== $recipient['address'] ) : ?>
 				<p class="jluxe-label-recipient-address"><?php echo esc_html( $recipient['address'] ); ?></p>
