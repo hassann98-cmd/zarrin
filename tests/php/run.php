@@ -5233,6 +5233,135 @@ check(
 	'R216 orders without a shipping address safely fall back to their billing recipient details'
 );
 
+// R218 — select multiple orders and print paired, right-to-left A6 labels on A5.
+$r218_bulk_actions = jluxe_order_label_add_bulk_action( array( 'mark_processing' => 'در حال انجام' ) );
+check(
+	isset( $r218_bulk_actions['jluxe_print_shipping_labels'] ) &&
+	false !== strpos( $r218_bulk_actions['jluxe_print_shipping_labels'], 'سفارش‌های انتخاب‌شده' ),
+	'R218 the legacy WooCommerce order list exposes a print action for checked orders'
+);
+$r218_bulk_url = jluxe_order_label_bulk_print_url( array( 51, 52, 51 ) );
+parse_str( (string) parse_url( $r218_bulk_url, PHP_URL_QUERY ), $r218_bulk_query );
+check(
+	'jluxe_print_order_shipping_labels' === ( $r218_bulk_query['action'] ?? '' ) &&
+	'51,52' === ( $r218_bulk_query['order_ids'] ?? '' ) &&
+	'nonce-jluxe_print_order_shipping_labels_51,52' === ( $r218_bulk_query['_wpnonce'] ?? '' ),
+	'R218 bulk print URLs deduplicate order IDs and bind a nonce to the exact selection'
+);
+$r218_bulk_redirect = jluxe_order_label_handle_bulk_action(
+	'https://shop.test/wp-admin/admin.php?page=wc-orders',
+	'jluxe_print_shipping_labels',
+	array( 51, 52 )
+);
+check(
+	false !== strpos( $r218_bulk_redirect, 'action=jluxe_print_order_shipping_labels' ) &&
+	false !== strpos( $r218_bulk_redirect, 'order_ids=51%2C52' ),
+	'R218 selecting the bulk print action routes to the protected multi-order print page'
+);
+$r218_hpos_script = jluxe_order_label_hpos_bulk_action_script();
+check(
+	false !== strpos( $r218_hpos_script, 'bulk-action-selector-' ) &&
+	false !== strpos( $r218_hpos_script, 'jluxe_print_shipping_labels' ),
+	'R218 HPOS receives the group-print choice in both native bulk-action selectors'
+);
+$r218_previous_screen = $GLOBALS['current_screen'] ?? null;
+$GLOBALS['current_screen'] = (object) array( 'id' => 'woocommerce_page_wc-orders' );
+ob_start();
+jluxe_order_label_hpos_bulk_action_footer();
+$r218_hpos_footer_html = (string) ob_get_clean();
+$GLOBALS['current_screen'] = (object) array( 'id' => 'edit-shop_order' );
+ob_start();
+jluxe_order_label_hpos_bulk_action_footer();
+$r218_legacy_footer_html = (string) ob_get_clean();
+if ( null === $r218_previous_screen ) {
+	unset( $GLOBALS['current_screen'] );
+} else {
+	$GLOBALS['current_screen'] = $r218_previous_screen;
+}
+check(
+	false !== strpos( $r218_hpos_footer_html, 'id="jluxe-order-label-bulk-action"' ) && '' === $r218_legacy_footer_html,
+	'R218 the HPOS bulk selector enhancement is emitted only on the HPOS order list'
+);
+$r218_filter_names = array_map(
+	static function ( $filter ) { return $filter[0] ?? ''; },
+	$GLOBALS['filters'] ?? array()
+);
+check(
+	in_array( 'bulk_actions-edit-shop_order', $r218_filter_names, true ) &&
+	in_array( 'handle_bulk_actions-edit-shop_order', $r218_filter_names, true ) &&
+	in_array( 'handle_bulk_actions-woocommerce_page_wc-orders', $r218_filter_names, true ),
+	'R218 bulk selection works with both legacy and HPOS order-list processing hooks'
+);
+$r218_action_names = array_map(
+	static function ( $hook ) { return $hook[0] ?? ''; },
+	$GLOBALS['actions'] ?? array()
+);
+check(
+	in_array( 'admin_post_jluxe_print_order_shipping_labels', $r218_action_names, true ) &&
+	in_array( 'admin_footer', $r218_action_names, true ),
+	'R218 multi-order printing is registered as a private admin-post endpoint and HPOS footer enhancement'
+);
+$r218_previous_denied_caps = $GLOBALS['denied_caps'] ?? null;
+$GLOBALS['denied_caps'] = array( 'manage_woocommerce', 'edit_shop_order' );
+check(
+	'' === jluxe_order_label_bulk_print_url( array( 51, 52 ) ),
+	'R218 one unauthorized order prevents a bulk URL from exposing any selected address'
+);
+if ( null === $r218_previous_denied_caps ) {
+	unset( $GLOBALS['denied_caps'] );
+} else {
+	$GLOBALS['denied_caps'] = $r218_previous_denied_caps;
+}
+$r218_second_order = new WC_Order();
+$r218_second_order->id = 52;
+$r218_second_order->order_number = '6839';
+$r218_second_order->shipping_first_name = 'مریم';
+$r218_second_order->shipping_last_name = 'رضایی';
+$r218_second_order->shipping_address_1 = 'خیابان دوم، پلاک ۹';
+$r218_second_order->shipping_city = 'اصفهان';
+$r218_second_order->shipping_postcode = '۸۱۵۳۶۴۷۲۱۰';
+$r218_second_order->shipping_country = 'IR';
+$r218_second_order->shipping_phone = '09131112233';
+$r218_second_order->customer_note = 'تحویل در ورودی ساختمان';
+ob_start();
+jluxe_render_order_labels_document( array( $r216_order, $r218_second_order ) );
+$r218_pair_html = (string) ob_get_clean();
+$r218_address_position = strpos( $r218_pair_html, 'class="jluxe-label-recipient-address"' );
+$r218_note_position = false === $r218_address_position ? false : strpos( $r218_pair_html, 'class="jluxe-label-note"', $r218_address_position );
+$r218_icon_position = false === $r218_note_position ? false : strpos( $r218_pair_html, 'class="jluxe-label-recipient-icon"', $r218_note_position );
+check(
+	2 === substr_count( $r218_pair_html, 'class="jluxe-shipping-label"' ) &&
+	1 === substr_count( $r218_pair_html, 'class="jluxe-label-sheet"' ) &&
+	false !== strpos( $r218_pair_html, 'سفارش <bdi class="jluxe-label-ltr">#6838' ) &&
+	false !== strpos( $r218_pair_html, 'سفارش <bdi class="jluxe-label-ltr">#6839' ),
+	'R218 two selected orders render as two A6 labels side by side on one A5 sheet'
+);
+check(
+	false !== strpos( $r218_pair_html, 'برگهٔ A5 افقی؛ در هر برگه دو برچسب کنار هم' ) &&
+	false !== strpos( $r218_pair_html, 'class="jluxe-label-recipient-icon" aria-hidden="true"><svg' ) &&
+	4 === substr_count( $r218_pair_html, 'class="jluxe-label-recipient-icon" aria-hidden="true"' ) &&
+	$r218_address_position < $r218_note_position && $r218_note_position < $r218_icon_position,
+	'R218 paired labels show RTL theme fonts/icons and place customer notes in a box immediately below the address'
+);
+check(
+	false !== strpos( $r218_pair_html, '.jluxe-label-recipient-address{width:100%;margin:0 0 1.4mm;font-size:4mm' ) &&
+	false !== strpos( $r218_pair_html, 'text-align:right' ) &&
+	false !== strpos( $r218_pair_html, '<strong>تلفن:</strong><bdi' ) &&
+	false !== strpos( $r218_pair_html, '<strong>کد پستی:</strong><bdi' ),
+	'R218 recipient name, address, postcode, and phone use larger right-aligned Persian typography with label-before-value order'
+);
+$r218_third_order = new WC_Order();
+$r218_third_order->id = 53;
+$r218_third_order->order_number = '6840';
+ob_start();
+jluxe_render_order_labels_document( array( $r216_order, $r218_second_order, $r218_third_order ) );
+$r218_three_labels_html = (string) ob_get_clean();
+check(
+	3 === substr_count( $r218_three_labels_html, 'class="jluxe-shipping-label"' ) &&
+	2 === substr_count( $r218_three_labels_html, 'class="jluxe-label-sheet"' ),
+	'R218 odd bulk selections paginate into sheets of two labels with one final single label'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

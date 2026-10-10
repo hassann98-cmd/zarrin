@@ -72,6 +72,7 @@ function wp_parse_url($v,$c=-1){return parse_url($v,$c);}
 function is_admin(){return false;}
 
 function current_user_can(...$a){return !in_array($a[0],$GLOBALS['denied_caps']??[],true) && ($GLOBALS['can_manage']??true);}
+function get_current_screen(){return $GLOBALS['current_screen']??false;}
 function check_admin_referer(...$a){return true;}
 
 function wp_doing_ajax(){return $GLOBALS['doing_ajax']??false;}
@@ -110,6 +111,7 @@ class WP_REST_Response {
  function header($key,$value){$this->headers[$key]=$value;}
 }
 class WC_Order {
+ public $id=51;
  public $customer_id=42;
  public $status='processing';
  public $phone='09120000000';
@@ -131,7 +133,7 @@ class WC_Order {
  public $payment_method_title='Test gateway';
  public $meta=array('_jsms_tracking'=>'private-tracking-token');
  public $save_count=0;
- function get_id(){return 51;}
+ function get_id(){return $this->id;}
  function get_order_number(){return $this->order_number;}
  function get_customer_id(){return $this->customer_id;}
  function get_status(){return $this->status;}

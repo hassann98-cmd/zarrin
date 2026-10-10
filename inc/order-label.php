@@ -204,13 +204,114 @@ function jluxe_add_order_label_list_action( array $actions, $order ): array {
 	return $actions;
 }
 
-/** Minimal A5-landscape print document with the A6 label in the left half. */
+/** Normalize bulk-selected order IDs without accepting nested or malformed input. */
+function jluxe_order_label_normalize_order_ids( $values ): array {
+	if ( ! is_array( $values ) ) {
+		return array();
+	}
+	$ids = array();
+	foreach ( $values as $value ) {
+		if ( ! is_scalar( $value ) || '' === (string) $value ) {
+			return array();
+		}
+		$id = absint( $value );
+		if ( $id < 1 ) {
+			return array();
+		}
+		if ( ! in_array( $id, $ids, true ) ) {
+			$ids[] = $id;
+		}
+	}
+	return $ids;
+}
+
+/** Build a nonce-bound print URL for the selected orders. */
+function jluxe_order_label_bulk_print_url( array $order_ids ): string {
+	$ids = jluxe_order_label_normalize_order_ids( $order_ids );
+	if ( empty( $ids ) || count( $ids ) > 100 ) {
+		return '';
+	}
+	foreach ( $ids as $order_id ) {
+		if ( ! jluxe_order_label_user_can_print( $order_id ) ) {
+			return '';
+		}
+	}
+	$ids_string = implode( ',', $ids );
+	return add_query_arg(
+		array(
+			'action'    => 'jluxe_print_order_shipping_labels',
+			'order_ids' => $ids_string,
+			'_wpnonce'  => wp_create_nonce( 'jluxe_print_order_shipping_labels_' . $ids_string ),
+		),
+		admin_url( 'admin-post.php' )
+	);
+}
+
+/** Add the group-print action to the legacy WooCommerce order list. */
+function jluxe_order_label_add_bulk_action( array $actions ): array {
+	$actions['jluxe_print_shipping_labels'] = __( 'چاپ برچسب سفارش‌های انتخاب‌شده (A6)', 'jluxe' );
+	return $actions;
+}
+
+/** Route a valid bulk selection to the private multi-label print document. */
+function jluxe_order_label_handle_bulk_action( string $redirect_to, string $action, $order_ids ): string {
+	if ( 'jluxe_print_shipping_labels' !== $action ) {
+		return $redirect_to;
+	}
+	$ids = jluxe_order_label_normalize_order_ids( $order_ids );
+	if ( empty( $ids ) || count( $ids ) > 100 ) {
+		return add_query_arg( 'jluxe_order_label_bulk_error', empty( $ids ) ? 'empty' : 'limit', $redirect_to );
+	}
+	$url = jluxe_order_label_bulk_print_url( $ids );
+	if ( '' === $url ) {
+		return add_query_arg( 'jluxe_order_label_bulk_error', 'permission', $redirect_to );
+	}
+	return $url;
+}
+
+/** Explain why a bulk print action could not be started. */
+function jluxe_order_label_bulk_admin_notice(): void {
+	if ( ! isset( $_GET['jluxe_order_label_bulk_error'] ) || ! is_scalar( $_GET['jluxe_order_label_bulk_error'] ) ) {
+		return;
+	}
+	$error = sanitize_key( wp_unslash( $_GET['jluxe_order_label_bulk_error'] ) );
+	$messages = array(
+		'empty'      => 'برای چاپ گروهی، دست‌کم یک سفارش را انتخاب کنید.',
+		'limit'      => 'در هر نوبت حداکثر ۱۰۰ سفارش را انتخاب کنید.',
+		'permission' => 'برای چاپ همهٔ سفارش‌های انتخاب‌شده مجوز کافی ندارید.',
+	);
+	if ( isset( $messages[ $error ] ) ) {
+		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $messages[ $error ] ) . '</p></div>';
+	}
+}
+
+/** Inject the custom action into HPOS's bulk selectors (its list table bypasses core bulk-action filters). */
+function jluxe_order_label_hpos_bulk_action_script(): string {
+	$label = wp_json_encode( __( 'چاپ برچسب سفارش‌های انتخاب‌شده (A6)', 'jluxe' ) );
+	return '(function(){var label=' . $label . ';document.querySelectorAll("select[id^=bulk-action-selector-]").forEach(function(select){if(select.querySelector("option[value=jluxe_print_shipping_labels]")){return;}var option=document.createElement("option");option.value="jluxe_print_shipping_labels";option.textContent=label;select.appendChild(option);});})();';
+}
+
+/** Print one label in the established single-order flow. */
 function jluxe_render_order_label_document( WC_Order $order ): void {
-	$data      = jluxe_order_label_data( $order );
-	$store     = $data['store'];
-	$recipient = $data['recipient'];
-	$font_uri  = function_exists( 'get_template_directory_uri' ) ? trailingslashit( get_template_directory_uri() ) . 'src/assets/fonts/' : '';
-	$logo_alt  = $store['name'];
+	jluxe_render_order_labels_document( array( $order ) );
+}
+
+/** Render one A5 landscape sheet per pair of orders, with two A6 labels side by side. */
+function jluxe_render_order_labels_document( array $orders ): void {
+	$labels = array();
+	foreach ( $orders as $order ) {
+		if ( $order instanceof WC_Order ) {
+			$labels[] = jluxe_order_label_data( $order );
+		}
+	}
+	if ( empty( $labels ) ) {
+		return;
+	}
+	$font_uri = function_exists( 'get_template_directory_uri' ) ? trailingslashit( get_template_directory_uri() ) . 'src/assets/fonts/' : '';
+	$label_count = count( $labels );
+	$toolbar_hint = 1 === $label_count
+		? 'برگهٔ A5 افقی؛ برچسب در نیمهٔ چپ (نصف A5)'
+		: 'برگهٔ A5 افقی؛ در هر برگه دو برچسب کنار هم (نصف A5)';
 	?>
 	<!doctype html>
 	<html lang="fa-IR" dir="rtl">
@@ -218,7 +319,7 @@ function jluxe_render_order_label_document( WC_Order $order ): void {
 		<meta charset="<?php echo esc_attr( get_option( 'blog_charset', 'UTF-8' ) ); ?>">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="robots" content="noindex,nofollow,noarchive">
-		<title><?php echo esc_html( sprintf( 'برچسب پستی سفارش %s', $data['order_number'] ) ); ?></title>
+		<title><?php echo esc_html( sprintf( 'چاپ برچسب پستی %d سفارش', $label_count ) ); ?></title>
 		<style>
 			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileRegular.woff2' ); ?>') format('woff2');font-weight:400;font-style:normal;font-display:swap}
 			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileMedium.woff2' ); ?>') format('woff2');font-weight:500;font-style:normal;font-display:swap}
@@ -226,10 +327,11 @@ function jluxe_render_order_label_document( WC_Order $order ): void {
 			*{box-sizing:border-box}
 			html{direction:rtl;background:#ececec}
 			body{min-height:100vh;margin:0;padding:8mm;display:flex;flex-direction:column;align-items:center;gap:4mm;background:#ececec;color:#111;font-family:JLuxeLabel,Tahoma,sans-serif;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-			.jluxe-label-toolbar{display:flex;align-items:center;gap:4mm;font-size:12px;color:#333}
+			.jluxe-label-toolbar{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4mm;font-size:12px;color:#333}
 			.jluxe-label-toolbar button{min-height:44px;padding:0 18px;border:0;border-radius:8px;background:#171717;color:#fff;font:inherit;cursor:pointer}
-			.jluxe-label-sheet{width:210mm;height:148mm;flex:0 0 auto;display:flex;direction:ltr;align-items:flex-start;justify-content:flex-start;background:#fff}
-			.jluxe-shipping-label{width:99mm;height:140mm;flex:0 0 auto;margin:4mm 3mm;overflow:hidden;padding:2.5mm;border:.65mm solid #171717;border-radius:5mm;background:#fff;display:flex;flex-direction:column}
+			.jluxe-label-sheet{width:210mm;height:148mm;flex:0 0 auto;display:flex;direction:ltr;align-items:flex-start;justify-content:flex-start;background:#fff;break-after:page;page-break-after:always;break-inside:avoid;page-break-inside:avoid}
+			.jluxe-label-sheet:last-of-type{break-after:auto;page-break-after:auto}
+			.jluxe-shipping-label{width:99mm;height:140mm;flex:0 0 99mm;margin:4mm 3mm;overflow:visible;padding:2.5mm;border:.65mm solid #171717;border-radius:5mm;background:#fff;display:flex;flex-direction:column;direction:rtl;text-align:right}
 			.jluxe-label-sender{height:44mm;min-height:44mm;display:flex;direction:rtl;align-items:stretch}
 			.jluxe-label-logo{width:28mm;flex:0 0 28mm;display:flex;align-items:center;justify-content:center;padding-inline:1.5mm;border-inline-end:.45mm solid #666;text-align:center}
 			.jluxe-label-logo img{display:block;max-width:24mm;max-height:30mm;width:auto;height:auto;object-fit:contain}
@@ -239,67 +341,33 @@ function jluxe_render_order_label_document( WC_Order $order ): void {
 			.jluxe-label-line{margin:0;font-size:2.65mm;font-weight:400;line-height:1.5;overflow-wrap:anywhere}
 			.jluxe-label-line strong{font-weight:700}
 			.jluxe-label-ltr{direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap}
-			.jluxe-label-recipient{min-height:0;flex:1;margin-top:2mm;padding:4mm 3.5mm;border:.55mm solid #171717;border-radius:19mm;text-align:center;display:flex;flex-direction:column;align-items:center;overflow:hidden}
-			.jluxe-label-recipient-title{flex:0 0 auto;margin:0 auto 2mm;padding:1mm 3.5mm;border-radius:999px;background:#050505;color:#fff;font-size:3.5mm;font-weight:700;line-height:1.55}
-			.jluxe-label-recipient-name{max-width:100%;margin:0 0 2.5mm;font-size:3.2mm;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
-			.jluxe-label-recipient-address{max-width:100%;margin:0 0 2mm;font-size:2.8mm;font-weight:400;line-height:1.5;overflow-wrap:anywhere}
-			.jluxe-label-recipient-line{max-width:100%;margin:0 0 1.7mm;font-size:2.65mm;line-height:1.5;overflow-wrap:anywhere}
-			.jluxe-label-recipient-line strong{font-weight:500;color:#555}
-			.jluxe-label-note{width:100%;margin:2mm 0 0;padding-top:2mm;border-top:.3mm solid #b5b5b5;text-align:right;font-size:2.55mm;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
-			.jluxe-label-note-title{display:block;margin-bottom:.8mm;font-weight:700}
+			.jluxe-label-recipient{min-height:0;flex:1;margin-top:2mm;padding:3.5mm 3mm;border:.55mm solid #171717;border-radius:14mm;text-align:right;display:flex;flex-direction:column;align-items:stretch;overflow:visible}
+			.jluxe-label-recipient-title{flex:0 0 auto;align-self:center;margin:0 auto 2mm;padding:1mm 3.5mm;border-radius:999px;background:#050505;color:#fff;font-size:3.5mm;font-weight:700;line-height:1.55;text-align:center}
+			.jluxe-label-recipient-name{width:100%;margin:0 0 1.8mm;font-size:3.7mm;font-weight:700;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+			.jluxe-label-recipient-address{width:100%;margin:0 0 1.4mm;font-size:4mm;font-weight:500;line-height:1.5;text-align:right;overflow-wrap:anywhere}
+			.jluxe-label-recipient-line{width:100%;margin:0 0 1.4mm;font-size:3.1mm;line-height:1.5;text-align:right;direction:rtl;display:flex;align-items:center;justify-content:flex-start;gap:1.2mm;overflow-wrap:anywhere}
+			.jluxe-label-recipient-line strong{font-weight:700;color:#333}
+			.jluxe-label-recipient-icon{width:4mm;height:4mm;flex:0 0 4mm;display:inline-flex;align-items:center;justify-content:center;color:#333}
+			.jluxe-label-recipient-icon svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+			.jluxe-label-note{width:100%;margin:1.2mm 0 1.8mm;padding:1.5mm 2mm;border:.3mm solid #777;border-radius:2mm;background:#f7f7f7;text-align:right;font-size:2.55mm;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+			.jluxe-label-note-title{display:block;margin-bottom:.7mm;font-weight:700}
 			@page{size:210mm 148mm;margin:0}
-			@media (max-width:600px){body{padding:4mm}.jluxe-label-toolbar{flex-wrap:wrap;justify-content:center;text-align:center}}
-			@media print{html,body{width:210mm;height:148mm;min-height:0;margin:0;padding:0;background:#fff}body{display:block}.jluxe-label-toolbar{display:none}.jluxe-label-sheet{width:210mm;height:148mm}.jluxe-shipping-label{width:99mm;height:140mm;margin:4mm 3mm;border-radius:5mm;box-shadow:none}}
+			@media (max-width:600px){body{padding:4mm}.jluxe-label-toolbar{flex-wrap:wrap;justify-content:center;text-align:center}.jluxe-label-sheet{transform-origin:top center;transform:scale(.72);margin-bottom:-40mm}}
+			@media print{html,body{width:210mm;min-height:0;margin:0;padding:0;background:#fff}body{display:block}.jluxe-label-toolbar{display:none}.jluxe-label-sheet{width:210mm;height:148mm;margin:0;transform:none}.jluxe-shipping-label{width:99mm;height:140mm;margin:4mm 3mm;border-radius:5mm;box-shadow:none}}
 		</style>
 	</head>
 	<body>
 		<div class="jluxe-label-toolbar" aria-label="ابزار چاپ">
-			<button type="button" onclick="window.print()">چاپ برچسب</button>
-			<span>برگهٔ A5 افقی؛ برچسب در نیمهٔ چپ (نصف A5)</span>
+			<button type="button" onclick="window.print()">چاپ <?php echo esc_html( $label_count ); ?> برچسب</button>
+			<span><?php echo esc_html( $toolbar_hint ); ?></span>
 		</div>
-		<div class="jluxe-label-sheet">
-		<main class="jluxe-shipping-label" role="document" aria-label="برچسب پستی سفارش <?php echo esc_attr( $data['order_number'] ); ?>">
-			<header class="jluxe-label-sender">
-				<div class="jluxe-label-logo">
-					<?php if ( '' !== $store['logo'] ) : ?>
-						<img src="<?php echo esc_url( $store['logo'] ); ?>" alt="<?php echo esc_attr( $logo_alt ); ?>">
-					<?php elseif ( '' !== $logo_alt ) : ?>
-						<span class="jluxe-label-logo-fallback"><?php echo esc_html( $logo_alt ); ?></span>
-					<?php endif; ?>
-				</div>
-				<div class="jluxe-label-sender-info">
-					<p class="jluxe-label-order-number">سفارش <bdi class="jluxe-label-ltr">#<?php echo esc_html( $data['order_number'] ); ?></bdi></p>
-					<?php if ( '' !== $store['address'] ) : ?>
-						<p class="jluxe-label-line"><strong>آدرس:</strong> <?php echo esc_html( $store['address'] ); ?></p>
-					<?php endif; ?>
-					<?php if ( '' !== $store['postcode'] ) : ?>
-						<p class="jluxe-label-line"><strong>کد پستی:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $store['postcode'] ); ?></bdi></p>
-					<?php endif; ?>
-					<?php if ( '' !== $store['phone'] ) : ?>
-						<p class="jluxe-label-line"><strong>شماره تماس:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $store['phone'] ); ?></bdi></p>
-					<?php endif; ?>
-				</div>
-			</header>
-			<section class="jluxe-label-recipient" aria-labelledby="jluxe-label-recipient-heading">
-				<h1 id="jluxe-label-recipient-heading" class="jluxe-label-recipient-title">اطلاعات گیرنده</h1>
-				<?php if ( '' !== $recipient['name'] ) : ?>
-					<p class="jluxe-label-recipient-name"><?php echo esc_html( $recipient['name'] ); ?></p>
-				<?php endif; ?>
-				<?php if ( '' !== $recipient['address'] ) : ?>
-					<p class="jluxe-label-recipient-address"><?php echo esc_html( $recipient['address'] ); ?></p>
-				<?php endif; ?>
-				<?php if ( '' !== $recipient['postcode'] ) : ?>
-					<p class="jluxe-label-recipient-line"><strong>کد پستی:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $recipient['postcode'] ); ?></bdi></p>
-				<?php endif; ?>
-				<?php if ( '' !== $recipient['phone'] ) : ?>
-					<p class="jluxe-label-recipient-line"><strong>شماره تماس:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $recipient['phone'] ); ?></bdi></p>
-				<?php endif; ?>
-				<?php if ( '' !== $recipient['note'] ) : ?>
-					<p class="jluxe-label-note"><span class="jluxe-label-note-title">توضیحات سفارش</span><?php echo nl2br( esc_html( $recipient['note'] ), false ); ?></p>
-				<?php endif; ?>
-			</section>
-		</main>
-		</div>
+		<?php foreach ( array_chunk( $labels, 2 ) as $page_index => $page_labels ) : ?>
+			<div class="jluxe-label-sheet" aria-label="برگهٔ <?php echo esc_attr( $page_index + 1 ); ?>">
+				<?php foreach ( $page_labels as $card_index => $data ) : ?>
+					<?php jluxe_render_order_label_card( $data, ( $page_index * 2 ) + $card_index + 1 ); ?>
+				<?php endforeach; ?>
+			</div>
+		<?php endforeach; ?>
 		<script>
 			window.addEventListener('load', function () {
 				var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
@@ -310,6 +378,63 @@ function jluxe_render_order_label_document( WC_Order $order ): void {
 		</script>
 	</body>
 	</html>
+	<?php
+}
+
+/** Render one order card, using right-to-left Persian text and theme icons/fonts. */
+function jluxe_render_order_label_card( array $data, int $card_index ): void {
+	$store     = $data['store'];
+	$recipient = $data['recipient'];
+	$logo_alt  = $store['name'];
+	$heading_id = 'jluxe-label-recipient-heading-' . $card_index;
+	?>
+	<main class="jluxe-shipping-label" role="document" aria-label="برچسب پستی سفارش <?php echo esc_attr( $data['order_number'] ); ?>">
+		<header class="jluxe-label-sender">
+			<div class="jluxe-label-logo">
+				<?php if ( '' !== $store['logo'] ) : ?>
+					<img src="<?php echo esc_url( $store['logo'] ); ?>" alt="<?php echo esc_attr( $logo_alt ); ?>">
+				<?php elseif ( '' !== $logo_alt ) : ?>
+					<span class="jluxe-label-logo-fallback"><?php echo esc_html( $logo_alt ); ?></span>
+				<?php endif; ?>
+			</div>
+			<div class="jluxe-label-sender-info">
+				<p class="jluxe-label-order-number">سفارش <bdi class="jluxe-label-ltr">#<?php echo esc_html( $data['order_number'] ); ?></bdi></p>
+				<?php if ( '' !== $store['address'] ) : ?>
+					<p class="jluxe-label-line"><strong>آدرس:</strong> <?php echo esc_html( $store['address'] ); ?></p>
+				<?php endif; ?>
+				<?php if ( '' !== $store['postcode'] ) : ?>
+					<p class="jluxe-label-line"><strong>کد پستی:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $store['postcode'] ); ?></bdi></p>
+				<?php endif; ?>
+				<?php if ( '' !== $store['phone'] ) : ?>
+					<p class="jluxe-label-line"><strong>شماره تماس:</strong> <bdi class="jluxe-label-ltr"><?php echo esc_html( $store['phone'] ); ?></bdi></p>
+				<?php endif; ?>
+			</div>
+		</header>
+		<section class="jluxe-label-recipient" aria-labelledby="<?php echo esc_attr( $heading_id ); ?>">
+			<h1 id="<?php echo esc_attr( $heading_id ); ?>" class="jluxe-label-recipient-title">اطلاعات گیرنده</h1>
+			<?php if ( '' !== $recipient['name'] ) : ?>
+				<p class="jluxe-label-recipient-name"><?php echo esc_html( $recipient['name'] ); ?></p>
+			<?php endif; ?>
+			<?php if ( '' !== $recipient['address'] ) : ?>
+				<p class="jluxe-label-recipient-address"><?php echo esc_html( $recipient['address'] ); ?></p>
+			<?php endif; ?>
+			<?php if ( '' !== $recipient['note'] ) : ?>
+				<p class="jluxe-label-note"><span class="jluxe-label-note-title">توضیحات سفارش</span><?php echo nl2br( esc_html( $recipient['note'] ), false ); ?></p>
+			<?php endif; ?>
+			<?php if ( '' !== $recipient['postcode'] ) : ?>
+				<p class="jluxe-label-recipient-line">
+					<span class="jluxe-label-recipient-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg></span>
+					<strong>کد پستی:</strong><bdi class="jluxe-label-ltr"><?php echo esc_html( $recipient['postcode'] ); ?></bdi>
+				</p>
+			<?php endif; ?>
+			<?php if ( '' !== $recipient['phone'] ) : ?>
+				<p class="jluxe-label-recipient-line">
+					<span class="jluxe-label-recipient-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5.5 3.8h3.2l2 4.8-2.1 1.5a15 15 0 0 0 5.3 5.3l1.5-2.1 4.8 2v3.2a1.7 1.7 0 0 1-1.8 1.7A15.8 15.8 0 0 1 3.8 5.6a1.7 1.7 0 0 1 1.7-1.8z"></path></svg></span>
+					<strong>تلفن:</strong><bdi class="jluxe-label-ltr"><?php echo esc_html( $recipient['phone'] ); ?></bdi>
+				</p>
+			<?php endif; ?>
+		</section>
+	</main>
 	<?php
 }
 
@@ -334,7 +459,45 @@ function jluxe_handle_order_label_print(): void {
 	exit;
 }
 
+/** Handle a bulk print request without trusting IDs supplied in the URL. */
+function jluxe_handle_order_labels_print(): void {
+	$raw_ids = isset( $_GET['order_ids'] ) && is_scalar( $_GET['order_ids'] ) ? sanitize_text_field( wp_unslash( $_GET['order_ids'] ) ) : '';
+	if ( '' === $raw_ids || ! preg_match( '/^[1-9][0-9]*(?:,[1-9][0-9]*)*$/D', $raw_ids ) ) {
+		wp_die( esc_html__( 'فهرست سفارش‌ها برای چاپ معتبر نیست.', 'jluxe' ), '', array( 'response' => 400 ) );
+	}
+	$ids = jluxe_order_label_normalize_order_ids( explode( ',', $raw_ids ) );
+	if ( empty( $ids ) || count( $ids ) > 100 || implode( ',', $ids ) !== $raw_ids ) {
+		wp_die( esc_html__( 'فهرست سفارش‌ها برای چاپ معتبر نیست یا بیش از ۱۰۰ سفارش دارد.', 'jluxe' ), '', array( 'response' => 400 ) );
+	}
+	check_admin_referer( 'jluxe_print_order_shipping_labels_' . $raw_ids );
+
+	$orders = array();
+	foreach ( $ids as $order_id ) {
+		if ( ! jluxe_order_label_user_can_print( $order_id ) ) {
+			wp_die( esc_html__( 'برای چاپ یکی از سفارش‌های انتخاب‌شده مجوز ندارید.', 'jluxe' ), '', array( 'response' => 403 ) );
+		}
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : false;
+		if ( ! $order instanceof WC_Order ) {
+			wp_die( esc_html__( 'یکی از سفارش‌های انتخاب‌شده پیدا نشد.', 'jluxe' ), '', array( 'response' => 404 ) );
+		}
+		$orders[] = $order;
+	}
+
+	nocache_headers();
+	status_header( 200 );
+	header( 'Content-Type: text/html; charset=' . get_option( 'blog_charset', 'UTF-8' ) );
+	header( 'X-Robots-Tag: noindex, nofollow, noarchive' );
+	jluxe_render_order_labels_document( $orders );
+	exit;
+}
+
+/** Add the action to legacy WooCommerce order bulk menus. */
+add_filter( 'bulk_actions-edit-shop_order', 'jluxe_order_label_add_bulk_action', 20 );
+add_filter( 'handle_bulk_actions-edit-shop_order', 'jluxe_order_label_handle_bulk_action', 20, 3 );
+add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', 'jluxe_order_label_handle_bulk_action', 20, 3 );
 add_action( 'admin_post_jluxe_print_order_shipping_label', 'jluxe_handle_order_label_print' );
+add_action( 'admin_post_jluxe_print_order_shipping_labels', 'jluxe_handle_order_labels_print' );
+add_action( 'admin_notices', 'jluxe_order_label_bulk_admin_notice' );
 add_action( 'woocommerce_admin_order_data_after_shipping_address', 'jluxe_render_order_label_admin_button', 30, 1 );
 add_filter( 'woocommerce_admin_order_actions', 'jluxe_add_order_label_list_action', 30, 2 );
 
@@ -350,3 +513,24 @@ function jluxe_order_label_admin_action_icon(): void {
 	echo '<style>.wc-action-button-jluxe-shipping-label::after{font-family:dashicons;content:"\f193"}</style>';
 }
 add_action( 'admin_head', 'jluxe_order_label_admin_action_icon', 30 );
+
+/** Add the bulk option to HPOS selectors, whose WooCommerce list table skips core bulk-action filters. */
+function jluxe_order_label_hpos_bulk_action_footer(): void {
+	if ( ! function_exists( 'get_current_screen' ) ) {
+		return;
+	}
+	$screen = get_current_screen();
+	if ( ! is_object( $screen ) ) {
+		return;
+	}
+	$screen_ids = array( 'woocommerce_page_wc-orders' );
+	if ( function_exists( 'wc_get_page_screen_id' ) ) {
+		$screen_ids[] = wc_get_page_screen_id( 'shop_order' );
+		$screen_ids[] = wc_get_page_screen_id( 'shop-order' );
+	}
+	if ( ! in_array( (string) ( $screen->id ?? '' ), array_filter( $screen_ids, 'is_string' ), true ) ) {
+		return;
+	}
+	echo '<script id="jluxe-order-label-bulk-action">' . jluxe_order_label_hpos_bulk_action_script() . '</script>';
+}
+add_action( 'admin_footer', 'jluxe_order_label_hpos_bulk_action_footer', 99 );
