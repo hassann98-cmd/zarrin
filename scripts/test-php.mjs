@@ -26,6 +26,7 @@ const { binary, prefix } = resolvePhp();
 for (const [file, marker] of [
   ["tests/php/lint.php", "PHP_LINT_OK:"],
   ["tests/php/run.php", "ALL_TESTS_PASSED:"],
+  ["tests/php/product-manager.php", "PRODUCT_MANAGER_TESTS_PASSED:"],
 ]) {
   const result = spawnSync(binary, [...prefix, file], {
     encoding: "utf8",

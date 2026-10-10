@@ -251,7 +251,7 @@ function wc_get_cart_url(){return home_url('/basket/');}
 function wc_get_checkout_url(){return home_url('/pay/');}
 function wc_lostpassword_url(){return wc_get_account_endpoint_url('lost-password');}
 function get_woocommerce_currency(){return $GLOBALS['currency']??'IRT';}
-function get_woocommerce_currency_symbol($currency){return ['USD'=>'$','IRR'=>'ریال','IRT'=>'تومان'][$currency]??$currency;}
+function get_woocommerce_currency_symbol($currency=''){if(''===$currency)$currency=get_woocommerce_currency();return ['USD'=>'$','IRR'=>'ریال','IRT'=>'تومان'][$currency]??$currency;}
 function wc_get_price_decimals(){return 0;}
 function wc_get_price_decimal_separator(){return '.';}
 function wc_get_price_thousand_separator(){return ',';}
