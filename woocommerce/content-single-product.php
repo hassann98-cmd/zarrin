@@ -190,26 +190,7 @@ if ( $jluxe_is_variable ) {
 					</a>
 				</div>
 
-				<?php
-				/*
-				 * قبلاً «گارانتی اصالت کالا» برای همه‌ی محصولات ثابت نمایش
-				 * داده می‌شد (باگِ واقعیِ گزارش‌شده). حالا هر دو بج از
-				 * inc/woocommerce.php (jluxe_get_product_trust_badges،
-				 * تیک‌های جداگانه توی ویرایشِ محصولِ ووکامرس) خونده می‌شن —
-				 * فقط برای محصولاتی که واقعاً تیک خورده باشن نشون داده می‌شن.
-				 */
-				$jluxe_trust_badges = jluxe_get_product_trust_badges( $product->get_id() );
-				if ( $jluxe_trust_badges ) :
-					?>
-					<div class="mt-4 flex flex-wrap items-center gap-2">
-						<?php foreach ( $jluxe_trust_badges as $jluxe_badge ) : ?>
-							<span class="inline-flex w-fit items-center gap-1 rounded-full <?php echo esc_attr( $jluxe_badge['bg_class'] ); ?> px-2 py-1 text-[11px] font-bold <?php echo esc_attr( $jluxe_badge['text_class'] ); ?>">
-								<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
-								<?php echo esc_html( $jluxe_badge['label'] ); ?>
-							</span>
-						<?php endforeach; ?>
-					</div>
-				<?php endif; ?>
+				<?php if ( function_exists( 'jluxe_render_product_trust_badges' ) ) { jluxe_render_product_trust_badges( (int) $product->get_id(), 'mt-4' ); } ?>
 
 				<?php if ( $jluxe_is_variable ) : ?>
 					<?php if ( empty( $jluxe_available_variations ) && false !== $jluxe_available_variations ) : ?>

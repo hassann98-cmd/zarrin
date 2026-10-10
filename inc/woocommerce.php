@@ -3614,9 +3614,7 @@ function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
 
 /**
- * بج‌های واقعاً فعالِ یک محصول، آماده برای رندر — woocommerce/
- * content-single-product.php این رو صدا می‌زنه به‌جای چک‌کردن get_post_meta
- * دوبار با استایل‌های تکراری.
+ * Return the enabled trust badges for one product.
  *
  * @return array<int, array{label: string, text_class: string, bg_class: string}>
  */
@@ -3640,6 +3638,33 @@ function jluxe_get_product_trust_badges( int $product_id ): array {
 	}
 
 	return $badges;
+}
+
+/**
+ * Render the enabled product trust badges using the shared storefront markup.
+ * The spacing utility is whitelisted so both product layouts retain their
+ * existing vertical rhythm without accepting arbitrary classes from callers.
+ */
+function jluxe_render_product_trust_badges( int $product_id, string $spacing_class = 'mt-3' ): void {
+	$badges = jluxe_get_product_trust_badges( $product_id );
+	if ( ! $badges ) {
+		return;
+	}
+
+	if ( ! in_array( $spacing_class, array( 'mt-3', 'mt-4' ), true ) ) {
+		$spacing_class = 'mt-3';
+	}
+
+	echo '<div class="flex flex-wrap items-center gap-2 ' . esc_attr( $spacing_class ) . '" data-jluxe-trust-badges>';
+	foreach ( $badges as $badge ) {
+		printf(
+			'<span class="inline-flex w-fit items-center gap-1 rounded-full %1$s px-2 py-1 text-[11px] font-bold %2$s"><svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>%3$s</span>',
+			esc_attr( $badge['bg_class'] ),
+			esc_attr( $badge['text_class'] ),
+			esc_html( $badge['label'] )
+		);
+	}
+	echo '</div>';
 }
 
 /**

@@ -93,11 +93,11 @@ test("R211 widens the desktop search and modestly enlarges the logo without chan
   assert.match(headerIsland, /md:w-\[171px\]/);
 });
 
-test("R211 shared desktop containers never grow past 1460px, including product-width utilities", () => {
-  const cap = storefrontStyles.slice(storefrontStyles.indexOf("/* R120/R211: keep desktop page shells fluid"));
-  assert.match(cap, /--jluxe-container-max:\s*1460px/);
+test("R212 shared desktop containers never grow past 1462px, including product-width utilities", () => {
+  const cap = storefrontStyles.slice(storefrontStyles.indexOf("/* R120/R212: keep desktop page shells fluid"));
+  assert.match(cap, /--jluxe-container-max:\s*1462px/);
   assert.match(cap, /\[class~="max-w-\[1320px\]"\]/);
-  assert.match(cap, /max-width:\s*min\(var\(--jluxe-container-max\), 1460px\)/);
+  assert.match(cap, /max-width:\s*min\(var\(--jluxe-container-max\), 1462px\)/);
   assert.doesNotMatch(cap, /--jluxe-container-max:\s*(?:1600|1760|2048|2304)px/);
   assert.match(classicProductTemplate, /class="mx-auto w-full max-w-\[1320px\] px-3 md:px-4 py-2"/);
 });

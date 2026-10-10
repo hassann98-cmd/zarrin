@@ -2461,8 +2461,22 @@ $GLOBALS['products'][ $r174_badge_product_id ]->type = 'variable';
 $GLOBALS['post_meta'][ $r174_badge_product_id ] = array( '_jluxe_badge_authenticity' => 'yes', '_jluxe_badge_warranty' => 'yes' );
 $r174_badges_both = jluxe_get_product_trust_badges( $r174_badge_product_id );
 check( 2 === count( $r174_badges_both ) && 'گارانتی اصالت کالا' === $r174_badges_both[0]['label'] && 'کالای دارای ضمانت' === $r174_badges_both[1]['label'], 'R174 both trust badges appear only when their independent product settings are enabled');
+ob_start();
+jluxe_render_product_trust_badges( $r174_badge_product_id, 'mt-4' );
+$r174_badges_both_html = (string) ob_get_clean();
+check( 2 === substr_count( $r174_badges_both_html, '<span class=' ) && false !== strpos( $r174_badges_both_html, 'data-jluxe-trust-badges' ) && false !== strpos( $r174_badges_both_html, 'گارانتی اصالت کالا' ) && false !== strpos( $r174_badges_both_html, 'کالای دارای ضمانت' ) && false !== strpos( $r174_badges_both_html, 'gap-2 mt-4' ), 'R212 shared badge renderer outputs both enabled badges as escaped, marked HTML and preserves the default layout spacing');
 $GLOBALS['post_meta'][ $r174_badge_product_id ]['_jluxe_badge_authenticity'] = 'no';
 check( 1 === count( jluxe_get_product_trust_badges( $r174_badge_product_id ) ) && 'کالای دارای ضمانت' === jluxe_get_product_trust_badges( $r174_badge_product_id )[0]['label'], 'R174 disabling authenticity leaves only the enabled warranty badge');
+ob_start();
+jluxe_render_product_trust_badges( $r174_badge_product_id, 'mt-3' );
+$r174_warranty_html = (string) ob_get_clean();
+check( 1 === substr_count( $r174_warranty_html, '<span class=' ) && false === strpos( $r174_warranty_html, 'گارانتی اصالت کالا' ) && false !== strpos( $r174_warranty_html, 'کالای دارای ضمانت' ) && false !== strpos( $r174_warranty_html, 'gap-2 mt-3' ), 'R212 classic/shared rendering includes only the product-enabled warranty badge and preserves classic spacing');
+$GLOBALS['post_meta'][ $r174_badge_product_id ]['_jluxe_badge_warranty'] = 'no';
+ob_start();
+jluxe_render_product_trust_badges( $r174_badge_product_id );
+$r174_no_badges_html = (string) ob_get_clean();
+check( '' === $r174_no_badges_html, 'R212 shared badge renderer emits no wrapper when the product has no enabled trust badges');
+$GLOBALS['post_meta'][ $r174_badge_product_id ]['_jluxe_badge_warranty'] = 'yes';
 $r174_product_tabs = jluxe_register_product_data_tab( array() );
 check( isset( $r174_product_tabs['jluxe_options'] ) && 'jluxe_product_options' === $r174_product_tabs['jluxe_options']['target'] && ! isset( $r174_product_tabs['jluxe_options']['class'] ), 'R174 Zarrin product options are available for variable products as well as simple products');
 $GLOBALS['post'] = (object) array( 'ID' => $r174_badge_product_id );
@@ -2488,7 +2502,12 @@ $GLOBALS['deleted_product_transients'] = array();
 jluxe_purge_product_related_caches( $r174_variation_id );
 check( array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['cleaned_posts'] && array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['deleted_product_transients'], 'R174 variation cache invalidation is restricted to the variation and its parent, never the whole site');
 $modern_badges = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
-check( strpos( $modern_badges, 'jluxe_get_product_trust_badges( $product->get_id() )' ) !== false && strpos( $classic74, 'jluxe_get_product_trust_badges( (int) $product->get_id() )' ) !== false && strpos( $classic74, 'data-jluxe-trust-badges' ) !== false, 'R174 modern and classic product layouts render the same enabled-only trust badges, including on variable products');
+$r212_badge_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r212_classic_route = strpos( $modern_badges, "if ( 'classic' === \$jluxe_layout ) {" );
+$r212_classic_include = strpos( $modern_badges, "require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';" );
+$r212_classic_return = false === $r212_classic_include ? false : strpos( $modern_badges, 'return;', $r212_classic_include );
+check( false !== $r212_classic_route && false !== $r212_classic_include && false !== $r212_classic_return && $r212_classic_route < $r212_classic_include && $r212_classic_include < $r212_classic_return, 'R212 the configured classic product layout includes its separate template and returns before rendering the default layout');
+check( strpos( $modern_badges, "jluxe_render_product_trust_badges( (int) \$product->get_id(), 'mt-4' )" ) !== false && strpos( $classic74, "jluxe_render_product_trust_badges( (int) \$product->get_id(), 'mt-3' )" ) !== false && strpos( $r212_badge_renderer, 'function jluxe_render_product_trust_badges' ) !== false, 'R212 both selectable product layouts call the shared enabled-only badge renderer for the current product, including variable products');
 unset( $GLOBALS['products'][ $r174_badge_product_id ], $GLOBALS['products'][ $r174_parent_id ], $GLOBALS['products'][ $r174_variation_id ] );
 check(strpos($classic74,'priceBox.innerHTML = variation.price_html;')!==false && strpos($classic74,'priceBox.textContent = emptyPrice;')!==false && strpos($classic74,"priceBox.classList.remove( 'is-placeholder' )")!==false && strpos($classic74,"priceBox.classList.toggle( 'is-placeholder', '' !== emptyPrice )")!==false, 'R139 choosing a variation displays its price and resetting the form restores the prompt, not the old range');
 check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($classic74,"if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }")!==false, 'R74 unavailable variation pills retain their struck state through WooCommerce variation updates');
@@ -3633,7 +3652,7 @@ check( 3 === substr_count( $h89html, 'data-jluxe-hero-slide ' ) && 3 === substr_
 check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_count( $h89html, 'loading="eager"' ) && 2 === substr_count( $h89html, 'loading="lazy"' ) && 1 === substr_count( $h89html, 'data-no-lazy="1"' ), 'R89 only the first slide is eager/high priority and carries LiteSpeed’s no-lazy guard' );
 check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
 check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
-check( false !== strpos( $h89html, 'sizes="(min-width: 1484px) 1460px, calc(100vw - 24px)"' ), 'R89 container srcset sizes match the capped 1460px desktop width' );
+check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
 $h108home_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 check(
 	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px)' ) &&
@@ -3642,22 +3661,22 @@ check(
 	'R108 homepage sections use the fluid desktop container, retain the 12px mobile gutter, and align «مشاهده همه» content'
 );
 $r120_container_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-$r120_container_css_start = strpos( $r120_container_css, '/* R120/R211: keep desktop page shells fluid' );
+$r120_container_css_start = strpos( $r120_container_css, '/* R120/R212: keep desktop page shells fluid' );
 $r120_container_css = false === $r120_container_css_start ? '' : substr( $r120_container_css, $r120_container_css_start );
 check(
 	false !== strpos( $r120_container_css, '@media (min-width: 1280px)' ) &&
-	false !== strpos( $r120_container_css, '--jluxe-container-max: 1460px' ) &&
+	false !== strpos( $r120_container_css, '--jluxe-container-max: 1462px' ) &&
 	false !== strpos( $r120_container_css, '[class~="max-w-[1320px]"]' ) &&
-	false !== strpos( $r120_container_css, 'max-width: min(var(--jluxe-container-max), 1460px)' ) &&
+	false !== strpos( $r120_container_css, 'max-width: min(var(--jluxe-container-max), 1462px)' ) &&
 	false === strpos( $r120_container_css, '--jluxe-container-max: 1600px' ) &&
 	false === strpos( $r120_container_css, '--jluxe-container-max: 2304px' ),
-	'R211 all shared desktop shells—including product pages—stop at 1460px while mobile/tablet container rules remain unchanged'
+	'R212 all shared desktop shells—including product pages—stop at 1462px while mobile/tablet container rules remain unchanged'
 );
 check(
-	false !== strpos( $h108home_source, "'boxed1489' => 'محدود به کانتینر (۱۴۶۰px)'" ) &&
-	false !== strpos( $h108home_source, 'max-width:1460px;margin:0 auto;' ) &&
+	false !== strpos( $h108home_source, "'boxed1489' => 'محدود به کانتینر (۱۴۶۲px)'" ) &&
+	false !== strpos( $h108home_source, 'max-width:1462px;margin:0 auto;' ) &&
 	false === strpos( $h108home_source, 'max-width:1489px' ),
-	'R211 legacy homepage collage width option is retained but rendered with the 1460px desktop cap'
+	'R212 legacy homepage collage width option is retained but rendered with the 1462px desktop cap'
 );
 check( false !== strpos( $h89html, 'data-jluxe-hero-prev' ) && false !== strpos( $h89html, 'jluxe-hero__dots--bars' ) && 3 === substr_count( $h89html, 'data-jluxe-hero-fill' ), 'R89 arrows + progress bars rendered' );
 check( false !== strpos( $h89html, '@media (hover:hover) and (pointer:fine){.jluxe-hero__arrow:hover' ) && false !== strpos( $h89html, 'prefers-reduced-motion:reduce' ), 'R89 hover only on mouse devices; reduced-motion honoured' );
@@ -3669,7 +3688,7 @@ ob_start(); jluxe_render_homepage_hero( array( 'items' => array() ) ); check( ''
 
 $r169_banner_sizes = jluxe_home_banner_grid_image_sizes( 2 );
 check(
-	'(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(50.0000vw - 24.00px), 706.00px' === $r169_banner_sizes,
+	'(max-width: 639px) calc(100vw - 24px), (max-width: 1462px) calc(50.0000vw - 24.00px), 707.00px' === $r169_banner_sizes,
 	'R169 normal banner sizes match their responsive two-column grid slot'
 );
 ob_start();
@@ -3686,7 +3705,7 @@ ob_start();
 jluxe_render_homepage_banner_slider( array( 'items' => array( array( 'image_id' => 83 ), array( 'image_id' => 84 ) ) ) );
 $r169_slider_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r169_slider_html, 'sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(100vw - 32px), 1428px"' ) &&
+	false !== strpos( $r169_slider_html, 'sizes="(max-width: 639px) calc(100vw - 24px), (max-width: 1462px) calc(100vw - 32px), 1430px"' ) &&
 	false !== strpos( $r169_slider_html, 'data-no-lazy="1"' ),
 	'R169 banner slider uses responsive uncropped images and guards its visible first slide from LiteSpeed lazy loading'
 );
@@ -3870,7 +3889,7 @@ $h89set = jluxe_theme_settings_defaults();
 $h89set['homepage']['sections'][0]['items'] = $h89items;
 update_test_settings( $h89set );
 ob_start(); jluxe_preload_homepage_hero_lcp_image(); $h89pre = (string) ob_get_clean();
-check( 2 === substr_count( $h89pre, 'rel="preload"' ) && false !== strpos( $h89pre, 'imagesizes="(min-width: 1484px) 1460px, calc(100vw - 24px)"' ) && false !== strpos( $h89pre, 'imagesizes="calc(100vw - 24px)"' ), 'R89 LCP preload uses the same capped-container sizes as the <picture>' );
+check( 2 === substr_count( $h89pre, 'rel="preload"' ) && false !== strpos( $h89pre, 'imagesizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ) && false !== strpos( $h89pre, 'imagesizes="calc(100vw - 24px)"' ), 'R89 LCP preload uses the same capped-container sizes as the <picture>' );
 $GLOBALS['scripts'] = array();
 jluxe_enqueue_homepage_assets();
 check(

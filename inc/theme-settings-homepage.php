@@ -540,7 +540,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						array(
 							'full'      => 'تمام عرض صفحه',
 							'boxed1100' => 'محدود به کانتینر (۱۱۰۰px)',
-							'boxed1489' => 'محدود به کانتینر (۱۴۶۰px)',
+							'boxed1489' => 'محدود به کانتینر (۱۴۶۲px)',
 						)
 					);
 					jluxe_hb_field_number( $name, 'radius', 'گردی گوشه‌های بیرونی کلاژ (px)', $section['radius'] ?? 14, 0, 40 );
@@ -1585,7 +1585,7 @@ function jluxe_render_homepage_banner_collage( array $section ): void {
 	if ( 'boxed1100' === ( $section['width_mode'] ?? 'full' ) ) {
 		$width_style = 'max-width:1100px;margin:0 auto;';
 	} elseif ( 'boxed1489' === ( $section['width_mode'] ?? 'full' ) ) {
-		$width_style = 'max-width:1460px;margin:0 auto;';
+		$width_style = 'max-width:1462px;margin:0 auto;';
 	}
 
 	$mobile_css        = '';
@@ -2128,10 +2128,10 @@ function jluxe_home_banner_grid_image_sizes( int $column_count ): string {
 	$gap_total    = 16 * ( $column_count - 1 );
 	$vw_fraction  = 100 / $column_count;
 	$vw_offset    = ( 32 + $gap_total ) / $column_count;
-	$max_width    = ( 1460 - 32 - $gap_total ) / $column_count;
+	$max_width    = ( 1462 - 32 - $gap_total ) / $column_count;
 
 	return sprintf(
-		'(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(%.4fvw - %.2fpx), %.2fpx',
+		'(max-width: 639px) calc(100vw - 24px), (max-width: 1462px) calc(%.4fvw - %.2fpx), %.2fpx',
 		$vw_fraction,
 		$vw_offset,
 		$max_width
@@ -2431,7 +2431,7 @@ function jluxe_hero_image_sizes( array $opt ): array {
 	if ( 'container' === $opt['width_mode'] ) {
 		return array(
 			'mobile'  => 'calc(100vw - 24px)',
-			'desktop' => '(min-width: 1484px) 1460px, calc(100vw - 24px)',
+			'desktop' => '(min-width: 1486px) 1462px, calc(100vw - 24px)',
 		);
 	}
 	return array( 'mobile' => '100vw', 'desktop' => '100vw' );
@@ -2697,7 +2697,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 		return;
 	}
 	$slides = array();
-	$image_sizes = '(max-width: 639px) calc(100vw - 24px), (max-width: 1460px) calc(100vw - 32px), 1428px';
+	$image_sizes = '(max-width: 639px) calc(100vw - 24px), (max-width: 1462px) calc(100vw - 32px), 1430px';
 	$mobile_sizes = 'calc(100vw - 24px)';
 	foreach ( $items as $item ) {
 		$desktop_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-1280', $image_sizes );

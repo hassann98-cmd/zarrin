@@ -376,6 +376,32 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-related .woocommerce-loop-product__title{font-size:13px !important;font-weight:500 !important;color:hsl(var(--text-secondary)) !important;padding:0 4px}
 .jluxe-cp3 .cp3-related .price{padding:0 4px}
 .jluxe-cp3 .cp3-related .button{display:none}
+/* R212 mobile gallery controls: clear hit areas, measured spacing and visible focus without changing the theme palette. */
+@media (max-width:767.98px){
+	.jluxe-cp3 .cp3-zoom{height:auto;aspect-ratio:1/1;margin-bottom:12px;border-radius:24px}
+	.jluxe-cp3 .cp3-thumbsrow{gap:8px}
+	.jluxe-cp3 .cp3-thumbs{gap:8px;padding:4px 2px;scroll-padding-inline:6px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+	.jluxe-cp3 .cp3-thumb{box-sizing:border-box;flex:0 0 72px;width:72px;height:72px;padding:3px;border-radius:16px}
+	.jluxe-cp3 .cp3-thumb img{border-radius:12px}
+	.jluxe-cp3 .cp3-thumb:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+	.jluxe-cp3 .cp3-tarrow{box-sizing:border-box;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;border-radius:9999px;box-shadow:0 4px 12px hsl(var(--foreground)/.08);touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,opacity .18s ease}
+	.jluxe-cp3 .cp3-tarrow svg{width:20px;height:20px;transition:transform .18s ease}
+	.jluxe-cp3 .cp3-tarrow:active:not(:disabled){transform:scale(.95)}
+	.jluxe-cp3 .cp3-tarrow:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:3px}
+	.jluxe-cp3 .cp3-tarrow:disabled{opacity:.42;box-shadow:none}
+	.jluxe-cp3-gallery-modal__stage{gap:8px}
+	.jluxe-cp3-gallery-modal__button,.jluxe-cp3-gallery-modal__close{box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .18s ease,border-color .18s ease,color .18s ease,background-color .18s ease,box-shadow .18s ease}
+	.jluxe-cp3-gallery-modal__button:active,.jluxe-cp3-gallery-modal__close:active{transform:scale(.95)}
+	.jluxe-cp3-gallery-modal__button:focus-visible,.jluxe-cp3-gallery-modal__close:focus-visible{outline:2px solid hsl(var(--accent));outline-offset:3px}
+}
+@media (max-width:767.98px) and (hover:hover) and (pointer:fine){
+	.jluxe-cp3 .cp3-tarrow:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px hsl(var(--foreground)/.12)}
+	.jluxe-cp3-gallery-modal__button:hover,.jluxe-cp3-gallery-modal__close:hover{transform:translateY(-1px)}
+}
+@media (max-width:767.98px) and (prefers-reduced-motion:reduce){
+	.jluxe-cp3 .cp3-tarrow,.jluxe-cp3 .cp3-tarrow svg,.jluxe-cp3 .cp3-thumb,.jluxe-cp3-gallery-modal,.jluxe-cp3-gallery-modal__button,.jluxe-cp3-gallery-modal__track img{transition:none}
+	.jluxe-cp3 .cp3-tarrow:hover:not(:disabled),.jluxe-cp3 .cp3-tarrow:active:not(:disabled),.jluxe-cp3 .cp3-thumb:hover,.jluxe-cp3-gallery-modal__button:hover,.jluxe-cp3-gallery-modal__button:active,.jluxe-cp3-gallery-modal__close:hover,.jluxe-cp3-gallery-modal__close:active{transform:none}
+}
 </style>
 
 <div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
@@ -460,19 +486,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 				<!-- اطلاعات -->
 				<div class="cp3-info">
 					<h1 class="cp3-title"><?php the_title(); ?></h1>
-					<?php
-					$cp3_trust_badges = function_exists( 'jluxe_get_product_trust_badges' ) ? jluxe_get_product_trust_badges( (int) $product->get_id() ) : array();
-					if ( $cp3_trust_badges ) :
-						?>
-						<div class="mt-3 flex flex-wrap items-center gap-2" data-jluxe-trust-badges>
-							<?php foreach ( $cp3_trust_badges as $cp3_badge ) : ?>
-								<span class="inline-flex w-fit items-center gap-1 rounded-full <?php echo esc_attr( $cp3_badge['bg_class'] ); ?> px-2 py-1 text-[11px] font-bold <?php echo esc_attr( $cp3_badge['text_class'] ); ?>">
-									<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
-									<?php echo esc_html( $cp3_badge['label'] ); ?>
-								</span>
-							<?php endforeach; ?>
-						</div>
-					<?php endif; ?>
+					<?php if ( function_exists( 'jluxe_render_product_trust_badges' ) ) { jluxe_render_product_trust_badges( (int) $product->get_id(), 'mt-3' ); } ?>
 
 					<div class="cp3-meta">
 						<button type="button" class="cp3-wishline" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" aria-pressed="false">

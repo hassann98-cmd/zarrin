@@ -10,7 +10,40 @@ const source = fs.readFileSync(
 const marker = source.indexOf("پاپ‌آپِ آلبومِ تصاویرِ محصول");
 const start = source.indexOf("(function () {", marker);
 const galleryIife = source.slice(start).trim();
+const classicTemplate = fs.readFileSync(
+  new URL("../woocommerce/content-single-product-classic.php", import.meta.url),
+  "utf8",
+);
+const storefrontStyles = fs.readFileSync(
+  new URL("../src/styles/storefront.css", import.meta.url),
+  "utf8",
+);
 assert.ok(marker >= 0 && start > marker && galleryIife.endsWith("})();"));
+
+test("R212 mobile product galleries use 44px controls, token colors, clear focus and reduced motion", () => {
+  const classicStart = classicTemplate.indexOf("/* R212 mobile gallery controls");
+  const classicEnd = classicTemplate.indexOf("</style>", classicStart);
+  assert.ok(classicStart >= 0 && classicEnd > classicStart, "classic mobile gallery rules are present");
+  const classicMobile = classicTemplate.slice(classicStart, classicEnd);
+  assert.match(classicMobile, /\.cp3-zoom\{height:auto;aspect-ratio:1\/1/);
+  assert.match(classicMobile, /\.cp3-thumb\{[^}]*width:72px;height:72px/);
+  assert.match(classicMobile, /\.cp3-tarrow\{[^}]*width:44px;height:44px;min-width:44px;min-height:44px/);
+  assert.match(classicMobile, /\.jluxe-cp3-gallery-modal__button,.jluxe-cp3-gallery-modal__close\{[^}]*width:44px;height:44px/);
+  assert.match(classicMobile, /:focus-visible\{outline:2px solid hsl\(var\(--primary\)\)/);
+  assert.match(classicMobile, /@media \(max-width:767\.98px\) and \(prefers-reduced-motion:reduce\)/);
+  assert.doesNotMatch(classicMobile, /#[0-9a-f]{3,8}\b/i, "the mobile gallery adds no new hard-coded palette colors");
+
+  const nativeStart = storefrontStyles.indexOf("/* R212: make the native WooCommerce gallery controls easier to use");
+  const nativeEnd = storefrontStyles.indexOf("/* WooCommerce account order progress", nativeStart);
+  assert.ok(nativeStart >= 0 && nativeEnd > nativeStart, "native WooCommerce mobile gallery rules are present");
+  const nativeMobile = storefrontStyles.slice(nativeStart, nativeEnd);
+  assert.match(nativeMobile, /flex-control-nav\.flex-control-thumbs/);
+  assert.match(nativeMobile, /flex-direction-nav a/);
+  assert.match(nativeMobile, /woocommerce-product-gallery__trigger/);
+  assert.match(nativeMobile, /width:\s*44px;\s*height:\s*44px/);
+  assert.match(nativeMobile, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(nativeMobile, /#[0-9a-f]{3,8}\b/i, "the native gallery keeps colors on theme tokens");
+});
 
 function setup() {
   const dom = new JSDOM(
