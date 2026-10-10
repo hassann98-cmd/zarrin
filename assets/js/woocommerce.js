@@ -1018,77 +1018,6 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
- * شهرستان (billing_city) وابسته به استان (billing_state) — چک‌اوت و
- * ویرایش آدرس در حساب کاربری هر دو از همین دو id واقعیِ ووکامرس استفاده
- * می‌کنن. billing_city سمت سرور (inc/woocommerce.php: jluxe_billing_fields)
- * یک select ساده‌ست (نه select2)، فقط با یک گزینه‌ی جای‌گزین رندر می‌شه؛
- * فهرستِ واقعیِ شهرستان‌ها بر اساس استانِ انتخابی همین‌جا پر می‌شه — باگِ
- * گزارش‌شده («استان انتخاب می‌شه ولی شهرستان لود نمی‌شه») همینه: قبلاً اصلاً
- * چنین منطقی وجود نداشت و billing_city یک متنِ آزاد بود.
- */
-(function () {
-	var cities = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
-	var stateSelect = document.getElementById("billing_state");
-	var citySelect = document.getElementById("billing_city");
-	if (!cities || !stateSelect || !citySelect) {
-		return;
-	}
-
-	function rebuildCityOptions(preserveCurrent) {
-		var list = cities[stateSelect.value] || [];
-		var currentCity = preserveCurrent ? citySelect.value : "";
-
-		citySelect.innerHTML = "";
-		var placeholder = document.createElement("option");
-		placeholder.value = "";
-		placeholder.textContent = list.length ? "انتخاب شهرستان" : "ابتدا استان را انتخاب کنید";
-		citySelect.appendChild(placeholder);
-
-		list.forEach(function (city) {
-			var opt = document.createElement("option");
-			opt.value = city;
-			opt.textContent = city;
-			citySelect.appendChild(opt);
-		});
-
-		if (currentCity) {
-			if (list.indexOf(currentCity) === -1) {
-				// شهرِ ذخیره‌شده‌ی قبلی (هنگام ویرایش آدرس) توی فهرستِ این استان
-				// نبود — گزینه‌اش رو نگه می‌داریم تا مقدار واقعیِ کاربر گم نشه.
-				var keep = document.createElement("option");
-				keep.value = currentCity;
-				keep.textContent = currentCity;
-				citySelect.insertBefore(keep, citySelect.children[1] || null);
-			}
-			citySelect.value = currentCity;
-		}
-	}
-
-	rebuildCityOptions(true);
-
-	/*
-	 * billing_state با select2 (ووکامرس) غنی‌سازی می‌شه — انتخاب واقعیِ کاربر از
-	 * منوی select2 رویدادِ change رو از طریقِ سیستمِ رویدادِ jQuery شلیک می‌کنه،
-	 * نه با یک DOM change ساده؛ addEventListener خامِ قبلی هرگز صداش رو نمی‌شنید
-	 * (باگِ واقعیِ گزارش‌شده «استان انتخاب می‌شه ولی شهرستان به‌روز نمی‌شه» —
-	 * با تستِ زنده در کروم پیدا شد: dispatchEvent خام کار می‌کرد ولی
-	 * jQuery(...).trigger('change') — دقیقاً همون کاری که select2 می‌کنه — نه).
-	 * برای همین این‌جا از jQuery برای bind کردن استفاده می‌شه، نه addEventListener خام.
-	 */
-	if (window.jQuery) {
-		window.jQuery(stateSelect).on("change", function () {
-			rebuildCityOptions(false);
-			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-	} else {
-		stateSelect.addEventListener("change", function () {
-			rebuildCityOptions(false);
-			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-	}
-})();
-
-/**
  * پیش‌نمایش عکس‌های دیگرِ محصول روی کارت (woocommerce/content-product.php):
  * هاور (دسکتاپ) یا لمس طولانی (موبایل) یک ردیف تامبنیل کوچیک پایین عکس
  * اصلی کارت نشون می‌ده؛ هاور/تپ روی هرکدوم عکس اصلیِ کارت رو موقتاً عوض
@@ -1178,14 +1107,11 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
- * توست/اسنک‌بار «به سبد اضافه شد» — جایگزینِ نوتیس استاندارد ووکامرس که
- * قبلاً باعث می‌شد کارت محصول (وقتی داخل گرید چاپ می‌شد) بلند بشه. به
- * رویداد استاندارد jQuery ووکامرس (added_to_cart، از خودِ
- * assets/js/frontend/add-to-cart.js هسته‌ی ووکامرس، روی هر AJAX
- * add-to-cart موفق) گوش می‌ده — پس چه از کارتِ گرید، چه از مودالِ
- * انتخاب تنوع (پایین همین فایل)، چه از فرمِ ساده‌ی صفحه‌ی تکیِ محصول،
- * همه‌جا یکسان کار می‌کنه. jluxe:cart-updated هم همین‌جا dispatch
- * می‌شه تا هدر (شمارنده‌ی سبد) و دراور کشویی (اگه باز باشه) رفرش بشن.
+ * فیدبکِ افزودن به سبد جایگزینِ نوتیس استاندارد ووکامرس است. رویدادِ
+ * added_to_cart از گرید، مودالِ انتخاب تنوع یا فرمِ محصول دریافت می‌شود.
+ * دسکتاپ توست را می‌بیند؛ موبایل به‌جای کادرِ مشکی، پالسِ دکمه و در صورت
+ * وجود، پنلِ پیشنهادها را می‌بیند تا نوارِ ناوبریِ پایین پوشانده نشود.
+ * jluxe:cart-updated هم شمارنده و دراور سبد را تازه می‌کند.
  */
 (function () {
 	if (typeof window.jQuery === "undefined") {
@@ -1309,6 +1235,9 @@ function jluxeEnhanceShopSort(root) {
 		options = options || {};
 		var existing = document.querySelector(".jluxe-toast");
 		if (existing) { existing.remove(); }
+		// The mobile button pulse and suggestion sheet are the success feedback;
+		// never leave a success toast sitting over the fixed bottom navigation.
+		if (window.innerWidth < 768) { return; }
 		var toast = document.createElement("section");
 		toast.className = "jluxe-toast";
 		toast.setAttribute("role", "status");
@@ -1493,8 +1422,8 @@ function jluxeEnhanceShopSort(root) {
 		// نمی‌کنه چون یک مکانیزمِ کاملاً جداست (تزریقِ DOM، نه نوتیس/session).
 		// داخلِ کارتِ گرید چون فضایی براش دیده نشده، همین لینکِ اضافه باعثِ
 		// بلندشدنِ ناگهانیِ کارت می‌شد (باگِ واقعیِ گزارش‌شده). چون خودمون
-		// فیدبکِ معادل (توست/پالس + انیمیشنِ پرواز) رو همیشه نشون می‌دیم،
-		// این لینک همه‌جا حذف می‌شه.
+		// فیدبکِ معادل (توستِ دسکتاپ یا پالسِ موبایل + انیمیشنِ پرواز)
+		// را داریم؛ این لینک همه‌جا حذف می‌شود.
 		//
 		// نکته‌ی مهم: این هندلر (روی همین رویدادِ added_to_cart) زودتر از
 		// هندلرِ خودِ ووکامرس (که واقعاً لینک رو می‌سازه — با تستِ زنده تأیید
@@ -1509,7 +1438,8 @@ function jluxeEnhanceShopSort(root) {
 			});
 		}, 0);
 		var isMobile = window.innerWidth < 768;
-		// Mobile keeps the quick visual pulse, but the same accessible confirmation/actions stay available at every width.
+		// On mobile the quick button pulse replaces the success toast, which
+		// otherwise sits over the fixed bottom navigation. Error toasts remain.
 		if (isMobile) { fadeButtonPulse(button); }
 		var name = productNameFromButton(button);
 		var fromSuggestion = !!(button && button.closest("[data-jluxe-suggested-modal], .jluxe-variant-modal-backdrop[data-jluxe-from-suggested='1']"));
@@ -3007,6 +2937,11 @@ function jluxeEnhanceShopSort(root) {
 		if (!circle || !label) {
 			return;
 		}
+		if (state === "active") {
+			stepEl.setAttribute("aria-current", "step");
+		} else {
+			stepEl.removeAttribute("aria-current");
+		}
 		circle.classList.remove("border-success", "bg-success", "text-white", "border-primary", "text-primary", "border-border", "text-text-muted");
 		label.classList.remove("font-medium", "text-foreground", "text-text-muted");
 		if (state === "done") {
@@ -3065,7 +3000,7 @@ function jluxeEnhanceShopSort(root) {
 		}
 		var radios = shippingSection.querySelectorAll("input.shipping_method");
 		if (!radios.length) {
-			return true;
+			return false; // بخشی برای ارسال وجود دارد، اما هیچ گزینه‌ای برای انتخاب نیست.
 		}
 		var groups = {};
 		for (var i = 0; i < radios.length; i++) {
@@ -3091,6 +3026,25 @@ function jluxeEnhanceShopSort(root) {
 			el.hidden = !show;
 		}
 		return el;
+	}
+
+	function checkoutScrollBehavior() {
+		return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+	}
+
+	function focusStepHeading(id) {
+		var heading = document.getElementById(id);
+		if (!heading) {
+			return;
+		}
+		if (typeof heading.scrollIntoView === "function") {
+			heading.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+		}
+		try {
+			heading.focus({ preventScroll: true });
+		} catch (error) {
+			heading.focus();
+		}
 	}
 
 	/*
@@ -3126,7 +3080,7 @@ function jluxeEnhanceShopSort(root) {
 		nextBtn.hidden = true;
 		toCartBtn.hidden = true;
 		backBtn.hidden = false;
-		actions.scrollIntoView({ behavior: "smooth", block: "start" });
+		focusStepHeading("jluxe-payment-heading");
 	}
 
 	function goToShipping() {
@@ -3138,7 +3092,7 @@ function jluxeEnhanceShopSort(root) {
 		toCartBtn.hidden = false;
 		backBtn.hidden = true;
 		toggleError('[data-jluxe-payment-error]', false);
-		actions.scrollIntoView({ behavior: "smooth", block: "start" });
+		focusStepHeading("jluxe-shipping-heading");
 	}
 
 	/*
@@ -3185,7 +3139,7 @@ function jluxeEnhanceShopSort(root) {
 	nextBtn.addEventListener("click", function () {
 		var invalid = findFirstInvalidRequiredField();
 		if (invalid) {
-			invalid.scrollIntoView({ behavior: "smooth", block: "center" });
+			invalid.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 			var focusable = invalid.querySelector("input, select, textarea");
 			if (focusable) {
 				focusable.focus();
@@ -3193,9 +3147,16 @@ function jluxeEnhanceShopSort(root) {
 			return;
 		}
 		if (!hasShippingMethodSelected()) {
+			var shippingSection = document.getElementById("jluxe-shipping-section");
+			var shippingOptions = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
 			var errorEl = toggleError('[data-jluxe-shipping-error]', true);
 			if (errorEl) {
-				errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+				errorEl.textContent = shippingOptions.length
+					? "روش ارسال را انتخاب کنید."
+					: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
+				if (typeof errorEl.scrollIntoView === "function") {
+					errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+				}
 			}
 			return;
 		}
@@ -3233,9 +3194,24 @@ function jluxeEnhanceShopSort(root) {
 				return;
 			}
 			var payment = document.getElementById("payment");
+			if (payment && payment.getAttribute("data-jluxe-payment-required") === "0") {
+				toggleError('[data-jluxe-payment-error]', false);
+				return; // سفارش بدون مبلغ قابل پرداخت به درگاه یا انتخاب اضافه نیاز ندارد.
+			}
 			var methodRadios = payment ? payment.querySelectorAll("input.payment_method") : [];
 			if (!methodRadios.length) {
-				return; // سفارش نیاز به پرداخت نداره (مثلاً مبلغ صفر) — چیزی برای انتخاب نیست.
+				if (payment && payment.getAttribute("data-jluxe-payment-required") === "1") {
+					event.preventDefault();
+					event.stopImmediatePropagation();
+					var unavailableError = toggleError('[data-jluxe-payment-error]', true);
+					if (unavailableError) {
+						unavailableError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
+						if (typeof unavailableError.scrollIntoView === "function") {
+							unavailableError.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+						}
+					}
+				}
+				return; // سفارشِ بدون مبلغِ قابل پرداخت، درگاه لازم ندارد.
 			}
 			var chosen = payment.querySelectorAll("input.payment_method:checked").length > 0;
 			if (!chosen) {
@@ -3243,7 +3219,7 @@ function jluxeEnhanceShopSort(root) {
 				event.stopImmediatePropagation();
 				var errorEl = toggleError('[data-jluxe-payment-error]', true);
 				if (errorEl) {
-					errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+					errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 				}
 			}
 		},
@@ -3294,6 +3270,26 @@ function jluxeEnhanceShopSort(root) {
 	applyStepVisibility();
 	window.jQuery(document.body).on("updated_checkout", function () {
 		applyStepVisibility();
+		var shippingError = document.querySelector('[data-jluxe-shipping-error]');
+		if (shippingError && !shippingError.hidden) {
+			var currentShippingSection = document.getElementById("jluxe-shipping-section");
+			var currentShippingOptions = currentShippingSection ? currentShippingSection.querySelectorAll("input.shipping_method") : [];
+			shippingError.textContent = currentShippingOptions.length
+				? "روش ارسال را انتخاب کنید."
+				: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
+			if (hasShippingMethodSelected()) toggleError('[data-jluxe-shipping-error]', false);
+		}
+		var paymentError = document.querySelector('[data-jluxe-payment-error]');
+		var currentPayment = document.getElementById("payment");
+		if (paymentError && !paymentError.hidden && currentPayment) {
+			var paymentRequired = currentPayment.getAttribute("data-jluxe-payment-required") !== "0";
+			var availableGateways = currentPayment.querySelectorAll("input.payment_method").length;
+			if (!paymentRequired || availableGateways > 0 && paymentError.textContent === "درگاه پرداختی برای این سفارش در دسترس نیست.") {
+				toggleError('[data-jluxe-payment-error]', false);
+			} else if (paymentRequired && !availableGateways) {
+				paymentError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
+			}
+		}
 		setTimeout(clearAutoSelectedPaymentMethod, 50);
 	});
 	setTimeout(clearAutoSelectedPaymentMethod, 50);

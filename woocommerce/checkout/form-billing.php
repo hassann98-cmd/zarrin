@@ -30,7 +30,7 @@ uasort(
 );
 ?>
 <div class="woocommerce-billing-fields">
-	<h3 class="mb-4 text-h3 text-foreground">اطلاعات ارسال</h3>
+	<h3 id="jluxe-shipping-heading" tabindex="-1" class="mb-4 text-h3 text-foreground">اطلاعات ارسال</h3>
 
 	<?php do_action( 'woocommerce_before_checkout_billing_form', $checkout ); ?>
 

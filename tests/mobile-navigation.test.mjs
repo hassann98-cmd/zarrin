@@ -8,10 +8,12 @@ const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "u
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
 const mainSource = await readFile(new URL("src/main.js", root), "utf8");
 const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
+const miniCartSource = await readFile(new URL("src/islands/MiniCart.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
 const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
+const headerTemplate = await readFile(new URL("header.php", root), "utf8");
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
 const {
   isMobileNavItemActive,
@@ -209,6 +211,13 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
   assert.match(floatingNavSource, /urls\.faq \|\| "\/faq"/);
   assert.match(footerTemplate, /mobile\.nav_variant/);
   assert.match(mobileNavSource, /nav_items \?\? \[\]/);
+});
+
+test("mobile cart navigation reaches the mounted mini-cart drawer in both nav variants", () => {
+  assert.match(mobileNavSource, /item\.opensDrawer === "cart"[\s\S]*?"jluxe:open-cart"/);
+  assert.match(floatingNavSource, /item\.opensDrawer === "cart"[\s\S]*?"jluxe:open-cart"/);
+  assert.match(miniCartSource, /window\.addEventListener\("jluxe:open-cart",\s*t\)/);
+  assert.match(headerTemplate, /data-jluxe-island="mini-cart"/);
 });
 
 test("R121 product tabs and in-page targets account for the live sticky header and announcement offsets", () => {

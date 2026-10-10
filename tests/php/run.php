@@ -4822,6 +4822,33 @@ if ( null === $r183_previous_query_vars ) {
 	$GLOBALS['query_vars'] = $r183_previous_query_vars;
 }
 
+// R210 — checkout should not restrict a customer's city to an unverified hand-maintained list.
+$r210_checkout_fields = jluxe_billing_fields( array( 'billing' => array(
+	'billing_city' => array( 'type' => 'select', 'options' => array( 'known-city' => 'Known city' ) ),
+	'billing_postcode' => array(),
+) ) );
+$r210_city_field = $r210_checkout_fields['billing']['billing_city'];
+check(
+	'text' === $r210_city_field['type'] && ! isset( $r210_city_field['options'] ) && 'address-level2' === $r210_city_field['autocomplete'] && 'شهر' === $r210_city_field['placeholder'],
+	'R210 checkout accepts free-entry city names instead of blocking addresses with an incomplete city list'
+);
+check(
+	'کد پستی' === $r210_checkout_fields['billing']['billing_postcode']['placeholder'],
+	'R210 checkout postcode guidance is neutral and makes no unsupported carrier requirement claim'
+);
+ob_start();
+jluxe_render_checkout_stepper( 'shipping' );
+$r210_stepper_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r210_stepper_html, '<ol ' ) && 1 === substr_count( $r210_stepper_html, 'aria-current="step"' ) && false !== strpos( $r210_stepper_html, 'data-jluxe-step="shipping" aria-current="step"' ),
+	'R210 checkout progress is an ordered list with exactly one programmatically identified current step'
+);
+$r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
+check(
+	false !== strpos( $r210_thankyou_source, 'get_formatted_line_subtotal( $jluxe_ty_item )' ) && false === strpos( $r210_thankyou_source, 'jluxe_ty_toman_svg' ) && false === strpos( $r210_thankyou_source, 'کد پیگیری از طریق پیامک ارسال می‌شه' ),
+	'R210 thank-you item prices use WooCommerce order currency and do not promise unverified tracking SMS'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

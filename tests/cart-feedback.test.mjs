@@ -5,7 +5,7 @@ import jquery from "jquery";
 import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
-const marker = source.indexOf("توست/اسنک‌بار «به سبد اضافه شد»");
+const marker = source.indexOf("فیدبکِ افزودن به سبد جایگزینِ نوتیس استاندارد ووکامرس است.");
 const start = source.indexOf("(function () {", marker);
 const endMarker = source.indexOf("\n})();\n\n/*\n * R73:", start);
 assert.ok(marker >= 0 && start > marker && endMarker > start, "the shared cart-feedback module is isolated for regression coverage");
@@ -46,7 +46,7 @@ function addToCart(window, button, snapshot = { suggested_html: '<div data-jluxe
   window.jQuery(window.document.body).trigger("added_to_cart", [null, null, window.jQuery(button), snapshot]);
 }
 
-test("successful desktop and mobile adds open fresh recommendations and keep all cart actions available", async (t) => {
+test("desktop adds keep the toast; mobile adds keep recommendations without covering the cart navigation", async (t) => {
   const dom = boot();
   t.after(() => dom.window.close());
   const { window } = dom;
@@ -92,10 +92,11 @@ test("successful desktop and mobile adds open fresh recommendations and keep all
   addToCart(window, button);
   await new Promise((resolve) => window.setTimeout(resolve, 5));
   toast = window.document.querySelector(".jluxe-toast");
-  assert.equal(toast.querySelector(".jluxe-toast-cta-primary").textContent, "مشاهده سبد");
-  assert.equal(toast.querySelector(".jluxe-toast-continue").textContent, "ادامه خرید");
-  assert.ok(window.openedSuggestions >= opensBeforeMobileAdd + 1, "mobile successful adds also auto-open the fresh recommendation modal");
-  assert.equal(button.classList.contains("jluxe-btn-added-pulse"), true, "mobile retains the short add-to-cart pulse alongside the shared action toast");
+  assert.equal(toast, null, "mobile success feedback does not create the dark toast that blocks the bottom navigation");
+  assert.ok(window.openedSuggestions >= opensBeforeMobileAdd + 1, "mobile successful adds still auto-open the fresh recommendation modal");
+  assert.equal(button.classList.contains("jluxe-btn-added-pulse"), true, "mobile retains the short add-to-cart pulse instead of the toast");
+  window.dispatchEvent(new window.CustomEvent("jluxe:open-cart"));
+  assert.equal(cartDrawerOpens, 2, "the cart drawer event remains available after a mobile add without the blocking toast");
 });
 
 test("native WooCommerce add performs one read-only cart request and opens only the current server suggestions", async (t) => {
@@ -216,6 +217,7 @@ test("a rejected product add restores its button and never mounts or opens recom
     return Promise.resolve({ success: false, data: { message: "موجودی کافی نیست." } });
   };
   window.jQuery(window.document.body).on("added_to_cart.testFailure", () => addedEvents++);
+  window.innerWidth = 390;
   form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
   await new Promise((resolve) => window.setTimeout(resolve, 5));
 

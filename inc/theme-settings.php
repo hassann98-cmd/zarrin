@@ -2046,9 +2046,6 @@ function jluxe_localize_public_settings(): void {
 				// R70: حالتِ «ورود فقط با رمز پیامکی» — AuthPage تبِ رمز را حذف می‌کند.
 				'otpOnly' => ! empty( $settings['sms']['otp_only'] ) && jluxe_otp_available(),
 			),
-			// شهرستان‌های هر استان (billing_city وابسته به billing_state در
-			// چک‌اوت/ویرایش آدرس — inc/woocommerce.php: jluxe_iran_cities).
-			'iranCities'       => function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array(),
 			// جستجوی زنده‌ی سربرگ/موبایل (inc/search.php) — nonce مخصوص همین
 			// اکشنه، نه nonce عمومی وردپرس.
 			'search'           => array(

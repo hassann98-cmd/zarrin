@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
+async function waitFor(predicate, timeout = 1500) {
+  const deadline = Date.now() + timeout;
+  while (!predicate() && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 16));
+  }
+  return predicate();
+}
+
 test("R96 mobile launcher stays visible and the in-chat support form wins over an old help URL", async (t) => {
   const dom = new JSDOM(
     '<!doctype html><html dir="rtl"><head><title>گردنبند</title></head><body class="single-product postid-44"><section id="bottom-navigation"></section><div id="mobile-price-bar" data-jluxe-mobile-price-bar></div><a id="open-ai" href="/contact/#open-ai-assistant">گفتگو با ما</a><div id="app"></div></body></html>',
@@ -263,10 +271,14 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
 
   const trigger = document.getElementById("open-ai");
   const click = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
+  let initialViewportUpdated = false;
   await act(async () => {
     trigger.dispatchEvent(click);
-    await new Promise((resolve) => setTimeout(resolve, 90));
+    initialViewportUpdated = await waitFor(
+      () => mount.querySelector(".jluxe-ai-root")?.style.getPropertyValue("--aia-visual-viewport-height") === "760px",
+    );
   });
+  assert.ok(initialViewportUpdated, "the viewport update completes instead of relying on a short fixed delay under parallel test load");
   assert.equal(click.defaultPrevented, true, "#open-ai-assistant clicks are intercepted without navigation");
   assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "a hash link also opens the assistant");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-mobile.is-open .jluxe-ai-backdrop"), "mobile opens as a focused, dismissible app-like sheet");
@@ -285,11 +297,15 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
 
   visualViewport.height = 420;
   visualViewport.offsetTop = 24;
+  let keyboardViewportUpdated = false;
   await act(async () => {
     visualViewport.dispatch("resize");
     visualViewport.dispatch("scroll");
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    keyboardViewportUpdated = await waitFor(
+      () => mobileRoot.style.getPropertyValue("--aia-visual-viewport-height") === "420px",
+    );
   });
+  assert.ok(keyboardViewportUpdated, "the keyboard viewport update is observed without assuming a fixed animation-frame delay");
   assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-height"), "420px", "opening the on-screen keyboard resizes the assistant sheet to the visible viewport");
   assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-offset-top"), "24px", "visual viewport panning keeps the sheet aligned with the visible area");
   assert.equal(mobileRoot.style.getPropertyValue("--aia-quick-replies-max-height"), "84px", "quick replies compact when the keyboard reduces available height");

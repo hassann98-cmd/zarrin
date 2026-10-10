@@ -3358,6 +3358,17 @@ input.payment_method:checked + label.jluxe-payment-card {
   border-color: hsl(var(--success));
   background-color: hsl(var(--success) / 0.05);
 }
+input.shipping_method:focus-visible + .jluxe-shipping-card,
+input.payment_method:focus-visible + label.jluxe-payment-card {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+@media (forced-colors: active) {
+  input.shipping_method:focus-visible + .jluxe-shipping-card,
+  input.payment_method:focus-visible + label.jluxe-payment-card {
+    outline-color: Highlight;
+  }
+}
 .jluxe-payment-card-icon img {
   max-height: 2rem;
   width: auto;

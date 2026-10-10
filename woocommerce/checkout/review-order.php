@@ -74,7 +74,7 @@ defined( 'ABSPATH' ) || exit;
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 			<?php wc_cart_totals_shipping_html(); ?>
 			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>
-			<p data-jluxe-shipping-error hidden class="mt-2 text-caption text-error">روش ارسال را انتخاب کنید.</p>
+			<p data-jluxe-shipping-error hidden role="alert" class="mt-2 text-caption text-error">روش ارسال را انتخاب کنید.</p>
 		</div>
 	<?php endif; ?>
 

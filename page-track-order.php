@@ -327,8 +327,8 @@ $jluxe_to_note = $jluxe_to_guide['form_note'] ?? '';
 			content: ""; position: absolute; inset-inline: 12.5%; top: 15px; height: 2px;
 			background: rgba(124, 58, 237, .18); border-radius: 999px;
 		}
-		.jto-timeline__step { z-index: 1; display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 7px; color: #8a8796; text-align: center; font-size: 11px; line-height: 1.55; }
-		.jto-timeline__marker { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid #e5e2ed; border-radius: 50%; background: #fff; color: #8a8796; font-size: 12px; font-weight: 800; }
+		.jto-timeline__step { z-index: 1; display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 7px; color: hsl(var(--text-secondary)); text-align: center; font-size: 12px; line-height: 1.55; }
+		.jto-timeline__marker { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid #e5e2ed; border-radius: 50%; background: #fff; color: hsl(var(--text-secondary)); font-size: 12px; font-weight: 800; }
 		.jto-timeline__label { max-width: 100%; overflow-wrap: anywhere; }
 		.jto-timeline__step.is-done { color: #15803d; font-weight: 700; }
 		.jto-timeline__step.is-done .jto-timeline__marker { border-color: #16a34a; background: #16a34a; color: #fff; }
@@ -346,7 +346,8 @@ $jluxe_to_note = $jluxe_to_guide['form_note'] ?? '';
 		.jto-tracking-code { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; padding: 11px 12px; border: 1px dashed hsl(var(--primary) / .35); border-radius: 12px; background: hsl(var(--primary) / .07); }
 		.jto-tracking-code-text { color: hsl(var(--text-secondary)); overflow-wrap: anywhere; }
 		.jto-tracking-code-text bdi { margin-inline-start: 5px; color: hsl(var(--foreground)); font-family: ui-monospace, monospace; font-weight: 850; }
-		.jto-tracking-code button { min-height: 36px; padding: 5px 11px; border: 1px solid hsl(var(--primary) / .22); border-radius: 10px; background: hsl(var(--surface)); color: hsl(var(--primary)); font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+		.jto-tracking-code button { min-height: 44px; padding: 7px 11px; border: 1px solid hsl(var(--primary) / .22); border-radius: 10px; background: hsl(var(--surface)); color: hsl(var(--primary)); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+		#jluxe-track-order-app :is(#jto-retry-btn, #jto-back-to-search) { min-height: 44px; padding: 8px 10px; border-radius: 8px; }
 		.jto-carrier-link { display: flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 10px; padding: 9px 13px; border-radius: 11px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: 12px; font-weight: 850; text-align: center; text-decoration: none; }
 		.jto-captcha-note { margin-bottom: 0; color: #92400e; }
 		.jto-shipping-note { margin-top: 12px; padding: 11px 12px; border-radius: 11px; background: rgba(15, 23, 42, .045); color: hsl(var(--text-secondary)); font-size: 12px; line-height: 1.8; white-space: normal; }
@@ -357,7 +358,7 @@ $jluxe_to_note = $jluxe_to_guide['form_note'] ?? '';
 		.dark .jto-shipping-card { background: linear-gradient(135deg, hsl(var(--primary) / .14), #1f2937 72%); }
 		.dark .jto-shipping-note { background: rgba(255,255,255,.06); }
 		.dark .jto-captcha-note { color: #fbbf24; }
-		@media (max-width: 420px) { .jto-timeline { gap: 1px; } .jto-timeline__step { font-size: 10px; } .jto-timeline__marker { width: 29px; height: 29px; } .jto-timeline::before { top: 14px; } .jto-shipping-card { padding: 13px; } }
+		@media (max-width: 420px) { .jto-timeline { gap: 1px; } .jto-timeline__step { font-size: 11px; } .jto-timeline__marker { width: 29px; height: 29px; } .jto-timeline::before { top: 14px; } .jto-shipping-card { padding: 13px; } }
 		@media (prefers-reduced-motion: reduce) { .jto-animate-in { animation: none; } }
 	</style>
 

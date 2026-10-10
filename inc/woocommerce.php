@@ -1794,7 +1794,7 @@ function jluxe_render_payment_submit(): void {
 			<?php wc_get_template( 'checkout/terms.php' ); ?>
 		</div>
 
-		<p data-jluxe-payment-error hidden class="mb-2 text-caption text-error">روش پرداخت را انتخاب کنید.</p>
+		<p data-jluxe-payment-error hidden role="alert" class="mb-2 text-caption text-error">روش پرداخت را انتخاب کنید.</p>
 
 		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 
@@ -1835,79 +1835,35 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 		$active_index = 0;
 	}
 	?>
-	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto flex max-w-[1320px] items-center justify-center gap-1 px-3 md:px-4 py-6 sm:gap-3">
-		<?php foreach ( $ids as $i => $id ) : ?>
-			<?php if ( $i > 0 ) : ?>
-				<span class="h-px w-3 bg-border sm:w-16" aria-hidden="true"></span>
-			<?php endif; ?>
-			<div class="flex w-12 flex-col items-center gap-1.5 sm:w-auto" data-jluxe-step="<?php echo esc_attr( $id ); ?>">
+	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto max-w-[1320px] px-3 py-6 md:px-4">
+		<ol class="m-0 flex list-none items-center justify-center gap-1 p-0 sm:gap-3">
+			<?php foreach ( $ids as $i => $id ) : ?>
 				<?php
-				// آخرین مرحله («پایان خرید») فقط از صفحه‌ی thankyou.php صدا زده
-				// می‌شه، یعنی همیشه با یک سفارشِ واقعاً ثبت‌شده — پس وقتی این
-				// مرحله «فعال»ه، در واقع کامل‌شده‌ست، نه در حال انجام؛ باید مثل
-				// بقیه‌ی مراحلِ done دایره‌ی سبز/تیک بگیره، نه استایلِ «فعلی».
-				$is_last   = $i === count( $ids ) - 1;
-				$is_active = $i === $active_index;
-				$is_done   = $i < $active_index || ( $is_active && $is_last );
-				$is_active = $is_active && ! $is_done;
+				$is_last    = $i === count( $ids ) - 1;
+				$is_current = $i === $active_index;
+				// «پایان خرید» روی صفحه‌ی تأیید، مرحله‌ی جاری و تکمیل‌شده است.
+				$is_done    = $i < $active_index || ( $is_current && $is_last );
+				$is_active  = $is_current && ! $is_done;
 				?>
-				<div data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 sm:size-11 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>">
-					<?php if ( $is_done ) : ?>
-						<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-					<?php else : ?>
-						<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
-					<?php endif; ?>
-				</div>
-				<span data-jluxe-step-label class="text-center text-[10px] leading-tight sm:whitespace-nowrap sm:text-caption <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
-					<?php echo esc_html( $steps[ $id ] ); ?>
-				</span>
-			</div>
-		<?php endforeach; ?>
+				<?php if ( $i > 0 ) : ?>
+					<li class="h-px w-3 shrink-0 bg-border sm:w-16" aria-hidden="true"></li>
+				<?php endif; ?>
+				<li class="flex w-12 flex-col items-center gap-1.5 sm:w-auto" data-jluxe-step="<?php echo esc_attr( $id ); ?>" <?php echo $is_current ? 'aria-current="step"' : ''; ?>>
+					<div data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 sm:size-11 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>">
+						<?php if ( $is_done ) : ?>
+							<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+						<?php else : ?>
+							<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
+						<?php endif; ?>
+					</div>
+					<span data-jluxe-step-label class="text-center text-[11px] leading-tight sm:whitespace-nowrap sm:text-caption <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
+						<?php echo esc_html( $steps[ $id ] ); ?>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ol>
 	</nav>
 	<?php
-}
-
-/**
- * شهرستان‌های واقعیِ هر استان — کلیدها دقیقاً همون کدهای واقعیِ
- * WC()->countries->get_states('IR') (از woocommerce/i18n/states.php)ن،
- * چون billing_city باید بر اساس مقدار واقعیِ billing_state فیلتر بشه.
- * فهرست شهرستان‌های اصلی/شناخته‌شده‌ی هر استانه (نه لزوماً همه‌ی
- * بخش‌های اداری) — برای انتخابِ آدرس در چک‌اوت کافیه.
- */
-function jluxe_iran_cities(): array {
-	return array(
-		'THR' => array( 'تهران', 'ری', 'شمیرانات', 'اسلامشهر', 'پاکدشت', 'ورامین', 'شهریار', 'رباط‌کریم', 'پیشوا', 'فیروزکوه', 'دماوند', 'پردیس', 'ملارد', 'قدس' ),
-		'ABZ' => array( 'کرج', 'نظرآباد', 'ساوجبلاغ', 'فردیس', 'اشتهارد', 'طالقان' ),
-		'EAZ' => array( 'تبریز', 'مراغه', 'میانه', 'مرند', 'اهر', 'بناب', 'سراب', 'شبستر', 'هریس', 'بستان‌آباد', 'ملکان', 'آذرشهر', 'اسکو' ),
-		'WAZ' => array( 'ارومیه', 'خوی', 'مهاباد', 'میاندوآب', 'بوکان', 'سلماس', 'پیرانشهر', 'نقده', 'ماکو', 'اشنویه', 'سردشت' ),
-		'ADL' => array( 'اردبیل', 'پارس‌آباد', 'مشگین‌شهر', 'خلخال', 'گرمی', 'نمین', 'نیر', 'بیله‌سوار' ),
-		'ESF' => array( 'اصفهان', 'کاشان', 'نجف‌آباد', 'خمینی‌شهر', 'شاهین‌شهر', 'نطنز', 'گلپایگان', 'فریدن', 'زرین‌شهر', 'مبارکه', 'شهرضا', 'آران و بیدگل', 'نائین', 'اردستان', 'سمیرم' ),
-		'ILM' => array( 'ایلام', 'دهلران', 'آبدانان', 'ایوان', 'دره‌شهر', 'مهران', 'چرداول' ),
-		'BHR' => array( 'بوشهر', 'برازجان', 'گناوه', 'دیر', 'کنگان', 'دیلم', 'تنگستان' ),
-		'CHB' => array( 'شهرکرد', 'بروجن', 'فارسان', 'لردگان', 'اردل' ),
-		'KHZ' => array( 'اهواز', 'آبادان', 'خرمشهر', 'دزفول', 'اندیمشک', 'بهبهان', 'ماهشهر', 'شوشتر', 'شوش', 'ایذه', 'رامهرمز', 'مسجدسلیمان', 'هویزه', 'باغ‌ملک' ),
-		'FRS' => array( 'شیراز', 'مرودشت', 'کازرون', 'جهرم', 'فسا', 'لار', 'داراب', 'آباده', 'اقلید', 'لامرد', 'فیروزآباد', 'استهبان', 'نی‌ریز', 'ممسنی' ),
-		'GZN' => array( 'قزوین', 'البرز', 'آبیک', 'بوئین‌زهرا', 'تاکستان' ),
-		'GIL' => array( 'رشت', 'بندرانزلی', 'لاهیجان', 'لنگرود', 'آستارا', 'تالش', 'رودسر', 'صومعه‌سرا', 'فومن', 'رودبار', 'آستانه اشرفیه' ),
-		'GLS' => array( 'گرگان', 'گنبدکاووس', 'علی‌آباد کتول', 'آق‌قلا', 'کردکوی', 'بندرترکمن', 'مینودشت', 'کلاله' ),
-		'LRS' => array( 'خرم‌آباد', 'بروجرد', 'دورود', 'الیگودرز', 'کوهدشت', 'ازنا', 'پلدختر', 'نورآباد' ),
-		'MKZ' => array( 'اراک', 'ساوه', 'خمین', 'محلات', 'دلیجان', 'شازند', 'تفرش' ),
-		'MZN' => array( 'ساری', 'بابل', 'آمل', 'قائم‌شهر', 'بابلسر', 'نور', 'نوشهر', 'چالوس', 'رامسر', 'تنکابن', 'بهشهر', 'نکا', 'جویبار' ),
-		'HRZ' => array( 'بندرعباس', 'میناب', 'بندرلنگه', 'قشم', 'رودان', 'بستک', 'حاجی‌آباد' ),
-		'HDN' => array( 'همدان', 'ملایر', 'نهاوند', 'تویسرکان', 'اسدآباد', 'بهار', 'کبودراهنگ', 'رزن' ),
-		'YZD' => array( 'یزد', 'میبد', 'اردکان', 'بافق', 'تفت', 'ابرکوه', 'مهریز' ),
-		'KRH' => array( 'کرمانشاه', 'اسلام‌آباد غرب', 'سنقر', 'کنگاور', 'پاوه', 'هرسین', 'صحنه', 'سرپل‌ذهاب', 'جوانرود' ),
-		'KRN' => array( 'کرمان', 'رفسنجان', 'سیرجان', 'جیرفت', 'بم', 'زرند', 'کهنوج', 'بردسیر', 'شهربابک' ),
-		'KRD' => array( 'سنندج', 'سقز', 'بانه', 'مریوان', 'بیجار', 'قروه', 'کامیاران', 'دیواندره' ),
-		'KBD' => array( 'یاسوج', 'گچساران', 'دهدشت', 'دوگنبدان' ),
-		'SKH' => array( 'بیرجند', 'قائنات', 'نهبندان', 'طبس', 'سربیشه', 'فردوس' ),
-		'RKH' => array( 'مشهد', 'نیشابور', 'سبزوار', 'تربت‌حیدریه', 'کاشمر', 'قوچان', 'تربت‌جام', 'چناران', 'گناباد', 'فریمان', 'سرخس', 'تایباد' ),
-		'NKH' => array( 'بجنورد', 'شیروان', 'اسفراین', 'جاجرم', 'مانه و سملقان' ),
-		'SMN' => array( 'سمنان', 'شاهرود', 'دامغان', 'گرمسار', 'مهدی‌شهر' ),
-		'SBN' => array( 'زاهدان', 'زابل', 'چابهار', 'ایرانشهر', 'سراوان', 'خاش', 'کنارک', 'نیک‌شهر' ),
-		'ZJN' => array( 'زنجان', 'ابهر', 'خدابنده', 'خرمدره', 'ماه‌نشان' ),
-		'QHM' => array( 'قم' ),
-	);
 }
 
 /**
@@ -1952,20 +1908,17 @@ function jluxe_billing_fields( array $fields ): array {
 		$fields['billing']['billing_state']['priority'] = 25;
 	}
 	if ( isset( $fields['billing']['billing_city'] ) ) {
-		// شهرستان یک select واقعیه (نه متن آزاد) که بر اساس استانِ انتخابی
-		// با assets/js/woocommerce.js پر می‌شه — چون گزینه‌ها به مقدارِ
-		// billing_state وابسته‌ان، فقط گزینه‌ی مقدارِ فعلی (هنگام ویرایش
-		// آدرس ذخیره‌شده) این‌جا سمت سرور اضافه می‌شه، بقیه سمت کلاینته.
-		$current_city                                    = WC()->checkout()->get_value( 'billing_city' );
+		// فهرست محدود و غیراستانداردِ شهرها می‌تواند نشانی‌های معتبر را حذف کند؛
+		// از فیلد متنیِ خود ووکامرس استفاده می‌کنیم تا مشتری شهرش را آزادانه وارد کند.
 		$fields['billing']['billing_city']['priority']    = 26;
-		$fields['billing']['billing_city']['type']        = 'select';
-		$fields['billing']['billing_city']['options']     = $current_city
-			? array( '' => 'انتخاب شهرستان', $current_city => $current_city )
-			: array( '' => 'ابتدا استان را انتخاب کنید' );
+		$fields['billing']['billing_city']['type']        = 'text';
+		$fields['billing']['billing_city']['autocomplete'] = 'address-level2';
+		$fields['billing']['billing_city']['placeholder'] = 'شهر';
+		unset( $fields['billing']['billing_city']['options'] );
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
 		$fields['billing']['billing_postcode']['priority']    = 27;
-		$fields['billing']['billing_postcode']['placeholder'] = 'درج کد پستی برای ارسال با پست الزامی است';
+		$fields['billing']['billing_postcode']['placeholder'] = 'کد پستی';
 	}
 
 	if ( isset( $fields['billing']['billing_phone'] ) ) {

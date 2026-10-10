@@ -469,12 +469,17 @@ try {
       .slice(0, 400);
     const selectedTemplate = await phpJson("return get_option('zarrin_test_last_template','');");
     const queryState = await phpJson("return get_option('zarrin_test_last_query',array());");
-    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const cityField = response.text.match(/<input\b[^>]*\bid="billing_city"[^>]*>/);
+    const cityIsFreeText = !!cityField && /\btype="text"/.test(cityField[0]);
+    const accessibleProgress = response.text.includes('<ol class="m-0 flex list-none') && response.text.includes('data-jluxe-step="shipping" aria-current="step"');
+    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; cityIsFreeText=${cityIsFreeText}; accessibleProgress=${accessibleProgress}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
-        response.text.includes("payment_method"),
-      `The classic checkout shortcode renders from the theme's checkout page with an offline-only gateway fixture (${checkoutDiagnostic})`,
+        response.text.includes("payment_method") && cityIsFreeText && accessibleProgress &&
+        response.text.includes('data-jluxe-payment-required="1"') &&
+        response.text.includes('id="place_order"'),
+      `The classic checkout renders an offline gateway, free-entry city, accessible progress, payment state and real submit control (${checkoutDiagnostic})`,
     );
 
     response = await ajax({
@@ -516,11 +521,12 @@ try {
     const final = await phpJson(`
       $product=wc_get_product(${fixtures.simple});
       $calls=(int)get_option('zarrin_test_sms_calls',0);
-      return array('stock'=>$product?$product->get_stock_quantity():null,'smsCalls'=>$calls,'wcVersion'=>WC_VERSION);
+      $orders=wc_get_orders(array('limit'=>1,'return'=>'ids'));
+      return array('stock'=>$product?$product->get_stock_quantity():null,'smsCalls'=>$calls,'orderCount'=>count($orders),'wcVersion'=>WC_VERSION);
     `);
     check(
-      final.stock === 3 && final.smsCalls === 0 && final.wcVersion === "11.2.0",
-      "Cart-only add/remove did not reduce stock, send SMS, or call any external payment/provider",
+      final.stock === 3 && final.smsCalls === 0 && final.orderCount === 0 && final.wcVersion === "11.2.0",
+      "Cart-only add/remove creates no order, does not reduce stock or send SMS, and never calls an external payment/provider",
     );
     check(
       await phpJson("return is_wp_error(wp_remote_get('https://example.invalid/blocked'));"),
