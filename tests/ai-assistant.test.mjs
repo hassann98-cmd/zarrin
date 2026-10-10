@@ -269,6 +269,13 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   });
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the launcher returns to its normal dock clearance after the purchase box scrolls away");
 
+  dom.window.JLuxeThemeSettings.aiAssistant.hideLauncherOnPage = true;
+  await act(async () => {
+    root.render(React.createElement(Assistant));
+    await Promise.resolve();
+  });
+  assert.equal(mount.querySelector(".jluxe-ai-launcher"), null, "a page-level cart/category suppression hides only the floating launcher");
+
   const trigger = document.getElementById("open-ai");
   const click = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
   let initialViewportUpdated = false;
@@ -282,6 +289,11 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.equal(click.defaultPrevented, true, "#open-ai-assistant clicks are intercepted without navigation");
   assert.ok(mount.querySelector('[role="dialog"][aria-modal="true"]'), "a hash link also opens the assistant");
   assert.ok(mount.querySelector(".jluxe-ai-root.is-mobile.is-open .jluxe-ai-backdrop"), "mobile opens as a focused, dismissible app-like sheet");
+  await act(async () => {
+    dom.window.JLuxeThemeSettings.aiAssistant.hideLauncherOnPage = false;
+    root.render(React.createElement(Assistant));
+    await Promise.resolve();
+  });
   assert.match(mount.querySelector(".jluxe-ai-window").style.width, /100vw/);
   assert.match(mount.querySelector(".jluxe-ai-window").style.height, /100dvh/);
   const mobileRoot = mount.querySelector(".jluxe-ai-root");

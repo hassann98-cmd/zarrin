@@ -369,6 +369,154 @@ function jluxeBindPriceBox(form) {
 jluxeBindPriceBox(document.querySelector(".variations_form[data-product_variations]"));
 
 /**
+ * The classic product layout owns a custom gallery rather than WooCommerce's
+ * .woocommerce-product-gallery. Mirror the selected variation image into its
+ * main image, first thumbnail, and full-screen slide; the default layout stays
+ * on WooCommerce's native variation-image handler.
+ */
+function jluxeBindClassicVariationGallery(form) {
+	var $ = window.jQuery;
+	if (!$ || !form) {
+		return;
+	}
+	var root = form.closest(".jluxe-cp3");
+	var gallery = root && root.querySelector("[data-cp3-gallery]");
+	if (!gallery) {
+		return;
+	}
+	var $form = $(form);
+	if ($form.data("jluxeClassicGalleryBound")) {
+		return;
+	}
+	var mainImage = gallery.querySelector("[data-cp3-zoom-img]");
+	var modalImage = root.querySelector("[data-jluxe-gallery-modal-image]");
+	if (!mainImage || !modalImage) {
+		return;
+	}
+	$form.data("jluxeClassicGalleryBound", true);
+
+	var firstThumb = gallery.querySelector("[data-cp3-thumb]");
+	var firstThumbImage = firstThumb && firstThumb.querySelector("img");
+	var imageAttributes = ["src", "srcset", "sizes", "width", "height", "alt"];
+	var thumbAttributes = ["data-full"];
+	var thumbImageAttributes = ["src", "srcset", "sizes", "alt"];
+	var modalAttributes = ["data-src", "data-srcset", "data-sizes", "src", "srcset", "sizes", "alt"];
+
+	function rememberAttributes(element, names) {
+		var saved = {};
+		if (!element) {
+			return saved;
+		}
+		names.forEach(function (name) {
+			saved[name] = element.hasAttribute(name) ? element.getAttribute(name) : null;
+		});
+		return saved;
+	}
+	function restoreAttributes(element, saved) {
+		if (!element) {
+			return;
+		}
+		Object.keys(saved).forEach(function (name) {
+			if (saved[name] === null) {
+				element.removeAttribute(name);
+			} else {
+				element.setAttribute(name, saved[name]);
+			}
+		});
+	}
+	function setOrRemove(element, name, value) {
+		if (!element) {
+			return;
+		}
+		if (value === undefined || value === null || value === "") {
+			element.removeAttribute(name);
+		} else {
+			element.setAttribute(name, String(value));
+		}
+	}
+
+	var original = {
+		main: rememberAttributes(mainImage, imageAttributes),
+		thumb: rememberAttributes(firstThumb, thumbAttributes),
+		thumbImage: rememberAttributes(firstThumbImage, thumbImageAttributes),
+		modal: rememberAttributes(modalImage, modalAttributes),
+		galleryIndex: gallery.getAttribute("data-jluxe-gallery-current") || "0",
+	};
+
+	function selectFirstGalleryImage() {
+		gallery.setAttribute("data-jluxe-gallery-current", "0");
+		gallery.querySelectorAll("[data-cp3-thumb]").forEach(function (thumb, index) {
+			thumb.classList.toggle("is-active", index === 0);
+		});
+	}
+	function updateMainImageLoadedState(previousSource) {
+		if (previousSource !== mainImage.getAttribute("src")) {
+			mainImage.classList.remove("is-loaded");
+		}
+		if (mainImage.complete && mainImage.naturalWidth) {
+			mainImage.classList.add("is-loaded");
+		}
+	}
+	function restoreGalleryImage() {
+		var previousSource = mainImage.getAttribute("src");
+		restoreAttributes(mainImage, original.main);
+		restoreAttributes(firstThumb, original.thumb);
+		restoreAttributes(firstThumbImage, original.thumbImage);
+		restoreAttributes(modalImage, original.modal);
+		updateMainImageLoadedState(previousSource);
+		gallery.setAttribute("data-jluxe-gallery-current", original.galleryIndex);
+		gallery.querySelectorAll("[data-cp3-thumb]").forEach(function (thumb, index) {
+			thumb.classList.toggle("is-active", index === Number(original.galleryIndex));
+		});
+	}
+	function showVariationImage(variation) {
+		var image = variation && variation.image;
+		if (!image || !image.src) {
+			restoreGalleryImage();
+			return;
+		}
+
+		var fullSrc = image.full_src || image.src;
+		var previousSource = mainImage.getAttribute("src");
+		setOrRemove(mainImage, "src", image.src);
+		setOrRemove(mainImage, "srcset", image.srcset);
+		setOrRemove(mainImage, "sizes", image.sizes);
+		setOrRemove(mainImage, "width", image.src_w);
+		setOrRemove(mainImage, "height", image.src_h);
+		setOrRemove(mainImage, "alt", image.alt || original.main.alt || "");
+		updateMainImageLoadedState(previousSource);
+
+		if (firstThumb) {
+			setOrRemove(firstThumb, "data-full", fullSrc);
+		}
+		if (firstThumbImage) {
+			setOrRemove(firstThumbImage, "src", image.gallery_thumbnail_src || image.thumb_src || image.src);
+			// The parent's srcset can otherwise win over the selected variation's thumbnail.
+			firstThumbImage.removeAttribute("srcset");
+			firstThumbImage.removeAttribute("sizes");
+		}
+
+		setOrRemove(modalImage, "data-src", fullSrc);
+		setOrRemove(modalImage, "data-srcset", image.srcset);
+		setOrRemove(modalImage, "data-sizes", image.sizes);
+		setOrRemove(modalImage, "alt", image.alt || original.modal.alt || "");
+		// showImage() lazy-loads from data-src, but keep an already-open/loaded
+		// first slide in sync as well, without eagerly loading an unopened modal.
+		if (modalImage.hasAttribute("src")) {
+			setOrRemove(modalImage, "src", fullSrc);
+			setOrRemove(modalImage, "srcset", image.srcset);
+			setOrRemove(modalImage, "sizes", image.sizes);
+		}
+		selectFirstGalleryImage();
+	}
+
+	$form.on("found_variation.jluxeClassicGallery", function (event, variation) {
+		showVariationImage(variation);
+	});
+	$form.on("reset_data.jluxeClassicGallery hide_variation.jluxeClassicGallery", restoreGalleryImage);
+}
+
+/**
  * ردیفِ «تعداد»ی صفحه‌ی محصولِ متغیر (woocommerce/single-product/
  * add-to-cart/variation-add-to-cart-button.php: data-jluxe-qty-row) —
  * باگِ واقعیِ گزارش‌شده: برای تنوعی که «فروش تکی» (sold individually) یا
@@ -581,6 +729,7 @@ function jluxeSyncVariationAvailability(form) {
 
 function jluxeSyncAllVariationForms() {
 	document.querySelectorAll(".variations_form[data-product_variations]").forEach(function (form) {
+		jluxeBindClassicVariationGallery(form);
 		if (form.jluxeAvailabilityBound) { return; }
 		form.jluxeAvailabilityBound = true;
 		form.addEventListener("change", function () {

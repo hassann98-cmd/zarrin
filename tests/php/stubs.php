@@ -273,6 +273,7 @@ function wp_parse_str($text,&$out){parse_str($text,$out);}
 function wc_format_decimal($value){return is_numeric($value)?(string)$value:'';}
 function get_queried_object_id(){return $GLOBALS['queried_object_id']??1;}
 function is_product(){return $GLOBALS['query_kind']==='product';}
+function is_product_category(){return $GLOBALS['query_kind']==='product_category';}
 function is_shop(){return $GLOBALS['query_kind']==='shop';}
 function is_product_taxonomy(){return false;}
 function wc_review_ratings_enabled(){return $GLOBALS['ratings_enabled']??true;}

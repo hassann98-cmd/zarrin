@@ -1624,6 +1624,17 @@ check(
 	strpos( $r152_theme_setup, "add_theme_support( 'wc-product-gallery-zoom' )" ) !== false,
 	'R152 the default layout calls WooCommerce’s real gallery template and keeps its initially transparent gallery visible with native enhancement support'
 );
+$r214_variation_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
+check(
+	strpos( $cp3, 'data-cp3-zoom-img' ) !== false &&
+	strpos( $cp3, 'data-cp3-thumb' ) !== false &&
+	strpos( $cp3, 'data-jluxe-gallery-modal-image' ) !== false &&
+	strpos( $r214_variation_gallery_js, 'function jluxeBindClassicVariationGallery(form)' ) !== false &&
+	strpos( $r214_variation_gallery_js, 'found_variation.jluxeClassicGallery' ) !== false &&
+	strpos( $r214_variation_gallery_js, 'reset_data.jluxeClassicGallery hide_variation.jluxeClassicGallery' ) !== false &&
+	strpos( $r152_default_product_tpl, 'woocommerce_show_product_images();' ) !== false,
+	'R214 the custom classic gallery wires the main, thumbnail and modal slides to variation images while default layout stays on WooCommerce’s native gallery'
+);
 check(strpos($cp3,'border-radius:24px')!==false && strpos($cp3,'cp3-descfade')!==false, 'R45 the reference 24px cards and the description fade/expand ship with the layout');
 
 // R46: pixel-level pass over the reference screenshots (uploads: 1-5.png).
@@ -4415,6 +4426,20 @@ $r96_public_settings['ai_assistant']['handoff_form_url'] = 'https://shop.test/sh
 update_test_settings( $r96_public_settings );
 $r96_public_ai = jluxe_get_ai_public_settings();
 check( false === $r96_public_ai['hideMobileLauncher'] && true === $r96_public_ai['enableTicketForm'] && '' === $r96_public_ai['handoffFormUrl'], 'R96 public settings show the mobile launcher and suppress stale external URLs when the internal support form is enabled' );
+$r214_previous_query_kind = $GLOBALS['query_kind'] ?? 'front';
+$GLOBALS['query_kind'] = 'cart';
+$r214_cart_ai_settings = jluxe_get_ai_public_settings();
+$GLOBALS['query_kind'] = 'product_category';
+$r214_category_ai_settings = jluxe_get_ai_public_settings();
+$GLOBALS['query_kind'] = 'front';
+$r214_front_ai_settings = jluxe_get_ai_public_settings();
+$GLOBALS['query_kind'] = $r214_previous_query_kind;
+check(
+	true === $r214_cart_ai_settings['hideLauncherOnPage'] &&
+	true === $r214_category_ai_settings['hideLauncherOnPage'] &&
+	false === $r214_front_ai_settings['hideLauncherOnPage'],
+	'R214 floating assistant launcher is suppressed only on WooCommerce cart and product-category pages'
+);
 update_test_settings( jluxe_theme_settings_defaults() );
 $r94_defaults['system_prompt_mode'] = 'replace';
 $r94_prompt_replace = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال تهران' ) ) );
@@ -4873,8 +4898,42 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 		( false !== strpos( $r212_admin_list_html, '۰۹۱۲۰۰۰۰۰۰۰' ) || false !== strpos( $r212_admin_list_html, '09120000000' ) ) &&
 		false !== strpos( $r212_admin_list_html, 'https://shop.test/store/product/601/' ) &&
 		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_manual_send' ) &&
-		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_custom_send' ),
-		'R213 SMS settings show decrypted request phone, the product link, a per-request send action, and a custom-recipient form'
+		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_custom_send' ) &&
+		false !== strpos( $r212_admin_list_html, 'jluxe_stock_alert_test_send' ) &&
+		false !== strpos( $r212_admin_list_html, 'ارسال پیامک آزمایشی' ),
+		'R213 SMS settings show decrypted request phone, the product link, per-request/custom sends, and a dedicated out-of-stock test form'
+	);
+	$r214_stock_alert_source = (string) file_get_contents( ABSPATH . 'inc/stock-alert.php' );
+	$r214_admin_test_hook = false;
+	$r214_public_test_hook = false;
+	foreach ( $GLOBALS['actions'] as $r214_action ) {
+		if ( 'admin_post_jluxe_stock_alert_test_send' === ( $r214_action[0] ?? '' ) && 'jluxe_handle_admin_stock_alert_test_send' === ( $r214_action[1] ?? '' ) ) {
+			$r214_admin_test_hook = true;
+		}
+		if ( 'admin_post_nopriv_jluxe_stock_alert_test_send' === ( $r214_action[0] ?? '' ) ) {
+			$r214_public_test_hook = true;
+		}
+	}
+	$r214_previous_denied_caps = $GLOBALS['denied_caps'] ?? null;
+	$GLOBALS['denied_caps'] = array( 'manage_options' );
+	$r214_provider_calls_before_denied_test = $GLOBALS['provider_calls'] ?? 0;
+	$r214_denied_test = false;
+	try {
+		jluxe_handle_admin_stock_alert_test_send();
+	} catch ( RuntimeException $r214_denied_error ) {
+		$r214_denied_test = false !== strpos( $r214_denied_error->getMessage(), 'اجازه' );
+	}
+	if ( null === $r214_previous_denied_caps ) {
+		unset( $GLOBALS['denied_caps'] );
+	} else {
+		$GLOBALS['denied_caps'] = $r214_previous_denied_caps;
+	}
+	check(
+		$r214_admin_test_hook && ! $r214_public_test_hook &&
+		false !== strpos( $r212_admin_list_html, 'confirm(\'پیامک آزمایشی واقعی' ) &&
+		false !== strpos( $r214_stock_alert_source, "wp_verify_nonce( \$nonce, 'jluxe_stock_alert_test_send' )" ) &&
+		$r214_denied_test && ( $GLOBALS['provider_calls'] ?? 0 ) === $r214_provider_calls_before_denied_test,
+		'R214 the real-SMS test is an explicit nonce-protected admin-post only; a non-admin is rejected before any provider call'
 	);
 	ob_start();
 	jluxe_render_sms_page();
@@ -4905,6 +4964,33 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 		$GLOBALS['stock_alert_rows'][1]['manual_notification_sent_at'] === $manual_sent_at_before_auto &&
 		( $GLOBALS['provider_calls'] ?? 0 ) === $provider_calls_before_manual_then_auto + 1,
 		'R213 an automatic restock message still sends after a manual message because the two delivery states are independent'
+	);
+	reset_security();
+	$GLOBALS['authenticated_user'] = 42;
+	$GLOBALS['products'][601]->stock = 0;
+	$GLOBALS['http_post_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '7654324' );
+	$r214_rows_before_test_send = serialize( $GLOBALS['stock_alert_rows'] );
+	$r214_calls_before_test_send = $GLOBALS['provider_calls'] ?? 0;
+	$r214_test_result = jluxe_stock_alert_send_test_sms( '۰۹۱۲۰۰۰۰۰۰۲', 601 );
+	$r214_test_request = end( $GLOBALS['http_posts'] );
+	$r214_test_body = $r214_test_request['args']['body'] ?? array();
+	check(
+		true === $r214_test_result &&
+		'09120000002' === ( $r214_test_body['to'] ?? '' ) &&
+		false !== strpos( (string) ( $r214_test_body['text'] ?? '' ), 'Public product ✨ https://shop.test/store/product/601/ | 0 | 09120000002' ) &&
+		0 === $GLOBALS['products'][601]->stock &&
+		$r214_rows_before_test_send === serialize( $GLOBALS['stock_alert_rows'] ) &&
+		( $GLOBALS['provider_calls'] ?? 0 ) === $r214_calls_before_test_send + 1,
+		'R214 the admin test SMS uses the configured template and real zero-stock product context without changing inventory or request/send states (mock HTTP)'
+	);
+	$GLOBALS['products'][601]->stock = 4;
+	$r214_calls_before_in_stock_test = $GLOBALS['provider_calls'] ?? 0;
+	$r214_in_stock_test_result = jluxe_stock_alert_send_test_sms( '09120000002', 601 );
+	check(
+		is_wp_error( $r214_in_stock_test_result ) &&
+		'jluxe_stock_alert_test_product_available' === $r214_in_stock_test_result->get_error_code() &&
+		( $GLOBALS['provider_calls'] ?? 0 ) === $r214_calls_before_in_stock_test,
+		'R214 the out-of-stock test action rejects an in-stock product before calling the SMS provider'
 	);
 	reset_security();
 	$GLOBALS['authenticated_user'] = 42;

@@ -679,7 +679,8 @@ function Assistant() {
   }, [messages, loading, error, open, ticketMode]);
 
   if (!assistant || !assistant.enabled) return null;
-  const launcherVisible = isMobile ? !assistant.hideMobileLauncher : assistant.showDesktop;
+  const launcherVisible = !assistant.hideLauncherOnPage && (isMobile ? !assistant.hideMobileLauncher : assistant.showDesktop);
+  // The cart/category launcher is hidden, but hash/support links still mount the dialog on demand.
   if (!open && !launcherVisible) return null;
 
   const configuredSide = assistant.position === "start" ? "insetInlineStart" : "insetInlineEnd";

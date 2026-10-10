@@ -501,6 +501,8 @@ function jluxe_stock_alert_admin_result_for_error( $error ): string {
 			return 'invalid_message';
 		case 'jluxe_stock_alert_rate_limited':
 			return 'rate_limited';
+		case 'jluxe_stock_alert_test_product_available':
+			return 'test_product_available';
 		case 'jluxe_stock_alert_subscription_not_found':
 		case 'jluxe_stock_alert_product_not_found':
 			return 'not_found';
@@ -516,6 +518,8 @@ function jluxe_stock_alert_admin_notice(): void {
 	$messages = array(
 		'manual_sent'    => array( 'success', 'درخواست ارسال دستی توسط سرویس پیامکی پذیرفته شد؛ وضعیت ارسال خودکار جداگانه حفظ شد.' ),
 		'custom_sent'    => array( 'success', 'درخواست ارسال به شمارهٔ واردشده پذیرفته شد؛ شماره برای این ارسال ذخیره نشد.' ),
+		'test_sent'      => array( 'success', 'درخواست پیامک آزمایشی برای کالای ناموجود پذیرفته شد؛ هیچ ردیف درخواست یا وضعیت خودکاری تغییر نکرد. پذیرش سرویس، تحویل قطعی پیامک را تضمین نمی‌کند.' ),
+		'test_product_available' => array( 'error', 'برای آزمایش، شناسهٔ محصول یا تنوعی را وارد کنید که واقعاً ناموجود است؛ پیامکی ارسال نشد.' ),
 		'not_ready'      => array( 'error', 'ارسال آماده نیست؛ فعال‌بودن اعلان، نام کاربری/کلید و تنظیمات روش انتخاب‌شده را بررسی کنید.' ),
 		'invalid_message'=> array( 'error', 'ارسال انجام نشد؛ متن، متغیرهای پشتیبانی‌شده یا اطلاعات محصول را بررسی کنید.' ),
 		'rate_limited'   => array( 'error', 'برای جلوگیری از ارسال تکراری، ارسال به این شماره موقتاً محدود شده است.' ),
@@ -642,6 +646,21 @@ function jluxe_stock_alert_send_to_custom_phone( string $phone, string $product_
 	return jluxe_send_stock_alert_sms( $phone, $product_name, $product );
 }
 
+/** Send the configured stock-alert pattern/message to a test phone for one genuinely out-of-stock item. */
+function jluxe_stock_alert_send_test_sms( string $phone, int $product_id ) {
+	if ( $product_id < 1 || ! function_exists( 'wc_get_product' ) ) {
+		return new WP_Error( 'jluxe_stock_alert_product_not_found', 'برای آزمایش، شناسهٔ یک محصول/تنوع ناموجود لازم است.', array( 'status' => 400 ) );
+	}
+	$product = wc_get_product( $product_id );
+	if ( ! $product instanceof WC_Product ) {
+		return new WP_Error( 'jluxe_stock_alert_product_not_found', 'محصول یا تنوع موردنظر پیدا نشد.', array( 'status' => 404 ) );
+	}
+	if ( ! method_exists( $product, 'is_in_stock' ) || $product->is_in_stock() ) {
+		return new WP_Error( 'jluxe_stock_alert_test_product_available', 'برای آزمایش، محصول/تنوع باید واقعاً ناموجود باشد.', array( 'status' => 400 ) );
+	}
+	return jluxe_stock_alert_send_to_custom_phone( $phone, (string) $product->get_name(), $product );
+}
+
 function jluxe_stock_alert_admin_redirect( string $result ): void {
 	wp_safe_redirect( jluxe_stock_alert_admin_page_url( array( 'jluxe_stock_alert_result' => sanitize_key( $result ) ) ) );
 	exit;
@@ -691,6 +710,24 @@ function jluxe_handle_admin_stock_alert_custom_send(): void {
 }
 add_action( 'admin_post_jluxe_stock_alert_custom_send', 'jluxe_handle_admin_stock_alert_custom_send' );
 
+function jluxe_handle_admin_stock_alert_test_send(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'اجازهٔ انجام این عملیات را ندارید.' );
+	}
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		wp_die( 'روش درخواست معتبر نیست.' );
+	}
+	$nonce = isset( $_POST['_wpnonce'] ) && is_scalar( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_stock_alert_test_send' ) ) {
+		jluxe_stock_alert_admin_redirect( 'invalid_nonce' );
+	}
+	$phone = isset( $_POST['phone'] ) && is_scalar( $_POST['phone'] ) ? (string) wp_unslash( $_POST['phone'] ) : '';
+	$product_id = isset( $_POST['product_id'] ) && is_scalar( $_POST['product_id'] ) ? absint( wp_unslash( $_POST['product_id'] ) ) : 0;
+	$result = jluxe_stock_alert_send_test_sms( $phone, $product_id );
+	jluxe_stock_alert_admin_redirect( true === $result ? 'test_sent' : jluxe_stock_alert_admin_result_for_error( $result ) );
+}
+add_action( 'admin_post_jluxe_stock_alert_test_send', 'jluxe_handle_admin_stock_alert_test_send' );
+
 /** The SMS settings tab also contains the private request list and manual send forms. */
 function jluxe_render_stock_alert_admin_management(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
@@ -703,6 +740,18 @@ function jluxe_render_stock_alert_admin_management(): void {
 	<?php if ( ! jluxe_stock_alert_sms_available() ) : ?>
 		<div class="notice notice-warning inline"><p>ارسال/ثبت درخواست فعلاً آماده نیست. provider، کلید پیامک، فعال‌سازی اعلان و روش انتخاب‌شده را کامل کنید؛ ورود OTP به‌تنهایی کافی نیست.</p></div>
 	<?php endif; ?>
+	<h3>تست پیامک با کالای ناموجود</h3>
+	<p class="description">برای بررسی اتصال و قالب، شمارهٔ موبایل خودتان و شناسهٔ یک محصول/تنوعِ واقعاً ناموجود را وارد کنید. همین متن یا پترن فعلی به‌صورت پیامک واقعی فرستاده می‌شود؛ ممکن است متن آزمایشی بگوید «موجود شد»، اما موجودی تغییر نمی‌کند و هیچ درخواست مشتری یا وضعیت ارسال خودکار ثبت/عوض نمی‌شود. اگر فقط یک تنوع ناموجود است، شناسهٔ همان تنوع را وارد کنید. موفقیت فقط پذیرش سرویس پیامکی را نشان می‌دهد، نه تحویل قطعی. سقف ارسال دستی/آزمایشی به هر شماره ۵ پیام در ساعت است.</p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" autocomplete="off">
+		<input type="hidden" name="action" value="jluxe_stock_alert_test_send" />
+		<?php wp_nonce_field( 'jluxe_stock_alert_test_send' ); ?>
+		<table class="form-table" role="presentation">
+			<tr><th scope="row"><label for="jluxe-stock-alert-test-phone">شمارهٔ موبایل آزمایشی</label></th><td><input id="jluxe-stock-alert-test-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="64" dir="ltr" class="regular-text" required /></td></tr>
+			<tr><th scope="row"><label for="jluxe-stock-alert-test-product-id">شناسهٔ محصول/تنوع ناموجود</label></th><td><input id="jluxe-stock-alert-test-product-id" name="product_id" type="number" min="1" step="1" inputmode="numeric" class="small-text" required /><p class="description">شناسه را از نشانی ویرایش محصول/تنوع (پارامتر <code>post=</code>) بردارید؛ برای تست، کالا باید واقعاً ناموجود باشد.</p></td></tr>
+		</table>
+		<p><button type="submit" class="button button-secondary"<?php disabled( ! jluxe_stock_alert_sms_available() ); ?> onclick="return confirm('پیامک آزمایشی واقعی فقط به شمارهٔ واردشده ارسال شود؟ هیچ موجودی یا وضعیت درخواستی تغییر نمی‌کند.');">ارسال پیامک آزمایشی</button></p>
+	</form>
+
 	<h3>ارسال به شمارهٔ دلخواه</h3>
 	<p class="description">شمارهٔ مقصد باید موبایل معتبر ایران باشد. از همین متن یا پترنِ بخش بالا استفاده می‌شود. شماره برای این ارسال جداگانه ذخیره نمی‌شود. در حالت پترن، مقدار متغیرِ الگو را وارد کنید؛ در حالت متن آزاد، شناسهٔ محصول اختیاری است و برای متغیرهای محصول به کار می‌رود. برای جلوگیری از ارسال ناخواسته، ارسال دستی به هر شماره حداکثر ۵ بار در ساعت مجاز است.</p>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" autocomplete="off">

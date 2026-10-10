@@ -2871,6 +2871,8 @@ function jluxe_get_ai_public_settings(): array {
 		'showDesktop'        => (bool) $ai['show_desktop'],
 		'showMobile'         => (bool) $ai['show_mobile'], // legacy
 		'hideMobileLauncher' => ! empty( $ai['hide_mobile_launcher'] ),
+		// Floating launcher stays out of the cart/category UI; explicit support links can still open chat.
+		'hideLauncherOnPage' => ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_product_category' ) && is_product_category() ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),
 		'primaryColor'       => $ai['primary_color'],
 		'textColor'          => $ai['text_color'],

@@ -48,7 +48,7 @@
     "src": "src/assets/fonts/IRANYekanMobileRegular.woff2"
   },
   "src/islands/AiAssistant.js": {
-    "file": "assets/AiAssistant-5BFy2PNx.js",
+    "file": "assets/AiAssistant-A5K9JkJ6.js",
     "name": "AiAssistant",
     "src": "src/islands/AiAssistant.js",
     "isDynamicEntry": true,
@@ -145,7 +145,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-DIWB7Lxk.js",
+    "file": "assets/main-kAuc7ycd.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
