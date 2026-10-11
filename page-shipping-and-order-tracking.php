@@ -1,10 +1,9 @@
 <?php
 /**
  * صفحه‌ی «روش‌های ارسال و راهنمای پیگیری سفارشات» (اسلاگ
- * shipping-and-order-tracking). عنوان/مقدمه از jluxe-guide-pages میان و
- * بقیه‌ی نامِ برند در متنِ بدنه با نامِ واقعیِ سایت جایگزین شده — طبقِ
- * درخواستِ صریحِ کاربر (قبلاً «زرین» هاردکد بود). کلاس‌های CSS (jst-*)
- * کاملاً مستقل و خوداتکا هستن.
+ * shipping-and-order-tracking). عنوان، مقدمه و HTML از تنظیماتِ قابل‌ویرایشِ
+ * راهنما خوانده می‌شوند؛ نامِ سایت جایگزین tokenهاست و لینک‌های داخلی از
+ * مسیرهای تنظیم‌شده حل می‌شوند. CSSهای (jst-*) مستقل و خوداتکا هستند.
  */
 
 get_header();
@@ -16,10 +15,17 @@ $jluxe_st_title     = $jluxe_st['title'] ?? 'روش‌های ارسال و را�
 $jluxe_st_intro     = str_replace( '{site_name}', $jluxe_st_site_name, $jluxe_st['intro'] ?? '' );
 $jluxe_st_btn_text  = $jluxe_st['button_text'] ?? '';
 $jluxe_st_btn_url   = $jluxe_st['button_url'] ?? '/';
-$jluxe_st_btn_style = ! empty( $jluxe_st['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_st['button_color'] ) . '"' : '';
+$jluxe_st_btn_style = ! empty( $jluxe_st['button_color'] ) ? ' style="background:' . esc_attr( $jluxe_st['button_color'] ) . '"' : '';
 $jluxe_st_body = str_replace( '{site_name}', $jluxe_st_site_name, $jluxe_st['body_html'] ?? '' );
-// R87 — لینکِ پیش‌فرضِ «پیگیری سریع سفارش» داخلِ متن به آدرسِ تنظیم‌شدهٔ پیگیری برود، نه مسیرِ ثابت.
-$jluxe_st_body = str_replace( 'href="/track-order/"', 'href="' . esc_url( jluxe_route_url( 'track_order' ) ) . '"', $jluxe_st_body );
+// پیوندهای پیگیری و مرجوعی از مسیرهای فعلیِ فروشگاه استفاده می‌کنند، نه URLهای ثابت.
+$jluxe_st_body = str_replace(
+	array( 'href="/track-order/"', 'href="/returns-and-exchanges/"' ),
+	array(
+		'href="' . esc_url( jluxe_route_url( 'track_order' ) ) . '"',
+		'href="' . esc_url( jluxe_resolve_site_link( '/returns-and-exchanges/' ) ) . '"',
+	),
+	$jluxe_st_body
+);
 ?>
 
 <main id="primary" class="site-main">
@@ -74,7 +80,8 @@ $jluxe_st_body = str_replace( 'href="/track-order/"', 'href="' . esc_url( jluxe_
 			color: var(--jst-ink);
 		}
 
-		.jst-hero > p {
+		.jst-hero > p,
+		.jst-page-intro {
 			margin: 0;
 			font-size: 14px;
 			color: var(--jst-sub);

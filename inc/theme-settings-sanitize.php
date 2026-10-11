@@ -528,7 +528,7 @@ function jluxe_sanitize_guide_pages( array $posted, array $defaults ): array {
 				$clean[ $field_key ] = $default_value;
 				continue;
 			}
-			if ( 'content' === $field_key ) {
+			if ( 'content' === $field_key || 'body_html' === $field_key ) {
 				$clean[ $field_key ] = wp_kses_post( $row[ $field_key ] );
 			} elseif ( 'button_url' === $field_key ) {
 				$clean[ $field_key ] = esc_url_raw( $row[ $field_key ] );

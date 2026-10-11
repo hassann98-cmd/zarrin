@@ -774,8 +774,16 @@ $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new W
 check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
 check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
 check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/en/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages and only prefill Chapar where its official route supports a bill-number path');
-$r192_shipping_guide_defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html'] ?? '';
-check( false === strpos( $r192_shipping_guide_defaults, 'tipax' ) && false === strpos( $r192_shipping_guide_defaults, 'چاپار' ) && false !== strpos( $r192_shipping_guide_defaults, 'تسویه‌حساب' ), 'R192 default shipping guide describes only the checkout-configured options, not guessed carriers' );
+$r231_shipping_guide_defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html'] ?? '';
+check(
+	false !== strpos( $r231_shipping_guide_defaults, 'روش پست پیشتاز' ) &&
+	false !== strpos( $r231_shipping_guide_defaults, 'روش ارسال تیپاکس' ) &&
+	false !== strpos( $r231_shipping_guide_defaults, 'روش ارسال چاپار' ) &&
+	false !== strpos( $r231_shipping_guide_defaults, 'کد رهگیری ۲۴ رقمی' ) &&
+	false !== strpos( $r231_shipping_guide_defaults, 'در انتظار تایید رسید بانکی' ) &&
+	false !== strpos( $r231_shipping_guide_defaults, 'href="/track-order/"' ),
+	'R231 shipping-guide defaults contain the user-supplied carrier methods, tracking/status copy, and quick-tracking link'
+);
 $order->meta['_jsms_tracking']='';
 $order->status='pending';
 $timeline=jluxe_build_timeline_data($order);
@@ -3097,7 +3105,12 @@ foreach ( array(
 	check( false !== strpos( $r87_src, 'esc_url( jluxe_resolve_site_link( (string) ' . $r87_var . ' ) )' ) && false === strpos( $r87_src, 'esc_url( ' . $r87_var . ' )' ), 'R87 ' . $r87_file . ' button link goes through the site-link resolver (no raw relative slug)' );
 }
 $r87_ship = (string) file_get_contents( ABSPATH . 'page-shipping-and-order-tracking.php' );
-check( false !== strpos( $r87_ship, "str_replace( 'href=\"/track-order/\"', 'href=\"' . esc_url( jluxe_route_url( 'track_order' ) ) . '\"', \$jluxe_st_body )" ), 'R87 the default «پیگیری سریع سفارش» link inside the shipping guide body follows the configured address' );
+check(
+	false !== strpos( $r87_ship, "array( 'href=\"/track-order/\"', 'href=\"/returns-and-exchanges/\"' )" ) &&
+	false !== strpos( $r87_ship, "esc_url( jluxe_route_url( 'track_order' ) )" ) &&
+	false !== strpos( $r87_ship, "esc_url( jluxe_resolve_site_link( '/returns-and-exchanges/' ) )" ),
+	'R87 shipping guide tracking and returns links follow the configured internal routes'
+);
 $r87_hard = array();
 foreach ( array_merge( glob( ABSPATH . 'src/islands/*.js' ) ?: array(), glob( ABSPATH . 'src/islands/*.jsx' ) ?: array() ) as $r87_island ) {
 	if ( preg_match( '/href:\s*"\/(track-order|shop)\/"/', (string) file_get_contents( $r87_island ) ) ) {
@@ -3336,7 +3349,7 @@ check(
 	array_reduce( $r194_restored_v7['footer']['feature_cards'], static function ( $enabled, $card ) {
 		return $enabled && ! empty( $card['enabled'] );
 	}, true ),
-	'R197 v7 settings migrate through v13 to the consistent benefit headings and enable the four cards'
+	'R197 v7 settings migrate through v14 to the consistent benefit headings and enable the four cards'
 );
 $r194_custom_v7 = array(
 	'footer' => array(
@@ -3373,7 +3386,7 @@ check(
 	'truck' === $r195_migrated_v8['footer']['feature_cards'][0]['icon'] &&
 	'پشتیبانیِ سفارشی' === $r195_migrated_v8['footer']['feature_cards'][1]['title'] &&
 	'متن ثبت‌شده توسط مدیر' === $r195_migrated_v8['footer']['feature_cards'][1]['subtitle'],
-	'R197 v8 settings migrate through v13 to the full bold shipping slogan and preserves the other configured card'
+	'R197 v8 settings migrate through v14 to the full bold shipping slogan and preserves the other configured card'
 );
 $r195_custom_first_v8 = array(
 	'footer' => array(
@@ -3501,7 +3514,7 @@ check(
 	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
 	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
 	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
-	'R197 v6 settings migrate through v13: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
+	'R197 v6 settings migrate through v14: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
 );
 check(
 	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
@@ -3520,7 +3533,7 @@ check(
 	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
 );
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v13 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v14 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -3671,11 +3684,130 @@ check(
 );
 update_test_settings( jluxe_theme_settings_defaults() );
 
+// R231: shipping/tracking guide copy, migration, HTML sanitization, and routing.
+$r231_defaults = jluxe_theme_settings_defaults();
+$r231_shipping_guide = $r231_defaults['guide_pages']['shipping_tracking'];
+$r231_shipping_body = $r231_shipping_guide['body_html'];
+check(
+	'روش‌های ارسال و راهنمای پیگیری سفارشات' === $r231_shipping_guide['title'] &&
+	'' === $r231_shipping_guide['intro'] && '' === $r231_shipping_guide['button_text'] &&
+	3 === substr_count( $r231_shipping_body, 'class="jst-method"' ) &&
+	4 === substr_count( $r231_shipping_body, 'class="jst-status jst-status-' ) &&
+	false !== strpos( $r231_shipping_body, 'نکتهٔ بسیار مهم' ) &&
+	false !== strpos( $r231_shipping_body, 'کد رهگیری ۲۴ رقمی' ) &&
+	false !== strpos( $r231_shipping_body, 'پرداخت هزینه' ) &&
+	false !== strpos( $r231_shipping_body, 'پیامک و ایمیل' ) &&
+	false !== strpos( $r231_shipping_body, 'روش اول (ویژهٔ کاربران ثبت‌نام‌شده)' ) &&
+	false !== strpos( $r231_shipping_body, 'روش دوم (خرید بدون ثبت‌نام / پیگیری سریع)' ) &&
+	false !== strpos( $r231_shipping_body, 'class="jst-track-order-btn" href="/track-order/"' ) &&
+	false === strpos( $r231_shipping_body, 'id="jluxe-shipping-tracking-page"' ),
+	'R231 defaults include the three supplied carrier cards, four order states, quick tracking, and no duplicate template wrapper'
+);
+$r231_old_shipping = array(
+	'version' => 13,
+	'guide_pages' => array(
+		'shipping_tracking' => array(
+			'intro' => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
+			'body_html' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+			'button_text' => 'بازگشت به فروشگاه ←',
+			'button_url' => '/',
+			'button_color' => '',
+		),
+	),
+);
+$r231_migrated_shipping = jluxe_migrate_settings_to_current_version( $r231_old_shipping, 13 );
+check(
+	JLUXE_SETTINGS_VERSION === $r231_migrated_shipping['version'] &&
+	$r231_shipping_guide['intro'] === $r231_migrated_shipping['guide_pages']['shipping_tracking']['intro'] &&
+	$r231_shipping_guide['body_html'] === $r231_migrated_shipping['guide_pages']['shipping_tracking']['body_html'] &&
+	'' === $r231_migrated_shipping['guide_pages']['shipping_tracking']['button_text'] &&
+	'/' === $r231_migrated_shipping['guide_pages']['shipping_tracking']['button_url'],
+	'R231 v14 upgrades only exact untouched shipping-guide defaults and removes the unrelated default store CTA'
+);
+$r231_custom_shipping = $r231_old_shipping;
+$r231_custom_shipping['guide_pages']['shipping_tracking'] = array(
+	'intro' => 'مقدمهٔ اختصاصی مدیر',
+	'body_html' => '<div class="jst-method"><p>روش ارسال تنظیم‌شده توسط مدیر</p></div>',
+	'button_text' => 'دکمهٔ انتخابی مدیر',
+	'button_url' => '/shipping-custom/',
+	'button_color' => '#123abc',
+);
+$r231_migrated_custom_shipping = jluxe_migrate_settings_to_current_version( $r231_custom_shipping, 13 )['guide_pages']['shipping_tracking'];
+check(
+	'مقدمهٔ اختصاصی مدیر' === $r231_migrated_custom_shipping['intro'] &&
+	'<div class="jst-method"><p>روش ارسال تنظیم‌شده توسط مدیر</p></div>' === $r231_migrated_custom_shipping['body_html'] &&
+	'دکمهٔ انتخابی مدیر' === $r231_migrated_custom_shipping['button_text'] &&
+	'/shipping-custom/' === $r231_migrated_custom_shipping['button_url'] &&
+	'#123abc' === $r231_migrated_custom_shipping['button_color'],
+	'R231 migration preserves custom shipping copy and all CTA settings'
+);
+$r231_custom_route_shipping = $r231_old_shipping;
+$r231_custom_route_shipping['guide_pages']['shipping_tracking']['button_url'] = '/custom-shipping-path/';
+$r231_migrated_custom_route = jluxe_migrate_settings_to_current_version( $r231_custom_route_shipping, 13 )['guide_pages']['shipping_tracking'];
+check(
+	'بازگشت به فروشگاه ←' === $r231_migrated_custom_route['button_text'] &&
+	'/custom-shipping-path/' === $r231_migrated_custom_route['button_url'],
+	'R231 migration does not hide the legacy CTA when its administrator-configured destination differs from the old default'
+);
+$r231_sanitized_guides = jluxe_sanitize_guide_pages(
+	array(
+		'payment_guide' => array( 'body_html' => '<section class="jpp-section"><p><strong>HTML پرداخت</strong></p></section>' ),
+		'shipping_tracking' => array( 'body_html' => '<div class="jst-method"><p><strong>HTML ارسال</strong></p></div>' ),
+	),
+	$r231_defaults['guide_pages']
+);
+check(
+	'<section class="jpp-section"><p><strong>HTML پرداخت</strong></p></section>' === $r231_sanitized_guides['payment_guide']['body_html'] &&
+	'<div class="jst-method"><p><strong>HTML ارسال</strong></p></div>' === $r231_sanitized_guides['shipping_tracking']['body_html'],
+	'R231 rich guide-editor HTML survives the normal sanitization path for both payment and shipping pages'
+);
+$r231_admin_form_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r231_admin_form_source, "array( 'payment_guide', 'shipping_tracking' )" ) &&
+	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]' ) &&
+	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]' ) &&
+	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]' ),
+	'R231 the shipping guide editor exposes its optional footer-CTA text, URL, and color settings'
+);
+$r231_render_settings = $r231_defaults;
+$r231_render_settings['urls']['track_order'] = '/order-status/';
+$r231_render_settings['guide_pages']['shipping_tracking']['button_text'] = 'پیگیری سفارشی';
+$r231_render_settings['guide_pages']['shipping_tracking']['button_url'] = '/shipping-help/';
+$r231_render_settings['guide_pages']['shipping_tracking']['button_color'] = '#123abc';
+update_test_settings( $r231_render_settings );
+ob_start();
+require ABSPATH . 'page-shipping-and-order-tracking.php';
+$r231_shipping_html = (string) ob_get_clean();
+check(
+	3 === substr_count( $r231_shipping_html, '<div class="jst-method">' ) &&
+	4 === substr_count( $r231_shipping_html, 'class="jst-status jst-status-' ) &&
+	false !== strpos( $r231_shipping_html, '<p class="jst-page-intro">در فروشگاه Audit shop' ) &&
+	false !== strpos( $r231_shipping_html, 'href="https://shop.test/store/order-status/">پیگیری سریع سفارش' ) &&
+	false !== strpos( $r231_shipping_html, 'href="https://shop.test/store/returns-and-exchanges/"' ) &&
+	false !== strpos( $r231_shipping_html, 'https://tracking.post.ir/' ) &&
+	false !== strpos( $r231_shipping_html, 'https://tipaxco.com/tracking' ) &&
+	false !== strpos( $r231_shipping_html, 'https://chaparnet.com/' ) &&
+	false !== strpos( $r231_shipping_html, '<a href="https://shop.test/store/shipping-help/" class="jst-track-order-btn" style="background:#123abc">پیگیری سفارشی</a>' ) &&
+	false === strpos( $r231_shipping_html, '{site_name}' ) && false === strpos( $r231_shipping_html, 'href="/track-order/"' ),
+	'R231 server-rendered shipping guide replaces site tokens, follows configured internal routes, and applies a custom CTA color'
+);
+$r231_shipping_template = (string) file_get_contents( ABSPATH . 'page-shipping-and-order-tracking.php' );
+check(
+	false !== strpos( $r231_shipping_template, '.jst-method {' ) &&
+	false !== strpos( $r231_shipping_template, '.jst-page-intro' ) &&
+	false !== strpos( $r231_shipping_template, '.jst-track-btn span' ) &&
+	false !== strpos( $r231_shipping_template, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r231_shipping_template, 'prefers-reduced-motion: reduce' ) &&
+	false !== strpos( $r231_shipping_template, 'style="background:' ),
+	'R231 shipping guide keeps the supplied responsive/reduced-motion CSS and working button-color override'
+);
+update_test_settings( jluxe_theme_settings_defaults() );
+
 $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-import-export.php' );
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v13 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v14 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -4674,10 +4806,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v13 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v14 with legacy fixes, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v13 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v14 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );

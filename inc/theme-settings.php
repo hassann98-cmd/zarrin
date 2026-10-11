@@ -3,8 +3,8 @@
  * پنل تنظیمات JLuxe (wp-admin → JLuxe → تنظیمات ظاهری).
  *
  * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). پیش‌فرض‌ها
- * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنمای پرداخت و حسابی که
- * مدیر برای همین صفحه فرستاده، استثنای صریح است و در پنل قابل‌ویرایش می‌ماند.
+ * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنماهای پرداخت و ارسال/پیگیری
+ * که مدیر برای همین صفحات فرستاده، استثنای صریح است و در پنل قابل‌ویرایش می‌ماند.
  * سایر اطلاعات تجاری و سیاست‌های وابسته به فروشگاه باید از مدیر بیایند.
  *
  * فقط بخش‌هایی که واقعاً به frontend وصل شدن پیاده‌سازی شدن (رنگ‌ها، هویت
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 13;
+const JLUXE_SETTINGS_VERSION = 14;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -90,10 +90,65 @@ function jluxe_faq_default_items(): array {
 	);
 }
 
+/** Default HTML supplied for the shipping and order-tracking guide. */
+function jluxe_shipping_tracking_default_body_html(): string {
+	return <<<'JLUXE_HTML'
+	<div class="jst-callout jst-callout-warning">
+		<p><strong>نکتهٔ بسیار مهم:</strong> لطفاً قبل از ثبت سفارش و انتخاب روش ارسال، از وجود نمایندگی و پوشش‌دهی شرکت‌های باربری (تیپاکس یا چاپار) در محدودهٔ شهر و محل سکونت خود اطمینان حاصل کنید.</p>
+	</div>
+	<p class="jst-page-intro">در فروشگاه {site_name}، تحویل به‌موقع و سالم کالاها اولویت اصلی ماست. ارسال مرسولات به ۳ روش متنوع انجام می‌شود تا بتوانید بهترین گزینه را بر اساس بودجه، ابعاد کالا و زمان خود انتخاب کنید.</p>
+	<span class="jst-part-label">بخش اول — روش‌های ارسال کالا</span>
+	<div class="jst-methods">
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۱</span><h2>روش پست پیشتاز <small>(اقتصادی و سراسری)</small></h2></div>
+			<p class="jst-method-desc">این روش برای تمامی شهرهای ایران، روستاها و مناطق دوردست فعال است.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> هزینهٔ ارسال به‌صورت آنلاین و در زمان ثبت سفارش، با توجه به وزن و سایز محصول محاسبه و پرداخت می‌شود.</p>
+			<p><strong>مدت زمان تحویل:</strong> زمان تحویل مرسوله در این روش نسبت به سایر سرویس‌ها کمی طولانی‌تر است.</p>
+			<p><strong>محدودیت ابعادی:</strong> ادارهٔ پست بسته‌های بسیار بزرگ و با طول بیش از ۱ متر را پذیرش نمی‌کند.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> پس از تحویل بسته به پست، کد رهگیری ۲۴ رقمی برای شما پیامک می‌شود. با کلیک روی دکمهٔ زیر می‌توانید بسته را لحظه‌به‌لحظه ردیابی کنید.</p>
+			<a class="jst-track-btn jst-track-btn-post" href="https://tracking.post.ir/" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ پست</span></a>
+		</div>
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۲</span><h2>روش ارسال تیپاکس <small>(سریع و مطمئن)</small></h2></div>
+			<p class="jst-method-desc">این روش برای شهرهایی که دارای نمایندگی فعال تیپاکس هستند، بسیار مناسب است.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> ارسال به‌صورت پس‌کرایه است؛ در زمان ثبت سفارش هزینه‌ای بابت ارسال پرداخت نمی‌کنید و مبلغ کرایه را هنگام تحویل کالا، درب منزل به مأمور تیپاکس پرداخت خواهید کرد.</p>
+			<p><strong>مزایا:</strong> سرعت ارسال بالا و بسیار مناسب برای کالاهای با سایز متوسط و نیمه‌سنگین.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> پس از پیامک‌شدن کد رهگیری تیپاکس، می‌توانید با کلیک روی دکمهٔ زیر وضعیت بسته را بررسی کنید.</p>
+			<a class="jst-track-btn jst-track-btn-tipax" href="https://tipaxco.com/tracking" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ تیپاکس</span></a>
+		</div>
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۳</span><h2>روش ارسال چاپار <small>(سریع‌ترین برای کالاهای بزرگ)</small></h2></div>
+			<p class="jst-method-desc">چاپار یک سرویس هوشمند و سریع است که برای کالاهای سبک تا بسیار سنگین خدمات عالی ارائه می‌دهد.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> این روش نیز به‌صورت پس‌کرایه (پرداخت هزینهٔ ارسال درب منزل) است و مبلغ نهایی به وزن، ابعاد و شهر مقصد بستگی دارد.</p>
+			<p><strong>مزایا:</strong> سریع‌ترین روش ارسال در سایت ما محسوب می‌شود و برای محصولات سایز متوسط و به‌ویژه کالاهای بزرگ، حساس و سنگین آشپزخانه فوق‌العاده مناسب است.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> برای پیگیری موقعیت بستهٔ خود از طریق شرکت چاپار، روی دکمهٔ زیر کلیک کنید.</p>
+			<a class="jst-track-btn jst-track-btn-chapar" href="https://chaparnet.com/" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ چاپار</span></a>
+		</div>
+	</div>
+	<span class="jst-part-label">بخش دوم — راهنمای پیگیری وضعیت سفارشات</span>
+	<div class="jst-section">
+		<h2 class="jst-question">چگونه از وضعیت سفارشی که ثبت کرده‌ام مطلع شوم؟</h2>
+		<p>پس از ثبت خرید در {site_name}، سفارش شما گام‌به‌گام پردازش می‌شود و در یکی از وضعیت‌های زیر قرار می‌گیرد. تغییر هر مرحله، فوراً از طریق پیامک به اطلاع شما خواهد رسید.</p>
+		<p class="jst-substeps-title">آشنایی با وضعیت‌های سفارش در پنل کاربری</p>
+		<div class="jst-status jst-status-pending"><span class="jst-status-pill">در انتظار تایید رسید بانکی</span><p>اگر روش «کارت‌به‌کارت» را برای پرداخت انتخاب کرده باشید، سفارش شما تا زمان تایید فیش واریزی توسط بخش حسابداری در این حالت می‌ماند و پیامک مربوطه برایتان ارسال می‌شود. پس از تایید، سفارش خودکار به مرحلهٔ بعدی می‌رود.</p></div>
+		<div class="jst-status jst-status-processing"><span class="jst-status-pill">در حال انجام</span><p>این وضعیت یعنی پرداخت شما (چه آنلاین و چه کارت‌به‌کارت) کاملاً تایید شده، سفارش آماده‌سازی شده و محصول به بخش بسته‌بندی منتقل شده است.</p></div>
+		<div class="jst-status jst-status-done"><span class="jst-status-pill">تکمیل شده</span><p>کالا بسته‌بندی و تحویل شرکت فرستنده (پست، تیپاکس یا چاپار) شده است. در این مرحله کد پیگیری مرسوله از طریق پیامک و ایمیل برای شما ارسال و در پنل کاربری نیز ثبت می‌شود تا بتوانید از طریق دکمه‌های بخش اول، بسته را ردیابی کنید.</p></div>
+		<div class="jst-status jst-status-cancelled"><span class="jst-status-pill">لغو شده</span><p>در صورت بروز مشکل در فرآیند سفارش یا انصراف، سفارش به حالت لغوشده در می‌آید. شرایط و ضوابط این بخش را می‌توانید در صفحهٔ <a href="/returns-and-exchanges/" target="_blank" rel="noopener">شرایط مرجوعی کالا</a> مطالعه بفرمایید.</p></div>
+		<p class="jst-substeps-title">روش‌های سریع پیگیری سفارش در سایت</p>
+		<p>برای راحتی شما، ثبت‌نام در {site_name} اجباری نیست؛ به همین دلیل از دو روش زیر می‌توانید وضعیت سفارش خود را ببینید:</p>
+		<div class="jst-quicktrack">
+			<p><strong>روش اول (ویژهٔ کاربران ثبت‌نام‌شده):</strong> در هر لحظه می‌توانید با ورود به حساب کاربری {site_name} و مراجعه به بخش «سفارشات»، وضعیت دقیق خرید و کد پیگیری مرسولهٔ خود را مشاهده کنید.</p>
+			<p><strong>روش دوم (خرید بدون ثبت‌نام / پیگیری سریع):</strong> اگر بدون ثبت‌نام خرید کرده‌اید، جای نگرانی نیست. با داشتن «شمارهٔ سفارش» (که بعد از خرید برایتان پیامک شده و در برگهٔ تاییدیهٔ پرداخت نیز موجود است) و «شمارهٔ موبایلی» که هنگام خرید وارد کرده‌اید، از طریق دکمهٔ زیر، بدون نیاز به ورود به حساب کاربری، وضعیت سفارش خود را فوراً مشاهده کنید.</p>
+			<a class="jst-track-order-btn" href="/track-order/">پیگیری سریع سفارش ←</a>
+		</div>
+	</div>
+	JLUXE_HTML;
+}
+
 /**
- * مقادیر پیش‌فرضِ عمومی؛ به‌جز متن و مشخصاتِ پرداختی که مدیر صریحاً برای
- * همین راهنما فرستاده، داده‌ها و سیاست‌های تجاریِ وابسته به فروشگاه باید
- * از تنظیماتِ مدیر بیایند.
+ * مقادیر پیش‌فرضِ عمومی؛ به‌جز متنِ راهنمای پرداخت و ارسال/پیگیری که مدیر
+ * برای همین صفحه‌ها فرستاده، داده‌ها و سیاست‌های تجاریِ وابسته به فروشگاه
+ * باید از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
 	return array(
@@ -426,9 +481,9 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		/*
-		 * متن‌های سیاستِ مرجوعی و جزئیاتِ حمل‌ونقل باید از مدیر بیایند؛ متنِ
-		 * راهنمای پرداختِ پایین دقیقاً محتوای ارسالیِ مدیر برای همان صفحه است.
-		 * محتوای HTML از پنل sanitize می‌شود و server-rendered و قابل‌خزش است.
+		 * محتوای راهنمای پرداخت و ارسال/پیگیری از مدیر آمده است؛ اطلاعاتِ
+		 * سیاستِ مرجوعی و سایر جزئیاتِ تجاری باید از پیکربندیِ خودِ فروشگاه
+		 * تأمین شوند. HTML از پنل sanitize می‌شود و server-rendered و قابل‌خزش است.
 		 */
 		'guide_pages' => array(
 			'shopping_guide' => array(
@@ -487,11 +542,11 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'shipping_tracking' => array(
 				'title'        => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
-				'intro'        => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
-				'button_text'  => 'بازگشت به فروشگاه ←',
+				'intro'        => '',
+				'button_text'  => '',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+				'body_html' => jluxe_shipping_tracking_default_body_html(),
 			),
 			'returns_exchanges' => array(
 				'title'        => 'رویهٔ شرایط مرجوعی و تعویض کالا',
@@ -1589,6 +1644,41 @@ function jluxe_migrate_settings_v13( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v13→v14: replace only the previous neutral shipping/tracking defaults with
+ * the manager-supplied guide. Custom copy and CTA choices remain unchanged.
+ */
+function jluxe_migrate_settings_v14( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking'] ?? array();
+	$old_values = array(
+		'intro' => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
+		'body_html' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+	);
+
+	if ( isset( $settings['guide_pages']['shipping_tracking'] ) && is_array( $settings['guide_pages']['shipping_tracking'] ) ) {
+		foreach ( $old_values as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['shipping_tracking'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $defaults[ $field ] ) ) {
+				$settings['guide_pages']['shipping_tracking'][ $field ] = $defaults[ $field ];
+			}
+		}
+
+		$button_text  = $settings['guide_pages']['shipping_tracking']['button_text'] ?? null;
+		$button_url   = $settings['guide_pages']['shipping_tracking']['button_url'] ?? '/';
+		$button_color = $settings['guide_pages']['shipping_tracking']['button_color'] ?? '';
+		if (
+			'بازگشت به فروشگاه ←' === $button_text &&
+			'/' === $button_url &&
+			'' === $button_color &&
+			isset( $defaults['button_text'] )
+		) {
+			$settings['guide_pages']['shipping_tracking']['button_text'] = $defaults['button_text'];
+		}
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1604,6 +1694,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		11 => 'jluxe_migrate_settings_v11',
 		12 => 'jluxe_migrate_settings_v12',
 		13 => 'jluxe_migrate_settings_v13',
+		14 => 'jluxe_migrate_settings_v14',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
