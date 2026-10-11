@@ -1,10 +1,9 @@
 <?php
 /**
  * صفحه‌ی «راهنمای گام‌به‌گام خرید» (اسلاگ shopping-guide). عنوان و دکمهٔ
- * پایانی از تنظیماتِ jluxe-guide-pages میان (طبقِ درخواستِ صریحِ کاربر) —
- * چون قبلاً «زرین» هاردکد بود. کلاس‌های CSS (jsg-*) مستقل و خوداتکا هستن؛
- * script.js فقط یک انیمیشن اختیاری اسکرول است (بدون آن هم صفحه کامل کار
- * می‌کند).
+ * پایانی از تنظیماتِ jluxe-guide-pages میان؛ متنِ پیش‌فرض و مهاجرتِ امنِ
+ * تنظیمات در inc/theme-settings.php نگهداری می‌شود. CSS و اسکریپتِ اختیاریِ
+ * اسکرول فقط برای همین صفحه‌اند؛ بدون JS نیز متن کامل و قابل‌استفاده است.
  */
 
 get_header();
@@ -13,13 +12,13 @@ $jluxe_sg_settings = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_t
 $jluxe_sg           = $jluxe_sg_settings['guide_pages']['shopping_guide'] ?? array();
 $jluxe_sg_site_name = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'identity.site_name', get_bloginfo( 'name' ) ) : get_bloginfo( 'name' );
 $jluxe_sg_eyebrow   = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['eyebrow'] ?? '— راهنمای خرید' );
-$jluxe_sg_title     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['title'] ?? 'راهنمای گام‌به‌گام خرید از {site_name}' );
-$jluxe_sg_intro     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['intro'] ?? '' );
+$jluxe_sg_title     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['title'] ?? 'راهنمای گام‌به‌گام خرید از جهیزیه لوکس' );
+$jluxe_sg_intro     = str_replace( '{site_name}', $jluxe_sg_site_name, $jluxe_sg['intro'] ?? 'خرید از سایت ما بسیار ساده و سریع طراحی شده است. برای ثبت سفارش خود کافی است مراحل زیر را دنبال کنید:' );
 $jluxe_sg_steps     = isset( $jluxe_sg['steps'] ) && is_array( $jluxe_sg['steps'] ) ? $jluxe_sg['steps'] : array();
 $jluxe_sg_btn_text  = $jluxe_sg['button_text'] ?? 'شروع خرید ←';
 if ( jluxe_strlen(wp_strip_all_tags( (string) $jluxe_sg_btn_text )) > 80 ) { $jluxe_sg_btn_text = 'شروع خرید ←'; }
 $jluxe_sg_btn_url   = $jluxe_sg['button_url'] ?? '/';
-$jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background-color:' . esc_attr( $jluxe_sg['button_color'] ) . '"' : '';
+$jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background:' . esc_attr( $jluxe_sg['button_color'] ) . '"' : '';
 ?>
 
 <main id="primary" class="site-main">
@@ -210,10 +209,7 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 			font-size: 14px;
 			font-weight: 700;
 			padding: 13px 32px;
-			border-radius: 14px;
-			max-width: 100%;
-			white-space: normal;
-			word-break: break-word;
+			border-radius: 999px;
 			box-shadow: 0 8px 18px rgba(194, 99, 9, 0.3);
 			transition: transform 0.2s ease, box-shadow 0.2s ease;
 		}
@@ -273,7 +269,7 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 				$callout_text = str_replace( '{site_name}', $jluxe_sg_site_name, $step['callout_text'] ?? '' );
 			?>
 			<div class="jsg-step">
-				<div class="jsg-step-marker"><span class="jsg-step-num"><?php echo esc_html( $i + 1 ); ?></span></div>
+				<div class="jsg-step-marker"><span class="jsg-step-num"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span></div>
 				<div class="jsg-step-body">
 					<h2><?php echo esc_html( $step_title ); ?></h2>
 					<div class="jsg-rich-content"><?php echo wp_kses_post( $step_content ); ?></div>
@@ -296,6 +292,12 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 	</div>
 
 	<script>
+	/* =====================================================================
+	   جهیزیه لوکس — راهنمای گام‌به‌گام خرید (JS اختیاری)
+	   ---------------------------------------------------------------------
+	   هنگام اسکرول، شمارهٔ مرحله‌ای که کاربر در حال مطالعه‌اش است را کمی
+	   برجسته می‌کند. بدون این اسکریپت نیز محتوای صفحه کامل و قابل استفاده است.
+	   ===================================================================== */
 	(function () {
 		"use strict";
 
@@ -312,7 +314,7 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 			container.setAttribute("data-jsg-init", "1");
 
 			if (!window.IntersectionObserver) {
-				return;
+				return; // مرورگرهای خیلی قدیمی؛ صفحه بدون این افکت هم درست کار می‌کند
 			}
 
 			var steps = container.querySelectorAll(".jsg-step");
@@ -343,6 +345,19 @@ $jluxe_sg_btn_style = ! empty( $jluxe_sg['button_color'] ) ? ' style="background
 			document.addEventListener("DOMContentLoaded", init);
 		} else {
 			init();
+		}
+
+		// Boom: برای ناوبری نرمِ اختیاری؛ اسکریپت به آن وابسته نیست.
+		window.addEventListener("boom:page-loaded", init);
+
+		// مسیر اصلی و قابل‌اتکا برای افزودن/جایگزینی DOM در ناوبری نرم.
+		if (window.MutationObserver) {
+			new MutationObserver(function () {
+				var container = document.getElementById(CONTAINER_ID);
+				if (container && container.getAttribute("data-jsg-init") !== "1") {
+					init();
+				}
+			}).observe(document.documentElement, { childList: true, subtree: true });
 		}
 	})();
 	</script>
