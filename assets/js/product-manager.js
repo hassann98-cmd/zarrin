@@ -219,10 +219,13 @@
 			empty.appendChild(cell);
 			rows.appendChild(empty);
 		} else {
-			state.products.forEach(function (product) {
-				rows.appendChild(makeProductRow(product));
+			state.products.forEach(function (product, index) {
+				var productRow = makeProductRow(product);
+				productRow.classList.toggle("is-alt", index % 2 === 1);
+				rows.appendChild(productRow);
 				if (product.type === "variable" && state.openVariations[String(product.id)]) {
 					var accordion = makeAccordionRow(product);
+					accordion.classList.toggle("is-alt", index % 2 === 1);
 					rows.appendChild(accordion);
 					var panel = $("[data-pm-variation-panel]", accordion);
 					var cached = state.variationData[String(product.id)];
@@ -699,6 +702,7 @@
 		var button = $("[data-pm-variations-toggle='" + key + "']", productRow);
 		if (button) button.setAttribute("aria-expanded", "true");
 		var accordion = makeAccordionRow(product);
+		accordion.classList.toggle("is-alt", productRow.classList.contains("is-alt"));
 		productRow.after(accordion);
 		var panel = $("[data-pm-variation-panel]", accordion);
 		var cached = state.variationData[key];

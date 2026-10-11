@@ -1,13 +1,13 @@
 #jluxe-product-manager {
-	--pm-ink: #172c27;
-	--pm-muted: #475b54;
-	--pm-border: #bac9c2;
-	--pm-border-strong: #91a79e;
+	--pm-ink: #1a2c3b;
+	--pm-muted: #506273;
+	--pm-border: #c2ccd5;
+	--pm-border-strong: #8799a9;
 	--pm-surface: #ffffff;
-	--pm-soft: #f1f5f3;
-	--pm-soft-blue: #edf3f7;
-	--pm-primary: #075b4d;
-	--pm-primary-dark: #06483e;
+	--pm-soft: #f1f4f7;
+	--pm-soft-blue: #e8eef4;
+	--pm-primary: #285f83;
+	--pm-primary-dark: #1f4d6b;
 	--pm-success: #176342;
 	--pm-warning: #805a0b;
 	--pm-danger: #a12a32;
@@ -374,10 +374,10 @@
 
 .jluxe-pm-table-wrap {
 	overflow: auto;
-	border: 1px solid var(--pm-border-strong);
+	border: 1px solid #8195a6;
 	border-radius: 12px;
-	background: #fff;
-	box-shadow: 0 4px 15px rgb(20 44 35 / 6%);
+	background: #e3eaf0;
+	box-shadow: 0 4px 15px rgb(28 48 66 / 8%);
 }
 
 .jluxe-pm-table {
@@ -386,7 +386,7 @@
 	border: 0;
 	border-collapse: separate;
 	border-spacing: 0;
-	background: #fff;
+	background: #edf2f6;
 	color: var(--pm-ink);
 	font-size: 12px;
 }
@@ -396,9 +396,9 @@
 	z-index: 1;
 	top: 0;
 	padding: 13px 11px;
-	border-bottom: 1px solid #9caea6;
-	background: #e6eeea;
-	color: #1f372f;
+	border-bottom: 2px solid #778c9e;
+	background: #dbe4ec;
+	color: #233849;
 	font-size: 11px;
 	font-weight: 800;
 	text-align: start;
@@ -411,19 +411,19 @@
 
 .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td {
 	padding: 12px 10px;
-	border-bottom: 2px solid #9eb1a7;
-	border-inline-end: 1px solid #e3eae6;
-	background: #fff;
+	border-bottom: 2px solid #8498a9;
+	border-inline-end: 1px solid #d9e1e8;
+	background: #fff !important;
 	color: var(--pm-ink);
 	vertical-align: middle;
 }
 
-.jluxe-pm-table tbody > tr.jluxe-pm-product-row:nth-child(4n + 1) > td {
-	background: #fbfcfb;
+.jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt > td {
+	background: #edf2f6 !important;
 }
 
 .jluxe-pm-table tbody > tr.jluxe-pm-product-row:hover > td {
-	background: #f0f6f3;
+	background: #e1e9f0 !important;
 }
 
 .jluxe-pm-product-cell {
@@ -587,21 +587,11 @@
 	min-width: 140px;
 	max-width: 185px;
 	padding: 8px !important;
-	border-bottom: 2px solid #bfcec6 !important;
-	background: #f5f8f6 !important;
-}
-
-.jluxe-pm-price-cell--regular {
-	background: #f0f6f2 !important;
-}
-
-.jluxe-pm-price-cell--sale {
-	background: #fff8ec !important;
+	border-bottom: 2px solid #8498a9 !important;
 }
 
 .jluxe-pm-price-cell--sale.is-on-sale {
-	border-bottom-color: #69a77a !important;
-	background: #eaf6ed !important;
+	border-bottom-color: #8498a9 !important;
 }
 
 .jluxe-pm-price-control {
@@ -819,8 +809,22 @@
 .jluxe-pm-stock-cell {
 	min-width: 180px;
 	padding: 8px !important;
-	border-bottom: 2px solid #bfcec6 !important;
-	background: #f2f6f4 !important;
+	border-bottom: 2px solid #8498a9 !important;
+}
+
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td.jluxe-pm-price-cell,
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td.jluxe-pm-stock-cell {
+	background: #fff !important;
+}
+
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt > td.jluxe-pm-price-cell,
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt > td.jluxe-pm-stock-cell {
+	background: #edf2f6 !important;
+}
+
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row:hover > td.jluxe-pm-price-cell,
+#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row:hover > td.jluxe-pm-stock-cell {
+	background: #e1e9f0 !important;
 }
 
 .jluxe-pm-manage-stock {
@@ -991,16 +995,20 @@
 
 .jluxe-pm-accordion-row > td {
 	padding: 0 12px 14px !important;
-	border-bottom: 1px solid #c6d2cc !important;
-	background: #f5f8f6 !important;
+	border-bottom: 2px solid #8799a9 !important;
+	background: #e5ebf1 !important;
+}
+
+.jluxe-pm-accordion-row.is-alt > td {
+	background: #dfe7ee !important;
 }
 
 .jluxe-pm-accordion-shell {
 	margin: 0;
 	padding: 15px;
-	border: 1px solid #9fb2a8;
+	border: 1px solid #8799a9;
 	border-radius: 0 0 12px 12px;
-	background: #f0f5f2;
+	background: #edf2f6;
 	box-shadow: inset 0 1px 0 #fff;
 }
 
@@ -1011,13 +1019,13 @@
 	gap: 10px;
 	margin: -15px -15px 13px;
 	padding: 11px 15px;
-	border-bottom: 1px solid #b9c9c1;
-	border-radius: 0 0 0 0;
-	background: #e2ece7;
+	border-bottom: 1px solid #aebdca;
+	border-radius: 0;
+	background: #d7e2eb;
 }
 
 .jluxe-pm-accordion-title {
-	color: #173b30;
+	color: #233849;
 	font-size: 13px;
 	font-weight: 800;
 }
@@ -1128,9 +1136,9 @@
 
 .jluxe-pm-variation-wrap {
 	overflow: auto;
-	border: 1px solid #aabbb2;
+	border: 1px solid #8799a9;
 	border-radius: 10px;
-	background: #fff;
+	background: #e3eaf0;
 }
 
 .jluxe-pm-variation-table {
@@ -1138,16 +1146,16 @@
 	margin: 0;
 	border: 0;
 	border-spacing: 0;
-	background: #fff;
+	background: #edf2f6;
 	color: var(--pm-ink);
 	font-size: 11px;
 }
 
 .jluxe-pm-variation-table thead th {
 	padding: 10px 8px;
-	border-bottom: 1px solid #9fafa6;
-	background: #e7eef3;
-	color: #203b4c;
+	border-bottom: 2px solid #778c9e;
+	background: #dbe4ec;
+	color: #233849;
 	font-size: 10px;
 	font-weight: 800;
 	text-align: start;
@@ -1156,13 +1164,13 @@
 
 .jluxe-pm-variation-table tbody td {
 	padding: 9px 7px;
-	border-bottom: 1px solid #d6dfda;
+	border-bottom: 2px solid #a0afbc;
 	background: #fff;
 	vertical-align: middle;
 }
 
 .jluxe-pm-variation-table tbody tr:nth-child(even) td {
-	background: #f8faf9;
+	background: #eaf0f5;
 }
 
 .jluxe-pm-variation-table tbody tr:last-child td {
@@ -1693,10 +1701,19 @@ body.jluxe-pm-modal-open {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		margin: 0 0 10px;
 		overflow: hidden;
-		border: 2px solid #879f94;
+		border: 2px solid #8498a9;
 		border-radius: 14px;
 		background: #fff;
-		box-shadow: 0 4px 12px rgb(24 53 40 / 8%);
+		box-shadow: 0 4px 12px rgb(28 48 66 / 9%);
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt {
+		border-color: #778c9e;
+		background: #eaf0f5;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row:hover {
+		background: #e1e9f0;
 	}
 
 	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td {
@@ -1706,17 +1723,24 @@ body.jluxe-pm-modal-open {
 		min-width: 0;
 		padding: 10px !important;
 		border: 0;
-		border-bottom: 1px solid #c6d3cc;
-		border-inline-end: 1px solid #dfe7e2;
-		background: #fff !important;
+		border-bottom: 1px solid #c0ccd6;
+		border-inline-end: 1px solid #d4dee6;
+		background: transparent !important;
 		font-size: 12px;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td.jluxe-pm-price-cell,
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td.jluxe-pm-stock-cell,
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt > td.jluxe-pm-price-cell,
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row.is-alt > td.jluxe-pm-stock-cell {
+		background: transparent !important;
 	}
 
 	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td[data-label]::before,
 	#jluxe-product-manager .jluxe-pm-variation-table tbody td[data-label]::before {
 		display: block;
 		margin: 0 0 7px;
-		color: #354d42;
+		color: #3a5063;
 		content: attr(data-label);
 		font-size: 10px;
 		font-weight: 800;
@@ -1729,7 +1753,7 @@ body.jluxe-pm-modal-open {
 		align-items: flex-start;
 		gap: 10px;
 		padding: 12px !important;
-		border-bottom: 2px solid #9aafa4;
+		border-bottom: 2px solid #8498a9;
 	}
 
 	.jluxe-pm-product-cell > .jluxe-pm-thumb {
@@ -1774,7 +1798,7 @@ body.jluxe-pm-modal-open {
 		min-width: 0;
 		max-width: none;
 		padding: 9px !important;
-		border-bottom: 1px solid #c6d3cc !important;
+		border-bottom: 1px solid #c0ccd6 !important;
 	}
 
 	.jluxe-pm-price-control {
@@ -1844,9 +1868,14 @@ body.jluxe-pm-modal-open {
 	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-accordion-row {
 		display: block;
 		margin: -3px 0 12px;
-		border: 2px solid #9aafa4;
+		border: 2px solid #8799a9;
 		border-radius: 12px;
-		background: #f2f7f4;
+		background: #e5ebf1;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-accordion-row.is-alt {
+		border-color: #778c9e;
+		background: #dfe7ee;
 	}
 
 	.jluxe-pm-accordion-row > td {
@@ -1889,10 +1918,15 @@ body.jluxe-pm-modal-open {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		overflow: hidden;
-		border: 1px solid #9aafa4;
+		border: 1px solid #8498a9;
 		border-radius: 11px;
 		background: #fff;
-		box-shadow: 0 2px 7px rgb(24 53 40 / 6%);
+		box-shadow: 0 2px 7px rgb(28 48 66 / 7%);
+	}
+
+	.jluxe-pm-variation-table tbody > tr:nth-child(even) {
+		border-color: #778c9e;
+		background: #eaf0f5;
 	}
 
 	.jluxe-pm-variation-table tbody td {
@@ -1902,8 +1936,8 @@ body.jluxe-pm-modal-open {
 		min-width: 0;
 		padding: 9px !important;
 		border: 0;
-		border-bottom: 1px solid #d3ded8;
-		background: #fff !important;
+		border-bottom: 1px solid #c0ccd6;
+		background: transparent !important;
 	}
 
 	.jluxe-pm-variation-table tbody td:first-child {

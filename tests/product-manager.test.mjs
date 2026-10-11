@@ -161,7 +161,7 @@ function defaultSummary(defaults, attributes) {
   });
 }
 
-function createAdmin(t, { product = simpleProduct(), quickError = false, variationError = false } = {}) {
+function createAdmin(t, { product = simpleProduct(), products = null, quickError = false, variationError = false } = {}) {
   const dom = new JSDOM(adminMarkup(), {
     url: "https://shop.test/wp-admin/admin.php?page=jluxe-product-manager",
     runScripts: "outside-only",
@@ -198,6 +198,7 @@ function createAdmin(t, { product = simpleProduct(), quickError = false, variati
     },
   };
   let currentProduct = structuredClone(product);
+  const listedProducts = (products || [product]).map((item) => structuredClone(item));
   const terms = {
     product_cat: [{ id: 31, name: "پوشاک", slug: "clothing" }],
     product_brand: [{ id: 41, name: "برند آزمایشی", slug: "test-brand" }],
@@ -222,7 +223,7 @@ function createAdmin(t, { product = simpleProduct(), quickError = false, variati
 
     let result;
     if (action === "jluxe_product_manager_list") {
-      result = { products: [summaryOf(currentProduct)], page: Number(data.page) || 1, pages: 1, total: 1, perPage: 20 };
+      result = { products: listedProducts.map(summaryOf), page: Number(data.page) || 1, pages: 1, total: listedProducts.length, perPage: 20 };
     } else if (action === "jluxe_product_manager_get_product") {
       result = structuredClone(currentProduct);
     } else if (action === "jluxe_product_manager_terms") {
@@ -363,6 +364,29 @@ test("product rows offer public and WooCommerce edit links, group prices, and id
   await wait(480);
   const save = sent.filter((item) => item.action === "jluxe_product_manager_quick_save").at(-1);
   assert.equal(save.data.regular_price, "2590000", "group separators are removed before the numeric value is saved");
+});
+
+test("product stripes alternate by product and expanded variations inherit their parent stripe", async (t) => {
+  const first = simpleProduct();
+  const second = variableProduct();
+  const third = simpleProduct();
+  third.id = 303;
+  third.productUrl = "/product/303/";
+  third.editUrl = "/wp-admin/post.php?post=303&action=edit";
+  const { window } = createAdmin(t, { product: second, products: [first, second, third] });
+  await wait();
+
+  const rows = Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"));
+  assert.equal(rows.length, 3);
+  assert.equal(rows[0].classList.contains("is-alt"), false, "the first product uses the base surface");
+  assert.equal(rows[1].classList.contains("is-alt"), true, "the second product uses the alternating surface");
+  assert.equal(rows[2].classList.contains("is-alt"), false, "the third product returns to the base surface");
+
+  rows[1].querySelector("[data-pm-variations-toggle='202']").click();
+  const details = rows[1].nextElementSibling;
+  assert.ok(details.classList.contains("jluxe-pm-accordion-row"));
+  assert.equal(details.classList.contains("is-alt"), true, "the variation panel stays aligned with its parent's stripe");
+  await wait();
 });
 
 test("unmanaged simple stock status saves inline and remains editable without enabling quantity tracking", async (t) => {
@@ -595,6 +619,18 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.equal(window.document.querySelectorAll("[data-field]").length, 0);
   assert.equal(window.document.querySelectorAll(".jluxe-pm-faq-row, .jluxe-pm-shipping, .jluxe-pm-seo").length, 0);
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
+});
+
+test("product and variation tables use distinct, unified blue-gray stripes", () => {
+  assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: #edf2f6 !important;/);
+  assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: #edf2f6 !important;/);
+  assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: #dfe7ee !important;/);
+  assert.match(styles, /\.jluxe-pm-variation-table tbody tr:nth-child\(even\) td \{\s*background: #eaf0f5;/);
+
+  const mobileRules = styles.slice(styles.lastIndexOf("@media (max-width: 782px)"));
+  assert.match(mobileRules, /tr\.jluxe-pm-product-row\.is-alt \{\s*border-color: #778c9e;\s*background: #eaf0f5;/);
+  assert.match(mobileRules, /\.jluxe-pm-variation-table tbody > tr:nth-child\(even\) \{\s*border-color: #778c9e;\s*background: #eaf0f5;/);
+  assert.match(mobileRules, /tr\.jluxe-pm-product-row > td \{[\s\S]*?background: transparent !important;/);
 });
 
 test("product manager switches to labeled, touch-friendly product and variation cards on mobile", () => {
