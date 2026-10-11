@@ -14,7 +14,7 @@ const DESTINATIONS = {
   shop: { href: siteUrl("shop"), opensDrawer: "categories" },
   home: { href: siteUrl("home") },
   account: { href: siteUrl("dashboard") },
-  cart: { href: siteUrl("cart"), opensDrawer: "cart" },
+  cart: { href: siteUrl("cart") },
 };
 
 function MobileNav() {
@@ -111,14 +111,14 @@ function MobileNav() {
             onClick: (event) => {
               if (item.opensDrawer) {
                 event.preventDefault();
-                window.dispatchEvent(
-                  new CustomEvent(
-                    item.opensDrawer === "cart"
-                      ? "jluxe:open-cart"
-                      : "jluxe:open-categories",
-                  ),
-                );
+                window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
               } else {
+                if (
+                  item.id === "cart" &&
+                  typeof window.jluxeCloseSuggestedProductsModal === "function"
+                ) {
+                  window.jluxeCloseSuggestedProductsModal();
+                }
                 setCurrentHref(item.href);
               }
             },

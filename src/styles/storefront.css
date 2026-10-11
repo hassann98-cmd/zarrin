@@ -9686,3 +9686,11 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
     margin: 0;
   }
 }
+
+/* Keep persistent mobile navigation above the post-add suggestions sheet (z-120). */
+@media (max-width: 767.98px) {
+  #masthead .jluxe-header-bar,
+  .jluxe-mobile-nav[data-jluxe-mobile-nav-dock] {
+    z-index: 130;
+  }
+}

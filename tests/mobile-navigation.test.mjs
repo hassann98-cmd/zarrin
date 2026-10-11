@@ -14,6 +14,7 @@ const classicProductTemplate = await readFile(new URL("woocommerce/content-singl
 const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const headerTemplate = await readFile(new URL("header.php", root), "utf8");
+const headerIslandSource = await readFile(new URL("src/islands/Header.js", root), "utf8");
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
 const {
   isMobileNavItemActive,
@@ -160,12 +161,9 @@ test("R182 floating navigation resolves its built-in support, category, shop, ca
   assert.equal(resolveMobileNavItem({ action: "shop" }, { urls }).opensDrawer, undefined);
   assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: false }).href, urls.login);
   assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: true }).href, urls.dashboard);
-  assert.deepEqual(
-    (({ href, opensDrawer }) => ({ href, opensDrawer }))(
-      resolveMobileNavItem({ action: "cart" }, { urls }),
-    ),
-    { href: urls.cart, opensDrawer: "cart" },
-  );
+  const cartItem = resolveMobileNavItem({ action: "cart" }, { urls });
+  assert.equal(cartItem.href, urls.cart);
+  assert.equal(cartItem.opensDrawer, undefined, "the mobile cart action remains a native route instead of relying on an asynchronously mounted drawer");
   assert.equal(resolveMobileNavItem({ action: "track" }, { urls }).href, urls.track_order);
 });
 
@@ -213,11 +211,32 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
   assert.match(mobileNavSource, /nav_items \?\? \[\]/);
 });
 
-test("mobile cart navigation reaches the mounted mini-cart drawer in both nav variants", () => {
-  assert.match(mobileNavSource, /item\.opensDrawer === "cart"[\s\S]*?"jluxe:open-cart"/);
-  assert.match(floatingNavSource, /item\.opensDrawer === "cart"[\s\S]*?"jluxe:open-cart"/);
+test("mobile cart controls navigate to the real cart page while desktop header keeps its drawer enhancement", () => {
+  assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\) \}/);
+  assert.doesNotMatch(mobileNavSource, /item\.opensDrawer === "cart"/);
+  assert.doesNotMatch(floatingNavSource, /item\.opensDrawer === "cart"/);
+  assert.match(headerIslandSource, /href: siteUrl\("cart"\)/);
+  assert.match(headerIslandSource, /matchMedia\("\(min-width: 768px\)"\)/);
+  assert.match(headerIslandSource, /event\.metaKey[\s\S]*event\.ctrlKey[\s\S]*event\.shiftKey[\s\S]*event\.altKey/);
+  assert.match(headerIslandSource, /window\.dispatchEvent\(new CustomEvent\("jluxe:open-cart"\)\)/);
+  assert.match(headerIslandSource, /window\.jluxeCloseSuggestedProductsModal\(\)/);
+  assert.match(mobileNavSource, /item\.id === "cart"[\s\S]*?window\.jluxeCloseSuggestedProductsModal\(\)/);
+  assert.match(floatingNavSource, /item\.action === "cart"[\s\S]*?window\.jluxeCloseSuggestedProductsModal\(\)/);
   assert.match(miniCartSource, /window\.addEventListener\("jluxe:open-cart",\s*t\)/);
   assert.match(headerTemplate, /data-jluxe-island="mini-cart"/);
+});
+
+test("mobile header and dock stay above the post-add suggestions sheet", () => {
+  const modalZ = Number(storefrontStyles.match(/\.jluxe-pa \{ z-index: (\d+); \}/)?.[1]);
+  const mobileNavigationRule = storefrontStyles.match(
+    /@media \(max-width: 767\.98px\) \{\s*#masthead \.jluxe-header-bar,\s*\.jluxe-mobile-nav\[data-jluxe-mobile-nav-dock\] \{\s*z-index: (\d+);/,
+  );
+
+  assert.equal(modalZ, 120, "the recommendation sheet keeps its intended overlay layer");
+  assert.ok(mobileNavigationRule, "both mobile cart entry points must have an explicit layer above the sheet");
+  assert.ok(Number(mobileNavigationRule[1]) > modalZ, "the header and bottom dock remain tappable while recommendations are open");
+  assert.match(mobileNavSource, /data-jluxe-mobile-nav-dock/);
+  assert.match(floatingNavSource, /data-jluxe-mobile-nav-dock/);
 });
 
 test("R121 product tabs and in-page targets account for the live sticky header and announcement offsets", () => {

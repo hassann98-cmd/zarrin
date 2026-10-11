@@ -375,26 +375,52 @@ function J() {
           })
         : null,
       N || w
-        ? e.jsxs(g, {
+        ? e.jsx(g, {
             variant: "outline",
             className: `gap-1.5 rounded-2xl px-3 md:h-[58px] md:w-[171px] ${S(N, w)}`,
             "aria-label": `سبد خرید${r ? `، ${r} کالا` : ""}`,
-            onClick: () =>
-              window.dispatchEvent(new CustomEvent("jluxe:open-cart")),
             "data-jluxe-cart-icon-desktop": !0,
             "data-jluxe-header-grid": "cart",
-            children: [
-              e.jsx("span", {
-                className:
-                  "flex size-5 items-center justify-center rounded-full bg-muted text-caption font-bold text-foreground",
-                children: r.toLocaleString("fa-IR"),
-              }),
-              e.jsx("span", {
-                className: "hidden text-button md:inline",
-                children: "سبد خرید",
-              }),
-              e.jsx($, { className: "size-5", "aria-hidden": !0 }),
-            ],
+            asChild: !0,
+            children: e.jsxs("a", {
+              href: siteUrl("cart"),
+              onClick: (event) => {
+                // Preserve browser-native modified clicks on this real cart link.
+                if (
+                  event.defaultPrevented ||
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                ) {
+                  return;
+                }
+                // On phones the cart control must open the actual WooCommerce
+                // cart page. Keep the drawer as the desktop enhancement only.
+                if (
+                  typeof window.matchMedia === "function" &&
+                  window.matchMedia("(min-width: 768px)").matches
+                ) {
+                  event.preventDefault();
+                  window.dispatchEvent(new CustomEvent("jluxe:open-cart"));
+                } else if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
+                  window.jluxeCloseSuggestedProductsModal();
+                }
+              },
+              children: [
+                e.jsx("span", {
+                  className:
+                    "flex size-5 items-center justify-center rounded-full bg-muted text-caption font-bold text-foreground",
+                  children: r.toLocaleString("fa-IR"),
+                }),
+                e.jsx("span", {
+                  className: "hidden text-button md:inline",
+                  children: "سبد خرید",
+                }),
+                e.jsx($, { className: "size-5", "aria-hidden": !0 }),
+              ],
+            }),
           })
         : null,
       m

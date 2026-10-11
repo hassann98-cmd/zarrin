@@ -132,16 +132,16 @@ function FloatingMobileNav() {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
       event.preventDefault();
-      window.dispatchEvent(
-        new CustomEvent(
-          item.opensDrawer === "cart"
-            ? "jluxe:open-cart"
-            : "jluxe:open-categories",
-        ),
-      );
+      window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
       return;
     }
     if (!item.targetBlank && item.action !== "assistant") {
+      if (
+        item.action === "cart" &&
+        typeof window.jluxeCloseSuggestedProductsModal === "function"
+      ) {
+        window.jluxeCloseSuggestedProductsModal();
+      }
       setCurrentHref(item.href);
     }
   };
@@ -170,7 +170,7 @@ function FloatingMobileNav() {
           ? MenuIcon
           : navIcons[item.icon] ?? fallbackIcon
         : null;
-      const cartAction = item.action === "cart" || item.opensDrawer === "cart";
+      const cartAction = item.action === "cart";
       const color = active ? colors.active : colors.icon;
       return jsx.jsxs(
         "a",
