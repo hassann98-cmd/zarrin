@@ -3349,7 +3349,7 @@ check(
 	array_reduce( $r194_restored_v7['footer']['feature_cards'], static function ( $enabled, $card ) {
 		return $enabled && ! empty( $card['enabled'] );
 	}, true ),
-	'R197 v7 settings migrate through v14 to the consistent benefit headings and enable the four cards'
+	'R197 v7 settings migrate through v15 to the consistent benefit headings and enable the four cards'
 );
 $r194_custom_v7 = array(
 	'footer' => array(
@@ -3386,7 +3386,7 @@ check(
 	'truck' === $r195_migrated_v8['footer']['feature_cards'][0]['icon'] &&
 	'پشتیبانیِ سفارشی' === $r195_migrated_v8['footer']['feature_cards'][1]['title'] &&
 	'متن ثبت‌شده توسط مدیر' === $r195_migrated_v8['footer']['feature_cards'][1]['subtitle'],
-	'R197 v8 settings migrate through v14 to the full bold shipping slogan and preserves the other configured card'
+	'R197 v8 settings migrate through v15 to the full bold shipping slogan and preserves the other configured card'
 );
 $r195_custom_first_v8 = array(
 	'footer' => array(
@@ -3514,7 +3514,7 @@ check(
 	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
 	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
 	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
-	'R197 v6 settings migrate through v14: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
+	'R197 v6 settings migrate through v15: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
 );
 check(
 	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
@@ -3533,7 +3533,7 @@ check(
 	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
 );
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v14 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v15 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -3763,11 +3763,11 @@ check(
 );
 $r231_admin_form_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 check(
-	false !== strpos( $r231_admin_form_source, "array( 'payment_guide', 'shipping_tracking' )" ) &&
+	false !== strpos( $r231_admin_form_source, "array( 'payment_guide', 'shipping_tracking', 'returns_exchanges' )" ) &&
 	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]' ) &&
 	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]' ) &&
 	false !== strpos( $r231_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]' ),
-	'R231 the shipping guide editor exposes its optional footer-CTA text, URL, and color settings'
+	'R231/R232 guide editors expose shipping and returns footer-CTA text, URL, and color settings'
 );
 $r231_render_settings = $r231_defaults;
 $r231_render_settings['urls']['track_order'] = '/order-status/';
@@ -3803,11 +3803,136 @@ check(
 );
 update_test_settings( jluxe_theme_settings_defaults() );
 
+// R232: supplied returns/exchanges guide, exact-default migration, and page rendering.
+$r232_defaults = jluxe_theme_settings_defaults();
+$r232_returns_guide = $r232_defaults['guide_pages']['returns_exchanges'];
+$r232_returns_body = $r232_returns_guide['body_html'];
+check(
+	'رویهٔ شرایط مرجوعی و تعویض کالا' === $r232_returns_guide['title'] &&
+	false !== strpos( $r232_returns_guide['intro'], '{site_name}' ) &&
+	'بازگشت به فروشگاه ←' === $r232_returns_guide['button_text'] &&
+	'/' === $r232_returns_guide['button_url'] &&
+	3 === substr_count( $r232_returns_body, 'class="jrp-section"' ) &&
+	1 === substr_count( $r232_returns_body, 'class="jrp-golden-rule"' ) &&
+	3 === substr_count( $r232_returns_body, '<span class="jrp-num">' ) &&
+	1 === substr_count( $r232_returns_body, '<span class="jrp-num jrp-num-alert">' ) &&
+	false !== strpos( $r232_returns_body, 'مهلت ۷ روزه' ) &&
+	false !== strpos( $r232_returns_body, 'استثنائات مرجوعی' ) &&
+	false !== strpos( $r232_returns_body, 'تحویل کالاهای شکستنی و ظاهری' ) &&
+	false !== strpos( $r232_returns_body, '۴۸ ساعت کاری' ) &&
+	false !== strpos( $r232_returns_body, 'کالاهای غیرقابل مرجوع (خاص)' ) &&
+	false === strpos( $r232_returns_body, 'id="jluxe-returns-page"' ) &&
+	false === strpos( $r232_returns_body, 'class="jrp-btn"' ),
+	'R232 defaults preserve the four supplied policy sections and keep the template wrapper and footer CTA single-sourced'
+);
+$r232_old_returns = array(
+	'version' => 14,
+	'guide_pages' => array(
+		'returns_exchanges' => array(
+			'intro' => '',
+			'deny_title' => '',
+			'deny_item_1_label' => '',
+			'deny_item_1_text' => '',
+			'deny_item_2_label' => '',
+			'deny_item_2_text' => '',
+			'tip_label' => '',
+			'tip_text' => '',
+			'button_text' => 'بازگشت به فروشگاه ←',
+			'button_url' => '/',
+			'button_color' => '',
+			'body_html' => '',
+		),
+	),
+);
+$r232_migrated_returns = jluxe_migrate_settings_to_current_version( $r232_old_returns, 14 );
+check(
+	JLUXE_SETTINGS_VERSION === $r232_migrated_returns['version'] &&
+	$r232_returns_guide['intro'] === $r232_migrated_returns['guide_pages']['returns_exchanges']['intro'] &&
+	$r232_returns_body === $r232_migrated_returns['guide_pages']['returns_exchanges']['body_html'] &&
+	'بازگشت به فروشگاه ←' === $r232_migrated_returns['guide_pages']['returns_exchanges']['button_text'] &&
+	'/' === $r232_migrated_returns['guide_pages']['returns_exchanges']['button_url'],
+	'R232 v14-to-v15 migration fills only the untouched blank returns intro/body and retains the existing store CTA'
+);
+$r232_custom_returns = $r232_old_returns;
+$r232_custom_returns['guide_pages']['returns_exchanges']['intro'] = 'مقدمهٔ سفارشی مدیر';
+$r232_custom_returns['guide_pages']['returns_exchanges']['body_html'] = '<div class="jrp-section"><p>HTML سفارشی مدیر</p></div>';
+$r232_custom_returns['guide_pages']['returns_exchanges']['deny_title'] = 'عنوان قدیمی تنظیم‌شده';
+$r232_custom_returns['guide_pages']['returns_exchanges']['button_text'] = 'بازگشت سفارشی';
+$r232_custom_returns['guide_pages']['returns_exchanges']['button_url'] = '/returns-custom/';
+$r232_custom_returns['guide_pages']['returns_exchanges']['button_color'] = '#e0a010';
+$r232_migrated_custom_returns = jluxe_migrate_settings_to_current_version( $r232_custom_returns, 14 )['guide_pages']['returns_exchanges'];
+check(
+	'مقدمهٔ سفارشی مدیر' === $r232_migrated_custom_returns['intro'] &&
+	'<div class="jrp-section"><p>HTML سفارشی مدیر</p></div>' === $r232_migrated_custom_returns['body_html'] &&
+	'عنوان قدیمی تنظیم‌شده' === $r232_migrated_custom_returns['deny_title'] &&
+	'بازگشت سفارشی' === $r232_migrated_custom_returns['button_text'] &&
+	'/returns-custom/' === $r232_migrated_custom_returns['button_url'] &&
+	'#e0a010' === $r232_migrated_custom_returns['button_color'],
+	'R232 migration preserves custom returns copy, legacy admin fields, and every CTA setting'
+);
+$r232_partial_intro = $r232_old_returns;
+$r232_partial_intro['guide_pages']['returns_exchanges']['intro'] = 'مقدمهٔ اختصاصی';
+$r232_partial_body = $r232_old_returns;
+$r232_partial_body['guide_pages']['returns_exchanges']['body_html'] = '<div class="jrp-section"><p>بدنهٔ اختصاصی</p></div>';
+$r232_migrated_partial_intro = jluxe_migrate_settings_to_current_version( $r232_partial_intro, 14 )['guide_pages']['returns_exchanges'];
+$r232_migrated_partial_body = jluxe_migrate_settings_to_current_version( $r232_partial_body, 14 )['guide_pages']['returns_exchanges'];
+check(
+	'مقدمهٔ اختصاصی' === $r232_migrated_partial_intro['intro'] && $r232_returns_body === $r232_migrated_partial_intro['body_html'] &&
+	$r232_returns_guide['intro'] === $r232_migrated_partial_body['intro'] && '<div class="jrp-section"><p>بدنهٔ اختصاصی</p></div>' === $r232_migrated_partial_body['body_html'],
+	'R232 migration upgrades an untouched returns field independently without replacing the other custom field'
+);
+$r232_sanitized_returns = jluxe_sanitize_guide_pages(
+	array( 'returns_exchanges' => array( 'body_html' => '<div class="jrp-section"><p><strong>HTML مرجوعی</strong></p></div>' ) ),
+	$r232_defaults['guide_pages']
+);
+check(
+	'<div class="jrp-section"><p><strong>HTML مرجوعی</strong></p></div>' === $r232_sanitized_returns['returns_exchanges']['body_html'],
+	'R232 rich returns-guide HTML survives the normal WordPress guide-editor sanitization path'
+);
+$r232_admin_form_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r232_admin_form_source, "array( 'payment_guide', 'shipping_tracking', 'returns_exchanges' )" ) &&
+	false !== strpos( $r232_admin_form_source, "'shipping_tracking' === \$page_key ? 'دکمهٔ پایانیِ اضافه (اختیاری)' : 'دکمهٔ بازگشت'" ) &&
+	false !== strpos( $r232_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]' ) &&
+	false !== strpos( $r232_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]' ) &&
+	false !== strpos( $r232_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]' ),
+	'R232 returns settings expose editable copy and the optional title/URL/color fields for the existing footer CTA'
+);
+$r232_render_settings = $r232_defaults;
+$r232_render_settings['identity']['site_name'] = 'Returns test shop';
+$r232_render_settings['guide_pages']['returns_exchanges']['button_text'] = 'بازگشت سفارشی';
+$r232_render_settings['guide_pages']['returns_exchanges']['button_url'] = '/returns-home/';
+$r232_render_settings['guide_pages']['returns_exchanges']['button_color'] = '#e0a010';
+update_test_settings( $r232_render_settings );
+ob_start();
+require ABSPATH . 'page-returns-and-exchanges.php';
+$r232_returns_html = (string) ob_get_clean();
+check(
+	1 === substr_count( $r232_returns_html, 'id="jluxe-returns-page"' ) &&
+	false !== strpos( $r232_returns_html, '<h1>رویهٔ شرایط مرجوعی و تعویض کالا</h1>' ) &&
+	false !== strpos( $r232_returns_html, 'اولویت‌های اصلی Returns test shop' ) &&
+	false !== strpos( $r232_returns_html, 'بخشی از محصولات Returns test shop' ) &&
+	false !== strpos( $r232_returns_html, 'فروشگاه Returns test shop هیچ‌گونه مسئولیتی' ) &&
+	false === strpos( $r232_returns_html, '{site_name}' ) &&
+	false !== strpos( $r232_returns_html, '<a href="https://shop.test/store/returns-home/" class="jrp-btn" style="background:#e0a010">بازگشت سفارشی</a>' ),
+	'R232 rendered returns page substitutes the site name, renders one wrapper, and resolves/customizes the footer CTA'
+);
+$r232_returns_template = (string) file_get_contents( ABSPATH . 'page-returns-and-exchanges.php' );
+check(
+	false !== strpos( $r232_returns_template, '.jrp-section {' ) &&
+	false !== strpos( $r232_returns_template, '.jrp-golden-rule {' ) &&
+	false !== strpos( $r232_returns_template, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r232_returns_template, 'prefers-reduced-motion: reduce' ) &&
+	false !== strpos( $r232_returns_template, 'style="background:' ),
+	'R232 returns page retains the supplied scoped cards, golden-rule emphasis, responsive and reduced-motion CSS'
+);
+update_test_settings( jluxe_theme_settings_defaults() );
+
 $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-import-export.php' );
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v14 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v15 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -4806,10 +4931,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v14 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v15 with legacy fixes, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v14 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v15 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );

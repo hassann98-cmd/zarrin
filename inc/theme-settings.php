@@ -3,8 +3,8 @@
  * پنل تنظیمات JLuxe (wp-admin → JLuxe → تنظیمات ظاهری).
  *
  * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). پیش‌فرض‌ها
- * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنماهای پرداخت و ارسال/پیگیری
- * که مدیر برای همین صفحات فرستاده، استثنای صریح است و در پنل قابل‌ویرایش می‌ماند.
+ * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنماهای پرداخت، ارسال/پیگیری
+ * و مرجوعی که مدیر برای همین صفحات فرستاده، استثنای صریح و قابل‌ویرایش است.
  * سایر اطلاعات تجاری و سیاست‌های وابسته به فروشگاه باید از مدیر بیایند.
  *
  * فقط بخش‌هایی که واقعاً به frontend وصل شدن پیاده‌سازی شدن (رنگ‌ها، هویت
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 14;
+const JLUXE_SETTINGS_VERSION = 15;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -90,6 +90,62 @@ function jluxe_faq_default_items(): array {
 	);
 }
 
+/** Default HTML supplied for the returns and exchanges guide. */
+function jluxe_returns_exchanges_default_body_html(): string {
+	return <<<'JLUXE_HTML'
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۱</span>
+			<h2>شرایط انصراف از خرید <small>(مهلت ۷ روزه)</small></h2>
+		</div>
+		<p class="jrp-lead">مشتریان محترم می‌توانند ظرف مدت ۷ روز کاری از خرید خود منصرف شده و کالا را مرجوع کنند، مشروط بر اینکه:</p>
+		<p><strong>حفظ سلامت کالا:</strong> کالای خریداری‌شده کاملاً در وضعیت اولیه (پلمب) باشد، از آن استفاده نشده باشد و هیچ‌گونه تغییری در فرم، بسته‌بندی یا شکل ظاهری آن ایجاد نشده باشد.</p>
+		<p><strong>هزینهٔ ارسال:</strong> در صورت انصراف سلیقه‌ای مشتری از خرید، هزینهٔ بازپس‌فرستادن کالا برعهدهٔ خریدار خواهد بود.</p>
+		<p><strong>عیوب فنی:</strong> چنانچه کالا پس از بازشدن از بسته‌بندی اصلی دارای عیب یا نقص فنی داخلی (غیرظاهری) باشد، مشمول شرایط تعویض خواهد بود.</p>
+
+		<div class="jrp-callout jrp-callout-deny">
+			<p class="jrp-callout-title">استثنائات مرجوعی — اقلام غیرقابل تعویض به دلایل بهداشتی</p>
+			<p><strong>انواع حوله:</strong> به دلیل رعایت کامل اصول بهداشتی، امکان تعویض یا مرجوعی انواع حوله به هیچ عنوان وجود ندارد.</p>
+			<p><strong>کالای خواب (روتختی، ملحفه و پتو):</strong> به دلیل حساسیت‌های بهداشتی (احتمال انتقال باکتری یا حشرات ریز میکروسکوپی)، امکان مرجوعی روتختی و پتو وجود ندارد.</p>
+		</div>
+
+		<div class="jrp-callout jrp-callout-tip">
+			<p><strong>نکته برای خرید مطمئن:</strong> جهت اطمینان کامل شما از جنس و رنگ، قبل از ارسال کالای خواب، در صورت درخواست شما عکس‌های واقعی و باکیفیت از تمام جزئیات کالا از طریق پیام‌رسان‌ها برایتان ارسال خواهد شد.</p>
+		</div>
+	</div>
+
+	<div class="jrp-golden-rule">
+		<span class="jrp-golden-badge">قانون طلایی</span>
+		<div class="jrp-section-head">
+			<span class="jrp-num jrp-num-alert">۲</span>
+			<h2>تحویل کالاهای شکستنی و ظاهری</h2>
+		</div>
+		<p>با توجه به اینکه بخشی از محصولات {site_name} شامل کالاهای حساس و شکستنی است، قوانین تحویل به شرح زیر است:</p>
+		<p>خریدار مکلف است بلافاصله در زمان دریافت کالا و در حضور مأمور کالارسان (پست، تیپاکس یا چاپار)، بسته را باز کرده و سلامت فیزیکی کالا را بررسی کند.</p>
+		<p>چنانچه کالا دارای عیوب ظاهری ناشی از حمل‌ونقل مانند شکستگی، ترک‌خوردگی، زدگی، خط‌وخش و... باشد، خریدار باید از تحویل‌گرفتن آن خودداری کرده و بسته را به مأمور ارجاع دهد.</p>
+		<div class="jrp-golden-warning">
+			<p><strong>نکتهٔ بسیار مهم:</strong> تحویل‌گرفتن کالا از مأمور ارسال به‌منزلهٔ تایید سلامت فیزیکی آن است و فروشگاه {site_name} هیچ‌گونه مسئولیتی در قبال ادعاهای بعدی مبنی بر شکستگی یا آسیب ظاهری نخواهد داشت.</p>
+		</div>
+	</div>
+
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۳</span>
+			<h2>نحوه و زمان عودت وجه</h2>
+		</div>
+		<p>پس از برگشت کالا به انبار {site_name} و تایید اصالت و سلامت آن توسط کارشناسان بخش پشتیبانی، مبلغ پرداختی مشتری حداکثر ظرف مدت <strong>۴۸ ساعت کاری</strong> به حساب وی (شمارهٔ کارت به نام خریدار) عودت داده خواهد شد.</p>
+	</div>
+
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۴</span>
+			<h2>کالاهای غیرقابل مرجوع (خاص)</h2>
+		</div>
+		<p>برخی از کالاهای خاص که به دلیل شرایط فروش یا ماهیت کالا قابل مرجوع‌شدن نیستند، به‌صورت واضح در صفحهٔ خرید همان کالا با برچسب «غیرقابل مرجوع» مشخص شده‌اند؛ لطفاً هنگام خرید به این نکته توجه فرمایید.</p>
+	</div>
+	JLUXE_HTML;
+}
+
 /** Default HTML supplied for the shipping and order-tracking guide. */
 function jluxe_shipping_tracking_default_body_html(): string {
 	return <<<'JLUXE_HTML'
@@ -146,8 +202,8 @@ function jluxe_shipping_tracking_default_body_html(): string {
 }
 
 /**
- * مقادیر پیش‌فرضِ عمومی؛ به‌جز متنِ راهنمای پرداخت و ارسال/پیگیری که مدیر
- * برای همین صفحه‌ها فرستاده، داده‌ها و سیاست‌های تجاریِ وابسته به فروشگاه
+ * مقادیر پیش‌فرضِ عمومی؛ محتوای راهنماهای پرداخت، ارسال/پیگیری و مرجوعی
+ * مطابق متن ارسالی مدیر است؛ سایر داده‌ها و سیاست‌های وابسته به فروشگاه
  * باید از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
@@ -550,9 +606,9 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'returns_exchanges' => array(
 				'title'        => 'رویهٔ شرایط مرجوعی و تعویض کالا',
-				'intro'        => '',
-				// فیلدهای سیاست مرجوعی فقط زمانی در صفحه نمایش می‌یابند که مدیر
-				// متن و استثناهای واقعی فروشگاه را ثبت کند.
+				'intro'        => 'رضایتمندی مشتریان همواره از اولویت‌های اصلی {site_name} بوده تا تمامی سفارش‌ها در شرایط مطلوب و مطابق انتظار شما ارسال شوند. با این حال، چنانچه بنا به دلایلی تمایل به تعویض یا مرجوع‌کردن کالای خود دارید، مفاد زیر به‌عنوان شرایط قانونی و موردتوافق طرفین حاکم بر خرید اینترنتی خواهد بود.',
+				// این فیلدهای قدیمی برای صفحه‌های سفارشی نگه داشته می‌شوند؛ متن
+				// پیش‌فرض فعلی در body_html کامل و قابل‌ویرایش است.
 				'deny_title'        => '',
 				'deny_item_1_label' => '',
 				'deny_item_1_text'  => '',
@@ -563,7 +619,7 @@ function jluxe_theme_settings_defaults(): array {
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '',
+				'body_html' => jluxe_returns_exchanges_default_body_html(),
 			),
 			'track_order' => array(
 				'title'        => 'پیگیری سفارش سریع',
@@ -1679,6 +1735,29 @@ function jluxe_migrate_settings_v14( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v14→v15: fill the previously blank returns-guide intro/body only when they
+ * still match the untouched neutral defaults; administrator content survives.
+ */
+function jluxe_migrate_settings_v15( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults()['guide_pages']['returns_exchanges'] ?? array();
+	$old_values = array(
+		'intro'     => '',
+		'body_html' => '',
+	);
+
+	if ( isset( $settings['guide_pages']['returns_exchanges'] ) && is_array( $settings['guide_pages']['returns_exchanges'] ) ) {
+		foreach ( $old_values as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['returns_exchanges'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $defaults[ $field ] ) ) {
+				$settings['guide_pages']['returns_exchanges'][ $field ] = $defaults[ $field ];
+			}
+		}
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1695,6 +1774,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		12 => 'jluxe_migrate_settings_v12',
 		13 => 'jluxe_migrate_settings_v13',
 		14 => 'jluxe_migrate_settings_v14',
+		15 => 'jluxe_migrate_settings_v15',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {

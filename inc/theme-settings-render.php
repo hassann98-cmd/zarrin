@@ -1883,8 +1883,8 @@ function jluxe_render_contact_pages_page(): void {
 
 /**
  * صفحه‌ی «صفحات راهنما»: عنوان، مقدمه و HTML هر پنج صفحه در همین فرم
- * ویرایش می‌شوند؛ CTA خرید/پرداخت، CTA تکمیلیِ اختیاریِ ارسال و چهار فیلد
- * حساب نیز در دسترس‌اند.
+ * ویرایش می‌شوند؛ CTA خرید/پرداخت، CTA تکمیلیِ اختیاریِ ارسال، CTA بازگشتِ
+ * مرجوعی و چهار فیلد حساب نیز در دسترس‌اند.
  * فرمِ راهنماها عمداً یکپارچه است، چون jluxe_sanitize_guide_pages کل بخش را
  * ذخیره می‌کند و نبودنِ یک صفحه در POST مقدارش را به پیش‌فرض برمی‌گرداند؛
  * فرم‌های جداگانه می‌توانستند ناخواسته تنظیماتِ صفحه‌های دیگر را بازنشانی کنند.
@@ -1968,8 +1968,8 @@ function jluxe_render_guide_pages_page(): void {
 				<summary class="jluxe-hb-section-head"><span class="dashicons dashicons-media-document"></span><strong class="jluxe-hb-type-label"><?php echo esc_html( $page_label ); ?></strong><span class="dashicons dashicons-arrow-down-alt2 jluxe-hb-chevron"></span></summary>
 				<div class="jluxe-hb-section-body">
 					<table class="form-table" role="presentation"><tr><th>عنوان صفحه</th><td><input class="large-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][title]" value="<?php echo esc_attr( $page_row['title'] ?? '' ); ?>"></td></tr><tr><th>مقدمه</th><td><textarea class="large-text" rows="3" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][intro]"><?php echo esc_textarea( $page_row['intro'] ?? '' ); ?></textarea></td></tr>
-					<?php if ( in_array( $page_key, array( 'payment_guide', 'shipping_tracking' ), true ) ) : ?>
-					<?php $cta_label = 'payment_guide' === $page_key ? 'دکمهٔ بازگشت' : 'دکمهٔ پایانیِ اضافه (اختیاری)'; ?>
+					<?php if ( in_array( $page_key, array( 'payment_guide', 'shipping_tracking', 'returns_exchanges' ), true ) ) : ?>
+					<?php $cta_label = 'shipping_tracking' === $page_key ? 'دکمهٔ پایانیِ اضافه (اختیاری)' : 'دکمهٔ بازگشت'; ?>
 					<tr><th><label>متن <?php echo esc_html( $cta_label ); ?></label></th><td><input class="regular-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]" value="<?php echo esc_attr( $page_row['button_text'] ?? '' ); ?>" /></td></tr>
 					<tr><th><label>پیوند <?php echo esc_html( $cta_label ); ?></label></th><td><input class="regular-text" dir="ltr" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]" value="<?php echo esc_attr( $page_row['button_url'] ?? '' ); ?>" /></td></tr>
 					<tr><th><label>رنگ <?php echo esc_html( $cta_label ); ?></label></th><td><input class="jluxe-color-field" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]" value="<?php echo esc_attr( $page_row['button_color'] ?? '' ); ?>" data-default-color="" /></td></tr>
