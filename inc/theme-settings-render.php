@@ -1604,8 +1604,8 @@ function jluxe_render_mobile_contact_page(): void {
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
-					<h3>اطلاعات تماس</h3>
-					<p class="description">اگر فیلدی خالی بمونه، در سایت نمایش داده نمی‌شه. همینا در صفحه‌ی «تماس با ما» (contact-us) هم نشون داده می‌شن. ساعاتِ پاسخگویی رو از تبِ «فوتر» ← «ساعات پشتیبانی» تنظیم کن (همون فیلد، هم فوتر هم این صفحه رو پوشش می‌ده).</p>
+						<h3>اطلاعات تماس</h3>
+						<p class="description">شماره‌ها و ایمیلِ واردشده در صفحه‌ی «تماس با ما» هم نمایش داده می‌شوند. ساعتِ تماس تلفنی و متنِ صفحه را در بخش «متنِ صفحاتِ تماس/درباره» تنظیم کنید؛ ساعاتِ پشتیبانیِ فوتر، تنظیمی جداگانه است.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-phone">تلفن</label></th>
@@ -1729,7 +1729,7 @@ function jluxe_render_contact_pages_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">همین متن هم در فوتر سایت و هم در صفحه‌ی «تماس با ما» نشون داده می‌شه.</p>
+					<p class="description">این مقدار فقط در فوتر سایت نمایش داده می‌شود؛ ساعات تماس تلفنیِ صفحه‌ی «تماس با ما» از بخش متنِ همان صفحه تنظیم می‌شود.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-cp-hours">ساعات پاسخگویی</label></th>
@@ -1750,7 +1750,7 @@ function jluxe_render_contact_pages_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">هر شبکه‌ای که «فعال» نباشه، اصلاً در سایت (فوتر و صفحه‌ی تماس با ما) نمایش داده نمی‌شه.</p>
+					<p class="description">شبکه‌های فعال در فوتر نمایش داده می‌شوند؛ لینکِ اینستاگرامِ فعال در کارتِ شبکه‌های اجتماعیِ صفحه‌ی تماس هم می‌آید.</p>
 					<table class="form-table" role="presentation">
 						<?php foreach ( $social_labels as $key => $label ) : $row = $settings['social'][ $key ]; ?>
 							<tr>
@@ -1819,11 +1819,28 @@ function jluxe_render_contact_pages_page(): void {
 								<th scope="row"><label for="jluxe-cp-<?php echo esc_attr( $page_key ); ?>-text">متنِ توضیح</label></th>
 								<td><textarea id="jluxe-cp-<?php echo esc_attr( $page_key ); ?>-text" name="info_pages[<?php echo esc_attr( $page_key ); ?>][intro_text]" rows="3" class="large-text"><?php echo esc_textarea( $row['intro_text'] ); ?></textarea></td>
 							</tr>
-							<?php if ( 'contact' === $page_key ) : ?>
-								<tr><th>عنوان کارت تلفن</th><td><input type="text" name="info_pages[contact][phone_title]" value="<?php echo esc_attr( $row['phone_title'] ?? 'شماره‌ی تماس' ); ?>" class="regular-text" /></td></tr>
-								<tr><th>عنوان کارت ساعات</th><td><input type="text" name="info_pages[contact][hours_title]" value="<?php echo esc_attr( $row['hours_title'] ?? 'ساعات پاسخگویی' ); ?>" class="regular-text" /></td></tr>
-								<tr><th>عنوان کارت شبکه‌های اجتماعی</th><td><input type="text" name="info_pages[contact][social_title]" value="<?php echo esc_attr( $row['social_title'] ?? 'شبکه‌های اجتماعی' ); ?>" class="regular-text" /></td></tr>
-							<?php endif; ?>
+								<?php if ( 'contact' === $page_key ) : ?>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-phone-title">عنوان کارت تلفنی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-phone-title" name="info_pages[contact][phone_title]" value="<?php echo esc_attr( $row['phone_title'] ?? 'تماس تلفنی' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-phone-hours">ساعات تماس تلفنی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-phone-hours" name="info_pages[contact][phone_hours]" value="<?php echo esc_attr( $row['phone_hours'] ?? '' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-email-title">عنوان کارت ایمیل</label></th>
+										<td><input type="text" id="jluxe-cp-contact-email-title" name="info_pages[contact][email_title]" value="<?php echo esc_attr( $row['email_title'] ?? 'ایمیل' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-social-title">عنوان کارت شبکه‌های اجتماعی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-social-title" name="info_pages[contact][social_title]" value="<?php echo esc_attr( $row['social_title'] ?? 'شبکه‌های اجتماعی' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-social-text">توضیح شبکه‌های اجتماعی</label></th>
+										<td><textarea id="jluxe-cp-contact-social-text" name="info_pages[contact][social_text]" rows="2" class="large-text"><?php echo esc_textarea( $row['social_text'] ?? '' ); ?></textarea></td>
+									</tr>
+								<?php endif; ?>
 							<tr>
 								<th scope="row">لوگو بالای صفحه</th>
 								<td><label><input type="checkbox" name="info_pages[<?php echo esc_attr( $page_key ); ?>][show_logo]" value="1" <?php checked( ! empty( $row['show_logo'] ) ); ?> /> نمایشِ لوگوی سایت بالای این صفحه</label></td>

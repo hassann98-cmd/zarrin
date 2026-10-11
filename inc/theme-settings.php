@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 15;
+const JLUXE_SETTINGS_VERSION = 16;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -472,9 +472,9 @@ function jluxe_theme_settings_defaults(): array {
 		 * پیش‌فرض رو با کدِ دلخواهِ خودش عوض کنه.
 		 */
 		'social' => array(
-			'instagram' => array(
-				'enabled' => false,
-				'url'     => '',
+				'instagram' => array(
+					'enabled' => true,
+					'url'     => 'https://instagram.com/jluxeir',
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6C2 3.79086 3.79086 2 6 2H18C20.2091 2 22 3.79086 22 6V18C22 20.2091 20.2091 22 18 22H6C3.79086 22 2 20.2091 2 18V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12.0001" r="4.44444" stroke="currentColor" stroke-width="2"/><path d="M18 6.0217V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 			),
 			'telegram'  => array(
@@ -498,30 +498,33 @@ function jluxe_theme_settings_defaults(): array {
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.425 23.987a12.218 12.218 0 0 1-2.95-.514 6.578 6.578 0 0 0-.336-.116C4.936 22.303 2.22 19.763.913 16.599a11.92 11.92 0 0 1-.9-4.063C.005 12.377.001 10.246 0 6.74 0 .71-.005 1.137.07.903.23.394.673.05 1.224.005c.421-.034.7.088 1.603.699.562.38 1.119.78 1.796 1.289.315.237.353.261.376.247l.35-.23c.58-.381 1.11-.677 1.7-.945A11.913 11.913 0 0 1 9.766.21a11.19 11.19 0 0 1 2.041-.2c1.14-.016 2.077.091 3.152.36 3.55.888 6.538 3.411 8.028 6.78.492 1.113.845 2.43.945 3.522.033.366.039.43.053.611.008.105.015.406.015.669 0 .783-.065 1.57-.169 2.064a5.474 5.474 0 0 0-.046.26c-.056.378-.214.987-.399 1.535-.205.613-.367.999-.684 1.633a11.95 11.95 0 0 1-2.623 3.436c-.44.396-.829.705-1.26 1.003-.647.445-1.307.812-2.039 1.134-.6.265-1.44.539-2.101.686a11.165 11.165 0 0 1-1.178.202 12.28 12.28 0 0 1-2.076.082zm-.61-5.92c.294-.06.678-.209.864-.337.144-.099.428-.376 2.064-2.013a161.8 161.8 0 0 1 1.764-1.753c.017 0 1.687-1.67 1.687-1.689 0-.02 1.64-1.648 1.661-1.648.01 0 .063-.047.118-.106.467-.495.682-.957.716-1.547.026-.433-.06-.909-.217-1.196a2.552 2.552 0 0 0-.983-1.024c-.281-.163-.512-.233-.888-.27-.306-.031-.688 0-.948.075-.243.07-.603.274-.853.481-.042.035-1.279 1.265-2.748 2.733l-2.671 2.67-1.093-1.09c-.6-.6-1.12-1.114-1.155-1.142a2.419 2.419 0 0 0-1.338-.51c-.404-.013-.91.09-1.224.25a2.89 2.89 0 0 0-.659.526c-.108.12-.287.357-.29.385-.003.03-.009.044-.065.16a2.312 2.312 0 0 0-.224.91c-.011.229-.01.265.019.491.045.353.24.781.51 1.115.05.063.97.992 2.044 2.064 1.507 1.505 1.98 1.97 2.074 2.039.327.24.683.388 1.101.456.182.03.5.016.734-.03z" fill="currentColor"/></svg>',
 			),
 		),
-		'contact' => array(
-			'phone'           => '',
-			// شماره‌ی دومِ اختیاری — طبقِ درخواستِ کاربر («بتونیم شماره تلفن رو
-			// جایگزین یا کلا غیرفعال کنیم»)، صفحه‌ی contact-us هر دو شماره رو
-			// (اگه خالی نباشن) کنارِ هم نشون می‌ده؛ خالی = فقط شماره‌ی اول.
-			'phone_secondary' => '',
-			'email'   => '',
-			'address' => '',
+			'contact' => array(
+				// مقادیر تماس زیر از اطلاعاتی آمده‌اند که مدیر برای صفحهٔ تماس
+				// فرستاده است؛ از تنظیمات قابل‌ویرایش‌اند و به‌عنوان تأیید مستقل
+				// شماره‌ها/نشانی ایمیل تلقی نمی‌شوند.
+				'phone'           => '۰۹۳۶۲۴۲۰۲۳۲',
+				'phone_secondary' => '۰۹۱۲۰۹۰۲۳۳۶',
+				'email'           => 'info@jahiziyeluxe.ir',
+				'address'         => '',
 			// اطلاعیه‌ی کوچک در داشبورد حساب کاربری (بخش «دسترسی سریع») —
 			// خالی یعنی نمایش داده نشه؛ هیچ متن نمونه‌ی از قبل ست نمی‌شه.
 			'dashboard_announcement'      => '',
 			'dashboard_announcement_link' => '',
 		),
-		// محتوای هویت و صفحات تماس/درباره عمداً خالی می‌ماند تا مدیر
-		// اطلاعات واقعی فروشگاه را پیش از انتشار وارد کند.
-		'info_pages' => array(
-			'contact' => array(
-				'intro_title' => 'راه‌های تماس',
-				'intro_text'  => '',
-				'show_logo'   => false,
-				'phone_title' => 'شماره‌ی تماس',
-				'hours_title' => 'ساعات پاسخگویی',
-				'social_title' => 'شبکه‌های اجتماعی',
-			),
+			// اطلاعات تماس و متن صفحه از داده‌های ارسالی مدیر ساخته شده‌اند؛
+			// همهٔ فیلدها از پیشخوان قابل‌ویرایش‌اند و مستقل تأیید نشده‌اند.
+			'info_pages' => array(
+				'contact' => array(
+					'intro_title' => 'راه‌های ارتباط با جهیزیه لوکس',
+					'intro_text'  => 'در هر ساعت از شبانه‌روز از طریق پیام‌رسان‌ها و در ساعات کاری از طریق تلفن پاسخگوی شما هستیم.',
+					'show_logo'   => false,
+					'phone_title' => 'تماس تلفنی',
+					'phone_hours' => 'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب',
+					'email_title' => 'ایمیل',
+					'hours_title' => 'ساعات پاسخگویی',
+					'social_title' => 'شبکه‌های اجتماعی',
+					'social_text' => 'اینستاگرام، واتس‌اپ، تلگرام، روبیکا و بله؛ پیوندهای شبکه‌های اجتماعی در فوتر سایت قرار دارند.',
+				),
 			'about' => array(
 				'intro_title' => 'درباره ما',
 				'intro_text'  => '',
@@ -1758,6 +1761,63 @@ function jluxe_migrate_settings_v15( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v15→v16: seed the supplied contact-page content only where stored fields
+ * still match the previous blank/theme-default values. Custom contact details,
+ * copy and social URLs remain untouched; newly introduced fields are filled
+ * only when they did not exist in the stored option.
+ */
+function jluxe_migrate_settings_v16( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	$contact_defaults = $defaults['contact'] ?? array();
+	$old_contact_values = array(
+		'phone'           => '',
+		'phone_secondary' => '',
+		'email'           => '',
+	);
+
+	if ( isset( $settings['contact'] ) && is_array( $settings['contact'] ) ) {
+		foreach ( $old_contact_values as $field => $old_value ) {
+			$current_value = $settings['contact'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $old_value === $current_value && isset( $contact_defaults[ $field ] ) ) {
+				$settings['contact'][ $field ] = $contact_defaults[ $field ];
+			}
+		}
+	}
+
+	$contact_page_defaults = $defaults['info_pages']['contact'] ?? array();
+	$old_contact_page_values = array(
+		'intro_title' => 'راه‌های تماس',
+		'intro_text'  => '',
+		'phone_title' => 'شماره‌ی تماس',
+	);
+	if ( isset( $settings['info_pages']['contact'] ) && is_array( $settings['info_pages']['contact'] ) ) {
+		foreach ( $old_contact_page_values as $field => $old_value ) {
+			$current_value = $settings['info_pages']['contact'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $old_value === $current_value && isset( $contact_page_defaults[ $field ] ) ) {
+				$settings['info_pages']['contact'][ $field ] = $contact_page_defaults[ $field ];
+			}
+		}
+
+		foreach ( array( 'phone_hours', 'email_title', 'social_text' ) as $field ) {
+			if ( ! array_key_exists( $field, $settings['info_pages']['contact'] ) && isset( $contact_page_defaults[ $field ] ) ) {
+				$settings['info_pages']['contact'][ $field ] = $contact_page_defaults[ $field ];
+			}
+		}
+	}
+
+	$instagram_defaults = $defaults['social']['instagram'] ?? array();
+	if ( isset( $settings['social']['instagram'] ) && is_array( $settings['social']['instagram'] ) ) {
+		$instagram = $settings['social']['instagram'];
+		if ( false === ( $instagram['enabled'] ?? false ) && '' === ( $instagram['url'] ?? '' ) ) {
+			$settings['social']['instagram']['enabled'] = $instagram_defaults['enabled'] ?? true;
+			$settings['social']['instagram']['url']     = $instagram_defaults['url'] ?? '';
+		}
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1775,6 +1835,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		13 => 'jluxe_migrate_settings_v13',
 		14 => 'jluxe_migrate_settings_v14',
 		15 => 'jluxe_migrate_settings_v15',
+		16 => 'jluxe_migrate_settings_v16',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -2958,6 +3019,16 @@ function jluxe_output_article_schema(): void {
 }
 add_action( 'wp_head', 'jluxe_output_article_schema', 6 );
 
+/** Normalize Iranian mobile digits for schema while leaving other entered contact numbers intact. */
+function jluxe_schema_telephone( $telephone ): string {
+	if ( ! is_scalar( $telephone ) ) {
+		return '';
+	}
+	$telephone = (string) $telephone;
+	$normalized = function_exists( 'jluxe_normalize_phone' ) ? jluxe_normalize_phone( $telephone ) : '';
+	return '' !== $normalized ? '+98' . $normalized : sanitize_text_field( $telephone );
+}
+
 /**
  * Organization identity is emitted once, from real site settings. Supported
  * SEO plugins own their graph, so the theme yields instead of printing a
@@ -2995,10 +3066,10 @@ function jluxe_output_organization_schema(): void {
 
 	$phones = array_filter(
 		array_unique(
-			array_map(
-				'sanitize_text_field',
-				array( $settings['contact']['phone'] ?? '', $settings['contact']['phone_secondary'] ?? '' )
-			)
+				array_map(
+					'jluxe_schema_telephone',
+					array( $settings['contact']['phone'] ?? '', $settings['contact']['phone_secondary'] ?? '' )
+				)
 		)
 	);
 	$email   = sanitize_email( (string) ( $settings['contact']['email'] ?? '' ) );

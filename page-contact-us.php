@@ -1,120 +1,256 @@
 <?php
 /**
- * صفحه‌ی «تماس با ما» (اسلاگ contact-us). محتوا از پنلِ ادمین می‌خونه
- * (جزئیات در ابتدای همین کامنت‌بلاک قبلاً توضیح داده شده بود، حذف نشده،
- * فقط چیدمان عوض شد). طبقِ درخواستِ صریحِ کاربر («باید تمام‌صفحه و کاملا
- * ریسپانسیو باشه») عرضِ کانتینر از max-w-[720px] (خیلی باریک‌تر از بقیه‌ی
- * سایت) به همون max-w-[1320px]ِ استانداردِ سراسرِ سایت تغییر کرد و
- * چیدمان از یک کارتِ باریکِ عمودی به یک گریدِ کارتِ ریسپانسیو (۱ ستون رو
- * موبایل → ۳ ستون رو دسکتاپ، بسته به تعدادِ بخش‌هایی که واقعاً فعالن)
- * تغییر کرد.
+ * صفحهٔ «تماس با ما» (اسلاگ contact-us). متن و جزئیات از تنظیمات پوسته
+ * خوانده می‌شوند؛ هیچ داده‌ای در این قالب به یک برگهٔ زندهٔ وردپرس نوشته نمی‌شود.
  */
 
 get_header();
 
 $jluxe_contact_settings = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings() : array();
 $jluxe_contact          = $jluxe_contact_settings['contact'] ?? array();
-$jluxe_hours            = $jluxe_contact_settings['footer']['support_hours'] ?? '';
-$jluxe_social           = $jluxe_contact_settings['social'] ?? array();
-$jluxe_page_info        = $jluxe_contact_settings['info_pages']['contact'] ?? array();
-$jluxe_page_logo        = ! empty( $jluxe_page_info['show_logo'] ) && function_exists( 'jluxe_get_logo_image_data' ) ? jluxe_get_logo_image_data() : array( 'src' => '', 'srcset' => '', 'sizes' => '' );
-
-$jluxe_phones = array_filter(
-	array(
-		$jluxe_contact['phone'] ?? '',
-		$jluxe_contact['phone_secondary'] ?? '',
+$jluxe_social            = $jluxe_contact_settings['social'] ?? array();
+$jluxe_page_info         = $jluxe_contact_settings['info_pages']['contact'] ?? array();
+$jluxe_page_logo         = ! empty( $jluxe_page_info['show_logo'] ) && function_exists( 'jluxe_get_logo_image_data' ) ? jluxe_get_logo_image_data() : array( 'src' => '', 'srcset' => '', 'sizes' => '' );
+$jluxe_page_title        = isset( $jluxe_page_info['intro_title'] ) && is_string( $jluxe_page_info['intro_title'] ) ? $jluxe_page_info['intro_title'] : 'راه‌های ارتباط با جهیزیه لوکس';
+$jluxe_intro_text        = isset( $jluxe_page_info['intro_text'] ) && is_string( $jluxe_page_info['intro_text'] ) ? $jluxe_page_info['intro_text'] : '';
+$jluxe_phone_hours       = isset( $jluxe_page_info['phone_hours'] ) && is_string( $jluxe_page_info['phone_hours'] ) ? $jluxe_page_info['phone_hours'] : '';
+$jluxe_email             = sanitize_email( (string) ( $jluxe_contact['email'] ?? '' ) );
+$jluxe_has_email         = is_email( $jluxe_email );
+$jluxe_phones            = array_values(
+	array_filter(
+		array(
+			$jluxe_contact['phone'] ?? '',
+			$jluxe_contact['phone_secondary'] ?? '',
+		),
+		static function ( $phone ): bool {
+			return is_string( $phone ) && '' !== trim( $phone );
+		}
 	)
 );
-
-$jluxe_social_labels = array(
-	'instagram' => 'اینستاگرام',
-	'telegram'  => 'تلگرام',
-	'whatsapp'  => 'واتس‌اپ',
-	'rubika'    => 'روبیکا',
-	'bale'      => 'بله',
-);
-// آیکونِ عمومیِ پیش‌فرض برای هر شبکه‌ای که آیکونِ سفارشی (social[*][svg])
-// ست نکرده — همون الگویی که Footer.tsx هم برای پیش‌فرض استفاده می‌کنه.
-$jluxe_social_default_icon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 9-18 9 4-9-4-9Z"/></svg>';
-$jluxe_active_socials       = array_filter(
-	$jluxe_social,
-	fn( $row ) => ! empty( $row['enabled'] ) && ! empty( $row['url'] )
-);
-
-// چند تا از کارت‌های اطلاعاتی واقعاً چیزی برای نشون‌دادن دارن — برای
-// اینکه گرید (grid-cols) متناسب با تعدادِ واقعیِ کارت‌ها باشه، نه همیشه
-// ۳ ستونِ نصفه‌خالی وقتی مثلاً فقط شماره‌تماس پر شده.
-$jluxe_visible_card_count = ( ! empty( $jluxe_phones ) ? 1 : 0 ) + ( $jluxe_hours ? 1 : 0 ) + ( ! empty( $jluxe_active_socials ) ? 1 : 0 );
-$jluxe_grid_cols_class    = $jluxe_visible_card_count >= 3 ? 'lg:grid-cols-3' : ( 2 === $jluxe_visible_card_count ? 'lg:grid-cols-2' : 'lg:grid-cols-1' );
+$jluxe_instagram         = $jluxe_social['instagram'] ?? array();
+$jluxe_instagram_url     = ! empty( $jluxe_instagram['enabled'] ) && ! empty( $jluxe_instagram['url'] ) ? esc_url_raw( (string) $jluxe_instagram['url'] ) : '';
+$jluxe_instagram_label   = '' !== $jluxe_instagram_url ? rtrim( (string) preg_replace( '#^https?://#i', '', $jluxe_instagram_url ), '/' ) : '';
+$jluxe_contact_page_url  = function_exists( 'jluxe_resolve_site_link' ) ? jluxe_resolve_site_link( '/contact-us' ) : home_url( '/contact-us' );
+$jluxe_site_url          = home_url( '/' );
+$jluxe_has_phone_card    = ! empty( $jluxe_phones ) || '' !== trim( $jluxe_phone_hours );
+$jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text'] ?? '' ) ) || '' !== $jluxe_instagram_url;
 ?>
 
+<style>
+	#jluxe-contact-page {
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 800px;
+		margin: 40px auto;
+		padding: 20px;
+		color: #252a2d;
+		direction: rtl;
+	}
+	#jluxe-contact-page *,
+	#jluxe-contact-page *::before,
+	#jluxe-contact-page *::after { box-sizing: border-box; }
+	#jluxe-contact-page .jhh-hero {
+		max-width: 680px;
+		margin: 0 auto 32px;
+		text-align: center;
+	}
+	#jluxe-contact-page .jhh-hero img {
+		display: block;
+		width: 56px;
+		height: 56px;
+		margin: 0 auto 16px;
+		object-fit: contain;
+	}
+	#jluxe-contact-page .jhh-eyebrow {
+		margin: 0 0 8px;
+		color: #355c5a;
+		font-size: 14px;
+		font-weight: 700;
+	}
+	#jluxe-contact-page .jhh-hero h1 {
+		margin: 0;
+		color: #202426;
+		font-size: clamp(1.75rem, 5vw, 2.25rem);
+		font-weight: 800;
+		line-height: 1.55;
+	}
+	#jluxe-contact-page .jhh-hero > p:last-child {
+		margin: 12px 0 0;
+		color: #555e61;
+		font-size: 16px;
+		line-height: 1.95;
+	}
+	#jluxe-contact-page .jluxe-contact-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 16px;
+	}
+	#jluxe-contact-page .jluxe-contact-card {
+		min-width: 0;
+		padding: 24px;
+		border: 1px solid #e7e5e0;
+		border-radius: 14px;
+		background: #fff;
+		box-shadow: 0 4px 14px rgba(28, 35, 34, 0.045);
+	}
+	#jluxe-contact-page .jluxe-contact-card h2 {
+		margin: 0 0 10px;
+		color: #252a2d;
+		font-size: 18px;
+		font-weight: 700;
+		line-height: 1.6;
+	}
+	#jluxe-contact-page .jluxe-contact-card p {
+		margin: 0;
+		color: #555e61;
+		font-size: 15px;
+		line-height: 1.9;
+	}
+	#jluxe-contact-page .jluxe-contact-phone-list {
+		display: grid;
+		gap: 8px;
+		margin: 14px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	#jluxe-contact-page .jluxe-contact-phone-list a,
+	#jluxe-contact-page .jluxe-contact-link {
+		color: #285a56;
+		font-weight: 700;
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 3px;
+		overflow-wrap: anywhere;
+	}
+	#jluxe-contact-page a:focus-visible {
+		border-radius: 3px;
+		outline: 3px solid #355c5a;
+		outline-offset: 4px;
+	}
+	#jluxe-contact-page .jluxe-contact-link { display: inline-block; margin-top: 4px; }
+	@media (max-width: 480px) {
+		#jluxe-contact-page { margin: 24px auto; padding: 16px; }
+		#jluxe-contact-page .jhh-hero { margin-bottom: 24px; }
+		#jluxe-contact-page .jluxe-contact-card { padding: 20px; }
+	}
+</style>
+
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10 sm:py-14">
-		<div class="mx-auto max-w-2xl text-center">
+	<div id="jluxe-contact-page">
+		<header class="jhh-hero">
 			<?php if ( ! empty( $jluxe_page_logo['src'] ) ) : ?>
-				<img src="<?php echo esc_url( $jluxe_page_logo['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_page_logo ); ?> alt="<?php bloginfo( 'name' ); ?>" class="mx-auto mb-4 h-14 w-14 object-contain" data-no-lazy="1" loading="eager" />
+				<img src="<?php echo esc_url( $jluxe_page_logo['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_page_logo ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped responsive-image attributes. ?> alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>" data-no-lazy="1" loading="eager" />
 			<?php endif; ?>
-			<span class="text-[12px] font-bold tracking-wide text-primary">— تماس با ما</span>
-			<h1 class="mb-3 mt-2 text-[26px] font-extrabold leading-relaxed text-foreground sm:text-[32px]"><?php echo esc_html( $jluxe_page_info['intro_title'] ?? 'راه‌های تماس' ); ?></h1>
-			<?php if ( ! empty( $jluxe_page_info['intro_text'] ) ) : ?>
-				<p class="text-[14px] leading-8 text-text-secondary sm:text-[15px]">
-					<?php echo esc_html( $jluxe_page_info['intro_text'] ); ?>
-				</p>
+			<p class="jhh-eyebrow">تماس با ما</p>
+			<h1><?php echo esc_html( $jluxe_page_title ); ?></h1>
+			<?php if ( '' !== trim( $jluxe_intro_text ) ) : ?>
+				<p><?php echo esc_html( $jluxe_intro_text ); ?></p>
+			<?php endif; ?>
+		</header>
+
+		<div class="jluxe-contact-grid">
+			<?php if ( $jluxe_has_phone_card ) : ?>
+				<section class="jluxe-contact-card" aria-labelledby="jluxe-contact-phone-heading">
+					<h2 id="jluxe-contact-phone-heading"><?php echo esc_html( $jluxe_page_info['phone_title'] ?? 'تماس تلفنی' ); ?></h2>
+					<?php if ( '' !== trim( $jluxe_phone_hours ) ) : ?>
+						<p><?php echo esc_html( $jluxe_phone_hours ); ?></p>
+					<?php endif; ?>
+					<?php if ( ! empty( $jluxe_phones ) ) : ?>
+						<ul class="jluxe-contact-phone-list">
+							<?php foreach ( $jluxe_phones as $jluxe_phone_number ) : ?>
+								<?php
+								$jluxe_ascii_phone = function_exists( 'jluxe_ascii_digits' ) ? jluxe_ascii_digits( $jluxe_phone_number ) : $jluxe_phone_number;
+								$jluxe_tel_number = function_exists( 'jluxe_normalize_phone' ) ? jluxe_normalize_phone( $jluxe_phone_number ) : '';
+								$jluxe_tel_href   = '' !== $jluxe_tel_number ? '+98' . $jluxe_tel_number : preg_replace( '/[^0-9+]/', '', $jluxe_ascii_phone );
+								$jluxe_phone_text = function_exists( 'jluxe_fa_digits' ) ? jluxe_fa_digits( $jluxe_phone_number ) : $jluxe_phone_number;
+								?>
+								<li>
+									<?php if ( '' !== $jluxe_tel_href ) : ?>
+										<a href="tel:<?php echo esc_attr( $jluxe_tel_href ); ?>" dir="ltr"><?php echo esc_html( $jluxe_phone_text ); ?></a>
+									<?php else : ?>
+										<span dir="ltr"><?php echo esc_html( $jluxe_phone_text ); ?></span>
+									<?php endif; ?>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+				</section>
+			<?php endif; ?>
+
+			<?php if ( $jluxe_has_email ) : ?>
+				<section class="jluxe-contact-card" aria-labelledby="jluxe-contact-email-heading">
+					<h2 id="jluxe-contact-email-heading"><?php echo esc_html( $jluxe_page_info['email_title'] ?? 'ایمیل' ); ?></h2>
+					<a class="jluxe-contact-link" href="<?php echo esc_url( 'mailto:' . $jluxe_email ); ?>" dir="ltr"><?php echo esc_html( $jluxe_email ); ?></a>
+				</section>
+			<?php endif; ?>
+
+			<?php if ( $jluxe_has_social_card ) : ?>
+				<section class="jluxe-contact-card" aria-labelledby="jluxe-contact-social-heading">
+					<h2 id="jluxe-contact-social-heading"><?php echo esc_html( $jluxe_page_info['social_title'] ?? 'شبکه‌های اجتماعی' ); ?></h2>
+					<?php if ( ! empty( $jluxe_page_info['social_text'] ) ) : ?>
+						<p><?php echo esc_html( $jluxe_page_info['social_text'] ); ?></p>
+					<?php endif; ?>
+					<?php if ( '' !== $jluxe_instagram_url ) : ?>
+						<a class="jluxe-contact-link" href="<?php echo esc_url( $jluxe_instagram_url ); ?>" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام، بازشدن در زبانهٔ جدید" dir="ltr"><?php echo esc_html( $jluxe_instagram_label ); ?></a>
+					<?php endif; ?>
+				</section>
 			<?php endif; ?>
 		</div>
-
-		<?php if ( $jluxe_visible_card_count > 0 ) : ?>
-			<div class="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-4 sm:mt-14 sm:grid-cols-2 <?php echo esc_attr( $jluxe_grid_cols_class ); ?>">
-				<?php if ( ! empty( $jluxe_phones ) ) : ?>
-					<div class="rounded-2xl border border-border bg-surface p-6 transition-shadow hover:shadow-md sm:p-7">
-						<div class="mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
-							<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
-						</div>
-						<h2 class="mb-2.5 text-[15px] font-bold text-foreground"><?php echo esc_html( $jluxe_page_info['phone_title'] ?? 'شماره‌ی تماس' ); ?></h2>
-						<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-							<?php foreach ( $jluxe_phones as $i => $jluxe_phone_number ) : ?>
-								<?php if ( $i > 0 ) : ?><span class="text-text-muted">–</span><?php endif; ?>
-								<a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', $jluxe_phone_number ) ); ?>" dir="ltr" class="text-[15px] font-bold text-primary"><?php echo esc_html( jluxe_fa_digits( $jluxe_phone_number ) ); ?></a>
-							<?php endforeach; ?>
-						</div>
-					</div>
-				<?php endif; ?>
-
-				<?php if ( $jluxe_hours ) : ?>
-					<div class="rounded-2xl border border-border bg-surface p-6 transition-shadow hover:shadow-md sm:p-7">
-						<div class="mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
-							<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-						</div>
-						<h2 class="mb-2.5 text-[15px] font-bold text-foreground"><?php echo esc_html( $jluxe_page_info['hours_title'] ?? 'ساعات پاسخگویی' ); ?></h2>
-						<p class="text-[14px] leading-7 text-text-secondary"><?php echo esc_html( $jluxe_hours ); ?></p>
-					</div>
-				<?php endif; ?>
-
-				<?php if ( ! empty( $jluxe_active_socials ) ) : ?>
-					<div class="rounded-2xl border border-border bg-surface p-6 transition-shadow hover:shadow-md sm:p-7">
-						<div class="mb-4 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
-							<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-						</div>
-						<h2 class="mb-3.5 text-[15px] font-bold text-foreground"><?php echo esc_html( $jluxe_page_info['social_title'] ?? 'شبکه‌های اجتماعی' ); ?></h2>
-						<div class="flex flex-wrap gap-2.5">
-							<?php foreach ( $jluxe_active_socials as $jluxe_key => $jluxe_row ) : ?>
-								<a
-									title="<?php echo esc_attr( $jluxe_social_labels[ $jluxe_key ] ?? $jluxe_key ); ?>"
-									href="<?php echo esc_url( $jluxe_row['url'] ); ?>"
-									target="_blank"
-									rel="noopener"
-									class="grid size-11 place-items-center rounded-full border border-border bg-background text-foreground transition-transform hover:scale-[1.08] hover:text-primary active:scale-95"
-								>
-									<?php echo ! empty( $jluxe_row['svg'] ) ? $jluxe_row['svg'] : $jluxe_social_default_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- svg از قبل موقعِ ذخیره با jluxe_sanitize_svg_markup (wp_kses با whitelistِ تگ‌های SVG) پاک‌سازی شده. ?>
-								</a>
-							<?php endforeach; ?>
-						</div>
-					</div>
-				<?php endif; ?>
-			</div>
-		<?php endif; ?>
 	</div>
 </main>
 
 <?php
+$jluxe_site_name = isset( $jluxe_contact_settings['identity']['site_name'] ) && is_string( $jluxe_contact_settings['identity']['site_name'] ) ? trim( $jluxe_contact_settings['identity']['site_name'] ) : '';
+if ( '' === $jluxe_site_name && function_exists( 'get_bloginfo' ) ) {
+	$jluxe_site_name = trim( (string) get_bloginfo( 'name' ) );
+}
+if ( '' === $jluxe_site_name ) {
+	$jluxe_site_name = 'جهیزیه لوکس';
+}
+
+$jluxe_organization_schema = array(
+	'@type' => 'Organization',
+	'@id'   => $jluxe_site_url . '#organization',
+	'name'  => $jluxe_site_name,
+	'url'   => $jluxe_site_url,
+);
+if ( $jluxe_has_email ) {
+	$jluxe_organization_schema['email'] = $jluxe_email;
+}
+$jluxe_schema_phones = array();
+foreach ( $jluxe_phones as $jluxe_phone_number ) {
+	$jluxe_schema_phone = function_exists( 'jluxe_schema_telephone' ) ? jluxe_schema_telephone( $jluxe_phone_number ) : sanitize_text_field( $jluxe_phone_number );
+	if ( '' !== $jluxe_schema_phone ) {
+		$jluxe_schema_phones[] = $jluxe_schema_phone;
+	}
+}
+if ( ! empty( $jluxe_schema_phones ) ) {
+	$jluxe_organization_schema['telephone'] = 1 === count( $jluxe_schema_phones ) ? reset( $jluxe_schema_phones ) : array_values( array_unique( $jluxe_schema_phones ) );
+}
+$jluxe_same_as = array();
+foreach ( $jluxe_social as $jluxe_social_row ) {
+	if ( ! is_array( $jluxe_social_row ) || empty( $jluxe_social_row['enabled'] ) || empty( $jluxe_social_row['url'] ) ) {
+		continue;
+	}
+	$jluxe_social_url = esc_url_raw( (string) $jluxe_social_row['url'] );
+	if ( '' !== $jluxe_social_url ) {
+		$jluxe_same_as[] = $jluxe_social_url;
+	}
+}
+if ( ! empty( $jluxe_same_as ) ) {
+	$jluxe_organization_schema['sameAs'] = array_values( array_unique( $jluxe_same_as ) );
+}
+
+$jluxe_contact_page_schema = array(
+	'@context'  => 'https://schema.org',
+	'@type'     => 'ContactPage',
+	'@id'       => $jluxe_contact_page_url . '#contact-page',
+	'url'       => $jluxe_contact_page_url,
+	'name'      => '' !== trim( $jluxe_page_title ) ? $jluxe_page_title : 'تماس با ما',
+	'mainEntity' => $jluxe_organization_schema,
+);
+if ( function_exists( 'jluxe_jsonld_encode' ) ) {
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( $jluxe_contact_page_schema ) . '</script>' . "\n";
+}
+
 get_footer();

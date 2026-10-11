@@ -461,6 +461,11 @@ function jluxe_sanitize_info_pages( array $posted, array $defaults ): array {
 			'hours_title' => isset( $row['hours_title'] ) ? sanitize_text_field( $row['hours_title'] ) : ( $default_row['hours_title'] ?? 'ساعات پاسخگویی' ),
 			'social_title' => isset( $row['social_title'] ) ? sanitize_text_field( $row['social_title'] ) : ( $default_row['social_title'] ?? 'شبکه‌های اجتماعی' ),
 		);
+		if ( 'contact' === $page_key ) {
+			$out[ $page_key ]['phone_hours'] = isset( $row['phone_hours'] ) ? sanitize_text_field( $row['phone_hours'] ) : ( $default_row['phone_hours'] ?? '' );
+			$out[ $page_key ]['email_title'] = isset( $row['email_title'] ) ? sanitize_text_field( $row['email_title'] ) : ( $default_row['email_title'] ?? 'ایمیل' );
+			$out[ $page_key ]['social_text'] = isset( $row['social_text'] ) ? sanitize_textarea_field( $row['social_text'] ) : ( $default_row['social_text'] ?? '' );
+		}
 		/*
 		 * فقط برای «درباره ما»: بخشِ «داستانِ ما» + «چرا ما» + CTA — طبقِ
 		 * درخواستِ صریحِ کاربر کاملاً از تنظیمات قابلِ ادیت شد. wp_kses_post

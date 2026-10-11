@@ -3349,7 +3349,7 @@ check(
 	array_reduce( $r194_restored_v7['footer']['feature_cards'], static function ( $enabled, $card ) {
 		return $enabled && ! empty( $card['enabled'] );
 	}, true ),
-	'R197 v7 settings migrate through v15 to the consistent benefit headings and enable the four cards'
+	'R197 v7 settings migrate through v16 to the consistent benefit headings and enable the four cards'
 );
 $r194_custom_v7 = array(
 	'footer' => array(
@@ -3386,7 +3386,7 @@ check(
 	'truck' === $r195_migrated_v8['footer']['feature_cards'][0]['icon'] &&
 	'پشتیبانیِ سفارشی' === $r195_migrated_v8['footer']['feature_cards'][1]['title'] &&
 	'متن ثبت‌شده توسط مدیر' === $r195_migrated_v8['footer']['feature_cards'][1]['subtitle'],
-	'R197 v8 settings migrate through v15 to the full bold shipping slogan and preserves the other configured card'
+	'R197 v8 settings migrate through v16 to the full bold shipping slogan and preserves the other configured card'
 );
 $r195_custom_first_v8 = array(
 	'footer' => array(
@@ -3514,7 +3514,7 @@ check(
 	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
 	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
 	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
-	'R197 v6 settings migrate through v15: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
+	'R197 v6 settings migrate through v16: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
 );
 check(
 	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
@@ -3533,7 +3533,7 @@ check(
 	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
 );
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v15 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v16 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -3851,7 +3851,7 @@ check(
 	$r232_returns_body === $r232_migrated_returns['guide_pages']['returns_exchanges']['body_html'] &&
 	'بازگشت به فروشگاه ←' === $r232_migrated_returns['guide_pages']['returns_exchanges']['button_text'] &&
 	'/' === $r232_migrated_returns['guide_pages']['returns_exchanges']['button_url'],
-	'R232 v14-to-v15 migration fills only the untouched blank returns intro/body and retains the existing store CTA'
+	'R232 v14-to-v16 migrations fill only the untouched blank returns intro/body and retains the existing store CTA'
 );
 $r232_custom_returns = $r232_old_returns;
 $r232_custom_returns['guide_pages']['returns_exchanges']['intro'] = 'مقدمهٔ سفارشی مدیر';
@@ -3932,12 +3932,12 @@ $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v15 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v16 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
 	'page-about-us.php' => 'درباره ما',
-	'page-contact-us.php' => 'راه‌های تماس',
+	'page-contact-us.php' => 'راه‌های ارتباط با جهیزیه لوکس',
 	'page-payment-guide.php' => 'روش‌ها و راهنمای پرداخت سفارشات',
 	'page-shipping-and-order-tracking.php' => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
 	'page-returns-and-exchanges.php' => 'رویهٔ شرایط مرجوعی و تعویض کالا',
@@ -3950,6 +3950,133 @@ foreach ( $r192_info_templates as $r192_template => $r192_expected_copy ) {
 	check( false !== strpos( $r192_template_html, $r192_expected_copy ) && false === strpos( $r192_template_html, 'Warning:' ), 'R192 ' . $r192_template . ' renders its neutral settings-backed copy without runtime warnings' );
 }
 update_test_settings( jluxe_theme_settings_defaults() );
+
+// R233: supplied contact page, settings migration, rendering and structured data.
+$r233_defaults = jluxe_theme_settings_defaults();
+check(
+	'۰۹۳۶۲۴۲۰۲۳۲' === $r233_defaults['contact']['phone'] &&
+	'۰۹۱۲۰۹۰۲۳۳۶' === $r233_defaults['contact']['phone_secondary'] &&
+	'info@jahiziyeluxe.ir' === $r233_defaults['contact']['email'] &&
+	true === $r233_defaults['social']['instagram']['enabled'] &&
+	'https://instagram.com/jluxeir' === $r233_defaults['social']['instagram']['url'] &&
+	'راه‌های ارتباط با جهیزیه لوکس' === $r233_defaults['info_pages']['contact']['intro_title'] &&
+	'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' === $r233_defaults['info_pages']['contact']['phone_hours'],
+	'R233 contact-page defaults use only the supplied phone, email, Instagram and page copy'
+);
+$r233_old_contact = array(
+	'version'     => 15,
+	'contact'     => array( 'phone' => '', 'phone_secondary' => '', 'email' => '', 'address' => 'نشانی سفارشی' ),
+	'info_pages'  => array( 'contact' => array( 'intro_title' => 'راه‌های تماس', 'intro_text' => '', 'phone_title' => 'شماره‌ی تماس' ) ),
+	'social'      => array( 'instagram' => array( 'enabled' => false, 'url' => '', 'svg' => '<svg>آیکون سفارشی</svg>' ) ),
+);
+$r233_migrated_contact = jluxe_migrate_settings_to_current_version( $r233_old_contact, 15 );
+check(
+	16 === $r233_migrated_contact['version'] &&
+	$r233_defaults['contact']['phone'] === $r233_migrated_contact['contact']['phone'] &&
+	$r233_defaults['contact']['phone_secondary'] === $r233_migrated_contact['contact']['phone_secondary'] &&
+	$r233_defaults['contact']['email'] === $r233_migrated_contact['contact']['email'] &&
+	'نشانی سفارشی' === $r233_migrated_contact['contact']['address'] &&
+	$r233_defaults['info_pages']['contact']['intro_title'] === $r233_migrated_contact['info_pages']['contact']['intro_title'] &&
+	$r233_defaults['info_pages']['contact']['intro_text'] === $r233_migrated_contact['info_pages']['contact']['intro_text'] &&
+	$r233_defaults['info_pages']['contact']['phone_title'] === $r233_migrated_contact['info_pages']['contact']['phone_title'] &&
+	true === $r233_migrated_contact['social']['instagram']['enabled'] &&
+	'https://instagram.com/jluxeir' === $r233_migrated_contact['social']['instagram']['url'] &&
+	'<svg>آیکون سفارشی</svg>' === $r233_migrated_contact['social']['instagram']['svg'],
+	'R233 v15-to-v16 migration fills only blank or untouched contact defaults and preserves the custom address and social icon'
+);
+$r233_custom_contact = $r233_old_contact;
+$r233_custom_contact['contact']['phone'] = '۰۹۱۲۰۰۰۰۰۰۰';
+$r233_custom_contact['contact']['email'] = 'custom@example.test';
+$r233_custom_contact['info_pages']['contact']['intro_title'] = 'عنوان سفارشی مدیر';
+$r233_custom_contact['info_pages']['contact']['intro_text'] = 'متن سفارشی مدیر';
+$r233_custom_contact['info_pages']['contact']['phone_title'] = 'پشتیبانی دلخواه';
+$r233_custom_contact['info_pages']['contact']['phone_hours'] = '';
+$r233_custom_contact['info_pages']['contact']['email_title'] = '';
+$r233_custom_contact['info_pages']['contact']['social_text'] = '';
+$r233_custom_contact['social']['instagram']['url'] = 'https://instagram.com/custom';
+$r233_migrated_custom_contact = jluxe_migrate_settings_to_current_version( $r233_custom_contact, 15 );
+check(
+	'۰۹۱۲۰۰۰۰۰۰۰' === $r233_migrated_custom_contact['contact']['phone'] &&
+	$r233_defaults['contact']['phone_secondary'] === $r233_migrated_custom_contact['contact']['phone_secondary'] &&
+	'custom@example.test' === $r233_migrated_custom_contact['contact']['email'] &&
+	'عنوان سفارشی مدیر' === $r233_migrated_custom_contact['info_pages']['contact']['intro_title'] &&
+	'متن سفارشی مدیر' === $r233_migrated_custom_contact['info_pages']['contact']['intro_text'] &&
+	'پشتیبانی دلخواه' === $r233_migrated_custom_contact['info_pages']['contact']['phone_title'] &&
+	'' === $r233_migrated_custom_contact['info_pages']['contact']['phone_hours'] &&
+	'' === $r233_migrated_custom_contact['info_pages']['contact']['email_title'] &&
+	'' === $r233_migrated_custom_contact['info_pages']['contact']['social_text'] &&
+	'https://instagram.com/custom' === $r233_migrated_custom_contact['social']['instagram']['url'],
+	'R233 migration keeps administrator-authored contact values and explicitly blank new fields, while upgrading only untouched blanks'
+);
+$r233_sanitized_info = jluxe_sanitize_info_pages(
+	array( 'contact' => array( 'phone_hours' => '<b>ساعات دلخواه</b>', 'email_title' => '<i>ایمیل دلخواه</i>', 'social_text' => '<script>ناامن</script>پیوندها در فوتر' ) ),
+	$r233_defaults['info_pages']
+);
+check(
+	'ساعات دلخواه' === $r233_sanitized_info['contact']['phone_hours'] &&
+	'ایمیل دلخواه' === $r233_sanitized_info['contact']['email_title'] &&
+	'ناامنپیوندها در فوتر' === $r233_sanitized_info['contact']['social_text'],
+	'R233 new contact-page fields remain editable and pass through the established text sanitizers'
+);
+$r233_contact_form_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r233_contact_form_source, 'info_pages[contact][phone_hours]' ) &&
+	false !== strpos( $r233_contact_form_source, 'info_pages[contact][email_title]' ) &&
+	false !== strpos( $r233_contact_form_source, 'info_pages[contact][social_text]' ) &&
+	false !== strpos( $r233_contact_form_source, 'تماس تلفنیِ صفحه‌ی «تماس با ما» از بخش متنِ همان صفحه تنظیم می‌شود' ),
+	'R233 admin settings expose editable phone hours, email/social card copy and the separate footer-hours setting'
+);
+check( '+989362420232' === jluxe_schema_telephone( '۰۹۳۶۲۴۲۰۲۳۲' ), 'R233 Persian mobile numbers normalize to E.164 for telephone links and schema');
+$r233_render_settings = $r233_defaults;
+$r233_render_settings['identity']['site_name'] = 'جهیزیه لوکس';
+update_test_settings( $r233_render_settings );
+ob_start();
+require ABSPATH . 'page-contact-us.php';
+$r233_contact_html = (string) ob_get_clean();
+preg_match_all( '/<script type="application\\/ld\\+json">(.*?)<\\/script>/s', $r233_contact_html, $r233_schema_matches );
+$r233_contact_schema = isset( $r233_schema_matches[1][0] ) ? json_decode( $r233_schema_matches[1][0], true ) : array();
+$r233_organization_schema = $r233_contact_schema['mainEntity'] ?? array();
+check(
+	1 === substr_count( $r233_contact_html, 'id="jluxe-contact-page"' ) &&
+	false !== strpos( $r233_contact_html, '<h1>راه‌های ارتباط با جهیزیه لوکس</h1>' ) &&
+	false !== strpos( $r233_contact_html, 'در هر ساعت از شبانه‌روز از طریق پیام‌رسان‌ها و در ساعات کاری از طریق تلفن پاسخگوی شما هستیم.' ) &&
+	3 === substr_count( $r233_contact_html, '<section class="jluxe-contact-card"' ) &&
+	false !== strpos( $r233_contact_html, 'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' ) &&
+	false !== strpos( $r233_contact_html, 'href="tel:+989362420232"' ) &&
+	false !== strpos( $r233_contact_html, 'href="tel:+989120902336"' ) &&
+	false !== strpos( $r233_contact_html, 'href="mailto:info@jahiziyeluxe.ir"' ) &&
+	false !== strpos( $r233_contact_html, 'اینستاگرام، واتس‌اپ، تلگرام، روبیکا و بله' ) &&
+	false !== strpos( $r233_contact_html, 'href="https://instagram.com/jluxeir"' ) &&
+	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jhh-hero' ) &&
+	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-grid' ) &&
+	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-card' ) &&
+	false !== strpos( $r233_contact_html, '@media (max-width: 480px)' ) &&
+	false === strpos( $r233_contact_html, 'Warning:' ),
+	'R233 contact page renders the supplied responsive cards, exact details, accessible links and scoped wrapper without warnings'
+);
+check(
+	'ContactPage' === ( $r233_contact_schema['@type'] ?? '' ) &&
+	'https://shop.test/store/contact-us' === ( $r233_contact_schema['url'] ?? '' ) &&
+	'راه‌های ارتباط با جهیزیه لوکس' === ( $r233_contact_schema['name'] ?? '' ) &&
+	'Organization' === ( $r233_organization_schema['@type'] ?? '' ) &&
+	'https://shop.test/store/#organization' === ( $r233_organization_schema['@id'] ?? '' ) &&
+	'جهیزیه لوکس' === ( $r233_organization_schema['name'] ?? '' ) &&
+	'info@jahiziyeluxe.ir' === ( $r233_organization_schema['email'] ?? '' ) &&
+	array( '+989362420232', '+989120902336' ) === ( $r233_organization_schema['telephone'] ?? array() ) &&
+	array( 'https://instagram.com/jluxeir' ) === ( $r233_organization_schema['sameAs'] ?? array() ),
+	'R233 JSON-LD links ContactPage to the configured Organization, site-relative canonical, supplied email, normalized phones and Instagram sameAs'
+);
+ob_start();
+jluxe_output_organization_schema();
+$r233_global_org_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r233_global_org_html, '+989362420232' ) &&
+	false !== strpos( $r233_global_org_html, '+989120902336' ) &&
+	false !== strpos( $r233_global_org_html, 'https://instagram.com/jluxeir' ),
+	'R233 site-wide Organization JSON-LD shares the same E.164 contact phones and configured Instagram profile'
+);
+update_test_settings( jluxe_theme_settings_defaults() );
+
 ob_start();
 require ABSPATH . 'page-shopping-guide.php';
 $r229_shopping_guide_html = (string) ob_get_clean();
@@ -4931,10 +5058,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v15 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v16 with legacy fixes, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v15 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v16 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
