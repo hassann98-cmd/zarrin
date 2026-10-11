@@ -8,7 +8,10 @@ const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "u
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
 const mainSource = await readFile(new URL("src/main.js", root), "utf8");
 const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
+const categoryDrawerSource = await readFile(new URL("src/islands/CategoryDrawer.js", root), "utf8");
 const miniCartSource = await readFile(new URL("src/islands/MiniCart.js", root), "utf8");
+const drawerStateSource = await readFile(new URL("src/lib/mobile-drawers.js", root), "utf8");
+const drawerIconSource = await readFile(new URL("src/components/mobile-drawer-icon.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
 const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
@@ -211,28 +214,59 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
   assert.match(mobileNavSource, /nav_items \?\? \[\]/);
 });
 
-test("mobile and header cart controls open the drawer, whose CTA routes to the real cart page", () => {
+test("mobile category/cart controls toggle drawers to a close state while keeping real-page fallbacks", () => {
+  assert.match(mobileNavSource, /shop: \{ href: siteUrl\("shop"\), opensDrawer: "categories" \}/);
   assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
-  assert.match(mobileNavSource, /item\.opensDrawer === "cart"[\s\S]*?requestCartDrawerOpen\(window\)/);
-  assert.match(floatingNavSource, /item\.opensDrawer === "cart"[\s\S]*?requestCartDrawerOpen\(window\)/);
+  assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
+  assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
+  assert.match(mobileNavSource, /!wasOpen[\s\S]*?jluxeCloseSuggestedProductsModal/);
+  assert.match(floatingNavSource, /!wasOpen[\s\S]*?jluxeCloseSuggestedProductsModal/);
+  assert.match(mobileNavSource, /aria-expanded": drawerOpen/);
+  assert.match(floatingNavSource, /aria-expanded": drawerOpen/);
+  assert.match(mobileNavSource, /"aria-current": routeActive \? "page"/);
+  assert.match(floatingNavSource, /"aria-current": routeActive \? "page"/);
+  assert.match(mobileNavSource, /بستن دسته‌بندی‌ها/);
+  assert.match(mobileNavSource, /بستن سبد خرید/);
+  assert.match(floatingNavSource, /بستن دسته‌بندی‌ها/);
+  assert.match(floatingNavSource, /بستن سبد خرید/);
+  assert.match(drawerIconSource, /CloseIcon/);
+  assert.match(drawerIconSource, /rotate\(-28deg\) scale\(\.72\)/);
+  assert.match(drawerIconSource, /const transition = animate/);
+  assert.match(drawerStateSource, /toggleMobileDrawer/);
+  assert.match(drawerStateSource, /registerMobileDrawer/);
+  assert.match(drawerStateSource, /jluxe:mobile-drawer-state/);
+  assert.match(categoryDrawerSource, /registerMobileDrawer\([\s\S]*?categories/);
+  assert.match(categoryDrawerSource, /id: "jluxe-category-drawer-dialog"/);
+  assert.match(miniCartSource, /registerMobileDrawer\([\s\S]*?"cart"/);
+  assert.match(miniCartSource, /id: "jluxe-cart-drawer-dialog"/);
+  assert.match(miniCartSource, /useDialog\(n && y, dialogRef, closeDrawer\)/);
+  assert.match(categoryDrawerSource, /const exitDelay = window\.matchMedia/);
+  assert.match(miniCartSource, /const exitDelay = window\.matchMedia/);
   assert.match(headerIslandSource, /href: siteUrl\("cart"\)/);
   assert.match(headerIslandSource, /event\.metaKey[\s\S]*event\.ctrlKey[\s\S]*event\.shiftKey[\s\S]*event\.altKey/);
   assert.match(headerIslandSource, /event\.preventDefault\(\)[\s\S]*?requestCartDrawerOpen\(window\)/);
   assert.match(headerIslandSource, /window\.jluxeCloseSuggestedProductsModal\(\)/);
-  assert.match(miniCartSource, /registerCartDrawerOpen\(\(\) => l\(!0\), window\)/);
   assert.match(miniCartSource, /href: s\.cartUrl[\s\S]*?children: "مشاهده سبد خرید"/);
   assert.match(headerTemplate, /data-jluxe-island="mini-cart"/);
+  assert.match(mobileNavSource, /if \(isModifiedClick\(event\)\) return/);
+  assert.match(mobileNavSource, /href: item\.href/);
 });
 
-test("mobile header and dock stay above the post-add suggestions sheet", () => {
+test("drawer close controls layer above the header while the dock stays tappable above each drawer", () => {
   const modalZ = Number(storefrontStyles.match(/\.jluxe-pa \{ z-index: (\d+); \}/)?.[1]);
-  const mobileNavigationRule = storefrontStyles.match(
-    /@media \(max-width: 767\.98px\) \{\s*#masthead \.jluxe-header-bar,\s*\.jluxe-mobile-nav\[data-jluxe-mobile-nav-dock\] \{\s*z-index: (\d+);/,
-  );
+  const layering = storefrontStyles.slice(storefrontStyles.indexOf("/* Drawer panels"));
+  const headerZ = Number(layering.match(/#masthead \.jluxe-header-bar \{\s*z-index: (\d+);/)?.[1]);
+  const dockZ = Number(layering.match(/\.jluxe-mobile-nav\[data-jluxe-mobile-nav-dock\] \{\s*z-index: (\d+);/)?.[1]);
+  const drawerZ = Number(categoryDrawerSource.match(/style: \{ zIndex: (\d+) \}/)?.[1]);
 
-  assert.equal(modalZ, 120, "the recommendation sheet keeps its intended overlay layer");
-  assert.ok(mobileNavigationRule, "both mobile cart entry points must have an explicit layer above the sheet");
-  assert.ok(Number(mobileNavigationRule[1]) > modalZ, "the header and bottom dock remain tappable while recommendations are open");
+  assert.equal(modalZ, 120, "the recommendation sheet keeps its intended layer");
+  assert.equal(headerZ, 130, "the sticky search/logo header keeps its established layer");
+  assert.equal(drawerZ, 150, "both drawer roots render above the header so their close controls stay visible");
+  assert.equal(dockZ, 160, "the dock remains interactive above the open drawer to toggle it closed");
+  assert.ok(modalZ < headerZ && headerZ < drawerZ && drawerZ < dockZ);
+  assert.match(miniCartSource, /style: \{ zIndex: 150 \}/);
+  assert.match(storefrontStyles, /prefers-reduced-motion: reduce[\s\S]*?\.jluxe-mobile-drawer-panel/);
+  assert.match(mobileNavSource, /prefers-reduced-motion: reduce/);
   assert.match(mobileNavSource, /data-jluxe-mobile-nav-dock/);
   assert.match(floatingNavSource, /data-jluxe-mobile-nav-dock/);
 });

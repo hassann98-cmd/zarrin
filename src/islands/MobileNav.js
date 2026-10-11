@@ -1,5 +1,10 @@
 import { siteUrl } from "../lib/api.js";
-import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
+import {
+  getActiveMobileDrawer,
+  subscribeMobileDrawerState,
+  toggleMobileDrawer,
+} from "../lib/mobile-drawers.js";
+import { MobileDrawerIcon } from "../components/mobile-drawer-icon.js";
 import {
   isMobileNavItemActive as isActive,
   mobileNavContainerStyle,
@@ -18,12 +23,30 @@ const DESTINATIONS = {
   cart: { href: siteUrl("cart"), opensDrawer: "cart" },
 };
 
+function isModifiedClick(event) {
+  return (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  );
+}
+
 function MobileNav() {
   const { snapshot } = useCart();
   const settings = getThemeSettings();
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
   const loggedIn = settings.auth?.isLoggedIn ?? false;
+  const [activeDrawer, setActiveDrawer] = React.useState(() =>
+    typeof window === "undefined" ? null : getActiveMobileDrawer(window),
+  );
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  const animate = style.animate !== false && !reducedMotion;
   const [currentHref, setCurrentHref] = React.useState(
     typeof window === "undefined" ? "/" : window.location.href,
   );
@@ -33,6 +56,10 @@ function MobileNav() {
       Boolean(document.querySelector("[data-jluxe-mobile-price-bar]")),
   );
 
+  React.useEffect(
+    () => subscribeMobileDrawerState(setActiveDrawer, window),
+    [],
+  );
   React.useEffect(() => {
     const toggle = () => setHasPriceBar((visible) => !visible);
     window.addEventListener("jluxe:toggle-mobile-bar", toggle);
@@ -103,23 +130,29 @@ function MobileNav() {
         "aria-hidden": true,
       }),
       ...items.map((item) => {
-        const active = isActive(currentHref, item.href, item.id);
+        const drawerOpen = Boolean(
+          item.opensDrawer && activeDrawer === item.opensDrawer,
+        );
+        const routeActive = isActive(currentHref, item.href, item.id);
+        const active = routeActive || drawerOpen;
         const Icon = navIcons[item.icon] ?? fallbackIcon;
         return jsx.jsxs(
           "a",
           {
             href: item.href,
             onClick: (event) => {
+              if (isModifiedClick(event)) return;
               if (item.opensDrawer) {
                 event.preventDefault();
-                if (item.opensDrawer === "cart") {
-                  if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
-                    window.jluxeCloseSuggestedProductsModal();
-                  }
-                  requestCartDrawerOpen(window);
-                } else {
-                  window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
+                const wasOpen =
+                  getActiveMobileDrawer(window) === item.opensDrawer;
+                if (
+                  !wasOpen &&
+                  typeof window.jluxeCloseSuggestedProductsModal === "function"
+                ) {
+                  window.jluxeCloseSuggestedProductsModal();
                 }
+                toggleMobileDrawer(item.opensDrawer, window);
               } else {
                 setCurrentHref(item.href);
               }
@@ -127,12 +160,28 @@ function MobileNav() {
             className: "jluxe-mobile-nav-item relative flex flex-1 flex-col items-center justify-center gap-1 pt-1 text-[10.5px] font-medium",
             style: {
               color: active ? colors.active : colors.icon,
-              transition:
-                style.animate === false
-                  ? "none"
-                  : "color 220ms ease,transform 180ms ease",
+              transition: animate
+                ? "color 220ms ease,transform 180ms ease"
+                : "none",
             },
-            "aria-current": active ? "page" : undefined,
+            "aria-current": routeActive ? "page" : undefined,
+            ...(item.opensDrawer
+              ? {
+                  "aria-label": drawerOpen
+                    ? item.opensDrawer === "cart"
+                      ? "بستن سبد خرید"
+                      : "بستن دسته‌بندی‌ها"
+                    : item.label,
+                  "aria-haspopup": "dialog",
+                  "aria-expanded": drawerOpen,
+                  "aria-controls":
+                    item.opensDrawer === "cart"
+                      ? "jluxe-cart-drawer-dialog"
+                      : "jluxe-category-drawer-dialog",
+                  "data-jluxe-drawer-toggle": item.opensDrawer,
+                  "data-jluxe-drawer-open": drawerOpen ? "true" : "false",
+                }
+              : {}),
             children: [
               jsx.jsxs("span", {
                 className: "jluxe-mobile-nav-icon relative flex size-10 items-center justify-center rounded-[15px]",
@@ -143,11 +192,21 @@ function MobileNav() {
                     ? `0 5px 14px -8px ${colors.active}`
                     : "0 2px 10px -8px rgba(16,24,40,.18)",
                   transform: active ? "translateY(-2px)" : "translateY(0)",
-                  transition: style.animate === false ? "none" : "all 220ms ease",
+                  transition: animate ? "all 220ms ease" : "none",
                 },
                 ...(item.id === "cart" ? { "data-jluxe-cart-icon-mobile": "" } : {}),
                 children: [
-                  jsx.jsx(Icon, { className: "size-[21px]", "aria-hidden": true }),
+                  item.opensDrawer
+                    ? jsx.jsx(MobileDrawerIcon, {
+                        Icon,
+                        open: drawerOpen,
+                        animate,
+                        className: "size-[21px]",
+                      })
+                    : jsx.jsx(Icon, {
+                        className: "size-[21px]",
+                        "aria-hidden": true,
+                      }),
                   item.id === "cart" && snapshot.itemCount > 0
                     ? jsx.jsx("span", {
                         className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-accent-hover text-[10px] font-bold text-accent-foreground shadow-md",

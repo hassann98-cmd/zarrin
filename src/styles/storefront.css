@@ -9687,10 +9687,19 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   }
 }
 
-/* Keep persistent mobile navigation above the post-add suggestions sheet (z-120). */
+/* Drawer panels (z-150) cover the fixed header; the dock stays above them (z-160)
+   so the active category/cart icon remains a usable close toggle. */
 @media (max-width: 767.98px) {
-  #masthead .jluxe-header-bar,
-  .jluxe-mobile-nav[data-jluxe-mobile-nav-dock] {
+  #masthead .jluxe-header-bar {
     z-index: 130;
+  }
+  .jluxe-mobile-nav[data-jluxe-mobile-nav-dock] {
+    z-index: 160;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-mobile-drawer-backdrop,
+  .jluxe-mobile-drawer-panel {
+    transition-duration: 0.01ms;
   }
 }

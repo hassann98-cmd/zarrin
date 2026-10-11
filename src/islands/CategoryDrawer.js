@@ -1,4 +1,9 @@
 import { useDialog } from "../lib/use-dialog.js";
+import {
+  closeMobileDrawer,
+  registerMobileDrawer,
+  setMobileDrawerScrollLock,
+} from "../lib/mobile-drawers.js";
 import { j as e } from "../lib/jsx.js";
 import { r as s } from "../lib/icons.js";
 import { r as k } from "../lib/react-dom.js";
@@ -17,21 +22,21 @@ function F() {
     b = ((j = C().megaMenu) == null ? void 0 : j.categories) ?? [],
     [r, u] = s.useState(null),
     [l, x] = s.useState(null);
-  useDialog(n && y, dialogRef, () => d(!1));
-  (s.useEffect(() => {
-    function t() {
-      d(!0);
-    }
-    return (
-      window.addEventListener("jluxe:open-categories", t),
-      () => window.removeEventListener("jluxe:open-categories", t)
-    );
-  }, []),
+  useDialog(n && y, dialogRef, () => closeMobileDrawer("categories", window));
+  (s.useEffect(
+    () =>
+      registerMobileDrawer(
+        "categories",
+        { open: () => d(!0), close: () => d(!1) },
+        window,
+      ),
+    [],
+  ),
     s.useEffect(() => {
       n || (u(null), x(null));
     }, [n]));
   function a() {
-    d(!1);
+    closeMobileDrawer("categories", window);
   }
   return (
     s.useEffect(() => {
@@ -54,30 +59,30 @@ function F() {
         };
       }
       c(!1);
-      const t = window.setTimeout(() => h(!1), 300);
+      const exitDelay = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+        ? 0
+        : 300;
+      const t = window.setTimeout(() => h(!1), exitDelay);
       return () => window.clearTimeout(t);
     }, [n]),
     s.useEffect(() => {
-      if (n)
-        return (
-          (document.body.style.overflow = "hidden"),
-          () => {
-            document.body.style.overflow = "";
-          }
-        );
-    }, [n]),
+      setMobileDrawerScrollLock("categories", y, window);
+      return () => setMobileDrawerScrollLock("categories", !1, window);
+    }, [y]),
     y
       ? k.createPortal(
           e.jsxs("div", {
             className: "fixed inset-0 z-[60]",
+            style: { zIndex: 150 },
             children: [
               e.jsx("div", {
-                className: `absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
-                onClick: () => d(!1),
+                className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
+                onClick: a,
                 "aria-hidden": "true",
               }),
               e.jsxs("div", {
-                className: `absolute inset-y-0 right-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-xl transition-transform duration-300 ease-out ${p ? "translate-x-0" : "translate-x-full"}`,
+                className: `jluxe-mobile-drawer-panel absolute inset-y-0 right-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-xl transition-transform duration-300 ease-out ${p ? "translate-x-0" : "translate-x-full"}`,
+                id: "jluxe-category-drawer-dialog",
                 role: "dialog",
                 ref: dialogRef,
                 "aria-modal": "true",

@@ -1,6 +1,11 @@
 import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
-import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
+import {
+  getActiveMobileDrawer,
+  subscribeMobileDrawerState,
+  toggleMobileDrawer,
+} from "../lib/mobile-drawers.js";
+import { MobileDrawerIcon } from "../components/mobile-drawer-icon.js";
 import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { u as useCart } from "../lib/use-cart.js";
 import { N as navIcons, H as fallbackIcon } from "../components/nav-icons.js";
@@ -71,6 +76,9 @@ function FloatingMobileNav() {
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   const animate = style.animate !== false && !reducedMotion;
   const { snapshot } = useCart();
+  const [activeDrawer, setActiveDrawer] = React.useState(() =>
+    typeof window === "undefined" ? null : getActiveMobileDrawer(window),
+  );
   const [currentHref, setCurrentHref] = React.useState(
     typeof window === "undefined" ? "/" : window.location.href,
   );
@@ -80,6 +88,10 @@ function FloatingMobileNav() {
       Boolean(document.querySelector("[data-jluxe-mobile-price-bar]")),
   );
 
+  React.useEffect(
+    () => subscribeMobileDrawerState(setActiveDrawer, window),
+    [],
+  );
   React.useEffect(() => {
     const toggleMobilePriceBar = () => setHasMobilePriceBar((visible) => !visible);
     window.addEventListener("jluxe:toggle-mobile-bar", toggleMobilePriceBar);
@@ -133,14 +145,14 @@ function FloatingMobileNav() {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
       event.preventDefault();
-      if (item.opensDrawer === "cart") {
-        if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
-          window.jluxeCloseSuggestedProductsModal();
-        }
-        requestCartDrawerOpen(window);
-      } else {
-        window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
+      const wasOpen = getActiveMobileDrawer(window) === item.opensDrawer;
+      if (
+        !wasOpen &&
+        typeof window.jluxeCloseSuggestedProductsModal === "function"
+      ) {
+        window.jluxeCloseSuggestedProductsModal();
       }
+      toggleMobileDrawer(item.opensDrawer, window);
       return;
     }
     if (!item.targetBlank && item.action !== "assistant") {
@@ -162,11 +174,15 @@ function FloatingMobileNav() {
     "data-jluxe-mobile-nav-dock": "",
     "data-jluxe-mobile-nav-variant": "floating",
     children: items.map((item) => {
-      const active = isActiveRoute(
+      const drawerOpen = Boolean(
+        item.opensDrawer && activeDrawer === item.opensDrawer,
+      );
+      const routeActive = isActiveRoute(
         currentHref,
         item.href,
         item.action === "account" ? "account" : item.id,
       );
+      const active = routeActive || drawerOpen;
       const Icon = item.icon
         ? item.icon === "menu"
           ? MenuIcon
@@ -186,7 +202,24 @@ function FloatingMobileNav() {
             color,
             transition: animate ? "color 220ms ease,transform 180ms ease" : "none",
           },
-          "aria-current": active ? "page" : undefined,
+          "aria-current": routeActive ? "page" : undefined,
+          ...(item.opensDrawer
+            ? {
+                "aria-label": drawerOpen
+                  ? item.opensDrawer === "cart"
+                    ? "بستن سبد خرید"
+                    : "بستن دسته‌بندی‌ها"
+                  : item.label,
+                "aria-haspopup": "dialog",
+                "aria-expanded": drawerOpen,
+                "aria-controls":
+                  item.opensDrawer === "cart"
+                    ? "jluxe-cart-drawer-dialog"
+                    : "jluxe-category-drawer-dialog",
+                "data-jluxe-drawer-toggle": item.opensDrawer,
+                "data-jluxe-drawer-open": drawerOpen ? "true" : "false",
+              }
+            : {}),
           children: [
             jsx.jsxs("span", {
               className: "jluxe-mobile-nav-icon jluxe-mobile-nav-icon--floating relative flex size-10 items-center justify-center rounded-[15px]",
@@ -200,7 +233,17 @@ function FloatingMobileNav() {
               ...(cartAction ? { "data-jluxe-cart-icon-mobile": "" } : {}),
               children: [
                 Icon
-                  ? jsx.jsx(Icon, { className: "size-[23px]", "aria-hidden": true })
+                  ? item.opensDrawer
+                    ? jsx.jsx(MobileDrawerIcon, {
+                        Icon,
+                        open: drawerOpen,
+                        animate,
+                        className: "size-[23px]",
+                      })
+                    : jsx.jsx(Icon, {
+                        className: "size-[23px]",
+                        "aria-hidden": true,
+                      })
                   : null,
                 cartAction && snapshot.itemCount > 0
                   ? jsx.jsx("span", {

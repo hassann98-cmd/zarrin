@@ -1,5 +1,9 @@
 import { siteUrl } from "../lib/api.js";
-import { registerCartDrawerOpen } from "../lib/cart-drawer.js";
+import {
+  closeMobileDrawer,
+  registerMobileDrawer,
+  setMobileDrawerScrollLock,
+} from "../lib/mobile-drawers.js";
 import { useDialog } from "../lib/use-dialog.js";
 import { j as e } from "../lib/jsx.js";
 import { r } from "../lib/icons.js";
@@ -33,9 +37,18 @@ function J() {
     } = I(),
     [m, b] = r.useState(""),
     S = ((g = H().cart) == null ? void 0 : g.showCoupon) !== !1;
+  function closeDrawer() {
+    closeMobileDrawer("cart", window);
+  }
+  useDialog(n && y, dialogRef, closeDrawer);
   return (
     r.useEffect(
-      () => registerCartDrawerOpen(() => l(!0), window),
+      () =>
+        registerMobileDrawer(
+          "cart",
+          { open: () => l(!0), close: () => l(!1) },
+          window,
+        ),
       [],
     ),
     r.useEffect(() => {
@@ -58,30 +71,30 @@ function J() {
         };
       }
       o(!1);
-      const t = window.setTimeout(() => x(!1), 300);
+      const exitDelay = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+        ? 0
+        : 300;
+      const t = window.setTimeout(() => x(!1), exitDelay);
       return () => window.clearTimeout(t);
     }, [n]),
     r.useEffect(() => {
-      if (n)
-        return (
-          (document.body.style.overflow = "hidden"),
-          () => {
-            document.body.style.overflow = "";
-          }
-        );
-    }, [n]),
+      setMobileDrawerScrollLock("cart", y, window);
+      return () => setMobileDrawerScrollLock("cart", !1, window);
+    }, [y]),
     y
       ? k.createPortal(
           e.jsxs("div", {
             className: "fixed inset-0 z-[60]",
+            style: { zIndex: 150 },
             children: [
               e.jsx("div", {
-                className: `absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
-                onClick: () => l(!1),
+                className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
+                onClick: closeDrawer,
                 "aria-hidden": "true",
               }),
               e.jsxs("div", {
-                className: `absolute inset-y-0 left-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-xl transition-transform duration-300 ease-out ${p ? "translate-x-0" : "-translate-x-full"}`,
+                className: `jluxe-mobile-drawer-panel absolute inset-y-0 left-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-xl transition-transform duration-300 ease-out ${p ? "translate-x-0" : "-translate-x-full"}`,
+                id: "jluxe-cart-drawer-dialog",
                 role: "dialog",
                 ref: dialogRef,
                 "aria-modal": "true",
@@ -112,7 +125,7 @@ function J() {
                       }),
                       e.jsx("button", {
                         type: "button",
-                        onClick: () => l(!1),
+                        onClick: closeDrawer,
                         "aria-label": "بستن سبد خرید",
                         className:
                           "grid size-9 place-items-center rounded-lg text-text-muted transition-all hover:bg-muted active:scale-90 active:bg-muted",
@@ -224,7 +237,7 @@ function J() {
                                   }),
                                   e.jsx("a", {
                                     href: siteUrl("shop"),
-                                    onClick: () => l(!1),
+                                    onClick: closeDrawer,
                                     className:
                                       "mt-1 rounded-xl bg-primary px-5 py-2.5 text-caption font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-95",
                                     children: "شروع خرید",
