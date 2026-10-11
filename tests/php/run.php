@@ -2034,7 +2034,7 @@ $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 4, 'faq' => a
 jluxe_update_settings_section( 'faq', array( 'items' => array() ) );
 $r180_saved_empty_faq = jluxe_get_theme_settings( true );
 check(
-	12 === $r180_saved_empty_faq['version'] && empty( $r180_saved_empty_faq['faq']['items'] ),
+	JLUXE_SETTINGS_VERSION === $r180_saved_empty_faq['version'] && empty( $r180_saved_empty_faq['faq']['items'] ),
 	'R180 once the administrator clears the FAQ, saving it empty does not reseed defaults on later reads'
 );
 update_test_settings( $defaults );
@@ -3330,13 +3330,13 @@ $r194_blank_v7 = array(
 );
 $r194_restored_v7 = jluxe_migrate_settings_to_current_version( $r194_blank_v7, 7 );
 check(
-	12 === $r194_restored_v7['version'] && $r194_approved_brand === $r194_restored_v7['footer']['brand_description'] &&
+	JLUXE_SETTINGS_VERSION === $r194_restored_v7['version'] && $r194_approved_brand === $r194_restored_v7['footer']['brand_description'] &&
 	$r196_expected_titles === array_column( $r194_restored_v7['footer']['feature_cards'], 'title' ) &&
 	$r196_expected_subtitles === array_column( $r194_restored_v7['footer']['feature_cards'], 'subtitle' ) &&
 	array_reduce( $r194_restored_v7['footer']['feature_cards'], static function ( $enabled, $card ) {
 		return $enabled && ! empty( $card['enabled'] );
 	}, true ),
-	'R197 v7 settings migrate through v12 to the consistent benefit headings and enable the four cards'
+	'R197 v7 settings migrate through v13 to the consistent benefit headings and enable the four cards'
 );
 $r194_custom_v7 = array(
 	'footer' => array(
@@ -3367,13 +3367,13 @@ $r195_legacy_v8 = array(
 );
 $r195_migrated_v8 = jluxe_migrate_settings_to_current_version( $r195_legacy_v8, 8 );
 check(
-	12 === $r195_migrated_v8['version'] &&
+	JLUXE_SETTINGS_VERSION === $r195_migrated_v8['version'] &&
 	'ارسال فوری به سراسر ایران' === $r195_migrated_v8['footer']['feature_cards'][0]['title'] &&
 	'' === $r195_migrated_v8['footer']['feature_cards'][0]['subtitle'] &&
 	'truck' === $r195_migrated_v8['footer']['feature_cards'][0]['icon'] &&
 	'پشتیبانیِ سفارشی' === $r195_migrated_v8['footer']['feature_cards'][1]['title'] &&
 	'متن ثبت‌شده توسط مدیر' === $r195_migrated_v8['footer']['feature_cards'][1]['subtitle'],
-	'R197 v8 settings migrate through v12 to the full bold shipping slogan and preserves the other configured card'
+	'R197 v8 settings migrate through v13 to the full bold shipping slogan and preserves the other configured card'
 );
 $r195_custom_first_v8 = array(
 	'footer' => array(
@@ -3384,7 +3384,7 @@ $r195_custom_first_v8 = array(
 );
 $r195_migrated_custom_v8 = jluxe_migrate_settings_to_current_version( $r195_custom_first_v8, 8 );
 check(
-	12 === $r195_migrated_custom_v8['version'] &&
+	JLUXE_SETTINGS_VERSION === $r195_migrated_custom_v8['version'] &&
 	'ارسال ویژه فروشگاه' === $r195_migrated_custom_v8['footer']['feature_cards'][0]['title'] &&
 	'ارسال فوری به سراسر ایران' === $r195_migrated_custom_v8['footer']['feature_cards'][0]['subtitle'],
 	'R197 v11 preserves custom first-card copy'
@@ -3398,7 +3398,7 @@ $r196_partial_v9 = array(
 );
 $r196_migrated_partial_v9 = jluxe_migrate_settings_to_current_version( $r196_partial_v9, 9 );
 check(
-	12 === $r196_migrated_partial_v9['version'] &&
+	JLUXE_SETTINGS_VERSION === $r196_migrated_partial_v9['version'] &&
 	'ارسال فوری' === $r196_migrated_partial_v9['footer']['feature_cards'][0]['title'] &&
 	'زیرعنوان سفارشی مدیر' === $r196_migrated_partial_v9['footer']['feature_cards'][0]['subtitle'],
 	'R197 v11 leaves non-matching merchant copy untouched'
@@ -3412,7 +3412,7 @@ $r197_legacy_v10 = array(
 );
 $r197_migrated_v10 = jluxe_migrate_settings_to_current_version( $r197_legacy_v10, 10 );
 check(
-	12 === $r197_migrated_v10['version'] &&
+	JLUXE_SETTINGS_VERSION === $r197_migrated_v10['version'] &&
 	'ارسال فوری به سراسر ایران' === $r197_migrated_v10['footer']['feature_cards'][0]['title'] &&
 	'' === $r197_migrated_v10['footer']['feature_cards'][0]['subtitle'] &&
 	true === $r197_migrated_v10['footer']['feature_cards'][0]['enabled'] &&
@@ -3428,7 +3428,7 @@ $r197_custom_shipping = array(
 );
 $r197_migrated_custom_shipping = jluxe_migrate_settings_to_current_version( $r197_custom_shipping, 10 );
 check(
-	12 === $r197_migrated_custom_shipping['version'] &&
+	JLUXE_SETTINGS_VERSION === $r197_migrated_custom_shipping['version'] &&
 	'' === $r197_migrated_custom_shipping['footer']['feature_cards'][0]['title'] &&
 	'ارسال فوری برای مناطق منتخب' === $r197_migrated_custom_shipping['footer']['feature_cards'][0]['subtitle'],
 	'R197 v11 leaves custom shipping wording untouched when it does not exactly match the legacy slogan'
@@ -3453,7 +3453,7 @@ $r189_legacy['footer']['trust_badges'] = $r189_original_badges;
 update_option( JLUXE_SETTINGS_OPTION, $r189_legacy, false );
 $r189_migrated = jluxe_get_theme_settings( true );
 check(
-	12 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] &&
+	JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] &&
 	'' === $r189_migrated['footer']['support_hours'] && '' === $r189_migrated['footer']['support_text'] &&
 	'نمادهای اعتماد' === $r189_migrated['footer']['trust_badges_title'] &&
 	$r194_approved_brand === $r189_migrated['footer']['brand_description'],
@@ -3494,14 +3494,14 @@ $r192_legacy_v6 = array(
 );
 $r192_migrated_v6 = jluxe_migrate_settings_to_current_version( $r192_legacy_v6, 6 );
 check(
-	12 === $r192_migrated_v6['version'] && $r194_approved_brand === $r192_migrated_v6['footer']['brand_description'] &&
+	JLUXE_SETTINGS_VERSION === $r192_migrated_v6['version'] && $r194_approved_brand === $r192_migrated_v6['footer']['brand_description'] &&
 	'' === $r192_migrated_v6['footer']['support_hours'] && '' === $r192_migrated_v6['footer']['support_text'] &&
 	'ارسال فوری به سراسر ایران' === $r192_migrated_v6['footer']['feature_cards'][0]['title'] &&
 	'' === $r192_migrated_v6['footer']['feature_cards'][0]['subtitle'] &&
 	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
 	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
 	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
-	'R197 v6 settings migrate through v12: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
+	'R197 v6 settings migrate through v13: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
 );
 check(
 	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
@@ -3520,7 +3520,7 @@ check(
 	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
 );
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( 12 === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v12 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v13 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -3543,7 +3543,7 @@ $r229_legacy_guide = array(
 $r229_migrated_guide = jluxe_migrate_settings_to_current_version( $r229_legacy_guide, 11 )['guide_pages']['shopping_guide'];
 $r229_defaults_guide = jluxe_theme_settings_defaults()['guide_pages']['shopping_guide'];
 check(
-	12 === jluxe_migrate_settings_to_current_version( $r229_legacy_guide, 11 )['version'] &&
+	JLUXE_SETTINGS_VERSION === jluxe_migrate_settings_to_current_version( $r229_legacy_guide, 11 )['version'] &&
 	$r229_defaults_guide['title'] === $r229_migrated_guide['title'] &&
 	$r229_defaults_guide['intro'] === $r229_migrated_guide['intro'] &&
 	array_column( $r229_defaults_guide['steps'], 'content' ) === array_column( $r229_migrated_guide['steps'], 'content' ) &&
@@ -3574,11 +3574,108 @@ check(
 	true === $r229_defaults_guide['button_enabled'],
 	'R229 defaults contain the five requested purchase steps, callouts, provided copy and the root-page CTA'
 );
+
+// R230: payment-guide defaults, exact-match migration, account data, and render.
+$r230_defaults       = jluxe_theme_settings_defaults();
+$r230_payment_guide  = $r230_defaults['guide_pages']['payment_guide'];
+$r230_payment_body   = $r230_payment_guide['body_html'];
+$r230_payment_account = $r230_defaults['payment_account'];
+check(
+	'روش‌ها و راهنمای پرداخت سفارشات' === $r230_payment_guide['title'] &&
+	'در فروشگاه {site_name}، جهت رفاه حال شما مشتریان گرامی، امکان پرداخت از ۳ طریق امن فراهم شده است.' === $r230_payment_guide['intro'] &&
+	2 === substr_count( $r230_payment_body, 'class="jpp-section"' ) &&
+	false !== strpos( $r230_payment_body, 'درگاه مستقیم بانک پارسیان' ) &&
+	false !== strpos( $r230_payment_body, 'درگاه واسط زرین‌پال' ) &&
+	false !== strpos( $r230_payment_body, 'فقط تا ۳۰ دقیقه' ) &&
+	false !== strpos( $r230_payment_body, 'ارسال رسید یا ثبت شمارهٔ پیگیری' ) &&
+	false !== strpos( $r230_payment_body, 'نام واریزکننده' ) &&
+	false !== strpos( $r230_payment_body, 'روی دکمهٔ «ارسال» یا «ثبت فیش واریزی» کلیک کنید' ) &&
+	false !== strpos( $r230_payment_body, 'وضعیت جدید نیز از طریق پیامک به شما اطلاع داده می‌شود' ) &&
+	'5859-8310-5586-8573' === $r230_payment_account['card_number'] &&
+	'IR93-0180-0000-0038-7575-5299-09' === $r230_payment_account['sheba'] &&
+	'فاطمه زارع' === $r230_payment_account['holder_name'] && 'تجارت' === $r230_payment_account['bank_name'] &&
+	'بازگشت به فروشگاه ←' === $r230_payment_guide['button_text'] && '/' === $r230_payment_guide['button_url'],
+	'R230 defaults include the manager-provided payment copy, account values, SMS note, and store-return CTA'
+);
+$r230_old_payment_guide = array(
+	'version' => 12,
+	'guide_pages' => array(
+		'payment_guide' => array(
+			'intro' => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+			'body_html' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+		),
+	),
+	'payment_account' => array( 'card_number' => '', 'sheba' => '', 'holder_name' => '', 'bank_name' => '' ),
+);
+$r230_migrated_payment = jluxe_migrate_settings_to_current_version( $r230_old_payment_guide, 12 );
+check(
+	JLUXE_SETTINGS_VERSION === $r230_migrated_payment['version'] &&
+	$r230_payment_guide['intro'] === $r230_migrated_payment['guide_pages']['payment_guide']['intro'] &&
+	$r230_payment_guide['body_html'] === $r230_migrated_payment['guide_pages']['payment_guide']['body_html'] &&
+	$r230_payment_account === $r230_migrated_payment['payment_account'],
+	'R230 v13 migrates only the exact previous payment-guide defaults and fills the formerly blank account defaults'
+);
+$r230_custom_payment = $r230_old_payment_guide;
+$r230_custom_payment['guide_pages']['payment_guide']['intro'] = 'مقدمهٔ اختصاصی مدیر';
+$r230_custom_payment['guide_pages']['payment_guide']['body_html'] = '<p>محتوای پرداخت سفارشی</p>';
+$r230_custom_payment['guide_pages']['payment_guide']['button_url'] = '/payment-notice/';
+$r230_custom_payment['payment_account'] = array(
+	'card_number' => '1111-2222-3333-4444',
+	'sheba' => '',
+	'holder_name' => 'نام ثبت‌شده توسط مدیر',
+	'bank_name' => 'بانک انتخابی مدیر',
+);
+$r230_custom_migrated = jluxe_migrate_settings_to_current_version( $r230_custom_payment, 12 );
+check(
+	'مقدمهٔ اختصاصی مدیر' === $r230_custom_migrated['guide_pages']['payment_guide']['intro'] &&
+	'<p>محتوای پرداخت سفارشی</p>' === $r230_custom_migrated['guide_pages']['payment_guide']['body_html'] &&
+	'/payment-notice/' === $r230_custom_migrated['guide_pages']['payment_guide']['button_url'] &&
+	'1111-2222-3333-4444' === $r230_custom_migrated['payment_account']['card_number'] &&
+	$r230_payment_account['sheba'] === $r230_custom_migrated['payment_account']['sheba'] &&
+	'نام ثبت‌شده توسط مدیر' === $r230_custom_migrated['payment_account']['holder_name'] &&
+	'بانک انتخابی مدیر' === $r230_custom_migrated['payment_account']['bank_name'],
+	'R230 migration preserves edited payment copy, CTA, and populated account fields while filling a blank account field'
+);
+$r230_render_settings = $r230_defaults;
+$r230_render_settings['guide_pages']['payment_guide']['button_color'] = '#123abc';
+update_test_settings( $r230_render_settings );
+ob_start();
+require ABSPATH . 'page-payment-guide.php';
+$r230_payment_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r230_payment_html, '<a href="https://shop.test/store/" class="jpp-btn" style="background:#123abc">بازگشت به فروشگاه ←</a>' ) &&
+	false !== strpos( $r230_payment_html, '5859-8310-5586-8573' ) &&
+	false !== strpos( $r230_payment_html, 'IR93-0180-0000-0038-7575-5299-09' ) &&
+	false !== strpos( $r230_payment_html, 'فاطمه زارع' ) && false !== strpos( $r230_payment_html, 'تجارت' ) &&
+	false === strpos( $r230_payment_html, '{card_number}' ) && false === strpos( $r230_payment_html, '{site_name}' ),
+	'R230 server-rendered payment guide substitutes editable account/site values and lets a custom CTA color override its gradient'
+);
+$r230_admin_form_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r230_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]' ) &&
+	false !== strpos( $r230_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]' ) &&
+	false !== strpos( $r230_admin_form_source, 'guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]' ) &&
+	false !== strpos( $r230_admin_form_source, 'name="payment_account[card_number]"' ) &&
+	false !== strpos( $r230_admin_form_source, 'name="payment_account[sheba]"' ) &&
+	false !== strpos( $r230_admin_form_source, 'name="payment_account[holder_name]"' ) &&
+	false !== strpos( $r230_admin_form_source, 'name="payment_account[bank_name]"' ),
+	'R230 theme settings keep payment CTA fields and all four payment-account fields editable'
+);
+$r230_payment_template = (string) file_get_contents( ABSPATH . 'page-payment-guide.php' );
+check(
+	false !== strpos( $r230_payment_template, 'background: linear-gradient(135deg, var(--pp-amber1), var(--pp-amber2));' ) &&
+	false !== strpos( $r230_payment_template, 'style="background:' ) &&
+	false !== strpos( $r230_payment_template, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r230_payment_template, 'prefers-reduced-motion: reduce' ),
+	'R230 payment page retains its scoped CTA/CSS and responsive reduced-motion rules'
+);
+update_test_settings( jluxe_theme_settings_defaults() );
+
 $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-import-export.php' );
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( 12 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v12 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R197 saving an unrelated settings section applies through-v13 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -4577,10 +4674,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( 12 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v12 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v13 with legacy fixes, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( 12 === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v12 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v13 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );

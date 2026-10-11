@@ -2,9 +2,10 @@
 /**
  * پنل تنظیمات JLuxe (wp-admin → JLuxe → تنظیمات ظاهری).
  *
- * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). مقادیر
- * پیش‌فرض فقط رفتار عمومیِ پوسته را تعریف می‌کنند؛ اطلاعات تجاری و متن‌های
- * وابسته به پیکربندی فروشگاه باید توسط مدیر وارد شوند، نه از محتوای نمونه.
+ * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). پیش‌فرض‌ها
+ * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنمای پرداخت و حسابی که
+ * مدیر برای همین صفحه فرستاده، استثنای صریح است و در پنل قابل‌ویرایش می‌ماند.
+ * سایر اطلاعات تجاری و سیاست‌های وابسته به فروشگاه باید از مدیر بیایند.
  *
  * فقط بخش‌هایی که واقعاً به frontend وصل شدن پیاده‌سازی شدن (رنگ‌ها، هویت
  * سایت/لوگو/فاویکون، فوتر) — نه یک پنل نمایشی با تنظیماتی که به جایی وصل
@@ -14,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 12;
+const JLUXE_SETTINGS_VERSION = 13;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -90,8 +91,9 @@ function jluxe_faq_default_items(): array {
 }
 
 /**
- * مقادیر پیش‌فرضِ عمومی؛ متن‌ها و مشخصاتِ تجاریِ وابسته به هر فروشگاه
- * فقط پس از ثبتِ مدیر در تنظیمات واردِ فرانت می‌شوند.
+ * مقادیر پیش‌فرضِ عمومی؛ به‌جز متن و مشخصاتِ پرداختی که مدیر صریحاً برای
+ * همین راهنما فرستاده، داده‌ها و سیاست‌های تجاریِ وابسته به فروشگاه باید
+ * از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
 	return array(
@@ -424,11 +426,9 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		/*
-		 * راهنماهای خرید، پرداخت و ارسال فقط رفتار عمومی checkout و گزینه‌های
-		 * واقعاً نمایش‌داده‌شده را توضیح می‌دهند. سیاست مرجوعی، روش حمل/پرداخت
-		 * و هر وعدهٔ تجاری باید از دادهٔ تأییدشدهٔ مدیر بیاید؛ به همین دلیل
-		 * متنِ آن سیاست‌ها در نصب تازه خالی است. محتوای HTML از پنل sanitize
-		 * می‌شود و همچنان server-rendered و قابل‌خزش است.
+		 * متن‌های سیاستِ مرجوعی و جزئیاتِ حمل‌ونقل باید از مدیر بیایند؛ متنِ
+		 * راهنمای پرداختِ پایین دقیقاً محتوای ارسالیِ مدیر برای همان صفحه است.
+		 * محتوای HTML از پنل sanitize می‌شود و server-rendered و قابل‌خزش است.
 		 */
 		'guide_pages' => array(
 			'shopping_guide' => array(
@@ -479,11 +479,11 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'payment_guide' => array(
 				'title'        => 'روش‌ها و راهنمای پرداخت سفارشات',
-				'intro'        => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+				'intro'        => 'در فروشگاه {site_name}، جهت رفاه حال شما مشتریان گرامی، امکان پرداخت از ۳ طریق امن فراهم شده است.',
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+				'body_html' => '<section class="jpp-section"><header class="jpp-section-head"><span class="jpp-num">۱</span><h2>پرداخت آنلاین از طریق درگاه بانکی <small>(سریع‌ترین روش)</small></h2></header><p>شما می‌توانید در تمامی ساعات شبانه‌روز، با استفاده از همهٔ کارت‌های بانکی عضو شبکهٔ شتاب، هزینهٔ سفارش خود را به‌صورت آنلاین و آنی پرداخت کنید. درگاه‌های فعال سایت عبارت‌اند از:</p><p><strong>درگاه مستقیم بانک پارسیان:</strong> امن و متصل به شبکهٔ شاپرک.</p><p><strong>درگاه واسط زرین‌پال:</strong> پشتیبان و تضمین‌کنندهٔ پرداخت.</p><div class="jpp-callout jpp-callout-tip"><p><strong>مزیت پرداخت آنلاین:</strong> در این روش، تایید مالی سفارش شما به‌صورت آنی و خودکار انجام شده و سفارش بدون معطلی و بلافاصله وارد مرحلهٔ بسته‌بندی و ارسال می‌شود.</p></div></section><section class="jpp-section"><header class="jpp-section-head"><span class="jpp-num">۲</span><h2>پرداخت به‌صورت کارت‌به‌کارت یا شبا (نیازمند تایید)</h2></header><p>اگر به هر دلیلی به رمز پویا دسترسی ندارید یا تمایل به واریز مستقیم دارید، می‌توانید سفارش خود را به‌صورت کارت‌به‌کارت یا پایا/ساتنا ثبت کنید. لطفاً به قوانین این روش دقت فرمایید.</p><div class="jpp-callout jpp-callout-warning"><p><strong>قانون رزرو موقت کالا:</strong> پس از انتخاب این روش، اقلام سبد خرید شما فقط تا ۳۰ دقیقه در سیستم رزرو می‌مانند. لطفاً در همین بازهٔ زمانی واریز خود را انجام دهید تا سفارش شما به‌صورت خودکار توسط سیستم لغو نگردد.</p></div><div class="jpp-account-box"><p class="jpp-account-title">مشخصات حساب جهت واریز وجه</p><div class="jpp-account-row"><span class="jpp-account-label">شمارهٔ کارت</span><strong class="jpp-account-value">{card_number}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">شمارهٔ شبا</span><strong class="jpp-account-value">{sheba}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">نام صاحب حساب</span><strong class="jpp-account-value jpp-account-value-name">{holder_name}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">بانک</span><strong class="jpp-account-value jpp-account-value-name">{bank_name}</strong></div></div><p class="jpp-substeps-title">مراحل تکمیل و ثبت نهایی سفارش کارت‌به‌کارت</p><p class="jpp-substep-note">نکته برای مبالغ بالا: اگر بانک شما محدودیت انتقال وجه دارد، می‌توانید مبلغ را طی ۱ تا ۳ مرحله واریز کنید.</p><p><strong>۱. واریز وجه:</strong> مبلغ کل سفارش را به شمارهٔ کارت یا شبای فوق واریز کنید.</p><p><strong>۲. ارسال رسید یا ثبت شمارهٔ پیگیری:</strong> در صورت واریز چندمرحله‌ای، تصویر هر ۳ رسید را در سایت آپلود کنید؛ یا شماره‌های پیگیری/ارجاع هر واریز را با «خط تیره» پشت‌سرهم در کادر مربوطه بنویسید (مثال: <code class="jpp-inline-code">123-456-789</code>).</p><p><strong>۳. نام واریزکننده:</strong> نام و نام‌خانوادگی صاحب حساب (شخصی که واریز را انجام داده) را در کادر مشخص‌شده وارد کنید.</p><p><strong>۴. ثبت نهایی:</strong> در پایان، روی دکمهٔ «ارسال» یا «ثبت فیش واریزی» کلیک کنید.</p><div class="jpp-callout jpp-callout-note"><p>سفارش شما پس از بررسی و تایید مالی توسط کارشناسان حسابداری {site_name}، وارد مرحلهٔ پردازش و ارسال خواهد شد. وضعیت جدید نیز از طریق پیامک به شما اطلاع داده می‌شود.</p></div></section>',
 			),
 			'shipping_tracking' => array(
 				'title'        => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
@@ -518,21 +518,16 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		/*
-		 * اطلاعاتِ حسابِ کارت‌به‌کارت (بخشِ ۲ صفحه‌ی راهنمای پرداخت) —
-		 * طبقِ درخواستِ صریحِ کاربر («هر چیزی از اطلاعاتِ کارت یا شماره
-		 * حساب یا نامِ دارندهٔ حساب باید در تنظیمات قابلِ تغییر باشه»).
-		 * عمداً پیش‌فرض همه خالیه — قبلاً این‌جا یک شماره‌کارت/شبا/نامِ
-		 * ثابت (متعلق به یک حسابِ نامرتبط، کپی‌شده از jluxe.ir) هاردکد
-		 * بود؛ نمایشِ خودکارِ همون اطلاعاتِ اشتباه روی یک سایتِ دیگه
-		 * می‌تونست باعثِ واریزِ مشتری به حسابِ اشتباه بشه. تا وقتی ادمین
-		 * خودش این‌ها رو پر نکنه، بخشِ کارت‌به‌کارت در صفحه اصلاً نمایش
-		 * داده نمی‌شه (نه اطلاعاتِ کهنه/اشتباه).
+		 * اطلاعاتِ حسابِ کارت‌به‌کارت (بخشِ ۲ صفحه‌ی راهنمای پرداخت).
+		 * شمارهٔ کارت، شبا، نامِ صاحب حساب و بانک مطابقِ اطلاعاتی است که
+		 * مدیر برای همین صفحه فرستاده؛ هر چهار فیلد در پنل قابل‌ویرایش‌اند
+		 * و مهاجرت فقط فیلدهای خالیِ تنظیماتِ قبلی را با همین مقادیر پر می‌کند.
 		 */
 		'payment_account' => array(
-			'card_number' => '',
-			'sheba'       => '',
-			'holder_name' => '',
-			'bank_name'   => '',
+			'card_number' => '5859-8310-5586-8573',
+			'sheba'       => 'IR93-0180-0000-0038-7575-5299-09',
+			'holder_name' => 'فاطمه زارع',
+			'bank_name'   => 'تجارت',
 		),
 		'mobile' => array(
 			// طرح قدیمی همان پیش‌فرض می‌ماند؛ طرح شناور نمونه جداگانه انتخاب می‌شود.
@@ -1555,6 +1550,45 @@ function jluxe_migrate_settings_v12( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v12→v13: install the manager-supplied payment-guide copy and account values.
+ * Replace only the exact previous guide defaults; keep any edited copy and
+ * every non-empty account field intact. v12 stored blank account defaults, so
+ * blank/missing account fields receive the explicitly supplied new defaults.
+ */
+function jluxe_migrate_settings_v13( array $settings ): array {
+	$defaults       = jluxe_theme_settings_defaults();
+	$guide_defaults = $defaults['guide_pages']['payment_guide'] ?? array();
+	$old_guide_copy = array(
+		'intro'     => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+		'body_html' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+	);
+
+	if ( isset( $settings['guide_pages']['payment_guide'] ) && is_array( $settings['guide_pages']['payment_guide'] ) ) {
+		foreach ( $old_guide_copy as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['payment_guide'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $guide_defaults[ $field ] ) ) {
+				$settings['guide_pages']['payment_guide'][ $field ] = $guide_defaults[ $field ];
+			}
+		}
+	}
+
+	$account_defaults = $defaults['payment_account'] ?? array();
+	if ( ! isset( $settings['payment_account'] ) || ! is_array( $settings['payment_account'] ) ) {
+		$settings['payment_account'] = $account_defaults;
+		return $settings;
+	}
+
+	foreach ( $account_defaults as $field => $default_value ) {
+		$current_value = $settings['payment_account'][ $field ] ?? null;
+		if ( ! is_string( $current_value ) || '' === trim( $current_value ) ) {
+			$settings['payment_account'][ $field ] = $default_value;
+		}
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -1569,6 +1603,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		10 => 'jluxe_migrate_settings_v10',
 		11 => 'jluxe_migrate_settings_v11',
 		12 => 'jluxe_migrate_settings_v12',
+		13 => 'jluxe_migrate_settings_v13',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {

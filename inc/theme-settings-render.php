@@ -1882,15 +1882,12 @@ function jluxe_render_contact_pages_page(): void {
 }
 
 /**
- * صفحه‌ی «صفحات راهنما» — طبقِ درخواستِ صریحِ کاربر («یه تب اضافه کن برای
- * همه‌ی این تنظیمات ... حتی رنگِ دکمه‌ها هم باید بشه تغییر داد»): عنوان/متنِ
- * مقدماتی/دکمه (و رنگِ دکمه) برای هر ۵ صفحه‌ی راهنما، به‌علاوهٔ اطلاعاتِ
- * حسابِ کارت‌به‌کارت. توجه: برخلافِ الگوی «چند فرمِ مستقل» در تماس/صفحات،
- * این‌جا همه‌ی ۵ صفحه‌ی راهنما در یک فرمِ واحد پست می‌شن — چون
- * jluxe_sanitize_guide_pages یک بخشِ (section) واحده و اگه صفحه‌ای در پست
- * نباشه، مقدارش با defaultِ کدنویسی‌شده (نه مقدارِ ذخیره‌شدهٔ فعلی) جایگزین
- * می‌شه؛ فرمِ جدا برای هر صفحه یعنی ذخیره‌ی یکی، بقیه رو ریست می‌کرد.
- * آکاردئون‌ها این‌جا فقط برای نظمِ بصریه، نه فرمِ مستقل.
+ * صفحه‌ی «صفحات راهنما»: عنوان، مقدمه و HTML هر پنج صفحه در همین فرم
+ * ویرایش می‌شوند؛ CTA راهنمای خرید/پرداخت و چهار فیلد حساب نیز در دسترس‌اند.
+ * فرمِ راهنماها عمداً یکپارچه است، چون jluxe_sanitize_guide_pages کل بخش را
+ * ذخیره می‌کند و نبودنِ یک صفحه در POST مقدارش را به پیش‌فرض برمی‌گرداند؛
+ * فرم‌های جداگانه می‌توانستند ناخواسته تنظیماتِ صفحه‌های دیگر را بازنشانی کنند.
+ * آکاردئون‌ها فقط برای نظمِ بصری هستند، نه فرمِ مستقل.
  */
 function jluxe_render_guide_pages_page(): void {
 	$status   = jluxe_handle_guide_pages_combined_save();
@@ -1969,7 +1966,13 @@ function jluxe_render_guide_pages_page(): void {
 			<details class="jluxe-hb-section-details">
 				<summary class="jluxe-hb-section-head"><span class="dashicons dashicons-media-document"></span><strong class="jluxe-hb-type-label"><?php echo esc_html( $page_label ); ?></strong><span class="dashicons dashicons-arrow-down-alt2 jluxe-hb-chevron"></span></summary>
 				<div class="jluxe-hb-section-body">
-					<table class="form-table" role="presentation"><tr><th>عنوان صفحه</th><td><input class="large-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][title]" value="<?php echo esc_attr( $page_row['title'] ?? '' ); ?>"></td></tr><tr><th>مقدمه</th><td><textarea class="large-text" rows="3" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][intro]"><?php echo esc_textarea( $page_row['intro'] ?? '' ); ?></textarea></td></tr></table>
+					<table class="form-table" role="presentation"><tr><th>عنوان صفحه</th><td><input class="large-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][title]" value="<?php echo esc_attr( $page_row['title'] ?? '' ); ?>"></td></tr><tr><th>مقدمه</th><td><textarea class="large-text" rows="3" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][intro]"><?php echo esc_textarea( $page_row['intro'] ?? '' ); ?></textarea></td></tr>
+					<?php if ( 'payment_guide' === $page_key ) : ?>
+					<tr><th><label>متن دکمهٔ بازگشت</label></th><td><input class="regular-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]" value="<?php echo esc_attr( $page_row['button_text'] ?? '' ); ?>" /></td></tr>
+					<tr><th><label>پیوند دکمهٔ بازگشت</label></th><td><input class="regular-text" dir="ltr" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]" value="<?php echo esc_attr( $page_row['button_url'] ?? '' ); ?>" /></td></tr>
+					<tr><th><label>رنگ دکمهٔ بازگشت</label></th><td><input class="jluxe-color-field" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]" value="<?php echo esc_attr( $page_row['button_color'] ?? '' ); ?>" data-default-color="" /></td></tr>
+					<?php endif; ?>
+					</table>
 					<?php wp_editor( $page_row['body_html'] ?? '', 'jluxe_gp_body_' . $page_key, array( 'textarea_name' => 'guide_pages[' . $page_key . '][body_html]', 'textarea_rows' => 18, 'media_buttons' => false, 'teeny' => false, 'tinymce' => array( 'directionality' => 'rtl' ) ) ); ?>
 					<p class="description">توکن‌های قابل استفاده: <code>{site_name}</code> و در پرداخت <code>{card_number}</code>، <code>{sheba}</code>، <code>{holder_name}</code>، <code>{bank_name}</code>. برای مرجوعی نیز توکن‌های <code>{deny_title}</code>، <code>{deny_item_1_label}</code>، <code>{deny_item_1_text}</code>، <code>{deny_item_2_label}</code>، <code>{deny_item_2_text}</code>، <code>{tip_label}</code> و <code>{tip_text}</code> فعال هستند.</p>
 				</div>
