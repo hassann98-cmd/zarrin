@@ -1,6 +1,7 @@
 import { siteUrl } from "../lib/api.js";
 import {
   closeMobileDrawer,
+  MOBILE_DRAWER_Z_INDEX,
   registerMobileDrawer,
   setMobileDrawerScrollLock,
 } from "../lib/mobile-drawers.js";
@@ -84,8 +85,8 @@ function J() {
     y
       ? k.createPortal(
           e.jsxs("div", {
-            className: "fixed inset-0 z-[60]",
-            style: { zIndex: 150 },
+            className: "fixed inset-0",
+            style: { zIndex: MOBILE_DRAWER_Z_INDEX },
             children: [
               e.jsx("div", {
                 className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,

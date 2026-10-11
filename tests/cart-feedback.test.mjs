@@ -46,7 +46,7 @@ function addToCart(window, button, snapshot = { suggested_html: '<div data-jluxe
   window.jQuery(window.document.body).trigger("added_to_cart", [null, null, window.jQuery(button), snapshot]);
 }
 
-test("desktop adds keep the toast; mobile adds keep recommendations without covering the cart navigation", async (t) => {
+test("desktop adds keep the toast; mobile adds keep recommendations without a blocking success toast", async (t) => {
   const dom = boot();
   t.after(() => dom.window.close());
   const { window } = dom;

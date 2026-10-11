@@ -205,6 +205,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.equal(mount.querySelector(".jluxe-ai-launcher").classList.contains("jluxe-ai-launcher--custom-image"), false, "the product guide chip does not enter the circular custom-image mode");
   assert.equal(mount.querySelector(".jluxe-ai-launcher").style.background, "rgb(47, 116, 104)", "without a selected image, the launcher keeps its accent-colored surface");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#2f7468", "the assistant has a calm teal default accent when no admin color is configured");
+  assert.equal(mount.querySelector(".jluxe-ai-root").style.zIndex, "90", "the closed launcher keeps its established base layer");
   assert.equal(mount.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the product launcher clears the measured price-and-add bar with a 12px gap");
 
@@ -301,6 +302,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.match(mount.querySelector(".jluxe-ai-window").style.width, /100vw/);
   assert.match(mount.querySelector(".jluxe-ai-window").style.height, /100dvh/);
   const mobileRoot = mount.querySelector(".jluxe-ai-root");
+  assert.equal(mobileRoot.style.zIndex, "180", "an open mobile assistant sheet layers above the sticky header, dock, and drawers");
   assert.equal(mobileRoot.style.getPropertyValue("--aia-visual-viewport-height"), "760px", "the open sheet follows the visible mobile viewport rather than only the layout viewport");
   assert.equal(mobileRoot.style.getPropertyValue("--aia-quick-replies-max-height"), "152px", "suggestion space is sized to the available viewport");
   assert.ok(mount.querySelector(".jluxe-ai-window").classList.contains("is-mobile"));

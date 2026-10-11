@@ -1,3 +1,6 @@
+/** Keep cart/category drawers above the mobile dock; dismiss them from their own close controls or backdrop. */
+export const MOBILE_DRAWER_Z_INDEX = 170;
+
 const DRAWERS = Object.freeze({
   categories: Object.freeze({
     openEvent: "jluxe:open-categories",
@@ -74,7 +77,7 @@ export function closeMobileDrawer(name, win = globalThis.window) {
   return true;
 }
 
-/** The currently active navigation button acts as its drawer's close toggle. */
+/** Toggle a requested drawer; its own close controls and backdrop remain available while open. */
 export function toggleMobileDrawer(name, win = globalThis.window) {
   if (getActiveMobileDrawer(win) === name) {
     closeMobileDrawer(name, win);

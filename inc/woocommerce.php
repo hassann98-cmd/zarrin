@@ -3393,7 +3393,7 @@ function jluxe_render_shop_toolbar(): void {
 	 */
 	?>
 	<?php /* flex/justify-start عمداً استاتیک نیست، JS با باز/بستن اضافه/حذفش می‌کنه — چون Tailwind این کلاس‌ها رو در لایه‌ی utilities تولید می‌کنه که همیشه روی [hidden] (لایه‌ی base) برنده می‌شه، یعنی اگه استاتیک باشن panel با وجود hidden=true همیشه display:flex می‌مونه (باگ واقعی: پاپ‌آپ نه باز می‌شد نه بسته). */ ?>
-	<div data-jluxe-filter-panel hidden class="fixed inset-0 z-50">
+	<div data-jluxe-filter-panel hidden class="fixed inset-0 jluxe-filter-panel-overlay">
 		<div data-jluxe-filter-close class="jluxe-filter-backdrop absolute inset-0 bg-foreground/50 backdrop-blur-[1px]" aria-hidden="true"></div>
 		<div data-jluxe-filter-drawer class="jluxe-filter-drawer relative flex h-full w-full max-w-sm flex-col bg-surface shadow-2xl">
 			<div class="flex items-center justify-between border-b border-border p-4">

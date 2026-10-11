@@ -5,7 +5,6 @@ import {
   subscribeMobileDrawerState,
   toggleMobileDrawer,
 } from "../lib/mobile-drawers.js";
-import { MobileDrawerIcon } from "../components/mobile-drawer-icon.js";
 import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { u as useCart } from "../lib/use-cart.js";
 import { N as navIcons, H as fallbackIcon } from "../components/nav-icons.js";
@@ -233,17 +232,10 @@ function FloatingMobileNav() {
               ...(cartAction ? { "data-jluxe-cart-icon-mobile": "" } : {}),
               children: [
                 Icon
-                  ? item.opensDrawer
-                    ? jsx.jsx(MobileDrawerIcon, {
-                        Icon,
-                        open: drawerOpen,
-                        animate,
-                        className: "size-[23px]",
-                      })
-                    : jsx.jsx(Icon, {
-                        className: "size-[23px]",
-                        "aria-hidden": true,
-                      })
+                  ? jsx.jsx(Icon, {
+                      className: "size-[23px]",
+                      "aria-hidden": true,
+                    })
                   : null,
                 cartAction && snapshot.itemCount > 0
                   ? jsx.jsx("span", {

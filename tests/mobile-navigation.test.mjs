@@ -11,13 +11,14 @@ const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.
 const categoryDrawerSource = await readFile(new URL("src/islands/CategoryDrawer.js", root), "utf8");
 const miniCartSource = await readFile(new URL("src/islands/MiniCart.js", root), "utf8");
 const drawerStateSource = await readFile(new URL("src/lib/mobile-drawers.js", root), "utf8");
-const drawerIconSource = await readFile(new URL("src/components/mobile-drawer-icon.js", root), "utf8");
+const assistantSource = await readFile(new URL("src/islands/AiAssistant.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
 const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const headerTemplate = await readFile(new URL("header.php", root), "utf8");
 const headerIslandSource = await readFile(new URL("src/islands/Header.js", root), "utf8");
+const shopToolbarSource = await readFile(new URL("inc/woocommerce.php", root), "utf8");
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
 const {
   isMobileNavItemActive,
@@ -214,7 +215,7 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
   assert.match(mobileNavSource, /nav_items \?\? \[\]/);
 });
 
-test("mobile category/cart controls toggle drawers to a close state while keeping real-page fallbacks", () => {
+test("mobile category/cart controls keep their normal icons, expose close state, and retain real-page fallbacks", () => {
   assert.match(mobileNavSource, /shop: \{ href: siteUrl\("shop"\), opensDrawer: "categories" \}/);
   assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
   assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
@@ -229,16 +230,19 @@ test("mobile category/cart controls toggle drawers to a close state while keepin
   assert.match(mobileNavSource, /بستن سبد خرید/);
   assert.match(floatingNavSource, /بستن دسته‌بندی‌ها/);
   assert.match(floatingNavSource, /بستن سبد خرید/);
-  assert.match(drawerIconSource, /CloseIcon/);
-  assert.match(drawerIconSource, /rotate\(-28deg\) scale\(\.72\)/);
-  assert.match(drawerIconSource, /const transition = animate/);
+  assert.match(mobileNavSource, /children: \[\s*jsx\.jsx\(Icon,/);
+  assert.match(floatingNavSource, /Icon\s*\?\s*jsx\.jsx\(Icon,/);
+  assert.doesNotMatch(mobileNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
+  assert.doesNotMatch(floatingNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
   assert.match(drawerStateSource, /toggleMobileDrawer/);
   assert.match(drawerStateSource, /registerMobileDrawer/);
   assert.match(drawerStateSource, /jluxe:mobile-drawer-state/);
   assert.match(categoryDrawerSource, /registerMobileDrawer\([\s\S]*?categories/);
   assert.match(categoryDrawerSource, /id: "jluxe-category-drawer-dialog"/);
+  assert.match(categoryDrawerSource, /type: "button",\s*onClick: a,\s*"aria-label": "بستن دسته‌بندی‌ها"/);
   assert.match(miniCartSource, /registerMobileDrawer\([\s\S]*?"cart"/);
   assert.match(miniCartSource, /id: "jluxe-cart-drawer-dialog"/);
+  assert.match(miniCartSource, /type: "button",\s*onClick: closeDrawer,\s*"aria-label": "بستن سبد خرید"/);
   assert.match(miniCartSource, /useDialog\(n && y, dialogRef, closeDrawer\)/);
   assert.match(categoryDrawerSource, /const exitDelay = window\.matchMedia/);
   assert.match(miniCartSource, /const exitDelay = window\.matchMedia/);
@@ -252,19 +256,48 @@ test("mobile category/cart controls toggle drawers to a close state while keepin
   assert.match(mobileNavSource, /href: item\.href/);
 });
 
-test("drawer close controls layer above the header while the dock stays tappable above each drawer", () => {
-  const modalZ = Number(storefrontStyles.match(/\.jluxe-pa \{ z-index: (\d+); \}/)?.[1]);
-  const layering = storefrontStyles.slice(storefrontStyles.indexOf("/* Drawer panels"));
+test("mobile overlays and inline popovers clear the sticky header and dock", () => {
+  const suggestionZ = Number(storefrontStyles.match(/\.jluxe-pa \{ z-index: (\d+); \}/)?.[1]);
+  const reviewZ = Number(storefrontStyles.match(/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index:\s*(\d+);/s)?.[1]);
+  const variationZ = Number(storefrontStyles.match(/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index:\s*(\d+);/s)?.[1]);
+  const filterZ = Number(storefrontStyles.match(/\.jluxe-filter-panel-overlay\s*\{\s*z-index:\s*(\d+);/)?.[1]);
+  const mobileSearchZ = Number(storefrontStyles.match(/\.jluxe-mobile-search-dialog\s*\{\s*z-index:\s*(\d+);/)?.[1]);
+  const stockFallbackZ = Number(storefrontStyles.match(/\.jluxe-stock-alert-dialog--fallback\[open\]\s*\{[^}]*z-index:\s*(\d+);/s)?.[1]);
+  const skipLinkZ = Number(storefrontStyles.match(/\.jluxe-skip-link\s*\{[^}]*z-index:\s*(\d+);/s)?.[1]);
+  const sortZ = Number(storefrontStyles.match(/\.jluxe-sort-listbox\s*\{\s*position: absolute;\s*z-index:\s*(\d+);/)?.[1]);
+  const layering = storefrontStyles.slice(storefrontStyles.indexOf("/* Mobile drawers cover"));
   const headerZ = Number(layering.match(/#masthead \.jluxe-header-bar \{\s*z-index: (\d+);/)?.[1]);
+  const headerResultsZ = Number(layering.match(/#masthead \.jluxe-header-bar:has\(\.jluxe-header-search-results--mobile\)\s*\{\s*z-index:\s*(\d+);/)?.[1]);
   const dockZ = Number(layering.match(/\.jluxe-mobile-nav\[data-jluxe-mobile-nav-dock\] \{\s*z-index: (\d+);/)?.[1]);
-  const drawerZ = Number(categoryDrawerSource.match(/style: \{ zIndex: (\d+) \}/)?.[1]);
+  const drawerZ = Number(drawerStateSource.match(/MOBILE_DRAWER_Z_INDEX = (\d+)/)?.[1]);
+  const [assistantOpenZ, assistantIdleZ] = assistantSource
+    .match(/zIndex: isMobile && open \? (\d+) : (\d+)/)
+    ?.slice(1)
+    .map(Number) ?? [];
 
-  assert.equal(modalZ, 120, "the recommendation sheet keeps its intended layer");
   assert.equal(headerZ, 130, "the sticky search/logo header keeps its established layer");
-  assert.equal(drawerZ, 150, "both drawer roots render above the header so their close controls stay visible");
-  assert.equal(dockZ, 160, "the dock remains interactive above the open drawer to toggle it closed");
-  assert.ok(modalZ < headerZ && headerZ < drawerZ && drawerZ < dockZ);
-  assert.match(miniCartSource, /style: \{ zIndex: 150 \}/);
+  assert.equal(skipLinkZ, 150, "the focused skip link remains visible above the sticky header");
+  assert.equal(dockZ, 160, "the mobile dock keeps its established layer");
+  assert.equal(sortZ, 165, "the catalog sort menu can be used above the dock");
+  assert.equal(headerResultsZ, 165, "mobile header search suggestions can be used above the dock");
+  assert.equal(drawerZ, 170, "cart and category drawers cover both sticky controls");
+  assert.equal(assistantIdleZ, 90, "the closed/desktop assistant launcher preserves its base layer");
+  assert.equal(assistantOpenZ, 180, "the open mobile assistant covers sticky chrome and drawers");
+  assert.equal(suggestionZ, 190, "the post-add suggestions sheet covers mobile chrome");
+  assert.equal(reviewZ, 200, "the review dialog covers mobile chrome");
+  assert.equal(filterZ, 200, "the catalog filter drawer covers mobile chrome");
+  assert.equal(variationZ, 210, "the product-card variation picker covers mobile chrome");
+  assert.equal(stockFallbackZ, 210, "the non-native stock-alert dialog fallback covers mobile chrome");
+  assert.equal(mobileSearchZ, 220, "the full-screen mobile search tops the drawer/assistant/dialog stack");
+  assert.ok(headerZ < skipLinkZ && skipLinkZ < dockZ);
+  assert.ok(dockZ < sortZ && dockZ < headerResultsZ && sortZ < drawerZ && headerResultsZ < drawerZ);
+  assert.ok(dockZ < drawerZ && drawerZ < assistantOpenZ && assistantOpenZ < suggestionZ);
+  assert.ok(suggestionZ < reviewZ && reviewZ === filterZ && reviewZ < variationZ && variationZ === stockFallbackZ && stockFallbackZ < mobileSearchZ);
+  assert.ok([sortZ, headerResultsZ, drawerZ, assistantOpenZ, suggestionZ, reviewZ, variationZ, filterZ, stockFallbackZ, mobileSearchZ].every((z) => z > dockZ));
+  assert.match(categoryDrawerSource, /style: \{ zIndex: MOBILE_DRAWER_Z_INDEX \}/);
+  assert.match(miniCartSource, /style: \{ zIndex: MOBILE_DRAWER_Z_INDEX \}/);
+  assert.match(headerIslandSource, /jluxe-mobile-search-dialog fixed inset-0/);
+  assert.match(shopToolbarSource, /data-jluxe-filter-panel hidden class="fixed inset-0 jluxe-filter-panel-overlay"/);
   assert.match(storefrontStyles, /prefers-reduced-motion: reduce[\s\S]*?\.jluxe-mobile-drawer-panel/);
   assert.match(mobileNavSource, /prefers-reduced-motion: reduce/);
   assert.match(mobileNavSource, /data-jluxe-mobile-nav-dock/);

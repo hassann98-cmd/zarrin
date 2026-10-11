@@ -673,7 +673,7 @@ test("R184 the optional assistant waits until after page load and stays outside 
   const jsFiles = [...closure]
     .map((key) => manifest[key]?.file)
     .filter((file) => file?.endsWith(".js"));
-  assert.equal(jsFiles.length, 10, `initial home closure: ${jsFiles.join(", ")}`);
+  assert.equal(jsFiles.length, 9, `initial home closure: ${jsFiles.join(", ")}`);
   const gzipBytes = jsFiles.reduce(
     (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
     0,

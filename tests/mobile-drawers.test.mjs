@@ -11,7 +11,7 @@ import {
   toggleMobileDrawer,
 } from "../src/lib/mobile-drawers.js";
 
-test("mobile drawer requests survive late mounting and the active dock icon toggles the panel closed", () => {
+test("mobile drawer requests survive late mounting and same-drawer requests close the panel", () => {
   const dom = new JSDOM("<!doctype html><html><body></body></html>");
   const { window } = dom;
   const states = [];
@@ -34,7 +34,7 @@ test("mobile drawer requests survive late mounting and the active dock icon togg
   assert.equal(opens, 1, "the requested drawer opens when its island mounts");
 
   assert.equal(toggleMobileDrawer("categories", window), null);
-  assert.equal(closes, 1, "tapping the active category item requests close");
+  assert.equal(closes, 1, "a same-drawer toggle request closes the active category panel");
   assert.equal(getActiveMobileDrawer(window), null);
   assert.equal(
     window.document.documentElement.hasAttribute("data-jluxe-mobile-drawer"),
@@ -78,7 +78,7 @@ test("category and cart drawers are mutually exclusive and legacy open/close eve
   ]);
 
   window.dispatchEvent(new window.CustomEvent("jluxe:close-cart"));
-  assert.equal(getActiveMobileDrawer(window), null, "the drawer's own close path clears the nav icon state");
+  assert.equal(getActiveMobileDrawer(window), null, "the drawer's own close path clears the active navigation state");
   window.dispatchEvent(new window.CustomEvent("jluxe:open-categories"));
   assert.equal(getActiveMobileDrawer(window), "categories", "pre-existing open events remain supported");
   assert.equal(closeMobileDrawer("categories", window), true);

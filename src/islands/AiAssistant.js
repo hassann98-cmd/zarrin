@@ -689,9 +689,10 @@ function Assistant() {
   const offset = isMobile ? assistant.offsetSideMobile : assistant.offsetSideDesktop;
   const launcherBottom = Math.max(Number(bottom) || 0, dockClearance);
   const assistantAccent = assistant.primaryColor || DEFAULT_ASSISTANT_ACCENT;
+  // Keep the launcher below other overlays; an open mobile sheet must cover sticky chrome and drawers.
   const rootStyle = {
     position: "fixed",
-    zIndex: 90,
+    zIndex: isMobile && open ? 180 : 90,
     "--aia-primary": assistantAccent,
     top: isMobile && open ? "calc(var(--aia-visual-viewport-offset-top, 0px) + max(8px, env(safe-area-inset-top)))" : undefined,
     bottom: isMobile && open ? "auto" : `${launcherBottom}px`,

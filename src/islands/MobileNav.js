@@ -4,7 +4,6 @@ import {
   subscribeMobileDrawerState,
   toggleMobileDrawer,
 } from "../lib/mobile-drawers.js";
-import { MobileDrawerIcon } from "../components/mobile-drawer-icon.js";
 import {
   isMobileNavItemActive as isActive,
   mobileNavContainerStyle,
@@ -196,17 +195,10 @@ function MobileNav() {
                 },
                 ...(item.id === "cart" ? { "data-jluxe-cart-icon-mobile": "" } : {}),
                 children: [
-                  item.opensDrawer
-                    ? jsx.jsx(MobileDrawerIcon, {
-                        Icon,
-                        open: drawerOpen,
-                        animate,
-                        className: "size-[21px]",
-                      })
-                    : jsx.jsx(Icon, {
-                        className: "size-[21px]",
-                        "aria-hidden": true,
-                      }),
+                  jsx.jsx(Icon, {
+                    className: "size-[21px]",
+                    "aria-hidden": true,
+                  }),
                   item.id === "cart" && snapshot.itemCount > 0
                     ? jsx.jsx("span", {
                         className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-accent-hover text-[10px] font-bold text-accent-foreground shadow-md",

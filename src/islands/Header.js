@@ -422,7 +422,7 @@ function J() {
         ? L.createPortal(
             e.jsxs("div", {
               className:
-                "fixed inset-0 z-50 flex flex-col bg-surface md:hidden",
+                "jluxe-mobile-search-dialog fixed inset-0 flex flex-col bg-surface md:hidden",
               role: "dialog",
               "aria-modal": true,
               "aria-label": "جستجو در فروشگاه",
