@@ -3951,7 +3951,7 @@ foreach ( $r192_info_templates as $r192_template => $r192_expected_copy ) {
 }
 update_test_settings( jluxe_theme_settings_defaults() );
 
-// R233: supplied contact page, settings migration, rendering and structured data.
+// R233/R234: supplied contact details, configured social icon links, migration and structured data.
 $r233_defaults = jluxe_theme_settings_defaults();
 check(
 	'۰۹۳۶۲۴۲۰۲۳۲' === $r233_defaults['contact']['phone'] &&
@@ -3959,9 +3959,19 @@ check(
 	'info@jahiziyeluxe.ir' === $r233_defaults['contact']['email'] &&
 	true === $r233_defaults['social']['instagram']['enabled'] &&
 	'https://instagram.com/jluxeir' === $r233_defaults['social']['instagram']['url'] &&
+	true === $r233_defaults['social']['telegram']['enabled'] &&
+	'https://t.me/jluxeir' === $r233_defaults['social']['telegram']['url'] &&
+	true === $r233_defaults['social']['whatsapp']['enabled'] &&
+	'https://wa.me/989120902336' === $r233_defaults['social']['whatsapp']['url'] &&
+	true === $r233_defaults['social']['rubika']['enabled'] &&
+	'https://rubika.ir/jluxeir' === $r233_defaults['social']['rubika']['url'] &&
+	true === $r233_defaults['social']['bale']['enabled'] &&
+	'https://ble.ir/jluxeir' === $r233_defaults['social']['bale']['url'] &&
 	'راه‌های ارتباط با جهیزیه لوکس' === $r233_defaults['info_pages']['contact']['intro_title'] &&
-	'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' === $r233_defaults['info_pages']['contact']['phone_hours'],
-	'R233 contact-page defaults use only the supplied phone, email, Instagram and page copy'
+	'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' === $r233_defaults['info_pages']['contact']['phone_hours'] &&
+	'ارتباط آنلاین در شبکه‌های اجتماعی' === $r233_defaults['info_pages']['contact']['social_title'] &&
+	'برای چت آنلاین با کارشناسان ما، روی آیکون شبکهٔ اجتماعی موردنظر خود کلیک کنید.' === $r233_defaults['info_pages']['contact']['social_text'],
+	'R234 contact defaults use only the manager-supplied profiles, profile URLs, phone details and social copy'
 );
 $r233_old_contact = array(
 	'version'     => 15,
@@ -3971,7 +3981,7 @@ $r233_old_contact = array(
 );
 $r233_migrated_contact = jluxe_migrate_settings_to_current_version( $r233_old_contact, 15 );
 check(
-	16 === $r233_migrated_contact['version'] &&
+	17 === $r233_migrated_contact['version'] &&
 	$r233_defaults['contact']['phone'] === $r233_migrated_contact['contact']['phone'] &&
 	$r233_defaults['contact']['phone_secondary'] === $r233_migrated_contact['contact']['phone_secondary'] &&
 	$r233_defaults['contact']['email'] === $r233_migrated_contact['contact']['email'] &&
@@ -3981,8 +3991,39 @@ check(
 	$r233_defaults['info_pages']['contact']['phone_title'] === $r233_migrated_contact['info_pages']['contact']['phone_title'] &&
 	true === $r233_migrated_contact['social']['instagram']['enabled'] &&
 	'https://instagram.com/jluxeir' === $r233_migrated_contact['social']['instagram']['url'] &&
-	'<svg>آیکون سفارشی</svg>' === $r233_migrated_contact['social']['instagram']['svg'],
-	'R233 v15-to-v16 migration fills only blank or untouched contact defaults and preserves the custom address and social icon'
+	true === $r233_migrated_contact['social']['telegram']['enabled'] &&
+	'https://t.me/jluxeir' === $r233_migrated_contact['social']['telegram']['url'] &&
+	true === $r233_migrated_contact['social']['whatsapp']['enabled'] &&
+	'https://wa.me/989120902336' === $r233_migrated_contact['social']['whatsapp']['url'] &&
+	true === $r233_migrated_contact['social']['rubika']['enabled'] &&
+	'https://rubika.ir/jluxeir' === $r233_migrated_contact['social']['rubika']['url'] &&
+	true === $r233_migrated_contact['social']['bale']['enabled'] &&
+	'https://ble.ir/jluxeir' === $r233_migrated_contact['social']['bale']['url'] &&
+	'<svg>آیکون سفارشی</svg>' === $r233_migrated_contact['social']['instagram']['svg'] &&
+	'ارتباط آنلاین در شبکه‌های اجتماعی' === $r233_migrated_contact['info_pages']['contact']['social_title'] &&
+	'برای چت آنلاین با کارشناسان ما، روی آیکون شبکهٔ اجتماعی موردنظر خود کلیک کنید.' === $r233_migrated_contact['info_pages']['contact']['social_text'],
+	'R234 migrations seed supplied social profiles and copy while preserving the custom address and existing Instagram icon'
+);
+$r234_custom_social = array(
+	'version'    => 16,
+	'social'     => array(
+		'telegram' => array( 'enabled' => false, 'url' => 'https://t.me/custom_account', 'svg' => '<svg>آیکون سفارشی</svg>' ),
+		'whatsapp' => array( 'enabled' => false, 'url' => '', 'svg' => '<svg>واتس‌اپ سفارشی</svg>' ),
+	),
+	'info_pages' => array( 'contact' => array( 'social_title' => 'عنوان سفارشی', 'social_text' => 'متن سفارشی مدیر' ) ),
+);
+$r234_migrated_social = jluxe_migrate_settings_to_current_version( $r234_custom_social, 16 );
+check(
+	17 === $r234_migrated_social['version'] &&
+	false === $r234_migrated_social['social']['telegram']['enabled'] &&
+	'https://t.me/custom_account' === $r234_migrated_social['social']['telegram']['url'] &&
+	'<svg>آیکون سفارشی</svg>' === $r234_migrated_social['social']['telegram']['svg'] &&
+	true === $r234_migrated_social['social']['whatsapp']['enabled'] &&
+	'https://wa.me/989120902336' === $r234_migrated_social['social']['whatsapp']['url'] &&
+	'<svg>واتس‌اپ سفارشی</svg>' === $r234_migrated_social['social']['whatsapp']['svg'] &&
+	'عنوان سفارشی' === $r234_migrated_social['info_pages']['contact']['social_title'] &&
+	'متن سفارشی مدیر' === $r234_migrated_social['info_pages']['contact']['social_text'],
+	'R234 v16-to-v17 migration updates only blank social profiles and exact old copy while preserving custom URLs, states, icons and text'
 );
 $r233_custom_contact = $r233_old_contact;
 $r233_custom_contact['contact']['phone'] = '۰۹۱۲۰۰۰۰۰۰۰';
@@ -4039,20 +4080,33 @@ $r233_organization_schema = $r233_contact_schema['mainEntity'] ?? array();
 check(
 	1 === substr_count( $r233_contact_html, 'id="jluxe-contact-page"' ) &&
 	false !== strpos( $r233_contact_html, '<h1>راه‌های ارتباط با جهیزیه لوکس</h1>' ) &&
-	false !== strpos( $r233_contact_html, 'در هر ساعت از شبانه‌روز از طریق پیام‌رسان‌ها و در ساعات کاری از طریق تلفن پاسخگوی شما هستیم.' ) &&
-	3 === substr_count( $r233_contact_html, '<section class="jluxe-contact-card"' ) &&
-	false !== strpos( $r233_contact_html, 'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' ) &&
-	false !== strpos( $r233_contact_html, 'href="tel:+989362420232"' ) &&
-	false !== strpos( $r233_contact_html, 'href="tel:+989120902336"' ) &&
-	false !== strpos( $r233_contact_html, 'href="mailto:info@jahiziyeluxe.ir"' ) &&
-	false !== strpos( $r233_contact_html, 'اینستاگرام، واتس‌اپ، تلگرام، روبیکا و بله' ) &&
-	false !== strpos( $r233_contact_html, 'href="https://instagram.com/jluxeir"' ) &&
-	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jhh-hero' ) &&
-	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-grid' ) &&
-	false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-card' ) &&
-	false !== strpos( $r233_contact_html, '@media (max-width: 480px)' ) &&
-	false === strpos( $r233_contact_html, 'Warning:' ),
-	'R233 contact page renders the supplied responsive cards, exact details, accessible links and scoped wrapper without warnings'
+		false !== strpos( $r233_contact_html, 'در هر ساعت از شبانه‌روز از طریق پیام‌رسان‌ها و در ساعات کاری از طریق تلفن پاسخگوی شما هستیم.' ) &&
+		3 === substr_count( $r233_contact_html, '<section class="jluxe-contact-card"' ) &&
+		false !== strpos( $r233_contact_html, 'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب' ) &&
+		false !== strpos( $r233_contact_html, 'href="tel:+989362420232"' ) &&
+		false !== strpos( $r233_contact_html, 'href="tel:+989120902336"' ) &&
+		2 === substr_count( $r233_contact_html, 'class="jluxe-contact-phone-icon" aria-hidden="true"' ) &&
+		false !== strpos( $r233_contact_html, 'href="mailto:info@jahiziyeluxe.ir"' ) &&
+		false !== strpos( $r233_contact_html, 'برای چت آنلاین با کارشناسان ما، روی آیکون شبکهٔ اجتماعی موردنظر خود کلیک کنید.' ) &&
+		5 === substr_count( $r233_contact_html, 'class="jluxe-contact-social-link"' ) &&
+		false !== strpos( $r233_contact_html, 'href="https://instagram.com/jluxeir"' ) &&
+		false !== strpos( $r233_contact_html, 'href="https://t.me/jluxeir"' ) &&
+		false !== strpos( $r233_contact_html, 'href="https://wa.me/989120902336"' ) &&
+		false !== strpos( $r233_contact_html, 'href="https://rubika.ir/jluxeir"' ) &&
+		false !== strpos( $r233_contact_html, 'href="https://ble.ir/jluxeir"' ) &&
+		false !== strpos( $r233_contact_html, 'src="https://jluxe.ir/wp-content/uploads/2026/04/d7056bb8f71bee53dbf501f314ed2ac7.svg"' ) &&
+		false !== strpos( $r233_contact_html, 'src="https://jluxe.ir/wp-content/uploads/2026/04/telegram.svg"' ) &&
+		false !== strpos( $r233_contact_html, 'src="https://jluxe.ir/wp-content/uploads/2026/04/WhatsApp.svg"' ) &&
+		false !== strpos( $r233_contact_html, 'src="https://jluxe.ir/wp-content/uploads/2026/04/rubika.svg"' ) &&
+		false !== strpos( $r233_contact_html, 'src="https://jluxe.ir/wp-content/uploads/2026/04/bale.svg"' ) &&
+		false !== strpos( $r233_contact_html, 'aria-label="تلگرام، بازشدن در زبانهٔ جدید"' ) &&
+		false !== strpos( $r233_contact_html, 'width: 48px' ) &&
+		false !== strpos( $r233_contact_html, '#jluxe-contact-page .jhh-hero' ) &&
+		false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-grid' ) &&
+		false !== strpos( $r233_contact_html, '#jluxe-contact-page .jluxe-contact-card' ) &&
+		false !== strpos( $r233_contact_html, '@media (max-width: 480px)' ) &&
+		false === strpos( $r233_contact_html, 'Warning:' ),
+		'R234 contact page renders handset and provided social icons, only configured profile links, responsive styling and accessible labels without warnings'
 );
 check(
 	'ContactPage' === ( $r233_contact_schema['@type'] ?? '' ) &&
@@ -4063,8 +4117,14 @@ check(
 	'جهیزیه لوکس' === ( $r233_organization_schema['name'] ?? '' ) &&
 	'info@jahiziyeluxe.ir' === ( $r233_organization_schema['email'] ?? '' ) &&
 	array( '+989362420232', '+989120902336' ) === ( $r233_organization_schema['telephone'] ?? array() ) &&
-	array( 'https://instagram.com/jluxeir' ) === ( $r233_organization_schema['sameAs'] ?? array() ),
-	'R233 JSON-LD links ContactPage to the configured Organization, site-relative canonical, supplied email, normalized phones and Instagram sameAs'
+		array(
+			'https://instagram.com/jluxeir',
+			'https://t.me/jluxeir',
+			'https://wa.me/989120902336',
+			'https://rubika.ir/jluxeir',
+			'https://ble.ir/jluxeir',
+		) === ( $r233_organization_schema['sameAs'] ?? array() ),
+		'R234 JSON-LD links ContactPage to the configured Organization, supplied phone/email and all enabled social profiles'
 );
 ob_start();
 jluxe_output_organization_schema();
@@ -4072,8 +4132,21 @@ $r233_global_org_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r233_global_org_html, '+989362420232' ) &&
 	false !== strpos( $r233_global_org_html, '+989120902336' ) &&
-	false !== strpos( $r233_global_org_html, 'https://instagram.com/jluxeir' ),
-	'R233 site-wide Organization JSON-LD shares the same E.164 contact phones and configured Instagram profile'
+	false !== strpos( $r233_global_org_html, 'https://instagram.com/jluxeir' ) &&
+	false !== strpos( $r233_global_org_html, 'https://ble.ir/jluxeir' ),
+	'R234 site-wide Organization JSON-LD shares the configured phone numbers and active social profiles'
+);
+$r234_one_social_disabled = $r233_defaults;
+$r234_one_social_disabled['social']['telegram']['enabled'] = false;
+$r234_one_social_disabled['social']['telegram']['url'] = '';
+update_test_settings( $r234_one_social_disabled );
+ob_start();
+require ABSPATH . 'page-contact-us.php';
+$r234_disabled_social_html = (string) ob_get_clean();
+check(
+	4 === substr_count( $r234_disabled_social_html, 'class="jluxe-contact-social-link"' ) &&
+	false === strpos( $r234_disabled_social_html, 'href="https://t.me/jluxeir"' ),
+	'R234 contact page omits a social icon when its profile is disabled or has no URL'
 );
 update_test_settings( jluxe_theme_settings_defaults() );
 

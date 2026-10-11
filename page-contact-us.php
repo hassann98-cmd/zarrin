@@ -27,13 +27,54 @@ $jluxe_phones            = array_values(
 		}
 	)
 );
-$jluxe_instagram         = $jluxe_social['instagram'] ?? array();
-$jluxe_instagram_url     = ! empty( $jluxe_instagram['enabled'] ) && ! empty( $jluxe_instagram['url'] ) ? esc_url_raw( (string) $jluxe_instagram['url'] ) : '';
-$jluxe_instagram_label   = '' !== $jluxe_instagram_url ? rtrim( (string) preg_replace( '#^https?://#i', '', $jluxe_instagram_url ), '/' ) : '';
-$jluxe_contact_page_url  = function_exists( 'jluxe_resolve_site_link' ) ? jluxe_resolve_site_link( '/contact-us' ) : home_url( '/contact-us' );
-$jluxe_site_url          = home_url( '/' );
-$jluxe_has_phone_card    = ! empty( $jluxe_phones ) || '' !== trim( $jluxe_phone_hours );
-$jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text'] ?? '' ) ) || '' !== $jluxe_instagram_url;
+$jluxe_social_definitions = array(
+	'instagram' => array(
+		'label' => 'اینستاگرام',
+		'icon'  => 'https://jluxe.ir/wp-content/uploads/2026/04/d7056bb8f71bee53dbf501f314ed2ac7.svg',
+	),
+	'telegram' => array(
+		'label' => 'تلگرام',
+		'icon'  => 'https://jluxe.ir/wp-content/uploads/2026/04/telegram.svg',
+	),
+	'whatsapp' => array(
+		'label' => 'واتس‌اپ',
+		'icon'  => 'https://jluxe.ir/wp-content/uploads/2026/04/WhatsApp.svg',
+	),
+	'rubika' => array(
+		'label' => 'روبیکا',
+		'icon'  => 'https://jluxe.ir/wp-content/uploads/2026/04/rubika.svg',
+	),
+	'bale' => array(
+		'label' => 'پیام‌رسان بله',
+		'icon'  => 'https://jluxe.ir/wp-content/uploads/2026/04/bale.svg',
+	),
+);
+$jluxe_contact_social_links = array();
+foreach ( $jluxe_social_definitions as $jluxe_social_key => $jluxe_social_definition ) {
+	$jluxe_social_row = $jluxe_social[ $jluxe_social_key ] ?? array();
+	if ( ! is_array( $jluxe_social_row ) || empty( $jluxe_social_row['enabled'] ) || empty( $jluxe_social_row['url'] ) ) {
+		continue;
+	}
+	$jluxe_social_url    = esc_url_raw( (string) $jluxe_social_row['url'] );
+	$jluxe_social_parsed = wp_parse_url( $jluxe_social_url );
+	if (
+		'' === $jluxe_social_url ||
+		! is_array( $jluxe_social_parsed ) ||
+		! in_array( strtolower( (string) ( $jluxe_social_parsed['scheme'] ?? '' ) ), array( 'http', 'https' ), true )
+	) {
+		continue;
+	}
+	$jluxe_contact_social_links[] = array(
+		'key'   => $jluxe_social_key,
+		'label' => $jluxe_social_definition['label'],
+		'url'   => $jluxe_social_url,
+		'icon'  => $jluxe_social_definition['icon'],
+	);
+}
+$jluxe_contact_page_url = function_exists( 'jluxe_resolve_site_link' ) ? jluxe_resolve_site_link( '/contact-us' ) : home_url( '/contact-us' );
+$jluxe_site_url         = home_url( '/' );
+$jluxe_has_phone_card   = ! empty( $jluxe_phones ) || '' !== trim( $jluxe_phone_hours );
+$jluxe_has_social_card  = '' !== trim( (string) ( $jluxe_page_info['social_text'] ?? '' ) ) || ! empty( $jluxe_contact_social_links );
 ?>
 
 <style>
@@ -108,10 +149,32 @@ $jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text
 	}
 	#jluxe-contact-page .jluxe-contact-phone-list {
 		display: grid;
-		gap: 8px;
+		gap: 10px;
 		margin: 14px 0 0;
 		padding: 0;
 		list-style: none;
+	}
+	#jluxe-contact-page .jluxe-contact-phone-list li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		direction: rtl;
+	}
+	#jluxe-contact-page .jluxe-contact-phone-icon {
+		display: grid;
+		width: 40px;
+		height: 40px;
+		flex: 0 0 40px;
+		place-items: center;
+		border: 1px solid #dbe7ec;
+		border-radius: 50%;
+		background: #f7faf9;
+		color: #285a56;
+	}
+	#jluxe-contact-page .jluxe-contact-phone-icon svg {
+		display: block;
+		width: 18px;
+		height: 18px;
 	}
 	#jluxe-contact-page .jluxe-contact-phone-list a,
 	#jluxe-contact-page .jluxe-contact-link {
@@ -128,6 +191,43 @@ $jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text
 		outline-offset: 4px;
 	}
 	#jluxe-contact-page .jluxe-contact-link { display: inline-block; margin-top: 4px; }
+	#jluxe-contact-page .jluxe-contact-social-links {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 12px;
+		margin: 18px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	#jluxe-contact-page .jluxe-contact-social-link {
+		display: inline-flex;
+		width: 48px;
+		height: 48px;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid #dbe7ec;
+		border-radius: 50%;
+		background: #fff;
+		transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+	}
+	#jluxe-contact-page .jluxe-contact-social-link img {
+		display: block;
+		width: 22px;
+		height: 22px;
+		object-fit: contain;
+	}
+	#jluxe-contact-page .jluxe-contact-social-link:hover {
+		border-color: #285a56;
+		background: #f7faf9;
+		transform: translateY(-2px);
+	}
+	#jluxe-contact-page .jluxe-contact-social-link:focus-visible {
+		outline-offset: 3px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		#jluxe-contact-page .jluxe-contact-social-link { transition: none; }
+	}
 	@media (max-width: 480px) {
 		#jluxe-contact-page { margin: 24px auto; padding: 16px; }
 		#jluxe-contact-page .jhh-hero { margin-bottom: 24px; }
@@ -165,6 +265,9 @@ $jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text
 								$jluxe_phone_text = function_exists( 'jluxe_fa_digits' ) ? jluxe_fa_digits( $jluxe_phone_number ) : $jluxe_phone_number;
 								?>
 								<li>
+									<span class="jluxe-contact-phone-icon" aria-hidden="true">
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.34 1.9.65 2.8a2 2 0 0 1-.45 2.11L8.04 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.31 1.84.53 2.8.65a2 2 0 0 1 1.78 2.08Z"/></svg>
+									</span>
 									<?php if ( '' !== $jluxe_tel_href ) : ?>
 										<a href="tel:<?php echo esc_attr( $jluxe_tel_href ); ?>" dir="ltr"><?php echo esc_html( $jluxe_phone_text ); ?></a>
 									<?php else : ?>
@@ -190,8 +293,16 @@ $jluxe_has_social_card   = '' !== trim( (string) ( $jluxe_page_info['social_text
 					<?php if ( ! empty( $jluxe_page_info['social_text'] ) ) : ?>
 						<p><?php echo esc_html( $jluxe_page_info['social_text'] ); ?></p>
 					<?php endif; ?>
-					<?php if ( '' !== $jluxe_instagram_url ) : ?>
-						<a class="jluxe-contact-link" href="<?php echo esc_url( $jluxe_instagram_url ); ?>" target="_blank" rel="noopener noreferrer" aria-label="اینستاگرام، بازشدن در زبانهٔ جدید" dir="ltr"><?php echo esc_html( $jluxe_instagram_label ); ?></a>
+					<?php if ( ! empty( $jluxe_contact_social_links ) ) : ?>
+						<ul class="jluxe-contact-social-links" aria-label="پیوندهای شبکه‌های اجتماعی">
+							<?php foreach ( $jluxe_contact_social_links as $jluxe_social_link ) : ?>
+								<li>
+									<a class="jluxe-contact-social-link" href="<?php echo esc_url( $jluxe_social_link['url'] ); ?>" title="<?php echo esc_attr( $jluxe_social_link['label'] ); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr( $jluxe_social_link['label'] . '، بازشدن در زبانهٔ جدید' ); ?>">
+										<img src="<?php echo esc_url( $jluxe_social_link['icon'] ); ?>" alt="" width="22" height="22" loading="lazy" decoding="async" />
+									</a>
+								</li>
+							<?php endforeach; ?>
+						</ul>
 					<?php endif; ?>
 				</section>
 			<?php endif; ?>
