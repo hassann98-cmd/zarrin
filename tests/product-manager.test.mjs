@@ -293,6 +293,9 @@ test("product table exposes featured, regular/sale price, stock toggle, quantity
   const row = window.document.querySelector(".jluxe-pm-product-row");
   assert.ok(row, "the product list loads");
   assert.equal(row.children.length, 7, "product cells align with the seven table headings");
+  const actionControls = row.querySelector(".jluxe-pm-actions-controls");
+  assert.ok(actionControls, "product actions are grouped in a layout wrapper");
+  assert.equal(actionControls.querySelectorAll("button").length, 1, "simple products expose one consistently aligned action");
   assert.ok(row.querySelector("[data-pm-inline-field='regularPrice']"));
   assert.ok(row.querySelector("[data-pm-inline-field='salePrice']"));
   assert.ok(row.querySelector("[data-pm-inline-field='featured']"));
@@ -381,6 +384,11 @@ test("product stripes alternate by product and expanded variations inherit their
   assert.equal(rows[0].classList.contains("is-alt"), false, "the first product uses the base surface");
   assert.equal(rows[1].classList.contains("is-alt"), true, "the second product uses the alternating surface");
   assert.equal(rows[2].classList.contains("is-alt"), false, "the third product returns to the base surface");
+  assert.equal(
+    rows[1].querySelectorAll(".jluxe-pm-actions-controls > button").length,
+    2,
+    "variable products group both available actions together",
+  );
 
   rows[1].querySelector("[data-pm-variations-toggle='202']").click();
   const details = rows[1].nextElementSibling;
@@ -621,23 +629,33 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
 });
 
-test("product and variation tables use distinct, unified blue-gray stripes", () => {
-  assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: #edf2f6 !important;/);
-  assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: #edf2f6 !important;/);
-  assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: #dfe7ee !important;/);
-  assert.match(styles, /\.jluxe-pm-variation-table tbody tr:nth-child\(even\) td \{\s*background: #eaf0f5;/);
+test("product and variation tables share consistent, high-contrast plum row stripes", () => {
+  assert.match(styles, /--pm-row-alt:\s*#eee5f3;/);
+  assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
+  assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: var\(--pm-row-alt\) !important;/);
+  assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
+  assert.match(styles, /\.jluxe-pm-variation-table tbody tr:nth-child\(even\) td \{\s*background: var\(--pm-row-alt\);/);
 
   const mobileRules = styles.slice(styles.lastIndexOf("@media (max-width: 782px)"));
-  assert.match(mobileRules, /tr\.jluxe-pm-product-row\.is-alt \{\s*border-color: #778c9e;\s*background: #eaf0f5;/);
-  assert.match(mobileRules, /\.jluxe-pm-variation-table tbody > tr:nth-child\(even\) \{\s*border-color: #778c9e;\s*background: #eaf0f5;/);
+  assert.match(mobileRules, /tr\.jluxe-pm-product-row\.is-alt \{\s*border-color: var\(--pm-row-line\);\s*background: var\(--pm-row-alt\);/);
+  assert.match(mobileRules, /\.jluxe-pm-variation-table tbody > tr:nth-child\(even\) \{\s*border-color: var\(--pm-row-line\);\s*background: var\(--pm-row-alt\);/);
   assert.match(mobileRules, /tr\.jluxe-pm-product-row > td \{[\s\S]*?background: transparent !important;/);
 });
 
-test("product manager switches to labeled, touch-friendly product and variation cards on mobile", () => {
+test("product manager uses aligned price controls and orderly, touch-friendly mobile cards", () => {
+  assert.match(styles, /\.jluxe-pm-price-control \{[\s\S]*?display: flex;[\s\S]*?align-items: center;[\s\S]*?min-height: 46px;/);
+  assert.match(styles, /\.jluxe-pm-price-control \.jluxe-pm-price-input \{[\s\S]*?flex: 1 1 auto;[\s\S]*?width: 100%;[\s\S]*?min-width: 0;/);
+  assert.match(styles, /\.jluxe-pm-actions-controls \{\s*display: grid;[\s\S]*?gap: 7px;/);
+  assert.match(styles, /\.jluxe-pm-stock-quantity \{\s*width: 100%;\s*max-width: 150px;/);
+
   const mobileRules = styles.slice(styles.lastIndexOf("@media (max-width: 782px)"));
   assert.match(mobileRules, /tr\.jluxe-pm-product-row\s*\{[\s\S]*?display:\s*grid/);
   assert.match(mobileRules, /jluxe-pm-variation-table\s*>\s*tbody\s*\{\s*display:\s*grid/);
   assert.match(mobileRules, /min-height:\s*44px/);
-  assert.match(mobileRules, /max-width:\s*88px/);
-  assert.match(mobileRules, /border:\s*2px solid/);
+  assert.match(mobileRules, /\.jluxe-pm-stock-quantity \{\s*max-width: 135px;/);
+  assert.match(mobileRules, /\.jluxe-pm-actions-controls \{\s*grid-template-columns: repeat\(auto-fit/);
+
+  const narrowRules = styles.slice(styles.lastIndexOf("@media (max-width: 520px)"));
+  assert.match(narrowRules, /jluxe-pm-product-row,\s*\.jluxe-pm-variation-table tbody > tr \{\s*grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(narrowRules, /@media \(max-width: 380px\) \{[\s\S]*?\.jluxe-pm-actions-controls,[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/);
 });

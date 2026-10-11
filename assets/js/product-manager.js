@@ -313,6 +313,7 @@
 		tr.appendChild(labelCell(node("td", "jluxe-pm-category-cell", product.categories || "—"), "دسته‌بندی"));
 
 		var actions = labelCell(node("td", "jluxe-pm-actions"), "عملیات");
+		var actionControls = node("div", "jluxe-pm-actions-controls");
 		if (product.type === "variable") {
 			var variations = node("button", "button button-primary button-small jluxe-pm-expand", "تنوع‌ها " + faNumber(product.variationCount || 0));
 			variations.type = "button";
@@ -320,12 +321,13 @@
 			variations.setAttribute("aria-expanded", state.openVariations[id] ? "true" : "false");
 			variations.setAttribute("aria-controls", "jluxe-pm-variations-" + id);
 			variations.appendChild(node("span", "jluxe-pm-expand-icon", state.openVariations[id] ? "−" : "+"));
-			actions.appendChild(variations);
+			actionControls.appendChild(variations);
 		}
 		var organization = node("button", "button button-small jluxe-pm-organization-button", "دسته و برند");
 		organization.type = "button";
 		organization.dataset.pmEdit = id;
-		actions.appendChild(organization);
+		actionControls.appendChild(organization);
+		actions.appendChild(actionControls);
 		var status = node("span", "jluxe-pm-row-status");
 		status.dataset.pmRowStatus = id;
 		status.setAttribute("aria-live", "polite");
