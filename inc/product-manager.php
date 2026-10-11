@@ -26,6 +26,10 @@ function jluxe_product_manager_enqueue_assets( string $hook ): void {
 	if ( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_PAGE !== $hook ) {
 		return;
 	}
+	$can_upload = current_user_can( 'upload_files' );
+	if ( $can_upload ) {
+		wp_enqueue_media();
+	}
 	wp_enqueue_script( 'jluxe-product-manager', JLUXE_THEME_URI . '/assets/js/product-manager.js', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/product-manager.js' ), true );
 	wp_enqueue_style( 'jluxe-product-manager', JLUXE_THEME_URI . '/assets/css/product-manager.css', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/css/product-manager.css' ) );
 	$attribute_filters = array();
@@ -41,6 +45,7 @@ function jluxe_product_manager_enqueue_assets( string $hook ): void {
 			'priceDecimals'=> function_exists( 'wc_get_price_decimals' ) ? wc_get_price_decimals() : 0,
 			'currency'     => function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '',
 			'brandTaxonomy'=> jluxe_product_manager_brand_taxonomy(),
+			'canUpload'    => $can_upload,
 			'attributes'   => $attribute_filters,
 		)
 	);
@@ -83,17 +88,17 @@ function jluxe_product_manager_render_page(): void {
 		<section class="jluxe-pm-filters" aria-label="جست‌وجو و فیلتر محصولات">
 			<div class="jluxe-pm-filter-main">
 				<label class="jluxe-pm-search"><span class="screen-reader-text">جست‌وجو بر اساس نام یا SKU</span><input id="jluxe-pm-search" type="search" placeholder="نام محصول یا SKU را بنویسید…" autocomplete="off"><span class="dashicons dashicons-search" aria-hidden="true"></span></label>
+				<?php jluxe_product_manager_render_filter_term( 'category', 'دسته‌بندی', 'product_cat' ); ?>
+				<?php jluxe_product_manager_render_filter_term( 'brand', 'برند', $brand_taxonomy, '' !== $brand_taxonomy ); ?>
 				<select id="jluxe-pm-type" aria-label="نوع محصول"><option value="">همهٔ انواع</option><option value="simple">ساده</option><option value="variable">متغیر</option></select>
 				<select id="jluxe-pm-stock" aria-label="وضعیت موجودی"><option value="">همهٔ موجودی‌ها</option><option value="instock">موجود</option><option value="outofstock">ناموجود</option><option value="onbackorder">پیش‌سفارش</option></select>
 				<button class="button button-primary" id="jluxe-pm-search-button" type="button">جست‌وجو</button>
-				<button class="button" id="jluxe-pm-reset" type="button">پاک‌کردن</button>
+				<button class="button" id="jluxe-pm-reset" type="button">پاک‌کردن فیلترها</button>
 			</div>
 			<details class="jluxe-pm-more-filters">
 				<summary>فیلترهای بیشتر</summary>
 				<div class="jluxe-pm-advanced-filters">
 					<select id="jluxe-pm-status" aria-label="وضعیت انتشار"><option value="">همهٔ وضعیت‌ها</option><option value="publish">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="private">خصوصی</option><option value="pending">در انتظار بررسی</option></select>
-					<?php jluxe_product_manager_render_filter_term( 'category', 'دسته‌بندی', 'product_cat' ); ?>
-					<?php jluxe_product_manager_render_filter_term( 'brand', 'برند', $brand_taxonomy, '' !== $brand_taxonomy ); ?>
 					<label class="jluxe-pm-attribute-filter"><span>ویژگی محصول</span><select id="jluxe-pm-attribute-taxonomy"><option value="">همهٔ ویژگی‌ها</option><?php foreach ( jluxe_product_manager_registered_attributes() as $taxonomy => $attribute ) : ?><option value="<?php echo esc_attr( $taxonomy ); ?>"><?php echo esc_html( $attribute['label'] ); ?></option><?php endforeach; ?></select></label>
 					<?php jluxe_product_manager_render_filter_term( 'attribute-term', 'مقدار ویژگی', '' ); ?>
 				</div>
@@ -102,8 +107,8 @@ function jluxe_product_manager_render_page(): void {
 		<div class="jluxe-pm-results-heading"><span id="jluxe-pm-summary" aria-live="polite"></span><button class="button" id="jluxe-pm-refresh" type="button">تازه‌سازی</button></div>
 		<div class="jluxe-pm-table-wrap">
 			<table class="widefat striped jluxe-pm-table">
-				<thead><tr><th>محصول</th><th>قیمت عادی</th><th>موجودی</th><th>دسته‌بندی</th><th>مدیریت</th></tr></thead>
-				<tbody id="jluxe-pm-rows"><tr><td colspan="5" class="jluxe-pm-loading">در حال بارگذاری محصولات…</td></tr></tbody>
+				<thead><tr><th>محصول</th><th>قیمت عادی</th><th>قیمت ویژه</th><th>ویژه</th><th>موجودی</th><th>دسته‌بندی</th><th>مدیریت</th></tr></thead>
+				<tbody id="jluxe-pm-rows"><tr><td colspan="7" class="jluxe-pm-loading">در حال بارگذاری محصولات…</td></tr></tbody>
 			</table>
 		</div>
 		<footer class="jluxe-pm-pagination"><span id="jluxe-pm-page-label">صفحهٔ ۱</span><div><button class="button" id="jluxe-pm-prev" type="button" disabled>قبلی</button><button class="button" id="jluxe-pm-next" type="button" disabled>بعدی</button></div></footer>
@@ -333,6 +338,63 @@ function jluxe_product_manager_can_view_product( $product ): bool {
 	return $product instanceof WC_Product && $product->exists() && jluxe_product_manager_can_edit_product( absint( $product->get_id() ) );
 }
 
+function jluxe_product_manager_default_attribute_map( WC_Product $product ): array {
+	if ( ! $product->is_type( 'variable' ) || ! method_exists( $product, 'get_default_attributes' ) ) {
+		return array();
+	}
+	$definitions = array();
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( is_object( $attribute ) && method_exists( $attribute, 'get_variation' ) && $attribute->get_variation() && method_exists( $attribute, 'get_name' ) ) {
+			$definitions[] = (string) $attribute->get_name();
+		}
+	}
+	$defaults = array();
+	foreach ( (array) $product->get_default_attributes() as $raw_name => $raw_value ) {
+		if ( ! is_scalar( $raw_value ) ) {
+			continue;
+		}
+		$name = (string) $raw_name;
+		if ( 0 === strpos( $name, 'attribute_' ) ) {
+			$name = substr( $name, 10 );
+		}
+		foreach ( $definitions as $definition ) {
+			if ( jluxe_product_manager_taxonomy_names_match( $name, $definition ) ) {
+				$defaults[ $definition ] = (string) $raw_value;
+				break;
+			}
+		}
+	}
+	return $defaults;
+}
+
+function jluxe_product_manager_default_attribute_summary( WC_Product $product ): array {
+	$defaults = jluxe_product_manager_default_attribute_map( $product );
+	if ( empty( $defaults ) ) {
+		return array();
+	}
+	$definitions = array();
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_variation' ) || ! $attribute->get_variation() || ! method_exists( $attribute, 'get_name' ) ) {
+			continue;
+		}
+		$name = (string) $attribute->get_name();
+		if ( ! array_key_exists( $name, $defaults ) ) {
+			continue;
+		}
+		$value = $defaults[ $name ];
+		$value_label = $value;
+		if ( method_exists( $attribute, 'is_taxonomy' ) && $attribute->is_taxonomy() && function_exists( 'get_term_by' ) ) {
+			$term = get_term_by( 'slug', $value, $name );
+			if ( is_object( $term ) && ! is_wp_error( $term ) && isset( $term->name ) ) {
+				$value_label = (string) $term->name;
+			}
+		}
+		$label = function_exists( 'wc_attribute_label' ) ? wc_attribute_label( $name, $product ) : $name;
+		$summary[] = array( 'name' => $name, 'label' => (string) $label, 'value' => $value, 'valueLabel' => $value_label );
+	}
+	return $summary ?? array();
+}
+
 function jluxe_product_manager_product_summary( WC_Product $product ): array {
 	$type          = method_exists( $product, 'get_type' ) ? (string) $product->get_type() : 'simple';
 	$manage_stock  = method_exists( $product, 'get_manage_stock' ) ? (bool) $product->get_manage_stock() : ( method_exists( $product, 'managing_stock' ) && $product->managing_stock() );
@@ -351,6 +413,7 @@ function jluxe_product_manager_product_summary( WC_Product $product ): array {
 	$stock_label  = 'variable' === $type && ! $manage_stock ? 'موجودی هر تنوع' : ( $manage_stock && null !== $stock_qty ? (string) $stock_qty : ( $stock_labels[ $stock_status ] ?? $stock_status ) );
 	$image_id     = method_exists( $product, 'get_image_id' ) ? absint( $product->get_image_id() ) : 0;
 	$image        = $image_id && function_exists( 'wp_get_attachment_image_url' ) ? (string) wp_get_attachment_image_url( $image_id, 'thumbnail' ) : '';
+	$children     = 'variable' === $type && method_exists( $product, 'get_children' ) ? (array) $product->get_children() : array();
 	$category_names = array();
 	if ( method_exists( $product, 'get_category_ids' ) ) {
 		foreach ( jluxe_product_manager_term_payload( 'product_cat', (array) $product->get_category_ids() ) as $term ) {
@@ -364,14 +427,17 @@ function jluxe_product_manager_product_summary( WC_Product $product ): array {
 		'type'          => $type,
 		'typeLabel'     => 'variable' === $type ? 'متغیر' : 'ساده',
 		'status'        => (string) $product->get_status(),
-		'regularPrice'  => $regular_price,
-		'salePrice'     => $sale_price,
-		'priceLabel'    => $price_label,
-		'manageStock'   => $manage_stock,
-		'stockQuantity' => null === $stock_qty ? '' : $stock_qty,
-		'stockStatus'   => $stock_status,
-		'stockLabel'    => $stock_label,
-		'categories'    => implode( '، ', $category_names ),
+		'regularPrice'    => $regular_price,
+		'salePrice'       => $sale_price,
+		'priceLabel'      => $price_label,
+		'featured'        => method_exists( $product, 'get_featured' ) ? (bool) $product->get_featured() : false,
+		'manageStock'     => $manage_stock,
+		'stockQuantity'   => null === $stock_qty ? '' : $stock_qty,
+		'stockStatus'     => $stock_status,
+		'stockLabel'      => $stock_label,
+		'defaultAttributes' => jluxe_product_manager_default_attribute_summary( $product ),
+		'variationCount'  => count( $children ),
+		'categories'      => implode( '، ', $category_names ),
 		'image'         => $image,
 		'editUrl'       => get_edit_post_link( $product->get_id(), 'raw' ),
 	);
@@ -586,8 +652,10 @@ function jluxe_product_manager_variation_payload( WC_Product $product, int $page
 				$variation_attrs[ $definition['name'] ] = '';
 			}
 		}
-		$manage_stock    = method_exists( $variation, 'get_manage_stock' ) ? (bool) $variation->get_manage_stock() : false;
-		$variations[]    = array(
+		$manage_stock = method_exists( $variation, 'get_manage_stock' ) ? (bool) $variation->get_manage_stock() : false;
+		$image_id = method_exists( $variation, 'get_image_id' ) ? absint( $variation->get_image_id() ) : 0;
+		$image_url = $image_id && function_exists( 'wp_get_attachment_image_url' ) ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : false;
+		$variations[] = array(
 			'id'            => $variation_id,
 			'sku'           => (string) $variation->get_sku(),
 			'regularPrice'  => (string) $variation->get_regular_price( 'edit' ),
@@ -597,10 +665,20 @@ function jluxe_product_manager_variation_payload( WC_Product $product, int $page
 			'stockStatus'   => (string) $variation->get_stock_status(),
 			'backorders'    => (string) $variation->get_backorders(),
 			'enabled'       => 'publish' === $variation->get_status(),
+			'imageId'       => $image_id,
+			'imageUrl'      => $image_url ? (string) $image_url : '',
 			'attributes'    => $variation_attrs,
 		);
 	}
-	return array( 'items' => $variations, 'page' => $page, 'pages' => max( 1, (int) ceil( $total / $per_page ) ), 'total' => $total, 'perPage' => $per_page, 'attributes' => $attr_defs );
+	return array(
+		'items'              => $variations,
+		'page'               => $page,
+		'pages'              => max( 1, (int) ceil( $total / $per_page ) ),
+		'total'              => $total,
+		'perPage'            => $per_page,
+		'attributes'         => $attr_defs,
+		'defaultAttributes'  => jluxe_product_manager_default_attribute_map( $product ),
+	);
 }
 
 function jluxe_product_manager_seo_key( int $product_id ): string {
@@ -733,6 +811,7 @@ function jluxe_product_manager_product_payload( WC_Product $product, int $variat
 		'lowStockAmount'   => (string) $product->get_low_stock_amount(),
 		'soldIndividually' => (bool) $product->is_sold_individually(),
 		'featured'         => (bool) $product->get_featured(),
+		'defaultAttributes'=> jluxe_product_manager_default_attribute_summary( $product ),
 		'virtual'          => (bool) $product->is_virtual(),
 		'reviewsAllowed'   => (bool) $product->get_reviews_allowed(),
 		'purchaseNote'     => (string) $product->get_purchase_note(),
@@ -789,6 +868,84 @@ function jluxe_product_manager_get_variations_ajax(): void {
 	wp_send_json_success( jluxe_product_manager_variation_payload( $product, $page ) );
 }
 add_action( 'wp_ajax_jluxe_product_manager_get_variations', 'jluxe_product_manager_get_variations_ajax' );
+
+function jluxe_product_manager_validate_default_attributes( WC_Product $product, $submitted ) {
+	if ( ! $product->is_type( 'variable' ) || ! is_array( $submitted ) ) {
+		return new WP_Error( 'invalid_defaults', 'تنظیم پیش‌فرض‌های تنوع معتبر نیست.' );
+	}
+	$definitions = array();
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_variation' ) || ! $attribute->get_variation() || ! method_exists( $attribute, 'get_name' ) ) {
+			continue;
+		}
+		$name = (string) $attribute->get_name();
+		$options = jluxe_product_manager_attribute_options( $attribute );
+		$definitions[ $name ] = array(
+			'label'   => function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $name, $product ) : $name,
+			'options' => array_fill_keys( array_map( static fn( $option ) => (string) $option['value'], $options ), true ),
+		);
+	}
+	$clean = array();
+	foreach ( $submitted as $raw_name => $raw_value ) {
+		if ( ! is_scalar( $raw_value ) ) {
+			return new WP_Error( 'invalid_default_value', 'یکی از مقدارهای پیش‌فرض معتبر نیست.' );
+		}
+		$name = (string) $raw_name;
+		if ( 0 === strpos( $name, 'attribute_' ) ) {
+			$name = substr( $name, 10 );
+		}
+		$canonical_name = '';
+		foreach ( array_keys( $definitions ) as $definition_name ) {
+			if ( jluxe_product_manager_taxonomy_names_match( $name, (string) $definition_name ) ) {
+				$canonical_name = (string) $definition_name;
+				break;
+			}
+		}
+		if ( '' === $canonical_name ) {
+			return new WP_Error( 'invalid_default_attribute', 'یکی از ویژگی‌های انتخاب‌شده برای این محصول معتبر نیست.' );
+		}
+		$value = (string) $raw_value;
+		if ( '' === $value ) {
+			continue;
+		}
+		if ( ! isset( $definitions[ $canonical_name ]['options'][ $value ] ) ) {
+			return new WP_Error( 'invalid_default_value', 'مقدار پیش‌فرض باید از گزینه‌های ثبت‌شدهٔ همان ویژگی انتخاب شود.' );
+		}
+		$clean[ $canonical_name ] = $value;
+	}
+	return $clean;
+}
+
+function jluxe_product_manager_save_default_attributes_ajax(): void {
+	jluxe_product_manager_ajax_guard();
+	$product_id = isset( $_POST['product_id'] ) ? absint( jluxe_product_manager_scalar_string( wp_unslash( $_POST['product_id'] ) ) ) : 0;
+	$product = $product_id ? wc_get_product( $product_id ) : false;
+	if ( ! $product instanceof WC_Product || ! $product->is_type( 'variable' ) || ! jluxe_product_manager_can_view_product( $product ) ) {
+		wp_send_json_error( array( 'message' => 'محصول متغیر یا اجازهٔ ویرایش آن پیدا نشد.' ), 404 );
+	}
+	$raw = isset( $_POST['defaults'] ) && is_scalar( $_POST['defaults'] ) ? (string) wp_unslash( $_POST['defaults'] ) : '';
+	$submitted = json_decode( $raw, true );
+	$defaults = jluxe_product_manager_validate_default_attributes( $product, $submitted );
+	if ( is_wp_error( $defaults ) ) {
+		wp_send_json_error( array( 'message' => $defaults->get_error_message() ), 400 );
+	}
+	try {
+		$product->set_default_attributes( $defaults );
+		$product->save();
+	} catch ( Throwable $error ) {
+		wp_send_json_error( array( 'message' => 'ذخیرهٔ پیش‌فرض‌های تنوع انجام نشد: ' . $error->getMessage() ), 500 );
+	}
+	jluxe_purge_product_related_caches( $product_id );
+	$updated = wc_get_product( $product_id );
+	wp_send_json_success(
+		array(
+			'message' => 'پیش‌فرض‌های انتخاب تنوع ذخیره شد.',
+			'defaultAttributes' => jluxe_product_manager_default_attribute_summary( $updated instanceof WC_Product ? $updated : $product ),
+			'defaultMap' => jluxe_product_manager_default_attribute_map( $updated instanceof WC_Product ? $updated : $product ),
+		)
+	);
+}
+add_action( 'wp_ajax_jluxe_product_manager_save_defaults', 'jluxe_product_manager_save_default_attributes_ajax' );
 
 function jluxe_product_manager_save_organization_ajax(): void {
 	jluxe_product_manager_ajax_guard();
@@ -1289,19 +1446,36 @@ function jluxe_product_manager_validate_variation_changes( WC_Product $parent, $
 		}
 		$stock_status = isset( $variation_data['stockStatus'] ) ? sanitize_key( jluxe_product_manager_scalar_string( $variation_data['stockStatus'] ) ) : (string) $current_variation->get_stock_status();
 		$backorders = isset( $variation_data['backorders'] ) ? sanitize_key( jluxe_product_manager_scalar_string( $variation_data['backorders'] ) ) : (string) $current_variation->get_backorders();
+		$manage_stock = array_key_exists( 'manageStock', $variation_data ) ? ! empty( $variation_data['manageStock'] ) : (bool) $current_variation->get_manage_stock();
+		if ( $manage_stock && '' === $qty && ! $current_variation->get_manage_stock() ) {
+			return new WP_Error( 'missing_variation_stock_quantity', 'برای فعال‌کردن مدیریت موجودیِ تنوع، ابتدا تعداد را وارد کنید.' );
+		}
 		if ( ! in_array( $stock_status, array( 'instock', 'outofstock', 'onbackorder' ), true ) || ! in_array( $backorders, array( 'no', 'notify', 'yes' ), true ) ) {
 			return new WP_Error( 'invalid_variation_stock', 'وضعیت موجودی یا پیش‌فروش یکی از تنوع‌ها معتبر نیست.' );
+		}
+		$image_value = array_key_exists( 'imageId', $variation_data ) ? $variation_data['imageId'] : ( method_exists( $current_variation, 'get_image_id' ) ? $current_variation->get_image_id() : 0 );
+		if ( ! is_scalar( $image_value ) || ( '' !== (string) $image_value && ! ctype_digit( (string) $image_value ) ) ) {
+			return new WP_Error( 'invalid_variation_image', 'شناسهٔ تصویر این تنوع معتبر نیست.' );
+		}
+		$image_id = absint( $image_value );
+		$current_image_id = method_exists( $current_variation, 'get_image_id' ) ? absint( $current_variation->get_image_id( 'edit' ) ) : 0;
+		if ( $image_id !== $current_image_id && ! current_user_can( 'upload_files' ) ) {
+			return new WP_Error( 'invalid_variation_image', 'برای تغییر یا حذف تصویر تنوع، مجوز بارگذاری فایل لازم است.' );
+		}
+		if ( $image_id > 0 && ( ! function_exists( 'wp_attachment_is_image' ) || ! wp_attachment_is_image( $image_id ) || ! current_user_can( 'edit_post', $image_id ) ) ) {
+			return new WP_Error( 'invalid_variation_image', 'برای انتخاب تصویر، فایل تصویریِ مجاز و دسترسی ویرایش آن لازم است.' );
 		}
 		$clean[] = array(
 			'id'             => $id,
 			'sku'            => $sku,
 			'regular_price'  => $regular,
 			'sale_price'     => $sale,
-			'manage_stock'   => array_key_exists( 'manageStock', $variation_data ) ? ! empty( $variation_data['manageStock'] ) : (bool) $current_variation->get_manage_stock(),
+			'manage_stock'   => $manage_stock,
 			'stock_quantity' => $qty,
 			'stock_status'   => $stock_status,
 			'backorders'     => $backorders,
 			'enabled'        => array_key_exists( 'enabled', $variation_data ) ? ! empty( $variation_data['enabled'] ) : 'publish' === $current_variation->get_status(),
+			'image_id'       => $image_id,
 			'attributes'     => $final_attrs,
 		);
 	}
@@ -1345,6 +1519,9 @@ function jluxe_product_manager_save_variation_changes( WC_Product $parent, array
 		$variation->set_stock_status( $changes['stock_status'] );
 		$variation->set_backorders( $changes['backorders'] );
 		$variation->set_status( $changes['enabled'] ? 'publish' : 'private' );
+		if ( method_exists( $variation, 'set_image_id' ) ) {
+			$variation->set_image_id( $changes['image_id'] );
+		}
 		if ( method_exists( $variation, 'set_attributes' ) ) {
 			$variation->set_attributes( $changes['attributes'] );
 		}
@@ -1470,31 +1647,54 @@ function jluxe_product_manager_save_quick_ajax(): void {
 	if ( ! $product instanceof WC_Product || ! jluxe_product_manager_can_view_product( $product ) ) {
 		wp_send_json_error( array( 'message' => 'محصول پیدا نشد یا اجازهٔ ویرایش آن را ندارید.' ), 404 );
 	}
-	if ( ! $product->is_type( 'simple' ) ) {
-		wp_send_json_error( array( 'message' => 'قیمت و موجودی محصول متغیر را از جدول تنوع‌ها ویرایش کنید.' ), 400 );
+	if ( ! in_array( $product->get_type(), array( 'simple', 'variable' ), true ) ) {
+		wp_send_json_error( array( 'message' => 'این نوع محصول را از ویرایشگر استاندارد ووکامرس باز کنید.' ), 400 );
 	}
-	$regular = jluxe_product_manager_clean_decimal( $_POST['regular_price'] ?? '', true );
-	$sale    = jluxe_product_manager_clean_decimal( $_POST['sale_price'] ?? '', true );
-	$qty     = jluxe_product_manager_clean_decimal( $_POST['stock_quantity'] ?? '', true );
+	$is_simple = $product->is_type( 'simple' );
+	$regular   = array_key_exists( 'regular_price', $_POST ) ? jluxe_product_manager_clean_decimal( wp_unslash( $_POST['regular_price'] ), true ) : (string) $product->get_regular_price( 'edit' );
+	$sale      = array_key_exists( 'sale_price', $_POST ) ? jluxe_product_manager_clean_decimal( wp_unslash( $_POST['sale_price'] ), true ) : (string) $product->get_sale_price( 'edit' );
+	$qty       = array_key_exists( 'stock_quantity', $_POST ) ? jluxe_product_manager_clean_decimal( wp_unslash( $_POST['stock_quantity'] ), true ) : ( null === $product->get_stock_quantity( 'edit' ) ? '' : (string) $product->get_stock_quantity( 'edit' ) );
 	foreach ( array( $regular, $sale, $qty ) as $value ) {
 		if ( is_wp_error( $value ) || ( '' !== $value && (float) $value < 0 ) ) {
 			wp_send_json_error( array( 'message' => is_wp_error( $value ) ? $value->get_error_message() : 'قیمت و موجودی باید صفر یا بیشتر باشند.' ), 400 );
 		}
 	}
+	if ( $is_simple && ( ! method_exists( $product, 'set_regular_price' ) || ! method_exists( $product, 'set_sale_price' ) ) ) {
+		wp_send_json_error( array( 'message' => 'ویرایش قیمت در این نوع محصول در دسترس نیست.' ), 400 );
+	}
+	$manage_stock = array_key_exists( 'manage_stock', $_POST ) ? in_array( (string) wp_unslash( $_POST['manage_stock'] ), array( '1', 'yes', 'true', 'on' ), true ) : (bool) $product->get_manage_stock();
+	$featured     = array_key_exists( 'featured', $_POST ) ? in_array( (string) wp_unslash( $_POST['featured'] ), array( '1', 'yes', 'true', 'on' ), true ) : (bool) $product->get_featured();
+	$stock_status = array_key_exists( 'stock_status', $_POST ) ? sanitize_key( jluxe_product_manager_scalar_string( wp_unslash( $_POST['stock_status'] ) ) ) : (string) $product->get_stock_status();
+	if ( ! in_array( $stock_status, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) {
+		wp_send_json_error( array( 'message' => 'وضعیت موجودی انتخاب‌شده معتبر نیست.' ), 400 );
+	}
+	if ( $manage_stock && '' === $qty && ! $product->get_manage_stock() ) {
+		wp_send_json_error( array( 'message' => 'برای فعال‌کردن مدیریت موجودی، ابتدا تعداد موجودی را وارد کنید.' ), 400 );
+	}
 	try {
-		$product->set_regular_price( $regular );
-		$product->set_sale_price( $sale );
-		$product->set_manage_stock( ! empty( $_POST['manage_stock'] ) );
-		if ( ! empty( $_POST['manage_stock'] ) && '' !== $qty ) {
+		if ( $is_simple && array_key_exists( 'regular_price', $_POST ) ) {
+			$product->set_regular_price( $regular );
+		}
+		if ( $is_simple && array_key_exists( 'sale_price', $_POST ) ) {
+			$product->set_sale_price( $sale );
+		}
+		$product->set_featured( $featured );
+		$product->set_manage_stock( $manage_stock );
+		if ( $manage_stock && '' !== $qty ) {
 			$product->set_stock_quantity( wc_stock_amount( $qty ) );
 			$product->set_stock_status( (float) $qty > 0 ? 'instock' : 'outofstock' );
+		} elseif ( ! $manage_stock && array_key_exists( 'stock_status', $_POST ) ) {
+			$product->set_stock_status( $stock_status );
 		}
 		$product->save();
 	} catch ( Throwable $error ) {
 		wp_send_json_error( array( 'message' => 'ذخیره انجام نشد: ' . $error->getMessage() ), 400 );
 	}
+	if ( $product->is_type( 'variable' ) ) {
+		jluxe_product_manager_sync_variable_product( $product );
+	}
 	jluxe_purge_product_related_caches( $product_id );
-	wp_send_json_success( array( 'message' => 'قیمت و موجودی ذخیره شد.', 'product' => jluxe_product_manager_product_summary( wc_get_product( $product_id ) ) ) );
+	wp_send_json_success( array( 'message' => 'قیمت، نمایش ویژه و موجودی ذخیره شد.', 'product' => jluxe_product_manager_product_summary( wc_get_product( $product_id ) ) ) );
 }
 add_action( 'wp_ajax_jluxe_product_manager_quick_save', 'jluxe_product_manager_save_quick_ajax' );
 

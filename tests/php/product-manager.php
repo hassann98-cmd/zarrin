@@ -3,6 +3,12 @@
 if ( PHP_SAPI !== 'cli' ) { http_response_code( 404 ); exit; }
 require __DIR__ . '/stubs.php';
 
+if ( ! function_exists( 'wp_enqueue_media' ) ) {
+	function wp_enqueue_media() { $GLOBALS['product_manager_media_enqueued'] = true; }
+}
+if ( ! function_exists( 'wp_attachment_is_image' ) ) {
+	function wp_attachment_is_image( $attachment_id ) { return ! empty( $GLOBALS['product_manager_images'][ (int) $attachment_id ] ); }
+}
 if ( ! function_exists( 'wc_get_attribute_taxonomies' ) ) {
 	function wc_get_attribute_taxonomies() { return $GLOBALS['product_manager_attribute_taxonomies'] ?? array(); }
 }
@@ -74,6 +80,9 @@ class ProductManagerTestProduct extends WC_Product {
 	public $visibility_value = 'visible';
 	public $saved_fields = array();
 	public $saved_variation_attributes = array();
+	public $default_attributes = array();
+	public $image_id = 0;
+	public $featured = false;
 
 	public function get_type() { return $this->type; }
 	public function get_name() { return $this->product_name; }
@@ -85,13 +94,15 @@ class ProductManagerTestProduct extends WC_Product {
 	public function get_stock_quantity( $context = 'view' ) { return $this->stock_quantity; }
 	public function get_stock_status() { return $this->stock_status; }
 	public function get_backorders() { return $this->backorders; }
+	public function get_default_attributes() { return $this->default_attributes; }
+	public function get_image_id( $context = 'view' ) { return $this->image_id; }
 	public function get_regular_price( $context = 'view' ) { return $this->regular_price; }
 	public function get_sale_price( $context = 'view' ) { return $this->sale_price; }
 	public function get_status() { return $this->status; }
 	public function get_catalog_visibility() { return $this->visibility; }
 	public function get_low_stock_amount() { return ''; }
 	public function is_sold_individually() { return false; }
-	public function get_featured() { return false; }
+	public function get_featured() { return $this->featured; }
 	public function is_virtual() { return false; }
 	public function get_reviews_allowed() { return true; }
 	public function get_purchase_note() { return ''; }
@@ -110,7 +121,7 @@ class ProductManagerTestProduct extends WC_Product {
 	public function set_date_on_sale_to( $value ) { $this->saved_fields['sale_to'] = $value; }
 	public function set_low_stock_amount( $value ) { $this->saved_fields['low_stock_amount'] = $value; }
 	public function set_sold_individually( $value ) { $this->sold = (bool) $value; }
-	public function set_featured( $value ) { $this->saved_fields['featured'] = (bool) $value; }
+	public function set_featured( $value ) { $this->featured = (bool) $value; $this->saved_fields['featured'] = (bool) $value; }
 	public function set_virtual( $value ) { $this->saved_fields['virtual'] = (bool) $value; }
 	public function set_reviews_allowed( $value ) { $this->saved_fields['reviews_allowed'] = (bool) $value; }
 	public function set_purchase_note( $value ) { $this->saved_fields['purchase_note'] = $value; }
@@ -124,6 +135,7 @@ class ProductManagerTestProduct extends WC_Product {
 	public function set_category_ids( $value ) { $this->saved_fields['category_ids'] = (array) $value; }
 	public function set_tag_ids( $value ) { $this->saved_fields['tag_ids'] = (array) $value; }
 	public function set_attributes( $value ) { $this->saved_variation_attributes = (array) $value; $this->attributes = (array) $value; }
+	public function set_default_attributes( $value ) { $this->default_attributes = (array) $value; }
 	public function set_image_id( $value ) { $this->image_id = (int) $value; }
 	public function set_gallery_image_ids( $value ) { $GLOBALS['product_gallery_ids'][ $this->id ] = (array) $value; }
 	public function delete_meta_data( $key ) { unset( $this->meta[ $key ] ); }
@@ -211,6 +223,7 @@ $color->set_variation( true );
 $parent = new ProductManagerTestProduct( 5301 );
 $parent->type = 'variable';
 $parent->attributes = array( $taxonomy => $color );
+$parent->default_attributes = array( $taxonomy => 'red' );
 $parent->children_ids = array( 5302, 5303 );
 $first_variation = new ProductManagerTestProduct( 5302 );
 $first_variation->type = 'variation';
@@ -249,12 +262,16 @@ product_manager_check(
 ob_start();
 jluxe_product_manager_render_page();
 $product_manager_markup = (string) ob_get_clean();
+$more_filters_position = strpos( $product_manager_markup, '<details class="jluxe-pm-more-filters"' );
 product_manager_check(
 	false !== strpos( $product_manager_markup, 'id="jluxe-pm-brand-search"' ) &&
 	false !== strpos( $product_manager_markup, 'id="jluxe-pm-category-search"' ) &&
 	false !== strpos( $product_manager_markup, 'id="jluxe-pm-attribute-taxonomy"' ) &&
+	false !== $more_filters_position &&
+	strpos( $product_manager_markup, 'id="jluxe-pm-brand-search"' ) < $more_filters_position &&
+	strpos( $product_manager_markup, 'id="jluxe-pm-category-search"' ) < $more_filters_position &&
 	false === strpos( $product_manager_markup, 'jluxe-pm-bulk-panel' ),
-	'easy product manager keeps searchable category/brand and attribute filters without the redundant bulk panel'
+	'easy product manager keeps category and brand filters visible above the collapsible advanced filters'
 );
 jluxe_product_manager_enqueue_assets( 'plugins.php' );
 product_manager_check( empty( $GLOBALS['scripts']['jluxe-product-manager'] ), 'product-manager assets stay unloaded outside their dedicated admin screen' );
@@ -262,10 +279,19 @@ jluxe_product_manager_enqueue_assets( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_P
 product_manager_check(
 	isset( $GLOBALS['scripts']['jluxe-product-manager'], $GLOBALS['styles']['jluxe-product-manager'] ) &&
 	isset( $GLOBALS['localized']['jluxeProductManager']['nonce'] ) &&
+	true === $GLOBALS['localized']['jluxeProductManager']['canUpload'] && ! empty( $GLOBALS['product_manager_media_enqueued'] ) &&
 	'product_brand' === $GLOBALS['localized']['jluxeProductManager']['brandTaxonomy'] &&
 	$GLOBALS['localized']['jluxeProductManager']['attributes'][0]['taxonomy'] === $taxonomy,
 	'dedicated top-level screen enqueues only the focused editor assets and its allowed taxonomy configuration'
 );
+$GLOBALS['denied_caps'] = array( 'upload_files' );
+unset( $GLOBALS['product_manager_media_enqueued'] );
+jluxe_product_manager_enqueue_assets( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_PAGE );
+product_manager_check(
+	false === $GLOBALS['localized']['jluxeProductManager']['canUpload'] && empty( $GLOBALS['product_manager_media_enqueued'] ),
+	'accounts without upload permission do not load the media picker and receive a disabled-upload configuration'
+);
+unset( $GLOBALS['denied_caps'] );
 
 $registered = jluxe_product_manager_registered_attributes();
 product_manager_check( isset( $registered[ $taxonomy ] ), 'registered non-ASCII WooCommerce attribute keeps its canonical URL-encoded taxonomy key' );
@@ -282,9 +308,33 @@ product_manager_check(
 product_manager_check(
 	$payload['variations']['attributes'][0]['name'] === $taxonomy &&
 	$payload['variations']['items'][0]['attributes'][ $taxonomy ] === 'red' &&
-	$payload['variations']['items'][0]['stockStatus'] === 'outofstock' &&
-	$payload['variations']['items'][0]['backorders'] === 'notify',
-	'variation payload preserves exact taxonomy keys, current option values, stock status, and backorder settings'
+		$payload['variations']['items'][0]['stockStatus'] === 'outofstock' &&
+		$payload['variations']['items'][0]['backorders'] === 'notify' &&
+		$payload['variations']['defaultAttributes'][ $taxonomy ] === 'red',
+		'variation payload preserves exact taxonomy keys, current values, stock settings, and saved defaults'
+);
+$product_summary = jluxe_product_manager_product_summary( $parent );
+product_manager_check(
+	$product_summary['defaultAttributes'][0]['valueLabel'] === 'قرمز' && $product_summary['defaultAttributes'][0]['value'] === 'red',
+	'product list summarizes only the currently saved variation defaults using the registered term label'
+);
+$GLOBALS['valid_wp_nonce'] = true;
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'product_id' => '5301',
+	'defaults' => json_encode( array( $taxonomy => 'blue' ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+);
+$default_save_reply = product_manager_json_call( 'jluxe_product_manager_save_default_attributes_ajax' );
+product_manager_check(
+	$default_save_reply->success && array( $taxonomy => 'blue' ) === $parent->default_attributes &&
+	$default_save_reply->data['defaultMap'][ $taxonomy ] === 'blue' && $default_save_reply->data['defaultAttributes'][0]['valueLabel'] === 'آبی',
+	'inline default-attribute save accepts only the existing option and returns its updated summary'
+);
+$_POST['defaults'] = json_encode( array( $taxonomy => 'BLUE' ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+$invalid_default_reply = product_manager_json_call( 'jluxe_product_manager_save_default_attributes_ajax' );
+product_manager_check(
+	! $invalid_default_reply->success && 400 === $invalid_default_reply->status && array( $taxonomy => 'blue' ) === $parent->default_attributes,
+	'default-attribute endpoint rejects values outside the existing WooCommerce options without writing'
 );
 
 $validated = jluxe_product_manager_validate_attributes(
@@ -433,11 +483,38 @@ $_POST = array(
 	'sale_price' => '',
 	'manage_stock' => '1',
 	'stock_quantity' => '4',
+	'featured' => '1',
 );
 $quick_save_reply = product_manager_json_call( 'jluxe_product_manager_save_quick_ajax' );
 product_manager_check(
-	$quick_save_reply->success && '125.5' === $simple_product->regular_price && true === $simple_product->manage_stock && '4' === (string) $simple_product->stock_quantity && 'instock' === $simple_product->stock_status,
-	'inline simple-product price and inventory saves use WooCommerce CRUD and accept Persian decimal digits'
+	$quick_save_reply->success && '125.5' === $simple_product->regular_price && true === $simple_product->manage_stock && '4' === (string) $simple_product->stock_quantity && 'instock' === $simple_product->stock_status && true === $simple_product->featured,
+	'inline simple-product prices, featured state, and inventory use WooCommerce CRUD and accept Persian decimals'
+);
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'product_id' => '5304',
+	'manage_stock' => '0',
+	'stock_status' => 'outofstock',
+	'featured' => '0',
+);
+$unmanaged_status_reply = product_manager_json_call( 'jluxe_product_manager_save_quick_ajax' );
+product_manager_check(
+	$unmanaged_status_reply->success && false === $simple_product->manage_stock && 'outofstock' === $simple_product->stock_status && false === $simple_product->featured,
+	'unmanaged simple products can save an explicit stock status while featured state and stock tracking are turned off'
+);
+$_POST = array(
+	'nonce' => 'nonce-jluxe_product_manager',
+	'product_id' => '5301',
+	'manage_stock' => '1',
+	'stock_quantity' => '6',
+	'stock_status' => 'instock',
+	'featured' => '1',
+);
+$variable_stock_reply = product_manager_json_call( 'jluxe_product_manager_save_quick_ajax' );
+product_manager_check(
+	$variable_stock_reply->success && true === $parent->manage_stock && '6' === (string) $parent->stock_quantity && true === $parent->featured &&
+	! empty( $GLOBALS['product_manager_syncs'] ),
+	'variable parent stock management and featured state save through CRUD and trigger WooCommerce stock synchronization'
 );
 
 $_POST = array(
@@ -506,6 +583,72 @@ product_manager_check(
 	$variation_quick_save_reply->success && '145' === $first_variation->regular_price && '2' === (string) $first_variation->stock_quantity &&
 	$variation_quick_save_reply->data['variation']['attributes'][ $taxonomy ] === 'red',
 	'variable-product size, price, and stock autosave with the validated WooCommerce variation data'
+);
+$GLOBALS['product_manager_images'][771] = true;
+$_POST['variation'] = json_encode(
+	array(
+		'id' => 5302,
+		'sku' => '',
+		'regularPrice' => '145',
+		'salePrice' => '',
+		'stockQuantity' => '2',
+		'manageStock' => true,
+		'stockStatus' => 'instock',
+		'backorders' => 'notify',
+		'enabled' => true,
+		'imageId' => 771,
+		'attributes' => array( $taxonomy => 'red' ),
+	),
+	JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+);
+$variation_image_reply = product_manager_json_call( 'jluxe_product_manager_save_variation_quick_ajax' );
+product_manager_check(
+	$variation_image_reply->success && 771 === $first_variation->image_id && 771 === $variation_image_reply->data['variation']['imageId'],
+	'variation image selection accepts an editable image attachment and saves it with WooCommerce CRUD'
+);
+$GLOBALS['denied_caps'] = array( 'upload_files' );
+$_POST['variation'] = json_encode(
+	array(
+		'id' => 5302,
+		'sku' => '',
+		'regularPrice' => '145',
+		'salePrice' => '',
+		'stockQuantity' => '2',
+		'manageStock' => true,
+		'stockStatus' => 'instock',
+		'backorders' => 'notify',
+		'enabled' => true,
+		'imageId' => 0,
+		'attributes' => array( $taxonomy => 'red' ),
+	),
+	JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+);
+$unauthorized_image_remove_reply = product_manager_json_call( 'jluxe_product_manager_save_variation_quick_ajax' );
+product_manager_check(
+	! $unauthorized_image_remove_reply->success && 400 === $unauthorized_image_remove_reply->status && 771 === $first_variation->image_id,
+	'variation image removal is rejected server-side without upload_files capability'
+);
+unset( $GLOBALS['denied_caps'] );
+$_POST['variation'] = json_encode(
+	array(
+		'id' => 5302,
+		'sku' => '',
+		'regularPrice' => '145',
+		'salePrice' => '',
+		'stockQuantity' => '2',
+		'manageStock' => true,
+		'stockStatus' => 'instock',
+		'backorders' => 'notify',
+		'enabled' => true,
+		'imageId' => 772,
+		'attributes' => array( $taxonomy => 'red' ),
+	),
+	JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+);
+$invalid_variation_image_reply = product_manager_json_call( 'jluxe_product_manager_save_variation_quick_ajax' );
+product_manager_check(
+	! $invalid_variation_image_reply->success && 400 === $invalid_variation_image_reply->status && 771 === $first_variation->image_id,
+	'variation image endpoint rejects non-image attachments and keeps the saved image unchanged'
 );
 
 $GLOBALS['valid_wp_nonce'] = true;
