@@ -1,4 +1,5 @@
 import { siteUrl } from "../lib/api.js";
+import { registerCartDrawerOpen } from "../lib/cart-drawer.js";
 import { useDialog } from "../lib/use-dialog.js";
 import { j as e } from "../lib/jsx.js";
 import { r } from "../lib/icons.js";
@@ -33,15 +34,10 @@ function J() {
     [m, b] = r.useState(""),
     S = ((g = H().cart) == null ? void 0 : g.showCoupon) !== !1;
   return (
-    r.useEffect(() => {
-      function t() {
-        l(!0);
-      }
-      return (
-        window.addEventListener("jluxe:open-cart", t),
-        () => window.removeEventListener("jluxe:open-cart", t)
-      );
-    }, []),
+    r.useEffect(
+      () => registerCartDrawerOpen(() => l(!0), window),
+      [],
+    ),
     r.useEffect(() => {
       if (n) {
         x(!0);

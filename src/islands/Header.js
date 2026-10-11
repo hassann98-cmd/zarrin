@@ -1,5 +1,6 @@
 import { useDialog } from "../lib/use-dialog.js";
 import { siteUrl } from "../lib/api.js";
+import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
 import { fetchLiveSearch } from "../lib/live-search.js";
 import { j as e } from "../lib/jsx.js";
 import { r as c } from "../lib/icons.js";
@@ -385,7 +386,7 @@ function J() {
             children: e.jsxs("a", {
               href: siteUrl("cart"),
               onClick: (event) => {
-                // Preserve browser-native modified clicks on this real cart link.
+                // Keep modified clicks native so the configured cart URL stays available.
                 if (
                   event.defaultPrevented ||
                   event.button !== 0 ||
@@ -396,17 +397,11 @@ function J() {
                 ) {
                   return;
                 }
-                // On phones the cart control must open the actual WooCommerce
-                // cart page. Keep the drawer as the desktop enhancement only.
-                if (
-                  typeof window.matchMedia === "function" &&
-                  window.matchMedia("(min-width: 768px)").matches
-                ) {
-                  event.preventDefault();
-                  window.dispatchEvent(new CustomEvent("jluxe:open-cart"));
-                } else if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
+                event.preventDefault();
+                if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
                   window.jluxeCloseSuggestedProductsModal();
                 }
+                requestCartDrawerOpen(window);
               },
               children: [
                 e.jsx("span", {

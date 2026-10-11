@@ -1,4 +1,5 @@
 import { siteUrl } from "../lib/api.js";
+import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
 import {
   isMobileNavItemActive as isActive,
   mobileNavContainerStyle,
@@ -14,7 +15,7 @@ const DESTINATIONS = {
   shop: { href: siteUrl("shop"), opensDrawer: "categories" },
   home: { href: siteUrl("home") },
   account: { href: siteUrl("dashboard") },
-  cart: { href: siteUrl("cart") },
+  cart: { href: siteUrl("cart"), opensDrawer: "cart" },
 };
 
 function MobileNav() {
@@ -111,14 +112,15 @@ function MobileNav() {
             onClick: (event) => {
               if (item.opensDrawer) {
                 event.preventDefault();
-                window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
-              } else {
-                if (
-                  item.id === "cart" &&
-                  typeof window.jluxeCloseSuggestedProductsModal === "function"
-                ) {
-                  window.jluxeCloseSuggestedProductsModal();
+                if (item.opensDrawer === "cart") {
+                  if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
+                    window.jluxeCloseSuggestedProductsModal();
+                  }
+                  requestCartDrawerOpen(window);
+                } else {
+                  window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
                 }
+              } else {
                 setCurrentHref(item.href);
               }
             },

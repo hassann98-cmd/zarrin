@@ -79,7 +79,7 @@ test("R122 keeps the existing desktop search, cart, account controls and respons
   assert.match(headerIsland, /md:w-\[171px\]/);
   assert.match(headerIsland, /md:w-\[151px\]/);
   assert.match(headerIsland, /hidden text-button md:inline/);
-  assert.match(headerIsland, /jluxe:open-cart/);
+  assert.match(headerIsland, /requestCartDrawerOpen\(window\)/);
   assert.match(headerIsland, /siteUrl\(y \? "dashboard" : "login"\)/);
   assert.match(headerIsland, /onFocus: \(\) => d\(!0\)/);
 });

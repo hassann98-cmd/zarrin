@@ -67,9 +67,9 @@ export function resolveMobileNavItem(item, options = {}) {
       href = urls.track_order || urls.home || "/";
       break;
     case "cart":
-      // The mobile cart tab is a native route so it cannot dead-end if the
-      // asynchronously loaded mini-cart drawer has not mounted yet.
+      // Keep a real cart-page href for a no-JavaScript fallback and drawer CTA.
       href = urls.cart || urls.home || "/";
+      opensDrawer = "cart";
       break;
     case "link":
       href = typeof item?.url === "string" && item.url.trim()

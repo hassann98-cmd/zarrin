@@ -162,8 +162,8 @@ test("R182 floating navigation resolves its built-in support, category, shop, ca
   assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: false }).href, urls.login);
   assert.equal(resolveMobileNavItem({ action: "account" }, { urls, isLoggedIn: true }).href, urls.dashboard);
   const cartItem = resolveMobileNavItem({ action: "cart" }, { urls });
-  assert.equal(cartItem.href, urls.cart);
-  assert.equal(cartItem.opensDrawer, undefined, "the mobile cart action remains a native route instead of relying on an asynchronously mounted drawer");
+  assert.equal(cartItem.href, urls.cart, "the configured cart page remains available as a native fallback");
+  assert.equal(cartItem.opensDrawer, "cart", "the floating cart action opens the mini-cart drawer");
   assert.equal(resolveMobileNavItem({ action: "track" }, { urls }).href, urls.track_order);
 });
 
@@ -211,18 +211,16 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
   assert.match(mobileNavSource, /nav_items \?\? \[\]/);
 });
 
-test("mobile cart controls navigate to the real cart page while desktop header keeps its drawer enhancement", () => {
-  assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\) \}/);
-  assert.doesNotMatch(mobileNavSource, /item\.opensDrawer === "cart"/);
-  assert.doesNotMatch(floatingNavSource, /item\.opensDrawer === "cart"/);
+test("mobile and header cart controls open the drawer, whose CTA routes to the real cart page", () => {
+  assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
+  assert.match(mobileNavSource, /item\.opensDrawer === "cart"[\s\S]*?requestCartDrawerOpen\(window\)/);
+  assert.match(floatingNavSource, /item\.opensDrawer === "cart"[\s\S]*?requestCartDrawerOpen\(window\)/);
   assert.match(headerIslandSource, /href: siteUrl\("cart"\)/);
-  assert.match(headerIslandSource, /matchMedia\("\(min-width: 768px\)"\)/);
   assert.match(headerIslandSource, /event\.metaKey[\s\S]*event\.ctrlKey[\s\S]*event\.shiftKey[\s\S]*event\.altKey/);
-  assert.match(headerIslandSource, /window\.dispatchEvent\(new CustomEvent\("jluxe:open-cart"\)\)/);
+  assert.match(headerIslandSource, /event\.preventDefault\(\)[\s\S]*?requestCartDrawerOpen\(window\)/);
   assert.match(headerIslandSource, /window\.jluxeCloseSuggestedProductsModal\(\)/);
-  assert.match(mobileNavSource, /item\.id === "cart"[\s\S]*?window\.jluxeCloseSuggestedProductsModal\(\)/);
-  assert.match(floatingNavSource, /item\.action === "cart"[\s\S]*?window\.jluxeCloseSuggestedProductsModal\(\)/);
-  assert.match(miniCartSource, /window\.addEventListener\("jluxe:open-cart",\s*t\)/);
+  assert.match(miniCartSource, /registerCartDrawerOpen\(\(\) => l\(!0\), window\)/);
+  assert.match(miniCartSource, /href: s\.cartUrl[\s\S]*?children: "مشاهده سبد خرید"/);
   assert.match(headerTemplate, /data-jluxe-island="mini-cart"/);
 });
 

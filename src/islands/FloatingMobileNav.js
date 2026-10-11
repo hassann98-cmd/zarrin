@@ -1,5 +1,6 @@
 import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
+import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
 import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { u as useCart } from "../lib/use-cart.js";
 import { N as navIcons, H as fallbackIcon } from "../components/nav-icons.js";
@@ -132,16 +133,17 @@ function FloatingMobileNav() {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
       event.preventDefault();
-      window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
+      if (item.opensDrawer === "cart") {
+        if (typeof window.jluxeCloseSuggestedProductsModal === "function") {
+          window.jluxeCloseSuggestedProductsModal();
+        }
+        requestCartDrawerOpen(window);
+      } else {
+        window.dispatchEvent(new CustomEvent("jluxe:open-categories"));
+      }
       return;
     }
     if (!item.targetBlank && item.action !== "assistant") {
-      if (
-        item.action === "cart" &&
-        typeof window.jluxeCloseSuggestedProductsModal === "function"
-      ) {
-        window.jluxeCloseSuggestedProductsModal();
-      }
       setCurrentHref(item.href);
     }
   };
