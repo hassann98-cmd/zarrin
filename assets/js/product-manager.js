@@ -23,6 +23,8 @@
 		editorRequest: 0,
 		loading: false,
 		pendingReload: null,
+		lastSearchSubmitted: null,
+		lastSearchSubmittedAt: 0,
 		saving: false,
 		dirty: false,
 	};
@@ -167,6 +169,22 @@
 		};
 	}
 
+	function clearProductSearchTimer() {
+		var input = $("#jluxe-pm-search");
+		window.clearTimeout(input._pmTimer);
+		input._pmTimer = null;
+	}
+
+	function submitProductSearch() {
+		clearProductSearchTimer();
+		var term = $("#jluxe-pm-search").value.trim();
+		var now = Date.now();
+		if (state.lastSearchSubmitted === term && now - state.lastSearchSubmittedAt < 150) return;
+		state.lastSearchSubmitted = term;
+		state.lastSearchSubmittedAt = now;
+		loadProducts(true);
+	}
+
 	function setLoading(message) {
 		rows.replaceChildren();
 		var tr = node("tr");
@@ -183,23 +201,32 @@
 			return;
 		}
 		state.loading = true;
+		rows.setAttribute("aria-busy", "true");
 		showNotice("", "");
 		setLoading("در حال دریافت محصولات…");
 		var data = currentFilters();
 		data.page = state.page;
 		request("jluxe_product_manager_list", data).then(function (result) {
 			state.loading = false;
+			if (state.pendingReload !== null) {
+				flushPendingReload();
+				return;
+			}
+			rows.removeAttribute("aria-busy");
 			state.page = result.page || 1;
 			state.pages = result.pages || 1;
 			state.total = result.total || 0;
 			state.products = result.products || [];
 			renderProducts();
-			flushPendingReload();
 		}).catch(function (error) {
 			state.loading = false;
+			if (state.pendingReload !== null) {
+				flushPendingReload();
+				return;
+			}
+			rows.removeAttribute("aria-busy");
 			setLoading(error.message);
 			showNotice(error.message, "error");
-			flushPendingReload();
 		});
 	}
 
@@ -214,7 +241,7 @@
 		rows.replaceChildren();
 		if (!state.products.length) {
 			var empty = node("tr");
-			var cell = node("td", "jluxe-pm-empty", "محصولی با این جست‌وجو و فیلترها پیدا نشد.");
+			var cell = node("td", "jluxe-pm-empty", "محصولی پیدا نشد؛ نام، SKU یا فیلتر را بررسی کنید.");
 			cell.colSpan = 7;
 			empty.appendChild(cell);
 			rows.appendChild(empty);
@@ -288,9 +315,6 @@
 		var subline = node("div", "jluxe-pm-subline");
 		subline.appendChild(node("span", "jluxe-pm-type-pill is-" + product.type, product.typeLabel || (product.type === "variable" ? "متغیر" : "ساده")));
 		if (product.sku) subline.appendChild(node("span", "jluxe-pm-sku", "SKU: " + product.sku));
-		var featuredHint = node("small", "jluxe-pm-featured-hint" + (product.featured ? " is-active" : ""), product.featured ? "ویژه انتخاب شده" : "ویژه انتخاب نشده");
-		featuredHint.dataset.pmFeaturedHint = id;
-		subline.appendChild(featuredHint);
 		identity.appendChild(subline);
 		if (product.type === "variable") {
 			var defaults = node("small", "jluxe-pm-default-summary", defaultSummary(product));
@@ -338,36 +362,16 @@
 		return tr;
 	}
 
-	function makeSaleState(onSale, salePrice, productType, pending) {
-		if (pending) return node("small", "jluxe-pm-sale-state is-pending", "وضعیت ویژه پس از ذخیره به‌روز می‌شود");
-		if (onSale) return node("small", "jluxe-pm-sale-state is-active", productType === "variable" ? "تخفیف در تنوع‌ها فعال است" : "تخفیف فعال است");
-		if (productType === "variable") return node("small", "jluxe-pm-sale-state", "قیمت ویژهٔ تنوع‌ها را باز کنید");
-		if (normalizeNumber(salePrice) !== "") return node("small", "jluxe-pm-sale-state is-inactive", "قیمت ویژه ثبت شده؛ اکنون فعال نیست");
-		return node("small", "jluxe-pm-sale-state", "قیمت ویژه ثبت نشده");
-	}
-
-	function setProductSaleState(product) {
-		var badge = $("[data-pm-sale-state='" + String(product.id) + "']", rows);
-		if (!badge) return;
-		var stateBadge = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
-		badge.className = stateBadge.className;
-		badge.textContent = stateBadge.textContent;
-		var cell = badge.closest(".jluxe-pm-price-cell--sale");
-		if (cell) cell.classList.toggle("is-on-sale", !!product.onSale);
-	}
-
 	function makePriceCell(product, field, labelText) {
 		var suffix = field === "salePrice" ? "--sale" : "--regular";
 		var cell = labelCell(node("td", "jluxe-pm-price-cell jluxe-pm-price-cell" + suffix), labelText);
 		var id = String(product.id);
-		if (field === "salePrice" && product.onSale) cell.classList.add("is-on-sale");
 		if (product.type === "simple") {
 			var input = node("input", "jluxe-pm-inline-input jluxe-pm-price-input");
 			input.type = "text";
 			input.inputMode = "decimal";
 			input.autocomplete = "off";
 			input.value = groupedNumber(product[field]);
-			input.placeholder = field === "salePrice" ? "بدون قیمت ویژه" : "ثبت قیمت";
 			input.dir = "ltr";
 			input.dataset.pmInlineField = field;
 			input.dataset.productId = id;
@@ -377,19 +381,23 @@
 			if (config.currency) control.appendChild(node("small", "jluxe-pm-currency", config.currency));
 			cell.appendChild(control);
 			if (field === "salePrice") {
-				var saleState = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
-				saleState.dataset.pmSaleState = id;
-				cell.appendChild(saleState);
+				var saleToggle = node("label", "jluxe-pm-toggle jluxe-pm-sale-toggle");
+				var saleToggleInput = node("input");
+				saleToggleInput.type = "checkbox";
+				saleToggleInput.checked = normalizeNumber(product.salePrice) !== "";
+				saleToggleInput.dataset.pmInlineField = "saleEnabled";
+				saleToggleInput.dataset.productId = id;
+				saleToggleInput.setAttribute("aria-label", "استفاده از قیمت ویژهٔ " + (product.name || "محصول"));
+				saleToggle.appendChild(saleToggleInput);
+				saleToggle.appendChild(node("span", "jluxe-pm-toggle-track"));
+				cell.appendChild(saleToggle);
 			}
 		} else if (field === "regularPrice") {
 			cell.appendChild(node("span", "jluxe-pm-readonly-value", product.priceLabel || "—"));
-			cell.appendChild(node("small", "jluxe-pm-cell-hint", "بازهٔ قیمت تنوع‌های این محصول"));
 		} else {
-			cell.appendChild(node("span", "jluxe-pm-readonly-value", product.onSale ? "تخفیف فعال در تنوع‌ها" : "جزئیات قیمت ویژهٔ تنوع‌ها"));
-			var variableSaleState = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
-			variableSaleState.dataset.pmSaleState = id;
-			cell.appendChild(variableSaleState);
-			cell.appendChild(node("small", "jluxe-pm-cell-hint", "قیمت ویژهٔ هر تنوع در بخش تنوع‌ها دیده می‌شود."));
+			var salePrice = groupedNumber(product.salePrice);
+			cell.appendChild(node("span", "jluxe-pm-readonly-value", salePrice || "—"));
+			if (salePrice && config.currency) cell.appendChild(node("small", "jluxe-pm-currency", config.currency));
 		}
 		return cell;
 	}
@@ -405,7 +413,6 @@
 		input.setAttribute("aria-label", "ویژه‌کردن " + (product.name || "محصول"));
 		label.appendChild(input);
 		label.appendChild(node("span", "jluxe-pm-toggle-track"));
-		label.appendChild(node("span", "jluxe-pm-toggle-label", "ویژه"));
 		cell.appendChild(label);
 		return cell;
 	}
@@ -421,7 +428,7 @@
 		manage.dataset.productId = id;
 		manage.setAttribute("aria-label", "مدیریت موجودیِ " + (product.name || "محصول"));
 		manageLabel.appendChild(manage);
-		manageLabel.appendChild(node("span", "", "مدیریت موجودی"));
+		manageLabel.appendChild(node("span", "", "مدیریت"));
 		cell.appendChild(manageLabel);
 
 		var quantity = node("input", "jluxe-pm-inline-input jluxe-pm-stock-quantity");
@@ -430,7 +437,7 @@
 		quantity.autocomplete = "off";
 		quantity.dir = "ltr";
 		quantity.value = product.manageStock && product.stockQuantity != null ? String(product.stockQuantity) : "";
-		quantity.placeholder = product.type === "variable" && !product.manageStock ? "موجودیِ تنوع‌ها" : "تعداد";
+		quantity.placeholder = "تعداد";
 		quantity.disabled = !product.manageStock;
 		quantity.hidden = !product.manageStock;
 		quantity.dataset.pmInlineField = "stockQuantity";
@@ -447,9 +454,6 @@
 		pill.dataset.pmStockPill = id;
 		pill.hidden = product.type === "simple" && !product.manageStock;
 		cell.appendChild(pill);
-		var hint = node("small", "jluxe-pm-cell-hint", product.type === "variable" ? "یا مدیریت موجودی را برای خود محصول روشن کنید، یا هر تنوع را جداگانه مدیریت کنید." : "برای فعال‌کردن شمارش عددی، تیک مدیریت موجودی را بزنید.");
-		hint.hidden = !!product.manageStock;
-		cell.appendChild(hint);
 		return cell;
 	}
 
@@ -495,14 +499,6 @@
 		return state.productSaves[key];
 	}
 
-	function updateFeaturedHint(product) {
-		var hint = $("[data-pm-featured-hint='" + String(product.id) + "']", rows);
-		if (hint) {
-			hint.className = "jluxe-pm-featured-hint" + (product.featured ? " is-active" : "");
-			hint.textContent = product.featured ? "ویژه انتخاب شده" : "ویژه انتخاب نشده";
-		}
-	}
-
 	function syncProductRow(product) {
 		var row = $("[data-product-id='" + String(product.id) + "']", rows);
 		if (!row) return;
@@ -510,10 +506,10 @@
 			var input = $("[data-pm-inline-field='" + field + "']", row);
 			if (input && document.activeElement !== input) input.value = groupedNumber(product[field]);
 		});
-		setProductSaleState(product);
+		var saleToggle = $("[data-pm-inline-field='saleEnabled']", row);
+		if (saleToggle && document.activeElement !== saleToggle) saleToggle.checked = normalizeNumber(product.salePrice) !== "";
 		var featured = $("[data-pm-inline-field='featured']", row);
 		if (featured && document.activeElement !== featured) featured.checked = !!product.featured;
-		updateFeaturedHint(product);
 		var manage = $("[data-pm-inline-field='manageStock']", row);
 		var quantity = $("[data-pm-inline-field='stockQuantity']", row);
 		if (manage && document.activeElement !== manage) manage.checked = !!product.manageStock;
@@ -521,7 +517,7 @@
 			quantity.disabled = !product.manageStock;
 			quantity.hidden = !product.manageStock;
 			if (document.activeElement !== quantity) quantity.value = product.manageStock && product.stockQuantity != null ? String(product.stockQuantity) : "";
-			quantity.placeholder = product.type === "variable" && !product.manageStock ? "موجودیِ تنوع‌ها" : "تعداد";
+			quantity.placeholder = "تعداد";
 		}
 		var statusSelect = $("[data-pm-inline-field='stockStatus']", row);
 		if (statusSelect) {
@@ -533,11 +529,6 @@
 			pill.className = "jluxe-pm-stock-pill " + stockClass(product.stockStatus);
 			pill.textContent = product.type === "variable" && !product.manageStock ? "موجودی بر پایهٔ تنوع‌ها" : stockLabel(product.stockStatus);
 			pill.hidden = product.type === "simple" && !product.manageStock;
-		}
-		var hint = $(".jluxe-pm-stock-cell .jluxe-pm-cell-hint", row);
-		if (hint) {
-			hint.textContent = product.type === "variable" ? "یا مدیریت موجودی را برای خود محصول روشن کنید، یا هر تنوع را جداگانه مدیریت کنید." : "برای فعال‌کردن شمارش عددی، تیک مدیریت موجودی را بزنید.";
-			hint.hidden = !!product.manageStock;
 		}
 	}
 
@@ -574,7 +565,6 @@
 		request("jluxe_product_manager_quick_save", snapshot).then(function (result) {
 			if (revision !== tracker.revision) { tracker.pending = true; return; }
 			if (result.product) Object.keys(result.product).forEach(function (key) { product[key] = result.product[key]; });
-			product.salePending = false;
 			tracker.status = result.message || "ذخیره شد.";
 			tracker.kind = "is-saved";
 			syncProductRow(product);
@@ -929,8 +919,8 @@
 		attributesCell.appendChild(imagePicker);
 		row.appendChild(attributesCell);
 
-		row.appendChild(variationPriceCell(parentId, variation.id, "regularPrice", current.regularPrice, "قیمت عادی", current.onSale));
-		row.appendChild(variationPriceCell(parentId, variation.id, "salePrice", current.salePrice, "قیمت ویژه", current.onSale));
+		row.appendChild(variationPriceCell(parentId, variation.id, "regularPrice", current.regularPrice, "قیمت عادی"));
+		row.appendChild(variationPriceCell(parentId, variation.id, "salePrice", current.salePrice, "قیمت ویژه"));
 
 		var manageCell = labelCell(node("td", "jluxe-pm-variation-manage-cell"), "مدیریت موجودی");
 		var manageLabel = node("label", "jluxe-pm-manage-stock jluxe-pm-variation-manage-toggle");
@@ -980,16 +970,27 @@
 		return row;
 	}
 
-	function variationPriceCell(parentId, variationId, key, value, label, onSale) {
+	function variationPriceCell(parentId, variationId, key, value, label) {
 		var suffix = key === "salePrice" ? "--sale" : "--regular";
 		var cell = labelCell(node("td", "jluxe-pm-price-cell jluxe-pm-price-cell" + suffix), label);
-		if (key === "salePrice" && onSale) cell.classList.add("is-on-sale");
 		var control = node("div", "jluxe-pm-price-control");
 		var input = variationFieldInput(parentId, variationId, key, value, label);
 		control.appendChild(input);
 		if (config.currency) control.appendChild(node("small", "jluxe-pm-currency", config.currency));
 		cell.appendChild(control);
-		if (key === "salePrice") cell.appendChild(makeSaleState(onSale, value, "simple", false));
+		if (key === "salePrice") {
+			var saleToggle = node("label", "jluxe-pm-toggle jluxe-pm-sale-toggle jluxe-pm-variation-sale-toggle");
+			var saleToggleInput = node("input");
+			saleToggleInput.type = "checkbox";
+			saleToggleInput.checked = normalizeNumber(value) !== "";
+			saleToggleInput.dataset.vSaleToggle = "1";
+			saleToggleInput.dataset.variationId = String(variationId);
+			saleToggleInput.dataset.parentId = String(parentId);
+			saleToggleInput.setAttribute("aria-label", "استفاده از قیمت ویژهٔ تنوع " + faNumber(variationId));
+			saleToggle.appendChild(saleToggleInput);
+			saleToggle.appendChild(node("span", "jluxe-pm-toggle-track"));
+			cell.appendChild(saleToggle);
+		}
 		return cell;
 	}
 
@@ -1499,7 +1500,18 @@
 			var key = target.dataset.pmInlineField;
 			if (key === "featured") {
 				product.featured = target.checked;
-				updateFeaturedHint(product);
+			} else if (key === "saleEnabled") {
+				var salePrice = $("[data-pm-inline-field='salePrice']", target.closest("tr"));
+				if (target.checked && !normalizeNumber(product.salePrice)) {
+					target.checked = false;
+					if (salePrice) salePrice.focus();
+					setProductStatus(product.id, "قیمت ویژه را وارد کنید.", "is-warning");
+					return;
+				}
+				if (!target.checked) {
+					product.salePrice = "";
+					if (salePrice) salePrice.value = "";
+				}
 			} else if (key === "manageStock") {
 				var wasManaged = !!product.manageStock;
 				product.manageStock = target.checked;
@@ -1518,6 +1530,21 @@
 			scheduleDefaultSave(target.dataset.parentId);
 			return;
 		}
+		if (target.dataset.vSaleToggle) {
+			var saleRow = target.closest(".jluxe-pm-variation-row");
+			var variationSalePrice = saleRow && $("[data-v-field='salePrice']", saleRow);
+			if (!saleRow || !variationSalePrice) return;
+			if (target.checked && !normalizeNumber(variationSalePrice.value)) {
+				target.checked = false;
+				variationSalePrice.focus();
+				var saleStatus = $("[data-pm-variation-status]", saleRow);
+				if (saleStatus) setStatusContent(saleStatus, "قیمت ویژه را وارد کنید.", "is-warning");
+				return;
+			}
+			if (!target.checked) variationSalePrice.value = "";
+			scheduleVariationSave(saleRow);
+			return;
+		}
 		if (target.dataset.vField || target.dataset.vAttr) {
 			var row = target.closest(".jluxe-pm-variation-row");
 			if (row) scheduleVariationSave(row);
@@ -1528,7 +1555,7 @@
 		var target = event.target;
 		if (target.matches("#jluxe-pm-search")) {
 			window.clearTimeout(target._pmTimer);
-			target._pmTimer = window.setTimeout(function () { loadProducts(true); }, 280);
+			target._pmTimer = window.setTimeout(submitProductSearch, 250);
 			return;
 		}
 		if (target.matches(".jluxe-pm-filter-search")) {
@@ -1548,8 +1575,8 @@
 			if (key === "regularPrice") product.regularPrice = formatGroupedInput(target);
 			if (key === "salePrice") {
 				product.salePrice = formatGroupedInput(target);
-				product.salePending = true;
-				setProductSaleState(product);
+				var saleToggle = $("[data-pm-inline-field='saleEnabled']", target.closest("tr"));
+				if (saleToggle) saleToggle.checked = normalizeNumber(product.salePrice) !== "";
 			}
 			if (key === "stockQuantity") {
 				product.stockQuantity = target.value;
@@ -1563,6 +1590,10 @@
 			if (target.type === "hidden") return;
 			if (target.dataset.vField === "regularPrice" || target.dataset.vField === "salePrice") formatGroupedInput(target);
 			var variationRow = target.closest(".jluxe-pm-variation-row");
+			if (target.dataset.vField === "salePrice" && variationRow) {
+				var saleToggle = $("[data-v-sale-toggle]", variationRow);
+				if (saleToggle) saleToggle.checked = normalizeNumber(target.value) !== "";
+			}
 			if (variationRow) scheduleVariationSave(variationRow);
 		}
 	}
@@ -1581,9 +1612,17 @@
 	root.addEventListener("click", handleClick);
 	root.addEventListener("change", handleChange);
 	root.addEventListener("input", handleInput);
-	$("#jluxe-pm-search-button").addEventListener("click", function () { loadProducts(true); });
+	var productSearchInput = $("#jluxe-pm-search");
+	productSearchInput.addEventListener("search", submitProductSearch);
+	productSearchInput.addEventListener("keydown", function (event) {
+		if (event.key !== "Enter" || event.isComposing) return;
+		event.preventDefault();
+		submitProductSearch();
+	});
+	$("#jluxe-pm-search-button").addEventListener("click", submitProductSearch);
 	$("#jluxe-pm-reset").addEventListener("click", function () {
-		$("#jluxe-pm-search").value = "";
+		clearProductSearchTimer();
+		productSearchInput.value = "";
 		$("#jluxe-pm-type").value = "";
 		$("#jluxe-pm-status").value = "";
 		$("#jluxe-pm-stock").value = "";

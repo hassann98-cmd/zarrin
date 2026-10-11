@@ -77,23 +77,24 @@ function jluxe_product_manager_render_page(): void {
 	?>
 	<div class="wrap jluxe-pm" id="jluxe-product-manager">
 		<header class="jluxe-pm-header">
-			<div>
-				<span class="jluxe-pm-kicker">میزکار روزمرهٔ ووکامرس</span>
-				<h1>مدیریت آسان محصولات</h1>
-				<p>قیمت و موجودی را همین‌جا تغییر دهید؛ تغییرات به‌طور خودکار ذخیره می‌شوند. برای تنظیمات بیشتر، ویرایشگر استاندارد ووکامرس در دسترس است.</p>
-			</div>
-			<a class="button" href="<?php echo esc_url( admin_url( 'edit.php?post_type=product' ) ); ?>">ویرایشگر استاندارد ووکامرس</a>
+			<h1>مدیریت آسان محصولات</h1>
+			<a class="button" href="<?php echo esc_url( admin_url( 'edit.php?post_type=product' ) ); ?>">ویرایشگر ووکامرس</a>
 		</header>
 		<div class="jluxe-pm-notice" id="jluxe-pm-notice" role="status" aria-live="polite" hidden></div>
 		<section class="jluxe-pm-filters" aria-label="جست‌وجو و فیلتر محصولات">
 			<div class="jluxe-pm-filter-main">
-				<label class="jluxe-pm-search"><span class="screen-reader-text">جست‌وجو بر اساس نام یا SKU</span><input id="jluxe-pm-search" type="search" placeholder="نام محصول یا SKU را بنویسید…" autocomplete="off"><span class="dashicons dashicons-search" aria-hidden="true"></span></label>
+				<div class="jluxe-pm-search">
+					<label class="jluxe-pm-field-label" for="jluxe-pm-search">نام یا SKU</label>
+					<div class="jluxe-pm-search-control">
+						<input id="jluxe-pm-search" type="search" placeholder="جست‌وجوی محصول" autocomplete="off" aria-controls="jluxe-pm-rows">
+						<button class="jluxe-pm-search-submit" id="jluxe-pm-search-button" type="button" aria-label="جست‌وجو" title="جست‌وجو"><span class="dashicons dashicons-search" aria-hidden="true"></span></button>
+					</div>
+				</div>
 				<?php jluxe_product_manager_render_filter_term( 'category', 'دسته‌بندی', 'product_cat' ); ?>
 				<?php jluxe_product_manager_render_filter_term( 'brand', 'برند', $brand_taxonomy, '' !== $brand_taxonomy ); ?>
-				<select id="jluxe-pm-type" aria-label="نوع محصول"><option value="">همهٔ انواع</option><option value="simple">ساده</option><option value="variable">متغیر</option></select>
-				<select id="jluxe-pm-stock" aria-label="وضعیت موجودی"><option value="">همهٔ موجودی‌ها</option><option value="instock">موجود</option><option value="outofstock">ناموجود</option><option value="onbackorder">پیش‌سفارش</option></select>
-				<button class="button button-primary" id="jluxe-pm-search-button" type="button">جست‌وجو</button>
-				<button class="button" id="jluxe-pm-reset" type="button">پاک‌کردن فیلترها</button>
+				<label class="jluxe-pm-filter-select"><span>نوع</span><select id="jluxe-pm-type" aria-label="نوع محصول"><option value="">همهٔ انواع</option><option value="simple">ساده</option><option value="variable">متغیر</option></select></label>
+				<label class="jluxe-pm-filter-select"><span>موجودی</span><select id="jluxe-pm-stock" aria-label="وضعیت موجودی"><option value="">همه</option><option value="instock">موجود</option><option value="outofstock">ناموجود</option><option value="onbackorder">پیش‌سفارش</option></select></label>
+				<button class="button jluxe-pm-reset-button" id="jluxe-pm-reset" type="button" aria-label="پاک‌کردن همهٔ فیلترها">پاک‌کردن</button>
 			</div>
 			<details class="jluxe-pm-more-filters">
 				<summary>فیلترهای بیشتر</summary>
@@ -462,6 +463,57 @@ function jluxe_product_manager_product_has_term_id( WC_Product $product, string 
 	return in_array( $term_id, array_map( 'absint', $term_ids ), true );
 }
 
+function jluxe_product_manager_ascii_digits( string $value ): string {
+	return strtr(
+		$value,
+		array(
+			'۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+			'۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+			'٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+			'٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+		)
+	);
+}
+
+function jluxe_product_manager_product_sku_search_where( string $search_sql, $query, string $search_term ): string {
+	if ( '' === $search_term || ! is_object( $query ) || ! method_exists( $query, 'get' ) ) {
+		return $search_sql;
+	}
+	$post_type = $query->get( 'post_type' );
+	$is_product_query = 'product' === $post_type || ( is_array( $post_type ) && in_array( 'product', $post_type, true ) );
+	if ( ! $is_product_query || $search_term !== trim( (string) $query->get( 's' ) ) ) {
+		return $search_sql;
+	}
+	global $wpdb;
+	if ( ! is_object( $wpdb ) || empty( $wpdb->posts ) || empty( $wpdb->postmeta ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'esc_like' ) ) {
+		return $search_sql;
+	}
+	$sku_like = '%' . $wpdb->esc_like( $search_term ) . '%';
+	$sku_match = $wpdb->prepare(
+		"EXISTS (
+			SELECT 1
+			FROM {$wpdb->postmeta} AS jluxe_pm_sku
+			WHERE jluxe_pm_sku.meta_key = '_sku'
+				AND jluxe_pm_sku.meta_value LIKE %s
+				AND (
+					jluxe_pm_sku.post_id = {$wpdb->posts}.ID
+					OR jluxe_pm_sku.post_id IN (
+						SELECT jluxe_pm_variation.ID
+						FROM {$wpdb->posts} AS jluxe_pm_variation
+						WHERE jluxe_pm_variation.post_parent = {$wpdb->posts}.ID
+							AND jluxe_pm_variation.post_type = 'product_variation'
+					)
+				)
+		)",
+		$sku_like
+	);
+	$search_sql = preg_replace( '/^\\s*AND\\s*/i', '', trim( $search_sql ) );
+	if ( '' === $search_sql ) {
+		return ' AND (' . $sku_match . ')';
+	}
+	return ' AND ((' . $search_sql . ') OR (' . $sku_match . '))';
+}
+
 function jluxe_product_manager_list_ajax(): void {
 	jluxe_product_manager_ajax_guard();
 	$page     = isset( $_POST['page'] ) ? max( 1, min( 10000, absint( $_POST['page'] ) ) ) : 1;
@@ -503,8 +555,9 @@ function jluxe_product_manager_list_ajax(): void {
 		'type'     => $type ? array( $type ) : array( 'simple', 'variable' ),
 		'status'   => $status ? array( $status ) : array( 'publish', 'draft', 'private', 'pending' ),
 	);
-	if ( '' !== $search ) {
-		$args['s'] = function_exists( 'jluxe_substr' ) ? jluxe_substr( $search, 0, 120 ) : substr( $search, 0, 120 );
+	$search_query = '' !== $search ? ( function_exists( 'jluxe_substr' ) ? jluxe_substr( $search, 0, 120 ) : substr( $search, 0, 120 ) ) : '';
+	if ( '' !== $search_query ) {
+		$args['s'] = $search_query;
 	}
 	if ( '' !== $stock ) {
 		$args['stock_status'] = $stock;
@@ -525,7 +578,19 @@ function jluxe_product_manager_list_ajax(): void {
 	if ( ! current_user_can( 'edit_others_products' ) && ! current_user_can( 'edit_others_posts' ) && function_exists( 'get_current_user_id' ) ) {
 		$args['author'] = get_current_user_id();
 	}
-	$result = wc_get_products( $args );
+	if ( '' !== $search_query ) {
+		$sku_search_filter = static function ( $search_sql, $query ) use ( $search_query ): string {
+			return jluxe_product_manager_product_sku_search_where( (string) $search_sql, $query, $search_query );
+		};
+		add_filter( 'posts_search', $sku_search_filter, 10, 2 );
+		try {
+			$result = wc_get_products( $args );
+		} finally {
+			remove_filter( 'posts_search', $sku_search_filter, 10 );
+		}
+	} else {
+		$result = wc_get_products( $args );
+	}
 	if ( is_array( $result ) ) {
 		$products = $result;
 		$total     = count( $products );
@@ -535,11 +600,12 @@ function jluxe_product_manager_list_ajax(): void {
 		$total     = isset( $result->total ) ? absint( $result->total ) : count( $products );
 		$pages     = isset( $result->max_num_pages ) ? max( 1, absint( $result->max_num_pages ) ) : max( 1, (int) ceil( $total / 20 ) );
 	}
-	// WooCommerce's product search is title/content based on some versions; include an exact SKU/ID match too.
+	// Keep exact SKU and ID lookup as a fallback for data stores that do not return those matches in the text query.
 	if ( '' !== $search && 1 === $page ) {
 		$exact_id = function_exists( 'wc_get_product_id_by_sku' ) ? absint( wc_get_product_id_by_sku( $search ) ) : 0;
-		if ( ! $exact_id && ctype_digit( $search ) ) {
-			$exact_id = absint( $search );
+		$numeric_search = jluxe_product_manager_ascii_digits( $search );
+		if ( ! $exact_id && ctype_digit( $numeric_search ) ) {
+			$exact_id = absint( $numeric_search );
 		}
 		if ( $exact_id ) {
 			$exact_product = wc_get_product( $exact_id );
@@ -576,6 +642,7 @@ function jluxe_product_manager_list_ajax(): void {
 				if ( ! $present ) {
 					array_unshift( $products, $exact_product );
 					$total++;
+					$pages = max( $pages, (int) ceil( $total / 20 ) );
 				}
 			}
 		}

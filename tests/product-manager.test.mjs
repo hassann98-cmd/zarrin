@@ -26,12 +26,14 @@ function adminMarkup() {
       <div id="jluxe-pm-notice" hidden></div>
       <section class="jluxe-pm-filters">
         <div class="jluxe-pm-filter-main">
-          <label class="jluxe-pm-search"><input id="jluxe-pm-search" type="search"></label>
+          <div class="jluxe-pm-search"><label class="jluxe-pm-field-label" for="jluxe-pm-search">نام یا SKU</label>
+            <div class="jluxe-pm-search-control"><input id="jluxe-pm-search" type="search"><button id="jluxe-pm-search-button" type="button" aria-label="جست‌وجو"></button></div>
+          </div>
           ${filterMarkup("category", "product_cat")}
           ${filterMarkup("brand", "product_brand")}
-          <select id="jluxe-pm-type"><option value=""></option><option value="simple">ساده</option><option value="variable">متغیر</option></select>
-          <select id="jluxe-pm-stock"><option value=""></option><option value="instock">موجود</option></select>
-          <button id="jluxe-pm-search-button"></button><button id="jluxe-pm-reset"></button>
+          <label class="jluxe-pm-filter-select"><span>نوع</span><select id="jluxe-pm-type"><option value=""></option><option value="simple">ساده</option><option value="variable">متغیر</option></select></label>
+          <label class="jluxe-pm-filter-select"><span>موجودی</span><select id="jluxe-pm-stock"><option value=""></option><option value="instock">موجود</option></select></label>
+          <button id="jluxe-pm-reset" type="button"></button>
         </div>
         <details class="jluxe-pm-more-filters"><summary>فیلترهای بیشتر</summary>
           <div class="jluxe-pm-advanced-filters">
@@ -223,7 +225,11 @@ function createAdmin(t, { product = simpleProduct(), products = null, quickError
 
     let result;
     if (action === "jluxe_product_manager_list") {
-      result = { products: listedProducts.map(summaryOf), page: Number(data.page) || 1, pages: 1, total: listedProducts.length, perPage: 20 };
+      const term = String(data.search || "").trim().toLocaleLowerCase();
+      const matchingProducts = term
+        ? listedProducts.filter((item) => [item.name, item.sku, String(item.id)].some((value) => String(value || "").toLocaleLowerCase().includes(term)))
+        : listedProducts;
+      result = { products: matchingProducts.map(summaryOf), page: Number(data.page) || 1, pages: 1, total: matchingProducts.length, perPage: 20 };
     } else if (action === "jluxe_product_manager_get_product") {
       result = structuredClone(currentProduct);
     } else if (action === "jluxe_product_manager_terms") {
@@ -328,6 +334,7 @@ test("product table exposes featured, regular/sale price, stock toggle, quantity
   assert.equal(saves.length, 1, "rapid inline changes are combined into one autosave");
   assert.equal(saves[0].data.regular_price, "145");
   assert.equal(saves[0].data.sale_price, "130");
+  assert.equal(row.querySelector("[data-pm-inline-field='saleEnabled']").checked, true, "entering a sale price enables its sale switch");
   assert.equal(saves[0].data.featured, "1");
   assert.equal(saves[0].data.stock_quantity, "4");
   assert.equal(saves[0].data.manage_stock, "1");
@@ -338,11 +345,12 @@ test("product table exposes featured, regular/sale price, stock toggle, quantity
   assert.match(row.querySelector("[data-pm-row-status='101']").textContent, /ذخیره شد/);
 });
 
-test("product rows offer public and WooCommerce edit links, group prices, and identify a currently active sale", async (t) => {
+test("product rows keep product links, grouped prices, and sale controls without redundant status text", async (t) => {
   const saleProduct = simpleProduct();
   saleProduct.regularPrice = "2590000";
   saleProduct.salePrice = "2190000";
   saleProduct.onSale = true;
+  saleProduct.featured = true;
   const { window, sent } = createAdmin(t, { product: saleProduct });
   await wait();
 
@@ -357,9 +365,14 @@ test("product rows offer public and WooCommerce edit links, group prices, and id
 
   const regular = row.querySelector("[data-pm-inline-field='regularPrice']");
   const sale = row.querySelector("[data-pm-inline-field='salePrice']");
+  const saleToggle = row.querySelector("[data-pm-inline-field='saleEnabled']");
   assert.equal(regular.value, "2,590,000");
   assert.equal(sale.value, "2,190,000");
-  assert.ok(row.querySelector("[data-pm-sale-state='101'].is-active"), "the current sale is visibly marked as active");
+  assert.equal(saleToggle.checked, true, "the sale price is represented by a real, enabled switch");
+  assert.equal(row.querySelector(".jluxe-pm-sale-state"), null, "sale status is not repeated as extra text beside the price field");
+  assert.equal(row.querySelector("[data-pm-featured-hint]"), null, "the featured state is communicated by its checked switch");
+  assert.equal(row.querySelector("[data-pm-inline-field='featured']").checked, true);
+  assert.equal(row.querySelector(".jluxe-pm-toggle-label"), null, "the switch does not repeat the featured column label");
 
   regular.value = "2،590،000";
   regular.dispatchEvent(new window.Event("input", { bubbles: true }));
@@ -367,6 +380,16 @@ test("product rows offer public and WooCommerce edit links, group prices, and id
   await wait(480);
   const save = sent.filter((item) => item.action === "jluxe_product_manager_quick_save").at(-1);
   assert.equal(save.data.regular_price, "2590000", "group separators are removed before the numeric value is saved");
+
+  saleToggle.click();
+  await wait(480);
+  const disabledSaleSave = sent.filter((item) => item.action === "jluxe_product_manager_quick_save").at(-1);
+  assert.equal(saleToggle.checked, false);
+  assert.equal(sale.value, "", "turning off the sale switch clears the WooCommerce sale price");
+  assert.equal(disabledSaleSave.data.sale_price, "", "the discount is actually disabled in the quick-save payload");
+  saleToggle.click();
+  assert.equal(saleToggle.checked, false, "a sale cannot be enabled without a price");
+  assert.equal(window.document.activeElement, sale, "the sale-price field receives focus when an empty switch is activated");
 });
 
 test("product stripes alternate by product and expanded variations inherit their parent stripe", async (t) => {
@@ -451,6 +474,79 @@ test("autosave failures stay visible beside the row and keep the edited value", 
   const status = window.document.querySelector("[data-pm-row-status='101']");
   assert.match(status.textContent, /ذخیره رد شد/);
   assert.ok(status.classList.contains("is-error"), "the failure uses a clear error state");
+});
+
+test("product search handles partial SKU and name queries by typing, Enter, and button without duplicate requests", async (t) => {
+  const coat = simpleProduct();
+  coat.name = "مانتو بهاره";
+  coat.sku = "COAT-101";
+  const dress = variableProduct();
+  const scarf = simpleProduct();
+  scarf.id = 303;
+  scarf.name = "شال نخی";
+  scarf.sku = "SCARF-303";
+  scarf.productUrl = "/product/303/";
+  scarf.editUrl = "/wp-admin/post.php?post=303&action=edit";
+  const { window, sent } = createAdmin(t, { product: coat, products: [coat, dress, scarf] });
+  await wait();
+
+  const search = window.document.querySelector("#jluxe-pm-search");
+  search.value = "VAR-20";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await wait(300);
+  let requests = sent.filter((item) => item.action === "jluxe_product_manager_list");
+  assert.equal(requests.at(-1).data.search, "VAR-20", "debounced input sends partial SKU text to the list endpoint");
+  assert.deepEqual(Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"), (row) => row.dataset.productId), ["202"]);
+
+  const beforeEnter = requests.length;
+  search.value = "مانتو";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const enter = new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+  search.dispatchEvent(enter);
+  search.dispatchEvent(new window.Event("search"));
+  assert.equal(enter.defaultPrevented, true, "Enter submits the query instead of leaving it pending");
+  await wait(300);
+  requests = sent.filter((item) => item.action === "jluxe_product_manager_list");
+  assert.equal(requests.length, beforeEnter + 1, "Enter and the native search event clear the pending debounce and do not duplicate the request");
+  assert.equal(requests.at(-1).data.search, "مانتو");
+  assert.deepEqual(Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"), (row) => row.dataset.productId), ["101"]);
+
+  const beforeButton = requests.length;
+  search.value = "303";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  window.document.querySelector("#jluxe-pm-search-button").click();
+  await wait(300);
+  requests = sent.filter((item) => item.action === "jluxe_product_manager_list");
+  assert.equal(requests.length, beforeButton + 1, "the search button submits immediately and cancels the debounce");
+  assert.equal(requests.at(-1).data.search, "303");
+  assert.deepEqual(Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"), (row) => row.dataset.productId), ["303"]);
+});
+
+test("stale product-list responses are skipped while a newer search is queued", async (t) => {
+  const coat = simpleProduct();
+  coat.name = "مانتو بهاره";
+  const dress = variableProduct();
+  const { window } = createAdmin(t, { product: coat, products: [coat, dress] });
+  await wait();
+  const originalFetch = window.fetch;
+  window.fetch = async (url, options) => {
+    const form = new URLSearchParams(options.body);
+    if (form.get("action") === "jluxe_product_manager_list" && form.get("search")) await wait(80);
+    return originalFetch(url, options);
+  };
+
+  const search = window.document.querySelector("#jluxe-pm-search");
+  const submit = window.document.querySelector("#jluxe-pm-search-button");
+  search.value = "VAR";
+  submit.click();
+  await wait(5);
+  search.value = "مانتو";
+  submit.click();
+  await wait(90);
+  assert.equal(window.document.querySelectorAll(".jluxe-pm-product-row").length, 0, "the old result is never rendered while the latest query is still loading");
+  assert.equal(window.document.querySelector("#jluxe-pm-rows").getAttribute("aria-busy"), "true");
+  await wait(100);
+  assert.deepEqual(Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"), (row) => row.dataset.productId), ["101"]);
 });
 
 test("category and brand stay in the visible filter bar and can be searched", async (t) => {
@@ -538,9 +634,11 @@ test("variation accordion edits prices, attributes, image, and independent stock
   size.dispatchEvent(new window.Event("change", { bubbles: true }));
   const regular = row.querySelector("[data-v-field='regularPrice']");
   const sale = row.querySelector("[data-v-field='salePrice']");
+  const saleToggle = row.querySelector("[data-v-sale-toggle]");
   assert.equal(regular.value, "1,650,000", "variation prices also display grouped thousands");
   assert.equal(sale.value, "1,290,000");
-  assert.ok(row.querySelector("[data-label='قیمت ویژه'] .jluxe-pm-sale-state.is-active"), "an active variation sale is distinguished in the row");
+  assert.equal(saleToggle.checked, true, "each variation sale price has its own enabled switch");
+  assert.equal(row.querySelector(".jluxe-pm-sale-state"), null, "variation discounts remain editable without an extra active-status caption");
   regular.value = "1650000";
   regular.dispatchEvent(new window.Event("input", { bubbles: true }));
   sale.value = "1500000";
@@ -579,6 +677,16 @@ test("variation accordion edits prices, attributes, image, and independent stock
   assert.equal(save.data.variation.imageId, "991");
   assert.equal(product.variations.items[0].attributes.pa_size, "l");
   assert.equal(String(product.variations.items[0].imageId), "991");
+
+  const livePanel = window.document.querySelector("[data-pm-variation-panel='202']");
+  const currentSaleToggle = livePanel.querySelector("[data-v-sale-toggle]");
+  currentSaleToggle.click();
+  await wait(500);
+  const saleOff = sent.filter((item) => item.action === "jluxe_product_manager_quick_save_variation").at(-1);
+  const panelAfterSaleOff = window.document.querySelector("[data-pm-variation-panel='202']");
+  assert.equal(panelAfterSaleOff.querySelector("[data-v-sale-toggle]").checked, false);
+  assert.equal(panelAfterSaleOff.querySelector("[data-v-field='salePrice']").value, "");
+  assert.equal(saleOff.data.variation.salePrice, "", "turning off a variation sale saves an empty WooCommerce sale price");
 });
 
 test("variation default values autosave from the accordion and update the product summary", async (t) => {
@@ -629,8 +737,18 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
 });
 
-test("product and variation tables share consistent, high-contrast plum row stripes", () => {
-  assert.match(styles, /--pm-row-alt:\s*#eee5f3;/);
+test("product manager follows a restrained slate-and-emerald system without the rejected plum palette", () => {
+  assert.match(styles, /--pm-primary:\s*#334155;/);
+  assert.match(styles, /--pm-accent:\s*#059669;/);
+  assert.match(styles, /--pm-row-alt:\s*#f1f5f9;/);
+  assert.match(styles, /--pm-row-hover:\s*#e2e8f0;/);
+  assert.doesNotMatch(styles, /linear-gradient|#30263a|#76539a|#eee5f3/i);
+  assert.match(styles, /\.jluxe-pm-toggle input:checked \+ \.jluxe-pm-toggle-track/);
+  assert.match(styles, /\.jluxe-pm-sale-toggle \{/);
+});
+
+test("product and variation tables share consistent, easy-to-read slate row stripes", () => {
+  assert.match(styles, /--pm-row-alt:\s*#f1f5f9;/);
   assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
@@ -642,18 +760,18 @@ test("product and variation tables share consistent, high-contrast plum row stri
   assert.match(mobileRules, /tr\.jluxe-pm-product-row > td \{[\s\S]*?background: transparent !important;/);
 });
 
-test("product manager uses aligned price controls and orderly, touch-friendly mobile cards", () => {
-  assert.match(styles, /\.jluxe-pm-price-control \{[\s\S]*?display: flex;[\s\S]*?align-items: center;[\s\S]*?min-height: 46px;/);
+test("product manager uses compact quantity fields and responsive, touch-friendly cards", () => {
+  assert.match(styles, /\.jluxe-pm-price-control \{[\s\S]*?display: flex;[\s\S]*?align-items: center;[\s\S]*?min-height: 40px;/);
   assert.match(styles, /\.jluxe-pm-price-control \.jluxe-pm-price-input \{[\s\S]*?flex: 1 1 auto;[\s\S]*?width: 100%;[\s\S]*?min-width: 0;/);
   assert.match(styles, /\.jluxe-pm-actions-controls \{\s*display: grid;[\s\S]*?gap: 7px;/);
-  assert.match(styles, /\.jluxe-pm-stock-quantity \{\s*width: 100%;\s*max-width: 150px;/);
+  assert.match(styles, /\.jluxe-pm-stock-quantity \{\s*flex: 0 0 88px;\s*width: 88px;\s*max-width: 88px;/);
 
-  const mobileRules = styles.slice(styles.lastIndexOf("@media (max-width: 782px)"));
-  assert.match(mobileRules, /tr\.jluxe-pm-product-row\s*\{[\s\S]*?display:\s*grid/);
-  assert.match(mobileRules, /jluxe-pm-variation-table\s*>\s*tbody\s*\{\s*display:\s*grid/);
-  assert.match(mobileRules, /min-height:\s*44px/);
-  assert.match(mobileRules, /\.jluxe-pm-stock-quantity \{\s*max-width: 135px;/);
-  assert.match(mobileRules, /\.jluxe-pm-actions-controls \{\s*grid-template-columns: repeat\(auto-fit/);
+  const responsiveRules = styles.slice(styles.lastIndexOf("@media (max-width: 1100px)"));
+  assert.match(responsiveRules, /tr\.jluxe-pm-product-row\s*\{[\s\S]*?display:\s*grid/);
+  assert.match(responsiveRules, /jluxe-pm-variation-table\s*>\s*tbody\s*\{\s*display:\s*grid/);
+  assert.match(responsiveRules, /min-height:\s*44px/);
+  assert.match(responsiveRules, /\.jluxe-pm-stock-quantity \{\s*flex-basis: 88px;\s*width: 88px;\s*max-width: 88px;\s*min-height: 44px;/);
+  assert.match(responsiveRules, /\.jluxe-pm-actions-controls \{\s*grid-template-columns: repeat\(auto-fit/);
 
   const narrowRules = styles.slice(styles.lastIndexOf("@media (max-width: 520px)"));
   assert.match(narrowRules, /jluxe-pm-product-row,\s*\.jluxe-pm-variation-table tbody > tr \{\s*grid-template-columns: minmax\(0, 1fr\);/);

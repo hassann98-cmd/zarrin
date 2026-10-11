@@ -273,6 +273,13 @@ product_manager_check(
 	false === strpos( $product_manager_markup, 'jluxe-pm-bulk-panel' ),
 	'easy product manager keeps category and brand filters visible above the collapsible advanced filters'
 );
+product_manager_check(
+	false !== strpos( $product_manager_markup, 'class="jluxe-pm-field-label" for="jluxe-pm-search">نام یا SKU</label>' ) &&
+	false !== strpos( $product_manager_markup, 'id="jluxe-pm-search-button" type="button" aria-label="جست‌وجو"' ) &&
+	false === strpos( $product_manager_markup, 'میزکار روزمرهٔ ووکامرس' ) &&
+	false === strpos( $product_manager_markup, 'تغییرات به‌طور خودکار ذخیره می‌شوند' ),
+	'product search is visibly labeled with a compact icon button and the manager header omits unnecessary instructions'
+);
 jluxe_product_manager_enqueue_assets( 'plugins.php' );
 product_manager_check( empty( $GLOBALS['scripts']['jluxe-product-manager'] ), 'product-manager assets stay unloaded outside their dedicated admin screen' );
 jluxe_product_manager_enqueue_assets( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_PAGE );
@@ -483,7 +490,44 @@ product_manager_check(
 	'exact SKU lookup does not bypass a selected brand or attribute term filter'
 );
 $GLOBALS['product_manager_object_terms'][5304]['product_brand'] = array( 610 );
-unset( $GLOBALS['product_query_handler'], $GLOBALS['product_manager_last_query'] );
+$_POST = array( 'nonce' => 'nonce-jluxe_product_manager', 'search' => '۵۳۰۱', 'type' => '', 'status' => '', 'stock' => '', 'category' => '', 'page' => '1' );
+$persian_id_search = product_manager_json_call( 'jluxe_product_manager_list_ajax' );
+product_manager_check(
+	$persian_id_search->success && 1 === count( $persian_id_search->data['products'] ) && 5301 === $persian_id_search->data['products'][0]['id'],
+	'product ID search accepts Persian digits and resolves the matching product'
+);
+
+$GLOBALS['wpdb'] = new class() {
+	public $posts = 'wp_posts';
+	public $postmeta = 'wp_postmeta';
+	public function esc_like( $value ) { return addcslashes( $value, '_%\\\\' ); }
+	public function prepare( $query, $value ) { return str_replace( '%s', "'" . addslashes( $value ) . "'", $query ); }
+};
+$partial_sku_query = new class() {
+	public function get( $key ) { return array( 'post_type' => 'product', 's' => 'VAR-20' )[ $key ] ?? ''; }
+};
+$partial_sku_where = jluxe_product_manager_product_sku_search_where(
+	" AND ((wp_posts.post_title LIKE '%VAR-20%'))",
+	$partial_sku_query,
+	'VAR-20'
+);
+product_manager_check(
+	false !== strpos( $partial_sku_where, 'wp_posts.post_title' ) &&
+	false !== strpos( $partial_sku_where, 'meta_value LIKE' ) &&
+	false !== strpos( $partial_sku_where, "post_type = 'product_variation'" ) &&
+	false === strpos( $partial_sku_where, ' AND (( AND ' ) &&
+	substr_count( $partial_sku_where, '(' ) === substr_count( $partial_sku_where, ')' ),
+	'partial SKU search extends WooCommerce title search to product and variation SKUs without discarding title matches or corrupting the SQL group'
+);
+$non_product_query = new class() {
+	public function get( $key ) { return array( 'post_type' => 'post', 's' => 'VAR-20' )[ $key ] ?? ''; }
+};
+product_manager_check(
+	" AND ((wp_posts.post_title LIKE '%VAR-20%'))" === jluxe_product_manager_product_sku_search_where( " AND ((wp_posts.post_title LIKE '%VAR-20%'))", $non_product_query, 'VAR-20' ) &&
+	'5301' === jluxe_product_manager_ascii_digits( '۵۳۰۱' ),
+	'SKU matching is scoped to WooCommerce product queries and Persian product IDs normalize safely'
+);
+unset( $GLOBALS['wpdb'], $GLOBALS['product_query_handler'], $GLOBALS['product_manager_last_query'] );
 
 $GLOBALS['valid_wp_nonce'] = true;
 $_POST = array(
