@@ -309,6 +309,7 @@ product_manager_check(
 	$payload['variations']['attributes'][0]['name'] === $taxonomy &&
 	$payload['variations']['items'][0]['attributes'][ $taxonomy ] === 'red' &&
 		$payload['variations']['items'][0]['stockStatus'] === 'outofstock' &&
+		true === $payload['variations']['items'][0]['onSale'] &&
 		$payload['variations']['items'][0]['backorders'] === 'notify' &&
 		$payload['variations']['defaultAttributes'][ $taxonomy ] === 'red',
 		'variation payload preserves exact taxonomy keys, current values, stock settings, and saved defaults'
@@ -317,6 +318,12 @@ $product_summary = jluxe_product_manager_product_summary( $parent );
 product_manager_check(
 	$product_summary['defaultAttributes'][0]['valueLabel'] === 'قرمز' && $product_summary['defaultAttributes'][0]['value'] === 'red',
 	'product list summarizes only the currently saved variation defaults using the registered term label'
+);
+product_manager_check(
+	$product_summary['onSale'] === true &&
+	$product_summary['productUrl'] === get_permalink( $parent->get_id() ) &&
+	$product_summary['editUrl'] === '/wp-admin/post.php?post=5301',
+	'product rows include the current WooCommerce sale state and escaped public/editor links'
 );
 $GLOBALS['valid_wp_nonce'] = true;
 $_POST = array(
@@ -413,7 +420,10 @@ $normalized_faq = jluxe_product_manager_clean_faq(
 	)
 );
 product_manager_check( count( $normalized_faq ) === 1 && $normalized_faq[0]['question'] === 'پرسش', 'FAQ cleanup keeps complete text entries and safely ignores malformed rows' );
-product_manager_check( '1250.5' === jluxe_product_manager_clean_decimal( '۱۲۵۰٫۵' ), 'product-manager decimal parser accepts Persian digits and decimal separators' );
+product_manager_check(
+	'1250.5' === jluxe_product_manager_clean_decimal( '۱۲۵۰٫۵' ) && '2590000' === jluxe_product_manager_clean_decimal( '۲،۵۹۰،۰۰۰' ),
+	'product-manager decimal parser accepts Persian digits, decimal separators, and grouped thousands'
+);
 
 $GLOBALS['valid_wp_nonce'] = true;
 $_POST = array( 'nonce' => 'nonce-jluxe_product_manager', 'taxonomy' => 'pa_رنگ', 'q' => '' );

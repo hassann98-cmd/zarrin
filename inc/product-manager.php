@@ -430,6 +430,7 @@ function jluxe_product_manager_product_summary( WC_Product $product ): array {
 		'regularPrice'    => $regular_price,
 		'salePrice'       => $sale_price,
 		'priceLabel'      => $price_label,
+		'onSale'          => method_exists( $product, 'is_on_sale' ) ? (bool) $product->is_on_sale() : false,
 		'featured'        => method_exists( $product, 'get_featured' ) ? (bool) $product->get_featured() : false,
 		'manageStock'     => $manage_stock,
 		'stockQuantity'   => null === $stock_qty ? '' : $stock_qty,
@@ -439,7 +440,8 @@ function jluxe_product_manager_product_summary( WC_Product $product ): array {
 		'variationCount'  => count( $children ),
 		'categories'      => implode( '، ', $category_names ),
 		'image'         => $image,
-		'editUrl'       => get_edit_post_link( $product->get_id(), 'raw' ),
+		'editUrl'       => esc_url_raw( get_edit_post_link( $product->get_id(), 'raw' ) ),
+		'productUrl'    => esc_url_raw( get_permalink( $product->get_id() ) ),
 	);
 }
 
@@ -660,6 +662,7 @@ function jluxe_product_manager_variation_payload( WC_Product $product, int $page
 			'sku'           => (string) $variation->get_sku(),
 			'regularPrice'  => (string) $variation->get_regular_price( 'edit' ),
 			'salePrice'     => (string) $variation->get_sale_price( 'edit' ),
+			'onSale'        => method_exists( $variation, 'is_on_sale' ) ? (bool) $variation->is_on_sale() : false,
 			'manageStock'   => $manage_stock,
 			'stockQuantity' => null === $variation->get_stock_quantity( 'edit' ) ? '' : $variation->get_stock_quantity( 'edit' ),
 			'stockStatus'   => (string) $variation->get_stock_status(),
@@ -1018,7 +1021,7 @@ function jluxe_product_manager_clean_decimal( $value, bool $allow_empty = true )
 	if ( '' === $value && $allow_empty ) {
 		return '';
 	}
-	$value = strtr( $value, array( '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9','٫'=>'.','٬'=>'',','=>'', ' '=>'' ) );
+	$value = strtr( $value, array( '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9','٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9','٫'=>'.','٬'=>'','،'=>'',','=>'', ' '=>'' ) );
 	if ( ! preg_match( '/^-?\d+(?:\.\d+)?$/', $value ) ) {
 		return new WP_Error( 'invalid_number', 'عدد را با رقم فارسی یا لاتین و بدون متن وارد کنید.' );
 	}

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/product-manager.js", import.meta.url), "utf8");
+const styles = fs.readFileSync(new URL("../assets/css/product-manager.css", import.meta.url), "utf8");
 
 function filterMarkup(key, taxonomy, disabled = false) {
   const title = key === "category" ? "دسته‌بندی" : key === "brand" ? "برند" : "مقدار ویژگی";
@@ -69,6 +70,7 @@ function simpleProduct() {
     regularPrice: "120",
     salePrice: "",
     priceLabel: "۱۲۰ تومان",
+    onSale: false,
     featured: false,
     manageStock: false,
     stockQuantity: "",
@@ -78,6 +80,7 @@ function simpleProduct() {
     brands: [],
     brandTaxonomy: "product_brand",
     defaultAttributes: [],
+    productUrl: "/product/101/",
     editUrl: "/wp-admin/post.php?post=101&action=edit",
   };
 }
@@ -85,6 +88,8 @@ function simpleProduct() {
 function variableProduct() {
   const product = simpleProduct();
   product.id = 202;
+  product.productUrl = "/product/202/";
+  product.editUrl = "/wp-admin/post.php?post=202&action=edit";
   product.name = "محصول متغیر آزمایشی";
   product.type = "variable";
   product.typeLabel = "متغیر";
@@ -99,6 +104,7 @@ function variableProduct() {
       sku: "VAR-203",
       regularPrice: "120",
       salePrice: "",
+      onSale: false,
       manageStock: true,
       stockQuantity: 3,
       stockStatus: "instock",
@@ -132,6 +138,7 @@ function summaryOf(product) {
     regularPrice: product.regularPrice,
     salePrice: product.salePrice,
     priceLabel: product.priceLabel || `${product.regularPrice} تومان`,
+    onSale: !!product.onSale,
     featured: !!product.featured,
     manageStock: product.manageStock,
     stockQuantity: product.stockQuantity,
@@ -141,6 +148,7 @@ function summaryOf(product) {
     variationCount: product.type === "variable" ? (product.variations?.total ?? product.variations?.items?.length ?? 0) : 0,
     categories: (product.categories || []).map((term) => term.name).join("، "),
     image: "",
+    productUrl: product.productUrl,
     editUrl: product.editUrl,
   };
 }
@@ -326,6 +334,37 @@ test("product table exposes featured, regular/sale price, stock toggle, quantity
   assert.match(row.querySelector("[data-pm-row-status='101']").textContent, /ذخیره شد/);
 });
 
+test("product rows offer public and WooCommerce edit links, group prices, and identify a currently active sale", async (t) => {
+  const saleProduct = simpleProduct();
+  saleProduct.regularPrice = "2590000";
+  saleProduct.salePrice = "2190000";
+  saleProduct.onSale = true;
+  const { window, sent } = createAdmin(t, { product: saleProduct });
+  await wait();
+
+  const row = window.document.querySelector(".jluxe-pm-product-row");
+  const links = Array.from(row.querySelectorAll(".jluxe-pm-product-links a"));
+  assert.equal(links.length, 2, "each product has a view link and a WooCommerce edit link beneath its name");
+  assert.equal(links[0].textContent, "مشاهده محصول");
+  assert.equal(links[0].href, "https://shop.test/product/101/");
+  assert.equal(links[1].textContent, "ویرایش ووکامرس");
+  assert.equal(links[1].href, "https://shop.test/wp-admin/post.php?post=101&action=edit");
+  assert.ok(links.every((link) => link.target === "_blank" && link.rel.includes("noopener")));
+
+  const regular = row.querySelector("[data-pm-inline-field='regularPrice']");
+  const sale = row.querySelector("[data-pm-inline-field='salePrice']");
+  assert.equal(regular.value, "2,590,000");
+  assert.equal(sale.value, "2,190,000");
+  assert.ok(row.querySelector("[data-pm-sale-state='101'].is-active"), "the current sale is visibly marked as active");
+
+  regular.value = "2،590،000";
+  regular.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(regular.value, "2,590,000", "typing with Persian thousands punctuation is regrouped for readability");
+  await wait(480);
+  const save = sent.filter((item) => item.action === "jluxe_product_manager_quick_save").at(-1);
+  assert.equal(save.data.regular_price, "2590000", "group separators are removed before the numeric value is saved");
+});
+
 test("unmanaged simple stock status saves inline and remains editable without enabling quantity tracking", async (t) => {
   const { window, sent, product } = createAdmin(t);
   await wait();
@@ -434,6 +473,9 @@ test("category and brand are saved through the focused organization endpoint and
 test("variation accordion edits prices, attributes, image, and independent stock settings without a separate editor", async (t) => {
   const productFixture = variableProduct();
   productFixture.variations.pages = 2;
+  productFixture.variations.items[0].regularPrice = "1650000";
+  productFixture.variations.items[0].salePrice = "1290000";
+  productFixture.variations.items[0].onSale = true;
   productFixture.variations.items[0].imageId = 888;
   const { window, sent, product, mediaFrames } = createAdmin(t, { product: productFixture });
   await wait();
@@ -463,10 +505,13 @@ test("variation accordion edits prices, attributes, image, and independent stock
   size.value = "l";
   size.dispatchEvent(new window.Event("change", { bubbles: true }));
   const regular = row.querySelector("[data-v-field='regularPrice']");
-  regular.value = "165";
-  regular.dispatchEvent(new window.Event("input", { bubbles: true }));
   const sale = row.querySelector("[data-v-field='salePrice']");
-  sale.value = "150";
+  assert.equal(regular.value, "1,650,000", "variation prices also display grouped thousands");
+  assert.equal(sale.value, "1,290,000");
+  assert.ok(row.querySelector("[data-label='قیمت ویژه'] .jluxe-pm-sale-state.is-active"), "an active variation sale is distinguished in the row");
+  regular.value = "1650000";
+  regular.dispatchEvent(new window.Event("input", { bubbles: true }));
+  sale.value = "1500000";
   sale.dispatchEvent(new window.Event("input", { bubbles: true }));
 
   const imageButton = row.querySelector("[data-pm-variation-image]");
@@ -494,8 +539,8 @@ test("variation accordion edits prices, attributes, image, and independent stock
   assert.equal(save.data.parent_id, "202");
   assert.equal(save.data.variation_id, "203");
   assert.equal(save.data.variation.attributes.pa_size, "l");
-  assert.equal(save.data.variation.regularPrice, "165");
-  assert.equal(save.data.variation.salePrice, "150");
+  assert.equal(save.data.variation.regularPrice, "1650000");
+  assert.equal(save.data.variation.salePrice, "1500000");
   assert.equal(save.data.variation.stockQuantity, "");
   assert.equal(save.data.variation.manageStock, false, "a non-empty old quantity does not silently re-enable variation stock management");
   assert.equal(save.data.variation.stockStatus, "outofstock");
@@ -550,4 +595,13 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.equal(window.document.querySelectorAll("[data-field]").length, 0);
   assert.equal(window.document.querySelectorAll(".jluxe-pm-faq-row, .jluxe-pm-shipping, .jluxe-pm-seo").length, 0);
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
+});
+
+test("product manager switches to labeled, touch-friendly product and variation cards on mobile", () => {
+  const mobileRules = styles.slice(styles.lastIndexOf("@media (max-width: 782px)"));
+  assert.match(mobileRules, /tr\.jluxe-pm-product-row\s*\{[\s\S]*?display:\s*grid/);
+  assert.match(mobileRules, /jluxe-pm-variation-table\s*>\s*tbody\s*\{\s*display:\s*grid/);
+  assert.match(mobileRules, /min-height:\s*44px/);
+  assert.match(mobileRules, /max-width:\s*88px/);
+  assert.match(mobileRules, /border:\s*2px solid/);
 });

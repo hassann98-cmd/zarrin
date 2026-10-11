@@ -56,10 +56,62 @@
 		return String(value == null ? "" : value)
 			.replace(/[۰-۹]/g, function (digit) { return String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)); })
 			.replace(/[٠-٩]/g, function (digit) { return String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)); })
-			.replace(/٬/g, "")
+			.replace(/[٬,،\s\u00a0\u202f]/g, "")
 			.replace(/٫/g, ".")
-			.replace(/,/g, "")
 			.trim();
+	}
+
+	function groupedNumber(value) {
+		var normalized = normalizeNumber(value);
+		if (!normalized) return "";
+		var match = normalized.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
+		if (!match) return String(value == null ? "" : value);
+		var integer = match[2].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return match[1] + integer + (match[3] === undefined ? "" : "." + match[3]);
+	}
+
+	function logicalNumberLength(value) {
+		return normalizeNumber(value).replace(/[^0-9.\-+]/g, "").length;
+	}
+
+	function groupedCaretPosition(value, logicalOffset) {
+		if (logicalOffset <= 0) return 0;
+		var seen = 0;
+		for (var index = 0; index < value.length; index++) {
+			if (value.charAt(index) !== ",") seen++;
+			if (seen >= logicalOffset) return index + 1;
+		}
+		return value.length;
+	}
+
+	function formatGroupedInput(input) {
+		var original = input.value;
+		var start = typeof input.selectionStart === "number" ? input.selectionStart : original.length;
+		var end = typeof input.selectionEnd === "number" ? input.selectionEnd : start;
+		var startOffset = logicalNumberLength(original.slice(0, start));
+		var endOffset = logicalNumberLength(original.slice(0, end));
+		var formatted = groupedNumber(original);
+		if (formatted !== original) input.value = formatted;
+		if (typeof input.setSelectionRange === "function" && document.activeElement === input) {
+			input.setSelectionRange(groupedCaretPosition(formatted, startOffset), groupedCaretPosition(formatted, endOffset));
+		}
+		return normalizeNumber(formatted);
+	}
+
+	function safeNavigationUrl(value) {
+		if (!value) return "";
+		try {
+			var url = new URL(String(value), window.location.href);
+			return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+		} catch (error) {
+			return "";
+		}
+	}
+
+	function labelCell(cell, label) {
+		cell.dataset.label = label;
+		cell.setAttribute("aria-label", label);
+		return cell;
 	}
 
 	function stockLabel(status) {
@@ -197,6 +249,17 @@
 		}).join("، ");
 	}
 
+	function makeProductLink(value, label, kind) {
+		var href = safeNavigationUrl(value);
+		if (!href) return null;
+		var link = node("a", "jluxe-pm-product-link jluxe-pm-product-link--" + kind, label);
+		link.href = href;
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.setAttribute("aria-label", label + " در زبانهٔ جدید");
+		return link;
+	}
+
 	function makeProductRow(product) {
 		var id = String(product.id);
 		var tr = node("tr", "jluxe-pm-product-row");
@@ -231,6 +294,12 @@
 			defaults.dataset.pmDefaultSummary = id;
 			identity.appendChild(defaults);
 		}
+		var productLinks = node("div", "jluxe-pm-product-links");
+		var viewLink = makeProductLink(product.productUrl, "مشاهده محصول", "view");
+		var editLink = makeProductLink(product.editUrl, "ویرایش ووکامرس", "edit");
+		if (viewLink) productLinks.appendChild(viewLink);
+		if (editLink) productLinks.appendChild(editLink);
+		if (productLinks.childNodes.length) identity.appendChild(productLinks);
 		productCell.appendChild(identity);
 		tr.appendChild(productCell);
 
@@ -238,9 +307,9 @@
 		tr.appendChild(makePriceCell(product, "salePrice", "قیمت ویژه"));
 		tr.appendChild(makeFeaturedCell(product));
 		tr.appendChild(makeStockCell(product));
-		tr.appendChild(node("td", "jluxe-pm-category-cell", product.categories || "—"));
+		tr.appendChild(labelCell(node("td", "jluxe-pm-category-cell", product.categories || "—"), "دسته‌بندی"));
 
-		var actions = node("td", "jluxe-pm-actions");
+		var actions = labelCell(node("td", "jluxe-pm-actions"), "عملیات");
 		if (product.type === "variable") {
 			var variations = node("button", "button button-primary button-small jluxe-pm-expand", "تنوع‌ها " + faNumber(product.variationCount || 0));
 			variations.type = "button";
@@ -264,31 +333,64 @@
 		return tr;
 	}
 
+	function makeSaleState(onSale, salePrice, productType, pending) {
+		if (pending) return node("small", "jluxe-pm-sale-state is-pending", "وضعیت ویژه پس از ذخیره به‌روز می‌شود");
+		if (onSale) return node("small", "jluxe-pm-sale-state is-active", productType === "variable" ? "تخفیف در تنوع‌ها فعال است" : "تخفیف فعال است");
+		if (productType === "variable") return node("small", "jluxe-pm-sale-state", "قیمت ویژهٔ تنوع‌ها را باز کنید");
+		if (normalizeNumber(salePrice) !== "") return node("small", "jluxe-pm-sale-state is-inactive", "قیمت ویژه ثبت شده؛ اکنون فعال نیست");
+		return node("small", "jluxe-pm-sale-state", "قیمت ویژه ثبت نشده");
+	}
+
+	function setProductSaleState(product) {
+		var badge = $("[data-pm-sale-state='" + String(product.id) + "']", rows);
+		if (!badge) return;
+		var stateBadge = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
+		badge.className = stateBadge.className;
+		badge.textContent = stateBadge.textContent;
+		var cell = badge.closest(".jluxe-pm-price-cell--sale");
+		if (cell) cell.classList.toggle("is-on-sale", !!product.onSale);
+	}
+
 	function makePriceCell(product, field, labelText) {
-		var cell = node("td", "jluxe-pm-price-cell");
+		var suffix = field === "salePrice" ? "--sale" : "--regular";
+		var cell = labelCell(node("td", "jluxe-pm-price-cell jluxe-pm-price-cell" + suffix), labelText);
 		var id = String(product.id);
+		if (field === "salePrice" && product.onSale) cell.classList.add("is-on-sale");
 		if (product.type === "simple") {
-			var input = node("input", "jluxe-pm-inline-input");
+			var input = node("input", "jluxe-pm-inline-input jluxe-pm-price-input");
 			input.type = "text";
 			input.inputMode = "decimal";
 			input.autocomplete = "off";
-			input.value = product[field] == null ? "" : String(product[field]);
+			input.value = groupedNumber(product[field]);
 			input.placeholder = field === "salePrice" ? "بدون قیمت ویژه" : "ثبت قیمت";
 			input.dir = "ltr";
 			input.dataset.pmInlineField = field;
 			input.dataset.productId = id;
 			input.setAttribute("aria-label", labelText + "ِ " + (product.name || "محصول"));
-			cell.appendChild(input);
-			if (config.currency) cell.appendChild(node("small", "jluxe-pm-currency", config.currency));
-		} else {
+			var control = node("div", "jluxe-pm-price-control");
+			control.appendChild(input);
+			if (config.currency) control.appendChild(node("small", "jluxe-pm-currency", config.currency));
+			cell.appendChild(control);
+			if (field === "salePrice") {
+				var saleState = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
+				saleState.dataset.pmSaleState = id;
+				cell.appendChild(saleState);
+			}
+		} else if (field === "regularPrice") {
 			cell.appendChild(node("span", "jluxe-pm-readonly-value", product.priceLabel || "—"));
-			cell.appendChild(node("small", "jluxe-pm-cell-hint", "قیمت هر تنوع در کادر بازشونده قابل‌تغییر است"));
+			cell.appendChild(node("small", "jluxe-pm-cell-hint", "بازهٔ قیمت تنوع‌های این محصول"));
+		} else {
+			cell.appendChild(node("span", "jluxe-pm-readonly-value", product.onSale ? "تخفیف فعال در تنوع‌ها" : "جزئیات قیمت ویژهٔ تنوع‌ها"));
+			var variableSaleState = makeSaleState(product.onSale, product.salePrice, product.type, product.salePending);
+			variableSaleState.dataset.pmSaleState = id;
+			cell.appendChild(variableSaleState);
+			cell.appendChild(node("small", "jluxe-pm-cell-hint", "قیمت ویژهٔ هر تنوع در بخش تنوع‌ها دیده می‌شود."));
 		}
 		return cell;
 	}
 
 	function makeFeaturedCell(product) {
-		var cell = node("td", "jluxe-pm-featured-cell");
+		var cell = labelCell(node("td", "jluxe-pm-featured-cell"), "ویژه");
 		var label = node("label", "jluxe-pm-toggle jluxe-pm-featured-toggle");
 		var input = node("input");
 		input.type = "checkbox";
@@ -304,7 +406,7 @@
 	}
 
 	function makeStockCell(product) {
-		var cell = node("td", "jluxe-pm-stock-cell");
+		var cell = labelCell(node("td", "jluxe-pm-stock-cell"), "موجودی");
 		var id = String(product.id);
 		var manageLabel = node("label", "jluxe-pm-manage-stock");
 		var manage = node("input");
@@ -401,8 +503,9 @@
 		if (!row) return;
 		["regularPrice", "salePrice"].forEach(function (field) {
 			var input = $("[data-pm-inline-field='" + field + "']", row);
-			if (input && document.activeElement !== input) input.value = product[field] == null ? "" : String(product[field]);
+			if (input && document.activeElement !== input) input.value = groupedNumber(product[field]);
 		});
+		setProductSaleState(product);
 		var featured = $("[data-pm-inline-field='featured']", row);
 		if (featured && document.activeElement !== featured) featured.checked = !!product.featured;
 		updateFeaturedHint(product);
@@ -466,6 +569,7 @@
 		request("jluxe_product_manager_quick_save", snapshot).then(function (result) {
 			if (revision !== tracker.revision) { tracker.pending = true; return; }
 			if (result.product) Object.keys(result.product).forEach(function (key) { product[key] = result.product[key]; });
+			product.salePending = false;
 			tracker.status = result.message || "ذخیره شد.";
 			tracker.kind = "is-saved";
 			syncProductRow(product);
@@ -748,7 +852,7 @@
 		row.dataset.variationId = id;
 		row.dataset.parentId = String(parentId);
 
-		var attributesCell = node("td", "jluxe-pm-variation-attributes-cell");
+		var attributesCell = labelCell(node("td", "jluxe-pm-variation-attributes-cell"), "ویژگی و تصویر");
 		var attributeFields = node("div", "jluxe-pm-attribute-selects");
 		if (!definitions.length) attributeFields.appendChild(node("span", "jluxe-pm-muted", "بدون ویژگی"));
 		definitions.forEach(function (attribute) {
@@ -819,10 +923,10 @@
 		attributesCell.appendChild(imagePicker);
 		row.appendChild(attributesCell);
 
-		row.appendChild(variationPriceCell(parentId, variation.id, "regularPrice", current.regularPrice, "قیمت عادی"));
-		row.appendChild(variationPriceCell(parentId, variation.id, "salePrice", current.salePrice, "قیمت ویژه"));
+		row.appendChild(variationPriceCell(parentId, variation.id, "regularPrice", current.regularPrice, "قیمت عادی", current.onSale));
+		row.appendChild(variationPriceCell(parentId, variation.id, "salePrice", current.salePrice, "قیمت ویژه", current.onSale));
 
-		var manageCell = node("td", "jluxe-pm-variation-manage-cell");
+		var manageCell = labelCell(node("td", "jluxe-pm-variation-manage-cell"), "مدیریت موجودی");
 		var manageLabel = node("label", "jluxe-pm-manage-stock jluxe-pm-variation-manage-toggle");
 		var manage = node("input");
 		manage.type = "checkbox";
@@ -836,7 +940,7 @@
 		manageCell.appendChild(manageLabel);
 		row.appendChild(manageCell);
 
-		var quantityCell = node("td", "jluxe-pm-stock-cell");
+		var quantityCell = labelCell(node("td", "jluxe-pm-stock-cell"), "تعداد موجودی");
 		var quantity = variationFieldInput(parentId, variation.id, "stockQuantity", current.manageStock ? current.stockQuantity : "", "تعداد");
 		quantity.disabled = !current.manageStock;
 		quantity.hidden = !current.manageStock;
@@ -844,7 +948,7 @@
 		quantityCell.appendChild(quantity);
 		row.appendChild(quantityCell);
 
-		var statusCell = node("td", "jluxe-pm-variation-status-cell");
+		var statusCell = labelCell(node("td", "jluxe-pm-variation-status-cell"), "وضعیت موجودی");
 		var statusPill = stockPill(current.stockStatus, stockLabel(current.stockStatus));
 		statusPill.dataset.pmVariationStockPill = id;
 		statusPill.hidden = !current.manageStock;
@@ -859,7 +963,7 @@
 		statusCell.appendChild(statusSelect);
 		row.appendChild(statusCell);
 
-		var saveCell = node("td", "jluxe-pm-actions");
+		var saveCell = labelCell(node("td", "jluxe-pm-actions"), "وضعیت ذخیره");
 		var saveStatus = node("span", "jluxe-pm-row-status jluxe-pm-variation-status");
 		saveStatus.dataset.pmVariationStatus = id;
 		saveStatus.setAttribute("aria-live", "polite");
@@ -870,21 +974,29 @@
 		return row;
 	}
 
-	function variationPriceCell(parentId, variationId, key, value, label) {
-		var cell = node("td", "jluxe-pm-price-cell");
+	function variationPriceCell(parentId, variationId, key, value, label, onSale) {
+		var suffix = key === "salePrice" ? "--sale" : "--regular";
+		var cell = labelCell(node("td", "jluxe-pm-price-cell jluxe-pm-price-cell" + suffix), label);
+		if (key === "salePrice" && onSale) cell.classList.add("is-on-sale");
+		var control = node("div", "jluxe-pm-price-control");
 		var input = variationFieldInput(parentId, variationId, key, value, label);
-		cell.appendChild(input);
-		if (config.currency) cell.appendChild(node("small", "jluxe-pm-currency", config.currency));
+		control.appendChild(input);
+		if (config.currency) control.appendChild(node("small", "jluxe-pm-currency", config.currency));
+		cell.appendChild(control);
+		if (key === "salePrice") cell.appendChild(makeSaleState(onSale, value, "simple", false));
 		return cell;
 	}
 
 	function variationFieldInput(parentId, variationId, key, value, label) {
-		var input = node("input", "jluxe-pm-control jluxe-pm-small-control");
+		var inputClass = "jluxe-pm-control jluxe-pm-small-control";
+		if (key === "stockQuantity") inputClass += " jluxe-pm-stock-quantity";
+		if (key === "regularPrice" || key === "salePrice") inputClass += " jluxe-pm-price-input";
+		var input = node("input", inputClass);
 		input.type = "text";
 		input.inputMode = key === "stockQuantity" ? "numeric" : "decimal";
 		input.autocomplete = "off";
 		input.dir = "ltr";
-		input.value = value == null ? "" : String(value);
+		input.value = key === "regularPrice" || key === "salePrice" ? groupedNumber(value) : (value == null ? "" : String(value));
 		input.placeholder = label;
 		input.dataset.vField = key;
 		input.dataset.variationId = String(variationId);
@@ -968,7 +1080,10 @@
 		var original = state.variationDraft[variationId] || findVariation(parentId, variationId) || { id: Number(variationId), sku: "", regularPrice: "", salePrice: "", stockQuantity: "", manageStock: false, stockStatus: "instock", backorders: "no", enabled: true, imageId: 0, imageUrl: "", attributes: {} };
 		var data = Object.assign({}, original, { attributes: Object.assign({}, original.attributes || {}) });
 		$$('[data-v-field]', row).forEach(function (input) {
-			data[input.dataset.vField] = input.type === "checkbox" ? input.checked : input.value;
+			var field = input.dataset.vField;
+			if (input.type === "checkbox") data[field] = input.checked;
+			else if (field === "regularPrice" || field === "salePrice") data[field] = normalizeNumber(input.value);
+			else data[field] = input.value;
 		});
 		$$('[data-v-attr]', row).forEach(function (select) { data.attributes[select.dataset.vAttr] = select.value; });
 		if (data.manageStock && String(data.stockQuantity == null ? "" : data.stockQuantity) !== "") {
@@ -1424,8 +1539,12 @@
 			var product = state.products.find(function (item) { return String(item.id) === String(target.dataset.productId); });
 			if (!product) return;
 			var key = target.dataset.pmInlineField;
-			if (key === "regularPrice") product.regularPrice = target.value;
-			if (key === "salePrice") product.salePrice = target.value;
+			if (key === "regularPrice") product.regularPrice = formatGroupedInput(target);
+			if (key === "salePrice") {
+				product.salePrice = formatGroupedInput(target);
+				product.salePending = true;
+				setProductSaleState(product);
+			}
 			if (key === "stockQuantity") {
 				product.stockQuantity = target.value;
 				var quantity = Number(normalizeNumber(target.value));
@@ -1436,6 +1555,7 @@
 		}
 		if (target.matches("[data-v-field]")) {
 			if (target.type === "hidden") return;
+			if (target.dataset.vField === "regularPrice" || target.dataset.vField === "salePrice") formatGroupedInput(target);
 			var variationRow = target.closest(".jluxe-pm-variation-row");
 			if (variationRow) scheduleVariationSave(variationRow);
 		}

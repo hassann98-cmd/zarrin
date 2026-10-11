@@ -411,7 +411,8 @@
 
 .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td {
 	padding: 12px 10px;
-	border-bottom: 1px solid #d5dfda;
+	border-bottom: 2px solid #9eb1a7;
+	border-inline-end: 1px solid #e3eae6;
 	background: #fff;
 	color: var(--pm-ink);
 	vertical-align: middle;
@@ -480,6 +481,48 @@
 	text-underline-offset: 3px;
 }
 
+.jluxe-pm-product-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.jluxe-pm-product-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 34px;
+	padding: 5px 9px;
+	border: 1px solid #9eb2a8;
+	border-radius: 8px;
+	background: #fff;
+	color: #174637;
+	font-size: 10px;
+	font-weight: 750;
+	line-height: 1.4;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.jluxe-pm-product-link:hover {
+	border-color: #075b4d;
+	background: #edf5f0;
+	color: #06483e;
+}
+
+.jluxe-pm-product-link--view {
+	border-color: #a4b6c6;
+	background: #f2f6fa;
+	color: #284863;
+}
+
+.jluxe-pm-product-link--edit {
+	border-color: #8fb39b;
+	background: #eff7f1;
+	color: #194d30;
+}
+
 .jluxe-pm-subline {
 	display: flex;
 	align-items: center;
@@ -541,8 +584,112 @@
 }
 
 .jluxe-pm-price-cell {
-	min-width: 130px;
-	max-width: 165px;
+	min-width: 140px;
+	max-width: 185px;
+	padding: 8px !important;
+	border-bottom: 2px solid #bfcec6 !important;
+	background: #f5f8f6 !important;
+}
+
+.jluxe-pm-price-cell--regular {
+	background: #f0f6f2 !important;
+}
+
+.jluxe-pm-price-cell--sale {
+	background: #fff8ec !important;
+}
+
+.jluxe-pm-price-cell--sale.is-on-sale {
+	border-bottom-color: #69a77a !important;
+	background: #eaf6ed !important;
+}
+
+.jluxe-pm-price-control {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 43px;
+	padding: 4px 7px;
+	border: 1px solid #a8bcb1;
+	border-radius: 10px;
+	background: #fff;
+	box-shadow: inset 0 1px 2px rgb(24 55 41 / 5%);
+	transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.jluxe-pm-price-control:focus-within {
+	border-color: #2869b4;
+	box-shadow: 0 0 0 3px rgb(40 105 180 / 16%);
+}
+
+.jluxe-pm-price-control .jluxe-pm-price-input {
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	min-height: 32px;
+	padding: 3px 4px;
+	border: 0 !important;
+	border-radius: 5px;
+	background: transparent !important;
+	color: #142f25;
+	box-shadow: none !important;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: .01em;
+	font-variant-numeric: tabular-nums;
+	text-align: left;
+}
+
+.jluxe-pm-price-control .jluxe-pm-price-input:focus {
+	outline: none;
+}
+
+.jluxe-pm-price-control .jluxe-pm-currency {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 4px 6px;
+	border: 1px solid #d1ddd7;
+	border-radius: 7px;
+	background: #f0f5f2;
+	color: #40564c;
+	font-size: 9px;
+	font-weight: 750;
+	white-space: nowrap;
+}
+
+.jluxe-pm-sale-state {
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+	max-width: 100%;
+	min-height: 21px;
+	margin-top: 6px;
+	padding: 2px 7px;
+	border: 1px solid #bdcac3;
+	border-radius: 999px;
+	background: #f0f4f2;
+	color: #43574e;
+	font-size: 9px;
+	font-weight: 750;
+	line-height: 1.5;
+}
+
+.jluxe-pm-sale-state.is-active {
+	border-color: #83b391;
+	background: #dff1e3;
+	color: #15572b;
+}
+
+.jluxe-pm-sale-state.is-inactive {
+	border-color: #d8bd78;
+	background: #fff5dc;
+	color: #72510b;
+}
+
+.jluxe-pm-sale-state.is-pending {
+	border-color: #8eabc4;
+	background: #eaf2f8;
+	color: #2b4c65;
 }
 
 .jluxe-pm-inline-input,
@@ -594,10 +741,16 @@
 
 .jluxe-pm-readonly-value {
 	display: block;
+	padding: 7px 9px;
+	border: 1px solid #d0ddd6;
+	border-radius: 9px;
+	background: #fff;
 	color: #21372f;
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 800;
 	line-height: 1.6;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
 }
 
 .jluxe-pm-featured-cell {
@@ -664,7 +817,10 @@
 }
 
 .jluxe-pm-stock-cell {
-	min-width: 210px;
+	min-width: 180px;
+	padding: 8px !important;
+	border-bottom: 2px solid #bfcec6 !important;
+	background: #f2f6f4 !important;
 }
 
 .jluxe-pm-manage-stock {
@@ -688,8 +844,15 @@
 }
 
 .jluxe-pm-stock-quantity {
-	max-width: 145px;
-	margin: 2px 0 5px;
+	width: 100%;
+	max-width: 92px;
+	min-height: 35px;
+	margin: 4px 0 6px;
+	border-color: #9eafa6;
+	border-radius: 9px;
+	background: #fff;
+	font-size: 12px;
+	font-weight: 750;
 }
 
 .jluxe-pm-stock-status-select {
@@ -1472,7 +1635,7 @@ body.jluxe-pm-modal-open {
 	}
 
 	.jluxe-pm-filter-main > .button {
-		min-height: 42px;
+		min-height: 44px;
 	}
 
 	.jluxe-pm-filters {
@@ -1499,6 +1662,283 @@ body.jluxe-pm-modal-open {
 	.jluxe-pm-editor-footer .button {
 		flex: 1 1 auto;
 		text-align: center;
+	}
+}
+
+@media (max-width: 782px) {
+	#jluxe-product-manager .jluxe-pm-table-wrap {
+		overflow: visible;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		background: transparent;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table > thead {
+		display: none;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table > tbody {
+		display: block;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		margin: 0 0 10px;
+		overflow: hidden;
+		border: 2px solid #879f94;
+		border-radius: 14px;
+		background: #fff;
+		box-shadow: 0 4px 12px rgb(24 53 40 / 8%);
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		min-width: 0;
+		padding: 10px !important;
+		border: 0;
+		border-bottom: 1px solid #c6d3cc;
+		border-inline-end: 1px solid #dfe7e2;
+		background: #fff !important;
+		font-size: 12px;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > td[data-label]::before,
+	#jluxe-product-manager .jluxe-pm-variation-table tbody td[data-label]::before {
+		display: block;
+		margin: 0 0 7px;
+		color: #354d42;
+		content: attr(data-label);
+		font-size: 10px;
+		font-weight: 800;
+		line-height: 1.5;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > .jluxe-pm-product-cell {
+		grid-column: 1 / -1;
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 12px !important;
+		border-bottom: 2px solid #9aafa4;
+	}
+
+	.jluxe-pm-product-cell > .jluxe-pm-thumb {
+		float: none;
+		flex: 0 0 46px;
+		width: 46px;
+		height: 46px;
+		margin: 0;
+	}
+
+	.jluxe-pm-identity {
+		flex: 1 1 auto;
+		width: 0;
+	}
+
+	.jluxe-pm-product-name {
+		font-size: 14px;
+	}
+
+	.jluxe-pm-product-links {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 6px;
+		width: 100%;
+	}
+
+	.jluxe-pm-product-link {
+		min-height: 44px;
+		padding: 6px 7px;
+		font-size: 10px;
+		white-space: normal;
+		text-align: center;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > .jluxe-pm-category-cell,
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-product-row > .jluxe-pm-actions {
+		grid-column: 1 / -1;
+	}
+
+	.jluxe-pm-price-cell,
+	.jluxe-pm-stock-cell {
+		min-width: 0;
+		max-width: none;
+		padding: 9px !important;
+		border-bottom: 1px solid #c6d3cc !important;
+	}
+
+	.jluxe-pm-price-control {
+		min-height: 44px;
+		padding-inline: 6px;
+	}
+
+	.jluxe-pm-price-control .jluxe-pm-price-input {
+		min-height: 44px;
+		font-size: 14px;
+	}
+
+	.jluxe-pm-featured-cell {
+		align-items: flex-start;
+		text-align: start;
+	}
+
+	.jluxe-pm-featured-toggle {
+		min-height: 44px;
+	}
+
+	.jluxe-pm-manage-stock {
+		min-height: 44px;
+		font-size: 11px;
+	}
+
+	.jluxe-pm-manage-stock input,
+	.jluxe-pm-featured-toggle input {
+		width: 20px;
+		height: 20px;
+	}
+
+	.jluxe-pm-stock-quantity {
+		max-width: 88px;
+		min-height: 44px;
+	}
+
+	.jluxe-pm-stock-status-select {
+		min-height: 44px;
+		font-size: 11px;
+	}
+
+	.jluxe-pm-actions {
+		flex-direction: row !important;
+		flex-wrap: wrap;
+		align-items: center !important;
+		gap: 7px;
+		min-width: 0;
+		padding: 10px !important;
+		border-bottom: 0 !important;
+	}
+
+	.jluxe-pm-actions .button {
+		flex: 1 1 135px;
+		min-height: 44px;
+		margin: 0;
+		padding: 7px 9px;
+		font-size: 11px;
+		white-space: normal;
+	}
+
+	.jluxe-pm-actions .jluxe-pm-row-status {
+		flex: 1 0 100%;
+		margin-top: 0;
+	}
+
+	#jluxe-product-manager .jluxe-pm-table tbody > tr.jluxe-pm-accordion-row {
+		display: block;
+		margin: -3px 0 12px;
+		border: 2px solid #9aafa4;
+		border-radius: 12px;
+		background: #f2f7f4;
+	}
+
+	.jluxe-pm-accordion-row > td {
+		display: block;
+		padding: 0 7px 8px !important;
+	}
+
+	.jluxe-pm-accordion-shell {
+		padding: 9px;
+	}
+
+	.jluxe-pm-accordion-header {
+		margin: -9px -9px 9px;
+		padding: 9px;
+	}
+
+	.jluxe-pm-variation-wrap {
+		overflow: visible;
+		border: 0;
+		background: transparent;
+	}
+
+	.jluxe-pm-variation-table {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		background: transparent;
+	}
+
+	.jluxe-pm-variation-table > thead {
+		display: none;
+	}
+
+	.jluxe-pm-variation-table > tbody {
+		display: grid;
+		gap: 9px;
+	}
+
+	.jluxe-pm-variation-table tbody > tr {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		overflow: hidden;
+		border: 1px solid #9aafa4;
+		border-radius: 11px;
+		background: #fff;
+		box-shadow: 0 2px 7px rgb(24 53 40 / 6%);
+	}
+
+	.jluxe-pm-variation-table tbody td {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		min-width: 0;
+		padding: 9px !important;
+		border: 0;
+		border-bottom: 1px solid #d3ded8;
+		background: #fff !important;
+	}
+
+	.jluxe-pm-variation-table tbody td:first-child {
+		grid-column: 1 / -1;
+	}
+
+	.jluxe-pm-variation-attributes-cell,
+	.jluxe-pm-variation-status-cell,
+	.jluxe-pm-variation-manage-cell,
+	.jluxe-pm-variation-table .jluxe-pm-stock-cell {
+		min-width: 0;
+	}
+
+	.jluxe-pm-variation-attribute {
+		min-width: min(100%, 120px);
+	}
+
+	.jluxe-pm-variation-image-actions .button {
+		min-height: 44px;
+		font-size: 10px;
+	}
+
+	.jluxe-pm-variation-table .jluxe-pm-stock-quantity {
+		max-width: 88px;
+	}
+
+	.jluxe-pm-variation-table .jluxe-pm-control,
+	.jluxe-pm-default-field select,
+	.jluxe-pm-variation-pager .button {
+		min-height: 44px;
+	}
+
+	.jluxe-pm-variation-table .jluxe-pm-actions {
+		flex-direction: column !important;
+		align-items: stretch !important;
 	}
 }
 
