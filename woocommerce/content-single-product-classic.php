@@ -192,7 +192,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-stockwarn{display:flex;align-items:center;gap:10px;background:hsl(var(--primary)/.07);color:hsl(var(--primary));border:none;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:600;margin-top:8px}
 .jluxe-cp3 .cp3-sku{color:hsl(var(--text-muted));font-size:12px;margin:14px 0}
 .jluxe-cp3 .cp3-dashed{height:1px;border-bottom:1px dashed hsl(var(--panel-border));margin-bottom:12px}
-.jluxe-cp3 .cp3-price{font-size:24px;font-weight:800;color:hsl(var(--foreground))}
+.jluxe-cp3 .cp3-price{font-size:26px;font-weight:800;color:hsl(var(--foreground))}
 .jluxe-cp3 .cp3-price.is-placeholder{font-size:14px;font-weight:600;line-height:1.8;color:hsl(var(--text-muted))}
 .jluxe-cp3 .cp3-price del{font-size:18px;font-weight:500;color:hsl(var(--text-muted));margin-inline-end:8px;opacity:.85}
 .jluxe-cp3 .cp3-price .jluxe-toman-glyph,.jluxe-sticky-cta-price .jluxe-toman-glyph{display:inline-flex;align-items:center;opacity:.75;vertical-align:middle}
@@ -335,6 +335,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .jluxe-ai-review-summary-icon{background:linear-gradient(135deg,#8b5cf6,#d946ef);color:#fff;border-radius:16px;width:44px;height:44px}
 .jluxe-cp3 .jluxe-ai-review-summary-badge{color:hsl(var(--foreground));font-weight:800;font-size:15px}
 .jluxe-cp3 .jluxe-ai-review-summary-sub{display:block;color:#7c3aed;font-size:12px;margin:2px 0 8px}
+.jluxe-cp3 .jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}
 .jluxe-cp3 .jluxe-ai-review-summary-text{font-size:14px;line-height:1.9;color:hsl(var(--text-secondary))}
 /* R66: دیدگاه‌ها — کارت‌های جمع‌وجورِ ۱۶px (استایل کامل در storefront.css) */
 /* سوالات متداول */
@@ -827,7 +828,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<div class="cp3-rate-score">
 								<div class="score"><?php echo esc_html( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?></div>
 								<div class="stars" dir="ltr" aria-hidden="true">★★★★★</div>
-								<div class="of">از <?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> امتیاز</div>
+								<div class="of">از <?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> دیدگاه</div>
 							</div>
 						</div>
 					<?php endif; ?>

@@ -1686,7 +1686,7 @@ function jluxe_render_ai_review_summary( int $product_id ): void {
 	<style>
 	.jluxe-ai-review-summary{display:flex;gap:.75rem;align-items:flex-start;padding:1rem 1.1rem;margin-bottom:1.25rem;border:1px solid hsl(var(--panel-border));border-radius:1rem;background:hsl(var(--primary) / .05)}
 	.jluxe-ai-review-summary-icon{flex:none;display:grid;place-items:center;width:2rem;height:2rem;border-radius:.6rem;background:hsl(var(--primary) / .12);color:hsl(var(--primary))}
-	.jluxe-ai-review-summary-body{min-width:0}
+	.jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}
 	.jluxe-ai-review-summary-badge{font-size:.75rem;font-weight:700;color:hsl(var(--primary));margin-bottom:.3rem}
 	.jluxe-ai-review-summary-sub{display:block;font-size:.7rem;font-weight:600;color:#7c3aed;margin-bottom:.4rem}
 	.jluxe-ai-review-summary-text{margin:0;line-height:1.9;font-size:.875rem;color:hsl(var(--foreground))}

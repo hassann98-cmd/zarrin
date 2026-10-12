@@ -21,13 +21,13 @@ html {
   /* Legacy utility aliases now follow semantic tokens unless an admin color override is set. */
   --jluxe-sale-color: hsl(var(--error));
   --jluxe-savings-color: hsl(var(--success));
-  --jluxe-rating-color: hsl(var(--warning-strong));
+  --jluxe-rating-color: #d4af37;
   --boom-star: var(--jluxe-rating-color);
   --boom-sale: var(--jluxe-sale-color);
   --boom-success: var(--jluxe-savings-color);
   --boom-success-soft: color-mix(in srgb, var(--jluxe-savings-color) 10%, hsl(var(--surface)));
-  --boom-info: hsl(var(--info));
-  --boom-info-soft: color-mix(in srgb, hsl(var(--info)) 10%, hsl(var(--surface)));
+  --boom-info: #2563eb;
+  --boom-info-soft: color-mix(in srgb, var(--boom-info) 10%, hsl(var(--surface)));
 }
 .text-boom-star {
   color: var(--jluxe-rating-color);
@@ -6556,7 +6556,7 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 }
 .jluxe-reviews .star-rating span:before {
   content: "★★★★★";
-  color: hsl(var(--warning-strong));
+  color: var(--jluxe-rating-color);
   letter-spacing: 0.15em;
 }
 .jluxe-reviews .comment-text .description p {

@@ -1114,6 +1114,35 @@ check(
 	false !== strpos( $classic_tpl, 'grid-template-columns:minmax(0,1fr);justify-items:center' ),
 	'R242 delivery metadata is styled, Reference variations use a dedicated option card, and review sort controls center in both classic and Reference layouts'
 );
+
+// R244: make AI review text use the full card width and refine product rating/badge/price presentation.
+$r244_ai_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-ai.php' );
+$r244_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r244_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+check(
+	false !== strpos( $r244_ai_source, '.jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
+	false !== strpos( $classic_tpl, '.jluxe-cp3 .jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
+	false !== strpos( $r238_reference_tpl, '.jluxe-cp3 .jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ),
+	'R244 the AI buyer-review summary text column grows across the available card width in every product layout'
+);
+check(
+	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: #d4af37;' ) &&
+	false !== strpos( $r244_storefront_css, '.jluxe-reviews .star-rating span:before {
+  content: "★★★★★";
+  color: var(--jluxe-rating-color);' ) &&
+	false !== strpos( $classic_tpl, '?> دیدگاه</div>' ) && false === strpos( $classic_tpl, '?> امتیاز</div>' ) &&
+	false !== strpos( $r238_reference_tpl, '?> دیدگاه</div>' ) && false === strpos( $r238_reference_tpl, '?> امتیاز</div>' ),
+	'R244 filled customer-review stars use gold and the review count is labeled as دیدگاه rather than امتیاز'
+);
+check(
+	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-success'" ) &&
+	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-info'" ) &&
+	false !== strpos( $r244_storefront_css, '--boom-info: #2563eb;' ) &&
+	false !== strpos( $classic_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
+	false !== strpos( $r238_reference_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
+	false !== strpos( $r238_reference_tpl, '.jluxe-product-reference .cp3-side .cp3-price{width:100%;font-size:20px;line-height:1.6}' ),
+	'R244 authenticity stays green, warranty is clearly blue, and product prices rise only slightly in desktop and Reference mobile layouts'
+);
 $_POST = $r238_old_request;
 if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
 
@@ -2192,7 +2221,7 @@ $r51_range = '<div class="cp3-price" data-cp3-price=""><span class="woocommerce-
 $r51_out = jluxe_amount_first_price_html( $r51_range );
 check(strpos($r51_out,'۱۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'۱,۵۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'محدوده قیمت: &#65020; ۱۰۰,۰۰۰ تا')!==false && jluxe_amount_first_price_html( $r51_out ) === $r51_out, 'R51 the final price HTML (get_price_html late filter) reorders the symbol-first range and leaves the screen-reader summary untouched, idempotently');
 $r51_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: hsl(var(--warning-strong))')!==false, 'R51 the missing utilities ship and rating fills now use the high-contrast semantic warning token');
+check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: #d4af37')!==false, 'R51 the missing utilities ship and rating fills use the shared gold-star token');
 
 $r152_color_defaults = jluxe_theme_settings_defaults();
 check(
