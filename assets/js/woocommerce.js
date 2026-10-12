@@ -3583,18 +3583,30 @@ function jluxeEnhanceShopSort(root) {
 		return true;
 	}
 
+	function bindCheckoutLocationChange(select, handler) {
+		var $select = window.jQuery && window.jQuery(select);
+		if ($select && typeof $select.on === "function") {
+			// WooCommerce enhances these selects with Select2, which emits change
+			// through jQuery; a native addEventListener does not receive that event.
+			if (typeof $select.off === "function") $select.off("change.jluxeCheckoutLocation");
+			$select.on("change.jluxeCheckoutLocation", handler);
+			return;
+		}
+		select.addEventListener("change", handler);
+	}
+
 	function initializeCheckoutLocationFields() {
 		var stateSelect = document.querySelector("[data-jluxe-state-select]");
 		var citySelect = document.querySelector("[data-jluxe-city-select]");
 		if (!stateSelect || !citySelect || !checkoutAddressData) return;
 		sortOptionsByPersianLabel(stateSelect);
 		syncCheckoutCityOptions(true);
-		stateSelect.addEventListener("change", function () {
+		bindCheckoutLocationChange(stateSelect, function () {
 			// عوض‌شدن استان همیشه شهر را خالی می‌کند؛ روش ارسال بعد از انتخابِ شهر دوباره محاسبه می‌شود.
 			syncCheckoutCityOptions(false);
 			clearCheckoutCityProvinceError();
 		});
-		citySelect.addEventListener("change", function () {
+		bindCheckoutLocationChange(citySelect, function () {
 			canonicalizeSelectedCheckoutCity();
 			var row = citySelect.closest(".form-row");
 			if (!row) return;

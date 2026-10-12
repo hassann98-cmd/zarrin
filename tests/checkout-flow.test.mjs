@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
+import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
 const marker = source.indexOf(" * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»");
@@ -119,18 +120,18 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   const { window } = dom;
   const scrolls = [];
   let updatedCheckout;
-  const bodyHandlers = new Map();
-  const jqueryEventHandlers = new WeakMap();
   const select2Refreshes = [];
-
-  function eventHandlersFor(node) {
-    if (!jqueryEventHandlers.has(node)) jqueryEventHandlers.set(node, []);
-    return jqueryEventHandlers.get(node);
-  }
-
-  function eventType(eventName) {
-    return String(eventName).split(".")[0];
-  }
+  const jquery = jqueryFactory(window);
+  const originalOn = jquery.fn.on;
+  const originalTrigger = jquery.fn.trigger;
+  jquery.fn.on = function (...args) {
+    if (this[0] === window.document.body && args[0] === "updated_checkout") updatedCheckout = args[1];
+    return originalOn.apply(this, args);
+  };
+  jquery.fn.trigger = function (event, ...args) {
+    if (this[0]?.tagName === "SELECT" && event === "change.select2") select2Refreshes.push(this[0].id);
+    return originalTrigger.call(this, event, ...args);
+  };
   window.HTMLElement.prototype.scrollIntoView = function (options) {
     scrolls.push({ id: this.id, behavior: options?.behavior, block: options?.block });
   };
@@ -150,67 +151,30 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   };
   window.jQuery = (target) => {
     const wrapped = collection(target);
-    wrapped.on = function (event, callback) {
-      if (target === window.document.body) {
-        bodyHandlers.set(event, callback);
-        if (event === "updated_checkout") updatedCheckout = callback;
-      }
-      listForTarget(target).forEach((node) => eventHandlersFor(node).push({ event, callback, once: false }));
+    const actual = jquery(target);
+    wrapped.on = function (...args) {
+      if (target === window.document.body && args[0] === "updated_checkout") updatedCheckout = args[1];
+      actual.on(...args);
       return wrapped;
     };
-    wrapped.one = function (event, callback) {
-      listForTarget(target).forEach((node) => eventHandlersFor(node).push({ event, callback, once: true }));
+    wrapped.one = function (...args) {
+      actual.one(...args);
       return wrapped;
     };
-    wrapped.off = function (events) {
-      const tokens = String(events || "").split(/\s+/).filter(Boolean);
-      listForTarget(target).forEach((node) => {
-        const handlers = eventHandlersFor(node);
-        jqueryEventHandlers.set(node, handlers.filter((entry) => {
-          const namespaces = tokens.filter((token) => token.startsWith(".")).map((token) => token.slice(1));
-          if (namespaces.length) return !namespaces.some((namespace) => entry.event.split(".").includes(namespace));
-          return !tokens.includes(entry.event);
-        }));
-      });
+    wrapped.off = function (...args) {
+      actual.off(...args);
       return wrapped;
     };
-    wrapped.triggerHandler = function (event, args = []) {
-      const eventArgs = Array.isArray(args) ? args : [args];
-      let result;
-      listForTarget(target).forEach((node) => {
-        const handlers = eventHandlersFor(node);
-        const jqueryEvent = { type: eventType(event), target: node, result: undefined };
-        handlers.slice().forEach((entry) => {
-          if (eventType(entry.event) !== eventType(event)) return;
-          if (entry.once) {
-            const current = eventHandlersFor(node);
-            const index = current.indexOf(entry);
-            if (index !== -1) current.splice(index, 1);
-          }
-          const handlerResult = entry.callback.call(node, jqueryEvent, ...eventArgs);
-          if (handlerResult !== undefined) {
-            result = handlerResult;
-            jqueryEvent.result = handlerResult;
-          }
-        });
-      });
-      return result;
+    wrapped.triggerHandler = function (...args) {
+      return actual.triggerHandler(...args);
     };
     wrapped.trigger = function (event, args = []) {
-      if (target === window.document.body && bodyHandlers.has(event)) {
-        bodyHandlers.get(event).call(target, { type: event, target }, ...(Array.isArray(args) ? args : [args]));
-      }
-      if (target && target.tagName === "SELECT" && event === "change.select2") {
-        select2Refreshes.push(target.id);
-      }
+      if (target?.tagName === "SELECT" && event === "change.select2") select2Refreshes.push(target.id);
+      actual.trigger(event, args);
       return wrapped;
     };
     return wrapped;
   };
-
-  function listForTarget(target) {
-    return target && target.nodeType ? [target] : Array.from(target || []);
-  }
   window.eval(checkoutScript);
   return { dom, window, scrolls, select2Refreshes, updatedCheckout: () => updatedCheckout?.() };
 }
@@ -374,6 +338,34 @@ test("required address fields block progression and return keyboard focus to the
   assert.equal(currentStep(document), "payment");
   assert.equal(requiredRow.classList.contains("woocommerce-invalid-required-field"), false);
   assert.equal(requiredRow.querySelector("[data-jluxe-required-field-error]"), null, "the warning disappears once the required value is present");
+});
+
+test("Select2 jQuery changes populate billing city and keep its chosen value in the real checkout form payload", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+
+  assert.equal(city.disabled, true, "a new checkout starts with city disabled until a province is selected");
+  state.value = "2352";
+  window.jQuery(state).trigger("change"); // Select2 emits its change through jQuery, not a native DOM event.
+  assert.equal(city.disabled, false, "the Select2 province event enables the dependent city field");
+  assert.ok(Array.from(city.options).some((option) => option.value === "بیستون"));
+
+  city.value = "بیستون";
+  window.jQuery(city).trigger("change");
+  assert.equal(city.value, "بیستون", "the chosen city is canonicalized on the same jQuery change path");
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+  document.querySelector("input.payment_method").checked = true;
+
+  const submit = submitWithoutCreatingAnOrder(window);
+  assert.equal(submit.event.defaultPrevented, false, "the valid checkout proceeds through the normal form submit gate");
+  const finalFields = new window.FormData(form);
+  assert.equal(finalFields.get("billing_state"), "2352");
+  assert.equal(finalFields.get("billing_city"), "بیستون", "WooCommerce's successful-controls payload includes the selected billing city");
 });
 
 test("province selection loads only its sorted city options and blocks checkout until a city is chosen", (t) => {
