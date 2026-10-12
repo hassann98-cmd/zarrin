@@ -6159,7 +6159,8 @@ $GLOBALS['wc'] = new class() {
 			public function get_checkout_fields() {
 				return array(
 					'billing' => array(
-						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران' ) ),
+						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران', '2241' => 'کردستان', '2274' => 'کرمان' ) ),
+					'billing_city'  => array( 'options' => array( '0' => 'لطفا شهر خود را انتخاب نمایید', '2275' => 'اختیارآباد' ) ),
 					),
 				);
 			}
@@ -6180,13 +6181,40 @@ $r247_invalid_errors = new class() {
 	}
 };
 jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '23', 'billing_city' => 'اهواز' ), $r247_invalid_errors );
+$r247_kurdistan_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => 'آرمرده' ), $r247_kurdistan_errors );
+$r247_numeric_city_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2274', 'billing_city' => '2275' ), $r247_numeric_city_errors );
+$r247_cross_province_id_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => '2275' ), $r247_cross_province_id_errors );
 check(
 	! jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_state_options() ) &&
 	jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_current_checkout_state_options() ) &&
+	jluxe_ir_checkout_city_is_valid( '2241', 'آرمرده', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
+	jluxe_ir_checkout_city_is_valid( '2274', '2275', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
+	! jluxe_ir_checkout_city_is_valid( '2241', '2275', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
 	empty( $r247_valid_errors->items ) &&
 	isset( $r247_invalid_errors->items['jluxe_billing_city_province_mismatch'] ) &&
+	empty( $r247_kurdistan_errors->items ) &&
+	empty( $r247_numeric_city_errors->items ) &&
+	isset( $r247_cross_province_id_errors->items['jluxe_billing_city_province_mismatch'] ) &&
 	'تهران' === jluxe_ir_province_for_state( '23', array( '23' => 'تهران' ) ),
-	'R251 reproduces the stale state-map mismatch, validates against the actual checkout options, and still rejects a city from another province'
+	'R252 resolves numeric state and city values through real checkout labels, accepts the Kurdistan list, and still rejects another province'
 );
 if ( null === $r247_validation_previous_wc ) {
 	unset( $GLOBALS['wc'] );

@@ -3775,9 +3775,12 @@ function jluxeEnhanceShopSort(root) {
 			return null; // empty required fields are reported by findFirstInvalidRequiredField().
 		}
 		var province = findCheckoutProvince(stateSelect);
-		var cityName = normalizeLocationName(citySelect.value);
+		var selectedCityOption = citySelect.options[citySelect.selectedIndex];
+		var cityNames = [citySelect.value, selectedCityOption ? selectedCityOption.textContent : ""]
+			.map(normalizeLocationName)
+			.filter(Boolean);
 		var belongsToProvince = province && province.cities.some(function (city) {
-			return normalizeLocationName(city) === cityName;
+			return cityNames.indexOf(normalizeLocationName(city)) !== -1;
 		});
 		if (belongsToProvince) {
 			return null;

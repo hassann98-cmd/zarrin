@@ -71,7 +71,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     ? '<p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" id="billing_first_name" type="text" value=""></p>'
     : "";
   const locationMarkup = locationFields
-    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE">تهران</option><option value="KZ">خوزستان</option></select></p>
+    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE">تهران</option><option value="KZ">خوزستان</option><option value="2241">کردستان</option><option value="2274">کرمان</option></select></p>
       <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" disabled><option value="">ابتدا استان را انتخاب کنید</option></select></p>`
     : "";
   const shippingAddressMarkup = shippingAddressFields
@@ -116,10 +116,12 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   window.jluxeWcSettings = {
     cartUrl: "/store/basket/",
     checkoutAddressData: {
-      state_aliases: { TE: "تهران", KZ: "خوزستان", THR: "تهران" },
+      state_aliases: { TE: "تهران", KZ: "خوزستان", THR: "تهران", KRD: "کردستان" },
       provinces: [
         { id: 8, code: 23, name: "تهران", cities: ["تهران", "ری", "اسلامشهر"] },
         { id: 13, code: 6, name: "خوزستان", cities: ["اهواز", "آبادان"] },
+        { id: 21, code: 20, name: "کردستان", cities: ["آرمرده", "اورامان تخت", "سنندج"] },
+        { id: 22, code: 8, name: "کرمان", cities: ["اختیارآباد"] },
       ],
     },
   };
@@ -324,6 +326,30 @@ test("a province label or prefixed WooCommerce state code resolves to the same l
   state.value = "IR-THR";
   dispatchChange(window, state);
   assert.deepEqual(Array.from(city.options).slice(1).map((option) => option.value), ["اسلامشهر", "تهران", "ری"], "IR-THR is normalized through the shared state alias");
+});
+
+test("numeric WooCommerce city IDs validate by their visible city label, without allowing another province's city", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  state.value = "2241";
+  dispatchChange(window, state);
+
+  city.replaceChildren(new window.Option("لطفا شهر خود را انتخاب نمایید", "0"), new window.Option("آرمرده", "2242"));
+  city.value = "2242";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment", "a numeric city ID is accepted through the visible label from the selected province");
+
+  document.querySelector("[data-jluxe-checkout-back]").click();
+  city.replaceChildren(new window.Option("لطفا شهر خود را انتخاب نمایید", "0"), new window.Option("اختیارآباد", "2275"));
+  city.value = "2275";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping", "a numeric ID whose city label belongs to Kerman is rejected for Kurdistan");
+  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
 });
 
 test("a city outside the selected province blocks the next step with a clear warning and can be corrected", (t) => {

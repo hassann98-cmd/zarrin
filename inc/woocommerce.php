@@ -2234,6 +2234,36 @@ function jluxe_ir_current_checkout_state_options(): array {
 	return jluxe_ir_state_options();
 }
 
+/**
+ * نگاشت value => label برای شهرهایی که WooCommerce/افزونه در همین checkout
+ * رندر کرده است؛ در بعضی نصب‌ها value شناسهٔ عددی و label نام شهر است.
+ *
+ * @return array<string, string>
+ */
+function jluxe_ir_current_checkout_city_options(): array {
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( ! is_object( $wc ) || ! method_exists( $wc, 'checkout' ) ) {
+		return array();
+	}
+	$checkout = $wc->checkout();
+	if ( ! is_object( $checkout ) || ! method_exists( $checkout, 'get_checkout_fields' ) ) {
+		return array();
+	}
+	$checkout_fields = $checkout->get_checkout_fields();
+	$existing        = is_array( $checkout_fields ) ? ( $checkout_fields['billing']['billing_city']['options'] ?? array() ) : array();
+	if ( ! is_array( $existing ) ) {
+		return array();
+	}
+
+	$options = array();
+	foreach ( $existing as $value => $label ) {
+		if ( is_scalar( $value ) && is_scalar( $label ) ) {
+			$options[ (string) $value ] = (string) $label;
+		}
+	}
+	return $options;
+}
+
 /** مقدار استان جاری هنگامِ SSR فیلدهای checkout. */
 function jluxe_current_billing_state(): string {
 	if ( isset( $_POST['billing_state'] ) && is_scalar( $_POST['billing_state'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -2279,10 +2309,17 @@ function jluxe_ir_city_field_options( string $state, array $state_options = arra
  * هم اجرا می‌شود و به گزینه‌های نمایش‌داده‌شده در مرورگر اعتماد نمی‌کند.
  *
  * @param array<string, string> $state_options
+ * @param array<string, string> $city_options مقدارهای ارسال‌شده و label شهرِ نمایشی.
  */
-function jluxe_ir_checkout_city_is_valid( string $state, string $city, array $state_options = array() ): bool {
+function jluxe_ir_checkout_city_is_valid( string $state, string $city, array $state_options = array(), array $city_options = array() ): bool {
 	if ( '' === trim( $city ) ) {
 		return false;
+	}
+	// افزونهٔ شهر/استان ممکن است مقدار option را شناسهٔ عددی بگذارد و نام
+	// نمایشی را در label نگه دارد. ابتدا همان گزینهٔ واقعی را resolve می‌کنیم؛
+	// سپس نام شهر را با دیتاستِ استان می‌سنجیم و صرفاً به وجود یک ID اعتماد نمی‌کنیم.
+	if ( array_key_exists( $city, $city_options ) && is_scalar( $city_options[ $city ] ) ) {
+		$city = (string) $city_options[ $city ];
 	}
 	$options = jluxe_ir_city_field_options( $state, $state_options );
 	$target  = jluxe_normalize_ir_location( $city );
@@ -2495,7 +2532,8 @@ function jluxe_validate_checkout_requirements( array $data, $errors ): void {
 	$state         = (string) ( $data['billing_state'] ?? '' );
 	$city          = (string) ( $data['billing_city'] ?? '' );
 	$state_options = jluxe_ir_current_checkout_state_options();
-	if ( 'IR' === $country && '' !== trim( $state ) && '' !== trim( $city ) && ! jluxe_ir_checkout_city_is_valid( $state, $city, $state_options ) ) {
+	$city_options  = jluxe_ir_current_checkout_city_options();
+	if ( 'IR' === $country && '' !== trim( $state ) && '' !== trim( $city ) && ! jluxe_ir_checkout_city_is_valid( $state, $city, $state_options, $city_options ) ) {
 		$errors->add( 'jluxe_billing_city_province_mismatch', 'شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.', array( 'id' => 'billing_city' ) );
 	}
 

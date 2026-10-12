@@ -512,11 +512,15 @@ try {
     const checkoutLocationValidation = await phpJson(`
       $options=jluxe_ir_current_checkout_state_options();
       $custom=jluxe_ir_state_options(array(''=>'Select province','23'=>'تهران'));
+      $numericStates=jluxe_ir_state_options(array('2241'=>'کردستان','2274'=>'کرمان'));
+      $numericCities=array('2275'=>'اختیارآباد');
       return array(
         'stateCount'=>count($options),
         'tehranProvince'=>jluxe_ir_province_for_state('THR',$options),
         'coreCityAccepted'=>jluxe_ir_checkout_city_is_valid('THR','تهران',$options),
         'customFieldCityAccepted'=>jluxe_ir_checkout_city_is_valid('23','تهران',$custom),
+        'numericCityIdAccepted'=>jluxe_ir_checkout_city_is_valid('2274','2275',$numericStates,$numericCities),
+        'numericCityIdRejectedForKurdistan'=>!jluxe_ir_checkout_city_is_valid('2241','2275',$numericStates,$numericCities),
         'foreignCityRejected'=>!jluxe_ir_checkout_city_is_valid('THR','اهواز',$options)
       );
     `);
@@ -525,8 +529,10 @@ try {
         checkoutLocationValidation.tehranProvince === "تهران" &&
         checkoutLocationValidation.coreCityAccepted &&
         checkoutLocationValidation.customFieldCityAccepted &&
+        checkoutLocationValidation.numericCityIdAccepted &&
+        checkoutLocationValidation.numericCityIdRejectedForKurdistan &&
         checkoutLocationValidation.foreignCityRejected,
-      `Server city validation uses the actual WooCommerce checkout field options, accepts a custom state code for its selected city, and still rejects another province's city (${JSON.stringify(checkoutLocationValidation)})`,
+      `Server city validation uses actual WooCommerce field options, resolves numeric city IDs to labels, and still rejects a city from another province (${JSON.stringify(checkoutLocationValidation)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";
