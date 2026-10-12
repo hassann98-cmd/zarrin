@@ -295,6 +295,10 @@ function woocommerce_wp_checkbox($args){
  $id=(string)($args['id']??'');$value=(string)($args['value']??'');
  echo '<p class="form-field"><label for="'.esc_attr($id).'">'.esc_html($args['label']??'').'</label><input type="checkbox" id="'.esc_attr($id).'" name="'.esc_attr($id).'" value="1"'.('yes'===$value?' checked="checked"':'').' /></p>';
 }
+function woocommerce_wp_text_input($args){
+ $id=(string)($args['id']??'');$value=(string)($args['value']??'');$placeholder=(string)($args['placeholder']??'');
+ echo '<p class="form-field"><label for="'.esc_attr($id).'">'.esc_html($args['label']??'').'</label><input type="text" id="'.esc_attr($id).'" name="'.esc_attr($id).'" value="'.esc_attr($value).'" placeholder="'.esc_attr($placeholder).'" /></p>';
+}
 function wp_trim_words($text,$count,$more=''){return implode(' ',array_slice(explode(' ',$text),0,$count)).$more;}
 function wp_trim_excerpt($text){return $text;}
 function wp_parse_str($text,&$out){parse_str($text,$out);}

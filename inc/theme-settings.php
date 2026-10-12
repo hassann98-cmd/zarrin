@@ -692,11 +692,9 @@ function jluxe_theme_settings_defaults(): array {
 			'in_stock_color'   => '',
 		),
 		'product_page' => array(
-			// طبقِ درخواستِ کاربر: چیدمانِ صفحه‌ی محصول قابل‌انتخاب شد.
-			// 'default' همین چیدمانِ سه‌ستونه‌ی فعلیه (بدون تغییر رفتار)،
-			// 'classic' چیدمانِ جایگزینیه که کاربر خودش نمونه‌اش رو داد
-			// (تصویر با بزرگ‌نماییِ ذره‌بینی + جعبه‌ی خریدِ کناری).
-			'layout'        => 'default', // default | classic
+			// چیدمان‌ها مستقل‌اند: 'default' طرح Boom فعلی، 'classic' قالبِ جایگزین،
+			// و 'reference' صفحهٔ سوم با کارت خرید/مشخصات و بخش‌های کامل محصول.
+			'layout'        => 'default', // default | classic | reference
 			'show_related'  => true,
 			'related_count' => 4,
 			// خالی یعنی semantic token (error / success / warning-strong).

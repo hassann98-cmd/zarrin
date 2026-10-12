@@ -889,7 +889,7 @@ function jluxe_sanitize_product_page( array $posted, array $defaults ): array {
 	$layout = isset( $posted['layout'] ) ? sanitize_key( $posted['layout'] ) : $defaults['layout'];
 
 	return array(
-		'layout'         => in_array( $layout, array( 'default', 'classic' ), true ) ? $layout : $defaults['layout'],
+		'layout'         => in_array( $layout, array( 'default', 'classic', 'reference' ), true ) ? $layout : $defaults['layout'],
 		'show_related'   => ! empty( $posted['show_related'] ),
 		'related_count'  => max( 2, min( 8, $count ) ),
 		'discount_color' => isset( $posted['discount_color'] ) ? ( sanitize_hex_color( $posted['discount_color'] ) ?: '' ) : $defaults['discount_color'],

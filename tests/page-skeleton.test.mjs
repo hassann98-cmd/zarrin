@@ -36,7 +36,8 @@ test("R127 skeleton shimmer respects reduced motion and does not replace image l
 
 test("R160 skeleton follows classic/modern product grids and reserves space for home/history rows", () => {
   assert.match(skeletonPhp, /'product-classic'/);
-  assert.match(skeletonPhp, /in_array\(\s*\$layout, array\( 'product', 'product-classic' \)/);
+  assert.match(skeletonPhp, /'product-reference'/);
+  assert.match(skeletonPhp, /in_array\(\s*\$layout, array\( 'product', 'product-classic', 'product-reference' \)/);
   assert.match(skeletonPhp, /jluxe-page-skeleton__product--classic/);
   assert.match(skeletonPhp, /jluxe-page-skeleton__buybox/);
   assert.match(skeletonPhp, /jluxe-page-skeleton__categories/);

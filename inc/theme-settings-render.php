@@ -1065,7 +1065,9 @@ function jluxe_render_product_page(): void {
 								<label><input type="radio" name="product_page[layout]" value="default" <?php checked( $pp['layout'] ?? 'default', 'default' ); ?> /> پیش‌فرض (سه‌ستونه، گالریِ بزرگ)</label>
 								<br />
 								<label><input type="radio" name="product_page[layout]" value="classic" <?php checked( $pp['layout'] ?? 'default', 'classic' ); ?> /> کلاسیک (تصویر با ذره‌بین + جعبه‌ی خریدِ کناری)</label>
-								<p class="description">هردو چیدمان کاملاً به سبد/قیمت/تنوعِ واقعیِ ووکامرس وصلن — فقط ظاهر فرق می‌کنه.</p>
+								<br />
+								<label><input type="radio" name="product_page[layout]" value="reference" <?php checked( $pp['layout'] ?? 'default', 'reference' ); ?> /> طرح سوم (گالری، ویژگی‌ها، ارسال، توضیحات و دیدگاه‌ها)</label>
+								<p class="description">هر سه چیدمان جداگانه قابل انتخاب‌اند و قیمت، موجودی، تنوع و افزودن به سبد همچنان به ووکامرس واقعی متصل است.</p>
 							</td>
 						</tr>
 					</table>

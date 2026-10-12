@@ -76,8 +76,9 @@ if ( empty( $jluxe_gallery_ids ) ) {
 	$jluxe_gallery_ids = array( 0 );
 }
 
-$cp3_breadcrumbs = jluxe_breadcrumb_items( $product );
-$cp3_short_desc  = $product->get_short_description();
+$cp3_breadcrumbs   = jluxe_breadcrumb_items( $product );
+$cp3_short_desc    = $product->get_short_description();
+$cp3_delivery_time = jluxe_get_product_delivery_time( $product );
 $cp3_faq_items   = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array();
 $cp3_stock_qty   = $product->managing_stock() ? $product->get_stock_quantity() : null;
 
@@ -626,10 +627,12 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<div data-jluxe-buybox-surface>
 					<div class="cp3-sidebox">
 						<div class="cp3-sidehead">مشخصات</div>
-						<div class="cp3-row">
-							<span class="cp3-rowlab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21.4 11.05l-7.5-7.52c-.7-.7-1.9-.7-2.6 0l-8.1 8.1c-.4.4-.6.94-.6 1.5V19c0 1.1.9 2 2 2h5.9c.56 0 1.1-.22 1.5-.62l9.4-9.4c.7-.7.7-1.83 0-2.53ZM5 11.7L13.5 3.2M8 21l9.5-9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>زمان ارسال</span>
-							<span class="cp3-rowval" style="color:hsl(var(--primary))">ارسال سریع</span>
-						</div>
+						<?php if ( '' !== $cp3_delivery_time ) : ?>
+							<div class="cp3-row" data-jluxe-delivery-time-row>
+								<span class="cp3-rowlab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="17.5" cy="18" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>زمان ارسال</span>
+								<span class="cp3-rowval" style="color:hsl(var(--primary))" data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></span>
+							</div>
+						<?php endif; ?>
 						<div class="cp3-row">
 							<span class="cp3-rowlab is-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>وضعیت موجودی</span>
 							<?php if ( $cp3_is_in_stock ) : ?>

@@ -16,8 +16,12 @@ function jluxe_page_skeleton_layout(): string {
 	$context = function_exists( 'jluxe_page_context' ) ? jluxe_page_context() : '';
 	if ( 'product' === $context && function_exists( 'jluxe_get_theme_settings' ) ) {
 		$settings = jluxe_get_theme_settings();
-		if ( 'classic' === ( $settings['product_page']['layout'] ?? 'default' ) ) {
+		$layout = $settings['product_page']['layout'] ?? 'default';
+		if ( 'classic' === $layout ) {
 			return 'product-classic';
+		}
+		if ( 'reference' === $layout ) {
+			return 'product-reference';
 		}
 	}
 	$layouts = array(
@@ -73,7 +77,7 @@ function jluxe_render_page_skeleton(): void {
 		return;
 	}
 	?>
-	<div class="jluxe-page-skeleton jluxe-page-skeleton--<?php echo esc_attr( 'product-classic' === $layout ? 'product' : $layout ); ?><?php echo 'product-classic' === $layout ? ' jluxe-page-skeleton--product-classic' : ''; ?>" data-jluxe-page-skeleton aria-hidden="true" hidden>
+	<div class="jluxe-page-skeleton jluxe-page-skeleton--<?php echo esc_attr( in_array( $layout, array( 'product-classic', 'product-reference' ), true ) ? 'product' : $layout ); ?><?php echo in_array( $layout, array( 'product-classic', 'product-reference' ), true ) ? ' jluxe-page-skeleton--product-classic' : ''; ?>" data-jluxe-page-skeleton aria-hidden="true" hidden>
 		<div class="jluxe-page-skeleton__page">
 			<div class="jluxe-page-skeleton__header">
 				<span class="jluxe-page-skeleton__block jluxe-page-skeleton__brand"></span>
@@ -110,8 +114,8 @@ function jluxe_render_page_skeleton(): void {
 							</div>
 						<?php endfor; ?>
 					</div>
-				<?php elseif ( in_array( $layout, array( 'product', 'product-classic' ), true ) ) : ?>
-					<?php $is_classic_product = 'product-classic' === $layout; ?>
+				<?php elseif ( in_array( $layout, array( 'product', 'product-classic', 'product-reference' ), true ) ) : ?>
+					<?php $is_classic_product = in_array( $layout, array( 'product-classic', 'product-reference' ), true ); ?>
 					<span class="jluxe-page-skeleton__block jluxe-page-skeleton__breadcrumb"></span>
 					<div class="jluxe-page-skeleton__product<?php echo $is_classic_product ? ' jluxe-page-skeleton__product--classic' : ''; ?>">
 						<span class="jluxe-page-skeleton__block jluxe-page-skeleton__product-gallery"></span>

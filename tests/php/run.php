@@ -987,6 +987,74 @@ $classic_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-prod
 check(strpos($default_tpl,'data-jluxe-layout=')!==false && strpos($default_tpl,"\$jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );")!==false, 'R31 default template reads the layout setting once and exposes it in the markup');
 check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic template is labelled as classic in the markup');
 
+// R238: keep the third product layout independent and make delivery text editable per product.
+$r238_reference_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
+$r238_router = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
+$r238_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+$r238_sanitized_layout = jluxe_sanitize_product_page( array( 'layout' => 'reference' ), jluxe_theme_settings_defaults()['product_page'] );
+check(
+	'reference' === $r238_sanitized_layout['layout'] &&
+	false !== strpos( $r238_router, "if ( 'reference' === \$jluxe_layout )" ) &&
+	false !== strpos( $r238_router, "content-single-product-reference.php" ) &&
+	false !== strpos( $r238_reference_tpl, 'data-jluxe-layout="reference"' ) &&
+	false !== strpos( $r238_settings_ui, 'value="reference"' ),
+	'R238 the selectable third layout is sanitized and routed to its own product template without replacing default/classic'
+);
+check(
+	false !== strpos( $r238_reference_tpl, 'jluxe_product_key_feature_cards( $product )' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-jluxe-key-feature=' ) &&
+	false !== strpos( $r238_reference_tpl, 'reference-key-features' ) &&
+	false !== strpos( $r238_reference_tpl, 'woocommerce_output_related_products()' ) &&
+	false === strpos( $r238_reference_tpl, 'ارسال سریع</span>' ),
+	'R238 the third layout has its own dynamic feature-card presentation, product sections, and related products'
+);
+$r238_hooks = array_column( $GLOBALS['actions'], 0 );
+$r238_id = 94238;
+$r238_had_meta = array_key_exists( $r238_id, $GLOBALS['post_meta'] ?? array() );
+$r238_old_meta = $GLOBALS['post_meta'][ $r238_id ] ?? null;
+$r238_had_global_post = array_key_exists( 'post', $GLOBALS );
+$r238_old_global_post = $GLOBALS['post'] ?? null;
+$r238_old_request = $_POST;
+$GLOBALS['post_meta'][ $r238_id ]['_jluxe_delivery_time'] = 'ارسال طی ۲ روز';
+$GLOBALS['post'] = (object) array( 'ID' => $r238_id );
+ob_start();
+jluxe_render_product_delivery_time_field();
+$r238_editor_field = (string) ob_get_clean();
+$r238_product = new WC_Product( $r238_id );
+$_POST['_jluxe_delivery_time'] = ' <b>ارسال در ۳ روز</b> ';
+jluxe_save_product_delivery_time_meta( $r238_product );
+$r238_object_saved = $r238_product->meta['_jluxe_delivery_time'] ?? '';
+jluxe_save_product_delivery_time_meta_legacy( $r238_id );
+$r238_legacy_saved = $GLOBALS['post_meta'][ $r238_id ]['_jluxe_delivery_time'] ?? '';
+$r238_display_value = jluxe_get_product_delivery_time( $r238_id );
+$_POST['_jluxe_delivery_time'] = '';
+jluxe_save_product_delivery_time_meta_legacy( $r238_id );
+$r238_empty_value = jluxe_get_product_delivery_time( $r238_product );
+check(
+	in_array( 'woocommerce_product_options_general_product_data', $r238_hooks, true ) &&
+	in_array( 'woocommerce_admin_process_product_object', $r238_hooks, true ) &&
+	in_array( 'woocommerce_process_product_meta', $r238_hooks, true ) &&
+	false !== strpos( $r238_editor_field, 'id="_jluxe_delivery_time"' ) &&
+	false !== strpos( $r238_editor_field, 'value="ارسال طی ۲ روز"' ) &&
+	false !== strpos( $r238_editor_field, 'placeholder="مثلاً: ارسال سریع"' ) &&
+	'ارسال در ۳ روز' === $r238_object_saved && 'ارسال در ۳ روز' === $r238_legacy_saved &&
+	'ارسال در ۳ روز' === $r238_display_value && '' === $r238_empty_value,
+	'R238 the WooCommerce General-tab field saves sanitized per-product delivery text and an empty value does not hardcode the example label'
+);
+check(
+	false !== strpos( $default_tpl, 'data-jluxe-delivery-time-row' ) &&
+	false !== strpos( $default_tpl, 'jluxe_get_product_delivery_time( $product )' ) &&
+	false !== strpos( $default_tpl, "if ( '' !== \$jluxe_delivery_time ) :" ) &&
+	false !== strpos( $classic_tpl, 'data-jluxe-delivery-time-row' ) &&
+	false !== strpos( $classic_tpl, "if ( '' !== \$cp3_delivery_time ) :" ) &&
+	false !== strpos( $r238_reference_tpl, 'data-jluxe-delivery-time-row' ) &&
+	false !== strpos( $r238_reference_tpl, "if ( '' !== \$cp3_delivery_time ) :" ),
+	'R238 all three product layouts render the same dynamic delivery field and hide its row when left blank'
+);
+$_POST = $r238_old_request;
+if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
+if ( $r238_had_global_post ) { $GLOBALS['post'] = $r238_old_global_post; } else { unset( $GLOBALS['post'] ); }
+
 // R237: product-summary highlight cards use the real product_brand taxonomy and exclude variation attributes.
 $r240_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
 $r240_old_attribute_labels = $GLOBALS['attribute_labels'] ?? array();
@@ -1627,6 +1695,13 @@ update_test_settings( $r169_lcp_settings );
 check(
 	! isset( jluxe_product_lcp_image_attributes( array(), (object) array( 'ID' => 907 ), 'woocommerce_single' )['data-no-lazy'] ),
 	'R169 the classic template owns its critical-image attributes without eagerly marking WooCommerce gallery siblings'
+);
+$r169_lcp_settings['product_page']['layout'] = 'reference';
+update_test_settings( $r169_lcp_settings );
+check(
+	! isset( jluxe_product_lcp_image_attributes( array(), (object) array( 'ID' => 907 ), 'woocommerce_single' )['data-no-lazy'] ) &&
+	'(max-width: 767px) calc(100vw - 64px), 420px' === jluxe_single_product_image_sizes( 'reference' ),
+	'R238 the independent reference gallery uses its own responsive large-image candidates and does not mark WooCommerce gallery siblings critical'
 );
 $GLOBALS['products'][1]->image_id = $r169_lcp_previous_image;
 $GLOBALS['query_kind'] = $r169_lcp_previous_query;

@@ -283,7 +283,7 @@ add_filter( 'woocommerce_structured_data_product', 'jluxe_add_product_schema_ide
 
 /** Keep the product LCP preload's responsive slot size aligned with the rendered image. */
 function jluxe_single_product_image_sizes( string $layout ): string {
-	if ( 'classic' === $layout ) {
+	if ( in_array( $layout, array( 'classic', 'reference' ), true ) ) {
 		return '(max-width: 767px) calc(100vw - 64px), 420px';
 	}
 	return '(max-width: 1024px) 100vw, 26rem';
@@ -291,8 +291,8 @@ function jluxe_single_product_image_sizes( string $layout ): string {
 
 /**
  * Preload the main product image using the same responsive candidates as the
- * rendered image. The classic layout uses `large` plus srcset (rather than
- * downloading the original full-size file for a 420px image).
+ * rendered image. Classic and reference layouts use `large` plus srcset
+ * (rather than downloading the original full-size file for a 420px image).
  */
 function jluxe_preload_single_product_lcp_image(): void {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -310,7 +310,7 @@ function jluxe_preload_single_product_lcp_image(): void {
 	}
 
 	$layout     = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
-	$size       = 'classic' === $layout ? 'large' : 'woocommerce_single';
+	$size       = in_array( $layout, array( 'classic', 'reference' ), true ) ? 'large' : 'woocommerce_single';
 	$imagesizes = jluxe_single_product_image_sizes( (string) $layout );
 	$image      = jluxe_get_responsive_attachment_image( (int) $image_id, $size, $imagesizes );
 	$url        = $image['src'];
@@ -328,7 +328,7 @@ add_action( 'wp_head', 'jluxe_preload_single_product_lcp_image', 1 );
 
 /**
  * Mark only the featured image on the default product page as critical. Classic
- * layout emits its own image tag and adds the same attributes in its template.
+ * and reference layouts emit their own image tag and critical attributes.
  *
  * @param array         $attr Image HTML attributes.
  * @param WP_Post|int   $attachment Attachment being rendered.
@@ -347,7 +347,7 @@ function jluxe_product_lcp_image_attributes( array $attr, $attachment, $size ): 
 	}
 
 	$layout = jluxe_get_theme_settings()['product_page']['layout'] ?? 'default';
-	if ( 'classic' === $layout || 'woocommerce_single' !== $size ) {
+	if ( in_array( $layout, array( 'classic', 'reference' ), true ) || 'woocommerce_single' !== $size ) {
 		return $attr;
 	}
 
@@ -362,7 +362,7 @@ add_filter( 'wp_get_attachment_image_attributes', 'jluxe_product_lcp_image_attri
 
 /* -------------------------------------------------------------------------
  * صفحهٔ محصول: بردکرامب (دادهٔ ساخت‌یافته) + نوار چسبانِ افزودن به سبد موبایل.
- * هر دو در هر دو چیدمان (default/classic) استفاده می‌شوند.
+ * در هر سه چیدمانِ محصول استفاده می‌شوند.
  * ---------------------------------------------------------------------- */
 
 /** نوار چسبانِ افزودن به سبد — اسکریپت فقط صفحهٔ محصول. */
@@ -3722,6 +3722,62 @@ function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
 	update_post_meta( $post_id, '_jluxe_suggested_modal_enabled', isset( $_POST['_jluxe_suggested_modal_enabled'] ) ? 'yes' : 'no' );
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
+
+/**
+ * Read the product-specific delivery message. An empty field stays empty so
+ * the sample placeholder is never shown as a fixed promise on every product.
+ */
+function jluxe_get_product_delivery_time( $product = null ): string {
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
+	if ( ! $product_id ) {
+		return '';
+	}
+
+	$value = get_post_meta( $product_id, '_jluxe_delivery_time', true );
+	return is_scalar( $value ) ? trim( sanitize_text_field( (string) $value ) ) : '';
+}
+
+/** Add an editable delivery-time text field to WooCommerce's General tab. */
+function jluxe_render_product_delivery_time_field(): void {
+	global $post;
+	$product_id = isset( $post->ID ) ? absint( $post->ID ) : 0;
+
+	echo '<div class="options_group">';
+	woocommerce_wp_text_input(
+		array(
+			'id'          => '_jluxe_delivery_time',
+			'label'       => 'زمان ارسال',
+			'value'       => $product_id ? get_post_meta( $product_id, '_jluxe_delivery_time', true ) : '',
+			'placeholder' => 'مثلاً: ارسال سریع',
+			'desc_tip'    => true,
+			'description' => 'زمان یا توضیح ارسال همین محصول را وارد کنید؛ در صفحهٔ محصول نمایش داده می‌شود. اگر خالی بماند، ردیف زمان ارسال نمایش داده نمی‌شود.',
+		)
+	);
+	echo '</div>';
+}
+add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_product_delivery_time_field' );
+
+/** Persist the value through WooCommerce's product-object save flow. */
+function jluxe_save_product_delivery_time_meta( WC_Product $product ): void {
+	if ( ! isset( $_POST['_jluxe_delivery_time'] ) || ! is_scalar( $_POST['_jluxe_delivery_time'] ) ) {
+		return;
+	}
+
+	$value = sanitize_text_field( wp_unslash( (string) $_POST['_jluxe_delivery_time'] ) );
+	$product->update_meta_data( '_jluxe_delivery_time', $value );
+}
+add_action( 'woocommerce_admin_process_product_object', 'jluxe_save_product_delivery_time_meta' );
+
+/** Keep the legacy product editor save hook supported as well. */
+function jluxe_save_product_delivery_time_meta_legacy( int $product_id ): void {
+	if ( ! isset( $_POST['_jluxe_delivery_time'] ) || ! is_scalar( $_POST['_jluxe_delivery_time'] ) ) {
+		return;
+	}
+
+	$value = sanitize_text_field( wp_unslash( (string) $_POST['_jluxe_delivery_time'] ) );
+	update_post_meta( $product_id, '_jluxe_delivery_time', $value );
+}
+add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_delivery_time_meta_legacy' );
 
 /**
  * Return the enabled trust badges for one product.

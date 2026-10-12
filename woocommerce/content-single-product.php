@@ -26,10 +26,9 @@ if ( post_password_required() ) {
 }
 
 /*
- * طبقِ درخواستِ کاربر: چیدمانِ جایگزین («کلاسیک») قابل‌انتخاب از تنظیماته.
- * اگه انتخاب شده باشه، همین‌جا کنترل به فایلِ جدا داده می‌شه و این فایل
- * (چیدمانِ پیش‌فرضِ سه‌ستونه) اصلاً ادامه پیدا نمی‌کنه — یعنی صفر ریسک
- * برای کسایی که چیدمانِ پیش‌فرض رو نگه می‌دارن.
+ * چیدمان‌هایِ جایگزینِ «کلاسیک» و «طرح سوم» قابل‌انتخاب از تنظیمات‌اند.
+ * در صورت انتخاب، کنترل به فایلِ جدا داده می‌شود و این فایل (Boom) ادامه
+ * پیدا نمی‌کند؛ بنابراین رفتارِ چیدمانِ پیش‌فرض تغییر نمی‌کند.
  */
 // یک‌بار خوانده می‌شود؛ هم برای انتخاب فایل و هم به‌عنوان نشانگر تشخیصی در HTML
 // (data-jluxe-layout) تا هنگام بررسی مشکل «قالب ساده شده»، از View Source/DevTools
@@ -37,6 +36,10 @@ if ( post_password_required() ) {
 $jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );
 if ( 'classic' === $jluxe_layout ) {
 	require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';
+	return;
+}
+if ( 'reference' === $jluxe_layout ) {
+	require JLUXE_THEME_DIR . '/woocommerce/content-single-product-reference.php';
 	return;
 }
 
@@ -88,6 +91,7 @@ usort(
 	}
 );
 $key_features = jluxe_product_key_feature_cards( $product );
+$jluxe_delivery_time = jluxe_get_product_delivery_time( $product );
 
 /*
  * محصول متغیر: طبق طراحی مرجع (تصویر ضمیمه‌ی کاربر)، سواچ‌های رنگ/سایز باید
@@ -240,6 +244,12 @@ if ( $jluxe_is_variable ) {
 				<div data-jluxe-buybox-surface>
 				<div class="rounded-2xl border border-border bg-muted/40 p-3.5">
 					<?php // تک‌فروشنده‌ست (نه مارکت‌پلیس) — کارت فروشگاه/فروشنده عمداً حذف شده. ?>
+					<?php if ( '' !== $jluxe_delivery_time ) : ?>
+						<div class="mb-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2.5" data-jluxe-delivery-time-row>
+							<span class="inline-flex items-center gap-2 text-small text-text-secondary"><svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>زمان ارسال</span>
+							<span class="text-small font-bold text-primary" data-jluxe-delivery-time><?php echo esc_html( $jluxe_delivery_time ); ?></span>
+						</div>
+					<?php endif; ?>
 					<?php wc_get_template_part( 'single-product/price' ); ?>
 					<?php if ( $jluxe_is_variable ) : ?>
 						<?php if ( ! empty( $jluxe_available_variations ) || false === $jluxe_available_variations ) : ?>
