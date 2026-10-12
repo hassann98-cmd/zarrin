@@ -3477,6 +3477,10 @@ function jluxeEnhanceShopSort(root) {
 		if (!stateSelect || !citySelect) return;
 		var province = findCheckoutProvince(stateSelect);
 		var previousCity = preserveCurrentCity ? citySelect.value : "";
+		var previousCityOption = preserveCurrentCity ? citySelect.options[citySelect.selectedIndex] : null;
+		var previousCityLabels = [previousCity, previousCityOption ? previousCityOption.textContent : ""]
+			.map(normalizeLocationName)
+			.filter(Boolean);
 		var cityNames = province ? province.cities.slice() : [];
 		try {
 			var collator = new Intl.Collator("fa", { sensitivity: "base" });
@@ -3496,16 +3500,46 @@ function jluxeEnhanceShopSort(root) {
 		});
 		citySelect.replaceChildren.apply(citySelect, options);
 		citySelect.disabled = !province || !cityNames.length;
-		citySelect.value = preserveCurrentCity && cityNames.some(function (city) {
-			return normalizeLocationName(city) === normalizeLocationName(previousCity);
-		}) ? cityNames.find(function (city) {
-			return normalizeLocationName(city) === normalizeLocationName(previousCity);
+		var preservedCity = preserveCurrentCity ? cityNames.find(function (city) {
+			return previousCityLabels.indexOf(normalizeLocationName(city)) !== -1;
 		}) : "";
+		citySelect.value = preservedCity || "";
 		if (province) {
 			citySelect.setAttribute("data-jluxe-province", province.name);
 		} else {
 			citySelect.removeAttribute("data-jluxe-province");
 		}
+	}
+
+	function canonicalizeSelectedCheckoutCity() {
+		var stateSelect = document.querySelector("[data-jluxe-state-select]");
+		var citySelect = document.querySelector("[data-jluxe-city-select]");
+		if (!stateSelect || !citySelect || !stateSelect.value || !citySelect.value) return false;
+		var province = findCheckoutProvince(stateSelect);
+		if (!province) return false;
+		var selectedOption = citySelect.options[citySelect.selectedIndex];
+		var selectedNames = [citySelect.value, selectedOption ? selectedOption.textContent : ""]
+			.map(normalizeLocationName)
+			.filter(Boolean);
+		var canonicalCity = province.cities.find(function (city) {
+			return selectedNames.indexOf(normalizeLocationName(city)) !== -1;
+		});
+		if (!canonicalCity) return false;
+
+		var canonicalOption = Array.prototype.find.call(citySelect.options, function (option) {
+			return option.value === String(canonicalCity);
+		});
+		if (!canonicalOption) {
+			canonicalOption = document.createElement("option");
+			canonicalOption.value = String(canonicalCity);
+			canonicalOption.textContent = String(canonicalCity);
+			citySelect.appendChild(canonicalOption);
+		}
+		citySelect.value = String(canonicalCity);
+		// Disabled controls are omitted from the WooCommerce checkout POST.
+		// Re-enable only after the selected label matches a city in the chosen province.
+		citySelect.disabled = false;
+		return true;
 	}
 
 	function initializeCheckoutLocationFields() {
@@ -3520,6 +3554,7 @@ function jluxeEnhanceShopSort(root) {
 			clearCheckoutCityProvinceError();
 		});
 		citySelect.addEventListener("change", function () {
+			canonicalizeSelectedCheckoutCity();
 			var row = citySelect.closest(".form-row");
 			if (!row || !row.querySelector("[data-jluxe-city-province-error]")) return;
 			var invalidCity = findInvalidCheckoutCityField();
@@ -3749,7 +3784,7 @@ function jluxeEnhanceShopSort(root) {
 			if (!$input.length) {
 				return;
 			}
-			var isEmpty = $input.is(":checkbox") ? !$input.is(":checked") : $input.val() === "" || $input.val() === null;
+			var isEmpty = $input.is(":disabled") || ($input.is(":checkbox") ? !$input.is(":checked") : $input.val() === "" || $input.val() === null);
 			if (isEmpty) {
 				$row.addClass("woocommerce-invalid woocommerce-invalid-required-field");
 				if (!$firstInvalid) {
@@ -3856,6 +3891,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function validateShippingStep() {
+		canonicalizeSelectedCheckoutCity();
 		var invalid = findFirstInvalidRequiredField();
 		if (invalid) {
 			showInvalidRequiredField(invalid);
@@ -3920,6 +3956,9 @@ function jluxeEnhanceShopSort(root) {
 				return;
 			}
 
+			// گزینهٔ numericِ بعضی افزونه‌ها را از label به نام canonical تبدیل می‌کنیم
+			// و فقط پس از تطبیق معتبر، select را برای POST ووکامرس فعال می‌کنیم.
+			canonicalizeSelectedCheckoutCity();
 			// فیلدهای فعالِ آدرس حتی وقتی ستون‌شان مخفی است دوباره بررسی می‌شوند؛
 			// فیلدهایی که خودِ WooCommerce عمداً پنهان کرده، submit معتبر را نمی‌بندند.
 			var invalid = findFirstInvalidRequiredField();

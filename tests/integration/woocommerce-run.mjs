@@ -535,6 +535,65 @@ try {
       `Server city validation uses actual WooCommerce field options, resolves numeric city IDs to labels, and still rejects a city from another province (${JSON.stringify(checkoutLocationValidation)})`,
     );
 
+    const numericCheckoutSubmission = await phpJson(`
+      $previousPost=$_POST;
+      $_POST=array(
+        'woocommerce-process-checkout-nonce'=>'numeric-city-integration',
+        'billing_country'=>'IR',
+        'billing_state'=>'2274',
+        'billing_city'=>'2275',
+        'billing_first_name'=>'Numeric',
+        'billing_last_name'=>'City',
+        'billing_phone'=>'09120000000',
+        'billing_address_1'=>'10 Test Street',
+        'billing_postcode'=>'1234567890'
+      );
+      $numericAddressOptions=function($fields){
+        $fields['billing']['billing_state']['type']='select';
+        $fields['billing']['billing_state']['options']=array('2241'=>'کردستان','2274'=>'کرمان');
+        $fields['billing']['billing_city']['type']='select';
+        $fields['billing']['billing_city']['options']=array('2275'=>'اختیارآباد','9922'=>'اهواز');
+        return $fields;
+      };
+      add_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkout=WC()->checkout();
+      $checkoutFieldsProperty=new ReflectionProperty($checkout,'fields');
+      $checkoutFieldsProperty->setAccessible(true);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $fields=$checkout->get_checkout_fields();
+      $cityOptions=$fields['billing']['billing_city']['options']??array();
+      $posted=$checkout->get_posted_data();
+      $errors=new WP_Error();
+      $validator=new ReflectionMethod($checkout,'validate_posted_data');
+      $validator->setAccessible(true);
+      $validatorArgs=array(&$posted,&$errors);
+      $validator->invokeArgs($checkout,$validatorArgs);
+      $errorCodes=$errors->get_error_codes();
+      $result=array(
+        'numericOptionRetained'=>isset($cityOptions['2275'])&&$cityOptions['2275']==='اختیارآباد',
+        'foreignOptionRemoved'=>!isset($cityOptions['9922']),
+        'postedState'=>$posted['billing_state']??'',
+        'postedCity'=>$posted['billing_city']??'',
+        'requiredCityError'=>in_array('billing_city_required',$errorCodes,true),
+        'invalidStateError'=>in_array('billing_state_validation',$errorCodes,true),
+        'cityIsValid'=>jluxe_ir_checkout_city_is_valid('KRN',$posted['billing_city']??'',jluxe_ir_current_checkout_state_options(),jluxe_ir_current_checkout_city_options())
+      );
+      remove_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $_POST=$previousPost;
+      return $result;
+    `);
+    check(
+      numericCheckoutSubmission.numericOptionRetained &&
+        numericCheckoutSubmission.foreignOptionRemoved &&
+        numericCheckoutSubmission.postedState === "KRN" &&
+        numericCheckoutSubmission.postedCity === "اختیارآباد" &&
+        !numericCheckoutSubmission.requiredCityError &&
+        !numericCheckoutSubmission.invalidStateError &&
+        numericCheckoutSubmission.cityIsValid,
+      `Real WooCommerce posted-data/core validation retains and canonicalizes a valid numeric city option (${JSON.stringify(numericCheckoutSubmission)})`,
+    );
+
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";
     const initialShippingInput = response.text.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
     const selectedShippingRate = initialShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";

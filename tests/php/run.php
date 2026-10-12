@@ -6136,6 +6136,19 @@ check(
 	'select' === $r247_city_field['type'] && true === $r247_city_field['required'] && isset( $r247_city_field['options']['تهران'], $r247_city_field['options']['پرند'] ) && ! isset( $r247_city_field['options']['اهواز'] ) && '1' === $r247_city_field['custom_attributes']['data-jluxe-city-select'] && ! isset( $r247_city_field['custom_attributes']['disabled'] ),
 	'R247 the city dropdown includes Tehran counties and populated places, but not cities from another province'
 );
+$r253_previous_post = $_POST;
+$_POST['billing_state'] = '2274';
+$r253_numeric_id_fields = jluxe_billing_fields( array( 'billing' => array(
+	'billing_state' => array( 'type' => 'select', 'options' => array( '2241' => 'کردستان', '2274' => 'کرمان' ) ),
+	'billing_city'  => array( 'type' => 'select', 'options' => array( '2275' => 'اختیارآباد', '9922' => 'اهواز' ) ),
+) ) );
+$_POST = $r253_previous_post;
+$r253_numeric_city_options = $r253_numeric_id_fields['billing']['billing_city']['options'];
+check(
+	isset( $r253_numeric_city_options['2275'] ) && 'اختیارآباد' === $r253_numeric_city_options['2275'] && ! isset( $r253_numeric_city_options['9922'] ) &&
+	jluxe_ir_checkout_city_is_valid( '2274', '2275', $r253_numeric_id_fields['billing']['billing_state']['options'], $r253_numeric_city_options ),
+	'R253 keeps a numeric city option through WooCommerce field construction only when its label belongs to the selected province'
+);
 check(
 	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&
@@ -6150,7 +6163,7 @@ $GLOBALS['wc'] = new class() {
 	public function __construct() {
 		$this->countries = new class() {
 			public function get_states( $country ) {
-				return array();
+				return array( 'KRD' => 'کردستان', 'KRN' => 'کرمان' );
 			}
 		};
 	}
@@ -6167,6 +6180,8 @@ $GLOBALS['wc'] = new class() {
 		};
 	}
 };
+$r253_numeric_kerman_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2274', 'billing_city' => '2275' ) );
+$r253_cross_province_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => '2275' ) );
 $r247_valid_errors = new class() {
 	public $items = array();
 	public function add( $code, $message, $data = array() ) {
@@ -6213,8 +6228,10 @@ check(
 	empty( $r247_kurdistan_errors->items ) &&
 	empty( $r247_numeric_city_errors->items ) &&
 	isset( $r247_cross_province_id_errors->items['jluxe_billing_city_province_mismatch'] ) &&
+	'KRN' === $r253_numeric_kerman_post['billing_state'] && 'اختیارآباد' === $r253_numeric_kerman_post['billing_city'] &&
+	'KRD' === $r253_cross_province_post['billing_state'] && '2275' === $r253_cross_province_post['billing_city'] &&
 	'تهران' === jluxe_ir_province_for_state( '23', array( '23' => 'تهران' ) ),
-	'R252 resolves numeric state and city values through real checkout labels, accepts the Kurdistan list, and still rejects another province'
+	'R253 maps valid numeric province/city values to WooCommerce canonical values but keeps cross-province IDs invalid'
 );
 if ( null === $r247_validation_previous_wc ) {
 	unset( $GLOBALS['wc'] );

@@ -52,7 +52,7 @@ function collection(nodes) {
   return result;
 }
 
-function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false, shippingAddressFields = false, shippingAddressVisible = false } = {}) {
+function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false, initialState = "", initialCity = null, shippingAddressFields = false, shippingAddressVisible = false } = {}) {
   const step = (id, label, current = false) =>
     `<li data-jluxe-step="${id}" ${current ? 'aria-current="step"' : ""}>
       <span data-jluxe-step-circle data-jluxe-step-number="۱" class="border-border text-text-muted"></span>
@@ -71,8 +71,8 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     ? '<p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" id="billing_first_name" type="text" value=""></p>'
     : "";
   const locationMarkup = locationFields
-    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE">تهران</option><option value="KZ">خوزستان</option><option value="2241">کردستان</option><option value="2274">کرمان</option></select></p>
-      <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" disabled><option value="">ابتدا استان را انتخاب کنید</option></select></p>`
+    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" name="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE" ${initialState === "TE" ? "selected" : ""}>تهران</option><option value="KZ" ${initialState === "KZ" ? "selected" : ""}>خوزستان</option><option value="2241" ${initialState === "2241" ? "selected" : ""}>کردستان</option><option value="2274" ${initialState === "2274" ? "selected" : ""}>کرمان</option></select></p>
+      <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" name="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" ${initialState ? "" : "disabled"}><option value="">ابتدا استان را انتخاب کنید</option>${initialCity ? `<option value="${initialCity.value}" selected>${initialCity.label}</option>` : ""}</select></p>`
     : "";
   const shippingAddressMarkup = shippingAddressFields
     ? `<div id="shipping_address" class="shipping_address" ${shippingAddressVisible ? "" : 'style="display: none;"'}>
@@ -326,6 +326,32 @@ test("a province label or prefixed WooCommerce state code resolves to the same l
   state.value = "IR-THR";
   dispatchChange(window, state);
   assert.deepEqual(Array.from(city.options).slice(1).map((option) => option.value), ["اسلامشهر", "تهران", "ری"], "IR-THR is normalized through the shared state alias");
+});
+
+test("numeric city IDs retain their option label and are enabled/canonicalized for WooCommerce form submission", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2274",
+    initialCity: { value: "2275", label: "اختیارآباد" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const city = document.getElementById("billing_city");
+  assert.equal(city.value, "اختیارآباد", "checkout initialization preserves an ID-backed selection by its visible label");
+  assert.equal(city.disabled, false);
+
+  // Simulate a city/province plugin restoring its numeric-valued select after
+  // theme initialization and leaving that native select disabled.
+  city.replaceChildren(new window.Option("شهر را انتخاب کنید", ""), new window.Option("اختیارآباد", "2275"));
+  city.value = "2275";
+  city.disabled = true;
+  document.querySelector("[data-jluxe-checkout-next]").click();
+
+  assert.equal(currentStep(document), "payment", "a valid selected label is canonicalized before the shipping step passes");
+  assert.equal(city.value, "اختیارآباد");
+  assert.equal(city.disabled, false, "WooCommerce does not omit the required city control from its POST");
+  assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "اختیارآباد");
 });
 
 test("numeric WooCommerce city IDs validate by their visible city label, without allowing another province's city", (t) => {
