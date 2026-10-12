@@ -264,6 +264,7 @@ try {
       update_option('woocommerce_store_pages_only','no');
       update_option('woocommerce_currency','USD');
       update_option('woocommerce_default_country','US:CA');
+      update_option('woocommerce_ship_to_countries','all');
       update_option('woocommerce_store_address','10 Integration Road');
       update_option('woocommerce_store_city','Test City');
       update_option('woocommerce_store_postcode','90001');
@@ -346,11 +347,11 @@ try {
       $variation->set_stock_quantity(2);
       $variation->set_stock_status('instock');
       $variation_id=$variation->save();
-      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true));
+      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true),'shippingEnabled'=>wc_shipping_enabled(),'variationNeedsShipping'=>wc_get_product($variation_id)->needs_shipping());
     `);
     check(
-      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0,
-      "Actual WooCommerce data stores persist products, a stocked variation, coupon, custom-checkout page and enabled zone shipping method",
+      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0 && fixtures.shippingEnabled && fixtures.variationNeedsShipping,
+      `Actual WooCommerce data stores persist products, a stocked variation, coupon, custom-checkout page and enabled shippable zone method (${JSON.stringify({ shippingMethods: fixtures.shippingMethods, shippingEnabled: fixtures.shippingEnabled, variationNeedsShipping: fixtures.variationNeedsShipping })})`,
     );
 
     const home = await request(root, { method: "GET" });
