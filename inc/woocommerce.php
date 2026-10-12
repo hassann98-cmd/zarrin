@@ -1958,17 +1958,16 @@ function jluxe_render_product_stock_line( $product ): string {
 remove_action( 'woocommerce_checkout_order_review', 'woocommerce_checkout_payment', 20 );
 
 /**
- * دکمه‌ی «پرداخت» (ثبت نهاییِ سفارش) + شرایط/nonce — طبقِ درخواستِ صریحِ
- * بعدیِ کاربر («دکمه‌ی پرداخت رو ببر زیرِ بازگشت، سمتِ چپ») این بخش دیگه
- * زیرِ گریدِ درگاه‌ها (woocommerce/checkout/payment.php) نیست؛ در سایدبارِ
- * باریک، بعدِ #order_review و دکمه‌ی «بازگشت»ِ ساخته‌شده‌ی
- * assets/js/woocommerce.js صدا زده می‌شه (form-checkout.php).
+ * شرایط، خطای انتخابِ درگاه و ردیفِ دکمهٔ واقعیِ ثبت سفارش را در سایدبار
+ * رندر می‌کند. جاوااسکریپت فقط «بازگشت» را داخلِ همان ردیف قرار می‌دهد؛
+ * place_order، فیلترها، hookهای قبل/بعدِ submit و nonce در فرم واقعی
+ * WooCommerce باقی می‌مانند. در موبایل همین ردیف به dock پایین صفحه می‌رود.
  *
  * قبلاً این محتوا بخشی از woocommerce_checkout_payment() بود؛ چون دیگه
  * اون تابع رو صدا نمی‌زنیم (به remove_action بالا مراجعه بشه)، این‌جا
  * مستقل خودمون $order_button_text رو با همون فیلترِ رسمیِ ووکامرس
  * می‌سازیم — منطق/nonce/دکمه دقیقاً همونیه که خودِ ووکامرس تولید می‌کرد،
- * فقط جای رندرش عوض شده.
+ * فقط محلِ رندرش عوض شده.
  */
 function jluxe_render_payment_submit(): void {
 	if ( ! WC()->cart ) {
@@ -1976,7 +1975,7 @@ function jluxe_render_payment_submit(): void {
 	}
 	$order_button_text = apply_filters( 'woocommerce_order_button_text', __( 'Place order', 'woocommerce' ) );
 	?>
-	<div class="form-row place-order mt-4">
+	<div class="jluxe-checkout-payment-terms">
 		<noscript>
 			<?php
 			printf( esc_html__( 'Since your browser does not support JavaScript, or it is disabled, please ensure you click the %1$sUpdate Totals%2$s button before placing your order. You may be charged more than the amount stated above if you fail to do so.', 'woocommerce' ), '<em>', '</em>' );
@@ -1987,13 +1986,17 @@ function jluxe_render_payment_submit(): void {
 		<div class="mt-3">
 			<?php wc_get_template( 'checkout/terms.php' ); ?>
 		</div>
+	</div>
 
-		<p data-jluxe-payment-error hidden role="alert" class="mb-2 text-caption text-error">روش پرداخت را انتخاب کنید.</p>
+	<p data-jluxe-payment-error hidden role="alert" class="jluxe-checkout-alert jluxe-checkout-alert--error mb-2">روش پرداخت را انتخاب کنید.</p>
 
+	<div class="form-row place-order mt-4">
 		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 
-		<div class="mt-4">
-			<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-button font-normal text-primary-foreground transition-colors hover:bg-primary-hover" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
+		<div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
+			<div class="jluxe-checkout-place-order-slot">
+				<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-button font-normal text-primary-foreground transition-colors hover:bg-primary-hover" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
+			</div>
 		</div>
 
 		<?php do_action( 'woocommerce_review_order_after_submit' ); ?>

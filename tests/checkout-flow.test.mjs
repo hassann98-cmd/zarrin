@@ -99,8 +99,18 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         </div>
         <div id="order_review">${shipping}</div>
         <div id="jluxe-payment-submit" hidden>
-          <p data-jluxe-payment-error role="alert" hidden>روش پرداخت را انتخاب کنید.</p>
-          <button id="place_order" type="submit">ثبت سفارش</button>
+          <div class="jluxe-checkout-payment-terms">
+            <label><input id="terms" type="checkbox" name="terms" value="1"> شرایط را می‌پذیرم</label>
+          </div>
+          <p data-jluxe-payment-error class="jluxe-checkout-alert jluxe-checkout-alert--error" role="alert" hidden>روش پرداخت را انتخاب کنید.</p>
+          <div class="form-row place-order">
+            <div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
+              <div class="jluxe-checkout-place-order-slot">
+                <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
+              </div>
+            </div>
+            <input type="hidden" name="woocommerce-process-checkout-nonce" value="test-nonce">
+          </div>
         </div>
       </form>
     </body></html>`,
@@ -259,6 +269,45 @@ test("checkout blocks missing shipping rates, refreshes the explanation, and foc
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.equal(currentStep(document), "shipping");
   assert.equal(document.activeElement.id, "jluxe-shipping-heading");
+});
+
+test("step actions keep the real WooCommerce place-order button, terms, and nonce in the checkout form", (t) => {
+  const { window } = boot({ shippingChecked: false, paymentOptions: 2 });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const actions = document.querySelector(".jluxe-checkout-step-actions");
+  const paymentSubmit = document.getElementById("jluxe-payment-submit");
+  const paymentRow = paymentSubmit.querySelector("[data-jluxe-checkout-place-order-row]");
+  const placeOrder = document.getElementById("place_order");
+  const back = document.querySelector("[data-jluxe-checkout-back]");
+
+  assert.equal(actions.previousElementSibling, paymentSubmit, "the step dock sits outside WooCommerce's AJAX-updated order-review fragment");
+  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "shipping");
+  assert.equal(actions.hidden, false);
+  assert.equal(paymentSubmit.hidden, true);
+  assert.equal(back.closest("[data-jluxe-checkout-place-order-row]"), paymentRow, "Back shares the native order-action row on payment");
+  assert.equal(placeOrder.closest("[data-jluxe-checkout-place-order-row]"), paymentRow);
+  assert.equal(placeOrder.type, "submit");
+  assert.equal(placeOrder.name, "woocommerce_checkout_place_order");
+  assert.equal(form.contains(placeOrder), true);
+  assert.equal(paymentSubmit.querySelector("[name=terms]")?.closest("#jluxe-payment-submit"), paymentSubmit);
+  assert.equal(paymentSubmit.querySelector("[name=woocommerce-process-checkout-nonce]")?.closest("#jluxe-payment-submit"), paymentSubmit);
+
+  const shippingRate = document.querySelector("input.shipping_method");
+  shippingRate.checked = true;
+  dispatchChange(window, shippingRate);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "payment");
+  assert.equal(actions.hidden, true, "only the payment action row remains visible in the payment step");
+  assert.equal(paymentSubmit.hidden, false);
+  assert.equal(back.hidden, false);
+
+  back.click();
+  assert.equal(actions.hidden, false);
+  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "shipping");
+  assert.equal(paymentSubmit.hidden, true);
+  assert.equal(back.hidden, true);
 });
 
 test("checkout fragment refresh does not auto-select a shipping rate", (t) => {

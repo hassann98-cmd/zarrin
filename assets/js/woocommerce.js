@@ -3410,6 +3410,11 @@ function jluxeEnhanceShopSort(root) {
 		'<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 	var currentStep = "shipping";
 	var customerDetails = document.getElementById("customer_details");
+	var actions = null;
+	var nextBtn = null;
+	var toCartBtn = null;
+	var backBtn = null;
+	var paymentActionRow = null;
 	// آدرسِ واقعیِ سبدِ خرید — از inc/woocommerce.php (wc_get_cart_url())
 	// localize شده؛ قبلاً از یک لینکِ داخلِ #payment خونده می‌شد که دیگه
 	// (طبقِ همین درخواست) اونجا رندر نمی‌شه.
@@ -3657,8 +3662,8 @@ function jluxeEnhanceShopSort(root) {
 		// می‌کنیم تا هر جا #payment از نو ساخته شد هم بلافاصله وضعیتِ درست رو
 		// داشته باشه.
 		var paymentColumn = document.getElementById("jluxe-payment-column");
-		// دکمه‌ی «پرداخت» + شرایط — حالا توی سایدبار، کنارِ «بازگشت»
-		// (inc/woocommerce.php: jluxe_render_payment_submit).
+		// شرایط/nonce و ردیفِ واقعیِ ثبت سفارش در سایدبار رندر می‌شوند؛
+		// فقط ردیفِ «بازگشت + ثبت سفارش» در مرحلهٔ پرداخت چسبان می‌شود.
 		var paymentSubmit = document.getElementById("jluxe-payment-submit");
 		var showShipping = "shipping" === currentStep;
 		if (customerDetails) {
@@ -3675,6 +3680,13 @@ function jluxeEnhanceShopSort(root) {
 		}
 		if (paymentSubmit) {
 			paymentSubmit.hidden = showShipping;
+		}
+		if (actions) {
+			actions.setAttribute("data-jluxe-checkout-step", currentStep);
+			if (paymentActionRow) actions.hidden = !showShipping;
+			if (nextBtn) nextBtn.hidden = !showShipping;
+			if (toCartBtn) toCartBtn.hidden = !showShipping;
+			if (backBtn) backBtn.hidden = showShipping;
 		}
 	}
 
@@ -3745,38 +3757,53 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	/*
-	 * actions طبقِ درخواستِ صریحِ کاربر («دکمه‌های ادامه و بازگشت باید پایین
-	 * باشن نه بالا») بعدِ #order_review (پایینِ «خلاصه سفارش»، بعدِ اقلام/
-	 * روشِ ارسال/جمعِ کل) می‌شینه — نه قبلش. نگرانیِ قدیمیِ «دکمه زیرِ
-	 * لیستِ بلندِ درگاه‌ها گم می‌شه» دیگه صدق نمی‌کنه چون این دکمه‌ها فقط
-	 * توی مرحله‌ی «اطلاعات ارسال» دیده می‌شن (نه مرحله‌ی پرداخت، جایی که
-	 * لیستِ درگاه‌ها می‌تونه بلند باشه) — applyStepVisibility پایین‌تر
-	 * #payment رو کاملاً جدا مدیریت می‌کنه؛ scrollIntoView هم روی هر
-	 * جابه‌جاییِ مرحله همیشه این ناحیه رو در دیدِ کاربر می‌آره.
+	 * دکمه‌های هر گام در یک نوار اقدام ساخته می‌شوند. این نوار بعد از wrapper
+	 * ثابتِ شرایط/ثبت سفارش قرار می‌گیرد تا با تعویضِ fragmentهای ووکامرس
+	 * حذف نشود؛ در موبایل فقط کنترل‌های گامِ فعال به dock پایین صفحه می‌روند.
 	 */
-	var actions = document.createElement("div");
-	actions.className = "jluxe-checkout-step-actions mt-4 flex flex-col gap-2.5";
-	actions.innerHTML =
-		/*
-		 * برچسبِ «نهایی‌سازی سفارش» طبقِ مرجعِ تصویریِ جدیدِ کاربر برای دکمه‌ی
-		 * ادامه‌ی مرحله‌ی «اطلاعات ارسال» (قبلاً «ادامه» بود).
-		 */
-		'<button type="button" data-jluxe-checkout-next class="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-button font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.98]">نهایی‌سازی سفارش</button>' +
-		'<a href="' + wcCartUrl + '" data-jluxe-checkout-to-cart class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت به سبد خرید</a>' +
-		'<button type="button" data-jluxe-checkout-back hidden class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت</button>';
-	orderReview.insertAdjacentElement("afterend", actions);
-	var nextBtn = actions.querySelector("[data-jluxe-checkout-next]");
-	var toCartBtn = actions.querySelector("[data-jluxe-checkout-to-cart]");
-	var backBtn = actions.querySelector("[data-jluxe-checkout-back]");
+	actions = document.createElement("div");
+	actions.className = "jluxe-checkout-step-actions";
+	actions.setAttribute("role", "group");
+	actions.setAttribute("aria-label", "کنترل‌های مرحلهٔ تسویه‌حساب");
+
+	nextBtn = document.createElement("button");
+	nextBtn.type = "button";
+	nextBtn.setAttribute("data-jluxe-checkout-next", "");
+	nextBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--primary";
+	// برچسبِ تصویریِ تأییدشده برای عبور از اطلاعات ارسال به پرداخت حفظ می‌شود.
+	nextBtn.textContent = "نهایی‌سازی سفارش";
+
+	toCartBtn = document.createElement("a");
+	toCartBtn.setAttribute("data-jluxe-checkout-to-cart", "");
+	toCartBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--secondary";
+	toCartBtn.href = wcCartUrl;
+	toCartBtn.textContent = "بازگشت به سبد خرید";
+
+	backBtn = document.createElement("button");
+	backBtn.type = "button";
+	backBtn.setAttribute("data-jluxe-checkout-back", "");
+	backBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--secondary";
+	backBtn.textContent = "بازگشت";
+	backBtn.hidden = true;
+
+	actions.appendChild(nextBtn);
+	actions.appendChild(toCartBtn);
+	var paymentSubmitAnchor = document.getElementById("jluxe-payment-submit");
+	(paymentSubmitAnchor || orderReview).insertAdjacentElement("afterend", actions);
+	paymentActionRow = paymentSubmitAnchor && paymentSubmitAnchor.querySelector("[data-jluxe-checkout-place-order-row]");
+	if (paymentActionRow) {
+		// دکمهٔ بازگشت کنارِ دکمهٔ اصلیِ submit می‌ماند؛ خودِ place_order،
+		// nonce و hookهای درگاه جابه‌جا نمی‌شوند و مسیر استاندارد WooCommerce حفظ می‌شود.
+		paymentActionRow.insertBefore(backBtn, paymentActionRow.firstChild);
+	} else {
+		actions.appendChild(backBtn);
+	}
 
 	function goToPayment() {
 		currentStep = "payment";
 		setStepVisual("shipping", "done");
 		setStepVisual("payment", "active");
 		applyStepVisibility();
-		nextBtn.hidden = true;
-		toCartBtn.hidden = true;
-		backBtn.hidden = false;
 		focusStepHeading("jluxe-payment-heading");
 	}
 
@@ -3785,9 +3812,6 @@ function jluxeEnhanceShopSort(root) {
 		setStepVisual("shipping", "active");
 		setStepVisual("payment", "pending");
 		applyStepVisibility();
-		nextBtn.hidden = false;
-		toCartBtn.hidden = false;
-		backBtn.hidden = true;
 		toggleError('[data-jluxe-payment-error]', false);
 		focusStepHeading("jluxe-shipping-heading");
 	}
@@ -4039,7 +4063,7 @@ function jluxeEnhanceShopSort(root) {
 			error = document.createElement("p");
 			error.setAttribute("data-jluxe-city-province-error", "1");
 			error.setAttribute("role", "alert");
-			error.className = "mt-2 text-caption text-error";
+			error.className = "jluxe-checkout-alert jluxe-checkout-alert--error mt-2";
 			row.appendChild(error);
 		}
 		error.textContent = "شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.";
@@ -4062,7 +4086,7 @@ function jluxeEnhanceShopSort(root) {
 			warning = document.createElement("p");
 			warning.setAttribute("data-jluxe-required-field-error", "1");
 			warning.setAttribute("role", "alert");
-			warning.className = "mt-2 text-caption text-error";
+			warning.className = "jluxe-checkout-alert jluxe-checkout-alert--error mt-2";
 			invalid.appendChild(warning);
 		}
 		warning.textContent = labelText

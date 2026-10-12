@@ -6290,8 +6290,21 @@ check(
 check(
 	false !== strpos( $r247_payment_source, 'methods flex flex-col gap-3' ) &&
 	false !== strpos( $r247_checkout_css, 'li.jluxe-payment-method-item {' ) && false !== strpos( $r247_checkout_css, 'width: 100%;' ) &&
-	false !== strpos( $r247_checkout_css, 'height: 4.5rem;' ) && false !== strpos( $r247_checkout_css, 'flex-direction: row;' ),
+	false !== strpos( $r247_checkout_css, 'min-height: 4.5rem;' ) && false !== strpos( $r247_checkout_css, 'height: auto;' ) && false !== strpos( $r247_checkout_css, 'flex-direction: row;' ),
 	'R247 WooCommerce payment gateways render as equal-width stacked rectangles'
+);
+$r256_form_checkout_source  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+$r256_payment_submit_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+check(
+	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-layout' ) &&
+	false !== strpos( $r256_form_checkout_source, 'id="customer_details" class="jluxe-checkout-panel"' ) &&
+	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-summary' ) &&
+	false !== strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ) &&
+	false !== strpos( $r256_payment_submit_source, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
+	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-step-actions,' ) &&
+	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout #jluxe-payment-submit .jluxe-checkout-place-order-row' ) &&
+	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-alert' ),
+	'R256 checkout uses balanced address/payment panels, preserves the real order submit row, docks mobile actions, and styles checkout alerts'
 );
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(

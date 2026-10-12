@@ -154,7 +154,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-CRk2xQHY.js",
+    "file": "assets/main-8OeLQEfS.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -176,7 +176,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-BRkfWH_G.css"
+      "assets/main-BofLUvUZ.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

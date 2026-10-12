@@ -44,9 +44,14 @@ if ( ! wp_doing_ajax() ) {
 		 * یادآوریِ متنیه، به هیچ منطقِ واقعیِ ووکامرس دست نمی‌زنه.
 		 */
 		?>
-		<div class="mb-4 flex items-start gap-2 rounded-xl bg-warning/15 p-4 text-small text-foreground">
-			<span class="mt-0.5 shrink-0 text-warning">⚠</span>
-			<span>در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.</span>
+		<div class="jluxe-checkout-vpn-note" role="note">
+			<span class="jluxe-checkout-vpn-note__icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+			</span>
+			<span class="jluxe-checkout-vpn-note__copy">
+				<strong>نکتهٔ پیش از پرداخت</strong>
+				<span>اگر از فیلترشکن (VPN) استفاده می‌کنید، پیش از ورود به درگاه پرداخت آن را خاموش کنید.</span>
+			</span>
 		</div>
 
 		<?php
