@@ -17,6 +17,7 @@
 	var modeToggle = document.querySelector( '[data-jluxe-sticky-cta-mode-toggle]' );
 	var modeToggleLabel = modeToggle && modeToggle.querySelector( '[data-jluxe-sticky-cta-mode-label]' );
 	var activeMode = 'navigation';
+	var alwaysVisible = bar.hasAttribute( 'data-jluxe-sticky-cta-always' );
 
 	var navSelector = '#bottom-navigation, .jluxe-mobile-nav';
 	var navHiddenStates = new WeakMap();
@@ -28,6 +29,11 @@
 		return window.matchMedia
 			? window.matchMedia( '(max-width: 767.98px)' ).matches
 			: ( window.innerWidth || document.documentElement.clientWidth || 0 ) < 768;
+	}
+
+	function viewportHeight() {
+		var visualViewportHeight = window.visualViewport && window.visualViewport.height;
+		return visualViewportHeight || window.innerHeight || document.documentElement.clientHeight || 0;
 	}
 
 	function syncNavigationVisibility() {
@@ -106,9 +112,16 @@
 
 		var anchorTop = null;
 		if ( 'purchase' === activeMode ) {
+			/* getBoundingClientRect().top follows the CTA's slide-in transform; derive
+			 * its resting edge from the fixed bottom inset and intrinsic height instead. */
 			var barRect = bar.getBoundingClientRect();
-			if ( barRect.height > 0 ) {
-				anchorTop = barRect.top;
+			var barHeight = bar.offsetHeight || barRect.height;
+			var barBottom = parseFloat( bar.style.bottom );
+			if ( ! isFinite( barBottom ) ) {
+				barBottom = 0;
+			}
+			if ( barHeight > 0 ) {
+				anchorTop = viewportH - barBottom - barHeight;
 			}
 		}
 		if ( null === anchorTop && null !== dockTop ) {
@@ -146,7 +159,7 @@
 	 * اندازه‌گیری می‌شود، نه از ارتفاع‌هایِ فرضیِ منوهای مختلف.
 	 */
 	function layout() {
-		var viewportH = window.innerHeight || document.documentElement.clientHeight;
+		var viewportH = viewportHeight();
 		syncNavigationVisibility();
 		var navCandidates = document.querySelectorAll( navSelector );
 		var dockTop = null;
@@ -181,7 +194,15 @@
 		syncModeToggle( viewportH, dockTop, navCandidates );
 		if ( bar.classList.contains( 'is-visible' ) ) {
 			var toggleClearance = modeToggle && ! modeToggle.hidden ? Math.max( modeToggle.offsetHeight || 0, 44 ) + 8 : 0;
-			var pageClearance = Math.ceil( bar.offsetHeight + navSpace + gap + 12 + toggleClearance ) + 'px';
+			var activeDockSpace = navSpace;
+			if ( 'purchase' === activeMode ) {
+				var purchaseBottom = parseFloat( bar.style.bottom );
+				if ( ! isFinite( purchaseBottom ) ) {
+					purchaseBottom = 0;
+				}
+				activeDockSpace = ( bar.offsetHeight || bar.getBoundingClientRect().height || 0 ) + purchaseBottom;
+			}
+			var pageClearance = Math.ceil( activeDockSpace + toggleClearance + 12 ) + 'px';
 			if ( body.style.paddingBottom !== pageClearance ) {
 				body.style.paddingBottom = pageClearance;
 			}
@@ -204,13 +225,13 @@
 
 		var wasVisible = bar.classList.contains( 'is-visible' );
 		var visible;
-		if ( ! form ) {
+		if ( alwaysVisible || ! form ) {
 			visible = true;
 			bar.classList.add( 'is-visible' );
 		} else {
 			var rect = form.getBoundingClientRect();
-			var passed = rect.bottom < ( window.innerHeight || document.documentElement.clientHeight ) * 0.75;
-			visible = bar.classList.toggle( 'is-visible', passed );
+			var threshold = viewportHeight() * ( wasVisible ? 0.92 : 0.75 );
+			visible = bar.classList.toggle( 'is-visible', rect.bottom < threshold );
 		}
 		body.classList.toggle( 'jluxe-has-sticky-cta', visible );
 		var modeNeedsSync = visible
@@ -221,6 +242,29 @@
 			layout();
 		}
 	}
+
+	var layoutFramePending = false;
+	function scheduleLayout() {
+		if ( layoutFramePending ) {
+			return;
+		}
+		layoutFramePending = true;
+		var update = function () {
+			layoutFramePending = false;
+			layout();
+		};
+		if ( typeof window.requestAnimationFrame === 'function' ) {
+			window.requestAnimationFrame( update );
+		} else {
+			window.setTimeout( update, 0 );
+		}
+	}
+
+	bar.addEventListener( 'transitionend', function ( event ) {
+		if ( event.target === bar && ( ! event.propertyName || 'transform' === event.propertyName ) ) {
+			scheduleLayout();
+		}
+	} );
 
 	if ( modeToggle ) {
 		modeToggle.addEventListener( 'click', function () {
@@ -233,12 +277,15 @@
 	}
 
 	window.addEventListener( 'scroll', onScroll, { passive: true } );
+	window.addEventListener( 'scroll', scheduleLayout, { passive: true } );
 	window.addEventListener( 'resize', onScroll, { passive: true } );
-	window.addEventListener( 'resize', layout, { passive: true } );
-	window.addEventListener( 'orientationchange', layout, { passive: true } );
-	window.addEventListener( 'pageshow', layout, { passive: true } );
+	window.addEventListener( 'resize', scheduleLayout, { passive: true } );
+	window.addEventListener( 'orientationchange', scheduleLayout, { passive: true } );
+	window.addEventListener( 'pageshow', scheduleLayout, { passive: true } );
 	if ( window.visualViewport ) {
-		window.visualViewport.addEventListener( 'resize', layout, { passive: true } );
+		window.visualViewport.addEventListener( 'resize', onScroll, { passive: true } );
+		window.visualViewport.addEventListener( 'resize', scheduleLayout, { passive: true } );
+		window.visualViewport.addEventListener( 'scroll', scheduleLayout, { passive: true } );
 	}
 
 	/* React/افزونه ممکن است dock را بعد از اجرای اسکریپت به DOM اضافه کند. */

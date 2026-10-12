@@ -534,7 +534,7 @@ function jluxe_render_sticky_quantity_control(): void {
  * رندر سروری دارد تا بدون JS هم قیمت/وضعیت/مسیر دیده شود؛ برای محصول متغیر،
  * پس از انتخابِ تنوع همین نوار قیمت و وضعیت گزینه را نشان می‌دهد.
  */
-function jluxe_render_sticky_add_to_cart( $product ): void {
+function jluxe_render_sticky_add_to_cart( $product, bool $always_visible = false ): void {
 	if ( ! $product instanceof WC_Product ) {
 		return;
 	}
@@ -553,7 +553,7 @@ function jluxe_render_sticky_add_to_cart( $product ): void {
 		$button = '<span class="jluxe-sticky-cta-out">ناموجود</span>';
 	}
 	?>
-	<div id="jluxe-sticky-cta" class="jluxe-sticky-cta" data-jluxe-sticky-cta>
+	<div id="jluxe-sticky-cta" class="jluxe-sticky-cta" data-jluxe-sticky-cta<?php if ( $always_visible ) : ?> data-jluxe-sticky-cta-always<?php endif; ?>>
 		<div class="jluxe-sticky-cta-info">
 			<?php if ( $is_variable ) : ?>
 				<span class="jluxe-sticky-cta-price" data-jluxe-sticky-variation-price data-jluxe-price-placeholder="" aria-live="polite" aria-atomic="true"></span>

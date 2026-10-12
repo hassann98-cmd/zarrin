@@ -3087,8 +3087,13 @@ function jluxeEnhanceShopSort(root) {
 		}
 	});
 
+	function viewportHeight() {
+		var visualViewportHeight = window.visualViewport && window.visualViewport.height;
+		return visualViewportHeight || window.innerHeight || document.documentElement.clientHeight || 0;
+	}
+
 	function positionToggle() {
-		var viewportH = window.innerHeight || document.documentElement.clientHeight;
+		var viewportH = viewportHeight();
 		var activeTop = null;
 		if (!priceBar.classList.contains("hidden")) {
 			var priceRect = priceBar.getBoundingClientRect();
@@ -3109,6 +3114,22 @@ function jluxeEnhanceShopSort(root) {
 			if (toggleBtn.style.bottom !== bottom) { toggleBtn.style.bottom = bottom; }
 		}
 	}
+
+	var positionFramePending = false;
+	function schedulePositionToggle() {
+		if (positionFramePending) { return; }
+		positionFramePending = true;
+		var update = function () {
+			positionFramePending = false;
+			positionToggle();
+		};
+		if (typeof window.requestAnimationFrame === "function") {
+			window.requestAnimationFrame(update);
+		} else {
+			window.setTimeout(update, 0);
+		}
+	}
+	priceBar.addEventListener("transitionend", schedulePositionToggle);
 
 	function syncToggleState() {
 		var priceMode = !priceBar.classList.contains("hidden");
@@ -3132,11 +3153,13 @@ function jluxeEnhanceShopSort(root) {
 		window.setTimeout(positionToggle, 0);
 	});
 
-	window.addEventListener("resize", positionToggle, { passive: true });
-	window.addEventListener("orientationchange", positionToggle, { passive: true });
-	window.addEventListener("pageshow", positionToggle, { passive: true });
+	window.addEventListener("resize", schedulePositionToggle, { passive: true });
+	window.addEventListener("orientationchange", schedulePositionToggle, { passive: true });
+	window.addEventListener("pageshow", schedulePositionToggle, { passive: true });
+	window.addEventListener("scroll", schedulePositionToggle, { passive: true });
 	if (window.visualViewport) {
-		window.visualViewport.addEventListener("resize", positionToggle, { passive: true });
+		window.visualViewport.addEventListener("resize", schedulePositionToggle, { passive: true });
+		window.visualViewport.addEventListener("scroll", schedulePositionToggle, { passive: true });
 	}
 	if (typeof window.MutationObserver === "function" && document.body) {
 		var navObserver = new window.MutationObserver(function (mutations) {

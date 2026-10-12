@@ -569,7 +569,7 @@ function jluxe_search_try_corrected_products( string $term, array $brand_matches
 	}
 	return array(
 		'query'       => $corrected_term,
-		'tokens'      => $corrected_tokens,
+		'tokens'      => $product_tokens,
 		'posts'       => $results['posts'],
 		'full_match'  => $results['full_match'],
 	);
@@ -590,6 +590,32 @@ function jluxe_search_product_score( string $product_name, array $query_tokens )
 	return $score;
 }
 
+/** برایِ پیشنهادِ محصول، هر واژهٔ query باید در عنوان حاضر باشد؛ fuzzy فقط برایِ اصلاحِ عبارت به کار می‌رود. */
+function jluxe_search_product_name_matches_tokens( string $product_name, array $query_tokens ): bool {
+	if ( empty( $query_tokens ) ) {
+		return true;
+	}
+
+	$name_tokens = jluxe_search_tokens( jluxe_normalize_persian_query( $product_name ) );
+	foreach ( $query_tokens as $query_token ) {
+		$query_token = jluxe_normalize_persian_query( (string) $query_token );
+		if ( '' === $query_token ) {
+			continue;
+		}
+		$found = false;
+		foreach ( $name_tokens as $name_token ) {
+			if ( $name_token === $query_token || 0 === strpos( $name_token, $query_token ) ) {
+				$found = true;
+				break;
+			}
+		}
+		if ( ! $found ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 /** محصولات را رتبه‌بندی می‌کند، سپس همان کاندیدها را برایِ facetها برمی‌گرداند. */
 function jluxe_search_format_products( array $posts, array $query_tokens, int $limit = 6 ): array {
 	$ranked = array();
@@ -603,6 +629,10 @@ function jluxe_search_format_products( array $posts, array $query_tokens, int $l
 		$seen[ $post_id ] = true;
 		$product           = wc_get_product( $post_id );
 		if ( ! is_object( $product ) || ! method_exists( $product, 'get_id' ) || ! method_exists( $product, 'get_name' ) ) {
+			continue;
+		}
+		$product_name = (string) $product->get_name();
+		if ( ! jluxe_search_product_name_matches_tokens( $product_name, $query_tokens ) ) {
 			continue;
 		}
 		$ranked[] = array(
@@ -767,8 +797,8 @@ function jluxe_ajax_search(): void {
 	}
 	$product_tokens = jluxe_search_remove_brand_tokens( $query_tokens, $brand_matches );
 	$raw_search     = jluxe_search_collect_product_posts( implode( ' ', $product_tokens ), $brand_ids );
-	$selected_posts = $raw_search['posts'];
-	$score_tokens   = $query_tokens;
+	$selected_posts  = $raw_search['posts'];
+	$score_tokens    = $product_tokens;
 	$corrected_query = '';
 
 	// ابتدا نتایجِ عادی را حفظ می‌کنیم؛ typo correction فقط وقتی اجرا می‌شود

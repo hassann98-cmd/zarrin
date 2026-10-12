@@ -989,6 +989,7 @@ check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic t
 
 // R238: keep the third product layout independent and make delivery text editable per product.
 $r238_reference_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
+$r238_sticky_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r238_router = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r238_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 $r238_sanitized_layout = jluxe_sanitize_product_page( array( 'layout' => 'reference' ), jluxe_theme_settings_defaults()['product_page'] );
@@ -1007,6 +1008,32 @@ check(
 	false !== strpos( $r238_reference_tpl, 'woocommerce_output_related_products()' ) &&
 	false === strpos( $r238_reference_tpl, 'ارسال سریع</span>' ),
 	'R238 the third layout has its own dynamic feature-card presentation, product sections, and related products'
+);
+$r238_short_description_position = strpos( $r238_reference_tpl, 'data-cp3-short' );
+$r238_feature_cards_position = strpos( $r238_reference_tpl, '$reference_key_features    = jluxe_product_key_feature_cards( $product );' );
+$r238_variation_options_position = strpos( $r238_reference_tpl, 'if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) )' );
+check(
+	false !== $r238_short_description_position && false !== $r238_feature_cards_position &&
+	$r238_feature_cards_position > $r238_short_description_position && $r238_feature_cards_position < $r238_variation_options_position &&
+	false !== strpos( $r238_reference_tpl, 'is-three-compact' ) &&
+	false !== strpos( $r238_reference_tpl, 'repeat(2,minmax(0,1fr))' ) &&
+	false !== strpos( $r238_reference_tpl, 'repeat(3,minmax(0,1fr))' ),
+	'R238 dynamic feature cards sit below the short description and use compact three-column or two-column mobile grids'
+);
+check(
+	false === strpos( $r238_reference_tpl, 'reference-mobile-empty-rating' ) &&
+	false === strpos( $r238_reference_tpl, 'هنوز دیدگاهی ثبت نشده' ) &&
+	false !== strpos( $r238_reference_tpl, 'justify-content:center;gap:6px' ) &&
+	false !== strpos( $r238_reference_tpl, 'flex-wrap:wrap' ),
+	'R238 the mobile summary omits the empty-review message and centers wrapping section tabs'
+);
+check(
+	false !== strpos( $r238_reference_tpl, 'jluxe_render_sticky_add_to_cart( $product, true )' ) &&
+	false !== strpos( $r238_sticky_renderer, 'data-jluxe-sticky-cta-always' ) &&
+	false !== strpos( $r238_reference_tpl, 'body.jluxe-has-sticky-cta .jluxe-product-reference .cp3-side .cp3-addrow{display:none' ) &&
+	false !== strpos( $r238_reference_tpl, 'touchstart' ) && false !== strpos( $r238_reference_tpl, 'touchend' ) &&
+	false !== strpos( $r238_reference_tpl, "gallery.setAttribute( 'data-jluxe-gallery-current'" ),
+	'R238 the reference layout relies on its always-visible mobile purchase dock, avoids duplicate buy controls, and supports a synchronized swipe gallery'
 );
 $r238_hooks = array_column( $GLOBALS['actions'], 0 );
 $r238_id = 94238;
@@ -1058,7 +1085,8 @@ $r241_reference_dots_position      = strpos( $r238_reference_tpl, '<div class="r
 check(
 	'Reference phone' === jluxe_get_product_english_name( $r238_product ) &&
 	false !== $r241_reference_thumbnails_position && false !== $r241_reference_dots_position && $r241_reference_thumbnails_position < $r241_reference_dots_position &&
-	false !== strpos( $r238_reference_tpl, 'pairedThumb = root.querySelector' ) &&
+	false !== strpos( $r238_reference_tpl, 'function selectGalleryImage( galleryIndex, activeControl )' ) &&
+	false !== strpos( $r238_reference_tpl, 'gallery.setAttribute( \'data-jluxe-gallery-current\'' ) &&
 	false !== strpos( $r238_reference_tpl, 'reference-mobile-gallery-actions' ) &&
 	false !== strpos( $r238_reference_tpl, 'reference-mobile-gallery-dots' ) &&
 	false !== strpos( $r238_reference_tpl, 'jluxe_get_product_english_name( $product )' ) &&
@@ -1416,7 +1444,9 @@ $r133_low_stock = jluxe_sticky_stock_presentation($bc_product);
 check('low-stock'===$r133_low_stock['state'] && false!==strpos($r133_low_stock['label'],'۳'), 'R133 managed low stock uses the real quantity with Persian digits');
 $bc_product->manage_stock = false; $bc_product->stock = 20;
 ob_start(); jluxe_render_sticky_add_to_cart($bc_product); $sticky=(string) ob_get_clean();
-check(strpos($sticky,'data-jluxe-sticky-mode="add"')!==false && strpos($sticky,'افزودن به سبد')!==false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false && strpos($sticky,'jluxe-sticky-cta-name')===false && strpos($sticky,'jluxe-sticky-cta-heart')===false && strpos($sticky,'موجود در انبار')===false && strpos($sticky,'data-jluxe-sticky-stock-status')===false, 'R148 the mobile sticky CTA keeps its quantity proxy and add button but omits both the product name and wishlist heart');
+check(strpos($sticky,'data-jluxe-sticky-mode="add"')!==false && strpos($sticky,'افزودن به سبد')!==false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false && strpos($sticky,'jluxe-sticky-cta-name')===false && strpos($sticky,'jluxe-sticky-cta-heart')===false && strpos($sticky,'موجود در انبار')===false && strpos($sticky,'data-jluxe-sticky-stock-status')===false && strpos($sticky,'data-jluxe-sticky-cta-always')===false, 'R148 the mobile sticky CTA keeps its quantity proxy and add button but omits both the product name and wishlist heart by default');
+ob_start(); jluxe_render_sticky_add_to_cart($bc_product, true); $sticky_always=(string) ob_get_clean();
+check(strpos($sticky_always,'data-jluxe-sticky-cta-always')!==false && strpos($sticky_always,'data-jluxe-mobile-qty-control')!==false, 'R238 the reference layout can keep its real WooCommerce mobile price/quantity CTA dock visible from page entry');
 ob_start(); jluxe_render_sticky_quantity_control(); $sticky_qty=(string) ob_get_clean();
 check(strpos($sticky_qty,'data-jluxe-mobile-qty-step="decrease"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-step="increase"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-value')!==false && strpos($sticky_qty,'<form')===false && strpos($sticky_qty,'name="quantity"')===false, 'R146 the shared sticky quantity control has accessible +/- buttons and display-only output, never a parallel Woo form or input');
 check(strpos($sticky_def,'jluxe_render_sticky_quantity_control();')!==false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false, 'R146 both the default and classic mobile bars render the same sticky quantity proxy');
@@ -3415,6 +3445,46 @@ foreach ( $GLOBALS['wp_query_calls'] as $r131_query_args ) {
 }
 check( $r131_brand_filter_seen, 'R131 a brand named in a multiword query filters product candidates by the real brand taxonomy' );
 check( $r131_queries_bounded, 'R131 product autocomplete queries stay bounded to twelve results or fewer' );
+$r131_relevance_products = array(
+	103 => new class( 103, 'بالش طبی' ) extends WC_Product {
+		private $test_name;
+		public function __construct( $id, $name ) { parent::__construct( $id ); $this->test_name = $name; }
+		public function get_name() { return $this->test_name; }
+	},
+	104 => new class( 104, 'روتختی گلدار' ) extends WC_Product {
+		private $test_name;
+		public function __construct( $id, $name ) { parent::__construct( $id ); $this->test_name = $name; }
+		public function get_name() { return $this->test_name; }
+	},
+	105 => new class( 105, 'ست بالش و روتختی' ) extends WC_Product {
+		private $test_name;
+		public function __construct( $id, $name ) { parent::__construct( $id ); $this->test_name = $name; }
+		public function get_name() { return $this->test_name; }
+	},
+	106 => new class( 106, 'بلاش روتختی' ) extends WC_Product {
+		private $test_name;
+		public function __construct( $id, $name ) { parent::__construct( $id ); $this->test_name = $name; }
+		public function get_name() { return $this->test_name; }
+	},
+);
+$GLOBALS['products'] = $GLOBALS['products'] + $r131_relevance_products;
+$r131_relevance_posts = array();
+foreach ( array_keys( $r131_relevance_products ) as $r131_relevance_id ) {
+	$r131_relevance_post = new WP_Post();
+	$r131_relevance_post->ID = $r131_relevance_id;
+	$r131_relevance_posts[] = $r131_relevance_post;
+}
+$r131_multiword_results = jluxe_search_format_products( $r131_relevance_posts, array( 'بالش', 'روتختی' ), 6 );
+check(
+	1 === count( $r131_multiword_results['items'] ) && 'ست بالش و روتختی' === $r131_multiword_results['items'][0]['name'],
+	'R131 multiword product suggestions require every query word in the title, excluding single-token and fuzzy-only matches'
+);
+check(
+	jluxe_search_product_name_matches_tokens( 'بالشی طبی', array( 'بالش' ) ) &&
+	! jluxe_search_product_name_matches_tokens( 'بلاش روتختی', array( 'بالش', 'روتختی' ) ) &&
+	! jluxe_search_product_name_matches_tokens( 'superpillow cover', array( 'pillow' ) ),
+	'R131 product title matching keeps useful word prefixes but rejects fuzzy-only and interior-substring matches'
+);
 $r131_arabic_post = new WP_Post();
 $r131_arabic_post->ID = 199;
 $GLOBALS['wp_query_handler'] = static function ( $args ) use ( $r131_arabic_post ) {

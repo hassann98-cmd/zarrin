@@ -9,6 +9,8 @@ import { JSDOM } from "jsdom";
 // scrolls out of view.
 const script = () =>
   fs.readFileSync(new URL("../assets/js/sticky-cta.js", import.meta.url), "utf8");
+const styles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const referenceTemplate = fs.readFileSync(new URL("../woocommerce/content-single-product-reference.php", import.meta.url), "utf8");
 
 function buildDom(mode, withVariation = false) {
   const formClass = withVariation ? "cart variations_form" : "cart";
@@ -123,7 +125,7 @@ test("classic product CTA and mobile navigation switch modes without losing the 
   assert.equal(nav.hidden, false, "navigation mode restores the dock's original hidden state");
   assert.equal(originallyHiddenNav.hidden, true, "switching modes preserves another dock's preexisting hidden state");
   assert.equal(window.getComputedStyle(nav).display, "block", "navigation mode restores the bottom dock");
-  assert.equal(window.document.body.style.paddingBottom, "142px", "scroll clearance includes the dock and its switch control");
+  assert.equal(window.document.body.style.paddingBottom, "132px", "scroll clearance includes only the active dock and its switch control");
 
   toggle.click();
   assert.equal(window.document.body.dataset.jluxeStickyCtaMode, "purchase");
@@ -186,4 +188,95 @@ test("R38 sticky CTA is inert without its markup", () => {
     runScripts: "outside-only",
   });
   assert.doesNotThrow(() => dom.window.eval(script()));
+});
+
+function buildGeometryTestPage({ always = false, formBottom = 610 } = {}) {
+  const dom = new JSDOM(
+    `<!doctype html><html><body>
+      <form class="cart"><button class="single_add_to_cart_button">Add</button></form>
+      <nav class="jluxe-mobile-nav"><a href="/">Home</a></nav>
+      <div data-jluxe-sticky-cta${always ? " data-jluxe-sticky-cta-always" : ""}><button data-jluxe-sticky-add>Add</button></div>
+      <button data-jluxe-sticky-cta-mode-toggle aria-pressed="true" hidden><span data-jluxe-sticky-cta-mode-label>منو</span></button>
+    </body></html>`,
+    { url: "https://shop.test/product/demo/", pretendToBeVisual: true, runScripts: "outside-only" },
+  );
+  const { window } = dom;
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  const form = window.document.querySelector("form.cart");
+  const nav = window.document.querySelector(".jluxe-mobile-nav");
+  const bar = window.document.querySelector("[data-jluxe-sticky-cta]");
+  const toggle = window.document.querySelector("[data-jluxe-sticky-cta-mode-toggle]");
+  let currentFormBottom = formBottom;
+  form.getBoundingClientRect = () => ({ top: 0, bottom: currentFormBottom, height: currentFormBottom, width: 390, left: 0, right: 390 });
+  nav.getBoundingClientRect = () => nav.hidden
+    ? { top: 800, bottom: 800, height: 0, width: 390, left: 0, right: 390 }
+    : { top: 730, bottom: 800, height: 70, width: 390, left: 0, right: 390 };
+  bar.getBoundingClientRect = () => bar.classList.contains("is-visible")
+    ? { top: 790, bottom: 870, height: 80, width: 390, left: 0, right: 390 }
+    : { top: 800, bottom: 880, height: 80, width: 390, left: 0, right: 390 };
+  Object.defineProperty(bar, "offsetHeight", { configurable: true, value: 80 });
+  Object.defineProperty(toggle, "offsetHeight", { configurable: true, value: 44 });
+  window.MutationObserver = undefined;
+  window.eval(script());
+  return {
+    dom,
+    window,
+    nav,
+    bar,
+    toggle,
+    set formBottom(value) { currentFormBottom = value; },
+    scroll() { window.dispatchEvent(new window.Event("scroll")); },
+  };
+}
+
+test("sticky switch stays above the CTA's resting edge and scroll hysteresis prevents mode flicker", () => {
+  const page = buildGeometryTestPage();
+  assert.equal(page.bar.classList.contains("is-visible"), false);
+
+  page.formBottom = 590;
+  page.scroll();
+  assert.equal(page.bar.classList.contains("is-visible"), true);
+  assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "purchase");
+  assert.equal(page.nav.hidden, true);
+  assert.equal(page.toggle.hidden, false);
+  assert.equal(page.toggle.style.bottom, "88px", "the switch follows the CTA's resting position rather than its slide-in transform");
+  assert.equal(page.window.document.body.style.paddingBottom, "144px", "only the active dock and switch reserve page clearance");
+
+  page.formBottom = 610;
+  page.scroll();
+  assert.equal(page.bar.classList.contains("is-visible"), true, "small scroll reversals inside the hysteresis band do not flicker");
+  page.toggle.click();
+  assert.equal(page.nav.hidden, false);
+  assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "navigation");
+  assert.equal(page.toggle.style.bottom, "78px", "the switch moves above the measured nav dock");
+
+  page.formBottom = 650;
+  page.scroll();
+  assert.equal(page.bar.classList.contains("is-visible"), true);
+  assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "navigation", "scrolling does not override the customer's chosen mode");
+  page.formBottom = 750;
+  page.scroll();
+  assert.equal(page.bar.classList.contains("is-visible"), false);
+  assert.equal(page.toggle.hidden, true);
+  assert.equal(page.window.document.body.hasAttribute("data-jluxe-sticky-cta-mode"), false);
+  assert.equal(page.window.document.body.style.paddingBottom, "");
+  page.dom.window.close();
+});
+
+test("reference sticky CTA can remain available from initial mobile page load", () => {
+  const page = buildGeometryTestPage({ always: true, formBottom: 1400 });
+  assert.equal(page.bar.classList.contains("is-visible"), true);
+  assert.equal(page.window.document.body.classList.contains("jluxe-has-sticky-cta"), true);
+  assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "purchase");
+  assert.equal(page.nav.hidden, true);
+  assert.equal(page.toggle.hidden, false);
+  page.dom.window.close();
+});
+
+test("mobile mode toggles have clear styling and reference purchase controls are not duplicated", () => {
+  assert.match(styles, /\.jluxe-sticky-cta-mode-toggle\s*\{[\s\S]*?backdrop-filter: blur\(12px\)/);
+  assert.match(styles, /\.jluxe-mobile-bar-toggle\s*\{[\s\S]*?width: 48px;[\s\S]*?transition: bottom 0\.18s ease/);
+  assert.match(referenceTemplate, /jluxe_render_sticky_add_to_cart\( \$product, true \)/);
+  assert.match(referenceTemplate, /body\.jluxe-has-sticky-cta \.jluxe-product-reference \.cp3-side \.cp3-price,[\s\S]*?\.cp3-addrow\{display:none!important\}/);
 });

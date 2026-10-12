@@ -412,7 +412,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-related .button{display:none}
 /* R212 mobile gallery controls: clear hit areas, measured spacing and visible focus without changing the theme palette. */
 @media (max-width:767.98px){
-	.jluxe-cp3 .cp3-zoom{height:auto;aspect-ratio:1/1;margin-bottom:12px;border-radius:24px}
+	.jluxe-cp3 .cp3-zoom{height:auto;aspect-ratio:1/1;margin-bottom:12px;border-radius:24px;touch-action:pan-y pinch-zoom}
 	.jluxe-cp3 .cp3-thumbsrow{gap:8px}
 	.jluxe-cp3 .cp3-thumbs{gap:8px;padding:4px 2px;scroll-padding-inline:6px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 	.jluxe-cp3 .cp3-thumb{box-sizing:border-box;flex:0 0 72px;width:72px;height:72px;padding:3px;border-radius:16px}
@@ -444,7 +444,12 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-product-reference .reference-key-feature{min-width:0;border:1px solid hsl(var(--panel-border));border-radius:12px;background:hsl(var(--panel));padding:9px 11px}
 .jluxe-product-reference .reference-key-feature span{display:block;margin-bottom:4px;color:hsl(var(--text-muted));font-size:10px;line-height:1.5}
 .jluxe-product-reference .reference-key-feature strong{display:block;color:hsl(var(--foreground));font-size:12px;font-weight:700;line-height:1.7;overflow-wrap:anywhere}
-@media(max-width:420px){.jluxe-product-reference .reference-key-features__grid{grid-template-columns:minmax(0,1fr)}}
+@media(min-width:380px) and (max-width:767.98px){
+	.jluxe-product-reference .reference-key-features__grid.is-three-compact{grid-template-columns:repeat(3,minmax(0,1fr))}
+	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature{padding:8px 7px}
+	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature span{font-size:9px}
+	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature strong{font-size:10px}
+}
 
 /* The desktop reference composition remains intact; these hooks are only shown on phones. */
 .jluxe-product-reference .reference-mobile-gallery-actions,
@@ -498,7 +503,6 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 	.jluxe-product-reference .reference-mobile-stars{position:relative;display:inline-block;min-width:82px;color:hsl(var(--panel-border));font-size:16px;line-height:1;letter-spacing:1px;direction:ltr;white-space:nowrap}
 	.jluxe-product-reference .reference-mobile-stars::before{content:'★★★★★'}
 	.jluxe-product-reference .reference-mobile-stars::after{position:absolute;inset-block-start:0;left:0;width:var(--reference-rating-fill,0%);overflow:hidden;color:var(--jluxe-rating-color);content:'★★★★★';white-space:nowrap}
-	.jluxe-product-reference .reference-mobile-empty-rating{color:hsl(var(--text-muted))}
 	.jluxe-product-reference .reference-mobile-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px}
 	.jluxe-product-reference .reference-mobile-action{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:58px;padding:7px 5px;border:1px solid hsl(var(--panel-border));border-radius:14px;background:hsl(var(--panel));color:hsl(var(--text-secondary));font-size:11px;font-weight:700;line-height:1.4;text-align:center;text-decoration:none;touch-action:manipulation;transition:border-color .16s ease,color .16s ease,background-color .16s ease}
 	.jluxe-product-reference .reference-mobile-actions.no-specs{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -517,10 +521,13 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 	.jluxe-product-reference .cp3-side .cp3-addrow{display:flex!important;width:100%;margin:0}
 	.jluxe-product-reference .cp3-side .cp3-addrow .single_add_to_cart_button,.jluxe-product-reference .cp3-side .cp3-addrow .cp3-add-simple{min-height:48px;border-radius:14px!important}
 	.jluxe-product-reference .cp3-side .jluxe-stock-alert-trigger{margin:0}
+	body.jluxe-has-sticky-cta .jluxe-product-reference .cp3-side .cp3-price,
+	body.jluxe-has-sticky-cta .jluxe-product-reference .cp3-side .cp3-addrow{display:none!important}
+	body.jluxe-has-sticky-cta .jluxe-product-reference .cp3-side [data-jluxe-buybox-surface]{display:flex;flex-direction:column;gap:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 	.jluxe-product-reference .cp3-nav{display:block;margin-top:24px;padding:6px;border-radius:999px}
 	.jluxe-product-reference .cp3-nav-cur,.jluxe-product-reference .cp3-nav-arrows{display:none}
-	.jluxe-product-reference .cp3-tabs{display:flex;gap:5px;width:100%;padding:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
-	.jluxe-product-reference .cp3-tab{flex:0 0 auto;min-height:44px;padding:9px 14px;border-radius:999px;background:transparent;scroll-snap-align:start}
+	.jluxe-product-reference .cp3-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%;padding:0;overflow:visible;overscroll-behavior-x:auto;scroll-snap-type:none}
+	.jluxe-product-reference .cp3-tab{flex:0 1 auto;min-height:44px;padding:9px 12px;border-radius:999px;background:transparent;text-align:center}
 	.jluxe-product-reference .cp3-tab.is-active{background:hsl(var(--primary));color:hsl(var(--primary-foreground));font-weight:750}
 	.jluxe-product-reference .cp3-tab:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
 	.jluxe-product-reference .cp3-sec{scroll-margin-top:calc(var(--jluxe-product-nav-top,0px) + 62px)}
@@ -673,16 +680,13 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<span>تنها <?php echo esc_html( jluxe_fa_digits( $cp3_stock_qty ) ); ?> عدد موجود است</span>
 						</div>
 					<?php endif; ?>
-					<div class="reference-mobile-rating"<?php if ( $review_count > 0 ) : ?> aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه"<?php endif; ?>>
 						<?php if ( $review_count > 0 ) : ?>
-							<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
-							<strong class="reference-mobile-rating-score"><?php echo esc_html( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?></strong>
-							<a href="#sec-reviews"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> دیدگاه</a>
-						<?php else : ?>
-							<span class="reference-mobile-empty-rating">هنوز دیدگاهی ثبت نشده</span>
-							<a href="#sec-reviews"><?php echo esc_html( $cp3_review_form_open ? 'ثبت اولین دیدگاه' : 'مشاهدهٔ دیدگاه‌ها' ); ?></a>
+							<div class="reference-mobile-rating" aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه">
+								<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
+								<strong class="reference-mobile-rating-score"><?php echo esc_html( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?></strong>
+								<a href="#sec-reviews"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> دیدگاه</a>
+							</div>
 						<?php endif; ?>
-					</div>
 					<div class="reference-mobile-actions<?php echo ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) ) ? ' has-specs' : ' no-specs'; ?>" role="group" aria-label="میانبرهای محصول">
 						<a class="reference-mobile-action" href="#sec-desc">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v18H7.5A2.5 2.5 0 0 0 5 22V4.5Zm0 0V22m4-15h7m-7 4h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -714,14 +718,44 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						</div>
 					<?php endif; ?>
 
-					<?php if ( '' !== trim( (string) $cp3_short_desc ) ) : ?>
-						<div class="cp3-short" data-cp3-short>
-							<div class="cp3-short-body"><?php echo wp_kses_post( wpautop( $cp3_short_desc ) ); ?></div>
-							<button type="button" class="cp3-short-toggle" data-cp3-short-toggle aria-expanded="false">مشاهده همه</button>
-						</div>
-					<?php endif; ?>
+						<?php if ( '' !== trim( (string) $cp3_short_desc ) ) : ?>
+							<div class="cp3-short" data-cp3-short>
+								<div class="cp3-short-body"><?php echo wp_kses_post( wpautop( $cp3_short_desc ) ); ?></div>
+								<button type="button" class="cp3-short-toggle" data-cp3-short-toggle aria-expanded="false">مشاهده همه</button>
+							</div>
+						<?php endif; ?>
 
-				<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
+						<?php
+						$reference_key_features    = jluxe_product_key_feature_cards( $product );
+						$reference_compact_features = 3 === count( $reference_key_features );
+		if ( $reference_compact_features ) {
+			foreach ( $reference_key_features as $reference_feature ) {
+				if (
+					'product_brand' === (string) ( $reference_feature['name'] ?? '' ) ||
+					jluxe_strlen( wp_strip_all_tags( (string) ( $reference_feature['label'] ?? '' ) ) ) > 9 ||
+					jluxe_strlen( wp_strip_all_tags( (string) ( $reference_feature['value'] ?? '' ) ) ) > 11
+				) {
+					$reference_compact_features = false;
+					break;
+				}
+			}
+		}
+						?>
+						<?php if ( $reference_key_features ) : ?>
+							<section class="reference-key-features" aria-labelledby="reference-key-features-title">
+								<h2 id="reference-key-features-title">ویژگی‌های محصول</h2>
+								<div class="reference-key-features__grid<?php echo $reference_compact_features ? ' is-three-compact' : ''; ?>">
+									<?php foreach ( $reference_key_features as $reference_feature ) : ?>
+										<div class="reference-key-feature" data-jluxe-key-feature="<?php echo esc_attr( $reference_feature['name'] ); ?>">
+											<span><?php echo esc_html( $reference_feature['label'] ); ?></span>
+											<strong><?php echo esc_html( $reference_feature['value'] ); ?></strong>
+										</div>
+									<?php endforeach; ?>
+								</div>
+							</section>
+						<?php endif; ?>
+
+					<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
 					<?php
 					/* دو باگِ واقعیِ گزارش‌شده این‌جا رفع می‌شود:
 					 * ۱) get_variation_attributes() برای ویژگی‌های تاکسونومی «نامک»
@@ -808,20 +842,6 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php endforeach; ?>
 				<?php endif; ?>
 
-					<?php $reference_key_features = jluxe_product_key_feature_cards( $product ); ?>
-					<?php if ( $reference_key_features ) : ?>
-						<section class="reference-key-features" aria-labelledby="reference-key-features-title">
-							<h2 id="reference-key-features-title">ویژگی‌های محصول</h2>
-							<div class="reference-key-features__grid">
-								<?php foreach ( $reference_key_features as $reference_feature ) : ?>
-									<div class="reference-key-feature" data-jluxe-key-feature="<?php echo esc_attr( $reference_feature['name'] ); ?>">
-										<span><?php echo esc_html( $reference_feature['label'] ); ?></span>
-										<strong><?php echo esc_html( $reference_feature['value'] ); ?></strong>
-									</div>
-								<?php endforeach; ?>
-							</div>
-						</section>
-					<?php endif; ?>
 				</div>
 
 				<!-- جعبه‌ی خرید -->
@@ -1136,7 +1156,7 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 	jluxe_render_suggested_products_modal( $product );
 }
 ?>
-<?php jluxe_render_sticky_add_to_cart( $product ); ?>
+<?php jluxe_render_sticky_add_to_cart( $product, true ); ?>
 
 <script>
 ( function () {
@@ -1145,6 +1165,7 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 	if ( ! root ) { return; }
 
 	/* گالری: تامبنیل + زومِ زیر موس */
+	var gallery = root.querySelector( '[data-cp3-gallery]' );
 	var zoomBox = root.querySelector( '[data-cp3-zoom-box]' );
 	var zoomImg = root.querySelector( '[data-cp3-zoom-img]' );
 	var motionOk = ! window.matchMedia || ! window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches;
@@ -1153,32 +1174,64 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 		if ( zoomImg.complete && zoomImg.naturalWidth ) { cp3MarkLoaded(); }
 		zoomImg.addEventListener( 'load', cp3MarkLoaded );
 	}
+	function selectGalleryImage( galleryIndex, activeControl ) {
+		var imageThumb = root.querySelector( '.cp3-thumb[data-jluxe-gallery-open="' + String( galleryIndex ) + '"]' );
+		if ( ! imageThumb ) { return false; }
+		root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( thumb ) {
+			var thumbIndex = parseInt( thumb.getAttribute( 'data-reference-gallery-index' ) || thumb.getAttribute( 'data-jluxe-gallery-open' ), 10 );
+			var selected = thumbIndex === galleryIndex;
+			thumb.classList.toggle( 'is-active', selected );
+			thumb.setAttribute( 'aria-pressed', selected ? 'true' : 'false' );
+		} );
+		if ( gallery ) { gallery.setAttribute( 'data-jluxe-gallery-current', String( galleryIndex ) ); }
+		if ( activeControl && typeof activeControl.scrollIntoView === 'function' ) {
+			activeControl.scrollIntoView( { behavior: motionOk ? 'smooth' : 'auto', block: 'nearest', inline: 'nearest' } );
+		}
+		if ( zoomImg && imageThumb.getAttribute( 'data-full' ) ) {
+			zoomImg.classList.remove( 'is-loaded' );
+			zoomImg.removeAttribute( 'srcset' );
+			zoomImg.removeAttribute( 'sizes' );
+			zoomImg.src = imageThumb.getAttribute( 'data-full' );
+			if ( zoomImg.complete && zoomImg.naturalWidth ) { cp3MarkLoaded(); }
+		}
+		return true;
+	}
 	root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( thumb ) {
 		thumb.addEventListener( 'click', function () {
 			var galleryIndex = parseInt( thumb.getAttribute( 'data-reference-gallery-index' ) || thumb.getAttribute( 'data-jluxe-gallery-open' ), 10 );
-			if ( isNaN( galleryIndex ) ) { return; }
-			var imageThumb = thumb;
-			if ( thumb.hasAttribute( 'data-reference-gallery-index' ) ) {
-				var pairedThumb = root.querySelector( '.cp3-thumb[data-jluxe-gallery-open="' + String( galleryIndex ) + '"]' );
-				if ( pairedThumb ) { imageThumb = pairedThumb; }
-			}
-			root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( t ) {
-				var tIndex = parseInt( t.getAttribute( 'data-reference-gallery-index' ) || t.getAttribute( 'data-jluxe-gallery-open' ), 10 );
-				var selected = tIndex === galleryIndex;
-				t.classList.toggle( 'is-active', selected );
-				t.setAttribute( 'aria-pressed', selected ? 'true' : 'false' );
-			} );
-			root.setAttribute( 'data-jluxe-gallery-current', String( galleryIndex ) );
-			thumb.scrollIntoView( { behavior: motionOk ? 'smooth' : 'auto', block: 'nearest', inline: 'nearest' } );
-			if ( zoomImg && imageThumb.getAttribute( 'data-full' ) ) {
-				zoomImg.classList.remove( 'is-loaded' );
-				zoomImg.removeAttribute( 'srcset' );
-				zoomImg.removeAttribute( 'sizes' );
-				zoomImg.src = imageThumb.getAttribute( 'data-full' );
-				if ( zoomImg.complete && zoomImg.naturalWidth ) { cp3MarkLoaded(); }
-			}
+			if ( ! isNaN( galleryIndex ) ) { selectGalleryImage( galleryIndex, thumb ); }
 		} );
 	} );
+	if ( zoomBox && gallery && zoomImg ) {
+		var touchStart = null;
+		var suppressGalleryOpenUntil = 0;
+		zoomBox.addEventListener( 'touchstart', function ( event ) {
+			var point = event.touches && event.touches[0];
+			if ( point ) { touchStart = { x: point.clientX, y: point.clientY }; }
+		}, { passive: true } );
+		zoomBox.addEventListener( 'touchend', function ( event ) {
+			var point = event.changedTouches && event.changedTouches[0];
+			if ( ! touchStart || ! point ) { touchStart = null; return; }
+			var deltaX = point.clientX - touchStart.x;
+			var deltaY = point.clientY - touchStart.y;
+			touchStart = null;
+			if ( Math.abs( deltaX ) < 48 || Math.abs( deltaX ) < Math.abs( deltaY ) * 1.25 ) { return; }
+			var imageCount = root.querySelectorAll( '.cp3-thumb[data-jluxe-gallery-open]' ).length;
+			if ( imageCount < 2 ) { return; }
+			var currentIndex = parseInt( gallery.getAttribute( 'data-jluxe-gallery-current' ), 10 ) || 0;
+			var nextIndex = ( currentIndex + ( deltaX < 0 ? 1 : -1 ) + imageCount ) % imageCount;
+			if ( selectGalleryImage( nextIndex ) ) {
+				suppressGalleryOpenUntil = Date.now() + 450;
+			}
+		}, { passive: true } );
+		zoomBox.addEventListener( 'touchcancel', function () { touchStart = null; }, { passive: true } );
+		zoomBox.addEventListener( 'click', function ( event ) {
+			if ( Date.now() < suppressGalleryOpenUntil ) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+		}, true );
+	}
 	if ( zoomBox && zoomImg && motionOk ) {
 		zoomBox.addEventListener( 'mousemove', function ( e ) {
 			var rect = zoomBox.getBoundingClientRect();

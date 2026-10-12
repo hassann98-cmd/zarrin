@@ -17,7 +17,7 @@ assert.notEqual(start, -1, "the mobile price bar behavior is present in WooComme
 assert.notEqual(end, -1, "the mobile price bar behavior has a stable boundary for isolated testing");
 const toggleScript = source.slice(start, end);
 
-test("Boom's existing mobile toggle switches between the price bar and mobile navigation", () => {
+test("Boom's existing mobile toggle switches between the price bar and mobile navigation", async () => {
   const dom = new JSDOM(
     `<!doctype html><html><head><style>.hidden { display: none; }</style></head><body>
       <nav id="bottom-navigation"></nav>
@@ -32,7 +32,9 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
     { url: "https://shop.test/product/demo/", pretendToBeVisual: true, runScripts: "outside-only" },
   );
   const { window } = dom;
-  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  let viewportH = 800;
+  Object.defineProperty(window, "innerHeight", { configurable: true, get: () => viewportH });
+  let navTop = 732;
   const priceBar = window.document.querySelector("[data-jluxe-mobile-price-bar]");
   const toggle = window.document.querySelector("[data-jluxe-mobile-bar-toggle]");
   const nav = window.document.querySelector("#bottom-navigation");
@@ -41,9 +43,10 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
   priceBar.getBoundingClientRect = () => priceBar.classList.contains("hidden")
     ? { top: 800, bottom: 800, height: 0, width: 390, left: 0, right: 390 }
     : { top: 720, bottom: 800, height: 80, width: 390, left: 0, right: 390 };
-  nav.getBoundingClientRect = () => ({ top: 732, bottom: 800, height: 68, width: 390, left: 0, right: 390 });
+  nav.getBoundingClientRect = () => ({ top: navTop, bottom: viewportH, height: viewportH - navTop, width: 390, left: 0, right: 390 });
   let switches = 0;
   window.addEventListener("jluxe:toggle-mobile-bar", () => { switches += 1; });
+  window.MutationObserver = undefined;
 
   window.eval(toggleScript);
   assert.equal(priceBar.classList.contains("hidden"), false, "the price bar remains the initial mode");
@@ -68,10 +71,20 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
   assert.equal(menuIcon.hidden, false);
   assert.equal(purchaseIcon.hidden, true);
   assert.equal(switches, 2);
+
+  toggle.click();
+  viewportH = 820;
+  navTop = 746;
+  window.dispatchEvent(new window.Event("scroll"));
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+  assert.equal(toggle.style.bottom, "82px", "the control is recalculated after mobile viewport/scroll geometry changes");
+  assert.equal(switches, 3);
   dom.window.close();
 });
 
 test("the default product layout retains one accessible, visually meaningful mode toggle", () => {
+  assert.match(source, /window\.addEventListener\("scroll", schedulePositionToggle/);
+  assert.match(source, /visualViewport\.addEventListener\("scroll", schedulePositionToggle/);
   assert.match(template, /data-jluxe-mobile-bar-toggle[\s\S]*?aria-controls="jluxe-mobile-price-bar"[\s\S]*?aria-pressed="true"/);
   assert.equal((template.match(/data-jluxe-mobile-bar-toggle/g) || []).length, 1);
   assert.match(template, /data-jluxe-mobile-bar-mode-icon="menu"/);
