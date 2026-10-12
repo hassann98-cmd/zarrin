@@ -35,7 +35,6 @@ if ( ! wp_doing_ajax() ) {
 ?>
 <?php $jluxe_payment_required = WC()->cart && WC()->cart->needs_payment(); ?>
 <div id="payment" class="woocommerce-checkout-payment" data-jluxe-payment-required="<?php echo $jluxe_payment_required ? '1' : '0'; ?>" aria-labelledby="jluxe-payment-heading">
-	<h2 id="jluxe-payment-heading" tabindex="-1" class="mb-3 text-small font-medium text-foreground"><?php echo $jluxe_payment_required ? 'روش پرداخت' : 'ثبت سفارش'; ?></h2>
 	<?php if ( $jluxe_payment_required ) : ?>
 		<?php
 		/*
@@ -44,22 +43,20 @@ if ( ! wp_doing_ajax() ) {
 		 * یادآوریِ متنیه، به هیچ منطقِ واقعیِ ووکامرس دست نمی‌زنه.
 		 */
 		?>
-		<div class="jluxe-checkout-vpn-note" role="note">
-			<span class="jluxe-checkout-vpn-note__icon" aria-hidden="true">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
-			</span>
-			<span class="jluxe-checkout-vpn-note__copy">
-				<strong>نکتهٔ پیش از پرداخت</strong>
-				<span>اگر از فیلترشکن (VPN) استفاده می‌کنید، پیش از ورود به درگاه پرداخت آن را خاموش کنید.</span>
-			</span>
+		<div class="mb-4 flex items-start gap-2 rounded-xl bg-warning/15 p-4 text-small text-foreground">
+			<span class="mt-0.5 shrink-0 text-warning">⚠</span>
+			<span>در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.</span>
 		</div>
 
+		<p id="jluxe-payment-heading" tabindex="-1" class="mb-3 text-small font-medium text-foreground">روش پرداخت</p>
 		<?php
 		/*
-		 * چیدمانِ کارت‌های درگاه به مرجعِ سالمِ v1.7.29 برمی‌گردد: کارت‌ها
-		 * داخلِ flex-wrap می‌چینند. نشانِ data-jluxe-payment-required و
-		 * پیام/عنوانِ سفارشِ بدون پرداخت عمداً حفظ شده‌اند؛ گیتِ checkout جدید
-		 * برای تمایزِ «سفارش رایگان» از «درگاهِ پرداختِ در دسترس نیست» به آن نیاز دارد.
+		 * طبقِ درخواستِ صریحِ کاربر («درگاه‌های قابل‌انتخاب رو مرتب‌تر
+		 * بچین») از grid با تعدادِ ستونِ ثابت به flex-wrap با اندازه‌ی
+		 * ثابتِ هر کارت تغییر کرد — چون تعدادِ درگاه‌های واقعاً فعال ممکنه
+		 * فقط ۱ یا ۲ تا باشه (نه همیشه ۳-۴تا)، و grid با ستون‌بندیِ ثابت
+		 * کارتِ تنها رو کشیده/بی‌قواره نشون می‌داد. حالا هر کارت عرضِ
+		 * مشخصِ خودش رو داره و می‌چینه، خالی نمی‌مونه.
 		 */
 		?>
 		<ul class="wc_payment_methods payment_methods methods flex flex-wrap gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
@@ -76,7 +73,7 @@ if ( ! wp_doing_ajax() ) {
 			?>
 		</ul>
 	<?php else : ?>
-		<p role="status" class="text-small text-text-secondary">برای این سفارش، نیازی به انتخاب روش پرداخت نیست.</p>
+		<p id="jluxe-payment-heading" tabindex="-1" role="status" class="text-small text-text-secondary">برای این سفارش، نیازی به انتخاب روش پرداخت نیست.</p>
 	<?php endif; ?>
 </div>
 <?php

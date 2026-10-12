@@ -3674,8 +3674,9 @@ function jluxeEnhanceShopSort(root) {
 		// می‌کنیم تا هر جا #payment از نو ساخته شد هم بلافاصله وضعیتِ درست رو
 		// داشته باشه.
 		var paymentColumn = document.getElementById("jluxe-payment-column");
-		// شرایط/nonce و ردیفِ واقعیِ ثبت سفارش در سایدبار رندر می‌شوند؛
-		// فقط ردیفِ «بازگشت + ثبت سفارش» در مرحلهٔ پرداخت چسبان می‌شود.
+		// شرایط، nonce و submit واقعی در wrapper جداگانه می‌مانند؛ اگر قالب
+		// payment یک ردیفِ سازگار داشته باشد Back در آن قرار می‌گیرد، وگرنه
+		// کنترلِ مرحله در dock مستقلِ بیرون از submit block نمایش داده می‌شود.
 		var paymentSubmit = document.getElementById("jluxe-payment-submit");
 		var showShipping = "shipping" === currentStep;
 		if (customerDetails) {
@@ -3804,8 +3805,8 @@ function jluxeEnhanceShopSort(root) {
 	(paymentSubmitAnchor || orderReview).insertAdjacentElement("afterend", actions);
 	paymentActionRow = paymentSubmitAnchor && paymentSubmitAnchor.querySelector("[data-jluxe-checkout-place-order-row]");
 	if (paymentActionRow) {
-		// دکمهٔ بازگشت کنارِ دکمهٔ اصلیِ submit می‌ماند؛ خودِ place_order،
-		// nonce و hookهای درگاه جابه‌جا نمی‌شوند و مسیر استاندارد WooCommerce حفظ می‌شود.
+		// اگر markupِ جاری ردیفِ سازگار داشته باشد، Back در همان ردیف می‌آید؛
+		// place_order، nonce و hookهای درگاه جابه‌جا نمی‌شوند.
 		paymentActionRow.insertBefore(backBtn, paymentActionRow.firstChild);
 	} else {
 		actions.appendChild(backBtn);

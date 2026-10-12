@@ -54,7 +54,7 @@ jluxe_render_checkout_stepper( 'shipping' );
 				 * مراجعه بشه).
 				 */
 				?>
-				<div id="jluxe-payment-column" class="jluxe-checkout-panel" hidden>
+				<div id="jluxe-payment-column" class="rounded-2xl border border-border p-5" hidden>
 					<?php woocommerce_checkout_payment(); ?>
 				</div>
 			</div>
@@ -74,13 +74,13 @@ jluxe_render_checkout_stepper( 'shipping' );
 
 				<?php
 				/*
-				 * شرایط/nonce و دکمهٔ ثبتِ واقعیِ WooCommerce بیرون از fragmentهای
-				 * AJAX می‌مانند. اسکریپتِ مرحله‌ها، دکمهٔ «بازگشت» را کنارِ همین
-				 * place_order قرار می‌دهد و نوارِ مرحلهٔ ارسال را پس از این wrapper
-				 * می‌سازد؛ فقط جایگاهِ نمایشی عوض می‌شود، نه مسیرِ submit.
+				 * Markupِ شرایط/nonce و دکمهٔ ثبتِ واقعیِ WooCommerce از v1.7.29
+				 * بازیابی شده و داخلِ فرم باقی می‌ماند. نوارِ کنترلِ مرحله بیرون از
+				 * این wrapper قرار می‌گیرد؛ دکمهٔ «بازگشت» در آن است و place_order
+				 * و nonce جابه‌جا نمی‌شوند. مسیرِ submit/AJAX ووکامرس حفظ می‌شود.
 				 */
 				?>
-				<div id="jluxe-payment-submit" class="jluxe-checkout-payment-submit" hidden>
+				<div id="jluxe-payment-submit" hidden>
 					<?php jluxe_render_payment_submit(); ?>
 				</div>
 			</div>

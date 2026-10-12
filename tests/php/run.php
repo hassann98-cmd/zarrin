@@ -6411,12 +6411,14 @@ check(
 	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-layout' ) &&
 	false !== strpos( $r256_form_checkout_source, 'id="customer_details" class="jluxe-checkout-panel"' ) &&
 	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-summary' ) &&
-	false !== strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ) &&
+	false !== strpos( $r256_payment_submit_source, '<div class="form-row place-order mt-4">' ) &&
+	false !== strpos( $r256_payment_submit_source, "wc_get_template( 'checkout/terms.php' )" ) &&
 	false !== strpos( $r256_payment_submit_source, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
+	false !== strpos( $r256_payment_submit_source, "wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' )" ) &&
+	false !== strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ) &&
 	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-step-actions,' ) &&
-	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout #jluxe-payment-submit .jluxe-checkout-place-order-row' ) &&
 	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-alert' ),
-	'R256 checkout uses balanced address/payment panels, preserves the real order submit row, docks mobile actions, and styles checkout alerts'
+	'R260 keeps the new checkout panels and Back-row adapter while restoring v1.7.29 WooCommerce submit, terms, and nonce markup'
 );
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(

@@ -93,21 +93,23 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
       <form class="checkout">
         <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}${shippingAddressMarkup}</div>
         <div id="jluxe-payment-column" hidden>
-          <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}">
-            <h2 id="jluxe-payment-heading" tabindex="-1">روش پرداخت</h2>
+          <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}" aria-labelledby="jluxe-payment-heading">
+            <p id="jluxe-payment-heading" tabindex="-1">روش پرداخت</p>
             ${paymentRadios}
           </div>
         </div>
         <div id="order_review">${shipping}</div>
         <div id="jluxe-payment-submit" hidden>
-          <div class="jluxe-checkout-payment-terms">
-            <label><input id="terms" type="checkbox" name="terms" value="1"> شرایط را می‌پذیرم</label>
-          </div>
-          <p data-jluxe-payment-error class="jluxe-checkout-alert jluxe-checkout-alert--error" role="alert" hidden>روش پرداخت را انتخاب کنید.</p>
-          <div class="form-row place-order">
-            <div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
-              <div class="jluxe-checkout-place-order-slot">
-                <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
+          <div class="form-row place-order mt-4">
+            <div class="mt-3">
+              <label><input id="terms" type="checkbox" name="terms" value="1"> شرایط را می‌پذیرم</label>
+            </div>
+            <p data-jluxe-payment-error hidden>روش پرداخت را انتخاب کنید.</p>
+            <div class="mt-4">
+              <div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
+                <div class="jluxe-checkout-place-order-slot">
+                  <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
+                </div>
               </div>
             </div>
             <input type="hidden" name="woocommerce-process-checkout-nonce" value="test-nonce">
@@ -250,8 +252,9 @@ test("step actions keep the real WooCommerce place-order button, terms, and nonc
   assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "shipping");
   assert.equal(actions.hidden, false);
   assert.equal(paymentSubmit.hidden, true);
-  assert.equal(back.closest("[data-jluxe-checkout-place-order-row]"), paymentRow, "Back shares the native order-action row on payment");
+  assert.equal(back.closest("[data-jluxe-checkout-place-order-row]"), paymentRow, "Back uses the compatibility row beside the real submit button");
   assert.equal(placeOrder.closest("[data-jluxe-checkout-place-order-row]"), paymentRow);
+  assert.equal(placeOrder.closest(".form-row.place-order"), paymentSubmit.querySelector(".form-row.place-order"));
   assert.equal(placeOrder.type, "submit");
   assert.equal(placeOrder.name, "woocommerce_checkout_place_order");
   assert.equal(form.contains(placeOrder), true);
@@ -263,7 +266,7 @@ test("step actions keep the real WooCommerce place-order button, terms, and nonc
   dispatchChange(window, shippingRate);
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "payment");
-  assert.equal(actions.hidden, true, "only the payment action row remains visible in the payment step");
+  assert.equal(actions.hidden, true, "the payment action row moves with the real order button");
   assert.equal(paymentSubmit.hidden, false);
   assert.equal(back.hidden, false);
 
