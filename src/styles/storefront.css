@@ -6119,6 +6119,73 @@ html {
 }
 .jluxe-404-card img { width: 100%; height: auto; border-radius: 0.5rem; }
 
+/* Product-summary highlights: real brand taxonomy first, followed by up to three non-variation facts. */
+.jluxe-key-features {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin: 1rem 0 0.75rem;
+}
+.jluxe-key-features-title {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.jluxe-key-features-list {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+.jluxe-key-feature {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 calc(25% - 0.5rem);
+  max-width: 230px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--muted));
+  text-align: start;
+}
+.jluxe-key-feature dt {
+  color: hsl(var(--text-muted));
+  font-size: 0.625rem;
+  line-height: 1.4;
+}
+.jluxe-key-feature dd {
+  min-width: 0;
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.jluxe-key-features-link {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 0.25rem;
+  color: hsl(var(--primary));
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.jluxe-key-features-link:hover { color: hsl(var(--primary-hover)); }
+.jluxe-key-features-link:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; border-radius: 4px; }
+@media (max-width: 767.98px) {
+  .jluxe-key-feature { flex: 1 1 calc(50% - 0.5rem); max-width: none; }
+}
+
 /* =======================================================================
    نوار چسبانِ افزودن به سبد — فقط موبایل و فقط صفحهٔ محصول؛ وقتی
    dock پایین ندارد از safe-area پیروی می‌کند و بالای dock اندازه‌گیری می‌شود.

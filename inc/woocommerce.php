@@ -1614,6 +1614,104 @@ function jluxe_attribute_swatch_options( string $attribute_name, array $options,
 }
 
 /**
+ * ویژگی‌های برجستهٔ خلاصهٔ محصول: برندِ واقعیِ product_brand همیشه اول است
+ * و بعد حداکثر سه ویژگیِ نمایانِ غیرتنوعی می‌آید. ویژگی‌های variation و
+ * فیلد «برند» به‌عنوان attribute عمداً دوباره شمرده/نمایش داده نمی‌شوند.
+ *
+ * @return array<int, array{name: string, label: string, value: string}>
+ */
+function jluxe_product_key_feature_cards( $product ): array {
+	if ( ! $product instanceof WC_Product ) {
+		return array();
+	}
+
+	$cards = array();
+	if ( function_exists( 'taxonomy_exists' ) && taxonomy_exists( 'product_brand' ) && function_exists( 'wc_get_product_terms' ) ) {
+		$brand_terms = wc_get_product_terms( $product->get_id(), 'product_brand', array( 'fields' => 'all' ) );
+		if ( is_wp_error( $brand_terms ) ) {
+			$brand_terms = array();
+		}
+		$brand_names = array();
+		foreach ( (array) $brand_terms as $brand_term ) {
+			$name = is_object( $brand_term ) && isset( $brand_term->name ) ? trim( (string) $brand_term->name ) : '';
+			if ( '' !== $name ) {
+				$brand_names[] = $name;
+			}
+		}
+		$brand_names = array_values( array_unique( $brand_names ) );
+		if ( $brand_names ) {
+			$cards[] = array(
+				'name'  => 'product_brand',
+				'label' => 'برند',
+				'value' => implode( '، ', $brand_names ),
+			);
+		}
+	}
+
+	$product_attributes = method_exists( $product, 'get_attributes' ) ? (array) $product->get_attributes() : array();
+	$extra_count        = 0;
+	foreach ( $product_attributes as $attribute ) {
+		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) || ! method_exists( $attribute, 'get_variation' ) ) {
+			continue;
+		}
+		if ( method_exists( $attribute, 'get_visible' ) && ! $attribute->get_visible() ) {
+			continue;
+		}
+		if ( function_exists( 'wc_attributes_array_filter_visible' ) && ! wc_attributes_array_filter_visible( $attribute ) ) {
+			continue;
+		}
+		if ( $attribute->get_variation() ) {
+			continue;
+		}
+
+		$attribute_name  = (string) $attribute->get_name();
+		$attribute_label = function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $attribute_name, $product ) : $attribute_name;
+		$normalized_name = strtolower( sanitize_title( $attribute_name ) );
+		if (
+			in_array( $normalized_name, array( 'brand', 'pa_brand', 'product_brand' ), true ) ||
+			false !== strpos( $attribute_label, 'برند' ) ||
+			false !== stripos( $attribute_label, 'brand' )
+		) {
+			continue;
+		}
+
+		if ( ! method_exists( $attribute, 'is_taxonomy' ) || ! method_exists( $attribute, 'get_options' ) ) {
+			continue;
+		}
+		if ( $attribute->is_taxonomy() && function_exists( 'wc_get_product_terms' ) ) {
+			$raw_values = wc_get_product_terms( $product->get_id(), $attribute_name, array( 'fields' => 'all' ) );
+			if ( is_wp_error( $raw_values ) ) {
+				continue;
+			}
+			$values = array();
+			foreach ( (array) $raw_values as $term ) {
+				if ( is_object( $term ) && isset( $term->name ) ) {
+					$values[] = (string) $term->name;
+				}
+			}
+		} else {
+			$values = (array) $attribute->get_options();
+		}
+		$values = array_values( array_filter( array_map( static fn( $value ) => trim( (string) $value ), $values ), static fn( $value ) => '' !== $value ) );
+		if ( ! $values ) {
+			continue;
+		}
+
+		$cards[] = array(
+			'name'  => sanitize_title( $attribute_name ),
+			'label' => $attribute_label,
+			'value' => implode( '، ', array_unique( $values ) ),
+		);
+		++$extra_count;
+		if ( $extra_count >= 3 ) {
+			break;
+		}
+	}
+
+	return $cards;
+}
+
+/**
  * رنگ‌های قابل‌نمایشِ محصول، چه از variation attribute یک محصولِ متغیر
  * بیایند چه از ویژگیِ ساده/غیرتنوعی. این تابع یک منبعِ داده برای کارت‌ها و
  * جدول مشخصات است تا هر دو نوع محصول term name/slug را به یک شکل resolve کنند.

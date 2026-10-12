@@ -987,6 +987,87 @@ $classic_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-single-prod
 check(strpos($default_tpl,'data-jluxe-layout=')!==false && strpos($default_tpl,"\$jluxe_layout = (string) ( jluxe_get_theme_settings()['product_page']['layout'] ?? 'default' );")!==false, 'R31 default template reads the layout setting once and exposes it in the markup');
 check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic template is labelled as classic in the markup');
 
+// R237: product-summary highlight cards use the real product_brand taxonomy and exclude variation attributes.
+$r240_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$r240_old_attribute_labels = $GLOBALS['attribute_labels'] ?? array();
+$GLOBALS['taxonomies']['product_brand'] = true;
+$GLOBALS['attribute_labels'] = array_merge($r240_old_attribute_labels, array(
+	'pa_brand' => 'برند',
+	'pa_color' => 'رنگ',
+	'material' => 'جنس',
+	'warranty' => 'گارانتی',
+	'capacity' => 'ظرفیت',
+	'brand' => 'برند',
+));
+$r240_brand_term = new WP_Term();
+$r240_brand_term->name = 'زرین';
+$r240_brand_term->taxonomy = 'product_brand';
+$r240_color_term = new WP_Term();
+$r240_color_term->name = 'سرمه‌ای';
+$r240_color_term->taxonomy = 'pa_color';
+$r240_attribute = static function ( $name, $options = array(), $variation = false, $visible = true, $taxonomy = false ) {
+	return new class( $name, $options, $variation, $visible, $taxonomy ) {
+		private $name;
+		private $options;
+		private $variation;
+		private $visible;
+		private $taxonomy;
+		public function __construct( $name, $options, $variation, $visible, $taxonomy ) { $this->name = $name; $this->options = $options; $this->variation = $variation; $this->visible = $visible; $this->taxonomy = $taxonomy; }
+		public function get_name() { return $this->name; }
+		public function get_options() { return $this->options; }
+		public function get_variation() { return $this->variation; }
+		public function get_visible() { return $this->visible; }
+		public function is_taxonomy() { return $this->taxonomy; }
+	};
+};
+$r240_product = new WC_Product( 9400 );
+$GLOBALS['product_terms'][9400] = array(
+	'product_brand' => array( $r240_brand_term ),
+	'pa_color'      => array( $r240_color_term ),
+);
+$GLOBALS['product_attributes'][9400] = array(
+	$r240_attribute( 'pa_brand', array(), false, true, true ),
+	$r240_attribute( 'pa_size', array(), true, true, true ),
+	$r240_attribute( 'hidden_detail', array( 'مخفی' ), false, false, false ),
+	$r240_attribute( 'pa_color', array(), false, true, true ),
+	$r240_attribute( 'material', array( 'چرم', 'پارچه' ), false, true, false ),
+	$r240_attribute( 'warranty', array( '۱۸ ماه' ), false, true, false ),
+	$r240_attribute( 'capacity', array( '۵ لیتر' ), false, true, false ),
+);
+$r240_cards = jluxe_product_key_feature_cards( $r240_product );
+check(
+	4 === count( $r240_cards ) &&
+	array( 'product_brand', 'pa_color', 'material', 'warranty' ) === array_column( $r240_cards, 'name' ) &&
+	'زرین' === $r240_cards[0]['value'] && 'سرمه‌ای' === $r240_cards[1]['value'] &&
+	'چرم، پارچه' === $r240_cards[2]['value'] && 'گارانتی' === $r240_cards[3]['label'],
+	'R237 cards put the assigned taxonomy brand first, use visible values, omit duplicate-brand/variation/hidden features, and cap regular features at three'
+);
+unset( $GLOBALS['taxonomies']['product_brand'] );
+$r240_attribute_only_product = new WC_Product( 9401 );
+$GLOBALS['product_attributes'][9401] = array( $r240_attribute( 'brand', array( 'Not a taxonomy brand' ), false, true, false ) );
+check(
+	array() === jluxe_product_key_feature_cards( $r240_attribute_only_product ),
+	'R237 a product attribute named brand is not used as a substitute for the real product_brand taxonomy'
+);
+$GLOBALS['taxonomies'] = $r240_old_taxonomies;
+$GLOBALS['attribute_labels'] = $r240_old_attribute_labels;
+$r240_default_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
+$r240_short_desc_pos = strpos( $r240_default_template, 'data-jluxe-short-desc-toggle' );
+$r240_feature_section_pos = strpos( $r240_default_template, '<section class="jluxe-key-features"' );
+check(
+	false !== $r240_short_desc_pos && false !== $r240_feature_section_pos && $r240_short_desc_pos < $r240_feature_section_pos &&
+	false !== strpos( $r240_default_template, '$key_features = jluxe_product_key_feature_cards( $product );' ),
+	'R237 Boom renders the feature-card section immediately after its short-description markup'
+);
+$r240_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+check(
+	false !== strpos( $r240_storefront_css, '.jluxe-key-feature {' ) &&
+	false !== strpos( $r240_storefront_css, 'border-radius: 12px;' ) &&
+	false !== strpos( $r240_storefront_css, 'background: hsl(var(--muted));' ) &&
+	false !== strpos( $r240_storefront_css, '.jluxe-key-features-link:focus-visible' ),
+	'R237 key-feature cards have separate rounded light surfaces and an accessible focused link state'
+);
+
 // R32: AI comments — auto replies + editable summaries. All provider traffic is the deterministic mock.
 reset_security();
 $defaults = jluxe_theme_settings_defaults();

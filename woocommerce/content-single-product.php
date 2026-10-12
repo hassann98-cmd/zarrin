@@ -54,7 +54,9 @@ $categories = wc_get_product_category_list( $product->get_id() );
  * می‌شن (is_variation()) عمداً از این لیست حذف می‌شن — طبق گزارشِ واقعیِ
  * کاربر، قبلاً همون «رنگ» که بالای سواچ‌ها انتخاب می‌شد این‌جا هم دوباره
  * (با مقدارِ کاملِ همه‌ی گزینه‌ها، نه فقط انتخاب‌شده) تکرار می‌شد. ویژگیِ
- * «برند» (اگه محصول داشته باشه) اول لیست میاد.
+ * کارت‌های خلاصه در بخش برجستهٔ زیرِ توضیح کوتاه جداگانه ساخته می‌شوند:
+ * برند از تاکسونومی product_brand می‌آید و سه ویژگیِ نمایانِ دیگر از همین
+ * attributeهای غیرتنوعی انتخاب می‌شوند.
  */
 $attributes = array();
 foreach ( array_filter( $product->get_attributes(), 'wc_attributes_array_filter_visible' ) as $attribute ) {
@@ -85,7 +87,7 @@ usort(
 		return (int) $b['is_brand'] - (int) $a['is_brand'];
 	}
 );
-$key_attributes = array_slice( $attributes, 0, 3 );
+$key_features = jluxe_product_key_feature_cards( $product );
 
 /*
  * محصول متغیر: طبق طراحی مرجع (تصویر ضمیمه‌ی کاربر)، سواچ‌های رنگ/سایز باید
@@ -203,27 +205,6 @@ if ( $jluxe_is_variable ) {
 				<?php endif; ?>
 				<?php if ( function_exists( 'jluxe_render_stock_alert_trigger' ) ) { jluxe_render_stock_alert_trigger( $product ); } ?>
 
-				<?php if ( $key_attributes ) : ?>
-					<div class="mt-5">
-						<h2 class="mb-2 text-[13px] font-bold text-foreground">ویژگی‌های کلیدی</h2>
-						<div class="grid gap-1.5 sm:grid-cols-2">
-							<?php foreach ( $key_attributes as $attribute ) : ?>
-								<div class="flex items-start gap-2 rounded-lg bg-muted px-3 py-2" data-jluxe-keyspec-attr="<?php echo esc_attr( $attribute['name'] ); ?>">
-									<span class="mt-1.5 size-1 shrink-0 rounded-full bg-primary"></span>
-									<p class="min-w-0 text-[12.5px] leading-5">
-										<span class="text-text-muted"><?php echo esc_html( $attribute['label'] ); ?>:</span>
-										<span class="font-medium text-foreground" data-jluxe-keyspec-value data-jluxe-keyspec-default="<?php echo esc_attr( $attribute['value'] ); ?>"><?php if ( ! empty( $attribute['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $attribute['swatches'], $attribute['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $attribute['value'] ); ?><?php endif; ?></span>
-									</p>
-								</div>
-							<?php endforeach; ?>
-						</div>
-						<a href="#specs" class="mt-2.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary hover:text-primary-hover">
-							مشاهده مشخصات کامل
-							<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg>
-						</a>
-					</div>
-				<?php endif; ?>
-
 				<?php
 				$jluxe_short_desc = $product->get_short_description();
 				if ( $jluxe_short_desc ) :
@@ -232,6 +213,24 @@ if ( $jluxe_is_variable ) {
 						<div class="jluxe-clamp-3 text-[13px] leading-6 text-text-secondary" data-jluxe-short-desc-text><?php echo wp_kses_post( wpautop( $jluxe_short_desc ) ); ?></div>
 						<button type="button" class="mt-1.5 hidden text-[12.5px] font-semibold text-primary hover:text-primary-hover" data-jluxe-short-desc-toggle>بیشتر</button>
 					</div>
+				<?php endif; ?>
+
+				<?php if ( $key_features ) : ?>
+					<section class="jluxe-key-features" aria-labelledby="jluxe-key-features-title">
+						<h2 id="jluxe-key-features-title" class="jluxe-key-features-title">ویژگی‌ها:</h2>
+						<dl class="jluxe-key-features-list">
+							<?php foreach ( $key_features as $feature ) : ?>
+								<div class="jluxe-key-feature" data-jluxe-key-feature="<?php echo esc_attr( $feature['name'] ); ?>">
+									<dt><?php echo esc_html( $feature['label'] ); ?>:</dt>
+									<dd><?php echo esc_html( $feature['value'] ); ?></dd>
+								</div>
+							<?php endforeach; ?>
+						</dl>
+						<a href="#specs" class="jluxe-key-features-link">
+							مشاهده مشخصات کامل
+							<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg>
+						</a>
+					</section>
 				<?php endif; ?>
 
 				<?php do_action( 'woocommerce_share', $product ); ?>

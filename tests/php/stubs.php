@@ -232,7 +232,7 @@ function wc_get_template_part($slug,$name=''){if(function_exists('jluxe_test_ren
 function get_the_ID(){return $GLOBALS['current_product_id']??0;}
 function wp_get_post_terms($id,$tax,$args=array()){return $GLOBALS['post_terms'][$id][$tax]??array();}
 
-function wc_attribute_label($name,$product=null){return $name;}
+function wc_attribute_label($name,$product=null){return $GLOBALS['attribute_labels'][$name]??$name;}
 function wc_dropdown_variation_attribute_options($args=array()){$options=isset($args["options"])?$args["options"]:array();$attribute=(string)($args["attribute"]??"");$selected=isset($args["selected"])?(string)$args["selected"]:"";echo '<select name="'.esc_attr("attribute_".$attribute).'">';foreach((array)$options as $o){$value=(string)$o;$label=function_exists('jluxe_attribute_option_label')?jluxe_attribute_option_label($value,$attribute,$args['product']??null):$value;echo '<option value="'.esc_attr($value).'"'.($value===$selected?' selected':'').'>'.esc_html($label).'</option>';}echo '</select>';}
 function wc_get_products($args){$GLOBALS['product_query_args']=$args;if(isset($GLOBALS['product_query_handler'])&&is_callable($GLOBALS['product_query_handler'])){return call_user_func($GLOBALS['product_query_handler'],$args);}return $GLOBALS['product_query_results']??[];}
 function wc_get_product_ids_on_sale(){return $GLOBALS['sale_ids']??[];}
@@ -375,7 +375,7 @@ class WC_Product {
  function get_available_variations(){$this->variationCalls++;return ['test-variation'];}
  function get_image_id(){return $this->image_id;}
  function get_name(){return 'Public product';}
- function get_attributes(){return [];}
+ function get_attributes(){return $GLOBALS['product_attributes'][$this->id]??[];}
  function get_price_html(){return $GLOBALS['product_price_html'][$this->id]??'100';}
  function is_on_sale(){return true;}
  function get_price($context='view'){return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
@@ -540,7 +540,11 @@ function wp_clear_scheduled_hook($hook){ $removed=0; foreach(array_keys($GLOBALS
 
 /* — R34..R39: طراحی/UX (۴۰۴، توکن‌ها، آیکون‌ها، بردکرامب، نوار چسبان، preload فونت) — */
 class WP_Term { public $term_id=7; public $name='دسته'; public $parent=0; public $slug='cat'; public $taxonomy='product_cat'; public $count=0; }
-function wc_get_product_terms($id,$tax,$args=[]){ return $GLOBALS['product_terms'][$id]??[]; }
+function wc_get_product_terms($id,$tax,$args=[]){
+ $terms=$GLOBALS['product_terms'][$id]??[];
+ if(is_array($terms)&&isset($terms[$tax])&&is_array($terms[$tax]))return $terms[$tax];
+ return $terms;
+}
 function get_term($id,$tax){ return ($GLOBALS['terms_by_id'][$id]??null) ?: new WP_Error('invalid_term','Term not found'); }
 function get_search_query(){ return $GLOBALS['search_query']??''; }
 // R88 — PWA
