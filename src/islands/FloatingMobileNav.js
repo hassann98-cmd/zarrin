@@ -239,7 +239,7 @@ function FloatingMobileNav() {
                   : null,
                 cartAction && snapshot.itemCount > 0
                   ? jsx.jsx("span", {
-                      className: "jluxe-mobile-nav-cart-count absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-accent-hover text-[10px] font-bold text-accent-foreground shadow-md",
+                      className: "jluxe-mobile-nav-cart-count absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-md",
                       children: snapshot.itemCount,
                     })
                   : null,

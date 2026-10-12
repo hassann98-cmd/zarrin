@@ -201,7 +201,7 @@ function MobileNav() {
                   }),
                   item.id === "cart" && snapshot.itemCount > 0
                     ? jsx.jsx("span", {
-                        className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-accent-hover text-[10px] font-bold text-accent-foreground shadow-md",
+                        className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-md",
                         children: snapshot.itemCount,
                       })
                     : null,

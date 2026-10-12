@@ -320,6 +320,26 @@ test("mobile overlays and inline popovers clear the sticky header and dock", () 
   assert.match(floatingNavSource, /data-jluxe-mobile-nav-dock/);
 });
 
+test("R245 a closing drawer stops intercepting the next cart tap during its exit animation", () => {
+  const exitingLayer = /className: `fixed inset-0 \${n \? "" : "pointer-events-none"}`,[\s\S]*?"aria-hidden": !n/;
+  for (const [name, source] of [
+    ["cart", miniCartSource],
+    ["category", categoryDrawerSource],
+  ]) {
+    assert.match(source, exitingLayer, `${name} drawer releases pointer input as soon as it starts closing`);
+    assert.match(source, /"aria-modal": n \? "true" : undefined/, `${name} drawer exits the modal accessibility state before unmount`);
+  }
+  assert.match(storefrontStyles, /\.pointer-events-none\s*\{\s*pointer-events: none;/);
+});
+
+test("R245 cart-count badges use the theme primary and mini-cart thumbnails keep a square, uncropped frame", () => {
+  assert.match(headerIslandSource, /rounded-full bg-primary text-caption font-bold text-primary-foreground/);
+  assert.match(mobileNavSource, /rounded-full bg-primary text-\[10px\] font-bold text-primary-foreground shadow-md/);
+  assert.match(floatingNavSource, /rounded-full bg-primary text-\[10px\] font-bold text-primary-foreground shadow-md/);
+  assert.match(miniCartSource, /className:\s*"size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-muted"/);
+  assert.match(miniCartSource, /className:\s*"size-full object-contain"/);
+});
+
 test("R121 product tabs and in-page targets account for the live sticky header and announcement offsets", () => {
   assert.match(productTemplate, /jluxe-product-section-nav sticky/);
   assert.match(productTemplate, /jluxe-product-section-anchor scroll-mt-16/);

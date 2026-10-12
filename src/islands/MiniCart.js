@@ -85,8 +85,9 @@ function J() {
     y
       ? k.createPortal(
           e.jsxs("div", {
-            className: "fixed inset-0",
+            className: `fixed inset-0 ${n ? "" : "pointer-events-none"}`,
             style: { zIndex: MOBILE_DRAWER_Z_INDEX },
+            "aria-hidden": !n,
             children: [
               e.jsx("div", {
                 className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
@@ -98,7 +99,7 @@ function J() {
                 id: "jluxe-cart-drawer-dialog",
                 role: "dialog",
                 ref: dialogRef,
-                "aria-modal": "true",
+                "aria-modal": n ? "true" : undefined,
                 "aria-label": "سبد خرید",
                 children: [
                   e.jsxs("div", {
@@ -257,11 +258,11 @@ function J() {
                                         e.jsx("a", {
                                           href: t.url,
                                           className:
-                                            "shrink-0 overflow-hidden rounded-xl border border-border bg-surface",
+                                            "size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-muted",
                                           children: e.jsx("img", {
                                             src: t.image,
                                             alt: t.name,
-                                            className: "size-16 object-cover",
+                                            className: "size-full object-contain",
                                           }),
                                         }),
                                         e.jsxs("div", {

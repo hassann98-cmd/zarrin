@@ -406,7 +406,7 @@ function J() {
               children: [
                 e.jsx("span", {
                   className:
-                    "flex size-5 items-center justify-center rounded-full bg-muted text-caption font-bold text-foreground",
+                    "flex size-5 items-center justify-center rounded-full bg-primary text-caption font-bold text-primary-foreground",
                   children: r.toLocaleString("fa-IR"),
                 }),
                 e.jsx("span", {

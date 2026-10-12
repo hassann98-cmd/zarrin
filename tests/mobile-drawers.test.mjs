@@ -32,6 +32,26 @@ test("rapid cart taps before the asynchronous drawer mounts keep the open reques
   assert.equal(closes, 1);
 });
 
+test("R245 an immediate cart retry after close starts opens the drawer instead of leaving it inactive", (t) => {
+  const dom = new JSDOM("<!doctype html><html><body></body></html>");
+  const { window } = dom;
+  const calls = [];
+  const unregister = registerMobileDrawer("cart", {
+    open: () => calls.push("open"),
+    close: () => calls.push("close"),
+  }, window);
+  t.after(() => {
+    unregister();
+    window.close();
+  });
+
+  assert.equal(toggleMobileDrawer("cart", window), "cart");
+  assert.equal(toggleMobileDrawer("cart", window), null);
+  assert.equal(toggleMobileDrawer("cart", window), "cart");
+  assert.equal(getActiveMobileDrawer(window), "cart");
+  assert.deepEqual(calls, ["open", "close", "open"]);
+});
+
 test("mobile drawer requests survive late mounting and same-drawer requests close the panel", () => {
   const dom = new JSDOM("<!doctype html><html><body></body></html>");
   const { window } = dom;

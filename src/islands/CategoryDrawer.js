@@ -73,8 +73,9 @@ function F() {
     y
       ? k.createPortal(
           e.jsxs("div", {
-            className: "fixed inset-0",
+            className: `fixed inset-0 ${n ? "" : "pointer-events-none"}`,
             style: { zIndex: MOBILE_DRAWER_Z_INDEX },
+            "aria-hidden": !n,
             children: [
               e.jsx("div", {
                 className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
@@ -86,7 +87,7 @@ function F() {
                 id: "jluxe-category-drawer-dialog",
                 role: "dialog",
                 ref: dialogRef,
-                "aria-modal": "true",
+                "aria-modal": n ? "true" : undefined,
                 "aria-label": "دسته‌بندی‌ها",
                 children: [
                   e.jsxs("div", {
