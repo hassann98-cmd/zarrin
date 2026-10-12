@@ -1012,34 +1012,35 @@ $r238_hooks = array_column( $GLOBALS['actions'], 0 );
 $r238_id = 94238;
 $r238_had_meta = array_key_exists( $r238_id, $GLOBALS['post_meta'] ?? array() );
 $r238_old_meta = $GLOBALS['post_meta'][ $r238_id ] ?? null;
-$r238_had_global_post = array_key_exists( 'post', $GLOBALS );
-$r238_old_global_post = $GLOBALS['post'] ?? null;
 $r238_old_request = $_POST;
+$GLOBALS['post_meta'][ $r238_id ]['_delivery_time'] = 'ارسال سریع';
 $GLOBALS['post_meta'][ $r238_id ]['_jluxe_delivery_time'] = 'ارسال طی ۲ روز';
-$GLOBALS['post'] = (object) array( 'ID' => $r238_id );
-ob_start();
-jluxe_render_product_delivery_time_field();
-$r238_editor_field = (string) ob_get_clean();
 $r238_product = new WC_Product( $r238_id );
-$_POST['_jluxe_delivery_time'] = ' <b>ارسال در ۳ روز</b> ';
+$r238_canonical_display = jluxe_get_product_delivery_time( $r238_product );
+$_POST['_delivery_time'] = ' <b>ارسال در ۳ روز</b> ';
+jluxe_save_product_delivery_time_primary_meta( $r238_product );
+$r238_primary_object_saved = $r238_product->meta['_delivery_time'] ?? '';
+jluxe_save_product_delivery_time_primary_meta_legacy( $r238_id );
+$r238_primary_legacy_saved = $GLOBALS['post_meta'][ $r238_id ]['_delivery_time'] ?? '';
+$_POST['_delivery_time'] = '';
+jluxe_save_product_delivery_time_primary_meta_legacy( $r238_id );
+$r238_empty_primary = jluxe_get_product_delivery_time( $r238_product );
+unset( $GLOBALS['post_meta'][ $r238_id ]['_delivery_time'] );
+$r238_legacy_display = jluxe_get_product_delivery_time( $r238_product );
+$_POST['_jluxe_delivery_time'] = ' <b>ارسال در ۴ روز</b> ';
 jluxe_save_product_delivery_time_meta( $r238_product );
-$r238_object_saved = $r238_product->meta['_jluxe_delivery_time'] ?? '';
+$r238_legacy_object_saved = $r238_product->meta['_jluxe_delivery_time'] ?? '';
 jluxe_save_product_delivery_time_meta_legacy( $r238_id );
 $r238_legacy_saved = $GLOBALS['post_meta'][ $r238_id ]['_jluxe_delivery_time'] ?? '';
-$r238_display_value = jluxe_get_product_delivery_time( $r238_id );
-$_POST['_jluxe_delivery_time'] = '';
-jluxe_save_product_delivery_time_meta_legacy( $r238_id );
-$r238_empty_value = jluxe_get_product_delivery_time( $r238_product );
 check(
-	in_array( 'woocommerce_product_options_general_product_data', $r238_hooks, true ) &&
 	in_array( 'woocommerce_admin_process_product_object', $r238_hooks, true ) &&
 	in_array( 'woocommerce_process_product_meta', $r238_hooks, true ) &&
-	false !== strpos( $r238_editor_field, 'id="_jluxe_delivery_time"' ) &&
-	false !== strpos( $r238_editor_field, 'value="ارسال طی ۲ روز"' ) &&
-	false !== strpos( $r238_editor_field, 'placeholder="مثلاً: ارسال سریع"' ) &&
-	'ارسال در ۳ روز' === $r238_object_saved && 'ارسال در ۳ روز' === $r238_legacy_saved &&
-	'ارسال در ۳ روز' === $r238_display_value && '' === $r238_empty_value,
-	'R238 the WooCommerce General-tab field saves sanitized per-product delivery text and an empty value does not hardcode the example label'
+	! function_exists( 'jluxe_render_product_delivery_time_field' ) &&
+	'ارسال سریع' === $r238_canonical_display &&
+	'ارسال در ۳ روز' === $r238_primary_object_saved && 'ارسال در ۳ روز' === $r238_primary_legacy_saved &&
+	'' === $r238_empty_primary && 'ارسال طی ۲ روز' === $r238_legacy_display &&
+	'ارسال در ۴ روز' === $r238_legacy_object_saved && 'ارسال در ۴ روز' === $r238_legacy_saved,
+	'R238 uses the existing _delivery_time editor field without adding a duplicate and preserves _jluxe_delivery_time as a sanitized legacy fallback'
 );
 check(
 	false !== strpos( $default_tpl, 'data-jluxe-delivery-time-row' ) &&
@@ -1049,11 +1050,30 @@ check(
 	false !== strpos( $classic_tpl, "if ( '' !== \$cp3_delivery_time ) :" ) &&
 	false !== strpos( $r238_reference_tpl, 'data-jluxe-delivery-time-row' ) &&
 	false !== strpos( $r238_reference_tpl, "if ( '' !== \$cp3_delivery_time ) :" ),
-	'R238 all three product layouts render the same dynamic delivery field and hide its row when left blank'
+	'R238 all three product layouts render the product-specific delivery value and hide its row when empty'
+);
+$GLOBALS['post_meta'][ $r238_id ]['_english_product_name'] = 'Reference phone';
+$r241_reference_thumbnails_position = strpos( $r238_reference_tpl, '<div class="cp3-thumbsrow">' );
+$r241_reference_dots_position      = strpos( $r238_reference_tpl, '<div class="reference-mobile-gallery-dots" role="group"' );
+check(
+	'Reference phone' === jluxe_get_product_english_name( $r238_product ) &&
+	false !== $r241_reference_thumbnails_position && false !== $r241_reference_dots_position && $r241_reference_thumbnails_position < $r241_reference_dots_position &&
+	false !== strpos( $r238_reference_tpl, 'pairedThumb = root.querySelector' ) &&
+	false !== strpos( $r238_reference_tpl, 'reference-mobile-gallery-actions' ) &&
+	false !== strpos( $r238_reference_tpl, 'reference-mobile-gallery-dots' ) &&
+	false !== strpos( $r238_reference_tpl, 'jluxe_get_product_english_name( $product )' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-reference-stock-status=' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-reference-sku' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-reference-low-stock' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-jluxe-share' ) &&
+	false !== strpos( $r238_reference_tpl, 'data-jluxe-wishlist-toggle=' ) &&
+	false === strpos( $r238_reference_tpl, 'data-product-compare' ) &&
+	false === strpos( $r238_reference_tpl, 'data-price-history' ) &&
+	false === strpos( $classic_tpl, 'reference-mobile-gallery-actions' ),
+	'R241 the mobile reference presentation reads English/meta/stock/rating data dynamically, uses working actions, and stays isolated from the other layouts'
 );
 $_POST = $r238_old_request;
 if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
-if ( $r238_had_global_post ) { $GLOBALS['post'] = $r238_old_global_post; } else { unset( $GLOBALS['post'] ); }
 
 // R237: product-summary highlight cards use the real product_brand taxonomy and exclude variation attributes.
 $r240_old_taxonomies = $GLOBALS['taxonomies'] ?? array();

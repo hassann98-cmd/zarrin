@@ -443,11 +443,27 @@ function jluxeBindClassicVariationGallery(form) {
 		galleryIndex: gallery.getAttribute("data-jluxe-gallery-current") || "0",
 	};
 
+	function syncGalleryThumbs(activeIndex) {
+		var thumbs = gallery.querySelectorAll("[data-cp3-thumb]");
+		if (!gallery.querySelector("[data-reference-gallery-index]")) {
+			/* Preserve the existing Classic layout's index-based behavior unchanged. */
+			thumbs.forEach(function (thumb, index) {
+				thumb.classList.toggle("is-active", index === activeIndex);
+			});
+			return;
+		}
+		thumbs.forEach(function (thumb, fallbackIndex) {
+			var rawIndex = thumb.getAttribute("data-reference-gallery-index") || thumb.getAttribute("data-jluxe-gallery-open");
+			var thumbIndex = parseInt(rawIndex, 10);
+			if (isNaN(thumbIndex)) { thumbIndex = fallbackIndex; }
+			var selected = thumbIndex === activeIndex;
+			thumb.classList.toggle("is-active", selected);
+			thumb.setAttribute("aria-pressed", selected ? "true" : "false");
+		});
+	}
 	function selectFirstGalleryImage() {
 		gallery.setAttribute("data-jluxe-gallery-current", "0");
-		gallery.querySelectorAll("[data-cp3-thumb]").forEach(function (thumb, index) {
-			thumb.classList.toggle("is-active", index === 0);
-		});
+		syncGalleryThumbs(0);
 	}
 	function updateMainImageLoadedState(previousSource) {
 		if (previousSource !== mainImage.getAttribute("src")) {
@@ -465,9 +481,7 @@ function jluxeBindClassicVariationGallery(form) {
 		restoreAttributes(modalImage, original.modal);
 		updateMainImageLoadedState(previousSource);
 		gallery.setAttribute("data-jluxe-gallery-current", original.galleryIndex);
-		gallery.querySelectorAll("[data-cp3-thumb]").forEach(function (thumb, index) {
-			thumb.classList.toggle("is-active", index === Number(original.galleryIndex));
-		});
+		syncGalleryThumbs(Number(original.galleryIndex));
 	}
 	function showVariationImage(variation) {
 		var image = variation && variation.image;

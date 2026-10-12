@@ -75,6 +75,45 @@ $cp3_short_desc    = $product->get_short_description();
 $cp3_delivery_time = jluxe_get_product_delivery_time( $product );
 $cp3_faq_items   = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array();
 $cp3_stock_qty   = $product->managing_stock() ? $product->get_stock_quantity() : null;
+$cp3_english_product_name = function_exists( 'jluxe_get_product_english_name' ) ? jluxe_get_product_english_name( $product ) : '';
+$cp3_mobile_in_stock      = $product->is_in_stock();
+$cp3_mobile_rating_fill   = (int) round( max( 0, min( 5, $rating ) ) * 20 );
+
+$cp3_mobile_category_terms = function_exists( 'taxonomy_exists' ) && taxonomy_exists( 'product_cat' ) && function_exists( 'wc_get_product_terms' )
+	? wc_get_product_terms( $product->get_id(), 'product_cat', array( 'fields' => 'all' ) )
+	: array();
+if ( is_wp_error( $cp3_mobile_category_terms ) ) {
+	$cp3_mobile_category_terms = array();
+}
+$cp3_mobile_category      = ! empty( $cp3_mobile_category_terms ) ? reset( $cp3_mobile_category_terms ) : null;
+$cp3_mobile_category_name = is_object( $cp3_mobile_category ) && isset( $cp3_mobile_category->name ) ? trim( (string) $cp3_mobile_category->name ) : '';
+$cp3_mobile_category_link = '';
+if ( '' !== $cp3_mobile_category_name && function_exists( 'get_term_link' ) ) {
+	$cp3_mobile_category_url = get_term_link( $cp3_mobile_category );
+	if ( ! is_wp_error( $cp3_mobile_category_url ) ) {
+		$cp3_mobile_category_link = (string) $cp3_mobile_category_url;
+	}
+}
+
+$cp3_mobile_brand_terms = function_exists( 'taxonomy_exists' ) && taxonomy_exists( 'product_brand' ) && function_exists( 'wc_get_product_terms' )
+	? wc_get_product_terms( $product->get_id(), 'product_brand', array( 'fields' => 'all' ) )
+	: array();
+if ( is_wp_error( $cp3_mobile_brand_terms ) ) {
+	$cp3_mobile_brand_terms = array();
+}
+$cp3_mobile_brand      = ! empty( $cp3_mobile_brand_terms ) ? reset( $cp3_mobile_brand_terms ) : null;
+$cp3_mobile_brand_name = is_object( $cp3_mobile_brand ) && isset( $cp3_mobile_brand->name ) ? trim( (string) $cp3_mobile_brand->name ) : '';
+$cp3_mobile_brand_link = '';
+if ( '' !== $cp3_mobile_brand_name && function_exists( 'get_term_link' ) ) {
+	$cp3_mobile_brand_url = get_term_link( $cp3_mobile_brand );
+	if ( ! is_wp_error( $cp3_mobile_brand_url ) ) {
+		$cp3_mobile_brand_link = (string) $cp3_mobile_brand_url;
+	}
+}
+$cp3_mobile_back_url = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' );
+if ( ! $cp3_mobile_back_url ) {
+	$cp3_mobile_back_url = home_url( '/' );
+}
 
 /* خلاصه‌ی رأی‌ها: مثبت (۴–۵)، بی‌طرف (۳)، منفی (۱–۲) */
 $cp3_counts = array( 'pos' => 0, 'neu' => 0, 'neg' => 0 );
@@ -406,6 +445,87 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-product-reference .reference-key-feature span{display:block;margin-bottom:4px;color:hsl(var(--text-muted));font-size:10px;line-height:1.5}
 .jluxe-product-reference .reference-key-feature strong{display:block;color:hsl(var(--foreground));font-size:12px;font-weight:700;line-height:1.7;overflow-wrap:anywhere}
 @media(max-width:420px){.jluxe-product-reference .reference-key-features__grid{grid-template-columns:minmax(0,1fr)}}
+
+/* The desktop reference composition remains intact; these hooks are only shown on phones. */
+.jluxe-product-reference .reference-mobile-gallery-actions,
+.jluxe-product-reference .reference-mobile-gallery-dots,
+.jluxe-product-reference .reference-mobile-taxonomy,
+.jluxe-product-reference .reference-mobile-english-name,
+.jluxe-product-reference .reference-mobile-product-meta,
+.jluxe-product-reference .reference-mobile-stock-warning,
+.jluxe-product-reference .reference-mobile-rating,
+.jluxe-product-reference .reference-mobile-actions{display:none}
+@media(max-width:767.98px){
+	.jluxe-product-reference>.mx-auto{box-sizing:border-box;width:100%;max-width:none;padding:0}
+	.jluxe-product-reference .cp3-bc{display:none}
+	.jluxe-product-reference .cp3-card{margin:0;padding:0;border-radius:0;background:transparent;box-shadow:none}
+	.jluxe-product-reference .cp3-grid{gap:0}
+	.jluxe-product-reference .cp3-gallery{position:relative;flex:none;width:100%;padding:0;overflow:hidden;background:hsl(var(--surface-elevated))}
+	.jluxe-product-reference .cp3-zoom{height:auto;aspect-ratio:1/1;margin:0;border-radius:0;background:hsl(var(--surface-elevated));box-shadow:none}
+	.jluxe-product-reference .cp3-zoom::after{border-radius:0;box-shadow:none}
+	.jluxe-product-reference .cp3-thumbsrow{display:none}
+	.jluxe-product-reference .reference-mobile-gallery-actions{position:absolute;z-index:3;inset-block-start:calc(env(safe-area-inset-top,0px) + 12px);inset-inline:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;direction:rtl}
+	.jluxe-product-reference .reference-mobile-gallery-actions__cluster{display:flex;align-items:center;gap:9px}
+	.jluxe-product-reference .reference-mobile-gallery-button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;border:1px solid hsl(var(--panel-border)/.7);border-radius:999px;background:hsl(var(--surface)/.9);color:hsl(var(--foreground));box-shadow:0 5px 18px hsl(var(--foreground)/.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-decoration:none;touch-action:manipulation;transition:transform .16s ease,background-color .16s ease,color .16s ease}
+	.jluxe-product-reference .reference-mobile-gallery-button svg{width:19px;height:19px}
+	.jluxe-product-reference .reference-mobile-gallery-button[aria-pressed="true"]{color:hsl(var(--error))}
+	.jluxe-product-reference .reference-mobile-gallery-button:active{transform:scale(.95)}
+	.jluxe-product-reference .reference-mobile-gallery-button:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:3px}
+	.jluxe-product-reference .reference-mobile-gallery-dots{position:absolute;z-index:3;left:50%;bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px;max-width:calc(100% - 32px);overflow-x:auto;padding:7px 10px;border:1px solid hsl(var(--panel-border)/.45);border-radius:999px;background:hsl(var(--surface)/.74);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);direction:ltr;transform:translateX(-50%);scrollbar-width:none}
+	.jluxe-product-reference .reference-mobile-gallery-dots::-webkit-scrollbar{display:none}
+	.jluxe-product-reference .reference-mobile-gallery-dot{box-sizing:border-box;flex:0 0 7px;width:7px;height:7px;min-width:7px;min-height:7px;padding:0;border:0;border-radius:999px;background:hsl(var(--text-muted)/.45);transition:flex-basis .18s ease,background-color .18s ease}
+	.jluxe-product-reference .reference-mobile-gallery-dot.is-active{flex-basis:20px;background:hsl(var(--primary))}
+	.jluxe-product-reference .cp3-info{position:relative;z-index:2;box-sizing:border-box;width:100%;min-width:0;margin:-28px 0 0;padding:18px 18px 20px;border:1px solid hsl(var(--panel-border)/.65);border-bottom:0;border-radius:28px 28px 0 0;background:hsl(var(--surface));box-shadow:0 -8px 26px hsl(var(--foreground)/.07)}
+	.jluxe-product-reference .reference-mobile-taxonomy{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
+	.jluxe-product-reference .reference-mobile-taxonomy__pill{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:4px 10px;border:1px solid hsl(var(--panel-border));border-radius:999px;background:hsl(var(--panel));color:hsl(var(--text-secondary));font-size:11px;font-weight:700;line-height:1.5;text-decoration:none}
+	.jluxe-product-reference .reference-mobile-taxonomy__pill--brand{border-color:hsl(var(--primary)/.18);background:hsl(var(--primary)/.07);color:hsl(var(--primary))}
+	.jluxe-product-reference .reference-mobile-taxonomy__pill:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+	.jluxe-product-reference .cp3-title{margin:0;color:hsl(var(--foreground));font-size:21px;font-weight:850;line-height:1.65;overflow-wrap:anywhere}
+	.jluxe-product-reference .reference-mobile-english-name{display:block;margin:1px 0 0;color:hsl(var(--text-muted));font-size:12px;line-height:1.6;text-align:right;direction:ltr;overflow-wrap:anywhere}
+	.jluxe-product-reference .reference-mobile-product-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;margin-top:12px;color:hsl(var(--text-secondary));font-size:12px;line-height:1.8}
+	.jluxe-product-reference .reference-mobile-meta-item{display:inline-flex;align-items:center;gap:5px;min-width:0}
+	.jluxe-product-reference .reference-mobile-stock{font-weight:750}
+	.jluxe-product-reference .reference-mobile-stock.is-in-stock{color:hsl(var(--success))}
+	.jluxe-product-reference .reference-mobile-stock.is-out-of-stock{color:hsl(var(--error))}
+	.jluxe-product-reference .reference-mobile-stock svg,.jluxe-product-reference .reference-mobile-meta-item svg{flex:none;width:15px;height:15px}
+	.jluxe-product-reference .reference-mobile-meta-item bdi{overflow-wrap:anywhere}
+	.jluxe-product-reference .reference-mobile-stock-warning{display:flex;align-items:center;gap:8px;margin-top:9px;padding:9px 11px;border:1px solid hsl(var(--warning)/.25);border-radius:12px;background:hsl(var(--warning)/.08);color:hsl(var(--text-secondary));font-size:12px;font-weight:700;line-height:1.7}
+	.jluxe-product-reference .reference-mobile-stock-warning svg{flex:none;width:17px;height:17px;color:hsl(var(--warning-strong))}
+	.jluxe-product-reference .reference-mobile-rating{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:12px;color:hsl(var(--text-secondary));font-size:12px;line-height:1.7}
+	.jluxe-product-reference .reference-mobile-rating a{color:inherit;text-decoration:none}
+	.jluxe-product-reference .reference-mobile-rating a:hover{color:hsl(var(--primary))}
+	.jluxe-product-reference .reference-mobile-rating-score{font-weight:800;color:hsl(var(--foreground))}
+	.jluxe-product-reference .reference-mobile-stars{position:relative;display:inline-block;min-width:82px;color:hsl(var(--panel-border));font-size:16px;line-height:1;letter-spacing:1px;direction:ltr;white-space:nowrap}
+	.jluxe-product-reference .reference-mobile-stars::before{content:'★★★★★'}
+	.jluxe-product-reference .reference-mobile-stars::after{position:absolute;inset-block-start:0;left:0;width:var(--reference-rating-fill,0%);overflow:hidden;color:var(--jluxe-rating-color);content:'★★★★★';white-space:nowrap}
+	.jluxe-product-reference .reference-mobile-empty-rating{color:hsl(var(--text-muted))}
+	.jluxe-product-reference .reference-mobile-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px}
+	.jluxe-product-reference .reference-mobile-action{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:58px;padding:7px 5px;border:1px solid hsl(var(--panel-border));border-radius:14px;background:hsl(var(--panel));color:hsl(var(--text-secondary));font-size:11px;font-weight:700;line-height:1.4;text-align:center;text-decoration:none;touch-action:manipulation;transition:border-color .16s ease,color .16s ease,background-color .16s ease}
+	.jluxe-product-reference .reference-mobile-actions.no-specs{grid-template-columns:repeat(2,minmax(0,1fr))}
+	.jluxe-product-reference .reference-mobile-action svg{width:18px;height:18px;flex:none;color:hsl(var(--primary))}
+	.jluxe-product-reference .reference-mobile-action:hover{border-color:hsl(var(--primary)/.35);background:hsl(var(--primary)/.06);color:hsl(var(--foreground))}
+	.jluxe-product-reference .reference-mobile-action:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+	.jluxe-product-reference .reference-mobile-rating+.reference-mobile-actions,.jluxe-product-reference .reference-mobile-actions:first-child{margin-top:15px}
+	.jluxe-product-reference .cp3-wishline-row,.jluxe-product-reference .reference-legacy-review-meta{display:none}
+	.jluxe-product-reference .reference-key-feature[data-jluxe-key-feature="product_brand"]{display:none}
+	.jluxe-product-reference .cp3-side{width:100%;margin:0;padding:0}
+	.jluxe-product-reference .cp3-sidebox{display:none}
+	.jluxe-product-reference .cp3-side .cp3-sku,.jluxe-product-reference .cp3-side .cp3-dashed,.jluxe-product-reference .cp3-side .cp3-fabs{display:none}
+	.jluxe-product-reference .cp3-side [data-jluxe-buybox-surface]{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin:0;padding:15px 18px;border:1px solid hsl(var(--panel-border));border-radius:18px;background:hsl(var(--surface));box-shadow:0 3px 14px hsl(var(--foreground)/.06)}
+	.jluxe-product-reference .cp3-side .cp3-price{width:100%;font-size:19px;line-height:1.6}
+	.jluxe-product-reference .cp3-side .cp3-price.is-placeholder{font-size:12px}
+	.jluxe-product-reference .cp3-side .cp3-addrow{display:flex!important;width:100%;margin:0}
+	.jluxe-product-reference .cp3-side .cp3-addrow .single_add_to_cart_button,.jluxe-product-reference .cp3-side .cp3-addrow .cp3-add-simple{min-height:48px;border-radius:14px!important}
+	.jluxe-product-reference .cp3-side .jluxe-stock-alert-trigger{margin:0}
+	.jluxe-product-reference .cp3-nav{display:block;margin-top:24px;padding:6px;border-radius:999px}
+	.jluxe-product-reference .cp3-nav-cur,.jluxe-product-reference .cp3-nav-arrows{display:none}
+	.jluxe-product-reference .cp3-tabs{display:flex;gap:5px;width:100%;padding:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+	.jluxe-product-reference .cp3-tab{flex:0 0 auto;min-height:44px;padding:9px 14px;border-radius:999px;background:transparent;scroll-snap-align:start}
+	.jluxe-product-reference .cp3-tab.is-active{background:hsl(var(--primary));color:hsl(var(--primary-foreground));font-weight:750}
+	.jluxe-product-reference .cp3-tab:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
+	.jluxe-product-reference .cp3-sec{scroll-margin-top:calc(var(--jluxe-product-nav-top,0px) + 62px)}
+	.jluxe-product-reference .cp3-panelcard{padding:16px;border-radius:18px}
+}
 </style>
 
 <div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3 jluxe-product-reference', $product ); ?> data-jluxe-layout="reference" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
@@ -446,18 +566,39 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						?>
 						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
 					</button>
+					<div class="reference-mobile-gallery-actions" role="group" aria-label="اقدام‌های محصول">
+						<a class="reference-mobile-gallery-button" href="<?php echo esc_url( $cp3_mobile_back_url ); ?>" aria-label="بازگشت به فروشگاه">
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						</a>
+						<div class="reference-mobile-gallery-actions__cluster">
+							<button type="button" class="reference-mobile-gallery-button" data-jluxe-share aria-label="اشتراک‌گذاری محصول">
+								<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							</button>
+							<button type="button" class="reference-mobile-gallery-button" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-wishlist-inactive-label="افزودن به علاقه‌مندی‌ها" data-jluxe-wishlist-active-label="حذف از علاقه‌مندی‌ها" aria-pressed="false" aria-label="افزودن به علاقه‌مندی‌ها">
+								<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.1 4.9a5.4 5.4 0 0 0-7.6 0L12 5.4l-.5-.5a5.4 5.4 0 0 0-7.6 7.6l.5.5L12 20.6l7.6-7.6.5-.5a5.4 5.4 0 0 0 0-7.6Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							</button>
+						</div>
+					</div>
 					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
 						<div class="cp3-thumbsrow">
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-prev aria-label="تصاویر قبلی" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 							<div class="cp3-thumbs">
 							<?php foreach ( $jluxe_gallery_ids as $cp3_i => $cp3_att ) : ?>
 								<?php $cp3_thumb_image = jluxe_get_responsive_attachment_image( (int) $cp3_att, 'jluxe-uncropped-320', '96px' ); ?>
-								<button type="button" class="cp3-thumb<?php echo 0 === $cp3_i ? ' is-active' : ''; ?>" data-cp3-thumb data-jluxe-gallery-open="<?php echo esc_attr( (string) $cp3_i ); ?>" data-full="<?php echo esc_url( wp_get_attachment_image_url( $cp3_att, 'full' ) ?: '' ); ?>" aria-label="نمایش عکس <?php echo esc_attr( (string) ( $cp3_i + 1 ) ); ?>">
+								<button type="button" class="cp3-thumb<?php echo 0 === $cp3_i ? ' is-active' : ''; ?>" data-cp3-thumb data-jluxe-gallery-open="<?php echo esc_attr( (string) $cp3_i ); ?>" data-full="<?php echo esc_url( wp_get_attachment_image_url( $cp3_att, 'full' ) ?: '' ); ?>" aria-label="نمایش عکس <?php echo esc_attr( (string) ( $cp3_i + 1 ) ); ?>" aria-pressed="<?php echo 0 === $cp3_i ? 'true' : 'false'; ?>">
 									<img src="<?php echo esc_url( $cp3_thumb_image['src'] ?: wc_placeholder_img_src( 'medium' ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_thumb_image ); ?> alt="" loading="lazy" />
 								</button>
 							<?php endforeach; ?>
 						</div>
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-next aria-label="تصاویر بعدی"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+						</div>
+					<?php endif; ?>
+					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
+						<div class="reference-mobile-gallery-dots" role="group" aria-label="انتخاب تصویر محصول">
+							<?php foreach ( $jluxe_gallery_ids as $cp3_dot_i => $cp3_dot_att ) : ?>
+								<?php $cp3_dot_full = $cp3_dot_att ? wp_get_attachment_image_url( $cp3_dot_att, 'full' ) : wc_placeholder_img_src( 'full' ); ?>
+								<button type="button" class="reference-mobile-gallery-dot<?php echo 0 === $cp3_dot_i ? ' is-active' : ''; ?>" data-cp3-thumb data-reference-gallery-index="<?php echo esc_attr( (string) $cp3_dot_i ); ?>" data-full="<?php echo esc_url( $cp3_dot_full ?: wc_placeholder_img_src( 'full' ) ); ?>" aria-label="نمایش تصویر <?php echo esc_attr( jluxe_fa_digits( (string) ( $cp3_dot_i + 1 ) ) ); ?>" aria-pressed="<?php echo 0 === $cp3_dot_i ? 'true' : 'false'; ?>"></button>
+							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -489,10 +630,77 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 
 				<!-- اطلاعات -->
 				<div class="cp3-info">
+					<?php if ( '' !== $cp3_mobile_category_name || '' !== $cp3_mobile_brand_name ) : ?>
+						<div class="reference-mobile-taxonomy" aria-label="دسته‌بندی و برند محصول">
+							<?php if ( '' !== $cp3_mobile_category_name ) : ?>
+								<?php if ( '' !== $cp3_mobile_category_link ) : ?>
+									<a class="reference-mobile-taxonomy__pill" href="<?php echo esc_url( $cp3_mobile_category_link ); ?>"><?php echo esc_html( $cp3_mobile_category_name ); ?></a>
+								<?php else : ?>
+									<span class="reference-mobile-taxonomy__pill"><?php echo esc_html( $cp3_mobile_category_name ); ?></span>
+								<?php endif; ?>
+							<?php endif; ?>
+							<?php if ( '' !== $cp3_mobile_brand_name ) : ?>
+								<?php if ( '' !== $cp3_mobile_brand_link ) : ?>
+									<a class="reference-mobile-taxonomy__pill reference-mobile-taxonomy__pill--brand" href="<?php echo esc_url( $cp3_mobile_brand_link ); ?>" rel="tag"><?php echo esc_html( $cp3_mobile_brand_name ); ?></a>
+								<?php else : ?>
+									<span class="reference-mobile-taxonomy__pill reference-mobile-taxonomy__pill--brand"><?php echo esc_html( $cp3_mobile_brand_name ); ?></span>
+								<?php endif; ?>
+							<?php endif; ?>
+						</div>
+					<?php endif; ?>
+
 					<h1 class="cp3-title"><?php the_title(); ?></h1>
+					<?php if ( '' !== $cp3_english_product_name ) : ?>
+						<p class="reference-mobile-english-name" lang="en" dir="ltr"><?php echo esc_html( $cp3_english_product_name ); ?></p>
+					<?php endif; ?>
 					<?php if ( function_exists( 'jluxe_render_product_trust_badges' ) ) { jluxe_render_product_trust_badges( (int) $product->get_id(), 'mt-3' ); } ?>
 
-					<div class="cp3-meta">
+					<div class="reference-mobile-product-meta" data-reference-product-meta>
+						<span class="reference-mobile-meta-item reference-mobile-stock <?php echo $cp3_mobile_in_stock ? 'is-in-stock' : 'is-out-of-stock'; ?>" data-reference-stock-status="<?php echo $cp3_mobile_in_stock ? 'in-stock' : 'out-of-stock'; ?>">
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12.2 2.4 2.4 4.6-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							<?php echo esc_html( $cp3_mobile_in_stock ? 'موجود' : 'ناموجود' ); ?>
+						</span>
+						<?php if ( $product->get_sku() ) : ?>
+							<span class="reference-mobile-meta-item" data-reference-sku><span>کد محصول:</span><bdi dir="ltr"><?php echo esc_html( $product->get_sku() ); ?></bdi></span>
+						<?php endif; ?>
+						<?php if ( '' !== $cp3_delivery_time ) : ?>
+							<span class="reference-mobile-meta-item" data-jluxe-delivery-time-row><span>ارسال:</span><bdi data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></bdi></span>
+						<?php endif; ?>
+					</div>
+					<?php if ( $cp3_mobile_in_stock && null !== $cp3_stock_qty && $cp3_stock_qty > 0 && $cp3_stock_qty <= 10 ) : ?>
+						<div class="reference-mobile-stock-warning" data-reference-low-stock>
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 4h.01M10.3 3.86 2.9 17a2 2 0 0 0 1.74 3h14.72a2 2 0 0 0 1.74-3l-7.36-13.14a2 2 0 0 0-3.44 0Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							<span>تنها <?php echo esc_html( jluxe_fa_digits( $cp3_stock_qty ) ); ?> عدد موجود است</span>
+						</div>
+					<?php endif; ?>
+					<div class="reference-mobile-rating"<?php if ( $review_count > 0 ) : ?> aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه"<?php endif; ?>>
+						<?php if ( $review_count > 0 ) : ?>
+							<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
+							<strong class="reference-mobile-rating-score"><?php echo esc_html( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?></strong>
+							<a href="#sec-reviews"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> دیدگاه</a>
+						<?php else : ?>
+							<span class="reference-mobile-empty-rating">هنوز دیدگاهی ثبت نشده</span>
+							<a href="#sec-reviews"><?php echo esc_html( $cp3_review_form_open ? 'ثبت اولین دیدگاه' : 'مشاهدهٔ دیدگاه‌ها' ); ?></a>
+						<?php endif; ?>
+					</div>
+					<div class="reference-mobile-actions<?php echo ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) ) ? ' has-specs' : ' no-specs'; ?>" role="group" aria-label="میانبرهای محصول">
+						<a class="reference-mobile-action" href="#sec-desc">
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v18H7.5A2.5 2.5 0 0 0 5 22V4.5Zm0 0V22m4-15h7m-7 4h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							<span>توضیحات</span>
+						</a>
+						<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) ) : ?>
+							<a class="reference-mobile-action" href="#sec-specs">
+								<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5h12M8 12h12M8 19h12M3.5 5h.01M3.5 12h.01M3.5 19h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+								<span>مشخصات</span>
+							</a>
+						<?php endif; ?>
+						<a class="reference-mobile-action" href="#sec-reviews">
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H8l-4 2v-5.5A7.5 7.5 0 1 1 20 11.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11h8M8 14h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+							<span>دیدگاه‌ها</span>
+						</a>
+					</div>
+
+					<div class="cp3-meta cp3-wishline-row">
 						<button type="button" class="cp3-wishline" data-jluxe-wishlist-toggle="<?php echo esc_attr( (string) $product->get_id() ); ?>" aria-pressed="false">
 							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19.463 3.994c-2.682-1.645-5.023-.982-6.429.074c-.576.433-.864.65-1.034.65s-.458-.217-1.034-.65C9.56 3.012 7.219 2.349 4.537 3.994C1.018 6.153.222 13.274 8.34 19.284C9.886 20.427 10.659 21 12 21s2.114-.572 3.66-1.717c8.118-6.008 7.322-13.13 3.803-15.289" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 							<span>۱۰۰٪ شاید این محصول را هم پسندید</span>
@@ -500,7 +708,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					</div>
 
 					<?php if ( $review_count > 0 ) : ?>
-						<div class="cp3-meta">
+						<div class="cp3-meta reference-legacy-review-meta">
 							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m13.728 3.444l1.76 3.549c.24.494.88.968 1.42 1.058l3.189.535c2.04.343 2.52 1.835 1.05 3.307l-2.48 2.5c-.42.423-.65 1.24-.52 1.825l.71 3.095c.56 2.45-.73 3.397-2.88 2.117l-2.99-1.785c-.54-.322-1.43-.322-1.98 0L8.019 21.43c-2.14 1.28-3.44.322-2.88-2.117l.71-3.095c.13-.585-.1-1.402-.52-1.825l-2.48-2.5C1.39 10.42 1.86 8.929 3.899 8.586l3.19-.535c.53-.09 1.17-.564 1.41-1.058l1.76-3.549c.96-1.925 2.52-1.925 3.47 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 							<a href="#sec-reviews"><?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?> نظر</a>
 						</div>
@@ -947,16 +1155,26 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 	}
 	root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( thumb ) {
 		thumb.addEventListener( 'click', function () {
-			root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( t ) { t.classList.remove( 'is-active' ); } );
-			thumb.classList.add( 'is-active' );
-			var galleryIndex = parseInt( thumb.getAttribute( 'data-jluxe-gallery-open' ), 10 );
-			if ( ! isNaN( galleryIndex ) ) { root.setAttribute( 'data-jluxe-gallery-current', String( galleryIndex ) ); }
+			var galleryIndex = parseInt( thumb.getAttribute( 'data-reference-gallery-index' ) || thumb.getAttribute( 'data-jluxe-gallery-open' ), 10 );
+			if ( isNaN( galleryIndex ) ) { return; }
+			var imageThumb = thumb;
+			if ( thumb.hasAttribute( 'data-reference-gallery-index' ) ) {
+				var pairedThumb = root.querySelector( '.cp3-thumb[data-jluxe-gallery-open="' + String( galleryIndex ) + '"]' );
+				if ( pairedThumb ) { imageThumb = pairedThumb; }
+			}
+			root.querySelectorAll( '[data-cp3-thumb]' ).forEach( function ( t ) {
+				var tIndex = parseInt( t.getAttribute( 'data-reference-gallery-index' ) || t.getAttribute( 'data-jluxe-gallery-open' ), 10 );
+				var selected = tIndex === galleryIndex;
+				t.classList.toggle( 'is-active', selected );
+				t.setAttribute( 'aria-pressed', selected ? 'true' : 'false' );
+			} );
+			root.setAttribute( 'data-jluxe-gallery-current', String( galleryIndex ) );
 			thumb.scrollIntoView( { behavior: motionOk ? 'smooth' : 'auto', block: 'nearest', inline: 'nearest' } );
-			if ( zoomImg && thumb.getAttribute( 'data-full' ) ) {
+			if ( zoomImg && imageThumb.getAttribute( 'data-full' ) ) {
 				zoomImg.classList.remove( 'is-loaded' );
 				zoomImg.removeAttribute( 'srcset' );
 				zoomImg.removeAttribute( 'sizes' );
-				zoomImg.src = thumb.getAttribute( 'data-full' );
+				zoomImg.src = imageThumb.getAttribute( 'data-full' );
 				if ( zoomImg.complete && zoomImg.naturalWidth ) { cp3MarkLoaded(); }
 			}
 		} );

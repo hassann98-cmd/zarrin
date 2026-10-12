@@ -21,8 +21,12 @@ function setup() {
               <img class="is-loaded" data-cp3-zoom-img src="/parent-large.jpg" srcset="/parent-small.jpg 400w, /parent-large.jpg 900w" sizes="80vw" width="900" height="700" alt="Parent product">
             </button>
             <div class="cp3-thumbs">
-              <button type="button" class="cp3-thumb is-active" data-cp3-thumb data-jluxe-gallery-open="0" data-full="/parent-full.jpg"><img src="/parent-thumb.jpg" srcset="/parent-thumb-small.jpg 48w, /parent-thumb.jpg 96w" sizes="96px" alt=""></button>
-              <button type="button" class="cp3-thumb" data-cp3-thumb data-jluxe-gallery-open="1" data-full="/gallery-full.jpg"><img src="/gallery-thumb.jpg" alt=""></button>
+              <button type="button" class="cp3-thumb is-active" data-cp3-thumb data-jluxe-gallery-open="0" data-full="/parent-full.jpg" aria-pressed="true"><img src="/parent-thumb.jpg" srcset="/parent-thumb-small.jpg 48w, /parent-thumb.jpg 96w" sizes="96px" alt=""></button>
+              <button type="button" class="cp3-thumb" data-cp3-thumb data-jluxe-gallery-open="1" data-full="/gallery-full.jpg" aria-pressed="false"><img src="/gallery-thumb.jpg" alt=""></button>
+            </div>
+            <div class="reference-mobile-gallery-dots">
+              <button type="button" class="reference-mobile-gallery-dot is-active" data-cp3-thumb data-reference-gallery-index="0" aria-pressed="true"></button>
+              <button type="button" class="reference-mobile-gallery-dot" data-cp3-thumb data-reference-gallery-index="1" aria-pressed="false"></button>
             </div>
           </div>
           <div data-jluxe-gallery-modal>
@@ -50,7 +54,8 @@ test("classic variation selection updates the main image, first thumbnail, and f
   const { dom, window, form, $ } = setup();
   const gallery = window.document.querySelector("[data-cp3-gallery]");
   const main = gallery.querySelector("[data-cp3-zoom-img]");
-  const thumbs = [...gallery.querySelectorAll("[data-cp3-thumb]")];
+  const thumbs = [...gallery.querySelectorAll(".cp3-thumb[data-cp3-thumb]")];
+  const mobileDots = [...gallery.querySelectorAll(".reference-mobile-gallery-dot")];
   const firstThumbImage = thumbs[0].querySelector("img");
   const modalImage = window.document.querySelector("[data-jluxe-gallery-modal-image]");
   const variation = {
@@ -80,6 +85,12 @@ test("classic variation selection updates the main image, first thumbnail, and f
   assert.equal(firstThumbImage.hasAttribute("srcset"), false, "the parent thumbnail srcset cannot override the variation image");
   assert.equal(thumbs[0].classList.contains("is-active"), true);
   assert.equal(thumbs[1].classList.contains("is-active"), false);
+  assert.equal(thumbs[0].getAttribute("aria-pressed"), "true");
+  assert.equal(thumbs[1].getAttribute("aria-pressed"), "false");
+  assert.equal(mobileDots[0].classList.contains("is-active"), true, "the first mobile dot mirrors the gallery index");
+  assert.equal(mobileDots[1].classList.contains("is-active"), false);
+  assert.equal(mobileDots[0].getAttribute("aria-pressed"), "true");
+  assert.equal(mobileDots[1].getAttribute("aria-pressed"), "false");
   assert.equal(gallery.getAttribute("data-jluxe-gallery-current"), "0");
   assert.equal(modalImage.getAttribute("data-src"), "/variation-full.jpg");
   assert.equal(modalImage.getAttribute("data-srcset"), variation.image.srcset);
@@ -106,6 +117,8 @@ test("classic variation selection updates the main image, first thumbnail, and f
   assert.equal(gallery.getAttribute("data-jluxe-gallery-current"), "0");
   assert.equal(thumbs[0].classList.contains("is-active"), true);
   assert.equal(thumbs[1].classList.contains("is-active"), false);
+  assert.equal(mobileDots[0].classList.contains("is-active"), true);
+  assert.equal(mobileDots[1].classList.contains("is-active"), false);
 
   dom.window.close();
 });

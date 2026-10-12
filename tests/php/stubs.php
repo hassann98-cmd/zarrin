@@ -487,6 +487,7 @@ $_SERVER['REMOTE_ADDR']='192.0.2.8';
 set_error_handler(function($severity,$message,$file,$line){if(error_reporting()&$severity)throw new ErrorException($message,0,$severity,$file,$line);return false;});
 
 function get_post_meta($id,$key,...$args){return $GLOBALS['post_meta'][$id][$key]??'';}
+function metadata_exists($meta_type,$object_id,$meta_key){return array_key_exists($meta_key,$GLOBALS['post_meta'][$object_id]??[]);}
 function get_locale(){return 'fa_IR';}
 function untrailingslashit($text){return rtrim($text,'/');}
 function get_header(){}

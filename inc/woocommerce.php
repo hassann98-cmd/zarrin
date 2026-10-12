@@ -3724,8 +3724,11 @@ function jluxe_save_suggested_modal_toggle_field( int $post_id ): void {
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_suggested_modal_toggle_field' );
 
 /**
- * Read the product-specific delivery message. An empty field stays empty so
- * the sample placeholder is never shown as a fixed promise on every product.
+ * Read the product-specific delivery message from the product editor's
+ * existing `_delivery_time` field. Keep `_jluxe_delivery_time` as a legacy
+ * fallback for values created by releases before the editor field was shared.
+ * An explicitly empty canonical value stays empty instead of reviving stale
+ * legacy text; the example label is never rendered as a fixed promise.
  */
 function jluxe_get_product_delivery_time( $product = null ): string {
 	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
@@ -3733,31 +3736,53 @@ function jluxe_get_product_delivery_time( $product = null ): string {
 		return '';
 	}
 
-	$value = get_post_meta( $product_id, '_jluxe_delivery_time', true );
+	$canonical_value = get_post_meta( $product_id, '_delivery_time', true );
+	if ( function_exists( 'metadata_exists' ) && metadata_exists( 'post', $product_id, '_delivery_time' ) ) {
+		return is_scalar( $canonical_value ) ? trim( sanitize_text_field( (string) $canonical_value ) ) : '';
+	}
+	$canonical_text = is_scalar( $canonical_value ) ? trim( sanitize_text_field( (string) $canonical_value ) ) : '';
+	if ( '' !== $canonical_text ) {
+		return $canonical_text;
+	}
+
+	$legacy_value = get_post_meta( $product_id, '_jluxe_delivery_time', true );
+	return is_scalar( $legacy_value ) ? trim( sanitize_text_field( (string) $legacy_value ) ) : '';
+}
+
+/** Read the optional English product name without inventing a fallback label. */
+function jluxe_get_product_english_name( $product = null ): string {
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
+	if ( ! $product_id ) {
+		return '';
+	}
+
+	$value = get_post_meta( $product_id, '_english_product_name', true );
 	return is_scalar( $value ) ? trim( sanitize_text_field( (string) $value ) ) : '';
 }
 
-/** Add an editable delivery-time text field to WooCommerce's General tab. */
-function jluxe_render_product_delivery_time_field(): void {
-	global $post;
-	$product_id = isset( $post->ID ) ? absint( $post->ID ) : 0;
+/** Sanitize the product editor's existing canonical `_delivery_time` field. */
+function jluxe_save_product_delivery_time_primary_meta( WC_Product $product ): void {
+	if ( ! isset( $_POST['_delivery_time'] ) || ! is_scalar( $_POST['_delivery_time'] ) ) {
+		return;
+	}
 
-	echo '<div class="options_group">';
-	woocommerce_wp_text_input(
-		array(
-			'id'          => '_jluxe_delivery_time',
-			'label'       => 'زمان ارسال',
-			'value'       => $product_id ? get_post_meta( $product_id, '_jluxe_delivery_time', true ) : '',
-			'placeholder' => 'مثلاً: ارسال سریع',
-			'desc_tip'    => true,
-			'description' => 'زمان یا توضیح ارسال همین محصول را وارد کنید؛ در صفحهٔ محصول نمایش داده می‌شود. اگر خالی بماند، ردیف زمان ارسال نمایش داده نمی‌شود.',
-		)
-	);
-	echo '</div>';
+	$value = sanitize_text_field( wp_unslash( (string) $_POST['_delivery_time'] ) );
+	$product->update_meta_data( '_delivery_time', $value );
 }
-add_action( 'woocommerce_product_options_general_product_data', 'jluxe_render_product_delivery_time_field' );
+add_action( 'woocommerce_admin_process_product_object', 'jluxe_save_product_delivery_time_primary_meta' );
 
-/** Persist the value through WooCommerce's product-object save flow. */
+/** Support the legacy product-editor save hook for the canonical field too. */
+function jluxe_save_product_delivery_time_primary_meta_legacy( int $product_id ): void {
+	if ( ! isset( $_POST['_delivery_time'] ) || ! is_scalar( $_POST['_delivery_time'] ) ) {
+		return;
+	}
+
+	$value = sanitize_text_field( wp_unslash( (string) $_POST['_delivery_time'] ) );
+	update_post_meta( $product_id, '_delivery_time', $value );
+}
+add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_delivery_time_primary_meta_legacy' );
+
+/** Continue accepting the old theme-specific meta key for existing integrations. */
 function jluxe_save_product_delivery_time_meta( WC_Product $product ): void {
 	if ( ! isset( $_POST['_jluxe_delivery_time'] ) || ! is_scalar( $_POST['_jluxe_delivery_time'] ) ) {
 		return;
@@ -3768,7 +3793,7 @@ function jluxe_save_product_delivery_time_meta( WC_Product $product ): void {
 }
 add_action( 'woocommerce_admin_process_product_object', 'jluxe_save_product_delivery_time_meta' );
 
-/** Keep the legacy product editor save hook supported as well. */
+/** Continue accepting old theme-specific values posted by the legacy editor. */
 function jluxe_save_product_delivery_time_meta_legacy( int $product_id ): void {
 	if ( ! isset( $_POST['_jluxe_delivery_time'] ) || ! is_scalar( $_POST['_jluxe_delivery_time'] ) ) {
 		return;
