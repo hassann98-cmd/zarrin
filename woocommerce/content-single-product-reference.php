@@ -351,8 +351,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-ratebar.neu .lbl{color:#b45309}
 .jluxe-cp3 .cp3-ratebar.neg .fill{background:#f43f5e}
 .jluxe-cp3 .cp3-ratebar.neg .lbl{color:#be123c}
-.jluxe-cp3 .cp3-reviewtoolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-.jluxe-cp3 .cp3-sortsel{display:inline-flex;align-items:center;gap:2px;background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:999px;padding:4px}
+.jluxe-cp3 .cp3-reviewtoolbar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;margin-bottom:16px}
+.jluxe-cp3 .cp3-sortsel{grid-column:2;justify-self:center;display:inline-flex;align-items:center;justify-content:center;gap:2px;background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:999px;padding:4px}
+.jluxe-cp3 .cp3-reviewtoolbar .cp3-reviewbtn{grid-column:3;justify-self:end}
 .jluxe-cp3 .cp3-sortsel button{border:1px solid transparent;background:none;border-radius:999px;padding:7px 14px;font-size:12px;color:hsl(var(--text-muted));cursor:pointer;transition:all .15s;font-family:inherit}
 .jluxe-cp3 .cp3-sortsel button:hover{color:hsl(var(--foreground))}
 .jluxe-cp3 .cp3-sortsel button.is-active{background:hsl(var(--surface));border-color:hsl(var(--panel-border));color:hsl(var(--foreground));font-weight:700}
@@ -451,6 +452,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature strong{font-size:10px}
 }
 
+.jluxe-product-reference .reference-mobile-variation-option{margin-top:16px}
+
 /* The desktop reference composition remains intact; these hooks are only shown on phones. */
 .jluxe-product-reference .reference-mobile-gallery-actions,
 .jluxe-product-reference .reference-mobile-gallery-dots,
@@ -461,6 +464,10 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-product-reference .reference-mobile-rating,
 .jluxe-product-reference .reference-mobile-actions{display:none}
 @media(max-width:767.98px){
+	.jluxe-cp3 .cp3-reviewtoolbar{grid-template-columns:minmax(0,1fr);justify-items:center;gap:10px}
+	.jluxe-cp3 .cp3-sortsel{grid-column:1;max-width:100%;flex-wrap:wrap;border-radius:18px}
+	.jluxe-cp3 .cp3-sortsel button{padding-inline:8px}
+	.jluxe-cp3 .cp3-reviewtoolbar .cp3-reviewbtn{grid-column:1;justify-self:center}
 	.jluxe-product-reference>.mx-auto{box-sizing:border-box;width:100%;max-width:none;padding:0}
 	.jluxe-product-reference .cp3-bc{display:none}
 	.jluxe-product-reference .cp3-card{margin:0;padding:0;border-radius:0;background:transparent;box-shadow:none}
@@ -494,7 +501,15 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 	.jluxe-product-reference .reference-mobile-stock.is-out-of-stock{color:hsl(var(--error))}
 	.jluxe-product-reference .reference-mobile-stock svg,.jluxe-product-reference .reference-mobile-meta-item svg{flex:none;width:15px;height:15px}
 	.jluxe-product-reference .reference-mobile-meta-item bdi{overflow-wrap:anywhere}
+	.jluxe-product-reference .reference-mobile-meta-item--delivery{min-height:30px;padding:4px 10px;border:1px solid hsl(var(--primary)/.2);border-radius:999px;background:hsl(var(--primary)/.07);color:hsl(var(--primary));font-weight:750;line-height:1.5}
+	.jluxe-product-reference .reference-mobile-delivery-label{color:hsl(var(--text-secondary));font-weight:650}
+	.jluxe-product-reference .reference-mobile-meta-item--delivery bdi{color:hsl(var(--primary));font-weight:800}
 	.jluxe-product-reference .reference-mobile-stock-warning{display:flex;align-items:center;gap:8px;margin-top:9px;padding:9px 11px;border:1px solid hsl(var(--warning)/.25);border-radius:12px;background:hsl(var(--warning)/.08);color:hsl(var(--text-secondary));font-size:12px;font-weight:700;line-height:1.7}
+	.jluxe-product-reference .reference-mobile-variation-options{margin:12px 0 10px;padding:12px 13px;border:1px solid hsl(var(--primary)/.16);border-radius:18px;background:linear-gradient(145deg,hsl(var(--surface)),hsl(var(--panel)/.62));box-shadow:0 4px 14px hsl(var(--foreground)/.035)}
+	.jluxe-product-reference .reference-mobile-variation-options .reference-mobile-variation-option{margin-top:12px}
+	.jluxe-product-reference .reference-mobile-variation-options .reference-mobile-variation-option:first-child{margin-top:0}
+	.jluxe-product-reference .reference-mobile-variation-options .cp3-varlabel{margin-bottom:8px;color:hsl(var(--foreground));font-weight:750}
+	.jluxe-product-reference .reference-mobile-variation-options .cp3-pills{gap:10px}
 	.jluxe-product-reference .reference-mobile-stock-warning svg{flex:none;width:17px;height:17px;color:hsl(var(--warning-strong))}
 	.jluxe-product-reference .reference-mobile-rating{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:12px;color:hsl(var(--text-secondary));font-size:12px;line-height:1.7}
 	.jluxe-product-reference .reference-mobile-rating a{color:inherit;text-decoration:none}
@@ -671,7 +686,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<span class="reference-mobile-meta-item" data-reference-sku><span>کد محصول:</span><bdi dir="ltr"><?php echo esc_html( $product->get_sku() ); ?></bdi></span>
 						<?php endif; ?>
 						<?php if ( '' !== $cp3_delivery_time ) : ?>
-							<span class="reference-mobile-meta-item" data-jluxe-delivery-time-row><span>ارسال:</span><bdi data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></bdi></span>
+							<span class="reference-mobile-meta-item reference-mobile-meta-item--delivery" data-jluxe-delivery-time-row><span class="reference-mobile-delivery-label">نحوهٔ ارسال:</span><bdi data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></bdi></span>
 						<?php endif; ?>
 					</div>
 					<?php if ( $cp3_mobile_in_stock && null !== $cp3_stock_qty && $cp3_stock_qty > 0 && $cp3_stock_qty <= 10 ) : ?>
@@ -680,6 +695,95 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<span>تنها <?php echo esc_html( jluxe_fa_digits( $cp3_stock_qty ) ); ?> عدد موجود است</span>
 						</div>
 					<?php endif; ?>
+					<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
+						<div class="reference-mobile-variation-options" data-reference-variation-options>
+						<?php
+						/* دو باگِ واقعیِ گزارش‌شده این‌جا رفع می‌شود:
+						 * ۱) get_variation_attributes() برای ویژگی‌های تاکسونومی «نامک»
+						 *    (مثل cochek) را برمی‌گرداند، نه نامِ نمایشیِ ترم (مثل «کوچک») —
+						 *    پس با get_term_by نامِ واقعیِ ترم چاپ می‌شود.
+						 * ۲) ممکن است گزینه‌هایی در فهرست باشند که هیچ تنوعِ واقعیِ
+						 *    ساخته‌شده‌ای پشتشان نیست؛ همان منبعِ data-product_variations
+						 *    فیلترشان می‌کند تا کلیک روی قرصِ بی‌تنوع، دکمهٔ خرید را
+						 *    گمراه نکند (همان قراردادِ سواچ‌های چیدمانِ پیش‌فرض). */
+						$cp3_valid_options = array();
+						foreach ( (array) $jluxe_available_variations as $cp3_variation ) {
+							foreach ( (array) ( $cp3_variation['attributes'] ?? array() ) as $cp3_attr_key => $cp3_attr_value ) {
+								$cp3_valid_name = str_replace( 'attribute_', '', (string) $cp3_attr_key );
+								if ( '' === (string) $cp3_attr_value ) {
+									$cp3_valid_options[ $cp3_valid_name ]['*'] = true;
+								} else {
+									$cp3_valid_options[ $cp3_valid_name ][ (string) $cp3_attr_value ] = true;
+								}
+							}
+						}
+						$cp3_option_label = static function ( string $cp3_value, string $cp3_name ) use ( $product ): string {
+							return jluxe_attribute_option_label( $cp3_value, $cp3_name, $product );
+						};
+						?>
+						<?php $cp3_attr_keys = array_keys( $jluxe_variation_attributes ); ?>
+						<?php /* R138: پیش‌فرض‌های مؤثر در بالای قالب یک‌بار محاسبه و بین گزینه‌ها و قیمت مشترک شده‌اند. */ ?>
+						<?php foreach ( $jluxe_variation_attributes as $cp3_attr_name => $cp3_attr_options ) : ?>
+							<?php
+							/* R65: تنوعِ ناموجود غیرقابلِ انتخاب — همان قراردادِ سواچ‌ها؛
+							   گزینهٔ فقط-ناموجود با is-disabled رندر می‌شود (حذف نمی‌شود). */
+							$cp3_stocky_options = array();
+							foreach ( (array) $jluxe_available_variations as $cp3_stocky_variation ) {
+								if ( empty( $cp3_stocky_variation['is_in_stock'] ) ) {
+									continue;
+								}
+								foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
+									$cp3_stocky_name = str_replace( 'attribute_', '', (string) $cp3_stocky_key );
+									if ( '' === (string) $cp3_stocky_value ) {
+										$cp3_stocky_options[ $cp3_stocky_name ]['*'] = true;
+									} else {
+										$cp3_stocky_options[ $cp3_stocky_name ][ (string) $cp3_stocky_value ] = true;
+									}
+								}
+							}
+
+							$cp3_attr_slug      = sanitize_title( $cp3_attr_name );
+							$cp3_attr_prompt    = jluxe_variable_attribute_prompt( $cp3_attr_name );
+							$cp3_attr_is_color  = jluxe_is_color_attribute( $cp3_attr_name );
+							$cp3_default_pick   = isset( $cp3_defaults[ $cp3_attr_name ] ) ? (string) $cp3_defaults[ $cp3_attr_name ] : '';
+							if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
+								$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
+							}
+							?>
+							<div class="reference-mobile-variation-option">
+								<div class="cp3-varlabel"><?php echo esc_html( $cp3_attr_prompt ); ?></div>
+								<div class="cp3-pills" data-cp3-pills="<?php echo esc_attr( $cp3_attr_slug ); ?>">
+									<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
+										<?php $cp3_opt = (string) $cp3_opt; ?>
+										<?php
+											$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
+										?>
+										<?php
+											$cp3_opt_label       = $cp3_option_label( $cp3_opt, $cp3_attr_name );
+											$cp3_is_default_pick = '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) );
+											$cp3_opt_swatch_html = jluxe_classic_variation_swatch_html( $cp3_opt, $cp3_attr_name, $cp3_opt_label, $cp3_attr_is_color, $cp3_oos, $cp3_is_default_pick );
+										?>
+										<?php if ( '' !== $cp3_opt_swatch_html ) : ?>
+											<?php echo $cp3_opt_swatch_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped button and swatch markup. ?>
+										<?php else : ?>
+											<button type="button" class="cp3-pill<?php echo $cp3_oos ? ' is-disabled' : ''; ?><?php echo ( ! $cp3_oos && $cp3_is_default_pick ) ? ' is-active' : ''; ?>" data-value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo $cp3_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( $cp3_opt_label . ' (ناموجود)' ) . '"' : ''; ?>><?php echo esc_html( $cp3_opt_label ); ?></button>
+										<?php endif; ?>
+									<?php endforeach; ?>
+								</div>
+								<div class="variations">
+								<select name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>" data-attribute_name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>" data-show_option_none="yes" data-cp3-select="<?php echo esc_attr( $cp3_attr_slug ); ?>" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" aria-label="<?php echo esc_attr( $cp3_attr_prompt ); ?>">
+									<option value=""><?php echo esc_html( $cp3_attr_prompt ); ?></option>
+									<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
+										<?php $cp3_opt = (string) $cp3_opt; ?>
+										<option value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo ( '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) ) ) ? ' selected' : ''; ?>><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								</div>
+							</div>
+						<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+
 						<?php if ( $review_count > 0 ) : ?>
 							<div class="reference-mobile-rating" aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه">
 								<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
@@ -755,92 +859,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							</section>
 						<?php endif; ?>
 
-					<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
-					<?php
-					/* دو باگِ واقعیِ گزارش‌شده این‌جا رفع می‌شود:
-					 * ۱) get_variation_attributes() برای ویژگی‌های تاکسونومی «نامک»
-					 *    (مثل cochek) را برمی‌گرداند، نه نامِ نمایشیِ ترم (مثل «کوچک») —
-					 *    پس با get_term_by نامِ واقعیِ ترم چاپ می‌شود.
-					 * ۲) ممکن است گزینه‌هایی در فهرست باشند که هیچ تنوعِ واقعیِ
-					 *    ساخته‌شده‌ای پشتشان نیست؛ همان منبعِ data-product_variations
-					 *    فیلترشان می‌کند تا کلیک روی قرصِ بی‌تنوع، دکمهٔ خرید را
-					 *    گمراه نکند (همان قراردادِ سواچ‌های چیدمانِ پیش‌فرض). */
-					$cp3_valid_options = array();
-					foreach ( (array) $jluxe_available_variations as $cp3_variation ) {
-						foreach ( (array) ( $cp3_variation['attributes'] ?? array() ) as $cp3_attr_key => $cp3_attr_value ) {
-							$cp3_valid_name = str_replace( 'attribute_', '', (string) $cp3_attr_key );
-							if ( '' === (string) $cp3_attr_value ) {
-								$cp3_valid_options[ $cp3_valid_name ]['*'] = true;
-							} else {
-								$cp3_valid_options[ $cp3_valid_name ][ (string) $cp3_attr_value ] = true;
-							}
-						}
-					}
-					$cp3_option_label = static function ( string $cp3_value, string $cp3_name ) use ( $product ): string {
-						return jluxe_attribute_option_label( $cp3_value, $cp3_name, $product );
-					};
-					?>
-					<?php $cp3_attr_keys = array_keys( $jluxe_variation_attributes ); ?>
-					<?php /* R138: پیش‌فرض‌های مؤثر در بالای قالب یک‌بار محاسبه و بین گزینه‌ها و قیمت مشترک شده‌اند. */ ?>
-					<?php foreach ( $jluxe_variation_attributes as $cp3_attr_name => $cp3_attr_options ) : ?>
-						<?php
-						/* R65: تنوعِ ناموجود غیرقابلِ انتخاب — همان قراردادِ سواچ‌ها؛
-						   گزینهٔ فقط-ناموجود با is-disabled رندر می‌شود (حذف نمی‌شود). */
-						$cp3_stocky_options = array();
-						foreach ( (array) $jluxe_available_variations as $cp3_stocky_variation ) {
-							if ( empty( $cp3_stocky_variation['is_in_stock'] ) ) {
-								continue;
-							}
-							foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
-								$cp3_stocky_name = str_replace( 'attribute_', '', (string) $cp3_stocky_key );
-								if ( '' === (string) $cp3_stocky_value ) {
-									$cp3_stocky_options[ $cp3_stocky_name ]['*'] = true;
-								} else {
-									$cp3_stocky_options[ $cp3_stocky_name ][ (string) $cp3_stocky_value ] = true;
-								}
-							}
-						}
 
-						$cp3_attr_slug      = sanitize_title( $cp3_attr_name );
-						$cp3_attr_prompt    = jluxe_variable_attribute_prompt( $cp3_attr_name );
-						$cp3_attr_is_color  = jluxe_is_color_attribute( $cp3_attr_name );
-						$cp3_default_pick   = isset( $cp3_defaults[ $cp3_attr_name ] ) ? (string) $cp3_defaults[ $cp3_attr_name ] : '';
-						if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
-							$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
-						}
-						?>
-						<div style="margin-top:16px">
-							<div class="cp3-varlabel"><?php echo esc_html( $cp3_attr_prompt ); ?></div>
-							<div class="cp3-pills" data-cp3-pills="<?php echo esc_attr( $cp3_attr_slug ); ?>">
-								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
-									<?php $cp3_opt = (string) $cp3_opt; ?>
-									<?php
-										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
-									?>
-									<?php
-										$cp3_opt_label       = $cp3_option_label( $cp3_opt, $cp3_attr_name );
-										$cp3_is_default_pick = '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) );
-										$cp3_opt_swatch_html = jluxe_classic_variation_swatch_html( $cp3_opt, $cp3_attr_name, $cp3_opt_label, $cp3_attr_is_color, $cp3_oos, $cp3_is_default_pick );
-									?>
-									<?php if ( '' !== $cp3_opt_swatch_html ) : ?>
-										<?php echo $cp3_opt_swatch_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped button and swatch markup. ?>
-									<?php else : ?>
-										<button type="button" class="cp3-pill<?php echo $cp3_oos ? ' is-disabled' : ''; ?><?php echo ( ! $cp3_oos && $cp3_is_default_pick ) ? ' is-active' : ''; ?>" data-value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo $cp3_oos ? ' disabled="disabled" aria-disabled="true" title="' . esc_attr( $cp3_opt_label . ' (ناموجود)' ) . '"' : ''; ?>><?php echo esc_html( $cp3_opt_label ); ?></button>
-									<?php endif; ?>
-								<?php endforeach; ?>
-							</div>
-							<div class="variations">
-							<select name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>" data-attribute_name="attribute_<?php echo esc_attr( $cp3_attr_slug ); ?>" data-show_option_none="yes" data-cp3-select="<?php echo esc_attr( $cp3_attr_slug ); ?>" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" aria-label="<?php echo esc_attr( $cp3_attr_prompt ); ?>">
-								<option value=""><?php echo esc_html( $cp3_attr_prompt ); ?></option>
-								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
-									<?php $cp3_opt = (string) $cp3_opt; ?>
-									<option value="<?php echo esc_attr( $cp3_opt ); ?>"<?php echo ( '' !== $cp3_default_pick && ( (string) $cp3_opt === $cp3_default_pick || rawurldecode( (string) $cp3_opt ) === rawurldecode( $cp3_default_pick ) ) ) ? ' selected' : ''; ?>><?php echo esc_html( $cp3_option_label( $cp3_opt, $cp3_attr_name ) ); ?></option>
-								<?php endforeach; ?>
-							</select>
-							</div>
-						</div>
-					<?php endforeach; ?>
-				<?php endif; ?>
 
 				</div>
 

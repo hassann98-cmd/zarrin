@@ -105,7 +105,7 @@ function MobileNav() {
     className: "jluxe-mobile-nav fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
     style: {
       backgroundColor: colors.background,
-      borderRadius: `${colors.radius}px ${colors.radius}px 0 0`,
+      borderRadius: `${colors.radius}px`,
       boxShadow: shadow,
       color: colors.icon,
       backdropFilter: style.blur === false ? "none" : "blur(14px)",

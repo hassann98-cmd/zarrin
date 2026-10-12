@@ -318,8 +318,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-ratebar.neu .lbl{color:#b45309}
 .jluxe-cp3 .cp3-ratebar.neg .fill{background:#f43f5e}
 .jluxe-cp3 .cp3-ratebar.neg .lbl{color:#be123c}
-.jluxe-cp3 .cp3-reviewtoolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-.jluxe-cp3 .cp3-sortsel{display:inline-flex;align-items:center;gap:2px;background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:999px;padding:4px}
+.jluxe-cp3 .cp3-reviewtoolbar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;margin-bottom:16px}
+.jluxe-cp3 .cp3-sortsel{grid-column:2;justify-self:center;display:inline-flex;align-items:center;justify-content:center;gap:2px;background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:999px;padding:4px}
+.jluxe-cp3 .cp3-reviewtoolbar .cp3-reviewbtn{grid-column:3;justify-self:end}
 .jluxe-cp3 .cp3-sortsel button{border:1px solid transparent;background:none;border-radius:999px;padding:7px 14px;font-size:12px;color:hsl(var(--text-muted));cursor:pointer;transition:all .15s;font-family:inherit}
 .jluxe-cp3 .cp3-sortsel button:hover{color:hsl(var(--foreground))}
 .jluxe-cp3 .cp3-sortsel button.is-active{background:hsl(var(--surface));border-color:hsl(var(--panel-border));color:hsl(var(--foreground));font-weight:700}
@@ -377,6 +378,12 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-cp3 .cp3-related .woocommerce-loop-product__title{font-size:13px !important;font-weight:500 !important;color:hsl(var(--text-secondary)) !important;padding:0 4px}
 .jluxe-cp3 .cp3-related .price{padding:0 4px}
 .jluxe-cp3 .cp3-related .button{display:none}
+@media (max-width:767.98px){
+	.jluxe-cp3 .cp3-reviewtoolbar{grid-template-columns:minmax(0,1fr);justify-items:center;gap:10px}
+	.jluxe-cp3 .cp3-sortsel{grid-column:1;max-width:100%;flex-wrap:wrap;border-radius:18px}
+	.jluxe-cp3 .cp3-sortsel button{padding-inline:8px}
+	.jluxe-cp3 .cp3-reviewtoolbar .cp3-reviewbtn{grid-column:1;justify-self:center}
+}
 /* R212 mobile gallery controls: clear hit areas, measured spacing and visible focus without changing the theme palette. */
 @media (max-width:767.98px){
 	.jluxe-cp3 .cp3-zoom{height:auto;aspect-ratio:1/1;margin-bottom:12px;border-radius:24px}

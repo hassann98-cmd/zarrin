@@ -3088,11 +3088,32 @@ function jluxeEnhanceShopSort(root) {
 	});
 
 	function viewportHeight() {
-		var visualViewportHeight = window.visualViewport && window.visualViewport.height;
-		return visualViewportHeight || window.innerHeight || document.documentElement.clientHeight || 0;
+		/* Keep position:fixed offsets in the same layout-viewport coordinate
+		 * space as getBoundingClientRect(), even when the keyboard resizes the
+		 * visual viewport. */
+		return window.innerHeight || document.documentElement.clientHeight || 0;
+	}
+
+	function positionToggleAwayFromAssistant() {
+		var assistant = window.JLuxeThemeSettings && window.JLuxeThemeSettings.aiAssistant;
+		var assistantSide = assistant && assistant.position === "start" ? "start" : "end";
+		var toggleSide = assistantSide === "start" ? "end" : "start";
+		var direction = window.getComputedStyle(document.documentElement).direction || document.documentElement.dir || "ltr";
+		var rtl = direction === "rtl";
+		var safeStartSide = rtl ? "right" : "left";
+		var safeEndSide = rtl ? "left" : "right";
+		toggleBtn.style.setProperty(
+			"inset-inline-start",
+			toggleSide === "start" ? `max(12px, env(safe-area-inset-${safeStartSide}, 0px))` : "auto",
+		);
+		toggleBtn.style.setProperty(
+			"inset-inline-end",
+			toggleSide === "end" ? `max(12px, env(safe-area-inset-${safeEndSide}, 0px))` : "auto",
+		);
 	}
 
 	function positionToggle() {
+		positionToggleAwayFromAssistant();
 		var viewportH = viewportHeight();
 		var activeTop = null;
 		if (!priceBar.classList.contains("hidden")) {

@@ -8,7 +8,8 @@ const styles = await readFile(new URL("../src/styles/storefront.css", import.met
 test("R127 product help launcher remains fixed at its configured corner while clearing only real bottom docks", () => {
   assert.match(source, /position: "fixed"/);
   assert.match(source, /const launcherBottom = Math\.max\(Number\(bottom\) \|\| 0, dockClearance\)/);
-  assert.match(source, /#bottom-navigation, \.jluxe-mobile-nav, \[data-jluxe-mobile-price-bar\], \[data-jluxe-sticky-cta\], \[data-jluxe-mobile-bar-toggle\], \[data-jluxe-sticky-cta-mode-toggle\]/);
+  assert.match(source, /const dockSelector = "#bottom-navigation, \.jluxe-mobile-nav, \[data-jluxe-mobile-price-bar\], \[data-jluxe-sticky-cta\]"/);
+  assert.match(source, /only the actual nav\/price\/purchase docks reserve vertical launcher space/);
   assert.doesNotMatch(source, /productClearance|productSideOverride|measureProductCollision|clearanceAboveBuyBox/);
 });
 

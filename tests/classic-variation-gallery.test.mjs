@@ -11,10 +11,10 @@ const end = source.indexOf(marker, start) + 2;
 assert.ok(start >= 0 && end > start, "classic variation gallery binder is present");
 const galleryBinder = source.slice(start, end);
 
-function setup() {
+function setup(productClass = "jluxe-cp3") {
   const dom = new JSDOM(
     `<!doctype html><html><body>
-      <div class="jluxe-cp3">
+      <div class="${productClass}">
         <form class="variations_form">
           <div data-cp3-gallery data-jluxe-gallery-current="0">
             <button type="button" data-cp3-zoom-box>
@@ -120,6 +120,30 @@ test("classic variation selection updates the main image, first thumbnail, and f
   assert.equal(mobileDots[0].classList.contains("is-active"), true);
   assert.equal(mobileDots[1].classList.contains("is-active"), false);
 
+  dom.window.close();
+});
+
+test("Reference-layout color variation events immediately replace the touch gallery image", () => {
+  const { dom, window, form, $ } = setup("jluxe-cp3 jluxe-product-reference");
+  const main = window.document.querySelector("[data-cp3-zoom-img]");
+  const firstThumb = window.document.querySelector(".cp3-thumb[data-cp3-thumb]");
+  const variation = {
+    image: {
+      src: "/reference-red-large.jpg",
+      src_w: 1200,
+      src_h: 900,
+      full_src: "/reference-red-full.jpg",
+      gallery_thumbnail_src: "/reference-red-thumb.jpg",
+      alt: "Red variation",
+    },
+  };
+
+  $(form).trigger("found_variation", [variation]);
+
+  assert.equal(main.getAttribute("src"), "/reference-red-large.jpg");
+  assert.equal(firstThumb.getAttribute("data-full"), "/reference-red-full.jpg");
+  assert.equal(firstThumb.querySelector("img").getAttribute("src"), "/reference-red-thumb.jpg");
+  assert.equal(main.getAttribute("alt"), "Red variation");
   dom.window.close();
 });
 

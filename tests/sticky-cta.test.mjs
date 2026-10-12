@@ -192,7 +192,7 @@ test("R38 sticky CTA is inert without its markup", () => {
 
 function buildGeometryTestPage({ always = false, formBottom = 610 } = {}) {
   const dom = new JSDOM(
-    `<!doctype html><html><body>
+    `<!doctype html><html dir="rtl"><body>
       <form class="cart"><button class="single_add_to_cart_button">Add</button></form>
       <nav class="jluxe-mobile-nav"><a href="/">Home</a></nav>
       <div data-jluxe-sticky-cta${always ? " data-jluxe-sticky-cta-always" : ""}><button data-jluxe-sticky-add>Add</button></div>
@@ -203,6 +203,11 @@ function buildGeometryTestPage({ always = false, formBottom = 610 } = {}) {
   const { window } = dom;
   Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
   Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: { height: 320, addEventListener() {}, removeEventListener() {} },
+  });
+  window.JLuxeThemeSettings = { aiAssistant: { position: "end" } };
   const form = window.document.querySelector("form.cart");
   const nav = window.document.querySelector(".jluxe-mobile-nav");
   const bar = window.document.querySelector("[data-jluxe-sticky-cta]");
@@ -240,7 +245,12 @@ test("sticky switch stays above the CTA's resting edge and scroll hysteresis pre
   assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "purchase");
   assert.equal(page.nav.hidden, true);
   assert.equal(page.toggle.hidden, false);
-  assert.equal(page.toggle.style.bottom, "88px", "the switch follows the CTA's resting position rather than its slide-in transform");
+  assert.equal(page.toggle.style.bottom, "88px", "the switch follows the CTA's resting position in layout-viewport coordinates rather than its slide-in transform");
+  assert.equal(
+    page.toggle.style.getPropertyValue("inset-inline-start"),
+    "max(12px, env(safe-area-inset-right, 0px))",
+    "the switch occupies the opposite logical corner from the AI assistant",
+  );
   assert.equal(page.window.document.body.style.paddingBottom, "144px", "only the active dock and switch reserve page clearance");
 
   page.formBottom = 610;

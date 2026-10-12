@@ -138,6 +138,16 @@ test("R121 the mobile dock adds the safe-area inset outside its configured touch
   assert.match(storefrontStyles, /margin-bottom: calc\(90px \+ env\(safe-area-inset-bottom, 0px\)\)/);
 });
 
+test("R242 both mobile menu layouts inset from screen edges and the purchase dock has four rounded corners", () => {
+  const classicDock = storefrontStyles.match(/\.jluxe-mobile-nav\[data-jluxe-mobile-nav-dock\]:not\(\.jluxe-mobile-nav--floating\)\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(classicDock, /left: max\(8px, env\(safe-area-inset-left, 0px\)\)/);
+  assert.match(classicDock, /right: max\(8px, env\(safe-area-inset-right, 0px\)\)/);
+  assert.match(classicDock, /bottom: calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(storefrontStyles, /\.jluxe-mobile-nav\.jluxe-mobile-nav--floating\s*\{[\s\S]*?left: max\(8px, env\(safe-area-inset-left, 0px\)\)[\s\S]*?right: max\(8px, env\(safe-area-inset-right, 0px\)\)[\s\S]*?bottom: calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(mobileNavSource, /borderRadius: `\$\{colors\.radius\}px`/);
+  assert.match(storefrontStyles, /\.jluxe-sticky-cta\s*\{\s*display: flex;\s*box-sizing: border-box;\s*right: max\(10px, env\(safe-area-inset-right, 0px\)\);\s*left: max\(10px, env\(safe-area-inset-left, 0px\)\);\s*border: 1px solid hsl\(var\(--border\)\);\s*border-radius: 20px;/);
+});
+
 test("R182 floating navigation resolves its built-in support, category, shop, cart, and account actions", () => {
   const urls = {
     home: "https://shop.test/store/",

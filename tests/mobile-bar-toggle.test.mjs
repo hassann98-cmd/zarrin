@@ -34,6 +34,12 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
   const { window } = dom;
   let viewportH = 800;
   Object.defineProperty(window, "innerHeight", { configurable: true, get: () => viewportH });
+  Object.defineProperty(window, "visualViewport", {
+    configurable: true,
+    value: { height: 320, addEventListener() {}, removeEventListener() {} },
+  });
+  window.document.documentElement.dir = "rtl";
+  window.JLuxeThemeSettings = { aiAssistant: { position: "end" } };
   let navTop = 732;
   const priceBar = window.document.querySelector("[data-jluxe-mobile-price-bar]");
   const toggle = window.document.querySelector("[data-jluxe-mobile-bar-toggle]");
@@ -54,7 +60,12 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
   assert.equal(toggle.getAttribute("aria-label"), "نمایش منوی موبایل");
   assert.equal(menuIcon.hidden, false);
   assert.equal(purchaseIcon.hidden, true);
-  assert.equal(toggle.style.bottom, "88px", "the control is positioned above the active price bar");
+  assert.equal(toggle.style.bottom, "88px", "the control is positioned above the active price bar using layout-viewport geometry");
+  assert.equal(
+    toggle.style.getPropertyValue("inset-inline-start"),
+    "max(12px, env(safe-area-inset-right, 0px))",
+    "the mode switch sits on the side opposite the configured AI assistant launcher",
+  );
 
   toggle.click();
   assert.equal(priceBar.classList.contains("hidden"), true);
@@ -83,6 +94,8 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
 });
 
 test("the default product layout retains one accessible, visually meaningful mode toggle", () => {
+  assert.match(source, /return window\.innerHeight \|\| document\.documentElement\.clientHeight \|\| 0;/);
+  assert.match(source, /positionToggleAwayFromAssistant\(\)/);
   assert.match(source, /window\.addEventListener\("scroll", schedulePositionToggle/);
   assert.match(source, /visualViewport\.addEventListener\("scroll", schedulePositionToggle/);
   assert.match(template, /data-jluxe-mobile-bar-toggle[\s\S]*?aria-controls="jluxe-mobile-price-bar"[\s\S]*?aria-pressed="true"/);

@@ -442,7 +442,9 @@ function Assistant() {
       return undefined;
     }
 
-    const dockSelector = "#bottom-navigation, .jluxe-mobile-nav, [data-jluxe-mobile-price-bar], [data-jluxe-sticky-cta], [data-jluxe-mobile-bar-toggle], [data-jluxe-sticky-cta-mode-toggle]";
+    // Mode switches are placed opposite the configured assistant corner, so
+    // only the actual nav/price/purchase docks reserve vertical launcher space.
+    const dockSelector = "#bottom-navigation, .jluxe-mobile-nav, [data-jluxe-mobile-price-bar], [data-jluxe-sticky-cta]";
     let animationFrame = 0;
     const pendingSettledMeasurements = new Set();
     const observedDocks = new WeakSet();

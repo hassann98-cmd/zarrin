@@ -14,6 +14,7 @@ const DRAWERS = Object.freeze({
 
 const STATE_EVENT = "jluxe:mobile-drawer-state";
 const activeByWindow = new WeakMap();
+const registeredByWindow = new WeakMap();
 const scrollLocksByDocument = new WeakMap();
 
 function isWindowLike(win) {
@@ -39,6 +40,22 @@ export function getActiveMobileDrawer(win = globalThis.window) {
   const active = Object.prototype.hasOwnProperty.call(DRAWERS, saved) ? saved : null;
   activeByWindow.set(win, active);
   return active;
+}
+
+function drawerRegistrationCount(name, win) {
+  return registeredByWindow.get(win)?.get(name) ?? 0;
+}
+
+function changeDrawerRegistrationCount(name, win, delta) {
+  let registrations = registeredByWindow.get(win);
+  if (!registrations) {
+    registrations = new Map();
+    registeredByWindow.set(win, registrations);
+  }
+  const nextCount = Math.max(0, (registrations.get(name) ?? 0) + delta);
+  if (nextCount > 0) registrations.set(name, nextCount);
+  else registrations.delete(name);
+  if (registrations.size === 0) registeredByWindow.delete(win);
 }
 
 function setActive(win, active, previous) {
@@ -80,6 +97,13 @@ export function closeMobileDrawer(name, win = globalThis.window) {
 /** Toggle a requested drawer; its own close controls and backdrop remain available while open. */
 export function toggleMobileDrawer(name, win = globalThis.window) {
   if (getActiveMobileDrawer(win) === name) {
+    // A tap can arrive before React finishes loading the drawer island. Keep
+    // retrying the pending open request instead of treating it as a visible
+    // panel and closing it on the customer's second tap.
+    if (drawerRegistrationCount(name, win) === 0) {
+      dispatch(win, DRAWERS[name].openEvent, { source: "mobile-navigation-retry" });
+      return name;
+    }
     closeMobileDrawer(name, win);
     return null;
   }
@@ -105,6 +129,7 @@ export function registerMobileDrawer(name, handlers = {}, win = globalThis.windo
     handlers.close?.();
   };
 
+  changeDrawerRegistrationCount(name, win, 1);
   win.addEventListener(config.openEvent, onOpen);
   win.addEventListener(config.closeEvent, onClose);
   if (getActiveMobileDrawer(win) === name) handlers.open?.();
@@ -112,6 +137,7 @@ export function registerMobileDrawer(name, handlers = {}, win = globalThis.windo
   return () => {
     win.removeEventListener(config.openEvent, onOpen);
     win.removeEventListener(config.closeEvent, onClose);
+    changeDrawerRegistrationCount(name, win, -1);
   };
 }
 

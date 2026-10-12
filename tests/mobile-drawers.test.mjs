@@ -11,6 +11,27 @@ import {
   toggleMobileDrawer,
 } from "../src/lib/mobile-drawers.js";
 
+test("rapid cart taps before the asynchronous drawer mounts keep the open request pending", (t) => {
+  const dom = new JSDOM("<!doctype html><html><body></body></html>");
+  const { window } = dom;
+  let opens = 0;
+  let closes = 0;
+  t.after(() => window.close());
+
+  assert.equal(toggleMobileDrawer("cart", window), "cart");
+  assert.equal(toggleMobileDrawer("cart", window), "cart", "a second tap retries the pending request instead of cancelling it");
+  assert.equal(getActiveMobileDrawer(window), "cart");
+
+  const unregister = registerMobileDrawer("cart", {
+    open: () => opens++,
+    close: () => closes++,
+  }, window);
+  t.after(unregister);
+  assert.equal(opens, 1, "the cart opens as soon as its lazy island registers");
+  assert.equal(toggleMobileDrawer("cart", window), null, "after registration the same tap properly closes the visible drawer");
+  assert.equal(closes, 1);
+});
+
 test("mobile drawer requests survive late mounting and same-drawer requests close the panel", () => {
   const dom = new JSDOM("<!doctype html><html><body></body></html>");
   const { window } = dom;

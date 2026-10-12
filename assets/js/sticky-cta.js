@@ -32,8 +32,31 @@
 	}
 
 	function viewportHeight() {
-		var visualViewportHeight = window.visualViewport && window.visualViewport.height;
-		return visualViewportHeight || window.innerHeight || document.documentElement.clientHeight || 0;
+		/* Fixed docks and getBoundingClientRect share layout-viewport coordinates.
+		 * visualViewport.height can shrink for the keyboard/browser chrome and
+		 * mixing the two coordinate systems makes the switch jump. */
+		return window.innerHeight || document.documentElement.clientHeight || 0;
+	}
+
+	function positionToggleAwayFromAssistant() {
+		if ( ! modeToggle ) {
+			return;
+		}
+		var assistant = window.JLuxeThemeSettings && window.JLuxeThemeSettings.aiAssistant;
+		var assistantSide = assistant && 'start' === assistant.position ? 'start' : 'end';
+		var toggleSide = 'start' === assistantSide ? 'end' : 'start';
+		var direction = window.getComputedStyle( document.documentElement ).direction || document.documentElement.dir || 'ltr';
+		var rtl = 'rtl' === direction;
+		var safeStartSide = rtl ? 'right' : 'left';
+		var safeEndSide = rtl ? 'left' : 'right';
+		modeToggle.style.setProperty(
+			'inset-inline-start',
+			'start' === toggleSide ? 'max(12px, env(safe-area-inset-' + safeStartSide + ', 0px))' : 'auto'
+		);
+		modeToggle.style.setProperty(
+			'inset-inline-end',
+			'end' === toggleSide ? 'max(12px, env(safe-area-inset-' + safeEndSide + ', 0px))' : 'auto'
+		);
 	}
 
 	function syncNavigationVisibility() {
@@ -103,6 +126,7 @@
 		if ( ! modeToggle ) {
 			return;
 		}
+		positionToggleAwayFromAssistant();
 		var shouldShow = isMobileViewport() && bar.classList.contains( 'is-visible' ) && hasUsableNavigation( navCandidates );
 		if ( ! shouldShow ) {
 			focusAfterToggleHides( navCandidates );

@@ -1009,16 +1009,21 @@ check(
 	false === strpos( $r238_reference_tpl, 'ارسال سریع</span>' ),
 	'R238 the third layout has its own dynamic feature-card presentation, product sections, and related products'
 );
+$r238_mobile_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-product-meta"' );
+$r238_delivery_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-meta-item reference-mobile-meta-item--delivery"', $r238_mobile_meta_position );
+$r238_variation_options_position = strpos( $r238_reference_tpl, 'data-reference-variation-options' );
 $r238_short_description_position = strpos( $r238_reference_tpl, 'data-cp3-short' );
 $r238_feature_cards_position = strpos( $r238_reference_tpl, '$reference_key_features    = jluxe_product_key_feature_cards( $product );' );
-$r238_variation_options_position = strpos( $r238_reference_tpl, 'if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) )' );
 check(
-	false !== $r238_short_description_position && false !== $r238_feature_cards_position &&
-	$r238_feature_cards_position > $r238_short_description_position && $r238_feature_cards_position < $r238_variation_options_position &&
+	false !== $r238_mobile_meta_position && false !== $r238_delivery_meta_position &&
+	false !== $r238_variation_options_position && false !== $r238_short_description_position && false !== $r238_feature_cards_position &&
+	$r238_mobile_meta_position < $r238_delivery_meta_position && $r238_delivery_meta_position < $r238_variation_options_position &&
+	$r238_variation_options_position < $r238_short_description_position && $r238_feature_cards_position > $r238_short_description_position &&
+	false !== strpos( $r238_reference_tpl, 'نحوهٔ ارسال:' ) &&
 	false !== strpos( $r238_reference_tpl, 'is-three-compact' ) &&
 	false !== strpos( $r238_reference_tpl, 'repeat(2,minmax(0,1fr))' ) &&
 	false !== strpos( $r238_reference_tpl, 'repeat(3,minmax(0,1fr))' ),
-	'R238 dynamic feature cards sit below the short description and use compact three-column or two-column mobile grids'
+	'R238 reference product meta and delivery precede selectable variations, which precede the short description; feature cards remain below the description'
 );
 check(
 	false === strpos( $r238_reference_tpl, 'reference-mobile-empty-rating' ) &&
@@ -1099,6 +1104,15 @@ check(
 	false === strpos( $r238_reference_tpl, 'data-price-history' ) &&
 	false === strpos( $classic_tpl, 'reference-mobile-gallery-actions' ),
 	'R241 the mobile reference presentation reads English/meta/stock/rating data dynamically, uses working actions, and stays isolated from the other layouts'
+);
+check(
+	false !== strpos( $r238_reference_tpl, '.reference-mobile-meta-item--delivery{' ) &&
+	false !== strpos( $r238_reference_tpl, '.reference-mobile-variation-options{' ) &&
+	false !== strpos( $r238_reference_tpl, '.cp3-sortsel{grid-column:2;justify-self:center;' ) &&
+	false !== strpos( $r238_reference_tpl, 'grid-template-columns:minmax(0,1fr);justify-items:center' ) &&
+	false !== strpos( $classic_tpl, '.cp3-sortsel{grid-column:2;justify-self:center;' ) &&
+	false !== strpos( $classic_tpl, 'grid-template-columns:minmax(0,1fr);justify-items:center' ),
+	'R242 delivery metadata is styled, Reference variations use a dedicated option card, and review sort controls center in both classic and Reference layouts'
 );
 $_POST = $r238_old_request;
 if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
@@ -2460,7 +2474,7 @@ $r126_ai_js = (string) file_get_contents(ABSPATH.'src/islands/AiAssistant.js');
 $r126_woo_js = (string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 $r126_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 check(strpos($r126_default_product_tpl,'data-jluxe-product-buybox')!==false && strpos($r126_classic_product_tpl,'class="cp3-side" data-jluxe-product-buybox')!==false, 'R127 both product templates retain their purchase-box context without using it to reposition the help launcher');
-check(strpos($r126_ai_js,'const launcherBottom = Math.max(Number(bottom) || 0, dockClearance)')!==false && strpos($r126_ai_js,'productClearance')===false && strpos($r126_ai_js,'productSideOverride')===false && strpos($r126_ai_js,'[data-jluxe-sticky-cta], [data-jluxe-mobile-bar-toggle], [data-jluxe-sticky-cta-mode-toggle]')!==false, 'R127 the product help launcher stays fixed at its configured corner and clears only the measured bottom docks, including the switch tabs');
+check(strpos($r126_ai_js,'const launcherBottom = Math.max(Number(bottom) || 0, dockClearance)')!==false && strpos($r126_ai_js,'productClearance')===false && strpos($r126_ai_js,'productSideOverride')===false && strpos($r126_ai_js,'[data-jluxe-sticky-cta]"')!==false && strpos($r126_ai_js,'data-jluxe-mobile-bar-toggle')===false && strpos($r126_ai_js,'data-jluxe-sticky-cta-mode-toggle')===false, 'R127 the product help launcher stays fixed at its configured corner and clears only measured docks while the switches occupy the opposite corner');
 check(preg_match('/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index: 200;/s',$r126_css)===1 && preg_match('/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index: 210;/s',$r126_css)===1 && strpos($r126_css,'.jluxe-pa { z-index: 190; }')!==false && strpos($r126_ai_js,'zIndex: isMobile && open ? 180 : 90')!==false, 'R126 suggestions/review/variation dialogs retain ordered layers above sticky mobile chrome and the open assistant');
 check(strpos($r126_woo_js,'function showSuggestedError')!==false && strpos($r126_woo_js,'function releaseAddedProducts')!==false && strpos($r126_woo_js,'function finishFailure')!==false && strpos($r126_woo_js,'activeOperation.type === "add"')!==false && strpos($r126_woo_js,'window.jluxeShowSuggestedAddWarning')!==false && strpos($r126_woo_js,'pickerUncertaintyMessage')!==false && strpos($r126_css,'.jluxe-pa-error')!==false, 'R126 failed add-on requests stay retryable, confirmed successes are deselected, and ambiguous add warnings persist when returning to the picker');
 // R65: extended color map (slug fallback + normalization) and unselectable out-of-stock variations.

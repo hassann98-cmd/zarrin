@@ -6363,7 +6363,20 @@ html {
 }
 body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 @media (max-width: 767.98px) {
-  .jluxe-sticky-cta { display: flex; }
+  .jluxe-sticky-cta {
+    display: flex;
+    box-sizing: border-box;
+    right: max(10px, env(safe-area-inset-right, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+    border: 1px solid hsl(var(--border));
+    border-radius: 20px;
+  }
+  .jluxe-mobile-nav[data-jluxe-mobile-nav-dock]:not(.jluxe-mobile-nav--floating) {
+    right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    left: max(8px, env(safe-area-inset-left, 0px));
+    border: 1px solid hsl(var(--border));
+  }
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] #bottom-navigation,
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav { display: none; }
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-sticky-cta { display: none; }
