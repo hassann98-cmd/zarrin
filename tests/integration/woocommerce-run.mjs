@@ -473,9 +473,12 @@ try {
     const stateField = response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>/);
     const cityIsDependentSelect = !!cityField && /data-jluxe-city-select="1"/.test(cityField[0]) && /disabled="disabled"/.test(cityField[0]);
     const stateOptionCount = (response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>[\s\S]*?<\/select>/)?.[0].match(/<option\b/g) || []).length;
-    const checkoutAddressDataLoaded = response.text.includes('"checkoutAddressData"') && response.text.includes('"تهران"');
+    const checkoutAddressDataLoaded = response.text.includes('"checkoutAddressData"') &&
+      (response.text.includes('"تهران"') || /\u062a\u0647\u0631\u0627\u0646/i.test(response.text));
     const accessibleProgress = response.text.includes('<ol class="m-0 flex list-none') && response.text.includes('data-jluxe-step="shipping" aria-current="step"');
-    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const paymentRequired = response.text.includes('data-jluxe-payment-required="1"');
+    const hasPlaceOrderButton = response.text.includes('id="place_order"');
+    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
