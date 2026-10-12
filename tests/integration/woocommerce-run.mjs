@@ -132,6 +132,11 @@ try {
       php.mkdirTree(target);
       for (const entry of await fs.readdir(source, { withFileTypes: true })) {
         if (entry.name.startsWith(".")) continue;
+        const sourceFile = path.join(source, entry.name);
+        // This production override intentionally removes the alternate-address form.
+        // Omit only this file in the disposable integration site so the real upstream
+        // WooCommerce template renders its normally hidden required shipping fields.
+        if (path.relative(repo, sourceFile) === "woocommerce/checkout/form-shipping.php") continue;
         const destination = `${target}/${entry.name}`;
         if (entry.isDirectory()) {
           await copyRuntime(path.join(source, entry.name), destination);
