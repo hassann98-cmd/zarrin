@@ -19,8 +19,16 @@ function collection(nodes) {
       return this;
     },
     find(selector) {
+      const requireVisible = selector.includes(":visible");
       const nativeSelector = selector.replaceAll(":visible", "").replaceAll(":checkbox", '[type="checkbox"]');
-      return collection(list.flatMap((node) => Array.from(node.querySelectorAll(nativeSelector))));
+      const matches = list.flatMap((node) => Array.from(node.querySelectorAll(nativeSelector)));
+      const isVisible = (element) => {
+        for (let ancestor = element; ancestor && ancestor.nodeType === 1; ancestor = ancestor.parentElement) {
+          if (ancestor.hidden || ancestor.style.display === "none") return false;
+        }
+        return true;
+      };
+      return collection(requireVisible ? matches.filter(isVisible) : matches);
     },
     is(selector) {
       const nativeSelector = selector.replaceAll(":checkbox", '[type="checkbox"]');
@@ -44,7 +52,7 @@ function collection(nodes) {
   return result;
 }
 
-function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false } = {}) {
+function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false, shippingAddressFields = false, shippingAddressVisible = false } = {}) {
   const step = (id, label, current = false) =>
     `<li data-jluxe-step="${id}" ${current ? 'aria-current="step"' : ""}>
       <span data-jluxe-step-circle data-jluxe-step-number="۱" class="border-border text-text-muted"></span>
@@ -66,6 +74,11 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE">تهران</option><option value="KZ">خوزستان</option></select></p>
       <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" disabled><option value="">ابتدا استان را انتخاب کنید</option></select></p>`
     : "";
+  const shippingAddressMarkup = shippingAddressFields
+    ? `<div id="shipping_address" class="shipping_address" ${shippingAddressVisible ? "" : 'style="display: none;"'}>
+        <p class="form-row validate-required" id="shipping_first_name_field"><input class="input-text" id="shipping_first_name" type="text" value=""></p>
+      </div>`
+    : "";
   const dom = new JSDOM(
     `<!doctype html><html><body>
       <nav class="jluxe-checkout-stepper">
@@ -77,7 +90,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         </ol>
       </nav>
       <form class="checkout">
-        <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}</div>
+        <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}${shippingAddressMarkup}</div>
         <div id="jluxe-payment-column" hidden>
           <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}">
             <h2 id="jluxe-payment-heading" tabindex="-1">روش پرداخت</h2>
@@ -244,6 +257,39 @@ test("province selection loads only its sorted city options and blocks checkout 
   city.value = "اهواز";
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
+});
+
+test("final validation ignores WooCommerce's hidden ship-to-billing fields but still validates an active shipping address", (t) => {
+  const sameAddress = boot({ requiredField: true, shippingChecked: true, shippingAddressFields: true });
+  const differentAddress = boot({ requiredField: true, shippingChecked: true, shippingAddressFields: true, shippingAddressVisible: true });
+  t.after(() => sameAddress.window.close());
+  t.after(() => differentAddress.window.close());
+
+  const { document: sameAddressDocument } = sameAddress.window;
+  sameAddressDocument.getElementById("billing_first_name").value = "Valid billing name";
+  assert.equal(sameAddressDocument.getElementById("shipping_address").style.display, "none");
+  sameAddressDocument.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(sameAddressDocument), "payment");
+  const sameAddressGateway = sameAddressDocument.querySelector("input.payment_method");
+  sameAddressGateway.checked = true;
+  const allowed = submitWithoutCreatingAnOrder(sameAddress.window);
+  assert.equal(allowed.event.defaultPrevented, false, "empty shipping fields are ignored when WooCommerce is shipping to the valid billing address");
+  assert.equal(allowed.reachedForm, true, "valid billing data and a selected gateway reach the checkout form submit event");
+
+  const { document: differentAddressDocument } = differentAddress.window;
+  differentAddressDocument.getElementById("billing_first_name").value = "Valid billing name";
+  differentAddressDocument.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(differentAddressDocument), "shipping");
+  assert.ok(differentAddressDocument.getElementById("shipping_first_name_field").classList.contains("woocommerce-invalid-required-field"), "visible required shipping fields remain enforced when shipping to a different address");
+  assert.equal(differentAddressDocument.activeElement.id, "shipping_first_name");
+
+  differentAddressDocument.getElementById("shipping_first_name").value = "Valid recipient";
+  differentAddressDocument.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(differentAddressDocument), "payment");
+  differentAddressDocument.querySelector("input.payment_method").checked = true;
+  const differentAddressSubmit = submitWithoutCreatingAnOrder(differentAddress.window);
+  assert.equal(differentAddressSubmit.event.defaultPrevented, false);
+  assert.equal(differentAddressSubmit.reachedForm, true);
 });
 
 test("form submission cannot bypass required address and shipping stages, including after payment is shown", (t) => {

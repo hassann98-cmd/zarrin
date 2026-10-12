@@ -267,6 +267,7 @@ try {
       update_option('woocommerce_store_address','10 Integration Road');
       update_option('woocommerce_store_city','Test City');
       update_option('woocommerce_store_postcode','90001');
+      update_option('woocommerce_ship_to_destination','billing');
       update_option('woocommerce_calc_taxes','no');
       update_option('woocommerce_enable_coupons','yes');
       update_option('woocommerce_enable_guest_checkout','yes');
@@ -478,14 +479,18 @@ try {
     const accessibleProgress = response.text.includes('<ol class="m-0 flex list-none') && response.text.includes('data-jluxe-step="shipping" aria-current="step"');
     const paymentRequired = response.text.includes('data-jluxe-payment-required="1"');
     const hasPlaceOrderButton = response.text.includes('id="place_order"');
-    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
+    const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
+    const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
+    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
         response.text.includes("payment_method") && cityIsDependentSelect && stateOptionCount >= 31 && checkoutAddressDataLoaded && accessibleProgress &&
+        shipsToBillingByDefault && hiddenShippingRecipientIsRequired &&
         response.text.includes('data-jluxe-payment-required="1"') &&
         response.text.includes('id="place_order"'),
-      `The classic checkout renders a real offline gateway, 31 selectable provinces, a dependent city select, accessible progress, and WooCommerce's submit control (${checkoutDiagnostic})`,
+      `The real classic checkout renders the offline gateway, 31 provinces, dependent city field, and WooCommerce's normally hidden required shipping-address fields alongside the submit control (${checkoutDiagnostic})`,
     );
 
     response = await ajax({

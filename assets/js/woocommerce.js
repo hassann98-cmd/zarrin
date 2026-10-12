@@ -3681,28 +3681,41 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	/*
-	 * باگِ واقعیِ گزارش‌شده (با تستِ زنده پیدا شد): فیلدهای الزامیِ فرمِ آدرس
-	 * رو خالی می‌ذاشتیم و «نهایی‌سازی سفارش» بدونِ هیچ مانعی به مرحله‌ی
-	 * پرداخت می‌رفت. علتِ واقعی: چکِ قبلی روی pseudo-class بومیِ مرورگر
-	 * (:invalid) بود، ولی خودِ ووکامرس (woocommerce_form_field در
-	 * wc-template-functions.php) هیچ‌وقت attribute واقعیِ HTML5
-	 * required="required" رو روی input نمی‌ذاره — فقط کلاسِ CSS
-	 * validate-required روی <p class="form-row"> و aria-required روی خودِ
-	 * input. یعنی هیچ فیلدی هیچ‌وقت واقعاً :invalid نمی‌شد، پس اون چک همیشه
-	 * بی‌اثر بود. اصلاح: همون قراردادِ خودِ ووکامرس رو پیاده می‌کنیم —
-	 * دقیقاً همون چیزی که assets/frontend/checkout.js خودِ ووکامرس موقعِ
-	 * submit واقعی روی .validate-required:visible انجام می‌ده (کلاسِ
-	 * woocommerce-invalid/woocommerce-invalid-required-field که CSS
-	 * قرمزِ globals.css روش سوار می‌شه) — نه یک اعتبارسنجیِ ابداعیِ جدید.
+	 * ووکامرس فیلدهای آدرسِ تحویل را داخلِ .shipping_address می‌گذارد و تا
+	 * وقتی مشتری «ارسال به نشانیِ دیگر» را فعال نکرده، آن بخش را مخفی می‌کند.
+	 * این فیلدهای required عمداً خالی می‌مانند و خود WooCommerce هنگام ارسال
+	 * به نشانیِ صورتحساب آن‌ها را نادیده می‌گیرد. هنگامِ نمایشِ مرحله‌ی پرداخت
+	 * کلِ #customer_details هم مخفی است؛ بنابراین :visible به‌تنهایی نمی‌تواند
+	 * فیلدهای فعالِ صورتحساب را دوباره بررسی کند. فقط ancestorهای داخلیِ این
+	 * wrapper را بررسی می‌کنیم: مخفی‌بودنِ خودِ مرحله نادیده گرفته می‌شود، اما
+	 * فیلدهایی که WooCommerce واقعاً برای این سفارش مخفی کرده، اعتبارسنجی نمی‌شوند.
 	 */
-	function findFirstInvalidRequiredField(includeHidden) {
+	function isRequiredFieldVisibleWithinCheckoutStep(row) {
+		var node = row;
+		while (node && node !== customerDetails) {
+			if (node.hidden || node.getAttribute("aria-hidden") === "true") {
+				return false;
+			}
+			var style = window.getComputedStyle ? window.getComputedStyle(node) : node.style;
+			if (style && (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse")) {
+				return false;
+			}
+			node = node.parentElement;
+		}
+		return node === customerDetails;
+	}
+
+	function findFirstInvalidRequiredField() {
 		if (!customerDetails || !window.jQuery) {
 			return null;
 		}
 		var $ = window.jQuery;
-		var $rows = $(customerDetails).find(includeHidden ? ".validate-required" : ".validate-required:visible");
+		var $rows = $(customerDetails).find(".validate-required");
 		var $firstInvalid = null;
 		$rows.each(function () {
+			if (!isRequiredFieldVisibleWithinCheckoutStep(this)) {
+				return;
+			}
 			var $row = $(this);
 			var $input = $row.find("input.input-text, select, textarea, input:checkbox");
 			if (!$input.length) {
@@ -3744,7 +3757,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function validateShippingStep() {
-		var invalid = findFirstInvalidRequiredField(false);
+		var invalid = findFirstInvalidRequiredField();
 		if (invalid) {
 			showInvalidRequiredField(invalid);
 			return false;
@@ -3799,9 +3812,9 @@ function jluxeEnhanceShopSort(root) {
 				return;
 			}
 
-			// اطلاعات آدرس حتی وقتی ستونش مخفی شده، پیش از submit نهایی دوباره
-			// بررسی می‌شود تا هیچ required field خالی از درگاه عبور نکند.
-			var invalid = findFirstInvalidRequiredField(true);
+			// فیلدهای فعالِ آدرس حتی وقتی ستون‌شان مخفی است دوباره بررسی می‌شوند؛
+			// فیلدهایی که خودِ WooCommerce عمداً پنهان کرده، submit معتبر را نمی‌بندند.
+			var invalid = findFirstInvalidRequiredField();
 			if (invalid) {
 				event.preventDefault();
 				event.stopImmediatePropagation();
