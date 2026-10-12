@@ -71,8 +71,8 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     ? '<p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" id="billing_first_name" type="text" value=""></p>'
     : "";
   const locationMarkup = locationFields
-    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" name="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE" ${initialState === "TE" ? "selected" : ""}>تهران</option><option value="KZ" ${initialState === "KZ" ? "selected" : ""}>خوزستان</option><option value="2241" ${initialState === "2241" ? "selected" : ""}>کردستان</option><option value="2274" ${initialState === "2274" ? "selected" : ""}>کرمان</option></select></p>
-      <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" name="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" ${initialState ? "" : "disabled"}><option value="">ابتدا استان را انتخاب کنید</option>${initialCity ? `<option value="${initialCity.value}" selected>${initialCity.label}</option>` : ""}</select></p>`
+    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" name="billing_state" class="select2-hidden-accessible" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE" ${initialState === "TE" ? "selected" : ""}>تهران</option><option value="KZ" ${initialState === "KZ" ? "selected" : ""}>خوزستان</option><option value="2241" ${initialState === "2241" ? "selected" : ""}>کردستان</option><option value="2274" ${initialState === "2274" ? "selected" : ""}>کرمان</option><option value="2352" ${initialState === "2352" ? "selected" : ""}>کرمانشاه</option></select></p>
+      <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" name="billing_city" class="select2-hidden-accessible" data-jluxe-city-select data-jluxe-state-field="billing_state" ${initialState ? "" : "disabled"}><option value="">ابتدا استان را انتخاب کنید</option>${initialCity ? `<option value="${initialCity.value}" selected>${initialCity.label}</option>` : ""}</select></p>`
     : "";
   const shippingAddressMarkup = shippingAddressFields
     ? `<div id="shipping_address" class="shipping_address" ${shippingAddressVisible ? "" : 'style="display: none;"'}>
@@ -109,6 +109,8 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   const { window } = dom;
   const scrolls = [];
   let updatedCheckout;
+  const bodyHandlers = new Map();
+  const select2Refreshes = [];
   window.HTMLElement.prototype.scrollIntoView = function (options) {
     scrolls.push({ id: this.id, behavior: options?.behavior, block: options?.block });
   };
@@ -116,28 +118,38 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   window.jluxeWcSettings = {
     cartUrl: "/store/basket/",
     checkoutAddressData: {
-      state_aliases: { TE: "تهران", KZ: "خوزستان", THR: "تهران", KRD: "کردستان" },
+      state_aliases: { TE: "تهران", KZ: "خوزستان", THR: "تهران", KRD: "کردستان", KRN: "کرمان", KRH: "کرمانشاه" },
       provinces: [
         { id: 8, code: 23, name: "تهران", cities: ["تهران", "ری", "اسلامشهر"] },
         { id: 13, code: 6, name: "خوزستان", cities: ["اهواز", "آبادان"] },
         { id: 21, code: 20, name: "کردستان", cities: ["آرمرده", "اورامان تخت", "سنندج"] },
         { id: 22, code: 8, name: "کرمان", cities: ["اختیارآباد"] },
+        { id: 23, code: "KRH", name: "کرمانشاه", cities: ["اسلام آبادغرب", "جوانرود", "کرمانشاه"] },
       ],
     },
   };
   window.jQuery = (target) => {
     const wrapped = collection(target);
     wrapped.on = function (event, callback) {
-      if (target === window.document.body && event === "updated_checkout") updatedCheckout = callback;
+      if (target === window.document.body) {
+        bodyHandlers.set(event, callback);
+        if (event === "updated_checkout") updatedCheckout = callback;
+      }
       return wrapped;
     };
-    wrapped.trigger = function () {
+    wrapped.trigger = function (event, args = []) {
+      if (target === window.document.body && bodyHandlers.has(event)) {
+        bodyHandlers.get(event).call(target, { type: event, target }, ...(Array.isArray(args) ? args : [args]));
+      }
+      if (target && target.tagName === "SELECT" && event === "change.select2") {
+        select2Refreshes.push(target.id);
+      }
       return wrapped;
     };
     return wrapped;
   };
   window.eval(checkoutScript);
-  return { dom, window, scrolls, updatedCheckout: () => updatedCheckout?.() };
+  return { dom, window, scrolls, select2Refreshes, updatedCheckout: () => updatedCheckout?.() };
 }
 
 function currentStep(document) {
@@ -326,6 +338,94 @@ test("a province label or prefixed WooCommerce state code resolves to the same l
   state.value = "IR-THR";
   dispatchChange(window, state);
   assert.deepEqual(Array.from(city.options).slice(1).map((option) => option.value), ["اسلامشهر", "تهران", "ری"], "IR-THR is normalized through the shared state alias");
+});
+
+test("Kermanshah's exact option label wins over Kerman's substring for numeric state IDs", (t) => {
+  const { window, select2Refreshes } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2275", label: "اختیارآباد" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+
+  assert.equal(state.value, "2352");
+  assert.equal(state.options[state.selectedIndex].textContent, "کرمانشاه");
+  assert.equal(city.dataset.jluxeProvince, "کرمانشاه", "the province resolver must match the full selected label before substring fallback");
+  assert.ok(Array.from(city.options).some((option) => option.value === "جوانرود"));
+  assert.ok(!Array.from(city.options).some((option) => option.textContent === "اختیارآباد"), "a Kerman city is not retained in the Kermanshah list");
+  assert.equal(city.value, "", "a prior city from the wrong province is cleared");
+  assert.ok(select2Refreshes.includes("billing_state") && select2Refreshes.includes("billing_city"), "both Select2 labels are refreshed after native options change");
+
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping", "the required city cannot be bypassed after the incorrect city is cleared");
+  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
+
+  city.value = "کرمانشاه";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment", "a city from the exact province passes the normal checkout gate");
+
+  document.querySelector("[data-jluxe-checkout-back]").click();
+  city.replaceChildren(new window.Option("لطفا شهر خود را انتخاب نمایید", "0"), new window.Option("اختیارآباد", "2275"));
+  city.value = "2275";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping", "a Kerman city injected by another extension remains invalid for Kermanshah");
+  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
+});
+
+test("zero-valued city placeholders are treated as empty, not as valid selections", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true, initialState: "TE" });
+  t.after(() => window.close());
+  const { document } = window;
+  const city = document.getElementById("billing_city");
+  city.replaceChildren(new window.Option("لطفا شهر خود را انتخاب نمایید", "0"), new window.Option("تهران", "تهران"));
+  city.value = "0";
+
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping");
+  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
+  assert.ok(document.getElementById("billing_city_field").querySelector("[data-jluxe-required-field-error]"));
+  assert.equal(document.querySelector("[data-jluxe-city-province-error]"), null, "a placeholder is reported as missing, not falsely described as a province mismatch");
+});
+
+test("WooCommerce billing-city checkout errors reopen the hidden shipping step, but gateway errors stay on payment", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true, initialState: "2352" });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const city = document.getElementById("billing_city");
+  city.value = "کرمانشاه";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+  assert.equal(document.getElementById("customer_details").style.display, "none");
+
+  form.insertAdjacentHTML("afterbegin", '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"><div role="alert"><ul class="woocommerce-error"><li>پرداخت از طریق درگاه ناموفق بود.</li></ul></div></div>');
+  window.jQuery(document.body).trigger("checkout_error");
+  assert.equal(currentStep(document), "payment", "an unrelated gateway error does not move the customer away from payment");
+
+  form.querySelector(".woocommerce-NoticeGroup-checkout").remove();
+  city.value = "";
+  form.insertAdjacentHTML("afterbegin", '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"><div role="alert"><ul class="woocommerce-error"><li>لطفا <b>شهر صورتحساب</b> خود را انتخاب نمایید.</li></ul></div></div>');
+  window.jQuery(document.body).trigger("checkout_error");
+
+  assert.equal(currentStep(document), "shipping", "a WooCommerce address validation response returns to the step containing its field");
+  assert.equal(document.getElementById("customer_details").style.display, "");
+  assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
+  assert.ok(form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error"), "the original WooCommerce notice remains visible");
+  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
+  assert.ok(document.getElementById("billing_city_field").querySelector("[data-jluxe-required-field-error]"));
+  assert.equal(document.activeElement.id, "billing_city");
+
+  city.value = "کرمانشاه";
+  dispatchChange(window, city);
+  assert.equal(document.getElementById("billing_city_field").querySelector("[data-jluxe-required-field-error]"), null, "choosing the required city immediately clears the local field warning");
+  assert.equal(city.hasAttribute("aria-invalid"), false);
 });
 
 test("numeric city IDs retain their option label and are enabled/canonicalized for WooCommerce form submission", (t) => {

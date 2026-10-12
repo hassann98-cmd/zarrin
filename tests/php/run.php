@@ -6154,6 +6154,12 @@ check(
 	'کرمان' === jluxe_ir_province_for_state( 'KRN', array( 'KRN' => 'Kerman (کرمان)' ) ),
 	'R253 exact state aliases prevent the Kermanshah label from being mistaken for Kerman'
 );
+$r254_kermanshah_cities = jluxe_ir_city_field_options( '2352', array( '2352' => 'کرمانشاه' ) );
+check(
+	'کرمانشاه' === jluxe_ir_province_for_state( '2352', array( '2352' => 'کرمانشاه' ) ) &&
+	isset( $r254_kermanshah_cities['جوانرود'], $r254_kermanshah_cities['کرمانشاه'] ) && ! isset( $r254_kermanshah_cities['اختیارآباد'] ),
+	'R254 a numeric 2352 province option resolves to Kermanshah and never receives Kerman cities'
+);
 check(
 	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&

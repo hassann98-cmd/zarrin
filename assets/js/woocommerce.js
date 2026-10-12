@@ -3433,6 +3433,14 @@ function jluxeEnhanceShopSort(root) {
 			.toLocaleLowerCase("fa");
 	}
 
+	function refreshCheckoutSelect2(select) {
+		if (!select || !window.jQuery || !select.classList.contains("select2-hidden-accessible")) return;
+		// Replacing/sorting native options does not reliably refresh Select2's
+		// cached label. Update its view from the real selected option without
+		// firing other plugins' generic change handlers.
+		window.jQuery(select).trigger("change.select2");
+	}
+
 	function sortOptionsByPersianLabel(select) {
 		if (!select || select.tagName !== "SELECT") return;
 		var value = select.value;
@@ -3449,6 +3457,7 @@ function jluxeEnhanceShopSort(root) {
 		choices.sort(compare);
 		select.replaceChildren.apply(select, placeholders.concat(choices));
 		select.value = value;
+		refreshCheckoutSelect2(select);
 	}
 
 	function findCheckoutProvince(stateSelect) {
@@ -3459,16 +3468,32 @@ function jluxeEnhanceShopSort(root) {
 		var aliasKey = stateKey.replace(/^IR[-_]/, "");
 		var aliases = checkoutAddressData.state_aliases || {};
 		var aliasName = aliases[stateCode] || aliases[stateKey] || aliases[aliasKey] || "";
+		var selectedLabel = normalizeLocationName(selectedOption ? selectedOption.textContent : "");
 		var candidates = [
-			normalizeLocationName(selectedOption ? selectedOption.textContent : ""),
+			selectedLabel,
 			normalizeLocationName(aliasName),
 			normalizeLocationName(stateCode),
 		].filter(Boolean);
-		return checkoutAddressData.provinces.find(function (province) {
-			if (!province || !province.name || !Array.isArray(province.cities)) return false;
+		var provinces = checkoutAddressData.provinces.filter(function (province) {
+			return province && province.name && Array.isArray(province.cities);
+		});
+
+		// Resolve exact labels/codes first. «کرمانشاه» contains «کرمان», so a
+		// substring-first pass silently loads the wrong province for numeric
+		// extension values such as billing_state=2352.
+		var exactProvince = provinces.find(function (province) {
 			var name = normalizeLocationName(province.name);
-			return candidates.some(function (candidate) { return candidate === name || candidate.indexOf(name) !== -1; });
-		}) || null;
+			return candidates.indexOf(name) !== -1;
+		});
+		if (exactProvince) return exactProvince;
+
+		// Keep compatibility with labels like "Tehran Province", but only use
+		// an unambiguous label match. Never infer a province from a numeric ID.
+		var partialMatches = provinces.filter(function (province) {
+			var name = normalizeLocationName(province.name);
+			return selectedLabel && name && selectedLabel.indexOf(name) !== -1;
+		});
+		return partialMatches.length === 1 ? partialMatches[0] : null;
 	}
 
 	function syncCheckoutCityOptions(preserveCurrentCity) {
@@ -3509,12 +3534,22 @@ function jluxeEnhanceShopSort(root) {
 		} else {
 			citySelect.removeAttribute("data-jluxe-province");
 		}
+		refreshCheckoutSelect2(citySelect);
+	}
+
+	function isEmptyCheckoutCitySelection(citySelect) {
+		if (!citySelect) return true;
+		var value = String(citySelect.value || "").trim();
+		if (!value || value === "0" || value === "-1") return true;
+		var selectedOption = citySelect.options[citySelect.selectedIndex];
+		var label = normalizeLocationName(selectedOption ? selectedOption.textContent : "");
+		return /^(لطفاشهر|شهراانتخاب|انتخابشهر|ابتدااستان|pleaseselectacity|selectacity|chooseacity)/.test(label);
 	}
 
 	function canonicalizeSelectedCheckoutCity() {
 		var stateSelect = document.querySelector("[data-jluxe-state-select]");
 		var citySelect = document.querySelector("[data-jluxe-city-select]");
-		if (!stateSelect || !citySelect || !stateSelect.value || !citySelect.value) return false;
+		if (!stateSelect || !citySelect || !stateSelect.value || isEmptyCheckoutCitySelection(citySelect)) return false;
 		var province = findCheckoutProvince(stateSelect);
 		if (!province) return false;
 		var selectedOption = citySelect.options[citySelect.selectedIndex];
@@ -3539,6 +3574,7 @@ function jluxeEnhanceShopSort(root) {
 		// Disabled controls are omitted from the WooCommerce checkout POST.
 		// Re-enable only after the selected label matches a city in the chosen province.
 		citySelect.disabled = false;
+		refreshCheckoutSelect2(citySelect);
 		return true;
 	}
 
@@ -3556,10 +3592,23 @@ function jluxeEnhanceShopSort(root) {
 		citySelect.addEventListener("change", function () {
 			canonicalizeSelectedCheckoutCity();
 			var row = citySelect.closest(".form-row");
-			if (!row || !row.querySelector("[data-jluxe-city-province-error]")) return;
+			if (!row) return;
 			var invalidCity = findInvalidCheckoutCityField();
-			if (invalidCity) showCheckoutCityProvinceError(invalidCity);
-			else clearCheckoutCityProvinceError();
+			var requiredWarning = row.querySelector("[data-jluxe-required-field-error]");
+			var clearedRequiredWarning = false;
+			if (requiredWarning && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
+				requiredWarning.remove();
+				row.classList.remove("woocommerce-invalid-required-field");
+				citySelect.removeAttribute("aria-invalid");
+				clearedRequiredWarning = true;
+			}
+			if (invalidCity) {
+				if (row.querySelector("[data-jluxe-city-province-error]")) showCheckoutCityProvinceError(invalidCity);
+				else if (clearedRequiredWarning) showCheckoutCityProvinceError(invalidCity);
+				return;
+			}
+			clearCheckoutCityProvinceError();
+			if (clearedRequiredWarning) row.classList.remove("woocommerce-invalid");
 		});
 	}
 
@@ -3785,7 +3834,11 @@ function jluxeEnhanceShopSort(root) {
 				return;
 			}
 			var isEmpty = $input.is(":disabled") || ($input.is(":checkbox") ? !$input.is(":checked") : $input.val() === "" || $input.val() === null);
+			if ($input[0] && $input[0].matches("[data-jluxe-city-select]") && isEmptyCheckoutCitySelection($input[0])) {
+				isEmpty = true;
+			}
 			if (isEmpty) {
+				$row.removeClass("woocommerce-validated");
 				$row.addClass("woocommerce-invalid woocommerce-invalid-required-field");
 				if (!$firstInvalid) {
 					$firstInvalid = $row;
@@ -3806,8 +3859,8 @@ function jluxeEnhanceShopSort(root) {
 		if (!stateSelect || !citySelect || countrySelect && countrySelect.value && String(countrySelect.value).toUpperCase() !== "IR") {
 			return null;
 		}
-		if (!stateSelect.value || !citySelect.value) {
-			return null; // empty required fields are reported by findFirstInvalidRequiredField().
+		if (!stateSelect.value || isEmptyCheckoutCitySelection(citySelect)) {
+			return null; // empty/placeholder required fields are reported by findFirstInvalidRequiredField().
 		}
 		var province = findCheckoutProvince(stateSelect);
 		var selectedCityOption = citySelect.options[citySelect.selectedIndex];
@@ -3831,6 +3884,18 @@ function jluxeEnhanceShopSort(root) {
 		});
 	}
 
+	function focusCheckoutControl(control) {
+		if (!control) return;
+		if (control.tagName === "SELECT" && control.classList.contains("select2-hidden-accessible")) {
+			var selection = control.parentElement && control.parentElement.querySelector(".select2-selection[role='combobox'], .select2-selection");
+			if (selection && typeof selection.focus === "function") {
+				selection.focus();
+				return;
+			}
+		}
+		if (typeof control.focus === "function") control.focus();
+	}
+
 	function showCheckoutCityProvinceError(invalid) {
 		if (!invalid) return;
 		var row = invalid.matches && invalid.matches(".form-row") ? invalid : invalid.closest(".form-row");
@@ -3848,8 +3913,7 @@ function jluxeEnhanceShopSort(root) {
 		if (typeof row.scrollIntoView === "function") {
 			row.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 		}
-		var focusable = row.querySelector("[data-jluxe-city-select], input, select, textarea");
-		if (focusable) focusable.focus();
+		focusCheckoutControl(row.querySelector("[data-jluxe-city-select], input, select, textarea"));
 	}
 
 	function showInvalidRequiredField(invalid) {
@@ -3874,7 +3938,78 @@ function jluxeEnhanceShopSort(root) {
 		if (typeof invalid.scrollIntoView === "function") {
 			invalid.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 		}
-		if (focusable) focusable.focus();
+		focusCheckoutControl(focusable);
+	}
+
+	function checkoutErrorAddressTarget() {
+		var notice = form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error, .woocommerce-NoticeGroup-checkout [role='alert']");
+		if (!notice) return null;
+
+		var linkedFields = notice.querySelectorAll("[data-id], a[href^='#']");
+		for (var i = 0; i < linkedFields.length; i++) {
+			var fieldId = linkedFields[i].getAttribute("data-id") || "";
+			if (!fieldId) {
+				var href = linkedFields[i].getAttribute("href") || "";
+				fieldId = href.slice(href.lastIndexOf("#") + 1);
+			}
+			if (!/^(billing|shipping)_/.test(fieldId)) continue;
+			var linkedField = document.getElementById(fieldId);
+			if (linkedField && customerDetails && customerDetails.contains(linkedField)) {
+				return { field: linkedField, notice: notice, text: normalizeLocationName(notice.textContent) };
+			}
+		}
+
+		var text = normalizeLocationName(notice.textContent);
+		var invalidField = customerDetails && customerDetails.querySelector('[aria-invalid="true"]');
+		if (invalidField) return { field: invalidField, notice: notice, text: text };
+		var invalidRequired = findFirstInvalidRequiredField();
+		if (invalidRequired) {
+			var requiredControl = invalidRequired.querySelector("input, select, textarea");
+			if (requiredControl) return { field: requiredControl, notice: notice, text: text };
+		}
+		var invalidCity = findInvalidCheckoutCityField();
+		if (invalidCity) {
+			var cityControl = invalidCity.matches(".form-row") ? invalidCity.querySelector("[data-jluxe-city-select]") : invalidCity;
+			if (cityControl) return { field: cityControl, notice: notice, text: text };
+		}
+
+		// Some localized checkout extensions omit WooCommerce's data-id/href
+		// field marker. Recognize the visible address label as a safe fallback.
+		var cityMessage = text.indexOf("شهرصورتحساب") !== -1 || text.indexOf("billingcity") !== -1 || text.indexOf("شهرانتخابشدهبااستان") !== -1;
+		if (cityMessage) {
+			return { field: document.getElementById("billing_city"), notice: notice, text: text };
+		}
+		if (text.indexOf("صورتحساب") !== -1 || text.indexOf("billing") !== -1 || text.indexOf("shipping") !== -1 || text.indexOf("نشانیارسال") !== -1) {
+			return { field: null, notice: notice, text: text };
+		}
+		return null;
+	}
+
+	function recoverAddressStepAfterCheckoutError() {
+		var target = checkoutErrorAddressTarget();
+		if (!target) return;
+		goToShipping();
+		if (!target.field) return;
+
+		var field = target.field;
+		var row = field.closest(".form-row");
+		if (!row) {
+			focusCheckoutControl(field);
+			return;
+		}
+		row.classList.remove("woocommerce-validated");
+		row.classList.add("woocommerce-invalid");
+		field.setAttribute("aria-invalid", "true");
+		if (row.classList.contains("validate-required")) {
+			row.classList.add("woocommerce-invalid-required-field");
+		}
+		if (field.matches("[data-jluxe-city-select]") && target.text.indexOf("همخوانیندارد") !== -1) {
+			showCheckoutCityProvinceError(row);
+		} else if (row.classList.contains("validate-required")) {
+			showInvalidRequiredField(row);
+		} else {
+			focusCheckoutControl(field);
+		}
 	}
 
 	function showShippingSelectionError() {
@@ -4060,6 +4195,9 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	applyStepVisibility();
+	window.jQuery(document.body).on("checkout_error", function () {
+		recoverAddressStepAfterCheckoutError();
+	});
 	window.jQuery(document.body).on("updated_checkout", function () {
 		applyStepVisibility();
 		restoreExplicitShippingMethods();
