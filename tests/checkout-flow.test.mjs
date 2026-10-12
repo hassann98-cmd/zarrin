@@ -110,7 +110,17 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   const scrolls = [];
   let updatedCheckout;
   const bodyHandlers = new Map();
+  const jqueryEventHandlers = new WeakMap();
   const select2Refreshes = [];
+
+  function eventHandlersFor(node) {
+    if (!jqueryEventHandlers.has(node)) jqueryEventHandlers.set(node, []);
+    return jqueryEventHandlers.get(node);
+  }
+
+  function eventType(eventName) {
+    return String(eventName).split(".")[0];
+  }
   window.HTMLElement.prototype.scrollIntoView = function (options) {
     scrolls.push({ id: this.id, behavior: options?.behavior, block: options?.block });
   };
@@ -124,7 +134,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         { id: 13, code: 6, name: "خوزستان", cities: ["اهواز", "آبادان"] },
         { id: 21, code: 20, name: "کردستان", cities: ["آرمرده", "اورامان تخت", "سنندج"] },
         { id: 22, code: 8, name: "کرمان", cities: ["اختیارآباد"] },
-        { id: 23, code: "KRH", name: "کرمانشاه", cities: ["اسلام آبادغرب", "جوانرود", "کرمانشاه"] },
+        { id: 23, code: "KRH", name: "کرمانشاه", cities: ["اسلام آبادغرب", "بیستون", "جوانرود", "کرمانشاه"] },
       ],
     },
   };
@@ -135,7 +145,46 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         bodyHandlers.set(event, callback);
         if (event === "updated_checkout") updatedCheckout = callback;
       }
+      listForTarget(target).forEach((node) => eventHandlersFor(node).push({ event, callback, once: false }));
       return wrapped;
+    };
+    wrapped.one = function (event, callback) {
+      listForTarget(target).forEach((node) => eventHandlersFor(node).push({ event, callback, once: true }));
+      return wrapped;
+    };
+    wrapped.off = function (events) {
+      const tokens = String(events || "").split(/\s+/).filter(Boolean);
+      listForTarget(target).forEach((node) => {
+        const handlers = eventHandlersFor(node);
+        jqueryEventHandlers.set(node, handlers.filter((entry) => {
+          const namespaces = tokens.filter((token) => token.startsWith(".")).map((token) => token.slice(1));
+          if (namespaces.length) return !namespaces.some((namespace) => entry.event.split(".").includes(namespace));
+          return !tokens.includes(entry.event);
+        }));
+      });
+      return wrapped;
+    };
+    wrapped.triggerHandler = function (event, args = []) {
+      const eventArgs = Array.isArray(args) ? args : [args];
+      let result;
+      listForTarget(target).forEach((node) => {
+        const handlers = eventHandlersFor(node);
+        const jqueryEvent = { type: eventType(event), target: node, result: undefined };
+        handlers.slice().forEach((entry) => {
+          if (eventType(entry.event) !== eventType(event)) return;
+          if (entry.once) {
+            const current = eventHandlersFor(node);
+            const index = current.indexOf(entry);
+            if (index !== -1) current.splice(index, 1);
+          }
+          const handlerResult = entry.callback.call(node, jqueryEvent, ...eventArgs);
+          if (handlerResult !== undefined) {
+            result = handlerResult;
+            jqueryEvent.result = handlerResult;
+          }
+        });
+      });
+      return result;
     };
     wrapped.trigger = function (event, args = []) {
       if (target === window.document.body && bodyHandlers.has(event)) {
@@ -148,6 +197,10 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     };
     return wrapped;
   };
+
+  function listForTarget(target) {
+    return target && target.nodeType ? [target] : Array.from(target || []);
+  }
   window.eval(checkoutScript);
   return { dom, window, scrolls, select2Refreshes, updatedCheckout: () => updatedCheckout?.() };
 }
@@ -452,6 +505,109 @@ test("numeric city IDs retain their option label and are enabled/canonicalized f
   assert.equal(city.value, "اختیارآباد");
   assert.equal(city.disabled, false, "WooCommerce does not omit the required city control from its POST");
   assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "اختیارآباد");
+});
+
+test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and before WooCommerce serializes checkout", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2356", label: "بیستون" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  const gateway = document.querySelector("input.payment_method");
+  gateway.value = "WC_Pec_Gateway";
+  gateway.checked = true;
+
+  assert.equal(state.value, "2352");
+  assert.equal(city.value, "بیستون", "the numeric city option is canonicalized from its real label for Kermanshah");
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+
+  let gatewayCallbackRan = false;
+  window.jQuery(form).on("checkout_place_order_WC_Pec_Gateway", () => {
+    gatewayCallbackRan = true;
+    city.value = "";
+    city.disabled = true;
+  });
+
+  const submit = submitWithoutCreatingAnOrder(window);
+  assert.equal(submit.event.defaultPrevented, false, "the valid pre-submit form reaches WooCommerce's checkout handler");
+  const $form = window.jQuery(form);
+  assert.notEqual($form.triggerHandler("checkout_place_order"), false);
+  assert.notEqual($form.triggerHandler("checkout_place_order_WC_Pec_Gateway"), false);
+  assert.equal(gatewayCallbackRan, true, "the gateway hook runs before the theme's final serialization guard");
+  assert.equal(city.value, "بیستون", "the last pre-serialization guard restores only the previously validated city");
+  assert.equal(city.disabled, false, "the required city control is enabled for WooCommerce's serialize() call");
+
+  const finalFields = new window.FormData(form);
+  assert.equal(finalFields.get("billing_state"), "2352");
+  assert.equal(finalFields.get("billing_city"), "بیستون", "the exact final form payload includes the city after the gateway callback");
+});
+
+test("R255 never masks a gateway's explicit checkout veto while synchronizing the city", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2356", label: "بیستون" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const city = document.getElementById("billing_city");
+  const gateway = document.querySelector("input.payment_method");
+  gateway.value = "WC_Pec_Gateway";
+  gateway.checked = true;
+  document.querySelector("[data-jluxe-checkout-next]").click();
+
+  window.jQuery(form).on("checkout_place_order_WC_Pec_Gateway", () => {
+    city.value = "";
+    city.disabled = true;
+    return false;
+  });
+  const submit = submitWithoutCreatingAnOrder(window);
+  assert.equal(submit.event.defaultPrevented, false);
+  assert.equal(window.jQuery(form).triggerHandler("checkout_place_order_WC_Pec_Gateway"), false);
+  assert.equal(currentStep(document), "payment", "WooCommerce's gateway veto remains authoritative");
+  assert.equal(new window.FormData(form).get("billing_city"), null, "a vetoed checkout is not sent with a reconstructed city");
+});
+
+test("a gateway hook that changes the province cannot reuse the previously selected city", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2356", label: "بیستون" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const form = document.querySelector("form.checkout");
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  const gateway = document.querySelector("input.payment_method");
+  gateway.value = "WC_Pec_Gateway";
+  gateway.checked = true;
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+
+  window.jQuery(form).on("checkout_place_order_WC_Pec_Gateway", () => {
+    state.value = "2274";
+    city.value = "";
+    city.disabled = true;
+  });
+  const submit = submitWithoutCreatingAnOrder(window);
+  assert.equal(submit.event.defaultPrevented, false);
+  assert.notEqual(window.jQuery(form).triggerHandler("checkout_place_order"), false);
+  const result = window.jQuery(form).triggerHandler("checkout_place_order_WC_Pec_Gateway");
+  assert.equal(result, false, "the final guard blocks serialization when the gateway changes to another province");
+  assert.equal(currentStep(document), "shipping");
+  assert.ok(document.querySelector("[data-jluxe-city-province-error]"), "the customer receives a clear address warning");
+  assert.notEqual(new window.FormData(form).get("billing_city"), "بیستون", "the previous province's city is never silently restored");
 });
 
 test("numeric WooCommerce city IDs validate by their visible city label, without allowing another province's city", (t) => {

@@ -6183,8 +6183,8 @@ $GLOBALS['wc'] = new class() {
 			public function get_checkout_fields() {
 				return array(
 					'billing' => array(
-						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران', '2241' => 'کردستان', '2274' => 'کرمان' ) ),
-					'billing_city'  => array( 'options' => array( '0' => 'لطفا شهر خود را انتخاب نمایید', '2275' => 'اختیارآباد' ) ),
+						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران', '2241' => 'کردستان', '2274' => 'کرمان', '2352' => 'کرمانشاه' ) ),
+						'billing_city'  => array( 'options' => array( '0' => 'لطفا شهر خود را انتخاب نمایید', '2275' => 'اختیارآباد', '2356' => 'بیستون' ) ),
 					),
 				);
 			}
@@ -6193,6 +6193,13 @@ $GLOBALS['wc'] = new class() {
 };
 $r253_numeric_kerman_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2274', 'billing_city' => '2275' ) );
 $r253_cross_province_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => '2275' ) );
+$r255_kermanshah_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ) );
+check(
+	'KRH' === ( $r255_kermanshah_post['billing_state'] ?? '' ) &&
+	'بیستون' === ( $r255_kermanshah_post['billing_city'] ?? '' ) &&
+	jluxe_ir_checkout_city_is_valid( 'KRH', $r255_kermanshah_post['billing_city'], jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ),
+	'R255 the exact numeric state/city pair 2352/2356 is resolved to Kermanshah/بیستون and remains valid'
+);
 $r247_valid_errors = new class() {
 	public $items = array();
 	public function add( $code, $message, $data = array() ) {

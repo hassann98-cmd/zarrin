@@ -594,6 +594,72 @@ try {
       `Real WooCommerce posted-data/core validation retains and canonicalizes a valid numeric city option (${JSON.stringify(numericCheckoutSubmission)})`,
     );
 
+    const kermanshahCheckoutSubmission = await phpJson(`
+      $previousPost=$_POST;
+      $numericAddressOptions=function($fields){
+        $fields['billing']['billing_state']['type']='select';
+        $fields['billing']['billing_state']['options']=array('2274'=>'کرمان','2352'=>'کرمانشاه');
+        $fields['billing']['billing_city']['type']='select';
+        $fields['billing']['billing_city']['options']=array('2275'=>'اختیارآباد','2356'=>'بیستون','9922'=>'اهواز');
+        return $fields;
+      };
+      add_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkout=WC()->checkout();
+      $checkoutFieldsProperty=new ReflectionProperty($checkout,'fields');
+      $checkoutFieldsProperty->setAccessible(true);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $_POST=array(
+        'woocommerce-process-checkout-nonce'=>'kermanshah-integration',
+        'billing_country'=>'IR',
+        'billing_state'=>'2352',
+        'billing_city'=>'2356',
+        'billing_first_name'=>'Kermanshah',
+        'billing_last_name'=>'Customer',
+        'billing_phone'=>'09120000000',
+        'billing_address_1'=>'10 Test Street',
+        'billing_postcode'=>'1234567890'
+      );
+      $fields=$checkout->get_checkout_fields();
+      $cityOptions=$fields['billing']['billing_city']['options']??array();
+      $posted=$checkout->get_posted_data();
+      $errors=new WP_Error();
+      $validator=new ReflectionMethod($checkout,'validate_posted_data');
+      $validator->setAccessible(true);
+      $validatorArgs=array(&$posted,&$errors);
+      $validator->invokeArgs($checkout,$validatorArgs);
+      $errorCodes=$errors->get_error_codes();
+      $_POST['billing_city']='';
+      $emptyPosted=$checkout->get_posted_data();
+      $emptyErrors=new WP_Error();
+      $emptyValidatorArgs=array(&$emptyPosted,&$emptyErrors);
+      $validator->invokeArgs($checkout,$emptyValidatorArgs);
+      $result=array(
+        'numericOptionRetained'=>isset($cityOptions['2356'])&&$cityOptions['2356']==='بیستون',
+        'foreignOptionRemoved'=>!isset($cityOptions['9922']),
+        'postedState'=>$posted['billing_state']??'',
+        'postedCity'=>$posted['billing_city']??'',
+        'requiredCityError'=>in_array('billing_city_required',$errorCodes,true),
+        'invalidStateError'=>in_array('billing_state_validation',$errorCodes,true),
+        'cityIsValid'=>jluxe_ir_checkout_city_is_valid('KRH',$posted['billing_city']??'',jluxe_ir_current_checkout_state_options(),jluxe_ir_current_checkout_city_options()),
+        'emptyCityStillRequired'=>in_array('billing_city_required',$emptyErrors->get_error_codes(),true)
+      );
+      remove_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $_POST=$previousPost;
+      return $result;
+    `);
+    check(
+      kermanshahCheckoutSubmission.numericOptionRetained &&
+        kermanshahCheckoutSubmission.foreignOptionRemoved &&
+        kermanshahCheckoutSubmission.postedState === "KRH" &&
+        kermanshahCheckoutSubmission.postedCity === "بیستون" &&
+        !kermanshahCheckoutSubmission.requiredCityError &&
+        !kermanshahCheckoutSubmission.invalidStateError &&
+        kermanshahCheckoutSubmission.cityIsValid &&
+        kermanshahCheckoutSubmission.emptyCityStillRequired,
+      `Real WooCommerce 11.2 validates the exact 2352/2356 city selection and still rejects a genuinely empty final billing_city (${JSON.stringify(kermanshahCheckoutSubmission)})`,
+    );
+
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";
     const initialShippingInput = response.text.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
     const selectedShippingRate = initialShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";
