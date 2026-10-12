@@ -53,7 +53,7 @@ function collection(nodes) {
   return result;
 }
 
-function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false, initialState = "", initialCity = null, shippingAddressFields = false, shippingAddressVisible = false } = {}) {
+function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false, initialState = "", initialCity = null, duplicateLocationControl = false, shippingAddressFields = false, shippingAddressVisible = false } = {}) {
   const step = (id, label, current = false) =>
     `<li data-jluxe-step="${id}" ${current ? 'aria-current="step"' : ""}>
       <span data-jluxe-step-circle data-jluxe-step-number="۱" class="border-border text-text-muted"></span>
@@ -75,6 +75,9 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" name="billing_state" class="select2-hidden-accessible" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE" ${initialState === "TE" ? "selected" : ""}>تهران</option><option value="KZ" ${initialState === "KZ" ? "selected" : ""}>خوزستان</option><option value="2241" ${initialState === "2241" ? "selected" : ""}>کردستان</option><option value="2274" ${initialState === "2274" ? "selected" : ""}>کرمان</option><option value="2352" ${initialState === "2352" ? "selected" : ""}>کرمانشاه</option></select></p>
       <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" name="billing_city" class="select2-hidden-accessible" data-jluxe-city-select data-jluxe-state-field="billing_state" ${initialState ? "" : "disabled"}><option value="">ابتدا استان را انتخاب کنید</option>${initialCity ? `<option value="${initialCity.value}" selected>${initialCity.label}</option>` : ""}</select></p>`
     : "";
+  const decoyLocationMarkup = duplicateLocationControl
+    ? '<div hidden><select data-jluxe-city-select><option value="">Hidden duplicate city</option></select></div>'
+    : "";
   const shippingAddressMarkup = shippingAddressFields
     ? `<div id="shipping_address" class="shipping_address" ${shippingAddressVisible ? "" : 'style="display: none;"'}>
         <p class="form-row validate-required" id="shipping_first_name_field"><input class="input-text" id="shipping_first_name" type="text" value=""></p>
@@ -91,7 +94,9 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         </ol>
       </nav>
       <form class="checkout">
+        ${decoyLocationMarkup}
         <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}${shippingAddressMarkup}</div>
+        <input type="hidden" name="jluxe_billing_city_label" data-jluxe-city-label-payload value="">
         <div id="jluxe-payment-column" hidden>
           <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}" aria-labelledby="jluxe-payment-heading">
             <p id="jluxe-payment-heading" tabindex="-1">روش پرداخت</p>
@@ -557,6 +562,7 @@ test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and b
     shippingChecked: true,
     initialState: "2352",
     initialCity: { value: "2356", label: "بیستون" },
+    duplicateLocationControl: true,
   });
   t.after(() => window.close());
   const { document } = window;
@@ -569,6 +575,10 @@ test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and b
 
   assert.equal(state.value, "2352");
   assert.equal(city.value, "بیستون", "the numeric city option is canonicalized from its real label for Kermanshah");
+  const decoyCity = form.querySelector('select[data-jluxe-city-select]:not(#billing_city)');
+  assert.equal(decoyCity.options.length, 1, "a hidden duplicate marked city field earlier in the form is not treated as billing_city");
+  const cityLabel = form.querySelector('[name="jluxe_billing_city_label"]');
+  assert.equal(cityLabel.value, "بیستون", "the server helper mirrors the selected option label");
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
 
@@ -591,6 +601,7 @@ test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and b
   const finalFields = new window.FormData(form);
   assert.equal(finalFields.get("billing_state"), "2352");
   assert.equal(finalFields.get("billing_city"), "بیستون", "the exact final form payload includes the city after the gateway callback");
+  assert.equal(finalFields.get("jluxe_billing_city_label"), "بیستون", "the real checkout serialize path carries the option label for server-side ID resolution");
 });
 
 test("R255 never masks a gateway's explicit checkout veto while synchronizing the city", (t) => {

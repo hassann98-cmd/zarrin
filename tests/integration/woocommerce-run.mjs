@@ -488,6 +488,8 @@ try {
     const queryState = await phpJson("return get_option('zarrin_test_last_query',array());");
     const cityField = response.text.match(/<select\b[^>]*\bid="billing_city"[^>]*>/);
     const stateField = response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>/);
+    const cityLabelPayload = response.text.match(/<input\b[^>]*name="jluxe_billing_city_label"[^>]*>/);
+    const cityLabelPayloadRendered = !!cityLabelPayload && /data-jluxe-city-label-payload/.test(cityLabelPayload[0]);
     const cityIsDependentSelect = !!cityField && /data-jluxe-city-select="1"/.test(cityField[0]) && /disabled="disabled"/.test(cityField[0]);
     const stateOptionCount = (response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>[\s\S]*?<\/select>/)?.[0].match(/<option\b/g) || []).length;
     const checkoutAddressDataLoaded = response.text.includes('"checkoutAddressData"') &&
@@ -498,11 +500,11 @@ try {
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; cityLabelPayload=${cityLabelPayloadRendered}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
-        response.text.includes("payment_method") && cityIsDependentSelect && stateOptionCount >= 31 && checkoutAddressDataLoaded && accessibleProgress &&
+        response.text.includes("payment_method") && cityIsDependentSelect && cityLabelPayloadRendered && stateOptionCount >= 31 && checkoutAddressDataLoaded && accessibleProgress &&
         shipsToBillingByDefault && hiddenShippingRecipientIsRequired &&
         response.text.includes('data-jluxe-payment-required="1"') &&
         response.text.includes('id="place_order"'),
@@ -658,6 +660,70 @@ try {
         kermanshahCheckoutSubmission.cityIsValid &&
         kermanshahCheckoutSubmission.emptyCityStillRequired,
       `Real WooCommerce 11.2 validates the exact 2352/2356 city selection and still rejects a genuinely empty final billing_city (${JSON.stringify(kermanshahCheckoutSubmission)})`,
+    );
+
+    const unmappedNumericCitySubmission = await phpJson(`
+      $previousPost=$_POST;
+      $numericAddressOptions=function($fields){
+        $fields['billing']['billing_state']['type']='select';
+        $fields['billing']['billing_state']['options']=array('2352'=>'کرمانشاه');
+        $fields['billing']['billing_city']['type']='select';
+        $fields['billing']['billing_city']['options']=array(''=>'شهر را انتخاب کنید');
+        return $fields;
+      };
+      add_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkout=WC()->checkout();
+      $checkoutFieldsProperty=new ReflectionProperty($checkout,'fields');
+      $checkoutFieldsProperty->setAccessible(true);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $_POST=array(
+        'woocommerce-process-checkout-nonce'=>'unmapped-numeric-city-integration',
+        'billing_country'=>'IR',
+        'billing_state'=>'2352',
+        'billing_city'=>'2356',
+        'jluxe_billing_city_label'=>'بیستون',
+        'billing_first_name'=>'Numeric',
+        'billing_last_name'=>'City',
+        'billing_phone'=>'09120000000',
+        'billing_address_1'=>'10 Test Street',
+        'billing_postcode'=>'1234567890'
+      );
+      $fields=$checkout->get_checkout_fields();
+      $cityOptions=$fields['billing']['billing_city']['options']??array();
+      $posted=$checkout->get_posted_data();
+      $errors=new WP_Error();
+      $validator=new ReflectionMethod($checkout,'validate_posted_data');
+      $validator->setAccessible(true);
+      $validatorArgs=array(&$posted,&$errors);
+      $validator->invokeArgs($checkout,$validatorArgs);
+      $validErrorCodes=$errors->get_error_codes();
+      $_POST['jluxe_billing_city_label']='اهواز';
+      $foreignPosted=$checkout->get_posted_data();
+      $foreignErrors=new WP_Error();
+      $foreignValidatorArgs=array(&$foreignPosted,&$foreignErrors);
+      $validator->invokeArgs($checkout,$foreignValidatorArgs);
+      $foreignErrorCodes=$foreignErrors->get_error_codes();
+      $result=array(
+        'numericIdAbsentFromServerOptions'=>!isset($cityOptions['2356']),
+        'postedState'=>$posted['billing_state']??'',
+        'postedCity'=>$posted['billing_city']??'',
+        'validCityHasNoMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$validErrorCodes,true),
+        'foreignLabelRetainsUnresolvedId'=>($foreignPosted['billing_city']??'')==='2356',
+        'foreignCityRejected'=>in_array('jluxe_billing_city_province_mismatch',$foreignErrorCodes,true)
+      );
+      remove_filter('woocommerce_checkout_fields',$numericAddressOptions,15);
+      $checkoutFieldsProperty->setValue($checkout,null);
+      $_POST=$previousPost;
+      return $result;
+    `);
+    check(
+      unmappedNumericCitySubmission.numericIdAbsentFromServerOptions &&
+        unmappedNumericCitySubmission.postedState === "KRH" &&
+        unmappedNumericCitySubmission.postedCity === "بیستون" &&
+        unmappedNumericCitySubmission.validCityHasNoMismatch &&
+        unmappedNumericCitySubmission.foreignLabelRetainsUnresolvedId &&
+        unmappedNumericCitySubmission.foreignCityRejected,
+      `Real WooCommerce 11.2 resolves an unmapped numeric city from its submitted visible label but still rejects a foreign-province label (${JSON.stringify(unmappedNumericCitySubmission)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";

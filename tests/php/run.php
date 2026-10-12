@@ -6201,6 +6201,112 @@ check(
 	'R255 the exact numeric state/city pair 2352/2356 is resolved to Kermanshah/بیستون and remains valid'
 );
 
+// R261 — post the selected city label with the real checkout form, but only use it after server validation.
+$r261_previous_query_kind = $GLOBALS['query_kind'] ?? null;
+$r261_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
+$r261_previous_user       = $GLOBALS['authenticated_user'] ?? 0;
+$GLOBALS['query_kind']    = 'checkout';
+$GLOBALS['endpoint']      = '';
+$r261_checkout_label_hook = false;
+foreach ( $GLOBALS['actions'] as $r261_registered_action ) {
+	if ( 'woocommerce_after_checkout_billing_form' === ( $r261_registered_action[0] ?? '' ) &&
+		'jluxe_render_checkout_city_label_payload' === ( $r261_registered_action[1] ?? '' ) &&
+		10 === ( $r261_registered_action[2] ?? null ) ) {
+		$r261_checkout_label_hook = true;
+		break;
+	}
+}
+$r261_payload_renders_for_both_users = true;
+foreach ( array( 0, 42 ) as $r261_user_id ) {
+	$GLOBALS['authenticated_user'] = $r261_user_id;
+	ob_start();
+	jluxe_render_checkout_city_label_payload();
+	$r261_payload_html = (string) ob_get_clean();
+	$r261_payload_renders_for_both_users = $r261_payload_renders_for_both_users &&
+		false !== strpos( $r261_payload_html, 'name="jluxe_billing_city_label"' ) &&
+		false !== strpos( $r261_payload_html, 'data-jluxe-city-label-payload' );
+}
+$GLOBALS['query_kind'] = 'account';
+ob_start();
+jluxe_render_checkout_city_label_payload();
+$r261_non_checkout_payload = (string) ob_get_clean();
+check(
+	$r261_checkout_label_hook && $r261_payload_renders_for_both_users && '' === $r261_non_checkout_payload,
+	'R261 the checkout-only city label helper renders for guest and logged-in checkout without adding a field to account pages'
+);
+if ( null === $r261_previous_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r261_previous_query_kind;
+}
+if ( null === $r261_previous_endpoint ) {
+	unset( $GLOBALS['endpoint'] );
+} else {
+	$GLOBALS['endpoint'] = $r261_previous_endpoint;
+}
+$GLOBALS['authenticated_user'] = $r261_previous_user;
+
+$r261_previous_wc   = $GLOBALS['wc'] ?? null;
+$r261_previous_post = $_POST;
+$GLOBALS['wc'] = new class() {
+	public $countries;
+	public function __construct() {
+		$this->countries = new class() {
+			public function get_states( $country ) {
+				return array( 'KRH' => 'Kermanshah (کرمانشاه)', 'KRN' => 'Kerman (کرمان)' );
+			}
+		};
+	}
+	public function checkout() {
+		return new class() {
+			public function get_checkout_fields() {
+				return array(
+					'billing' => array(
+						'billing_state' => array( 'options' => array( '2352' => 'کرمانشاه' ) ),
+						// The rendered field has the canonical label but deliberately no ID => label map for 2356.
+						'billing_city'  => array( 'options' => array( '' => 'شهر را انتخاب کنید', 'بیستون' => 'بیستون' ) ),
+					),
+				);
+			}
+		};
+	}
+};
+$_POST = array( 'jluxe_billing_city_label' => 'بیستون' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+$r261_state_options = jluxe_ir_current_checkout_state_options();
+$r261_city_options  = jluxe_ir_current_checkout_city_options();
+$r261_fallback_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ) );
+$r261_fallback_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ), $r261_fallback_errors );
+$_POST['jluxe_billing_city_label'] = 'اهواز'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+$r261_foreign_label_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ), $r261_foreign_label_errors );
+check(
+	! array_key_exists( '2356', $r261_city_options ) &&
+	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options ) &&
+	jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options, 'بیستون' ) &&
+	'KRH' === ( $r261_fallback_data['billing_state'] ?? '' ) && 'بیستون' === ( $r261_fallback_data['billing_city'] ?? '' ) &&
+	empty( $r261_fallback_errors->items ) &&
+	isset( $r261_foreign_label_errors->items['jluxe_billing_city_province_mismatch'] ) &&
+	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options, 'اهواز' ),
+	'R261 an unmapped numeric city ID is normalized from its submitted option label only after same-province validation; foreign labels still fail'
+);
+$_POST = $r261_previous_post;
+if ( null === $r261_previous_wc ) {
+	unset( $GLOBALS['wc'] );
+} else {
+	$GLOBALS['wc'] = $r261_previous_wc;
+}
+
 // R257 — keep the Persian WooCommerce city JavaScript from overwriting the theme-owned checkout select.
 $r257_previous_query_kind = $GLOBALS['query_kind'] ?? null;
 $r257_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
