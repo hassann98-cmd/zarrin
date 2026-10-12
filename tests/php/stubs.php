@@ -14,6 +14,8 @@ $GLOBALS['transients']=[];
 $GLOBALS['objcache']=[];
 $GLOBALS['dequeued_scripts']=[];
 $GLOBALS['dequeued_styles']=[];
+$GLOBALS['removed_actions']=[];
+$GLOBALS['test_pw_instance']=null;
 $GLOBALS['actions']=[];
 $GLOBALS['scripts']=[];
 $GLOBALS['styles']=[];
@@ -25,7 +27,8 @@ function add_meta_box(...$a){$GLOBALS['meta_boxes'][]=$a;}
 function add_theme_support(...$a){$GLOBALS['theme_supports'][]=$a;}
 function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
 function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
-function remove_action(...$a){}
+function remove_action(...$a){$GLOBALS['removed_actions'][]=$a;return true;}
+function PW(){return $GLOBALS['test_pw_instance']??null;}
 function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}

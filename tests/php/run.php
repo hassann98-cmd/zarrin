@@ -6200,6 +6200,115 @@ check(
 	jluxe_ir_checkout_city_is_valid( 'KRH', $r255_kermanshah_post['billing_city'], jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ),
 	'R255 the exact numeric state/city pair 2352/2356 is resolved to Kermanshah/بیستون and remains valid'
 );
+
+// R257 — keep the Persian WooCommerce city JavaScript from overwriting the theme-owned checkout select.
+$r257_previous_query_kind = $GLOBALS['query_kind'] ?? null;
+$r257_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
+$r257_previous_pw         = $GLOBALS['test_pw_instance'] ?? null;
+$r257_address = new class() {
+	public function external_js() {}
+	public function inline_js() {}
+	public function force_inline_js() {}
+};
+$GLOBALS['test_pw_instance'] = (object) array( 'address' => $r257_address );
+$GLOBALS['query_kind']       = 'checkout';
+$GLOBALS['endpoint']         = '';
+$GLOBALS['dequeued_scripts'] = array();
+$GLOBALS['removed_actions']  = array();
+jluxe_suppress_persian_woocommerce_city_script_on_checkout();
+$r257_hook_registered = false;
+foreach ( $GLOBALS['actions'] as $r257_registered_action ) {
+	if ( 'wp_enqueue_scripts' === ( $r257_registered_action[0] ?? '' ) &&
+		'jluxe_suppress_persian_woocommerce_city_script_on_checkout' === ( $r257_registered_action[1] ?? '' ) &&
+		100 === ( $r257_registered_action[2] ?? null ) ) {
+		$r257_hook_registered = true;
+		break;
+	}
+}
+$r257_removed_enqueue = false;
+$r257_removed_inline_priorities = array();
+$r257_removed_force_inline = false;
+foreach ( $GLOBALS['removed_actions'] as $r257_removed_action ) {
+	$r257_callback = $r257_removed_action[1] ?? null;
+	if ( ! is_array( $r257_callback ) || ( $r257_callback[0] ?? null ) !== $r257_address ) {
+		continue;
+	}
+	if ( 'wp_enqueue_scripts' === ( $r257_removed_action[0] ?? '' ) && 'external_js' === ( $r257_callback[1] ?? '' ) && 10 === ( $r257_removed_action[2] ?? null ) ) {
+		$r257_removed_enqueue = true;
+	}
+	if ( 'wp_footer' === ( $r257_removed_action[0] ?? '' ) && 'inline_js' === ( $r257_callback[1] ?? '' ) ) {
+		$r257_removed_inline_priorities[] = (int) ( $r257_removed_action[2] ?? -1 );
+	}
+	if ( 'wp_footer' === ( $r257_removed_action[0] ?? '' ) && 'force_inline_js' === ( $r257_callback[1] ?? '' ) && 999999 === ( $r257_removed_action[2] ?? null ) ) {
+		$r257_removed_force_inline = true;
+	}
+}
+sort( $r257_removed_inline_priorities );
+check(
+	$r257_hook_registered && in_array( 'pw-iran-cities', $GLOBALS['dequeued_scripts'], true ) &&
+	$r257_removed_enqueue && range( 0, 100, 5 ) === $r257_removed_inline_priorities && $r257_removed_force_inline,
+	'R257 the checkout hook dequeues Persian city JS and removes all of its inline/footer repopulation callbacks'
+);
+foreach ( array( 'order-pay', 'order-received' ) as $r257_excluded_endpoint ) {
+	$GLOBALS['endpoint']         = $r257_excluded_endpoint;
+	$GLOBALS['dequeued_scripts'] = array();
+	$GLOBALS['removed_actions']  = array();
+	jluxe_suppress_persian_woocommerce_city_script_on_checkout();
+	check(
+		empty( $GLOBALS['dequeued_scripts'] ) && empty( $GLOBALS['removed_actions'] ),
+		'R257 leaves the existing-order endpoint untouched: ' . $r257_excluded_endpoint
+	);
+}
+$GLOBALS['query_kind']         = 'account';
+$GLOBALS['endpoint']           = 'edit-address';
+$GLOBALS['dequeued_scripts']   = array();
+$GLOBALS['removed_actions']    = array();
+jluxe_suppress_persian_woocommerce_city_script_on_checkout();
+check(
+	empty( $GLOBALS['dequeued_scripts'] ) && empty( $GLOBALS['removed_actions'] ),
+	'R257 keeps the Persian WooCommerce city selector active on account address-edit pages'
+);
+if ( null === $r257_previous_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r257_previous_query_kind;
+}
+if ( null === $r257_previous_endpoint ) {
+	unset( $GLOBALS['endpoint'] );
+} else {
+	$GLOBALS['endpoint'] = $r257_previous_endpoint;
+}
+$GLOBALS['test_pw_instance'] = $r257_previous_pw;
+
+// R258 — restore only the v1.7.29 gateway-card layout; keep the current WooCommerce payment contract.
+$r258_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
+$r258_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
+$r258_checkout_css     = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+check(
+	false !== strpos( $r258_payment_template, 'data-jluxe-payment-required=' ) &&
+	false !== strpos( $r258_payment_template, 'data-jluxe-payment-required="<?php echo $jluxe_payment_required ? \'1\' : \'0\'; ?>"' ) &&
+	false !== strpos( $r258_payment_template, 'flex flex-wrap gap-3' ) &&
+	false !== strpos( $r258_payment_template, 'foreach ( $available_gateways as $gateway )' ) &&
+	false !== strpos( $r258_payment_template, 'wc_get_template( \'checkout/payment-method.php\'' ) &&
+	false !== strpos( $r258_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
+	'R258 payment section keeps the real gateway loop, restores wrapped cards, and exposes the zero-payment marker required by the current state machine'
+);
+check(
+	false !== strpos( $r258_method_template, 'name="payment_method"' ) &&
+	false !== strpos( $r258_method_template, 'value="<?php echo esc_attr( $gateway->id ); ?>"' ) &&
+	false !== strpos( $r258_method_template, 'data-order_button_text=' ) &&
+	false !== strpos( $r258_method_template, '$gateway->get_icon()' ) &&
+	false !== strpos( $r258_method_template, '$gateway->get_title()' ) &&
+	false !== strpos( $r258_method_template, '$gateway->payment_fields();' ),
+	'R258 every payment method remains the actual WooCommerce gateway radio with its configured ID, button text, icon, title, and gateway fields'
+);
+check(
+	false !== strpos( $r258_checkout_css, 'flex-direction: column !important;' ) &&
+	false !== strpos( $r258_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
+	false !== strpos( $r258_checkout_css, 'width: 152px !important;' ),
+	'R258 restores the v1.7.29 vertical, wrapped gateway-card dimensions without replacing the checkout styles wholesale'
+);
+
 $r247_valid_errors = new class() {
 	public $items = array();
 	public function add( $code, $message, $data = array() ) {
@@ -6288,10 +6397,13 @@ check(
 	'R247 cart quantity is left-aligned, mobile cart actions dock above the navigation, and shipping cards show no empty circle'
 );
 check(
-	false !== strpos( $r247_payment_source, 'methods flex flex-col gap-3' ) &&
-	false !== strpos( $r247_checkout_css, 'li.jluxe-payment-method-item {' ) && false !== strpos( $r247_checkout_css, 'width: 100%;' ) &&
-	false !== strpos( $r247_checkout_css, 'min-height: 4.5rem;' ) && false !== strpos( $r247_checkout_css, 'height: auto;' ) && false !== strpos( $r247_checkout_css, 'flex-direction: row;' ),
-	'R247 WooCommerce payment gateways render as equal-width stacked rectangles'
+	false !== strpos( $r247_payment_source, 'methods flex flex-wrap gap-3' ) &&
+	false !== strpos( $r247_checkout_css, '#payment ul.payment_methods li.jluxe-payment-method-item {' ) &&
+	false !== strpos( $r247_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
+	false !== strpos( $r247_checkout_css, 'width: 152px !important;' ) &&
+	false !== strpos( $r247_checkout_css, 'flex-direction: column !important;' ) &&
+	false !== strpos( $r247_checkout_css, 'min-height: 5.5rem;' ),
+	'R258 WooCommerce gateway cards use the restored v1.7.29 wrapped, compact layout'
 );
 $r256_form_checkout_source  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 $r256_payment_submit_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );

@@ -2551,6 +2551,57 @@ add_filter( 'woocommerce_form_field', 'jluxe_hide_field_wrapper', 10, 2 );
 add_filter( 'woocommerce_checkout_fields', 'jluxe_billing_fields', 20 );
 
 /**
+ * افزونهٔ ووکامرس فارسی یک city listener واگذارشده به document.body و یک
+ * script inline در wp_footer ثبت می‌کند. آن listener پس از listener مستقیمِ
+ * فیلد استانِ پوسته اجرا می‌شود و options شهر را با دیتاست دیگری جایگزین
+ * می‌کند؛ بنابراین در checkout واقعی، فقط رفتارِ شهرِ افزونه را خاموش می‌کنیم.
+ *
+ * خودِ افزونه، فیلتر استان‌ها و رفتار آن در «ویرایش نشانی» دست‌نخورده می‌ماند.
+ * dequeue به‌تنهایی کافی نیست، چون inline_js / force_inline_js مستقل از فایل
+ * خارجی هم #billing_city را بازنویسی می‌کنند.
+ */
+function jluxe_suppress_persian_woocommerce_city_script_on_checkout(): void {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
+	// پرداختِ سفارشِ موجود و صفحهٔ تشکر، فرمِ نشانی checkout را ندارند.
+	if ( function_exists( 'is_wc_endpoint_url' ) && ( is_wc_endpoint_url( 'order-pay' ) || is_wc_endpoint_url( 'order-received' ) ) ) {
+		return;
+	}
+
+	if ( function_exists( 'wp_dequeue_script' ) ) {
+		wp_dequeue_script( 'pw-iran-cities' );
+	}
+
+	if ( ! function_exists( 'PW' ) ) {
+		return;
+	}
+	$persian_woocommerce = PW();
+	$address             = is_object( $persian_woocommerce ) && isset( $persian_woocommerce->address ) && is_object( $persian_woocommerce->address )
+		? $persian_woocommerce->address
+		: null;
+	if ( ! is_object( $address ) ) {
+		return;
+	}
+
+	// external_js is normally run at priority 10; remove it as well as dequeueing
+	// its handle so a later enqueue pass cannot restore the competing script.
+	if ( method_exists( $address, 'external_js' ) ) {
+		remove_action( 'wp_enqueue_scripts', array( $address, 'external_js' ), 10 );
+	}
+	if ( method_exists( $address, 'inline_js' ) ) {
+		// The plugin retries inline_js at 5-point intervals through priority 100.
+		foreach ( range( 0, 100, 5 ) as $priority ) {
+			remove_action( 'wp_footer', array( $address, 'inline_js' ), $priority );
+		}
+	}
+	if ( method_exists( $address, 'force_inline_js' ) ) {
+		remove_action( 'wp_footer', array( $address, 'force_inline_js' ), 999999 );
+	}
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_suppress_persian_woocommerce_city_script_on_checkout', 100 );
+
+/**
  * valueهای numeric افزونه‌های آدرس را پیش از validate_posted_data خود WooCommerce
  * به کد استاندارد استان و نام canonical شهر تبدیل می‌کند. هر تبدیل فقط پس از
  * resolve کردن option واقعی و تطبیق label شهر با استان انتخاب‌شده انجام می‌شود.

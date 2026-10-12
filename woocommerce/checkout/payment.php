@@ -56,11 +56,13 @@ if ( ! wp_doing_ajax() ) {
 
 		<?php
 		/*
-		 * همهٔ gatewayهای واقعیِ WooCommerce یک‌ستونه و تمام‌عرض رندر می‌شوند؛
-		 * اندازهٔ قاب‌ها یکسان می‌ماند، مستقل از تعداد/عنوان/آیکونِ درگاه.
+		 * چیدمانِ کارت‌های درگاه به مرجعِ سالمِ v1.7.29 برمی‌گردد: کارت‌ها
+		 * داخلِ flex-wrap می‌چینند. نشانِ data-jluxe-payment-required و
+		 * پیام/عنوانِ سفارشِ بدون پرداخت عمداً حفظ شده‌اند؛ گیتِ checkout جدید
+		 * برای تمایزِ «سفارش رایگان» از «درگاهِ پرداختِ در دسترس نیست» به آن نیاز دارد.
 		 */
 		?>
-		<ul class="wc_payment_methods payment_methods methods flex flex-col gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
+		<ul class="wc_payment_methods payment_methods methods flex flex-wrap gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
 			<?php
 			if ( ! empty( $available_gateways ) ) {
 				foreach ( $available_gateways as $gateway ) {

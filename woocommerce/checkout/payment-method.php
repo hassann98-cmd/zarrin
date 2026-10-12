@@ -14,12 +14,10 @@
  * @see woocommerce/templates/checkout/payment-method.php (نسخه‌ی اصلی)
  * @version 3.5.0
  *
- * چیدمانِ کارت‌ها تمام‌عرض است: آیکن و عنوان هم‌ردیف‌اند و نشانِ انتخاب
- * در انتهای منطقیِ کارت می‌ماند؛ عرض/پردازشِ واقعیِ gateway دست‌نخورده است.
- * .wc_payment_methods در checkout/payment.php یک‌ستونه است؛ کلاسِ
- * jluxe-payment-method-item تمامِ درگاه‌ها را تمام‌عرض و هم‌اندازه نگه
- * می‌دارد، حتی وقتی WooCommerce توضیحاتِ payment_box را پس از انتخاب
- * درگاه در همان li باز می‌کند. ورودی و process_paymentِ gateway دست‌نخورده‌اند.
+ * چیدمانِ کارت‌ها به مرجعِ v1.7.29 برمی‌گردد: کارتِ عمودی/مرکزچین با
+ * عرض‌های wrap‌شونده. markup اجراییِ gateway با همان نسخه هم‌ارز است؛
+ * رادیوی واقعی، شناسه/متن دکمه، آیکن، توضیحات و payment_fields()ی خودِ
+ * درگاه دست‌نخورده می‌مانند و submit همچنان از فرمِ واقعیِ WooCommerce است.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
