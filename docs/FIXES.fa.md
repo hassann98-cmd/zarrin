@@ -1,6 +1,6 @@
 # اصلاحات مرحله‌به‌مرحلهٔ زرین
 
-**تاریخ:** ۲۰۲۶-۱۰-۱۲ · **نسخهٔ اصلاحی:** `1.7.110` · **مبنای بستهٔ کاری:** `zarrin-1.7.29.zip`
+**تاریخ:** ۲۰۲۶-۱۰-۱۲ · **نسخهٔ اصلاحی:** `1.7.111` · **مبنای بستهٔ کاری:** `zarrin-1.7.29.zip`
 
 این سند ادامهٔ [گزارش بررسی اولیه](AUDIT.fa.md) است. تغییرات فقط پیشنهاد نیستند؛ در کد پیاده شده‌اند و تست‌های رگرسیون داخل مخزن قرار دارند.
 
@@ -9,7 +9,7 @@
 - هنوز payload/response واقعیِ خطای کاربر دریافت نشده؛ بنابراین نبودِ نگاشت ID→label در سرور و انتخاب first-match در مرورگر فرضیه‌اند، نه علت قطعی. پچ هر دو مسیر را پوشش می‌دهد، بدون اینکه ثبت سفارش را از WooCommerce جدا کند.
 - فرم واقعی checkout اکنون label قابل‌مشاهدهٔ option شهر را در یک hidden helper همراه `billing_city` می‌فرستد. اگر value عددی باشد و WooCommerce/افزونه برای آن ID نگاشت سروری نداشته باشد، PHP فقط همان label را به‌عنوان سرنخ می‌گیرد؛ آن را با فهرست canonical **همان استان** تطبیق می‌دهد و سپس `billing_city` را normalize می‌کند. نگاشت option واقعی اولویت دارد، label شهرِ استان دیگر همچنان mismatch می‌گیرد، ID بی‌label معتبر نمی‌شود و required validation حذف نشده است.
 - lookupهای state/city در گیت‌های checkout به ردیف واقعی billing محدود شدند تا یک select مخفیِ زودتر در document جای فیلد اصلی را نگیرد. فرم، serialize نهایی WooCommerce، callback درگاه، انتخاب ارسال/درگاه، fragments/AJAX و R255 حفظ شده‌اند.
-- regressionها مسیر نهایی callback درگاه و `FormData` را با helper و یک city control تکراری می‌سنجند؛ PHP مسیر guest و logged-in، ID `2356` بدون نگاشت سمت سرور، شهر معتبر/نامعتبر و عدم رندر helper بیرون checkout را پوشش می‌دهد. تست integration روی WooCommerce واقعی نیز برای همین سناریو افزوده شده؛ دریافت fixture رسمی در این sandbox به‌علت redirect دانلود به host مجازنشده کامل نشد و نتیجهٔ آن باید از CI تأیید شود.
+- regressionها مسیر نهایی callback درگاه و `FormData` را با helper و یک city control تکراری می‌سنجند؛ PHP مسیر guest و logged-in، ID `2356` بدون نگاشت سمت سرور، شهر معتبر/نامعتبر و عدم رندر helper بیرون checkout را پوشش می‌دهد. integration روی WooCommerce واقعی ابتدا `validate_posted_data()` هسته و سپس action واقعی `woocommerce_after_checkout_validation` را اجرا می‌کند؛ چون فراخوانی reflection به‌تنهایی مرحلهٔ بعدی `process_checkout` را اجرا نمی‌کند. fixture رسمی در این sandbox به‌علت redirect دانلود به host مجازنشده دریافت نشد؛ نسخهٔ رسمیِ integration در CI اجرا می‌شود.
 - این تغییر بر مبنای فرضیه‌هاست و به‌تنهایی ثابت نمی‌کند همان payload سایت کاربر را علت‌یابی کرده است. هیچ سفارش/پرداخت واقعی، production/staging یا تست بصری زنده اجرا/ادعا نشده است.
 
 ## R260 — جایگزینیِ لایهٔ پرداخت با مرجعِ v1.7.29، همراه با حفظ checkout جدید

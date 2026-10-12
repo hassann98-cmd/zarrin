@@ -696,12 +696,16 @@ try {
       $validator->setAccessible(true);
       $validatorArgs=array(&$posted,&$errors);
       $validator->invokeArgs($checkout,$validatorArgs);
+      // Reflection exercises WooCommerce's core field validator directly; fire
+      // its subsequent real validation action as process_checkout normally does.
+      do_action('woocommerce_after_checkout_validation',$posted,$errors);
       $validErrorCodes=$errors->get_error_codes();
       $_POST['jluxe_billing_city_label']='اهواز';
       $foreignPosted=$checkout->get_posted_data();
       $foreignErrors=new WP_Error();
       $foreignValidatorArgs=array(&$foreignPosted,&$foreignErrors);
       $validator->invokeArgs($checkout,$foreignValidatorArgs);
+      do_action('woocommerce_after_checkout_validation',$foreignPosted,$foreignErrors);
       $foreignErrorCodes=$foreignErrors->get_error_codes();
       $result=array(
         'numericIdAbsentFromServerOptions'=>!isset($cityOptions['2356']),
