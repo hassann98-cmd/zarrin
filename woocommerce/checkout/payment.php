@@ -51,15 +51,11 @@ if ( ! wp_doing_ajax() ) {
 
 		<?php
 		/*
-		 * طبقِ درخواستِ صریحِ کاربر («درگاه‌های قابل‌انتخاب رو مرتب‌تر
-		 * بچین») از grid با تعدادِ ستونِ ثابت به flex-wrap با اندازه‌ی
-		 * ثابتِ هر کارت تغییر کرد — چون تعدادِ درگاه‌های واقعاً فعال ممکنه
-		 * فقط ۱ یا ۲ تا باشه (نه همیشه ۳-۴تا)، و grid با ستون‌بندیِ ثابت
-		 * کارتِ تنها رو کشیده/بی‌قواره نشون می‌داد. حالا هر کارت عرضِ
-		 * مشخصِ خودش رو داره و می‌چینه، خالی نمی‌مونه.
+		 * همهٔ gatewayهای واقعیِ WooCommerce یک‌ستونه و تمام‌عرض رندر می‌شوند؛
+		 * اندازهٔ قاب‌ها یکسان می‌ماند، مستقل از تعداد/عنوان/آیکونِ درگاه.
 		 */
 		?>
-		<ul class="wc_payment_methods payment_methods methods flex flex-wrap gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
+		<ul class="wc_payment_methods payment_methods methods flex flex-col gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
 			<?php
 			if ( ! empty( $available_gateways ) ) {
 				foreach ( $available_gateways as $gateway ) {

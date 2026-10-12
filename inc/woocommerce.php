@@ -2061,6 +2061,226 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 }
 
 /**
+ * دادهٔ شهرستان‌های ایران برای فیلد وابستهٔ استان/شهر در تسویه‌حساب.
+ * فایل محلی است تا dropdown به سرویس خارجی وابسته نباشد؛ فیلتر زیر امکان
+ * به‌روزرسانی/سفارشی‌سازی از افزونه یا پوستهٔ فرزند را حفظ می‌کند.
+ *
+ * @return array<string, mixed>
+ */
+function jluxe_ir_checkout_city_data(): array {
+	static $data = null;
+	if ( null !== $data ) {
+		return $data;
+	}
+
+	$path = JLUXE_THEME_DIR . '/assets/data/iran-province-cities.json';
+	$raw  = is_readable( $path ) ? file_get_contents( $path ) : false;
+	$json = false !== $raw ? json_decode( $raw, true ) : null;
+	if ( ! is_array( $json ) || empty( $json['provinces'] ) || ! is_array( $json['provinces'] ) ) {
+		$data = array( 'provinces' => array(), 'state_aliases' => array() );
+		return $data;
+	}
+
+	$filtered = apply_filters( 'jluxe_ir_checkout_city_data', $json );
+	$data     = is_array( $filtered ) && ! empty( $filtered['provinces'] ) && is_array( $filtered['provinces'] )
+		? $filtered
+		: $json;
+
+	return $data;
+}
+
+/**
+ * نرمال‌سازیِ نام فارسی برای تطبیق province code/label و نام شهرستان.
+ */
+function jluxe_normalize_ir_location( string $value ): string {
+	$value = wp_strip_all_tags( $value );
+	$value = str_replace(
+		array( 'ي', 'ى', 'ك', 'ۀ', 'ة', 'ؤ', "\u{200c}", "\u{200d}", "\u{200e}", "\u{200f}", "\u{feff}" ),
+		array( 'ی', 'ی', 'ک', 'ه', 'ه', 'و', '', '', '', '', '' ),
+		$value
+	);
+	$value = preg_replace( '/^استان/u', '', trim( $value ) );
+	$value = preg_replace( '/[\s\p{Z}\p{P}\p{S}]+/u', '', (string) $value );
+	return strtolower( (string) $value );
+}
+
+/**
+ * تبدیلِ مقدار یا برچسبِ استانِ WooCommerce به نام canonical دیتاست.
+ *
+ * @param array<string, string> $state_options گزینه‌های فیلد استان.
+ */
+function jluxe_ir_province_for_state( string $state, array $state_options = array() ): string {
+	if ( '' === trim( $state ) ) {
+		return '';
+	}
+
+	$data       = jluxe_ir_checkout_city_data();
+	$normalized = jluxe_normalize_ir_location( $state );
+	$alias      = '';
+	$aliases    = isset( $data['state_aliases'] ) && is_array( $data['state_aliases'] ) ? $data['state_aliases'] : array();
+	$state_key  = strtoupper( trim( $state ) );
+	if ( isset( $aliases[ $state_key ] ) && is_string( $aliases[ $state_key ] ) ) {
+		$alias = jluxe_normalize_ir_location( $aliases[ $state_key ] );
+	}
+
+	$label = isset( $state_options[ $state ] ) && is_scalar( $state_options[ $state ] )
+		? jluxe_normalize_ir_location( (string) $state_options[ $state ] )
+		: '';
+
+	foreach ( $data['provinces'] as $province ) {
+		if ( ! is_array( $province ) || empty( $province['name'] ) || empty( $province['cities'] ) || ! is_array( $province['cities'] ) ) {
+			continue;
+		}
+		$name = jluxe_normalize_ir_location( (string) $province['name'] );
+		if ( $name === $normalized || $name === $alias || ( '' !== $label && ( $name === $label || false !== strpos( $label, $name ) ) ) ) {
+			return (string) $province['name'];
+		}
+	}
+
+	return '';
+}
+
+/**
+ * گزینه‌های ایرانیِ استان را از WooCommerce/افزونه حفظ می‌کند؛ اگر هیچ
+ * افزونه‌ای استان‌های IR را فراهم نکرده باشد، کدهای سازگارِ دوحرفی را
+ * از aliasهای همان دیتاست می‌سازد تا استان در هر نصب قابل انتخاب باشد.
+ *
+ * @param array<string, string> $existing گزینه‌های اولیهٔ فیلد checkout.
+ * @return array<string, string>
+ */
+function jluxe_ir_state_options( array $existing = array() ): array {
+	$wc     = function_exists( 'WC' ) ? WC() : null;
+	$states = array();
+	if ( is_object( $wc ) && isset( $wc->countries ) && is_object( $wc->countries ) && method_exists( $wc->countries, 'get_states' ) ) {
+		$country_states = $wc->countries->get_states( 'IR' );
+		if ( is_array( $country_states ) && ! empty( $country_states ) ) {
+			$states = $country_states;
+		}
+	}
+
+	if ( empty( $states ) ) {
+		foreach ( $existing as $code => $label ) {
+			if ( '' === (string) $code || ! is_scalar( $label ) ) {
+				continue;
+			}
+			if ( '' !== jluxe_ir_province_for_state( (string) $code, $existing ) ) {
+				$states[ (string) $code ] = (string) $label;
+			}
+		}
+	}
+
+	if ( ! empty( $states ) ) {
+		return $states;
+	}
+
+	$data          = jluxe_ir_checkout_city_data();
+	$states_by_name = array();
+	foreach ( $data['state_aliases'] ?? array() as $code => $name ) {
+		if ( is_string( $name ) && 2 === strlen( (string) $code ) ) {
+			$key = jluxe_normalize_ir_location( $name );
+			if ( ! isset( $states_by_name[ $key ] ) ) {
+				$states_by_name[ $key ] = (string) $code;
+			}
+		}
+	}
+
+	foreach ( $data['provinces'] as $province ) {
+		if ( ! is_array( $province ) || empty( $province['name'] ) ) {
+			continue;
+		}
+		$key  = jluxe_normalize_ir_location( (string) $province['name'] );
+		$code = $states_by_name[ $key ] ?? '';
+		if ( '' !== $code ) {
+			$states[ $code ] = (string) $province['name'];
+		}
+	}
+
+	return $states;
+}
+
+/** مقدار استان جاری هنگامِ SSR فیلدهای checkout. */
+function jluxe_current_billing_state(): string {
+	if ( isset( $_POST['billing_state'] ) && is_scalar( $_POST['billing_state'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		return wc_clean( wp_unslash( (string) $_POST['billing_state'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	}
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( is_object( $wc ) && isset( $wc->customer ) && is_object( $wc->customer ) && method_exists( $wc->customer, 'get_billing_state' ) ) {
+		return (string) $wc->customer->get_billing_state();
+	}
+	return '';
+}
+
+/**
+ * گزینه‌های شهرستانِ همان استان؛ در SSR هم فقط مقادیر معتبرِ همان استان
+ * در select قرار می‌گیرند تا اعتبارسنجیِ خودِ WooCommerce نیز آن‌ها را بپذیرد.
+ *
+ * @param array<string, string> $state_options
+ * @return array<string, string>
+ */
+function jluxe_ir_city_field_options( string $state, array $state_options = array() ): array {
+	$province_name = jluxe_ir_province_for_state( $state, $state_options );
+	$options       = array( '' => '' !== $province_name ? 'شهر را انتخاب کنید' : 'ابتدا استان را انتخاب کنید' );
+	if ( '' === $province_name ) {
+		return $options;
+	}
+
+	foreach ( jluxe_ir_checkout_city_data()['provinces'] as $province ) {
+		if ( is_array( $province ) && isset( $province['name'] ) && jluxe_normalize_ir_location( (string) $province['name'] ) === jluxe_normalize_ir_location( $province_name ) ) {
+			foreach ( $province['cities'] as $city ) {
+				if ( is_string( $city ) && '' !== trim( $city ) ) {
+					$options[ $city ] = $city;
+				}
+			}
+			break;
+		}
+	}
+
+	return $options;
+}
+
+/**
+ * بررسیِ نام شهر/شهرستان در برابر استانِ انتخاب‌شده؛ این بررسی روی سرور
+ * هم اجرا می‌شود و به گزینه‌های نمایش‌داده‌شده در مرورگر اعتماد نمی‌کند.
+ *
+ * @param array<string, string> $state_options
+ */
+function jluxe_ir_checkout_city_is_valid( string $state, string $city, array $state_options = array() ): bool {
+	if ( '' === trim( $city ) ) {
+		return false;
+	}
+	$options = jluxe_ir_city_field_options( $state, $state_options );
+	$target  = jluxe_normalize_ir_location( $city );
+	foreach ( array_keys( $options ) as $option ) {
+		if ( '' !== $option && jluxe_normalize_ir_location( (string) $option ) === $target ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * بررسیِ روش ارسالِ واقعاً ارسال‌شده (نه فقط chosen method باقی‌مانده در
+ * session)؛ WooCommerce خودش نرخ و درگاه را پردازش/اعتبارسنجی می‌کند.
+ *
+ * @param array<string, mixed> $data
+ * @param array<int|string, array<string, mixed>> $packages
+ */
+function jluxe_checkout_has_valid_shipping_selection( array $data, array $packages ): bool {
+	$selected = $data['shipping_method'] ?? array();
+	if ( ! is_array( $selected ) || empty( $packages ) ) {
+		return false;
+	}
+	foreach ( $packages as $index => $package ) {
+		$method = isset( $selected[ $index ] ) && is_string( $selected[ $index ] ) ? trim( $selected[ $index ] ) : '';
+		$rates  = isset( $package['rates'] ) && is_array( $package['rates'] ) ? $package['rates'] : array();
+		if ( '' === $method || ! array_key_exists( $method, $rates ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
  * نام/نام‌خانوادگی طبقِ مرجعِ تصویریِ جدیدِ کاربر («هر مرحله باید مطابق
  * تصاویر باشه») دوباره دو فیلدِ جدا شدن — نسخه‌ی قبلی این‌جا این دو رو در
  * یک فیلدِ نمایشیِ «نام و نام‌خانوادگی» ادغام کرده بود (طبقِ یک طراحیِ
@@ -2098,17 +2318,47 @@ function jluxe_billing_fields( array $fields ): array {
 	// می‌بره. راه‌حل: فیلدها flat می‌مونن، priority پشت‌سرهم می‌گیرن، و
 	// چیدمانِ سه‌ستونه/دوستونه با flex-basis روی خودِ .form-row (بر اساس id)
 	// در globals.css پیاده می‌شه، نه با تودرتو کردن DOM.
+	$ir_state_options = array();
 	if ( isset( $fields['billing']['billing_state'] ) ) {
+		$existing_state_options = isset( $fields['billing']['billing_state']['options'] ) && is_array( $fields['billing']['billing_state']['options'] )
+			? $fields['billing']['billing_state']['options']
+			: array();
+		$ir_state_options = jluxe_ir_state_options( $existing_state_options );
 		$fields['billing']['billing_state']['priority'] = 25;
+		$fields['billing']['billing_state']['type']     = 'select';
+		$fields['billing']['billing_state']['required'] = true;
+		$fields['billing']['billing_state']['label']    = 'استان';
+		$fields['billing']['billing_state']['options']  = array( '' => 'استان را انتخاب کنید' ) + $ir_state_options;
+		$state_attributes = isset( $fields['billing']['billing_state']['custom_attributes'] ) && is_array( $fields['billing']['billing_state']['custom_attributes'] )
+			? $fields['billing']['billing_state']['custom_attributes']
+			: array();
+		$state_attributes['data-jluxe-state-select'] = '1';
+		$fields['billing']['billing_state']['custom_attributes'] = $state_attributes;
 	}
 	if ( isset( $fields['billing']['billing_city'] ) ) {
-		// فهرست محدود و غیراستانداردِ شهرها می‌تواند نشانی‌های معتبر را حذف کند؛
-		// از فیلد متنیِ خود ووکامرس استفاده می‌کنیم تا مشتری شهرش را آزادانه وارد کند.
-		$fields['billing']['billing_city']['priority']    = 26;
-		$fields['billing']['billing_city']['type']        = 'text';
+		// شهرستان‌ها به‌صورتِ محلی و وابسته به استان بارگذاری می‌شوند؛ برای
+		// اعتبارسنجیِ استانداردِ WooCommerce نیز فقط گزینه‌های استانِ جاری در SSR می‌آیند.
+		$selected_state = jluxe_current_billing_state();
+		$city_options   = jluxe_ir_city_field_options( $selected_state, $ir_state_options );
+		$city_province  = jluxe_ir_province_for_state( $selected_state, $ir_state_options );
+		$fields['billing']['billing_city']['priority']     = 26;
+		$fields['billing']['billing_city']['type']         = 'select';
+		$fields['billing']['billing_city']['required']     = true;
 		$fields['billing']['billing_city']['autocomplete'] = 'address-level2';
-		$fields['billing']['billing_city']['placeholder'] = 'شهر';
-		unset( $fields['billing']['billing_city']['options'] );
+		$fields['billing']['billing_city']['label']        = 'شهر';
+		$fields['billing']['billing_city']['placeholder'] = '' !== $city_province ? 'شهر را انتخاب کنید' : 'ابتدا استان را انتخاب کنید';
+		$fields['billing']['billing_city']['options']      = $city_options;
+		$city_attributes = isset( $fields['billing']['billing_city']['custom_attributes'] ) && is_array( $fields['billing']['billing_city']['custom_attributes'] )
+			? $fields['billing']['billing_city']['custom_attributes']
+			: array();
+		$city_attributes['data-jluxe-city-select'] = '1';
+		$city_attributes['data-jluxe-state-field'] = 'billing_state';
+		if ( '' === $city_province ) {
+			$city_attributes['disabled'] = 'disabled';
+		} else {
+			unset( $city_attributes['disabled'] );
+		}
+		$fields['billing']['billing_city']['custom_attributes'] = $city_attributes;
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
 		$fields['billing']['billing_postcode']['priority']    = 27;
@@ -2191,6 +2441,44 @@ function jluxe_hide_field_wrapper( string $field_html, string $key ): string {
 }
 add_filter( 'woocommerce_form_field', 'jluxe_hide_field_wrapper', 10, 2 );
 add_filter( 'woocommerce_checkout_fields', 'jluxe_billing_fields', 20 );
+
+/**
+ * گیتِ سمتِ سرور برای نسبتِ استان/شهر و انتخابِ دستیِ روشِ ارسال.
+ * اعتبارسنجی/ثبت سفارش و انتقال به درگاه به خودِ WooCommerce سپرده می‌شود؛
+ * این hook فقط جلوی submit با شهرِ نامرتبط یا روشِ ارسالِ انتخاب‌نشده را می‌گیرد.
+ *
+ * @param array<string, mixed> $data Posted checkout data from WooCommerce.
+ * @param object              $errors WooCommerce validation error collection.
+ */
+function jluxe_validate_checkout_requirements( array $data, $errors ): void {
+	if ( ! is_object( $errors ) || ! method_exists( $errors, 'add' ) ) {
+		return;
+	}
+
+	$country = strtoupper( (string) ( $data['billing_country'] ?? 'IR' ) );
+	$state   = (string) ( $data['billing_state'] ?? '' );
+	$city    = (string) ( $data['billing_city'] ?? '' );
+	if ( 'IR' === $country && '' !== trim( $state ) && '' !== trim( $city ) && ! jluxe_ir_checkout_city_is_valid( $state, $city, jluxe_ir_state_options() ) ) {
+		$errors->add( 'jluxe_billing_city_province_mismatch', 'شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.', array( 'id' => 'billing_city' ) );
+	}
+
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( ! is_object( $wc ) || ! isset( $wc->cart ) || ! is_object( $wc->cart ) || ! method_exists( $wc->cart, 'needs_shipping' ) || ! $wc->cart->needs_shipping() ) {
+		return;
+	}
+
+	$packages = array();
+	if ( method_exists( $wc, 'shipping' ) ) {
+		$shipping = $wc->shipping();
+		if ( is_object( $shipping ) && method_exists( $shipping, 'get_packages' ) ) {
+			$packages = $shipping->get_packages();
+		}
+	}
+	if ( ! is_array( $packages ) || ! jluxe_checkout_has_valid_shipping_selection( $data, $packages ) ) {
+		$errors->add( 'jluxe_shipping_method_required', 'لطفاً یکی از روش‌های ارسالِ موجود را انتخاب کنید.', array( 'id' => 'shipping_method' ) );
+	}
+}
+add_action( 'woocommerce_after_checkout_validation', 'jluxe_validate_checkout_requirements', 20, 2 );
 
 /**
  * برچسب/جای‌گزین «توضیحات سفارش» مطابق طراحی تأییدشده.
@@ -2293,7 +2581,12 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	// دکمه‌ی «بازگشت به سبد خرید» رو با همین می‌سازن؛ قبلاً این آدرس از یک
 	// لینکِ داخلِ #payment خونده می‌شد که دیگه رندر نمی‌شه، پس مستقیم از
 	// wc_get_cart_url() localize می‌شه.
-	wp_localize_script( 'jluxe-woocommerce', 'jluxeWcSettings', array( 'cartUrl' => wc_get_cart_url() ) );
+	$jluxe_wc_settings = array( 'cartUrl' => wc_get_cart_url() );
+	if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+		// فقط در checkout: دادهٔ محلیِ شهرستان‌ها؛ نه درخواست بیرونی و نه payload اضافی روی صفحات محصول.
+		$jluxe_wc_settings['checkoutAddressData'] = jluxe_ir_checkout_city_data();
+	}
+	wp_localize_script( 'jluxe-woocommerce', 'jluxeWcSettings', $jluxe_wc_settings );
 
 	// مودال انتخاب سریعِ تنوع (inc/cart-ux.php: jluxe_ajax_variation_picker)
 	// می‌تونه از هر جایی که کارتِ محصولِ متغیر هست (شاپ/دسته/صفحه اصلی) باز

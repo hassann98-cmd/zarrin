@@ -47,7 +47,6 @@ $calculator_text          = '';
 					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card flex cursor-pointer items-center justify-between gap-2 rounded-2xl p-3 text-start transition-colors hover:bg-muted">
 						<span class="text-small font-medium text-foreground"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
 						<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="jluxe-check-on hidden shrink-0 text-success" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-						<span class="jluxe-check-off block size-5 shrink-0 rounded-full border-2 border-border"></span>
 					</label>
 					<?php do_action( 'woocommerce_after_shipping_rate', $method, $index ); ?>
 				</li>

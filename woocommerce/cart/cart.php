@@ -94,7 +94,7 @@ jluxe_render_checkout_stepper( 'cart' );
 									<?php echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
 								</div>
 
-								<div class="flex justify-start sm:justify-self-start" data-title="تعداد">
+								<div class="flex justify-end sm:justify-self-end" data-title="تعداد">
 									<?php
 									echo apply_filters( // phpcs:ignore
 										'woocommerce_cart_item_quantity',

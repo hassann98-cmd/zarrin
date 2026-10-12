@@ -6105,19 +6105,52 @@ if ( null === $r183_previous_query_vars ) {
 	$GLOBALS['query_vars'] = $r183_previous_query_vars;
 }
 
-// R210 — checkout should not restrict a customer's city to an unverified hand-maintained list.
-$r210_checkout_fields = jluxe_billing_fields( array( 'billing' => array(
+// R247 — checkout provinces and cities are connected to the real WooCommerce address fields.
+$r247_previous_wc = $GLOBALS['wc'] ?? null;
+$GLOBALS['wc'] = null;
+$r247_previous_post = $_POST;
+$_POST = array( 'billing_state' => 'TE' );
+$r247_checkout_fields = jluxe_billing_fields( array( 'billing' => array(
+	'billing_state' => array( 'type' => 'select', 'options' => array( 'CA' => 'California' ) ),
 	'billing_city' => array( 'type' => 'select', 'options' => array( 'known-city' => 'Known city' ) ),
 	'billing_postcode' => array(),
 ) ) );
-$r210_city_field = $r210_checkout_fields['billing']['billing_city'];
+$_POST = $r247_previous_post;
+if ( null === $r247_previous_wc ) {
+	unset( $GLOBALS['wc'] );
+} else {
+	$GLOBALS['wc'] = $r247_previous_wc;
+}
+$r247_state_field = $r247_checkout_fields['billing']['billing_state'];
+$r247_city_field  = $r247_checkout_fields['billing']['billing_city'];
+$r247_city_data   = jluxe_ir_checkout_city_data();
+$r247_city_count  = 0;
+foreach ( $r247_city_data['provinces'] as $r247_province ) {
+	$r247_city_count += count( $r247_province['cities'] ?? array() );
+}
 check(
-	'text' === $r210_city_field['type'] && ! isset( $r210_city_field['options'] ) && 'address-level2' === $r210_city_field['autocomplete'] && 'شهر' === $r210_city_field['placeholder'],
-	'R210 checkout accepts free-entry city names instead of blocking addresses with an incomplete city list'
+	31 === count( $r247_city_data['provinces'] ) && 1454 === $r247_city_count && 'select' === $r247_state_field['type'] && 32 === count( $r247_state_field['options'] ) && true === $r247_state_field['required'],
+	'R247 checkout exposes all 31 Iranian provinces and 1,454 county/populated-place options through WooCommerce select fields'
 );
 check(
-	'کد پستی' === $r210_checkout_fields['billing']['billing_postcode']['placeholder'],
-	'R210 checkout postcode guidance is neutral and makes no unsupported carrier requirement claim'
+	'select' === $r247_city_field['type'] && true === $r247_city_field['required'] && isset( $r247_city_field['options']['تهران'], $r247_city_field['options']['پرند'] ) && ! isset( $r247_city_field['options']['اهواز'] ) && '1' === $r247_city_field['custom_attributes']['data-jluxe-city-select'] && ! isset( $r247_city_field['custom_attributes']['disabled'] ),
+	'R247 the city dropdown includes Tehran counties and populated places, but not cities from another province'
+);
+check(
+	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
+	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&
+	jluxe_ir_checkout_city_is_valid( 'TE', 'پرند', array( 'TE' => 'تهران' ) ) &&
+	! jluxe_ir_checkout_city_is_valid( 'TE', 'اهواز', array( 'TE' => 'تهران' ) ),
+	'R247 server validation accepts normalized city/province matches and rejects a city from another province'
+);
+check(
+	! jluxe_checkout_has_valid_shipping_selection( array(), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ) &&
+	jluxe_checkout_has_valid_shipping_selection( array( 'shipping_method' => array( 0 => 'flat_rate:1' ) ), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ),
+	'R247 checkout requires a shipping rate explicitly posted by the customer, not only a WooCommerce session default'
+);
+check(
+	'کد پستی' === $r247_checkout_fields['billing']['billing_postcode']['placeholder'],
+	'R247 checkout postcode guidance remains neutral and makes no unsupported carrier requirement claim'
 );
 ob_start();
 jluxe_render_checkout_stepper( 'shipping' );
@@ -6125,6 +6158,27 @@ $r210_stepper_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r210_stepper_html, '<ol ' ) && 1 === substr_count( $r210_stepper_html, 'aria-current="step"' ) && false !== strpos( $r210_stepper_html, 'data-jluxe-step="shipping" aria-current="step"' ),
 	'R210 checkout progress is an ordered list with exactly one programmatically identified current step'
+);
+$r247_checkout_css       = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r247_cart_source        = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart.php' );
+$r247_shipping_source    = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
+$r247_payment_source     = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
+check(
+	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) && false !== strpos( $r247_checkout_css, '.jluxe-checkout-stepper ol {' ) && false !== strpos( $r247_checkout_css, 'display: grid;' ),
+	'R247 the four checkout steps use one responsive equal-column row'
+);
+check(
+	false !== strpos( $r247_cart_source, 'justify-end sm:justify-self-end' ) &&
+	false !== strpos( $r247_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) && false !== strpos( $r247_checkout_css, 'position: fixed;' ) &&
+	false === strpos( $r247_shipping_source, 'jluxe-check-off' ) &&
+	false !== strpos( $r247_shipping_source, 'jluxe-check-on' ),
+	'R247 cart quantity is left-aligned, mobile cart actions dock above the navigation, and shipping cards show no empty circle'
+);
+check(
+	false !== strpos( $r247_payment_source, 'methods flex flex-col gap-3' ) &&
+	false !== strpos( $r247_checkout_css, 'li.jluxe-payment-method-item {' ) && false !== strpos( $r247_checkout_css, 'width: 100%;' ) &&
+	false !== strpos( $r247_checkout_css, 'height: 4.5rem;' ) && false !== strpos( $r247_checkout_css, 'flex-direction: row;' ),
+	'R247 WooCommerce payment gateways render as equal-width stacked rectangles'
 );
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(

@@ -3414,6 +3414,103 @@ function jluxeEnhanceShopSort(root) {
 	// localize شده؛ قبلاً از یک لینکِ داخلِ #payment خونده می‌شد که دیگه
 	// (طبقِ همین درخواست) اونجا رندر نمی‌شه.
 	var wcCartUrl = (window.jluxeWcSettings && window.jluxeWcSettings.cartUrl) || "/cart/";
+	var checkoutAddressData = window.jluxeWcSettings && window.jluxeWcSettings.checkoutAddressData;
+
+	function normalizeLocationName(value) {
+		return String(value || "")
+			.normalize("NFKC")
+			.replace(/[يى]/g, "ی")
+			.replace(/ك/g, "ک")
+			.replace(/[\u200c\u200d\u200e\u200f\ufeff]/g, "")
+			.replace(/^استان/, "")
+			.replace(/[^\u0600-\u06ffA-Za-z0-9]/g, "")
+			.toLocaleLowerCase("fa");
+	}
+
+	function sortOptionsByPersianLabel(select) {
+		if (!select || select.tagName !== "SELECT") return;
+		var value = select.value;
+		var options = Array.prototype.slice.call(select.options);
+		var placeholders = options.filter(function (option) { return option.value === ""; });
+		var choices = options.filter(function (option) { return option.value !== ""; });
+		var compare;
+		try {
+			var collator = new Intl.Collator("fa", { sensitivity: "base" });
+			compare = function (a, b) { return collator.compare(a.textContent.trim(), b.textContent.trim()); };
+		} catch (error) {
+			compare = function (a, b) { return a.textContent.trim().localeCompare(b.textContent.trim()); };
+		}
+		choices.sort(compare);
+		select.replaceChildren.apply(select, placeholders.concat(choices));
+		select.value = value;
+	}
+
+	function findCheckoutProvince(stateSelect) {
+		if (!checkoutAddressData || !Array.isArray(checkoutAddressData.provinces) || !stateSelect || !stateSelect.value) return null;
+		var selectedOption = stateSelect.options[stateSelect.selectedIndex];
+		var stateCode = String(stateSelect.value).trim();
+		var aliases = checkoutAddressData.state_aliases || {};
+		var aliasName = aliases[stateCode] || aliases[stateCode.toUpperCase()] || "";
+		var candidates = [
+			normalizeLocationName(selectedOption ? selectedOption.textContent : ""),
+			normalizeLocationName(aliasName),
+			normalizeLocationName(stateCode),
+		].filter(Boolean);
+		return checkoutAddressData.provinces.find(function (province) {
+			if (!province || !province.name || !Array.isArray(province.cities)) return false;
+			var name = normalizeLocationName(province.name);
+			return candidates.some(function (candidate) { return candidate === name || candidate.indexOf(name) !== -1; });
+		}) || null;
+	}
+
+	function syncCheckoutCityOptions(preserveCurrentCity) {
+		var stateSelect = document.querySelector("[data-jluxe-state-select]");
+		var citySelect = document.querySelector("[data-jluxe-city-select]");
+		if (!stateSelect || !citySelect) return;
+		var province = findCheckoutProvince(stateSelect);
+		var previousCity = preserveCurrentCity ? citySelect.value : "";
+		var cityNames = province ? province.cities.slice() : [];
+		try {
+			var collator = new Intl.Collator("fa", { sensitivity: "base" });
+			cityNames.sort(collator.compare);
+		} catch (error) {
+			cityNames.sort(function (a, b) { return String(a).localeCompare(String(b)); });
+		}
+		var placeholder = document.createElement("option");
+		placeholder.value = "";
+		placeholder.textContent = province ? "شهر را انتخاب کنید" : "ابتدا استان را انتخاب کنید";
+		var options = [placeholder];
+		cityNames.forEach(function (city) {
+			var option = document.createElement("option");
+			option.value = String(city);
+			option.textContent = String(city);
+			options.push(option);
+		});
+		citySelect.replaceChildren.apply(citySelect, options);
+		citySelect.disabled = !province || !cityNames.length;
+		citySelect.value = preserveCurrentCity && cityNames.some(function (city) {
+			return normalizeLocationName(city) === normalizeLocationName(previousCity);
+		}) ? cityNames.find(function (city) {
+			return normalizeLocationName(city) === normalizeLocationName(previousCity);
+		}) : "";
+		if (province) {
+			citySelect.setAttribute("data-jluxe-province", province.name);
+		} else {
+			citySelect.removeAttribute("data-jluxe-province");
+		}
+	}
+
+	function initializeCheckoutLocationFields() {
+		var stateSelect = document.querySelector("[data-jluxe-state-select]");
+		var citySelect = document.querySelector("[data-jluxe-city-select]");
+		if (!stateSelect || !citySelect || !checkoutAddressData) return;
+		sortOptionsByPersianLabel(stateSelect);
+		syncCheckoutCityOptions(true);
+		stateSelect.addEventListener("change", function () {
+			// عوض‌شدن استان همیشه شهر را خالی می‌کند؛ روش ارسال بعد از انتخابِ شهر دوباره محاسبه می‌شود.
+			syncCheckoutCityOptions(false);
+		});
+	}
 
 	function setStepVisual(id, state) {
 		var stepEl = stepper.querySelector('[data-jluxe-step="' + id + '"]');
@@ -3598,12 +3695,12 @@ function jluxeEnhanceShopSort(root) {
 	 * woocommerce-invalid/woocommerce-invalid-required-field که CSS
 	 * قرمزِ globals.css روش سوار می‌شه) — نه یک اعتبارسنجیِ ابداعیِ جدید.
 	 */
-	function findFirstInvalidRequiredField() {
+	function findFirstInvalidRequiredField(includeHidden) {
 		if (!customerDetails || !window.jQuery) {
 			return null;
 		}
 		var $ = window.jQuery;
-		var $rows = $(customerDetails).find(".validate-required:visible");
+		var $rows = $(customerDetails).find(includeHidden ? ".validate-required" : ".validate-required:visible");
 		var $firstInvalid = null;
 		$rows.each(function () {
 			var $row = $(this);
@@ -3624,34 +3721,47 @@ function jluxeEnhanceShopSort(root) {
 		return $firstInvalid ? $firstInvalid[0] : null;
 	}
 
-	nextBtn.addEventListener("click", function () {
-		var invalid = findFirstInvalidRequiredField();
-		if (invalid) {
+	function showInvalidRequiredField(invalid) {
+		if (!invalid) return;
+		if (typeof invalid.scrollIntoView === "function") {
 			invalid.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-			var focusable = invalid.querySelector("input, select, textarea");
-			if (focusable) {
-				focusable.focus();
-			}
-			return;
+		}
+		var focusable = invalid.querySelector("input, select, textarea");
+		if (focusable) focusable.focus();
+	}
+
+	function showShippingSelectionError() {
+		var shippingSection = document.getElementById("jluxe-shipping-section");
+		var shippingOptions = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
+		var errorEl = toggleError('[data-jluxe-shipping-error]', true);
+		if (!errorEl) return;
+		errorEl.textContent = shippingOptions.length
+			? "روش ارسال را انتخاب کنید."
+			: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
+		if (typeof errorEl.scrollIntoView === "function") {
+			errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+		}
+	}
+
+	function validateShippingStep() {
+		var invalid = findFirstInvalidRequiredField(false);
+		if (invalid) {
+			showInvalidRequiredField(invalid);
+			return false;
 		}
 		if (!hasShippingMethodSelected()) {
-			var shippingSection = document.getElementById("jluxe-shipping-section");
-			var shippingOptions = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
-			var errorEl = toggleError('[data-jluxe-shipping-error]', true);
-			if (errorEl) {
-				errorEl.textContent = shippingOptions.length
-					? "روش ارسال را انتخاب کنید."
-					: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
-				if (typeof errorEl.scrollIntoView === "function") {
-					errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-				}
-			}
-			return;
+			showShippingSelectionError();
+			return false;
 		}
 		toggleError('[data-jluxe-shipping-error]', false);
-		goToPayment();
+		return true;
+	}
+
+	nextBtn.addEventListener("click", function () {
+		if (validateShippingStep()) goToPayment();
 	});
 	backBtn.addEventListener("click", goToShipping);
+	initializeCheckoutLocationFields();
 
 	// وقتی کاربر خودش یک روشِ ارسال رو انتخاب کرد، پیغامِ خطا (اگه نشون
 	// داده شده بود) خودکار مخفی می‌شه — کاربر مجبور نیست دوباره «ادامه»
@@ -3678,35 +3788,60 @@ function jluxeEnhanceShopSort(root) {
 	document.addEventListener(
 		"submit",
 		function (event) {
-			if (event.target !== form || "payment" !== currentStep) {
+			if (event.target !== form) return;
+
+			// Enter در فیلدهای ارسال نباید فرمِ واقعیِ سفارش را دور بزند؛ فقط
+			// همان validator دکمهٔ مرحلهٔ بعد را اجرا می‌کند.
+			if ("payment" !== currentStep) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				if ("shipping" === currentStep && validateShippingStep()) goToPayment();
 				return;
 			}
+
+			// اطلاعات آدرس حتی وقتی ستونش مخفی شده، پیش از submit نهایی دوباره
+			// بررسی می‌شود تا هیچ required field خالی از درگاه عبور نکند.
+			var invalid = findFirstInvalidRequiredField(true);
+			if (invalid) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				goToShipping();
+				showInvalidRequiredField(invalid);
+				return;
+			}
+			if (!hasShippingMethodSelected()) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				goToShipping();
+				showShippingSelectionError();
+				return;
+			}
+
 			var payment = document.getElementById("payment");
-			if (payment && payment.getAttribute("data-jluxe-payment-required") === "0") {
+			var paymentRequired = !payment || payment.getAttribute("data-jluxe-payment-required") !== "0";
+			if (!paymentRequired) {
 				toggleError('[data-jluxe-payment-error]', false);
-				return; // سفارش بدون مبلغ قابل پرداخت به درگاه یا انتخاب اضافه نیاز ندارد.
+				return; // WooCommerce سفارشِ بدون مبلغ را طبق مسیر استاندارد خودش ثبت می‌کند.
 			}
 			var methodRadios = payment ? payment.querySelectorAll("input.payment_method") : [];
 			if (!methodRadios.length) {
-				if (payment && payment.getAttribute("data-jluxe-payment-required") === "1") {
-					event.preventDefault();
-					event.stopImmediatePropagation();
-					var unavailableError = toggleError('[data-jluxe-payment-error]', true);
-					if (unavailableError) {
-						unavailableError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
-						if (typeof unavailableError.scrollIntoView === "function") {
-							unavailableError.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-						}
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				var unavailableError = toggleError('[data-jluxe-payment-error]', true);
+				if (unavailableError) {
+					unavailableError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
+					if (typeof unavailableError.scrollIntoView === "function") {
+						unavailableError.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 					}
 				}
-				return; // سفارشِ بدون مبلغِ قابل پرداخت، درگاه لازم ندارد.
+				return;
 			}
 			var chosen = payment.querySelectorAll("input.payment_method:checked").length > 0;
 			if (!chosen) {
 				event.preventDefault();
 				event.stopImmediatePropagation();
 				var errorEl = toggleError('[data-jluxe-payment-error]', true);
-				if (errorEl) {
+				if (errorEl && typeof errorEl.scrollIntoView === "function") {
 					errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 				}
 			}

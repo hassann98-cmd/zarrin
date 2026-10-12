@@ -44,7 +44,7 @@ function collection(nodes) {
   return result;
 }
 
-function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false } = {}) {
+function boot({ shippingSection = true, shippingOptions = true, shippingChecked = false, paymentRequired = true, paymentOptions = 1, reduceMotion = false, requiredField = false, locationFields = false } = {}) {
   const step = (id, label, current = false) =>
     `<li data-jluxe-step="${id}" ${current ? 'aria-current="step"' : ""}>
       <span data-jluxe-step-circle data-jluxe-step-number="۱" class="border-border text-text-muted"></span>
@@ -62,6 +62,10 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   const requiredMarkup = requiredField
     ? '<p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" id="billing_first_name" type="text" value=""></p>'
     : "";
+  const locationMarkup = locationFields
+    ? `<p class="form-row validate-required" id="billing_state_field"><label for="billing_state">استان</label><select id="billing_state" data-jluxe-state-select><option value="">انتخاب استان</option><option value="TE">تهران</option><option value="KZ">خوزستان</option></select></p>
+      <p class="form-row validate-required" id="billing_city_field"><label for="billing_city">شهر</label><select id="billing_city" data-jluxe-city-select data-jluxe-state-field="billing_state" disabled><option value="">ابتدا استان را انتخاب کنید</option></select></p>`
+    : "";
   const dom = new JSDOM(
     `<!doctype html><html><body>
       <nav class="jluxe-checkout-stepper">
@@ -73,7 +77,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         </ol>
       </nav>
       <form class="checkout">
-        <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}</div>
+        <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}</div>
         <div id="jluxe-payment-column" hidden>
           <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}">
             <h2 id="jluxe-payment-heading" tabindex="-1">روش پرداخت</h2>
@@ -96,7 +100,16 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
     scrolls.push({ id: this.id, behavior: options?.behavior, block: options?.block });
   };
   window.matchMedia = (query) => ({ matches: reduceMotion && query.includes("prefers-reduced-motion") });
-  window.jluxeWcSettings = { cartUrl: "/store/basket/" };
+  window.jluxeWcSettings = {
+    cartUrl: "/store/basket/",
+    checkoutAddressData: {
+      state_aliases: { TE: "تهران", KZ: "خوزستان" },
+      provinces: [
+        { id: 8, code: 23, name: "تهران", cities: ["تهران", "ری", "اسلامشهر"] },
+        { id: 13, code: 6, name: "خوزستان", cities: ["اهواز", "آبادان"] },
+      ],
+    },
+  };
   window.jQuery = (target) => {
     const wrapped = collection(target);
     wrapped.on = function (event, callback) {
@@ -189,6 +202,73 @@ test("required address fields block progression and return keyboard focus to the
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
   assert.equal(requiredRow.classList.contains("woocommerce-invalid-required-field"), false);
+});
+
+test("province selection loads only its sorted city options and blocks checkout until a city is chosen", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+
+  assert.equal(city.disabled, true);
+  const provinceNames = Array.from(state.options).filter((option) => option.value).map((option) => option.textContent);
+  assert.deepEqual(
+    provinceNames,
+    provinceNames.slice().sort(new Intl.Collator("fa", { sensitivity: "base" }).compare),
+    "province labels are presented in Persian alphabetical order",
+  );
+
+  state.value = "TE";
+  state.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(city.disabled, false);
+  assert.deepEqual(
+    Array.from(city.options).slice(1).map((option) => option.value),
+    ["اسلامشهر", "تهران", "ری"],
+    "selecting Tehran loads only its alphabetized counties/cities",
+  );
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping");
+  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
+
+  city.value = "تهران";
+  city.dispatchEvent(new window.Event("change", { bubbles: true }));
+  state.value = "KZ";
+  state.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(city.value, "", "changing province clears the previous city selection");
+  assert.deepEqual(
+    Array.from(city.options).slice(1).map((option) => option.value),
+    ["آبادان", "اهواز"],
+    "the city list is replaced with only the new province options",
+  );
+  city.value = "اهواز";
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+});
+
+test("form submission cannot bypass required address and shipping stages, including after payment is shown", (t) => {
+  const { window } = boot({ requiredField: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+
+  const blockedOnShipping = submitWithoutCreatingAnOrder(window);
+  assert.equal(blockedOnShipping.event.defaultPrevented, true);
+  assert.equal(blockedOnShipping.reachedForm, false);
+  assert.equal(currentStep(document), "shipping");
+  assert.equal(document.activeElement.id, "billing_first_name");
+
+  document.getElementById("billing_first_name").value = "Example";
+  const advancedByEnter = submitWithoutCreatingAnOrder(window);
+  assert.equal(advancedByEnter.event.defaultPrevented, true);
+  assert.equal(advancedByEnter.reachedForm, false, "Enter advances through the validated step button, not WooCommerce checkout submit");
+  assert.equal(currentStep(document), "payment");
+
+  document.getElementById("billing_first_name").value = "";
+  const blockedOnPayment = submitWithoutCreatingAnOrder(window);
+  assert.equal(blockedOnPayment.event.defaultPrevented, true);
+  assert.equal(blockedOnPayment.reachedForm, false);
+  assert.equal(currentStep(document), "shipping", "hidden required address fields are rechecked before final submit");
+  assert.ok(document.getElementById("billing_first_name_field").classList.contains("woocommerce-invalid-required-field"));
 });
 
 test("checkout never submits a payment-required order without a gateway, but allows a zero-payment order", (t) => {

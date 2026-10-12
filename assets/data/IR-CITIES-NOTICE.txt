@@ -1,0 +1,12 @@
+Iranian province, county, and populated-place names in iran-province-cities.json are adapted from:
+https://github.com/mekramy/ircity
+Pinned upstream revision: 8ba2f09189bbdb8154ffeb5ebffb3ce2c1840f99
+Upstream files: province.json, county.json, and city.json
+The checkout list combines all 448 county names with 1,354 type-0 populated-place records, deduplicated within each province. Type-2 records (sampled entries are numbered subdivisions, such as “آبادان 1”) are excluded to avoid presenting those subdivisions as separate city choices.
+
+ISC License
+Copyright (c) 2023, github.com/mekramy
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.

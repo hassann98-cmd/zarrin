@@ -469,17 +469,20 @@ try {
       .slice(0, 400);
     const selectedTemplate = await phpJson("return get_option('zarrin_test_last_template','');");
     const queryState = await phpJson("return get_option('zarrin_test_last_query',array());");
-    const cityField = response.text.match(/<input\b[^>]*\bid="billing_city"[^>]*>/);
-    const cityIsFreeText = !!cityField && /\btype="text"/.test(cityField[0]);
+    const cityField = response.text.match(/<select\b[^>]*\bid="billing_city"[^>]*>/);
+    const stateField = response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>/);
+    const cityIsDependentSelect = !!cityField && /data-jluxe-city-select="1"/.test(cityField[0]) && /disabled="disabled"/.test(cityField[0]);
+    const stateOptionCount = (response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>[\s\S]*?<\/select>/)?.[0].match(/<option\b/g) || []).length;
+    const checkoutAddressDataLoaded = response.text.includes('"checkoutAddressData"') && response.text.includes('"تهران"');
     const accessibleProgress = response.text.includes('<ol class="m-0 flex list-none') && response.text.includes('data-jluxe-step="shipping" aria-current="step"');
-    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; cityIsFreeText=${cityIsFreeText}; accessibleProgress=${accessibleProgress}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP ${response.status}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; dependentCity=${cityIsDependentSelect}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
-        response.text.includes("payment_method") && cityIsFreeText && accessibleProgress &&
+        response.text.includes("payment_method") && cityIsDependentSelect && stateOptionCount >= 31 && checkoutAddressDataLoaded && accessibleProgress &&
         response.text.includes('data-jluxe-payment-required="1"') &&
         response.text.includes('id="place_order"'),
-      `The classic checkout renders an offline gateway, free-entry city, accessible progress, payment state and real submit control (${checkoutDiagnostic})`,
+      `The classic checkout renders a real offline gateway, 31 selectable provinces, a dependent city select, accessible progress, and WooCommerce's submit control (${checkoutDiagnostic})`,
     );
 
     response = await ajax({
