@@ -509,6 +509,54 @@ try {
       `The real classic checkout renders the offline gateway, 31 provinces, dependent city field, and WooCommerce's normally hidden required shipping-address fields alongside the submit control (${checkoutDiagnostic})`,
     );
 
+    const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";
+    const initialShippingInput = response.text.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
+    const selectedShippingRate = initialShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";
+    const checkoutFields = new URLSearchParams({
+      billing_first_name: "Integration",
+      billing_last_name: "Customer",
+      billing_country: "US",
+      billing_state: "CA",
+      billing_postcode: "90001",
+      billing_city: "Test City",
+      billing_address_1: "10 Integration Road",
+      payment_method: "bacs",
+      "shipping_method[0]": selectedShippingRate,
+    }).toString();
+    const shippingUpdate = await request(`${root}?wc-ajax=update_order_review`, {
+      body: {
+        security: updateOrderReviewNonce,
+        payment_method: "bacs",
+        country: "US",
+        state: "CA",
+        postcode: "90001",
+        city: "Test City",
+        address: "10 Integration Road",
+        address_2: "",
+        s_country: "US",
+        s_state: "CA",
+        s_postcode: "90001",
+        s_city: "Test City",
+        s_address: "10 Integration Road",
+        s_address_2: "",
+        has_full_address: "1",
+        post_data: checkoutFields,
+        "shipping_method[0]": selectedShippingRate,
+      },
+      form: true,
+    });
+    const shippingUpdatePayload = shippingUpdate.json();
+    const updatedReview = shippingUpdatePayload.fragments?.[".woocommerce-checkout-review-order-table"] || "";
+    const refreshedShippingInput = updatedReview.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
+    const refreshedShippingRate = refreshedShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";
+    const refreshedShippingIsUnchecked = !/(?:^|\s)checked(?:\s|=|\/?>)/i.test(refreshedShippingInput);
+    check(
+      shippingUpdate.status === 200 && !!updateOrderReviewNonce && !!selectedShippingRate &&
+        shippingUpdatePayload.has_errors === false && refreshedShippingRate === selectedShippingRate &&
+        refreshedShippingIsUnchecked,
+      `The official WooCommerce update_order_review endpoint accepts the chosen rate and returns a fresh deliberately unchecked shipping radio for the theme to restore (${JSON.stringify({ status: shippingUpdate.status, nonce: !!updateOrderReviewNonce, selectedShippingRate, refreshedShippingRate, unchecked: refreshedShippingIsUnchecked, fragments: Object.keys(shippingUpdatePayload.fragments || {}) })})`,
+    );
+
     response = await ajax({
       action: "jluxe_cart",
       nonce: session.cartNonce,

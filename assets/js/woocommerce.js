@@ -3415,6 +3415,10 @@ function jluxeEnhanceShopSort(root) {
 	// (طبقِ همین درخواست) اونجا رندر نمی‌شه.
 	var wcCartUrl = (window.jluxeWcSettings && window.jluxeWcSettings.cartUrl) || "/cart/";
 	var checkoutAddressData = window.jluxeWcSettings && window.jluxeWcSettings.checkoutAddressData;
+	// WooCommerce replaces the shipping radios with each updated_checkout
+	// fragment. The template intentionally renders them unchecked, so retain
+	// only the customer's explicit choices outside the replaceable DOM.
+	var jluxeExplicitShippingMethods = Object.create(null);
 
 	function normalizeLocationName(value) {
 		return String(value || "")
@@ -3605,6 +3609,18 @@ function jluxeEnhanceShopSort(root) {
 		return true;
 	}
 
+	function restoreExplicitShippingMethods() {
+		var shippingSection = document.getElementById("jluxe-shipping-section");
+		if (!shippingSection) return;
+		var radios = shippingSection.querySelectorAll("input.shipping_method");
+		for (var i = 0; i < radios.length; i++) {
+			var chosenValue = jluxeExplicitShippingMethods[radios[i].name];
+			// Do not let a WooCommerce/default checked state satisfy the
+			// requirement when this customer has not chosen a rate themselves.
+			radios[i].checked = !!chosenValue && radios[i].value === chosenValue;
+		}
+	}
+
 	function toggleError(selector, show) {
 		var el = document.querySelector(selector);
 		if (el) {
@@ -3781,12 +3797,15 @@ function jluxeEnhanceShopSort(root) {
 	// بزنه تا خطا بره.
 	document.addEventListener("change", function (event) {
 		if (event.target && event.target.classList && event.target.classList.contains("shipping_method")) {
+			if (event.target.checked && event.target.name) {
+				jluxeExplicitShippingMethods[event.target.name] = event.target.value;
+			}
 			toggleError('[data-jluxe-shipping-error]', false);
 		}
 		if (event.target && event.target.classList && event.target.classList.contains("payment_method")) {
 			toggleError('[data-jluxe-payment-error]', false);
 		}
-	});
+	}, true);
 
 	/*
 	 * روشِ پرداخت هم دیگه از پیش انتخاب نیست، پس قبلِ اجازه‌دادنِ submitِ
@@ -3906,6 +3925,7 @@ function jluxeEnhanceShopSort(root) {
 	applyStepVisibility();
 	window.jQuery(document.body).on("updated_checkout", function () {
 		applyStepVisibility();
+		restoreExplicitShippingMethods();
 		var shippingError = document.querySelector('[data-jluxe-shipping-error]');
 		if (shippingError && !shippingError.hidden) {
 			var currentShippingSection = document.getElementById("jluxe-shipping-section");

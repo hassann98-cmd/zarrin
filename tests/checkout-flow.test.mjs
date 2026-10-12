@@ -153,6 +153,10 @@ function submitWithoutCreatingAnOrder(window) {
   return { event, reachedForm };
 }
 
+function dispatchChange(window, target) {
+  target.dispatchEvent(new window.Event("change", { bubbles: true }));
+}
+
 test("checkout blocks missing shipping rates, refreshes the explanation, and focuses the revealed payment step", (t) => {
   const { dom, window, scrolls, updatedCheckout } = boot({ shippingOptions: false, reduceMotion: true });
   t.after(() => window.close());
@@ -188,6 +192,43 @@ test("checkout blocks missing shipping rates, refreshes the explanation, and foc
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.equal(currentStep(document), "shipping");
   assert.equal(document.activeElement.id, "jluxe-shipping-heading");
+});
+
+test("checkout fragment refresh does not auto-select a shipping rate", (t) => {
+  const { window, updatedCheckout } = boot({ shippingChecked: false });
+  t.after(() => window.close());
+  const { document } = window;
+
+  updatedCheckout();
+  assert.equal(document.querySelector("input.shipping_method").checked, false);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "shipping");
+  assert.equal(document.querySelector("[data-jluxe-shipping-error]").hidden, false);
+});
+
+test("an explicitly selected shipping rate survives WooCommerce fragment replacement and reaches final submit", (t) => {
+  const { window, updatedCheckout } = boot({ shippingChecked: false, paymentOptions: 2 });
+  t.after(() => window.close());
+  const { document } = window;
+
+  const selectedRate = document.querySelector("input.shipping_method");
+  selectedRate.checked = true;
+  dispatchChange(window, selectedRate);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+
+  // Core WooCommerce replaces the order-review fragment with fresh unchecked radios.
+  document.getElementById("jluxe-shipping-section").innerHTML =
+    '<input class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate"><p data-jluxe-shipping-error role="alert" hidden>روش ارسال را انتخاب کنید.</p>';
+  updatedCheckout();
+  assert.equal(document.querySelector("input.shipping_method").checked, true);
+
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  dispatchChange(window, gateway);
+  const submission = submitWithoutCreatingAnOrder(window);
+  assert.equal(submission.event.defaultPrevented, false);
+  assert.equal(submission.reachedForm, true, "the retained rate passes preflight and reaches the real form submit event");
 });
 
 test("virtual-only orders can advance without a shipping section", (t) => {
