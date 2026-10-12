@@ -2119,8 +2119,12 @@ function jluxe_ir_province_for_state( string $state, array $state_options = arra
 	$alias      = '';
 	$aliases    = isset( $data['state_aliases'] ) && is_array( $data['state_aliases'] ) ? $data['state_aliases'] : array();
 	$state_key  = strtoupper( trim( $state ) );
+	$alias_key  = preg_replace( '/^IR[-_]/', '', $state_key );
 	if ( isset( $aliases[ $state_key ] ) && is_string( $aliases[ $state_key ] ) ) {
 		$alias = jluxe_normalize_ir_location( $aliases[ $state_key ] );
+	} elseif ( isset( $aliases[ $alias_key ] ) && is_string( $aliases[ $alias_key ] ) ) {
+		// بعضی افزونه‌های استان را با پیشوند کشور (مثلاً IR-THR) می‌فرستند.
+		$alias = jluxe_normalize_ir_location( $aliases[ $alias_key ] );
 	}
 
 	$label = isset( $state_options[ $state ] ) && is_scalar( $state_options[ $state ] )
@@ -2149,23 +2153,27 @@ function jluxe_ir_province_for_state( string $state, array $state_options = arra
  * @return array<string, string>
  */
 function jluxe_ir_state_options( array $existing = array() ): array {
-	$wc     = function_exists( 'WC' ) ? WC() : null;
 	$states = array();
+	// گزینه‌های فیلدی که واقعاً قرار است رندر شوند، از نگاشت مستقلِ
+	// WC_Countries دقیق‌ترند؛ بعضی افزونه‌ها برای استان همان برچسب را با
+	// code متفاوت (مثلاً شناسهٔ عددی) نمایش می‌دهند.
+	foreach ( $existing as $code => $label ) {
+		if ( '' === (string) $code || ! is_scalar( $label ) ) {
+			continue;
+		}
+		if ( '' !== jluxe_ir_province_for_state( (string) $code, $existing ) ) {
+			$states[ (string) $code ] = (string) $label;
+		}
+	}
+	if ( ! empty( $states ) ) {
+		return $states;
+	}
+
+	$wc = function_exists( 'WC' ) ? WC() : null;
 	if ( is_object( $wc ) && isset( $wc->countries ) && is_object( $wc->countries ) && method_exists( $wc->countries, 'get_states' ) ) {
 		$country_states = $wc->countries->get_states( 'IR' );
 		if ( is_array( $country_states ) && ! empty( $country_states ) ) {
 			$states = $country_states;
-		}
-	}
-
-	if ( empty( $states ) ) {
-		foreach ( $existing as $code => $label ) {
-			if ( '' === (string) $code || ! is_scalar( $label ) ) {
-				continue;
-			}
-			if ( '' !== jluxe_ir_province_for_state( (string) $code, $existing ) ) {
-				$states[ (string) $code ] = (string) $label;
-			}
 		}
 	}
 
@@ -2196,6 +2204,34 @@ function jluxe_ir_state_options( array $existing = array() ): array {
 	}
 
 	return $states;
+}
+
+/**
+ * گزینه‌های همان فیلد استان که برای این فرم checkout ساخته شده‌اند.
+ * اعتبارسنجی نباید دوباره از لیست دیگری در WC_Countries بخواند؛ افزونه‌های
+ * آدرس ممکن است code همان استان را فقط در فیلد checkout تغییر داده باشند.
+ *
+ * @return array<string, string>
+ */
+function jluxe_ir_current_checkout_state_options(): array {
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( is_object( $wc ) && method_exists( $wc, 'checkout' ) ) {
+		$checkout = $wc->checkout();
+		if ( is_object( $checkout ) && method_exists( $checkout, 'get_checkout_fields' ) ) {
+			$checkout_fields = $checkout->get_checkout_fields();
+			if ( is_array( $checkout_fields ) ) {
+				$existing = $checkout_fields['billing']['billing_state']['options'] ?? array();
+				if ( is_array( $existing ) ) {
+					$state_options = jluxe_ir_state_options( $existing );
+					if ( ! empty( $state_options ) ) {
+						return $state_options;
+					}
+				}
+			}
+		}
+	}
+
+	return jluxe_ir_state_options();
 }
 
 /** مقدار استان جاری هنگامِ SSR فیلدهای checkout. */
@@ -2455,10 +2491,11 @@ function jluxe_validate_checkout_requirements( array $data, $errors ): void {
 		return;
 	}
 
-	$country = strtoupper( (string) ( $data['billing_country'] ?? 'IR' ) );
-	$state   = (string) ( $data['billing_state'] ?? '' );
-	$city    = (string) ( $data['billing_city'] ?? '' );
-	if ( 'IR' === $country && '' !== trim( $state ) && '' !== trim( $city ) && ! jluxe_ir_checkout_city_is_valid( $state, $city, jluxe_ir_state_options() ) ) {
+	$country       = strtoupper( (string) ( $data['billing_country'] ?? 'IR' ) );
+	$state         = (string) ( $data['billing_state'] ?? '' );
+	$city          = (string) ( $data['billing_city'] ?? '' );
+	$state_options = jluxe_ir_current_checkout_state_options();
+	if ( 'IR' === $country && '' !== trim( $state ) && '' !== trim( $city ) && ! jluxe_ir_checkout_city_is_valid( $state, $city, $state_options ) ) {
 		$errors->add( 'jluxe_billing_city_province_mismatch', 'شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.', array( 'id' => 'billing_city' ) );
 	}
 

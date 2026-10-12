@@ -116,7 +116,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
   window.jluxeWcSettings = {
     cartUrl: "/store/basket/",
     checkoutAddressData: {
-      state_aliases: { TE: "تهران", KZ: "خوزستان" },
+      state_aliases: { TE: "تهران", KZ: "خوزستان", THR: "تهران" },
       provinces: [
         { id: 8, code: 23, name: "تهران", cities: ["تهران", "ری", "اسلامشهر"] },
         { id: 13, code: 6, name: "خوزستان", cities: ["اهواز", "آبادان"] },
@@ -249,6 +249,7 @@ test("required address fields block progression and return keyboard focus to the
   const requiredRow = document.getElementById("billing_first_name_field");
   assert.equal(currentStep(document), "shipping");
   assert.ok(requiredRow.classList.contains("woocommerce-invalid-required-field"));
+  assert.ok(requiredRow.querySelector("[data-jluxe-required-field-error]")?.textContent.includes("فیلد الزامی"), "the blocked step explains that the required field must be completed");
   assert.equal(document.activeElement.id, "billing_first_name");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
 
@@ -256,6 +257,7 @@ test("required address fields block progression and return keyboard focus to the
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
   assert.equal(requiredRow.classList.contains("woocommerce-invalid-required-field"), false);
+  assert.equal(requiredRow.querySelector("[data-jluxe-required-field-error]"), null, "the warning disappears once the required value is present");
 });
 
 test("province selection loads only its sorted city options and blocks checkout until a city is chosen", (t) => {
@@ -283,7 +285,9 @@ test("province selection loads only its sorted city options and blocks checkout 
   );
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "shipping");
-  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
+  const cityRow = document.getElementById("billing_city_field");
+  assert.ok(cityRow.classList.contains("woocommerce-invalid-required-field"));
+  assert.ok(cityRow.querySelector("[data-jluxe-required-field-error]")?.textContent.includes("شهر"), "an empty required city selection shows a direct warning");
 
   city.value = "تهران";
   city.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -298,6 +302,81 @@ test("province selection loads only its sorted city options and blocks checkout 
   city.value = "اهواز";
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
+});
+
+test("a province label or prefixed WooCommerce state code resolves to the same local city list", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+
+  state.add(new window.Option("تهران", "23"));
+  state.value = "23";
+  dispatchChange(window, state);
+  assert.deepEqual(Array.from(city.options).slice(1).map((option) => option.value), ["اسلامشهر", "تهران", "ری"]);
+  city.value = "تهران";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment", "an extension-specific state code is resolved from the actual checkout option label");
+
+  state.add(new window.Option("Tehran", "IR-THR"));
+  state.value = "IR-THR";
+  dispatchChange(window, state);
+  assert.deepEqual(Array.from(city.options).slice(1).map((option) => option.value), ["اسلامشهر", "تهران", "ری"], "IR-THR is normalized through the shared state alias");
+});
+
+test("a city outside the selected province blocks the next step with a clear warning and can be corrected", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  state.value = "TE";
+  dispatchChange(window, state);
+
+  city.add(new window.Option("اهواز", "اهواز"));
+  city.value = "اهواز";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+
+  const cityRow = document.getElementById("billing_city_field");
+  const warning = cityRow.querySelector("[data-jluxe-city-province-error]");
+  assert.equal(currentStep(document), "shipping", "mismatched city cannot reveal the payment stage");
+  assert.ok(warning?.textContent.includes("شهر انتخاب‌شده با استان هم‌خوانی ندارد"), "an actionable warning is shown beside the city field");
+  assert.equal(document.activeElement.id, "billing_city");
+  assert.ok(cityRow.classList.contains("woocommerce-invalid"));
+
+  city.value = "تهران";
+  dispatchChange(window, city);
+  assert.equal(cityRow.querySelector("[data-jluxe-city-province-error]"), null, "the warning clears as soon as a valid city is selected");
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+});
+
+test("final submit returns to shipping when the city no longer belongs to the selected province", (t) => {
+  const { window } = boot({ locationFields: true, shippingChecked: true });
+  t.after(() => window.close());
+  const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  state.value = "TE";
+  dispatchChange(window, state);
+  city.value = "تهران";
+  dispatchChange(window, city);
+  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(currentStep(document), "payment");
+
+  state.value = "KZ";
+  dispatchChange(window, state);
+  city.add(new window.Option("تهران", "تهران"));
+  city.value = "تهران";
+  dispatchChange(window, city);
+  const result = submitWithoutCreatingAnOrder(window);
+  assert.equal(result.event.defaultPrevented, true);
+  assert.equal(result.reachedForm, false);
+  assert.equal(currentStep(document), "shipping");
+  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
 });
 
 test("final validation ignores WooCommerce's hidden ship-to-billing fields but still validates an active shipping address", (t) => {

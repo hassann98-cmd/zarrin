@@ -3425,6 +3425,8 @@ function jluxeEnhanceShopSort(root) {
 			.normalize("NFKC")
 			.replace(/[يى]/g, "ی")
 			.replace(/ك/g, "ک")
+			.replace(/[ۀة]/g, "ه")
+			.replace(/ؤ/g, "و")
 			.replace(/[\u200c\u200d\u200e\u200f\ufeff]/g, "")
 			.replace(/^استان/, "")
 			.replace(/[^\u0600-\u06ffA-Za-z0-9]/g, "")
@@ -3453,8 +3455,10 @@ function jluxeEnhanceShopSort(root) {
 		if (!checkoutAddressData || !Array.isArray(checkoutAddressData.provinces) || !stateSelect || !stateSelect.value) return null;
 		var selectedOption = stateSelect.options[stateSelect.selectedIndex];
 		var stateCode = String(stateSelect.value).trim();
+		var stateKey = stateCode.toUpperCase();
+		var aliasKey = stateKey.replace(/^IR[-_]/, "");
 		var aliases = checkoutAddressData.state_aliases || {};
-		var aliasName = aliases[stateCode] || aliases[stateCode.toUpperCase()] || "";
+		var aliasName = aliases[stateCode] || aliases[stateKey] || aliases[aliasKey] || "";
 		var candidates = [
 			normalizeLocationName(selectedOption ? selectedOption.textContent : ""),
 			normalizeLocationName(aliasName),
@@ -3513,6 +3517,14 @@ function jluxeEnhanceShopSort(root) {
 		stateSelect.addEventListener("change", function () {
 			// عوض‌شدن استان همیشه شهر را خالی می‌کند؛ روش ارسال بعد از انتخابِ شهر دوباره محاسبه می‌شود.
 			syncCheckoutCityOptions(false);
+			clearCheckoutCityProvinceError();
+		});
+		citySelect.addEventListener("change", function () {
+			var row = citySelect.closest(".form-row");
+			if (!row || !row.querySelector("[data-jluxe-city-province-error]")) return;
+			var invalidCity = findInvalidCheckoutCityField();
+			if (invalidCity) showCheckoutCityProvinceError(invalidCity);
+			else clearCheckoutCityProvinceError();
 		});
 	}
 
@@ -3745,17 +3757,85 @@ function jluxeEnhanceShopSort(root) {
 				}
 			} else {
 				$row.removeClass("woocommerce-invalid woocommerce-invalid-required-field");
+				var oldWarning = this.querySelector("[data-jluxe-required-field-error]");
+				if (oldWarning) oldWarning.remove();
 			}
 		});
 		return $firstInvalid ? $firstInvalid[0] : null;
 	}
 
+	function findInvalidCheckoutCityField() {
+		var stateSelect = document.querySelector("[data-jluxe-state-select]");
+		var citySelect = document.querySelector("[data-jluxe-city-select]");
+		var countrySelect = document.getElementById("billing_country");
+		if (!stateSelect || !citySelect || countrySelect && countrySelect.value && String(countrySelect.value).toUpperCase() !== "IR") {
+			return null;
+		}
+		if (!stateSelect.value || !citySelect.value) {
+			return null; // empty required fields are reported by findFirstInvalidRequiredField().
+		}
+		var province = findCheckoutProvince(stateSelect);
+		var cityName = normalizeLocationName(citySelect.value);
+		var belongsToProvince = province && province.cities.some(function (city) {
+			return normalizeLocationName(city) === cityName;
+		});
+		if (belongsToProvince) {
+			return null;
+		}
+		return citySelect.closest(".form-row") || citySelect;
+	}
+
+	function clearCheckoutCityProvinceError() {
+		Array.prototype.forEach.call(document.querySelectorAll("[data-jluxe-city-province-error]"), function (error) {
+			var row = error.closest(".form-row");
+			if (row) row.classList.remove("woocommerce-invalid");
+			error.remove();
+		});
+	}
+
+	function showCheckoutCityProvinceError(invalid) {
+		if (!invalid) return;
+		var row = invalid.matches && invalid.matches(".form-row") ? invalid : invalid.closest(".form-row");
+		if (!row) return;
+		row.classList.add("woocommerce-invalid");
+		var error = row.querySelector("[data-jluxe-city-province-error]");
+		if (!error) {
+			error = document.createElement("p");
+			error.setAttribute("data-jluxe-city-province-error", "1");
+			error.setAttribute("role", "alert");
+			error.className = "mt-2 text-caption text-error";
+			row.appendChild(error);
+		}
+		error.textContent = "شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.";
+		if (typeof row.scrollIntoView === "function") {
+			row.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+		}
+		var focusable = row.querySelector("[data-jluxe-city-select], input, select, textarea");
+		if (focusable) focusable.focus();
+	}
+
 	function showInvalidRequiredField(invalid) {
 		if (!invalid) return;
+		var focusable = invalid.querySelector("input, select, textarea");
+		var label = invalid.querySelector("label");
+		var labelText = label ? label.textContent.replace(/\s+/g, " ").replace(/\*/g, "").trim() : "";
+		var action = focusable && (focusable.tagName === "SELECT" || focusable.type === "checkbox" || focusable.type === "radio")
+			? "انتخاب کنید"
+			: "وارد کنید";
+		var warning = invalid.querySelector("[data-jluxe-required-field-error]");
+		if (!warning) {
+			warning = document.createElement("p");
+			warning.setAttribute("data-jluxe-required-field-error", "1");
+			warning.setAttribute("role", "alert");
+			warning.className = "mt-2 text-caption text-error";
+			invalid.appendChild(warning);
+		}
+		warning.textContent = labelText
+			? "برای ادامه، «" + labelText + "» را " + action + "."
+			: "برای ادامه، این فیلد الزامی را تکمیل کنید.";
 		if (typeof invalid.scrollIntoView === "function") {
 			invalid.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
 		}
-		var focusable = invalid.querySelector("input, select, textarea");
 		if (focusable) focusable.focus();
 	}
 
@@ -3778,6 +3858,12 @@ function jluxeEnhanceShopSort(root) {
 			showInvalidRequiredField(invalid);
 			return false;
 		}
+		var invalidCity = findInvalidCheckoutCityField();
+		if (invalidCity) {
+			showCheckoutCityProvinceError(invalidCity);
+			return false;
+		}
+		clearCheckoutCityProvinceError();
 		if (!hasShippingMethodSelected()) {
 			showShippingSelectionError();
 			return false;
@@ -3841,6 +3927,15 @@ function jluxeEnhanceShopSort(root) {
 				showInvalidRequiredField(invalid);
 				return;
 			}
+			var invalidCity = findInvalidCheckoutCityField();
+			if (invalidCity) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				goToShipping();
+				showCheckoutCityProvinceError(invalidCity);
+				return;
+			}
+			clearCheckoutCityProvinceError();
 			if (!hasShippingMethodSelected()) {
 				event.preventDefault();
 				event.stopImmediatePropagation();

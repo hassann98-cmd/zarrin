@@ -509,6 +509,26 @@ try {
       `The real classic checkout renders the offline gateway, 31 provinces, dependent city field, and WooCommerce's normally hidden required shipping-address fields alongside the submit control (${checkoutDiagnostic})`,
     );
 
+    const checkoutLocationValidation = await phpJson(`
+      $options=jluxe_ir_current_checkout_state_options();
+      $custom=jluxe_ir_state_options(array(''=>'Select province','23'=>'تهران'));
+      return array(
+        'stateCount'=>count($options),
+        'tehranProvince'=>jluxe_ir_province_for_state('THR',$options),
+        'coreCityAccepted'=>jluxe_ir_checkout_city_is_valid('THR','تهران',$options),
+        'customFieldCityAccepted'=>jluxe_ir_checkout_city_is_valid('23','تهران',$custom),
+        'foreignCityRejected'=>!jluxe_ir_checkout_city_is_valid('THR','اهواز',$options)
+      );
+    `);
+    check(
+      checkoutLocationValidation.stateCount >= 31 &&
+        checkoutLocationValidation.tehranProvince === "تهران" &&
+        checkoutLocationValidation.coreCityAccepted &&
+        checkoutLocationValidation.customFieldCityAccepted &&
+        checkoutLocationValidation.foreignCityRejected,
+      `Server city validation uses the actual WooCommerce checkout field options, accepts a custom state code for its selected city, and still rejects another province's city (${JSON.stringify(checkoutLocationValidation)})`,
+    );
+
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";
     const initialShippingInput = response.text.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
     const selectedShippingRate = initialShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";

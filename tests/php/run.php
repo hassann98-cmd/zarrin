@@ -6140,9 +6140,59 @@ check(
 	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'پرند', array( 'TE' => 'تهران' ) ) &&
+	jluxe_ir_checkout_city_is_valid( 'IR-THR', 'تهران' ) &&
 	! jluxe_ir_checkout_city_is_valid( 'TE', 'اهواز', array( 'TE' => 'تهران' ) ),
 	'R247 server validation accepts normalized city/province matches and rejects a city from another province'
 );
+$r247_validation_previous_wc = $GLOBALS['wc'] ?? null;
+$GLOBALS['wc'] = new class() {
+	public $countries;
+	public function __construct() {
+		$this->countries = new class() {
+			public function get_states( $country ) {
+				return array();
+			}
+		};
+	}
+	public function checkout() {
+		return new class() {
+			public function get_checkout_fields() {
+				return array(
+					'billing' => array(
+						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران' ) ),
+					),
+				);
+			}
+		};
+	}
+};
+$r247_valid_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '23', 'billing_city' => 'تهران' ), $r247_valid_errors );
+$r247_invalid_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) {
+		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
+	}
+};
+jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '23', 'billing_city' => 'اهواز' ), $r247_invalid_errors );
+check(
+	! jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_state_options() ) &&
+	jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_current_checkout_state_options() ) &&
+	empty( $r247_valid_errors->items ) &&
+	isset( $r247_invalid_errors->items['jluxe_billing_city_province_mismatch'] ) &&
+	'تهران' === jluxe_ir_province_for_state( '23', array( '23' => 'تهران' ) ),
+	'R251 reproduces the stale state-map mismatch, validates against the actual checkout options, and still rejects a city from another province'
+);
+if ( null === $r247_validation_previous_wc ) {
+	unset( $GLOBALS['wc'] );
+} else {
+	$GLOBALS['wc'] = $r247_validation_previous_wc;
+}
 check(
 	! jluxe_checkout_has_valid_shipping_selection( array(), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ) &&
 	jluxe_checkout_has_valid_shipping_selection( array( 'shipping_method' => array( 0 => 'flat_rate:1' ) ), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ),
