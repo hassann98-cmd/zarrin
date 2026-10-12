@@ -2131,12 +2131,24 @@ function jluxe_ir_province_for_state( string $state, array $state_options = arra
 		? jluxe_normalize_ir_location( (string) $state_options[ $state ] )
 		: '';
 
+	// First resolve exact state code/alias/label matches. A substring pass must
+	// come later: «کرمان» is a prefix of «کرمانشاه», so testing substrings in
+	// the first pass can map WooCommerce's Kermanshah option to Kerman.
 	foreach ( $data['provinces'] as $province ) {
 		if ( ! is_array( $province ) || empty( $province['name'] ) || empty( $province['cities'] ) || ! is_array( $province['cities'] ) ) {
 			continue;
 		}
 		$name = jluxe_normalize_ir_location( (string) $province['name'] );
-		if ( $name === $normalized || $name === $alias || ( '' !== $label && ( $name === $label || false !== strpos( $label, $name ) ) ) ) {
+		if ( $name === $normalized || $name === $alias || ( '' !== $label && $name === $label ) ) {
+			return (string) $province['name'];
+		}
+	}
+	foreach ( $data['provinces'] as $province ) {
+		if ( ! is_array( $province ) || empty( $province['name'] ) || empty( $province['cities'] ) || ! is_array( $province['cities'] ) ) {
+			continue;
+		}
+		$name = jluxe_normalize_ir_location( (string) $province['name'] );
+		if ( '' !== $label && false !== strpos( $label, $name ) ) {
 			return (string) $province['name'];
 		}
 	}

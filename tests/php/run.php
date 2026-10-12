@@ -6150,6 +6150,11 @@ check(
 	'R253 keeps a numeric city option through WooCommerce field construction only when its label belongs to the selected province'
 );
 check(
+	'کرمانشاه' === jluxe_ir_province_for_state( 'KRH', array( 'KRH' => 'Kermanshah (کرمانشاه)' ) ) &&
+	'کرمان' === jluxe_ir_province_for_state( 'KRN', array( 'KRN' => 'Kerman (کرمان)' ) ),
+	'R253 exact state aliases prevent the Kermanshah label from being mistaken for Kerman'
+);
+check(
 	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&
 	jluxe_ir_checkout_city_is_valid( 'TE', 'پرند', array( 'TE' => 'تهران' ) ) &&
@@ -6163,7 +6168,7 @@ $GLOBALS['wc'] = new class() {
 	public function __construct() {
 		$this->countries = new class() {
 			public function get_states( $country ) {
-				return array( 'KRD' => 'کردستان', 'KRN' => 'کرمان' );
+				return array( 'KRD' => 'کردستان', 'KRH' => 'Kermanshah (کرمانشاه)', 'KRN' => 'Kerman (کرمان)' );
 			}
 		};
 	}
