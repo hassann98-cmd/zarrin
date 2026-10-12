@@ -278,6 +278,14 @@ try {
       update_option('page_on_front',0);
       update_option('page_for_posts',0);
       update_option('woocommerce_bacs_settings',array('enabled'=>'yes','title'=>'Offline test transfer','description'=>'Sandbox only','instructions'=>''));
+      $zone=new WC_Shipping_Zone();
+      $zone->set_zone_name('Integration shipping zone');
+      $zone_id=$zone->save();
+      $zone->add_location('US','country');
+      $zone->save();
+      $shipping_instance=$zone->add_shipping_method('flat_rate');
+      if (!$zone_id || !$shipping_instance) throw new RuntimeException('Could not create an isolated integration shipping rate.');
+      update_option('woocommerce_flat_rate_'.$shipping_instance.'_settings',array('enabled'=>'yes','title'=>'Integration flat rate','tax_status'=>'none','cost'=>'5'));
       global $wp_rewrite;
       $wp_rewrite->set_permalink_structure('');
       flush_rewrite_rules(false);
@@ -326,21 +334,23 @@ try {
       $variable->set_name('Integration variable product');
       $variable->set_status('publish');
       $variable->set_catalog_visibility('visible');
+      $variable->set_virtual(false);
       $variable->set_attributes(array($taxonomy=>$attribute));
       $variable_id=$variable->save();
       $variation=new WC_Product_Variation();
       $variation->set_parent_id($variable_id);
       $variation->set_attributes(array($taxonomy=>'red'));
       $variation->set_regular_price('15.00');
+      $variation->set_virtual(false);
       $variation->set_manage_stock(true);
       $variation->set_stock_quantity(2);
       $variation->set_stock_status('instock');
       $variation_id=$variation->save();
-      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy);
+      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true));
     `);
     check(
-      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout",
-      "Actual WooCommerce data stores persist published simple/variable products, a stocked variation, coupon and the custom-checkout page slug",
+      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0,
+      "Actual WooCommerce data stores persist products, a stocked variation, coupon, custom-checkout page and enabled zone shipping method",
     );
 
     const home = await request(root, { method: "GET" });
