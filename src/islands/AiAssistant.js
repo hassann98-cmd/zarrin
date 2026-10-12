@@ -442,7 +442,7 @@ function Assistant() {
       return undefined;
     }
 
-    const dockSelector = "#bottom-navigation, .jluxe-mobile-nav, [data-jluxe-mobile-price-bar], [data-jluxe-sticky-cta]";
+    const dockSelector = "#bottom-navigation, .jluxe-mobile-nav, [data-jluxe-mobile-price-bar], [data-jluxe-sticky-cta], [data-jluxe-mobile-bar-toggle], [data-jluxe-sticky-cta-mode-toggle]";
     let animationFrame = 0;
     const pendingSettledMeasurements = new Set();
     const observedDocks = new WeakSet();

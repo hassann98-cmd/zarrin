@@ -553,7 +553,7 @@ function jluxe_render_sticky_add_to_cart( $product ): void {
 		$button = '<span class="jluxe-sticky-cta-out">ناموجود</span>';
 	}
 	?>
-	<div class="jluxe-sticky-cta" data-jluxe-sticky-cta>
+	<div id="jluxe-sticky-cta" class="jluxe-sticky-cta" data-jluxe-sticky-cta>
 		<div class="jluxe-sticky-cta-info">
 			<?php if ( $is_variable ) : ?>
 				<span class="jluxe-sticky-cta-price" data-jluxe-sticky-variation-price data-jluxe-price-placeholder="" aria-live="polite" aria-atomic="true"></span>
@@ -577,6 +577,18 @@ function jluxe_render_sticky_add_to_cart( $product ): void {
 		<?php endif; ?>
 		<?php echo $button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- اجزای داخلی escape شده‌اند. ?>
 	</div>
+	<button
+		type="button"
+		class="jluxe-sticky-cta-mode-toggle"
+		data-jluxe-sticky-cta-mode-toggle
+		aria-controls="jluxe-sticky-cta"
+		aria-label="نمایش منوی موبایل"
+		aria-pressed="true"
+		hidden
+	>
+		<span data-jluxe-sticky-cta-mode-label>منو</span>
+		<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
+	</button>
 	<?php
 }
 

@@ -3073,12 +3073,74 @@ function jluxeEnhanceShopSort(root) {
 		}
 	});
 
+	function positionToggle() {
+		var viewportH = window.innerHeight || document.documentElement.clientHeight;
+		var activeTop = null;
+		if (!priceBar.classList.contains("hidden")) {
+			var priceRect = priceBar.getBoundingClientRect();
+			if (priceRect.height > 0) { activeTop = priceRect.top; }
+		} else {
+			var navCandidates = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
+			for (var navIndex = 0; navIndex < navCandidates.length; navIndex++) {
+				var nav = navCandidates[navIndex];
+				var navRect = nav.getBoundingClientRect();
+				var navStyle = window.getComputedStyle(nav);
+				if (navRect.height > 0 && navRect.bottom > 0 && navRect.top < viewportH && navStyle.display !== "none" && navStyle.visibility !== "hidden") {
+					activeTop = null === activeTop ? navRect.top : Math.min(activeTop, navRect.top);
+				}
+			}
+		}
+		if (null !== activeTop) {
+			var bottom = Math.max(0, Math.ceil(viewportH - activeTop + 8)) + "px";
+			if (toggleBtn.style.bottom !== bottom) { toggleBtn.style.bottom = bottom; }
+		}
+	}
+
+	function syncToggleState() {
+		var priceMode = !priceBar.classList.contains("hidden");
+		toggleBtn.setAttribute("aria-pressed", priceMode ? "true" : "false");
+		toggleBtn.setAttribute("aria-label", priceMode ? "نمایش منوی موبایل" : "نمایش نوار خرید");
+		var icons = toggleBtn.querySelectorAll("[data-jluxe-mobile-bar-mode-icon]");
+		for (var iconIndex = 0; iconIndex < icons.length; iconIndex++) {
+			icons[iconIndex].hidden = icons[iconIndex].getAttribute("data-jluxe-mobile-bar-mode-icon") !== (priceMode ? "menu" : "purchase");
+		}
+		positionToggle();
+	}
+
 	priceBar.classList.remove("hidden");
+	syncToggleState();
 
 	toggleBtn.addEventListener("click", function () {
 		priceBar.classList.toggle("hidden");
 		window.dispatchEvent(new CustomEvent("jluxe:toggle-mobile-bar"));
+		syncToggleState();
+		if (typeof window.requestAnimationFrame === "function") { window.requestAnimationFrame(positionToggle); }
+		window.setTimeout(positionToggle, 0);
 	});
+
+	window.addEventListener("resize", positionToggle, { passive: true });
+	window.addEventListener("orientationchange", positionToggle, { passive: true });
+	window.addEventListener("pageshow", positionToggle, { passive: true });
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener("resize", positionToggle, { passive: true });
+	}
+	if (typeof window.MutationObserver === "function" && document.body) {
+		var navObserver = new window.MutationObserver(function (mutations) {
+			for (var mutationIndex = 0; mutationIndex < mutations.length; mutationIndex++) {
+				var changedNodes = Array.prototype.slice.call(mutations[mutationIndex].addedNodes).concat(
+					Array.prototype.slice.call(mutations[mutationIndex].removedNodes)
+				);
+				for (var nodeIndex = 0; nodeIndex < changedNodes.length; nodeIndex++) {
+					var node = changedNodes[nodeIndex];
+					if (1 === node.nodeType && (node.matches("#bottom-navigation, .jluxe-mobile-nav") || node.querySelector("#bottom-navigation, .jluxe-mobile-nav"))) {
+						positionToggle();
+						return;
+					}
+				}
+			}
+		});
+		navObserver.observe(document.body, { childList: true, subtree: true });
+	}
 })();
 
 /**

@@ -418,13 +418,15 @@ if ( $jluxe_is_variable ) {
 	<button
 		type="button"
 		data-jluxe-mobile-bar-toggle
-		aria-label="جابه‌جایی بین قیمت و منو"
-		class="fixed bottom-16 end-3 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary shadow-md transition-transform active:scale-95 md:hidden"
-		style="margin-bottom: env(safe-area-inset-bottom);"
+		aria-controls="jluxe-mobile-price-bar"
+		aria-label="نمایش منوی موبایل"
+		aria-pressed="true"
+		class="jluxe-mobile-bar-toggle fixed end-3 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary shadow-md transition-transform active:scale-95 md:hidden"
 	>
-		<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h12M4 12h16M4 19h8"/></svg>
+		<svg data-jluxe-mobile-bar-mode-icon="menu" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+		<svg data-jluxe-mobile-bar-mode-icon="purchase" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.4 12.1a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/></svg>
 	</button>
-	<div class="fixed inset-x-0 bottom-0 z-40 hidden md:hidden" data-jluxe-mobile-price-bar>
+	<div id="jluxe-mobile-price-bar" class="jluxe-mobile-price-bar fixed inset-x-0 bottom-0 hidden md:hidden" data-jluxe-mobile-price-bar>
 		<div class="m-2" style="margin-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
 			<div class="jluxe-mobile-price-card flex items-center gap-1.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl">
 				<div class="min-w-0 flex-1">

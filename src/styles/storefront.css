@@ -4449,7 +4449,7 @@ del .woocommerce-Price-amount {
 }
 /* ── R73: مودالِ «ثبت دیدگاه» — همان زبانِ طراحیِ مودالِ تنوع ── */
 /* Overlay order: idle assistant 90 < header 130 < focused skip link 150 < dock 160
- * < inline search/sort popovers 165 < drawers 170 < open assistant 180
+ * < inline popovers/product bars 165 < bar switchers 166 < drawers 170 < open assistant 180
  * < suggestions 190 < review/filter 200 < variation/stock fallback 210 < mobile search 220. */
 .jluxe-review-modal-backdrop {
   position: fixed;
@@ -6129,7 +6129,7 @@ html {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 60;
+  z-index: 165;
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 1rem;
@@ -6141,6 +6141,37 @@ html {
   transition: transform 0.25s ease;
 }
 .jluxe-sticky-cta.is-visible { transform: none; }
+.jluxe-sticky-cta-mode-toggle {
+  position: fixed;
+  inset-inline-end: 12px;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  z-index: 166;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.875rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--surface) / 0.97);
+  color: hsl(var(--text-secondary));
+  box-shadow: 0 5px 18px hsl(var(--foreground) / 0.14);
+  font-size: 0.75rem;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+.jluxe-sticky-cta-mode-toggle[hidden] { display: none; }
+.jluxe-sticky-cta-mode-toggle:focus-visible,
+.jluxe-mobile-bar-toggle:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
+.jluxe-mobile-price-bar { z-index: 165; }
+.jluxe-mobile-bar-toggle {
+  position: fixed;
+  inset-inline-end: 12px;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  z-index: 166;
+}
+.jluxe-mobile-bar-toggle svg[hidden] { display: none; }
 /* With a bottom dock, the CTA is measured above it; don't add the same safe-area inset twice. */
 .jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }
 .jluxe-sticky-cta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
@@ -6249,11 +6280,13 @@ html {
 body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 @media (max-width: 767.98px) {
   .jluxe-sticky-cta { display: flex; }
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] #bottom-navigation,
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav { display: none; }
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-sticky-cta { display: none; }
   /* اهداف لمسیِ همهٔ کنترل‌ها در موبایل ≥ 44px ( specificity صفر — قوانین
      موجود اولویت دارند و چیزی نمی‌شکند). */
   :where(a.button, button, [type="submit"], [role="button"]) { min-height: 44px; }
 }
-
 /* سقفِ ارتفاعِ فهرستِ نتایجِ جست‌وجویِ هدر — کلاس‌هایِ معنایی جایِ
    utilityهایِ arbitrary را می‌گیرند تا در خروجیِ CSS نیز حتماً حاضر باشند. */
 .jluxe-header-search-results--desktop { max-height: 70vh; }
@@ -7946,9 +7979,15 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
 }
 
 @media (max-width: 767.98px) {
-  body:has([data-jluxe-mobile-nav-dock]) #jluxe-footer-root .jluxe-footer-content-wrap,
+  body:has([data-jluxe-mobile-nav-dock]:not([hidden])) #jluxe-footer-root .jluxe-footer-content-wrap,
   body:has([data-jluxe-mobile-price-bar]:not(.hidden)) #jluxe-footer-root .jluxe-footer-content-wrap {
     margin-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+  body.single-product:has([data-jluxe-mobile-bar-toggle]) #jluxe-footer-root .jluxe-footer-content-wrap {
+    margin-bottom: calc(146px + env(safe-area-inset-bottom, 0px));
+  }
+  body:has([data-jluxe-sticky-cta-mode-toggle]:not([hidden])) #jluxe-footer-root .jluxe-footer-content-wrap {
+    margin-bottom: 0;
   }
 
   /* انتخابِ دومِ نوار موبایل: کپسولِ شناور، مستقل از نوار تمام‌عرضِ قبلی. */

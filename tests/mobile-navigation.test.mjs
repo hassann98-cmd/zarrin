@@ -35,6 +35,7 @@ function runStickyLayout(markup, measurements) {
   });
   const { window } = dom;
   Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
 
   for (const [selector, rect] of Object.entries(measurements)) {
     const element = window.document.querySelector(selector);
@@ -50,7 +51,7 @@ function runStickyLayout(markup, measurements) {
   return { bar, body: window.document.body, dom };
 }
 
-test("R115 the sticky CTA clears the topmost visible dock even when it appears later in DOM order", async () => {
+test("R115 purchase mode yields both supplied and native bottom docks instead of stacking over either", async () => {
   const { bar, body, dom } = runStickyLayout(
     '<nav class="jluxe-mobile-nav"></nav>' +
       '<section id="bottom-navigation"><div id="tabs"></div></section>' +
@@ -58,32 +59,36 @@ test("R115 the sticky CTA clears the topmost visible dock even when it appears l
     { ".jluxe-mobile-nav": { top: 732, height: 68 }, "#bottom-navigation": { top: 714, height: 76 } },
   );
 
-  assert.equal(bar.style.bottom, "96px");
-  assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), true);
-  assert.equal(body.style.paddingBottom, "164px");
+  assert.equal(bar.style.bottom, "0px", "the purchase CTA occupies the viewport edge after both docks yield");
+  assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
+  assert.equal(dom.window.document.querySelector("#bottom-navigation").hidden, true);
+  assert.equal(body.style.paddingBottom, "68px", "page clearance follows the single active CTA");
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
-test("R115 the native mobile dock uses measured top + 10px gap (not assumed height or duplicated safe-area padding)", async () => {
+test("R115 purchase mode hides the native mobile dock and removes its safe-area space from the CTA", async () => {
   const { bar, body, dom } = runStickyLayout(
     '<nav class="jluxe-mobile-nav" style="padding-bottom:20px"></nav>' +
       '<div data-jluxe-sticky-cta class="is-visible"><button data-jluxe-sticky-add></button></div>',
     { ".jluxe-mobile-nav": { top: 732, height: 68 } },
   );
 
-  assert.equal(bar.style.bottom, "78px");
-  assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), true);
-  assert.equal(body.style.paddingBottom, "146px");
+  assert.equal(bar.style.bottom, "0px");
+  assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
+  assert.equal(body.style.paddingBottom, "68px");
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
-test("R115 a mobile menu mounted after page startup triggers a fresh measured CTA layout", async () => {
+test("R115 a mobile menu mounted after startup yields immediately to an active purchase CTA", async () => {
   const dom = new JSDOM(
     '<!doctype html><html><body><div data-jluxe-sticky-cta class="is-visible"><button data-jluxe-sticky-add></button></div></body></html>',
     { url: "https://shop.test/product/demo/", runScripts: "outside-only" },
   );
   const { window } = dom;
   Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
   const bar = window.document.querySelector("[data-jluxe-sticky-cta]");
   Object.defineProperty(bar, "offsetHeight", { configurable: true, value: 56 });
   window.eval(stickySource);
@@ -98,8 +103,9 @@ test("R115 a mobile menu mounted after page startup triggers a fresh measured CT
   window.document.body.append(nav);
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 
-  assert.equal(bar.style.bottom, "78px");
-  assert.equal(window.document.body.style.paddingBottom, "146px");
+  assert.equal(nav.hidden, true, "the newly mounted dock follows the already active purchase mode");
+  assert.equal(bar.style.bottom, "0px");
+  assert.equal(window.document.body.style.paddingBottom, "68px");
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 });
 

@@ -14,11 +14,114 @@
 	var form = document.querySelector( 'form.cart' );
 	var realButton = document.querySelector( 'form.cart .single_add_to_cart_button' );
 	var body = document.body;
+	var modeToggle = document.querySelector( '[data-jluxe-sticky-cta-mode-toggle]' );
+	var modeToggleLabel = modeToggle && modeToggle.querySelector( '[data-jluxe-sticky-cta-mode-label]' );
+	var activeMode = 'navigation';
 
 	var navSelector = '#bottom-navigation, .jluxe-mobile-nav';
+	var navHiddenStates = new WeakMap();
 	var navGap = 10;
 	var resizeObserver = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver( layout ) : null;
 	var observedElements = new WeakSet();
+
+	function isMobileViewport() {
+		return window.matchMedia
+			? window.matchMedia( '(max-width: 767.98px)' ).matches
+			: ( window.innerWidth || document.documentElement.clientWidth || 0 ) < 768;
+	}
+
+	function syncNavigationVisibility() {
+		var shouldHideNavigation = 'purchase' === activeMode && bar.classList.contains( 'is-visible' ) && isMobileViewport();
+		var candidates = document.querySelectorAll( navSelector );
+		for ( var index = 0; index < candidates.length; index++ ) {
+			var candidate = candidates[ index ];
+			if ( shouldHideNavigation ) {
+				if ( ! navHiddenStates.has( candidate ) ) {
+					navHiddenStates.set( candidate, candidate.hidden );
+				}
+				candidate.hidden = true;
+			} else if ( navHiddenStates.has( candidate ) ) {
+				candidate.hidden = navHiddenStates.get( candidate );
+				navHiddenStates.delete( candidate );
+			}
+		}
+	}
+
+	function hasUsableNavigation( candidates ) {
+		for ( var index = 0; index < candidates.length; index++ ) {
+			var candidate = candidates[ index ];
+			var originallyHidden = navHiddenStates.has( candidate ) ? navHiddenStates.get( candidate ) : candidate.hidden;
+			if ( ! originallyHidden ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function setMode( mode ) {
+		activeMode = 'purchase' === mode ? 'purchase' : 'navigation';
+		if ( bar.classList.contains( 'is-visible' ) && isMobileViewport() ) {
+			body.setAttribute( 'data-jluxe-sticky-cta-mode', activeMode );
+		} else {
+			body.removeAttribute( 'data-jluxe-sticky-cta-mode' );
+		}
+		syncNavigationVisibility();
+		if ( modeToggle ) {
+			var targetLabel = 'purchase' === activeMode ? 'منوی موبایل' : 'نوار خرید';
+			modeToggle.setAttribute( 'aria-label', 'نمایش ' + targetLabel );
+			modeToggle.setAttribute( 'aria-pressed', 'purchase' === activeMode ? 'true' : 'false' );
+			if ( modeToggleLabel ) {
+				modeToggleLabel.textContent = 'purchase' === activeMode ? 'منو' : 'خرید';
+			}
+		}
+	}
+
+	function focusAfterToggleHides( navCandidates ) {
+		if ( ! modeToggle || document.activeElement !== modeToggle ) {
+			return;
+		}
+		var target = realButton && ! realButton.disabled ? realButton : null;
+		for ( var index = 0; ! target && index < navCandidates.length; index++ ) {
+			var navigation = navCandidates[ index ];
+			var navigationWasHidden = navHiddenStates.has( navigation ) ? navHiddenStates.get( navigation ) : navigation.hidden;
+			if ( ! navigationWasHidden ) {
+				target = navigation.querySelector( 'a, button, [tabindex]:not([tabindex="-1"])' );
+			}
+		}
+		if ( target && typeof target.focus === 'function' ) {
+			try { target.focus( { preventScroll: true } ); } catch ( error ) { target.focus(); }
+		}
+	}
+
+	function syncModeToggle( viewportH, dockTop, navCandidates ) {
+		if ( ! modeToggle ) {
+			return;
+		}
+		var shouldShow = isMobileViewport() && bar.classList.contains( 'is-visible' ) && hasUsableNavigation( navCandidates );
+		if ( ! shouldShow ) {
+			focusAfterToggleHides( navCandidates );
+			modeToggle.hidden = true;
+			return;
+		}
+
+		var anchorTop = null;
+		if ( 'purchase' === activeMode ) {
+			var barRect = bar.getBoundingClientRect();
+			if ( barRect.height > 0 ) {
+				anchorTop = barRect.top;
+			}
+		}
+		if ( null === anchorTop && null !== dockTop ) {
+			anchorTop = dockTop;
+		}
+		if ( null !== anchorTop ) {
+			var toggleBottom = Math.max( 0, Math.ceil( viewportH - anchorTop + 8 ) ) + 'px';
+			if ( modeToggle.style.bottom !== toggleBottom ) {
+				modeToggle.style.bottom = toggleBottom;
+			}
+		}
+		modeToggle.hidden = false;
+	}
 
 	function observeDockGeometry() {
 		if ( ! resizeObserver ) {
@@ -38,12 +141,13 @@
 	}
 
 	/*
-	 * CTA را از لبهٔ بالاییِ واقعیِ dock فاصله بده، نه با ارتفاعِ فرضی.
-	 * اگر افزونه و منوی بومی هر دو در DOM باشند، بالاترین لبهٔ قابل‌مشاهده
-	 * انتخاب می‌شود تا نوار خرید هیچ‌کدام را نپوشاند. خودِ nav دست‌نخورده است.
+	 * وقتی نوار خرید فعال است، dock به‌طور موقت پنهان می‌شود؛ در حالتِ منو
+	 * نوار خرید کنار می‌رود. جابه‌جاییِ سوئیچر همیشه از لبهٔ واقعیِ نوارِ فعال
+	 * اندازه‌گیری می‌شود، نه از ارتفاع‌هایِ فرضیِ منوهای مختلف.
 	 */
 	function layout() {
 		var viewportH = window.innerHeight || document.documentElement.clientHeight;
+		syncNavigationVisibility();
 		var navCandidates = document.querySelectorAll( navSelector );
 		var dockTop = null;
 		for ( var navIndex = 0; navIndex < navCandidates.length; navIndex++ ) {
@@ -74,8 +178,10 @@
 			bar.style.bottom = bottom + 'px';
 		}
 
+		syncModeToggle( viewportH, dockTop, navCandidates );
 		if ( bar.classList.contains( 'is-visible' ) ) {
-			var pageClearance = Math.ceil( bar.offsetHeight + navSpace + gap + 12 ) + 'px';
+			var toggleClearance = modeToggle && ! modeToggle.hidden ? Math.max( modeToggle.offsetHeight || 0, 44 ) + 8 : 0;
+			var pageClearance = Math.ceil( bar.offsetHeight + navSpace + gap + 12 + toggleClearance ) + 'px';
 			if ( body.style.paddingBottom !== pageClearance ) {
 				body.style.paddingBottom = pageClearance;
 			}
@@ -87,6 +193,15 @@
 
 	/* نمایش پس از عبورِ فرمِ اصلی از دید — بدونِ IntersectionObserver (سازگار). */
 	function onScroll() {
+		if ( ! isMobileViewport() ) {
+			bar.classList.remove( 'is-visible' );
+			body.classList.remove( 'jluxe-has-sticky-cta' );
+			body.style.paddingBottom = '';
+			setMode( 'navigation' );
+			layout();
+			return;
+		}
+
 		var wasVisible = bar.classList.contains( 'is-visible' );
 		var visible;
 		if ( ! form ) {
@@ -98,9 +213,23 @@
 			visible = bar.classList.toggle( 'is-visible', passed );
 		}
 		body.classList.toggle( 'jluxe-has-sticky-cta', visible );
-		if ( wasVisible !== visible ) {
+		var modeNeedsSync = visible
+			? ! body.hasAttribute( 'data-jluxe-sticky-cta-mode' )
+			: body.hasAttribute( 'data-jluxe-sticky-cta-mode' );
+		if ( wasVisible !== visible || modeNeedsSync ) {
+			setMode( visible ? 'purchase' : 'navigation' );
 			layout();
 		}
+	}
+
+	if ( modeToggle ) {
+		modeToggle.addEventListener( 'click', function () {
+			if ( ! bar.classList.contains( 'is-visible' ) || ! isMobileViewport() ) {
+				return;
+			}
+			setMode( 'purchase' === activeMode ? 'navigation' : 'purchase' );
+			layout();
+		} );
 	}
 
 	window.addEventListener( 'scroll', onScroll, { passive: true } );
