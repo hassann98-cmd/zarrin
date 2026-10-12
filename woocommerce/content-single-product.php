@@ -92,6 +92,7 @@ usort(
 );
 $key_features = jluxe_product_key_feature_cards( $product );
 $jluxe_delivery_time = jluxe_get_product_delivery_time( $product );
+$jluxe_delivery_time_visible = jluxe_is_product_delivery_time_enabled( $product );
 
 /*
  * محصول متغیر: طبق طراحی مرجع (تصویر ضمیمه‌ی کاربر)، سواچ‌های رنگ/سایز باید
@@ -236,6 +237,7 @@ if ( $jluxe_is_variable ) {
 						</a>
 					</section>
 				<?php endif; ?>
+				<?php jluxe_render_product_notice( $product ); ?>
 
 				<?php do_action( 'woocommerce_share', $product ); ?>
 			</div>
@@ -244,7 +246,7 @@ if ( $jluxe_is_variable ) {
 				<div data-jluxe-buybox-surface>
 				<div class="rounded-2xl border border-border bg-muted/40 p-3.5">
 					<?php // تک‌فروشنده‌ست (نه مارکت‌پلیس) — کارت فروشگاه/فروشنده عمداً حذف شده. ?>
-					<?php if ( '' !== $jluxe_delivery_time ) : ?>
+					<?php if ( $jluxe_delivery_time_visible && '' !== $jluxe_delivery_time ) : ?>
 						<div class="mb-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2.5" data-jluxe-delivery-time-row>
 							<span class="inline-flex items-center gap-2 text-small text-text-secondary"><svg class="size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>زمان ارسال</span>
 							<span class="text-small font-bold text-primary" data-jluxe-delivery-time><?php echo esc_html( $jluxe_delivery_time ); ?></span>

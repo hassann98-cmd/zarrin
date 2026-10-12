@@ -73,6 +73,7 @@ if ( empty( $jluxe_gallery_ids ) ) {
 $cp3_breadcrumbs   = jluxe_breadcrumb_items( $product );
 $cp3_short_desc    = $product->get_short_description();
 $cp3_delivery_time = jluxe_get_product_delivery_time( $product );
+$cp3_delivery_time_visible = jluxe_is_product_delivery_time_enabled( $product );
 $cp3_faq_items   = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array();
 $cp3_stock_qty   = $product->managing_stock() ? $product->get_stock_quantity() : null;
 $cp3_english_product_name = function_exists( 'jluxe_get_product_english_name' ) ? jluxe_get_product_english_name( $product ) : '';
@@ -446,12 +447,6 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 .jluxe-product-reference .reference-key-feature{min-width:0;border:1px solid hsl(var(--panel-border));border-radius:12px;background:hsl(var(--panel));padding:9px 11px}
 .jluxe-product-reference .reference-key-feature span{display:block;margin-bottom:4px;color:hsl(var(--text-muted));font-size:10px;line-height:1.5}
 .jluxe-product-reference .reference-key-feature strong{display:block;color:hsl(var(--foreground));font-size:12px;font-weight:700;line-height:1.7;overflow-wrap:anywhere}
-@media(min-width:380px) and (max-width:767.98px){
-	.jluxe-product-reference .reference-key-features__grid.is-three-compact{grid-template-columns:repeat(3,minmax(0,1fr))}
-	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature{padding:8px 7px}
-	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature span{font-size:9px}
-	.jluxe-product-reference .reference-key-features__grid.is-three-compact .reference-key-feature strong{font-size:10px}
-}
 
 .jluxe-product-reference .reference-mobile-variation-option{margin-top:16px}
 
@@ -686,8 +681,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						<?php if ( $product->get_sku() ) : ?>
 							<span class="reference-mobile-meta-item" data-reference-sku><span>کد محصول:</span><bdi dir="ltr"><?php echo esc_html( $product->get_sku() ); ?></bdi></span>
 						<?php endif; ?>
-						<?php if ( '' !== $cp3_delivery_time ) : ?>
-							<span class="reference-mobile-meta-item reference-mobile-meta-item--delivery" data-jluxe-delivery-time-row><span class="reference-mobile-delivery-label">نحوهٔ ارسال:</span><bdi data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></bdi></span>
+						<?php if ( $cp3_delivery_time_visible && '' !== $cp3_delivery_time ) : ?>
+							<span class="reference-mobile-meta-item reference-mobile-meta-item--delivery" data-jluxe-delivery-time-row><span class="reference-mobile-delivery-label">زمان ارسال:</span><bdi data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></bdi></span>
 						<?php endif; ?>
 					</div>
 					<?php if ( $cp3_mobile_in_stock && null !== $cp3_stock_qty && $cp3_stock_qty > 0 && $cp3_stock_qty <= 10 ) : ?>
@@ -830,26 +825,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							</div>
 						<?php endif; ?>
 
-						<?php
-						$reference_key_features    = jluxe_product_key_feature_cards( $product );
-						$reference_compact_features = 3 === count( $reference_key_features );
-		if ( $reference_compact_features ) {
-			foreach ( $reference_key_features as $reference_feature ) {
-				if (
-					'product_brand' === (string) ( $reference_feature['name'] ?? '' ) ||
-					jluxe_strlen( wp_strip_all_tags( (string) ( $reference_feature['label'] ?? '' ) ) ) > 9 ||
-					jluxe_strlen( wp_strip_all_tags( (string) ( $reference_feature['value'] ?? '' ) ) ) > 11
-				) {
-					$reference_compact_features = false;
-					break;
-				}
-			}
-		}
-						?>
+						<?php $reference_key_features = jluxe_product_key_feature_cards( $product ); ?>
 						<?php if ( $reference_key_features ) : ?>
 							<section class="reference-key-features" aria-labelledby="reference-key-features-title">
 								<h2 id="reference-key-features-title">ویژگی‌های محصول</h2>
-								<div class="reference-key-features__grid<?php echo $reference_compact_features ? ' is-three-compact' : ''; ?>">
+								<div class="reference-key-features__grid">
 									<?php foreach ( $reference_key_features as $reference_feature ) : ?>
 										<div class="reference-key-feature" data-jluxe-key-feature="<?php echo esc_attr( $reference_feature['name'] ); ?>">
 											<span><?php echo esc_html( $reference_feature['label'] ); ?></span>
@@ -859,8 +839,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								</div>
 							</section>
 						<?php endif; ?>
-
-
+						<?php jluxe_render_product_notice( $product ); ?>
 
 				</div>
 
@@ -869,7 +848,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<div data-jluxe-buybox-surface>
 					<div class="cp3-sidebox">
 						<div class="cp3-sidehead">مشخصات</div>
-						<?php if ( '' !== $cp3_delivery_time ) : ?>
+						<?php if ( $cp3_delivery_time_visible && '' !== $cp3_delivery_time ) : ?>
 							<div class="cp3-row" data-jluxe-delivery-time-row>
 								<span class="cp3-rowlab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v11H3zM14 11h4l3 3v4h-7z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.5" stroke="currentColor" stroke-width="1.5"/><circle cx="17.5" cy="18" r="1.5" stroke="currentColor" stroke-width="1.5"/></svg>زمان ارسال</span>
 								<span class="cp3-rowval" style="color:hsl(var(--primary))" data-jluxe-delivery-time><?php echo esc_html( $cp3_delivery_time ); ?></span>

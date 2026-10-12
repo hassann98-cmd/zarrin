@@ -1013,17 +1013,17 @@ $r238_mobile_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobi
 $r238_delivery_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-meta-item reference-mobile-meta-item--delivery"', $r238_mobile_meta_position );
 $r238_variation_options_position = strpos( $r238_reference_tpl, 'data-reference-variation-options' );
 $r238_short_description_position = strpos( $r238_reference_tpl, 'data-cp3-short' );
-$r238_feature_cards_position = strpos( $r238_reference_tpl, '$reference_key_features    = jluxe_product_key_feature_cards( $product );' );
+$r238_feature_cards_position = strpos( $r238_reference_tpl, '$reference_key_features = jluxe_product_key_feature_cards( $product );' );
 check(
 	false !== $r238_mobile_meta_position && false !== $r238_delivery_meta_position &&
 	false !== $r238_variation_options_position && false !== $r238_short_description_position && false !== $r238_feature_cards_position &&
 	$r238_mobile_meta_position < $r238_delivery_meta_position && $r238_delivery_meta_position < $r238_variation_options_position &&
 	$r238_variation_options_position < $r238_short_description_position && $r238_feature_cards_position > $r238_short_description_position &&
-	false !== strpos( $r238_reference_tpl, 'نحوهٔ ارسال:' ) &&
-	false !== strpos( $r238_reference_tpl, 'is-three-compact' ) &&
-	false !== strpos( $r238_reference_tpl, 'repeat(2,minmax(0,1fr))' ) &&
-	false !== strpos( $r238_reference_tpl, 'repeat(3,minmax(0,1fr))' ),
-	'R238 reference product meta and delivery precede selectable variations, which precede the short description; feature cards remain below the description'
+	false !== strpos( $r238_reference_tpl, 'زمان ارسال:' ) &&
+	false === strpos( $r238_reference_tpl, 'نحوهٔ ارسال:' ) &&
+	false === strpos( $r238_reference_tpl, 'is-three-compact' ) &&
+	false !== strpos( $r238_reference_tpl, 'reference-key-features__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ),
+	'R246 Reference labels mobile delivery time correctly and keeps feature cards in two columns without the compact three-column mode'
 );
 check(
 	false === strpos( $r238_reference_tpl, 'reference-mobile-empty-rating' ) &&
@@ -1077,12 +1077,12 @@ check(
 check(
 	false !== strpos( $default_tpl, 'data-jluxe-delivery-time-row' ) &&
 	false !== strpos( $default_tpl, 'jluxe_get_product_delivery_time( $product )' ) &&
-	false !== strpos( $default_tpl, "if ( '' !== \$jluxe_delivery_time ) :" ) &&
+	false !== strpos( $default_tpl, "if ( \$jluxe_delivery_time_visible && '' !== \$jluxe_delivery_time ) :" ) &&
 	false !== strpos( $classic_tpl, 'data-jluxe-delivery-time-row' ) &&
-	false !== strpos( $classic_tpl, "if ( '' !== \$cp3_delivery_time ) :" ) &&
+	false !== strpos( $classic_tpl, "if ( \$cp3_delivery_time_visible && '' !== \$cp3_delivery_time ) :" ) &&
 	false !== strpos( $r238_reference_tpl, 'data-jluxe-delivery-time-row' ) &&
-	false !== strpos( $r238_reference_tpl, "if ( '' !== \$cp3_delivery_time ) :" ),
-	'R238 all three product layouts render the product-specific delivery value and hide its row when empty'
+	false !== strpos( $r238_reference_tpl, "if ( \$cp3_delivery_time_visible && '' !== \$cp3_delivery_time ) :" ),
+	'R246 all three product layouts render the product-specific delivery value only when it is populated and enabled'
 );
 $GLOBALS['post_meta'][ $r238_id ]['_english_product_name'] = 'Reference phone';
 $r241_reference_thumbnails_position = strpos( $r238_reference_tpl, '<div class="cp3-thumbsrow">' );
@@ -1226,6 +1226,108 @@ check(
 	false !== strpos( $r240_storefront_css, '.jluxe-key-features-link:focus-visible' ),
 	'R237 key-feature cards have separate rounded light surfaces and an accessible focused link state'
 );
+
+// R246: product editors can select feature cards, toggle delivery time, and publish a safe product-specific notice.
+$r246_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$GLOBALS['taxonomies']['product_brand'] = true;
+$r246_old_product_meta = $GLOBALS['post_meta'][9400] ?? null;
+$r246_had_product_meta = array_key_exists( 9400, $GLOBALS['post_meta'] ?? array() );
+$r246_candidates      = jluxe_product_key_feature_attribute_candidates( $r240_product );
+check(
+	array( 'pa_color', 'material', 'warranty', 'capacity' ) === array_column( $r246_candidates, 'attribute_name' ) &&
+	false === in_array( 'pa_size', array_column( $r246_candidates, 'attribute_name' ), true ) &&
+	false === in_array( 'pa_brand', array_column( $r246_candidates, 'attribute_name' ), true ),
+	'R246 feature controls offer every populated visible non-variation attribute, but never a variation or duplicate brand attribute'
+);
+$GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] = array( 'capacity', 'pa_color', 'material', 'warranty' );
+$r246_selected_cards = jluxe_product_key_feature_cards( $r240_product );
+check(
+	array( 'product_brand', 'pa_color', 'material', 'warranty' ) === array_column( $r246_selected_cards, 'name' ),
+	'R246 chosen attributes use product order, stay after the real brand, and are capped at three regular cards'
+);
+$GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'] = 'no';
+$GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes']     = array( 'capacity' );
+check(
+	array( 'capacity' ) === array_column( jluxe_product_key_feature_cards( $r240_product ), 'name' ),
+	'R246 the brand card and individual feature cards can be independently hidden per product'
+);
+
+$r246_old_post     = $GLOBALS['post'] ?? null;
+$r246_had_products = array_key_exists( 9400, $GLOBALS['products'] ?? array() );
+$r246_old_product  = $GLOBALS['products'][9400] ?? null;
+$GLOBALS['products'][9400] = $r240_product;
+$GLOBALS['post']           = (object) array( 'ID' => 9400 );
+ob_start();
+jluxe_render_product_badge_fields();
+$r246_panel_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r246_panel_html, 'name="_jluxe_key_feature_attributes[]"' ) &&
+	false !== strpos( $r246_panel_html, 'id="_jluxe_key_feature_brand_enabled"' ) &&
+	false !== strpos( $r246_panel_html, 'id="_jluxe_delivery_time_enabled"' ) &&
+	false !== strpos( $r246_panel_html, 'id="_jluxe_product_notice_enabled"' ) &&
+	false !== strpos( $r246_panel_html, 'name="_jluxe_product_notice_text"' ) &&
+	false === strpos( $r246_panel_html, 'id="_delivery_time"' ),
+	'R246 the product editor exposes per-feature, delivery-visibility, and editable notice controls without adding a duplicate delivery field'
+);
+
+$r246_old_request = $_POST;
+$GLOBALS['cleaned_posts'] = array();
+$GLOBALS['deleted_product_transients'] = array();
+$_POST = array(
+	'jluxe_product_options_present'        => '1',
+	'_jluxe_badge_authenticity'             => '1',
+	'_jluxe_key_feature_brand_enabled'      => '1',
+	'_jluxe_key_feature_attributes'         => array( 'capacity', 'pa_size', 'material', 'warranty', 'pa_color', 'pa_brand' ),
+	'_jluxe_product_notice_enabled'         => '1',
+	'_jluxe_product_notice_type'            => 'info',
+	'_jluxe_product_notice_text'            => " <b>Notice</b>\n<script>alert(1)</script> ",
+);
+jluxe_save_product_badge_fields( 9400 );
+$r246_saved_notice = jluxe_get_product_notice( $r240_product );
+ob_start();
+jluxe_render_product_notice( $r240_product );
+$r246_notice_html = (string) ob_get_clean();
+check(
+	array( 'pa_color', 'material', 'warranty' ) === ( $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] ?? array() ) &&
+	'no' === ( $GLOBALS['post_meta'][9400]['_jluxe_delivery_time_enabled'] ?? '' ) &&
+	false === jluxe_is_product_delivery_time_enabled( $r240_product ) &&
+	true === $r246_saved_notice['enabled'] && 'info' === $r246_saved_notice['type'] &&
+	"Notice\nalert(1)" === $r246_saved_notice['text'] &&
+	false !== strpos( $r246_notice_html, 'jluxe-product-notice--info' ) &&
+	false === strpos( $r246_notice_html, '<script>' ),
+	'R246 saves only up to three eligible selections, persists visibility toggles, sanitizes notice text, and renders it as escaped content'
+);
+update_post_meta( 9400, '_jluxe_delivery_time_enabled', 'yes' );
+check(
+	jluxe_is_product_delivery_time_enabled( $r240_product ) &&
+	false === strpos( $r246_notice_html, 'Notice</script>' ),
+	'R246 delivery-row visibility is independently switchable without changing the existing per-product _delivery_time value'
+);
+update_post_meta( 9400, '_jluxe_product_notice_enabled', 'no' );
+ob_start();
+jluxe_render_product_notice( $r240_product );
+$r246_disabled_notice_html = (string) ob_get_clean();
+check( '' === $r246_disabled_notice_html, 'R246 an intentionally disabled product notice renders no box');
+
+$r246_default_template  = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
+$r246_classic_template  = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' );
+$r246_reference_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
+check(
+	false !== strpos( $r246_default_template, 'jluxe_render_product_notice( $product )' ) &&
+	false !== strpos( $r246_classic_template, 'jluxe_render_product_notice( $product )' ) &&
+	false !== strpos( $r246_reference_template, 'jluxe_render_product_notice( $product )' ) &&
+	false !== strpos( $r246_classic_template, 'jluxe_product_key_feature_cards( $product )' ) &&
+	false !== strpos( $r246_classic_template, 'cp3-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
+	false !== strpos( $r240_storefront_css, '.jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem);' ) &&
+	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
+	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ),
+	'R246 every product layout supports the notice, and mobile feature summaries keep a two-column grid'
+);
+$_POST = $r246_old_request;
+if ( $r246_had_product_meta ) { $GLOBALS['post_meta'][9400] = $r246_old_product_meta; } else { unset( $GLOBALS['post_meta'][9400] ); }
+if ( $r246_had_products ) { $GLOBALS['products'][9400] = $r246_old_product; } else { unset( $GLOBALS['products'][9400] ); }
+if ( null === $r246_old_post ) { unset( $GLOBALS['post'] ); } else { $GLOBALS['post'] = $r246_old_post; }
+$GLOBALS['taxonomies'] = $r246_old_taxonomies;
 
 // R32: AI comments — auto replies + editable summaries. All provider traffic is the deterministic mock.
 reset_security();

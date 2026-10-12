@@ -1614,42 +1614,20 @@ function jluxe_attribute_swatch_options( string $attribute_name, array $options,
 }
 
 /**
- * ویژگی‌های برجستهٔ خلاصهٔ محصول: برندِ واقعیِ product_brand همیشه اول است
- * و بعد حداکثر سه ویژگیِ نمایانِ غیرتنوعی می‌آید. ویژگی‌های variation و
- * فیلد «برند» به‌عنوان attribute عمداً دوباره شمرده/نمایش داده نمی‌شوند.
+ * همهٔ ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های variation،
+ * پنهان و ویژگیِ تکراریِ برند این‌جا قرار نمی‌گیرند؛ مدیر می‌تواند حداکثر سه
+ * مورد را از این فهرست در تب «گزینه‌های زرین» انتخاب کند.
  *
- * @return array<int, array{name: string, label: string, value: string}>
+ * @return array<int, array{name: string, attribute_name: string, label: string, value: string}>
  */
-function jluxe_product_key_feature_cards( $product ): array {
+function jluxe_product_key_feature_attribute_candidates( $product ): array {
 	if ( ! $product instanceof WC_Product ) {
 		return array();
 	}
 
-	$cards = array();
-	if ( function_exists( 'taxonomy_exists' ) && taxonomy_exists( 'product_brand' ) && function_exists( 'wc_get_product_terms' ) ) {
-		$brand_terms = wc_get_product_terms( $product->get_id(), 'product_brand', array( 'fields' => 'all' ) );
-		if ( is_wp_error( $brand_terms ) ) {
-			$brand_terms = array();
-		}
-		$brand_names = array();
-		foreach ( (array) $brand_terms as $brand_term ) {
-			$name = is_object( $brand_term ) && isset( $brand_term->name ) ? trim( (string) $brand_term->name ) : '';
-			if ( '' !== $name ) {
-				$brand_names[] = $name;
-			}
-		}
-		$brand_names = array_values( array_unique( $brand_names ) );
-		if ( $brand_names ) {
-			$cards[] = array(
-				'name'  => 'product_brand',
-				'label' => 'برند',
-				'value' => implode( '، ', $brand_names ),
-			);
-		}
-	}
-
 	$product_attributes = method_exists( $product, 'get_attributes' ) ? (array) $product->get_attributes() : array();
-	$extra_count        = 0;
+	$candidates        = array();
+	$seen_names         = array();
 	foreach ( $product_attributes as $attribute ) {
 		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) || ! method_exists( $attribute, 'get_variation' ) ) {
 			continue;
@@ -1664,7 +1642,10 @@ function jluxe_product_key_feature_cards( $product ): array {
 			continue;
 		}
 
-		$attribute_name  = (string) $attribute->get_name();
+		$attribute_name = trim( (string) $attribute->get_name() );
+		if ( '' === $attribute_name || isset( $seen_names[ $attribute_name ] ) ) {
+			continue;
+		}
 		$attribute_label = function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $attribute_name, $product ) : $attribute_name;
 		$normalized_name = strtolower( sanitize_title( $attribute_name ) );
 		if (
@@ -1692,15 +1673,118 @@ function jluxe_product_key_feature_cards( $product ): array {
 		} else {
 			$values = (array) $attribute->get_options();
 		}
-		$values = array_values( array_filter( array_map( static fn( $value ) => trim( (string) $value ), $values ), static fn( $value ) => '' !== $value ) );
+		$values = array_values(
+			array_filter(
+				array_map( static fn( $value ) => is_scalar( $value ) ? trim( (string) $value ) : '', $values ),
+				static fn( $value ) => '' !== $value
+			)
+		);
 		if ( ! $values ) {
 			continue;
 		}
 
+		$seen_names[ $attribute_name ] = true;
+		$candidates[]                  = array(
+			'name'           => sanitize_title( $attribute_name ),
+			'attribute_name' => $attribute_name,
+			'label'          => $attribute_label,
+			'value'          => implode( '، ', array_unique( $values ) ),
+		);
+	}
+
+	return $candidates;
+}
+
+/** Read the assigned WooCommerce product_brand term as the summary's first card. */
+function jluxe_product_key_feature_brand_card( $product ): ?array {
+	if (
+		! $product instanceof WC_Product ||
+		! function_exists( 'taxonomy_exists' ) ||
+		! taxonomy_exists( 'product_brand' ) ||
+		! function_exists( 'wc_get_product_terms' )
+	) {
+		return null;
+	}
+
+	$brand_terms = wc_get_product_terms( $product->get_id(), 'product_brand', array( 'fields' => 'all' ) );
+	if ( is_wp_error( $brand_terms ) ) {
+		return null;
+	}
+	$brand_names = array();
+	foreach ( (array) $brand_terms as $brand_term ) {
+		$name = is_object( $brand_term ) && isset( $brand_term->name ) ? trim( (string) $brand_term->name ) : '';
+		if ( '' !== $name ) {
+			$brand_names[] = $name;
+		}
+	}
+	$brand_names = array_values( array_unique( $brand_names ) );
+	if ( ! $brand_names ) {
+		return null;
+	}
+
+	return array(
+		'name'  => 'product_brand',
+		'label' => 'برند',
+		'value' => implode( '، ', $brand_names ),
+	);
+}
+
+/** Existing products keep brand enabled unless an editor explicitly turns it off. */
+function jluxe_product_key_feature_brand_enabled( $product ): bool {
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
+	if ( ! $product_id ) {
+		return false;
+	}
+	$meta_exists = function_exists( 'metadata_exists' )
+		? metadata_exists( 'post', $product_id, '_jluxe_key_feature_brand_enabled' )
+		: '' !== (string) get_post_meta( $product_id, '_jluxe_key_feature_brand_enabled', true );
+
+	return ! $meta_exists || 'yes' === get_post_meta( $product_id, '_jluxe_key_feature_brand_enabled', true );
+}
+
+/**
+ * Product-summary feature cards: the actual product_brand term comes first,
+ * followed by no more than three selected visible, non-variation attributes.
+ * Legacy products with no selection meta retain the former first-three default.
+ *
+ * @return array<int, array{name: string, label: string, value: string}>
+ */
+function jluxe_product_key_feature_cards( $product ): array {
+	if ( ! $product instanceof WC_Product ) {
+		return array();
+	}
+
+	$product_id = (int) $product->get_id();
+	$cards      = array();
+	if ( jluxe_product_key_feature_brand_enabled( $product ) ) {
+		$brand_card = jluxe_product_key_feature_brand_card( $product );
+		if ( $brand_card ) {
+			$cards[] = $brand_card;
+		}
+	}
+
+	$selection_exists = function_exists( 'metadata_exists' )
+		? metadata_exists( 'post', $product_id, '_jluxe_key_feature_attributes' )
+		: is_array( get_post_meta( $product_id, '_jluxe_key_feature_attributes', true ) );
+	$selection = get_post_meta( $product_id, '_jluxe_key_feature_attributes', true );
+	$selected  = array();
+	if ( is_array( $selection ) ) {
+		foreach ( $selection as $attribute_name ) {
+			if ( is_scalar( $attribute_name ) ) {
+				$selected[ (string) $attribute_name ] = true;
+			}
+		}
+	}
+
+	$extra_count = 0;
+	foreach ( jluxe_product_key_feature_attribute_candidates( $product ) as $candidate ) {
+		if ( $selection_exists && ! isset( $selected[ $candidate['attribute_name'] ] ) ) {
+			continue;
+		}
 		$cards[] = array(
-			'name'  => sanitize_title( $attribute_name ),
-			'label' => $attribute_label,
-			'value' => implode( '، ', array_unique( $values ) ),
+			'name'  => $candidate['name'],
+			'label' => $candidate['label'],
+			'value' => $candidate['value'],
 		);
 		++$extra_count;
 		if ( $extra_count >= 3 ) {
@@ -3643,6 +3727,73 @@ function jluxe_render_product_badge_fields(): void {
 	);
 
 	echo '</div>';
+
+	$product              = wc_get_product( (int) $post->ID );
+	$attribute_candidates = jluxe_product_key_feature_attribute_candidates( $product );
+	$selection_exists     = function_exists( 'metadata_exists' )
+		? metadata_exists( 'post', (int) $post->ID, '_jluxe_key_feature_attributes' )
+		: is_array( get_post_meta( $post->ID, '_jluxe_key_feature_attributes', true ) );
+	$selected_attributes = get_post_meta( $post->ID, '_jluxe_key_feature_attributes', true );
+	if ( ! $selection_exists || ! is_array( $selected_attributes ) ) {
+		$selected_attributes = array_column( array_slice( $attribute_candidates, 0, 3 ), 'attribute_name' );
+	}
+	$selected_attribute_map = array();
+	foreach ( $selected_attributes as $selected_attribute ) {
+		if ( is_scalar( $selected_attribute ) ) {
+			$selected_attribute_map[ (string) $selected_attribute ] = true;
+		}
+	}
+
+	echo '<div class="options_group">';
+	echo '<p class="form-field"><strong>کارت‌های ویژگی محصول</strong><br><span class="description">برند از taxonomy واقعیِ product_brand خوانده می‌شود؛ حداکثر سه ویژگیِ نمایان و غیرتنوعی را هم می‌توانید جداگانه انتخاب کنید.</span></p>';
+	woocommerce_wp_checkbox(
+		array(
+			'id'          => '_jluxe_key_feature_brand_enabled',
+			'value'       => jluxe_product_key_feature_brand_enabled( (int) $post->ID ) ? 'yes' : 'no',
+			'label'       => 'نمایش کارت برند',
+			'description' => 'نام برند فقط از برندهای منتسب‌شده به همین محصول خوانده می‌شود.',
+		)
+	);
+	if ( $attribute_candidates ) {
+		foreach ( $attribute_candidates as $candidate_index => $candidate ) {
+			$field_id = 'jluxe-key-feature-attribute-' . sanitize_title( $candidate['attribute_name'] ) . '-' . (int) $candidate_index;
+			echo '<p class="form-field"><label for="' . esc_attr( $field_id ) . '">' . esc_html( $candidate['label'] ) . '</label><input type="checkbox" id="' . esc_attr( $field_id ) . '" name="_jluxe_key_feature_attributes[]" value="' . esc_attr( $candidate['attribute_name'] ) . '"' . ( isset( $selected_attribute_map[ $candidate['attribute_name'] ] ) ? ' checked="checked"' : '' ) . ' /><span class="description">' . esc_html( $candidate['value'] ) . '</span></p>';
+		}
+	} else {
+		echo '<p class="form-field"><span class="description">هنوز ویژگیِ نمایانِ غیرتنوعیِ دارای مقدار برای این محصول ثبت نشده است.</span></p>';
+	}
+	echo '<p class="form-field"><span class="description">برای حفظ چیدمانِ جمع‌وجور، از ویژگی‌های انتخاب‌شده حداکثر سه کارت نمایش داده می‌شود.</span></p>';
+	echo '</div>';
+
+	echo '<div class="options_group">';
+	woocommerce_wp_checkbox(
+		array(
+			'id'          => '_jluxe_delivery_time_enabled',
+			'value'       => jluxe_is_product_delivery_time_enabled( (int) $post->ID ) ? 'yes' : 'no',
+			'label'       => 'نمایش ردیف زمان ارسال',
+			'description' => 'متن زمان ارسال از فیلدِ موجودِ «زمان ارسال» همین محصول خوانده می‌شود؛ این گزینه فیلد تکراری نمی‌سازد.',
+		)
+	);
+	echo '</div>';
+
+	$notice_text = get_post_meta( $post->ID, '_jluxe_product_notice_text', true );
+	$notice_text = is_scalar( $notice_text ) ? (string) $notice_text : '';
+	$notice_type = sanitize_key( (string) get_post_meta( $post->ID, '_jluxe_product_notice_type', true ) );
+	if ( ! in_array( $notice_type, array( 'warning', 'info' ), true ) ) {
+		$notice_type = 'warning';
+	}
+	echo '<div class="options_group">';
+	woocommerce_wp_checkbox(
+		array(
+			'id'          => '_jluxe_product_notice_enabled',
+			'value'       => 'yes' === get_post_meta( $post->ID, '_jluxe_product_notice_enabled', true ) ? 'yes' : 'no',
+			'label'       => 'نمایش کادر اخطار/اطلاعیه',
+			'description' => 'کادر فقط وقتی نمایش داده می‌شود که این گزینه روشن و متن آن پر شده باشد.',
+		)
+	);
+	echo '<p class="form-field"><label for="_jluxe_product_notice_type">نوع کادر</label><select id="_jluxe_product_notice_type" name="_jluxe_product_notice_type"><option value="warning"' . ( 'warning' === $notice_type ? ' selected="selected"' : '' ) . '>اخطار</option><option value="info"' . ( 'info' === $notice_type ? ' selected="selected"' : '' ) . '>اطلاعیه</option></select></p>';
+	echo '<p class="form-field"><label for="_jluxe_product_notice_text">متن اخطار/اطلاعیه</label><textarea id="_jluxe_product_notice_text" name="_jluxe_product_notice_text" rows="4" class="large-text">' . esc_textarea( $notice_text ) . '</textarea></p>';
+	echo '</div>';
 	echo '</div>';
 }
 add_action( 'woocommerce_product_data_panels', 'jluxe_render_product_badge_fields' );
@@ -3687,9 +3838,50 @@ function jluxe_save_product_badge_fields( int $post_id ): void {
 
 	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
 	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
+	update_post_meta( $post_id, '_jluxe_key_feature_brand_enabled', isset( $_POST['_jluxe_key_feature_brand_enabled'] ) ? 'yes' : 'no' );
+
+	$product              = wc_get_product( $post_id );
+	$available_attributes = jluxe_product_key_feature_attribute_candidates( $product );
+	$available_names      = array_column( $available_attributes, 'attribute_name' );
+	$submitted_attributes = isset( $_POST['_jluxe_key_feature_attributes'] ) && is_array( $_POST['_jluxe_key_feature_attributes'] )
+		? wp_unslash( $_POST['_jluxe_key_feature_attributes'] )
+		: array();
+	$submitted_map = array();
+	foreach ( $submitted_attributes as $submitted_attribute ) {
+		if ( is_scalar( $submitted_attribute ) ) {
+			$submitted_name = sanitize_text_field( (string) $submitted_attribute );
+			if ( in_array( $submitted_name, $available_names, true ) ) {
+				$submitted_map[ $submitted_name ] = true;
+			}
+		}
+	}
+	$selected_attributes = array();
+	foreach ( $available_names as $available_name ) {
+		if ( isset( $submitted_map[ $available_name ] ) ) {
+			$selected_attributes[] = $available_name;
+			if ( count( $selected_attributes ) >= 3 ) {
+				break;
+			}
+		}
+	}
+	update_post_meta( $post_id, '_jluxe_key_feature_attributes', $selected_attributes );
+	update_post_meta( $post_id, '_jluxe_delivery_time_enabled', isset( $_POST['_jluxe_delivery_time_enabled'] ) ? 'yes' : 'no' );
+	update_post_meta( $post_id, '_jluxe_product_notice_enabled', isset( $_POST['_jluxe_product_notice_enabled'] ) ? 'yes' : 'no' );
+
+	$notice_text = isset( $_POST['_jluxe_product_notice_text'] ) && is_scalar( $_POST['_jluxe_product_notice_text'] )
+		? sanitize_textarea_field( wp_unslash( (string) $_POST['_jluxe_product_notice_text'] ) )
+		: '';
+	$notice_type = isset( $_POST['_jluxe_product_notice_type'] ) && is_scalar( $_POST['_jluxe_product_notice_type'] )
+		? sanitize_key( wp_unslash( (string) $_POST['_jluxe_product_notice_type'] ) )
+		: 'warning';
+	if ( ! in_array( $notice_type, array( 'warning', 'info' ), true ) ) {
+		$notice_type = 'warning';
+	}
+	update_post_meta( $post_id, '_jluxe_product_notice_text', $notice_text );
+	update_post_meta( $post_id, '_jluxe_product_notice_type', $notice_type );
 	jluxe_purge_product_related_caches( $post_id );
 }
-add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields' );
+add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_badge_fields', 20 );
 
 /**
  * چک‌باکسِ روشن/خاموش‌کردنِ دستیِ پاپ‌آپِ «محصولات پیشنهادی» برایِ هر
@@ -3747,6 +3939,58 @@ function jluxe_get_product_delivery_time( $product = null ): string {
 
 	$legacy_value = get_post_meta( $product_id, '_jluxe_delivery_time', true );
 	return is_scalar( $legacy_value ) ? trim( sanitize_text_field( (string) $legacy_value ) ) : '';
+}
+
+/** Existing products keep their shipping row visible unless it is explicitly disabled. */
+function jluxe_is_product_delivery_time_enabled( $product = null ): bool {
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
+	if ( ! $product_id ) {
+		return false;
+	}
+	$meta_exists = function_exists( 'metadata_exists' )
+		? metadata_exists( 'post', $product_id, '_jluxe_delivery_time_enabled' )
+		: '' !== (string) get_post_meta( $product_id, '_jluxe_delivery_time_enabled', true );
+
+	return ! $meta_exists || 'yes' === get_post_meta( $product_id, '_jluxe_delivery_time_enabled', true );
+}
+
+/** Read the optional, product-specific warning or information notice. */
+function jluxe_get_product_notice( $product = null ): array {
+	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
+	if ( ! $product_id ) {
+		return array( 'enabled' => false, 'type' => 'warning', 'text' => '' );
+	}
+
+	$type = sanitize_key( (string) get_post_meta( $product_id, '_jluxe_product_notice_type', true ) );
+	if ( ! in_array( $type, array( 'warning', 'info' ), true ) ) {
+		$type = 'warning';
+	}
+	$text = get_post_meta( $product_id, '_jluxe_product_notice_text', true );
+
+	return array(
+		'enabled' => 'yes' === get_post_meta( $product_id, '_jluxe_product_notice_enabled', true ),
+		'type'    => $type,
+		'text'    => is_scalar( $text ) ? sanitize_textarea_field( (string) $text ) : '',
+	);
+}
+
+/** Render a text-only product notice so stored markup can never become executable HTML. */
+function jluxe_render_product_notice( $product ): void {
+	$notice = jluxe_get_product_notice( $product );
+	if ( empty( $notice['enabled'] ) || '' === trim( (string) $notice['text'] ) ) {
+		return;
+	}
+
+	$is_warning = 'warning' === $notice['type'];
+	$title      = $is_warning ? 'توجه' : 'اطلاعیه';
+	echo '<aside class="jluxe-product-notice jluxe-product-notice--' . esc_attr( $notice['type'] ) . '" data-jluxe-product-notice role="note" aria-label="' . esc_attr( $title ) . '">';
+	echo '<span class="jluxe-product-notice__icon" aria-hidden="true">';
+	if ( $is_warning ) {
+		echo '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3 2.8 19a1.5 1.5 0 0 0 1.3 2.2h15.8a1.5 1.5 0 0 0 1.3-2.2L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 9v4.5m0 3h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+	} else {
+		echo '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5m0-8h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+	}
+	echo '</span><div class="jluxe-product-notice__content"><strong class="jluxe-product-notice__title">' . esc_html( $title ) . '</strong><div class="jluxe-product-notice__text">' . nl2br( esc_html( $notice['text'] ) ) . '</div></div></aside>';
 }
 
 /** Read the optional English product name without inventing a fallback label. */

@@ -6183,8 +6183,27 @@ html {
 .jluxe-key-features-link:hover { color: hsl(var(--primary-hover)); }
 .jluxe-key-features-link:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; border-radius: 4px; }
 @media (max-width: 767.98px) {
-  .jluxe-key-feature { flex: 1 1 calc(50% - 0.5rem); max-width: none; }
+  .jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem); max-width: none; }
 }
+.jluxe-product-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  line-height: 1.75;
+}
+.jluxe-product-notice--warning { border-color: #f4d58a; background: #fffbeb; color: #854d0e; }
+.jluxe-product-notice--info { border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
+.jluxe-product-notice__icon { display: inline-flex; flex: 0 0 1.125rem; width: 1.125rem; height: 1.125rem; margin-top: 0.125rem; }
+.jluxe-product-notice__icon svg { display: block; width: 100%; height: 100%; }
+.jluxe-product-notice__content { min-width: 0; }
+.jluxe-product-notice__title { display: block; margin-bottom: 0.125rem; font-weight: 800; }
+.jluxe-product-notice__text { overflow-wrap: anywhere; }
 
 /* =======================================================================
    نوار چسبانِ افزودن به سبد — فقط موبایل و فقط صفحهٔ محصول؛ وقتی
