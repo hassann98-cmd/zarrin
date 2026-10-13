@@ -3651,20 +3651,21 @@ function jluxeEnhanceShopSort(root) {
 			if (!row) return;
 			var invalidCity = findInvalidCheckoutCityField();
 			var requiredWarning = row.querySelector("[data-jluxe-required-field-error]");
-			var clearedRequiredWarning = false;
-			if (requiredWarning && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
-				requiredWarning.remove();
+			var hasRequiredInvalidState = row.classList.contains("woocommerce-invalid-required-field") || citySelect.getAttribute("aria-invalid") === "true";
+			var clearedRequiredState = false;
+			if ((requiredWarning || hasRequiredInvalidState) && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
+				if (requiredWarning) requiredWarning.remove();
 				row.classList.remove("woocommerce-invalid-required-field");
 				citySelect.removeAttribute("aria-invalid");
-				clearedRequiredWarning = true;
+				clearedRequiredState = true;
 			}
 			if (invalidCity) {
 				if (row.querySelector("[data-jluxe-city-province-error]")) showCheckoutCityProvinceError(invalidCity);
-				else if (clearedRequiredWarning) showCheckoutCityProvinceError(invalidCity);
+				else if (clearedRequiredState) showCheckoutCityProvinceError(invalidCity);
 				return;
 			}
 			clearCheckoutCityProvinceError();
-			if (clearedRequiredWarning) row.classList.remove("woocommerce-invalid");
+			if (clearedRequiredState) row.classList.remove("woocommerce-invalid");
 		});
 	}
 
@@ -4214,6 +4215,9 @@ function jluxeEnhanceShopSort(root) {
 		}
 		if (field.matches("[data-jluxe-city-select]") && target.text.indexOf("همخوانیندارد") !== -1) {
 			showCheckoutCityProvinceError(row);
+		} else if (field.matches("[data-jluxe-city-select]") && row.classList.contains("validate-required")) {
+			// WooCommerce already displays an explicit required-city notice; do not duplicate it inline.
+			focusCheckoutControl(field);
 		} else if (row.classList.contains("validate-required")) {
 			showInvalidRequiredField(row);
 		} else {

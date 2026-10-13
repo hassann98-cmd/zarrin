@@ -520,13 +520,16 @@ test("WooCommerce billing-city checkout errors reopen the hidden shipping step, 
   assert.equal(document.getElementById("customer_details").style.display, "");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.ok(form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error"), "the original WooCommerce notice remains visible");
-  assert.ok(document.getElementById("billing_city_field").classList.contains("woocommerce-invalid-required-field"));
-  assert.ok(document.getElementById("billing_city_field").querySelector("[data-jluxe-required-field-error]"));
+  const cityRow = document.getElementById("billing_city_field");
+  assert.ok(cityRow.classList.contains("woocommerce-invalid-required-field"));
+  assert.equal(cityRow.querySelector("[data-jluxe-required-field-error]"), null, "the theme does not duplicate WooCommerce's explicit required-city notice inline");
   assert.equal(document.activeElement.id, "billing_city");
 
   city.value = "کرمانشاه";
   dispatchChange(window, city);
-  assert.equal(document.getElementById("billing_city_field").querySelector("[data-jluxe-required-field-error]"), null, "choosing the required city immediately clears the local field warning");
+  assert.equal(cityRow.querySelector("[data-jluxe-required-field-error]"), null, "the server error recovery does not create a second inline required warning");
+  assert.equal(cityRow.classList.contains("woocommerce-invalid-required-field"), false, "a valid city selection clears WooCommerce's recovered required state");
+  assert.equal(cityRow.classList.contains("woocommerce-invalid"), false);
   assert.equal(city.hasAttribute("aria-invalid"), false);
 });
 
