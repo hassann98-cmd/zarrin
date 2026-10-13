@@ -6105,462 +6105,147 @@ if ( null === $r183_previous_query_vars ) {
 	$GLOBALS['query_vars'] = $r183_previous_query_vars;
 }
 
-// R247 — checkout provinces and cities are connected to the real WooCommerce address fields.
-$r247_previous_wc = $GLOBALS['wc'] ?? null;
-$GLOBALS['wc'] = null;
-$r247_previous_post = $_POST;
-$_POST = array( 'billing_state' => 'TE' );
-$r247_checkout_fields = jluxe_billing_fields( array( 'billing' => array(
-	'billing_state' => array( 'type' => 'select', 'options' => array( 'CA' => 'California' ) ),
-	'billing_city' => array( 'type' => 'select', 'options' => array( 'known-city' => 'Known city' ) ),
-	'billing_postcode' => array(),
-) ) );
-$_POST = $r247_previous_post;
-if ( null === $r247_previous_wc ) {
+// R267 — checkout, payment and province/city selection return to the v1.7.58 contract.
+$r267_previous_wc = $GLOBALS['wc'] ?? null;
+$GLOBALS['wc'] = new class() {
+	public $city = '';
+	public function checkout() {
+		$city = $this->city;
+		return new class( $city ) {
+			private $city;
+			public function __construct( $city ) { $this->city = $city; }
+			public function get_value( $key ) { return 'billing_city' === $key ? $this->city : ''; }
+		};
+	}
+};
+$r267_base_fields = array(
+	'billing' => array(
+		'billing_state'    => array( 'type' => 'select', 'options' => array( 'KRH' => 'کرمانشاه' ) ),
+		'billing_city'     => array( 'type' => 'text', 'required' => true, 'options' => array( 'old' => 'Old option' ) ),
+		'billing_postcode' => array(),
+	),
+);
+$r267_empty_fields = jluxe_billing_fields( $r267_base_fields );
+$GLOBALS['wc']->city = 'بیستون';
+$r267_saved_fields = jluxe_billing_fields( $r267_base_fields );
+if ( null === $r267_previous_wc ) {
 	unset( $GLOBALS['wc'] );
 } else {
-	$GLOBALS['wc'] = $r247_previous_wc;
+	$GLOBALS['wc'] = $r267_previous_wc;
 }
-$r247_state_field = $r247_checkout_fields['billing']['billing_state'];
-$r247_city_field  = $r247_checkout_fields['billing']['billing_city'];
-$r247_city_data   = jluxe_ir_checkout_city_data();
-$r265_v1758_cities = jluxe_iran_cities();
+$r267_empty_city  = $r267_empty_fields['billing']['billing_city'];
+$r267_saved_city  = $r267_saved_fields['billing']['billing_city'];
+$r267_city_map    = jluxe_iran_cities();
+$r267_php_source  = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_js_source   = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
+$r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
-	isset( $r265_v1758_cities['KRH'], $r265_v1758_cities['THR'] ) &&
-	in_array( 'جوانرود', $r265_v1758_cities['KRH'], true ) &&
-	in_array( 'تهران', $r265_v1758_cities['THR'], true ),
-	'R265 restores the v1.7.58 province-keyed city options'
+	'select' === $r267_empty_city['type'] && true === $r267_empty_city['required'] &&
+	array( '' => 'ابتدا استان را انتخاب کنید' ) === $r267_empty_city['options'] &&
+	'select' === $r267_saved_city['type'] && true === $r267_saved_city['required'] &&
+	array( '' => 'انتخاب شهرستان', 'بیستون' => 'بیستون' ) === $r267_saved_city['options'] &&
+	array( 'KRH' => 'کرمانشاه' ) === $r267_empty_fields['billing']['billing_state']['options'] &&
+	! isset( $r267_empty_city['custom_attributes']['data-jluxe-city-select'] ),
+	'R267 billing_city is the required WooCommerce select from v1.7.58; only a real saved value is rendered server-side'
 );
-$r265_legacy_kermanshah_options = jluxe_ir_city_field_options( 'KRH', array( 'KRH' => 'کرمانشاه' ) );
 check(
-	isset( $r265_legacy_kermanshah_options['جوانرود'], $r265_legacy_kermanshah_options['پاوه'] ),
-	'R265 the restored v1.7.58 city list is accepted by server-side province validation'
+	isset( $r267_city_map['THR'], $r267_city_map['KRH'] ) &&
+	in_array( 'تهران', $r267_city_map['THR'], true ) &&
+	in_array( 'جوانرود', $r267_city_map['KRH'], true ) &&
+	false !== strpos( $r267_js_source, 'window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities' ) &&
+	false !== strpos( $r267_js_source, 'window.jQuery(stateSelect).on("change"' ),
+	'R267 the restored city selector uses the v1.7.58 province-keyed map and listens to WooCommerce/Select2 province changes'
 );
-$r265_previous_localized = $GLOBALS['localized']['JLuxeThemeSettings'] ?? null;
+$r267_previous_localized = $GLOBALS['localized']['JLuxeThemeSettings'] ?? null;
 jluxe_localize_public_settings();
-$r265_localized_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
+$r267_localized_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
 check(
-	$r265_localized_cities === $r265_v1758_cities,
-	'R265 JLuxeThemeSettings localization exposes the v1.7.58 city map to storefront JavaScript'
+	$r267_localized_cities === $r267_city_map,
+	'R267 public settings localize the same historical province-keyed city map consumed by checkout JavaScript'
 );
-if ( null === $r265_previous_localized ) {
+if ( null === $r267_previous_localized ) {
 	unset( $GLOBALS['localized']['JLuxeThemeSettings'] );
 } else {
-	$GLOBALS['localized']['JLuxeThemeSettings'] = $r265_previous_localized;
-}
-$r247_city_count  = 0;
-foreach ( $r247_city_data['provinces'] as $r247_province ) {
-	$r247_city_count += count( $r247_province['cities'] ?? array() );
+	$GLOBALS['localized']['JLuxeThemeSettings'] = $r267_previous_localized;
 }
 check(
-	31 === count( $r247_city_data['provinces'] ) && 1454 === $r247_city_count && 'select' === $r247_state_field['type'] && 32 === count( $r247_state_field['options'] ) && true === $r247_state_field['required'],
-	'R247 checkout exposes all 31 Iranian provinces and 1,454 county/populated-place options through WooCommerce select fields'
-);
-check(
-	'select' === $r247_city_field['type'] && true === $r247_city_field['required'] && isset( $r247_city_field['options']['تهران'], $r247_city_field['options']['پرند'] ) && ! isset( $r247_city_field['options']['اهواز'] ) && '1' === $r247_city_field['custom_attributes']['data-jluxe-city-select'] && ! isset( $r247_city_field['custom_attributes']['disabled'] ),
-	'R247 the city dropdown includes Tehran counties and populated places, but not cities from another province'
-);
-$r253_previous_post = $_POST;
-$_POST['billing_state'] = '2274';
-$r253_numeric_id_fields = jluxe_billing_fields( array( 'billing' => array(
-	'billing_state' => array( 'type' => 'select', 'options' => array( '2241' => 'کردستان', '2274' => 'کرمان' ) ),
-	'billing_city'  => array( 'type' => 'select', 'options' => array( '2275' => 'اختیارآباد', '9922' => 'اهواز' ) ),
-) ) );
-$_POST = $r253_previous_post;
-$r253_numeric_city_options = $r253_numeric_id_fields['billing']['billing_city']['options'];
-check(
-	isset( $r253_numeric_city_options['2275'] ) && 'اختیارآباد' === $r253_numeric_city_options['2275'] && ! isset( $r253_numeric_city_options['9922'] ) &&
-	jluxe_ir_checkout_city_is_valid( '2274', '2275', $r253_numeric_id_fields['billing']['billing_state']['options'], $r253_numeric_city_options ),
-	'R253 keeps a numeric city option through WooCommerce field construction only when its label belongs to the selected province'
-);
-check(
-	'کرمانشاه' === jluxe_ir_province_for_state( 'KRH', array( 'KRH' => 'Kermanshah (کرمانشاه)' ) ) &&
-	'کرمان' === jluxe_ir_province_for_state( 'KRN', array( 'KRN' => 'Kerman (کرمان)' ) ),
-	'R253 exact state aliases prevent the Kermanshah label from being mistaken for Kerman'
-);
-$r254_kermanshah_cities = jluxe_ir_city_field_options( '2352', array( '2352' => 'کرمانشاه' ) );
-check(
-	'کرمانشاه' === jluxe_ir_province_for_state( '2352', array( '2352' => 'کرمانشاه' ) ) &&
-	isset( $r254_kermanshah_cities['جوانرود'], $r254_kermanshah_cities['کرمانشاه'] ) && ! isset( $r254_kermanshah_cities['اختیارآباد'] ),
-	'R254 a numeric 2352 province option resolves to Kermanshah and never receives Kerman cities'
-);
-check(
-	'تهران' === jluxe_ir_province_for_state( 'TE', array( 'TE' => 'تهران' ) ) &&
-	jluxe_ir_checkout_city_is_valid( 'TE', 'تهران', array( 'TE' => 'تهران' ) ) &&
-	jluxe_ir_checkout_city_is_valid( 'TE', 'پرند', array( 'TE' => 'تهران' ) ) &&
-	jluxe_ir_checkout_city_is_valid( 'IR-THR', 'تهران' ) &&
-	! jluxe_ir_checkout_city_is_valid( 'TE', 'اهواز', array( 'TE' => 'تهران' ) ),
-	'R247 server validation accepts normalized city/province matches and rejects a city from another province'
-);
-$r247_validation_previous_wc = $GLOBALS['wc'] ?? null;
-$GLOBALS['wc'] = new class() {
-	public $countries;
-	public function __construct() {
-		$this->countries = new class() {
-			public function get_states( $country ) {
-				return array( 'KRD' => 'کردستان', 'KRH' => 'Kermanshah (کرمانشاه)', 'KRN' => 'Kerman (کرمان)' );
-			}
-		};
-	}
-	public function checkout() {
-		return new class() {
-			public function get_checkout_fields() {
-				return array(
-					'billing' => array(
-						'billing_state' => array( 'options' => array( '' => 'استان را انتخاب کنید', '23' => 'تهران', '2241' => 'کردستان', '2274' => 'کرمان', '2352' => 'کرمانشاه' ) ),
-						'billing_city'  => array( 'options' => array( '0' => 'لطفا شهر خود را انتخاب نمایید', '2275' => 'اختیارآباد', '2356' => 'بیستون' ) ),
-					),
-				);
-			}
-		};
-	}
-};
-$r253_numeric_kerman_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2274', 'billing_city' => '2275' ) );
-$r253_cross_province_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => '2275' ) );
-$r255_kermanshah_post = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ) );
-check(
-	'KRH' === ( $r255_kermanshah_post['billing_state'] ?? '' ) &&
-	'بیستون' === ( $r255_kermanshah_post['billing_city'] ?? '' ) &&
-	jluxe_ir_checkout_city_is_valid( 'KRH', $r255_kermanshah_post['billing_city'], jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ),
-	'R255 the exact numeric state/city pair 2352/2356 is resolved to Kermanshah/بیستون and remains valid'
+	false === strpos( $r267_php_source, 'jluxe_ir_checkout_city_data' ) &&
+	false === strpos( $r267_php_source, 'jluxe_billing_city_label' ) &&
+	false === strpos( $r267_php_source, 'jluxe_validate_checkout_requirements' ) &&
+	false === strpos( $r267_php_source, 'checkoutAddressData' ) &&
+	! function_exists( 'jluxe_ir_checkout_city_is_valid' ) &&
+	! function_exists( 'jluxe_validate_checkout_requirements' ) &&
+	false === strpos( $r267_js_source, 'jluxe_billing_city_label' ) &&
+	false === strpos( $r267_js_source, 'checkoutAddressData' ) &&
+	false === strpos( $r267_js_source, 'data-jluxe-city-select' ),
+	'R267 removes only the post-1.7.58 JSON/alias/hidden-label city layer; missing city values are never fabricated'
 );
 
-// R261 — post the selected city label with the real checkout form, but only use it after server validation.
-$r261_previous_query_kind = $GLOBALS['query_kind'] ?? null;
-$r261_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
-$r261_previous_user       = $GLOBALS['authenticated_user'] ?? 0;
-$GLOBALS['query_kind']    = 'checkout';
-$GLOBALS['endpoint']      = '';
-$r261_checkout_label_hook = false;
-foreach ( $GLOBALS['actions'] as $r261_registered_action ) {
-	if ( 'woocommerce_after_checkout_billing_form' === ( $r261_registered_action[0] ?? '' ) &&
-		'jluxe_render_checkout_city_label_payload' === ( $r261_registered_action[1] ?? '' ) &&
-		10 === ( $r261_registered_action[2] ?? null ) ) {
-		$r261_checkout_label_hook = true;
-		break;
-	}
-}
-$r261_payload_renders_for_both_users = true;
-foreach ( array( 0, 42 ) as $r261_user_id ) {
-	$GLOBALS['authenticated_user'] = $r261_user_id;
-	ob_start();
-	jluxe_render_checkout_city_label_payload();
-	$r261_payload_html = (string) ob_get_clean();
-	$r261_payload_renders_for_both_users = $r261_payload_renders_for_both_users &&
-		false !== strpos( $r261_payload_html, 'name="jluxe_billing_city_label"' ) &&
-		false !== strpos( $r261_payload_html, 'data-jluxe-city-label-payload' );
-}
-$GLOBALS['query_kind'] = 'account';
-ob_start();
-jluxe_render_checkout_city_label_payload();
-$r261_non_checkout_payload = (string) ob_get_clean();
+$r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
+$r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
+$r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+$r267_payment_source   = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 check(
-	$r261_checkout_label_hook && $r261_payload_renders_for_both_users && '' === $r261_non_checkout_payload,
-	'R261 the checkout-only city label helper renders for guest and logged-in checkout without adding a field to account pages'
-);
-if ( null === $r261_previous_query_kind ) {
-	unset( $GLOBALS['query_kind'] );
-} else {
-	$GLOBALS['query_kind'] = $r261_previous_query_kind;
-}
-if ( null === $r261_previous_endpoint ) {
-	unset( $GLOBALS['endpoint'] );
-} else {
-	$GLOBALS['endpoint'] = $r261_previous_endpoint;
-}
-$GLOBALS['authenticated_user'] = $r261_previous_user;
-
-$r261_previous_wc   = $GLOBALS['wc'] ?? null;
-$r261_previous_post = $_POST;
-$GLOBALS['wc'] = new class() {
-	public $countries;
-	public function __construct() {
-		$this->countries = new class() {
-			public function get_states( $country ) {
-				return array( 'KRH' => 'Kermanshah (کرمانشاه)', 'KRN' => 'Kerman (کرمان)' );
-			}
-		};
-	}
-	public function checkout() {
-		return new class() {
-			public function get_checkout_fields() {
-				return array(
-					'billing' => array(
-						'billing_state' => array( 'options' => array( '2352' => 'کرمانشاه' ) ),
-						// The rendered field has the canonical label but deliberately no ID => label map for 2356.
-						'billing_city'  => array( 'options' => array( '' => 'شهر را انتخاب کنید', 'بیستون' => 'بیستون' ) ),
-					),
-				);
-			}
-		};
-	}
-};
-$_POST = array( 'jluxe_billing_city_label' => 'بیستون' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-$r261_state_options = jluxe_ir_current_checkout_state_options();
-$r261_city_options  = jluxe_ir_current_checkout_city_options();
-$r261_fallback_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ) );
-$r263_missing_city_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '' ) );
-$r261_fallback_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ), $r261_fallback_errors );
-$_POST['jluxe_billing_city_label'] = 'اهواز'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-$r261_foreign_label_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ), $r261_foreign_label_errors );
-$r263_foreign_missing_city_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '' ) );
-check(
-	! array_key_exists( '2356', $r261_city_options ) &&
-	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options ) &&
-	jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options, 'بیستون' ) &&
-	'KRH' === ( $r261_fallback_data['billing_state'] ?? '' ) && 'بیستون' === ( $r261_fallback_data['billing_city'] ?? '' ) &&
-	empty( $r261_fallback_errors->items ) &&
-	isset( $r261_foreign_label_errors->items['jluxe_billing_city_province_mismatch'] ) &&
-	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options, 'اهواز' ),
-	'R261 an unmapped numeric city ID is normalized from its submitted option label only after same-province validation; foreign labels still fail'
+	false === strpos( $r267_payment_template, 'data-jluxe-payment-required=' ) &&
+	false === strpos( $r267_payment_template, 'jluxe-payment-heading' ) &&
+	false !== strpos( $r267_payment_template, 'methods flex flex-wrap gap-3' ) &&
+	false !== strpos( $r267_payment_template, 'foreach ( $available_gateways as $gateway )' ) &&
+	false !== strpos( $r267_payment_template, "wc_get_template( 'checkout/payment-method.php'" ) &&
+	false === strpos( $r267_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
+	'R267 payment.php uses the v1.7.58 needs_payment/gateway loop without a synthetic payment-state marker'
 );
 check(
-	'' === ( $r263_missing_city_data['billing_city'] ?? '' ) &&
-	'' === ( $r263_foreign_missing_city_data['billing_city'] ?? '' ),
-	'v1.7.58 submit semantics keep an omitted required city empty even when a label helper is present'
-);
-$_POST = $r261_previous_post;
-if ( null === $r261_previous_wc ) {
-	unset( $GLOBALS['wc'] );
-} else {
-	$GLOBALS['wc'] = $r261_previous_wc;
-}
-
-// R257 — keep the Persian WooCommerce city JavaScript from overwriting the theme-owned checkout select.
-$r257_previous_query_kind = $GLOBALS['query_kind'] ?? null;
-$r257_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
-$r257_previous_pw         = $GLOBALS['test_pw_instance'] ?? null;
-$r257_address = new class() {
-	public function external_js() {}
-	public function inline_js() {}
-	public function force_inline_js() {}
-};
-$GLOBALS['test_pw_instance'] = (object) array( 'address' => $r257_address );
-$GLOBALS['query_kind']       = 'checkout';
-$GLOBALS['endpoint']         = '';
-$GLOBALS['dequeued_scripts'] = array();
-$GLOBALS['removed_actions']  = array();
-jluxe_suppress_persian_woocommerce_city_script_on_checkout();
-$r257_hook_registered = false;
-foreach ( $GLOBALS['actions'] as $r257_registered_action ) {
-	if ( 'wp_enqueue_scripts' === ( $r257_registered_action[0] ?? '' ) &&
-		'jluxe_suppress_persian_woocommerce_city_script_on_checkout' === ( $r257_registered_action[1] ?? '' ) &&
-		100 === ( $r257_registered_action[2] ?? null ) ) {
-		$r257_hook_registered = true;
-		break;
-	}
-}
-$r257_removed_enqueue = false;
-$r257_removed_inline_priorities = array();
-$r257_removed_force_inline = false;
-foreach ( $GLOBALS['removed_actions'] as $r257_removed_action ) {
-	$r257_callback = $r257_removed_action[1] ?? null;
-	if ( ! is_array( $r257_callback ) || ( $r257_callback[0] ?? null ) !== $r257_address ) {
-		continue;
-	}
-	if ( 'wp_enqueue_scripts' === ( $r257_removed_action[0] ?? '' ) && 'external_js' === ( $r257_callback[1] ?? '' ) && 10 === ( $r257_removed_action[2] ?? null ) ) {
-		$r257_removed_enqueue = true;
-	}
-	if ( 'wp_footer' === ( $r257_removed_action[0] ?? '' ) && 'inline_js' === ( $r257_callback[1] ?? '' ) ) {
-		$r257_removed_inline_priorities[] = (int) ( $r257_removed_action[2] ?? -1 );
-	}
-	if ( 'wp_footer' === ( $r257_removed_action[0] ?? '' ) && 'force_inline_js' === ( $r257_callback[1] ?? '' ) && 999999 === ( $r257_removed_action[2] ?? null ) ) {
-		$r257_removed_force_inline = true;
-	}
-}
-sort( $r257_removed_inline_priorities );
-check(
-	$r257_hook_registered && in_array( 'pw-iran-cities', $GLOBALS['dequeued_scripts'], true ) &&
-	$r257_removed_enqueue && range( 0, 100, 5 ) === $r257_removed_inline_priorities && $r257_removed_force_inline,
-	'R257 the checkout hook dequeues Persian city JS and removes all of its inline/footer repopulation callbacks'
-);
-foreach ( array( 'order-pay', 'order-received' ) as $r257_excluded_endpoint ) {
-	$GLOBALS['endpoint']         = $r257_excluded_endpoint;
-	$GLOBALS['dequeued_scripts'] = array();
-	$GLOBALS['removed_actions']  = array();
-	jluxe_suppress_persian_woocommerce_city_script_on_checkout();
-	check(
-		empty( $GLOBALS['dequeued_scripts'] ) && empty( $GLOBALS['removed_actions'] ),
-		'R257 leaves the existing-order endpoint untouched: ' . $r257_excluded_endpoint
-	);
-}
-$GLOBALS['query_kind']         = 'account';
-$GLOBALS['endpoint']           = 'edit-address';
-$GLOBALS['dequeued_scripts']   = array();
-$GLOBALS['removed_actions']    = array();
-jluxe_suppress_persian_woocommerce_city_script_on_checkout();
-check(
-	empty( $GLOBALS['dequeued_scripts'] ) && empty( $GLOBALS['removed_actions'] ),
-	'R257 keeps the Persian WooCommerce city selector active on account address-edit pages'
-);
-if ( null === $r257_previous_query_kind ) {
-	unset( $GLOBALS['query_kind'] );
-} else {
-	$GLOBALS['query_kind'] = $r257_previous_query_kind;
-}
-if ( null === $r257_previous_endpoint ) {
-	unset( $GLOBALS['endpoint'] );
-} else {
-	$GLOBALS['endpoint'] = $r257_previous_endpoint;
-}
-$GLOBALS['test_pw_instance'] = $r257_previous_pw;
-
-// R266 — restore the v1.7.58 payment-template contract; WooCommerce owns no-gateway/zero-payment validation.
-$r258_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
-$r258_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
-$r258_checkout_css     = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-check(
-	false === strpos( $r258_payment_template, 'data-jluxe-payment-required=' ) &&
-	false === strpos( $r258_payment_template, 'jluxe-payment-heading' ) &&
-	false !== strpos( $r258_payment_template, 'flex flex-wrap gap-3' ) &&
-	false !== strpos( $r258_payment_template, 'foreach ( $available_gateways as $gateway )' ) &&
-	false !== strpos( $r258_payment_template, 'wc_get_template( \'checkout/payment-method.php\'' ) &&
-	false === strpos( $r258_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
-	'R266 payment template uses the v1.7.58 WooCommerce needs_payment/gateway loop without a synthetic state marker'
-);
-check(
-	false !== strpos( $r258_method_template, 'name="payment_method"' ) &&
-	false !== strpos( $r258_method_template, 'value="<?php echo esc_attr( $gateway->id ); ?>"' ) &&
-	false !== strpos( $r258_method_template, 'data-order_button_text=' ) &&
-	false !== strpos( $r258_method_template, '$gateway->get_icon()' ) &&
-	false !== strpos( $r258_method_template, '$gateway->get_title()' ) &&
-	false !== strpos( $r258_method_template, '$gateway->payment_fields();' ),
-	'R258 every payment method remains the actual WooCommerce gateway radio with its configured ID, button text, icon, title, and gateway fields'
-);
-check(
-	false !== strpos( $r258_checkout_css, 'flex-direction: column !important;' ) &&
-	false !== strpos( $r258_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
-	false !== strpos( $r258_checkout_css, 'width: 152px !important;' ),
-	'R258 restores the v1.7.29 vertical, wrapped gateway-card dimensions without replacing the checkout styles wholesale'
-);
-
-$r247_valid_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '23', 'billing_city' => 'تهران' ), $r247_valid_errors );
-$r247_invalid_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '23', 'billing_city' => 'اهواز' ), $r247_invalid_errors );
-$r247_kurdistan_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => 'آرمرده' ), $r247_kurdistan_errors );
-$r247_numeric_city_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2274', 'billing_city' => '2275' ), $r247_numeric_city_errors );
-$r247_cross_province_id_errors = new class() {
-	public $items = array();
-	public function add( $code, $message, $data = array() ) {
-		$this->items[ $code ] = array( 'message' => $message, 'data' => $data );
-	}
-};
-jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2241', 'billing_city' => '2275' ), $r247_cross_province_id_errors );
-check(
-	! jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_state_options() ) &&
-	jluxe_ir_checkout_city_is_valid( '23', 'تهران', jluxe_ir_current_checkout_state_options() ) &&
-	jluxe_ir_checkout_city_is_valid( '2241', 'آرمرده', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
-	jluxe_ir_checkout_city_is_valid( '2274', '2275', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
-	! jluxe_ir_checkout_city_is_valid( '2241', '2275', jluxe_ir_current_checkout_state_options(), jluxe_ir_current_checkout_city_options() ) &&
-	empty( $r247_valid_errors->items ) &&
-	isset( $r247_invalid_errors->items['jluxe_billing_city_province_mismatch'] ) &&
-	empty( $r247_kurdistan_errors->items ) &&
-	empty( $r247_numeric_city_errors->items ) &&
-	isset( $r247_cross_province_id_errors->items['jluxe_billing_city_province_mismatch'] ) &&
-	'KRN' === $r253_numeric_kerman_post['billing_state'] && 'اختیارآباد' === $r253_numeric_kerman_post['billing_city'] &&
-	'KRD' === $r253_cross_province_post['billing_state'] && '2275' === $r253_cross_province_post['billing_city'] &&
-	'تهران' === jluxe_ir_province_for_state( '23', array( '23' => 'تهران' ) ),
-	'R253 maps valid numeric province/city values to WooCommerce canonical values but keeps cross-province IDs invalid'
-);
-if ( null === $r247_validation_previous_wc ) {
-	unset( $GLOBALS['wc'] );
-} else {
-	$GLOBALS['wc'] = $r247_validation_previous_wc;
-}
-check(
-	! jluxe_checkout_has_valid_shipping_selection( array(), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ) &&
-	jluxe_checkout_has_valid_shipping_selection( array( 'shipping_method' => array( 0 => 'flat_rate:1' ) ), array( array( 'rates' => array( 'flat_rate:1' => new stdClass() ) ) ) ),
-	'R247 checkout requires a shipping rate explicitly posted by the customer, not only a WooCommerce session default'
-);
-check(
-	'کد پستی' === $r247_checkout_fields['billing']['billing_postcode']['placeholder'],
-	'R247 checkout postcode guidance remains neutral and makes no unsupported carrier requirement claim'
+	false !== strpos( $r267_method_template, 'name="payment_method"' ) &&
+	false !== strpos( $r267_method_template, 'value="<?php echo esc_attr( $gateway->id ); ?>"' ) &&
+	false !== strpos( $r267_method_template, '$gateway->get_icon()' ) &&
+	false !== strpos( $r267_method_template, '$gateway->get_title()' ) &&
+	false !== strpos( $r267_method_template, '$gateway->payment_fields();' ) &&
+	false !== strpos( $r267_form_checkout, 'id="customer_details"' ) &&
+	false !== strpos( $r267_form_checkout, 'woocommerce_checkout_payment' ) &&
+	false !== strpos( $r267_form_checkout, 'jluxe_render_payment_submit()' ) &&
+	false !== strpos( $r267_payment_source, "wc_get_template( 'checkout/terms.php' )" ) &&
+	false !== strpos( $r267_payment_source, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
+	false !== strpos( $r267_payment_source, "wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' )" ),
+	'R267 real WooCommerce gateway radios, payment fields, terms, place-order control and checkout nonce remain connected'
 );
 ob_start();
 jluxe_render_checkout_stepper( 'shipping' );
-$r210_stepper_html = (string) ob_get_clean();
+$r267_stepper_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r210_stepper_html, 'class="jluxe-checkout-stepper' ) &&
-	false === strpos( $r210_stepper_html, '<ol ' ) &&
-	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) &&
-	false !== strpos( $r210_stepper_html, 'data-jluxe-step-circle' ),
-	'R266 checkout progress matches the four-step v1.7.58 markup and is enhanced by the checkout state machine'
-);
-$r247_checkout_css       = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-$r247_cart_source        = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart.php' );
-$r247_shipping_source    = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
-$r247_payment_source     = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
-check(
-	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) &&
-	false !== strpos( $r210_stepper_html, 'jluxe-checkout-stepper mx-auto flex' ) &&
-	false !== strpos( $r210_stepper_html, 'data-jluxe-step="shipping"' ),
-	'R266 the historical checkout stepper keeps its four centered flex steps'
+	4 === substr_count( $r267_stepper_html, 'data-jluxe-step="' ) &&
+	false !== strpos( $r267_stepper_html, 'jluxe-checkout-stepper mx-auto flex' ) &&
+	false === strpos( $r267_stepper_html, '<ol ' ) &&
+	false !== strpos( $r267_stepper_html, 'data-jluxe-step="shipping"' ),
+	'R267 the rendered checkout stepper matches the four direct flex steps in v1.7.58'
 );
 check(
-	false !== strpos( $r247_cart_source, 'justify-end sm:justify-self-end' ) &&
-	false !== strpos( $r247_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) && false !== strpos( $r247_checkout_css, 'position: fixed;' ) &&
-	false !== strpos( $r247_shipping_source, 'jluxe-check-off' ) &&
-	false !== strpos( $r247_shipping_source, 'jluxe-check-on' ),
-	'R266 shipping choices and cart flow restore the v1.7.58 shipping-card markup'
+	false !== strpos( $r267_js_source, 'function hasShippingMethodSelected()' ) &&
+	false !== strpos( $r267_js_source, 'if (!radios.length) {' ) &&
+	false !== strpos( $r267_js_source, 'return true;' ) &&
+	false !== strpos( $r267_js_source, 'input.payment_method:checked' ) &&
+	false === strpos( $r267_js_source, 'restoreExplicitShippingMethods' ) &&
+	false === strpos( $r267_php_source, 'jluxe_shipping_method_required' ),
+	'R267 checkout restores the historical client-side step gates and leaves final checkout validation to WooCommerce'
 );
 check(
-	false !== strpos( $r247_payment_source, 'methods flex flex-wrap gap-3' ) &&
-	false !== strpos( $r247_checkout_css, '#payment ul.payment_methods li.jluxe-payment-method-item {' ) &&
-	false !== strpos( $r247_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
-	false !== strpos( $r247_checkout_css, 'width: 152px !important;' ) &&
-	false !== strpos( $r247_checkout_css, 'flex-direction: column !important;' ) &&
-	false !== strpos( $r247_checkout_css, 'min-height: 5.5rem;' ),
-	'R258 WooCommerce gateway cards use the restored v1.7.29 wrapped, compact layout'
+	false !== strpos( $r267_checkout_css, '#payment ul.payment_methods li.jluxe-payment-method-item {' ) &&
+	false !== strpos( $r267_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
+	false !== strpos( $r267_checkout_css, 'width: 152px !important;' ) &&
+	false !== strpos( $r267_checkout_css, 'flex-direction: column !important;' ) &&
+	false !== strpos( $r267_checkout_css, 'min-height: 5.5rem;' ),
+	'R267 the existing WooCommerce gateway-card and checkout styles are kept rather than broadly rolled back'
 );
-$r256_form_checkout_source  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
-$r256_payment_submit_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_cart_source     = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart.php' );
+$r267_shipping_source = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 check(
-	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-layout' ) &&
-	false !== strpos( $r256_form_checkout_source, 'id="customer_details"' ) &&
-	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-panel' ) &&
-	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-summary' ) &&
-	false !== strpos( $r256_payment_submit_source, '<div class="form-row place-order mt-4">' ) &&
-	false !== strpos( $r256_payment_submit_source, "wc_get_template( 'checkout/terms.php' )" ) &&
-	false !== strpos( $r256_payment_submit_source, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
-	false !== strpos( $r256_payment_submit_source, "wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' )" ) &&
-	false === strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ),
-	'R266 restores the v1.7.58 checkout wrappers while keeping WooCommerce place_order, terms, nonce, and gateway hooks intact'
+	false !== strpos( $r267_cart_source, 'justify-end sm:justify-self-end' ) &&
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) &&
+	false !== strpos( $r267_checkout_css, 'position: fixed;' ) &&
+	false !== strpos( $r267_shipping_source, 'jluxe-check-off' ) &&
+	false !== strpos( $r267_shipping_source, 'jluxe-check-on' ),
+	'R267 unrelated v1.7.58 cart/shipping-card markup and current checkout layout are preserved'
 );
+
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(
 	false !== strpos( $r210_thankyou_source, 'get_formatted_line_subtotal( $jluxe_ty_item )' ) && false === strpos( $r210_thankyou_source, 'jluxe_ty_toman_svg' ) && false === strpos( $r210_thankyou_source, 'کد پیگیری از طریق پیامک ارسال می‌شه' ),

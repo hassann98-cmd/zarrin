@@ -429,9 +429,9 @@ test("R05 drawer mutations are serialized and expose server failures", async () 
   assert.ok(results.every((result) => result.error === "Stock limit"));
 });
 
-test("Payment selection survives WooCommerce checkout fragment updates", () => {
+test("Payment selection remains manual after WooCommerce single-gateway auto-selection", () => {
   const start = legacy.indexOf("\tvar jluxeManualPaymentMethod = null;");
-  const end = legacy.indexOf('\n\tsetStepVisual("shipping", "active");', start);
+  const end = legacy.indexOf("\n\tapplyStepVisibility();", start);
   assert.ok(start >= 0 && end > start);
   let radio = { value: "bank", checked: true };
   let onChange;

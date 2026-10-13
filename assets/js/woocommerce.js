@@ -1181,6 +1181,77 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
+ * شهرستان (billing_city) وابسته به استان (billing_state) — چک‌اوت و
+ * ویرایش آدرس در حساب کاربری هر دو از همین دو id واقعیِ ووکامرس استفاده
+ * می‌کنن. billing_city سمت سرور (inc/woocommerce.php: jluxe_billing_fields)
+ * یک select ساده‌ست (نه select2)، فقط با یک گزینه‌ی جای‌گزین رندر می‌شه؛
+ * فهرستِ واقعیِ شهرستان‌ها بر اساس استانِ انتخابی همین‌جا پر می‌شه — باگِ
+ * گزارش‌شده («استان انتخاب می‌شه ولی شهرستان لود نمی‌شه») همینه: قبلاً اصلاً
+ * چنین منطقی وجود نداشت و billing_city یک متنِ آزاد بود.
+ */
+(function () {
+	var cities = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
+	var stateSelect = document.getElementById("billing_state");
+	var citySelect = document.getElementById("billing_city");
+	if (!cities || !stateSelect || !citySelect) {
+		return;
+	}
+
+	function rebuildCityOptions(preserveCurrent) {
+		var list = cities[stateSelect.value] || [];
+		var currentCity = preserveCurrent ? citySelect.value : "";
+
+		citySelect.innerHTML = "";
+		var placeholder = document.createElement("option");
+		placeholder.value = "";
+		placeholder.textContent = list.length ? "انتخاب شهرستان" : "ابتدا استان را انتخاب کنید";
+		citySelect.appendChild(placeholder);
+
+		list.forEach(function (city) {
+			var opt = document.createElement("option");
+			opt.value = city;
+			opt.textContent = city;
+			citySelect.appendChild(opt);
+		});
+
+		if (currentCity) {
+			if (list.indexOf(currentCity) === -1) {
+				// شهرِ ذخیره‌شده‌ی قبلی (هنگام ویرایش آدرس) توی فهرستِ این استان
+				// نبود — گزینه‌اش رو نگه می‌داریم تا مقدار واقعیِ کاربر گم نشه.
+				var keep = document.createElement("option");
+				keep.value = currentCity;
+				keep.textContent = currentCity;
+				citySelect.insertBefore(keep, citySelect.children[1] || null);
+			}
+			citySelect.value = currentCity;
+		}
+	}
+
+	rebuildCityOptions(true);
+
+	/*
+	 * billing_state با select2 (ووکامرس) غنی‌سازی می‌شه — انتخاب واقعیِ کاربر از
+	 * منوی select2 رویدادِ change رو از طریقِ سیستمِ رویدادِ jQuery شلیک می‌کنه،
+	 * نه با یک DOM change ساده؛ addEventListener خامِ قبلی هرگز صداش رو نمی‌شنید
+	 * (باگِ واقعیِ گزارش‌شده «استان انتخاب می‌شه ولی شهرستان به‌روز نمی‌شه» —
+	 * با تستِ زنده در کروم پیدا شد: dispatchEvent خام کار می‌کرد ولی
+	 * jQuery(...).trigger('change') — دقیقاً همون کاری که select2 می‌کنه — نه).
+	 * برای همین این‌جا از jQuery برای bind کردن استفاده می‌شه، نه addEventListener خام.
+	 */
+	if (window.jQuery) {
+		window.jQuery(stateSelect).on("change", function () {
+			rebuildCityOptions(false);
+			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+	} else {
+		stateSelect.addEventListener("change", function () {
+			rebuildCityOptions(false);
+			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+	}
+})();
+
+/**
  * پیش‌نمایش عکس‌های دیگرِ محصول روی کارت (woocommerce/content-product.php):
  * هاور (دسکتاپ) یا لمس طولانی (موبایل) یک ردیف تامبنیل کوچیک پایین عکس
  * اصلی کارت نشون می‌ده؛ هاور/تپ روی هرکدوم عکس اصلیِ کارت رو موقتاً عوض
@@ -3410,286 +3481,10 @@ function jluxeEnhanceShopSort(root) {
 		'<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 	var currentStep = "shipping";
 	var customerDetails = document.getElementById("customer_details");
-	var actions = null;
-	var nextBtn = null;
-	var toCartBtn = null;
-	var backBtn = null;
-	var paymentActionRow = null;
 	// آدرسِ واقعیِ سبدِ خرید — از inc/woocommerce.php (wc_get_cart_url())
 	// localize شده؛ قبلاً از یک لینکِ داخلِ #payment خونده می‌شد که دیگه
 	// (طبقِ همین درخواست) اونجا رندر نمی‌شه.
 	var wcCartUrl = (window.jluxeWcSettings && window.jluxeWcSettings.cartUrl) || "/cart/";
-	var checkoutAddressData = window.jluxeWcSettings && window.jluxeWcSettings.checkoutAddressData;
-	var cityLabelPayload = form.querySelector('[name="jluxe_billing_city_label"][data-jluxe-city-label-payload]');
-	// WooCommerce replaces the shipping radios with each updated_checkout
-	// fragment. The template intentionally renders them unchecked, so retain
-	// only the customer's explicit choices outside the replaceable DOM.
-	var jluxeExplicitShippingMethods = Object.create(null);
-
-	function normalizeLocationName(value) {
-		return String(value || "")
-			.normalize("NFKC")
-			.replace(/[يى]/g, "ی")
-			.replace(/ك/g, "ک")
-			.replace(/[ۀة]/g, "ه")
-			.replace(/ؤ/g, "و")
-			.replace(/[\u200c\u200d\u200e\u200f\ufeff]/g, "")
-			.replace(/^استان/, "")
-			.replace(/[^\u0600-\u06ffA-Za-z0-9]/g, "")
-			.toLocaleLowerCase("fa");
-	}
-
-	function getCheckoutLocationSelect(fieldName, marker) {
-		// Restrict lookup to the actual billing row first: a checkout extension can
-		// leave a hidden/duplicate marked select earlier in document order.
-		var row = form.querySelector("#" + fieldName + "_field");
-		var field = row && row.querySelector("#" + fieldName);
-		if (field) return field;
-		if (row) {
-			field = row.querySelector('[name="' + fieldName + '"]');
-			if (field) return field;
-		}
-		field = form.querySelector('[name="' + fieldName + '"][' + marker + ']');
-		if (field) return field;
-		return form.querySelector("#" + fieldName) || form.querySelector('[name="' + fieldName + '"]');
-	}
-
-	function syncCheckoutCityLabelPayload(citySelect) {
-		if (!cityLabelPayload) return;
-		citySelect = citySelect || getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!citySelect || isEmptyCheckoutCitySelection(citySelect)) {
-			cityLabelPayload.value = "";
-			return;
-		}
-		var selectedOption = citySelect.options[citySelect.selectedIndex];
-		cityLabelPayload.value = String(selectedOption ? selectedOption.textContent : citySelect.value).trim();
-	}
-
-	function refreshCheckoutSelect2(select) {
-		if (!select || !window.jQuery || !select.classList.contains("select2-hidden-accessible")) return;
-		// Replacing/sorting native options does not reliably refresh Select2's
-		// cached label. Update its view from the real selected option without
-		// firing other plugins' generic change handlers.
-		window.jQuery(select).trigger("change.select2");
-	}
-
-	function sortOptionsByPersianLabel(select) {
-		if (!select || select.tagName !== "SELECT") return;
-		var value = select.value;
-		var options = Array.prototype.slice.call(select.options);
-		var placeholders = options.filter(function (option) { return option.value === ""; });
-		var choices = options.filter(function (option) { return option.value !== ""; });
-		var compare;
-		try {
-			var collator = new Intl.Collator("fa", { sensitivity: "base" });
-			compare = function (a, b) { return collator.compare(a.textContent.trim(), b.textContent.trim()); };
-		} catch (error) {
-			compare = function (a, b) { return a.textContent.trim().localeCompare(b.textContent.trim()); };
-		}
-		choices.sort(compare);
-		select.replaceChildren.apply(select, placeholders.concat(choices));
-		select.value = value;
-		refreshCheckoutSelect2(select);
-	}
-
-	function findCheckoutProvince(stateSelect) {
-		if (!checkoutAddressData || !Array.isArray(checkoutAddressData.provinces) || !stateSelect || !stateSelect.value) return null;
-		var selectedOption = stateSelect.options[stateSelect.selectedIndex];
-		var stateCode = String(stateSelect.value).trim();
-		var stateKey = stateCode.toUpperCase();
-		var aliasKey = stateKey.replace(/^IR[-_]/, "");
-		var aliases = checkoutAddressData.state_aliases || {};
-		var aliasName = aliases[stateCode] || aliases[stateKey] || aliases[aliasKey] || "";
-		var selectedLabel = normalizeLocationName(selectedOption ? selectedOption.textContent : "");
-		var candidates = [
-			selectedLabel,
-			normalizeLocationName(aliasName),
-			normalizeLocationName(stateCode),
-		].filter(Boolean);
-		var provinces = checkoutAddressData.provinces.filter(function (province) {
-			return province && province.name && Array.isArray(province.cities);
-		});
-
-		// Resolve exact labels/codes first. «کرمانشاه» contains «کرمان», so a
-		// substring-first pass silently loads the wrong province for numeric
-		// extension values such as billing_state=2352.
-		var exactProvince = provinces.find(function (province) {
-			var name = normalizeLocationName(province.name);
-			return candidates.indexOf(name) !== -1;
-		});
-		if (exactProvince) return exactProvince;
-
-		// Keep compatibility with labels like "Tehran Province", but only use
-		// an unambiguous label match. Never infer a province from a numeric ID.
-		var partialMatches = provinces.filter(function (province) {
-			var name = normalizeLocationName(province.name);
-			return selectedLabel && name && selectedLabel.indexOf(name) !== -1;
-		});
-		return partialMatches.length === 1 ? partialMatches[0] : null;
-	}
-
-	function syncCheckoutCityOptions(preserveCurrentCity) {
-		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!stateSelect || !citySelect) return;
-		var province = findCheckoutProvince(stateSelect);
-		var previousCity = preserveCurrentCity ? citySelect.value : "";
-		var previousCityOption = preserveCurrentCity ? citySelect.options[citySelect.selectedIndex] : null;
-		var previousCityLabels = [previousCity, previousCityOption ? previousCityOption.textContent : ""]
-			.map(normalizeLocationName)
-			.filter(Boolean);
-		var cityNames = province ? province.cities.slice() : [];
-		var legacyCityMap = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
-		var legacyCityNames = legacyCityMap && Object.prototype.hasOwnProperty.call(legacyCityMap, String(stateSelect.value))
-			? legacyCityMap[String(stateSelect.value)]
-			: null;
-		if (province && !Array.isArray(legacyCityNames) && legacyCityMap && checkoutAddressData.state_aliases) {
-			// WooCommerce address extensions may submit numeric province IDs. Resolve
-			// the historical three-letter city-map key through this province's real
-			// canonical label rather than assuming the form value is the map key.
-			var provinceName = normalizeLocationName(province.name);
-			Object.keys(checkoutAddressData.state_aliases).some(function (stateKey) {
-				var aliasName = normalizeLocationName(checkoutAddressData.state_aliases[stateKey]);
-				if (aliasName === provinceName && Array.isArray(legacyCityMap[stateKey])) {
-					legacyCityNames = legacyCityMap[stateKey];
-					return true;
-				}
-				return false;
-			});
-		}
-		if (province && Array.isArray(legacyCityNames)) {
-			// Restore the v1.7.58 province-keyed city selector as the primary
-			// source. Keep later canonical additions as a supplemental tail so
-			// real cities omitted by that historical list remain selectable.
-			var legacyNames = legacyCityNames.map(normalizeLocationName);
-			var supplementalCities = province.cities.filter(function (city) {
-				return legacyNames.indexOf(normalizeLocationName(city)) === -1;
-			});
-			try {
-				var supplementalCollator = new Intl.Collator("fa", { sensitivity: "base" });
-				supplementalCities.sort(supplementalCollator.compare);
-			} catch (error) {
-				supplementalCities.sort(function (a, b) { return String(a).localeCompare(String(b)); });
-			}
-			cityNames = legacyCityNames.slice().concat(supplementalCities);
-		} else {
-			try {
-				var collator = new Intl.Collator("fa", { sensitivity: "base" });
-				cityNames.sort(collator.compare);
-			} catch (error) {
-				cityNames.sort(function (a, b) { return String(a).localeCompare(String(b)); });
-			}
-		}
-		var placeholder = document.createElement("option");
-		placeholder.value = "";
-		placeholder.textContent = province ? "شهر را انتخاب کنید" : "ابتدا استان را انتخاب کنید";
-		var options = [placeholder];
-		cityNames.forEach(function (city) {
-			var option = document.createElement("option");
-			option.value = String(city);
-			option.textContent = String(city);
-			options.push(option);
-		});
-		citySelect.replaceChildren.apply(citySelect, options);
-		citySelect.disabled = !province || !cityNames.length;
-		var preservedCity = preserveCurrentCity ? cityNames.find(function (city) {
-			return previousCityLabels.indexOf(normalizeLocationName(city)) !== -1;
-		}) : "";
-		citySelect.value = preservedCity || "";
-		if (province) {
-			citySelect.setAttribute("data-jluxe-province", province.name);
-		} else {
-			citySelect.removeAttribute("data-jluxe-province");
-		}
-		refreshCheckoutSelect2(citySelect);
-		syncCheckoutCityLabelPayload(citySelect);
-	}
-
-	function isEmptyCheckoutCitySelection(citySelect) {
-		if (!citySelect) return true;
-		var value = String(citySelect.value || "").trim();
-		if (!value || value === "0" || value === "-1") return true;
-		var selectedOption = citySelect.options[citySelect.selectedIndex];
-		var label = normalizeLocationName(selectedOption ? selectedOption.textContent : "");
-		return /^(لطفاشهر|شهراانتخاب|انتخابشهر|ابتدااستان|pleaseselectacity|selectacity|chooseacity)/.test(label);
-	}
-
-	function canonicalizeSelectedCheckoutCity() {
-		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!stateSelect || !citySelect || !stateSelect.value) {
-			syncCheckoutCityLabelPayload(citySelect);
-			return false;
-		}
-		var province = findCheckoutProvince(stateSelect);
-		if (!province) {
-			syncCheckoutCityLabelPayload(citySelect);
-			return false;
-		}
-		var selectedOption = citySelect.options[citySelect.selectedIndex];
-		var selectedNames = [citySelect.value, selectedOption ? selectedOption.textContent : ""]
-			.map(normalizeLocationName)
-			.filter(Boolean);
-		var canonicalCity = province.cities.find(function (city) {
-			return selectedNames.indexOf(normalizeLocationName(city)) !== -1;
-		});
-		if (!canonicalCity) {
-			syncCheckoutCityLabelPayload(citySelect);
-			return false;
-		}
-
-		var canonicalOption = Array.prototype.find.call(citySelect.options, function (option) {
-			return option.value === String(canonicalCity);
-		});
-		if (!canonicalOption) {
-			canonicalOption = document.createElement("option");
-			canonicalOption.value = String(canonicalCity);
-			canonicalOption.textContent = String(canonicalCity);
-			citySelect.appendChild(canonicalOption);
-		}
-		citySelect.value = String(canonicalCity);
-		// Disabled controls are omitted from the WooCommerce checkout POST.
-		// Re-enable only after the selected label matches a city in the chosen province.
-		citySelect.disabled = false;
-		refreshCheckoutSelect2(citySelect);
-		syncCheckoutCityLabelPayload(citySelect);
-		return true;
-	}
-
-	function bindCheckoutLocationChange(select, handler) {
-		var $select = window.jQuery && window.jQuery(select);
-		if ($select && typeof $select.on === "function") {
-			// WooCommerce enhances these selects with Select2, which emits change
-			// through jQuery; a native addEventListener does not receive that event.
-			if (typeof $select.off === "function") $select.off("change.jluxeCheckoutLocation");
-			$select.on("change.jluxeCheckoutLocation", handler);
-			return;
-		}
-		select.addEventListener("change", handler);
-	}
-
-	function initializeCheckoutLocationFields() {
-		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!stateSelect || !citySelect || !checkoutAddressData) return;
-		sortOptionsByPersianLabel(stateSelect);
-		syncCheckoutCityOptions(true);
-		bindCheckoutLocationChange(stateSelect, function () {
-			// A province change clears city; WooCommerce remains responsible for checkout validation.
-			syncCheckoutCityOptions(false);
-		});
-		bindCheckoutLocationChange(citySelect, function () {
-			canonicalizeSelectedCheckoutCity();
-			syncCheckoutCityLabelPayload(citySelect);
-			var row = citySelect.closest(".form-row");
-			if (row && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
-				row.classList.remove("woocommerce-invalid", "woocommerce-invalid-required-field");
-				citySelect.removeAttribute("aria-invalid");
-				var warning = row.querySelector("[data-jluxe-required-field-error]");
-				if (warning) warning.remove();
-			}
-		});
-	}
 
 	function setStepVisual(id, state) {
 		var stepEl = stepper.querySelector('[data-jluxe-step="' + id + '"]');
@@ -3700,11 +3495,6 @@ function jluxeEnhanceShopSort(root) {
 		var label = stepEl.querySelector("[data-jluxe-step-label]");
 		if (!circle || !label) {
 			return;
-		}
-		if (state === "active") {
-			stepEl.setAttribute("aria-current", "step");
-		} else {
-			stepEl.removeAttribute("aria-current");
 		}
 		circle.classList.remove("border-success", "bg-success", "text-white", "border-primary", "text-primary", "border-border", "text-text-muted");
 		label.classList.remove("font-medium", "text-foreground", "text-text-muted");
@@ -3764,7 +3554,7 @@ function jluxeEnhanceShopSort(root) {
 		}
 		var radios = shippingSection.querySelectorAll("input.shipping_method");
 		if (!radios.length) {
-			return false;
+			return true;
 		}
 		var groups = {};
 		for (var i = 0; i < radios.length; i++) {
@@ -3790,16 +3580,6 @@ function jluxeEnhanceShopSort(root) {
 			el.hidden = !show;
 		}
 		return el;
-	}
-
-	function restoreExplicitShippingMethods() {
-		var shippingSection = document.getElementById("jluxe-shipping-section");
-		if (!shippingSection) return;
-		var radios = shippingSection.querySelectorAll("input.shipping_method");
-		for (var i = 0; i < radios.length; i++) {
-			var chosenValue = jluxeExplicitShippingMethods[radios[i].name];
-			radios[i].checked = !!chosenValue && radios[i].value === chosenValue;
-		}
 	}
 
 	/*
@@ -3878,34 +3658,20 @@ function jluxeEnhanceShopSort(root) {
 			if (!$input.length) {
 				return;
 			}
-			var isCity = $input[0] && $input[0].matches && $input[0].matches("[data-jluxe-city-select]");
-			var isEmpty = $input.is(":checkbox") ? !$input.is(":checked") : (isCity && isEmptyCheckoutCitySelection($input[0])) || $input.val() === "" || $input.val() === null;
+			var isEmpty = $input.is(":checkbox") ? !$input.is(":checked") : $input.val() === "" || $input.val() === null;
 			if (isEmpty) {
 				$row.addClass("woocommerce-invalid woocommerce-invalid-required-field");
-				if (!$row[0].querySelector("[data-jluxe-required-field-error]")) {
-					var requiredWarning = document.createElement("span");
-					requiredWarning.setAttribute("data-jluxe-required-field-error", "");
-					requiredWarning.className = "jluxe-checkout-alert jluxe-checkout-alert--error";
-					requiredWarning.textContent = isCity ? "شهر الزامی است." : "این فیلد الزامی است.";
-					$row[0].appendChild(requiredWarning);
-				}
 				if (!$firstInvalid) {
 					$firstInvalid = $row;
 				}
 			} else {
 				$row.removeClass("woocommerce-invalid woocommerce-invalid-required-field");
-				var requiredWarning = $row[0].querySelector("[data-jluxe-required-field-error]");
-				if (requiredWarning) requiredWarning.remove();
 			}
 		});
 		return $firstInvalid ? $firstInvalid[0] : null;
 	}
 
 	nextBtn.addEventListener("click", function () {
-		// Only canonicalize a city value that is actually present and matches the
-		// selected province; an empty/disabled field is never fabricated from UI text.
-		canonicalizeSelectedCheckoutCity();
-		syncCheckoutCityLabelPayload(getCheckoutLocationSelect("billing_city", "data-jluxe-city-select"));
 		var invalid = findFirstInvalidRequiredField();
 		if (invalid) {
 			invalid.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -3918,11 +3684,6 @@ function jluxeEnhanceShopSort(root) {
 		if (!hasShippingMethodSelected()) {
 			var errorEl = toggleError('[data-jluxe-shipping-error]', true);
 			if (errorEl) {
-				var shippingSection = document.getElementById("jluxe-shipping-section");
-				var availableRates = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
-				errorEl.textContent = availableRates.length
-					? "روش ارسال را انتخاب کنید."
-					: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
 				errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
 			}
 			return;
@@ -3932,28 +3693,11 @@ function jluxeEnhanceShopSort(root) {
 	});
 	backBtn.addEventListener("click", goToShipping);
 
-	// WooCommerce remains the authority for server-side city/province errors.
-	// If its AJAX response names the billing city, reveal that field without
-	// replacing or suppressing the original WooCommerce notice.
-	window.jQuery(document.body).on("checkout_error", function () {
-		var notice = form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error, .woocommerce-error");
-		if (!notice || !/(billing_|shipping_)(first_name|last_name|phone|address_1|state|city|postcode)|صورتحساب|شهر|استان|آدرس|کد\s*پستی|موبایل|تلفن|نام\s+خانوادگی|نام\s+کوچک/i.test(notice.textContent)) return;
-		goToShipping();
-		var city = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (/billing_city|شهر/i.test(notice.textContent) && city) {
-			var row = city.closest(".form-row");
-			if (row) row.classList.add("woocommerce-invalid", "woocommerce-invalid-required-field");
-			city.setAttribute("aria-invalid", "true");
-			city.focus();
-		}
-	});
-
 	// وقتی کاربر خودش یک روشِ ارسال رو انتخاب کرد، پیغامِ خطا (اگه نشون
 	// داده شده بود) خودکار مخفی می‌شه — کاربر مجبور نیست دوباره «ادامه»
 	// بزنه تا خطا بره.
 	document.addEventListener("change", function (event) {
 		if (event.target && event.target.classList && event.target.classList.contains("shipping_method")) {
-			jluxeExplicitShippingMethods[event.target.name] = event.target.value;
 			toggleError('[data-jluxe-shipping-error]', false);
 		}
 		if (event.target && event.target.classList && event.target.classList.contains("payment_method")) {
@@ -4036,22 +3780,9 @@ function jluxeEnhanceShopSort(root) {
 		}
 	}
 
-	setStepVisual("shipping", "active");
-	setStepVisual("payment", "pending");
-	initializeCheckoutLocationFields();
 	applyStepVisibility();
 	window.jQuery(document.body).on("updated_checkout", function () {
 		applyStepVisibility();
-		restoreExplicitShippingMethods();
-		var shippingError = document.querySelector('[data-jluxe-shipping-error]');
-		if (shippingError && !shippingError.hidden) {
-			var currentShippingSection = document.getElementById("jluxe-shipping-section");
-			var currentShippingOptions = currentShippingSection ? currentShippingSection.querySelectorAll("input.shipping_method") : [];
-			shippingError.textContent = currentShippingOptions.length
-				? "روش ارسال را انتخاب کنید."
-				: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
-			if (hasShippingMethodSelected()) toggleError('[data-jluxe-shipping-error]', false);
-		}
 		setTimeout(clearAutoSelectedPaymentMethod, 50);
 	});
 	setTimeout(clearAutoSelectedPaymentMethod, 50);
