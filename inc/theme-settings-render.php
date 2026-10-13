@@ -68,6 +68,7 @@ function jluxe_render_settings_nav( string $current_slug ): void {
 			array( 'jluxe-product-page', 'صفحه محصول', 'admin-page' ),
 			array( 'jluxe-purchase-addons', 'پیشنهادهای پس از خرید', 'cart' ),
 			array( 'jluxe-shop', 'فروشگاه و دسته‌بندی', 'store' ),
+			array( 'jluxe-cart-checkout', 'سبد خرید و تسویه حساب', 'cart' ),
 			array( 'jluxe-categories-page', 'صفحهٔ دسته‌بندی‌ها', 'category' ),
 			array( 'jluxe-site-diagnosis', 'تشخیص سایت', 'shield' ),
 		),
@@ -1411,13 +1412,168 @@ function jluxe_render_shop_page(): void {
 	} );
 }
 
+function jluxe_render_cart_checkout_copy_row( array $copy, string $key, string $label, bool $multiline = false ): void {
+	$value = isset( $copy[ $key ] ) && is_scalar( $copy[ $key ] ) ? (string) $copy[ $key ] : '';
+	$name  = 'cart_checkout[copy][' . $key . ']';
+	?>
+	<tr>
+		<th scope="row"><label for="jluxe-copy-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td>
+			<?php if ( $multiline ) : ?>
+				<textarea id="jluxe-copy-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>" rows="3" class="large-text"><?php echo esc_textarea( $value ); ?></textarea>
+			<?php else : ?>
+				<input type="text" id="jluxe-copy-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" class="regular-text" />
+			<?php endif; ?>
+		</td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_toggle_row( array $settings, string $key, string $label ): void {
+	?>
+	<tr>
+		<th scope="row"><?php echo esc_html( $label ); ?></th>
+		<td><label><input type="checkbox" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> نمایش</label></td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-cart-checkout' );
+	$settings = jluxe_get_fresh_settings();
+	$cart     = $settings['cart_checkout'];
+	$copy     = $cart['copy'];
+
+	jluxe_settings_page_shell( 'سبد خرید و تسویه حساب', 'jluxe-cart-checkout', $status, function () use ( $cart, $copy ) {
+		?>
+		<p class="description">متن‌های نمایشیِ پوسته و توضیحاتِ روش‌های ارسال را از این بخش ویرایش کنید. این تنظیمات فقط ظاهر/متن را کنترل می‌کنند؛ نرخ، هزینه، مالیات، انتخاب روش و محاسبهٔ حمل‌ونقل همچنان کاملاً در اختیار WooCommerce است. برای حذف یک عنوان یا متن اختیاری، مقدار آن را خالی کنید؛ متن دکمه‌های اصلی برای حفظ دسترس‌پذیری خالی بماند به برچسب پیش‌فرض برمی‌گردد.</p>
+
+		<form method="post">
+			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+			<h2>سبد خرید</h2>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_cart_coupon', 'کد تخفیف' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_message_enabled', 'پیام سفارشیِ سبد خالی' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_return_enabled', 'دکمهٔ بازگشت از سبد خالی' ); ?>
+				<tr>
+					<th scope="row">پیام اختیاریِ ارسال در سبد</th>
+					<td>
+						<label><input type="checkbox" name="cart_checkout[cart_shipping_notice_enabled]" value="1" <?php checked( ! empty( $cart['cart_shipping_notice_enabled'] ) ); ?> /> نمایش پیام سفارشی</label>
+						<br /><textarea name="cart_checkout[cart_shipping_notice_text]" rows="2" class="large-text"><?php echo esc_textarea( (string) ( $cart['cart_shipping_notice_text'] ?? '' ) ); ?></textarea>
+						<p class="description">پیام قدیمیِ نادرست دربارهٔ محاسبه/نمایش هزینه با توجه به آدرس حذف شده است. فقط اگر لازم است، متن جدید خودتان را این‌جا وارد کنید.</p>
+					</td>
+				</tr>
+			</table>
+			<table class="form-table" role="presentation">
+				<?php
+			$cart_fields = array(
+					'cart_page_title'        => array( 'عنوان صفحهٔ سبد', false ),
+					'cart_column_product'    => array( 'ستون محصول', false ),
+					'cart_column_quantity'   => array( 'ستون تعداد', false ),
+					'cart_column_total'      => array( 'ستون جمع قیمت', false ),
+					'cart_remove_item'       => array( 'برچسب دسترس‌پذیری حذف محصول', false ),
+					'cart_coupon_label'      => array( 'عنوان کد تخفیف', false ),
+					'cart_coupon_placeholder' => array( 'متن راهنمای کد تخفیف', false ),
+					'cart_coupon_apply'      => array( 'دکمهٔ اعمال تخفیف', false ),
+					'cart_update_button'     => array( 'دکمهٔ بروزرسانی سبد', false ),
+					'cart_subtotal_label'    => array( 'عنوان جمع جزء', false ),
+					'cart_total_label'       => array( 'عنوان مبلغ نهایی', false ),
+					'cart_return_to_store'   => array( 'دکمهٔ بازگشت به فروشگاه', false ),
+					'cart_checkout_button'   => array( 'دکمهٔ ادامه از سبد', false ),
+					'cart_empty_title'       => array( 'عنوان سبد خالی', false ),
+					'cart_empty_message'     => array( 'متن سفارشیِ سبد خالی', true ),
+					'cart_empty_return'      => array( 'دکمهٔ بازگشت از سبد خالی', false ),
+			);
+			foreach ( $cart_fields as $key => $field ) {
+				jluxe_render_cart_checkout_copy_row( $copy, $key, $field[0], $field[1] );
+			}
+			?>
+			</table>
+
+			<h2>تسویه‌حساب</h2>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_stepper', 'نوار مراحل خرید' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_heading_enabled', 'عنوان انتخاب روش ارسال' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_error_enabled', 'پیام خطای انتخاب روش ارسال' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_payment_warning_enabled', 'هشدار پیش از پرداخت' ); ?>
+			</table>
+			<table class="form-table" role="presentation">
+				<?php
+			$checkout_fields = array(
+					'checkout_step_cart'                => array( 'مرحلهٔ سبد خرید', false ),
+					'checkout_step_shipping'            => array( 'مرحلهٔ اطلاعات ارسال', false ),
+					'checkout_step_payment'             => array( 'مرحلهٔ نحوهٔ پرداخت', false ),
+					'checkout_step_done'                => array( 'مرحلهٔ پایان خرید', false ),
+					'checkout_no_js_notice'             => array( 'پیام غیرفعال‌بودن جاوااسکریپت', false ),
+					'checkout_no_js_back'               => array( 'دکمهٔ بازگشت بدون جاوااسکریپت', false ),
+					'checkout_billing_heading'          => array( 'عنوان اطلاعات ارسال', false ),
+					'checkout_first_name_label'         => array( 'برچسب نام', false ),
+					'checkout_last_name_label'          => array( 'برچسب نام خانوادگی', false ),
+					'checkout_province_label'           => array( 'برچسب استان', false ),
+					'checkout_city_label'               => array( 'برچسب شهر', false ),
+					'checkout_city_prompt'              => array( 'راهنمای انتخاب شهر', false ),
+					'checkout_city_placeholder'         => array( 'متن انتخاب شهرستان', false ),
+					'checkout_phone_label'              => array( 'برچسب موبایل', false ),
+					'checkout_email_label'              => array( 'برچسب ایمیل', false ),
+					'checkout_postcode_label'           => array( 'برچسب کد پستی', false ),
+					'checkout_postcode_description'    => array( 'راهنمای کد پستی', false ),
+					'checkout_address_label'            => array( 'برچسب آدرس', false ),
+					'checkout_landline_label'           => array( 'برچسب تلفن ثابت', false ),
+					'checkout_create_account_label'     => array( 'برچسب ایجاد حساب کاربری', false ),
+					'checkout_summary_heading'          => array( 'عنوان خلاصهٔ سفارش', false ),
+					'checkout_shipping_heading'         => array( 'عنوان انتخاب روش ارسال', false ),
+					'checkout_shipping_error'           => array( 'پیام خطای انتخاب روش ارسال', false ),
+					'checkout_payment_error'            => array( 'پیام خطای انتخاب روش پرداخت', false ),
+					'checkout_payment_warning'         => array( 'متن هشدار پرداخت', true ),
+					'checkout_payment_heading'      => array( 'عنوان روش پرداخت', false ),
+					'checkout_no_payment_methods'   => array( 'پیام نبود روش پرداخت', false ),
+					'checkout_payment_details_prompt' => array( 'پیام پیش از نمایش روش پرداخت', false ),
+					'checkout_next_button'              => array( 'دکمهٔ رفتن به پرداخت', false ),
+					'checkout_back_to_cart_button'      => array( 'دکمهٔ بازگشت به سبد', false ),
+					'checkout_back_button'              => array( 'دکمهٔ بازگشت به ارسال', false ),
+					'checkout_place_order_button'       => array( 'دکمهٔ پرداخت نهایی', false ),
+					'checkout_order_notes_label'        => array( 'عنوان توضیحات سفارش', false ),
+					'checkout_order_notes_placeholder'  => array( 'راهنمای توضیحات سفارش', false ),
+					'checkout_no_shipping_options'      => array( 'پیام نبود روش ارسال', true ),
+				);
+			foreach ( $checkout_fields as $key => $field ) {
+				jluxe_render_cart_checkout_copy_row( $copy, $key, $field[0], $field[1] );
+			}
+			?>
+			</table>
+
+			<h2>توضیحات روش‌های ارسال</h2>
+			<p class="description">هر توضیح به‌صورت آکاردئون زیر کارت روش انتخاب‌شده نشان داده می‌شود. متن نام و هزینهٔ نرخ از خودِ WooCommerce می‌آید؛ رنگ انتخاب‌شدهٔ کارت نیز بر اساس نوع روش است: پست زرد، تیپاکس سبز و چاپار قرمز.</p>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_shipping_accordions', 'آکاردئون توضیحات ارسال' ); ?>
+			</table>
+			<?php foreach ( array( 'post' => 'پست', 'tipax' => 'تیپاکس', 'chapar' => 'چاپار' ) as $method_key => $method_label ) : ?>
+				<h3><?php echo esc_html( $method_label ); ?></h3>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row">وضعیت</th>
+						<td><label><input type="checkbox" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][enabled]" value="1" <?php checked( ! empty( $cart['shipping_methods'][ $method_key ]['enabled'] ) ); ?> /> نمایش آکاردئون این روش</label></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>">عنوان آکاردئون</label></th>
+						<td><input type="text" id="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][summary]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['summary'] ); ?>" class="regular-text" /></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>">توضیحات</label></th>
+						<td><textarea id="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][description]" rows="3" class="large-text"><?php echo esc_textarea( (string) $cart['shipping_methods'][ $method_key ]['description'] ); ?></textarea></td>
+					</tr>
+				</table>
+			<?php endforeach; ?>
+			<?php jluxe_settings_submit_button( true, 'cart_checkout' ); ?>
+		</form>
+		<?php
+	} );
+}
+
 // =====================================================================
-// سبد و تسویه‌حساب — صفحه‌ی چک‌اوت/تسویه‌حساب فقط توضیح وضعیت داره، بدون
-// کنترل جعلی (چون طبق قانون صریح پروژه اجازه‌ی دست‌زدن به منطق واقعیِ
-// WC()->cart/سشن/درگاه نداریم؛ ظاهرشون کاملاً از توکن‌های رنگ سراسری میاد).
-// سبدِ کشویی (مینی‌کارت) استثناست — دو سوییچِ واقعی (فیلدِ کوپن، نوارِ
-// ارسالِ رایگان) بالاتر در همین صفحه (jluxe-shop) اضافه شدن، چون این‌ها
-// صرفاً نمایش/عدم‌نمایشِ یک بخشِ UI هستن، نه دست‌کاریِ منطقِ محاسباتیِ WC.
+// سبد و تسویه‌حساب — این تب فقط متن‌های قابل‌ویرایش و کنترلِ نمایشِ اجزای
+// ارائه را مدیریت می‌کند؛ نرخ‌ها، محاسبه و روش‌های واقعیِ WooCommerce ثابت
+// می‌مانند. تنظیمات مینی‌کارت (سبدِ کشویی) جداگانه در تبِ فروشگاه است.
 // =====================================================================
 // موبایل و تماس (موبایل + تماس و شبکه‌های اجتماعی) — طبق درخواستِ کاربر
 // یکی شدن؛ منطقِ ذخیره‌سازیِ هرکدوم دست‌نخورده مونده (جز رفعِ یک باگِ واقعی

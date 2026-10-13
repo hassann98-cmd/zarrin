@@ -50,7 +50,7 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between text-small text-text-secondary">
-		<span>قیمت کالاها (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_subtotal_label', 'قیمت کالاها' ) ); ?> (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
 		<span><?php wc_cart_totals_subtotal_html(); ?></span>
 	</div>
 
@@ -70,21 +70,21 @@ defined( 'ABSPATH' ) || exit;
 		 */
 		?>
 		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping">
-			<p class="mb-3 text-small font-medium text-foreground">روش ارسال را انتخاب کنید!</p>
-			<div class="jluxe-shipping-freight-note" data-jluxe-shipping-freight-note data-shipping-kind="unselected" role="status" aria-live="polite" aria-atomic="true">
-				<span class="jluxe-shipping-freight-note__icon" aria-hidden="true">
-					<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7.5" cy="18" r="1.5"></circle><circle cx="17.5" cy="18" r="1.5"></circle><path d="M6 4h8"></path></svg>
-				</span>
-				<span class="jluxe-shipping-freight-note__copy">
-					<strong data-jluxe-shipping-note-title>کرایهٔ ارسال، وابسته به روش انتخابی</strong>
-					<span data-jluxe-shipping-note-text>تیپاکس و چاپار: پس‌کرایه و پرداخت در محل؛ پست پیشتاز: پرداخت هنگام ثبت سفارش.</span>
-				</span>
-				<span class="jluxe-shipping-freight-note__badge" data-jluxe-shipping-note-badge>پرداخت طبق روش</span>
-			</div>
+			<?php if ( jluxe_cart_checkout_option( 'checkout_shipping_heading_enabled', true ) ) : ?>
+				<?php $shipping_heading = jluxe_cart_checkout_copy( 'checkout_shipping_heading', 'روش ارسال را انتخاب کنید!' ); ?>
+				<?php if ( '' !== trim( $shipping_heading ) ) : ?>
+					<p class="mb-3 text-small font-medium text-foreground"><?php echo esc_html( $shipping_heading ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 			<?php wc_cart_totals_shipping_html(); ?>
 			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>
-			<p data-jluxe-shipping-error hidden class="mt-2 text-caption text-error">روش ارسال را انتخاب کنید.</p>
+			<?php if ( jluxe_cart_checkout_option( 'checkout_shipping_error_enabled', true ) ) : ?>
+				<?php $shipping_error = jluxe_cart_checkout_copy( 'checkout_shipping_error', 'روش ارسال را انتخاب کنید.' ); ?>
+				<?php if ( '' !== trim( $shipping_error ) ) : ?>
+					<p data-jluxe-shipping-error hidden class="mt-2 text-caption text-error"><?php echo esc_html( $shipping_error ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
 		</div>
 	<?php endif; ?>
 
@@ -122,7 +122,7 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between border-t border-border pt-3 text-body font-bold text-foreground">
-		<span>مبلغ قابل پرداخت:</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_total_label', 'مبلغ قابل پرداخت' ) ); ?>:</span>
 		<span><?php wc_cart_totals_order_total_html(); ?></span>
 	</div>
 

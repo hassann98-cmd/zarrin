@@ -30,7 +30,10 @@ uasort(
 );
 ?>
 <div class="woocommerce-billing-fields">
-	<h3 class="mb-4 text-h3 text-foreground">اطلاعات ارسال</h3>
+	<?php $billing_heading = jluxe_cart_checkout_copy( 'checkout_billing_heading', 'اطلاعات ارسال' ); ?>
+	<?php if ( '' !== trim( $billing_heading ) ) : ?>
+		<h3 class="mb-4 text-h3 text-foreground"><?php echo esc_html( $billing_heading ); ?></h3>
+	<?php endif; ?>
 
 	<?php do_action( 'woocommerce_before_checkout_billing_form', $checkout ); ?>
 
@@ -50,7 +53,7 @@ uasort(
 		<?php if ( ! $checkout->is_registration_required() ) : ?>
 			<label class="flex items-center gap-2 text-small text-text-secondary">
 				<input class="input-checkbox size-4" id="createaccount" <?php checked( ( true === $checkout->get_value( 'createaccount' ) || ( true === apply_filters( 'woocommerce_create_account_default_checked', false ) ) ), true ); ?> type="checkbox" name="createaccount" value="1" />
-				<span>ایجاد حساب کاربری؟</span>
+				<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'checkout_create_account_label', 'ایجاد حساب کاربری؟' ) ); ?></span>
 			</label>
 		<?php endif; ?>
 

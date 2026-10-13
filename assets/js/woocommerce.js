@@ -1266,6 +1266,11 @@ function jluxeEnhanceShopSort(root) {
  */
 (function () {
 	var cities = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
+	var checkoutCopy = (window.JLuxeThemeSettings && window.JLuxeThemeSettings.cartCheckout && window.JLuxeThemeSettings.cartCheckout.copy) || {};
+	function getCheckoutText(key, fallback) {
+		var value = checkoutCopy[key];
+		return typeof value === "string" && value.trim() ? value : fallback;
+	}
 	var stateSelect = document.getElementById("billing_state");
 	var citySelect = document.getElementById("billing_city");
 	if (!cities || !stateSelect || !citySelect) {
@@ -1279,7 +1284,9 @@ function jluxeEnhanceShopSort(root) {
 		citySelect.innerHTML = "";
 		var placeholder = document.createElement("option");
 		placeholder.value = "";
-		placeholder.textContent = list.length ? "انتخاب شهرستان" : "ابتدا استان را انتخاب کنید";
+		placeholder.textContent = list.length
+			? getCheckoutText("checkout_city_placeholder", "انتخاب شهرستان")
+			: getCheckoutText("checkout_city_prompt", "ابتدا استان را انتخاب کنید");
 		citySelect.appendChild(placeholder);
 
 		list.forEach(function (city) {
@@ -3548,7 +3555,7 @@ function jluxeEnhanceShopSort(root) {
 	var form = document.querySelector("form.checkout");
 	var stepper = document.querySelector(".jluxe-checkout-stepper");
 	var orderReview = document.getElementById("order_review");
-	if (!form || !stepper || !orderReview || !window.jQuery) {
+	if (!form || !orderReview || !window.jQuery) {
 		return;
 	}
 
@@ -3560,15 +3567,24 @@ function jluxeEnhanceShopSort(root) {
 	// localize شده؛ قبلاً از یک لینکِ داخلِ #payment خونده می‌شد که دیگه
 	// (طبقِ همین درخواست) اونجا رندر نمی‌شه.
 	var wcCartUrl = (window.jluxeWcSettings && window.jluxeWcSettings.cartUrl) || "/cart/";
+	var checkoutCopy = (window.JLuxeThemeSettings && window.JLuxeThemeSettings.cartCheckout && window.JLuxeThemeSettings.cartCheckout.copy) || {};
+
+	function getCheckoutCopy(key, fallback) {
+		var value = checkoutCopy[key];
+		return typeof value === "string" && value.trim() ? value : fallback;
+	}
 
 	function setStepVisual(id, state) {
+		if (!stepper) {
+			return;
+		}
 		var stepEl = stepper.querySelector('[data-jluxe-step="' + id + '"]');
 		if (!stepEl) {
 			return;
 		}
 		var circle = stepEl.querySelector("[data-jluxe-step-circle]");
 		var label = stepEl.querySelector("[data-jluxe-step-label]");
-		if (!circle || !label) {
+		if (!circle) {
 			return;
 		}
 		stepEl.setAttribute("data-jluxe-step-state", state);
@@ -3578,19 +3594,21 @@ function jluxeEnhanceShopSort(root) {
 			stepEl.removeAttribute("aria-current");
 		}
 		circle.classList.remove("border-success", "bg-success", "text-white", "border-primary", "text-primary", "border-border", "text-text-muted");
-		label.classList.remove("font-medium", "text-foreground", "text-text-muted");
+		if (label) {
+			label.classList.remove("font-medium", "text-foreground", "text-text-muted");
+		}
 		if (state === "done") {
 			circle.classList.add("border-success", "bg-success", "text-white");
 			circle.innerHTML = CHECK_SVG;
-			label.classList.add("text-text-muted");
+			if (label) { label.classList.add("text-text-muted"); }
 		} else if (state === "active") {
 			circle.classList.add("border-primary", "text-primary");
 			circle.innerHTML = '<span class="text-caption font-bold">' + circle.getAttribute("data-jluxe-step-number") + "</span>";
-			label.classList.add("font-medium", "text-foreground");
+			if (label) { label.classList.add("font-medium", "text-foreground"); }
 		} else {
 			circle.classList.add("border-border", "text-text-muted");
 			circle.innerHTML = '<span class="text-caption font-bold">' + circle.getAttribute("data-jluxe-step-number") + "</span>";
-			label.classList.add("text-text-muted");
+			if (label) { label.classList.add("text-text-muted"); }
 		}
 	}
 
@@ -3676,96 +3694,24 @@ function jluxeEnhanceShopSort(root) {
 		}
 	}
 
-	var shippingNoticeCopy = {
-		unselected: {
-			title: "کرایهٔ ارسال، وابسته به روش انتخابی",
-			text: "تیپاکس و چاپار: پس‌کرایه و پرداخت در محل؛ پست پیشتاز: پرداخت هنگام ثبت سفارش.",
-			badge: "پرداخت طبق روش"
-		},
-		post: {
-			title: "پست پیشتاز · پرداخت هنگام ثبت سفارش",
-			text: "هزینهٔ ارسال همراه مبلغ سفارش محاسبه و هنگام ثبت سفارش پرداخت می‌شود.",
-			badge: "پرداخت هنگام سفارش"
-		},
-		tipax: {
-			title: "تیپاکس · پس‌کرایه",
-			text: "کرایه را هنگام دریافت کالا، مستقیم به مأمور تیپاکس پرداخت کنید.",
-			badge: "کرایه در محل"
-		},
-		chapar: {
-			title: "چاپار · پس‌کرایه",
-			text: "کرایه را هنگام دریافت کالا، مستقیم به مأمور چاپار پرداخت کنید.",
-			badge: "کرایه در محل"
-		},
-		cod: {
-			title: "پس‌کرایه · پرداخت کرایه در محل",
-			text: "کرایهٔ هر بسته را هنگام دریافت، به مأمور تیپاکس یا چاپار بپردازید.",
-			badge: "پرداخت هنگام تحویل"
-		},
-		mixed: {
-			title: "شیوهٔ پرداخت برای روش‌های انتخابی متفاوت است",
-			text: "پست پیشتاز هنگام ثبت سفارش؛ تیپاکس و چاپار هنگام تحویل دریافت می‌شوند.",
-			badge: "طبق هر روش"
-		},
-		other: {
-			title: "کرایهٔ ارسال",
-			text: "نحوهٔ پرداخت هزینه مطابق شرایط روش حمل انتخاب‌شده است.",
-			badge: ""
-		}
-	};
-
-	function updateShippingFreightNotice() {
-		var section = document.getElementById("jluxe-shipping-section");
-		var notice = section && section.querySelector("[data-jluxe-shipping-freight-note]");
-		if (!notice) {
-			return;
-		}
-		var selected = section.querySelectorAll("input.shipping_method:checked");
-		var kinds = [];
-		for (var index = 0; index < selected.length; index++) {
-			var kind = selected[index].getAttribute("data-jluxe-shipping-kind") || "other";
-			if (kinds.indexOf(kind) === -1) {
-				kinds.push(kind);
-			}
-		}
-
-		var noticeKind = "unselected";
-		if (kinds.length === 1) {
-			noticeKind = shippingNoticeCopy[kinds[0]] ? kinds[0] : "other";
-		} else if (kinds.length > 1) {
-			var allCollectOnDelivery = kinds.every(function (kind) {
-				return kind === "tipax" || kind === "chapar";
-			});
-			var hasPost = kinds.indexOf("post") !== -1;
-			var hasCollectOnDelivery = kinds.some(function (kind) {
-				return kind === "tipax" || kind === "chapar";
-			});
-			noticeKind = allCollectOnDelivery ? "cod" : (hasPost && hasCollectOnDelivery ? "mixed" : "other");
-		}
-
-		var copy = shippingNoticeCopy[noticeKind] || shippingNoticeCopy.other;
-		notice.setAttribute("data-shipping-kind", noticeKind);
-		var title = notice.querySelector("[data-jluxe-shipping-note-title]");
-		var text = notice.querySelector("[data-jluxe-shipping-note-text]");
-		var badge = notice.querySelector("[data-jluxe-shipping-note-badge]");
-		if (title) { title.textContent = copy.title; }
-		if (text) { text.textContent = copy.text; }
-		if (badge) {
-			badge.textContent = copy.badge;
-			badge.hidden = !copy.badge;
-		}
-	}
 
 	/* دکمه‌های مرحله‌ی ارسال پایینِ خلاصه سفارش می‌مانند؛ با تغییر مرحله،
 	 * خود صفحه به ابتدای viewport برمی‌گردد تا استپر و عنوان مرحله دیده شوند. */
 	var actions = document.createElement("div");
 	actions.className = "jluxe-checkout-step-actions jluxe-checkout-action-row";
-	actions.innerHTML =
-		'<a href="' + wcCartUrl + '" data-jluxe-checkout-to-cart class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">بازگشت به سبد خرید</a>' +
-		'<button type="button" data-jluxe-checkout-next class="jluxe-checkout-action-button jluxe-checkout-action-button--primary">نهایی‌سازی سفارش</button>';
+	var toCartBtn = document.createElement("a");
+	toCartBtn.href = wcCartUrl;
+	toCartBtn.setAttribute("data-jluxe-checkout-to-cart", "");
+	toCartBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--secondary";
+	toCartBtn.textContent = getCheckoutCopy("checkout_back_to_cart_button", "بازگشت به سبد خرید");
+	var nextBtn = document.createElement("button");
+	nextBtn.type = "button";
+	nextBtn.setAttribute("data-jluxe-checkout-next", "");
+	nextBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--primary";
+	nextBtn.textContent = getCheckoutCopy("checkout_next_button", "نهایی‌سازی سفارش");
+	actions.appendChild(toCartBtn);
+	actions.appendChild(nextBtn);
 	orderReview.insertAdjacentElement("afterend", actions);
-	var nextBtn = actions.querySelector("[data-jluxe-checkout-next]");
-	var toCartBtn = actions.querySelector("[data-jluxe-checkout-to-cart]");
 	var paymentBackBtn = document.querySelector("#jluxe-payment-submit [data-jluxe-checkout-back]");
 
 	function goToPayment() {
@@ -3866,15 +3812,11 @@ function jluxeEnhanceShopSort(root) {
 	document.addEventListener("change", function (event) {
 		if (event.target && event.target.classList && event.target.classList.contains("shipping_method")) {
 			toggleError('[data-jluxe-shipping-error]', false);
-			updateShippingFreightNotice();
 		}
 		if (event.target && event.target.classList && event.target.classList.contains("payment_method")) {
 			toggleError('[data-jluxe-payment-error]', false);
 		}
 	});
-	window.jQuery(document.body).on("updated_checkout.jluxeShippingNotice", updateShippingFreightNotice);
-	updateShippingFreightNotice();
-
 	/*
 	 * روشِ پرداخت هم دیگه از پیش انتخاب نیست، پس قبلِ اجازه‌دادنِ submitِ
 	 * واقعیِ فرم (که خودِ اسکریپتِ چک‌اوتِ ووکامرس روی همین رویداد گوش

@@ -777,6 +777,57 @@ function jluxe_sanitize_shop( array $posted, array $defaults ): array {
 	);
 }
 
+/** تنظیماتِ قابل‌ویرایشِ متن و نمایشِ سبد خرید/تسویه‌حساب؛ هزینه‌ها را تغییر نمی‌دهد. */
+function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
+	$posted_copy = isset( $posted['copy'] ) && is_array( $posted['copy'] ) ? $posted['copy'] : array();
+	$copy        = array();
+	$textarea_keys = array( 'cart_empty_message', 'checkout_payment_warning', 'checkout_no_shipping_options' );
+	foreach ( $defaults['copy'] as $key => $default_text ) {
+		$raw = isset( $posted_copy[ $key ] ) && is_scalar( $posted_copy[ $key ] )
+			? (string) $posted_copy[ $key ]
+			: (string) $default_text;
+		$copy[ $key ] = in_array( $key, $textarea_keys, true )
+			? sanitize_textarea_field( $raw )
+			: sanitize_text_field( $raw );
+	}
+
+	$posted_methods = isset( $posted['shipping_methods'] ) && is_array( $posted['shipping_methods'] ) ? $posted['shipping_methods'] : array();
+	$shipping_methods = array();
+	foreach ( $defaults['shipping_methods'] as $method_key => $default_method ) {
+		$method_posted = isset( $posted_methods[ $method_key ] ) && is_array( $posted_methods[ $method_key ] )
+			? $posted_methods[ $method_key ]
+			: array();
+		$summary = isset( $method_posted['summary'] ) && is_scalar( $method_posted['summary'] )
+			? (string) $method_posted['summary']
+			: (string) $default_method['summary'];
+		$description = isset( $method_posted['description'] ) && is_scalar( $method_posted['description'] )
+			? (string) $method_posted['description']
+			: (string) $default_method['description'];
+		$shipping_methods[ $method_key ] = array(
+			'enabled'     => ! empty( $method_posted['enabled'] ),
+			'summary'     => sanitize_text_field( $summary ),
+			'description' => sanitize_textarea_field( $description ),
+		);
+	}
+
+	return array(
+		'show_stepper'                     => ! empty( $posted['show_stepper'] ),
+		'show_cart_coupon'                 => ! empty( $posted['show_cart_coupon'] ),
+		'cart_empty_message_enabled'       => ! empty( $posted['cart_empty_message_enabled'] ),
+		'cart_empty_return_enabled'        => ! empty( $posted['cart_empty_return_enabled'] ),
+		'cart_shipping_notice_enabled'     => ! empty( $posted['cart_shipping_notice_enabled'] ),
+		'cart_shipping_notice_text'        => isset( $posted['cart_shipping_notice_text'] ) && is_scalar( $posted['cart_shipping_notice_text'] )
+			? sanitize_textarea_field( (string) $posted['cart_shipping_notice_text'] )
+			: '',
+		'checkout_shipping_heading_enabled' => ! empty( $posted['checkout_shipping_heading_enabled'] ),
+		'checkout_shipping_error_enabled'  => ! empty( $posted['checkout_shipping_error_enabled'] ),
+		'checkout_payment_warning_enabled' => ! empty( $posted['checkout_payment_warning_enabled'] ),
+		'show_shipping_accordions'         => ! empty( $posted['show_shipping_accordions'] ),
+		'copy'                             => $copy,
+		'shipping_methods'                 => $shipping_methods,
+	);
+}
+
 /**
  * «آیتم‌های اضافه خرید» — سخت‌گیرانه: حالت در فهرستِ بسته، شناسه‌های ثابت
  * عددیِ یکتا (سقف ۲۰)، خدمات حداکثر ۸ ردیف با عنوانِ کوتاه، مبلغِ

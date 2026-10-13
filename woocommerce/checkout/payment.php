@@ -42,12 +42,20 @@ if ( ! wp_doing_ajax() ) {
 		 * یادآوریِ متنیه، به هیچ منطقِ واقعیِ ووکامرس دست نمی‌زنه.
 		 */
 		?>
-		<div class="mb-4 flex items-start gap-2 rounded-xl bg-warning/15 p-4 text-small text-foreground">
-			<span class="mt-0.5 shrink-0 text-warning">⚠</span>
-			<span>در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.</span>
-		</div>
+		<?php if ( jluxe_cart_checkout_option( 'checkout_payment_warning_enabled', true ) ) : ?>
+			<?php $payment_warning = jluxe_cart_checkout_copy( 'checkout_payment_warning', 'در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.' ); ?>
+			<?php if ( '' !== trim( $payment_warning ) ) : ?>
+				<div class="mb-4 flex items-start gap-2 rounded-xl bg-warning/15 p-4 text-small text-foreground">
+					<span class="mt-0.5 shrink-0 text-warning">⚠</span>
+					<span><?php echo nl2br( esc_html( $payment_warning ) ); ?></span>
+				</div>
+			<?php endif; ?>
+		<?php endif; ?>
 
-		<p class="mb-3 text-small font-medium text-foreground">روش پرداخت</p>
+		<?php $payment_heading = jluxe_cart_checkout_copy( 'checkout_payment_heading', 'روش پرداخت' ); ?>
+		<?php if ( '' !== trim( $payment_heading ) ) : ?>
+			<p class="mb-3 text-small font-medium text-foreground"><?php echo esc_html( $payment_heading ); ?></p>
+		<?php endif; ?>
 		<?php
 		/*
 		 * هر درگاه در یک ردیفِ افقیِ مستطیلی و تمام‌عرض نمایش داده می‌شود؛
@@ -62,9 +70,15 @@ if ( ! wp_doing_ajax() ) {
 					wc_get_template( 'checkout/payment-method.php', array( 'gateway' => $gateway ) );
 				}
 			} else {
-				echo '<li>';
-				wc_print_notice( apply_filters( 'woocommerce_no_available_payment_methods_message', WC()->customer->get_billing_country() ? esc_html__( 'Sorry, it seems that there are no available payment methods. Please contact us if you require assistance or wish to make alternate arrangements.', 'woocommerce' ) : esc_html__( 'Please fill in your details above to see available payment methods.', 'woocommerce' ) ), 'notice' );
-				echo '</li>';
+				$message = WC()->customer->get_billing_country()
+					? jluxe_cart_checkout_copy( 'checkout_no_payment_methods', 'در حال حاضر روش پرداختی در دسترس نیست. لطفاً با پشتیبانی تماس بگیرید.' )
+					: jluxe_cart_checkout_copy( 'checkout_payment_details_prompt', 'برای مشاهدهٔ روش‌های پرداخت، اطلاعات خود را تکمیل کنید.' );
+				$message = apply_filters( 'woocommerce_no_available_payment_methods_message', $message );
+				if ( is_scalar( $message ) && '' !== trim( wp_strip_all_tags( (string) $message ) ) ) {
+					echo '<li>';
+					wc_print_notice( (string) $message, 'notice' );
+					echo '</li>';
+				}
 			}
 			?>
 		</ul>

@@ -98,6 +98,48 @@ function jluxe_fa_digits( $value ): string {
 	);
 }
 
+/** Read configurable cart/checkout copy while preserving an intentionally blank value. */
+function jluxe_cart_checkout_copy( string $key, string $fallback = '' ): string {
+	$value = jluxe_get_setting( 'cart_checkout.copy.' . $key, null );
+	return null === $value || ! is_scalar( $value ) ? $fallback : (string) $value;
+}
+
+/** Required controls keep a readable label even if an administrator clears their text field. */
+function jluxe_cart_checkout_required_copy( string $key, string $fallback ): string {
+	$value = trim( jluxe_cart_checkout_copy( $key, $fallback ) );
+	return '' !== $value ? $value : $fallback;
+}
+
+/** Boolean presentation switches never touch cart, address, shipping, tax, or payment calculations. */
+function jluxe_cart_checkout_option( string $key, bool $fallback = false ): bool {
+	return (bool) jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
+}
+
+/** Configurable explanatory copy for one recognized carrier; not used to calculate a rate. */
+function jluxe_cart_checkout_shipping_method_settings( string $kind ): array {
+	if ( ! in_array( $kind, array( 'post', 'tipax', 'chapar' ), true ) ) {
+		return array( 'enabled' => false, 'summary' => '', 'description' => '' );
+	}
+	$settings = jluxe_get_setting( 'cart_checkout.shipping_methods.' . $kind, array() );
+	if ( ! is_array( $settings ) ) {
+		$settings = array();
+	}
+	return array(
+		'enabled'     => ! empty( $settings['enabled'] ),
+		'summary'     => isset( $settings['summary'] ) && is_scalar( $settings['summary'] ) ? (string) $settings['summary'] : '',
+		'description' => isset( $settings['description'] ) && is_scalar( $settings['description'] ) ? (string) $settings['description'] : '',
+	);
+}
+
+/** Override only the empty-cart copy when its explicit presentation switch is enabled. */
+function jluxe_cart_empty_message( string $message ): string {
+	if ( ! jluxe_cart_checkout_option( 'cart_empty_message_enabled', false ) ) {
+		return $message;
+	}
+	return esc_html( jluxe_cart_checkout_copy( 'cart_empty_message', '' ) );
+}
+add_filter( 'wc_empty_cart_message', 'jluxe_cart_empty_message', 9999 );
+
 /**
  * باگِ واقعیِ گزارش‌شده («همه‌ی قیمت‌ها یک صفر کم دارن — ۳,۸۸۰,۰۰۰ شده
  * ۳۸۸,۰۰۰») — دقیقاً همون سناریویی که کامنتِ قدیمیِ همین تابع از قبل
@@ -2280,12 +2322,15 @@ function jluxe_render_payment_submit(): void {
 			<?php wc_get_template( 'checkout/terms.php' ); ?>
 		</div>
 
-		<p data-jluxe-payment-error hidden class="mb-2 text-caption text-error">روش پرداخت را انتخاب کنید.</p>
+		<?php $payment_error = jluxe_cart_checkout_copy( 'checkout_payment_error', 'روش پرداخت را انتخاب کنید.' ); ?>
+		<?php if ( '' !== trim( $payment_error ) ) : ?>
+			<p data-jluxe-payment-error hidden class="mb-2 text-caption text-error"><?php echo esc_html( $payment_error ); ?></p>
+		<?php endif; ?>
 
 		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 
 		<div class="jluxe-checkout-place-order-row jluxe-checkout-action-row">
-			<button type="button" data-jluxe-checkout-back hidden class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">بازگشت</button>
+			<button type="button" data-jluxe-checkout-back hidden class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary"><?php echo esc_html( jluxe_cart_checkout_required_copy( 'checkout_back_button', 'بازگشت' ) ); ?></button>
 			<div class="jluxe-checkout-place-order-slot">
 				<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="jluxe-checkout-action-button jluxe-checkout-action-button--primary" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
 			</div>
@@ -2321,16 +2366,16 @@ function jluxe_shipping_method_presentation( $method ): array {
 	$identity = implode( ' ', $identifiers );
 
 	if ( preg_match( '/تیپاکس|tipax/iu', $identity ) ) {
-		return array( 'kind' => 'tipax', 'hint' => 'سریع‌تر · هزینهٔ بیشتر' );
+		return array( 'kind' => 'tipax' );
 	}
 	if ( preg_match( '/چاپار|chapar/iu', $identity ) ) {
-		return array( 'kind' => 'chapar', 'hint' => 'مناسب بسته‌های حجیم' );
+		return array( 'kind' => 'chapar' );
 	}
 	if ( preg_match( '/پست|پیشتاز|post|pishtaz/iu', $identity ) ) {
-		return array( 'kind' => 'post', 'hint' => 'اقتصادی · پوشش سراسری' );
+		return array( 'kind' => 'post' );
 	}
 
-	return array( 'kind' => 'other', 'hint' => '' );
+	return array( 'kind' => 'other' );
 }
 
 /**
@@ -2348,11 +2393,14 @@ function jluxe_shipping_method_presentation( $method ): array {
  */
 
 function jluxe_render_checkout_stepper( string $active_id ): void {
+	if ( ! jluxe_cart_checkout_option( 'show_stepper', true ) ) {
+		return;
+	}
 	$steps = array(
-		'cart'     => 'بررسی سبد خرید',
-		'shipping' => 'اطلاعات ارسال',
-		'payment'  => 'نحوه پرداخت',
-		'done'     => 'پایان خرید',
+		'cart'     => jluxe_cart_checkout_copy( 'checkout_step_cart', 'بررسی سبد خرید' ),
+		'shipping' => jluxe_cart_checkout_copy( 'checkout_step_shipping', 'اطلاعات ارسال' ),
+		'payment'  => jluxe_cart_checkout_copy( 'checkout_step_payment', 'نحوه پرداخت' ),
+		'done'     => jluxe_cart_checkout_copy( 'checkout_step_done', 'پایان خرید' ),
 	);
 	$ids   = array_keys( $steps );
 	$active_index = array_search( $active_id, $ids, true );
@@ -2382,9 +2430,11 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 							<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
 						<?php endif; ?>
 					</span>
-					<span data-jluxe-step-label class="jluxe-checkout-step__label <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
-						<?php echo esc_html( $steps[ $id ] ); ?>
-					</span>
+					<?php if ( '' !== trim( $steps[ $id ] ) ) : ?>
+						<span data-jluxe-step-label class="jluxe-checkout-step__label <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
+							<?php echo esc_html( $steps[ $id ] ); ?>
+						</span>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ol>
@@ -2449,6 +2499,22 @@ function jluxe_billing_fields( array $fields ): array {
 		return $fields;
 	}
 
+	$field_labels = array(
+		'billing_first_name' => array( 'checkout_first_name_label', 'نام' ),
+		'billing_last_name'  => array( 'checkout_last_name_label', 'نام خانوادگی' ),
+		'billing_state'      => array( 'checkout_province_label', 'استان' ),
+		'billing_city'       => array( 'checkout_city_label', 'شهر' ),
+		'billing_phone'      => array( 'checkout_phone_label', 'موبایل' ),
+		'billing_email'      => array( 'checkout_email_label', 'آدرس ایمیل' ),
+		'billing_postcode'   => array( 'checkout_postcode_label', 'کد پستی' ),
+		'billing_address_1'  => array( 'checkout_address_label', 'آدرس' ),
+	);
+	foreach ( $field_labels as $field_key => $label ) {
+		if ( isset( $fields['billing'][ $field_key ] ) ) {
+			$fields['billing'][ $field_key ]['label'] = jluxe_cart_checkout_required_copy( $label[0], $label[1] );
+		}
+	}
+
 	if ( isset( $fields['billing']['billing_first_name'] ) ) {
 		$fields['billing']['billing_first_name']['priority'] = 5;
 	}
@@ -2484,9 +2550,11 @@ function jluxe_billing_fields( array $fields ): array {
 		$current_city                                    = WC()->checkout()->get_value( 'billing_city' );
 		$fields['billing']['billing_city']['priority']    = 26;
 		$fields['billing']['billing_city']['type']        = 'select';
+		$city_placeholder = jluxe_cart_checkout_required_copy( 'checkout_city_placeholder', 'انتخاب شهرستان' );
+		$city_prompt      = jluxe_cart_checkout_required_copy( 'checkout_city_prompt', 'ابتدا استان را انتخاب کنید' );
 		$fields['billing']['billing_city']['options']     = $current_city
-			? array( '' => 'انتخاب شهرستان', $current_city => $current_city )
-			: array( '' => 'ابتدا استان را انتخاب کنید' );
+			? array( '' => $city_placeholder, $current_city => $current_city )
+			: array( '' => $city_prompt );
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
 		$fields['billing']['billing_postcode']['priority']    = 27;
@@ -2498,7 +2566,7 @@ function jluxe_billing_fields( array $fields ): array {
 		// موبایل الزامیه (کدِ رهگیریِ پیامکی/پیگیریِ سفارش به همین شماره
 		// ارسال می‌شه) — طبقِ مرجعِ تصویریِ جدید و منطقِ واقعیِ کسب‌وکار،
 		// برخلافِ پیش‌فرضِ اختیاریِ افزونه‌ی «ووکامرس فارسی».
-		$fields['billing']['billing_phone']['label']    = 'موبایل';
+		$fields['billing']['billing_phone']['label']    = jluxe_cart_checkout_required_copy( 'checkout_phone_label', 'موبایل' );
 		$fields['billing']['billing_phone']['priority'] = 15;
 		$fields['billing']['billing_phone']['required'] = true;
 	}
@@ -2507,7 +2575,7 @@ function jluxe_billing_fields( array $fields ): array {
 	// بعد از آدرس (50) طبقِ ترتیبِ مرجعِ تصویریِ جدید (... آدرس، بعد تلفنِ
 	// ثابت/توضیحات).
 	$fields['billing']['billing_landline'] = array(
-		'label'        => 'تلفن ثابت',
+		'label'        => jluxe_cart_checkout_required_copy( 'checkout_landline_label', 'تلفن ثابت' ),
 		'required'     => false,
 		'priority'     => 55,
 		'type'         => 'tel',
@@ -2551,16 +2619,20 @@ function jluxe_billing_fields( array $fields ): array {
  * گیت جدیدی به انتخاب/ثبت سفارش اضافه نمی‌شود.
  */
 function jluxe_optional_checkout_postcodes( array $fields ): array {
-	$description = 'برای ارسال پستی، وارد کردن کد پستی الزامی است.';
+	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', 'برای ارسال پستی، وارد کردن کد پستی الزامی است.' );
 	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
 		$key = $address_type . '_postcode';
 		if ( ! isset( $fields[ $address_type ][ $key ] ) ) {
 			continue;
 		}
-		$fields[ $address_type ][ $key ]['required']     = false;
-		$fields[ $address_type ][ $key ]['placeholder']  = '';
-		$fields[ $address_type ][ $key ]['description']  = $description;
-		$fields[ $address_type ][ $key ]['desc_tip']     = false;
+		$fields[ $address_type ][ $key ]['required']    = false;
+		$fields[ $address_type ][ $key ]['placeholder'] = '';
+		if ( '' !== trim( $description ) ) {
+			$fields[ $address_type ][ $key ]['description'] = $description;
+		} else {
+			unset( $fields[ $address_type ][ $key ]['description'] );
+		}
+		$fields[ $address_type ][ $key ]['desc_tip'] = false;
 	}
 	return $fields;
 }
@@ -2599,8 +2671,8 @@ add_filter( 'woocommerce_checkout_fields', 'jluxe_billing_fields', 20 );
  */
 function jluxe_order_notes_field( array $fields ): array {
 	if ( isset( $fields['order']['order_comments'] ) ) {
-		$fields['order']['order_comments']['label']       = 'توضیحات سفارش';
-		$fields['order']['order_comments']['placeholder']  = 'توضیحی که نیاز است در رابطه با سفارش بیان کنید';
+		$fields['order']['order_comments']['label']       = jluxe_cart_checkout_required_copy( 'checkout_order_notes_label', 'توضیحات سفارش' );
+		$fields['order']['order_comments']['placeholder']  = jluxe_cart_checkout_copy( 'checkout_order_notes_placeholder', 'توضیحی که نیاز است در رابطه با سفارش بیان کنید' );
 		$fields['order']['order_comments']['class']        = array( 'form-row-wide' );
 	}
 	return $fields;
@@ -2640,7 +2712,13 @@ add_filter( 'woocommerce_ship_to_different_address_checkbox_enabled', '__return_
  * فیلتر از یک اورراید واقعیِ تمپلیت استفاده شده:
  * woocommerce/cart/proceed-to-checkout-button.php.
  */
-add_filter( 'woocommerce_order_button_text', fn() => 'پرداخت', 9999 );
+add_filter(
+	'woocommerce_order_button_text',
+	static function ( $button_text ): string {
+		return jluxe_cart_checkout_required_copy( 'checkout_place_order_button', 'پرداخت' );
+	},
+	9999
+);
 
 /**
  * استایل مینیمال سبد/چک‌اوت با استایل کلی سایت هماهنگه (فونت/رنگ از

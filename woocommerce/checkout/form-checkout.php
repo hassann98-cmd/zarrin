@@ -23,7 +23,7 @@ jluxe_render_checkout_stepper( 'shipping' );
 ?>
 
 <div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
-	<noscript><p class="woocommerce-error" role="alert">برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد. <a href="<?php echo esc_url( wc_get_cart_url() ); ?>">بازگشت به سبد خرید</a></p></noscript>
+	<noscript><p class="woocommerce-error" role="alert"><?php echo esc_html( jluxe_cart_checkout_copy( 'checkout_no_js_notice', 'برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد.' ) ); ?> <a href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php echo esc_html( jluxe_cart_checkout_required_copy( 'checkout_no_js_back', 'بازگشت به سبد خرید' ) ); ?></a></p></noscript>
 	<form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
 
 		<div class="jluxe-checkout-layout grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -62,7 +62,10 @@ jluxe_render_checkout_stepper( 'shipping' );
 			<div class="jluxe-checkout-summary flex h-fit flex-col lg:sticky lg:top-24">
 				<?php do_action( 'woocommerce_checkout_before_order_review_heading' ); ?>
 
-				<p class="jluxe-checkout-summary-title">خلاصه سفارش</p>
+				<?php $summary_heading = jluxe_cart_checkout_copy( 'checkout_summary_heading', 'خلاصه سفارش' ); ?>
+				<?php if ( '' !== trim( $summary_heading ) ) : ?>
+					<p class="jluxe-checkout-summary-title"><?php echo esc_html( $summary_heading ); ?></p>
+				<?php endif; ?>
 
 				<?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
 
