@@ -6275,6 +6275,7 @@ $_POST = array( 'jluxe_billing_city_label' => 'بیستون' ); // phpcs:ignore 
 $r261_state_options = jluxe_ir_current_checkout_state_options();
 $r261_city_options  = jluxe_ir_current_checkout_city_options();
 $r261_fallback_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ) );
+$r263_missing_city_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '' ) );
 $r261_fallback_errors = new class() {
 	public $items = array();
 	public function add( $code, $message, $data = array() ) {
@@ -6290,6 +6291,7 @@ $r261_foreign_label_errors = new class() {
 	}
 };
 jluxe_validate_checkout_requirements( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '2356' ), $r261_foreign_label_errors );
+$r263_foreign_missing_city_data = jluxe_ir_normalize_checkout_posted_location_data( array( 'billing_country' => 'IR', 'billing_state' => '2352', 'billing_city' => '' ) );
 check(
 	! array_key_exists( '2356', $r261_city_options ) &&
 	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options ) &&
@@ -6299,6 +6301,11 @@ check(
 	isset( $r261_foreign_label_errors->items['jluxe_billing_city_province_mismatch'] ) &&
 	! jluxe_ir_checkout_city_is_valid( '2352', '2356', $r261_state_options, $r261_city_options, 'اهواز' ),
 	'R261 an unmapped numeric city ID is normalized from its submitted option label only after same-province validation; foreign labels still fail'
+);
+check(
+	'بیستون' === ( $r263_missing_city_data['billing_city'] ?? '' ) &&
+	'' === ( $r263_foreign_missing_city_data['billing_city'] ?? '' ),
+	'R263 recovers an omitted city field only from a canonical label in the posted province; a foreign label remains empty'
 );
 $_POST = $r261_previous_post;
 if ( null === $r261_previous_wc ) {

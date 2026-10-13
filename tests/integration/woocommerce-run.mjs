@@ -700,7 +700,21 @@ try {
       // its subsequent real validation action as process_checkout normally does.
       do_action('woocommerce_after_checkout_validation',$posted,$errors);
       $validErrorCodes=$errors->get_error_codes();
+      $_POST['billing_city']='';
+      $omittedPosted=$checkout->get_posted_data();
+      $omittedErrors=new WP_Error();
+      $omittedValidatorArgs=array(&$omittedPosted,&$omittedErrors);
+      $validator->invokeArgs($checkout,$omittedValidatorArgs);
+      do_action('woocommerce_after_checkout_validation',$omittedPosted,$omittedErrors);
+      $omittedErrorCodes=$omittedErrors->get_error_codes();
       $_POST['jluxe_billing_city_label']='اهواز';
+      $foreignOmittedPosted=$checkout->get_posted_data();
+      $foreignOmittedErrors=new WP_Error();
+      $foreignOmittedValidatorArgs=array(&$foreignOmittedPosted,&$foreignOmittedErrors);
+      $validator->invokeArgs($checkout,$foreignOmittedValidatorArgs);
+      do_action('woocommerce_after_checkout_validation',$foreignOmittedPosted,$foreignOmittedErrors);
+      $foreignOmittedErrorCodes=$foreignOmittedErrors->get_error_codes();
+      $_POST['billing_city']='2356';
       $foreignPosted=$checkout->get_posted_data();
       $foreignErrors=new WP_Error();
       $foreignValidatorArgs=array(&$foreignPosted,&$foreignErrors);
@@ -712,6 +726,10 @@ try {
         'postedState'=>$posted['billing_state']??'',
         'postedCity'=>$posted['billing_city']??'',
         'validCityHasNoMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$validErrorCodes,true),
+        'omittedCityRecovered'=>($omittedPosted['billing_city']??'')==='بیستون',
+        'omittedCityPassesRequired'=>!in_array('billing_city_required',$omittedErrorCodes,true),
+        'foreignOmittedCityRemainsEmpty'=>($foreignOmittedPosted['billing_city']??'')==='',
+        'foreignOmittedCityStillRequired'=>in_array('billing_city_required',$foreignOmittedErrorCodes,true),
         'foreignLabelRetainsUnresolvedId'=>($foreignPosted['billing_city']??'')==='2356',
         'foreignCityRejected'=>in_array('jluxe_billing_city_province_mismatch',$foreignErrorCodes,true)
       );
@@ -725,9 +743,13 @@ try {
         unmappedNumericCitySubmission.postedState === "KRH" &&
         unmappedNumericCitySubmission.postedCity === "بیستون" &&
         unmappedNumericCitySubmission.validCityHasNoMismatch &&
+        unmappedNumericCitySubmission.omittedCityRecovered &&
+        unmappedNumericCitySubmission.omittedCityPassesRequired &&
+        unmappedNumericCitySubmission.foreignOmittedCityRemainsEmpty &&
+        unmappedNumericCitySubmission.foreignOmittedCityStillRequired &&
         unmappedNumericCitySubmission.foreignLabelRetainsUnresolvedId &&
         unmappedNumericCitySubmission.foreignCityRejected,
-      `Real WooCommerce 11.2 resolves an unmapped numeric city from its submitted visible label but still rejects a foreign-province label (${JSON.stringify(unmappedNumericCitySubmission)})`,
+      `Real WooCommerce 11.2 recovers an omitted city control only from a canonical label in the posted province, but still requires a genuinely empty or foreign city (${JSON.stringify(unmappedNumericCitySubmission)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";

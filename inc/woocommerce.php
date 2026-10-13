@@ -2697,8 +2697,14 @@ function jluxe_ir_normalize_checkout_posted_location_data( array $data ): array 
 	// The real option map wins. If an extension submitted an opaque numeric ID
 	// without registering its map server-side, validate its visible label against
 	// the same province's canonical city list before normalizing the WooCommerce field.
-	$canonical_city = jluxe_ir_checkout_canonical_city_name( $state, $city, $state_options, $city_options, jluxe_posted_checkout_city_label() );
+	$city_label         = jluxe_posted_checkout_city_label();
+	$city_candidate     = '' !== trim( $city ) ? $city : $city_label;
+	$numeric_city_label = '' !== trim( $city ) ? $city_label : '';
+	$canonical_city     = jluxe_ir_checkout_canonical_city_name( $state, $city_candidate, $state_options, $city_options, $numeric_city_label );
 	if ( '' !== $canonical_city ) {
+		// A visually selected city can be omitted from successful controls if a
+		// third-party script disables/replaces the select late. The hidden label
+		// is only a recovery hint; the canonical same-province check above must pass.
 		$data['billing_city'] = $canonical_city;
 	}
 
