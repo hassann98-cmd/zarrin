@@ -33,9 +33,8 @@ if ( ! wp_doing_ajax() ) {
 	do_action( 'woocommerce_review_order_before_payment' );
 }
 ?>
-<?php $jluxe_payment_required = WC()->cart && WC()->cart->needs_payment(); ?>
-<div id="payment" class="woocommerce-checkout-payment" data-jluxe-payment-required="<?php echo $jluxe_payment_required ? '1' : '0'; ?>" aria-labelledby="jluxe-payment-heading">
-	<?php if ( $jluxe_payment_required ) : ?>
+<div id="payment" class="woocommerce-checkout-payment">
+	<?php if ( WC()->cart && WC()->cart->needs_payment() ) : ?>
 		<?php
 		/*
 		 * هشدارِ VPN طبقِ مرجعِ تصویریِ جدیدِ کاربر — درگاه‌های پرداختِ
@@ -48,7 +47,7 @@ if ( ! wp_doing_ajax() ) {
 			<span>در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.</span>
 		</div>
 
-		<p id="jluxe-payment-heading" tabindex="-1" class="mb-3 text-small font-medium text-foreground">روش پرداخت</p>
+		<p class="mb-3 text-small font-medium text-foreground">روش پرداخت</p>
 		<?php
 		/*
 		 * طبقِ درخواستِ صریحِ کاربر («درگاه‌های قابل‌انتخاب رو مرتب‌تر
@@ -72,8 +71,6 @@ if ( ! wp_doing_ajax() ) {
 			}
 			?>
 		</ul>
-	<?php else : ?>
-		<p id="jluxe-payment-heading" tabindex="-1" role="status" class="text-small text-text-secondary">برای این سفارش، نیازی به انتخاب روش پرداخت نیست.</p>
 	<?php endif; ?>
 </div>
 <?php

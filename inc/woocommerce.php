@@ -1968,8 +1968,7 @@ remove_action( 'woocommerce_checkout_order_review', 'woocommerce_checkout_paymen
  * اون تابع رو صدا نمی‌زنیم (به remove_action بالا مراجعه بشه)، این‌جا
  * مستقل خودمون $order_button_text رو با همون فیلترِ رسمیِ ووکامرس
  * می‌سازیم — منطق/nonce/دکمه دقیقاً همونیه که خودِ ووکامرس تولید می‌کرد،
- * فقط جای رندرش عوض شده. wrapper باریکِ data-jluxe-checkout-place-order-row
- * برای سازگاری با state machine جدید نگه داشته شده تا «بازگشت» کنارِ submit بماند.
+ * فقط جای رندرش عوض شده.
  */
 function jluxe_render_payment_submit(): void {
 	if ( ! WC()->cart ) {
@@ -1994,11 +1993,7 @@ function jluxe_render_payment_submit(): void {
 		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 
 		<div class="mt-4">
-			<div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
-				<div class="jluxe-checkout-place-order-slot">
-					<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-button font-normal text-primary-foreground transition-colors hover:bg-primary-hover" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
-				</div>
-			</div>
+			<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-button font-normal text-primary-foreground transition-colors hover:bg-primary-hover" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
 		</div>
 
 		<?php do_action( 'woocommerce_review_order_after_submit' ); ?>
@@ -2007,6 +2002,7 @@ function jluxe_render_payment_submit(): void {
 	</div>
 	<?php
 }
+
 /**
  * نمایش استپر بالای صفحه‌ی سبد/تسویه‌حساب — نشانگر بصریِ مرحله‌ی جاری.
  *
@@ -2033,33 +2029,34 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 		$active_index = 0;
 	}
 	?>
-	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto max-w-[1320px] px-3 py-6 md:px-4">
-		<ol class="m-0 flex list-none items-center justify-center gap-1 p-0 sm:gap-3">
-			<?php foreach ( $ids as $i => $id ) : ?>
+	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto flex max-w-[1320px] items-center justify-center gap-1 px-3 md:px-4 py-6 sm:gap-3">
+		<?php foreach ( $ids as $i => $id ) : ?>
+			<?php if ( $i > 0 ) : ?>
+				<span class="h-px w-3 bg-border sm:w-16" aria-hidden="true"></span>
+			<?php endif; ?>
+			<div class="flex w-12 flex-col items-center gap-1.5 sm:w-auto" data-jluxe-step="<?php echo esc_attr( $id ); ?>">
 				<?php
-				$is_last    = $i === count( $ids ) - 1;
-				$is_current = $i === $active_index;
-				// «پایان خرید» روی صفحه‌ی تأیید، مرحله‌ی جاری و تکمیل‌شده است.
-				$is_done    = $i < $active_index || ( $is_current && $is_last );
-				$is_active  = $is_current && ! $is_done;
+				// آخرین مرحله («پایان خرید») فقط از صفحه‌ی thankyou.php صدا زده
+				// می‌شه، یعنی همیشه با یک سفارشِ واقعاً ثبت‌شده — پس وقتی این
+				// مرحله «فعال»ه، در واقع کامل‌شده‌ست، نه در حال انجام؛ باید مثل
+				// بقیه‌ی مراحلِ done دایره‌ی سبز/تیک بگیره، نه استایلِ «فعلی».
+				$is_last   = $i === count( $ids ) - 1;
+				$is_active = $i === $active_index;
+				$is_done   = $i < $active_index || ( $is_active && $is_last );
+				$is_active = $is_active && ! $is_done;
 				?>
-				<?php if ( $i > 0 ) : ?>
-					<li class="h-px w-3 shrink-0 bg-border sm:w-16" aria-hidden="true"></li>
-				<?php endif; ?>
-				<li class="flex w-12 flex-col items-center gap-1.5 sm:w-auto" data-jluxe-step="<?php echo esc_attr( $id ); ?>" <?php echo $is_current ? 'aria-current="step"' : ''; ?>>
-					<div data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 sm:size-11 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>">
-						<?php if ( $is_done ) : ?>
-							<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-						<?php else : ?>
-							<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
-						<?php endif; ?>
-					</div>
-					<span data-jluxe-step-label class="text-center text-[11px] leading-tight sm:whitespace-nowrap sm:text-caption <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
-						<?php echo esc_html( $steps[ $id ] ); ?>
-					</span>
-				</li>
-			<?php endforeach; ?>
-		</ol>
+				<div data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 sm:size-11 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>">
+					<?php if ( $is_done ) : ?>
+						<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+					<?php else : ?>
+						<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
+					<?php endif; ?>
+				</div>
+				<span data-jluxe-step-label class="text-center text-[10px] leading-tight sm:whitespace-nowrap sm:text-caption <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
+					<?php echo esc_html( $steps[ $id ] ); ?>
+				</span>
+			</div>
+		<?php endforeach; ?>
 	</nav>
 	<?php
 }

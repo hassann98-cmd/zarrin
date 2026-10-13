@@ -6417,18 +6417,18 @@ if ( null === $r257_previous_endpoint ) {
 }
 $GLOBALS['test_pw_instance'] = $r257_previous_pw;
 
-// R258 — restore only the v1.7.29 gateway-card layout; keep the current WooCommerce payment contract.
+// R266 — restore the v1.7.58 payment-template contract; WooCommerce owns no-gateway/zero-payment validation.
 $r258_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r258_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r258_checkout_css     = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
-	false !== strpos( $r258_payment_template, 'data-jluxe-payment-required=' ) &&
-	false !== strpos( $r258_payment_template, 'data-jluxe-payment-required="<?php echo $jluxe_payment_required ? \'1\' : \'0\'; ?>"' ) &&
+	false === strpos( $r258_payment_template, 'data-jluxe-payment-required=' ) &&
+	false === strpos( $r258_payment_template, 'jluxe-payment-heading' ) &&
 	false !== strpos( $r258_payment_template, 'flex flex-wrap gap-3' ) &&
 	false !== strpos( $r258_payment_template, 'foreach ( $available_gateways as $gateway )' ) &&
 	false !== strpos( $r258_payment_template, 'wc_get_template( \'checkout/payment-method.php\'' ) &&
-	false !== strpos( $r258_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
-	'R258 payment section keeps the real gateway loop, restores wrapped cards, and exposes the zero-payment marker required by the current state machine'
+	false === strpos( $r258_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
+	'R266 payment template uses the v1.7.58 WooCommerce needs_payment/gateway loop without a synthetic state marker'
 );
 check(
 	false !== strpos( $r258_method_template, 'name="payment_method"' ) &&
@@ -6515,23 +6515,28 @@ ob_start();
 jluxe_render_checkout_stepper( 'shipping' );
 $r210_stepper_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r210_stepper_html, '<ol ' ) && 1 === substr_count( $r210_stepper_html, 'aria-current="step"' ) && false !== strpos( $r210_stepper_html, 'data-jluxe-step="shipping" aria-current="step"' ),
-	'R210 checkout progress is an ordered list with exactly one programmatically identified current step'
+	false !== strpos( $r210_stepper_html, 'class="jluxe-checkout-stepper' ) &&
+	false === strpos( $r210_stepper_html, '<ol ' ) &&
+	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) &&
+	false !== strpos( $r210_stepper_html, 'data-jluxe-step-circle' ),
+	'R266 checkout progress matches the four-step v1.7.58 markup and is enhanced by the checkout state machine'
 );
 $r247_checkout_css       = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $r247_cart_source        = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart.php' );
 $r247_shipping_source    = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 $r247_payment_source     = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 check(
-	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) && false !== strpos( $r247_checkout_css, '.jluxe-checkout-stepper ol {' ) && false !== strpos( $r247_checkout_css, 'display: grid;' ),
-	'R247 the four checkout steps use one responsive equal-column row'
+	4 === substr_count( $r210_stepper_html, 'data-jluxe-step="' ) &&
+	false !== strpos( $r210_stepper_html, 'jluxe-checkout-stepper mx-auto flex' ) &&
+	false !== strpos( $r210_stepper_html, 'data-jluxe-step="shipping"' ),
+	'R266 the historical checkout stepper keeps its four centered flex steps'
 );
 check(
 	false !== strpos( $r247_cart_source, 'justify-end sm:justify-self-end' ) &&
 	false !== strpos( $r247_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) && false !== strpos( $r247_checkout_css, 'position: fixed;' ) &&
-	false === strpos( $r247_shipping_source, 'jluxe-check-off' ) &&
+	false !== strpos( $r247_shipping_source, 'jluxe-check-off' ) &&
 	false !== strpos( $r247_shipping_source, 'jluxe-check-on' ),
-	'R247 cart quantity is left-aligned, mobile cart actions dock above the navigation, and shipping cards show no empty circle'
+	'R266 shipping choices and cart flow restore the v1.7.58 shipping-card markup'
 );
 check(
 	false !== strpos( $r247_payment_source, 'methods flex flex-wrap gap-3' ) &&
@@ -6545,17 +6550,16 @@ check(
 $r256_form_checkout_source  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 $r256_payment_submit_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 check(
-	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-layout' ) &&
-	false !== strpos( $r256_form_checkout_source, 'id="customer_details" class="jluxe-checkout-panel"' ) &&
-	false !== strpos( $r256_form_checkout_source, 'jluxe-checkout-summary' ) &&
+	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-layout' ) &&
+	false !== strpos( $r256_form_checkout_source, 'id="customer_details"' ) &&
+	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-panel' ) &&
+	false === strpos( $r256_form_checkout_source, 'jluxe-checkout-summary' ) &&
 	false !== strpos( $r256_payment_submit_source, '<div class="form-row place-order mt-4">' ) &&
 	false !== strpos( $r256_payment_submit_source, "wc_get_template( 'checkout/terms.php' )" ) &&
 	false !== strpos( $r256_payment_submit_source, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
 	false !== strpos( $r256_payment_submit_source, "wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' )" ) &&
-	false !== strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ) &&
-	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-step-actions,' ) &&
-	false !== strpos( $r247_checkout_css, 'body.woocommerce-checkout .jluxe-checkout-alert' ),
-	'R260 keeps the new checkout panels and Back-row adapter while restoring v1.7.29 WooCommerce submit, terms, and nonce markup'
+	false === strpos( $r256_payment_submit_source, 'data-jluxe-checkout-place-order-row' ),
+	'R266 restores the v1.7.58 checkout wrappers while keeping WooCommerce place_order, terms, nonce, and gateway hooks intact'
 );
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(

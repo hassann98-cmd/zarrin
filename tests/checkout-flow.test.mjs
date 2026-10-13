@@ -98,9 +98,8 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
         <div id="customer_details"><h3 id="jluxe-shipping-heading" tabindex="-1">اطلاعات ارسال</h3>${requiredMarkup}${locationMarkup}${shippingAddressMarkup}</div>
         <input type="hidden" name="jluxe_billing_city_label" data-jluxe-city-label-payload value="">
         <div id="jluxe-payment-column" hidden>
-          <div id="payment" data-jluxe-payment-required="${paymentRequired ? "1" : "0"}" aria-labelledby="jluxe-payment-heading">
-            <p id="jluxe-payment-heading" tabindex="-1">روش پرداخت</p>
-            ${paymentRadios}
+          <div id="payment">
+            ${paymentRequired ? paymentRadios : ""}
           </div>
         </div>
         <div id="order_review">${shipping}</div>
@@ -111,11 +110,7 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
             </div>
             <p data-jluxe-payment-error hidden>روش پرداخت را انتخاب کنید.</p>
             <div class="mt-4">
-              <div class="jluxe-checkout-place-order-row" data-jluxe-checkout-place-order-row>
-                <div class="jluxe-checkout-place-order-slot">
-                  <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
-                </div>
-              </div>
+              <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
             </div>
             <input type="hidden" name="woocommerce-process-checkout-nonce" value="test-nonce">
           </div>
@@ -210,7 +205,7 @@ function dispatchChange(window, target) {
   target.dispatchEvent(new window.Event("change", { bubbles: true }));
 }
 
-test("checkout blocks missing shipping rates, refreshes the explanation, and focuses the revealed payment step", (t) => {
+test("checkout blocks missing shipping rates and toggles the v1.7.58 payment step without changing WooCommerce's real submit path", (t) => {
   const { dom, window, scrolls, updatedCheckout } = boot({ shippingOptions: false, reduceMotion: true });
   t.after(() => window.close());
   const { document } = window;
@@ -237,33 +232,35 @@ test("checkout blocks missing shipping rates, refreshes the explanation, and foc
   assert.equal(document.getElementById("customer_details").style.display, "none");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, false);
   assert.equal(currentStep(document), "payment");
-  assert.equal(document.activeElement.id, "jluxe-payment-heading");
-  assert.ok(scrolls.some((entry) => entry.id === "jluxe-payment-heading" && entry.behavior === "auto"));
+  assert.ok(scrolls.some((entry) => entry.block === "start"), "the original checkout step controls are brought into view");
 
   document.querySelector("[data-jluxe-checkout-back]").click();
   assert.equal(document.getElementById("customer_details").style.display, "");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.equal(currentStep(document), "shipping");
-  assert.equal(document.activeElement.id, "jluxe-shipping-heading");
+  assert.ok(scrolls.some((entry) => entry.block === "start"), "returning to shipping scrolls the checkout step controls into view");
 });
 
-test("step actions keep the real WooCommerce place-order button, terms, and nonce in the checkout form", (t) => {
+test("step actions keep WooCommerce's place-order button, terms, and nonce in the checkout form", (t) => {
   const { window } = boot({ shippingChecked: false, paymentOptions: 2 });
   t.after(() => window.close());
   const { document } = window;
   const form = document.querySelector("form.checkout");
   const actions = document.querySelector(".jluxe-checkout-step-actions");
+  const orderReview = document.getElementById("order_review");
   const paymentSubmit = document.getElementById("jluxe-payment-submit");
-  const paymentRow = paymentSubmit.querySelector("[data-jluxe-checkout-place-order-row]");
   const placeOrder = document.getElementById("place_order");
+  const next = document.querySelector("[data-jluxe-checkout-next]");
+  const toCart = document.querySelector("[data-jluxe-checkout-to-cart]");
   const back = document.querySelector("[data-jluxe-checkout-back]");
 
-  assert.equal(actions.previousElementSibling, paymentSubmit, "the step dock sits outside WooCommerce's AJAX-updated order-review fragment");
-  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "shipping");
+  assert.equal(actions.previousElementSibling, orderReview, "the original step controls sit after the AJAX-updated order-review fragment");
+  assert.equal(actions.nextElementSibling, paymentSubmit);
+  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), null);
   assert.equal(actions.hidden, false);
   assert.equal(paymentSubmit.hidden, true);
-  assert.equal(back.closest("[data-jluxe-checkout-place-order-row]"), paymentRow, "Back uses the compatibility row beside the real submit button");
-  assert.equal(placeOrder.closest("[data-jluxe-checkout-place-order-row]"), paymentRow);
+  assert.equal(back.closest("[data-jluxe-checkout-place-order-row]"), null, "the Back control does not wrap or replace the WooCommerce submit control");
+  assert.equal(placeOrder.closest("[data-jluxe-checkout-place-order-row]"), null);
   assert.equal(placeOrder.closest(".form-row.place-order"), paymentSubmit.querySelector(".form-row.place-order"));
   assert.equal(placeOrder.type, "submit");
   assert.equal(placeOrder.name, "woocommerce_checkout_place_order");
@@ -274,15 +271,17 @@ test("step actions keep the real WooCommerce place-order button, terms, and nonc
   const shippingRate = document.querySelector("input.shipping_method");
   shippingRate.checked = true;
   dispatchChange(window, shippingRate);
-  document.querySelector("[data-jluxe-checkout-next]").click();
-  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "payment");
-  assert.equal(actions.hidden, true, "the payment action row moves with the real order button");
+  next.click();
+  assert.equal(next.hidden, true);
+  assert.equal(toCart.hidden, true);
+  assert.equal(actions.hidden, false);
   assert.equal(paymentSubmit.hidden, false);
   assert.equal(back.hidden, false);
 
   back.click();
   assert.equal(actions.hidden, false);
-  assert.equal(actions.getAttribute("data-jluxe-checkout-step"), "shipping");
+  assert.equal(next.hidden, false);
+  assert.equal(toCart.hidden, false);
   assert.equal(paymentSubmit.hidden, true);
   assert.equal(back.hidden, true);
 });
@@ -481,8 +480,14 @@ test("Kermanshah's exact option label wins over Kerman's substring for numeric s
   city.value = "2275";
   dispatchChange(window, city);
   document.querySelector("[data-jluxe-checkout-next]").click();
-  assert.equal(currentStep(document), "shipping", "a Kerman city injected by another extension remains invalid for Kermanshah");
-  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
+  assert.equal(currentStep(document), "payment", "a non-empty extension value follows the normal WooCommerce submit path");
+  assert.equal(city.value, "2275", "the theme does not rewrite a numeric ID unless its label matches the selected province");
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  dispatchChange(window, gateway);
+  const submission = submitWithoutCreatingAnOrder(window);
+  assert.equal(submission.event.defaultPrevented, false, "WooCommerce receives the cross-province value for authoritative server validation");
+  assert.equal(submission.reachedForm, true);
 });
 
 test("zero-valued city placeholders are treated as empty, not as valid selections", (t) => {
@@ -706,11 +711,17 @@ test("numeric WooCommerce city IDs validate by their visible city label, without
   city.value = "2275";
   dispatchChange(window, city);
   document.querySelector("[data-jluxe-checkout-next]").click();
-  assert.equal(currentStep(document), "shipping", "a numeric ID whose city label belongs to Kerman is rejected for Kurdistan");
-  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
+  assert.equal(currentStep(document), "payment", "the stepper does not replace WooCommerce's province/city server validation");
+  assert.equal(city.value, "2275", "a cross-province numeric city ID is not normalized to a false city label");
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  dispatchChange(window, gateway);
+  const submission = submitWithoutCreatingAnOrder(window);
+  assert.equal(submission.event.defaultPrevented, false);
+  assert.equal(submission.reachedForm, true, "the cross-province ID reaches the real WooCommerce form for server validation");
 });
 
-test("a city outside the selected province blocks the next step with a clear warning and can be corrected", (t) => {
+test("a mismatched city reaches WooCommerce for authoritative province/city validation", (t) => {
   const { window } = boot({ locationFields: true, shippingChecked: true });
   t.after(() => window.close());
   const { document } = window;
@@ -719,26 +730,25 @@ test("a city outside the selected province blocks the next step with a clear war
   state.value = "TE";
   dispatchChange(window, state);
 
+  // Simulate an extension injecting a foreign city option. The theme does not
+  // hide WooCommerce's validation or convert the mismatched value to Tehran.
   city.add(new window.Option("اهواز", "اهواز"));
   city.value = "اهواز";
   dispatchChange(window, city);
   document.querySelector("[data-jluxe-checkout-next]").click();
-
-  const cityRow = document.getElementById("billing_city_field");
-  const warning = cityRow.querySelector("[data-jluxe-city-province-error]");
-  assert.equal(currentStep(document), "shipping", "mismatched city cannot reveal the payment stage");
-  assert.ok(warning?.textContent.includes("شهر انتخاب‌شده با استان هم‌خوانی ندارد"), "an actionable warning is shown beside the city field");
-  assert.equal(document.activeElement.id, "billing_city");
-  assert.ok(cityRow.classList.contains("woocommerce-invalid"));
-
-  city.value = "تهران";
-  dispatchChange(window, city);
-  assert.equal(cityRow.querySelector("[data-jluxe-city-province-error]"), null, "the warning clears as soon as a valid city is selected");
-  document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
+  assert.equal(city.value, "اهواز");
+  assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "اهواز");
+
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  dispatchChange(window, gateway);
+  const submission = submitWithoutCreatingAnOrder(window);
+  assert.equal(submission.event.defaultPrevented, false);
+  assert.equal(submission.reachedForm, true, "WooCommerce's normal validation/gateway event chain receives the posted city");
 });
 
-test("final submit returns to shipping when the city no longer belongs to the selected province", (t) => {
+test("a WooCommerce mismatch response returns to the city field without changing the submitted value", (t) => {
   const { window } = boot({ locationFields: true, shippingChecked: true });
   t.after(() => window.close());
   const { document } = window;
@@ -756,11 +766,20 @@ test("final submit returns to shipping when the city no longer belongs to the se
   city.add(new window.Option("تهران", "تهران"));
   city.value = "تهران";
   dispatchChange(window, city);
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  dispatchChange(window, gateway);
   const result = submitWithoutCreatingAnOrder(window);
-  assert.equal(result.event.defaultPrevented, true);
-  assert.equal(result.reachedForm, false);
+  assert.equal(result.event.defaultPrevented, false);
+  assert.equal(result.reachedForm, true, "the selected gateway and city reach WooCommerce's real submit path");
+
+  const form = document.querySelector("form.checkout");
+  form.insertAdjacentHTML("afterbegin", '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"><div role="alert"><ul class="woocommerce-error"><li>شهر انتخاب‌شده با استان هم‌خوانی ندارد.</li></ul></div></div>');
+  window.jQuery(document.body).trigger("checkout_error");
   assert.equal(currentStep(document), "shipping");
-  assert.ok(document.querySelector("[data-jluxe-city-province-error]")?.textContent.includes("هم‌خوانی ندارد"));
+  assert.equal(city.value, "تهران", "the theme does not fabricate, erase, or silently substitute the server-rejected value");
+  assert.ok(form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error"), "the original WooCommerce validation notice remains visible");
+  assert.equal(document.querySelector("[data-jluxe-city-province-error]"), null, "the theme does not duplicate or conceal the server validation");
 });
 
 test("final validation ignores WooCommerce's hidden ship-to-billing fields but still validates an active shipping address", (t) => {
@@ -796,48 +815,47 @@ test("final validation ignores WooCommerce's hidden ship-to-billing fields but s
   assert.equal(differentAddressSubmit.reachedForm, true);
 });
 
-test("form submission cannot bypass required address and shipping stages, including after payment is shown", (t) => {
+test("WooCommerce remains responsible for final required-field validation on its real submit path", (t) => {
   const { window } = boot({ requiredField: true, shippingChecked: true });
   t.after(() => window.close());
   const { document } = window;
+  const form = document.querySelector("form.checkout");
 
-  const blockedOnShipping = submitWithoutCreatingAnOrder(window);
-  assert.equal(blockedOnShipping.event.defaultPrevented, true);
-  assert.equal(blockedOnShipping.reachedForm, false);
+  const invalidAddressSubmit = submitWithoutCreatingAnOrder(window);
+  assert.equal(invalidAddressSubmit.event.defaultPrevented, false);
+  assert.equal(invalidAddressSubmit.reachedForm, true, "the theme does not swallow WooCommerce's server-side required-field validation");
   assert.equal(currentStep(document), "shipping");
-  assert.equal(document.activeElement.id, "billing_first_name");
 
   document.getElementById("billing_first_name").value = "Example";
-  const advancedByEnter = submitWithoutCreatingAnOrder(window);
-  assert.equal(advancedByEnter.event.defaultPrevented, true);
-  assert.equal(advancedByEnter.reachedForm, false, "Enter advances through the validated step button, not WooCommerce checkout submit");
+  document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
-
   document.getElementById("billing_first_name").value = "";
-  const blockedOnPayment = submitWithoutCreatingAnOrder(window);
-  assert.equal(blockedOnPayment.event.defaultPrevented, true);
-  assert.equal(blockedOnPayment.reachedForm, false);
-  assert.equal(currentStep(document), "shipping", "hidden required address fields are rechecked before final submit");
-  assert.ok(document.getElementById("billing_first_name_field").classList.contains("woocommerce-invalid-required-field"));
+  document.querySelector("input.payment_method").checked = true;
+  const finalSubmit = submitWithoutCreatingAnOrder(window);
+  assert.equal(finalSubmit.event.defaultPrevented, false);
+  assert.equal(finalSubmit.reachedForm, true, "the selected gateway follows the normal WooCommerce checkout event chain");
+
+  form.insertAdjacentHTML("afterbegin", '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout"><ul class="woocommerce-error"><li>billing_first_name is a required field</li></ul></div>');
+  window.jQuery(document.body).trigger("checkout_error");
+  assert.equal(currentStep(document), "shipping", "a native WooCommerce address error reveals the matching checkout stage");
+  assert.ok(form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error"), "the original WooCommerce validation notice remains visible");
 });
 
-test("checkout never submits a payment-required order without a gateway, but allows a zero-payment order", (t) => {
+test("orders without available gateway radios continue through WooCommerce's native payment validation", (t) => {
   const unavailable = boot({ shippingChecked: true, paymentOptions: 0, paymentRequired: true });
   t.after(() => unavailable.window.close());
   unavailable.window.document.querySelector("[data-jluxe-checkout-next]").click();
-  const blocked = submitWithoutCreatingAnOrder(unavailable.window);
-  assert.equal(blocked.event.defaultPrevented, true);
-  assert.equal(blocked.reachedForm, false, "the validation capture listener prevents WooCommerce submission");
-  const paymentError = unavailable.window.document.querySelector("[data-jluxe-payment-error]");
-  assert.equal(paymentError.hidden, false);
-  assert.equal(paymentError.textContent, "درگاه پرداختی برای این سفارش در دسترس نیست.");
+  const reachesWooCommerce = submitWithoutCreatingAnOrder(unavailable.window);
+  assert.equal(reachesWooCommerce.event.defaultPrevented, false);
+  assert.equal(reachesWooCommerce.reachedForm, true, "WooCommerce, not a theme preflight, decides whether a gateway is required or available");
+  assert.equal(unavailable.window.document.querySelector("[data-jluxe-payment-error]").hidden, true, "the theme does not mask the native WooCommerce payment error");
 
   const freeOrder = boot({ shippingChecked: true, paymentOptions: 1, paymentRequired: false });
   t.after(() => freeOrder.window.close());
   freeOrder.window.document.querySelector("[data-jluxe-checkout-next]").click();
   const allowed = submitWithoutCreatingAnOrder(freeOrder.window);
   assert.equal(allowed.event.defaultPrevented, false);
-  assert.equal(allowed.reachedForm, true, "a no-payment order is not blocked when WooCommerce exposes no gateway");
+  assert.equal(allowed.reachedForm, true, "a zero-payment order with no gateway radios uses the same real checkout submit path");
 });
 
 test("a payment gateway must be chosen explicitly before the checkout submit event can continue", (t) => {

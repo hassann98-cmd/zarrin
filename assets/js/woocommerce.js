@@ -3675,32 +3675,19 @@ function jluxeEnhanceShopSort(root) {
 		sortOptionsByPersianLabel(stateSelect);
 		syncCheckoutCityOptions(true);
 		bindCheckoutLocationChange(stateSelect, function () {
-			// عوض‌شدن استان همیشه شهر را خالی می‌کند؛ روش ارسال بعد از انتخابِ شهر دوباره محاسبه می‌شود.
+			// A province change clears city; WooCommerce remains responsible for checkout validation.
 			syncCheckoutCityOptions(false);
-			clearCheckoutCityProvinceError();
 		});
 		bindCheckoutLocationChange(citySelect, function () {
 			canonicalizeSelectedCheckoutCity();
 			syncCheckoutCityLabelPayload(citySelect);
 			var row = citySelect.closest(".form-row");
-			if (!row) return;
-			var invalidCity = findInvalidCheckoutCityField();
-			var requiredWarning = row.querySelector("[data-jluxe-required-field-error]");
-			var hasRequiredInvalidState = row.classList.contains("woocommerce-invalid-required-field") || citySelect.getAttribute("aria-invalid") === "true";
-			var clearedRequiredState = false;
-			if ((requiredWarning || hasRequiredInvalidState) && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
-				if (requiredWarning) requiredWarning.remove();
-				row.classList.remove("woocommerce-invalid-required-field");
+			if (row && !citySelect.disabled && !isEmptyCheckoutCitySelection(citySelect)) {
+				row.classList.remove("woocommerce-invalid", "woocommerce-invalid-required-field");
 				citySelect.removeAttribute("aria-invalid");
-				clearedRequiredState = true;
+				var warning = row.querySelector("[data-jluxe-required-field-error]");
+				if (warning) warning.remove();
 			}
-			if (invalidCity) {
-				if (row.querySelector("[data-jluxe-city-province-error]")) showCheckoutCityProvinceError(invalidCity);
-				else if (clearedRequiredState) showCheckoutCityProvinceError(invalidCity);
-				return;
-			}
-			clearCheckoutCityProvinceError();
-			if (clearedRequiredState) row.classList.remove("woocommerce-invalid");
 		});
 	}
 
@@ -3749,9 +3736,8 @@ function jluxeEnhanceShopSort(root) {
 		// می‌کنیم تا هر جا #payment از نو ساخته شد هم بلافاصله وضعیتِ درست رو
 		// داشته باشه.
 		var paymentColumn = document.getElementById("jluxe-payment-column");
-		// شرایط، nonce و submit واقعی در wrapper جداگانه می‌مانند؛ اگر قالب
-		// payment یک ردیفِ سازگار داشته باشد Back در آن قرار می‌گیرد، وگرنه
-		// کنترلِ مرحله در dock مستقلِ بیرون از submit block نمایش داده می‌شود.
+		// دکمه‌ی «پرداخت» + شرایط — حالا توی سایدبار، کنارِ «بازگشت»
+		// (inc/woocommerce.php: jluxe_render_payment_submit).
 		var paymentSubmit = document.getElementById("jluxe-payment-submit");
 		var showShipping = "shipping" === currentStep;
 		if (customerDetails) {
@@ -3769,13 +3755,6 @@ function jluxeEnhanceShopSort(root) {
 		if (paymentSubmit) {
 			paymentSubmit.hidden = showShipping;
 		}
-		if (actions) {
-			actions.setAttribute("data-jluxe-checkout-step", currentStep);
-			if (paymentActionRow) actions.hidden = !showShipping;
-			if (nextBtn) nextBtn.hidden = !showShipping;
-			if (toCartBtn) toCartBtn.hidden = !showShipping;
-			if (backBtn) backBtn.hidden = showShipping;
-		}
 	}
 
 	function hasShippingMethodSelected() {
@@ -3785,7 +3764,7 @@ function jluxeEnhanceShopSort(root) {
 		}
 		var radios = shippingSection.querySelectorAll("input.shipping_method");
 		if (!radios.length) {
-			return false; // بخشی برای ارسال وجود دارد، اما هیچ گزینه‌ای برای انتخاب نیست.
+			return false;
 		}
 		var groups = {};
 		for (var i = 0; i < radios.length; i++) {
@@ -3805,18 +3784,6 @@ function jluxeEnhanceShopSort(root) {
 		return true;
 	}
 
-	function restoreExplicitShippingMethods() {
-		var shippingSection = document.getElementById("jluxe-shipping-section");
-		if (!shippingSection) return;
-		var radios = shippingSection.querySelectorAll("input.shipping_method");
-		for (var i = 0; i < radios.length; i++) {
-			var chosenValue = jluxeExplicitShippingMethods[radios[i].name];
-			// Do not let a WooCommerce/default checked state satisfy the
-			// requirement when this customer has not chosen a rate themselves.
-			radios[i].checked = !!chosenValue && radios[i].value === chosenValue;
-		}
-	}
-
 	function toggleError(selector, show) {
 		var el = document.querySelector(selector);
 		if (el) {
@@ -3825,74 +3792,50 @@ function jluxeEnhanceShopSort(root) {
 		return el;
 	}
 
-	function checkoutScrollBehavior() {
-		return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-	}
-
-	function focusStepHeading(id) {
-		var heading = document.getElementById(id);
-		if (!heading) {
-			return;
-		}
-		if (typeof heading.scrollIntoView === "function") {
-			heading.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-		}
-		try {
-			heading.focus({ preventScroll: true });
-		} catch (error) {
-			heading.focus();
+	function restoreExplicitShippingMethods() {
+		var shippingSection = document.getElementById("jluxe-shipping-section");
+		if (!shippingSection) return;
+		var radios = shippingSection.querySelectorAll("input.shipping_method");
+		for (var i = 0; i < radios.length; i++) {
+			var chosenValue = jluxeExplicitShippingMethods[radios[i].name];
+			radios[i].checked = !!chosenValue && radios[i].value === chosenValue;
 		}
 	}
 
 	/*
-	 * دکمه‌های هر گام در یک نوار اقدام ساخته می‌شوند. این نوار بعد از wrapper
-	 * ثابتِ شرایط/ثبت سفارش قرار می‌گیرد تا با تعویضِ fragmentهای ووکامرس
-	 * حذف نشود؛ در موبایل فقط کنترل‌های گامِ فعال به dock پایین صفحه می‌روند.
+	 * actions طبقِ درخواستِ صریحِ کاربر («دکمه‌های ادامه و بازگشت باید پایین
+	 * باشن نه بالا») بعدِ #order_review (پایینِ «خلاصه سفارش»، بعدِ اقلام/
+	 * روشِ ارسال/جمعِ کل) می‌شینه — نه قبلش. نگرانیِ قدیمیِ «دکمه زیرِ
+	 * لیستِ بلندِ درگاه‌ها گم می‌شه» دیگه صدق نمی‌کنه چون این دکمه‌ها فقط
+	 * توی مرحله‌ی «اطلاعات ارسال» دیده می‌شن (نه مرحله‌ی پرداخت، جایی که
+	 * لیستِ درگاه‌ها می‌تونه بلند باشه) — applyStepVisibility پایین‌تر
+	 * #payment رو کاملاً جدا مدیریت می‌کنه؛ scrollIntoView هم روی هر
+	 * جابه‌جاییِ مرحله همیشه این ناحیه رو در دیدِ کاربر می‌آره.
 	 */
-	actions = document.createElement("div");
-	actions.className = "jluxe-checkout-step-actions";
-	actions.setAttribute("role", "group");
-	actions.setAttribute("aria-label", "کنترل‌های مرحلهٔ تسویه‌حساب");
-
-	nextBtn = document.createElement("button");
-	nextBtn.type = "button";
-	nextBtn.setAttribute("data-jluxe-checkout-next", "");
-	nextBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--primary";
-	// برچسبِ تصویریِ تأییدشده برای عبور از اطلاعات ارسال به پرداخت حفظ می‌شود.
-	nextBtn.textContent = "نهایی‌سازی سفارش";
-
-	toCartBtn = document.createElement("a");
-	toCartBtn.setAttribute("data-jluxe-checkout-to-cart", "");
-	toCartBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--secondary";
-	toCartBtn.href = wcCartUrl;
-	toCartBtn.textContent = "بازگشت به سبد خرید";
-
-	backBtn = document.createElement("button");
-	backBtn.type = "button";
-	backBtn.setAttribute("data-jluxe-checkout-back", "");
-	backBtn.className = "jluxe-checkout-action-button jluxe-checkout-action-button--secondary";
-	backBtn.textContent = "بازگشت";
-	backBtn.hidden = true;
-
-	actions.appendChild(nextBtn);
-	actions.appendChild(toCartBtn);
-	var paymentSubmitAnchor = document.getElementById("jluxe-payment-submit");
-	(paymentSubmitAnchor || orderReview).insertAdjacentElement("afterend", actions);
-	paymentActionRow = paymentSubmitAnchor && paymentSubmitAnchor.querySelector("[data-jluxe-checkout-place-order-row]");
-	if (paymentActionRow) {
-		// اگر markupِ جاری ردیفِ سازگار داشته باشد، Back در همان ردیف می‌آید؛
-		// place_order، nonce و hookهای درگاه جابه‌جا نمی‌شوند.
-		paymentActionRow.insertBefore(backBtn, paymentActionRow.firstChild);
-	} else {
-		actions.appendChild(backBtn);
-	}
+	var actions = document.createElement("div");
+	actions.className = "jluxe-checkout-step-actions mt-4 flex flex-col gap-2.5";
+	actions.innerHTML =
+		/*
+		 * برچسبِ «نهایی‌سازی سفارش» طبقِ مرجعِ تصویریِ جدیدِ کاربر برای دکمه‌ی
+		 * ادامه‌ی مرحله‌ی «اطلاعات ارسال» (قبلاً «ادامه» بود).
+		 */
+		'<button type="button" data-jluxe-checkout-next class="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-button font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.98]">نهایی‌سازی سفارش</button>' +
+		'<a href="' + wcCartUrl + '" data-jluxe-checkout-to-cart class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت به سبد خرید</a>' +
+		'<button type="button" data-jluxe-checkout-back hidden class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت</button>';
+	orderReview.insertAdjacentElement("afterend", actions);
+	var nextBtn = actions.querySelector("[data-jluxe-checkout-next]");
+	var toCartBtn = actions.querySelector("[data-jluxe-checkout-to-cart]");
+	var backBtn = actions.querySelector("[data-jluxe-checkout-back]");
 
 	function goToPayment() {
 		currentStep = "payment";
 		setStepVisual("shipping", "done");
 		setStepVisual("payment", "active");
 		applyStepVisibility();
-		focusStepHeading("jluxe-payment-heading");
+		nextBtn.hidden = true;
+		toCartBtn.hidden = true;
+		backBtn.hidden = false;
+		actions.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	function goToShipping() {
@@ -3900,287 +3843,123 @@ function jluxeEnhanceShopSort(root) {
 		setStepVisual("shipping", "active");
 		setStepVisual("payment", "pending");
 		applyStepVisibility();
+		nextBtn.hidden = false;
+		toCartBtn.hidden = false;
+		backBtn.hidden = true;
 		toggleError('[data-jluxe-payment-error]', false);
-		focusStepHeading("jluxe-shipping-heading");
+		actions.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
 	/*
-	 * ووکامرس فیلدهای آدرسِ تحویل را داخلِ .shipping_address می‌گذارد و تا
-	 * وقتی مشتری «ارسال به نشانیِ دیگر» را فعال نکرده، آن بخش را مخفی می‌کند.
-	 * این فیلدهای required عمداً خالی می‌مانند و خود WooCommerce هنگام ارسال
-	 * به نشانیِ صورتحساب آن‌ها را نادیده می‌گیرد. هنگامِ نمایشِ مرحله‌ی پرداخت
-	 * کلِ #customer_details هم مخفی است؛ بنابراین :visible به‌تنهایی نمی‌تواند
-	 * فیلدهای فعالِ صورتحساب را دوباره بررسی کند. فقط ancestorهای داخلیِ این
-	 * wrapper را بررسی می‌کنیم: مخفی‌بودنِ خودِ مرحله نادیده گرفته می‌شود، اما
-	 * فیلدهایی که WooCommerce واقعاً برای این سفارش مخفی کرده، اعتبارسنجی نمی‌شوند.
+	 * باگِ واقعیِ گزارش‌شده (با تستِ زنده پیدا شد): فیلدهای الزامیِ فرمِ آدرس
+	 * رو خالی می‌ذاشتیم و «نهایی‌سازی سفارش» بدونِ هیچ مانعی به مرحله‌ی
+	 * پرداخت می‌رفت. علتِ واقعی: چکِ قبلی روی pseudo-class بومیِ مرورگر
+	 * (:invalid) بود، ولی خودِ ووکامرس (woocommerce_form_field در
+	 * wc-template-functions.php) هیچ‌وقت attribute واقعیِ HTML5
+	 * required="required" رو روی input نمی‌ذاره — فقط کلاسِ CSS
+	 * validate-required روی <p class="form-row"> و aria-required روی خودِ
+	 * input. یعنی هیچ فیلدی هیچ‌وقت واقعاً :invalid نمی‌شد، پس اون چک همیشه
+	 * بی‌اثر بود. اصلاح: همون قراردادِ خودِ ووکامرس رو پیاده می‌کنیم —
+	 * دقیقاً همون چیزی که assets/frontend/checkout.js خودِ ووکامرس موقعِ
+	 * submit واقعی روی .validate-required:visible انجام می‌ده (کلاسِ
+	 * woocommerce-invalid/woocommerce-invalid-required-field که CSS
+	 * قرمزِ globals.css روش سوار می‌شه) — نه یک اعتبارسنجیِ ابداعیِ جدید.
 	 */
-	function isRequiredFieldVisibleWithinCheckoutStep(row) {
-		var node = row;
-		while (node && node !== customerDetails) {
-			if (node.hidden || node.getAttribute("aria-hidden") === "true") {
-				return false;
-			}
-			var style = window.getComputedStyle ? window.getComputedStyle(node) : node.style;
-			if (style && (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse")) {
-				return false;
-			}
-			node = node.parentElement;
-		}
-		return node === customerDetails;
-	}
-
 	function findFirstInvalidRequiredField() {
 		if (!customerDetails || !window.jQuery) {
 			return null;
 		}
 		var $ = window.jQuery;
-		var $rows = $(customerDetails).find(".validate-required");
+		var $rows = $(customerDetails).find(".validate-required:visible");
 		var $firstInvalid = null;
 		$rows.each(function () {
-			if (!isRequiredFieldVisibleWithinCheckoutStep(this)) {
-				return;
-			}
 			var $row = $(this);
 			var $input = $row.find("input.input-text, select, textarea, input:checkbox");
 			if (!$input.length) {
 				return;
 			}
-			var isEmpty = $input.is(":disabled") || ($input.is(":checkbox") ? !$input.is(":checked") : $input.val() === "" || $input.val() === null);
-			if ($input[0] && $input[0].matches("[data-jluxe-city-select]") && isEmptyCheckoutCitySelection($input[0])) {
-				isEmpty = true;
-			}
+			var isCity = $input[0] && $input[0].matches && $input[0].matches("[data-jluxe-city-select]");
+			var isEmpty = $input.is(":checkbox") ? !$input.is(":checked") : (isCity && isEmptyCheckoutCitySelection($input[0])) || $input.val() === "" || $input.val() === null;
 			if (isEmpty) {
-				$row.removeClass("woocommerce-validated");
 				$row.addClass("woocommerce-invalid woocommerce-invalid-required-field");
+				if (!$row[0].querySelector("[data-jluxe-required-field-error]")) {
+					var requiredWarning = document.createElement("span");
+					requiredWarning.setAttribute("data-jluxe-required-field-error", "");
+					requiredWarning.className = "jluxe-checkout-alert jluxe-checkout-alert--error";
+					requiredWarning.textContent = isCity ? "شهر الزامی است." : "این فیلد الزامی است.";
+					$row[0].appendChild(requiredWarning);
+				}
 				if (!$firstInvalid) {
 					$firstInvalid = $row;
 				}
 			} else {
 				$row.removeClass("woocommerce-invalid woocommerce-invalid-required-field");
-				var oldWarning = this.querySelector("[data-jluxe-required-field-error]");
-				if (oldWarning) oldWarning.remove();
+				var requiredWarning = $row[0].querySelector("[data-jluxe-required-field-error]");
+				if (requiredWarning) requiredWarning.remove();
 			}
 		});
 		return $firstInvalid ? $firstInvalid[0] : null;
 	}
 
-	function findInvalidCheckoutCityField() {
-		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		var countrySelect = document.getElementById("billing_country");
-		if (!stateSelect || !citySelect || countrySelect && countrySelect.value && String(countrySelect.value).toUpperCase() !== "IR") {
-			return null;
-		}
-		if (!stateSelect.value || isEmptyCheckoutCitySelection(citySelect)) {
-			return null; // empty/placeholder required fields are reported by findFirstInvalidRequiredField().
-		}
-		var province = findCheckoutProvince(stateSelect);
-		var selectedCityOption = citySelect.options[citySelect.selectedIndex];
-		var cityNames = [citySelect.value, selectedCityOption ? selectedCityOption.textContent : ""]
-			.map(normalizeLocationName)
-			.filter(Boolean);
-		var belongsToProvince = province && province.cities.some(function (city) {
-			return cityNames.indexOf(normalizeLocationName(city)) !== -1;
-		});
-		if (belongsToProvince) {
-			return null;
-		}
-		return citySelect.closest(".form-row") || citySelect;
-	}
-
-	function clearCheckoutCityProvinceError() {
-		Array.prototype.forEach.call(document.querySelectorAll("[data-jluxe-city-province-error]"), function (error) {
-			var row = error.closest(".form-row");
-			if (row) row.classList.remove("woocommerce-invalid");
-			error.remove();
-		});
-	}
-
-	function focusCheckoutControl(control) {
-		if (!control) return;
-		if (control.tagName === "SELECT" && control.classList.contains("select2-hidden-accessible")) {
-			var selection = control.parentElement && control.parentElement.querySelector(".select2-selection[role='combobox'], .select2-selection");
-			if (selection && typeof selection.focus === "function") {
-				selection.focus();
-				return;
-			}
-		}
-		if (typeof control.focus === "function") control.focus();
-	}
-
-	function showCheckoutCityProvinceError(invalid) {
-		if (!invalid) return;
-		var row = invalid.matches && invalid.matches(".form-row") ? invalid : invalid.closest(".form-row");
-		if (!row) return;
-		row.classList.add("woocommerce-invalid");
-		var error = row.querySelector("[data-jluxe-city-province-error]");
-		if (!error) {
-			error = document.createElement("p");
-			error.setAttribute("data-jluxe-city-province-error", "1");
-			error.setAttribute("role", "alert");
-			error.className = "jluxe-checkout-alert jluxe-checkout-alert--error mt-2";
-			row.appendChild(error);
-		}
-		error.textContent = "شهر انتخاب‌شده با استان هم‌خوانی ندارد؛ شهر را از فهرست همان استان انتخاب کنید.";
-		if (typeof row.scrollIntoView === "function") {
-			row.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-		}
-		focusCheckoutControl(row.querySelector("[data-jluxe-city-select], input, select, textarea"));
-	}
-
-	function showInvalidRequiredField(invalid) {
-		if (!invalid) return;
-		var focusable = invalid.querySelector("input, select, textarea");
-		var label = invalid.querySelector("label");
-		var labelText = label ? label.textContent.replace(/\s+/g, " ").replace(/\*/g, "").trim() : "";
-		var action = focusable && (focusable.tagName === "SELECT" || focusable.type === "checkbox" || focusable.type === "radio")
-			? "انتخاب کنید"
-			: "وارد کنید";
-		var warning = invalid.querySelector("[data-jluxe-required-field-error]");
-		if (!warning) {
-			warning = document.createElement("p");
-			warning.setAttribute("data-jluxe-required-field-error", "1");
-			warning.setAttribute("role", "alert");
-			warning.className = "jluxe-checkout-alert jluxe-checkout-alert--error mt-2";
-			invalid.appendChild(warning);
-		}
-		warning.textContent = labelText
-			? "برای ادامه، «" + labelText + "» را " + action + "."
-			: "برای ادامه، این فیلد الزامی را تکمیل کنید.";
-		if (typeof invalid.scrollIntoView === "function") {
-			invalid.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-		}
-		focusCheckoutControl(focusable);
-	}
-
-	function checkoutErrorAddressTarget() {
-		var notice = form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error, .woocommerce-NoticeGroup-checkout [role='alert']");
-		if (!notice) return null;
-
-		var linkedFields = notice.querySelectorAll("[data-id], a[href^='#']");
-		for (var i = 0; i < linkedFields.length; i++) {
-			var fieldId = linkedFields[i].getAttribute("data-id") || "";
-			if (!fieldId) {
-				var href = linkedFields[i].getAttribute("href") || "";
-				fieldId = href.slice(href.lastIndexOf("#") + 1);
-			}
-			if (!/^(billing|shipping)_/.test(fieldId)) continue;
-			var linkedField = document.getElementById(fieldId);
-			if (linkedField && customerDetails && customerDetails.contains(linkedField)) {
-				return { field: linkedField, notice: notice, text: normalizeLocationName(notice.textContent) };
-			}
-		}
-
-		var text = normalizeLocationName(notice.textContent);
-		var invalidField = customerDetails && customerDetails.querySelector('[aria-invalid="true"]');
-		if (invalidField) return { field: invalidField, notice: notice, text: text };
-		var invalidRequired = findFirstInvalidRequiredField();
-		if (invalidRequired) {
-			var requiredControl = invalidRequired.querySelector("input, select, textarea");
-			if (requiredControl) return { field: requiredControl, notice: notice, text: text };
-		}
-		var invalidCity = findInvalidCheckoutCityField();
-		if (invalidCity) {
-			var cityControl = invalidCity.matches(".form-row") ? invalidCity.querySelector("[data-jluxe-city-select]") : invalidCity;
-			if (cityControl) return { field: cityControl, notice: notice, text: text };
-		}
-
-		// Some localized checkout extensions omit WooCommerce's data-id/href
-		// field marker. Recognize the visible address label as a safe fallback.
-		var cityMessage = text.indexOf("شهرصورتحساب") !== -1 || text.indexOf("billingcity") !== -1 || text.indexOf("شهرانتخابشدهبااستان") !== -1;
-		if (cityMessage) {
-			return { field: getCheckoutLocationSelect("billing_city", "data-jluxe-city-select"), notice: notice, text: text };
-		}
-		if (text.indexOf("صورتحساب") !== -1 || text.indexOf("billing") !== -1 || text.indexOf("shipping") !== -1 || text.indexOf("نشانیارسال") !== -1) {
-			return { field: null, notice: notice, text: text };
-		}
-		return null;
-	}
-
-	function recoverAddressStepAfterCheckoutError() {
-		var target = checkoutErrorAddressTarget();
-		if (!target) return;
-		goToShipping();
-		if (!target.field) return;
-
-		var field = target.field;
-		var row = field.closest(".form-row");
-		if (!row) {
-			focusCheckoutControl(field);
-			return;
-		}
-		row.classList.remove("woocommerce-validated");
-		row.classList.add("woocommerce-invalid");
-		field.setAttribute("aria-invalid", "true");
-		if (row.classList.contains("validate-required")) {
-			row.classList.add("woocommerce-invalid-required-field");
-		}
-		if (field.matches("[data-jluxe-city-select]") && target.text.indexOf("همخوانیندارد") !== -1) {
-			showCheckoutCityProvinceError(row);
-		} else if (field.matches("[data-jluxe-city-select]") && row.classList.contains("validate-required")) {
-			// WooCommerce already displays an explicit required-city notice; do not duplicate it inline.
-			focusCheckoutControl(field);
-		} else if (row.classList.contains("validate-required")) {
-			showInvalidRequiredField(row);
-		} else {
-			focusCheckoutControl(field);
-		}
-	}
-
-	function showShippingSelectionError() {
-		var shippingSection = document.getElementById("jluxe-shipping-section");
-		var shippingOptions = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
-		var errorEl = toggleError('[data-jluxe-shipping-error]', true);
-		if (!errorEl) return;
-		errorEl.textContent = shippingOptions.length
-			? "روش ارسال را انتخاب کنید."
-			: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
-		if (typeof errorEl.scrollIntoView === "function") {
-			errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-		}
-	}
-
-	function validateShippingStep() {
+	nextBtn.addEventListener("click", function () {
+		// Only canonicalize a city value that is actually present and matches the
+		// selected province; an empty/disabled field is never fabricated from UI text.
 		canonicalizeSelectedCheckoutCity();
+		syncCheckoutCityLabelPayload(getCheckoutLocationSelect("billing_city", "data-jluxe-city-select"));
 		var invalid = findFirstInvalidRequiredField();
 		if (invalid) {
-			showInvalidRequiredField(invalid);
-			return false;
+			invalid.scrollIntoView({ behavior: "smooth", block: "center" });
+			var focusable = invalid.querySelector("input, select, textarea");
+			if (focusable) {
+				focusable.focus();
+			}
+			return;
 		}
-		var invalidCity = findInvalidCheckoutCityField();
-		if (invalidCity) {
-			showCheckoutCityProvinceError(invalidCity);
-			return false;
-		}
-		clearCheckoutCityProvinceError();
 		if (!hasShippingMethodSelected()) {
-			showShippingSelectionError();
-			return false;
+			var errorEl = toggleError('[data-jluxe-shipping-error]', true);
+			if (errorEl) {
+				var shippingSection = document.getElementById("jluxe-shipping-section");
+				var availableRates = shippingSection ? shippingSection.querySelectorAll("input.shipping_method") : [];
+				errorEl.textContent = availableRates.length
+					? "روش ارسال را انتخاب کنید."
+					: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
+				errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+			}
+			return;
 		}
 		toggleError('[data-jluxe-shipping-error]', false);
-		return true;
-	}
-
-	nextBtn.addEventListener("click", function () {
-		if (validateShippingStep()) goToPayment();
+		goToPayment();
 	});
 	backBtn.addEventListener("click", goToShipping);
-	initializeCheckoutLocationFields();
+
+	// WooCommerce remains the authority for server-side city/province errors.
+	// If its AJAX response names the billing city, reveal that field without
+	// replacing or suppressing the original WooCommerce notice.
+	window.jQuery(document.body).on("checkout_error", function () {
+		var notice = form.querySelector(".woocommerce-NoticeGroup-checkout .woocommerce-error, .woocommerce-error");
+		if (!notice || !/(billing_|shipping_)(first_name|last_name|phone|address_1|state|city|postcode)|صورتحساب|شهر|استان|آدرس|کد\s*پستی|موبایل|تلفن|نام\s+خانوادگی|نام\s+کوچک/i.test(notice.textContent)) return;
+		goToShipping();
+		var city = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
+		if (/billing_city|شهر/i.test(notice.textContent) && city) {
+			var row = city.closest(".form-row");
+			if (row) row.classList.add("woocommerce-invalid", "woocommerce-invalid-required-field");
+			city.setAttribute("aria-invalid", "true");
+			city.focus();
+		}
+	});
 
 	// وقتی کاربر خودش یک روشِ ارسال رو انتخاب کرد، پیغامِ خطا (اگه نشون
 	// داده شده بود) خودکار مخفی می‌شه — کاربر مجبور نیست دوباره «ادامه»
 	// بزنه تا خطا بره.
 	document.addEventListener("change", function (event) {
 		if (event.target && event.target.classList && event.target.classList.contains("shipping_method")) {
-			if (event.target.checked && event.target.name) {
-				jluxeExplicitShippingMethods[event.target.name] = event.target.value;
-			}
+			jluxeExplicitShippingMethods[event.target.name] = event.target.value;
 			toggleError('[data-jluxe-shipping-error]', false);
 		}
 		if (event.target && event.target.classList && event.target.classList.contains("payment_method")) {
 			toggleError('[data-jluxe-payment-error]', false);
 		}
-	}, true);
+	});
 
 	/*
 	 * روشِ پرداخت هم دیگه از پیش انتخاب نیست، پس قبلِ اجازه‌دادنِ submitِ
@@ -4195,76 +3974,22 @@ function jluxeEnhanceShopSort(root) {
 	document.addEventListener(
 		"submit",
 		function (event) {
-			if (event.target !== form) return;
-
-			// Enter در فیلدهای ارسال نباید فرمِ واقعیِ سفارش را دور بزند؛ فقط
-			// همان validator دکمهٔ مرحلهٔ بعد را اجرا می‌کند.
-			if ("payment" !== currentStep) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				if ("shipping" === currentStep && validateShippingStep()) goToPayment();
+			if (event.target !== form || "payment" !== currentStep) {
 				return;
 			}
-
-			// گزینهٔ numericِ بعضی افزونه‌ها را از label به نام canonical تبدیل می‌کنیم
-			// و فقط پس از تطبیق معتبر، select را برای POST ووکامرس فعال می‌کنیم.
-			canonicalizeSelectedCheckoutCity();
-			syncCheckoutCityLabelPayload(getCheckoutLocationSelect("billing_city", "data-jluxe-city-select"));
-			// فیلدهای فعالِ آدرس حتی وقتی ستون‌شان مخفی است دوباره بررسی می‌شوند؛
-			// فیلدهایی که خودِ WooCommerce عمداً پنهان کرده، submit معتبر را نمی‌بندند.
-			var invalid = findFirstInvalidRequiredField();
-			if (invalid) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				goToShipping();
-				showInvalidRequiredField(invalid);
-				return;
-			}
-			var invalidCity = findInvalidCheckoutCityField();
-			if (invalidCity) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				goToShipping();
-				showCheckoutCityProvinceError(invalidCity);
-				return;
-			}
-			clearCheckoutCityProvinceError();
-			if (!hasShippingMethodSelected()) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				goToShipping();
-				showShippingSelectionError();
-				return;
-			}
-
 			var payment = document.getElementById("payment");
-			var paymentRequired = !payment || payment.getAttribute("data-jluxe-payment-required") !== "0";
-			if (!paymentRequired) {
-				toggleError('[data-jluxe-payment-error]', false);
-				return; // WooCommerce سفارشِ بدون مبلغ را طبق مسیر استاندارد خودش ثبت می‌کند.
-			}
 			var methodRadios = payment ? payment.querySelectorAll("input.payment_method") : [];
 			if (!methodRadios.length) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				var unavailableError = toggleError('[data-jluxe-payment-error]', true);
-				if (unavailableError) {
-					unavailableError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
-					if (typeof unavailableError.scrollIntoView === "function") {
-						unavailableError.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
-					}
-				}
-				return;
+				return; // سفارش نیاز به پرداخت نداره (مثلاً مبلغ صفر) — چیزی برای انتخاب نیست.
 			}
 			var chosen = payment.querySelectorAll("input.payment_method:checked").length > 0;
 			if (!chosen) {
 				event.preventDefault();
 				event.stopImmediatePropagation();
 				var errorEl = toggleError('[data-jluxe-payment-error]', true);
-				if (errorEl && typeof errorEl.scrollIntoView === "function") {
-					errorEl.scrollIntoView({ behavior: checkoutScrollBehavior(), block: "center" });
+				if (errorEl) {
+					errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
 				}
-				return;
 			}
 		},
 		true
@@ -4311,10 +4036,10 @@ function jluxeEnhanceShopSort(root) {
 		}
 	}
 
+	setStepVisual("shipping", "active");
+	setStepVisual("payment", "pending");
+	initializeCheckoutLocationFields();
 	applyStepVisibility();
-	window.jQuery(document.body).on("checkout_error", function () {
-		recoverAddressStepAfterCheckoutError();
-	});
 	window.jQuery(document.body).on("updated_checkout", function () {
 		applyStepVisibility();
 		restoreExplicitShippingMethods();
@@ -4326,17 +4051,6 @@ function jluxeEnhanceShopSort(root) {
 				? "روش ارسال را انتخاب کنید."
 				: "برای این نشانی روش ارسالی در دسترس نیست. نشانی را بررسی کنید.";
 			if (hasShippingMethodSelected()) toggleError('[data-jluxe-shipping-error]', false);
-		}
-		var paymentError = document.querySelector('[data-jluxe-payment-error]');
-		var currentPayment = document.getElementById("payment");
-		if (paymentError && !paymentError.hidden && currentPayment) {
-			var paymentRequired = currentPayment.getAttribute("data-jluxe-payment-required") !== "0";
-			var availableGateways = currentPayment.querySelectorAll("input.payment_method").length;
-			if (!paymentRequired || availableGateways > 0 && paymentError.textContent === "درگاه پرداختی برای این سفارش در دسترس نیست.") {
-				toggleError('[data-jluxe-payment-error]', false);
-			} else if (paymentRequired && !availableGateways) {
-				paymentError.textContent = "درگاه پرداختی برای این سفارش در دسترس نیست.";
-			}
 		}
 		setTimeout(clearAutoSelectedPaymentMethod, 50);
 	});

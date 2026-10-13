@@ -26,12 +26,12 @@ jluxe_render_checkout_stepper( 'shipping' );
 	<noscript><p class="woocommerce-error" role="alert">برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد. <a href="<?php echo esc_url( wc_get_cart_url() ); ?>">بازگشت به سبد خرید</a></p></noscript>
 	<form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
 
-		<div class="jluxe-checkout-layout grid gap-6 lg:grid-cols-[1fr_320px]">
+		<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
 			<div>
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
-					<div id="customer_details" class="jluxe-checkout-panel">
+					<div id="customer_details">
 						<?php do_action( 'woocommerce_checkout_billing' ); ?>
 						<?php do_action( 'woocommerce_checkout_shipping' ); ?>
 					</div>
@@ -59,10 +59,10 @@ jluxe_render_checkout_stepper( 'shipping' );
 				</div>
 			</div>
 
-			<div class="jluxe-checkout-summary flex h-fit flex-col gap-3 rounded-2xl border border-border p-5 lg:sticky lg:top-24">
+			<div class="flex h-fit flex-col gap-3 rounded-2xl border border-border p-5 lg:sticky lg:top-24">
 				<?php do_action( 'woocommerce_checkout_before_order_review_heading' ); ?>
 
-				<p class="jluxe-checkout-summary-title">خلاصه سفارش</p>
+				<p class="text-small font-medium text-foreground">خلاصه سفارش</p>
 
 				<?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
 
@@ -74,10 +74,13 @@ jluxe_render_checkout_stepper( 'shipping' );
 
 				<?php
 				/*
-				 * Markupِ شرایط/nonce و دکمهٔ ثبتِ واقعیِ WooCommerce از v1.7.29
-				 * بازیابی شده و داخلِ فرم باقی می‌ماند. نوارِ کنترلِ مرحله بیرون از
-				 * این wrapper قرار می‌گیرد؛ دکمهٔ «بازگشت» در آن است و place_order
-				 * و nonce جابه‌جا نمی‌شوند. مسیرِ submit/AJAX ووکامرس حفظ می‌شود.
+				 * طبقِ درخواستِ صریحِ کاربر («دکمه‌ی پرداخت رو ببر زیرِ
+				 * بازگشت، سمتِ چپ») این‌جا بلافاصله بعدِ #order_review
+				 * می‌شینه — assets/js/woocommerce.js دکمه‌های «نهایی‌سازی
+				 * سفارش»/«بازگشت» رو با insertAdjacentElement('afterend', ...)
+				 * روی همین #order_review اضافه می‌کنه، یعنی بینِ این دو
+				 * قرار می‌گیرن؛ نتیجه‌ی نهاییِ DOM دقیقاً: خلاصه‌سفارش →
+				 * (نهایی‌سازی سفارش/بازگشت) → پرداخت.
 				 */
 				?>
 				<div id="jluxe-payment-submit" hidden>
