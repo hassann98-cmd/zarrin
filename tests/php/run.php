@@ -6235,6 +6235,16 @@ check(
 	false !== strpos( $r267_checkout_css, 'min-height: 5.5rem;' ),
 	'R267 the existing WooCommerce gateway-card and checkout styles are kept rather than broadly rolled back'
 );
+check(
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message {' ) &&
+	false !== strpos( $r267_checkout_css, 'max-width: 728px;' ) &&
+	false !== strpos( $r267_checkout_css, 'border-inline-start: 4px solid hsl(var(--success) / 0.62);' ) &&
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message::before {' ) &&
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message > p {' ) &&
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message:focus-visible {' ) &&
+	false === strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-error' ),
+	'R268 order-received success notices use the RTL success-card treatment without restyling other notice types'
+);
 $r267_cart_source     = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart.php' );
 $r267_shipping_source = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 check(
