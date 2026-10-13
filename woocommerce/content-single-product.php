@@ -494,10 +494,3 @@ if ( $jluxe_is_variable ) {
 <?php endif; ?>
 
 <?php do_action( 'woocommerce_after_single_product' ); ?>
-ndif; ?>
-
-<?php if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_products_modal' ) ) : ?>
-	<?php jluxe_render_suggested_products_modal( $product ); ?>
-<?php endif; ?>
-
-<?php do_action( 'woocommerce_after_single_product' ); ?>

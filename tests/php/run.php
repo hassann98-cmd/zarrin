@@ -6679,6 +6679,94 @@ check(
 	'R269 default, classic, and reference templates all route legacy groups through the shared read-only renderer'
 );
 
+// R270 — read legacy Boom FAQs without changing either metadata key.
+$r270_id = 94273;
+$r270_boom_faq = array(
+	array( 'question' => 'سؤال مشترک؟', 'answer' => 'پاسخ قدیمی Boom' ),
+	array( 'question' => 'سؤال قدیمی؟', 'answer' => 'پاسخ قدیمی' ),
+);
+$r270_theme_faq = array(
+	array( 'question' => 'سؤال مشترک؟', 'answer' => 'پاسخِ تکراریِ پوسته' ),
+	array( 'question' => 'سؤال پوسته؟', 'answer' => 'پاسخ پوسته' ),
+);
+$GLOBALS['post_meta'][ $r270_id ]['_boom_product_faq']  = $r270_boom_faq;
+$GLOBALS['post_meta'][ $r270_id ]['_jluxe_product_faq'] = $r270_theme_faq;
+$r270_boom_snapshot  = $GLOBALS['post_meta'][ $r270_id ]['_boom_product_faq'];
+$r270_theme_snapshot = $GLOBALS['post_meta'][ $r270_id ]['_jluxe_product_faq'];
+$r270_merged_faq     = jluxe_get_product_faq_items( $r270_id );
+check(
+	3 === count( $r270_merged_faq ) &&
+	'پاسخ قدیمی Boom' === $r270_merged_faq[0]['answer'] &&
+	'پاسخ قدیمی' === $r270_merged_faq[1]['answer'] &&
+	'سؤال پوسته؟' === $r270_merged_faq[2]['question'],
+	'R270 array-valued _boom_product_faq rows render first, while distinct theme FAQs remain available'
+);
+$r270_editor_faq = jluxe_get_product_faq_items( $r270_id, false );
+check(
+	2 === count( $r270_editor_faq ) &&
+	'پاسخِ تکراریِ پوسته' === $r270_editor_faq[0]['answer'] &&
+	$r270_boom_snapshot === $GLOBALS['post_meta'][ $r270_id ]['_boom_product_faq'] &&
+	$r270_theme_snapshot === $GLOBALS['post_meta'][ $r270_id ]['_jluxe_product_faq'],
+	'R270 the theme FAQ editor reads only its own key, and frontend reads never mutate Boom or theme metadata'
+);
+$r270_json_id = 94274;
+$r270_json    = wp_json_encode(
+	array( array( 'question' => 'پرسشِ JSON؟', 'answer' => 'پاسخِ JSON' ) ),
+	JSON_UNESCAPED_UNICODE
+);
+$GLOBALS['post_meta'][ $r270_json_id ]['_boom_product_faq'] = $r270_json;
+$r270_json_faq = jluxe_get_product_faq_items( $r270_json_id );
+check(
+	1 === count( $r270_json_faq ) && 'پرسشِ JSON؟' === $r270_json_faq[0]['question'] && 'پاسخِ JSON' === $r270_json_faq[0]['answer'],
+	'R270 plain JSON Boom FAQ metadata is decoded and displayed'
+);
+$r270_base64_id = 94275;
+$GLOBALS['post_meta'][ $r270_base64_id ]['_boom_product_faq'] = base64_encode( $r270_json );
+$r270_base64_faq = jluxe_get_product_faq_items( $r270_base64_id );
+check(
+	1 === count( $r270_base64_faq ) && 'پاسخِ JSON' === $r270_base64_faq[0]['answer'],
+	'R270 Base64 JSON Boom FAQ metadata is decoded without unserializing arbitrary strings'
+);
+$r270_unsafe_id = 94276;
+$GLOBALS['post_meta'][ $r270_unsafe_id ]['_boom_product_faq'] = wp_json_encode(
+	array(
+		array( 'question' => '<script>alert(1)</script>پرسش امن؟', 'answer' => '<img src=x onerror=alert(1)>پاسخ امن' ),
+		array( 'question' => array( 'نامعتبر' ), 'answer' => 'پاسخ ناقص' ),
+	),
+	JSON_UNESCAPED_UNICODE
+);
+$r270_safe_faq = jluxe_get_product_faq_items( $r270_unsafe_id );
+ob_start();
+jluxe_render_product_faq_section( new WC_Product( $r270_unsafe_id ) );
+$r270_safe_faq_html = (string) ob_get_clean();
+check(
+	1 === count( $r270_safe_faq ) && false === strpos( $r270_safe_faq_html, '<script' ) &&
+	false === strpos( $r270_safe_faq_html, '<img' ) && false !== strpos( $r270_safe_faq_html, 'پاسخ امن' ),
+	'R270 Boom FAQ questions and answers are sanitized, incomplete rows are skipped, and the existing accordion renders them safely'
+);
+$r270_template_source = array(
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' ),
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' ),
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' ),
+);
+$r270_faq_integrated = true;
+foreach ( $r270_template_source as $r270_template ) {
+	$r270_faq_integrated = $r270_faq_integrated && false !== strpos( $r270_template, 'jluxe_get_product_faq_items' );
+}
+check(
+	$r270_faq_integrated,
+	'R270 default, classic, and reference product layouts all consume the shared Boom-compatible FAQ reader'
+);
+
+// R271 — prevent stray text and duplicate WooCommerce hooks at the default template tail.
+$r271_default_template = $r270_template_source[0];
+check(
+	1 !== preg_match( '/(?:^|\n)ndif; \?>\s*$/', $r271_default_template ) &&
+	1 === substr_count( $r271_default_template, "do_action( 'woocommerce_after_single_product' );" ) &&
+	1 === substr_count( $r271_default_template, 'jluxe_render_suggested_products_modal( $product );' ),
+	'R271 the default product template emits no orphan PHP text and calls the modal and after-single-product hook only once'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

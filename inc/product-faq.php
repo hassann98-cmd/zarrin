@@ -21,7 +21,8 @@ function jluxe_add_product_faq_meta_box(): void {
 add_action( 'add_meta_boxes', 'jluxe_add_product_faq_meta_box' );
 
 function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
-	$items = jluxe_get_product_faq_items( $post->ID );
+	// The admin editor manages only the theme's own key. Legacy Boom FAQs stay read-only.
+	$items = jluxe_get_product_faq_items( $post->ID, false );
 	?>
 	<style>
 		.jluxe-faq-item { border: 1px solid #dcdcde; border-radius: 4px; margin-bottom: 10px; background: #fff; }
@@ -134,9 +135,115 @@ function jluxe_save_product_faq_meta( int $post_id ): void {
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_faq_meta' );
 
-function jluxe_get_product_faq_items( int $product_id ): array {
-	$items = get_post_meta( $product_id, '_jluxe_product_faq', true );
-	return is_array( $items ) ? $items : array();
+/**
+ * Decode FAQ metadata returned as a WordPress array, plain JSON, or Base64 JSON.
+ * WordPress already unserializes arrays saved through post meta; do not call
+ * unserialize() on arbitrary strings here.
+ *
+ * @param mixed $stored Value returned by get_post_meta().
+ * @return array<int|string, mixed>
+ */
+function jluxe_decode_product_faq_meta_value( $stored ): array {
+	if ( is_array( $stored ) ) {
+		return $stored;
+	}
+	if ( ! is_string( $stored ) || '' === trim( $stored ) ) {
+		return array();
+	}
+
+	$candidates       = array( trim( $stored ) );
+	$base64_candidate = preg_replace( '/\s+/', '', $stored );
+	if ( is_string( $base64_candidate ) && '' !== $base64_candidate ) {
+		$base64_json = base64_decode( $base64_candidate, true );
+		if ( false !== $base64_json ) {
+			$candidates[] = $base64_json;
+		}
+	}
+
+	foreach ( $candidates as $candidate ) {
+		$decoded = json_decode( $candidate, true );
+		if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
+			return $decoded;
+		}
+	}
+
+	return array();
+}
+
+/**
+ * Keep only complete, text-only question/answer rows before display.
+ *
+ * @param mixed $stored Value returned by get_post_meta().
+ * @return array<int, array{question: string, answer: string}>
+ */
+function jluxe_sanitize_product_faq_items( $stored ): array {
+	$data  = jluxe_decode_product_faq_meta_value( $stored );
+	$items = array();
+	foreach ( array_slice( $data, 0, 100 ) as $item ) {
+		if ( ! is_array( $item ) || ! isset( $item['question'], $item['answer'] ) || ! is_scalar( $item['question'] ) || ! is_scalar( $item['answer'] ) ) {
+			continue;
+		}
+
+		$question = sanitize_text_field( (string) $item['question'] );
+		$answer   = sanitize_textarea_field( (string) $item['answer'] );
+		if ( '' === $question || '' === $answer ) {
+			continue;
+		}
+		$items[] = array(
+			'question' => $question,
+			'answer'   => $answer,
+		);
+	}
+
+	return $items;
+}
+
+/** Produce a stable comparison key without changing the visible question. */
+function jluxe_product_faq_question_key( string $question ): string {
+	$normalized = preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $question ) );
+	$normalized = trim( is_string( $normalized ) ? $normalized : $question );
+	return strtolower( $normalized );
+}
+
+/**
+ * Return current theme FAQs plus legacy Boom rows, without writing either key.
+ * Boom rows are kept first and win exact-question conflicts; distinct theme
+ * questions are appended. Pass false for the editor so saving its form never
+ * copies legacy data into the theme-managed metadata key.
+ *
+ * @return array<int, array{question: string, answer: string}>
+ */
+function jluxe_get_product_faq_items( int $product_id, bool $include_legacy_boom = true ): array {
+	$theme_items = jluxe_sanitize_product_faq_items( get_post_meta( $product_id, '_jluxe_product_faq', true ) );
+	if ( ! $include_legacy_boom ) {
+		return $theme_items;
+	}
+
+	$boom_items = jluxe_sanitize_product_faq_items( get_post_meta( $product_id, '_boom_product_faq', true ) );
+	if ( ! $boom_items ) {
+		return $theme_items;
+	}
+
+	$items = $boom_items;
+	$seen  = array();
+	foreach ( $boom_items as $item ) {
+		$key = jluxe_product_faq_question_key( $item['question'] );
+		if ( '' !== $key ) {
+			$seen[ $key ] = true;
+		}
+	}
+	foreach ( $theme_items as $item ) {
+		$key = jluxe_product_faq_question_key( $item['question'] );
+		if ( '' !== $key && isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$items[] = $item;
+		if ( '' !== $key ) {
+			$seen[ $key ] = true;
+		}
+	}
+
+	return $items;
 }
 
 /**
