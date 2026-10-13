@@ -3351,30 +3351,31 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 }
 .jluxe-shipping-card {
   box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 42%);
   min-width: 0;
   min-height: 3.5rem;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0.875rem;
   border: 1px solid hsl(var(--border));
   border-radius: 1rem;
   background: hsl(var(--surface));
   text-align: start;
+  direction: rtl;
   cursor: pointer;
   transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 #shipping_method input.shipping_method + .jluxe-shipping-card {
-  display: flex;
+  display: grid;
   width: 100%;
 }
 .jluxe-shipping-card__details {
   display: flex;
-  flex: 1 1 auto;
+  grid-column: 1;
+  width: 100%;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
 }
 .jluxe-shipping-card__label {
   display: block;
@@ -3390,14 +3391,14 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   word-break: normal;
 }
 .jluxe-shipping-note {
-  display: inline-flex;
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 58%;
-  align-items: center;
-  justify-content: center;
+  box-sizing: border-box;
+  display: block;
+  grid-column: 2;
+  justify-self: end;
+  min-width: 7rem;
+  max-width: 100%;
   overflow: hidden;
-  padding: 0.3rem 0.65rem;
+  padding: 0.4rem 0.9rem;
   border-radius: 9999px;
   background: var(--jluxe-shipping-note-bg, hsl(var(--muted)));
   color: var(--jluxe-shipping-note-color, hsl(var(--text-secondary)));
@@ -3925,12 +3926,18 @@ body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--
   background: hsl(var(--error) / 0.13);
 }
 @media (max-width: 359.98px) {
-  body.woocommerce-checkout .jluxe-shipping-card {
+  .jluxe-shipping-card {
+    grid-template-columns: minmax(0, 1fr) minmax(6.25rem, 42%);
     gap: 0.45rem;
     padding-inline: 0.6rem;
   }
-  body.woocommerce-checkout .jluxe-shipping-card__label {
+  .jluxe-shipping-card__label {
     font-size: 0.75rem;
+  }
+  .jluxe-shipping-note {
+    min-width: 6.25rem;
+    padding-inline: 0.65rem;
+    font-size: 0.68rem;
   }
 }
 body.woocommerce-checkout .jluxe-payment-card {
