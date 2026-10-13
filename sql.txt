@@ -1,0 +1,435 @@
+<div id="boom_product_faq" class="postbox " role="region" aria-label="سوالات متداول محصول">
+<div class="postbox-header"><h2 class="hndle ui-sortable-handle" id="boom_product_faq-title">سوالات متداول محصول</h2>
+<div class="handle-actions hide-if-no-js"><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به پایین" type="button" class="handle-order-higher wp-tooltip__toggle" aria-describedby="boom_product_faq-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به پایین</span>
+							<span class="order-higher-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handle-order-higher-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handle-order-higher-description-text" class="wp-tooltip__text">انتقال به پایین</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به بالا" type="button" class="handle-order-lower wp-tooltip__toggle" aria-describedby="boom_product_faq-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به بالا</span>
+							<span class="order-lower-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handle-order-lower-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handle-order-lower-description-text" class="wp-tooltip__text">انتقال به بالا</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="نمایش یا پنهان‌سازی پنل" type="button" class="handlediv wp-tooltip__toggle" aria-expanded="true" aria-describedby="boom_product_faq-title">
+							<span class="screen-reader-text">نمایش یا پنهان‌سازی پنل</span>
+							<span class="toggle-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handlediv" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handlediv-text" class="wp-tooltip__text">نمایش یا پنهان‌سازی پنل</span></span></span></div></div><div class="inside">
+<input type="hidden" id="boom_product_faq_nonce_field" name="boom_product_faq_nonce_field" value="976108a2ac"><input type="hidden" name="_wp_http_referer" value="/wp-admin/post.php?post=4530&amp;action=edit">    <div id="boom-product-faq-wrapper">
+        <p class="description">سوالات متداول مربوط به این محصول را اضافه کنید. این بخش در صورتی نمایش داده می‌شود که در صفحه‌ساز فعال باشد.</p>
+        
+        <div id="boom-faq-items" class="ui-sortable">
+                                                <div class="boom-faq-item" data-index="0">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 1</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[0][question]" value="این جاظرفی برای چه فضاهایی مناسب است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[0][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">این مدل یک طبقه به دلیل طراحی جمع‌وجورش برای آشپزخانه‌های کوچک و متوسط یا خانواده‌های کم‌جمعیت بسیار مناسب است.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="1">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 2</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[1][question]" value="آب اضافی ظروف چگونه تخلیه می‌شود؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[1][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">این جاظرفی دارای یک سینی کشویی در زیر است که آب را جمع‌آوری کرده و از طریق یک خروجی آبریز با قابلیت چرخش در تمام زوایا، آب به راحتی تخلیه می‌شود.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="2">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 3</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[2][question]" value="ابعاد این جاظرفی چقدر است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[2][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">طول آن 46 سانتی‌متر (با جاقاشقی 51 سانتی‌متر)، عرض 31 سانتی‌متر و ارتفاع 11 سانتی‌متر است.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="3">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 4</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[3][question]" value="بسته‌بندی و ارسال این محصول چگونه است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[3][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">سفارش شما با بسته‌بندی ایمن و مناسب، در سریع‌ترین زمان ممکن آماده و از طریق روش‌های ارسال متنوع (پست، تیپاکس و چاپار) به سراسر کشور ارسال می‌شود.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    </div>
+        
+        <p>
+            <button type="button" class="button button-primary" id="boom-add-faq-item">
+                <span class="dashicons dashicons-plus-alt" style="vertical-align: middle;"></span>
+                افزودن سوال جدید
+            </button>
+        </p>
+    </div>
+    
+    <style>
+        #boom-product-faq-wrapper { padding: 10px 0; }
+        .boom-faq-item {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 0;
+        }
+        .boom-faq-item-header {
+            background: #f1f1f1;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .boom-faq-drag-handle {
+            cursor: move;
+            color: #999;
+        }
+        .boom-faq-item-header strong {
+            flex: 1;
+        }
+        .boom-faq-remove-item {
+            color: #a00 !important;
+            border-color: #a00 !important;
+            padding: 0 8px !important;
+            min-height: 24px !important;
+        }
+        .boom-faq-item-content {
+            padding: 15px;
+        }
+        .boom-faq-item-content label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .boom-faq-item-content p {
+            margin: 0 0 10px 0;
+        }
+        .boom-faq-item-content p:last-child {
+            margin-bottom: 0;
+        }
+        #boom-add-faq-item .dashicons {
+            margin-left: 5px;
+        }
+    </style>
+    
+    <script>
+    jQuery(document).ready(function($) {
+        var faqIndex = 4;
+        
+        // افزودن سوال جدید
+        $('#boom-add-faq-item').on('click', function() {
+            var newItem = `
+                <div class="boom-faq-item" data-index="${faqIndex}">
+                    <div class="boom-faq-item-header">
+                        <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                        <strong>سوال ${faqIndex + 1}</strong>
+                        <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                    </div>
+                    <div class="boom-faq-item-content">
+                        <p>
+                            <label>سوال:</label>
+                            <input type="text" name="boom_product_faq[${faqIndex}][question]" value="" class="widefat" placeholder="سوال را وارد کنید...">
+                        </p>
+                        <p>
+                            <label>پاسخ:</label>
+                            <textarea name="boom_product_faq[${faqIndex}][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید..."></textarea>
+                        </p>
+                    </div>
+                </div>
+            `;
+            $('#boom-faq-items').append(newItem);
+            faqIndex++;
+        });
+        
+        // حذف سوال
+        $(document).on('click', '.boom-faq-remove-item', function() {
+            $(this).closest('.boom-faq-item').slideUp(200, function() {
+                $(this).remove();
+                updateFaqNumbers();
+            });
+        });
+        
+        // بروزرسانی شماره‌گذاری
+        function updateFaqNumbers() {
+            $('#boom-faq-items .boom-faq-item').each(function(index) {
+                $(this).find('.boom-faq-item-header strong').text('سوال ' + (index + 1));
+            });
+        }
+        
+        // Sortable برای drag & drop
+        if (typeof $.fn.sortable !== 'undefined') {
+            $('#boom-faq-items').sortable({
+                handle: '.boom-faq-drag-handle',
+                placeholder: 'boom-faq-placeholder',
+                update: function() {
+                    updateFaqNumbers();
+                }
+            });
+        }
+    });
+    </script>
+    </div>
+</div>
+
+
+
+بخش ظاهری:
+
+
+element.style {
+}
+.wc-wp-version-gte-70.post-type-product #postdivrich, .wc-wp-version-gte-70.post-type-product .postbox, .wc-wp-version-gte-70.post-type-shop_coupon #postdivrich, .wc-wp-version-gte-70.post-type-shop_coupon .postbox, .wc-wp-version-gte-70.post-type-shop_order #postdivrich, .wc-wp-version-gte-70.post-type-shop_order .postbox, .wc-wp-version-gte-70.woocommerce_page_wc-orders #postdivrich, .wc-wp-version-gte-70.woocommerce_page_wc-orders .postbox {
+    border-radius: var(--wc-card-border-radius, 8px);
+    overflow: hidden;
+}
+[role=region] {
+    position: relative;
+}
+.postbox {
+    position: relative;
+    min-width: 255px;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+    background: #fff;
+}
+.postbox, .stuffbox {
+    margin-bottom: 20px;
+    padding: 0;
+    line-height: 1;
+}
+body, body.rtl, body.locale-he-il, td, .wpview-error p, th, body.locale-vi, pre, body#tinymce.wp-editor.content p, body#tinymce.wp-editor.content ol, body#tinymce.wp-editor.content ul, body#tinymce.wp-editor.content dl, body.mce-content-body[data-id="content"], body.mce-content-body[data-id="content"] h1, body.mce-content-body[data-id="content"] h2, body.mce-content-body[data-id="content"] h3, body.mce-content-body[data-id="content"] h4, body.mce-content-body[data-id="content"] h5, body.mce-content-body[data-id="content"] h6, body.mce-content-body[data-id="content"] p, body#tinymce.wp-editor.content dt, body, a, p, div, input, span, h1, h2, h3, h4, h5, h6, textarea, ul, li, button, .editor-post-title__block .editor-post-title__input, .rtl h1, .rtl h2, .rtl h3, .rtl h4, .rtl h5, .rtl h6, .rtl #wpadminbar *, ul#adminmenu, .contextual-help-sidebar, .help-tab-content, .active, .add-buttons-title, .updated_base, .selection-error-label, .selection-error-filename, .selection-error-message, .details, .instructions, code, p, a, h1, h2, h3, h4, h5, h6, input, label, button, select, .description, textarea, form, th, .username, .display-name, #published-posts, span.editor-block-inspector__no-blocks.block-editor-block-inspector__no-blocks, .table-of-contents__counts, input, td, .manage-menus, .widget-description, ul, li, .rtl #wpadminbar *, .editor-styles-wrapper > *, .editor-styles-wrapper p, .editor-styles-wrapper ol, .editor-styles-wrapper ul, .editor-styles-wrapper dl, .editor-styles-wrapper dt, .editor-post-title__block .editor-post-title__input, .editor-styles-wrapper .wp-block h1, .editor-styles-wrapper .wp-block h2, .editor-styles-wrapper .wp-block h3, .editor-styles-wrapper .wp-block h4, .editor-styles-wrapper .wp-block h5, .editor-styles-wrapper .wp-block h6, .editor-styles-wrapper .has-drop-cap:not(:focus)::first-letter, .editor-styles-wrapper cite, .editor-styles-wrapper figcaption, .editor-styles-wrapper .wp-caption-text, .editor-post-title__block .editor-post-title__input, .editor-styles-wrapper .wp-block h1, .editor-styles-wrapper .wp-block h2, .editor-styles-wrapper .wp-block h3, .editor-styles-wrapper .wp-block h4, .editor-styles-wrapper .wp-block h5, .editor-styles-wrapper .wp-block h6, .editor-styles-wrapper .has-drop-cap:not(:focus)::first-letter, .editor-styles-wrapper cite, .editor-styles-wrapper figcaption, .editor-styles-wrapper .wp-caption-text, .components-form-token-field__input-container, body.rtl, body.rtl .press-this a.wp-switch-editor, .wp-block-nextpage > span, .components-placeholder__error, .components-placeholder__fieldset, .components-placeholder__instructions, .components-placeholder__label, #wpadminbar > #wp-toolbar > #wp-admin-bar-top-secondary > #wp-admin-bar-search #adminbarsearch input.adminbar-input, .media-frame, .media-modal, .media-frame input[type=color], .media-frame input[type=date], .media-frame input[type=datetime-local], .media-frame input[type=datetime], .media-frame input[type=email], .media-frame input[type=month], .media-frame input[type=number], .media-frame input[type=password], .media-frame input[type=search], .media-frame input[type=tel], .media-frame input[type=text], .media-frame input[type=time], .media-frame input[type=url], .media-frame input[type=week], .media-frame select, .media-frame textarea, .media-frame .search, .rtl .media-frame, .rtl .media-frame .search, .rtl .media-frame input[type=email], .rtl .media-frame input[type=number], .rtl .media-frame input[type=password], .rtl .media-frame input[type=search], .rtl .media-frame input[type=tel], .rtl .media-frame input[type=text], .rtl .media-frame input[type=url], .rtl .media-frame select, .rtl .media-frame textarea, .rtl .media-modal, .mce-container .mce-monospace, .mce-widget .mce-monospace, .mce-window .wp-editor-help kbd, .vue__time-picker, .cx-vui-component, .cx-vui-panel, .cs-vui-title, .wrap .cs-vui-title, .cx-vui-subtitle, .cx-vui-text, .cx-vui-popup__body, .cx-vui-button, .cx-vue-list-table, .elementor-panel, body, .elementor-safe-mode-toast, .elementor-button, .elementor-panel .elementor-panel-scheme-buttons .elementor-button, .e-global__confirm-input-wrapper input, input, #elementor-panel-elements-search-input, .elementor-templates-modal .dialog-widget-content, .right-side-pwoo .right-side-pwoo h3, .persian-woocommerce .about-wrap h1, .persian-woocommerce .about-wrap h2, .persian-woocommerce .about-wrap h3, .persian-woocommerce .about-wrap h4, .persian-woocommerce .about-wrap h5, .persian-woocommerce .about-wrap h1, .persian-woocommerce .about-wrap h2, .persian-woocommerce .about-wrap h3, .persian-woocommerce .about-wrap h4, .persian-woocommerce .about-wrap h5, .persian-woocommerce {
+    font-family: var(--pw-admin-font-family);
+}
+body, body.rtl, body.locale-he-il, td, .wpview-error p, th, body.locale-vi, pre, body#tinymce.wp-editor.content p, body#tinymce.wp-editor.content ol, body#tinymce.wp-editor.content ul, body#tinymce.wp-editor.content dl, body.mce-content-body[data-id="content"], body.mce-content-body[data-id="content"] h1, body.mce-content-body[data-id="content"] h2, body.mce-content-body[data-id="content"] h3, body.mce-content-body[data-id="content"] h4, body.mce-content-body[data-id="content"] h5, body.mce-content-body[data-id="content"] h6, body.mce-content-body[data-id="content"] p, body#tinymce.wp-editor.content dt, body, a, p, div, input, span, h1, h2, h3, h4, h5, h6, textarea, ul, li, button, .editor-post-title__block .editor-post-title__input, .rtl h1, .rtl h2, .rtl h3, .rtl h4, .rtl h5, .rtl h6, .rtl #wpadminbar *, ul#adminmenu, .contextual-help-sidebar, .help-tab-content, .active, .add-buttons-title, .updated_base, .selection-error-label, .selection-error-filename, .selection-error-message, .details, .instructions, code, p, a, h1, h2, h3, h4, h5, h6, input, label, button, select, .description, textarea, form, th, .username, .display-name, #published-posts, span.editor-block-inspector__no-blocks.block-editor-block-inspector__no-blocks, .table-of-contents__counts, input, td, .manage-menus, .widget-description, ul, li, .rtl #wpadminbar *, .editor-styles-wrapper > *, .editor-styles-wrapper p, .editor-styles-wrapper ol, .editor-styles-wrapper ul, .editor-styles-wrapper dl, .editor-styles-wrapper dt, .editor-post-title__block .editor-post-title__input, .editor-styles-wrapper .wp-block h1, .editor-styles-wrapper .wp-block h2, .editor-styles-wrapper .wp-block h3, .editor-styles-wrapper .wp-block h4, .editor-styles-wrapper .wp-block h5, .editor-styles-wrapper .wp-block h6, .editor-styles-wrapper .has-drop-cap:not(:focus)::first-letter, .editor-styles-wrapper cite, .editor-styles-wrapper figcaption, .editor-styles-wrapper .wp-caption-text, .editor-post-title__block .editor-post-title__input, .editor-styles-wrapper .wp-block h1, .editor-styles-wrapper .wp-block h2, .editor-styles-wrapper .wp-block h3, .editor-styles-wrapper .wp-block h4, .editor-styles-wrapper .wp-block h5, .editor-styles-wrapper .wp-block h6, .editor-styles-wrapper .has-drop-cap:not(:focus)::first-letter, .editor-styles-wrapper cite, .editor-styles-wrapper figcaption, .editor-styles-wrapper .wp-caption-text, .components-form-token-field__input-container, body.rtl, body.rtl .press-this a.wp-switch-editor, .wp-block-nextpage > span, .components-placeholder__error, .components-placeholder__fieldset, .components-placeholder__instructions, .components-placeholder__label, #wpadminbar > #wp-toolbar > #wp-admin-bar-top-secondary > #wp-admin-bar-search #adminbarsearch input.adminbar-input, .media-frame, .media-modal, .media-frame input[type=color], .media-frame input[type=date], .media-frame input[type=datetime-local], .media-frame input[type=datetime], .media-frame input[type=email], .media-frame input[type=month], .media-frame input[type=number], .media-frame input[type=password], .media-frame input[type=search], .media-frame input[type=tel], .media-frame input[type=text], .media-frame input[type=time], .media-frame input[type=url], .media-frame input[type=week], .media-frame select, .media-frame textarea, .media-frame .search, .rtl .media-frame, .rtl .media-frame .search, .rtl .media-frame input[type=email], .rtl .media-frame input[type=number], .rtl .media-frame input[type=password], .rtl .media-frame input[type=search], .rtl .media-frame input[type=tel], .rtl .media-frame input[type=text], .rtl .media-frame input[type=url], .rtl .media-frame select, .rtl .media-frame textarea, .rtl .media-modal, .mce-container .mce-monospace, .mce-widget .mce-monospace, .mce-window .wp-editor-help kbd, .vue__time-picker, .cx-vui-component, .cx-vui-panel, .cs-vui-title, .wrap .cs-vui-title, .cx-vui-subtitle, .cx-vui-text, .cx-vui-popup__body, .cx-vui-button, .cx-vue-list-table, .elementor-panel, body, .elementor-safe-mode-toast, .elementor-button, .elementor-panel .elementor-panel-scheme-buttons .elementor-button, .e-global__confirm-input-wrapper input, input, #elementor-panel-elements-search-input, .elementor-templates-modal .dialog-widget-content, .right-side-pwoo .right-side-pwoo h3, .persian-woocommerce .about-wrap h1, .persian-woocommerce .about-wrap h2, .persian-woocommerce .about-wrap h3, .persian-woocommerce .about-wrap h4, .persian-woocommerce .about-wrap h5, .persian-woocommerce .about-wrap h1, .persian-woocommerce .about-wrap h2, .persian-woocommerce .about-wrap h3, .persian-woocommerce .about-wrap h4, .persian-woocommerce .about-wrap h5, .persian-woocommerce, #wpbody, h1, h2, h3, h4, h5, h6, .persian-woocommerce h1, .persian-woocommerce h2, .persian-woocommerce h3, .persian-woocommerce h4, .persian-woocommerce h5, .persian-woocommerce h6 {
+    -moz-font-feature-settings: "ss02";
+    -webkit-font-feature-settings: "ss02";
+    font-feature-settings: "ss02";
+}
+a, div {
+    outline: 0;
+}
+user agent stylesheet
+div {
+    display: block;
+    unicode-bidi: isolate;
+}
+body, #wpadminbar *, .wp-core-ui, .wrap {
+    font-family: 'YekanBakh', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif !important;
+}
+#wpbody, h1, h2, h3, h4, h5, h6, .persian-woocommerce h1, .persian-woocommerce h2, .persian-woocommerce h3, .persian-woocommerce h4, .persian-woocommerce h5, .persian-woocommerce h6, body.woocommerce_page_wc-settings .nav-tab-wrapper a {
+    font-family: var(--pw-admin-font-family) !important;
+}
+#wpwrap {
+    height: auto;
+    min-height: 100%;
+    width: 100%;
+    position: relative;
+    -webkit-font-smoothing: subpixel-antialiased;
+}
+body.admin-color-midnight {
+    --wp-admin-theme-color: #e14d43;
+    --wp-admin-theme-color--rgb: 225, 77, 67;
+    --wp-admin-theme-color-darker-10: #dd382d;
+    --wp-admin-theme-color-darker-10--rgb: 221, 56, 45;
+    --wp-admin-theme-color-darker-20: #d02c21;
+    --wp-admin-theme-color-darker-20--rgb: 208, 44, 33;
+    --wp-admin-border-width-focus: 2px;
+}
+body.admin-color-midnight {
+    --wp-admin-theme-color: #cf4339;
+    --wp-admin-theme-color--rgb: 207, 67, 57;
+    --wp-admin-theme-color-darker-10: #c0382f;
+    --wp-admin-theme-color-darker-10--rgb: 191.9634146341, 56.2317073171, 46.5365853659;
+    --wp-admin-theme-color-darker-20: #ab322a;
+    --wp-admin-theme-color-darker-20--rgb: 171.4390243902, 50.2195121951, 41.5609756098;
+    --wp-admin-border-width-focus: 2px;
+}
+body.rtl, body.rtl .press-this a.wp-switch-editor {
+    font-family: Tahoma, Arial, sans-serif;
+}
+.rtl {
+    direction: rtl;
+}
+body {
+    background: #f0f0f1;
+    color: #3c434a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-size: 13px;
+    line-height: 1.4em;
+    min-width: 600px;
+}
+style attribute {
+    --rankmath-wp-adminbar-height: 32px;
+}
+:root {
+    --primary: #ff5c35;
+    --primary-100: #fff5f0;
+    --primary-200: #ffe7db;
+    --primary-300: #ffc8b3;
+    --primary-400: #ffa78a;
+    --primary-500: #ff8361;
+    --primary-600: #d94025;
+    --primary-700: #b32815;
+    --primary-800: #8c150a;
+    --primary-900: #660b06;
+}
+:root {
+    --white: #fff;
+    --gray-025: #fafafb;
+    --gray-050: #f3f3f4;
+    --gray-100: #e7e7e9;
+    --gray-200: #cfced3;
+    --gray-300: #b6b6bd;
+    --gray-400: #9e9ea7;
+    --gray-500: #868590;
+    --gray-600: #6e6d7a;
+    --gray-700: #565564;
+    --gray-800: #3d3d4e;
+    --gray-900: #252438;
+    --black: #0d0c22;
+    --success: #348409;
+    --success-100: #ebf3e6;
+    --success-200: #d6e6ce;
+    --success-300: #d6e6ce;
+    --success-400: #71a953;
+    --success-500: #5d9d3a;
+    --success-600: #489022;
+    --success-700: #265f06;
+    --success-800: #1e4c05;
+    --success-900: #183d04;
+    --warning: #fbb30e;
+    --warning-100: #fff7e7;
+    --warning-200: #fef0cf;
+    --warning-300: #fdd987;
+    --warning-400: #fcca56;
+    --warning-500: #e2a10d;
+    --warning-600: #b5810a;
+    --warning-700: #916708;
+    --warning-800: #745206;
+    --warning-900: #5d4205;
+    --danger: #ba132e;
+    --danger-100: #faeff1;
+    --danger-200: #f8e7ea;
+    --danger-300: #f1d0d5;
+    --danger-400: #dc8997;
+    --danger-500: #cf5a6d;
+    --danger-600: #c84258;
+    --danger-700: #c12b43;
+    --danger-800: #6b0b1a;
+    --danger-900: #560915;
+    --blue: #3086d1;
+    --blue-100: #eaf3fa;
+    --blue-200: #d6e7f6;
+    --blue-300: #97c3e8;
+    --blue-400: #6eaadf;
+    --blue-500: #599eda;
+    --blue-600: #4592d6;
+Show all properties (6 more)
+}
+:root {
+    --size-2: 2px;
+    --size-3: 3px;
+    --size-4: 4px;
+    --size-6: 6px;
+    --size-8: 8px;
+    --size-10: 10px;
+    --size-12: 12px;
+    --size-14: 14px;
+    --size-16: 16px;
+    --size-18: 18px;
+    --size-20: 20px;
+    --size-22: 22px;
+    --size-24: 24px;
+    --size-26: 26px;
+    --size-28: 28px;
+    --size-32: 32px;
+    --size-36: 36px;
+    --size-40: 40px;
+    --size-44: 44px;
+    --size-48: 48px;
+    --size-52: 52px;
+    --size-56: 56px;
+    --size-60: 60px;
+    --size-64: 64px;
+    --size-72: 72px;
+    --size-80: 80px;
+    --size-96: 96px;
+    --size-120: 120px;
+    --font-10: 10px;
+    --font-12: 12px;
+    --font-14: 14px;
+    --font-16: 16px;
+    --font-18: 18px;
+    --font-20: 20px;
+    --font-22: 22px;
+    --font-24: 24px;
+    --font-28: 28px;
+    --font-32: 32px;
+    --font-48: 48px;
+    --font-64: 64px;
+    --radius-1: 1px;
+    --radius-3: 3px;
+    --radius-4: 4px;
+    --radius-5: 5px;
+    --radius-6: 6px;
+    --radius-7: 7px;
+    --radius-8: 8px;
+    --radius-9: 9px;
+    --radius-10: 10px;
+    --radius-11: 11px;
+Show all properties (4 more)
+}
+:root {
+    --spotlight-transition: .5s ease-out;
+}
+:root {
+    --rc-drag-handle-size: 12px;
+    --rc-drag-handle-mobile-size: 24px;
+    --rc-drag-handle-bg-colour: rgba(0, 0, 0, .2);
+    --rc-drag-bar-size: 6px;
+    --rc-border-color: rgba(255, 255, 255, .7);
+    --rc-focus-color: #0088ff;
+}
+:root {
+    --swiper-navigation-size: var(--size-14);
+    --swiper-theme-color: var(--primary);
+    --swiper-navigation-sides-offset: 0;
+    --swiper-pagination-bullet-inactive-color: var(--white);
+    --swiper-pagination-bullet-inactive-opacity: 1;
+    --swiper-pagination-bullet-border-radius: var(--radius-8);
+}
