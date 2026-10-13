@@ -6556,6 +6556,129 @@ check(
 	'R218 odd bulk selections paginate into sheets of two labels with one final single label'
 );
 
+// R269 — the prior Boom product-meta key is parsed for display only in all three layouts.
+$r269_payload = array(
+	array(
+		'title' => 'مشخصات فنی',
+		'items' => array(
+			array( 'label' => 'جنس', 'value' => 'استیل ضدزنگ' ),
+			array( 'label' => 'مدل', 'value' => 'نمونهٔ آزمون' ),
+		),
+	),
+	array(
+		'title' => 'ابعاد محصول (سانتی‌متر)',
+		'items' => array(
+			array( 'label' => 'طول بدون جاقاشقی', 'value' => '46' ),
+			array( 'label' => 'طول با جاقاشقی', 'value' => '51' ),
+		),
+	),
+);
+$r269_id       = 94269;
+$r269_json     = wp_json_encode( $r269_payload, JSON_UNESCAPED_UNICODE );
+$GLOBALS['post_meta'][ $r269_id ]['_boom_advanced_attributes'] = $r269_json;
+$r269_snapshot = $GLOBALS['post_meta'][ $r269_id ]['_boom_advanced_attributes'];
+$r269_json_groups = jluxe_get_product_advanced_attribute_groups( $r269_id );
+check(
+	2 === count( $r269_json_groups ) && 'مشخصات فنی' === $r269_json_groups[0]['title'] &&
+	'استیل ضدزنگ' === $r269_json_groups[0]['items'][0]['value'] &&
+	'ابعاد محصول (سانتی‌متر)' === $r269_json_groups[1]['title'],
+	'R269 the confirmed _boom_advanced_attributes key reads ordinary JSON groups and row values'
+);
+$r269_base64_id = 94270;
+$GLOBALS['post_meta'][ $r269_base64_id ]['_boom_advanced_attributes'] = base64_encode( $r269_json );
+$r269_base64_groups = jluxe_get_product_advanced_attribute_groups( $r269_base64_id );
+check(
+	2 === count( $r269_base64_groups ) && '46' === $r269_base64_groups[1]['items'][0]['value'],
+	'R269 Base64-encoded boom_adv_attributes_json and already-decoded JSON produce the same product groups'
+);
+$r269_array_id = 94271;
+$GLOBALS['post_meta'][ $r269_array_id ]['_boom_advanced_attributes'] = $r269_payload;
+$r269_array_groups = jluxe_get_product_advanced_attribute_groups( $r269_array_id );
+check(
+	2 === count( $r269_array_groups ) && '51' === $r269_array_groups[1]['items'][1]['value'],
+	'R269 WordPress-unserialized array values are accepted without requiring a storage-format migration'
+);
+check(
+	$r269_snapshot === $GLOBALS['post_meta'][ $r269_id ]['_boom_advanced_attributes'] &&
+	$r269_payload === $GLOBALS['post_meta'][ $r269_array_id ]['_boom_advanced_attributes'],
+	'R269 parsing is read-only and leaves existing product metadata byte-for-byte/array-for-array unchanged'
+);
+
+$r269_attribute_factory = static function ( $name, $options, $visible = true, $variation = false ) {
+	return new class( $name, $options, $visible, $variation ) {
+		private $name;
+		private $options;
+		private $visible;
+		private $variation;
+		public function __construct( $name, $options, $visible, $variation ) {
+			$this->name      = (string) $name;
+			$this->options   = (array) $options;
+			$this->visible   = (bool) $visible;
+			$this->variation = (bool) $variation;
+		}
+		public function get_name() { return $this->name; }
+		public function get_options() { return $this->options; }
+		public function get_visible() { return $this->visible; }
+		public function get_variation() { return $this->variation; }
+		public function is_taxonomy() { return false; }
+	};
+};
+$GLOBALS['attribute_labels']['model'] = 'مدل';
+$GLOBALS['attribute_labels']['color'] = 'رنگ';
+$GLOBALS['product_attributes'][ $r269_id ] = array(
+	$r269_attribute_factory( 'model', array( 'نمونهٔ تکراری' ) ),
+	$r269_attribute_factory( 'color', array( 'سفید', 'طوسی' ), true, true ),
+	$r269_attribute_factory( 'hidden', array( 'نباید نمایش داده شود' ), false, false ),
+);
+$r269_product = new WC_Product( $r269_id );
+$r269_additional_rows = jluxe_get_additional_product_specification_rows( $r269_product, $r269_json_groups );
+check(
+	1 === count( $r269_additional_rows ) && 'رنگ' === $r269_additional_rows[0]['label'] &&
+	false !== strpos( $r269_additional_rows[0]['value'], 'سفید' ) &&
+	false === strpos( wp_json_encode( $r269_additional_rows, JSON_UNESCAPED_UNICODE ), 'نباید نمایش داده شود' ),
+	'R269 remaining visible WooCommerce attributes include variation values but skip labels duplicated in Boom and hidden attributes'
+);
+$r269_rendered_groups = jluxe_render_grouped_product_specifications( $r269_json_groups, $r269_additional_rows );
+check(
+	false !== strpos( $r269_rendered_groups, 'مشخصات فنی' ) &&
+	false !== strpos( $r269_rendered_groups, 'ابعاد محصول (سانتی‌متر)' ) &&
+	false !== strpos( $r269_rendered_groups, 'سایر مشخصات' ) &&
+	false !== strpos( $r269_rendered_groups, 'رنگ' ) &&
+	false !== strpos( $r269_rendered_groups, 'سفید، طوسی' ) &&
+	false !== strpos( $r269_rendered_groups, 'jluxe-product-advanced-specs__row' ),
+	'R269 grouped markup renders technical, dimension, and remaining-WooCommerce groups with semantic label/value rows'
+);
+$r269_unsafe_id = 94272;
+$GLOBALS['post_meta'][ $r269_unsafe_id ]['_boom_advanced_attributes'] = wp_json_encode(
+	array( array( 'title' => '<script>alert(1)</script>مشخصات', 'items' => array( array( 'label' => '<b>جنس</b>', 'value' => '<img src=x onerror=alert(1)>100' ) ) ) ),
+	JSON_UNESCAPED_UNICODE
+);
+$r269_unsafe_groups = jluxe_get_product_advanced_attribute_groups( $r269_unsafe_id );
+$r269_unsafe_html   = jluxe_render_grouped_product_specifications( $r269_unsafe_groups );
+check(
+	false === strpos( $r269_unsafe_html, '<script' ) && false === strpos( $r269_unsafe_html, '<img' ) &&
+	false !== strpos( $r269_unsafe_html, 'alert(1)مشخصات' ),
+	'R269 legacy labels and values are emitted as sanitized text, never as executable old markup'
+);
+$r269_templates = array(
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' ),
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' ),
+	(string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' ),
+);
+$r269_all_templates_integrated = true;
+foreach ( $r269_templates as $r269_template ) {
+	$r269_all_templates_integrated = $r269_all_templates_integrated &&
+		false !== strpos( $r269_template, 'jluxe_get_product_advanced_attribute_groups' ) &&
+		false !== strpos( $r269_template, 'jluxe_render_grouped_product_specifications' );
+}
+check(
+	$r269_all_templates_integrated &&
+	false !== strpos( $r269_templates[0], '$attributes || $jluxe_advanced_attribute_groups' ) &&
+	false !== strpos( $r269_templates[1], '$cp3_advanced_attribute_groups' ) &&
+	false !== strpos( $r269_templates[2], '$cp3_advanced_attribute_groups' ),
+	'R269 default, classic, and reference templates all route legacy groups through the shared read-only renderer'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

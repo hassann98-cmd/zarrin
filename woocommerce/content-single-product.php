@@ -90,6 +90,10 @@ usort(
 		return (int) $b['is_brand'] - (int) $a['is_brand'];
 	}
 );
+$jluxe_advanced_attribute_groups = jluxe_get_product_advanced_attribute_groups( (int) $product->get_id() );
+$jluxe_additional_spec_rows       = $jluxe_advanced_attribute_groups
+	? jluxe_get_additional_product_specification_rows( $product, $jluxe_advanced_attribute_groups )
+	: array();
 $key_features = jluxe_product_key_feature_cards( $product );
 $jluxe_delivery_time = jluxe_get_product_delivery_time( $product );
 $jluxe_delivery_time_visible = jluxe_is_product_delivery_time_enabled( $product );
@@ -319,9 +323,9 @@ if ( $jluxe_is_variable ) {
 				<?php if ( $jluxe_faq_items ) : ?>
 					<li><a href="#faq" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">سوالات متداول</a></li>
 				<?php endif; ?>
-				<?php if ( $attributes ) : ?>
-					<li><a href="#specs" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">مشخصات</a></li>
-				<?php endif; ?>
+			<?php if ( $attributes || $jluxe_advanced_attribute_groups ) : ?>
+				<li><a href="#specs" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">مشخصات</a></li>
+			<?php endif; ?>
 				<li><a href="#reviews" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">دیدگاه کاربران</a></li>
 				<li><a href="#qa" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">پرسش و پاسخ</a></li>
 			</ul>
@@ -343,22 +347,28 @@ if ( $jluxe_is_variable ) {
 			<?php jluxe_render_product_faq_section( $product ); ?>
 		<?php endif; ?>
 
-		<?php if ( $attributes ) : ?>
+		<?php if ( $attributes || $jluxe_advanced_attribute_groups ) : ?>
 			<section id="specs" class="jluxe-product-section-anchor scroll-mt-16 py-6">
 				<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
 					<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
-					مشخصات فنی
+					<?php echo esc_html( $jluxe_advanced_attribute_groups ? 'مشخصات' : 'مشخصات فنی' ); ?>
 				</h2>
-				<div class="overflow-hidden rounded-2xl border border-border bg-surface">
-					<dl class="divide-y divide-border">
-						<?php foreach ( $attributes as $attribute ) : ?>
-							<div class="flex gap-3 px-4 py-3 sm:gap-6">
-								<dt class="w-28 shrink-0 text-[12.5px] text-text-muted sm:w-40"><?php echo esc_html( $attribute['label'] ); ?></dt>
-								<dd class="min-w-0 flex-1 text-[12.5px] leading-6 text-foreground"><?php if ( ! empty( $attribute['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $attribute['swatches'], $attribute['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $attribute['value'] ); ?><?php endif; ?></dd>
-							</div>
-						<?php endforeach; ?>
-					</dl>
-				</div>
+				<?php if ( $jluxe_advanced_attribute_groups ) : ?>
+					<div class="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+						<?php echo jluxe_render_grouped_product_specifications( $jluxe_advanced_attribute_groups, $jluxe_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
+					</div>
+				<?php else : ?>
+					<div class="overflow-hidden rounded-2xl border border-border bg-surface">
+						<dl class="divide-y divide-border">
+							<?php foreach ( $attributes as $attribute ) : ?>
+								<div class="flex gap-3 px-4 py-3 sm:gap-6">
+									<dt class="w-28 shrink-0 text-[12.5px] text-text-muted sm:w-40"><?php echo esc_html( $attribute['label'] ); ?></dt>
+									<dd class="min-w-0 flex-1 text-[12.5px] leading-6 text-foreground"><?php if ( ! empty( $attribute['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $attribute['swatches'], $attribute['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $attribute['value'] ); ?><?php endif; ?></dd>
+								</div>
+							<?php endforeach; ?>
+						</dl>
+					</div>
+				<?php endif; ?>
 			</section>
 		<?php endif; ?>
 
@@ -478,6 +488,13 @@ if ( $jluxe_is_variable ) {
 		</div>
 	</div>
 <?php endif; ?>
+
+<?php if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_products_modal' ) ) : ?>
+	<?php jluxe_render_suggested_products_modal( $product ); ?>
+<?php endif; ?>
+
+<?php do_action( 'woocommerce_after_single_product' ); ?>
+ndif; ?>
 
 <?php if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_products_modal' ) ) : ?>
 	<?php jluxe_render_suggested_products_modal( $product ); ?>

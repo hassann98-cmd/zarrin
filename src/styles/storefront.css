@@ -9829,6 +9829,95 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   }
 }
 
+/* Read-only presentation for product specs retained in Boom's legacy post meta. */
+.jluxe-product-advanced-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  direction: rtl;
+}
+.jluxe-product-advanced-specs__group {
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: hsl(var(--surface));
+}
+.jluxe-product-advanced-specs__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(to left, hsl(var(--primary) / .1), transparent);
+}
+.jluxe-product-advanced-specs__accent {
+  width: 6px;
+  height: 16px;
+  flex: none;
+  border-radius: 99px;
+  background: hsl(var(--primary));
+}
+.jluxe-product-advanced-specs__heading h4 {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+.jluxe-product-advanced-specs__group--other .jluxe-product-advanced-specs__heading {
+  background: hsl(var(--muted) / .55);
+}
+.jluxe-product-advanced-specs__group--other .jluxe-product-advanced-specs__accent {
+  background: hsl(var(--text-muted) / .5);
+}
+.jluxe-product-advanced-specs__rows {
+  margin: 0;
+}
+.jluxe-product-advanced-specs__row {
+  display: grid;
+  grid-template-columns: minmax(110px, 38%) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 24px;
+  padding: 13px 20px;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 14px;
+  transition: background-color .15s ease;
+}
+.jluxe-product-advanced-specs__row:hover {
+  background: hsl(var(--muted) / .35);
+}
+.jluxe-product-advanced-specs__row dt {
+  color: hsl(var(--text-muted));
+  overflow-wrap: anywhere;
+}
+.jluxe-product-advanced-specs__row dd {
+  min-width: 0;
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-weight: 500;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.jluxe-product-advanced-specs__value {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jluxe-product-advanced-specs__value-text {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 479.98px) {
+  .jluxe-product-advanced-specs__heading {
+    padding: 11px 16px;
+  }
+  .jluxe-product-advanced-specs__row {
+    grid-template-columns: minmax(92px, 38%) minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+}
+
 /* R191 — a compact, theme-native footer: no dark panels, heavy cards or gold accents. */
 #jluxe-footer-root .jluxe-footer-shell {
   border: 0;

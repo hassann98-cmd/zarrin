@@ -1888,6 +1888,234 @@ function jluxe_render_attribute_swatches_html( array $swatches, string $attribut
 }
 
 /**
+ * مشخصاتِ گروه‌بندی‌شدهٔ Boom را فقط برای نمایش می‌خواند؛ دادهٔ قدیمی
+ * در متای محصول دست‌نخورده می‌ماند. مقدارهای ذخیره‌شدهٔ آرایه‌ای، JSON و
+ * JSON کدشده با Base64 (قالبِ boom_adv_attributes_json) پشتیبانی می‌شوند.
+ *
+ * @return array<int, array{title: string, items: array<int, array{label: string, value: string}>}>
+ */
+function jluxe_get_product_advanced_attribute_groups( int $product_id ): array {
+	$product_id = absint( $product_id );
+	if ( $product_id < 1 ) {
+		return array();
+	}
+
+	$stored = get_post_meta( $product_id, '_boom_advanced_attributes', true );
+	$data   = null;
+	if ( is_array( $stored ) ) {
+		// WordPress از پیش مقدارهای serializeشده را به آرایه برمی‌گرداند.
+		$data = $stored;
+	} elseif ( is_string( $stored ) && '' !== trim( $stored ) ) {
+		$candidates      = array( trim( $stored ) );
+		$base64_candidate = preg_replace( '/\\s+/', '', $stored );
+		if ( is_string( $base64_candidate ) && '' !== $base64_candidate ) {
+			$base64_json = base64_decode( $base64_candidate, true );
+			if ( false !== $base64_json ) {
+				$candidates[] = $base64_json;
+			}
+		}
+
+		foreach ( $candidates as $candidate ) {
+			$decoded = json_decode( $candidate, true );
+			if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
+				$data = $decoded;
+				break;
+			}
+		}
+	}
+
+	if ( ! is_array( $data ) ) {
+		return array();
+	}
+
+	$groups = array();
+	foreach ( array_slice( $data, 0, 40 ) as $group ) {
+		if ( ! is_array( $group ) || ! isset( $group['title'], $group['items'] ) || ! is_array( $group['items'] ) || ! is_scalar( $group['title'] ) ) {
+			continue;
+		}
+
+		$title = sanitize_text_field( (string) $group['title'] );
+		if ( '' === $title ) {
+			continue;
+		}
+
+		$items = array();
+		foreach ( array_slice( $group['items'], 0, 100 ) as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['label'], $item['value'] ) || ! is_scalar( $item['label'] ) || ! is_scalar( $item['value'] ) ) {
+				continue;
+			}
+
+			$label = sanitize_text_field( (string) $item['label'] );
+			$value = sanitize_text_field( (string) $item['value'] );
+			if ( '' === $label || '' === $value ) {
+				continue;
+			}
+			$items[] = array(
+				'label' => $label,
+				'value' => $value,
+			);
+		}
+
+		if ( $items ) {
+			$groups[] = array(
+				'title' => $title,
+				'items' => $items,
+			);
+		}
+	}
+
+	return $groups;
+}
+
+/**
+ * ویژگی‌های نمایانِ معمولی و تنوع‌سازِ ووکامرس را برای گروهِ «سایر مشخصات»
+ * آماده می‌کند و برچسب‌هایی را که قبلاً در گروه‌های Boom آمده‌اند تکرار نمی‌کند.
+ *
+ * @return array<int, array{label: string, value: string, swatches: array}>
+ */
+function jluxe_get_additional_product_specification_rows( WC_Product $product, array $groups ): array {
+	if ( ! $groups || ! method_exists( $product, 'get_attributes' ) ) {
+		return array();
+	}
+
+	$normalize_label = static function ( $label ): string {
+		$label = trim( preg_replace( '/\\s+/', ' ', wp_strip_all_tags( (string) $label ) ) ?? '' );
+		return strtolower( $label );
+	};
+	$seen_labels = array();
+	foreach ( $groups as $group ) {
+		foreach ( $group['items'] ?? array() as $item ) {
+			$key = $normalize_label( $item['label'] ?? '' );
+			if ( '' !== $key ) {
+				$seen_labels[ $key ] = true;
+			}
+		}
+	}
+
+	$rows = array();
+	foreach ( (array) $product->get_attributes() as $attribute ) {
+		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
+			continue;
+		}
+		if ( method_exists( $attribute, 'get_visible' ) && ! $attribute->get_visible() ) {
+			continue;
+		}
+
+		$attribute_name = (string) $attribute->get_name();
+		if ( '' === $attribute_name ) {
+			continue;
+		}
+		$is_taxonomy = method_exists( $attribute, 'is_taxonomy' ) && $attribute->is_taxonomy();
+		$raw_values  = $is_taxonomy && function_exists( 'wc_get_product_terms' )
+			? wc_get_product_terms( $product->get_id(), $attribute_name, array( 'fields' => 'all' ) )
+			: ( method_exists( $attribute, 'get_options' ) ? (array) $attribute->get_options() : array() );
+		if ( is_wp_error( $raw_values ) ) {
+			continue;
+		}
+
+		$values = $is_taxonomy
+			? ( is_array( $raw_values ) ? wp_list_pluck( $raw_values, 'name' ) : array() )
+			: (array) $raw_values;
+		$values = array_values(
+			array_filter(
+				array_map(
+					static function ( $value ): string {
+					return is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
+				},
+				$values
+			),
+			static function ( $value ): bool {
+				return '' !== $value;
+			}
+			)
+		);
+		if ( ! $values ) {
+			continue;
+		}
+
+		$label = sanitize_text_field( (string) wc_attribute_label( $attribute_name, $product ) );
+		$key   = $normalize_label( $label );
+		if ( '' === $key || isset( $seen_labels[ $key ] ) ) {
+			continue;
+		}
+		$seen_labels[ $key ] = true;
+		$rows[]              = array(
+			'label'    => $label,
+			'value'    => implode( '، ', $values ),
+			'swatches' => jluxe_attribute_swatch_options( $attribute_name, (array) $raw_values, $product ),
+		);
+	}
+
+	return $rows;
+}
+
+/** Render legacy Boom groups and WooCommerce's remaining attributes safely. */
+function jluxe_render_grouped_product_specifications( array $groups, array $additional_rows = array() ): string {
+	if ( ! $groups ) {
+		return '';
+	}
+
+	$normalize_title = static function ( $title ): string {
+		$title = trim( preg_replace( '/\\s+/', ' ', wp_strip_all_tags( (string) $title ) ) ?? '' );
+		return strtolower( $title );
+	};
+	$other_title = $normalize_title( 'سایر مشخصات' );
+	$other_index = null;
+	foreach ( $groups as $index => $group ) {
+		if ( $other_title === $normalize_title( $group['title'] ?? '' ) ) {
+			$other_index = $index;
+			break;
+		}
+	}
+	if ( $additional_rows ) {
+		if ( null === $other_index ) {
+			$groups[]    = array( 'title' => 'سایر مشخصات', 'items' => array() );
+			$other_index = array_key_last( $groups );
+		}
+		$groups[ $other_index ]['items'] = array_merge( (array) ( $groups[ $other_index ]['items'] ?? array() ), $additional_rows );
+	}
+
+	$html = '<div class="jluxe-product-advanced-specs" dir="rtl">';
+	foreach ( $groups as $group ) {
+		$title = isset( $group['title'] ) && is_scalar( $group['title'] ) ? sanitize_text_field( (string) $group['title'] ) : '';
+		$items = isset( $group['items'] ) && is_array( $group['items'] ) ? $group['items'] : array();
+		if ( '' === $title || ! $items ) {
+			continue;
+		}
+
+		$is_other = $other_title === $normalize_title( $title );
+		$classes  = 'jluxe-product-advanced-specs__group' . ( $is_other ? ' jluxe-product-advanced-specs__group--other' : '' );
+		$html    .= '<section class="' . esc_attr( $classes ) . '">';
+		$html    .= '<header class="jluxe-product-advanced-specs__heading"><span class="jluxe-product-advanced-specs__accent" aria-hidden="true"></span><h4>' . esc_html( $title ) . '</h4></header>';
+		$html    .= '<dl class="jluxe-product-advanced-specs__rows">';
+
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['label'], $item['value'] ) || ! is_scalar( $item['label'] ) || ! is_scalar( $item['value'] ) ) {
+				continue;
+			}
+			$label = sanitize_text_field( (string) $item['label'] );
+			$value = sanitize_text_field( (string) $item['value'] );
+			if ( '' === $label || '' === $value ) {
+				continue;
+			}
+
+			$value_html    = esc_html( $value );
+			$swatches_html = isset( $item['swatches'] ) && is_array( $item['swatches'] )
+				? jluxe_render_attribute_swatches_html( $item['swatches'], $label )
+				: '';
+			if ( '' !== $swatches_html ) {
+				$value_html = '<span class="jluxe-product-advanced-specs__value"><span class="jluxe-product-advanced-specs__value-text">' . esc_html( $value ) . '</span>' . $swatches_html . '</span>';
+			}
+			$html .= '<div class="jluxe-product-advanced-specs__row"><dt>' . esc_html( $label ) . '</dt><dd>' . $value_html . '</dd></div>';
+		}
+
+		$html .= '</dl></section>';
+	}
+
+	return $html . '</div>';
+}
+
+/**
  * ردیف ستاره‌ی امتیاز با پرشدنِ اعشاری واقعی (مثلاً ۴.۲۷ از ۵ → ستاره‌ی
  * پنجم حدود ۲۷٪ پر می‌شه)، نه رند‌شده به نزدیک‌ترین عدد صحیح — دقیقاً
  * همون رفتاری که ووکامرس/مرجع (Boom) نشون می‌ده. با یک لایه‌ی «۵ ستاره‌ی

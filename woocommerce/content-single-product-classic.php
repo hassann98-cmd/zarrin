@@ -48,6 +48,10 @@ foreach ( array_filter( $product->get_attributes(), 'wc_attributes_array_filter_
 		$cp3_specs[] = $row;
 	}
 }
+$cp3_advanced_attribute_groups = jluxe_get_product_advanced_attribute_groups( (int) $product->get_id() );
+$cp3_additional_spec_rows       = $cp3_advanced_attribute_groups
+	? jluxe_get_additional_product_specification_rows( $product, $cp3_advanced_attribute_groups )
+	: array();
 
 $jluxe_is_variable                    = $product->is_type( 'variable' );
 $jluxe_is_simple                      = $product->is_type( 'simple' );
@@ -712,7 +716,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			</div>
 			<nav class="cp3-tabs" aria-label="بخش‌های صفحه محصول">
 				<button type="button" class="cp3-tab is-active" data-cp3-tab="sec-desc">توضیحات</button>
-				<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) ) : ?>
+				<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) || ! empty( $cp3_advanced_attribute_groups ) ) : ?>
 					<button type="button" class="cp3-tab" data-cp3-tab="sec-specs">مشخصات</button>
 				<?php endif; ?>
 				<button type="button" class="cp3-tab" data-cp3-tab="sec-reviews">دیدگاه‌ها</button>
@@ -752,7 +756,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			</section>
 
 			<!-- ۲) مشخصات -->
-			<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) ) : ?>
+			<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) || ! empty( $cp3_advanced_attribute_groups ) ) : ?>
 			<section id="sec-specs" class="cp3-sec" data-cp3-section="مشخصات">
 				<div class="cp3-sechead">
 					<span class="cp3-num" dir="ltr">2</span>
@@ -760,33 +764,37 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<span class="line" aria-hidden="true"></span>
 				</div>
 				<div class="cp3-panelcard">
-					<?php if ( ! empty( $cp3_specs ) ) : ?>
-						<div class="cp3-specgroup">
-							<div class="cp3-specgroup-head">
-								<span class="dot" aria-hidden="true"></span>
-								<h4>مشخصات فنی</h4>
-							</div>
-							<?php foreach ( $cp3_specs as $cp3_spec ) : ?>
-								<div class="cp3-specrow">
-									<span class="k"><?php echo esc_html( $cp3_spec['label'] ); ?></span>
-									<span class="v"><?php if ( ! empty( $cp3_spec['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $cp3_spec['swatches'], $cp3_spec['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $cp3_spec['value'] ); ?><?php endif; ?></span>
+					<?php if ( $cp3_advanced_attribute_groups ) : ?>
+						<?php echo jluxe_render_grouped_product_specifications( $cp3_advanced_attribute_groups, $cp3_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
+					<?php else : ?>
+						<?php if ( ! empty( $cp3_specs ) ) : ?>
+							<div class="cp3-specgroup">
+								<div class="cp3-specgroup-head">
+									<span class="dot" aria-hidden="true"></span>
+									<h4>مشخصات فنی</h4>
 								</div>
-							<?php endforeach; ?>
-						</div>
-					<?php endif; ?>
-					<?php if ( ! empty( $cp3_variation_specs ) ) : ?>
-						<div class="cp3-specgroup">
-							<div class="cp3-specgroup-head">
-								<span class="dot" aria-hidden="true"></span>
-								<h4>سایر مشخصات</h4>
+								<?php foreach ( $cp3_specs as $cp3_spec ) : ?>
+									<div class="cp3-specrow">
+										<span class="k"><?php echo esc_html( $cp3_spec['label'] ); ?></span>
+										<span class="v"><?php if ( ! empty( $cp3_spec['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $cp3_spec['swatches'], $cp3_spec['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $cp3_spec['value'] ); ?><?php endif; ?></span>
+									</div>
+								<?php endforeach; ?>
 							</div>
-							<?php foreach ( $cp3_variation_specs as $cp3_spec ) : ?>
-								<div class="cp3-specrow">
-									<span class="k"><?php echo esc_html( $cp3_spec['label'] ); ?></span>
-									<span class="v"><?php if ( ! empty( $cp3_spec['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $cp3_spec['swatches'], $cp3_spec['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $cp3_spec['value'] ); ?><?php endif; ?></span>
+						<?php endif; ?>
+						<?php if ( ! empty( $cp3_variation_specs ) ) : ?>
+							<div class="cp3-specgroup">
+								<div class="cp3-specgroup-head">
+									<span class="dot" aria-hidden="true"></span>
+									<h4>سایر مشخصات</h4>
 								</div>
-							<?php endforeach; ?>
-						</div>
+								<?php foreach ( $cp3_variation_specs as $cp3_spec ) : ?>
+									<div class="cp3-specrow">
+										<span class="k"><?php echo esc_html( $cp3_spec['label'] ); ?></span>
+										<span class="v"><?php if ( ! empty( $cp3_spec['swatches'] ) ) : ?><?php echo jluxe_render_attribute_swatches_html( $cp3_spec['swatches'], $cp3_spec['label'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper emits escaped swatch markup. ?><?php else : ?><?php echo esc_html( $cp3_spec['value'] ); ?><?php endif; ?></span>
+									</div>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
 					<?php endif; ?>
 				</div>
 			</section>
