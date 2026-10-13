@@ -14,21 +14,13 @@
  * @see woocommerce/templates/checkout/payment-method.php (نسخه‌ی اصلی)
  * @version 3.5.0
  *
- * چیدمانِ کارتی (آیکن بالا، عنوان پایین، نشانِ تیک روی گوشه‌ی کارت) طبقِ
- * مرجعِ تصویریِ جدیدِ کاربر — قبلاً یک ردیفِ افقیِ کاملِ عرض بود.
- * .wc_payment_methods حالا در checkout/payment.php یک flex-wrap ئه (نه
- * grid با ستونِ ثابت، چون تعدادِ درگاه‌های واقعی ممکنه فقط ۱-۲تا باشه)،
- * پس خودِ <li> باید عرضِ ثابتِ خودش رو داشته باشه تا کارت‌ها بی‌قواره/
- * کشیده نشن.
+ * هر کارت افقی و تمام‌عرض است تا نام/آیکن درگاه و نشان انتخاب در یک
+ * ردیف خوانا بمانند؛ فهرست والد تک‌ستونه است و کارت توضیحاتِ خود درگاه
+ * (payment_box) نیز زیر همان ردیف قرار می‌گیرد.
  *
- * باگِ واقعیِ گزارش‌شده («انتخابش می‌کنم مستطیل می‌شه»): عرضِ ثابتِ بالا
- * قبلاً با کلاسِ Tailwind خامِ w-[152px] رو خودِ <li> بود، ولی خودِ
- * ووکامرس یک قانونِ پراختصاصیتِ #payment ul.payment_methods li داره
- * (woocommerce.css) که با اضافه‌شدنِ payment_box (توضیحاتِ درگاه، موقعِ
- * انتخاب) عرض رو به کلِ container می‌کشوند. عرضِ ثابت حالا با !important
- * در globals.css (کلاسِ jluxe-payment-method-item) اِعمال می‌شه — همون
- * الگویی که کل این فایل برای دورزدنِ استایل‌های پیش‌فرضِ ووکامرس استفاده
- * می‌کنه.
+ * رادیوی واقعیِ WooCommerce عمداً در DOM می‌ماند و فقط بصری مخفی می‌شود؛
+ * در نتیجه تغییر چیدمان ظاهر، رویداد change یا فیلدهای افزونهٔ درگاه را
+ * جایگزین نمی‌کند.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -38,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <li class="wc_payment_method jluxe-payment-method-item payment_method_<?php echo esc_attr( $gateway->id ); ?>">
 	<input id="payment_method_<?php echo esc_attr( $gateway->id ); ?>" type="radio" class="input-radio payment_method sr-only" name="payment_method" value="<?php echo esc_attr( $gateway->id ); ?>" data-order_button_text="<?php echo esc_attr( $gateway->order_button_text ); ?>" />
 
-	<label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="jluxe-payment-card relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl p-4 text-center transition-colors hover:bg-muted">
+	<label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="jluxe-payment-card relative flex min-w-0 cursor-pointer items-center gap-3 rounded-xl p-4 text-start transition-colors hover:bg-muted">
 		<span class="jluxe-payment-card-icon flex h-8 items-center justify-center">
 			<?php echo $gateway->get_icon(); /* phpcs:ignore */ ?>
 		</span>

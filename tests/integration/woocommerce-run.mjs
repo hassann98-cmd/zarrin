@@ -501,6 +501,14 @@ try {
     const billingPostcodeOptional = !!billingPostcodeRow &&
       !/\bvalidate-required\b/.test(billingPostcodeRowTag) && !/aria-required="true"/.test(billingPostcodeInput);
     const billingPostcodeGuide = billingPostcodeRow.includes("برای ارسال پستی، وارد کردن کد پستی الزامی است.");
+    const paymentList = response.text.match(/<ul class="wc_payment_methods payment_methods methods jluxe-payment-method-list"[^>]*>[\s\S]*?<\/ul>/)?.[0] || "";
+    const paymentGatewayRow = paymentList.match(/<li class="wc_payment_method jluxe-payment-method-item payment_method_[^"]+">[\s\S]*?<\/li>/)?.[0] || "";
+    const paymentGatewayInput = paymentGatewayRow.match(/<input\b[^>]*>/)?.[0] || "";
+    const paymentListHasHorizontalGatewayCard = !!paymentGatewayRow &&
+      /name="payment_method"/.test(paymentGatewayInput) &&
+      /type="radio"/.test(paymentGatewayInput) &&
+      /class="[^"]*\bsr-only\b[^"]*"/.test(paymentGatewayInput) &&
+      /<label\b[^>]*for="payment_method_[^"]+"[^>]*class="[^"]*jluxe-payment-card/.test(paymentGatewayRow);
     const legacyCityMapLoaded = response.text.includes('"iranCities"') && response.text.includes('"KRH"');
     const checkoutAddressDataRemoved = !response.text.includes('checkoutAddressData');
     const cityLabelPayloadRemoved = !response.text.includes('jluxe_billing_city_label');
@@ -514,14 +522,14 @@ try {
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodeGuide=${billingPostcodeGuide}; cityMap=${legacyCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodeGuide=${billingPostcodeGuide}; cityMap=${legacyCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; paymentList=${!!paymentList}; gatewayRow=${!!paymentGatewayRow}; horizontalGatewayCard=${paymentListHasHorizontalGatewayCard}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
-        response.text.includes("payment_method") && cityIsV1758Select && cityIsRequired && cityOptionCount >= 1 && stateOptionCount >= 2 &&
+        response.text.includes("payment_method") && paymentListHasHorizontalGatewayCard && cityIsV1758Select && cityIsRequired && cityOptionCount >= 1 && stateOptionCount >= 2 &&
         legacyCityMapLoaded && checkoutAddressDataRemoved && cityLabelPayloadRemoved && baselineProgress &&
         billingPostcodeOptional && billingPostcodeGuide && shipsToBillingByDefault && hiddenShippingRecipientIsRequired && hasPlaceOrderButton && hasCheckoutNonce,
-      `The real classic checkout renders the required dependent city, optional postcode guidance, WooCommerce gateway, order button and nonce (${checkoutDiagnostic})`,
+      `The real classic checkout renders the required dependent city, optional postcode guidance, a single-column gateway with its real WooCommerce radio, order button and nonce (${checkoutDiagnostic})`,
     );
 
     const coreCityValidation = await phpJson(`

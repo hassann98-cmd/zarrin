@@ -6190,7 +6190,8 @@ $r267_payment_source   = (string) file_get_contents( ABSPATH . 'inc/woocommerce.
 check(
 	false === strpos( $r267_payment_template, 'data-jluxe-payment-required=' ) &&
 	false === strpos( $r267_payment_template, 'jluxe-payment-heading' ) &&
-	false !== strpos( $r267_payment_template, 'methods flex flex-wrap gap-3' ) &&
+	false !== strpos( $r267_payment_template, 'methods jluxe-payment-method-list' ) &&
+	false === strpos( $r267_payment_template, 'flex-wrap' ) &&
 	false !== strpos( $r267_payment_template, 'foreach ( $available_gateways as $gateway )' ) &&
 	false !== strpos( $r267_payment_template, "wc_get_template( 'checkout/payment-method.php'" ) &&
 	false === strpos( $r267_payment_template, 'برای این سفارش، نیازی به انتخاب روش پرداخت نیست.' ),
@@ -6233,12 +6234,14 @@ check(
 	'R267 checkout restores the historical client-side step gates and leaves final checkout validation to WooCommerce'
 );
 check(
-	false !== strpos( $r267_checkout_css, '#payment ul.payment_methods li.jluxe-payment-method-item {' ) &&
-	false !== strpos( $r267_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
-	false !== strpos( $r267_checkout_css, 'width: 152px !important;' ) &&
+	false !== strpos( $r267_checkout_css, '#payment ul.payment_methods.jluxe-payment-method-list {' ) &&
 	false !== strpos( $r267_checkout_css, 'flex-direction: column !important;' ) &&
-	false !== strpos( $r267_checkout_css, 'min-height: 5.5rem;' ),
-	'R267 the existing WooCommerce gateway-card and checkout styles are kept rather than broadly rolled back'
+	false !== strpos( $r267_checkout_css, 'width: 100% !important;' ) &&
+	false !== strpos( $r267_checkout_css, 'flex-direction: row !important;' ) &&
+	false !== strpos( $r267_checkout_css, 'min-height: 4.5rem;' ) &&
+	false === strpos( $r267_checkout_css, 'width: calc(50% - 0.375rem) !important;' ) &&
+	false === strpos( $r267_checkout_css, 'width: 152px !important;' ),
+	'R277 payment gateways use a full-width single-column list of horizontal cards at every breakpoint'
 );
 check(
 	false !== strpos( $r267_checkout_css, 'body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message {' ) &&

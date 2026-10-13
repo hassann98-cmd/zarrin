@@ -50,15 +50,12 @@ if ( ! wp_doing_ajax() ) {
 		<p class="mb-3 text-small font-medium text-foreground">روش پرداخت</p>
 		<?php
 		/*
-		 * طبقِ درخواستِ صریحِ کاربر («درگاه‌های قابل‌انتخاب رو مرتب‌تر
-		 * بچین») از grid با تعدادِ ستونِ ثابت به flex-wrap با اندازه‌ی
-		 * ثابتِ هر کارت تغییر کرد — چون تعدادِ درگاه‌های واقعاً فعال ممکنه
-		 * فقط ۱ یا ۲ تا باشه (نه همیشه ۳-۴تا)، و grid با ستون‌بندیِ ثابت
-		 * کارتِ تنها رو کشیده/بی‌قواره نشون می‌داد. حالا هر کارت عرضِ
-		 * مشخصِ خودش رو داره و می‌چینه، خالی نمی‌مونه.
+		 * هر درگاه در یک ردیفِ افقیِ مستطیلی و تمام‌عرض نمایش داده می‌شود؛
+		 * فهرست تک‌ستونه در همهٔ اندازه‌ها ثابت می‌ماند تا عنوان/آیکن و
+		 * کنترل انتخاب در دسکتاپ و موبایل فضای کافی داشته باشند.
 		 */
 		?>
-		<ul class="wc_payment_methods payment_methods methods flex flex-wrap gap-3" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
+		<ul class="wc_payment_methods payment_methods methods jluxe-payment-method-list" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
 			<?php
 			if ( ! empty( $available_gateways ) ) {
 				foreach ( $available_gateways as $gateway ) {
