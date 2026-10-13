@@ -291,7 +291,7 @@ try {
       $zone->save();
       $shipping_instance=$zone->add_shipping_method('flat_rate');
       if (!$zone_id || !$shipping_instance) throw new RuntimeException('Could not create an isolated integration shipping rate.');
-      update_option('woocommerce_flat_rate_'.$shipping_instance.'_settings',array('enabled'=>'yes','title'=>'Integration flat rate','tax_status'=>'none','cost'=>'5'));
+      update_option('woocommerce_flat_rate_'.$shipping_instance.'_settings',array('enabled'=>'yes','title'=>'پست پیشتاز','tax_status'=>'none','cost'=>'5'));
       global $wp_rewrite;
       $wp_rewrite->set_permalink_structure('');
       flush_rewrite_rules(false);
@@ -449,12 +449,16 @@ try {
       op: "update_qty",
       key: simpleKey,
       qty: "3",
+      cart_page: "1",
     });
     snapshot = response.json().data;
     check(
       response.status === 200 && response.json().success === true &&
-        snapshot.items.find((item) => item.key === simpleKey)?.qty === 3,
-      "Theme quantity update persists through the real WooCommerce cart and stock checker",
+        snapshot.items.find((item) => item.key === simpleKey)?.qty === 3 &&
+        snapshot.cartPage?.isEmpty === false &&
+        snapshot.cartPage.totalsHtml.includes('class="cart_totals') &&
+        snapshot.items.find((item) => item.key === simpleKey)?.lineTotalHtml.includes("woocommerce-Price-amount"),
+      "Theme quantity update persists, recalculates real WooCommerce totals and returns the live cart fragment",
     );
 
     response = await ajax({
@@ -640,11 +644,14 @@ try {
     const refreshedShippingInput = updatedReview.match(/<input\b(?=[^>]*\bclass="[^"]*\bshipping_method\b)[^>]*>/)?.[0] || "";
     const refreshedShippingRate = refreshedShippingInput.match(/\bvalue="([^"]+)"/)?.[1] || "";
     const refreshedShippingIsUnchecked = !/(?:^|\s)checked(?:\s|=|\/?>)/i.test(refreshedShippingInput);
+    const refreshedShippingCard = updatedReview.match(/<label\b(?=[^>]*class="[^"]*\bjluxe-shipping-card\b)[^>]*>[\s\S]*?<\/label>/)?.[0] || "";
+    const shippingBadgeAndWooCost = /class="jluxe-shipping-note[^"]*"[^>]*>اقتصادی<\/span>/.test(refreshedShippingCard) &&
+      /woocommerce-Price-amount/.test(refreshedShippingCard);
     check(
       shippingUpdate.status === 200 && !!updateOrderReviewNonce && !!selectedShippingRate &&
         shippingUpdatePayload.has_errors === false && refreshedShippingRate === selectedShippingRate &&
-        refreshedShippingIsUnchecked,
-      `The official WooCommerce update_order_review endpoint accepts the chosen rate and returns its normal unchecked shipping radio fragment (${JSON.stringify({ status: shippingUpdate.status, nonce: !!updateOrderReviewNonce, selectedShippingRate, refreshedShippingRate, unchecked: refreshedShippingIsUnchecked, fragments: Object.keys(shippingUpdatePayload.fragments || {}) })})`,
+        refreshedShippingIsUnchecked && shippingBadgeAndWooCost,
+      `The official WooCommerce update_order_review endpoint preserves its unchecked radio and renders the separate shipping badge alongside WooCommerce's real rate cost (${JSON.stringify({ status: shippingUpdate.status, nonce: !!updateOrderReviewNonce, selectedShippingRate, refreshedShippingRate, unchecked: refreshedShippingIsUnchecked, shippingBadgeAndWooCost, fragments: Object.keys(shippingUpdatePayload.fragments || {}) })})`,
     );
 
     response = await ajax({
@@ -664,23 +671,28 @@ try {
       nonce: session.cartNonce,
       op: "remove",
       key: variableKey,
+      cart_page: "1",
     });
     snapshot = response.json().data;
     check(
       response.status === 200 && response.json().success === true &&
-        snapshot.itemCount === 3 && !snapshot.items.some((item) => item.key === variableKey),
-      "Theme remove action deletes only the requested WooCommerce variation cart line",
+        snapshot.itemCount === 3 && !snapshot.items.some((item) => item.key === variableKey) &&
+        snapshot.cartPage?.isEmpty === false && snapshot.cartPage.totalsHtml.includes('class="cart_totals'),
+      "Theme remove action deletes only the requested line and returns current WooCommerce cart totals",
     );
     response = await ajax({
       action: "jluxe_cart",
       nonce: session.cartNonce,
       op: "remove",
       key: simpleKey,
+      cart_page: "1",
     });
     snapshot = response.json().data;
     check(
-      response.status === 200 && response.json().success === true && snapshot.itemCount === 0,
-      "Theme remove action empties the real WooCommerce cart without deleting product inventory",
+      response.status === 200 && response.json().success === true && snapshot.itemCount === 0 &&
+        snapshot.cartPage?.isEmpty === true &&
+        snapshot.cartPage.emptyHtml.includes("data-jluxe-cart-page-content"),
+      "Theme remove action returns the empty-cart template after emptying the cart without touching stock",
     );
 
     const final = await phpJson(`

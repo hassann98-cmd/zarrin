@@ -230,7 +230,7 @@ function wc_set_loop_prop($prop,$value=''){$GLOBALS['loop_props'][$prop]=$value;
 function wc_get_image_size($size='woocommerce_thumbnail'){return array('width'=>300,'height'=>300,'crop'=>1);}
 function wc_placeholder_img_src($size='woocommerce_thumbnail'){return home_url('/placeholder.png');}
 function wc_get_gallery_image_html($id,$main=false){return '<img src="gallery-'.(int)$id.'.jpg" alt="">';}
-function wc_get_template($name,$args=array(),$path='',$default=''){return true;}
+function wc_get_template($name,$args=array(),$path='',$default=''){$GLOBALS['wc_template_calls'][]=$name;if(isset($GLOBALS['wc_template_output'][$name]))echo $GLOBALS['wc_template_output'][$name];return true;}
 function wc_get_template_part($slug,$name=''){if(function_exists('jluxe_test_render_card_probe')){jluxe_test_render_card_probe($slug,$name);}return true;}
 function get_the_ID(){return $GLOBALS['current_product_id']??0;}
 function wp_get_post_terms($id,$tax,$args=array()){return $GLOBALS['post_terms'][$id][$tax]??array();}
@@ -413,17 +413,18 @@ class FakeSession { public $data=[];
  function set($key,$value){$this->data[$key]=$value;}
 }
 class FakeCart {
- public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];
+ public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $totalsCalls=0;public $quantityRefreshArgs=[];
  function get_cart(){return $this->items;}
+ function is_empty(){return empty($this->items);}
  function add_fee($name,$amount,$taxed=true){$this->fees[]=[$name,$amount];return true;}
  function get_cart_item($key){return $this->items[$key]??[];}
  function remove_cart_item($key){if(!isset($this->items[$key]))return false;unset($this->items[$key]);return true;}
- function set_quantity($key,$quantity,$refresh=true){$this->changed++;if(!$quantity)return $this->remove_cart_item($key);$this->items[$key]['quantity']=$quantity;return true;}
+ function set_quantity($key,$quantity,$refresh=true){$this->changed++;$this->quantityRefreshArgs[]=$refresh;if(!$quantity)return $this->remove_cart_item($key);$this->items[$key]['quantity']=$quantity;if($refresh)$this->calculate_totals();return true;}
  function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
  public $stockFail=false;
  function check_cart_item_stock(){return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
  function get_cart_item_quantities(){$out=[];foreach($this->items as $item){$id=$item['data']->get_stock_managed_by_id();$out[$id]=($out[$id]??0)+$item['quantity'];}return $out;}
- function calculate_totals(){}
+ function calculate_totals(){$this->totalsCalls++;}
  function get_product_subtotal($product,$qty){return '100';}
  function get_applied_coupons(){return [];}
  function get_cart_contents_count(){return array_sum(array_column($this->items,'quantity'));}

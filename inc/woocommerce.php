@@ -115,19 +115,54 @@ function jluxe_cart_checkout_option( string $key, bool $fallback = false ): bool
 	return (bool) jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
 }
 
-/** Configurable explanatory copy for one recognized carrier; not used to calculate a rate. */
+/** Read a presentation color only after validating it as a six/three-digit hex value. */
+function jluxe_cart_checkout_color( string $key, string $fallback ): string {
+	$value = jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
+	$color = sanitize_hex_color( is_scalar( $value ) ? (string) $value : $fallback );
+	return is_string( $color ) && '' !== $color ? $color : $fallback;
+}
+
+/** Configurable explanatory copy and presentation for a carrier; never calculates or changes a rate. */
 function jluxe_cart_checkout_shipping_method_settings( string $kind ): array {
 	if ( ! in_array( $kind, array( 'post', 'tipax', 'chapar' ), true ) ) {
-		return array( 'enabled' => false, 'summary' => '', 'description' => '' );
+		return array(
+			'enabled' => false,
+			'summary' => '',
+			'description' => '',
+			'note' => '',
+			'note_background_color' => '#FFFFFF',
+			'note_text_color' => '#111827',
+			'details_background_color' => '#FFFFFF',
+			'details_text_color' => '#475569',
+		);
 	}
+
 	$settings = jluxe_get_setting( 'cart_checkout.shipping_methods.' . $kind, array() );
+	$all_defaults = jluxe_theme_settings_defaults();
+	$defaults = $all_defaults['cart_checkout']['shipping_methods'][ $kind ] ?? array();
 	if ( ! is_array( $settings ) ) {
 		$settings = array();
 	}
+	$read_text = static function ( string $key ) use ( $settings, $defaults ): string {
+		$value = $settings[ $key ] ?? $defaults[ $key ] ?? '';
+		return is_scalar( $value ) ? (string) $value : '';
+	};
+	$read_color = static function ( string $key ) use ( $settings, $defaults ): string {
+		$fallback = isset( $defaults[ $key ] ) && is_scalar( $defaults[ $key ] ) ? (string) $defaults[ $key ] : '#FFFFFF';
+		$value = $settings[ $key ] ?? $fallback;
+		$color = sanitize_hex_color( is_scalar( $value ) ? (string) $value : $fallback );
+		return is_string( $color ) && '' !== $color ? $color : $fallback;
+	};
+
 	return array(
-		'enabled'     => ! empty( $settings['enabled'] ),
-		'summary'     => isset( $settings['summary'] ) && is_scalar( $settings['summary'] ) ? (string) $settings['summary'] : '',
-		'description' => isset( $settings['description'] ) && is_scalar( $settings['description'] ) ? (string) $settings['description'] : '',
+		'enabled'                  => ! empty( $settings['enabled'] ),
+		'summary'                  => $read_text( 'summary' ),
+		'description'              => $read_text( 'description' ),
+		'note'                     => $read_text( 'note' ),
+		'note_background_color'    => $read_color( 'note_background_color' ),
+		'note_text_color'          => $read_color( 'note_text_color' ),
+		'details_background_color' => $read_color( 'details_background_color' ),
+		'details_text_color'       => $read_color( 'details_text_color' ),
 	);
 }
 
@@ -2722,10 +2757,10 @@ add_filter(
 
 /**
  * استایل مینیمال سبد/چک‌اوت با استایل کلی سایت هماهنگه (فونت/رنگ از
- * assets/compiled/assets/main-*.css که همه‌جا لود می‌شه)، پس فقط یک فایل کوچیک برای
- * رفتار JS (دکمه‌های +/- تعداد) اضافه می‌کنیم — بدون دست زدن به AJAX واقعی
- * ووکامرس (assets/js/frontend/cart.js خودش روی change شدن input.qty گوش
- * می‌ده و سبد رو sync می‌کنه).
+ * assets/compiled/assets/main-*.css که همه‌جا لود می‌شه)، پس رفتارِ سبد
+ * (دکمه‌های +/-، حذف و همگام‌سازی fragmentها) در همان assets/js/woocommerce.js
+ * می‌ماند؛ درخواست‌های تغییر با اعتبارسنجیِ خودِ endpoint/cart WooCommerce
+ * انجام می‌شوند و submit استاندارد برای fallback حفظ می‌شود.
  */
 function jluxe_enqueue_woocommerce_assets(): void {
 	if ( ! function_exists( 'is_cart' ) ) {

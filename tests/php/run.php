@@ -275,9 +275,45 @@ $_POST['qty']='2';$GLOBALS['products'][1]->sold=true;
 check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 sold-individually quantity cannot increase');
 $GLOBALS['products'][1]->sold=false;$GLOBALS['test_filters']['woocommerce_update_cart_validation']=fn()=>false;
 check(!json_call('jluxe_ajax_cart')->success && WC()->cart->changed===0, 'R05 quantity extension validation is honored');
-$GLOBALS['test_filters']=array();$_POST['qty']='3';
-check(json_call('jluxe_ajax_cart')->success && WC()->cart->items['existing']['quantity']===3, 'R05 valid quantity update succeeds');
-$_POST['qty']='0';check(json_call('jluxe_ajax_cart')->success && !isset(WC()->cart->items['existing']), 'R05 zero quantity removes the line through WC');
+$GLOBALS['test_filters']=array();
+$GLOBALS['test_filters']['woocommerce_cart_item_subtotal']=static function($html){return $html.'<em>filtered subtotal</em>';};
+$_POST['qty']='3';
+$r05_quantity_reply=json_call('jluxe_ajax_cart');
+check(
+	$r05_quantity_reply->success && WC()->cart->items['existing']['quantity']===3 &&
+	WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(true) &&
+	$r05_quantity_reply->data['items'][0]['lineTotalHtml']==='100<em>filtered subtotal</em>',
+	'R05 valid quantity update keeps Woo hooks and line-total filters while calculating totals once'
+);
+$GLOBALS['test_filters']=array();
+$_POST['qty']='0';
+check(json_call('jluxe_ajax_cart')->success && !isset(WC()->cart->items['existing']) && WC()->cart->totalsCalls===2, 'R05 zero quantity removes through Woo and recalculates the empty cart once');
+
+// R260: the cart page gets only Woo-rendered totals/empty fragments from its mutation request.
+reset_cart();
+$GLOBALS['wc_template_calls']=array();
+$GLOBALS['wc_template_output']=array('cart/cart-totals.php'=>'<div class="cart_totals"><span>fresh total</span></div>');
+$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'2','cart_page'=>'1');
+$r260_totals=json_call('jluxe_ajax_cart');
+check(
+	$r260_totals->success && $r260_totals->data['cartPage']['isEmpty']===false &&
+	$r260_totals->data['cartPage']['totalsHtml']==='<div class="cart_totals"><span>fresh total</span></div>' &&
+	$GLOBALS['wc_template_calls']===array('cart/cart-totals.php'),
+	'R260 cart-page mutation returns its Woo-rendered totals fragment without rendering a full page'
+);
+reset_cart();
+$GLOBALS['wc_template_calls']=array();
+$GLOBALS['wc_template_output']=array('cart/cart-empty.php'=>'<nav>stepper</nav><div data-jluxe-cart-page-content>empty</div>');
+$_POST=array('op'=>'remove','key'=>'existing','cart_page'=>'1');
+$r260_empty=json_call('jluxe_ajax_cart');
+check(
+	$r260_empty->success && $r260_empty->data['cartPage']['isEmpty']===true &&
+	$r260_empty->data['cartPage']['emptyHtml']==='<nav>stepper</nav><div data-jluxe-cart-page-content>empty</div>' &&
+	$GLOBALS['wc_template_calls']===array('cart/cart-empty.php'),
+	'R260 removing the last item returns the real empty-cart fragment and preserves template hooks'
+);
+$GLOBALS['wc_template_output']=array();
+$GLOBALS['wc_template_calls']=array();
 
 reset_cart();$variation=new WC_Product(3);$variation->type='variation';$variation->parent=2;$GLOBALS['products'][3]=$variation;
 $_POST=array('op'=>'add','product_id'=>'1','variation_id'=>'3','quantity'=>'1');
@@ -6429,6 +6465,15 @@ $r279_settings_defaults = jluxe_theme_settings_defaults();
 $r279_posted_checkout   = $r279_settings_defaults['cart_checkout'];
 $r279_posted_checkout['shipping_methods']['post']['summary'] = '<b>جزئیات امن</b>';
 $r279_posted_checkout['shipping_methods']['post']['description'] = "کرایه <script>alert(1)</script> هنگام تحویل";
+$r279_posted_checkout['shipping_methods']['post']['note'] = '<b>ارسال فوری</b>';
+$r279_posted_checkout['shipping_methods']['post']['note_background_color'] = '#123ABC';
+$r279_posted_checkout['shipping_methods']['post']['note_text_color'] = 'url(javascript:alert(1))';
+$r279_posted_checkout['shipping_methods']['post']['details_background_color'] = '#abcdef';
+$r279_posted_checkout['shipping_methods']['post']['details_text_color'] = '#123';
+$r279_posted_checkout['checkout_payment_warning_background'] = '#334455';
+$r279_posted_checkout['checkout_payment_warning_text_color'] = 'expression(alert(1))';
+$r279_posted_checkout['payment_card_background'] = '#223344';
+$r279_posted_checkout['payment_card_selected_background'] = '#445566';
 $r279_posted_checkout['shipping_methods']['chapar']['enabled'] = false;
 $r279_clean_checkout = jluxe_sanitize_cart_checkout( $r279_posted_checkout, $r279_settings_defaults['cart_checkout'] );
 check(
@@ -6441,6 +6486,18 @@ check(
 	'R279 cart/checkout settings page, independent sanitizer, booleans, and per-carrier safe editable copy are registered'
 );
 check(
+	'ارسال فوری' === $r279_clean_checkout['shipping_methods']['post']['note'] &&
+	'#123ABC' === $r279_clean_checkout['shipping_methods']['post']['note_background_color'] &&
+	'#332900' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
+	'#abcdef' === $r279_clean_checkout['shipping_methods']['post']['details_background_color'] &&
+	'#123' === $r279_clean_checkout['shipping_methods']['post']['details_text_color'] &&
+	'#334455' === $r279_clean_checkout['checkout_payment_warning_background'] &&
+	'#334155' === $r279_clean_checkout['checkout_payment_warning_text_color'] &&
+	'#223344' === $r279_clean_checkout['payment_card_background'] &&
+	'#445566' === $r279_clean_checkout['payment_card_selected_background'],
+	'R287 carrier badges, accordion backgrounds/text, VPN warning, and gateway card colors sanitize safely'
+);
+check(
 	false !== strpos( $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['description'], 'پس‌کرایه' ) &&
 	false !== strpos( $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['description'], 'هنگام تحویل' ) &&
 	false !== strpos( $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['description'], 'هنگام تحویل' ) &&
@@ -6448,11 +6505,22 @@ check(
 	false === strpos( $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['description'], 'پرداخت هنگام ثبت سفارش' ),
 	'R279 all three shipping method defaults say the freight is collected on delivery, including Post'
 );
+check(
+	'اقتصادی' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note'] &&
+	'#FECB02' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
+	'#33936e' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#d71925' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
+	'#FFF8E6' === $r279_settings_defaults['cart_checkout']['checkout_payment_warning_background'] &&
+	'#FFFFFF' === $r279_settings_defaults['cart_checkout']['payment_card_background'],
+	'R287 carrier-note defaults use the requested brand colors and editable checkout colors have safe defaults'
+);
 $r279_old_stored_section = array( 'version' => JLUXE_SETTINGS_VERSION, 'cart_checkout' => array( 'show_stepper' => false ) );
 $r279_merged_section = jluxe_array_merge_deep( $r279_settings_defaults, $r279_old_stored_section );
 check(
 	false === $r279_merged_section['cart_checkout']['show_stepper'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&
+	'اقتصادی' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['note'] &&
+	'#33936e' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
 	array( 'post', 'tipax', 'chapar' ) === array_keys( $r279_merged_section['cart_checkout']['shipping_methods'] ),
 	'R279 adding cart_checkout needs no schema migration: the theme defaults deep-merge missing nested settings'
 );

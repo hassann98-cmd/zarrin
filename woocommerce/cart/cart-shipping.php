@@ -44,13 +44,16 @@ $calculator_text          = '';
 						esc_attr( $presentation['kind'] )
 					);
 					?>
-					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?>">
-						<span class="jluxe-shipping-card__details">
-							<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
-						</span>
-					</label>
-					<?php if ( $show_method_details ) : ?>
-						<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>" open>
+						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?>">
+							<span class="jluxe-shipping-card__details">
+								<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
+								<?php if ( isset( $method_copy['note'] ) && is_scalar( $method_copy['note'] ) && '' !== trim( (string) $method_copy['note'] ) ) : ?>
+									<span class="jluxe-shipping-note jluxe-shipping-note--<?php echo esc_attr( $kind ); ?>" style="--jluxe-shipping-note-bg: <?php echo esc_attr( $method_copy['note_background_color'] ); ?>; --jluxe-shipping-note-color: <?php echo esc_attr( $method_copy['note_text_color'] ); ?>;"><?php echo esc_html( trim( (string) $method_copy['note'] ) ); ?></span>
+								<?php endif; ?>
+							</span>
+						</label>
+						<?php if ( $show_method_details ) : ?>
+							<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>" style="--jluxe-shipping-details-bg: <?php echo esc_attr( $method_copy['details_background_color'] ); ?>; --jluxe-shipping-details-color: <?php echo esc_attr( $method_copy['details_text_color'] ); ?>;" open>
 							<summary>
 								<span><?php echo esc_html( $method_copy['summary'] ); ?></span>
 								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>

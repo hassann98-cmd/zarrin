@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <li class="wc_payment_method jluxe-payment-method-item payment_method_<?php echo esc_attr( $gateway->id ); ?>">
 	<input id="payment_method_<?php echo esc_attr( $gateway->id ); ?>" type="radio" class="input-radio payment_method sr-only" name="payment_method" value="<?php echo esc_attr( $gateway->id ); ?>" data-order_button_text="<?php echo esc_attr( $gateway->order_button_text ); ?>" />
 
-	<label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="jluxe-payment-card relative flex min-w-0 cursor-pointer items-center gap-3 rounded-xl p-4 text-start transition-colors hover:bg-muted">
+	<label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="jluxe-payment-card relative flex min-w-0 cursor-pointer items-center gap-3 rounded-xl p-4 text-start transition-colors hover:bg-muted" style="--jluxe-payment-card-background: <?php echo esc_attr( jluxe_cart_checkout_color( 'payment_card_background', '#FFFFFF' ) ); ?>; --jluxe-payment-card-selected-background: <?php echo esc_attr( jluxe_cart_checkout_color( 'payment_card_selected_background', '#F0FDF4' ) ); ?>;">
 		<span class="jluxe-payment-card-icon flex h-8 items-center justify-center">
 			<?php echo $gateway->get_icon(); /* phpcs:ignore */ ?>
 		</span>

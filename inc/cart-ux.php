@@ -119,6 +119,7 @@ function jluxe_cart_snapshot(): array {
 			}
 		}
 
+		$line_total = $cart->get_product_subtotal( $product, $cart_item['quantity'] );
 		$items[] = array(
 			'key'           => $key,
 			'productId'     => $cart_item['product_id'],
@@ -126,7 +127,7 @@ function jluxe_cart_snapshot(): array {
 			'url'           => get_permalink( $cart_item['product_id'] ),
 			'image'         => $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : wc_placeholder_img_src( 'thumbnail' ),
 			'variation'     => implode( '، ', $variation ),
-			'qty'           => (int) $cart_item['quantity'],
+			'qty'           => $cart_item['quantity'],
 			// get_product_subtotal() برخلاف get_subtotal() یک HTML آماده (با
 			// <span class="woocommerce-Price-amount">) برمی‌گردونه نه عدد خام —
 			// دوباره پیچیدنش توی wc_price() رشته‌ی HTML رو به عدد صفر تبدیل
@@ -136,7 +137,9 @@ function jluxe_cart_snapshot(): array {
 			// jluxe_fa_digits_wc_price) توی AJAX هم ارقام رو خودش فارسی می‌کنه؛
 			// پیچیدنِ دوباره‌ش آیکونِ SVG تومان رو خراب می‌کرد (باگِ واقعیِ
 			// گزارش‌شده در سبدِ کشویی).
-			'lineTotalHtml' => $cart->get_product_subtotal( $product, $cart_item['quantity'] ),
+			// Match the cart-page template so price extensions remain visible in
+			// both the classic WooCommerce form and the fast cart-page response.
+			'lineTotalHtml' => apply_filters( 'woocommerce_cart_item_subtotal', $line_total, $cart_item, $key ),
 			'maxQty'        => $product->get_max_purchase_quantity() > 0 ? $product->get_max_purchase_quantity() : 99,
 		);
 	}
@@ -158,6 +161,29 @@ function jluxe_cart_snapshot(): array {
 		'freeShipping'  => jluxe_get_free_shipping_progress(),
 		'cartUrl'       => wc_get_cart_url(),
 		'checkoutUrl'   => wc_get_checkout_url(),
+	);
+}
+
+/** Render only the fragment needed after a cart-page mutation, not a full page. */
+function jluxe_cart_page_ajax_fragment(): array {
+	if ( ! function_exists( 'wc_get_template' ) ) {
+		return array();
+	}
+
+	if ( WC()->cart->is_empty() ) {
+		ob_start();
+		wc_get_template( 'cart/cart-empty.php' );
+		return array(
+			'isEmpty'   => true,
+			'emptyHtml' => (string) ob_get_clean(),
+		);
+	}
+
+	ob_start();
+	wc_get_template( 'cart/cart-totals.php' );
+	return array(
+		'isEmpty'    => false,
+		'totalsHtml' => (string) ob_get_clean(),
 	);
 }
 
@@ -299,6 +325,7 @@ function jluxe_ajax_cart(): void {
 	}
 	$op = sanitize_key( jluxe_cart_post_string( 'op', 'get' ) );
 	$cart = WC()->cart;
+	$cart_totals_are_current = false;
 	wc_clear_notices();
 
 	if ( in_array( $op, array( 'remove', 'update_qty' ), true ) ) {
@@ -339,6 +366,9 @@ function jluxe_ajax_cart(): void {
 			if ( false === $cart->set_quantity( $key, $qty, true ) ) {
 				jluxe_cart_error( 'تغییر تعداد انجام نشد.' );
 			}
+			// set_quantity(..., true) has already recalculated all WooCommerce
+			// totals for positive quantities. Avoid repeating shipping/tax/fee work.
+			$cart_totals_are_current = $qty > 0;
 			$stock = jluxe_cart_stock_check();
 			if ( true !== $stock ) {
 				// Roll back only this request's write; the pre-update quantity was validated above.
@@ -393,9 +423,15 @@ function jluxe_ajax_cart(): void {
 		jluxe_cart_error( 'عملیات معتبر نیست.' );
 	}
 	wc_clear_notices();
-	// Let WooCommerce own session persistence; compute the snapshot after totals are current.
-	$cart->calculate_totals();
+	// Let WooCommerce own session persistence; compute totals once after a
+	// mutation. Positive set_quantity calls already refreshed totals above.
+	if ( ! $cart_totals_are_current ) {
+		$cart->calculate_totals();
+	}
 	$snapshot = jluxe_cart_snapshot();
+	if ( '1' === jluxe_cart_post_string( 'cart_page' ) && in_array( $op, array( 'remove', 'update_qty' ), true ) ) {
+		$snapshot['cartPage'] = jluxe_cart_page_ajax_fragment();
+	}
 	if ( in_array( $op, array( 'add', 'get' ), true ) ) {
 		/* A successful add already has a fresh snapshot. Native WooCommerce
 		 * loop adds request op=get with product_id, which returns that same

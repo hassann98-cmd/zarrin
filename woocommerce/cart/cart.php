@@ -20,7 +20,7 @@ do_action( 'woocommerce_before_cart' );
 jluxe_render_checkout_stepper( 'cart' );
 ?>
 
-<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
+<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6" data-jluxe-cart-page-content>
 	<?php $cart_title = jluxe_cart_checkout_copy( 'cart_page_title', 'سبد خرید' ); ?>
 	<?php if ( '' !== trim( $cart_title ) ) : ?>
 		<h1 class="mb-6 text-h2 text-foreground"><?php echo esc_html( $cart_title ); ?></h1>
@@ -63,14 +63,14 @@ jluxe_render_checkout_stepper( 'cart' );
 								$max_quantity = $_product->get_max_purchase_quantity();
 							}
 							?>
-							<div class="woocommerce-cart-form__cart-item <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?> flex flex-col gap-4 p-4 sm:grid sm:grid-cols-[1fr_8rem_8rem] sm:items-center sm:gap-4">
+							<div class="woocommerce-cart-form__cart-item <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?> flex flex-col gap-4 p-4 sm:grid sm:grid-cols-[1fr_8rem_8rem] sm:items-center sm:gap-4" data-jluxe-cart-item-key="<?php echo esc_attr( $cart_item_key ); ?>">
 
 								<div class="flex items-center gap-3" data-title="<?php echo esc_attr( jluxe_cart_checkout_copy( 'cart_column_product', 'محصول' ) ); ?>">
 									<?php
 									echo apply_filters( // phpcs:ignore
 										'woocommerce_cart_item_remove_link',
 										sprintf(
-											'<a role="button" href="%s" class="jluxe-remove-item order-last flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-error/10 hover:text-error" aria-label="%s" data-product_id="%s" data-product_sku="%s"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></a>',
+											'<a role="button" href="%s" class="jluxe-remove-item order-last flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-error/10 hover:text-error" aria-label="%s" data-product_id="%s" data-product_sku="%s" data-jluxe-cart-remove><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></a>',
 											esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
 											esc_attr( jluxe_cart_checkout_required_copy( 'cart_remove_item', 'حذف محصول از سبد خرید' ) ),
 											esc_attr( $product_id ),
@@ -87,13 +87,13 @@ jluxe_render_checkout_stepper( 'cart' );
 											<?php echo wp_kses_post( $product_name ); ?>
 										</a>
 										<div class="mt-1 text-caption text-text-muted"><?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?></div>
-										<div class="mt-1 text-small font-medium text-foreground sm:hidden">
+										<div class="mt-1 text-small font-medium text-foreground sm:hidden" data-jluxe-cart-item-total>
 											<?php echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
 										</div>
 									</div>
 								</div>
 
-								<div class="hidden text-center text-small font-medium text-foreground sm:block" data-title="<?php echo esc_attr( jluxe_cart_checkout_copy( 'cart_column_total', 'جمع قیمت' ) ); ?>">
+								<div class="hidden text-center text-small font-medium text-foreground sm:block" data-title="<?php echo esc_attr( jluxe_cart_checkout_copy( 'cart_column_total', 'جمع قیمت' ) ); ?>" data-jluxe-cart-item-total>
 									<?php echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
 								</div>
 

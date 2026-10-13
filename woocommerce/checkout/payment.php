@@ -45,7 +45,9 @@ if ( ! wp_doing_ajax() ) {
 		<?php if ( jluxe_cart_checkout_option( 'checkout_payment_warning_enabled', true ) ) : ?>
 			<?php $payment_warning = jluxe_cart_checkout_copy( 'checkout_payment_warning', 'در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.' ); ?>
 			<?php if ( '' !== trim( $payment_warning ) ) : ?>
-				<div class="mb-4 flex items-start gap-2 rounded-xl bg-warning/15 p-4 text-small text-foreground">
+				<?php $payment_warning_background = jluxe_cart_checkout_color( 'checkout_payment_warning_background', '#FFF8E6' ); ?>
+				<?php $payment_warning_text_color = jluxe_cart_checkout_color( 'checkout_payment_warning_text_color', '#334155' ); ?>
+				<div class="jluxe-checkout-vpn-note mb-4 flex items-start gap-2 rounded-xl p-4 text-small" style="--jluxe-checkout-vpn-background: <?php echo esc_attr( $payment_warning_background ); ?>; --jluxe-checkout-vpn-text-color: <?php echo esc_attr( $payment_warning_text_color ); ?>;">
 					<span class="mt-0.5 shrink-0 text-warning">⚠</span>
 					<span><?php echo nl2br( esc_html( $payment_warning ) ); ?></span>
 				</div>

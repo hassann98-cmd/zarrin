@@ -792,6 +792,10 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 	}
 
 	$posted_methods = isset( $posted['shipping_methods'] ) && is_array( $posted['shipping_methods'] ) ? $posted['shipping_methods'] : array();
+	$sanitize_color = static function ( $value, string $fallback ): string {
+		$color = sanitize_hex_color( is_scalar( $value ) ? (string) $value : '' );
+		return is_string( $color ) && '' !== $color ? $color : $fallback;
+	};
 	$shipping_methods = array();
 	foreach ( $defaults['shipping_methods'] as $method_key => $default_method ) {
 		$method_posted = isset( $posted_methods[ $method_key ] ) && is_array( $posted_methods[ $method_key ] )
@@ -803,10 +807,18 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		$description = isset( $method_posted['description'] ) && is_scalar( $method_posted['description'] )
 			? (string) $method_posted['description']
 			: (string) $default_method['description'];
+		$note = isset( $method_posted['note'] ) && is_scalar( $method_posted['note'] )
+			? (string) $method_posted['note']
+			: (string) ( $default_method['note'] ?? '' );
 		$shipping_methods[ $method_key ] = array(
-			'enabled'     => ! empty( $method_posted['enabled'] ),
-			'summary'     => sanitize_text_field( $summary ),
-			'description' => sanitize_textarea_field( $description ),
+			'enabled'                  => ! empty( $method_posted['enabled'] ),
+			'summary'                  => sanitize_text_field( $summary ),
+			'description'              => sanitize_textarea_field( $description ),
+			'note'                     => sanitize_text_field( $note ),
+			'note_background_color'    => $sanitize_color( $method_posted['note_background_color'] ?? ( $default_method['note_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['note_background_color'] ?? '#FFFFFF' ) ),
+			'note_text_color'          => $sanitize_color( $method_posted['note_text_color'] ?? ( $default_method['note_text_color'] ?? '#111827' ), (string) ( $default_method['note_text_color'] ?? '#111827' ) ),
+			'details_background_color' => $sanitize_color( $method_posted['details_background_color'] ?? ( $default_method['details_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['details_background_color'] ?? '#FFFFFF' ) ),
+			'details_text_color'       => $sanitize_color( $method_posted['details_text_color'] ?? ( $default_method['details_text_color'] ?? '#475569' ), (string) ( $default_method['details_text_color'] ?? '#475569' ) ),
 		);
 	}
 
@@ -822,6 +834,10 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		'checkout_shipping_heading_enabled' => ! empty( $posted['checkout_shipping_heading_enabled'] ),
 		'checkout_shipping_error_enabled'  => ! empty( $posted['checkout_shipping_error_enabled'] ),
 		'checkout_payment_warning_enabled' => ! empty( $posted['checkout_payment_warning_enabled'] ),
+		'checkout_payment_warning_background' => $sanitize_color( $posted['checkout_payment_warning_background'] ?? ( $defaults['checkout_payment_warning_background'] ?? '#FFF8E6' ), (string) ( $defaults['checkout_payment_warning_background'] ?? '#FFF8E6' ) ),
+		'checkout_payment_warning_text_color' => $sanitize_color( $posted['checkout_payment_warning_text_color'] ?? ( $defaults['checkout_payment_warning_text_color'] ?? '#334155' ), (string) ( $defaults['checkout_payment_warning_text_color'] ?? '#334155' ) ),
+		'payment_card_background'          => $sanitize_color( $posted['payment_card_background'] ?? ( $defaults['payment_card_background'] ?? '#FFFFFF' ), (string) ( $defaults['payment_card_background'] ?? '#FFFFFF' ) ),
+		'payment_card_selected_background' => $sanitize_color( $posted['payment_card_selected_background'] ?? ( $defaults['payment_card_selected_background'] ?? '#F0FDF4' ), (string) ( $defaults['payment_card_selected_background'] ?? '#F0FDF4' ) ),
 		'show_shipping_accordions'         => ! empty( $posted['show_shipping_accordions'] ),
 		'copy'                             => $copy,
 		'shipping_methods'                 => $shipping_methods,

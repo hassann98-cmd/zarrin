@@ -15,6 +15,7 @@ const shippingTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-shipp
 const paymentSource = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
 const themeSettingsSource = fs.readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const settingsAdminSource = fs.readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
+const settingsRenderSource = fs.readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
 const settingsSanitizeSource = fs.readFileSync(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
 const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 
@@ -251,8 +252,12 @@ test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-me
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
   assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>">/);
   assert.match(shippingTemplate, /jluxe_cart_checkout_shipping_method_settings\( \$kind \)/);
+  assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
+  assert.match(shippingTemplate, /wc_cart_totals_shipping_method_label\( \$method \)/, "WooCommerce continues to render each rate label and any real shipping cost");
+  assert.match(shippingTemplate, /jluxe-shipping-note-bg/);
+  assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
-  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*" open>/, "selecting a rate reveals its already-expanded accordion below the card");
+  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\bopen>/, "selecting a rate reveals its already-expanded accordion below the card");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
   assert.doesNotMatch(shippingTemplate, /jluxe-shipping-card__hint/);
   const shippingRadio = shippingTemplate.match(/<input type="radio"[\s\S]*?\/>/)?.[0] || "";
@@ -267,9 +272,16 @@ test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-me
   assert.match(storefrontStyles, /jluxe-shipping-card--tipax[\s\S]*?--success/);
   assert.match(storefrontStyles, /jluxe-shipping-card--chapar[\s\S]*?--error/);
   const shippingLabelRule = storefrontStyles.match(/\.jluxe-shipping-card__label\s*\{([^}]+)\}/s)?.[1] || "";
-  assert.match(shippingLabelRule, /white-space:\s*normal/);
-  assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
-  assert.doesNotMatch(shippingLabelRule, /text-overflow:\s*ellipsis/);
+  const shippingNoteRule = storefrontStyles.match(/\.jluxe-shipping-note\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingDetailsRule = storefrontStyles.match(/\.jluxe-shipping-method-accordion\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(shippingLabelRule, /white-space:\s*nowrap/);
+  assert.match(shippingLabelRule, /text-overflow:\s*ellipsis/);
+  assert.doesNotMatch(shippingLabelRule, /overflow-wrap:\s*anywhere/);
+  assert.match(shippingNoteRule, /text-align:\s*left/);
+  assert.match(shippingNoteRule, /white-space:\s*nowrap/);
+  assert.match(shippingNoteRule, /max-width:\s*58%/);
+  assert.match(shippingDetailsRule, /background:\s*var\(--jluxe-shipping-details-bg/);
+  assert.match(shippingDetailsRule, /color:\s*var\(--jluxe-shipping-details-color/);
   assert.doesNotMatch(storefrontStyles, /jluxe-shipping-card__hint|jluxe-shipping-freight-note/);
 
   assert.match(paymentSource, /function jluxe_shipping_method_presentation\( \$method \): array/);
@@ -283,6 +295,11 @@ test("all carrier explanations are editable and state postpaid delivery without 
   const end = themeSettingsSource.indexOf("\n\t\t),\n\t\t// «آیتم‌های اضافه خرید»", start);
   assert.ok(start >= 0 && end > start, "shipping-method defaults are present in the new settings section");
   const shippingDefaults = themeSettingsSource.slice(start, end);
+  const expectedCarrierNotes = {
+    post: ["اقتصادی", "#FECB02"],
+    tipax: ["سریع‌تر، هزینه بالا", "#33936e"],
+    chapar: ["مناسب مرسوله‌های حجیم", "#d71925"],
+  };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
     assert.ok(block, `${carrier} has an independent setting block`);
@@ -291,9 +308,19 @@ test("all carrier explanations are editable and state postpaid delivery without 
     assert.match(description, /پس‌کرایه/);
     assert.match(description, /هنگام تحویل/);
     assert.doesNotMatch(description, /پیش.?پرداخت|پرداخت هنگام ثبت سفارش|همراه مبلغ سفارش/);
+    assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier][0]}'`));
+    assert.match(block, new RegExp(`'note_background_color'\\s*=>\\s*'${expectedCarrierNotes[carrier][1]}'`));
+    assert.match(block, /'note_text_color'\s*=>/);
+    assert.match(block, /'details_background_color'\s*=>/);
+    assert.match(block, /'details_text_color'\s*=>/);
   }
   assert.match(settingsAdminSource, /'jluxe-cart-checkout'\s*=>\s*array\( 'cart_checkout', 'jluxe_sanitize_cart_checkout' \)/);
   assert.match(settingsSanitizeSource, /function jluxe_sanitize_cart_checkout\(/);
+  assert.match(settingsRenderSource, /jluxe_render_cart_checkout_color_field/);
+  for (const field of ["checkout_payment_warning_background", "checkout_payment_warning_text_color", "payment_card_background", "payment_card_selected_background"]) {
+    assert.ok(settingsRenderSource.includes(`cart_checkout[${field}]`), `${field} is editable in the cart/checkout settings`);
+    assert.ok(settingsSanitizeSource.includes(`'${field}'`), `${field} has a sanitizer mapping`);
+  }
   assert.match(themeSettingsSource, /jluxe_array_merge_deep\( jluxe_theme_settings_defaults\(\), \$stored \)/);
   assert.doesNotMatch(reviewOrderTemplate, /پیش.?پرداخت|پرداخت هنگام ثبت سفارش/);
   assert.doesNotMatch(paymentTemplate, /پست پیشتاز.*پرداخت هنگام ثبت سفارش/);
@@ -306,6 +333,8 @@ test("payment gateways render as full-width horizontal cards in one responsive c
   assert.match(paymentMethodTemplate, /\$gateway->get_icon\(\)/);
   assert.match(paymentMethodTemplate, /\$gateway->get_title\(\)/);
   assert.match(paymentMethodTemplate, /\$gateway->payment_fields\(\)/);
+  assert.match(paymentMethodTemplate, /--jluxe-payment-card-background/);
+  assert.match(paymentMethodTemplate, /--jluxe-payment-card-selected-background/);
 
   const listRule = storefrontStyles.match(/#payment ul[^\{]*jluxe-payment-method-list[^\{]*\{([^}]+)\}/s)?.[1] || "";
   const itemRule = storefrontStyles.match(/#payment ul[^\{]*li\.jluxe-payment-method-item\s*\{([^}]+)\}/s)?.[1] || "";
@@ -317,8 +346,24 @@ test("payment gateways render as full-width horizontal cards in one responsive c
   assert.match(cardRule, /flex-direction:\s*row\s*!important/);
   assert.match(cardRule, /min-height:\s*4\.5rem/);
   assert.match(cardRule, /text-align:\s*start/);
+  assert.match(cardRule, /background-color:\s*var\(--jluxe-payment-card-background/);
+  assert.match(storefrontStyles, /#payment ul\.payment_methods li input\.payment_method:checked \+ label\.jluxe-payment-card\s*\{[^}]*--jluxe-payment-card-selected-background/s);
   assert.match(storefrontStyles, /jluxe-payment-method-item \.payment_box\s*\{[^}]*width:\s*100%/s);
   assert.doesNotMatch(storefrontStyles, /width:\s*(?:calc\(50%|152px)\s*!important/);
+});
+
+test("VPN warning background/text and payment-card colors come from validated checkout settings", () => {
+  assert.match(paymentTemplate, /jluxe_cart_checkout_color\( 'checkout_payment_warning_background'/);
+  assert.match(paymentTemplate, /jluxe_cart_checkout_color\( 'checkout_payment_warning_text_color'/);
+  assert.match(paymentTemplate, /--jluxe-checkout-vpn-background/);
+  assert.match(paymentTemplate, /--jluxe-checkout-vpn-text-color/);
+  const warningRule = storefrontStyles.match(/body\.woocommerce-checkout \.jluxe-checkout-vpn-note\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(warningRule, /background:\s*var\(--jluxe-checkout-vpn-background/);
+  assert.match(warningRule, /color:\s*var\(--jluxe-checkout-vpn-text-color/);
+  assert.match(settingsRenderSource, /پس‌زمینهٔ هشدار خاموش‌کردن VPN/);
+  assert.match(settingsRenderSource, /رنگ متن هشدار VPN/);
+  assert.match(settingsRenderSource, /پس‌زمینهٔ عادی کارت درگاه‌ها/);
+  assert.match(settingsRenderSource, /پس‌زمینهٔ کارت درگاه انتخاب‌شده/);
 });
 
 test("postcode guidance has strong readable contrast and wraps inside narrow checkout fields", () => {
@@ -430,6 +475,8 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   const { window, scrolls, $ } = bootCheckout({ requiredCity: true, shippingRates: ["flat_rate:1"] });
   t.after(() => window.close());
   const { document } = window;
+  let checkoutRefreshes = 0;
+  $(document.body).on("update_checkout", () => checkoutRefreshes++);
   const city = document.getElementById("billing_city");
   const shippingError = document.querySelector("[data-jluxe-shipping-error]");
   const next = document.querySelector("[data-jluxe-checkout-next]");
@@ -481,7 +528,9 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, false);
   assert.equal(actions.hidden, true, "the empty shipping action bar is removed while payment is active");
   assert.equal(paymentBack.hidden, false, "the payment-stage back action appears beside place order");
+  assert.equal(checkoutRefreshes, 0, "changing the local checkout step does not wait for or duplicate WooCommerce recalculation");
   assert.equal(scrolls.filter((entry) => entry.target === "window" && entry.top === 0).length, topScrollsBeforePayment + 1, "advancing to payment scrolls the page to its top");
+  assert.equal(scrolls.filter((entry) => entry.target === "window").at(-1).behavior, "auto", "the stage transition does not add a long smooth-scroll delay");
 
   // The payment/shipping DOM lives in WooCommerce fragments. The historical
   // state machine reapplies visibility after updated_checkout without replacing

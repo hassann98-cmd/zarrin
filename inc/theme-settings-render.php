@@ -1438,6 +1438,18 @@ function jluxe_render_cart_checkout_toggle_row( array $settings, string $key, st
 	<?php
 }
 
+function jluxe_render_cart_checkout_color_field( string $name, string $id, string $label, string $value, string $description = '' ): void {
+	?>
+	<tr>
+		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td>
+			<input type="text" id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" class="jluxe-color-field" dir="ltr" />
+			<?php if ( '' !== $description ) : ?><p class="description"><?php echo esc_html( $description ); ?></p><?php endif; ?>
+		</td>
+	</tr>
+	<?php
+}
+
 function jluxe_render_cart_checkout_page(): void {
 	$status   = jluxe_handle_generic_settings_save( 'jluxe-cart-checkout' );
 	$settings = jluxe_get_fresh_settings();
@@ -1540,10 +1552,18 @@ function jluxe_render_cart_checkout_page(): void {
 				jluxe_render_cart_checkout_copy_row( $copy, $key, $field[0], $field[1] );
 			}
 			?>
-			</table>
+				</table>
 
-			<h2>توضیحات روش‌های ارسال</h2>
-			<p class="description">هر توضیح به‌صورت آکاردئون زیر کارت روش انتخاب‌شده نشان داده می‌شود. متن نام و هزینهٔ نرخ از خودِ WooCommerce می‌آید؛ رنگ انتخاب‌شدهٔ کارت نیز بر اساس نوع روش است: پست زرد، تیپاکس سبز و چاپار قرمز.</p>
+				<h3>رنگ هشدار و کارت‌های درگاه</h3>
+				<table class="form-table" role="presentation">
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[checkout_payment_warning_background]', 'jluxe-checkout-payment-warning-background', 'پس‌زمینهٔ هشدار خاموش‌کردن VPN', (string) $cart['checkout_payment_warning_background'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[checkout_payment_warning_text_color]', 'jluxe-checkout-payment-warning-text-color', 'رنگ متن هشدار VPN', (string) $cart['checkout_payment_warning_text_color'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[payment_card_background]', 'jluxe-payment-card-background', 'پس‌زمینهٔ عادی کارت درگاه‌ها', (string) $cart['payment_card_background'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[payment_card_selected_background]', 'jluxe-payment-card-selected-background', 'پس‌زمینهٔ کارت درگاه انتخاب‌شده', (string) $cart['payment_card_selected_background'] ); ?>
+				</table>
+
+				<h2>توضیحات روش‌های ارسال</h2>
+			<p class="description">نشان کوتاه کنار نام، متن و رنگ جداگانه دارد و به هزینهٔ نرخ وابسته نیست. نام و هر مبلغی که برای نرخ ارسال در WooCommerce تعیین شود، همچنان از نرخ واقعی ووکامرس نمایش داده می‌شود؛ در آینده هم می‌توانید هزینه‌دار شدن روش را در خود WooCommerce تنظیم کنید، بدون اینکه نشان یا توضیحات کارت جای قیمت را بگیرد. آکاردئون جزئیات زیر همان روش انتخاب‌شده باز می‌شود.</p>
 			<table class="form-table" role="presentation">
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_shipping_accordions', 'آکاردئون توضیحات ارسال' ); ?>
 			</table>
@@ -1558,11 +1578,19 @@ function jluxe_render_cart_checkout_page(): void {
 						<th scope="row"><label for="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>">عنوان آکاردئون</label></th>
 						<td><input type="text" id="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][summary]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['summary'] ); ?>" class="regular-text" /></td>
 					</tr>
-					<tr>
-						<th scope="row"><label for="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>">توضیحات</label></th>
-						<td><textarea id="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][description]" rows="3" class="large-text"><?php echo esc_textarea( (string) $cart['shipping_methods'][ $method_key ]['description'] ); ?></textarea></td>
-					</tr>
-				</table>
+						<tr>
+							<th scope="row"><label for="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>">توضیحات آکاردئون</label></th>
+							<td><textarea id="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][description]" rows="3" class="large-text"><?php echo esc_textarea( (string) $cart['shipping_methods'][ $method_key ]['description'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>">متن نشان کنار نام روش</label></th>
+							<td><input type="text" id="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][note]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['note'] ); ?>" class="regular-text" /></td>
+						</tr>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_background_color]', 'jluxe-shipping-note-bg-' . $method_key, 'رنگ کادر نشان', (string) $cart['shipping_methods'][ $method_key ]['note_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_text_color]', 'jluxe-shipping-note-text-' . $method_key, 'رنگ نوشتهٔ نشان', (string) $cart['shipping_methods'][ $method_key ]['note_text_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_background_color]', 'jluxe-shipping-details-bg-' . $method_key, 'پس‌زمینهٔ کادر جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_text_color]', 'jluxe-shipping-details-text-' . $method_key, 'رنگ نوشتهٔ جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_text_color'] ); ?>
+					</table>
 			<?php endforeach; ?>
 			<?php jluxe_settings_submit_button( true, 'cart_checkout' ); ?>
 		</form>

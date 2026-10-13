@@ -1,10 +1,8 @@
 /**
- * دکمه‌های +/- تعداد در صفحهٔ محصول و سبد خرید. مقدار input.qty رو تغییر
- * می‌ده و در سبد خرید دقیقاً همان مسیر رسمی ووکامرس را صدا می‌زند: کلیک روی دکمهٔ مخفیِ
- * name="update_cart" (که assets/js/frontend/cart.js خودِ ووکامرس روش
- * گوش می‌ده و AJAX واقعی رو انجام می‌ده). صرفاً dispatch کردن رویداد
- * change کافی نیست — ووکامرس کلاسیک AJAX رو فقط با submit واقعی فرم
- * (کلیک دکمه‌ی update_cart، یا Enter داخل input.qty) اجرا می‌کنه.
+ * دکمه‌های +/- تعداد در صفحهٔ محصول و سبد خرید. در سبدِ صفحهٔ کامل، رویدادِ
+ * change به مسیرِ AJAX سبکِ jluxe_cart می‌رسد؛ اگر endpoint در دسترس نبود،
+ * همان submit استانداردِ فرم WooCommerce باقی می‌ماند. فرم‌های صفحهٔ محصول
+ * فقط مقدار را تغییر می‌دهند و جریان رسمی خودشان را حفظ می‌کنند.
  */
 (function () {
 	document.addEventListener("click", function (event) {
@@ -15,7 +13,8 @@
 
 		var wrapper = button.closest(".quantity");
 		var input = wrapper && wrapper.querySelector("input.qty");
-		if (!input) {
+		var cartRow = button.closest("[data-jluxe-cart-item-key]");
+		if (!input || (cartRow && cartRow.hasAttribute("data-jluxe-cart-removing"))) {
 			return;
 		}
 
@@ -35,7 +34,12 @@
 
 		var form = input.closest("form.woocommerce-cart-form");
 		var updateCartButton = form && form.querySelector('[name="update_cart"]');
-		if (updateCartButton) {
+		var cartSettings = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cart;
+		var hasFastCartEndpoint = !!(
+			form && cartRow && cartSettings && cartSettings.ajaxUrl &&
+			typeof window.jluxeCartPost === "function"
+		);
+		if (updateCartButton && !hasFastCartEndpoint) {
 			updateCartButton.disabled = false;
 			updateCartButton.click();
 		}
@@ -103,6 +107,360 @@
 			});
 		});
 	};
+})();
+
+/**
+ * Fast cart-page mutations. WooCommerce still validates and calculates the cart
+ * on the server; the response carries only the changed cart fragments instead
+ * of forcing a navigation or parsing a full checkout page.
+ */
+(function () {
+	var initialForm = document.querySelector("form.woocommerce-cart-form");
+	var themeSettings = window.JLuxeThemeSettings || {};
+	var cartSettings = themeSettings.cart || null;
+	if (!initialForm || !cartSettings || !cartSettings.ajaxUrl || typeof window.jluxeCartPost !== "function") {
+		return;
+	}
+
+	var quantityDebounceMs = 160;
+	var quantityTimers = new WeakMap();
+	var lineStates = new Map();
+	var requestQueue = Promise.resolve();
+	var intentRevision = 0;
+
+	function lineKey(row) {
+		return row && row.getAttribute("data-jluxe-cart-item-key");
+	}
+
+	function isCartQuantityInput(input) {
+		return !!(
+			input && input.matches && input.matches("form.woocommerce-cart-form .cart_item input.qty") &&
+			input.closest("[data-jluxe-cart-item-key]")
+		);
+	}
+
+	function lineState(row, key) {
+		var state = lineStates.get(key);
+		if (!state) {
+			state = { row: row, timer: null, pending: 0, removing: false };
+			lineStates.set(key, state);
+		} else {
+			state.row = row;
+		}
+		return state;
+	}
+
+	function markBusy(state) {
+		if (state.row && state.row.isConnected) {
+			state.row.setAttribute("aria-busy", "true");
+			state.row.setAttribute("data-jluxe-cart-pending", "");
+		}
+	}
+
+	function clearBusyIfIdle(state) {
+		if (state.timer || state.pending || state.removing || !state.row || !state.row.isConnected) {
+			return;
+		}
+		state.row.removeAttribute("aria-busy");
+		state.row.removeAttribute("data-jluxe-cart-pending");
+	}
+
+	function toPersianDigits(value) {
+		var digits = { "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹" };
+		return String(value).replace(/[0-9]/g, function (digit) { return digits[digit]; });
+	}
+
+	function setInputQuantity(input, quantity) {
+		if (!input) { return; }
+		var value = String(quantity);
+		input.value = value;
+		input.setAttribute("data-jluxe-cart-confirmed-qty", value);
+		var wrapper = input.closest(".quantity");
+		var overlay = wrapper && wrapper.querySelector("[data-jluxe-qty-fa]");
+		var readOnlyValue = wrapper && wrapper.querySelector(".qty[aria-hidden='true']");
+		if (overlay) { overlay.textContent = toPersianDigits(value); }
+		if (readOnlyValue && readOnlyValue !== input) { readOnlyValue.textContent = toPersianDigits(value); }
+	}
+
+	function itemsByKey(snapshot) {
+		var items = new Map();
+		snapshot.items.forEach(function (item) { items.set(String(item.key), item); });
+		return items;
+	}
+
+	function seedConfirmedQuantities(root) {
+		(root || document).querySelectorAll("[data-jluxe-cart-item-key] input.qty").forEach(function (input) {
+			if (!input.hasAttribute("data-jluxe-cart-confirmed-qty")) {
+				input.setAttribute("data-jluxe-cart-confirmed-qty", input.value);
+			}
+		});
+	}
+
+	function rememberConfirmedSnapshot(snapshot) {
+		if (!snapshot || !Array.isArray(snapshot.items)) { return; }
+		var knownItems = itemsByKey(snapshot);
+		document.querySelectorAll("[data-jluxe-cart-item-key]").forEach(function (row) {
+			var item = knownItems.get(String(lineKey(row)));
+			var input = row.querySelector("input.qty");
+			if (item && input) {
+				input.setAttribute("data-jluxe-cart-confirmed-qty", String(item.qty));
+			}
+		});
+	}
+
+	function clearCartMessage() {
+		var message = document.querySelector("[data-jluxe-cart-ajax-message]");
+		if (message) { message.remove(); }
+	}
+
+	function showCartMessage(text) {
+		var message = document.querySelector("[data-jluxe-cart-ajax-message]");
+		if (!message) {
+			message = document.createElement("div");
+			message.className = "woocommerce-error";
+			message.setAttribute("role", "alert");
+			message.setAttribute("data-jluxe-cart-ajax-message", "");
+			var form = document.querySelector("form.woocommerce-cart-form");
+			var host = form && form.parentNode;
+			if (host && form) { host.insertBefore(message, form); }
+		}
+		if (message) { message.textContent = text; }
+	}
+
+	function restoreConfirmedQuantity(row) {
+		var input = row && row.querySelector("input.qty");
+		if (input && input.hasAttribute("data-jluxe-cart-confirmed-qty")) {
+			setInputQuantity(input, input.getAttribute("data-jluxe-cart-confirmed-qty"));
+		}
+	}
+
+	function replaceTotals(html) {
+		var current = document.querySelector(".cart_totals");
+		if (!current || typeof html !== "string" || !html) { return false; }
+		var holder = document.createElement("div");
+		holder.innerHTML = html;
+		var replacement = holder.querySelector(".cart_totals");
+		if (!replacement) { return false; }
+		current.replaceWith(replacement);
+		return true;
+	}
+
+	function replaceCartContent(html) {
+		if (typeof html !== "string" || !html) { return false; }
+		var holder = document.createElement("div");
+		holder.innerHTML = html;
+		var replacement = holder.querySelector("[data-jluxe-cart-page-content]");
+		var current = document.querySelector("[data-jluxe-cart-page-content]");
+		if (!replacement || !current) { return false; }
+		current.replaceWith(replacement);
+		return true;
+	}
+
+	function publishCartUpdate(snapshot, emptied) {
+		var publicSnapshot = Object.assign({}, snapshot);
+		delete publicSnapshot.cartPage;
+		window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: publicSnapshot }));
+		if (window.jQuery) {
+			if (emptied) {
+				window.jQuery(document.body).trigger("wc_cart_emptied");
+			} else {
+				window.jQuery(document.body).trigger("updated_cart_totals");
+			}
+			// The theme disables Woo's background cart-fragment poll by default.
+			// If a plugin explicitly re-enables it, preserve its refresh lifecycle;
+			// otherwise updated_wc_div would launch a redundant second AJAX call.
+			if (window.wc_cart_fragments_params) {
+				window.jQuery(document.body).trigger("updated_wc_div");
+			}
+		}
+	}
+
+	function applyCartSnapshot(snapshot) {
+		if (!snapshot || !Array.isArray(snapshot.items) || !snapshot.cartPage) {
+			window.location.reload();
+			return false;
+		}
+		rememberConfirmedSnapshot(snapshot);
+		clearCartMessage();
+
+		var emptied = snapshot.cartPage.isEmpty === true || snapshot.items.length === 0;
+		if (emptied) {
+			if (!replaceCartContent(snapshot.cartPage.emptyHtml)) {
+				window.location.reload();
+				return false;
+			}
+		} else {
+			var knownItems = itemsByKey(snapshot);
+			document.querySelectorAll("[data-jluxe-cart-item-key]").forEach(function (row) {
+				var item = knownItems.get(String(lineKey(row)));
+				if (!item) {
+					row.remove();
+					return;
+				}
+				var input = row.querySelector("input.qty");
+				if (input) { setInputQuantity(input, item.qty); }
+				if (typeof item.lineTotalHtml === "string") {
+					row.querySelectorAll("[data-jluxe-cart-item-total]").forEach(function (total) {
+						total.innerHTML = item.lineTotalHtml;
+					});
+				}
+			});
+			if (!replaceTotals(snapshot.cartPage.totalsHtml)) {
+				window.location.reload();
+				return false;
+			}
+		}
+
+		document.querySelectorAll("[data-jluxe-cart-item-key]").forEach(function (row) {
+			row.removeAttribute("aria-busy");
+			row.removeAttribute("data-jluxe-cart-pending");
+		});
+		seedConfirmedQuantities(document);
+		publishCartUpdate(snapshot, emptied);
+		return true;
+	}
+
+	function requestBody(operation, key, quantity) {
+		var body = new URLSearchParams({
+			action: "jluxe_cart",
+			nonce: cartSettings.nonce || "",
+			op: operation,
+			key: String(key),
+			cart_page: "1",
+		});
+		if (quantity !== null && quantity !== undefined) { body.set("qty", String(quantity)); }
+		return body;
+	}
+
+	function finishMutation(state) {
+		state.pending = Math.max(0, state.pending - 1);
+		clearBusyIfIdle(state);
+		if (state.removing && state.row && !state.row.isConnected && !state.pending && !state.timer) {
+			lineStates.delete(lineKey(state.row));
+		}
+	}
+
+	function enqueueMutation(operation, key, quantity, row, state, revision) {
+		state.pending += 1;
+		markBusy(state);
+
+		function execute() {
+			var body = requestBody(operation, key, quantity);
+			var request;
+			try {
+				request = window.jluxeCartPost(cartSettings.ajaxUrl, body, cartSettings);
+			} catch (error) {
+				request = Promise.reject(error);
+			}
+			return Promise.resolve(request).then(function (payload) {
+				if (!payload || !payload.success || !payload.data) {
+					if (revision === intentRevision) {
+						if (payload && payload.success === false) {
+							if ("update_qty" === operation) { restoreConfirmedQuantity(row); }
+						if ("remove" === operation) {
+							state.removing = false;
+							row.removeAttribute("data-jluxe-cart-removing");
+							restoreConfirmedQuantity(row);
+						}
+						showCartMessage(payload && payload.data && payload.data.message ? payload.data.message : "تغییر سبد خرید انجام نشد؛ دوباره تلاش کنید.");
+						} else {
+						showCartMessage("وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.");
+						if ("remove" === operation) {
+							state.removing = false;
+						row.removeAttribute("data-jluxe-cart-removing");
+						}
+					}
+					clearBusyIfIdle(state);
+				}
+				return;
+				}
+				rememberConfirmedSnapshot(payload.data);
+				if (revision === intentRevision) { applyCartSnapshot(payload.data); }
+			}, function () {
+				if (revision === intentRevision) {
+					showCartMessage("وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.");
+					if ("remove" === operation) {
+						state.removing = false;
+						row.removeAttribute("data-jluxe-cart-removing");
+					}
+					clearBusyIfIdle(state);
+				}
+			}).then(function (result) {
+				finishMutation(state);
+				return result;
+			}, function (error) {
+				finishMutation(state);
+				throw error;
+			});
+		}
+
+		var task = requestQueue.then(execute, execute);
+		requestQueue = task.then(function () {}, function () {});
+		return task;
+	}
+
+	function clearQuantityTimer(input, state) {
+		var timer = quantityTimers.get(input);
+		if (timer) {
+			window.clearTimeout(timer);
+			quantityTimers.delete(input);
+			if (state.timer === timer) { state.timer = null; }
+		}
+	}
+
+	function scheduleQuantity(input, immediate) {
+		var row = input && input.closest("[data-jluxe-cart-item-key]");
+		var key = lineKey(row);
+		if (!row || !key) { return false; }
+		var state = lineState(row, key);
+		if (state.removing) { return true; }
+		clearQuantityTimer(input, state);
+		var revision = ++intentRevision;
+		state.timer = window.setTimeout(function () {
+			state.timer = null;
+			quantityTimers.delete(input);
+			enqueueMutation("update_qty", key, input.value, row, state, revision);
+		}, immediate ? 0 : quantityDebounceMs);
+		quantityTimers.set(input, state.timer);
+		markBusy(state);
+		return true;
+	}
+
+	seedConfirmedQuantities(document);
+	if (window.jQuery) {
+		window.jQuery(document.body).on("updated_wc_div", function () { seedConfirmedQuantities(document); });
+	}
+
+	document.addEventListener("change", function (event) {
+		if (isCartQuantityInput(event.target)) { scheduleQuantity(event.target, false); }
+	});
+
+	["keydown", "keypress"].forEach(function (eventName) {
+		document.addEventListener(eventName, function (event) {
+			if ("Enter" !== event.key && 13 !== event.keyCode) { return; }
+			if (!isCartQuantityInput(event.target)) { return; }
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			scheduleQuantity(event.target, true);
+		}, true);
+	});
+
+	document.addEventListener("click", function (event) {
+		var link = event.target.closest && event.target.closest("[data-jluxe-cart-remove]");
+		if (!link) { return; }
+		var row = link.closest("[data-jluxe-cart-item-key]");
+		var key = lineKey(row);
+		if (!row || !key) { return; }
+		event.preventDefault();
+		var state = lineState(row, key);
+		if (state.removing) { return; }
+		state.removing = true;
+		row.setAttribute("data-jluxe-cart-removing", "");
+		markBusy(state);
+		row.querySelectorAll("input.qty").forEach(function (input) { clearQuantityTimer(input, state); });
+		var revision = ++intentRevision;
+		enqueueMutation("remove", key, null, row, state, revision);
+	});
 })();
 
 /**
@@ -3685,12 +4043,19 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function scrollCheckoutToTop() {
-		var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-		var behavior = reducedMotion ? "auto" : "smooth";
-		if (typeof window.scrollTo === "function") {
-			window.scrollTo({ top: 0, behavior: behavior });
-		} else if (stepper && typeof stepper.scrollIntoView === "function") {
-			stepper.scrollIntoView({ behavior: behavior, block: "start" });
+		// A deliberate step change should be immediate; smooth scrolling the
+		// entire checkout can make the local shipping/payment switch feel stalled.
+		var root = document.documentElement;
+		var previousScrollBehavior = root.style.scrollBehavior;
+		root.style.scrollBehavior = "auto";
+		try {
+			if (typeof window.scrollTo === "function") {
+				window.scrollTo({ top: 0, behavior: "auto" });
+			} else if (stepper && typeof stepper.scrollIntoView === "function") {
+				stepper.scrollIntoView({ behavior: "auto", block: "start" });
+			}
+		} finally {
+			root.style.scrollBehavior = previousScrollBehavior;
 		}
 	}
 
