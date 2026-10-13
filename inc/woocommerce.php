@@ -553,13 +553,10 @@ function jluxe_sticky_stock_presentation( $product ): array {
 			// first render, so the sticky CTA can add it without a false prompt.
 			return array( 'state' => 'in-stock', 'label' => '' );
 		}
-		$variation_ids = method_exists( $product, 'get_children' ) ? (array) $product->get_children() : array();
-		if ( ! empty( $variation_ids ) ) {
-			// A variable parent can still say "instock" after its child stock is
-			// exhausted (or when all children are not purchasable). Trust the
-			// eligible-variation scan, not the cached parent status.
-			return array( 'state' => 'out-of-stock', 'label' => 'ناموجود' );
-		}
+		// A variable parent can report instock even with no child variations,
+		// or when every child is out of stock/not purchasable. Trust the
+		// eligible-variation scan, never the cached parent flag.
+		return array( 'state' => 'out-of-stock', 'label' => 'ناموجود' );
 	}
 
 	$available = $product->is_in_stock() && $product->is_purchasable();
@@ -1354,6 +1351,15 @@ function jluxe_default_variation_pick( WC_Product $product ): array {
 	return jluxe_pick_variable_default_attributes( $product, $stored_defaults );
 }
 
+/** Do not expose a variable parent as in stock through WooCommerce's view API when no child can be bought. */
+function jluxe_variable_product_stock_status( $stock_status, $product ) {
+	if ( ! $product instanceof WC_Product || ! $product->is_type( 'variable' ) ) {
+		return $stock_status;
+	}
+	return empty( jluxe_default_variation_pick( $product ) ) ? 'outofstock' : $stock_status;
+}
+add_filter( 'woocommerce_product_get_stock_status', 'jluxe_variable_product_stock_status', 20, 2 );
+
 /** Compare defaults without treating attribute ordering as a data change. */
 function jluxe_variable_default_attributes_equal( $left, $right ): bool {
 	$left  = jluxe_normalize_variable_attributes( $left );
@@ -1469,7 +1475,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		مجموعهٔ «موجود» (is_in_stock) هم ساخته می‌شود؛ گزینه‌ای که فقط در
 		تنوعِ ناموجود حاضر است، disabled رندر می‌شود (نه حذف، تا کاربر
 		بداند چنین گزینه‌ای وجود دارد اما فعلاً خریدنی نیست). */
-		$jluxe_in_stock = ! empty( $jluxe_variation['is_in_stock'] );
+		$jluxe_in_stock = jluxe_variable_variation_is_available( $jluxe_variation );
 		foreach ( $jluxe_variation['attributes'] as $jluxe_attr_key => $jluxe_attr_value ) {
 			$jluxe_attr_name = str_replace( 'attribute_', '', $jluxe_attr_key );
 			if ( '' === $jluxe_attr_value ) {

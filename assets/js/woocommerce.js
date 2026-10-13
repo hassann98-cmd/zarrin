@@ -643,16 +643,90 @@ function jluxeBindQtyAvailability(form) {
 }
 jluxeBindQtyAvailability(document.querySelector(".variations_form[data-product_variations]"));
 
+/** Keep the CP3 buy-box price in sync with WooCommerce's resolved variation. */
+function jluxeBindCp3VariationPrice(form) {
+	var $ = window.jQuery;
+	if (!$ || !form) {
+		return;
+	}
+	var root = form.closest(".jluxe-cp3");
+	var priceBox = root && root.querySelector("[data-cp3-price]");
+	if (!priceBox || form.jluxeCp3VariationPriceBound) {
+		return;
+	}
+
+	form.jluxeCp3VariationPriceBound = true;
+	var $form = $(form);
+	var emptyPrice = priceBox.getAttribute("data-cp3-empty-text") || "";
+	var initialPriceHtml = priceBox.innerHTML;
+	var initialPriceIsPlaceholder = priceBox.classList.contains("is-placeholder");
+	var attributeSelects = Array.prototype.slice.call(form.querySelectorAll('select[name^="attribute_"]'));
+	var initialAttributes = attributeSelects.map(function (select) { return select.value; });
+
+	function stillHasInitialSelection() {
+		var currentSelects = form.querySelectorAll('select[name^="attribute_"]');
+		if (!initialAttributes.length || currentSelects.length !== initialAttributes.length) {
+			return false;
+		}
+		for (var index = 0; index < currentSelects.length; index++) {
+			if (!initialAttributes[index] || currentSelects[index].value !== initialAttributes[index]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function restoreInitialPriceOrPrompt() {
+		/* WooCommerce can emit reset_data while initializing a preselected form.
+		 * Keep the server-rendered exact default price if the real selects still
+		 * represent that same default; a shopper reset/change still clears it. */
+		if (stillHasInitialSelection() && initialPriceHtml.trim() && !initialPriceIsPlaceholder) {
+			priceBox.innerHTML = initialPriceHtml;
+			priceBox.classList.remove("is-placeholder");
+			return;
+		}
+		priceBox.textContent = emptyPrice;
+		priceBox.classList.toggle("is-placeholder", emptyPrice !== "");
+	}
+
+	function showVariationPrice(variation) {
+		if (!variation || !(parseInt(variation.variation_id, 10) > 0)) {
+			restoreInitialPriceOrPrompt();
+			return;
+		}
+		if (variation.is_in_stock === false) {
+			priceBox.textContent = "ناموجود";
+			priceBox.classList.add("is-placeholder");
+			return;
+		}
+		if (variation.is_purchasable === false) {
+			priceBox.textContent = "در حال حاضر قابل خرید نیست";
+			priceBox.classList.add("is-placeholder");
+			return;
+		}
+		var priceHtml = typeof variation.price_html === "string" ? variation.price_html : "";
+		if (!priceHtml.trim()) {
+			priceBox.textContent = "قیمت این تنوع ثبت نشده است";
+			priceBox.classList.add("is-placeholder");
+			return;
+		}
+		priceBox.innerHTML = priceHtml;
+		priceBox.classList.remove("is-placeholder");
+	}
+
+	$form.on("found_variation.jluxeCp3Price", function (event, variation) {
+		showVariationPrice(variation);
+	}).on("reset_data.jluxeCp3Price hide_variation.jluxeCp3Price", restoreInitialPriceOrPrompt);
+}
+
 /**
- * R65: تنوعِ ناموجود هیچ‌وقت قابلِ انتخاب نیست — در همهٔ UI ها.
+ * R65: unavailable variations are never selectable in any UI.
  *
- * منبعِ حقیقت: data-product_variations فرم (خروجیِ get_available_variations
- * خودِ ووکامرس) که تنوع‌های ناموجود را هم با is_in_stock=false دارد.
- * قانون: گزینه‌ای در ویژگیِ X «انتخاب‌پذیر» است فقط اگر تنوعی موجود باشد که
- * هم آن مقدار را بپذیرد (مقدارِ برابر یا خالی = هرچیزی) و هم با بقیهٔ
- * ویژگی‌های «الان انتخاب‌شده» سازگار باشد (فیلترِ تدریجیِ استاندارد).
- * سپس وضعیت روی همهٔ رابط‌ها اعمال می‌شود: <option> خودِ select،
- * سواچ‌ها (data-jluxe-variation-value) و قرص‌های چیدمانِ classic (cp3-pill).
+ * The WooCommerce data-product_variations payload is authoritative: it
+ * includes out-of-stock rows with is_in_stock=false. An option is selectable
+ * only if an in-stock variation supports its value (or a wildcard) and is
+ * compatible with the other currently selected attributes. Apply that rule to
+ * the native select, visible swatches, and CP3 pills alike.
  */
 function jluxeSyncVariationAvailability(form) {
 	var raw = form.getAttribute("data-product_variations") || "[]";
@@ -744,6 +818,7 @@ function jluxeSyncVariationAvailability(form) {
 function jluxeSyncAllVariationForms() {
 	document.querySelectorAll(".variations_form[data-product_variations]").forEach(function (form) {
 		jluxeBindClassicVariationGallery(form);
+		jluxeBindCp3VariationPrice(form);
 		if (form.jluxeAvailabilityBound) { return; }
 		form.jluxeAvailabilityBound = true;
 		form.addEventListener("change", function () {

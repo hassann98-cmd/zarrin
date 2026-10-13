@@ -69,6 +69,7 @@ if ( $jluxe_is_variable ) {
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 $cp3_is_in_stock = $jluxe_is_variable ? ! empty( $cp3_defaults ) : $product->is_in_stock();
+$cp3_no_available_variation = $jluxe_is_variable && empty( $cp3_defaults );
 
 $jluxe_gallery_ids = $product->get_gallery_image_ids();
 $jluxe_main_id     = $product->get_image_id();
@@ -419,7 +420,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 }
 </style>
 
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-2">
 
 		<nav aria-label="مسیر صفحه" class="cp3-bc">
@@ -557,7 +558,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						   گزینهٔ فقط-ناموجود با is-disabled رندر می‌شود (حذف نمی‌شود). */
 						$cp3_stocky_options = array();
 						foreach ( (array) $jluxe_available_variations as $cp3_stocky_variation ) {
-							if ( empty( $cp3_stocky_variation['is_in_stock'] ) ) {
+							if ( function_exists( 'jluxe_variable_variation_is_available' ) ? ! jluxe_variable_variation_is_available( $cp3_stocky_variation ) : empty( $cp3_stocky_variation['is_in_stock'] ) ) {
 								continue;
 							}
 							foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
@@ -584,7 +585,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
 									<?php $cp3_opt = (string) $cp3_opt; ?>
 									<?php
-										$cp3_oos = ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
+										$cp3_oos = $cp3_no_available_variation || ( empty( $cp3_stocky_options[ $cp3_attr_name ]['*'] ) && ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_stocky_options[ $cp3_attr_name ][ $cp3_opt ] ) );
 									?>
 									<?php
 										$cp3_opt_label       = $cp3_option_label( $cp3_opt, $cp3_attr_name );
@@ -675,9 +676,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<div class="cp3-addrow<?php echo $jluxe_is_simple ? ' is-simple' : ''; ?>">
 						<?php if ( $jluxe_is_variable ) : ?>
 							<div class="single_variation_wrap">
+							<?php if ( ! empty( $cp3_defaults ) ) : ?>
 							<?php do_action( 'woocommerce_before_single_variation' ); ?>
 							<?php do_action( 'woocommerce_single_variation' ); ?>
 							<?php do_action( 'woocommerce_after_single_variation' ); ?>
+							<?php endif; ?>
 							</div>
 						<?php else : ?>
 							<?php woocommerce_template_single_add_to_cart(); ?>
@@ -1014,49 +1017,7 @@ if ( $product->is_purchasable() && function_exists( 'jluxe_render_suggested_prod
 		select.addEventListener( 'change', function () { sync( select.value ); } );
 	} );
 
-	/* سینکِ قیمتِ جعبه‌ی خرید با تنوعِ انتخاب‌شده.
-	باگِ واقعی (R55): تم jquery-core را defer می‌کند (functions.php) — پس در
-	لحظهٔ اجرای همین اسکریپتِ درون‌خطی، window.jQuery هنوز تعریف نشده و این
-	بلاک هرگز اجرا نمی‌شد؛ نتیجه: با انتخابِ تنویع، قیمتِ جعبه هیچ‌وقت عوض
-	نمی‌شد و قرص‌های فیلترشده هم خط نمی‌خوردند. راه‌حل: بایندهای jQuery تا
-	DOMContentLoaded (بعد از اجرای همهٔ deferها) عقب می‌افتند. */
-	var priceBox = root.querySelector( '[data-cp3-price]' );
-	var form = root.querySelector( 'form.variations_form' );
-	function jluxeBindJqParts() {
-		if ( ! window.jQuery || ! priceBox || ! form ) { return; }
-		if ( form.getAttribute( 'data-cp3-jq-bound' ) === '1' ) { return; }
-		form.setAttribute( 'data-cp3-jq-bound', '1' );
-		var emptyPrice = priceBox.getAttribute( 'data-cp3-empty-text' ) || '';
-		window.jQuery( form ).on( 'found_variation', function ( ev, variation ) {
-			if ( variation && variation.price_html ) {
-				priceBox.innerHTML = variation.price_html;
-				priceBox.classList.remove( 'is-placeholder' );
-			}
-		} ).on( 'reset_data', function () {
-			priceBox.textContent = emptyPrice;
-			priceBox.classList.toggle( 'is-placeholder', '' !== emptyPrice );
-		} );
-		// قرص‌هایی که update_variation_valuesِ ووکامرس فیلتر می‌کند خط می‌خورند و دیگر انتخاب نمی‌شوند.
-		window.jQuery( form ).on( 'woocommerce_update_variation_values', function () {
-			root.querySelectorAll( '[data-cp3-pills]' ).forEach( function ( pillGroup ) {
-				var slug = pillGroup.getAttribute( 'data-cp3-pills' );
-				var sel = root.querySelector( 'select[data-cp3-select="' + slug + '"]' );
-				if ( ! sel ) { return; }
-				Array.prototype.forEach.call( sel.options, function ( opt ) {
-					if ( ! opt.value ) { return; }
-					var pill = pillGroup.querySelector( '.cp3-pill[data-value="' + String( opt.value ).replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ) + '"]' );
-					/* R74 (گزارشِ واقعی: «ناموجود ولی خط‌خورده نیست»): رویدادِ ووکامرس در فرم‌های
-					بالای آستانه (data-product_variations=false) «همهٔ گزینه‌ها فعال» منتشر می‌کند —
-					اگر مثل قبل toggle می‌کردیم، وضعیتِ ناموجودیِ سرور پاک می‌شد (کلاس می‌رفت ولی
-					disabled می‌ماند). این رویداد فقط فیلترِ تکمیلی است: فقط اضافه می‌کند؛ مرجعِ
-					پاک‌کردن، سینکِ موجودی (assets/js/woocommerce.js) است. */
-					if ( pill && opt.disabled ) { pill.classList.add( 'is-disabled' ); }
-				} );
-			} );
-		} );
-	}
-	jluxeBindJqParts();
-	if ( ! window.jQuery ) { document.addEventListener( 'DOMContentLoaded', jluxeBindJqParts ); }
+	/* priceBox و found_variation در assets/js/woocommerce.js به‌صورت مشترک bind می‌شوند. */
 
 	/* فلش‌های چپ/راستِ نوارِ تامبنیل: برای تصاویری که در عرضِ صفحه جا نمی‌شوند.
 	در RTL مرورگر scrollLeft منفی است؛ قدرمطلقِ آن مختصاتِ جهت‌بی‌طرف می‌دهد. */
