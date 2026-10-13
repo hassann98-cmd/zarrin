@@ -3358,7 +3358,7 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 .jluxe-shipping-card {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.55fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr);
   grid-template-areas: "note details";
   min-width: 0;
   min-height: 4.25rem;
@@ -3417,11 +3417,10 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   display: block;
   grid-area: note;
   justify-self: start;
-  width: fit-content;
-  min-width: min(7.5rem, 100%);
+  width: max-content;
+  min-width: min(9.25rem, 100%);
   max-width: 100%;
   min-height: 2.15rem;
-  overflow: hidden;
   padding: 0.35rem 0.85rem;
   border: 1px solid hsl(var(--foreground) / 0.08);
   border-radius: 9999px;
@@ -3430,9 +3429,9 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   font-size: 0.74rem;
   font-weight: 750;
   line-height: 1.4;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: normal;
   direction: rtl;
 }
 .jluxe-shipping-card:hover {
@@ -3537,7 +3536,7 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
     font-size: 0.84rem;
   }
   .jluxe-shipping-note {
-    min-width: min(7rem, 100%);
+    min-width: min(8.5rem, 100%);
     padding-inline: 0.65rem;
     font-size: 0.7rem;
   }
@@ -3916,6 +3915,17 @@ body.woocommerce-checkout .jluxe-checkout-shipping {
   border: 1px solid hsl(var(--border));
   border-radius: 1rem;
   background: hsl(var(--surface) / 0.65);
+}
+body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card:not(.jluxe-shipping-card--no-note) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "details" "note";
+  align-items: start;
+  gap: 0.65rem;
+}
+body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-note {
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
 }
 body.woocommerce-checkout .jluxe-checkout-summary #jluxe-shipping-section > p:first-child {
   margin-block: 0 0.75rem;

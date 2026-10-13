@@ -19,10 +19,13 @@ if ( ! $product || ! $product->is_visible() ) {
 	return;
 }
 
-$is_variable   = $product->is_type( 'variable' );
-// موجودی محصول متغیر واقعاً سطحِ هر تنوعه، نه خودِ محصولِ والد — پس بج
-// «ناموجود» فقط برای محصول ساده نشون داده می‌شه تا با «چند نوع موجود» تناقض نداشته باشه.
-$out_of_stock  = ! $is_variable && ! $product->is_in_stock();
+$is_variable = $product->is_type( 'variable' );
+// وضعیت والدِ محصول متغیر ممکن است با وضعیت واقعی فرزندان ناهماهنگ باشد.
+// همان منبعی را استفاده کن که فرم/CTA محصول استفاده می‌کند: دست‌کم یک
+// تنوعِ قابل‌خرید و واقعاً موجود؛ در غیر این صورت کارت هم ناموجود است.
+$out_of_stock = $is_variable
+	? ( function_exists( 'jluxe_default_variation_pick' ) ? empty( jluxe_default_variation_pick( $product ) ) : ! $product->is_in_stock() )
+	: ! $product->is_in_stock();
 $regular_price = (float) $product->get_regular_price();
 $sale_price    = (float) $product->get_sale_price();
 $has_discount  = ! $is_variable && $product->is_on_sale() && $sale_price > 0 && $sale_price < $regular_price;

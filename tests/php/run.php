@@ -3166,6 +3166,67 @@ check(
 	'R152 rendered product cards emit a responsive full-item image and semantic stock-dot color'
 );
 
+// R292 — catalog cards must use eligible variation stock, not a stale variable-parent flag.
+if ( ! class_exists( 'JLuxe_Card_Stock_Var_Product' ) ) {
+	class JLuxe_Card_Stock_Var_Product extends JLuxe_Var_Product {
+		function is_in_stock() {
+			$status = jluxe_variable_product_stock_status( parent::is_in_stock() ? 'instock' : 'outofstock', $this );
+			return in_array( $status, array( 'instock', 'onbackorder' ), true );
+		}
+	}
+}
+$r292_render_card = static function ( WC_Product $card_product ): array {
+	$previous_product = $GLOBALS['product'] ?? null;
+	$GLOBALS['product'] = $card_product;
+	$html  = '';
+	$error = '';
+	ob_start();
+	try {
+		jluxe_test_render_card_probe( 'content', 'product' );
+		$html = (string) ob_get_clean();
+	} catch ( \Throwable $exception ) {
+		ob_end_clean();
+		$error = get_class( $exception ) . ': ' . $exception->getMessage();
+	}
+	if ( null === $previous_product ) {
+		unset( $GLOBALS['product'] );
+	} else {
+		$GLOBALS['product'] = $previous_product;
+	}
+	return array( $html, $error );
+};
+$r292_oos_variable = new JLuxe_Card_Stock_Var_Product( 753 );
+$r292_oos_variable->stock = 20; // The stale parent says instock; all actual variations are unavailable.
+$r292_oos_variable->jluxe_option_map = array( 'pa_rang' => array( 'blue', 'red' ) );
+$r292_oos_variable->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_pa_rang' => 'blue' ), 'is_in_stock' => false, 'is_purchasable' => false ),
+	array( 'attributes' => array( 'attribute_pa_rang' => 'red' ), 'is_in_stock' => false, 'is_purchasable' => false ),
+);
+list( $r292_oos_card_html, $r292_oos_card_error ) = $r292_render_card( $r292_oos_variable );
+check(
+	'' === $r292_oos_card_error &&
+	false !== strpos( $r292_oos_card_html, 'opacity-60 grayscale' ) &&
+	false !== strpos( $r292_oos_card_html, '>ناموجود</span>' ) &&
+	false !== strpos( $r292_oos_card_html, 'is-unavailable' ) &&
+	false === strpos( $r292_oos_card_html, 'bg-success ring-2 ring-surface' ),
+	'R292 a variable product with a stale instock parent and no purchasable in-stock variations renders dimmed with an out-of-stock badge, not the green dot'
+);
+$r292_available_variable = new JLuxe_Card_Stock_Var_Product( 754 );
+$r292_available_variable->stock = 20;
+$r292_available_variable->jluxe_option_map = array( 'pa_rang' => array( 'blue' ) );
+$r292_available_variable->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_pa_rang' => 'blue' ), 'is_in_stock' => true, 'is_purchasable' => true ),
+);
+list( $r292_available_card_html, $r292_available_card_error ) = $r292_render_card( $r292_available_variable );
+check(
+	'' === $r292_available_card_error &&
+	false === strpos( $r292_available_card_html, 'opacity-60 grayscale' ) &&
+	false !== strpos( $r292_available_card_html, 'bg-success ring-2 ring-surface' ) &&
+	false !== strpos( $r292_available_card_html, 'is-available' ) &&
+	false !== strpos( $r292_available_card_html, 'data-jluxe-quick-variant="754"' ),
+	'R292 a variable product with an eligible in-stock variation keeps its bright image, green dot, and option picker'
+);
+
 // R137 — restore the compact interactive plus, one-row footer, and semantic sale-price strike.
 $r137_title_pos  = strpos( $r84_html, 'line-clamp-2 break-words text-text-secondary' );
 $r137_rating_pos = strpos( $r84_html, 'min-h-[16px]' );
@@ -3178,9 +3239,15 @@ $r137_current_price_pos = strpos( $r84_html, 'class="jluxe-product-card-current-
 $r137_old_price_pos     = strpos( $r84_html, '<del class="jluxe-product-card-old-price' );
 check( false !== $r137_current_price_pos && false !== $r137_old_price_pos && $r137_current_price_pos < $r137_old_price_pos && false !== strpos( $r137_card_css, 'text-decoration: line-through;' ) && false !== strpos( $r137_card_css, '.jluxe-product-card-price {' ), 'R137 the sale card renders the current price before a semantic, explicitly struck-through regular price in a shared footer row' );
 
-$r137_product      = $GLOBALS['product'];
-$r137_original_type = $r137_product->type;
-$r137_product->type = 'variable';
+$r137_original_product = $GLOBALS['product'];
+$r137_product = new JLuxe_Card_Stock_Var_Product( 500 );
+$r137_product->stock = 20;
+$r137_product->image_id = 998;
+$r137_product->jluxe_option_map = array( 'pa_rang' => array( 'blue' ) );
+$r137_product->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_pa_rang' => 'blue' ), 'is_in_stock' => true, 'is_purchasable' => true ),
+);
+$GLOBALS['product'] = $r137_product;
 $r137_variable_html = '';
 $r137_variable_error = '';
 ob_start();
@@ -3191,8 +3258,8 @@ try {
 	ob_end_clean();
 	$r137_variable_error = get_class( $r137_error ) . ': ' . $r137_error->getMessage();
 }
-$r137_product->type = $r137_original_type;
-check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌ها"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract' );
+$GLOBALS['product'] = $r137_original_product;
+check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌ها"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract when a variation is purchasable' );
 
 /**
  * استاتیک: «ویژگیِ HTML داخلِ کدِ PHP». این همان الگوی خطای نسخهٔ 1.65.0 است؛
