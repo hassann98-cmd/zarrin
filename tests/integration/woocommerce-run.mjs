@@ -499,7 +499,8 @@ try {
     const checkoutAddressDataRemoved = !response.text.includes('checkoutAddressData');
     const cityLabelPayloadRemoved = !response.text.includes('jluxe_billing_city_label');
     const checkoutStepCount = (response.text.match(/data-jluxe-step="/g) || []).length;
-    const baselineProgress = response.text.includes('class="jluxe-checkout-stepper mx-auto flex') &&
+    const baselineProgress = response.text.includes('class="jluxe-checkout-stepper"') &&
+      response.text.includes('class="jluxe-checkout-stepper__list"') &&
       response.text.includes('data-jluxe-step="shipping"') && checkoutStepCount === 4;
     const hasPlaceOrderButton = response.text.includes('id="place_order"') &&
       response.text.includes('name="woocommerce_checkout_place_order"');

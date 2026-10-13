@@ -5,6 +5,8 @@ import { JSDOM } from "jsdom";
 import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
+const cartTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart.php", import.meta.url), "utf8");
+const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 
 function extractDocumentedIife(markerText, endMarker) {
   const marker = source.indexOf(markerText);
@@ -78,12 +80,17 @@ function bootCheckout({
   requiredCity = false,
 } = {}) {
   const step = (id, label, state) => {
-    const circleClass = state === "active" ? "border-primary text-primary" : "border-border text-text-muted";
+    const circleClass = state === "done"
+      ? "border-success bg-success text-white"
+      : state === "active"
+        ? "border-primary text-primary"
+        : "border-border text-text-muted";
     const labelClass = state === "active" ? "font-medium text-foreground" : "text-text-muted";
-    return `<div data-jluxe-step="${id}">
-      <div data-jluxe-step-circle data-jluxe-step-number="۱" class="${circleClass}"></div>
-      <span data-jluxe-step-label class="${labelClass}">${label}</span>
-    </div>`;
+    const current = state === "active" ? ' aria-current="step"' : "";
+    return `<li class="jluxe-checkout-step" data-jluxe-step="${id}" data-jluxe-step-state="${state}"${current}>
+      <span data-jluxe-step-circle data-jluxe-step-number="۱" class="jluxe-checkout-step__circle ${circleClass}"></span>
+      <span data-jluxe-step-label class="jluxe-checkout-step__label ${labelClass}">${label}</span>
+    </li>`;
   };
   const shippingMarkup = shippingSection
     ? `<section id="jluxe-shipping-section">
@@ -107,10 +114,12 @@ function bootCheckout({
   const dom = new JSDOM(
     `<!doctype html><html><body>
       <nav class="jluxe-checkout-stepper" aria-label="مراحل خرید">
-        ${step("cart", "سبد خرید", "pending")}
-        ${step("shipping", "اطلاعات ارسال", "active")}
-        ${step("payment", "روش پرداخت", "pending")}
-        ${step("done", "پایان خرید", "pending")}
+        <ol class="jluxe-checkout-stepper__list">
+          ${step("cart", "سبد خرید", "done")}
+          ${step("shipping", "اطلاعات ارسال", "active")}
+          ${step("payment", "نحوه پرداخت", "pending")}
+          ${step("done", "پایان خرید", "pending")}
+        </ol>
       </nav>
       <form class="checkout woocommerce-checkout">
         <div id="customer_details"><h3>اطلاعات ارسال</h3>${cityMarkup}</div>
@@ -169,6 +178,25 @@ function dispatchSubmit(window) {
   return { event, reachedForm };
 }
 
+test("cart product removal is ordered to the left in the RTL mobile product row", () => {
+  const removeLink = cartTemplate.match(/<a role="button" href="%s" class="([^"]*jluxe-remove-item[^"]*)"/);
+  assert.ok(removeLink, "the WooCommerce remove link remains in the product row");
+  assert.ok(removeLink[1].split(/\s+/).includes("order-last"));
+  assert.match(cartTemplate, /class="flex items-center gap-3" data-title="محصول"/);
+  assert.match(storefrontStyles, /body\.woocommerce-cart \.jluxe-remove-item\s*\{\s*order:\s*9999;/);
+  assert.match(storefrontStyles, /html\s*\{\s*direction:\s*rtl;/);
+});
+
+test("the four checkout stages stay evenly spaced in RTL on mobile and desktop", () => {
+  const listRule = storefrontStyles.match(/\.jluxe-checkout-stepper__list\s*\{([^}]+)\}/)?.[1] || "";
+  assert.match(listRule, /grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(listRule, /direction:\s*rtl/);
+  assert.match(storefrontStyles, /\.jluxe-checkout-step:not\(:last-child\)::after\s*\{[^}]*top:\s*calc\(var\(--jluxe-step-circle-size\)\s*\/\s*2\)/s);
+  assert.match(storefrontStyles, /\.jluxe-checkout-step\[data-jluxe-step-state="done"\]:not\(:last-child\)::after/);
+  const stepperStyles = storefrontStyles.slice(storefrontStyles.indexOf("/* Four checkout stages"));
+  assert.match(stepperStyles, /@media \(min-width: 640px\)[\s\S]*?\.jluxe-checkout-step__label\s*\{[^}]*white-space:\s*nowrap;/);
+});
+
 test("the historical province-keyed selector populates cities and clears them on a Select2 province change", (t) => {
   const { window, state, city, cityChanges } = bootCity({ state: "THR", initialCity: "تهران" });
   t.after(() => window.close());
@@ -211,6 +239,14 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   const city = document.getElementById("billing_city");
   const shippingError = document.querySelector("[data-jluxe-shipping-error]");
   const next = document.querySelector("[data-jluxe-checkout-next]");
+  const cartStep = document.querySelector('[data-jluxe-step="cart"]');
+  const shippingStep = document.querySelector('[data-jluxe-step="shipping"]');
+  const paymentStep = document.querySelector('[data-jluxe-step="payment"]');
+
+  assert.equal(cartStep.dataset.jluxeStepState, "done");
+  assert.equal(shippingStep.dataset.jluxeStepState, "active");
+  assert.equal(shippingStep.getAttribute("aria-current"), "step");
+  assert.equal(paymentStep.dataset.jluxeStepState, "pending");
 
   next.click();
   assert.equal(activeStep(document), "shipping");
@@ -230,6 +266,10 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(shippingError.hidden, true);
   next.click();
   assert.equal(activeStep(document), "payment");
+  assert.equal(shippingStep.dataset.jluxeStepState, "done");
+  assert.equal(shippingStep.hasAttribute("aria-current"), false);
+  assert.equal(paymentStep.dataset.jluxeStepState, "active");
+  assert.equal(paymentStep.getAttribute("aria-current"), "step");
   assert.equal(document.getElementById("customer_details").style.display, "none");
   assert.equal(document.getElementById("jluxe-shipping-section").style.display, "none");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, false);
@@ -249,6 +289,10 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
 
   document.querySelector("[data-jluxe-checkout-back]").click();
   assert.equal(activeStep(document), "shipping");
+  assert.equal(shippingStep.dataset.jluxeStepState, "active");
+  assert.equal(shippingStep.getAttribute("aria-current"), "step");
+  assert.equal(paymentStep.dataset.jluxeStepState, "pending");
+  assert.equal(paymentStep.hasAttribute("aria-current"), false);
   assert.equal(document.getElementById("customer_details").style.display, "");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, true);

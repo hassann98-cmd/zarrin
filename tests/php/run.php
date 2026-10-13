@@ -6215,10 +6215,13 @@ jluxe_render_checkout_stepper( 'shipping' );
 $r267_stepper_html = (string) ob_get_clean();
 check(
 	4 === substr_count( $r267_stepper_html, 'data-jluxe-step="' ) &&
-	false !== strpos( $r267_stepper_html, 'jluxe-checkout-stepper mx-auto flex' ) &&
-	false === strpos( $r267_stepper_html, '<ol ' ) &&
+	4 === substr_count( $r267_stepper_html, 'class="jluxe-checkout-step"' ) &&
+	false !== strpos( $r267_stepper_html, 'class="jluxe-checkout-stepper"' ) &&
+	false !== strpos( $r267_stepper_html, 'class="jluxe-checkout-stepper__list"' ) &&
+	false !== strpos( $r267_stepper_html, 'data-jluxe-step-state="active"' ) &&
+	false !== strpos( $r267_stepper_html, 'aria-current="step"' ) &&
 	false !== strpos( $r267_stepper_html, 'data-jluxe-step="shipping"' ),
-	'R267 the rendered checkout stepper matches the four direct flex steps in v1.7.58'
+	'R275 the rendered four-step checkout progress is an accessible ordered list with an explicit current step'
 );
 check(
 	false !== strpos( $r267_js_source, 'function hasShippingMethodSelected()' ) &&
@@ -6251,11 +6254,15 @@ $r267_cart_source     = (string) file_get_contents( ABSPATH . 'woocommerce/cart/
 $r267_shipping_source = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 check(
 	false !== strpos( $r267_cart_source, 'justify-end sm:justify-self-end' ) &&
+	false !== strpos( $r267_cart_source, 'jluxe-remove-item order-last' ) &&
+	false === strpos( $r267_cart_source, 'sm:order-last' ) &&
+	false !== strpos( $r267_checkout_css, 'body.woocommerce-cart .jluxe-remove-item {' ) &&
+	false !== strpos( $r267_checkout_css, 'order: 9999;' ) &&
 	false !== strpos( $r267_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) &&
 	false !== strpos( $r267_checkout_css, 'position: fixed;' ) &&
 	false !== strpos( $r267_shipping_source, 'jluxe-check-off' ) &&
 	false !== strpos( $r267_shipping_source, 'jluxe-check-on' ),
-	'R267 unrelated v1.7.58 cart/shipping-card markup and current checkout layout are preserved'
+	'R275 mobile RTL cart removal is ordered to the left without changing cart or shipping interactions'
 );
 
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );

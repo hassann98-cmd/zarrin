@@ -3496,6 +3496,12 @@ function jluxeEnhanceShopSort(root) {
 		if (!circle || !label) {
 			return;
 		}
+		stepEl.setAttribute("data-jluxe-step-state", state);
+		if ("active" === state) {
+			stepEl.setAttribute("aria-current", "step");
+		} else {
+			stepEl.removeAttribute("aria-current");
+		}
 		circle.classList.remove("border-success", "bg-success", "text-white", "border-primary", "text-primary", "border-border", "text-text-muted");
 		label.classList.remove("font-medium", "text-foreground", "text-text-muted");
 		if (state === "done") {

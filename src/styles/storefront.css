@@ -3364,28 +3364,88 @@ body {
     width: 152px !important;
   }
 }
-.jluxe-checkout-stepper ol {
-  display: grid;
+/* Keep the cart delete control last in its RTL row so it sits on the left on both mobile and desktop. */
+body.woocommerce-cart .jluxe-remove-item {
+  order: 9999;
+}
+
+/* Four checkout stages share equal columns; connector lines stay centered on the circles at every width. */
+.jluxe-checkout-stepper {
+  box-sizing: border-box;
   width: min(100%, 900px);
   margin-inline: auto;
-  grid-template-columns: minmax(0, 1fr) minmax(0.75rem, 0.45fr) minmax(0, 1fr) minmax(0.75rem, 0.45fr) minmax(0, 1fr) minmax(0.75rem, 0.45fr) minmax(0, 1fr);
+  padding: 1.25rem 0.75rem 1.5rem;
+}
+.jluxe-checkout-stepper__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
-  column-gap: clamp(0.15rem, 1vw, 0.75rem);
-  row-gap: 0;
+  direction: rtl;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-.jluxe-checkout-stepper ol > li[data-jluxe-step] {
-  width: auto;
+.jluxe-checkout-step {
+  --jluxe-step-circle-size: 2.25rem;
+  position: relative;
+  display: flex;
   min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
 }
-.jluxe-checkout-stepper ol > li[aria-hidden="true"] {
-  width: auto;
-  margin-top: 18px;
-  align-self: start;
-  justify-self: stretch;
+.jluxe-checkout-step:not(:last-child)::after {
+  position: absolute;
+  z-index: 0;
+  inset-inline-end: -50%;
+  top: calc(var(--jluxe-step-circle-size) / 2);
+  width: 100%;
+  height: 1px;
+  background-color: hsl(var(--border));
+  content: "";
+}
+.jluxe-checkout-step[data-jluxe-step-state="done"]:not(:last-child)::after {
+  background-color: hsl(var(--success));
+}
+.jluxe-checkout-step__circle {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 var(--jluxe-step-circle-size);
+  width: var(--jluxe-step-circle-size);
+  height: var(--jluxe-step-circle-size);
+  align-items: center;
+  justify-content: center;
+  border-style: solid;
+  border-width: 2px;
+  border-radius: 9999px;
+  background-color: hsl(var(--surface));
+}
+.jluxe-checkout-step[data-jluxe-step-state="done"] .jluxe-checkout-step__circle {
+  background-color: hsl(var(--success));
+}
+.jluxe-checkout-step__label {
+  display: block;
+  max-width: 100%;
+  min-height: 2.6em;
+  font-size: 0.625rem;
+  line-height: 1.3;
+  text-align: center;
 }
 @media (min-width: 640px) {
-  .jluxe-checkout-stepper ol > li[aria-hidden="true"] {
-    margin-top: 22px;
+  .jluxe-checkout-stepper {
+    padding: 1.5rem 1rem 1.75rem;
+  }
+  .jluxe-checkout-step {
+    --jluxe-step-circle-size: 2.75rem;
+  }
+  .jluxe-checkout-step__label {
+    min-height: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    white-space: nowrap;
   }
 }
 @media (max-width: 767.98px) {

@@ -2333,34 +2333,34 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 		$active_index = 0;
 	}
 	?>
-	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper mx-auto flex max-w-[1320px] items-center justify-center gap-1 px-3 md:px-4 py-6 sm:gap-3">
-		<?php foreach ( $ids as $i => $id ) : ?>
-			<?php if ( $i > 0 ) : ?>
-				<span class="h-px w-3 bg-border sm:w-16" aria-hidden="true"></span>
-			<?php endif; ?>
-			<div class="flex w-12 flex-col items-center gap-1.5 sm:w-auto" data-jluxe-step="<?php echo esc_attr( $id ); ?>">
+	<nav aria-label="مراحل خرید" class="jluxe-checkout-stepper">
+		<ol class="jluxe-checkout-stepper__list">
+			<?php foreach ( $ids as $i => $id ) : ?>
 				<?php
 				// آخرین مرحله («پایان خرید») فقط از صفحه‌ی thankyou.php صدا زده
 				// می‌شه، یعنی همیشه با یک سفارشِ واقعاً ثبت‌شده — پس وقتی این
 				// مرحله «فعال»ه، در واقع کامل‌شده‌ست، نه در حال انجام؛ باید مثل
 				// بقیه‌ی مراحلِ done دایره‌ی سبز/تیک بگیره، نه استایلِ «فعلی».
-				$is_last   = $i === count( $ids ) - 1;
-				$is_active = $i === $active_index;
-				$is_done   = $i < $active_index || ( $is_active && $is_last );
-				$is_active = $is_active && ! $is_done;
+				$is_last    = $i === count( $ids ) - 1;
+				$is_active  = $i === $active_index;
+				$is_done    = $i < $active_index || ( $is_active && $is_last );
+				$is_active  = $is_active && ! $is_done;
+				$step_state = $is_done ? 'done' : ( $is_active ? 'active' : 'pending' );
 				?>
-				<div data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 sm:size-11 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>">
-					<?php if ( $is_done ) : ?>
-						<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-					<?php else : ?>
-						<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
-					<?php endif; ?>
-				</div>
-				<span data-jluxe-step-label class="text-center text-[10px] leading-tight sm:whitespace-nowrap sm:text-caption <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
-					<?php echo esc_html( $steps[ $id ] ); ?>
-				</span>
-			</div>
-		<?php endforeach; ?>
+				<li class="jluxe-checkout-step" data-jluxe-step="<?php echo esc_attr( $id ); ?>" data-jluxe-step-state="<?php echo esc_attr( $step_state ); ?>"<?php echo $is_active ? ' aria-current="step"' : ''; ?>>
+					<span data-jluxe-step-circle data-jluxe-step-number="<?php echo esc_attr( jluxe_fa_digits( (string) ( $i + 1 ) ) ); ?>" class="jluxe-checkout-step__circle border-2 <?php echo $is_done ? 'border-success bg-success text-white' : ( $is_active ? 'border-primary text-primary' : 'border-border text-text-muted' ); ?>" aria-hidden="true">
+						<?php if ( $is_done ) : ?>
+							<svg class="size-4 sm:size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+						<?php else : ?>
+							<span class="text-caption font-bold"><?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></span>
+						<?php endif; ?>
+					</span>
+					<span data-jluxe-step-label class="jluxe-checkout-step__label <?php echo $is_active ? 'font-medium text-foreground' : 'text-text-muted'; ?>">
+						<?php echo esc_html( $steps[ $id ] ); ?>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ol>
 	</nav>
 	<?php
 }
