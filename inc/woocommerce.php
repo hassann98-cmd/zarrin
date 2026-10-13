@@ -2316,6 +2316,41 @@ function jluxe_render_payment_submit(): void {
 	<?php
 }
 
+/** Presentation-only classification for shipping-rate cards; never changes the WooCommerce rate or its cost. */
+function jluxe_shipping_method_presentation( $method ): array {
+	$label = '';
+	if ( is_object( $method ) ) {
+		if ( method_exists( $method, 'get_label' ) ) {
+			$label = (string) $method->get_label();
+		} elseif ( isset( $method->label ) ) {
+			$label = (string) $method->label;
+		}
+	}
+
+	$identifiers = array( $label );
+	foreach ( array( 'id', 'method_id', 'instance_id' ) as $property ) {
+		if ( is_object( $method ) && isset( $method->{$property} ) && is_scalar( $method->{$property} ) ) {
+			$identifiers[] = (string) $method->{$property};
+		}
+	}
+	if ( is_object( $method ) && method_exists( $method, 'get_id' ) ) {
+		$identifiers[] = (string) $method->get_id();
+	}
+	$identity = implode( ' ', $identifiers );
+
+	if ( preg_match( '/تیپاکس|tipax/iu', $identity ) ) {
+		return array( 'kind' => 'tipax', 'hint' => 'سریع‌تر · هزینهٔ بیشتر' );
+	}
+	if ( preg_match( '/چاپار|chapar/iu', $identity ) ) {
+		return array( 'kind' => 'chapar', 'hint' => 'مناسب بسته‌های حجیم' );
+	}
+	if ( preg_match( '/پست|پیشتاز|post|pishtaz/iu', $identity ) ) {
+		return array( 'kind' => 'post', 'hint' => 'اقتصادی · پوشش سراسری' );
+	}
+
+	return array( 'kind' => 'other', 'hint' => '' );
+}
+
 /**
  * نمایش استپر بالای صفحه‌ی سبد/تسویه‌حساب — نشانگر بصریِ مرحله‌ی جاری.
  *
@@ -2329,6 +2364,7 @@ function jluxe_render_payment_submit(): void {
  * وقتی کاربر دکمه‌ی «ادامه» رو می‌زنه، به‌صورتِ زنده از «shipping» به
  * «payment» سوییچ می‌کنه — بدونِ رفرشِ صفحه یا رندرِ دوباره‌ی سمتِ سرور.
  */
+
 function jluxe_render_checkout_stepper( string $active_id ): void {
 	$steps = array(
 		'cart'     => 'بررسی سبد خرید',

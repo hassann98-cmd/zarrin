@@ -6283,9 +6283,9 @@ check(
 	false !== strpos( $r267_checkout_css, 'order: 9999;' ) &&
 	false !== strpos( $r267_checkout_css, 'body.woocommerce-cart .jluxe-cart-actions {' ) &&
 	false !== strpos( $r267_checkout_css, 'position: fixed;' ) &&
-	false !== strpos( $r267_shipping_source, 'jluxe-check-off' ) &&
+	false === strpos( $r267_shipping_source, 'jluxe-check-off' ) &&
 	false !== strpos( $r267_shipping_source, 'jluxe-check-on' ),
-	'R275 mobile RTL cart removal is ordered to the left without changing cart or shipping interactions'
+	'R275 mobile RTL cart removal stays ordered left and shipping cards use only the selected checkmark, not a hollow radio circle'
 );
 
 // R276 — optional postal codes, explicit postal-shipping guidance, shared responsive actions, and tidy shipping-rate cards.
@@ -6344,6 +6344,45 @@ check(
 	false !== strpos( $r276_shipping_template, "do_action( 'woocommerce_after_shipping_rate'" ) &&
 	false !== strpos( $r276_shipping_template, '$method, $index' ),
 	'R276 cart/checkout actions preserve right-to-left return order while real WooCommerce place-order, nonce, shipping radio and hooks stay intact'
+);
+
+// R279 — shipping-card labels are presentation-only and freight guidance never calls Post pay-on-delivery.
+$r279_shipping_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
+$r279_review_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
+$r279_post_method = new class() {
+	public $id = 'flat_rate:14';
+	public function get_label() { return 'پست پیشتاز اقتصادی'; }
+};
+$r279_tipax_method = new class() {
+	public $id = 'flat_rate:19';
+	public function get_label() { return 'ارسال سریع با تیپاکس'; }
+};
+$r279_chapar_method = new class() {
+	public $id = 'chapar:2';
+	public function get_label() { return 'ارسال عادی'; }
+};
+$r279_other_method = new class() {
+	public $id = 'local_pickup:1';
+	public function get_label() { return 'تحویل حضوری'; }
+};
+$r279_post_presentation   = jluxe_shipping_method_presentation( $r279_post_method );
+$r279_tipax_presentation  = jluxe_shipping_method_presentation( $r279_tipax_method );
+$r279_chapar_presentation = jluxe_shipping_method_presentation( $r279_chapar_method );
+$r279_other_presentation  = jluxe_shipping_method_presentation( $r279_other_method );
+check(
+	'post' === $r279_post_presentation['kind'] && false !== strpos( $r279_post_presentation['hint'], 'اقتصادی' ) &&
+	'tipax' === $r279_tipax_presentation['kind'] && false !== strpos( $r279_tipax_presentation['hint'], 'هزینهٔ بیشتر' ) &&
+	'chapar' === $r279_chapar_presentation['kind'] && false !== strpos( $r279_chapar_presentation['hint'], 'بسته‌های حجیم' ) &&
+	'other' === $r279_other_presentation['kind'] && '' === $r279_other_presentation['hint'],
+	'R279 shipping-card presentation classifies Post/Tipax/Chapar labels or IDs and leaves unknown rates neutral'
+);
+check(
+	false !== strpos( $r279_shipping_template, 'class="shipping_method sr-only" data-jluxe-shipping-kind="%4$s"' ) &&
+	false !== strpos( $r279_shipping_template, 'jluxe_shipping_method_presentation( $method )' ) &&
+	false !== strpos( $r279_shipping_template, "do_action( 'woocommerce_after_shipping_rate', \$method, \$index )" ) &&
+	false !== strpos( $r279_review_template, 'aria-live="polite" aria-atomic="true"' ) &&
+	false !== strpos( $r279_review_template, 'پست پیشتاز: پرداخت هنگام ثبت سفارش' ),
+	'R279 native shipping radio and WooCommerce hook remain intact beside an accessible notice that distinguishes prepaid Post'
 );
 
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );

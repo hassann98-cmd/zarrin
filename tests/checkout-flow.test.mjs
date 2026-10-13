@@ -8,6 +8,7 @@ const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.met
 const cartTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart.php", import.meta.url), "utf8");
 const cartTotalsTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-totals.php", import.meta.url), "utf8");
 const checkoutTemplate = fs.readFileSync(new URL("../woocommerce/checkout/form-checkout.php", import.meta.url), "utf8");
+const reviewOrderTemplate = fs.readFileSync(new URL("../woocommerce/checkout/review-order.php", import.meta.url), "utf8");
 const paymentTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment.php", import.meta.url), "utf8");
 const paymentMethodTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment-method.php", import.meta.url), "utf8");
 const shippingTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-shipping.php", import.meta.url), "utf8");
@@ -82,6 +83,7 @@ function bootCheckout({
   shippingSection = true,
   shippingRates = ["flat_rate:1"],
   shippingChecked = false,
+  shippingKinds = [],
   paymentMethods = ["bacs"],
   requiredCity = false,
 } = {}) {
@@ -100,7 +102,12 @@ function bootCheckout({
   };
   const shippingMarkup = shippingSection
     ? `<section id="jluxe-shipping-section">
-        ${shippingRates.map((rate, index) => `<input class="shipping_method" type="radio" name="shipping_method[${index}]" value="${rate}" ${shippingChecked && index === 0 ? "checked" : ""}>`).join("")}
+        <div data-jluxe-shipping-freight-note data-shipping-kind="unselected" role="status">
+          <strong data-jluxe-shipping-note-title>کرایهٔ ارسال، وابسته به روش انتخابی</strong>
+          <span data-jluxe-shipping-note-text>تیپاکس و چاپار: پس‌کرایه و پرداخت در محل؛ پست پیشتاز: پرداخت هنگام ثبت سفارش.</span>
+          <span data-jluxe-shipping-note-badge>پرداخت طبق روش</span>
+        </div>
+        ${shippingRates.map((rate, index) => `<input class="shipping_method" type="radio" data-jluxe-shipping-kind="${shippingKinds[index] || "other"}" name="shipping_method[${index}]" value="${rate}" ${shippingChecked && index === 0 ? "checked" : ""}>`).join("")}
         <p data-jluxe-shipping-error hidden>روش ارسال را انتخاب کنید.</p>
       </section>`
     : "";
@@ -164,7 +171,11 @@ function bootCheckout({
   window.jluxeWcSettings = { cartUrl: "/basket/" };
   const scrolls = [];
   window.HTMLElement.prototype.scrollIntoView = function (options = {}) {
-    scrolls.push({ id: this.id, behavior: options.behavior, block: options.block });
+    scrolls.push({ target: "element", id: this.id, behavior: options.behavior, block: options.block });
+  };
+  window.scrollTo = (options, y) => {
+    const position = typeof options === "object" ? options : { left: options, top: y };
+    scrolls.push({ target: "window", top: position.top, behavior: position.behavior || "auto" });
   };
   // Keep the 1.7.58 post-AJAX gateway cleanup deterministic; tests dispatch
   // events but never perform an order, network request, or asynchronous timer.
@@ -230,12 +241,65 @@ test("cart and checkout action rows share responsive RTL buttons with return on 
 
 test("shipping method cards keep WooCommerce's real selectable radio and shipping hooks", () => {
   assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
-  assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" \/>/);
-  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card">/);
+  assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
+  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$presentation\['kind'\] \); \?>">/);
+  assert.match(shippingTemplate, /data-jluxe-shipping-kind="%4\$s"/);
+  assert.match(shippingTemplate, /jluxe-shipping-card__hint/);
+  assert.doesNotMatch(shippingTemplate, /jluxe-check-off/);
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
   assert.match(storefrontStyles, /\.jluxe-shipping-method-list\s*\{[^}]*flex-direction:\s*column/s);
   assert.match(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card/);
   assert.match(storefrontStyles, /input\.shipping_method:focus-visible \+ \.jluxe-shipping-card/);
+  assert.match(storefrontStyles, /jluxe-shipping-card--post[\s\S]*?--warning/);
+  assert.match(storefrontStyles, /jluxe-shipping-card--tipax[\s\S]*?--success/);
+  assert.match(storefrontStyles, /jluxe-shipping-card--chapar[\s\S]*?--error/);
+  assert.match(storefrontStyles, /jluxe-shipping-card__label\s*\{[^}]*white-space:\s*nowrap/s);
+  assert.match(paymentSource, /function jluxe_shipping_method_presentation\( \$method \): array/);
+  assert.match(reviewOrderTemplate, /data-jluxe-shipping-freight-note/);
+  assert.match(source, /function updateShippingFreightNotice\(\)/);
+});
+
+test("shipping guidance identifies Tipax and Chapar as pay-on-delivery but keeps Post prepaid", (t) => {
+  const tipax = bootCheckout({ shippingRates: ["tipax:1"], shippingKinds: ["tipax"] });
+  t.after(() => tipax.window.close());
+  const tipaxRate = tipax.window.document.querySelector("input.shipping_method");
+  tipaxRate.checked = true;
+  tipaxRate.dispatchEvent(new tipax.window.Event("change", { bubbles: true }));
+  const tipaxNote = tipax.window.document.querySelector("[data-jluxe-shipping-freight-note]");
+  assert.equal(tipaxNote.dataset.shippingKind, "tipax");
+  assert.equal(tipaxNote.querySelector("[data-jluxe-shipping-note-title]").textContent, "تیپاکس · پس‌کرایه");
+  assert.equal(tipaxNote.querySelector("[data-jluxe-shipping-note-badge]").textContent, "کرایه در محل");
+  assert.match(tipaxNote.textContent, /هنگام دریافت کالا/);
+
+  const cod = bootCheckout({ shippingRates: ["tipax:1", "chapar:1"], shippingKinds: ["tipax", "chapar"] });
+  t.after(() => cod.window.close());
+  const [tipaxPackage, chaparPackage] = cod.window.document.querySelectorAll("input.shipping_method");
+  tipaxPackage.checked = true;
+  chaparPackage.checked = true;
+  chaparPackage.dispatchEvent(new cod.window.Event("change", { bubbles: true }));
+  const codNote = cod.window.document.querySelector("[data-jluxe-shipping-freight-note]");
+  assert.equal(codNote.dataset.shippingKind, "cod");
+  assert.match(codNote.querySelector("[data-jluxe-shipping-note-text]").textContent, /تیپاکس یا چاپار/);
+
+  const mixed = bootCheckout({ shippingRates: ["post:1", "tipax:1"], shippingKinds: ["post", "tipax"] });
+  t.after(() => mixed.window.close());
+  const [postPackage, tipaxPackageForMixed] = mixed.window.document.querySelectorAll("input.shipping_method");
+  postPackage.checked = true;
+  tipaxPackageForMixed.checked = true;
+  tipaxPackageForMixed.dispatchEvent(new mixed.window.Event("change", { bubbles: true }));
+  const mixedNote = mixed.window.document.querySelector("[data-jluxe-shipping-freight-note]");
+  assert.equal(mixedNote.dataset.shippingKind, "mixed");
+  assert.match(mixedNote.querySelector("[data-jluxe-shipping-note-text]").textContent, /پست پیشتاز هنگام ثبت سفارش/);
+
+  const post = bootCheckout({ shippingRates: ["post:1"], shippingKinds: ["post"] });
+  t.after(() => post.window.close());
+  const postRate = post.window.document.querySelector("input.shipping_method");
+  postRate.checked = true;
+  postRate.dispatchEvent(new post.window.Event("change", { bubbles: true }));
+  const postNote = post.window.document.querySelector("[data-jluxe-shipping-freight-note]");
+  assert.equal(postNote.dataset.shippingKind, "post");
+  assert.match(postNote.querySelector("[data-jluxe-shipping-note-title]").textContent, /پرداخت هنگام ثبت سفارش/);
+  assert.match(postNote.querySelector("[data-jluxe-shipping-note-text]").textContent, /همراه مبلغ سفارش/);
 });
 
 test("payment gateways render as full-width horizontal cards in one responsive column", () => {
@@ -390,6 +454,7 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   rate.checked = true;
   rate.dispatchEvent(new window.Event("change", { bubbles: true }));
   assert.equal(shippingError.hidden, true);
+  const topScrollsBeforePayment = scrolls.filter((entry) => entry.target === "window" && entry.top === 0).length;
   next.click();
   assert.equal(activeStep(document), "payment");
   assert.equal(shippingStep.dataset.jluxeStepState, "done");
@@ -402,19 +467,22 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, false);
   assert.equal(actions.hidden, true, "the empty shipping action bar is removed while payment is active");
   assert.equal(paymentBack.hidden, false, "the payment-stage back action appears beside place order");
-  assert.ok(scrolls.some((entry) => entry.block === "start"));
+  assert.equal(scrolls.filter((entry) => entry.target === "window" && entry.top === 0).length, topScrollsBeforePayment + 1, "advancing to payment scrolls the page to its top");
 
   // The payment/shipping DOM lives in WooCommerce fragments. The historical
   // state machine reapplies visibility after updated_checkout without replacing
   // the native form validation or its notices.
+  document.getElementById("jluxe-shipping-section").remove();
   document.getElementById("order_review").insertAdjacentHTML(
     "afterbegin",
-    '<section id="jluxe-shipping-section"><input class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate:1"><p data-jluxe-shipping-error hidden>روش ارسال را انتخاب کنید.</p></section>',
+    '<section id="jluxe-shipping-section"><div data-jluxe-shipping-freight-note data-shipping-kind="unselected" role="status"><strong data-jluxe-shipping-note-title></strong><span data-jluxe-shipping-note-text></span><span data-jluxe-shipping-note-badge></span></div><input class="shipping_method" type="radio" data-jluxe-shipping-kind="tipax" name="shipping_method[0]" value="tipax:1" checked><p data-jluxe-shipping-error hidden>روش ارسال را انتخاب کنید.</p></section>',
   );
   $(document.body).trigger("updated_checkout");
   assert.equal(document.getElementById("jluxe-shipping-section").style.display, "none");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, false);
+  assert.equal(document.querySelector("[data-jluxe-shipping-note-title]").textContent, "تیپاکس · پس‌کرایه", "the freight notice is recalculated after WooCommerce replaces its checkout fragment");
 
+  const topScrollsBeforeShipping = scrolls.filter((entry) => entry.target === "window" && entry.top === 0).length;
   document.querySelector("[data-jluxe-checkout-back]").click();
   assert.equal(activeStep(document), "shipping");
   assert.equal(shippingStep.dataset.jluxeStepState, "active");
@@ -426,6 +494,7 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, true);
   assert.equal(actions.hidden, false, "returning to shipping restores the shipping-stage action bar");
   assert.equal(paymentBack.hidden, true, "the payment-stage back action hides again after returning");
+  assert.equal(scrolls.filter((entry) => entry.target === "window" && entry.top === 0).length, topScrollsBeforeShipping + 1, "returning to shipping also scrolls the page to its top");
 });
 
 test("no rendered shipping rate follows the v1.7.58 client contract instead of inventing a custom server error", (t) => {

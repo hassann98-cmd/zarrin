@@ -70,7 +70,17 @@ defined( 'ABSPATH' ) || exit;
 		 */
 		?>
 		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping">
-			<p class="mb-3 text-small font-medium text-foreground">روش ارسال را انتخاب کنید</p>
+			<p class="mb-3 text-small font-medium text-foreground">روش ارسال را انتخاب کنید!</p>
+			<div class="jluxe-shipping-freight-note" data-jluxe-shipping-freight-note data-shipping-kind="unselected" role="status" aria-live="polite" aria-atomic="true">
+				<span class="jluxe-shipping-freight-note__icon" aria-hidden="true">
+					<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7.5" cy="18" r="1.5"></circle><circle cx="17.5" cy="18" r="1.5"></circle><path d="M6 4h8"></path></svg>
+				</span>
+				<span class="jluxe-shipping-freight-note__copy">
+					<strong data-jluxe-shipping-note-title>کرایهٔ ارسال، وابسته به روش انتخابی</strong>
+					<span data-jluxe-shipping-note-text>تیپاکس و چاپار: پس‌کرایه و پرداخت در محل؛ پست پیشتاز: پرداخت هنگام ثبت سفارش.</span>
+				</span>
+				<span class="jluxe-shipping-freight-note__badge" data-jluxe-shipping-note-badge>پرداخت طبق روش</span>
+			</div>
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 			<?php wc_cart_totals_shipping_html(); ?>
 			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>

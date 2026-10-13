@@ -1,6 +1,6 @@
 <?php
 /**
- * روش‌های ارسال — کارت سبز/تیک سبز به‌جای دایره‌ی رادیوی خام. توسط هم
+ * روش‌های ارسال — کارتِ رنگی و تیکِ سبز به‌جای دایره‌ی خالیِ رادیو. توسط هم
  * سبد خرید و هم چک‌اوت استفاده می‌شه (wc_cart_totals_shipping_html در هر
  * دو همین قالب رو صدا می‌زنه).
  *
@@ -37,20 +37,26 @@ $calculator_text          = '';
 				<li class="jluxe-shipping-method-item">
 					<?php
 					$input_id = 'shipping_method_' . $index . '_' . sanitize_title( $method->id );
+					$presentation = function_exists( 'jluxe_shipping_method_presentation' )
+						? jluxe_shipping_method_presentation( $method )
+						: array( 'kind' => 'other', 'hint' => '' );
 					printf(
-						'<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="%2$s" value="%3$s" class="shipping_method sr-only" />',
+						'<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="%2$s" value="%3$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4$s" />',
 						$index,
 						esc_attr( $input_id ),
-						esc_attr( $method->id )
+						esc_attr( $method->id ),
+						esc_attr( $presentation['kind'] )
 					);
 					?>
-					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card">
+					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $presentation['kind'] ); ?>">
 						<span class="jluxe-shipping-card__details">
 							<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
+							<?php if ( ! empty( $presentation['hint'] ) ) : ?>
+								<span class="jluxe-shipping-card__hint"><?php echo esc_html( $presentation['hint'] ); ?></span>
+							<?php endif; ?>
 						</span>
 						<span class="jluxe-shipping-card__status" aria-hidden="true">
 							<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="jluxe-check-on hidden shrink-0 text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
-							<span class="jluxe-check-off rounded-full border-2 border-border"></span>
 						</span>
 					</label>
 					<?php do_action( 'woocommerce_after_shipping_rate', $method, $index ); ?>

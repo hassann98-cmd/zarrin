@@ -3666,16 +3666,98 @@ function jluxeEnhanceShopSort(root) {
 		return el;
 	}
 
-	/*
-	 * actions طبقِ درخواستِ صریحِ کاربر («دکمه‌های ادامه و بازگشت باید پایین
-	 * باشن نه بالا») بعدِ #order_review (پایینِ «خلاصه سفارش»، بعدِ اقلام/
-	 * روشِ ارسال/جمعِ کل) می‌شینه — نه قبلش. نگرانیِ قدیمیِ «دکمه زیرِ
-	 * لیستِ بلندِ درگاه‌ها گم می‌شه» دیگه صدق نمی‌کنه چون این دکمه‌ها فقط
-	 * توی مرحله‌ی «اطلاعات ارسال» دیده می‌شن (نه مرحله‌ی پرداخت، جایی که
-	 * لیستِ درگاه‌ها می‌تونه بلند باشه) — applyStepVisibility پایین‌تر
-	 * #payment رو کاملاً جدا مدیریت می‌کنه؛ scrollIntoView هم روی هر
-	 * جابه‌جاییِ مرحله همیشه این ناحیه رو در دیدِ کاربر می‌آره.
-	 */
+	function scrollCheckoutToTop() {
+		var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		var behavior = reducedMotion ? "auto" : "smooth";
+		if (typeof window.scrollTo === "function") {
+			window.scrollTo({ top: 0, behavior: behavior });
+		} else if (stepper && typeof stepper.scrollIntoView === "function") {
+			stepper.scrollIntoView({ behavior: behavior, block: "start" });
+		}
+	}
+
+	var shippingNoticeCopy = {
+		unselected: {
+			title: "کرایهٔ ارسال، وابسته به روش انتخابی",
+			text: "تیپاکس و چاپار: پس‌کرایه و پرداخت در محل؛ پست پیشتاز: پرداخت هنگام ثبت سفارش.",
+			badge: "پرداخت طبق روش"
+		},
+		post: {
+			title: "پست پیشتاز · پرداخت هنگام ثبت سفارش",
+			text: "هزینهٔ ارسال همراه مبلغ سفارش محاسبه و هنگام ثبت سفارش پرداخت می‌شود.",
+			badge: "پرداخت هنگام سفارش"
+		},
+		tipax: {
+			title: "تیپاکس · پس‌کرایه",
+			text: "کرایه را هنگام دریافت کالا، مستقیم به مأمور تیپاکس پرداخت کنید.",
+			badge: "کرایه در محل"
+		},
+		chapar: {
+			title: "چاپار · پس‌کرایه",
+			text: "کرایه را هنگام دریافت کالا، مستقیم به مأمور چاپار پرداخت کنید.",
+			badge: "کرایه در محل"
+		},
+		cod: {
+			title: "پس‌کرایه · پرداخت کرایه در محل",
+			text: "کرایهٔ هر بسته را هنگام دریافت، به مأمور تیپاکس یا چاپار بپردازید.",
+			badge: "پرداخت هنگام تحویل"
+		},
+		mixed: {
+			title: "شیوهٔ پرداخت برای روش‌های انتخابی متفاوت است",
+			text: "پست پیشتاز هنگام ثبت سفارش؛ تیپاکس و چاپار هنگام تحویل دریافت می‌شوند.",
+			badge: "طبق هر روش"
+		},
+		other: {
+			title: "کرایهٔ ارسال",
+			text: "نحوهٔ پرداخت هزینه مطابق شرایط روش حمل انتخاب‌شده است.",
+			badge: ""
+		}
+	};
+
+	function updateShippingFreightNotice() {
+		var section = document.getElementById("jluxe-shipping-section");
+		var notice = section && section.querySelector("[data-jluxe-shipping-freight-note]");
+		if (!notice) {
+			return;
+		}
+		var selected = section.querySelectorAll("input.shipping_method:checked");
+		var kinds = [];
+		for (var index = 0; index < selected.length; index++) {
+			var kind = selected[index].getAttribute("data-jluxe-shipping-kind") || "other";
+			if (kinds.indexOf(kind) === -1) {
+				kinds.push(kind);
+			}
+		}
+
+		var noticeKind = "unselected";
+		if (kinds.length === 1) {
+			noticeKind = shippingNoticeCopy[kinds[0]] ? kinds[0] : "other";
+		} else if (kinds.length > 1) {
+			var allCollectOnDelivery = kinds.every(function (kind) {
+				return kind === "tipax" || kind === "chapar";
+			});
+			var hasPost = kinds.indexOf("post") !== -1;
+			var hasCollectOnDelivery = kinds.some(function (kind) {
+				return kind === "tipax" || kind === "chapar";
+			});
+			noticeKind = allCollectOnDelivery ? "cod" : (hasPost && hasCollectOnDelivery ? "mixed" : "other");
+		}
+
+		var copy = shippingNoticeCopy[noticeKind] || shippingNoticeCopy.other;
+		notice.setAttribute("data-shipping-kind", noticeKind);
+		var title = notice.querySelector("[data-jluxe-shipping-note-title]");
+		var text = notice.querySelector("[data-jluxe-shipping-note-text]");
+		var badge = notice.querySelector("[data-jluxe-shipping-note-badge]");
+		if (title) { title.textContent = copy.title; }
+		if (text) { text.textContent = copy.text; }
+		if (badge) {
+			badge.textContent = copy.badge;
+			badge.hidden = !copy.badge;
+		}
+	}
+
+	/* دکمه‌های مرحله‌ی ارسال پایینِ خلاصه سفارش می‌مانند؛ با تغییر مرحله،
+	 * خود صفحه به ابتدای viewport برمی‌گردد تا استپر و عنوان مرحله دیده شوند. */
 	var actions = document.createElement("div");
 	actions.className = "jluxe-checkout-step-actions jluxe-checkout-action-row";
 	actions.innerHTML =
@@ -3696,7 +3778,7 @@ function jluxeEnhanceShopSort(root) {
 		if (paymentBackBtn) {
 			paymentBackBtn.hidden = false;
 		}
-		actions.scrollIntoView({ behavior: "smooth", block: "start" });
+		scrollCheckoutToTop();
 	}
 
 	function goToShipping() {
@@ -3710,7 +3792,7 @@ function jluxeEnhanceShopSort(root) {
 			paymentBackBtn.hidden = true;
 		}
 		toggleError('[data-jluxe-payment-error]', false);
-		actions.scrollIntoView({ behavior: "smooth", block: "start" });
+		scrollCheckoutToTop();
 	}
 
 	/*
@@ -3784,11 +3866,14 @@ function jluxeEnhanceShopSort(root) {
 	document.addEventListener("change", function (event) {
 		if (event.target && event.target.classList && event.target.classList.contains("shipping_method")) {
 			toggleError('[data-jluxe-shipping-error]', false);
+			updateShippingFreightNotice();
 		}
 		if (event.target && event.target.classList && event.target.classList.contains("payment_method")) {
 			toggleError('[data-jluxe-payment-error]', false);
 		}
 	});
+	window.jQuery(document.body).on("updated_checkout.jluxeShippingNotice", updateShippingFreightNotice);
+	updateShippingFreightNotice();
 
 	/*
 	 * روشِ پرداخت هم دیگه از پیش انتخاب نیست، پس قبلِ اجازه‌دادنِ submitِ
