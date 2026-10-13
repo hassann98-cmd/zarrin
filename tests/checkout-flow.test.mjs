@@ -306,64 +306,67 @@ test("R289 checkout postal and phone fields submit ASCII digits but display Pers
   dom.window.close();
 });
 
-test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-method accordions", () => {
+test("shipping cards are responsive and customizable without changing real WooCommerce rates", () => {
   assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
-  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>">/);
+  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?style=/);
+  assert.match(shippingTemplate, /jluxe-shipping-card--no-note/);
   assert.match(shippingTemplate, /jluxe_cart_checkout_shipping_method_settings\( \$kind \)/);
+  assert.match(shippingTemplate, /wc_cart_totals_shipping_method_label\( \$method \)/, "WooCommerce continues to render each real rate label and amount");
+  assert.match(shippingTemplate, /--jluxe-shipping-card-bg:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-border:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-bg:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-border:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-note-bg/);
+  assert.ok(
+    shippingTemplate.indexOf("wc_cart_totals_shipping_method_label( $method )") < shippingTemplate.indexOf("if ( $has_method_note )"),
+    "the configurable badge is rendered separately after the WooCommerce rate name and amount",
+  );
   assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
-  assert.match(shippingTemplate, /jluxe-shipping-card__details[\s\S]*?<\/span>\s*<\/span>\s*<\?php if \( isset\( \$method_copy\['note'\] \)/, "the badge is a separate grid item beside the full WooCommerce rate label");
-  assert.match(shippingTemplate, /wc_cart_totals_shipping_method_label\( \$method \)/, "WooCommerce continues to render each rate label and any real shipping cost");
-  assert.match(shippingTemplate, /jluxe-shipping-note-bg/);
   assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
-  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\bopen>/, "selecting a rate reveals its already-expanded accordion below the card");
+  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\bopen>/, "only a selected rate's accordion is displayed below its card");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
-  assert.doesNotMatch(shippingTemplate, /jluxe-shipping-card__hint/);
+  assert.doesNotMatch(shippingTemplate, /jluxe-shipping-card__check|jluxe-shipping-check/);
   const shippingRadio = shippingTemplate.match(/<input type="radio"[\s\S]*?\/>/)?.[0] || "";
-  assert.ok(shippingRadio, "the shipping method is rendered as a real radio");
-  assert.doesNotMatch(shippingRadio, /\bchecked\b/i);
+  assert.ok(shippingRadio, "the shipping method is still a real WooCommerce radio");
+  assert.doesNotMatch(shippingRadio, /\bchecked\b/i, "the template does not preselect a carrier");
 
-  assert.match(storefrontStyles, /\.jluxe-shipping-method-list\s*\{[^}]*flex-direction:\s*column/s);
-  assert.match(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card/);
-  assert.match(storefrontStyles, /input\.shipping_method:focus-visible \+ \.jluxe-shipping-card/);
-  assert.match(storefrontStyles, /input\.shipping_method:checked ~ \.jluxe-shipping-method-accordion/);
-  assert.match(storefrontStyles, /jluxe-shipping-card--post[\s\S]*?#eab308/);
-  assert.match(storefrontStyles, /jluxe-shipping-card--tipax[\s\S]*?--success/);
-  assert.match(storefrontStyles, /jluxe-shipping-card--chapar[\s\S]*?--error/);
+  const listRule = storefrontStyles.match(/\.jluxe-shipping-method-list\s*\{([^}]+)\}/s)?.[1] || "";
+  const itemRule = storefrontStyles.match(/\.jluxe-shipping-method-item\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingCardRule = storefrontStyles.match(/\.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
-  const shippingRadioCardRule = storefrontStyles.match(/#shipping_method input\.shipping_method \+ \.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingCardDetailsRule = storefrontStyles.match(/\.jluxe-shipping-card__details\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingLabelRule = storefrontStyles.match(/\.jluxe-shipping-card__label\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingAmountRule = storefrontStyles.match(/\.jluxe-shipping-card__label \.woocommerce-Price-amount\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingNoteRule = storefrontStyles.match(/\.jluxe-shipping-note\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingDetailsRule = storefrontStyles.match(/\.jluxe-shipping-method-accordion\s*\{([^}]+)\}/s)?.[1] || "";
+  const selectedRule = storefrontStyles.match(/input\.shipping_method:checked \+ \.jluxe-shipping-card,\s*\.jluxe-shipping-card--selected\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(listRule, /display:\s*grid/);
+  assert.match(itemRule, /display:\s*grid/);
   assert.match(shippingCardRule, /display:\s*grid/);
-  assert.match(shippingCardRule, /grid-template-columns:\s*minmax\(7rem, 42%\) minmax\(0, 1fr\)/);
+  assert.match(shippingCardRule, /grid-template-areas:\s*"note details"/);
   assert.match(shippingCardRule, /direction:\s*ltr/);
-  assert.match(shippingRadioCardRule, /direction:\s*ltr/);
-  assert.match(shippingCardDetailsRule, /grid-column:\s*2/);
+  assert.match(shippingCardRule, /border-radius:\s*var\(--jluxe-shipping-card-radius/);
+  assert.match(shippingCardRule, /background-color:\s*var\(--jluxe-shipping-card-bg/);
+  assert.match(shippingCardDetailsRule, /grid-area:\s*details/);
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
-  assert.match(shippingLabelRule, /white-space:\s*nowrap/);
-  assert.match(shippingLabelRule, /text-overflow:\s*ellipsis/);
-  assert.doesNotMatch(shippingLabelRule, /overflow-wrap:\s*anywhere/);
-  assert.match(shippingNoteRule, /display:\s*block/);
-  assert.match(shippingNoteRule, /grid-column:\s*1/);
+  assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
+  assert.match(shippingAmountRule, /white-space:\s*nowrap/);
+  assert.match(shippingNoteRule, /grid-area:\s*note/);
   assert.match(shippingNoteRule, /justify-self:\s*start/);
-  assert.match(shippingNoteRule, /min-width:\s*7rem/);
+  assert.match(shippingNoteRule, /min-width:\s*min\(/);
   assert.match(shippingNoteRule, /text-align:\s*left/);
   assert.match(shippingNoteRule, /white-space:\s*nowrap/);
-  assert.doesNotMatch(shippingNoteRule, /justify-content:\s*center/);
-  assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[^}]*grid-template-columns: minmax\(6\.25rem, 42%\) minmax\(0, 1fr\)[\s\S]*?\.jluxe-shipping-note\s*\{[^}]*min-width: 6\.25rem/);
-  const numericDigitOverlayRule = storefrontStyles.match(/body\.woocommerce-checkout \.woocommerce-input-wrapper \.jluxe-numeric-digit-display\s*\{([^}]+)\}/s)?.[1] || "";
-  const numericDigitInputRule = storefrontStyles.match(/body\.woocommerce-checkout \.woocommerce-input-wrapper input\[data-jluxe-ascii-digit-input\]\s*\{([^}]+)\}/s)?.[1] || "";
-  assert.match(numericDigitOverlayRule, /display:\s*flex/);
-  assert.match(numericDigitOverlayRule, /direction:\s*ltr/);
-  assert.match(numericDigitOverlayRule, /white-space:\s*nowrap/);
-  assert.match(numericDigitInputRule, /color:\s*transparent/);
-  assert.match(numericDigitInputRule, /caret-color:/);
+  assert.match(shippingNoteRule, /text-overflow:\s*ellipsis/);
+  assert.match(selectedRule, /--jluxe-shipping-card-selected-border/);
+  assert.match(selectedRule, /--jluxe-shipping-card-selected-bg/);
+  assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
+  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?grid-template-areas:\s*"details" "note"/);
+  assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-note\s*\{/);
+  assert.match(storefrontStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.jluxe-shipping-card/);
+  assert.match(storefrontStyles, /input\.shipping_method:checked ~ \.jluxe-shipping-method-accordion/);
   assert.match(shippingDetailsRule, /background:\s*var\(--jluxe-shipping-details-bg/);
   assert.match(shippingDetailsRule, /color:\s*var\(--jluxe-shipping-details-color/);
-  assert.doesNotMatch(storefrontStyles, /jluxe-shipping-card__hint|jluxe-shipping-freight-note/);
 
   assert.match(paymentSource, /function jluxe_shipping_method_presentation\( \$method \): array/);
   assert.doesNotMatch(reviewOrderTemplate, /jluxe-shipping-freight-note|data-jluxe-shipping-note/);
@@ -377,9 +380,9 @@ test("all carrier explanations are editable and state postpaid delivery without 
   assert.ok(start >= 0 && end > start, "shipping-method defaults are present in the new settings section");
   const shippingDefaults = themeSettingsSource.slice(start, end);
   const expectedCarrierNotes = {
-    post: ["اقتصادی", "#FECB02"],
-    tipax: ["سریع‌تر، هزینه بالا", "#33936e"],
-    chapar: ["مناسب مرسوله‌های حجیم", "#d71925"],
+    post: { note: ["اقتصادی", "#FECB02"], card: ["#FFFFFF", "#E2E8F0", "#FFF9E6", "#D6A900"] },
+    tipax: { note: ["سریع‌تر، هزینه بالا", "#33936e"], card: ["#FFFFFF", "#E2E8F0", "#EDF7F1", "#33936E"] },
+    chapar: { note: ["مناسب مرسوله‌های حجیم", "#d71925"], card: ["#FFFFFF", "#E2E8F0", "#FFF0F0", "#D71925"] },
   };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
@@ -389,8 +392,16 @@ test("all carrier explanations are editable and state postpaid delivery without 
     assert.match(description, /پس‌کرایه/);
     assert.match(description, /هنگام تحویل/);
     assert.doesNotMatch(description, /پیش.?پرداخت|پرداخت هنگام ثبت سفارش|همراه مبلغ سفارش/);
-    assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier][0]}'`));
-    assert.match(block, new RegExp(`'note_background_color'\\s*=>\\s*'${expectedCarrierNotes[carrier][1]}'`));
+    assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier].note[0]}'`));
+    assert.match(block, new RegExp(`'note_background_color'\\s*=>\\s*'${expectedCarrierNotes[carrier].note[1]}'`));
+    for (const [field, index] of [
+      ["card_background_color", 0],
+      ["card_border_color", 1],
+      ["selected_card_background_color", 2],
+      ["selected_card_border_color", 3],
+    ]) {
+      assert.match(block, new RegExp(`'${field}'\\s*=>\\s*'${expectedCarrierNotes[carrier].card[index]}'`));
+    }
     assert.match(block, /'note_text_color'\s*=>/);
     assert.match(block, /'details_background_color'\s*=>/);
     assert.match(block, /'details_text_color'\s*=>/);
@@ -398,6 +409,13 @@ test("all carrier explanations are editable and state postpaid delivery without 
   assert.match(settingsAdminSource, /'jluxe-cart-checkout'\s*=>\s*array\( 'cart_checkout', 'jluxe_sanitize_cart_checkout' \)/);
   assert.match(settingsSanitizeSource, /function jluxe_sanitize_cart_checkout\(/);
   assert.match(settingsRenderSource, /jluxe_render_cart_checkout_color_field/);
+  assert.match(themeSettingsSource, /'shipping_card_radius'\s*=>\s*18/);
+  assert.match(settingsRenderSource, /cart_checkout\[shipping_card_radius\]/);
+  assert.match(settingsSanitizeSource, /'shipping_card_radius'\s*=>\s*\$shipping_card_radius/);
+  for (const field of ["card_background_color", "card_border_color", "selected_card_background_color", "selected_card_border_color", "note_background_color", "note_text_color", "details_background_color", "details_text_color"]) {
+    assert.ok(settingsRenderSource.includes(`[${field}]`), `${field} is available to customize per carrier`);
+    assert.ok(settingsSanitizeSource.includes(`'${field}'`), `${field} has an independent sanitizer mapping`);
+  }
   for (const field of ["checkout_payment_warning_background", "checkout_payment_warning_text_color", "payment_card_background", "payment_card_selected_background"]) {
     assert.ok(settingsRenderSource.includes(`cart_checkout[${field}]`), `${field} is editable in the cart/checkout settings`);
     assert.ok(settingsSanitizeSource.includes(`'${field}'`), `${field} has a sanitizer mapping`);

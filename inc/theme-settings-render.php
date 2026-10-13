@@ -1562,9 +1562,20 @@ function jluxe_render_cart_checkout_page(): void {
 					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[payment_card_selected_background]', 'jluxe-payment-card-selected-background', 'پس‌زمینهٔ کارت درگاه انتخاب‌شده', (string) $cart['payment_card_selected_background'] ); ?>
 				</table>
 
-				<h2>توضیحات روش‌های ارسال</h2>
-			<p class="description">نشان کوتاه کنار نام، متن و رنگ جداگانه دارد و به هزینهٔ نرخ وابسته نیست. نام و هر مبلغی که برای نرخ ارسال در WooCommerce تعیین شود، همچنان از نرخ واقعی ووکامرس نمایش داده می‌شود؛ در آینده هم می‌توانید هزینه‌دار شدن روش را در خود WooCommerce تنظیم کنید، بدون اینکه نشان یا توضیحات کارت جای قیمت را بگیرد. آکاردئون جزئیات زیر همان روش انتخاب‌شده باز می‌شود.</p>
+				<h2>کارت‌ها و توضیحات روش‌های ارسال</h2>
+			<p class="description">کارت‌ها در موبایل به چیدمان عمودی و در صفحه‌های بزرگ به چیدمان دو بخشی تبدیل می‌شوند تا نشان توضیحی از نام و نرخ جدا بماند. انتخاب روش فقط رنگ و کادر همان کارت را عوض می‌کند و علامت تیک به کارت اضافه نمی‌شود. عنوان و مبلغ همچنان از نرخ واقعی WooCommerce می‌آیند؛ این تنظیمات فقط ظاهر را تغییر می‌دهند. توضیحات هر روش زیر همان کارتِ انتخاب‌شده باز می‌شود.</p>
 			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="jluxe-shipping-card-radius">گردی گوشهٔ کارت‌ها</label></th>
+					<td>
+						<select id="jluxe-shipping-card-radius" name="cart_checkout[shipping_card_radius]">
+							<?php foreach ( array( 12, 16, 18, 22, 26 ) as $radius ) : ?>
+								<option value="<?php echo esc_attr( (string) $radius ); ?>" <?php selected( (int) $cart['shipping_card_radius'], $radius ); ?>><?php echo esc_html( $radius . ' پیکسل' ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">این انتخاب برای همهٔ روش‌های ارسال یکسان است؛ رنگ‌ها را می‌توانید جداگانه برای هر روش تغییر دهید.</p>
+					</td>
+				</tr>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_shipping_accordions', 'آکاردئون توضیحات ارسال' ); ?>
 			</table>
 			<?php foreach ( array( 'post' => 'پست', 'tipax' => 'تیپاکس', 'chapar' => 'چاپار' ) as $method_key => $method_label ) : ?>
@@ -1586,6 +1597,10 @@ function jluxe_render_cart_checkout_page(): void {
 							<th scope="row"><label for="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>">متن نشان کنار نام روش</label></th>
 							<td><input type="text" id="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][note]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['note'] ); ?>" class="regular-text" /></td>
 						</tr>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][card_background_color]', 'jluxe-shipping-card-bg-' . $method_key, 'پس‌زمینهٔ کارت عادی', (string) $cart['shipping_methods'][ $method_key ]['card_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][card_border_color]', 'jluxe-shipping-card-border-' . $method_key, 'رنگ کادر کارت عادی', (string) $cart['shipping_methods'][ $method_key ]['card_border_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][selected_card_background_color]', 'jluxe-shipping-card-selected-bg-' . $method_key, 'پس‌زمینهٔ کارت انتخاب‌شده', (string) $cart['shipping_methods'][ $method_key ]['selected_card_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][selected_card_border_color]', 'jluxe-shipping-card-selected-border-' . $method_key, 'رنگ کادر کارت انتخاب‌شده', (string) $cart['shipping_methods'][ $method_key ]['selected_card_border_color'] ); ?>
 						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_background_color]', 'jluxe-shipping-note-bg-' . $method_key, 'رنگ کادر نشان', (string) $cart['shipping_methods'][ $method_key ]['note_background_color'] ); ?>
 						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_text_color]', 'jluxe-shipping-note-text-' . $method_key, 'رنگ نوشتهٔ نشان', (string) $cart['shipping_methods'][ $method_key ]['note_text_color'] ); ?>
 						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_background_color]', 'jluxe-shipping-details-bg-' . $method_key, 'پس‌زمینهٔ کادر جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_background_color'] ); ?>

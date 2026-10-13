@@ -17,6 +17,11 @@ $formatted_destination    = isset( $formatted_destination ) ? $formatted_destina
 $has_calculated_shipping  = ! empty( $has_calculated_shipping );
 $show_shipping_calculator = ! empty( $show_shipping_calculator );
 $calculator_text          = '';
+$shipping_card_radius     = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 18 ) : 18;
+$shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 18;
+if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
+	$shipping_card_radius = 18;
+}
 ?>
 <div class="jluxe-shipping-methods">
 	<?php if ( ! empty( $available_methods ) && is_array( $available_methods ) ) { ?>
@@ -32,6 +37,7 @@ $calculator_text          = '';
 					$method_copy = function_exists( 'jluxe_cart_checkout_shipping_method_settings' )
 						? jluxe_cart_checkout_shipping_method_settings( $kind )
 						: array( 'enabled' => false, 'summary' => '', 'description' => '' );
+					$has_method_note = isset( $method_copy['note'] ) && is_scalar( $method_copy['note'] ) && '' !== trim( (string) $method_copy['note'] );
 					$show_method_details = jluxe_cart_checkout_option( 'show_shipping_accordions', true )
 						&& ! empty( $method_copy['enabled'] )
 						&& '' !== trim( (string) $method_copy['summary'] )
@@ -44,11 +50,11 @@ $calculator_text          = '';
 						esc_attr( $presentation['kind'] )
 					);
 					?>
-						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?>">
+						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#F0FDF4' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#16A34A' ); ?>">
 							<span class="jluxe-shipping-card__details">
 								<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
 							</span>
-							<?php if ( isset( $method_copy['note'] ) && is_scalar( $method_copy['note'] ) && '' !== trim( (string) $method_copy['note'] ) ) : ?>
+							<?php if ( $has_method_note ) : ?>
 								<span class="jluxe-shipping-note jluxe-shipping-note--<?php echo esc_attr( $kind ); ?>" style="--jluxe-shipping-note-bg: <?php echo esc_attr( $method_copy['note_background_color'] ); ?>; --jluxe-shipping-note-color: <?php echo esc_attr( $method_copy['note_text_color'] ); ?>;"><?php echo esc_html( trim( (string) $method_copy['note'] ) ); ?></span>
 							<?php endif; ?>
 						</label>

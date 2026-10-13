@@ -6452,7 +6452,7 @@ check(
 	false !== strpos( $r276_checkout_css, 'padding-inline-start: max(0.75rem, env(safe-area-inset-right, 0px));' ) &&
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout :is(#billing_postcode_field, #shipping_postcode_field) .description {' ) &&
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout #shipping_method.jluxe-shipping-method-list {' ) &&
-	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .jluxe-shipping-card {' ) &&
+	false !== strpos( $r276_checkout_css, '.jluxe-shipping-card {' ) &&
 	false !== strpos( $r276_checkout_css, 'display: flex;' ) &&
 	false === strpos( $r276_checkout_css, 'grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);' ),
 	'R276 checkout action bars are mobile-flex/RTL with safe-area padding, and postcode notes/shipping rates receive their responsive presentation'
@@ -6521,6 +6521,12 @@ $r279_posted_checkout   = $r279_settings_defaults['cart_checkout'];
 $r279_posted_checkout['shipping_methods']['post']['summary'] = '<b>جزئیات امن</b>';
 $r279_posted_checkout['shipping_methods']['post']['description'] = "کرایه <script>alert(1)</script> هنگام تحویل";
 $r279_posted_checkout['shipping_methods']['post']['note'] = '<b>ارسال فوری</b>';
+$r279_posted_checkout['shipping_card_radius'] = 22;
+$r279_posted_checkout['shipping_methods']['post']['card_background_color'] = '#AABBCC';
+$r279_posted_checkout['shipping_methods']['post']['card_border_color'] = '#112233';
+$r279_posted_checkout['shipping_methods']['post']['selected_card_background_color'] = '#DDEEFF';
+$r279_posted_checkout['shipping_methods']['post']['selected_card_border_color'] = '#334455';
+$r279_posted_checkout['shipping_methods']['tipax']['selected_card_border_color'] = 'url(javascript:alert(1))';
 $r279_posted_checkout['shipping_methods']['post']['note_background_color'] = '#123ABC';
 $r279_posted_checkout['shipping_methods']['post']['note_text_color'] = 'url(javascript:alert(1))';
 $r279_posted_checkout['shipping_methods']['post']['details_background_color'] = '#abcdef';
@@ -6541,6 +6547,12 @@ check(
 	'R279 cart/checkout settings page, independent sanitizer, booleans, and per-carrier safe editable copy are registered'
 );
 check(
+	22 === $r279_clean_checkout['shipping_card_radius'] &&
+	'#AABBCC' === $r279_clean_checkout['shipping_methods']['post']['card_background_color'] &&
+	'#112233' === $r279_clean_checkout['shipping_methods']['post']['card_border_color'] &&
+	'#DDEEFF' === $r279_clean_checkout['shipping_methods']['post']['selected_card_background_color'] &&
+	'#334455' === $r279_clean_checkout['shipping_methods']['post']['selected_card_border_color'] &&
+	'#33936E' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
 	'ارسال فوری' === $r279_clean_checkout['shipping_methods']['post']['note'] &&
 	'#123ABC' === $r279_clean_checkout['shipping_methods']['post']['note_background_color'] &&
 	'#332900' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
@@ -6561,6 +6573,11 @@ check(
 	'R279 all three shipping method defaults say the freight is collected on delivery, including Post'
 );
 check(
+	18 === $r279_settings_defaults['cart_checkout']['shipping_card_radius'] &&
+	'#FFF9E6' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#D6A900' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#EDF7F1' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#FFF0F0' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
 	'اقتصادی' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note'] &&
 	'#FECB02' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
 	'#33936e' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
@@ -6573,12 +6590,29 @@ $r279_old_stored_section = array( 'version' => JLUXE_SETTINGS_VERSION, 'cart_che
 $r279_merged_section = jluxe_array_merge_deep( $r279_settings_defaults, $r279_old_stored_section );
 check(
 	false === $r279_merged_section['cart_checkout']['show_stepper'] &&
+	18 === $r279_merged_section['cart_checkout']['shipping_card_radius'] &&
+	'#FFF9E6' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&
 	'اقتصادی' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['note'] &&
 	'#33936e' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
 	array( 'post', 'tipax', 'chapar' ) === array_keys( $r279_merged_section['cart_checkout']['shipping_methods'] ),
 	'R279 adding cart_checkout needs no schema migration: the theme defaults deep-merge missing nested settings'
 );
+$r279_previous_live_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
+$r279_live_settings = $r279_settings_defaults;
+$r279_live_settings['cart_checkout'] = $r279_clean_checkout;
+update_test_settings( $r279_live_settings );
+$r279_post_card_settings = jluxe_cart_checkout_shipping_method_settings( 'post' );
+$r279_tipax_card_settings = jluxe_cart_checkout_shipping_method_settings( 'tipax' );
+check(
+	'#AABBCC' === $r279_post_card_settings['card_background_color'] &&
+	'#DDEEFF' === $r279_post_card_settings['selected_card_background_color'] &&
+	'#334455' === $r279_post_card_settings['selected_card_border_color'] &&
+	'#33936E' === $r279_tipax_card_settings['selected_card_border_color'] &&
+	'#FFFFFF' === jluxe_cart_checkout_shipping_method_settings( 'unknown' )['card_background_color'],
+	'R289 shipping-card presentation reads sanitized per-carrier colors and uses safe fallbacks'
+);
+update_test_settings( $r279_previous_live_settings );
 
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(

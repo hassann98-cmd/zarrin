@@ -796,6 +796,15 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		$color = sanitize_hex_color( is_scalar( $value ) ? (string) $value : '' );
 		return is_string( $color ) && '' !== $color ? $color : $fallback;
 	};
+	$shipping_card_radius = isset( $posted['shipping_card_radius'] ) && is_scalar( $posted['shipping_card_radius'] )
+		? (int) $posted['shipping_card_radius']
+		: (int) ( $defaults['shipping_card_radius'] ?? 18 );
+	if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
+		$shipping_card_radius = (int) ( $defaults['shipping_card_radius'] ?? 18 );
+	}
+	if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
+		$shipping_card_radius = 18;
+	}
 	$shipping_methods = array();
 	foreach ( $defaults['shipping_methods'] as $method_key => $default_method ) {
 		$method_posted = isset( $posted_methods[ $method_key ] ) && is_array( $posted_methods[ $method_key ] )
@@ -815,6 +824,10 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 			'summary'                  => sanitize_text_field( $summary ),
 			'description'              => sanitize_textarea_field( $description ),
 			'note'                     => sanitize_text_field( $note ),
+			'card_background_color'    => $sanitize_color( $method_posted['card_background_color'] ?? ( $default_method['card_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['card_background_color'] ?? '#FFFFFF' ) ),
+			'card_border_color'        => $sanitize_color( $method_posted['card_border_color'] ?? ( $default_method['card_border_color'] ?? '#E2E8F0' ), (string) ( $default_method['card_border_color'] ?? '#E2E8F0' ) ),
+			'selected_card_background_color' => $sanitize_color( $method_posted['selected_card_background_color'] ?? ( $default_method['selected_card_background_color'] ?? '#F0FDF4' ), (string) ( $default_method['selected_card_background_color'] ?? '#F0FDF4' ) ),
+			'selected_card_border_color' => $sanitize_color( $method_posted['selected_card_border_color'] ?? ( $default_method['selected_card_border_color'] ?? '#16A34A' ), (string) ( $default_method['selected_card_border_color'] ?? '#16A34A' ) ),
 			'note_background_color'    => $sanitize_color( $method_posted['note_background_color'] ?? ( $default_method['note_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['note_background_color'] ?? '#FFFFFF' ) ),
 			'note_text_color'          => $sanitize_color( $method_posted['note_text_color'] ?? ( $default_method['note_text_color'] ?? '#111827' ), (string) ( $default_method['note_text_color'] ?? '#111827' ) ),
 			'details_background_color' => $sanitize_color( $method_posted['details_background_color'] ?? ( $default_method['details_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['details_background_color'] ?? '#FFFFFF' ) ),
@@ -839,6 +852,7 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		'payment_card_background'          => $sanitize_color( $posted['payment_card_background'] ?? ( $defaults['payment_card_background'] ?? '#FFFFFF' ), (string) ( $defaults['payment_card_background'] ?? '#FFFFFF' ) ),
 		'payment_card_selected_background' => $sanitize_color( $posted['payment_card_selected_background'] ?? ( $defaults['payment_card_selected_background'] ?? '#F0FDF4' ), (string) ( $defaults['payment_card_selected_background'] ?? '#F0FDF4' ) ),
 		'show_shipping_accordions'         => ! empty( $posted['show_shipping_accordions'] ),
+		'shipping_card_radius'             => $shipping_card_radius,
 		'copy'                             => $copy,
 		'shipping_methods'                 => $shipping_methods,
 	);

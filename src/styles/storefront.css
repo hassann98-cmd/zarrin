@@ -3333,48 +3333,62 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 [data-jluxe-qty-oos][hidden] {
   display: none !important;
 }
-.jluxe-shipping-method-list {
-  display: flex;
+/* Shipping rates stay as WooCommerce radios; their labels are presentation only. */
+.jluxe-shipping-methods {
   width: 100%;
   min-width: 0;
-  flex-direction: column;
-  gap: 0.5rem;
+}
+.jluxe-shipping-method-list {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 0.625rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .jluxe-shipping-method-item {
-  display: flex;
+  display: grid;
   min-width: 0;
-  flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
 }
-/* Anchor grid columns to physical left/right: badge = column 1 (left), rate = column 2 (right). */
+/* Wide screens: information stays on the right; the independent badge anchors left. */
 .jluxe-shipping-card {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(7rem, 42%) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.55fr);
+  grid-template-areas: "note details";
   min-width: 0;
-  min-height: 3.5rem;
+  min-height: 4.25rem;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0.875rem;
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
-  background: hsl(var(--surface));
+  gap: clamp(0.75rem, 2.25vw, 1.35rem);
+  padding: clamp(0.85rem, 1.8vw, 1.1rem) clamp(1rem, 2.5vw, 1.35rem);
+  border: 1px solid var(--jluxe-shipping-card-border, hsl(var(--border)));
+  border-radius: var(--jluxe-shipping-card-radius, 1.125rem);
+  background-color: var(--jluxe-shipping-card-bg, hsl(var(--surface)));
+  color: hsl(var(--foreground));
+  box-shadow: 0 2px 7px hsl(var(--foreground) / 0.035);
   text-align: start;
   direction: ltr;
   cursor: pointer;
-  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 #shipping_method input.shipping_method + .jluxe-shipping-card {
   display: grid;
   width: 100%;
+  min-width: 0;
   direction: ltr;
+}
+.jluxe-shipping-card.jluxe-shipping-card--no-note {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "details";
 }
 .jluxe-shipping-card__details {
   display: flex;
-  grid-column: 2;
+  grid-area: details;
   width: 100%;
   min-width: 0;
   align-items: center;
@@ -3383,64 +3397,89 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 }
 .jluxe-shipping-card__label {
   display: block;
-  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
   color: hsl(var(--foreground));
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 750;
-  line-height: 1.6;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
   word-break: normal;
+}
+.jluxe-shipping-card__label .woocommerce-Price-amount {
+  display: inline-block;
+  margin-inline-start: 0.25rem;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  font-weight: 800;
 }
 .jluxe-shipping-note {
   box-sizing: border-box;
   display: block;
-  grid-column: 1;
+  grid-area: note;
   justify-self: start;
-  min-width: 7rem;
+  width: fit-content;
+  min-width: min(7.5rem, 100%);
   max-width: 100%;
+  min-height: 2.15rem;
   overflow: hidden;
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid hsl(var(--foreground) / 0.08);
   border-radius: 9999px;
   background: var(--jluxe-shipping-note-bg, hsl(var(--muted)));
   color: var(--jluxe-shipping-note-color, hsl(var(--text-secondary)));
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 750;
-  line-height: 1.45;
+  line-height: 1.4;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
   direction: rtl;
 }
-.jluxe-shipping-card__label .woocommerce-Price-amount {
-  display: inline-block;
-  color: hsl(var(--foreground));
-  white-space: nowrap;
-  font-weight: 800;
+.jluxe-shipping-card:hover {
+  border-color: hsl(var(--primary) / 0.42);
+  box-shadow: 0 5px 15px hsl(var(--foreground) / 0.07);
+  transform: translateY(-1px);
+}
+input.shipping_method:checked + .jluxe-shipping-card,
+.jluxe-shipping-card--selected {
+  border-color: var(--jluxe-shipping-card-selected-border, hsl(var(--success)));
+  background-color: var(--jluxe-shipping-card-selected-bg, hsl(var(--success) / 0.08));
+  box-shadow: 0 0 0 1px var(--jluxe-shipping-card-selected-border, hsl(var(--success))), 0 8px 20px hsl(var(--foreground) / 0.055);
+  transform: none;
+}
+input.shipping_method:focus-visible + .jluxe-shipping-card {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+@media (forced-colors: active) {
+  input.shipping_method:focus-visible + .jluxe-shipping-card {
+    outline-color: Highlight;
+  }
 }
 .jluxe-shipping-method-accordion {
   display: none;
+  width: calc(100% - 0.5rem);
   min-width: 0;
   margin-inline: 0.25rem;
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.875rem;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.78);
+  border-radius: 1rem;
   background: var(--jluxe-shipping-details-bg, hsl(var(--surface)));
   color: var(--jluxe-shipping-details-color, hsl(var(--text-secondary)));
-  font-size: 0.75rem;
-  line-height: 1.75;
+  box-shadow: 0 8px 20px hsl(var(--foreground) / 0.04);
+  font-size: 0.8rem;
+  line-height: 1.8;
 }
 input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
   display: block;
 }
 .jluxe-shipping-method-accordion > summary {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.7rem 1rem;
   color: var(--jluxe-shipping-details-color, hsl(var(--foreground)));
   font-weight: 750;
   cursor: pointer;
@@ -3461,9 +3500,56 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
 .jluxe-shipping-method-accordion[open] > summary svg {
   transform: rotate(180deg);
 }
+.jluxe-shipping-method-accordion[open] > summary {
+  border-bottom: 1px solid hsl(var(--foreground) / 0.08);
+}
 .jluxe-shipping-method-accordion__content {
-  padding: 0 0.75rem 0.75rem;
+  padding: 0.75rem 1rem 1rem;
   overflow-wrap: anywhere;
+}
+@media (max-width: 639.98px) {
+  .jluxe-shipping-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "details" "note";
+    min-height: 0;
+    align-items: start;
+    gap: 0.55rem;
+    padding: 0.9rem 1rem;
+  }
+  .jluxe-shipping-card__details {
+    align-items: flex-start;
+  }
+  .jluxe-shipping-card__label {
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+  .jluxe-shipping-note {
+    justify-self: start;
+    max-width: 100%;
+  }
+}
+@media (max-width: 359.98px) {
+  .jluxe-shipping-card {
+    gap: 0.45rem;
+    padding: 0.75rem 0.8rem;
+  }
+  .jluxe-shipping-card__label {
+    font-size: 0.84rem;
+  }
+  .jluxe-shipping-note {
+    min-width: min(7rem, 100%);
+    padding-inline: 0.65rem;
+    font-size: 0.7rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-shipping-card,
+  .jluxe-shipping-method-accordion > summary svg {
+    transition: none;
+  }
+  .jluxe-shipping-card:hover {
+    transform: none;
+  }
 }
 #payment ul.payment_methods.jluxe-payment-method-list {
   display: flex !important;
@@ -3654,11 +3740,6 @@ body.woocommerce-cart [data-jluxe-cart-pending] {
     bottom: 0;
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
-}
-input.shipping_method:checked + .jluxe-shipping-card,
-.jluxe-shipping-card--selected {
-  border-color: hsl(var(--success));
-  background-color: hsl(var(--success) / 0.05);
 }
 #payment ul.payment_methods li input.payment_method:checked + label.jluxe-payment-card {
   border-width: 2px;
@@ -3918,7 +3999,7 @@ body.woocommerce-checkout .woocommerce form .woocommerce-invalid .select2-select
   border-color: hsl(var(--error) / 0.72);
   box-shadow: 0 0 0 3px hsl(var(--error) / 0.08);
 }
-body.woocommerce-checkout :is(.jluxe-shipping-card, .jluxe-payment-card) {
+body.woocommerce-checkout .jluxe-payment-card {
   border-radius: 0.9375rem;
   background: hsl(var(--surface));
   transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
@@ -3940,43 +4021,6 @@ body.woocommerce-checkout #shipping_method .jluxe-shipping-method-item {
   gap: 0.35rem;
   margin: 0;
   padding: 0;
-}
-body.woocommerce-checkout .jluxe-shipping-card {
-  min-height: 3.5rem;
-  padding: 0.75rem 0.875rem;
-}
-body.woocommerce-checkout .jluxe-shipping-card:hover {
-  border-color: hsl(var(--primary) / 0.35);
-}
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--post,
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--post:hover {
-  border-color: #eab308;
-  background: rgba(250, 204, 21, 0.27);
-}
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--tipax,
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--tipax:hover {
-  border-color: hsl(var(--success));
-  background: hsl(var(--success) / 0.14);
-}
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--chapar,
-body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--chapar:hover {
-  border-color: hsl(var(--error));
-  background: hsl(var(--error) / 0.13);
-}
-@media (max-width: 359.98px) {
-  .jluxe-shipping-card {
-    grid-template-columns: minmax(6.25rem, 42%) minmax(0, 1fr);
-    gap: 0.45rem;
-    padding-inline: 0.6rem;
-  }
-  .jluxe-shipping-card__label {
-    font-size: 0.75rem;
-  }
-  .jluxe-shipping-note {
-    min-width: 6.25rem;
-    padding-inline: 0.65rem;
-    font-size: 0.68rem;
-  }
 }
 body.woocommerce-checkout .jluxe-payment-card {
   min-height: 4.5rem;
