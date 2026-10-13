@@ -1668,7 +1668,8 @@ function jluxe_product_manager_save_product_ajax(): void {
 			$product->set_image_id( $changes['image_id'] );
 			$product->set_gallery_image_ids( $changes['gallery_ids'] );
 		}
-		$product->update_meta_data( '_jluxe_product_faq', $changes['faq'] );
+		$product->update_meta_data( '_jluxe_product_faq_override_items', $changes['faq'] );
+		$product->update_meta_data( '_jluxe_product_faq_override', '1' );
 		$product->update_meta_data( '_jluxe_badge_authenticity', $changes['badges']['authenticity'] ? 'yes' : 'no' );
 		$product->update_meta_data( '_jluxe_badge_warranty', $changes['badges']['warranty'] ? 'yes' : 'no' );
 		if ( 'default' === $changes['suggested_modal'] ) {

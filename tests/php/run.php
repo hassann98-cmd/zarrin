@@ -1910,17 +1910,18 @@ $r142_product_faq_source=(string) file_get_contents(ABSPATH.'inc/product-faq.php
 $r142_faq_hooks=array_column($GLOBALS['actions'],0);
 $r142_post_backup=isset($_POST)&&is_array($_POST)?$_POST:array();
 $r142_post_without_faq=$r142_post_backup;
-unset($r142_post_without_faq['jluxe_product_faq_present'],$r142_post_without_faq['jluxe_product_faq']);
+unset($r142_post_without_faq['jluxe_product_faq_present'],$r142_post_without_faq['jluxe_product_faq_nonce'],$r142_post_without_faq['jluxe_product_faq_restore_boom'],$r142_post_without_faq['jluxe_product_faq']);
 $_POST=$r142_post_without_faq;
 $_POST['jluxe_product_faq_present']='1';
+$_POST['jluxe_product_faq_nonce']='valid-faq-nonce';
 $_POST['jluxe_product_faq']=array(
 	'row-a'=>array('question'=>' <b>سوالِ محصول</b> ','answer'=>"پاسخِ خط اول\nپاسخِ خط دوم"),
 	'row-b'=>array('question'=>'سوال ناقص','answer'=>''),
 );
 $r142_faq_product=new WC_Product(5344);
 jluxe_save_product_faq_meta_object($r142_faq_product);
-$r142_saved_faq=$r142_faq_product->meta['_jluxe_product_faq']??array();
-check(in_array('woocommerce_admin_process_product_object',$r142_faq_hooks,true) && strpos($r142_product_faq_source,'jluxe_product_faq_present')!==false && count($r142_saved_faq)===1 && $r142_saved_faq[0]['question']==='سوالِ محصول' && $r142_saved_faq[0]['answer']==="پاسخِ خط اول\nپاسخِ خط دوم", 'R142 WooCommerce object-save persists sanitized product-editor FAQ rows and drops incomplete rows');
+$r142_saved_faq=$r142_faq_product->meta['_jluxe_product_faq_override_items']??array();
+check(in_array('woocommerce_admin_process_product_object',$r142_faq_hooks,true) && strpos($r142_product_faq_source,'jluxe_product_faq_present')!==false && count($r142_saved_faq)===1 && $r142_saved_faq[0]['question']==='سوالِ محصول' && $r142_saved_faq[0]['answer']==="پاسخِ خط اول\nپاسخِ خط دوم" && ($r142_faq_product->meta['_jluxe_product_faq_override']??'')==='1', 'R142 WooCommerce object-save persists sanitized FAQ override rows, drops incomplete rows, and sets its marker');
 $r142_faq_product->meta['_jluxe_product_faq']=array(array('question'=>'FAQ موجود','answer'=>'پاسخ موجود'));
 $_POST=$r142_post_without_faq;
 jluxe_save_product_faq_meta_object($r142_faq_product);
@@ -1928,9 +1929,10 @@ check($r142_faq_product->meta['_jluxe_product_faq'][0]['question']==='FAQ موج
 $r142_previous_postmeta=$GLOBALS['post_meta'][5344]??null;
 $_POST=$r142_post_without_faq;
 $_POST['jluxe_product_faq_present']='1';
+$_POST['jluxe_product_faq_nonce']='valid-faq-nonce';
 $_POST['jluxe_product_faq']=array('row'=>array('question'=>'FAQ مسیر قدیمی','answer'=>'پاسخ مسیر قدیمی'));
 jluxe_save_product_faq_meta(5344);
-$r142_legacy_saved_faq=$GLOBALS['post_meta'][5344]['_jluxe_product_faq']??array();
+$r142_legacy_saved_faq=$GLOBALS['post_meta'][5344]['_jluxe_product_faq_override_items']??array();
 check(in_array('woocommerce_process_product_meta',$r142_faq_hooks,true) && count($r142_legacy_saved_faq)===1 && $r142_legacy_saved_faq[0]['question']==='FAQ مسیر قدیمی', 'R142 legacy WooCommerce product-meta saves keep persisting FAQ rows');
 if(null===$r142_previous_postmeta){unset($GLOBALS['post_meta'][5344]);}else{$GLOBALS['post_meta'][5344]=$r142_previous_postmeta;}
 $_POST=$r142_post_backup;
@@ -6648,6 +6650,30 @@ check(
 	false !== strpos( $r269_rendered_groups, 'jluxe-product-advanced-specs__row' ),
 	'R269 grouped markup renders technical, dimension, and remaining-WooCommerce groups with semantic label/value rows'
 );
+$r269_product_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r269_product );
+$r269_schema_properties = $r269_product_schema['additionalProperty'] ?? array();
+check(
+	'Product' === ( $r269_product_schema['@type'] ?? '' ) &&
+	5 === count( $r269_schema_properties ) &&
+	'جنس' === ( $r269_schema_properties[0]['name'] ?? '' ) &&
+	'مشخصات فنی' === ( $r269_schema_properties[0]['description'] ?? '' ) &&
+	'رنگ' === ( $r269_schema_properties[4]['name'] ?? '' ) &&
+	false === strpos( wp_json_encode( $r269_schema_properties, JSON_UNESCAPED_UNICODE ), 'نباید نمایش داده شود' ),
+	'R269 Product JSON-LD exposes the visible legacy and remaining WooCommerce specifications as PropertyValue entries'
+);
+$GLOBALS['post_meta'][ $r269_id ]['_jluxe_product_advanced_attributes_override'] = '1';
+$GLOBALS['post_meta'][ $r269_id ]['_jluxe_product_advanced_attributes'] = array();
+$r269_native_only_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r269_product );
+$r269_native_only_names = array_column( $r269_native_only_schema['additionalProperty'] ?? array(), 'name' );
+check(
+	2 === count( $r269_native_only_names ) &&
+	in_array( 'مدل', $r269_native_only_names, true ) &&
+	in_array( 'رنگ', $r269_native_only_names, true ) &&
+	! in_array( 'hidden', $r269_native_only_names, true ) &&
+	'مشخصات فنی' === ( $r269_native_only_schema['additionalProperty'][0]['description'] ?? '' ),
+	'R269 Product JSON-LD also covers visible native WooCommerce attributes when grouped Boom specs are intentionally empty'
+);
+unset( $GLOBALS['post_meta'][ $r269_id ]['_jluxe_product_advanced_attributes_override'], $GLOBALS['post_meta'][ $r269_id ]['_jluxe_product_advanced_attributes'] );
 $r269_unsafe_id = 94272;
 $GLOBALS['post_meta'][ $r269_unsafe_id ]['_boom_advanced_attributes'] = wp_json_encode(
 	array( array( 'title' => '<script>alert(1)</script>مشخصات', 'items' => array( array( 'label' => '<b>جنس</b>', 'value' => '<img src=x onerror=alert(1)>100' ) ) ) ),
@@ -6678,6 +6704,134 @@ check(
 	false !== strpos( $r269_templates[2], '$cp3_advanced_attribute_groups' ),
 	'R269 default, classic, and reference templates all route legacy groups through the shared read-only renderer'
 );
+
+// R272 — product-editor CRUD uses a separate override and exposes the effective data to Product JSON-LD.
+$r272_spec_id = 94301;
+$GLOBALS['post_meta'][ $r272_spec_id ]['_boom_advanced_attributes'] = $r269_json;
+$r272_boom_snapshot = $GLOBALS['post_meta'][ $r272_spec_id ]['_boom_advanced_attributes'];
+$r272_post = new WP_Post();
+$r272_post->ID = $r272_spec_id;
+ob_start();
+jluxe_render_product_specifications_meta_box( $r272_post );
+$r272_editor_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r272_editor_html, 'name="jluxe_product_specs[0][title]"' ) &&
+	false !== strpos( $r272_editor_html, 'name="jluxe_product_specs[0][items][0][label]"' ) &&
+	false !== strpos( $r272_editor_html, 'value="استیل ضدزنگ"' ) &&
+	false !== strpos( $r272_editor_html, 'متای اصلی Boom را دست‌نخورده نگه می‌دارد' ) &&
+	false !== strpos( $r272_editor_html, 'jluxe_product_specs_restore_boom' ),
+	'R272 specification editor preloads the legacy Boom groups and provides a separate override/reset control'
+);
+$r272_legacy_schema_product = new WC_Product( $r272_spec_id );
+$r272_legacy_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r272_legacy_schema_product );
+check(
+	4 === count( $r272_legacy_schema['additionalProperty'] ?? array() ) &&
+	'استیل ضدزنگ' === ( $r272_legacy_schema['additionalProperty'][0]['value'] ?? '' ),
+	'R272 Product JSON-LD initially consumes the same legacy Boom groups preloaded by the editor'
+);
+$r272_previous_post = $_POST;
+$r272_previous_nonce = $GLOBALS['valid_wp_nonce'] ?? null;
+$GLOBALS['valid_wp_nonce'] = true;
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+	'jluxe_product_specs' => array(
+		'group-a' => array(
+			'title' => '<b>مشخصات تازه</b>',
+			'items' => array(
+				'row-a' => array( 'label' => ' <i>جنس</i> ', 'value' => ' استیلِ جدید ' ),
+				'row-b' => array( 'label' => '', 'value' => 'ردیف ناقص' ),
+			),
+		),
+		'group-empty' => array( 'title' => 'گروه خالی', 'items' => array( array( 'label' => '', 'value' => '' ) ) ),
+	),
+);
+$r272_restore = false;
+$r272_posted_groups = jluxe_product_specifications_posted_groups( $r272_spec_id, $r272_restore );
+check(
+	false === $r272_restore && 1 === count( $r272_posted_groups ) &&
+	'مشخصات تازه' === $r272_posted_groups[0]['title'] &&
+	'جنس' === $r272_posted_groups[0]['items'][0]['label'] &&
+	'استیلِ جدید' === $r272_posted_groups[0]['items'][0]['value'],
+	'R272 posted grouped specifications are sanitized and incomplete rows or empty groups are discarded'
+);
+$r272_valid_posted_specs = $_POST['jluxe_product_specs'];
+$_POST['jluxe_product_specs'] = array( array( 'title' => '', 'items' => array( array( 'label' => 'مدل', 'value' => 'بدون عنوان' ) ) ) );
+$r272_untitled_groups = jluxe_product_specifications_posted_groups( $r272_spec_id, $r272_restore );
+check(
+	'مشخصات فنی' === ( $r272_untitled_groups[0]['title'] ?? '' ) &&
+	'بدون عنوان' === ( $r272_untitled_groups[0]['items'][0]['value'] ?? '' ),
+	'R272 a complete feature row with a blank group title receives a visible default title instead of disappearing after save'
+);
+$_POST['jluxe_product_specs'] = $r272_valid_posted_specs;
+jluxe_save_product_specifications_meta( $r272_spec_id );
+$r272_effective_groups = jluxe_get_product_advanced_attribute_groups( $r272_spec_id );
+$r272_schema_product = new WC_Product( $r272_spec_id );
+$r272_product_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r272_schema_product );
+check(
+	'1' === (string) $GLOBALS['post_meta'][ $r272_spec_id ]['_jluxe_product_advanced_attributes_override'] &&
+	1 === count( $r272_effective_groups ) && 'استیلِ جدید' === $r272_effective_groups[0]['items'][0]['value'] &&
+	$r272_boom_snapshot === $GLOBALS['post_meta'][ $r272_spec_id ]['_boom_advanced_attributes'] &&
+	'Product' === $r272_product_schema['@type'] &&
+	'جنس' === $r272_product_schema['additionalProperty'][0]['name'] &&
+	'استیلِ جدید' === $r272_product_schema['additionalProperty'][0]['value'] &&
+	'مشخصات تازه' === $r272_product_schema['additionalProperty'][0]['description'],
+	'R272 saving writes only the JLuxe override and Product JSON-LD follows the same effective grouped values'
+);
+$r272_before_invalid_save = $GLOBALS['post_meta'][ $r272_spec_id ];
+$_POST['jluxe_product_specs'] = array( 'tampered' => array( 'title' => 'نباید ذخیره شود', 'items' => array( array( 'label' => 'X', 'value' => 'Y' ) ) ) );
+$GLOBALS['valid_wp_nonce'] = false;
+jluxe_save_product_specifications_meta( $r272_spec_id );
+check(
+	$r272_before_invalid_save === $GLOBALS['post_meta'][ $r272_spec_id ],
+	'R272 invalid product-specification nonce prevents metadata changes'
+);
+$GLOBALS['valid_wp_nonce'] = true;
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+);
+jluxe_save_product_specifications_meta( $r272_spec_id );
+check(
+	array() === $GLOBALS['post_meta'][ $r272_spec_id ]['_jluxe_product_advanced_attributes'] &&
+	'1' === $GLOBALS['post_meta'][ $r272_spec_id ]['_jluxe_product_advanced_attributes_override'] &&
+	array() === jluxe_get_product_advanced_attribute_groups( $r272_spec_id ) &&
+	$r272_boom_snapshot === $GLOBALS['post_meta'][ $r272_spec_id ]['_boom_advanced_attributes'] &&
+	! isset( jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r272_schema_product )['additionalProperty'] ),
+	'R272 an intentionally empty specification override hides legacy values without deleting Boom metadata or emitting stale Product properties'
+);
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+	'jluxe_product_specs_restore_boom' => '1',
+);
+jluxe_save_product_specifications_meta( $r272_spec_id );
+check(
+	! isset( $GLOBALS['post_meta'][ $r272_spec_id ]['_jluxe_product_advanced_attributes_override'] ) &&
+	! isset( $GLOBALS['post_meta'][ $r272_spec_id ]['_jluxe_product_advanced_attributes'] ) &&
+	2 === count( jluxe_get_product_advanced_attribute_groups( $r272_spec_id ) ) &&
+	$r272_boom_snapshot === $GLOBALS['post_meta'][ $r272_spec_id ]['_boom_advanced_attributes'],
+	'R272 restoring Boom removes only the theme overlay and makes the original grouped specifications visible again'
+);
+$r272_object_id = 94302;
+$r272_object = new WC_Product( $r272_object_id );
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+	'jluxe_product_specs' => array( array( 'title' => 'گروه شیء', 'items' => array( array( 'label' => 'مدل', 'value' => 'شیء' ) ) ) ),
+);
+jluxe_save_product_specifications_meta_object( $r272_object );
+check(
+	'1' === ( $r272_object->meta['_jluxe_product_advanced_attributes_override'] ?? '' ) &&
+	'شیء' === ( $r272_object->meta['_jluxe_product_advanced_attributes'][0]['items'][0]['value'] ?? '' ),
+	'R272 WooCommerce product-object saves persist grouped specification overrides'
+);
+$_POST = $r272_previous_post;
+if ( null === $r272_previous_nonce ) {
+	unset( $GLOBALS['valid_wp_nonce'] );
+} else {
+	$GLOBALS['valid_wp_nonce'] = $r272_previous_nonce;
+}
 
 // R270 — read legacy Boom FAQs without changing either metadata key.
 $r270_id = 94273;
@@ -6757,6 +6911,123 @@ check(
 	$r270_faq_integrated,
 	'R270 default, classic, and reference product layouts all consume the shared Boom-compatible FAQ reader'
 );
+
+// R273 — the product FAQ editor snapshots visible Boom rows, preserves them, and builds JSON-LD from the effective override.
+$r273_faq_id = 94311;
+$r273_boom_faq = array(
+	array( 'question' => 'پرسش Boom؟', 'answer' => 'پاسخ Boom' ),
+);
+$r273_theme_faq = array(
+	array( 'question' => 'پرسش قبلی پوسته؟', 'answer' => 'پاسخ قبلی پوسته' ),
+);
+$GLOBALS['post_meta'][ $r273_faq_id ]['_boom_product_faq'] = $r273_boom_faq;
+$GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq'] = $r273_theme_faq;
+$r273_boom_snapshot = $GLOBALS['post_meta'][ $r273_faq_id ]['_boom_product_faq'];
+$r273_post = new WP_Post();
+$r273_post->ID = $r273_faq_id;
+ob_start();
+jluxe_render_product_faq_meta_box( $r273_post );
+$r273_editor_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r273_editor_html, 'name="jluxe_product_faq[0][question]"' ) &&
+	false !== strpos( $r273_editor_html, 'value="پرسش Boom؟"' ) &&
+	false !== strpos( $r273_editor_html, 'value="پرسش قبلی پوسته؟"' ) &&
+	false !== strpos( $r273_editor_html, 'jluxe_product_faq_restore_boom' ) &&
+	false !== strpos( $r273_editor_html, 'FAQPage JSON-LD' ),
+	'R273 FAQ editor preloads Boom and existing theme questions and offers a reset control'
+);
+$r273_previous_post = $_POST;
+$r273_previous_nonce = $GLOBALS['valid_wp_nonce'] ?? null;
+$GLOBALS['valid_wp_nonce'] = true;
+$_POST = array(
+	'jluxe_product_faq_present' => '1',
+	'jluxe_product_faq_nonce' => 'faq-nonce',
+	'jluxe_product_faq' => array(
+		'legacy-row' => array( 'question' => 'پرسش Boom؟', 'answer' => 'پاسخ ویرایش‌شدهٔ Boom' ),
+		'new-row' => array( 'question' => 'پرسش تازه؟', 'answer' => 'پاسخ تازه' ),
+	),
+);
+jluxe_save_product_faq_meta( $r273_faq_id );
+$r273_effective_faq = jluxe_get_product_faq_items( $r273_faq_id );
+check(
+	2 === count( $r273_effective_faq ) &&
+	'پاسخ ویرایش‌شدهٔ Boom' === $r273_effective_faq[0]['answer'] &&
+	'پرسش تازه؟' === $r273_effective_faq[1]['question'] &&
+	'1' === (string) $GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq_override'] &&
+	$r273_boom_snapshot === $GLOBALS['post_meta'][ $r273_faq_id ]['_boom_product_faq'],
+	'R273 FAQ save copies the visible editor state into a theme override while leaving original Boom FAQs untouched'
+);
+$r273_saved_query = $GLOBALS['query_kind'] ?? null;
+$r273_saved_queried_id = $GLOBALS['queried_object_id'] ?? null;
+$r273_saved_product = $GLOBALS['products'][ $r273_faq_id ] ?? null;
+$GLOBALS['products'][ $r273_faq_id ] = new WC_Product( $r273_faq_id );
+$GLOBALS['query_kind'] = 'product';
+$GLOBALS['queried_object_id'] = $r273_faq_id;
+ob_start();
+jluxe_output_product_faq_schema();
+$r273_schema_html = (string) ob_get_clean();
+$r273_schema_match = array();
+$r273_schema_match_count = preg_match( '/<script type="application\\/ld\\+json">(.*?)<\\/script>/s', $r273_schema_html, $r273_schema_match );
+$r273_schema = 1 === $r273_schema_match_count ? json_decode( $r273_schema_match[1], true ) : array();
+check(
+	'FAQPage' === ( $r273_schema['@type'] ?? '' ) &&
+	2 === count( $r273_schema['mainEntity'] ?? array() ) &&
+	'پرسش Boom؟' === ( $r273_schema['mainEntity'][0]['name'] ?? '' ) &&
+	'پاسخ ویرایش‌شدهٔ Boom' === ( $r273_schema['mainEntity'][0]['acceptedAnswer']['text'] ?? '' ) &&
+	'پرسش قبلی پوسته؟' !== ( $r273_schema['mainEntity'][1]['name'] ?? '' ),
+	'R273 FAQPage JSON-LD describes exactly the post-save visible FAQ override'
+);
+$_POST = array(
+	'jluxe_product_faq_present' => '1',
+	'jluxe_product_faq_nonce' => 'faq-nonce',
+);
+jluxe_save_product_faq_meta( $r273_faq_id );
+ob_start();
+jluxe_output_product_faq_schema();
+$r273_empty_schema_html = (string) ob_get_clean();
+check(
+	array() === jluxe_get_product_faq_items( $r273_faq_id ) &&
+	'1' === (string) $GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq_override'] &&
+	'' === $r273_empty_schema_html &&
+	$r273_boom_snapshot === $GLOBALS['post_meta'][ $r273_faq_id ]['_boom_product_faq'],
+	'R273 an empty FAQ override suppresses old Boom questions in both the page data and FAQPage schema'
+);
+$_POST = array(
+	'jluxe_product_faq_present' => '1',
+	'jluxe_product_faq_nonce' => 'faq-nonce',
+	'jluxe_product_faq_restore_boom' => '1',
+);
+jluxe_save_product_faq_meta( $r273_faq_id );
+$r273_reset_items = jluxe_get_product_faq_items( $r273_faq_id );
+check(
+	! isset( $GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq_override'] ) &&
+	! isset( $GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq_override_items'] ) &&
+	2 === count( $r273_reset_items ) &&
+	$r273_theme_faq === $GLOBALS['post_meta'][ $r273_faq_id ]['_jluxe_product_faq'] &&
+	$r273_boom_snapshot === $GLOBALS['post_meta'][ $r273_faq_id ]['_boom_product_faq'],
+	'R273 FAQ reset removes only JLuxe-owned metadata and restores the previous Boom-plus-theme display'
+);
+if ( null === $r273_saved_query ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r273_saved_query;
+}
+if ( null === $r273_saved_queried_id ) {
+	unset( $GLOBALS['queried_object_id'] );
+} else {
+	$GLOBALS['queried_object_id'] = $r273_saved_queried_id;
+}
+if ( null === $r273_saved_product ) {
+	unset( $GLOBALS['products'][ $r273_faq_id ] );
+} else {
+	$GLOBALS['products'][ $r273_faq_id ] = $r273_saved_product;
+}
+$_POST = $r273_previous_post;
+if ( null === $r273_previous_nonce ) {
+	unset( $GLOBALS['valid_wp_nonce'] );
+} else {
+	$GLOBALS['valid_wp_nonce'] = $r273_previous_nonce;
+}
 
 // R271 — prevent stray text and duplicate WooCommerce hooks at the default template tail.
 $r271_default_template = $r270_template_source[0];

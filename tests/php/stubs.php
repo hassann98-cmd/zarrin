@@ -366,6 +366,7 @@ class WC_Product {
  function exists(){return true;}
  function get_id(){return $this->id;}
  function update_meta_data($key,$value){$this->meta[$key]=$value;}
+ function delete_meta_data($key){unset($this->meta[$key]);}
  function is_type($type){return is_array($type)?in_array($this->type,$type):$this->type===$type;}
  function get_status(){return $this->status;}
  function get_catalog_visibility(){return $this->visibility;}

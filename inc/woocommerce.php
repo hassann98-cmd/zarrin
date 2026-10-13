@@ -281,6 +281,80 @@ function jluxe_add_product_schema_identity( array $markup, $product = null ): ar
 }
 add_filter( 'woocommerce_structured_data_product', 'jluxe_add_product_schema_identity', 10, 2 );
 
+/** Add visible grouped specifications to WooCommerce's existing Product JSON-LD. */
+function jluxe_add_grouped_product_specs_to_schema( array $markup, $product = null ): array {
+	if ( ! $product instanceof WC_Product ) {
+		return $markup;
+	}
+
+	$groups     = jluxe_get_product_advanced_attribute_groups( (int) $product->get_id() );
+	$properties = array();
+	foreach ( $groups as $group ) {
+		$group_title = isset( $group['title'] ) && is_scalar( $group['title'] ) ? sanitize_text_field( (string) $group['title'] ) : '';
+		$items       = isset( $group['items'] ) && is_array( $group['items'] ) ? $group['items'] : array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ! isset( $item['label'], $item['value'] ) || ! is_scalar( $item['label'] ) || ! is_scalar( $item['value'] ) ) {
+				continue;
+			}
+			$name  = sanitize_text_field( (string) $item['label'] );
+			$value = sanitize_text_field( (string) $item['value'] );
+			if ( '' === $name || '' === $value ) {
+				continue;
+			}
+			$properties[] = array(
+				'@type'       => 'PropertyValue',
+				'name'        => $name,
+				'value'       => $value,
+				'description' => $group_title,
+			);
+		}
+	}
+
+	foreach ( jluxe_get_additional_product_specification_rows( $product, $groups ) as $row ) {
+		$name  = isset( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '';
+		$value = isset( $row['value'] ) ? sanitize_text_field( (string) $row['value'] ) : '';
+		if ( '' === $name || '' === $value ) {
+			continue;
+		}
+		$properties[] = array(
+			'@type'       => 'PropertyValue',
+			'name'        => $name,
+			'value'       => $value,
+			'description' => $groups ? 'سایر مشخصات' : 'مشخصات فنی',
+		);
+	}
+
+	if ( ! $properties ) {
+		return $markup;
+	}
+
+	$existing = $markup['additionalProperty'] ?? array();
+	if ( is_array( $existing ) && ( isset( $existing['@type'] ) || isset( $existing['name'] ) ) ) {
+		$existing = array( $existing );
+	}
+	$existing = is_array( $existing ) ? array_values( $existing ) : array();
+	$seen     = array();
+	foreach ( $existing as $property ) {
+		if ( ! is_array( $property ) || ! isset( $property['name'], $property['value'] ) || ! is_scalar( $property['name'] ) || ! is_scalar( $property['value'] ) ) {
+			continue;
+		}
+		$key = strtolower( trim( (string) $property['name'] ) ) . "\0" . trim( (string) $property['value'] );
+		$seen[ $key ] = true;
+	}
+	foreach ( $properties as $property ) {
+		$key = strtolower( $property['name'] ) . "\0" . $property['value'];
+		if ( isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$existing[] = $property;
+		$seen[ $key ] = true;
+	}
+
+	$markup['additionalProperty'] = $existing;
+	return $markup;
+}
+add_filter( 'woocommerce_structured_data_product', 'jluxe_add_grouped_product_specs_to_schema', 20, 2 );
+
 /** Keep the product LCP preload's responsive slot size aligned with the rendered image. */
 function jluxe_single_product_image_sizes( string $layout ): string {
 	if ( in_array( $layout, array( 'classic', 'reference' ), true ) ) {
@@ -1888,8 +1962,8 @@ function jluxe_render_attribute_swatches_html( array $swatches, string $attribut
 }
 
 /**
- * مشخصاتِ گروه‌بندی‌شدهٔ Boom را فقط برای نمایش می‌خواند؛ دادهٔ قدیمی
- * در متای محصول دست‌نخورده می‌ماند. مقدارهای ذخیره‌شدهٔ آرایه‌ای، JSON و
+ * مشخصاتِ گروه‌بندی‌شده را از override پوسته (در صورت وجود) وگرنه از متای
+ * قدیمی Boom می‌خواند. دادهٔ Boom دست‌نخورده می‌ماند؛ آرایه، JSON معمولی و
  * JSON کدشده با Base64 (قالبِ boom_adv_attributes_json) پشتیبانی می‌شوند.
  *
  * @return array<int, array{title: string, items: array<int, array{label: string, value: string}>}>
@@ -1900,7 +1974,9 @@ function jluxe_get_product_advanced_attribute_groups( int $product_id ): array {
 		return array();
 	}
 
-	$stored = get_post_meta( $product_id, '_boom_advanced_attributes', true );
+	$has_theme_override = '1' === (string) get_post_meta( $product_id, '_jluxe_product_advanced_attributes_override', true );
+	$meta_key           = $has_theme_override ? '_jluxe_product_advanced_attributes' : '_boom_advanced_attributes';
+	$stored             = get_post_meta( $product_id, $meta_key, true );
 	$data   = null;
 	if ( is_array( $stored ) ) {
 		// WordPress از پیش مقدارهای serializeشده را به آرایه برمی‌گرداند.
@@ -1974,7 +2050,7 @@ function jluxe_get_product_advanced_attribute_groups( int $product_id ): array {
  * @return array<int, array{label: string, value: string, swatches: array}>
  */
 function jluxe_get_additional_product_specification_rows( WC_Product $product, array $groups ): array {
-	if ( ! $groups || ! method_exists( $product, 'get_attributes' ) ) {
+	if ( ! method_exists( $product, 'get_attributes' ) ) {
 		return array();
 	}
 

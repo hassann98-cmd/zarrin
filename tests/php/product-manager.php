@@ -755,7 +755,8 @@ $GLOBALS['product_manager_syncs'] = array();
 $save_reply = product_manager_json_call( 'jluxe_product_manager_save_product_ajax' );
 product_manager_check(
 	$save_reply->success && 'محصول آزمایشی ویرایش‌شده' === $parent->product_name &&
-	isset( $parent->meta['_jluxe_product_faq'] ) && $parent->meta['_jluxe_product_faq'][0]['question'] === 'پرسش تست' &&
+	isset( $parent->meta['_jluxe_product_faq_override_items'] ) && $parent->meta['_jluxe_product_faq_override_items'][0]['question'] === 'پرسش تست' &&
+	'1' === ( $parent->meta['_jluxe_product_faq_override'] ?? '' ) &&
 	count( $GLOBALS['product_manager_syncs'] ) === 1 && $GLOBALS['product_manager_syncs'][0][0] === 5301,
 	'full mocked AJAX save persists WooCommerce CRUD fields and JLuxe FAQ metadata, then synchronizes the variable parent when no variation row changed'
 );

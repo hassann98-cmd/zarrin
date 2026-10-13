@@ -21,8 +21,9 @@ function jluxe_add_product_faq_meta_box(): void {
 add_action( 'add_meta_boxes', 'jluxe_add_product_faq_meta_box' );
 
 function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
-	// The admin editor manages only the theme's own key. Legacy Boom FAQs stay read-only.
-	$items = jluxe_get_product_faq_items( $post->ID, false );
+	// ابتدا FAQهایِ قابل‌مشاهده (از جمله دادهٔ قدیمی Boom) را نشان بده؛ پس از
+	// ذخیره، snapshot پوسته جایگزین می‌شود و کلیدِ اصلی Boom دست‌نخورده می‌ماند.
+	$items = jluxe_get_product_faq_items( $post->ID );
 	?>
 	<style>
 		.jluxe-faq-item { border: 1px solid #dcdcde; border-radius: 4px; margin-bottom: 10px; background: #fff; }
@@ -36,7 +37,8 @@ function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
 		.jluxe-faq-item-content label { display: block; margin-bottom: 4px; font-weight: 600; }
 		#jluxe-faq-item-template { display: none; }
 	</style>
-	<p class="description">سوالات متداولِ مربوط به این محصول رو اضافه کن — زیرِ «معرفی محصول» تو صفحه‌ی محصول، به‌صورتِ آکاردئون (با کلیک/لمس باز می‌شه) نشون داده می‌شه.</p>
+	<p class="description">سوال‌وجواب‌هایی که اینجا می‌بینی همان موارد قابل‌نمایش هستند؛ دادهٔ قدیمی Boom برای شروع بارگذاری شده و تغییرات فقط در override پوسته ذخیره می‌شوند. کلید قدیمی Boom حذف یا بازنویسی نمی‌شود. FAQ نهایی زیرِ «معرفی محصول» نمایش داده می‌شود و برای همان محتوا FAQPage JSON-LD ساخته می‌شود.</p>
+	<?php wp_nonce_field( 'jluxe_product_faq_save', 'jluxe_product_faq_nonce' ); ?>
 	<input type="hidden" name="jluxe_product_faq_present" value="1" />
 	<div id="jluxe-faq-items" class="jluxe-faq-items">
 		<?php foreach ( $items as $index => $item ) : ?>
@@ -51,6 +53,9 @@ function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
 			<span class="dashicons dashicons-plus-alt" style="vertical-align:middle;"></span>
 			افزودن سوال جدید
 		</button>
+	</p>
+	<p>
+		<label><input type="checkbox" name="jluxe_product_faq_restore_boom" value="1" /> بازگشت به داده‌های قبلی (حذف override پوسته و نمایش دوبارهٔ FAQهای Boom)</label>
 	</p>
 	<?php
 }
@@ -92,23 +97,37 @@ function jluxe_render_product_faq_item_fields( $index, array $item ): void {
  * ذخیرهٔ تأییدشدهٔ خودِ ووکامرس اجرا می‌شن. نشانگرِ hidden هم از پاک‌شدنِ
  * ناخواستهٔ FAQ هنگامِ ذخیرهٔ REST/ویرایشگرهای بدونِ این متاباکس جلوگیری می‌کنه.
  */
-function jluxe_product_faq_posted_items(): ?array {
-	// فقط وقتی متاباکسِ ما در فرم حضور داشته مقدار را تغییر بده؛ ذخیرهٔ محصول
-	// از REST/ویرایشگرهای دیگر نباید FAQ موجود را تصادفاً خالی کند.
-	if ( ! isset( $_POST['jluxe_product_faq_present'] ) ) {
+function jluxe_product_faq_posted_items( int $post_id = 0, ?bool &$restore_boom = null ): ?array {
+	$restore_boom = false;
+	// فقط فرمِ همین متاباکس، با nonce معتبر و دسترسی ویرایش، اجازهٔ تغییر دارد.
+	if ( ! isset( $_POST['jluxe_product_faq_present'] ) || ! is_scalar( $_POST['jluxe_product_faq_present'] ) || '1' !== (string) wp_unslash( $_POST['jluxe_product_faq_present'] ) ) {
 		return null;
 	}
+	if ( $post_id < 1 && isset( $_POST['post_ID'] ) && is_scalar( $_POST['post_ID'] ) ) {
+		$post_id = absint( wp_unslash( $_POST['post_ID'] ) );
+	}
+	if ( $post_id < 1 || ! current_user_can( 'edit_post', $post_id ) ) {
+		return null;
+	}
+	$nonce = isset( $_POST['jluxe_product_faq_nonce'] ) && is_scalar( $_POST['jluxe_product_faq_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['jluxe_product_faq_nonce'] ) ) : '';
+	if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'jluxe_product_faq_save' ) ) {
+		return null;
+	}
+	if ( isset( $_POST['jluxe_product_faq_restore_boom'] ) && is_scalar( $_POST['jluxe_product_faq_restore_boom'] ) && '1' === (string) wp_unslash( $_POST['jluxe_product_faq_restore_boom'] ) ) {
+		$restore_boom = true;
+		return array();
+	}
 
-	$posted = isset( $_POST['jluxe_product_faq'] ) && is_array( $_POST['jluxe_product_faq'] ) ? wp_unslash( $_POST['jluxe_product_faq'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce توسطِ هوکِ ووکامرس تأیید شده؛ مقادیر پایین‌تر یک‌به‌یک sanitize می‌شن.
+	$posted = isset( $_POST['jluxe_product_faq'] ) && is_array( $_POST['jluxe_product_faq'] ) ? wp_unslash( $_POST['jluxe_product_faq'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce و capability همین‌جا بررسی شده‌اند؛ هر فیلد پایین‌تر sanitize می‌شود.
 	$clean  = array();
-	foreach ( $posted as $item ) {
+	foreach ( array_slice( $posted, 0, 100 ) as $item ) {
 		if ( ! is_array( $item ) ) {
 			continue;
 		}
-		$question = isset( $item['question'] ) ? sanitize_text_field( $item['question'] ) : '';
-		$answer   = isset( $item['answer'] ) ? sanitize_textarea_field( $item['answer'] ) : '';
+		$question = isset( $item['question'] ) && is_scalar( $item['question'] ) ? sanitize_text_field( (string) $item['question'] ) : '';
+		$answer   = isset( $item['answer'] ) && is_scalar( $item['answer'] ) ? sanitize_textarea_field( (string) $item['answer'] ) : '';
 		if ( '' === $question || '' === $answer ) {
-			continue; // ردیفِ ناقص (فقط سوال یا فقط پاسخ)، نگه‌داشتنش فایده نداره.
+			continue; // ردیفِ ناقص (فقط سوال یا فقط پاسخ)، نگه‌داشتنش فایده ندارد.
 		}
 		$clean[] = array(
 			'question' => $question,
@@ -120,18 +139,34 @@ function jluxe_product_faq_posted_items(): ?array {
 
 /** Save on both the current product-object flow and the classic product editor. */
 function jluxe_save_product_faq_meta_object( WC_Product $product ): void {
-	$clean = jluxe_product_faq_posted_items();
-	if ( null !== $clean ) {
-		$product->update_meta_data( '_jluxe_product_faq', $clean );
+	$restore_boom = false;
+	$clean        = jluxe_product_faq_posted_items( (int) $product->get_id(), $restore_boom );
+	if ( null === $clean ) {
+		return;
 	}
+	if ( $restore_boom ) {
+		$product->delete_meta_data( '_jluxe_product_faq_override_items' );
+		$product->delete_meta_data( '_jluxe_product_faq_override' );
+		return;
+	}
+	$product->update_meta_data( '_jluxe_product_faq_override_items', $clean );
+	$product->update_meta_data( '_jluxe_product_faq_override', '1' );
 }
 add_action( 'woocommerce_admin_process_product_object', 'jluxe_save_product_faq_meta_object' );
 
 function jluxe_save_product_faq_meta( int $post_id ): void {
-	$clean = jluxe_product_faq_posted_items();
-	if ( null !== $clean ) {
-		update_post_meta( $post_id, '_jluxe_product_faq', $clean );
+	$restore_boom = false;
+	$clean        = jluxe_product_faq_posted_items( $post_id, $restore_boom );
+	if ( null === $clean ) {
+		return;
 	}
+	if ( $restore_boom ) {
+		delete_post_meta( $post_id, '_jluxe_product_faq_override_items' );
+		delete_post_meta( $post_id, '_jluxe_product_faq_override' );
+		return;
+	}
+	update_post_meta( $post_id, '_jluxe_product_faq_override_items', $clean );
+	update_post_meta( $post_id, '_jluxe_product_faq_override', '1' );
 }
 add_action( 'woocommerce_process_product_meta', 'jluxe_save_product_faq_meta' );
 
@@ -206,15 +241,19 @@ function jluxe_product_faq_question_key( string $question ): string {
 }
 
 /**
- * Return current theme FAQs plus legacy Boom rows, without writing either key.
- * Boom rows are kept first and win exact-question conflicts; distinct theme
- * questions are appended. Pass false for the editor so saving its form never
- * copies legacy data into the theme-managed metadata key.
+ * Return the effective FAQ set without writing either source key. Before an
+ * explicit override exists, Boom rows and existing theme rows are merged for
+ * display; the override marker makes even an empty theme list authoritative.
+ * Boom rows stay first and win exact-question conflicts until then.
  *
  * @return array<int, array{question: string, answer: string}>
  */
 function jluxe_get_product_faq_items( int $product_id, bool $include_legacy_boom = true ): array {
-	$theme_items = jluxe_sanitize_product_faq_items( get_post_meta( $product_id, '_jluxe_product_faq', true ) );
+	$theme_items  = jluxe_sanitize_product_faq_items( get_post_meta( $product_id, '_jluxe_product_faq', true ) );
+	$has_override = '1' === (string) get_post_meta( $product_id, '_jluxe_product_faq_override', true );
+	if ( $has_override ) {
+		return jluxe_sanitize_product_faq_items( get_post_meta( $product_id, '_jluxe_product_faq_override_items', true ) );
+	}
 	if ( ! $include_legacy_boom ) {
 		return $theme_items;
 	}
