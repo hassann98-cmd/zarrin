@@ -2918,30 +2918,41 @@ add_action( 'delete_product_cat', 'jluxe_clear_mega_menu_cache', 10, 2 );
 add_action( 'clean_term_cache', 'jluxe_clear_mega_menu_cache', 10, 2 );
 
 /**
- * تاکسونومیِ «برند» — این فروشگاه از هیچ افزونه‌ی برندی استفاده نمی‌کنه،
- * ولی بخش «محصولات پرفروش» در صفحه‌ی اصلی به یک منبعِ واقعیِ «بر اساس
- * برند» نیاز داره (inc/theme-settings-homepage.php →
- * jluxe_render_homepage_brick_products). بدون این تاکسونومی، گزینه‌ی برند
- * صرفاً یک UI تزئینیِ بی‌اثر می‌بود؛ با ثبت واقعیِ product_brand، هم روی
- * صفحه‌ی ویرایش محصول (متاباکس استاندارد وردپرس) قابل تخصیصه، هم توی
- * چیدمانِ آجری واقعاً فیلتر می‌کنه.
+ * تاکسونومیِ واقعیِ «برند»؛ پنل آن به‌صورت فهرستِ تیک‌خور و جدا از برچسب‌های
+ * محصول نمایش داده می‌شود تا دو مفهوم در صفحهٔ ویرایش محصول با هم اشتباه نشوند.
+ * این تاکسونومی در فیلتر محصول و بخش‌های صفحهٔ اصلی هم استفاده می‌شود.
  */
 function jluxe_register_product_brand_taxonomy(): void {
 	register_taxonomy(
 		'product_brand',
 		'product',
 		array(
-			'label'             => 'برند',
+			'label'             => 'برندها',
 			'labels'            => array(
-				'name'          => 'برندها',
-				'singular_name' => 'برند',
-				'search_items'  => 'جستجوی برند',
-				'all_items'     => 'همه‌ی برندها',
-				'edit_item'     => 'ویرایش برند',
-				'add_new_item'  => 'افزودن برند جدید',
-				'new_item_name' => 'نام برند جدید',
+				'name'                       => 'برندها',
+				'singular_name'              => 'برند',
+				'menu_name'                  => 'برندها',
+				'search_items'               => 'جستجوی برندها',
+				'popular_items'              => 'برندهای پرکاربرد',
+				'all_items'                  => 'همهٔ برندها',
+				'parent_item'                => 'برند والد',
+				'parent_item_colon'          => 'برند والد:',
+				'edit_item'                  => 'ویرایش برند',
+				'view_item'                  => 'نمایش برند',
+				'update_item'                => 'به‌روزرسانی برند',
+				'add_new_item'               => 'افزودن برند جدید',
+				'new_item_name'              => 'نام برند جدید',
+				'separate_items_with_commas' => 'نام برندها را با ویرگول جدا کنید.',
+				'add_or_remove_items'        => 'افزودن یا حذف برندها',
+				'choose_from_most_used'      => 'انتخاب از برندهای پرکاربرد',
+				'not_found'                  => 'برندی پیدا نشد.',
+				'no_terms'                   => 'هنوز برندی ثبت نشده است.',
+				'items_list_navigation'      => 'پیمایش فهرست برندها',
+				'items_list'                 => 'فهرست برندها',
 			),
-			'hierarchical'      => false,
+			// WordPress uses its checkbox-style taxonomy meta box for this panel;
+			// the default flat product_tag taxonomy keeps its separate tag editor.
+			'hierarchical'      => true,
 			'public'            => true,
 			'show_admin_column' => true,
 			'show_in_rest'      => true,
