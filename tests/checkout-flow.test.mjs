@@ -36,6 +36,10 @@ const checkoutScript = extractDocumentedIife(
   " * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
   "/**\n * اینپوتِ پرشِ صفحه",
 );
+const checkoutDigitsScript = extractDocumentedIife(
+  " * R289 — ارقامِ فارسی/عربی را پیش از validation",
+  "/**\n * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
+);
 
 const cityMap = {
   THR: ["تهران", "ری", "اسلامشهر"],
@@ -247,6 +251,61 @@ test("cart and checkout action rows share responsive RTL buttons with return on 
   assert.match(checkoutTemplate, /class="jluxe-checkout-summary/);
 });
 
+test("R289 checkout postal and phone fields submit ASCII digits but display Persian digits", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html lang="fa"><body>
+      <form class="checkout">
+        <p><span class="woocommerce-input-wrapper"><input id="billing_postcode" name="billing_postcode"></span></p>
+        <p><span class="woocommerce-input-wrapper"><input id="billing_phone" name="billing_phone" type="tel"></span></p>
+        <input id="billing_email" name="billing_email">
+      </form>
+    </body></html>`,
+    { url: "https://shop.test/checkout/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  const { window } = dom;
+  const form = window.document.querySelector("form.checkout");
+  window.jQuery = jqueryFactory(window);
+  window.eval(checkoutDigitsScript);
+
+  const postcode = window.document.getElementById("billing_postcode");
+  const phone = window.document.getElementById("billing_phone");
+  const email = window.document.getElementById("billing_email");
+  postcode.value = "۱۲۳٤٥٦٧٨٩٠";
+  postcode.setSelectionRange(4, 4);
+  postcode.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(postcode.value, "1234567890", "Persian and Arabic-Indic postal digits normalize immediately");
+  assert.equal(postcode.selectionStart, 4, "normalizing digits does not move the caret");
+  assert.equal(postcode.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "۱۲۳۴۵۶۷۸۹۰", "the visible postal code remains Persian");
+  assert.equal(postcode.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").getAttribute("aria-hidden"), "true", "the visual-only Persian layer does not duplicate the accessible input value");
+
+  phone.value = "٠٩١٢٣٤٥٦٧٨٩";
+  phone.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(phone.value, "09123456789", "Arabic-Indic phone digits normalize immediately");
+  assert.equal(phone.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "۰۹۱۲۳۴۵۶۷۸۹", "the visible phone remains Persian");
+
+  email.value = "١٢٣";
+  email.dispatchEvent(new window.Event("input", { bubbles: true }));
+  assert.equal(email.value, "١٢٣", "unrelated checkout fields are not modified");
+
+  phone.value = "+٩٨ (٩١٢) ٠٠٠-٠٠٠٠";
+  form.addEventListener("submit", (event) => event.preventDefault());
+  form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
+  assert.equal(phone.value, "+98 (912) 000-0000", "submit also normalizes values filled by autofill or scripts without an input event");
+  assert.equal(phone.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "+۹۸ (۹۱۲) ۰۰۰-۰۰۰۰");
+
+  const dynamicWrapper = window.document.createElement("span");
+  dynamicWrapper.className = "woocommerce-input-wrapper";
+  const dynamicPostcode = window.document.createElement("input");
+  dynamicPostcode.name = "shipping_postcode";
+  dynamicPostcode.value = "۴۵۶";
+  dynamicWrapper.append(dynamicPostcode);
+  form.append(dynamicWrapper);
+  window.jQuery(window.document.body).trigger("updated_checkout");
+  assert.equal(dynamicPostcode.value, "456", "fields replaced during a WooCommerce checkout refresh are normalized too");
+  assert.equal(dynamicWrapper.querySelector(".jluxe-numeric-digit-display").textContent, "۴۵۶");
+  dom.window.close();
+});
+
 test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-method accordions", () => {
   assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
@@ -272,24 +331,36 @@ test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-me
   assert.match(storefrontStyles, /jluxe-shipping-card--post[\s\S]*?#eab308/);
   assert.match(storefrontStyles, /jluxe-shipping-card--tipax[\s\S]*?--success/);
   assert.match(storefrontStyles, /jluxe-shipping-card--chapar[\s\S]*?--error/);
-  const shippingCardRule = storefrontStyles.match(/#shipping_method input\.shipping_method \+ \.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingCardRule = storefrontStyles.match(/\.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingRadioCardRule = storefrontStyles.match(/#shipping_method input\.shipping_method \+ \.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingCardDetailsRule = storefrontStyles.match(/\.jluxe-shipping-card__details\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingLabelRule = storefrontStyles.match(/\.jluxe-shipping-card__label\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingNoteRule = storefrontStyles.match(/\.jluxe-shipping-note\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingDetailsRule = storefrontStyles.match(/\.jluxe-shipping-method-accordion\s*\{([^}]+)\}/s)?.[1] || "";
   assert.match(shippingCardRule, /display:\s*grid/);
-  assert.match(storefrontStyles, /grid-template-columns:\s*minmax\(0, 1fr\) minmax\(7rem, 42%\)/);
-  assert.match(storefrontStyles, /direction:\s*rtl/);
+  assert.match(shippingCardRule, /grid-template-columns:\s*minmax\(7rem, 42%\) minmax\(0, 1fr\)/);
+  assert.match(shippingCardRule, /direction:\s*ltr/);
+  assert.match(shippingRadioCardRule, /direction:\s*ltr/);
+  assert.match(shippingCardDetailsRule, /grid-column:\s*2/);
+  assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
   assert.match(shippingLabelRule, /white-space:\s*nowrap/);
   assert.match(shippingLabelRule, /text-overflow:\s*ellipsis/);
   assert.doesNotMatch(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingNoteRule, /display:\s*block/);
-  assert.match(shippingNoteRule, /grid-column:\s*2/);
-  assert.match(shippingNoteRule, /justify-self:\s*end/);
+  assert.match(shippingNoteRule, /grid-column:\s*1/);
+  assert.match(shippingNoteRule, /justify-self:\s*start/);
   assert.match(shippingNoteRule, /min-width:\s*7rem/);
   assert.match(shippingNoteRule, /text-align:\s*left/);
   assert.match(shippingNoteRule, /white-space:\s*nowrap/);
   assert.doesNotMatch(shippingNoteRule, /justify-content:\s*center/);
-  assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(6\.25rem, 42%\)[\s\S]*?\.jluxe-shipping-note\s*\{[^}]*min-width: 6\.25rem/);
+  assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[^}]*grid-template-columns: minmax\(6\.25rem, 42%\) minmax\(0, 1fr\)[\s\S]*?\.jluxe-shipping-note\s*\{[^}]*min-width: 6\.25rem/);
+  const numericDigitOverlayRule = storefrontStyles.match(/body\.woocommerce-checkout \.woocommerce-input-wrapper \.jluxe-numeric-digit-display\s*\{([^}]+)\}/s)?.[1] || "";
+  const numericDigitInputRule = storefrontStyles.match(/body\.woocommerce-checkout \.woocommerce-input-wrapper input\[data-jluxe-ascii-digit-input\]\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(numericDigitOverlayRule, /display:\s*flex/);
+  assert.match(numericDigitOverlayRule, /direction:\s*ltr/);
+  assert.match(numericDigitOverlayRule, /white-space:\s*nowrap/);
+  assert.match(numericDigitInputRule, /color:\s*transparent/);
+  assert.match(numericDigitInputRule, /caret-color:/);
   assert.match(shippingDetailsRule, /background:\s*var\(--jluxe-shipping-details-bg/);
   assert.match(shippingDetailsRule, /color:\s*var\(--jluxe-shipping-details-color/);
   assert.doesNotMatch(storefrontStyles, /jluxe-shipping-card__hint|jluxe-shipping-freight-note/);

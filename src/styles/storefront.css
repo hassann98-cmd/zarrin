@@ -3349,10 +3349,11 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   flex-direction: column;
   gap: 0.35rem;
 }
+/* Anchor grid columns to physical left/right: badge = column 1 (left), rate = column 2 (right). */
 .jluxe-shipping-card {
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(7rem, 42%);
+  grid-template-columns: minmax(7rem, 42%) minmax(0, 1fr);
   min-width: 0;
   min-height: 3.5rem;
   align-items: center;
@@ -3362,20 +3363,23 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   border-radius: 1rem;
   background: hsl(var(--surface));
   text-align: start;
-  direction: rtl;
+  direction: ltr;
   cursor: pointer;
   transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
 }
 #shipping_method input.shipping_method + .jluxe-shipping-card {
   display: grid;
   width: 100%;
+  direction: ltr;
 }
 .jluxe-shipping-card__details {
   display: flex;
-  grid-column: 1;
+  grid-column: 2;
   width: 100%;
   min-width: 0;
   align-items: center;
+  direction: rtl;
+  text-align: right;
 }
 .jluxe-shipping-card__label {
   display: block;
@@ -3393,8 +3397,8 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 .jluxe-shipping-note {
   box-sizing: border-box;
   display: block;
-  grid-column: 2;
-  justify-self: end;
+  grid-column: 1;
+  justify-self: start;
   min-width: 7rem;
   max-width: 100%;
   overflow: hidden;
@@ -3858,6 +3862,40 @@ body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea) {
   padding-inline: 0.95rem;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
+body.woocommerce-checkout .woocommerce-input-wrapper.jluxe-numeric-input-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+body.woocommerce-checkout .woocommerce-input-wrapper .jluxe-numeric-digit-display {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  overflow: hidden;
+  padding-inline: 0.95rem;
+  color: hsl(var(--foreground));
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: inherit;
+  line-height: 1.5;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr;
+  pointer-events: none;
+}
+body.woocommerce-checkout .woocommerce-input-wrapper input[data-jluxe-ascii-digit-input] {
+  position: relative;
+  z-index: 2;
+  display: block;
+  background-color: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  caret-color: hsl(var(--foreground));
+}
 body.woocommerce-checkout .woocommerce form .form-row.woocommerce-invalid :is(.input-text, select, textarea),
 body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea)[aria-invalid="true"] {
   border-color: hsl(var(--error) / 0.72);
@@ -3927,7 +3965,7 @@ body.woocommerce-checkout input.shipping_method:checked + .jluxe-shipping-card--
 }
 @media (max-width: 359.98px) {
   .jluxe-shipping-card {
-    grid-template-columns: minmax(0, 1fr) minmax(6.25rem, 42%);
+    grid-template-columns: minmax(6.25rem, 42%) minmax(0, 1fr);
     gap: 0.45rem;
     padding-inline: 0.6rem;
   }

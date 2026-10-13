@@ -6364,11 +6364,13 @@ $r276_postcode_description = 'برای ارسال پستی، وارد کردن �
 $r276_postcode_fields = jluxe_optional_checkout_postcodes(
 	array(
 		'billing' => array(
-			'billing_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true ),
+			'billing_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true, 'custom_attributes' => array( 'maxlength' => 10 ) ),
+			'billing_phone'    => array( 'custom_attributes' => array( 'autocomplete' => 'tel' ) ),
 			'billing_city'     => array( 'required' => true ),
 		),
 		'shipping' => array(
 			'shipping_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true ),
+			'shipping_phone'    => array( 'custom_attributes' => array( 'autocomplete' => 'tel' ) ),
 		),
 	)
 );
@@ -6380,8 +6382,61 @@ check(
 	$r276_postcode_description === $r276_postcode_fields['billing']['billing_postcode']['description'] &&
 	$r276_postcode_description === $r276_postcode_fields['shipping']['shipping_postcode']['description'] &&
 	false === $r276_postcode_fields['billing']['billing_postcode']['desc_tip'] &&
+	10 === $r276_postcode_fields['billing']['billing_postcode']['custom_attributes']['maxlength'] &&
+	'numeric' === $r276_postcode_fields['billing']['billing_postcode']['custom_attributes']['inputmode'] &&
+	'ltr' === $r276_postcode_fields['shipping']['shipping_postcode']['custom_attributes']['dir'] &&
+	'fa' === $r276_postcode_fields['billing']['billing_postcode']['custom_attributes']['lang'] &&
+	'tel' === $r276_postcode_fields['billing']['billing_phone']['custom_attributes']['inputmode'] &&
+	'tel' === $r276_postcode_fields['shipping']['shipping_phone']['custom_attributes']['autocomplete'] &&
 	true === $r276_postcode_fields['billing']['billing_city']['required'],
-	'R276 postcode stays optional for billing/shipping, shows postal-service guidance inline, and leaves other field requirements intact'
+	'R276/R289 postcode stays optional with inline guidance; postal/phone controls retain attributes and use LTR numeric entry without changing other requirements'
+);
+$r289_checkout_fields = jluxe_billing_fields(
+	array(
+		'billing' => array(
+			'billing_phone'    => array( 'custom_attributes' => array( 'autocomplete' => 'tel', 'maxlength' => 16 ) ),
+			'billing_postcode' => array( 'custom_attributes' => array( 'maxlength' => 10 ) ),
+		),
+	)
+);
+$r289_checkout_fields = jluxe_optional_checkout_postcodes( $r289_checkout_fields );
+check(
+	'tel' === $r289_checkout_fields['billing']['billing_phone']['custom_attributes']['inputmode'] &&
+	'ltr' === $r289_checkout_fields['billing']['billing_phone']['custom_attributes']['dir'] &&
+	'fa' === $r289_checkout_fields['billing']['billing_phone']['custom_attributes']['lang'] &&
+	16 === $r289_checkout_fields['billing']['billing_phone']['custom_attributes']['maxlength'] &&
+	'numeric' === $r289_checkout_fields['billing']['billing_postcode']['custom_attributes']['inputmode'] &&
+	10 === $r289_checkout_fields['billing']['billing_postcode']['custom_attributes']['maxlength'] &&
+	'tel' === $r289_checkout_fields['billing']['billing_landline']['custom_attributes']['inputmode'] &&
+	'fa' === $r289_checkout_fields['billing']['billing_landline']['custom_attributes']['lang'],
+	'R289 checkout phone/postcode/landline fields request localized LTR input and preserve existing WooCommerce attributes'
+);
+$r289_normalized_checkout_data = jluxe_normalize_checkout_numeric_fields(
+	array(
+		'billing_postcode'  => '۱۲۳۴۵۶۷۸۹۰',
+		'shipping_postcode' => '١٢٣٤٥٦٧٨٩٠',
+		'billing_phone'     => '٠٩١٢٠٠٠٠٠٠٠',
+		'shipping_phone'    => '+٩٨ (٩١٢) ٠٠٠-٠٠٠٠',
+		'billing_landline'  => '٠٢١١٢٣٤٥٦٧٨',
+		'billing_email'     => 'user١٢٣@example.test',
+	)
+);
+$r289_posted_data_hook_registered = false;
+foreach ( $GLOBALS['filters'] as $r289_filter ) {
+	if ( 'woocommerce_checkout_posted_data' === ( $r289_filter[0] ?? '' ) && 'jluxe_normalize_checkout_numeric_fields' === ( $r289_filter[1] ?? '' ) ) {
+		$r289_posted_data_hook_registered = true;
+		break;
+	}
+}
+check(
+	$r289_posted_data_hook_registered &&
+	'1234567890' === $r289_normalized_checkout_data['billing_postcode'] &&
+	'1234567890' === $r289_normalized_checkout_data['shipping_postcode'] &&
+	'09120000000' === $r289_normalized_checkout_data['billing_phone'] &&
+	'+98 (912) 000-0000' === $r289_normalized_checkout_data['shipping_phone'] &&
+	'02112345678' === $r289_normalized_checkout_data['billing_landline'] &&
+	'user١٢٣@example.test' === $r289_normalized_checkout_data['billing_email'],
+	'R289 WooCommerce posted checkout data normalizes Persian/Arabic postal and phone digits to ASCII while leaving other fields untouched'
 );
 $r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $r276_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );

@@ -2604,6 +2604,17 @@ function jluxe_billing_fields( array $fields ): array {
 		$fields['billing']['billing_phone']['label']    = jluxe_cart_checkout_required_copy( 'checkout_phone_label', 'موبایل' );
 		$fields['billing']['billing_phone']['priority'] = 15;
 		$fields['billing']['billing_phone']['required'] = true;
+		$phone_attributes = isset( $fields['billing']['billing_phone']['custom_attributes'] ) && is_array( $fields['billing']['billing_phone']['custom_attributes'] )
+			? $fields['billing']['billing_phone']['custom_attributes']
+			: array();
+		$fields['billing']['billing_phone']['custom_attributes'] = array_merge(
+			$phone_attributes,
+			array(
+				'inputmode' => 'tel',
+				'dir'       => 'ltr',
+				'lang'      => 'fa',
+			)
+		);
 	}
 
 	// تلفن ثابت — فیلد سفارشی، ووکامرس/افزونه‌ی فارسی این رو ندارن. priority
@@ -2613,8 +2624,13 @@ function jluxe_billing_fields( array $fields ): array {
 		'label'        => jluxe_cart_checkout_required_copy( 'checkout_landline_label', 'تلفن ثابت' ),
 		'required'     => false,
 		'priority'     => 55,
-		'type'         => 'tel',
-		'autocomplete' => 'tel',
+		'type'              => 'tel',
+		'autocomplete'      => 'tel',
+		'custom_attributes' => array(
+			'inputmode' => 'tel',
+			'dir'       => 'ltr',
+			'lang'      => 'fa',
+		),
 	);
 
 	// فروشگاه فقط داخل ایران ارسال می‌کنه، پس فیلد کشور از دید مشتری
@@ -2656,12 +2672,37 @@ function jluxe_billing_fields( array $fields ): array {
 function jluxe_optional_checkout_postcodes( array $fields ): array {
 	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', 'برای ارسال پستی، وارد کردن کد پستی الزامی است.' );
 	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
+		$phone_key = $address_type . '_phone';
+		if ( isset( $fields[ $address_type ][ $phone_key ] ) ) {
+			$phone_attributes = isset( $fields[ $address_type ][ $phone_key ]['custom_attributes'] ) && is_array( $fields[ $address_type ][ $phone_key ]['custom_attributes'] )
+				? $fields[ $address_type ][ $phone_key ]['custom_attributes']
+				: array();
+			$fields[ $address_type ][ $phone_key ]['custom_attributes'] = array_merge(
+				$phone_attributes,
+				array(
+					'inputmode' => 'tel',
+					'dir'       => 'ltr',
+					'lang'      => 'fa',
+				)
+			);
+		}
 		$key = $address_type . '_postcode';
 		if ( ! isset( $fields[ $address_type ][ $key ] ) ) {
 			continue;
 		}
 		$fields[ $address_type ][ $key ]['required']    = false;
 		$fields[ $address_type ][ $key ]['placeholder'] = '';
+		$custom_attributes = isset( $fields[ $address_type ][ $key ]['custom_attributes'] ) && is_array( $fields[ $address_type ][ $key ]['custom_attributes'] )
+			? $fields[ $address_type ][ $key ]['custom_attributes']
+			: array();
+		$fields[ $address_type ][ $key ]['custom_attributes'] = array_merge(
+			$custom_attributes,
+			array(
+				'inputmode' => 'numeric',
+				'dir'       => 'ltr',
+				'lang'      => 'fa',
+			)
+		);
 		if ( '' !== trim( $description ) ) {
 			$fields[ $address_type ][ $key ]['description'] = $description;
 		} else {
@@ -2672,6 +2713,17 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 	return $fields;
 }
 add_filter( 'woocommerce_checkout_fields', 'jluxe_optional_checkout_postcodes', 999 );
+
+/** Normalize checkout postal/contact digits before WooCommerce validation and order/customer persistence. */
+function jluxe_normalize_checkout_numeric_fields( array $data ): array {
+	foreach ( array( 'billing_postcode', 'shipping_postcode', 'billing_phone', 'shipping_phone', 'billing_landline' ) as $key ) {
+		if ( isset( $data[ $key ] ) && is_scalar( $data[ $key ] ) ) {
+			$data[ $key ] = jluxe_ascii_digits( (string) $data[ $key ] );
+		}
+	}
+	return $data;
+}
+add_filter( 'woocommerce_checkout_posted_data', 'jluxe_normalize_checkout_numeric_fields', 999 );
 
 /**
  * باگِ واقعیِ گزارش‌شده (پیدا شده با تستِ زنده): تنظیم کردنِ 'type' => 'hidden'

@@ -3887,6 +3887,122 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
+ * R289 — ارقامِ فارسی/عربی را پیش از validation به مقدارِ ASCII تبدیل می‌کند،
+ * اما مقدارِ ASCII را با لایهٔ دیداریِ فارسی نشان می‌دهد تا هم ووکامرس عددِ
+ * استاندارد دریافت کند و هم مشتری همان رقم‌های فارسی را ببیند.
+ */
+(function () {
+	var form = document.querySelector("form.checkout");
+	if (!form) {
+		return;
+	}
+
+	var fieldSelector = [
+		'form.checkout input[name="billing_postcode"]',
+		'form.checkout input[name="shipping_postcode"]',
+		'form.checkout input[name="billing_phone"]',
+		'form.checkout input[name="shipping_phone"]',
+		'form.checkout input[name="billing_landline"]',
+	].join(", ");
+
+	function normalizeDigits(value) {
+		var helpers = window.JLuxeStorefrontUtils;
+		if (helpers && typeof helpers.normalizeDigits === "function") {
+			return helpers.normalizeDigits(value);
+		}
+		return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
+			var code = digit.charCodeAt(0);
+			return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+		});
+	}
+
+	function persianDigits(value) {
+		var digits = { "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹" };
+		return String(value).replace(/[0-9]/g, function (digit) { return digits[digit]; });
+	}
+
+	function updateField(input) {
+		var value = input.value;
+		var asciiValue = normalizeDigits(value);
+		if (asciiValue !== value) {
+			var selectionStart = null;
+			var selectionEnd = null;
+			try {
+				selectionStart = input.selectionStart;
+				selectionEnd = input.selectionEnd;
+			} catch (error) { /* Some browser-managed controls do not expose a selection. */ }
+			input.value = asciiValue;
+			if (null !== selectionStart && null !== selectionEnd && typeof input.setSelectionRange === "function") {
+				try { input.setSelectionRange(selectionStart, selectionEnd); } catch (error) { /* Keep the normalized value even if caret restoration is unsupported. */ }
+			}
+		}
+
+		var wrapper = input.closest(".woocommerce-input-wrapper");
+		if (!asciiValue || !wrapper) {
+			input.removeAttribute("data-jluxe-ascii-digit-input");
+			if (wrapper) {
+				wrapper.classList.remove("jluxe-numeric-input-wrapper");
+				var emptyDisplay = wrapper.querySelector(".jluxe-numeric-digit-display");
+				if (emptyDisplay) { emptyDisplay.remove(); }
+			}
+			return;
+		}
+
+		input.setAttribute("data-jluxe-ascii-digit-input", "");
+		wrapper.classList.add("jluxe-numeric-input-wrapper");
+		var display = wrapper.querySelector(".jluxe-numeric-digit-display");
+		if (!display) {
+			display = document.createElement("span");
+			display.className = "jluxe-numeric-digit-display";
+			display.setAttribute("aria-hidden", "true");
+			wrapper.appendChild(display);
+		}
+		display.textContent = persianDigits(asciiValue);
+	}
+
+	function isNumericCheckoutField(target) {
+		return !!(target && target.matches && target.matches(fieldSelector));
+	}
+
+	function normalizeEvent(event) {
+		if (event.isComposing || !isNumericCheckoutField(event.target)) {
+			return;
+		}
+		updateField(event.target);
+	}
+
+	function normalizeComposition(event) {
+		if (isNumericCheckoutField(event.target)) {
+			updateField(event.target);
+		}
+	}
+
+	function initializeFields(root) {
+		if (root && root.matches && root.matches(fieldSelector)) {
+			updateField(root);
+		}
+		if (root && root.querySelectorAll) {
+			root.querySelectorAll(fieldSelector).forEach(updateField);
+		}
+	}
+
+	document.addEventListener("input", normalizeEvent, true);
+	document.addEventListener("change", normalizeEvent, true);
+	document.addEventListener("compositionend", normalizeComposition, true);
+	document.addEventListener("submit", function (event) {
+		if (event.target && event.target.matches && event.target.matches("form.checkout")) {
+			initializeFields(event.target);
+		}
+	}, true);
+	initializeFields(form);
+	if (window.jQuery) {
+		window.jQuery(document.body).on("updated_checkout", function () {
+			initializeFields(document);
+		});
+	}
+})();
+
+/**
  * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت» توی چک‌اوت (woocommerce/checkout/
  * form-checkout.php + inc/woocommerce.php: jluxe_render_checkout_stepper).
  *
