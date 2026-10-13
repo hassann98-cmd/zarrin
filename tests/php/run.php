@@ -6142,6 +6142,32 @@ if ( function_exists( 'openssl_encrypt' ) && function_exists( 'openssl_decrypt' 
 }
 
 
+// R291 — combine WooCommerce's pagination base (%_%) with its format before exposing URLs.
+$r291_render_pagination = static function ( string $base, string $format ): string {
+	$total   = 3;
+	$current = 1;
+	ob_start();
+	include ABSPATH . 'woocommerce/loop/pagination.php';
+	return (string) ob_get_clean();
+};
+$r291_pretty_pagination = $r291_render_pagination(
+	'https://shop.test/product-category/kitchenware/organizers-and-storage/potato-and-onion-baskets/%_%',
+	'page/%#%/'
+);
+$r291_query_pagination = $r291_render_pagination( 'https://shop.test/store/category/gold/%_%', '?paged=%#%' );
+check(
+	false !== strpos( $r291_pretty_pagination, 'data-jluxe-pagination-base="https://shop.test/product-category/kitchenware/organizers-and-storage/potato-and-onion-baskets/page/%#%/"' ) &&
+	false !== strpos( $r291_pretty_pagination, 'href="https://shop.test/product-category/kitchenware/organizers-and-storage/potato-and-onion-baskets/page/2/"' ) &&
+	false === strpos( $r291_pretty_pagination, '%_%' ),
+	'R291 pretty-permalink pagination expands WooCommerce %_%/%#% into a valid category page link and jump base'
+);
+check(
+	false !== strpos( $r291_query_pagination, 'data-jluxe-pagination-base="https://shop.test/store/category/gold/?paged=%#%"' ) &&
+	false !== strpos( $r291_query_pagination, 'href="https://shop.test/store/category/gold/?paged=2"' ) &&
+	false === strpos( $r291_query_pagination, '%_%' ),
+	'R291 query-style pagination format is preserved while expanding the page number'
+);
+
 // R183 — selective, server-rendered archive navigation stays a progressive enhancement.
 $r183_soft_navigation_php = (string) file_get_contents( ABSPATH . 'inc/soft-navigation.php' );
 $r183_archive_template = (string) file_get_contents( ABSPATH . 'archive-product.php' );

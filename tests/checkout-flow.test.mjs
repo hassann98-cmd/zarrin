@@ -12,6 +12,7 @@ const reviewOrderTemplate = fs.readFileSync(new URL("../woocommerce/checkout/rev
 const paymentTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment.php", import.meta.url), "utf8");
 const paymentMethodTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment-method.php", import.meta.url), "utf8");
 const shippingTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-shipping.php", import.meta.url), "utf8");
+const paginationTemplate = fs.readFileSync(new URL("../woocommerce/loop/pagination.php", import.meta.url), "utf8");
 const paymentSource = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
 const themeSettingsSource = fs.readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const settingsAdminSource = fs.readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
@@ -304,6 +305,14 @@ test("R289 checkout postal and phone fields submit ASCII digits but display Pers
   assert.equal(dynamicPostcode.value, "456", "fields replaced during a WooCommerce checkout refresh are normalized too");
   assert.equal(dynamicWrapper.querySelector(".jluxe-numeric-digit-display").textContent, "۴۵۶");
   dom.window.close();
+});
+
+test("WooCommerce pagination expands its base/format pair before rendering next and jump URLs", () => {
+  assert.match(paginationTemplate, /\$format\s*=\s*isset\( \$format \)/);
+  assert.match(paginationTemplate, /str_replace\( '%_%', \$format, \$base \)/, "the WooCommerce %_% base slot is expanded with its matching format");
+  assert.match(paginationTemplate, /str_replace\( '%#%', \(string\) \( \$current \+ 1 \), \$base \)/, "next-page links replace only the page number placeholder");
+  assert.match(paginationTemplate, /data-jluxe-pagination-base="<\?php echo esc_url\( \$base \); \?>"/);
+  assert.match(source, /window\.location\.href = base\.replace\("%#%", String\(n\)\)/, "the jump input receives the same completed pattern");
 });
 
 test("shipping cards are responsive and customizable without changing real WooCommerce rates", () => {

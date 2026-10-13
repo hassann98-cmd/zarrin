@@ -26,7 +26,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $total   = isset( $total ) ? $total : wc_get_loop_prop( 'total_pages' );
 $current = max( 1, isset( $current ) ? $current : wc_get_loop_prop( 'current_page' ) );
-$base    = isset( $base ) ? $base : esc_url_raw( str_replace( 999999999, '%#%', remove_query_arg( 'add-to-cart', get_pagenum_link( 999999999, false ) ) ) );
+$base    = isset( $base ) && is_scalar( $base ) ? (string) $base : esc_url_raw( str_replace( 999999999, '%#%', remove_query_arg( 'add-to-cart', get_pagenum_link( 999999999, false ) ) ) );
+$format  = isset( $format ) && is_scalar( $format ) ? (string) $format : '';
+
+/*
+ * WooCommerce passes the same base/format pair used by paginate_links():
+ * $base contains %_% while $format contains page/%#%/ (or ?paged=%#%).
+ * Expand that pair before rendering, so neither the browser link nor the
+ * editable-page base can leak WordPress's literal %_% token into the URL.
+ */
+if ( '' !== $format && false !== strpos( $base, '%_%' ) ) {
+	$base = str_replace( '%_%', $format, $base );
+}
 
 if ( $total <= 1 ) {
 	return;
