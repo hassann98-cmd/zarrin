@@ -6155,6 +6155,7 @@ $r291_pretty_pagination = $r291_render_pagination(
 	'page/%#%/'
 );
 $r291_query_pagination = $r291_render_pagination( 'https://shop.test/store/category/gold/%_%', '?paged=%#%' );
+$r291_shortcode_pagination = $r291_render_pagination( 'https://shop.test/store/?product-page=%#%', '?product-page=%#%' );
 check(
 	false !== strpos( $r291_pretty_pagination, 'data-jluxe-pagination-base="https://shop.test/product-category/kitchenware/organizers-and-storage/potato-and-onion-baskets/page/%#%/"' ) &&
 	false !== strpos( $r291_pretty_pagination, 'href="https://shop.test/product-category/kitchenware/organizers-and-storage/potato-and-onion-baskets/page/2/"' ) &&
@@ -6166,6 +6167,12 @@ check(
 	false !== strpos( $r291_query_pagination, 'href="https://shop.test/store/category/gold/?paged=2"' ) &&
 	false === strpos( $r291_query_pagination, '%_%' ),
 	'R291 query-style pagination format is preserved while expanding the page number'
+);
+check(
+	false !== strpos( $r291_shortcode_pagination, 'data-jluxe-pagination-base="https://shop.test/store/?product-page=%#%"' ) &&
+	false !== strpos( $r291_shortcode_pagination, 'href="https://shop.test/store/?product-page=2"' ) &&
+	false === strpos( $r291_shortcode_pagination, '%_%' ),
+	'R291 shortcode pagination with a preformatted %#% base stays intact'
 );
 
 // R183 — selective, server-rendered archive navigation stays a progressive enhancement.

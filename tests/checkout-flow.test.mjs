@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 import { JSDOM } from "jsdom";
 import jqueryFactory from "jquery";
 
@@ -40,6 +41,10 @@ const checkoutScript = extractDocumentedIife(
 const checkoutDigitsScript = extractDocumentedIife(
   " * R289 — ارقامِ فارسی/عربی را پیش از validation",
   "/**\n * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
+);
+const paginationScript = extractDocumentedIife(
+  " * اینپوتِ پرشِ صفحه در پاژینیشنِ آرشیوِ محصولات",
+  "/**\n * پاپ‌آپِ آلبومِ تصاویرِ محصول",
 );
 
 const cityMap = {
@@ -307,12 +312,49 @@ test("R289 checkout postal and phone fields submit ASCII digits but display Pers
   dom.window.close();
 });
 
-test("WooCommerce pagination expands its base/format pair before rendering next and jump URLs", () => {
+test("WooCommerce pagination expands base/format pairs and the page-jump input uses the final pattern", () => {
   assert.match(paginationTemplate, /\$format\s*=\s*isset\( \$format \)/);
   assert.match(paginationTemplate, /str_replace\( '%_%', \$format, \$base \)/, "the WooCommerce %_% base slot is expanded with its matching format");
   assert.match(paginationTemplate, /str_replace\( '%#%', \(string\) \( \$current \+ 1 \), \$base \)/, "next-page links replace only the page number placeholder");
   assert.match(paginationTemplate, /data-jluxe-pagination-base="<\?php echo esc_url\( \$base \); \?>"/);
-  assert.match(source, /window\.location\.href = base\.replace\("%#%", String\(n\)\)/, "the jump input receives the same completed pattern");
+  assert.match(source, /window\.location\.href = base\.replace\("%#%", String\(n\)\)/, "the jump input replaces the final page-number placeholder");
+
+  function submitPageJump(base, value, total = "3") {
+    const listeners = {};
+    const nav = {
+      getAttribute(name) {
+        if (name === "data-jluxe-pagination-base") return base;
+        if (name === "data-jluxe-pagination-total") return total;
+        return null;
+      },
+    };
+    const input = {
+      value,
+      closest(selector) {
+        if (selector === "[data-jluxe-pagination-input]") return this;
+        if (selector === ".jluxe-shop-pagination") return nav;
+        return null;
+      },
+    };
+    const window = { location: { href: "" } };
+    const document = { addEventListener: (type, callback) => { listeners[type] = callback; } };
+    runInNewContext(paginationScript, { document, window });
+    const event = { key: "Enter", target: input, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } };
+    listeners.keydown(event);
+    assert.equal(event.defaultPrevented, true, "Enter is handled by the page jump");
+    return window.location.href;
+  }
+
+  assert.equal(
+    submitPageJump("https://shop.test/store/category/gold/page/%#%/", "۳"),
+    "https://shop.test/store/category/gold/page/3/",
+    "Persian digits work with a completed pretty-permalink pattern",
+  );
+  assert.equal(
+    submitPageJump("https://shop.test/store/category/gold/?paged=%#%", "۲"),
+    "https://shop.test/store/category/gold/?paged=2",
+    "query-style page-jump patterns remain valid",
+  );
 });
 
 test("shipping cards are responsive and customizable without changing real WooCommerce rates", () => {
