@@ -2308,7 +2308,8 @@ function jluxe_ir_city_field_options( string $state, array $state_options = arra
 	}
 
 	$canonical_cities = array();
-	foreach ( jluxe_ir_checkout_city_data()['provinces'] as $province ) {
+	$checkout_city_data = jluxe_ir_checkout_city_data();
+	foreach ( $checkout_city_data['provinces'] as $province ) {
 		if ( is_array( $province ) && isset( $province['name'] ) && jluxe_normalize_ir_location( (string) $province['name'] ) === jluxe_normalize_ir_location( $province_name ) ) {
 			foreach ( $province['cities'] as $city ) {
 				if ( is_string( $city ) && '' !== trim( $city ) ) {
@@ -2317,6 +2318,31 @@ function jluxe_ir_city_field_options( string $state, array $state_options = arra
 				}
 			}
 			break;
+		}
+	}
+
+	// Keep the v1.7.58 province-scoped list valid on the server as well as in
+	// the restored browser selector. Resolve its historical state key by the
+	// canonical province name so numeric IDs from address extensions still work.
+	$legacy_city_map = function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array();
+	foreach ( $checkout_city_data['state_aliases'] ?? array() as $state_code => $alias_name ) {
+		if (
+			! is_string( $alias_name ) ||
+			jluxe_normalize_ir_location( $alias_name ) !== jluxe_normalize_ir_location( $province_name ) ||
+			! isset( $legacy_city_map[ $state_code ] ) ||
+			! is_array( $legacy_city_map[ $state_code ] )
+		) {
+			continue;
+		}
+		foreach ( $legacy_city_map[ $state_code ] as $legacy_city ) {
+			if ( ! is_string( $legacy_city ) || '' === trim( $legacy_city ) ) {
+				continue;
+			}
+			$normalized_legacy_city = jluxe_normalize_ir_location( $legacy_city );
+			if ( ! isset( $canonical_cities[ $normalized_legacy_city ] ) ) {
+				$options[ $legacy_city ] = $legacy_city;
+				$canonical_cities[ $normalized_legacy_city ] = $legacy_city;
+			}
 		}
 	}
 
@@ -2422,6 +2448,49 @@ function jluxe_checkout_has_valid_shipping_selection( array $data, array $packag
 	}
 	return true;
 }
+/**
+ * شهرستان‌های واقعیِ هر استان — کلیدها دقیقاً همون کدهای واقعیِ
+ * WC()->countries->get_states('IR') (از woocommerce/i18n/states.php)ن،
+ * چون billing_city باید بر اساس مقدار واقعیِ billing_state فیلتر بشه.
+ * فهرست شهرستان‌های اصلی/شناخته‌شده‌ی هر استانه (نه لزوماً همه‌ی
+ * بخش‌های اداری) — برای انتخابِ آدرس در چک‌اوت کافیه.
+ */
+function jluxe_iran_cities(): array {
+	return array(
+		'THR' => array( 'تهران', 'ری', 'شمیرانات', 'اسلامشهر', 'پاکدشت', 'ورامین', 'شهریار', 'رباط‌کریم', 'پیشوا', 'فیروزکوه', 'دماوند', 'پردیس', 'ملارد', 'قدس' ),
+		'ABZ' => array( 'کرج', 'نظرآباد', 'ساوجبلاغ', 'فردیس', 'اشتهارد', 'طالقان' ),
+		'EAZ' => array( 'تبریز', 'مراغه', 'میانه', 'مرند', 'اهر', 'بناب', 'سراب', 'شبستر', 'هریس', 'بستان‌آباد', 'ملکان', 'آذرشهر', 'اسکو' ),
+		'WAZ' => array( 'ارومیه', 'خوی', 'مهاباد', 'میاندوآب', 'بوکان', 'سلماس', 'پیرانشهر', 'نقده', 'ماکو', 'اشنویه', 'سردشت' ),
+		'ADL' => array( 'اردبیل', 'پارس‌آباد', 'مشگین‌شهر', 'خلخال', 'گرمی', 'نمین', 'نیر', 'بیله‌سوار' ),
+		'ESF' => array( 'اصفهان', 'کاشان', 'نجف‌آباد', 'خمینی‌شهر', 'شاهین‌شهر', 'نطنز', 'گلپایگان', 'فریدن', 'زرین‌شهر', 'مبارکه', 'شهرضا', 'آران و بیدگل', 'نائین', 'اردستان', 'سمیرم' ),
+		'ILM' => array( 'ایلام', 'دهلران', 'آبدانان', 'ایوان', 'دره‌شهر', 'مهران', 'چرداول' ),
+		'BHR' => array( 'بوشهر', 'برازجان', 'گناوه', 'دیر', 'کنگان', 'دیلم', 'تنگستان' ),
+		'CHB' => array( 'شهرکرد', 'بروجن', 'فارسان', 'لردگان', 'اردل' ),
+		'KHZ' => array( 'اهواز', 'آبادان', 'خرمشهر', 'دزفول', 'اندیمشک', 'بهبهان', 'ماهشهر', 'شوشتر', 'شوش', 'ایذه', 'رامهرمز', 'مسجدسلیمان', 'هویزه', 'باغ‌ملک' ),
+		'FRS' => array( 'شیراز', 'مرودشت', 'کازرون', 'جهرم', 'فسا', 'لار', 'داراب', 'آباده', 'اقلید', 'لامرد', 'فیروزآباد', 'استهبان', 'نی‌ریز', 'ممسنی' ),
+		'GZN' => array( 'قزوین', 'البرز', 'آبیک', 'بوئین‌زهرا', 'تاکستان' ),
+		'GIL' => array( 'رشت', 'بندرانزلی', 'لاهیجان', 'لنگرود', 'آستارا', 'تالش', 'رودسر', 'صومعه‌سرا', 'فومن', 'رودبار', 'آستانه اشرفیه' ),
+		'GLS' => array( 'گرگان', 'گنبدکاووس', 'علی‌آباد کتول', 'آق‌قلا', 'کردکوی', 'بندرترکمن', 'مینودشت', 'کلاله' ),
+		'LRS' => array( 'خرم‌آباد', 'بروجرد', 'دورود', 'الیگودرز', 'کوهدشت', 'ازنا', 'پلدختر', 'نورآباد' ),
+		'MKZ' => array( 'اراک', 'ساوه', 'خمین', 'محلات', 'دلیجان', 'شازند', 'تفرش' ),
+		'MZN' => array( 'ساری', 'بابل', 'آمل', 'قائم‌شهر', 'بابلسر', 'نور', 'نوشهر', 'چالوس', 'رامسر', 'تنکابن', 'بهشهر', 'نکا', 'جویبار' ),
+		'HRZ' => array( 'بندرعباس', 'میناب', 'بندرلنگه', 'قشم', 'رودان', 'بستک', 'حاجی‌آباد' ),
+		'HDN' => array( 'همدان', 'ملایر', 'نهاوند', 'تویسرکان', 'اسدآباد', 'بهار', 'کبودراهنگ', 'رزن' ),
+		'YZD' => array( 'یزد', 'میبد', 'اردکان', 'بافق', 'تفت', 'ابرکوه', 'مهریز' ),
+		'KRH' => array( 'کرمانشاه', 'اسلام‌آباد غرب', 'سنقر', 'کنگاور', 'پاوه', 'هرسین', 'صحنه', 'سرپل‌ذهاب', 'جوانرود' ),
+		'KRN' => array( 'کرمان', 'رفسنجان', 'سیرجان', 'جیرفت', 'بم', 'زرند', 'کهنوج', 'بردسیر', 'شهربابک' ),
+		'KRD' => array( 'سنندج', 'سقز', 'بانه', 'مریوان', 'بیجار', 'قروه', 'کامیاران', 'دیواندره' ),
+		'KBD' => array( 'یاسوج', 'گچساران', 'دهدشت', 'دوگنبدان' ),
+		'SKH' => array( 'بیرجند', 'قائنات', 'نهبندان', 'طبس', 'سربیشه', 'فردوس' ),
+		'RKH' => array( 'مشهد', 'نیشابور', 'سبزوار', 'تربت‌حیدریه', 'کاشمر', 'قوچان', 'تربت‌جام', 'چناران', 'گناباد', 'فریمان', 'سرخس', 'تایباد' ),
+		'NKH' => array( 'بجنورد', 'شیروان', 'اسفراین', 'جاجرم', 'مانه و سملقان' ),
+		'SMN' => array( 'سمنان', 'شاهرود', 'دامغان', 'گرمسار', 'مهدی‌شهر' ),
+		'SBN' => array( 'زاهدان', 'زابل', 'چابهار', 'ایرانشهر', 'سراوان', 'خاش', 'کنارک', 'نیک‌شهر' ),
+		'ZJN' => array( 'زنجان', 'ابهر', 'خدابنده', 'خرمدره', 'ماه‌نشان' ),
+		'QHM' => array( 'قم' ),
+	);
+}
+
 
 /**
  * نام/نام‌خانوادگی طبقِ مرجعِ تصویریِ جدیدِ کاربر («هر مرحله باید مطابق
@@ -2694,17 +2763,14 @@ function jluxe_ir_normalize_checkout_posted_location_data( array $data ): array 
 		}
 	}
 
-	// The real option map wins. If an extension submitted an opaque numeric ID
-	// without registering its map server-side, validate its visible label against
-	// the same province's canonical city list before normalizing the WooCommerce field.
-	$city_label         = jluxe_posted_checkout_city_label();
-	$city_candidate     = '' !== trim( $city ) ? $city : $city_label;
-	$numeric_city_label = '' !== trim( $city ) ? $city_label : '';
-	$canonical_city     = jluxe_ir_checkout_canonical_city_name( $state, $city_candidate, $state_options, $city_options, $numeric_city_label );
+	// Match the v1.7.58 submit contract: normalize only a city control actually
+	// present in the POST. A helper label must never manufacture a missing required
+	// field; WooCommerce's own required validator remains authoritative when empty.
+	$city_label     = jluxe_posted_checkout_city_label();
+	$canonical_city = '' !== trim( $city )
+		? jluxe_ir_checkout_canonical_city_name( $state, $city, $state_options, $city_options, $city_label )
+		: '';
 	if ( '' !== $canonical_city ) {
-		// A visually selected city can be omitted from successful controls if a
-		// third-party script disables/replaces the select late. The hidden label
-		// is only a recovery hint; the canonical same-province check above must pass.
 		$data['billing_city'] = $canonical_city;
 	}
 

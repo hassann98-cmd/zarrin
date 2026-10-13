@@ -156,6 +156,11 @@ function boot({ shippingSection = true, shippingOptions = true, shippingChecked 
       ],
     },
   };
+  window.JLuxeThemeSettings = {
+    iranCities: {
+      KRH: ["کرمانشاه", "اسلام‌آباد غرب", "سنقر", "کنگاور", "پاوه", "هرسین", "صحنه", "سرپل‌ذهاب", "جوانرود"],
+    },
+  };
   window.jQuery = (target) => {
     const wrapped = collection(target);
     const actual = jquery(target);
@@ -559,40 +564,33 @@ test("numeric city IDs retain their option label and are enabled/canonicalized f
   assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "اختیارآباد");
 });
 
-test("a visible Select2 city label restores an empty native select only for the selected province", (t) => {
+test("numeric province IDs resolve the v1.7.58 city map, with canonical additions retained", (t) => {
   const { window } = boot({
     locationFields: true,
     shippingChecked: true,
     initialState: "2352",
     initialCity: { value: "2356", label: "بیستون" },
-    duplicateLocationControl: true,
   });
   t.after(() => window.close());
   const { document } = window;
   const state = document.getElementById("billing_state");
   const city = document.getElementById("billing_city");
-  const decoyCity = document.querySelector('select[data-jluxe-city-select]:not(#billing_city)');
-  assert.equal(decoyCity.options.length, 1, "a hidden duplicate city control remains untouched");
-  const renderedSelect2 = document.createElement("span");
-  renderedSelect2.className = "select2-container";
-  renderedSelect2.innerHTML = '<span class="selection"><span class="select2-selection"><span class="select2-selection__rendered" title="بیستون">بیستون</span></span></span>';
-  city.insertAdjacentElement("afterend", renderedSelect2);
+  assert.equal(state.value, "2352", "the address extension's numeric province value remains intact");
 
-  // Reproduce a stale Select2 display after another script cleared and disabled
-  // the native field without emitting Select2's change event.
-  city.value = "";
-  city.disabled = true;
+  const cityValues = Array.from(city.options).map((option) => option.value);
+  assert.equal(cityValues[1], "کرمانشاه", "the original v1.7.58 map order is the primary city list");
+  assert.equal(cityValues[2], "اسلام‌آباد غرب");
+  assert.ok(cityValues.includes("بیستون"), "canonical cities absent from the historical map remain available");
+  assert.equal(city.value, "بیستون", "the existing numeric city resolves through its canonical label");
+
+  city.value = "بیستون";
+  dispatchChange(window, city);
   document.querySelector("[data-jluxe-checkout-next]").click();
-
-  assert.equal(state.value, "2352");
-  assert.equal(currentStep(document), "payment", "the displayed city is recovered only after same-province canonical matching");
-  assert.equal(city.value, "بیستون");
-  assert.equal(city.disabled, false, "the required native control is enabled for WooCommerce serialization");
+  assert.equal(currentStep(document), "payment", "a city in the selected province passes the required gate");
   assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "بیستون");
-  assert.equal(document.querySelector("[data-jluxe-city-label-payload]").value, "بیستون");
 });
 
-test("an empty native city with a foreign Select2 label remains invalid", (t) => {
+test("stale Select2 text cannot substitute for an empty native required city field", (t) => {
   const { window } = boot({
     locationFields: true,
     shippingChecked: true,
@@ -604,18 +602,18 @@ test("an empty native city with a foreign Select2 label remains invalid", (t) =>
   const city = document.getElementById("billing_city");
   const renderedSelect2 = document.createElement("span");
   renderedSelect2.className = "select2-container";
-  renderedSelect2.innerHTML = '<span class="selection"><span class="select2-selection"><span class="select2-selection__rendered" title="اختیارآباد">اختیارآباد</span></span></span>';
+  renderedSelect2.innerHTML = '<span class="selection"><span class="select2-selection"><span class="select2-selection__rendered" title="بیستون">بیستون</span></span></span>';
   city.insertAdjacentElement("afterend", renderedSelect2);
   city.value = "";
   city.disabled = true;
   document.querySelector("[data-jluxe-checkout-next]").click();
 
-  assert.equal(currentStep(document), "shipping", "a city canonical to another province cannot pass the required-field gate");
+  assert.equal(currentStep(document), "shipping", "the required gate checks the native field instead of stale widget text");
   assert.equal(city.value, "");
   assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), null);
 });
 
-test("WooCommerce gateway hooks remain untouched and the validated city label stays available for server recovery", (t) => {
+test("WooCommerce gateway hooks remain untouched and a missing native city stays missing", (t) => {
   const { window } = boot({
     locationFields: true,
     shippingChecked: true,
@@ -656,7 +654,7 @@ test("WooCommerce gateway hooks remain untouched and the validated city label st
 
   const finalFields = new window.FormData(form);
   assert.equal(finalFields.get("billing_city"), null, "a gateway may omit the disabled native control");
-  assert.equal(finalFields.get("jluxe_billing_city_label"), "بیستون", "the server can canonicalize the preserved label for this province");
+  assert.equal(finalFields.get("jluxe_billing_city_label"), "بیستون", "the hidden label is only a hint and never replaces the missing city control");
 });
 
 test("an explicit WooCommerce gateway veto remains authoritative without a theme hook", (t) => {

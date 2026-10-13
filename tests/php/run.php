@@ -6124,6 +6124,30 @@ if ( null === $r247_previous_wc ) {
 $r247_state_field = $r247_checkout_fields['billing']['billing_state'];
 $r247_city_field  = $r247_checkout_fields['billing']['billing_city'];
 $r247_city_data   = jluxe_ir_checkout_city_data();
+$r265_v1758_cities = jluxe_iran_cities();
+check(
+	isset( $r265_v1758_cities['KRH'], $r265_v1758_cities['THR'] ) &&
+	in_array( 'جوانرود', $r265_v1758_cities['KRH'], true ) &&
+	in_array( 'تهران', $r265_v1758_cities['THR'], true ),
+	'R265 restores the v1.7.58 province-keyed city options'
+);
+$r265_legacy_kermanshah_options = jluxe_ir_city_field_options( 'KRH', array( 'KRH' => 'کرمانشاه' ) );
+check(
+	isset( $r265_legacy_kermanshah_options['جوانرود'], $r265_legacy_kermanshah_options['پاوه'] ),
+	'R265 the restored v1.7.58 city list is accepted by server-side province validation'
+);
+$r265_previous_localized = $GLOBALS['localized']['JLuxeThemeSettings'] ?? null;
+jluxe_localize_public_settings();
+$r265_localized_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
+check(
+	$r265_localized_cities === $r265_v1758_cities,
+	'R265 JLuxeThemeSettings localization exposes the v1.7.58 city map to storefront JavaScript'
+);
+if ( null === $r265_previous_localized ) {
+	unset( $GLOBALS['localized']['JLuxeThemeSettings'] );
+} else {
+	$GLOBALS['localized']['JLuxeThemeSettings'] = $r265_previous_localized;
+}
 $r247_city_count  = 0;
 foreach ( $r247_city_data['provinces'] as $r247_province ) {
 	$r247_city_count += count( $r247_province['cities'] ?? array() );
@@ -6303,9 +6327,9 @@ check(
 	'R261 an unmapped numeric city ID is normalized from its submitted option label only after same-province validation; foreign labels still fail'
 );
 check(
-	'بیستون' === ( $r263_missing_city_data['billing_city'] ?? '' ) &&
+	'' === ( $r263_missing_city_data['billing_city'] ?? '' ) &&
 	'' === ( $r263_foreign_missing_city_data['billing_city'] ?? '' ),
-	'R263 recovers an omitted city field only from a canonical label in the posted province; a foreign label remains empty'
+	'v1.7.58 submit semantics keep an omitted required city empty even when a label helper is present'
 );
 $_POST = $r261_previous_post;
 if ( null === $r261_previous_wc ) {

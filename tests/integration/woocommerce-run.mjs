@@ -494,17 +494,18 @@ try {
     const stateOptionCount = (response.text.match(/<select\b[^>]*\bid="billing_state"[^>]*>[\s\S]*?<\/select>/)?.[0].match(/<option\b/g) || []).length;
     const checkoutAddressDataLoaded = response.text.includes('"checkoutAddressData"') &&
       (response.text.includes('"تهران"') || /\u062a\u0647\u0631\u0627\u0646/i.test(response.text));
+    const legacyCityMapLoaded = response.text.includes('"iranCities"') && response.text.includes('"KRH"');
     const accessibleProgress = response.text.includes('<ol class="m-0 flex list-none') && response.text.includes('data-jluxe-step="shipping" aria-current="step"');
     const paymentRequired = response.text.includes('data-jluxe-payment-required="1"');
     const hasPlaceOrderButton = response.text.includes('id="place_order"');
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; cityLabelPayload=${cityLabelPayloadRendered}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; dependentCity=${cityIsDependentSelect}; cityLabelPayload=${cityLabelPayloadRendered}; provinceOptions=${stateOptionCount}; cityData=${checkoutAddressDataLoaded}; legacyCityMap=${legacyCityMapLoaded}; accessibleProgress=${accessibleProgress}; paymentRequired=${paymentRequired}; placeOrder=${hasPlaceOrderButton}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
-        response.text.includes("payment_method") && cityIsDependentSelect && cityLabelPayloadRendered && stateOptionCount >= 31 && checkoutAddressDataLoaded && accessibleProgress &&
+        response.text.includes("payment_method") && cityIsDependentSelect && cityLabelPayloadRendered && stateOptionCount >= 31 && checkoutAddressDataLoaded && legacyCityMapLoaded && accessibleProgress &&
         shipsToBillingByDefault && hiddenShippingRecipientIsRequired &&
         response.text.includes('data-jluxe-payment-required="1"') &&
         response.text.includes('id="place_order"'),
@@ -726,8 +727,8 @@ try {
         'postedState'=>$posted['billing_state']??'',
         'postedCity'=>$posted['billing_city']??'',
         'validCityHasNoMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$validErrorCodes,true),
-        'omittedCityRecovered'=>($omittedPosted['billing_city']??'')==='بیستون',
-        'omittedCityPassesRequired'=>!in_array('billing_city_required',$omittedErrorCodes,true),
+        'omittedCityNotRecovered'=>($omittedPosted['billing_city']??'')==='',
+        'omittedCityStillRequired'=>in_array('billing_city_required',$omittedErrorCodes,true),
         'foreignOmittedCityRemainsEmpty'=>($foreignOmittedPosted['billing_city']??'')==='',
         'foreignOmittedCityStillRequired'=>in_array('billing_city_required',$foreignOmittedErrorCodes,true),
         'foreignLabelRetainsUnresolvedId'=>($foreignPosted['billing_city']??'')==='2356',
@@ -743,13 +744,13 @@ try {
         unmappedNumericCitySubmission.postedState === "KRH" &&
         unmappedNumericCitySubmission.postedCity === "بیستون" &&
         unmappedNumericCitySubmission.validCityHasNoMismatch &&
-        unmappedNumericCitySubmission.omittedCityRecovered &&
-        unmappedNumericCitySubmission.omittedCityPassesRequired &&
+        unmappedNumericCitySubmission.omittedCityNotRecovered &&
+        unmappedNumericCitySubmission.omittedCityStillRequired &&
         unmappedNumericCitySubmission.foreignOmittedCityRemainsEmpty &&
         unmappedNumericCitySubmission.foreignOmittedCityStillRequired &&
         unmappedNumericCitySubmission.foreignLabelRetainsUnresolvedId &&
         unmappedNumericCitySubmission.foreignCityRejected,
-      `Real WooCommerce 11.2 recovers an omitted city control only from a canonical label in the posted province, but still requires a genuinely empty or foreign city (${JSON.stringify(unmappedNumericCitySubmission)})`,
+      `Real WooCommerce 11.2 keeps an omitted required city empty even when a label helper is present; valid numeric IDs still normalize only after same-province validation (${JSON.stringify(unmappedNumericCitySubmission)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";

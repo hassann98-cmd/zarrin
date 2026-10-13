@@ -3473,13 +3473,6 @@ function jluxeEnhanceShopSort(root) {
 		window.jQuery(select).trigger("change.select2");
 	}
 
-	function selectedSelect2Label(select) {
-		if (!select || !select.classList.contains("select2-hidden-accessible")) return "";
-		var row = select.closest(".form-row") || select.parentElement;
-		var rendered = row && row.querySelector(".select2-selection__rendered");
-		return rendered ? String(rendered.getAttribute("title") || rendered.textContent || "").trim() : "";
-	}
-
 	function sortOptionsByPersianLabel(select) {
 		if (!select || select.tagName !== "SELECT") return;
 		var value = select.value;
@@ -3546,11 +3539,46 @@ function jluxeEnhanceShopSort(root) {
 			.map(normalizeLocationName)
 			.filter(Boolean);
 		var cityNames = province ? province.cities.slice() : [];
-		try {
-			var collator = new Intl.Collator("fa", { sensitivity: "base" });
-			cityNames.sort(collator.compare);
-		} catch (error) {
-			cityNames.sort(function (a, b) { return String(a).localeCompare(String(b)); });
+		var legacyCityMap = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
+		var legacyCityNames = legacyCityMap && Object.prototype.hasOwnProperty.call(legacyCityMap, String(stateSelect.value))
+			? legacyCityMap[String(stateSelect.value)]
+			: null;
+		if (province && !Array.isArray(legacyCityNames) && legacyCityMap && checkoutAddressData.state_aliases) {
+			// WooCommerce address extensions may submit numeric province IDs. Resolve
+			// the historical three-letter city-map key through this province's real
+			// canonical label rather than assuming the form value is the map key.
+			var provinceName = normalizeLocationName(province.name);
+			Object.keys(checkoutAddressData.state_aliases).some(function (stateKey) {
+				var aliasName = normalizeLocationName(checkoutAddressData.state_aliases[stateKey]);
+				if (aliasName === provinceName && Array.isArray(legacyCityMap[stateKey])) {
+					legacyCityNames = legacyCityMap[stateKey];
+					return true;
+				}
+				return false;
+			});
+		}
+		if (province && Array.isArray(legacyCityNames)) {
+			// Restore the v1.7.58 province-keyed city selector as the primary
+			// source. Keep later canonical additions as a supplemental tail so
+			// real cities omitted by that historical list remain selectable.
+			var legacyNames = legacyCityNames.map(normalizeLocationName);
+			var supplementalCities = province.cities.filter(function (city) {
+				return legacyNames.indexOf(normalizeLocationName(city)) === -1;
+			});
+			try {
+				var supplementalCollator = new Intl.Collator("fa", { sensitivity: "base" });
+				supplementalCities.sort(supplementalCollator.compare);
+			} catch (error) {
+				supplementalCities.sort(function (a, b) { return String(a).localeCompare(String(b)); });
+			}
+			cityNames = legacyCityNames.slice().concat(supplementalCities);
+		} else {
+			try {
+				var collator = new Intl.Collator("fa", { sensitivity: "base" });
+				cityNames.sort(collator.compare);
+			} catch (error) {
+				cityNames.sort(function (a, b) { return String(a).localeCompare(String(b)); });
+			}
 		}
 		var placeholder = document.createElement("option");
 		placeholder.value = "";
@@ -3602,14 +3630,6 @@ function jluxeEnhanceShopSort(root) {
 		var selectedNames = [citySelect.value, selectedOption ? selectedOption.textContent : ""]
 			.map(normalizeLocationName)
 			.filter(Boolean);
-		// Select2 can keep rendering its last selected label when another script
-		// clears/disables the native select without refreshing the widget. Recover
-		// from that label only when the native field is genuinely empty, then
-		// validate it against the currently selected province just like any option.
-		if (isEmptyCheckoutCitySelection(citySelect)) {
-			var renderedLabel = normalizeLocationName(selectedSelect2Label(citySelect));
-			if (renderedLabel) selectedNames.push(renderedLabel);
-		}
 		var canonicalCity = province.cities.find(function (city) {
 			return selectedNames.indexOf(normalizeLocationName(city)) !== -1;
 		});

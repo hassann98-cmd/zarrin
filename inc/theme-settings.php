@@ -2411,6 +2411,8 @@ function jluxe_localize_public_settings(): void {
 			'logoImage'        => jluxe_get_logo_image_data(),
 			'mobileLogoImage'  => jluxe_get_mobile_logo_image_data(),
 			'shopUrl'          => jluxe_shop_url(),
+			// v1.7.58 checkout contract: city options are selected from a province-scoped map.
+			'iranCities'       => function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array(),
 			'urls' => jluxe_public_urls(),
 			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),
 			'rest' => array(

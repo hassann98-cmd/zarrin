@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const downloadsDir = path.resolve(process.env.DOWNLOAD_DIR || path.join(repoRoot, "downloads"));
-const port = Number(process.env.PORT || 4181);
+const port = Number(process.env.PORT || 4182);
 const noCacheHeaders = {
   "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
   Pragma: "no-cache",
