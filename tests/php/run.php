@@ -1227,29 +1227,41 @@ check(
 	'R237 key-feature cards have separate rounded light surfaces and an accessible focused link state'
 );
 
-// R246: product editors can select feature cards, toggle delivery time, and publish a safe product-specific notice.
+// R246: product summaries follow native WooCommerce visibility/variation flags; product notices remain safely editable.
 $r246_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
 $GLOBALS['taxonomies']['product_brand'] = true;
 $r246_old_product_meta = $GLOBALS['post_meta'][9400] ?? null;
 $r246_had_product_meta = array_key_exists( 9400, $GLOBALS['post_meta'] ?? array() );
-$r246_candidates      = jluxe_product_key_feature_attribute_candidates( $r240_product );
+$r246_old_attributes   = $GLOBALS['product_attributes'][9400] ?? null;
+$r246_had_attributes   = array_key_exists( 9400, $GLOBALS['product_attributes'] ?? array() );
+$GLOBALS['product_attributes'][9400] = array(
+	$r240_attribute( 'pa_brand', array(), false, true, true ),
+	$r240_attribute( 'pa_size', array(), true, true, true ),
+	$r240_attribute( 'hidden_detail', array( 'مخفی' ), false, false, false ),
+	$r240_attribute( 'pa_color', array(), true, true, true ),
+	$r240_attribute( 'material', array( 'چرم', 'پارچه' ), false, true, false ),
+	$r240_attribute( 'warranty', array( '۱۸ ماه' ), false, true, false ),
+	$r240_attribute( 'capacity', array( '۵ لیتر' ), false, true, false ),
+);
+$r246_candidates = jluxe_product_key_feature_attribute_candidates( $r240_product );
 check(
-	array( 'pa_color', 'material', 'warranty', 'capacity' ) === array_column( $r246_candidates, 'attribute_name' ) &&
+	array( 'material', 'warranty', 'capacity' ) === array_column( $r246_candidates, 'attribute_name' ) &&
+	false === in_array( 'pa_color', array_column( $r246_candidates, 'attribute_name' ), true ) &&
 	false === in_array( 'pa_size', array_column( $r246_candidates, 'attribute_name' ), true ) &&
 	false === in_array( 'pa_brand', array_column( $r246_candidates, 'attribute_name' ), true ),
-	'R246 feature controls offer every populated visible non-variation attribute, but never a variation or duplicate brand attribute'
-);
-$GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] = array( 'capacity', 'pa_color', 'material', 'warranty' );
-$r246_selected_cards = jluxe_product_key_feature_cards( $r240_product );
-check(
-	array( 'product_brand', 'pa_color', 'material', 'warranty' ) === array_column( $r246_selected_cards, 'name' ),
-	'R246 chosen attributes use product order, stay after the real brand, and are capped at three regular cards'
+	'R246 native attribute candidates include visible non-variation custom attributes and exclude variation, hidden, and duplicate-brand attributes'
 );
 $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'] = 'no';
-$GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes']     = array( 'capacity' );
+$GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] = array( 'capacity' );
+$r246_automatic_cards = jluxe_product_key_feature_cards( $r240_product );
 check(
-	array( 'capacity' ) === array_column( jluxe_product_key_feature_cards( $r240_product ), 'name' ),
-	'R246 the brand card and individual feature cards can be independently hidden per product'
+	array( 'product_brand', 'material', 'warranty', 'capacity' ) === array_column( $r246_automatic_cards, 'name' ),
+	'R246 cards ignore legacy manual-selection metadata and automatically include the first three eligible attributes after the brand'
+);
+check( 'زرین' === ( $r246_automatic_cards[0]['value'] ?? '' ), 'R246 brand card reads its value from the assigned product_brand taxonomy term' );
+check(
+	'چرم، پارچه' === ( $r246_automatic_cards[1]['value'] ?? '' ) && '۱۸ ماه' === ( $r246_automatic_cards[2]['value'] ?? '' ),
+	'R246 custom attribute cards show values from the product attributes'
 );
 
 $r246_old_post     = $GLOBALS['post'] ?? null;
@@ -1261,23 +1273,35 @@ ob_start();
 jluxe_render_product_badge_fields();
 $r246_panel_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r246_panel_html, 'name="_jluxe_key_feature_attributes[]"' ) &&
-	false !== strpos( $r246_panel_html, 'id="_jluxe_key_feature_brand_enabled"' ) &&
+	false === strpos( $r246_panel_html, 'name="_jluxe_key_feature_attributes[]"' ) &&
+	false === strpos( $r246_panel_html, 'id="_jluxe_key_feature_brand_enabled"' ),
+	'R246 product editor removes retired manual feature/brand selection controls'
+);
+check(
+	false !== strpos( $r246_panel_html, 'product_brand' ) &&
+	false !== strpos( $r246_panel_html, 'سه ویژگیِ اول' ) &&
+	false !== strpos( $r246_panel_html, 'چرم، پارچه' ),
+	'R246 product editor explains the automatic WooCommerce flags and previews the generated cards'
+);
+check(
 	false !== strpos( $r246_panel_html, 'id="_jluxe_delivery_time_enabled"' ) &&
 	false !== strpos( $r246_panel_html, 'id="_jluxe_product_notice_enabled"' ) &&
 	false !== strpos( $r246_panel_html, 'name="_jluxe_product_notice_text"' ) &&
 	false === strpos( $r246_panel_html, 'id="_delivery_time"' ),
-	'R246 the product editor exposes per-feature, delivery-visibility, and editable notice controls without adding a duplicate delivery field'
+	'R246 existing delivery/notice controls remain and no duplicate delivery field is added'
 );
 
+$r246_legacy_brand_meta = $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'];
+$r246_legacy_feature_meta = $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'];
 $r246_old_request = $_POST;
 $GLOBALS['cleaned_posts'] = array();
 $GLOBALS['deleted_product_transients'] = array();
 $_POST = array(
 	'jluxe_product_options_present'        => '1',
 	'_jluxe_badge_authenticity'             => '1',
+	/* Simulate an already-open editor posting the retired fields. */
 	'_jluxe_key_feature_brand_enabled'      => '1',
-	'_jluxe_key_feature_attributes'         => array( 'capacity', 'pa_size', 'material', 'warranty', 'pa_color', 'pa_brand' ),
+	'_jluxe_key_feature_attributes'         => array( 'material', 'warranty', 'capacity' ),
 	'_jluxe_product_notice_enabled'         => '1',
 	'_jluxe_product_notice_type'            => 'info',
 	'_jluxe_product_notice_text'            => " <b>Notice</b>\n<script>alert(1)</script> ",
@@ -1288,15 +1312,21 @@ ob_start();
 jluxe_render_product_notice( $r240_product );
 $r246_notice_html = (string) ob_get_clean();
 check(
-	array( 'pa_color', 'material', 'warranty' ) === ( $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] ?? array() ) &&
+	$r246_legacy_brand_meta === $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'] &&
+	$r246_legacy_feature_meta === $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] &&
 	'no' === ( $GLOBALS['post_meta'][9400]['_jluxe_delivery_time_enabled'] ?? '' ) &&
 	false === jluxe_is_product_delivery_time_enabled( $r240_product ) &&
 	true === $r246_saved_notice['enabled'] && 'info' === $r246_saved_notice['type'] &&
 	"Notice\nalert(1)" === $r246_saved_notice['text'] &&
 	false !== strpos( $r246_notice_html, 'jluxe-product-notice--info' ) &&
 	false === strpos( $r246_notice_html, '<script>' ),
-	'R246 saves only up to three eligible selections, persists visibility toggles, sanitizes notice text, and renders it as escaped content'
+	'R246 legacy feature metadata stays untouched on save while other product settings and escaped product notices still persist'
 );
+if ( $r246_had_attributes ) {
+	$GLOBALS['product_attributes'][9400] = $r246_old_attributes;
+} else {
+	unset( $GLOBALS['product_attributes'][9400] );
+}
 update_post_meta( 9400, '_jluxe_delivery_time_enabled', 'yes' );
 check(
 	jluxe_is_product_delivery_time_enabled( $r240_product ) &&
@@ -1316,12 +1346,16 @@ check(
 	false !== strpos( $r246_default_template, 'jluxe_render_product_notice( $product )' ) &&
 	false !== strpos( $r246_classic_template, 'jluxe_render_product_notice( $product )' ) &&
 	false !== strpos( $r246_reference_template, 'jluxe_render_product_notice( $product )' ) &&
+	false !== strpos( $r246_default_template, 'jluxe_product_key_feature_cards( $product )' ) &&
 	false !== strpos( $r246_classic_template, 'jluxe_product_key_feature_cards( $product )' ) &&
+	false !== strpos( $r246_reference_template, 'jluxe_product_key_feature_cards( $product )' ) &&
+	false !== strpos( $r246_reference_template, 'data-jluxe-key-feature=' ) &&
+	false === strpos( $r246_reference_template, '.reference-key-feature[data-jluxe-key-feature="product_brand"]{display:none}' ) &&
 	false !== strpos( $r246_classic_template, 'cp3-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem);' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ),
-	'R246 every product layout supports the notice, and mobile feature summaries keep a two-column grid'
+	'R246 all three product layouts use the shared automatic feature cards, reference CSS keeps brand visible, and mobile summaries stay two-column'
 );
 $_POST = $r246_old_request;
 if ( $r246_had_product_meta ) { $GLOBALS['post_meta'][9400] = $r246_old_product_meta; } else { unset( $GLOBALS['post_meta'][9400] ); }

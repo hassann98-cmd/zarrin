@@ -527,7 +527,6 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 	.jluxe-product-reference .reference-mobile-action:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}
 	.jluxe-product-reference .reference-mobile-rating+.reference-mobile-actions,.jluxe-product-reference .reference-mobile-actions:first-child{margin-top:15px}
 	.jluxe-product-reference .cp3-wishline-row,.jluxe-product-reference .reference-legacy-review-meta{display:none}
-	.jluxe-product-reference .reference-key-feature[data-jluxe-key-feature="product_brand"]{display:none}
 	.jluxe-product-reference .cp3-side{width:100%;margin:0;padding:0}
 	.jluxe-product-reference .cp3-sidebox{display:none}
 	.jluxe-product-reference .cp3-side .cp3-sku,.jluxe-product-reference .cp3-side .cp3-dashed,.jluxe-product-reference .cp3-side .cp3-fabs{display:none}

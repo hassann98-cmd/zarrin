@@ -1695,8 +1695,8 @@ function jluxe_attribute_swatch_options( string $attribute_name, array $options,
 
 /**
  * همهٔ ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های variation،
- * پنهان و ویژگیِ تکراریِ برند این‌جا قرار نمی‌گیرند؛ مدیر می‌تواند حداکثر سه
- * مورد را از این فهرست در تب «گزینه‌های زرین» انتخاب کند.
+ * پنهان و ویژگیِ تکراریِ برند این‌جا قرار نمی‌گیرند؛ سه مورد اول به ترتیب
+ * تنظیم‌شده در ویژگی‌های بومی WooCommerce نمایش داده می‌شوند.
  *
  * @return array<int, array{name: string, attribute_name: string, label: string, value: string}>
  */
@@ -1809,7 +1809,7 @@ function jluxe_product_key_feature_brand_card( $product ): ?array {
 	);
 }
 
-/** Existing products keep brand enabled unless an editor explicitly turns it off. */
+/** Legacy compatibility reader; automatic summary-card rendering no longer uses this toggle. */
 function jluxe_product_key_feature_brand_enabled( $product ): bool {
 	$product_id = $product instanceof WC_Product ? (int) $product->get_id() : absint( $product );
 	if ( ! $product_id ) {
@@ -1824,8 +1824,9 @@ function jluxe_product_key_feature_brand_enabled( $product ): bool {
 
 /**
  * Product-summary feature cards: the actual product_brand term comes first,
- * followed by no more than three selected visible, non-variation attributes.
- * Legacy products with no selection meta retain the former first-three default.
+ * followed automatically by the first three visible, non-variation WooCommerce
+ * attributes. Legacy JLuxe selection metadata is deliberately ignored and left
+ * untouched so the native product-attribute flags stay authoritative.
  *
  * @return array<int, array{name: string, label: string, value: string}>
  */
@@ -1834,33 +1835,14 @@ function jluxe_product_key_feature_cards( $product ): array {
 		return array();
 	}
 
-	$product_id = (int) $product->get_id();
 	$cards      = array();
-	if ( jluxe_product_key_feature_brand_enabled( $product ) ) {
-		$brand_card = jluxe_product_key_feature_brand_card( $product );
-		if ( $brand_card ) {
-			$cards[] = $brand_card;
-		}
-	}
-
-	$selection_exists = function_exists( 'metadata_exists' )
-		? metadata_exists( 'post', $product_id, '_jluxe_key_feature_attributes' )
-		: is_array( get_post_meta( $product_id, '_jluxe_key_feature_attributes', true ) );
-	$selection = get_post_meta( $product_id, '_jluxe_key_feature_attributes', true );
-	$selected  = array();
-	if ( is_array( $selection ) ) {
-		foreach ( $selection as $attribute_name ) {
-			if ( is_scalar( $attribute_name ) ) {
-				$selected[ (string) $attribute_name ] = true;
-			}
-		}
+	$brand_card = jluxe_product_key_feature_brand_card( $product );
+	if ( $brand_card ) {
+		$cards[] = $brand_card;
 	}
 
 	$extra_count = 0;
 	foreach ( jluxe_product_key_feature_attribute_candidates( $product ) as $candidate ) {
-		if ( $selection_exists && ! isset( $selected[ $candidate['attribute_name'] ] ) ) {
-			continue;
-		}
 		$cards[] = array(
 			'name'  => $candidate['name'],
 			'label' => $candidate['label'],
@@ -4148,41 +4130,18 @@ function jluxe_render_product_badge_fields(): void {
 
 	echo '</div>';
 
-	$product              = wc_get_product( (int) $post->ID );
-	$attribute_candidates = jluxe_product_key_feature_attribute_candidates( $product );
-	$selection_exists     = function_exists( 'metadata_exists' )
-		? metadata_exists( 'post', (int) $post->ID, '_jluxe_key_feature_attributes' )
-		: is_array( get_post_meta( $post->ID, '_jluxe_key_feature_attributes', true ) );
-	$selected_attributes = get_post_meta( $post->ID, '_jluxe_key_feature_attributes', true );
-	if ( ! $selection_exists || ! is_array( $selected_attributes ) ) {
-		$selected_attributes = array_column( array_slice( $attribute_candidates, 0, 3 ), 'attribute_name' );
-	}
-	$selected_attribute_map = array();
-	foreach ( $selected_attributes as $selected_attribute ) {
-		if ( is_scalar( $selected_attribute ) ) {
-			$selected_attribute_map[ (string) $selected_attribute ] = true;
-		}
-	}
+	$product                 = wc_get_product( (int) $post->ID );
+	$key_feature_preview     = jluxe_product_key_feature_cards( $product );
 
 	echo '<div class="options_group">';
-	echo '<p class="form-field"><strong>کارت‌های ویژگی محصول</strong><br><span class="description">برند از taxonomy واقعیِ product_brand خوانده می‌شود؛ حداکثر سه ویژگیِ نمایان و غیرتنوعی را هم می‌توانید جداگانه انتخاب کنید.</span></p>';
-	woocommerce_wp_checkbox(
-		array(
-			'id'          => '_jluxe_key_feature_brand_enabled',
-			'value'       => jluxe_product_key_feature_brand_enabled( (int) $post->ID ) ? 'yes' : 'no',
-			'label'       => 'نمایش کارت برند',
-			'description' => 'نام برند فقط از برندهای منتسب‌شده به همین محصول خوانده می‌شود.',
-		)
-	);
-	if ( $attribute_candidates ) {
-		foreach ( $attribute_candidates as $candidate_index => $candidate ) {
-			$field_id = 'jluxe-key-feature-attribute-' . sanitize_title( $candidate['attribute_name'] ) . '-' . (int) $candidate_index;
-			echo '<p class="form-field"><label for="' . esc_attr( $field_id ) . '">' . esc_html( $candidate['label'] ) . '</label><input type="checkbox" id="' . esc_attr( $field_id ) . '" name="_jluxe_key_feature_attributes[]" value="' . esc_attr( $candidate['attribute_name'] ) . '"' . ( isset( $selected_attribute_map[ $candidate['attribute_name'] ] ) ? ' checked="checked"' : '' ) . ' /><span class="description">' . esc_html( $candidate['value'] ) . '</span></p>';
+	echo '<p class="form-field"><strong>ویژگی‌های برجستهٔ محصول</strong><br><span class="description">برندِ تخصیص‌یافته به product_brand اول نمایش داده می‌شود. سپس سه ویژگیِ اولِ بخش «ویژگی‌ها» که «نمایش در برگه محصول» دارند و «استفاده برای متغیرها» برایشان خاموش است، خودکار می‌آیند.</span></p>';
+	if ( $key_feature_preview ) {
+		foreach ( $key_feature_preview as $feature_preview ) {
+			echo '<p class="form-field"><strong>' . esc_html( $feature_preview['label'] ) . ':</strong> ' . esc_html( $feature_preview['value'] ) . '</p>';
 		}
 	} else {
-		echo '<p class="form-field"><span class="description">هنوز ویژگیِ نمایانِ غیرتنوعیِ دارای مقدار برای این محصول ثبت نشده است.</span></p>';
+		echo '<p class="form-field"><span class="description">برای نمایش این کارت‌ها، ویژگی‌های قابل‌نمایش را در بخش بومی «ویژگی‌ها» تعریف کنید.</span></p>';
 	}
-	echo '<p class="form-field"><span class="description">برای حفظ چیدمانِ جمع‌وجور، از ویژگی‌های انتخاب‌شده حداکثر سه کارت نمایش داده می‌شود.</span></p>';
 	echo '</div>';
 
 	echo '<div class="options_group">';
@@ -4258,33 +4217,12 @@ function jluxe_save_product_badge_fields( int $post_id ): void {
 
 	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
 	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
-	update_post_meta( $post_id, '_jluxe_key_feature_brand_enabled', isset( $_POST['_jluxe_key_feature_brand_enabled'] ) ? 'yes' : 'no' );
 
-	$product              = wc_get_product( $post_id );
-	$available_attributes = jluxe_product_key_feature_attribute_candidates( $product );
-	$available_names      = array_column( $available_attributes, 'attribute_name' );
-	$submitted_attributes = isset( $_POST['_jluxe_key_feature_attributes'] ) && is_array( $_POST['_jluxe_key_feature_attributes'] )
-		? wp_unslash( $_POST['_jluxe_key_feature_attributes'] )
-		: array();
-	$submitted_map = array();
-	foreach ( $submitted_attributes as $submitted_attribute ) {
-		if ( is_scalar( $submitted_attribute ) ) {
-			$submitted_name = sanitize_text_field( (string) $submitted_attribute );
-			if ( in_array( $submitted_name, $available_names, true ) ) {
-				$submitted_map[ $submitted_name ] = true;
-			}
-		}
-	}
-	$selected_attributes = array();
-	foreach ( $available_names as $available_name ) {
-		if ( isset( $submitted_map[ $available_name ] ) ) {
-			$selected_attributes[] = $available_name;
-			if ( count( $selected_attributes ) >= 3 ) {
-				break;
-			}
-		}
-	}
-	update_post_meta( $post_id, '_jluxe_key_feature_attributes', $selected_attributes );
+	/*
+	 * Do not write the legacy key-feature selection/brand metadata. Summary
+	 * cards now follow WooCommerce's own visible/non-variation flags, and
+	 * historical product metadata must remain byte-for-byte untouched.
+	 */
 	update_post_meta( $post_id, '_jluxe_delivery_time_enabled', isset( $_POST['_jluxe_delivery_time_enabled'] ) ? 'yes' : 'no' );
 	update_post_meta( $post_id, '_jluxe_product_notice_enabled', isset( $_POST['_jluxe_product_notice_enabled'] ) ? 'yes' : 'no' );
 
