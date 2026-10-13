@@ -2296,8 +2296,11 @@ function jluxe_render_payment_submit(): void {
 
 		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 
-		<div class="mt-4">
-			<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-button font-normal text-primary-foreground transition-colors hover:bg-primary-hover" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
+		<div class="jluxe-checkout-place-order-row jluxe-checkout-action-row">
+			<button type="button" data-jluxe-checkout-back hidden class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">بازگشت</button>
+			<div class="jluxe-checkout-place-order-slot">
+				<?php echo apply_filters( 'woocommerce_order_button_html', '<button type="submit" class="jluxe-checkout-action-button jluxe-checkout-action-button--primary" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>' ); // @codingStandardsIgnoreLine ?>
+			</div>
 		</div>
 
 		<?php do_action( 'woocommerce_review_order_after_submit' ); ?>
@@ -2463,7 +2466,8 @@ function jluxe_billing_fields( array $fields ): array {
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
 		$fields['billing']['billing_postcode']['priority']    = 27;
-		$fields['billing']['billing_postcode']['placeholder'] = 'درج کد پستی برای ارسال با پست الزامی است';
+		$fields['billing']['billing_postcode']['required']    = false;
+		$fields['billing']['billing_postcode']['placeholder'] = '';
 	}
 
 	if ( isset( $fields['billing']['billing_phone'] ) ) {
@@ -2514,6 +2518,29 @@ function jluxe_billing_fields( array $fields ): array {
 
 	return $fields;
 }
+
+/**
+ * کد پستی در چک‌اوت به‌تنهایی اجباری نیست؛ ممکن است بعضی تنظیمات فروشگاه
+ * یا افزونه‌های آدرس این فیلد را دوباره required کنند، پس این فیلترِ دیرتر
+ * مقدار نهاییِ billing و shipping را اختیاری می‌کند. یادداشت زیر فیلد فقط
+ * اطلاع می‌دهد که برای روش ارسال پستی واردکردن کد لازم است؛ validation یا
+ * گیت جدیدی به انتخاب/ثبت سفارش اضافه نمی‌شود.
+ */
+function jluxe_optional_checkout_postcodes( array $fields ): array {
+	$description = 'برای ارسال پستی، وارد کردن کد پستی الزامی است.';
+	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
+		$key = $address_type . '_postcode';
+		if ( ! isset( $fields[ $address_type ][ $key ] ) ) {
+			continue;
+		}
+		$fields[ $address_type ][ $key ]['required']     = false;
+		$fields[ $address_type ][ $key ]['placeholder']  = '';
+		$fields[ $address_type ][ $key ]['description']  = $description;
+		$fields[ $address_type ][ $key ]['desc_tip']     = false;
+	}
+	return $fields;
+}
+add_filter( 'woocommerce_checkout_fields', 'jluxe_optional_checkout_postcodes', 999 );
 
 /**
  * باگِ واقعیِ گزارش‌شده (پیدا شده با تستِ زنده): تنظیم کردنِ 'type' => 'hidden'

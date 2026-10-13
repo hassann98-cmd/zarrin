@@ -20,7 +20,7 @@ jluxe_render_checkout_stepper( 'cart' );
 			<?php do_action( 'woocommerce_cart_is_empty' ); ?>
 		</div>
 		<?php if ( wc_get_page_id( 'shop' ) > 0 ) : ?>
-			<a class="mt-2 flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground transition-colors hover:bg-primary-hover" href="<?php echo esc_url( apply_filters( 'woocommerce_return_to_shop_redirect', jluxe_shop_url() ) ); ?>">
+			<a class="mt-2 jluxe-checkout-action-button jluxe-checkout-action-button--primary" href="<?php echo esc_url( apply_filters( 'woocommerce_return_to_shop_redirect', jluxe_shop_url() ) ); ?>">
 				بازگشت به فروشگاه
 			</a>
 		<?php endif; ?>

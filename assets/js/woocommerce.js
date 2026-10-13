@@ -3551,6 +3551,9 @@ function jluxeEnhanceShopSort(root) {
 		if (paymentSubmit) {
 			paymentSubmit.hidden = showShipping;
 		}
+		if (actions) {
+			actions.hidden = !showShipping;
+		}
 	}
 
 	function hasShippingMethodSelected() {
@@ -3599,19 +3602,14 @@ function jluxeEnhanceShopSort(root) {
 	 * جابه‌جاییِ مرحله همیشه این ناحیه رو در دیدِ کاربر می‌آره.
 	 */
 	var actions = document.createElement("div");
-	actions.className = "jluxe-checkout-step-actions mt-4 flex flex-col gap-2.5";
+	actions.className = "jluxe-checkout-step-actions jluxe-checkout-action-row";
 	actions.innerHTML =
-		/*
-		 * برچسبِ «نهایی‌سازی سفارش» طبقِ مرجعِ تصویریِ جدیدِ کاربر برای دکمه‌ی
-		 * ادامه‌ی مرحله‌ی «اطلاعات ارسال» (قبلاً «ادامه» بود).
-		 */
-		'<button type="button" data-jluxe-checkout-next class="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-button font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.98]">نهایی‌سازی سفارش</button>' +
-		'<a href="' + wcCartUrl + '" data-jluxe-checkout-to-cart class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت به سبد خرید</a>' +
-		'<button type="button" data-jluxe-checkout-back hidden class="flex h-11 w-full items-center justify-center rounded-xl border border-border text-button font-medium text-foreground transition-colors hover:bg-muted">بازگشت</button>';
+		'<a href="' + wcCartUrl + '" data-jluxe-checkout-to-cart class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">بازگشت به سبد خرید</a>' +
+		'<button type="button" data-jluxe-checkout-next class="jluxe-checkout-action-button jluxe-checkout-action-button--primary">نهایی‌سازی سفارش</button>';
 	orderReview.insertAdjacentElement("afterend", actions);
 	var nextBtn = actions.querySelector("[data-jluxe-checkout-next]");
 	var toCartBtn = actions.querySelector("[data-jluxe-checkout-to-cart]");
-	var backBtn = actions.querySelector("[data-jluxe-checkout-back]");
+	var paymentBackBtn = document.querySelector("#jluxe-payment-submit [data-jluxe-checkout-back]");
 
 	function goToPayment() {
 		currentStep = "payment";
@@ -3620,7 +3618,9 @@ function jluxeEnhanceShopSort(root) {
 		applyStepVisibility();
 		nextBtn.hidden = true;
 		toCartBtn.hidden = true;
-		backBtn.hidden = false;
+		if (paymentBackBtn) {
+			paymentBackBtn.hidden = false;
+		}
 		actions.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 
@@ -3631,7 +3631,9 @@ function jluxeEnhanceShopSort(root) {
 		applyStepVisibility();
 		nextBtn.hidden = false;
 		toCartBtn.hidden = false;
-		backBtn.hidden = true;
+		if (paymentBackBtn) {
+			paymentBackBtn.hidden = true;
+		}
 		toggleError('[data-jluxe-payment-error]', false);
 		actions.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
@@ -3697,7 +3699,9 @@ function jluxeEnhanceShopSort(root) {
 		toggleError('[data-jluxe-shipping-error]', false);
 		goToPayment();
 	});
-	backBtn.addEventListener("click", goToShipping);
+	if (paymentBackBtn) {
+		paymentBackBtn.addEventListener("click", goToShipping);
+	}
 
 	// وقتی کاربر خودش یک روشِ ارسال رو انتخاب کرد، پیغامِ خطا (اگه نشون
 	// داده شده بود) خودکار مخفی می‌شه — کاربر مجبور نیست دوباره «ادامه»

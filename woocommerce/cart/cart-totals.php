@@ -87,20 +87,20 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php do_action( 'woocommerce_cart_totals_after_order_total' ); ?>
 
-	<div class="jluxe-cart-actions sticky bottom-0 z-10 -mx-5 -mb-5 flex flex-col gap-2.5 border-t border-border bg-surface p-4 sm:static sm:z-auto sm:m-0 sm:border-0 sm:p-0">
-		<div class="jluxe-checkout-btn-wrap w-full">
-			<?php do_action( 'woocommerce_proceed_to_checkout' ); ?>
-		</div>
+	<div class="jluxe-cart-actions jluxe-checkout-action-row">
 		<?php
 		/*
 		 * طبق درخواست صریح کاربر («بازگشت به فروشگاه که باید بره صفحه
 		 * اصلی») این دکمه به صفحه‌ی اصلی سایت می‌ره، نه صفحه‌ی فروشگاه.
 		 */
 		?>
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="flex h-12 w-full items-center justify-center gap-1.5 rounded-lg border border-border px-5 text-button font-normal text-foreground transition-colors hover:bg-muted">
+		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">
 			<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
 			بازگشت به فروشگاه
 		</a>
+		<div class="jluxe-checkout-btn-wrap">
+			<?php do_action( 'woocommerce_proceed_to_checkout' ); ?>
+		</div>
 	</div>
 
 	<?php do_action( 'woocommerce_after_cart_totals' ); ?>

@@ -495,6 +495,12 @@ try {
       !/data-jluxe-city-select|disabled="disabled"/.test(cityField) &&
       /<option\b[^>]*value=""[^>]*>(?:ابتدا استان را انتخاب کنید|انتخاب شهرستان)<\/option>/.test(citySelect);
     const cityIsRequired = /<p\b(?=[^>]*\bid="billing_city_field")(?=[^>]*\bclass="[^"]*\bvalidate-required)[^>]*>/.test(response.text);
+    const billingPostcodeRow = response.text.match(/<p\b(?=[^>]*\bid="billing_postcode_field")[^>]*>[\s\S]*?<\/p>/)?.[0] || "";
+    const billingPostcodeRowTag = billingPostcodeRow.match(/<p\b[^>]*>/)?.[0] || "";
+    const billingPostcodeInput = billingPostcodeRow.match(/<input\b(?=[^>]*\bid="billing_postcode")[^>]*>/)?.[0] || "";
+    const billingPostcodeOptional = !!billingPostcodeRow &&
+      !/\bvalidate-required\b/.test(billingPostcodeRowTag) && !/aria-required="true"/.test(billingPostcodeInput);
+    const billingPostcodeGuide = billingPostcodeRow.includes("برای ارسال پستی، وارد کردن کد پستی الزامی است.");
     const legacyCityMapLoaded = response.text.includes('"iranCities"') && response.text.includes('"KRH"');
     const checkoutAddressDataRemoved = !response.text.includes('checkoutAddressData');
     const cityLabelPayloadRemoved = !response.text.includes('jluxe_billing_city_label');
@@ -508,14 +514,14 @@ try {
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; cityMap=${legacyCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodeGuide=${billingPostcodeGuide}; cityMap=${legacyCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
         response.text.includes("payment_method") && cityIsV1758Select && cityIsRequired && cityOptionCount >= 1 && stateOptionCount >= 2 &&
         legacyCityMapLoaded && checkoutAddressDataRemoved && cityLabelPayloadRemoved && baselineProgress &&
-        shipsToBillingByDefault && hiddenShippingRecipientIsRequired && hasPlaceOrderButton && hasCheckoutNonce,
-      `The real classic checkout renders the v1.7.58 payment flow and required dependent city select while retaining WooCommerce's actual gateway, order button and nonce (${checkoutDiagnostic})`,
+        billingPostcodeOptional && billingPostcodeGuide && shipsToBillingByDefault && hiddenShippingRecipientIsRequired && hasPlaceOrderButton && hasCheckoutNonce,
+      `The real classic checkout renders the required dependent city, optional postcode guidance, WooCommerce gateway, order button and nonce (${checkoutDiagnostic})`,
     );
 
     const coreCityValidation = await phpJson(`
@@ -535,7 +541,7 @@ try {
         'billing_last_name'=>'Customer',
         'billing_phone'=>'09120000000',
         'billing_address_1'=>'10 Integration Road',
-        'billing_postcode'=>'1234567890'
+        'billing_postcode'=>''
       );
       $fieldsProperty->setValue($checkout,null);
       $emptyFields=$checkout->get_checkout_fields();
@@ -548,6 +554,8 @@ try {
       $fieldsProperty->setValue($checkout,null);
       $cityFields=$checkout->get_checkout_fields();
       $cityOptions=$cityFields['billing']['billing_city']['options']??array();
+      $billingPostcodeField=$emptyFields['billing']['billing_postcode']??array();
+      $shippingPostcodeField=$emptyFields['shipping']['shipping_postcode']??array();
       $posted=$checkout->get_posted_data();
       $errors=new WP_Error();
       $args=array(&$posted,&$errors);
@@ -560,6 +568,11 @@ try {
         'emptyCityRemainsEmpty'=>($emptyPosted['billing_city']??'')==='',
         'postedCityOptionAdded'=>isset($cityOptions['Test City'])&&$cityOptions['Test City']==='Test City',
         'nonemptyCityError'=>in_array('billing_city_required',$validCodes,true),
+        'postcodeRequired'=>!empty($billingPostcodeField['required']),
+        'postcodeDescription'=>$billingPostcodeField['description']??'',
+        'emptyPostcodeError'=>in_array('billing_postcode_required',$emptyCodes,true),
+        'shippingPostcodeRequired'=>!empty($shippingPostcodeField['required']),
+        'shippingPostcodeDescription'=>$shippingPostcodeField['description']??'',
         'noCustomProvinceMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$validCodes,true)
       );
       $fieldsProperty->setValue($checkout,null);
@@ -570,8 +583,12 @@ try {
       coreCityValidation.type === "select" && coreCityValidation.required &&
         coreCityValidation.emptyCityError && coreCityValidation.emptyCityRemainsEmpty &&
         coreCityValidation.postedCityOptionAdded && !coreCityValidation.nonemptyCityError &&
+        !coreCityValidation.postcodeRequired && !coreCityValidation.emptyPostcodeError &&
+        coreCityValidation.postcodeDescription === "برای ارسال پستی، وارد کردن کد پستی الزامی است." &&
+        !coreCityValidation.shippingPostcodeRequired &&
+        coreCityValidation.shippingPostcodeDescription === "برای ارسال پستی، وارد کردن کد پستی الزامی است." &&
         coreCityValidation.noCustomProvinceMismatch,
-      `Real WooCommerce required-city validation rejects an actually empty billing_city without filling it from UI text and accepts the selected v1.7.58 city option (${JSON.stringify(coreCityValidation)})`,
+      `Real WooCommerce keeps billing/shipping postcode optional with postal-shipping guidance while still enforcing the dependent city (${JSON.stringify(coreCityValidation)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";

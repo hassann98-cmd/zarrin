@@ -69,7 +69,7 @@ defined( 'ABSPATH' ) || exit;
 		 * پرداخت باید فقط پرداخت رو نشون بده، نه روش ارسال رو هم کنارش).
 		 */
 		?>
-		<div id="jluxe-shipping-section" class="border-t border-border pt-3">
+		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping">
 			<p class="mb-3 text-small font-medium text-foreground">روش ارسال را انتخاب کنید</p>
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 			<?php wc_cart_totals_shipping_html(); ?>

@@ -32,9 +32,9 @@ $calculator_text          = '';
 ?>
 <div class="jluxe-shipping-methods">
 	<?php if ( ! empty( $available_methods ) && is_array( $available_methods ) ) : ?>
-		<ul id="shipping_method" class="flex flex-col gap-2">
+		<ul id="shipping_method" class="jluxe-shipping-method-list">
 			<?php foreach ( $available_methods as $method ) : ?>
-				<li>
+				<li class="jluxe-shipping-method-item">
 					<?php
 					$input_id = 'shipping_method_' . $index . '_' . sanitize_title( $method->id );
 					printf(
@@ -44,10 +44,14 @@ $calculator_text          = '';
 						esc_attr( $method->id )
 					);
 					?>
-					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card flex cursor-pointer items-center justify-between gap-2 rounded-2xl p-3 text-start transition-colors hover:bg-muted">
-						<span class="text-small font-medium text-foreground"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
-						<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="jluxe-check-on hidden shrink-0 text-success" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
-						<span class="jluxe-check-off block size-5 shrink-0 rounded-full border-2 border-border"></span>
+					<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card">
+						<span class="jluxe-shipping-card__details">
+							<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
+						</span>
+						<span class="jluxe-shipping-card__status" aria-hidden="true">
+							<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="jluxe-check-on hidden shrink-0 text-success"><polyline points="20 6 9 17 4 12"></polyline></svg>
+							<span class="jluxe-check-off rounded-full border-2 border-border"></span>
+						</span>
 					</label>
 					<?php do_action( 'woocommerce_after_shipping_rate', $method, $index ); ?>
 				</li>

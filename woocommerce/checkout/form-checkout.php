@@ -26,8 +26,8 @@ jluxe_render_checkout_stepper( 'shipping' );
 	<noscript><p class="woocommerce-error" role="alert">برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد. <a href="<?php echo esc_url( wc_get_cart_url() ); ?>">بازگشت به سبد خرید</a></p></noscript>
 	<form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
 
-		<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
-			<div>
+		<div class="jluxe-checkout-layout grid gap-6 lg:grid-cols-[1fr_320px]">
+			<div class="jluxe-checkout-panel">
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
@@ -54,15 +54,15 @@ jluxe_render_checkout_stepper( 'shipping' );
 				 * مراجعه بشه).
 				 */
 				?>
-				<div id="jluxe-payment-column" class="rounded-2xl border border-border p-5" hidden>
+				<div id="jluxe-payment-column" hidden>
 					<?php woocommerce_checkout_payment(); ?>
 				</div>
 			</div>
 
-			<div class="flex h-fit flex-col gap-3 rounded-2xl border border-border p-5 lg:sticky lg:top-24">
+			<div class="jluxe-checkout-summary flex h-fit flex-col lg:sticky lg:top-24">
 				<?php do_action( 'woocommerce_checkout_before_order_review_heading' ); ?>
 
-				<p class="text-small font-medium text-foreground">خلاصه سفارش</p>
+				<p class="jluxe-checkout-summary-title">خلاصه سفارش</p>
 
 				<?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
 

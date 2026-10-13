@@ -6265,6 +6265,64 @@ check(
 	'R275 mobile RTL cart removal is ordered to the left without changing cart or shipping interactions'
 );
 
+// R276 — optional postal codes, explicit postal-shipping guidance, shared responsive actions, and tidy shipping-rate cards.
+$r276_postcode_description = 'برای ارسال پستی، وارد کردن کد پستی الزامی است.';
+$r276_postcode_fields = jluxe_optional_checkout_postcodes(
+	array(
+		'billing' => array(
+			'billing_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true ),
+			'billing_city'     => array( 'required' => true ),
+		),
+		'shipping' => array(
+			'shipping_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true ),
+		),
+	)
+);
+check(
+	false === $r276_postcode_fields['billing']['billing_postcode']['required'] &&
+	false === $r276_postcode_fields['shipping']['shipping_postcode']['required'] &&
+	'' === $r276_postcode_fields['billing']['billing_postcode']['placeholder'] &&
+	'' === $r276_postcode_fields['shipping']['shipping_postcode']['placeholder'] &&
+	$r276_postcode_description === $r276_postcode_fields['billing']['billing_postcode']['description'] &&
+	$r276_postcode_description === $r276_postcode_fields['shipping']['shipping_postcode']['description'] &&
+	false === $r276_postcode_fields['billing']['billing_postcode']['desc_tip'] &&
+	true === $r276_postcode_fields['billing']['billing_city']['required'],
+	'R276 postcode stays optional for billing/shipping, shows postal-service guidance inline, and leaves other field requirements intact'
+);
+$r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r276_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
+$r276_cart_totals = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-totals.php' );
+$r276_checkout_submit = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r276_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+$r276_shipping_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
+$r276_proceed_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/proceed-to-checkout-button.php' );
+check(
+	false !== strpos( $r276_checkout_css, '.jluxe-checkout-action-row {' ) &&
+	false !== strpos( $r276_checkout_css, 'flex-direction: row;' ) &&
+	false !== strpos( $r276_checkout_css, 'direction: rtl;' ) &&
+	false !== strpos( $r276_checkout_css, 'padding-inline-start: max(0.75rem, env(safe-area-inset-right, 0px));' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout :is(#billing_postcode_field, #shipping_postcode_field) .description {' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout #shipping_method.jluxe-shipping-method-list {' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .jluxe-shipping-card {' ) &&
+	false !== strpos( $r276_checkout_css, 'display: flex;' ) &&
+	false === strpos( $r276_checkout_css, 'grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);' ),
+	'R276 checkout action bars are mobile-flex/RTL with safe-area padding, and postcode notes/shipping rates receive their responsive presentation'
+);
+check(
+	false !== strpos( $r276_cart_totals, 'jluxe-cart-actions jluxe-checkout-action-row' ) &&
+	strpos( $r276_cart_totals, 'jluxe-checkout-action-button--secondary' ) < strpos( $r276_cart_totals, "do_action( 'woocommerce_proceed_to_checkout' )" ) &&
+	false !== strpos( $r276_proceed_template, 'jluxe-checkout-action-button--primary' ) &&
+	false !== strpos( $r276_checkout_submit, 'jluxe-checkout-place-order-row jluxe-checkout-action-row' ) &&
+	strpos( $r276_checkout_submit, 'data-jluxe-checkout-back' ) < strpos( $r276_checkout_submit, 'jluxe-checkout-place-order-slot' ) &&
+	false !== strpos( $r276_checkout_submit, 'name="woocommerce_checkout_place_order" id="place_order"' ) &&
+	false !== strpos( $r276_checkout_form, 'class="jluxe-checkout-layout grid' ) &&
+	false !== strpos( $r276_checkout_js, 'actions.hidden = !showShipping;' ) &&
+	false !== strpos( $r276_shipping_template, 'name="shipping_method[%1$d]"' ) &&
+	false !== strpos( $r276_shipping_template, "do_action( 'woocommerce_after_shipping_rate'" ) &&
+	false !== strpos( $r276_shipping_template, '$method, $index' ),
+	'R276 cart/checkout actions preserve right-to-left return order while real WooCommerce place-order, nonce, shipping radio and hooks stay intact'
+);
+
 $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' );
 check(
 	false !== strpos( $r210_thankyou_source, 'get_formatted_line_subtotal( $jluxe_ty_item )' ) && false === strpos( $r210_thankyou_source, 'jluxe_ty_toman_svg' ) && false === strpos( $r210_thankyou_source, 'کد پیگیری از طریق پیامک ارسال می‌شه' ),

@@ -6,6 +6,10 @@ import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
 const cartTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart.php", import.meta.url), "utf8");
+const cartTotalsTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-totals.php", import.meta.url), "utf8");
+const checkoutTemplate = fs.readFileSync(new URL("../woocommerce/checkout/form-checkout.php", import.meta.url), "utf8");
+const shippingTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-shipping.php", import.meta.url), "utf8");
+const paymentSource = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
 const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 
 function extractDocumentedIife(markerText, endMarker) {
@@ -133,7 +137,12 @@ function bootCheckout({
         <div id="jluxe-payment-submit" hidden>
           <div class="form-row place-order mt-4">
             <label><input id="terms" type="checkbox" name="terms" value="1"> شرایط را می‌پذیرم</label>
-            <button id="place_order" name="woocommerce_checkout_place_order" type="submit">ثبت سفارش</button>
+            <div class="jluxe-checkout-place-order-row jluxe-checkout-action-row">
+              <button type="button" data-jluxe-checkout-back hidden class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">بازگشت</button>
+              <div class="jluxe-checkout-place-order-slot">
+                <button id="place_order" name="woocommerce_checkout_place_order" type="submit" class="jluxe-checkout-action-button jluxe-checkout-action-button--primary">ثبت سفارش</button>
+              </div>
+            </div>
             <input type="hidden" name="woocommerce-process-checkout-nonce" value="test-nonce">
           </div>
         </div>
@@ -185,6 +194,46 @@ test("cart product removal is ordered to the left in the RTL mobile product row"
   assert.match(cartTemplate, /class="flex items-center gap-3" data-title="محصول"/);
   assert.match(storefrontStyles, /body\.woocommerce-cart \.jluxe-remove-item\s*\{\s*order:\s*9999;/);
   assert.match(storefrontStyles, /html\s*\{\s*direction:\s*rtl;/);
+});
+
+test("cart and checkout action rows share responsive RTL buttons with return on the right", () => {
+  const actionRow = storefrontStyles.match(/\.jluxe-checkout-action-row\s*\{([^}]+)\}/)?.[1] || "";
+  assert.match(actionRow, /display:\s*flex/);
+  assert.match(actionRow, /flex-direction:\s*row/);
+  assert.match(actionRow, /direction:\s*rtl/);
+  assert.match(storefrontStyles, /\.jluxe-checkout-action-row\s*>\s*\.jluxe-checkout-action-button,[\s\S]*?flex:\s*1 1 0%/);
+
+  const mobileStart = storefrontStyles.indexOf(
+    "@media (max-width: 767.98px) {\n  body.woocommerce-checkout .jluxe-checkout-layout",
+  );
+  const reducedMotionStart = storefrontStyles.indexOf("@media (prefers-reduced-motion: reduce)", mobileStart);
+  const checkoutMobile = storefrontStyles.slice(mobileStart, reducedMotionStart);
+  assert.ok(mobileStart >= 0 && reducedMotionStart > mobileStart);
+  assert.match(checkoutMobile, /\.jluxe-checkout-place-order-row\s*\{[\s\S]*?display:\s*flex/);
+  assert.doesNotMatch(checkoutMobile, /grid-template-columns:\s*minmax\(0,\s*1\.25fr\)/);
+  assert.match(storefrontStyles, /body\.woocommerce-cart \.cart_totals \.jluxe-cart-actions \.jluxe-checkout-btn-wrap \.checkout-button \{/);
+
+  const cartActions = cartTotalsTemplate.match(/<div class="jluxe-cart-actions jluxe-checkout-action-row">([\s\S]*?)<\/div>\s*<\?php do_action\( 'woocommerce_after_cart_totals' \);/i)?.[1] || "";
+  assert.ok(cartActions, "the cart has one shared action row");
+  assert.ok(cartActions.indexOf("jluxe-checkout-action-button--secondary") < cartActions.indexOf("do_action( 'woocommerce_proceed_to_checkout' )"));
+  assert.match(cartActions, /<a href=.*?jluxe-checkout-action-button--secondary/);
+
+  const paymentRow = paymentSource.slice(paymentSource.indexOf("<div class=\"jluxe-checkout-place-order-row jluxe-checkout-action-row\">"));
+  assert.ok(paymentRow.indexOf("data-jluxe-checkout-back") < paymentRow.indexOf("jluxe-checkout-place-order-slot"));
+  assert.ok(paymentRow.indexOf("jluxe-checkout-place-order-slot") < paymentRow.indexOf('name="woocommerce_checkout_place_order"'));
+  assert.match(checkoutTemplate, /class="jluxe-checkout-layout grid/);
+  assert.match(checkoutTemplate, /class="jluxe-checkout-panel"/);
+  assert.match(checkoutTemplate, /class="jluxe-checkout-summary/);
+});
+
+test("shipping method cards keep WooCommerce's real selectable radio and shipping hooks", () => {
+  assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
+  assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" \/>/);
+  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card">/);
+  assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
+  assert.match(storefrontStyles, /\.jluxe-shipping-method-list\s*\{[^}]*flex-direction:\s*column/s);
+  assert.match(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card/);
+  assert.match(storefrontStyles, /input\.shipping_method:focus-visible \+ \.jluxe-shipping-card/);
 });
 
 test("the four checkout stages stay evenly spaced in RTL on mobile and desktop", () => {
@@ -239,6 +288,9 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   const city = document.getElementById("billing_city");
   const shippingError = document.querySelector("[data-jluxe-shipping-error]");
   const next = document.querySelector("[data-jluxe-checkout-next]");
+  const actions = document.querySelector(".jluxe-checkout-step-actions");
+  const paymentBack = document.querySelector("#jluxe-payment-submit [data-jluxe-checkout-back]");
+  const cartBack = document.querySelector("[data-jluxe-checkout-to-cart]");
   const cartStep = document.querySelector('[data-jluxe-step="cart"]');
   const shippingStep = document.querySelector('[data-jluxe-step="shipping"]');
   const paymentStep = document.querySelector('[data-jluxe-step="payment"]');
@@ -247,6 +299,11 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(shippingStep.dataset.jluxeStepState, "active");
   assert.equal(shippingStep.getAttribute("aria-current"), "step");
   assert.equal(paymentStep.dataset.jluxeStepState, "pending");
+  assert.equal(actions.hidden, false, "the shipping action bar starts visible");
+  assert.equal(paymentBack.hidden, true, "the payment-stage back action starts hidden");
+  assert.equal(cartBack.getAttribute("href"), "/basket/");
+  assert.ok(actions.children[0].matches("[data-jluxe-checkout-to-cart]"));
+  assert.ok(actions.children[1].matches("[data-jluxe-checkout-next]"));
 
   next.click();
   assert.equal(activeStep(document), "shipping");
@@ -274,6 +331,8 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(document.getElementById("jluxe-shipping-section").style.display, "none");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, false);
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, false);
+  assert.equal(actions.hidden, true, "the empty shipping action bar is removed while payment is active");
+  assert.equal(paymentBack.hidden, false, "the payment-stage back action appears beside place order");
   assert.ok(scrolls.some((entry) => entry.block === "start"));
 
   // The payment/shipping DOM lives in WooCommerce fragments. The historical
@@ -296,6 +355,8 @@ test("checkout keeps required-city and explicit-shipping checks before the 1.7.5
   assert.equal(document.getElementById("customer_details").style.display, "");
   assert.equal(document.getElementById("jluxe-payment-column").hidden, true);
   assert.equal(document.getElementById("jluxe-payment-submit").hidden, true);
+  assert.equal(actions.hidden, false, "returning to shipping restores the shipping-stage action bar");
+  assert.equal(paymentBack.hidden, true, "the payment-stage back action hides again after returning");
 });
 
 test("no rendered shipping rate follows the v1.7.58 client contract instead of inventing a custom server error", (t) => {
