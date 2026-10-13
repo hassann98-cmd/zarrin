@@ -1,0 +1,207 @@
+<div id="boom_product_faq" class="postbox " role="region" aria-label="سوالات متداول محصول">
+<div class="postbox-header"><h2 class="hndle ui-sortable-handle" id="boom_product_faq-title">سوالات متداول محصول</h2>
+<div class="handle-actions hide-if-no-js"><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به پایین" type="button" class="handle-order-higher wp-tooltip__toggle" aria-describedby="boom_product_faq-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به پایین</span>
+							<span class="order-higher-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handle-order-higher-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handle-order-higher-description-text" class="wp-tooltip__text">انتقال به پایین</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به بالا" type="button" class="handle-order-lower wp-tooltip__toggle" aria-describedby="boom_product_faq-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به بالا</span>
+							<span class="order-lower-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handle-order-lower-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handle-order-lower-description-text" class="wp-tooltip__text">انتقال به بالا</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="نمایش یا پنهان‌سازی پنل" type="button" class="handlediv wp-tooltip__toggle" aria-expanded="true" aria-describedby="boom_product_faq-title">
+							<span class="screen-reader-text">نمایش یا پنهان‌سازی پنل</span>
+							<span class="toggle-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_product_faq-handlediv" class="wp-tooltip__bubble" role="tooltip"><span id="boom_product_faq-handlediv-text" class="wp-tooltip__text">نمایش یا پنهان‌سازی پنل</span></span></span></div></div><div class="inside">
+<input type="hidden" id="boom_product_faq_nonce_field" name="boom_product_faq_nonce_field" value="976108a2ac"><input type="hidden" name="_wp_http_referer" value="/wp-admin/post.php?post=4530&amp;action=edit">    <div id="boom-product-faq-wrapper">
+        <p class="description">سوالات متداول مربوط به این محصول را اضافه کنید. این بخش در صورتی نمایش داده می‌شود که در صفحه‌ساز فعال باشد.</p>
+        
+        <div id="boom-faq-items" class="ui-sortable">
+                                                <div class="boom-faq-item" data-index="0">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 1</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[0][question]" value="این جاظرفی برای چه فضاهایی مناسب است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[0][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">این مدل یک طبقه به دلیل طراحی جمع‌وجورش برای آشپزخانه‌های کوچک و متوسط یا خانواده‌های کم‌جمعیت بسیار مناسب است.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="1">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 2</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[1][question]" value="آب اضافی ظروف چگونه تخلیه می‌شود؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[1][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">این جاظرفی دارای یک سینی کشویی در زیر است که آب را جمع‌آوری کرده و از طریق یک خروجی آبریز با قابلیت چرخش در تمام زوایا، آب به راحتی تخلیه می‌شود.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="2">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 3</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[2][question]" value="ابعاد این جاظرفی چقدر است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[2][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">طول آن 46 سانتی‌متر (با جاقاشقی 51 سانتی‌متر)، عرض 31 سانتی‌متر و ارتفاع 11 سانتی‌متر است.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    <div class="boom-faq-item" data-index="3">
+                        <div class="boom-faq-item-header">
+                            <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                            <strong>سوال 4</strong>
+                            <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                        </div>
+                        <div class="boom-faq-item-content">
+                            <p>
+                                <label>سوال:</label>
+                                <input type="text" name="boom_product_faq[3][question]" value="بسته‌بندی و ارسال این محصول چگونه است؟" class="widefat" placeholder="سوال را وارد کنید...">
+                            </p>
+                            <p>
+                                <label>پاسخ:</label>
+                                <textarea name="boom_product_faq[3][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید...">سفارش شما با بسته‌بندی ایمن و مناسب، در سریع‌ترین زمان ممکن آماده و از طریق روش‌های ارسال متنوع (پست، تیپاکس و چاپار) به سراسر کشور ارسال می‌شود.</textarea>
+                            </p>
+                        </div>
+                    </div>
+                                    </div>
+        
+        <p>
+            <button type="button" class="button button-primary" id="boom-add-faq-item">
+                <span class="dashicons dashicons-plus-alt" style="vertical-align: middle;"></span>
+                افزودن سوال جدید
+            </button>
+        </p>
+    </div>
+    
+    <style>
+        #boom-product-faq-wrapper { padding: 10px 0; }
+        .boom-faq-item {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 0;
+        }
+        .boom-faq-item-header {
+            background: #f1f1f1;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .boom-faq-drag-handle {
+            cursor: move;
+            color: #999;
+        }
+        .boom-faq-item-header strong {
+            flex: 1;
+        }
+        .boom-faq-remove-item {
+            color: #a00 !important;
+            border-color: #a00 !important;
+            padding: 0 8px !important;
+            min-height: 24px !important;
+        }
+        .boom-faq-item-content {
+            padding: 15px;
+        }
+        .boom-faq-item-content label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .boom-faq-item-content p {
+            margin: 0 0 10px 0;
+        }
+        .boom-faq-item-content p:last-child {
+            margin-bottom: 0;
+        }
+        #boom-add-faq-item .dashicons {
+            margin-left: 5px;
+        }
+    </style>
+    
+    <script>
+    jQuery(document).ready(function($) {
+        var faqIndex = 4;
+        
+        // افزودن سوال جدید
+        $('#boom-add-faq-item').on('click', function() {
+            var newItem = `
+                <div class="boom-faq-item" data-index="${faqIndex}">
+                    <div class="boom-faq-item-header">
+                        <span class="boom-faq-drag-handle dashicons dashicons-menu"></span>
+                        <strong>سوال ${faqIndex + 1}</strong>
+                        <button type="button" class="button boom-faq-remove-item" title="حذف">×</button>
+                    </div>
+                    <div class="boom-faq-item-content">
+                        <p>
+                            <label>سوال:</label>
+                            <input type="text" name="boom_product_faq[${faqIndex}][question]" value="" class="widefat" placeholder="سوال را وارد کنید...">
+                        </p>
+                        <p>
+                            <label>پاسخ:</label>
+                            <textarea name="boom_product_faq[${faqIndex}][answer]" class="widefat" rows="3" placeholder="پاسخ را وارد کنید..."></textarea>
+                        </p>
+                    </div>
+                </div>
+            `;
+            $('#boom-faq-items').append(newItem);
+            faqIndex++;
+        });
+        
+        // حذف سوال
+        $(document).on('click', '.boom-faq-remove-item', function() {
+            $(this).closest('.boom-faq-item').slideUp(200, function() {
+                $(this).remove();
+                updateFaqNumbers();
+            });
+        });
+        
+        // بروزرسانی شماره‌گذاری
+        function updateFaqNumbers() {
+            $('#boom-faq-items .boom-faq-item').each(function(index) {
+                $(this).find('.boom-faq-item-header strong').text('سوال ' + (index + 1));
+            });
+        }
+        
+        // Sortable برای drag & drop
+        if (typeof $.fn.sortable !== 'undefined') {
+            $('#boom-faq-items').sortable({
+                handle: '.boom-faq-drag-handle',
+                placeholder: 'boom-faq-placeholder',
+                update: function() {
+                    updateFaqNumbers();
+                }
+            });
+        }
+    });
+    </script>
+    </div>
+</div>

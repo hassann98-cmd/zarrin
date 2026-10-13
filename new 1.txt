@@ -1,0 +1,168 @@
+<div id="boom_advanced_attributes" class="postbox " role="region" aria-label="ویژگی‌های پیشرفته (گروه‌بندی‌شده)">
+<div class="postbox-header"><h2 class="hndle ui-sortable-handle" id="boom_advanced_attributes-title">ویژگی‌های پیشرفته (گروه‌بندی‌شده)</h2>
+<div class="handle-actions hide-if-no-js"><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به پایین" type="button" class="handle-order-higher wp-tooltip__toggle" aria-describedby="boom_advanced_attributes-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به پایین</span>
+							<span class="order-higher-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_advanced_attributes-handle-order-higher-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_advanced_attributes-handle-order-higher-description-text" class="wp-tooltip__text">انتقال به پایین</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="انتقال به بالا" type="button" class="handle-order-lower wp-tooltip__toggle" aria-describedby="boom_advanced_attributes-title" aria-disabled="false">
+							<span class="screen-reader-text">انتقال به بالا</span>
+							<span class="order-lower-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_advanced_attributes-handle-order-lower-description" class="wp-tooltip__bubble" role="tooltip"><span id="boom_advanced_attributes-handle-order-lower-description-text" class="wp-tooltip__text">انتقال به بالا</span></span></span><span class="wp-tooltip wp-is-tooltip">
+				<button aria-label="نمایش یا پنهان‌سازی پنل" type="button" class="handlediv wp-tooltip__toggle" aria-expanded="true" aria-describedby="boom_advanced_attributes-title">
+							<span class="screen-reader-text">نمایش یا پنهان‌سازی پنل</span>
+							<span class="toggle-indicator" aria-hidden="true"></span>
+						</button>
+				<span popover="hint" id="boom_advanced_attributes-handlediv" class="wp-tooltip__bubble" role="tooltip"><span id="boom_advanced_attributes-handlediv-text" class="wp-tooltip__text">نمایش یا پنهان‌سازی پنل</span></span></span></div></div><div class="inside">
+<input type="hidden" id="boom_adv_attr_nonce" name="boom_adv_attr_nonce" value="1ae2258611"><input type="hidden" name="_wp_http_referer" value="/wp-admin/post.php?post=4530&amp;action=edit">    <div class="boom-adv-wrap" style="margin-top:8px;">
+        <p class="description" style="margin-bottom:12px;">
+            مشخصات را در گروه‌های دلخواه سازمان‌دهی کنید. هر گروه یک عنوان دارد و زیر آن ویژگی‌ها (عنوان و مقدار) قرار می‌گیرند.
+            این بخش مستقل از تب «ویژگی‌ها»ی ووکامرس است و در بخش مشخصات محصول به‌صورت گروه‌بندی‌شده نمایش داده می‌شود.
+        </p>
+
+        <input type="hidden" name="boom_adv_attributes_json" id="boom-adv-json" value="W3sidGl0bGUiOiLZhdi02K7Ytdin2Kog2YHZhtuMIiwiaXRlbXMiOlt7ImxhYmVsIjoi2YXYr9mEIiwidmFsdWUiOiLaqdmG2KrYsdin2LPYqiDZiNix2YjZhtinIn0seyJsYWJlbCI6Itis2YbYsyDYqNiv2YbZhyIsInZhbHVlIjoi2b7ZhNin2LPYqtuM2qkgQUJTINiv2LHYrNmHINuM2qnYjCDZhdmC2KfZiNmFINiv2LEg2KjYsdin2KjYsSDZiNiy2YYg2KjYp9mE2KcifSx7ImxhYmVsIjoi2YjbjNqY2q/bjOKAjNmH2KfbjCDYrtin2LUiLCJ2YWx1ZSI6Itiz24zZhtuMINqp2LTZiNuM24wg2KjYpyDYrtix2YjYrNuMINii2KjYsduM2LIg2obYsdiu2LTbjNiMINis2KfZgtin2LTZgtuMINqG2YbYr9qp2KfYsdmH2Iwg2b7Yp9uM2YfigIzZh9in24wg2LPbjNmE24zaqdmI2YbbjCJ9LHsibGFiZWwiOiLYsdmG2q/igIzYqNmG2K/bjCIsInZhbHVlIjoi2LPZgduM2K/YjCDYt9mI2LPbjNiMINi32YjYs9uMINiq24zYsdmH2Iwg2qnYsdmFIn1dfSx7InRpdGxlIjoi2KfYqNi52KfYryDZhdit2LXZiNmEICjYs9in2YbYqtuM4oCM2YXYqtixKSIsIml0ZW1zIjpbeyJsYWJlbCI6Iti32YjZhCAo2KjYr9mI2YYg2KzYp9mC2KfYtNmC24wpIiwidmFsdWUiOiI0NiJ9LHsibGFiZWwiOiLYt9mI2YQgKNio2Kcg2KzYp9mC2KfYtNmC24wpIiwidmFsdWUiOiI1MSJ9LHsibGFiZWwiOiLYudix2LYiLCJ2YWx1ZSI6IjMxIn0seyJsYWJlbCI6Itin2LHYqtmB2KfYuSIsInZhbHVlIjoiMTEifV19XQ==">
+        <div id="boom-adv-groups"><div class="boom-adv-group"><div class="boom-adv-group-head"><input type="text" placeholder="عنوان گروه (مثلاً: حافظه داخلی)"><button type="button" class="button boom-adv-btn-danger">حذف گروه</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><button type="button" class="button">افزودن ویژگی</button></div><div class="boom-adv-group"><div class="boom-adv-group-head"><input type="text" placeholder="عنوان گروه (مثلاً: حافظه داخلی)"><button type="button" class="button boom-adv-btn-danger">حذف گروه</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><div class="boom-adv-item"><div class="boom-adv-icon-wrap"><textarea class="boom-adv-icon" rows="1" placeholder="آیکون (SVG / اموجی / لینک) - اختیاری"></textarea><div class="boom-adv-icon-preview"></div></div><input type="text" placeholder="عنوان ویژگی (مثلاً: اس اس دی)"><input type="text" placeholder="مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)"><button type="button" class="boom-adv-btn-danger">×</button></div><button type="button" class="button">افزودن ویژگی</button></div></div>
+
+        <button type="button" class="button button-primary" id="boom-adv-add-group" style="margin-top:8px;">افزودن گروه</button>
+    </div>
+
+    <style>
+        .boom-adv-group { border:1px solid #dcdcde; border-radius:8px; padding:14px; margin-bottom:14px; background:#fff; }
+        .boom-adv-group-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+        .boom-adv-group-head input { flex:1; font-weight:600; }
+        .boom-adv-item { display:grid; grid-template-columns:150px 1fr 1fr 34px; gap:8px; margin-bottom:8px; align-items:start; }
+        .boom-adv-item input, .boom-adv-item textarea { width:100%; }
+        .boom-adv-item textarea.boom-adv-icon { min-height:34px; resize:vertical; font-family:monospace; font-size:11px; direction:ltr; }
+        .boom-adv-icon-wrap { display:flex; flex-direction:column; gap:4px; }
+        .boom-adv-icon-preview { display:flex; align-items:center; justify-content:center; height:26px; color:#2271b1; }
+        .boom-adv-icon-preview svg, .boom-adv-icon-preview img { max-height:24px; max-width:24px; }
+        .boom-adv-btn-danger { background:#fce8e8; border:1px solid #f0b4b4; color:#b32d2e; border-radius:6px; cursor:pointer; height:34px; }
+        .boom-adv-btn-danger:hover { background:#f8d7d7; }
+    </style>
+
+    <script>
+        (function() {
+            var input = document.getElementById('boom-adv-json');
+            var wrap = document.getElementById('boom-adv-groups');
+
+            // کدگذاری/کدگشایی base64 با پشتیبانی UTF-8 (فارسی)
+            function b64Encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+            function b64Decode(str) { return decodeURIComponent(escape(atob(str))); }
+
+            function parseInit(v) {
+                v = v || '';
+                if (!v) return [];
+                // ابتدا base64
+                try { var d = JSON.parse(b64Decode(v)); if (Array.isArray(d)) return d; } catch (e) {}
+                // سازگاری با نسخه‌ی قبلی (JSON خام)
+                try { var d2 = JSON.parse(v); if (Array.isArray(d2)) return d2; } catch (e) {}
+                return [];
+            }
+
+            var data = parseInit(input.value);
+
+            function sync() {
+                input.value = b64Encode(JSON.stringify(data));
+            }
+            // فیلد مخفی را از همان ابتدا با base64 هماهنگ کن
+            sync();
+
+            function render() {
+                wrap.innerHTML = '';
+                data.forEach(function(group, gi) {
+                    var g = document.createElement('div');
+                    g.className = 'boom-adv-group';
+
+                    var head = document.createElement('div');
+                    head.className = 'boom-adv-group-head';
+                    var gTitle = document.createElement('input');
+                    gTitle.type = 'text';
+                    gTitle.placeholder = 'عنوان گروه (مثلاً: حافظه داخلی)';
+                    gTitle.value = group.title || '';
+                    gTitle.addEventListener('input', function() { data[gi].title = gTitle.value; sync(); });
+                    var gDel = document.createElement('button');
+                    gDel.type = 'button';
+                    gDel.className = 'button boom-adv-btn-danger';
+                    gDel.textContent = 'حذف گروه';
+                    gDel.addEventListener('click', function() { data.splice(gi, 1); render(); sync(); });
+                    head.appendChild(gTitle);
+                    head.appendChild(gDel);
+                    g.appendChild(head);
+
+                    (group.items || []).forEach(function(item, ii) {
+                        var row = document.createElement('div');
+                        row.className = 'boom-adv-item';
+
+                        // آیکون (SVG / اموجی / لینک تصویر) - اختیاری
+                        var iconWrap = document.createElement('div');
+                        iconWrap.className = 'boom-adv-icon-wrap';
+                        var preview = document.createElement('div');
+                        preview.className = 'boom-adv-icon-preview';
+                        var updatePreview = function(v) {
+                            v = (v || '').trim();
+                            if (!v) { preview.innerHTML = ''; return; }
+                            if (/^https?:\/\//i.test(v) || /\.(png|jpe?g|webp|svg|gif)$/i.test(v)) {
+                                preview.innerHTML = '<img src="' + v.replace(/"/g, '&quot;') + '" alt="" />';
+                            } else {
+                                preview.innerHTML = v; // SVG یا اموجی
+                            }
+                        };
+                        var icon = document.createElement('textarea');
+                        icon.className = 'boom-adv-icon';
+                        icon.rows = 1;
+                        icon.placeholder = 'آیکون (SVG / اموجی / لینک) - اختیاری';
+                        icon.value = item.icon || '';
+                        icon.addEventListener('input', function() { data[gi].items[ii].icon = icon.value; updatePreview(icon.value); sync(); });
+                        updatePreview(icon.value);
+                        iconWrap.appendChild(icon);
+                        iconWrap.appendChild(preview);
+
+                        var label = document.createElement('input');
+                        label.type = 'text';
+                        label.placeholder = 'عنوان ویژگی (مثلاً: اس اس دی)';
+                        label.value = item.label || '';
+                        label.addEventListener('input', function() { data[gi].items[ii].label = label.value; sync(); });
+                        var value = document.createElement('input');
+                        value.type = 'text';
+                        value.placeholder = 'مقدار (مثلاً: ۵۰۰ گیگ سامسونگ)';
+                        value.value = item.value || '';
+                        value.addEventListener('input', function() { data[gi].items[ii].value = value.value; sync(); });
+                        var del = document.createElement('button');
+                        del.type = 'button';
+                        del.className = 'boom-adv-btn-danger';
+                        del.textContent = '×';
+                        del.addEventListener('click', function() { data[gi].items.splice(ii, 1); render(); sync(); });
+                        row.appendChild(iconWrap);
+                        row.appendChild(label);
+                        row.appendChild(value);
+                        row.appendChild(del);
+                        g.appendChild(row);
+                    });
+
+                    var addItem = document.createElement('button');
+                    addItem.type = 'button';
+                    addItem.className = 'button';
+                    addItem.textContent = 'افزودن ویژگی';
+                    addItem.addEventListener('click', function() {
+                        if (!data[gi].items) data[gi].items = [];
+                        data[gi].items.push({ label: '', value: '' });
+                        render(); sync();
+                    });
+                    g.appendChild(addItem);
+
+                    wrap.appendChild(g);
+                });
+            }
+
+            document.getElementById('boom-adv-add-group').addEventListener('click', function() {
+                data.push({ title: '', items: [{ label: '', value: '' }] });
+                render(); sync();
+            });
+
+            render();
+        })();
+    </script>
+</div>
+</div>
