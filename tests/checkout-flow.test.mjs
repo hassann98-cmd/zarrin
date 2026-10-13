@@ -559,7 +559,7 @@ test("numeric city IDs retain their option label and are enabled/canonicalized f
   assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "اختیارآباد");
 });
 
-test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and before WooCommerce serializes checkout", (t) => {
+test("a visible Select2 city label restores an empty native select only for the selected province", (t) => {
   const { window } = boot({
     locationFields: true,
     shippingChecked: true,
@@ -569,45 +569,97 @@ test("R255 re-syncs a valid 2352/2356 city after the selected gateway hook and b
   });
   t.after(() => window.close());
   const { document } = window;
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  const decoyCity = document.querySelector('select[data-jluxe-city-select]:not(#billing_city)');
+  assert.equal(decoyCity.options.length, 1, "a hidden duplicate city control remains untouched");
+  const renderedSelect2 = document.createElement("span");
+  renderedSelect2.className = "select2-container";
+  renderedSelect2.innerHTML = '<span class="selection"><span class="select2-selection"><span class="select2-selection__rendered" title="بیستون">بیستون</span></span></span>';
+  city.insertAdjacentElement("afterend", renderedSelect2);
+
+  // Reproduce a stale Select2 display after another script cleared and disabled
+  // the native field without emitting Select2's change event.
+  city.value = "";
+  city.disabled = true;
+  document.querySelector("[data-jluxe-checkout-next]").click();
+
+  assert.equal(state.value, "2352");
+  assert.equal(currentStep(document), "payment", "the displayed city is recovered only after same-province canonical matching");
+  assert.equal(city.value, "بیستون");
+  assert.equal(city.disabled, false, "the required native control is enabled for WooCommerce serialization");
+  assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), "بیستون");
+  assert.equal(document.querySelector("[data-jluxe-city-label-payload]").value, "بیستون");
+});
+
+test("an empty native city with a foreign Select2 label remains invalid", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2356", label: "بیستون" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
+  const city = document.getElementById("billing_city");
+  const renderedSelect2 = document.createElement("span");
+  renderedSelect2.className = "select2-container";
+  renderedSelect2.innerHTML = '<span class="selection"><span class="select2-selection"><span class="select2-selection__rendered" title="اختیارآباد">اختیارآباد</span></span></span>';
+  city.insertAdjacentElement("afterend", renderedSelect2);
+  city.value = "";
+  city.disabled = true;
+  document.querySelector("[data-jluxe-checkout-next]").click();
+
+  assert.equal(currentStep(document), "shipping", "a city canonical to another province cannot pass the required-field gate");
+  assert.equal(city.value, "");
+  assert.equal(new window.FormData(document.querySelector("form.checkout")).get("billing_city"), null);
+});
+
+test("WooCommerce gateway hooks remain untouched and the validated city label stays available for server recovery", (t) => {
+  const { window } = boot({
+    locationFields: true,
+    shippingChecked: true,
+    initialState: "2352",
+    initialCity: { value: "2356", label: "بیستون" },
+  });
+  t.after(() => window.close());
+  const { document } = window;
   const form = document.querySelector("form.checkout");
   const state = document.getElementById("billing_state");
   const city = document.getElementById("billing_city");
   const gateway = document.querySelector("input.payment_method");
   gateway.value = "WC_Pec_Gateway";
   gateway.checked = true;
-
-  assert.equal(state.value, "2352");
-  assert.equal(city.value, "بیستون", "the numeric city option is canonicalized from its real label for Kermanshah");
-  const decoyCity = form.querySelector('select[data-jluxe-city-select]:not(#billing_city)');
-  assert.equal(decoyCity.options.length, 1, "a hidden duplicate marked city field earlier in the form is not treated as billing_city");
-  const cityLabel = form.querySelector('[name="jluxe_billing_city_label"]');
-  assert.equal(cityLabel.value, "بیستون", "the server helper mirrors the selected option label");
   document.querySelector("[data-jluxe-checkout-next]").click();
   assert.equal(currentStep(document), "payment");
+  assert.equal(document.querySelector("[data-jluxe-city-label-payload]").value, "بیستون");
 
-  let gatewayCallbackRan = false;
+  let genericGatewayHookRan = false;
+  let gatewayHookRan = false;
+  window.jQuery(form).on("checkout_place_order", () => {
+    genericGatewayHookRan = true;
+  });
   window.jQuery(form).on("checkout_place_order_WC_Pec_Gateway", () => {
-    gatewayCallbackRan = true;
+    gatewayHookRan = true;
     city.value = "";
     city.disabled = true;
   });
 
   const submit = submitWithoutCreatingAnOrder(window);
-  assert.equal(submit.event.defaultPrevented, false, "the valid pre-submit form reaches WooCommerce's checkout handler");
+  assert.equal(submit.event.defaultPrevented, false, "the theme's pre-submit checks leave a valid checkout to WooCommerce");
   const $form = window.jQuery(form);
   assert.notEqual($form.triggerHandler("checkout_place_order"), false);
   assert.notEqual($form.triggerHandler("checkout_place_order_WC_Pec_Gateway"), false);
-  assert.equal(gatewayCallbackRan, true, "the gateway hook runs before the theme's final serialization guard");
-  assert.equal(city.value, "بیستون", "the last pre-serialization guard restores only the previously validated city");
-  assert.equal(city.disabled, false, "the required city control is enabled for WooCommerce's serialize() call");
+  assert.equal(genericGatewayHookRan, true);
+  assert.equal(gatewayHookRan, true, "the real gateway-specific WooCommerce hook runs without a theme wrapper");
+  assert.equal(state.value, "2352");
 
   const finalFields = new window.FormData(form);
-  assert.equal(finalFields.get("billing_state"), "2352");
-  assert.equal(finalFields.get("billing_city"), "بیستون", "the exact final form payload includes the city after the gateway callback");
-  assert.equal(finalFields.get("jluxe_billing_city_label"), "بیستون", "the real checkout serialize path carries the option label for server-side ID resolution");
+  assert.equal(finalFields.get("billing_city"), null, "a gateway may omit the disabled native control");
+  assert.equal(finalFields.get("jluxe_billing_city_label"), "بیستون", "the server can canonicalize the preserved label for this province");
 });
 
-test("R255 never masks a gateway's explicit checkout veto while synchronizing the city", (t) => {
+test("an explicit WooCommerce gateway veto remains authoritative without a theme hook", (t) => {
   const { window } = boot({
     locationFields: true,
     shippingChecked: true,
@@ -629,43 +681,11 @@ test("R255 never masks a gateway's explicit checkout veto while synchronizing th
     return false;
   });
   const submit = submitWithoutCreatingAnOrder(window);
-  assert.equal(submit.event.defaultPrevented, false);
-  assert.equal(window.jQuery(form).triggerHandler("checkout_place_order_WC_Pec_Gateway"), false);
-  assert.equal(currentStep(document), "payment", "WooCommerce's gateway veto remains authoritative");
-  assert.equal(new window.FormData(form).get("billing_city"), null, "a vetoed checkout is not sent with a reconstructed city");
-});
-
-test("a gateway hook that changes the province cannot reuse the previously selected city", (t) => {
-  const { window } = boot({
-    locationFields: true,
-    shippingChecked: true,
-    initialState: "2352",
-    initialCity: { value: "2356", label: "بیستون" },
-  });
-  t.after(() => window.close());
-  const { document } = window;
-  const form = document.querySelector("form.checkout");
-  const state = document.getElementById("billing_state");
-  const city = document.getElementById("billing_city");
-  const gateway = document.querySelector("input.payment_method");
-  gateway.value = "WC_Pec_Gateway";
-  gateway.checked = true;
-  document.querySelector("[data-jluxe-checkout-next]").click();
+  assert.equal(submit.event.defaultPrevented, false, "the theme leaves WooCommerce's gateway event chain intact");
+  const $form = window.jQuery(form);
+  assert.notEqual($form.triggerHandler("checkout_place_order"), false);
+  assert.equal($form.triggerHandler("checkout_place_order_WC_Pec_Gateway"), false, "WooCommerce receives the gateway's explicit checkout veto");
   assert.equal(currentStep(document), "payment");
-
-  window.jQuery(form).on("checkout_place_order_WC_Pec_Gateway", () => {
-    state.value = "2274";
-    city.value = "";
-    city.disabled = true;
-  });
-  const submit = submitWithoutCreatingAnOrder(window);
-  assert.equal(submit.event.defaultPrevented, false);
-  assert.notEqual(window.jQuery(form).triggerHandler("checkout_place_order"), false);
-  const result = window.jQuery(form).triggerHandler("checkout_place_order_WC_Pec_Gateway");
-  assert.equal(result, false, "the final guard blocks serialization when the gateway changes to another province");
-  assert.equal(currentStep(document), "shipping");
-  assert.ok(document.querySelector("[data-jluxe-city-province-error]"), "the customer receives a clear address warning");
-  assert.notEqual(new window.FormData(form).get("billing_city"), "بیستون", "the previous province's city is never silently restored");
 });
 
 test("numeric WooCommerce city IDs validate by their visible city label, without allowing another province's city", (t) => {

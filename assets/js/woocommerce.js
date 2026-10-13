@@ -3473,6 +3473,13 @@ function jluxeEnhanceShopSort(root) {
 		window.jQuery(select).trigger("change.select2");
 	}
 
+	function selectedSelect2Label(select) {
+		if (!select || !select.classList.contains("select2-hidden-accessible")) return "";
+		var row = select.closest(".form-row") || select.parentElement;
+		var rendered = row && row.querySelector(".select2-selection__rendered");
+		return rendered ? String(rendered.getAttribute("title") || rendered.textContent || "").trim() : "";
+	}
+
 	function sortOptionsByPersianLabel(select) {
 		if (!select || select.tagName !== "SELECT") return;
 		var value = select.value;
@@ -3582,7 +3589,7 @@ function jluxeEnhanceShopSort(root) {
 	function canonicalizeSelectedCheckoutCity() {
 		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
 		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!stateSelect || !citySelect || !stateSelect.value || isEmptyCheckoutCitySelection(citySelect)) {
+		if (!stateSelect || !citySelect || !stateSelect.value) {
 			syncCheckoutCityLabelPayload(citySelect);
 			return false;
 		}
@@ -3595,6 +3602,14 @@ function jluxeEnhanceShopSort(root) {
 		var selectedNames = [citySelect.value, selectedOption ? selectedOption.textContent : ""]
 			.map(normalizeLocationName)
 			.filter(Boolean);
+		// Select2 can keep rendering its last selected label when another script
+		// clears/disables the native select without refreshing the widget. Recover
+		// from that label only when the native field is genuinely empty, then
+		// validate it against the currently selected province just like any option.
+		if (isEmptyCheckoutCitySelection(citySelect)) {
+			var renderedLabel = normalizeLocationName(selectedSelect2Label(citySelect));
+			if (renderedLabel) selectedNames.push(renderedLabel);
+		}
 		var canonicalCity = province.cities.find(function (city) {
 			return selectedNames.indexOf(normalizeLocationName(city)) !== -1;
 		});
@@ -3953,139 +3968,6 @@ function jluxeEnhanceShopSort(root) {
 		return citySelect.closest(".form-row") || citySelect;
 	}
 
-	/*
-	 * Core WooCommerce calls the selected gateway's checkout_place_order_{id}
-	 * handler immediately before serializing form.checkout. The native submit
-	 * gate above runs earlier, so a gateway callback can disable/clear the city
-	 * after it has passed validation. During submit capture, add a one-shot
-	 * generic hook; after existing generic callbacks it registers a one-shot
-	 * gateway-specific hook, which runs after that gateway's callback at the last
-	 * synchronous point before WooCommerce serializes. Restore only the city
-	 * already validated for the unchanged province; if the province or city became
-	 * invalid, stop checkout instead of posting stale data.
-	 */
-	function bindCheckoutCitySerializationGuard() {
-		var stateSelect = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-		var citySelect = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-		if (!stateSelect || !citySelect || !form.contains(stateSelect) || !form.contains(citySelect)) return;
-
-		var initialProvince = findCheckoutProvince(stateSelect);
-		var initialOption = citySelect.options[citySelect.selectedIndex];
-		var initialCityNames = [citySelect.value, initialOption ? initialOption.textContent : ""]
-			.map(normalizeLocationName)
-			.filter(Boolean);
-		var initialCity = initialProvince && initialProvince.cities.find(function (city) {
-			return initialCityNames.indexOf(normalizeLocationName(city)) !== -1;
-		});
-		if (!initialProvince || !initialCity || isEmptyCheckoutCitySelection(citySelect)) return;
-
-		var expectedProvince = normalizeLocationName(initialProvince.name);
-		var expectedCity = String(initialCity);
-		var $checkoutForm = window.jQuery && window.jQuery(form);
-		if (!$checkoutForm || typeof $checkoutForm.one !== "function" || typeof $checkoutForm.off !== "function") return;
-
-		$checkoutForm.off(".jluxeCheckoutCitySerializationGuard");
-
-		function restoreOrValidateCityAfterGateway(event) {
-			// A gateway's false return is a deliberate veto; never mask it while
-			// repairing the field for WooCommerce's later serialize() call.
-			if (event && event.result === false) return false;
-			var gatewayResult = event ? event.result : undefined;
-			var liveState = getCheckoutLocationSelect("billing_state", "data-jluxe-state-select");
-			var liveCity = getCheckoutLocationSelect("billing_city", "data-jluxe-city-select");
-			if (!liveState || !liveCity || !form.contains(liveState) || !form.contains(liveCity)) {
-				goToShipping();
-				var missingRow = document.getElementById("billing_city_field");
-				if (missingRow) showInvalidRequiredField(missingRow);
-				return false;
-			}
-
-			var province = findCheckoutProvince(liveState);
-			if (!province || normalizeLocationName(province.name) !== expectedProvince) {
-				goToShipping();
-				if (!liveState.value) {
-					var stateRow = liveState.closest(".form-row");
-					if (stateRow) showInvalidRequiredField(stateRow);
-				} else {
-					showCheckoutCityProvinceError(liveCity.closest(".form-row") || liveCity);
-				}
-				return false;
-			}
-
-			// A gateway may disable the select or clear its value while preparing
-			// payment. Restore only the just-validated city, and only for the same
-			// province; a newly invalid non-empty value is never overwritten.
-			if (isEmptyCheckoutCitySelection(liveCity)) {
-				var fallbackCity = province.cities.find(function (city) {
-					return normalizeLocationName(city) === normalizeLocationName(expectedCity);
-				});
-				if (!fallbackCity) {
-					goToShipping();
-					showCheckoutCityProvinceError(liveCity.closest(".form-row") || liveCity);
-					return false;
-				}
-				var fallbackOption = Array.prototype.find.call(liveCity.options, function (option) {
-					return normalizeLocationName(option.value) === normalizeLocationName(fallbackCity);
-				});
-				if (!fallbackOption) {
-					fallbackOption = document.createElement("option");
-					fallbackOption.value = String(fallbackCity);
-					fallbackOption.textContent = String(fallbackCity);
-					liveCity.appendChild(fallbackOption);
-				}
-				liveCity.value = String(fallbackCity);
-			}
-
-			if (!canonicalizeSelectedCheckoutCity()) {
-				goToShipping();
-				showCheckoutCityProvinceError(liveCity.closest(".form-row") || liveCity);
-				return false;
-			}
-
-			var invalid = findFirstInvalidRequiredField();
-			if (invalid) {
-				goToShipping();
-				showInvalidRequiredField(invalid);
-				return false;
-			}
-			if (findInvalidCheckoutCityField()) {
-				goToShipping();
-				showCheckoutCityProvinceError(liveCity.closest(".form-row") || liveCity);
-				return false;
-			}
-			if (!hasShippingMethodSelected()) {
-				goToShipping();
-				showShippingSelectionError();
-				return false;
-			}
-			return gatewayResult;
-		}
-
-		function registerFinalGatewayGuard(event) {
-			// Preserve a generic gateway veto and don't install a bypass for it.
-			if (event && event.result === false) return false;
-			var gatewayResult = event ? event.result : undefined;
-			var payment = document.getElementById("payment");
-			var radios = payment ? payment.querySelectorAll("input.payment_method") : [];
-			var methodNames = Array.prototype.map.call(radios, function (radio) { return radio.value; }).filter(Boolean);
-			// Also cover WooCommerce's empty-method hook if a callback clears the
-			// selection. The regular gate still requires a choice when payment is due.
-			methodNames.push("");
-			methodNames.forEach(function (method) {
-				$checkoutForm.one(
-					"checkout_place_order_" + method + ".jluxeCheckoutCitySerializationGuard",
-					restoreOrValidateCityAfterGateway
-				);
-			});
-			return gatewayResult;
-		}
-
-		// WooCommerce triggers the generic hook first. Register here (after the
-		// existing generic callbacks) so even gateway handlers attached during that
-		// event are already present before the final gateway-specific hook fires.
-		$checkoutForm.one("checkout_place_order.jluxeCheckoutCitySerializationGuard", registerFinalGatewayGuard);
-	}
-
 	function clearCheckoutCityProvinceError() {
 		Array.prototype.forEach.call(document.querySelectorAll("[data-jluxe-city-province-error]"), function (error) {
 			var row = error.closest(".form-row");
@@ -4339,7 +4221,6 @@ function jluxeEnhanceShopSort(root) {
 			var paymentRequired = !payment || payment.getAttribute("data-jluxe-payment-required") !== "0";
 			if (!paymentRequired) {
 				toggleError('[data-jluxe-payment-error]', false);
-				bindCheckoutCitySerializationGuard();
 				return; // WooCommerce سفارشِ بدون مبلغ را طبق مسیر استاندارد خودش ثبت می‌کند.
 			}
 			var methodRadios = payment ? payment.querySelectorAll("input.payment_method") : [];
@@ -4365,7 +4246,6 @@ function jluxeEnhanceShopSort(root) {
 				}
 				return;
 			}
-			bindCheckoutCitySerializationGuard();
 		},
 		true
 	);
