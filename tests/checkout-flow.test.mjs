@@ -252,7 +252,7 @@ test("shipping cards keep WooCommerce radios/hooks, full labels, and selected-me
   assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>">/);
   assert.match(shippingTemplate, /jluxe_cart_checkout_shipping_method_settings\( \$kind \)/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
-  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion/);
+  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*" open>/, "selecting a rate reveals its already-expanded accordion below the card");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
   assert.doesNotMatch(shippingTemplate, /jluxe-shipping-card__hint/);
   const shippingRadio = shippingTemplate.match(/<input type="radio"[\s\S]*?\/>/)?.[0] || "";

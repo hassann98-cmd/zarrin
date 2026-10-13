@@ -50,7 +50,7 @@ $calculator_text          = '';
 						</span>
 					</label>
 					<?php if ( $show_method_details ) : ?>
-						<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>">
+						<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>" open>
 							<summary>
 								<span><?php echo esc_html( $method_copy['summary'] ); ?></span>
 								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>

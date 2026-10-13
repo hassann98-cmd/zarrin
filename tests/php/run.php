@@ -6417,6 +6417,7 @@ check(
 	false !== strpos( $r279_shipping_template, 'jluxe_shipping_method_presentation( $method )' ) &&
 	false !== strpos( $r279_shipping_template, 'jluxe_cart_checkout_shipping_method_settings( $kind )' ) &&
 	false !== strpos( $r279_shipping_template, '<details class="jluxe-shipping-method-accordion' ) &&
+	false !== strpos( $r279_shipping_template, '" open>' ) &&
 	false !== strpos( $r279_shipping_template, "do_action( 'woocommerce_after_shipping_rate', \$method, \$index )" ) &&
 	false === strpos( $r279_shipping_template, 'jluxe-shipping-card__hint' ) &&
 	false === strpos( $r279_review_template, 'jluxe-shipping-freight-note' ) &&
