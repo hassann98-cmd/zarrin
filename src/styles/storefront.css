@@ -10354,6 +10354,57 @@ body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address add
   white-space: pre-line;
 }
 
+/* R304: keep country/second-address values posted, but hide their account form rows. */
+body.woocommerce-account .woocommerce-address-fields .jluxe-account-address-field-hidden {
+  display: none;
+}
+body.woocommerce-account .woocommerce-address-fields > p:has(> button[name="save_address"]) {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 20px 0 0;
+  direction: ltr;
+}
+body.woocommerce-account .woocommerce-address-fields button[name="save_address"] {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: auto;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.6rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 6px 16px hsl(var(--primary) / 0.25);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+  text-decoration: none;
+  direction: rtl;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.12s ease, color 0.15s ease;
+}
+body.woocommerce-account .woocommerce-address-fields button[name="save_address"]:hover {
+  background-color: hsl(var(--primary-hover));
+}
+body.woocommerce-account .woocommerce-address-fields button[name="save_address"]:active {
+  transform: scale(0.97);
+}
+body.woocommerce-account .woocommerce-address-fields button[name="save_address"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
+body.woocommerce-account .woocommerce-address-fields button[name="save_address"]:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
 /* Account phone-link panel: visual-only refresh; phone-link.js keeps the same secure OTP hooks. */
 body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
   display: flex;
@@ -10465,44 +10516,15 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
   box-shadow: 0 0 0 3px hsl(var(--primary) / .12);
 }
 .jluxe-phone-link .jluxe-phone-link__action {
-  display: inline-flex;
   box-sizing: border-box;
   width: 100%;
-  min-height: 46px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   margin: 0;
-  padding: 10px 14px;
-  border: 1px solid hsl(var(--primary) / .18);
-  border-radius: 12px;
-  background: hsl(var(--primary) / .08);
-  color: hsl(var(--primary));
-  font: inherit;
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1.5;
   text-align: center;
-  cursor: pointer;
-  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
 }
 .jluxe-phone-link .jluxe-phone-link__action svg {
   width: 17px;
   height: 17px;
   flex: none;
-}
-.jluxe-phone-link .jluxe-phone-link__action:hover {
-  border-color: hsl(var(--primary) / .36);
-  background: hsl(var(--primary) / .13);
-}
-.jluxe-phone-link .jluxe-phone-link__confirm {
-  border-color: hsl(var(--primary));
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-.jluxe-phone-link .jluxe-phone-link__confirm:hover {
-  border-color: hsl(var(--primary) / .82);
-  background: hsl(var(--primary) / .9);
 }
 .jluxe-phone-link .jluxe-phone-link__action:focus-visible {
   outline: 2px solid hsl(var(--primary));

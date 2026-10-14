@@ -1614,13 +1614,10 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
- * شهرستان (billing_city) وابسته به استان (billing_state) — چک‌اوت و
- * ویرایش آدرس در حساب کاربری هر دو از همین دو id واقعیِ ووکامرس استفاده
- * می‌کنن. billing_city سمت سرور (inc/woocommerce.php: jluxe_billing_fields)
- * یک select ساده‌ست (نه select2)، فقط با یک گزینه‌ی جای‌گزین رندر می‌شه؛
- * فهرستِ واقعیِ شهرستان‌ها بر اساس استانِ انتخابی همین‌جا پر می‌شه — باگِ
- * گزارش‌شده («استان انتخاب می‌شه ولی شهرستان لود نمی‌شه») همینه: قبلاً اصلاً
- * چنین منطقی وجود نداشت و billing_city یک متنِ آزاد بود.
+ * شهرستان (billing_city) وابسته به استان (billing_state) برای checkout و
+ * فرم ویرایش نشانی حساب. billing در checkout و حساب جفت مستقل خودش را دارد؛
+ * shipping فقط در فرم حساب فعال می‌شود تا جریان/فیلدهای ارسال در checkout
+ * دست‌نخورده بمانند. فقط cityهای native از نوع select بازسازی می‌شوند.
  */
 (function () {
 	var cities = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
@@ -1629,66 +1626,69 @@ function jluxeEnhanceShopSort(root) {
 		var value = checkoutCopy[key];
 		return typeof value === "string" && value.trim() ? value : fallback;
 	}
-	var stateSelect = document.getElementById("billing_state");
-	var citySelect = document.getElementById("billing_city");
-	if (!cities || !stateSelect || !citySelect) {
-		return;
+
+	var addressPairs = [{ stateId: "billing_state", cityId: "billing_city" }];
+	if (
+		document.body &&
+		document.body.classList.contains("woocommerce-account") &&
+		document.querySelector(".woocommerce-address-fields")
+	) {
+		addressPairs.push({ stateId: "shipping_state", cityId: "shipping_city" });
 	}
 
-	function rebuildCityOptions(preserveCurrent) {
-		var list = cities[stateSelect.value] || [];
-		var currentCity = preserveCurrent ? citySelect.value : "";
-
-		citySelect.innerHTML = "";
-		var placeholder = document.createElement("option");
-		placeholder.value = "";
-		placeholder.textContent = list.length
-			? getCheckoutText("checkout_city_placeholder", "انتخاب شهرستان")
-			: getCheckoutText("checkout_city_prompt", "ابتدا استان را انتخاب کنید");
-		citySelect.appendChild(placeholder);
-
-		list.forEach(function (city) {
-			var opt = document.createElement("option");
-			opt.value = city;
-			opt.textContent = city;
-			citySelect.appendChild(opt);
-		});
-
-		if (currentCity) {
-			if (list.indexOf(currentCity) === -1) {
-				// شهرِ ذخیره‌شده‌ی قبلی (هنگام ویرایش آدرس) توی فهرستِ این استان
-				// نبود — گزینه‌اش رو نگه می‌داریم تا مقدار واقعیِ کاربر گم نشه.
-				var keep = document.createElement("option");
-				keep.value = currentCity;
-				keep.textContent = currentCity;
-				citySelect.insertBefore(keep, citySelect.children[1] || null);
-			}
-			citySelect.value = currentCity;
+	addressPairs.forEach(function (addressPair) {
+		var stateSelect = document.getElementById(addressPair.stateId);
+		var citySelect = document.getElementById(addressPair.cityId);
+		if (!cities || !stateSelect || !citySelect || stateSelect.tagName !== "SELECT" || citySelect.tagName !== "SELECT") {
+			return;
 		}
-	}
 
-	rebuildCityOptions(true);
+		function rebuildCityOptions(preserveCurrent) {
+			var list = cities[stateSelect.value] || [];
+			var currentCity = preserveCurrent ? citySelect.value : "";
 
-	/*
-	 * billing_state با select2 (ووکامرس) غنی‌سازی می‌شه — انتخاب واقعیِ کاربر از
-	 * منوی select2 رویدادِ change رو از طریقِ سیستمِ رویدادِ jQuery شلیک می‌کنه،
-	 * نه با یک DOM change ساده؛ addEventListener خامِ قبلی هرگز صداش رو نمی‌شنید
-	 * (باگِ واقعیِ گزارش‌شده «استان انتخاب می‌شه ولی شهرستان به‌روز نمی‌شه» —
-	 * با تستِ زنده در کروم پیدا شد: dispatchEvent خام کار می‌کرد ولی
-	 * jQuery(...).trigger('change') — دقیقاً همون کاری که select2 می‌کنه — نه).
-	 * برای همین این‌جا از jQuery برای bind کردن استفاده می‌شه، نه addEventListener خام.
-	 */
-	if (window.jQuery) {
-		window.jQuery(stateSelect).on("change", function () {
-			rebuildCityOptions(false);
-			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-	} else {
-		stateSelect.addEventListener("change", function () {
-			rebuildCityOptions(false);
-			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-	}
+			citySelect.innerHTML = "";
+			var placeholder = document.createElement("option");
+			placeholder.value = "";
+			placeholder.textContent = list.length
+				? getCheckoutText("checkout_city_placeholder", "انتخاب شهرستان")
+				: getCheckoutText("checkout_city_prompt", "ابتدا استان را انتخاب کنید");
+			citySelect.appendChild(placeholder);
+
+			list.forEach(function (city) {
+				var opt = document.createElement("option");
+				opt.value = city;
+				opt.textContent = city;
+				citySelect.appendChild(opt);
+			});
+
+			if (currentCity) {
+				if (list.indexOf(currentCity) === -1) {
+					// Keep a saved/custom value until the customer explicitly chooses another city.
+					var keep = document.createElement("option");
+					keep.value = currentCity;
+					keep.textContent = currentCity;
+					citySelect.insertBefore(keep, citySelect.children[1] || null);
+				}
+				citySelect.value = currentCity;
+			}
+		}
+
+		rebuildCityOptions(true);
+
+		/* Select2 emits jQuery change events, so bind through jQuery when available. */
+		if (window.jQuery) {
+			window.jQuery(stateSelect).on("change", function () {
+				rebuildCityOptions(false);
+				citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+			});
+		} else {
+			stateSelect.addEventListener("change", function () {
+				rebuildCityOptions(false);
+				citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+			});
+		}
+	});
 })();
 
 /**

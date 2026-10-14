@@ -93,6 +93,43 @@ function bootCity({ state = "THR", initialCity = "", map = cityMap, copy = {} } 
   };
 }
 
+function bootAccountCities({
+  billingState = "THR",
+  billingCity = "تهران",
+  shippingState = "KHZ",
+  shippingCity = "اهواز",
+} = {}) {
+  const addressMarkup = (prefix, state, city) => `
+    <p id="${prefix}_state_field"><select id="${prefix}_state" name="${prefix}_state">
+      <option value="THR" ${state === "THR" ? "selected" : ""}>تهران</option>
+      <option value="KHZ" ${state === "KHZ" ? "selected" : ""}>خوزستان</option>
+    </select></p>
+    <p id="${prefix}_city_field"><select id="${prefix}_city" name="${prefix}_city">
+      <option value="">انتخاب شهرستان</option>
+      <option value="${city}" selected>${city}</option>
+    </select></p>`;
+  const dom = new JSDOM(
+    `<!doctype html><html><body class="woocommerce-account woocommerce-edit-address">
+      <form class="woocommerce-address-fields">
+        ${addressMarkup("billing", billingState, billingCity)}
+        ${addressMarkup("shipping", shippingState, shippingCity)}
+      </form>
+    </body></html>`,
+    { url: "https://shop.test/my-account/edit-address/billing/", runScripts: "outside-only" },
+  );
+  const { window } = dom;
+  window.JLuxeThemeSettings = { iranCities: cityMap, cartCheckout: { copy: {} } };
+  window.jQuery = jqueryFactory(window);
+  window.eval(cityScript);
+  return {
+    window,
+    billingState: window.document.getElementById("billing_state"),
+    billingCity: window.document.getElementById("billing_city"),
+    shippingState: window.document.getElementById("shipping_state"),
+    shippingCity: window.document.getElementById("shipping_city"),
+  };
+}
+
 function bootCheckout({
   shippingSection = true,
   shippingRates = ["flat_rate:1"],
@@ -598,6 +635,54 @@ test("the historical province-keyed selector populates cities and clears them on
   assert.deepEqual(Array.from(city.options, (option) => option.value), [""]);
   assert.equal(city.options[0].textContent, "ابتدا استان را انتخاب کنید");
   assert.equal(city.value, "");
+});
+
+test("account billing and shipping address forms both load and refresh their own province-scoped city selectors", (t) => {
+  const {
+    window,
+    billingState,
+    billingCity,
+    shippingState,
+    shippingCity,
+  } = bootAccountCities();
+  t.after(() => window.close());
+
+  assert.equal(billingCity.value, "تهران");
+  assert.deepEqual(Array.from(billingCity.options, (option) => option.value), ["", "تهران", "ری", "اسلامشهر"]);
+  assert.equal(shippingCity.value, "اهواز");
+  assert.deepEqual(Array.from(shippingCity.options, (option) => option.value), ["", "اهواز", "آبادان"]);
+
+  billingState.value = "KHZ";
+  window.jQuery(billingState).trigger("change");
+  assert.deepEqual(Array.from(billingCity.options, (option) => option.value), ["", "اهواز", "آبادان"]);
+  assert.equal(billingCity.value, "", "changing billing province clears its previous city");
+
+  shippingState.value = "THR";
+  window.jQuery(shippingState).trigger("change");
+  assert.deepEqual(Array.from(shippingCity.options, (option) => option.value), ["", "تهران", "ری", "اسلامشهر"]);
+  assert.equal(shippingCity.value, "", "shipping province changes do not reuse a billing selection");
+});
+
+test("checkout does not bind or rewrite a separate shipping-city selector", (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body class="woocommerce-checkout">
+      <select id="shipping_state"><option value="THR" selected>تهران</option><option value="KHZ">خوزستان</option></select>
+      <select id="shipping_city"><option value="">انتخاب شهر</option><option value="Shipping custom city" selected>Shipping custom city</option></select>
+    </body></html>`,
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  const { window } = dom;
+  window.JLuxeThemeSettings = { iranCities: cityMap, cartCheckout: { copy: {} } };
+  window.jQuery = jqueryFactory(window);
+  window.eval(cityScript);
+  t.after(() => window.close());
+
+  const state = window.document.getElementById("shipping_state");
+  const city = window.document.getElementById("shipping_city");
+  state.value = "KHZ";
+  window.jQuery(state).trigger("change");
+  assert.equal(city.value, "Shipping custom city");
+  assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "Shipping custom city"]);
 });
 
 test("checkout city prompts use the configurable cart/checkout copy", (t) => {

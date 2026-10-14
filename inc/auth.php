@@ -252,7 +252,7 @@ function jluxe_render_phone_link_form(): void {
 				<label for="jluxe-link-phone">شماره موبایل</label>
 				<input class="jluxe-phone-link__input" id="jluxe-link-phone" name="phone" type="tel" autocomplete="tel" maxlength="64" required dir="ltr" value="<?php echo esc_attr( get_user_meta( get_current_user_id(), 'jluxe_phone', true ) ); ?>" />
 			</div>
-			<button type="button" class="button jluxe-phone-link__action jluxe-phone-link__send" data-send-code>
+			<button type="button" class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__send" data-send-code>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>
 				<span>ارسال کد تأیید</span>
 			</button>
@@ -260,7 +260,7 @@ function jluxe_render_phone_link_form(): void {
 				<label for="jluxe-link-code">کد ۶ رقمی</label>
 				<input class="jluxe-phone-link__input" id="jluxe-link-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required dir="ltr" />
 			</div>
-			<button type="submit" class="button jluxe-phone-link__action jluxe-phone-link__confirm">
+			<button type="submit" class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__confirm">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
 				<span>تأیید و اتصال شماره</span>
 			</button>

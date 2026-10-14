@@ -6418,6 +6418,139 @@ check(
 	'R267 removes only the post-1.7.58 JSON/alias/hidden-label city layer; missing city values are never fabricated'
 );
 
+// R304 — account address forms get a province-scoped city selector without changing checkout.
+$r304_previous_query_kind = $GLOBALS['query_kind'] ?? null;
+$r304_previous_endpoint   = $GLOBALS['endpoint'] ?? null;
+$r304_previous_user       = $GLOBALS['authenticated_user'] ?? 0;
+$r304_previous_post        = $_POST;
+$r304_previous_user_meta   = $GLOBALS['user_meta'][42] ?? null;
+$r304_previous_wc          = $GLOBALS['wc'] ?? null;
+$GLOBALS['wc'] = (object) array(
+	'countries' => new class() {
+		public function get_base_country() { return 'IR'; }
+		public function get_allowed_countries() { return array( 'IR' => 'Iran', 'US' => 'United States' ); }
+		public function get_shipping_countries() { return array( 'IR' => 'Iran' ); }
+	},
+);
+$GLOBALS['query_kind'] = 'account';
+$GLOBALS['endpoint']   = 'edit-address';
+$GLOBALS['authenticated_user'] = 42;
+$GLOBALS['user_meta'][42]['billing_state']  = 'KRH';
+$GLOBALS['user_meta'][42]['billing_city']   = 'جوانرود';
+$GLOBALS['user_meta'][42]['shipping_state'] = 'FRS';
+$GLOBALS['user_meta'][42]['shipping_city']  = 'شیراز';
+$_POST = array();
+$r304_city_map = jluxe_iran_cities();
+$r304_billing_base = array(
+	'billing_first_name' => array( 'priority' => 10, 'type' => 'text' ),
+	'billing_last_name'  => array( 'priority' => 20, 'type' => 'text' ),
+	'billing_country'    => array( 'priority' => 40, 'type' => 'select', 'class' => array( 'form-row-wide', 'address-field' ), 'options' => array( 'IR' => 'ایران' ) ),
+	'billing_address_1'  => array( 'priority' => 50, 'type' => 'text', 'class' => array( 'form-row-wide', 'address-field' ) ),
+	'billing_address_2'  => array( 'priority' => 60, 'type' => 'text', 'class' => array( 'form-row-wide', 'address-field' ) ),
+	'billing_city'       => array( 'priority' => 70, 'type' => 'text', 'required' => true, 'class' => array( 'form-row-last', 'address-field' ) ),
+	'billing_state'      => array( 'priority' => 80, 'type' => 'state', 'class' => array( 'form-row-first', 'address-field' ) ),
+	'billing_postcode'   => array( 'priority' => 90, 'type' => 'text', 'class' => array( 'form-row-wide', 'address-field' ) ),
+	'billing_phone'      => array( 'priority' => 100, 'type' => 'tel', 'class' => array( 'form-row-wide', 'address-field' ) ),
+	'billing_email'      => array( 'priority' => 110, 'type' => 'email' ),
+);
+$r304_billing_fields = jluxe_account_billing_fields( $r304_billing_base, 'IR' );
+$r304_billing_city_keys = array_keys( $r304_billing_fields['billing_city']['options'] );
+check(
+	'select' === $r304_billing_fields['billing_city']['type'] && true === $r304_billing_fields['billing_city']['required'] &&
+	array_merge( array( '' ), $r304_city_map['KRH'] ) === $r304_billing_city_keys &&
+	40 === $r304_billing_fields['billing_state']['priority'] && 50 === $r304_billing_fields['billing_city']['priority'] &&
+	60 === $r304_billing_fields['billing_address_1']['priority'] && 70 === $r304_billing_fields['billing_postcode']['priority'] &&
+	80 === $r304_billing_fields['billing_phone']['priority'] && 90 === $r304_billing_fields['billing_email']['priority'] &&
+	! in_array( 'form-row-first', $r304_billing_fields['billing_state']['class'], true ) &&
+	in_array( 'form-row-wide', $r304_billing_fields['billing_city']['class'], true ) &&
+	'select' === $r304_billing_fields['billing_country']['type'] &&
+	in_array( 'jluxe-account-address-field-hidden', $r304_billing_fields['billing_country']['class'], true ) &&
+	in_array( 'jluxe-account-address-field-hidden', $r304_billing_fields['billing_address_2']['class'], true ),
+	'R304 billing editor keeps the saved province/city, exposes its Iran city list, orders address fields, and hides rather than removes country/line two'
+);
+
+$r304_shipping_base = array(
+	'shipping_state'     => array( 'priority' => 80, 'type' => 'state', 'class' => array( 'form-row-first' ) ),
+	'shipping_city'      => array( 'priority' => 70, 'type' => 'text', 'required' => true, 'class' => array( 'form-row-last' ) ),
+	'shipping_country'   => array( 'priority' => 40, 'type' => 'select', 'class' => array( 'form-row-wide' ), 'options' => array( 'IR' => 'ایران' ) ),
+	'shipping_address_1' => array( 'priority' => 50, 'type' => 'text', 'class' => array( 'form-row-wide' ) ),
+	'shipping_address_2' => array( 'priority' => 60, 'type' => 'text', 'class' => array( 'form-row-wide' ) ),
+	'shipping_postcode'  => array( 'priority' => 90, 'type' => 'text', 'class' => array( 'form-row-wide' ) ),
+);
+$r304_shipping_fields = jluxe_account_shipping_fields( $r304_shipping_base, 'IR' );
+check(
+	'select' === $r304_shipping_fields['shipping_city']['type'] &&
+	array_merge( array( '' ), $r304_city_map['FRS'] ) === array_keys( $r304_shipping_fields['shipping_city']['options'] ) &&
+	60 === $r304_shipping_fields['shipping_address_1']['priority'] &&
+	70 === $r304_shipping_fields['shipping_postcode']['priority'] &&
+	in_array( 'jluxe-account-address-field-hidden', $r304_shipping_fields['shipping_country']['class'], true ) &&
+	in_array( 'jluxe-account-address-field-hidden', $r304_shipping_fields['shipping_address_2']['class'], true ),
+	'R304 shipping address editor uses its own saved province/city pair and hides country/second line without discarding either value'
+);
+
+$_POST = array( 'billing_state' => 'THR', 'billing_city' => 'پردیس' );
+$r304_posted_fields = jluxe_account_billing_fields( $r304_billing_base, 'IR' );
+check(
+	array_merge( array( '' ), $r304_city_map['THR'] ) === array_keys( $r304_posted_fields['billing_city']['options'] ) &&
+	isset( $r304_posted_fields['billing_city']['options']['پردیس'] ) &&
+	! isset( $r304_posted_fields['billing_city']['options']['جوانرود'] ),
+	'R304 a posted province refreshes the matching city list without restoring a stale saved city'
+);
+$_POST = array();
+check(
+	'IR' === jluxe_account_edit_address_country_value( '', 'billing_country', 'billing' ) &&
+	'US' === jluxe_account_edit_address_country_value( 'US', 'billing_country', 'billing' ) &&
+	'IR' === jluxe_account_edit_address_country_value( 'US', 'shipping_country', 'shipping' ),
+	'R304 the hidden country control preserves a valid saved value or receives WooCommerce’s allowed base-country fallback'
+);
+$GLOBALS['endpoint'] = 'edit-account';
+check(
+	$r304_billing_base === jluxe_account_billing_fields( $r304_billing_base, 'IR' ) &&
+	$r304_shipping_base === jluxe_account_shipping_fields( $r304_shipping_base, 'IR' ) &&
+	'' === jluxe_account_edit_address_country_value( '', 'billing_country', 'billing' ),
+	'R304 account address field and country-value changes are limited to the edit-address endpoint'
+);
+
+$r304_account_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r304_auth_source = (string) file_get_contents( ABSPATH . 'inc/auth.php' );
+$r304_phone_action_css = array();
+preg_match( '/\\.jluxe-phone-link \\.jluxe-phone-link__action\\s*\\{([^}]+)\\}/', $r304_account_css, $r304_phone_action_css );
+check(
+	false !== strpos( $r304_account_css, '.jluxe-account-address-field-hidden' ) &&
+	false !== strpos( $r304_account_css, 'p:has(> button[name="save_address"])' ) &&
+	false !== strpos( $r304_account_css, 'direction: ltr;' ) &&
+	false !== strpos( $r304_account_css, 'background-color: hsl(var(--primary));' ) &&
+	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__send" data-send-code' ) &&
+	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__confirm"' ) &&
+	false !== strpos( $r304_phone_action_css[1] ?? '', 'width: 100%;' ) &&
+	false === strpos( $r304_phone_action_css[1] ?? '', 'background:' ) &&
+	false === strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__confirm {' ),
+	'R304 the address save CTA is left-aligned with the primary theme style and both secure OTP buttons share the same primary button system'
+);
+
+if ( null === $r304_previous_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r304_previous_query_kind;
+}
+if ( null === $r304_previous_endpoint ) {
+	unset( $GLOBALS['endpoint'] );
+} else {
+	$GLOBALS['endpoint'] = $r304_previous_endpoint;
+}
+$GLOBALS['authenticated_user'] = $r304_previous_user;
+if ( null === $r304_previous_wc ) {
+	unset( $GLOBALS['wc'] );
+} else {
+	$GLOBALS['wc'] = $r304_previous_wc;
+}
+if ( null === $r304_previous_user_meta ) {
+	unset( $GLOBALS['user_meta'][42] );
+} else {
+	$GLOBALS['user_meta'][42] = $r304_previous_user_meta;
+}
+$_POST = $r304_previous_post;
+
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );

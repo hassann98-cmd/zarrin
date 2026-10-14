@@ -2670,6 +2670,155 @@ function jluxe_billing_fields( array $fields ): array {
 	return $fields;
 }
 
+/** Limit the account-address presentation changes to WooCommerce's edit-address endpoint. */
+function jluxe_is_account_address_endpoint(): bool {
+	return function_exists( 'is_account_page' ) && is_account_page()
+		&& function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' );
+}
+
+/** Preserve WooCommerce field classes while making account address rows stack predictably. */
+function jluxe_account_address_field_add_class( array $field, string $class ): array {
+	$classes = isset( $field['class'] ) && is_array( $field['class'] ) ? $field['class'] : array();
+	$classes = array_values( array_filter( $classes, 'is_string' ) );
+	if ( ! in_array( $class, $classes, true ) ) {
+		$classes[] = $class;
+	}
+	$field['class'] = $classes;
+	return $field;
+}
+
+/**
+ * Arrange only the account address editor; checkout fields, validation, country values,
+ * and WooCommerce's shipping/payment calculations remain on their existing paths.
+ */
+function jluxe_prepare_account_address_fields( array $fields, string $country, string $prefix ): array {
+	if ( ! jluxe_is_account_address_endpoint() || ! in_array( $prefix, array( 'billing_', 'shipping_' ), true ) ) {
+		return $fields;
+	}
+
+	$country = strtoupper( trim( $country ) );
+	$ordered_priorities = array(
+		$prefix . 'state'      => 40,
+		$prefix . 'city'       => 50,
+		$prefix . 'address_1'  => 60,
+		$prefix . 'postcode'   => 70,
+		$prefix . 'phone'      => 80,
+		$prefix . 'email'      => 90,
+		$prefix . 'country'    => 100,
+		$prefix . 'address_2'  => 110,
+	);
+	foreach ( $ordered_priorities as $key => $priority ) {
+		if ( isset( $fields[ $key ] ) ) {
+			$fields[ $key ]['priority'] = $priority;
+		}
+	}
+
+	foreach ( array( 'state', 'city', 'address_1', 'postcode', 'phone' ) as $suffix ) {
+		$key = $prefix . $suffix;
+		if ( ! isset( $fields[ $key ] ) ) {
+			continue;
+		}
+		$classes = isset( $fields[ $key ]['class'] ) && is_array( $fields[ $key ]['class'] )
+			? $fields[ $key ]['class']
+			: array();
+		$classes = array_values( array_diff( $classes, array( 'form-row-first', 'form-row-last' ) ) );
+		if ( ! in_array( 'form-row-wide', $classes, true ) ) {
+			$classes[] = 'form-row-wide';
+		}
+		$fields[ $key ]['class'] = $classes;
+	}
+
+	$country_key = $prefix . 'country';
+	if ( 'IR' === $country && isset( $fields[ $country_key ] ) ) {
+		$fields[ $country_key ] = jluxe_account_address_field_add_class( $fields[ $country_key ], 'jluxe-account-address-field-hidden' );
+	}
+	$address_2_key = $prefix . 'address_2';
+	if ( isset( $fields[ $address_2_key ] ) ) {
+		$fields[ $address_2_key ] = jluxe_account_address_field_add_class( $fields[ $address_2_key ], 'jluxe-account-address-field-hidden' );
+	}
+
+	$city_key  = $prefix . 'city';
+	$state_key = $prefix . 'state';
+	if ( 'IR' !== $country || ! isset( $fields[ $city_key ] ) ) {
+		return $fields;
+	}
+
+	$cities_by_state = jluxe_iran_cities();
+	$state_value     = get_user_meta( get_current_user_id(), $state_key, true );
+	if ( array_key_exists( $state_key, $_POST ) && is_scalar( $_POST[ $state_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read only to refill the account form after WooCommerce validation.
+		$state_value = wp_unslash( (string) $_POST[ $state_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	}
+	$state_value = is_scalar( $state_value ) ? strtoupper( sanitize_text_field( (string) $state_value ) ) : '';
+
+	$current_city = get_user_meta( get_current_user_id(), $city_key, true );
+	if ( array_key_exists( $city_key, $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read only to refill the account form after WooCommerce validation.
+		$posted_city = $_POST[ $city_key ]; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$current_city = is_scalar( $posted_city ) ? wp_unslash( (string) $posted_city ) : '';
+	}
+	$current_city = is_scalar( $current_city ) ? sanitize_text_field( (string) $current_city ) : '';
+
+	$state_cities = isset( $cities_by_state[ $state_value ] ) && is_array( $cities_by_state[ $state_value ] )
+		? $cities_by_state[ $state_value ]
+		: array();
+	$placeholder = $state_cities
+		? jluxe_cart_checkout_required_copy( 'checkout_city_placeholder', 'انتخاب شهرستان' )
+		: jluxe_cart_checkout_required_copy( 'checkout_city_prompt', 'ابتدا استان را انتخاب کنید' );
+	$options = array( '' => $placeholder );
+	foreach ( $state_cities as $city ) {
+		if ( is_string( $city ) && '' !== trim( $city ) ) {
+			$options[ $city ] = $city;
+		}
+	}
+	if ( '' !== $current_city && ! array_key_exists( $current_city, $options ) ) {
+		// Keep a real legacy/custom value visible until the customer chooses a listed city.
+		$options[ $current_city ] = $current_city;
+	}
+
+	$fields[ $city_key ]['type']    = 'select';
+	$fields[ $city_key ]['options'] = $options;
+	return $fields;
+}
+
+function jluxe_account_billing_fields( array $fields, string $country = '' ): array {
+	return jluxe_prepare_account_address_fields( $fields, $country, 'billing_' );
+}
+add_filter( 'woocommerce_billing_fields', 'jluxe_account_billing_fields', 999, 2 );
+
+function jluxe_account_shipping_fields( array $fields, string $country = '' ): array {
+	return jluxe_prepare_account_address_fields( $fields, $country, 'shipping_' );
+}
+add_filter( 'woocommerce_shipping_fields', 'jluxe_account_shipping_fields', 999, 2 );
+
+/** Keep a valid stored account country, or submit WooCommerce's valid base/fallback country. */
+function jluxe_account_edit_address_country_value( $value, string $key, string $load_address ) {
+	if ( ! jluxe_is_account_address_endpoint() || ! in_array( $key, array( 'billing_country', 'shipping_country' ), true ) ) {
+		return $value;
+	}
+	$woocommerce = function_exists( 'WC' ) ? WC() : null;
+	if ( ! is_object( $woocommerce ) || ! isset( $woocommerce->countries ) || ! is_object( $woocommerce->countries ) || ! method_exists( $woocommerce->countries, 'get_base_country' ) ) {
+		return $value;
+	}
+
+	$countries = $woocommerce->countries;
+	$allowed   = 'shipping' === $load_address && method_exists( $countries, 'get_shipping_countries' )
+		? $countries->get_shipping_countries()
+		: ( method_exists( $countries, 'get_allowed_countries' ) ? $countries->get_allowed_countries() : array() );
+	$current   = is_scalar( $value ) ? strtoupper( trim( (string) $value ) ) : '';
+	if ( '' !== $current && ( ! is_array( $allowed ) || array_key_exists( $current, $allowed ) ) ) {
+		return $current;
+	}
+
+	$base_country = $countries->get_base_country();
+	if ( is_array( $allowed ) && array_key_exists( $base_country, $allowed ) ) {
+		return $base_country;
+	}
+	if ( is_array( $allowed ) && ! empty( $allowed ) ) {
+		return (string) array_key_first( $allowed );
+	}
+	return $current ?: $base_country;
+}
+add_filter( 'woocommerce_my_account_edit_address_field_value', 'jluxe_account_edit_address_country_value', 10, 3 );
+
 /**
  * کد پستی در چک‌اوت به‌تنهایی اجباری نیست؛ ممکن است بعضی تنظیمات فروشگاه
  * یا افزونه‌های آدرس این فیلد را دوباره required کنند، پس این فیلترِ دیرتر
