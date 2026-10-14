@@ -2871,17 +2871,15 @@ add_filter( 'woocommerce_my_account_edit_address_field_value', 'jluxe_account_ed
  * وضعیتِ اجباری‌بودنِ نام، موبایل و آدرس را در checkout طبقِ تنظیمات مدیر
  * برای billing/shipping اعمال می‌کند؛ استان و شهر همیشه اجباری می‌مانند.
  * کد پستی فقط با روشن‌بودن گزینه و انتخاب نرخِ ادارهٔ پست در UI/اعتبارسنجی
- * سمتِ سرور لازم است؛ مقدارِ خالیِ تیپاکس/چاپار پذیرفته می‌شود و اعتبارسنجیِ
- * کدِ واردشده (از جمله افزونهٔ ووکامرس فارسی) دست‌نخورده می‌ماند.
+ * سمتِ سرور لازم است؛ راهنما فقط به‌صورت placeholder می‌آید و شرح جداگانه ندارد.
+ * کدِ خالیِ تیپاکس/چاپار پذیرفته می‌شود و اعتبارسنجی مقدارِ واردشده (از جمله
+ * افزونهٔ ووکامرس فارسی) دست‌نخورده می‌ماند.
  */
 function jluxe_optional_checkout_postcodes( array $fields ): array {
 	$postcode_required_for_post = jluxe_cart_checkout_option( 'require_postcode_for_post', true );
-	$default_required_description = 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.';
-	$optional_description = 'وارد کردن کد پستی برای همهٔ روش‌های ارسال اختیاری است.';
-	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', $default_required_description );
-	if ( ! $postcode_required_for_post && in_array( trim( $description ), array( '', $default_required_description ), true ) ) {
-		$description = $optional_description;
-	}
+	$postcode_placeholder = $postcode_required_for_post
+		? 'برای ارسال پستی، کد پستی الزامی است'
+		: 'کد پستی (اختیاری)';
 	$field_requirements = array(
 		'first_name' => 'require_first_name',
 		'last_name'  => 'require_last_name',
@@ -2922,7 +2920,7 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 		}
 		$fields[ $address_type ][ $key ]['autocomplete'] = 'postal-code';
 		$fields[ $address_type ][ $key ]['required']    = false;
-		$fields[ $address_type ][ $key ]['placeholder'] = '';
+		$fields[ $address_type ][ $key ]['placeholder'] = $postcode_placeholder;
 		$custom_attributes = isset( $fields[ $address_type ][ $key ]['custom_attributes'] ) && is_array( $fields[ $address_type ][ $key ]['custom_attributes'] )
 			? $fields[ $address_type ][ $key ]['custom_attributes']
 			: array();
@@ -2934,11 +2932,7 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 				'lang'      => 'fa',
 			)
 		);
-		if ( '' !== trim( $description ) ) {
-			$fields[ $address_type ][ $key ]['description'] = $description;
-		} else {
-			unset( $fields[ $address_type ][ $key ]['description'] );
-		}
+		unset( $fields[ $address_type ][ $key ]['description'] );
 		$fields[ $address_type ][ $key ]['desc_tip'] = false;
 	}
 	return $fields;

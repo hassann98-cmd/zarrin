@@ -399,6 +399,9 @@ test("R307 postcode becomes required only for a selected Post rate and follows t
 
   assert.equal(billingPostcode.required, false, "no selected Post rate leaves billing postcode optional");
   assert.equal(shippingPostcode.required, false, "shipping postcode also stays optional by default");
+  assert.equal(billingPostcode.placeholder, "برای ارسال پستی، کد پستی الزامی است", "the requirement is shown inside the empty field, not in a separate help row");
+  assert.equal(shippingPostcode.placeholder, billingPostcode.placeholder, "billing and shipping use the same postal guidance");
+  assert.equal(form.querySelector("#billing_postcode_field .description"), null, "no separate postcode help message is rendered");
 
   postRate.checked = true;
   postRate.dispatchEvent(new window.Event("change", { bubbles: true }));
@@ -406,6 +409,10 @@ test("R307 postcode becomes required only for a selected Post rate and follows t
   assert.equal(billingPostcode.getAttribute("aria-required"), "true");
   assert.ok(billingPostcode.closest(".form-row").classList.contains("validate-required"));
   assert.ok(billingPostcode.closest(".form-row").querySelector("label .required"), "the label visibly reflects the conditional requirement");
+  assert.equal(billingPostcode.placeholder, "برای ارسال پستی، کد پستی الزامی است");
+  billingPostcode.value = "1234567890";
+  assert.equal(billingPostcode.value, "1234567890", "typing uses the real input value, so the native placeholder is no longer displayed");
+  billingPostcode.value = "";
   assert.equal(shippingPostcode.required, false, "the unused shipping-address postcode is not required");
 
   differentAddress.checked = true;
@@ -440,6 +447,7 @@ test("R307 postcode becomes required only for a selected Post rate and follows t
   window.jQuery(window.document.body).trigger("updated_checkout");
   assert.equal(billingPostcode.required, false, "disabling the admin toggle makes postcode optional even for Post");
   assert.equal(shippingPostcode.required, false, "the disabled toggle is shared by billing and shipping destinations");
+  assert.equal(billingPostcode.placeholder, "کد پستی (اختیاری)", "a disabled requirement cannot leave a misleading required hint");
   dom.window.close();
 });
 
@@ -690,40 +698,16 @@ test("VPN warning background/text and payment-card colors come from validated ch
   assert.match(settingsRenderSource, /پس‌زمینهٔ کارت درگاه انتخاب‌شده/);
 });
 
-test("postcode guidance has strong readable contrast and wraps inside narrow checkout fields", () => {
-  const rule = storefrontStyles.match(/body\.woocommerce-checkout :is\(#billing_postcode_field, #shipping_postcode_field\) \.description\s*\{([^}]+)\}/s)?.[1] || "";
-  assert.match(rule, /color:\s*hsl\(var\(--info\)\)/);
-  assert.match(rule, /background:\s*hsl\(var\(--info\)\s*\/\s*0\.08\)/);
-  assert.match(rule, /opacity:\s*1/);
-  assert.match(rule, /font-size:\s*0\.75rem/);
-  assert.match(rule, /width:\s*100%/);
-  assert.match(rule, /overflow-wrap:\s*anywhere/);
-
-  const hslToken = (name) => {
-    const line = storefrontStyles.split(/\r?\n/).find((entry) => entry.includes(`--${name}:`));
-    const match = line?.match(/--[^:]+:\s*(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);
-    assert.ok(match, `the ${name} HSL token exists`);
-    return match.slice(1).map(Number);
-  };
-  const toRgb = ([hue, saturation, lightness]) => {
-    const h = hue / 360;
-    const s = saturation / 100;
-    const l = lightness / 100;
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h * 6) % 2 - 1));
-    const m = l - c / 2;
-    const channels = [[c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x]][Math.floor(h * 6) % 6];
-    return channels.map((channel) => channel + m);
-  };
-  const info = toRgb(hslToken("info"));
-  const surface = toRgb(hslToken("surface"));
-  const tintedSurface = info.map((channel, index) => channel * 0.08 + surface[index] * 0.92);
-  const luminance = (rgb) => rgb
-    .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
-    .reduce((total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index], 0);
-  const contrast = (Math.max(luminance(info), luminance(tintedSurface)) + 0.05) /
-    (Math.min(luminance(info), luminance(tintedSurface)) + 0.05);
-  assert.ok(contrast >= 4.5, `default info text contrast is ${contrast.toFixed(2)}:1 (WCAG AA requires 4.5:1)`);
+test("postcode guidance uses native placeholders with legacy Android/iOS styling fallbacks", () => {
+  assert.match(storefrontStyles, /#billing_postcode_field input::-webkit-input-placeholder/);
+  assert.match(storefrontStyles, /#shipping_postcode_field input:-ms-input-placeholder/);
+  assert.match(storefrontStyles, /#billing_postcode_field input::-moz-placeholder/);
+  assert.match(storefrontStyles, /#shipping_postcode_field input::placeholder/);
+  assert.match(storefrontStyles, /opacity:\s*1/);
+  assert.match(storefrontStyles, /font-size:\s*0\.75rem/);
+  assert.match(storefrontStyles, /direction:\s*rtl/);
+  assert.match(storefrontStyles, /text-align:\s*right/);
+  assert.doesNotMatch(storefrontStyles, /body\.woocommerce-checkout :is\(#billing_postcode_field, #shipping_postcode_field\) \.description\s*\{/);
 });
 
 test("cart and checkout retain their stacked-mobile and two-column desktop layouts", () => {

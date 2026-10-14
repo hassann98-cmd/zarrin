@@ -6774,17 +6774,17 @@ check(
 	'R275 mobile RTL cart removal stays ordered left and shipping cards keep real WooCommerce radios without selection icons'
 );
 
-// R276 — optional postal codes, explicit postal-shipping guidance, shared responsive actions, and tidy shipping-rate cards.
-$r276_postcode_description = 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.';
+// R276/R309 — optional postal codes, native placeholder guidance, shared responsive actions, and tidy shipping-rate cards.
+$r276_postcode_placeholder = 'برای ارسال پستی، کد پستی الزامی است';
 $r276_postcode_fields = jluxe_optional_checkout_postcodes(
 	array(
 		'billing' => array(
-			'billing_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true, 'custom_attributes' => array( 'maxlength' => 10 ) ),
+			'billing_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'description' => 'راهنمای قدیمی', 'desc_tip' => true, 'custom_attributes' => array( 'maxlength' => 10 ) ),
 			'billing_phone'    => array( 'custom_attributes' => array( 'autocomplete' => 'tel' ) ),
 			'billing_city'     => array( 'required' => true ),
 		),
 		'shipping' => array(
-			'shipping_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'desc_tip' => true ),
+			'shipping_postcode' => array( 'required' => true, 'placeholder' => 'کد پستی', 'description' => 'راهنمای قدیمی', 'desc_tip' => true ),
 			'shipping_phone'    => array( 'custom_attributes' => array( 'autocomplete' => 'tel' ) ),
 		),
 	)
@@ -6792,10 +6792,10 @@ $r276_postcode_fields = jluxe_optional_checkout_postcodes(
 check(
 	false === $r276_postcode_fields['billing']['billing_postcode']['required'] &&
 	false === $r276_postcode_fields['shipping']['shipping_postcode']['required'] &&
-	'' === $r276_postcode_fields['billing']['billing_postcode']['placeholder'] &&
-	'' === $r276_postcode_fields['shipping']['shipping_postcode']['placeholder'] &&
-	$r276_postcode_description === $r276_postcode_fields['billing']['billing_postcode']['description'] &&
-	$r276_postcode_description === $r276_postcode_fields['shipping']['shipping_postcode']['description'] &&
+	$r276_postcode_placeholder === $r276_postcode_fields['billing']['billing_postcode']['placeholder'] &&
+	$r276_postcode_placeholder === $r276_postcode_fields['shipping']['shipping_postcode']['placeholder'] &&
+	! isset( $r276_postcode_fields['billing']['billing_postcode']['description'] ) &&
+	! isset( $r276_postcode_fields['shipping']['shipping_postcode']['description'] ) &&
 	false === $r276_postcode_fields['billing']['billing_postcode']['desc_tip'] &&
 	10 === $r276_postcode_fields['billing']['billing_postcode']['custom_attributes']['maxlength'] &&
 	'numeric' === $r276_postcode_fields['billing']['billing_postcode']['custom_attributes']['inputmode'] &&
@@ -6804,7 +6804,7 @@ check(
 	'tel' === $r276_postcode_fields['billing']['billing_phone']['custom_attributes']['inputmode'] &&
 	'tel' === $r276_postcode_fields['shipping']['shipping_phone']['custom_attributes']['autocomplete'] &&
 	true === $r276_postcode_fields['billing']['billing_city']['required'],
-	'R276/R289 postcode stays optional with inline guidance; postal/phone controls retain attributes and use LTR numeric entry without changing other requirements'
+	'R276/R289 postcode stays optional with a native postal-shipping placeholder and no separate help text; postal/phone controls retain attributes and use LTR numeric entry'
 );
 $r289_checkout_fields = jluxe_billing_fields(
 	array(
@@ -6867,12 +6867,14 @@ check(
 	false !== strpos( $r276_checkout_css, 'flex-direction: row;' ) &&
 	false !== strpos( $r276_checkout_css, 'direction: rtl;' ) &&
 	false !== strpos( $r276_checkout_css, 'padding-inline-start: max(0.75rem, env(safe-area-inset-right, 0px));' ) &&
-	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout :is(#billing_postcode_field, #shipping_postcode_field) .description {' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout #billing_postcode_field input::-webkit-input-placeholder,' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout #shipping_postcode_field input::placeholder {' ) &&
+	false === strpos( $r276_checkout_css, 'body.woocommerce-checkout :is(#billing_postcode_field, #shipping_postcode_field) .description {' ) &&
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout #shipping_method.jluxe-shipping-method-list {' ) &&
 	false !== strpos( $r276_checkout_css, '.jluxe-shipping-card {' ) &&
 	false !== strpos( $r276_checkout_css, 'display: flex;' ) &&
 	false === strpos( $r276_checkout_css, 'grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);' ),
-	'R276 checkout action bars are mobile-flex/RTL with safe-area padding, and postcode notes/shipping rates receive their responsive presentation'
+	'R276/R309 checkout action bars stay mobile-flex/RTL; native postcode placeholder fallbacks and shipping cards keep responsive presentation'
 );
 check(
 	false !== strpos( $r276_cart_totals, 'jluxe-cart-actions jluxe-checkout-action-row' ) &&
@@ -7040,8 +7042,10 @@ $r307_toggle_off_fields = jluxe_optional_checkout_postcodes(
 check(
 	! jluxe_checkout_shipping_methods_require_postcode( array( 'shipping_method' => array( 0 => 'flat_rate:14' ) ) ) &&
 	array() === $r307_toggle_off_errors->items &&
-	false === $r307_toggle_off_fields['billing']['billing_postcode']['required'],
-	'R308 disabling the postcode-required toggle keeps Post optional in both checkout UI and server validation'
+	false === $r307_toggle_off_fields['billing']['billing_postcode']['required'] &&
+	'کد پستی (اختیاری)' === $r307_toggle_off_fields['billing']['billing_postcode']['placeholder'] &&
+	! isset( $r307_toggle_off_fields['billing']['billing_postcode']['description'] ),
+	'R308 disabling the postcode-required toggle keeps Post optional and uses only an optional placeholder in checkout UI and server validation'
 );
 update_test_settings( $r307_previous_settings );
 if ( null === $r307_previous_wc ) {
@@ -7096,12 +7100,17 @@ check(
 	true === $r308_optional_fields['shipping']['shipping_city']['required'] &&
 	false === $r308_optional_fields['billing']['billing_postcode']['required'] &&
 	false === $r308_optional_fields['shipping']['shipping_postcode']['required'] &&
-	'وارد کردن کد پستی برای همهٔ روش‌های ارسال اختیاری است.' === $r308_optional_fields['billing']['billing_postcode']['description'] &&
+	'کد پستی (اختیاری)' === $r308_optional_fields['billing']['billing_postcode']['placeholder'] &&
+	'کد پستی (اختیاری)' === $r308_optional_fields['shipping']['shipping_postcode']['placeholder'] &&
+	! isset( $r308_optional_fields['billing']['billing_postcode']['description'] ) &&
+	! isset( $r308_optional_fields['shipping']['shipping_postcode']['description'] ) &&
 	16 === $r308_optional_fields['billing']['billing_phone']['custom_attributes']['maxlength'] &&
 	false === $GLOBALS['localized']['JLuxeThemeSettings']['cartCheckout']['require_postcode_for_post'] &&
 	false !== strpos( $r308_render_source, 'require_first_name' ) &&
 	false !== strpos( $r308_render_source, 'require_postcode_for_post' ) &&
-	false !== strpos( $r308_render_source, 'کد پستی فقط وقتی این گزینه روشن باشد' ),
+	false !== strpos( $r308_render_source, 'کد پستی برای ارسال پستی اجباری باشد' ) &&
+	false !== strpos( $r308_render_source, 'با خاموش‌کردن گزینه، کد پستی برای همهٔ روش‌ها اختیاری می‌ماند' ) &&
+	false === strpos( $r308_render_source, 'checkout_postcode_description' ),
 	'R308 independent first/last/phone/address/postcode switches apply to billing and shipping, keep province/city required, localize the Post switch, and expose admin controls'
 );
 update_test_settings( $r308_previous_settings );

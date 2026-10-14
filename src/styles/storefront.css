@@ -3804,22 +3804,36 @@ input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
   color: hsl(var(--error));
   text-decoration: none;
 }
-body.woocommerce-checkout :is(#billing_postcode_field, #shipping_postcode_field) .description {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  margin-block-start: 0.5rem;
-  padding: 0.4rem 0.625rem;
-  border-inline-start: 2px solid hsl(var(--info) / 0.58);
-  border-radius: 0.5rem;
-  background: hsl(var(--info) / 0.08);
-  color: hsl(var(--info));
+body.woocommerce-checkout #billing_postcode_field input::-webkit-input-placeholder,
+body.woocommerce-checkout #shipping_postcode_field input::-webkit-input-placeholder {
+  color: #64748b;
+  color: hsl(var(--text-muted));
   opacity: 1;
+  direction: rtl;
+  text-align: right;
   font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-  text-align: start;
+}
+body.woocommerce-checkout #billing_postcode_field input:-ms-input-placeholder,
+body.woocommerce-checkout #shipping_postcode_field input:-ms-input-placeholder,
+body.woocommerce-checkout #billing_postcode_field input::-ms-input-placeholder,
+body.woocommerce-checkout #shipping_postcode_field input::-ms-input-placeholder {
+  color: #64748b;
+  color: hsl(var(--text-muted));
+  opacity: 1;
+  direction: rtl;
+  text-align: right;
+  font-size: 0.75rem;
+}
+body.woocommerce-checkout #billing_postcode_field input::-moz-placeholder,
+body.woocommerce-checkout #shipping_postcode_field input::-moz-placeholder,
+body.woocommerce-checkout #billing_postcode_field input::placeholder,
+body.woocommerce-checkout #shipping_postcode_field input::placeholder {
+  color: #64748b;
+  color: hsl(var(--text-muted));
+  opacity: 1;
+  direction: rtl;
+  text-align: right;
+  font-size: 0.75rem;
 }
 .woocommerce form .input-text,
 .woocommerce form select,

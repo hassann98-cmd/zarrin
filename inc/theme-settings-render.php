@@ -1520,13 +1520,13 @@ function jluxe_render_cart_checkout_page(): void {
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_payment_warning_enabled', 'هشدار پیش از پرداخت' ); ?>
 			</table>
 			<h3>فیلدهای اجباریِ تسویه‌حساب</h3>
-			<p class="description">نام، نام خانوادگی، موبایل و آدرس برای بخش‌های صورتحساب و نشانیِ ارسال جداگانه قابل تنظیم‌اند. استان و شهر همیشه باید انتخاب شوند. کد پستی فقط وقتی این گزینه روشن باشد و روش «ادارهٔ پست» انتخاب شود اجباری است؛ برای تیپاکس و چاپار اختیاری می‌ماند.</p>
+			<p class="description">نام، نام خانوادگی، موبایل و آدرس برای بخش‌های صورتحساب و نشانیِ ارسال جداگانه قابل تنظیم‌اند. استان و شهر همیشه باید انتخاب شوند. اگر این گزینه روشن باشد، کد پستی با انتخاب روش «ادارهٔ پست» اجباری می‌شود و راهنما داخل کادر دیده می‌شود؛ برای تیپاکس و چاپار اختیاری است. با خاموش‌کردن گزینه، کد پستی برای همهٔ روش‌ها اختیاری می‌ماند.</p>
 			<table class="form-table" role="presentation">
 				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_first_name', 'نام' ); ?>
 				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_last_name', 'نام خانوادگی' ); ?>
 				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_phone', 'شمارهٔ موبایل' ); ?>
 				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_address', 'آدرس' ); ?>
-				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_postcode_for_post', 'کد پستی برای ادارهٔ پست' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_postcode_for_post', 'کد پستی برای ارسال پستی اجباری باشد' ); ?>
 			</table>
 			<table class="form-table" role="presentation">
 				<?php
@@ -1547,7 +1547,6 @@ function jluxe_render_cart_checkout_page(): void {
 					'checkout_phone_label'              => array( 'برچسب موبایل', false ),
 					'checkout_email_label'              => array( 'برچسب ایمیل', false ),
 					'checkout_postcode_label'           => array( 'برچسب کد پستی', false ),
-					'checkout_postcode_description'    => array( 'راهنمای کد پستی', false ),
 					'checkout_address_label'            => array( 'برچسب آدرس', false ),
 					'checkout_landline_label'           => array( 'برچسب تلفن ثابت', false ),
 					'checkout_create_account_label'     => array( 'برچسب ایجاد حساب کاربری', false ),

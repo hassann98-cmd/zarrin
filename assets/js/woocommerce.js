@@ -4083,11 +4083,12 @@ function jluxeEnhanceShopSort(root) {
 		return form.querySelectorAll('input.shipping_method:checked[data-jluxe-shipping-kind="post"]').length > 0;
 	}
 
-	function setPostcodeRequired(input, required) {
+	function setPostcodeRequired(input, required, placeholder) {
 		if (!input) {
 			return;
 		}
 
+		input.setAttribute("placeholder", placeholder);
 		var row = input.closest(".form-row");
 		if (row) {
 			row.classList.toggle("validate-required", required);
@@ -4136,14 +4137,18 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function updatePostcodeRequirement() {
-		var needsPostcode = postcodeRequiredForPost() && selectedPostRate();
+		var postcodeSettingEnabled = postcodeRequiredForPost();
+		var needsPostcode = postcodeSettingEnabled && selectedPostRate();
+		var placeholder = postcodeSettingEnabled
+			? "برای ارسال پستی، کد پستی الزامی است"
+			: "کد پستی (اختیاری)";
 		var billingPostcode = form.querySelector('input[name="billing_postcode"]');
 		var shippingPostcode = form.querySelector('input[name="shipping_postcode"]');
 		var shipToDifferent = form.querySelector('#ship-to-different-address-checkbox, input[name="ship_to_different_address"]');
 		var useShippingAddress = !!(shipToDifferent && shipToDifferent.checked && shippingPostcode);
 
-		setPostcodeRequired(billingPostcode, needsPostcode && !useShippingAddress);
-		setPostcodeRequired(shippingPostcode, needsPostcode && useShippingAddress);
+		setPostcodeRequired(billingPostcode, needsPostcode && !useShippingAddress, placeholder);
+		setPostcodeRequired(shippingPostcode, needsPostcode && useShippingAddress, placeholder);
 	}
 
 	document.addEventListener("change", updatePostcodeRequirement, true);
