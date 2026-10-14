@@ -231,17 +231,41 @@ function jluxe_render_phone_link_form(): void {
 		)
 	);
 	?>
-	<form class="jluxe-phone-link rounded-xl border border-border p-5 mt-6" data-jluxe-phone-link
+	<form class="jluxe-phone-link" data-jluxe-phone-link
 		data-request-url="<?php echo esc_url( rest_url( 'jluxe/v1/auth/otp-request' ) ); ?>"
 		data-confirm-url="<?php echo esc_url( rest_url( 'jluxe/v1/auth/otp-link' ) ); ?>"
 		data-session-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
-		<h2 class="text-h3 font-bold mb-3">تأیید شماره برای ورود پیامکی</h2>
-		<p class="text-small mb-3">شمارهٔ صورتحساب به‌تنهایی شناسهٔ ورود نیست. شماره‌ای را که مالک آن هستید تأیید کنید.</p>
-		<p><label for="jluxe-link-phone">شماره موبایل</label><input id="jluxe-link-phone" name="phone" type="tel" autocomplete="tel" maxlength="64" required dir="ltr" value="<?php echo esc_attr( get_user_meta( get_current_user_id(), 'jluxe_phone', true ) ); ?>" /></p>
-		<button type="button" class="button" data-send-code>ارسال کد تأیید</button>
-		<p><label for="jluxe-link-code">کد ۶ رقمی</label><input id="jluxe-link-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required dir="ltr" /></p>
-		<button type="submit" class="button">تأیید و اتصال شماره</button>
-		<p data-link-status role="status" aria-live="polite"></p>
+		<div class="jluxe-phone-link__header">
+			<span class="jluxe-phone-link__icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
+			</span>
+			<div class="jluxe-phone-link__intro">
+				<div class="jluxe-phone-link__title-row">
+					<h2 class="jluxe-phone-link__title">تأیید شماره برای ورود پیامکی</h2>
+					<span class="jluxe-phone-link__badge">کد یک‌بارمصرف</span>
+				</div>
+				<p class="jluxe-phone-link__description">شمارهٔ صورتحساب به‌تنهایی شناسهٔ ورود نیست؛ شماره‌ای را که به آن دسترسی دارید تأیید کنید.</p>
+			</div>
+		</div>
+		<div class="jluxe-phone-link__fields">
+			<div class="jluxe-phone-link__field jluxe-phone-link__field--phone">
+				<label for="jluxe-link-phone">شماره موبایل</label>
+				<input class="jluxe-phone-link__input" id="jluxe-link-phone" name="phone" type="tel" autocomplete="tel" maxlength="64" required dir="ltr" value="<?php echo esc_attr( get_user_meta( get_current_user_id(), 'jluxe_phone', true ) ); ?>" />
+			</div>
+			<button type="button" class="button jluxe-phone-link__action jluxe-phone-link__send" data-send-code>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>
+				<span>ارسال کد تأیید</span>
+			</button>
+			<div class="jluxe-phone-link__field jluxe-phone-link__field--code">
+				<label for="jluxe-link-code">کد ۶ رقمی</label>
+				<input class="jluxe-phone-link__input" id="jluxe-link-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required dir="ltr" />
+			</div>
+			<button type="submit" class="button jluxe-phone-link__action jluxe-phone-link__confirm">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+				<span>تأیید و اتصال شماره</span>
+			</button>
+		</div>
+		<p class="jluxe-phone-link__status" data-link-status role="status" aria-live="polite" aria-atomic="true"></p>
 	</form>
 	<?php
 }

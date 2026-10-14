@@ -82,7 +82,7 @@ if (!artifact.equals(staged)) throw new Error("The staged download ZIP differs f
 
 const serverBase = (
   process.env.THEME_DOWNLOAD_SERVER_URL ||
-  `http://127.0.0.1:${process.env.THEME_DOWNLOAD_SERVER_PORT || "4182"}`
+  `http://127.0.0.1:${process.env.THEME_DOWNLOAD_SERVER_PORT || "4181"}`
 ).replace(/\/$/, "");
 const metadataResponse = await fetch(`${serverBase}/version`, { cache: "no-store" });
 if (!metadataResponse.ok) throw new Error(`Download server /version returned HTTP ${metadataResponse.status}.`);

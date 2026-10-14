@@ -13,6 +13,10 @@ import { r as React } from "../lib/icons.js";
 import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { u as useCart } from "../lib/use-cart.js";
 import { N as navIcons, H as fallbackIcon } from "../components/nav-icons.js";
+import {
+  prefetchMobileHome,
+  scheduleMobileHomePrefetch,
+} from "../lib/mobile-home-prefetch.js";
 
 const DESTINATIONS = {
   track: { href: siteUrl("track_order") },
@@ -36,6 +40,7 @@ function isModifiedClick(event) {
 function MobileNav() {
   const { snapshot } = useCart();
   const settings = getThemeSettings();
+  const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
   const loggedIn = settings.auth?.isLoggedIn ?? false;
@@ -69,6 +74,10 @@ function MobileNav() {
     window.addEventListener("popstate", syncPath);
     return () => window.removeEventListener("popstate", syncPath);
   }, []);
+  React.useEffect(
+    () => scheduleMobileHomePrefetch(homeHref, window),
+    [homeHref],
+  );
 
   if (hasPriceBar) return null;
 
@@ -152,10 +161,22 @@ function MobileNav() {
                   window.jluxeCloseSuggestedProductsModal();
                 }
                 toggleMobileDrawer(item.opensDrawer, window);
-              } else {
+              } else if (item.id !== "home") {
                 setCurrentHref(item.href);
               }
             },
+            onPointerEnter:
+              item.id === "home"
+                ? () => prefetchMobileHome(homeHref, window)
+                : undefined,
+            onFocus:
+              item.id === "home"
+                ? () => prefetchMobileHome(homeHref, window)
+                : undefined,
+            onTouchStart:
+              item.id === "home"
+                ? () => prefetchMobileHome(homeHref, window)
+                : undefined,
             className: "jluxe-mobile-nav-item relative flex flex-1 flex-col items-center justify-center gap-1 pt-1 text-[10.5px] font-medium",
             style: {
               color: active ? colors.active : colors.icon,

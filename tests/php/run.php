@@ -5849,10 +5849,54 @@ $r106_mobile_image_pos = strpos( $r103_mobile_crop_css, '.jluxe-announcement-bar
 $r106_mobile_image_css = false === $r106_mobile_image_pos ? '' : substr( $r103_mobile_crop_css, $r106_mobile_image_pos, 220 );
 check( false !== strpos( $r106_mobile_inner_css, 'height: 44px;' ) && false !== strpos( $r106_mobile_inner_css, 'min-height: 44px;' ) && false !== strpos( $r106_mobile_image_css, 'width: 100%;' ) && false !== strpos( $r106_mobile_image_css, 'height: 100%;' ) && false !== strpos( $r106_mobile_image_css, 'object-fit: cover;' ) && false !== strpos( $r106_mobile_image_css, 'object-position: center center;' ) && false === strpos( $r103_mobile_crop_css, 'max-height: min(60vw, 240px);' ) && false === strpos( $r103_desktop_crop_css, 'height: 44px;' ) && false === strpos( $r103_desktop_crop_css, 'object-fit: cover;' ), 'R106 mobile image/GIF bar matches the text-mode 44px baseline, scales to the frame and center-crops without distortion, while desktop stays unchanged' );
 
-// R145 — make the product-mobile crop frame definite from the bar through the GIF itself.
-$r145_product_crop = strpos( $r100_announcement_css, '/* R145: On product phones' );
-$r145_product_crop_css = false === $r145_product_crop ? '' : substr( $r100_announcement_css, $r145_product_crop, 1800 );
-check( false !== strpos( $r145_product_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_product_crop_css, 'body.single-product .jluxe-announcement-bar--image {' ) && false !== strpos( $r145_product_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_product_crop_css, 'height: 44px;' ) && false !== strpos( $r145_product_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_product_crop_css, 'position: relative;' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_product_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_product_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_product_crop_css, 'width: 100%;' ) && false !== strpos( $r145_product_crop_css, 'height: 100%;' ) && false !== strpos( $r145_product_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_product_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 only product-mobile image notices use a definite full-bleed 44px frame with a positioned cover-crop; homepage, text notices and desktop rules are untouched' );
+// R145 — all storefront pages share one definite mobile crop frame for image/GIF notices.
+$r145_global_crop = strpos( $r100_announcement_css, '/* R145: Use one definite, full-bleed' );
+$r145_global_crop_css = false === $r145_global_crop ? '' : substr( $r100_announcement_css, $r145_global_crop, 2200 );
+check( false !== strpos( $r145_global_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar--image {' ) && false === strpos( $r145_global_crop_css, 'body.single-product .jluxe-announcement-bar--image' ) && false !== strpos( $r145_global_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_global_crop_css, 'height: 44px;' ) && false !== strpos( $r145_global_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_global_crop_css, 'position: relative;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_global_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_global_crop_css, 'width: 100%;' ) && false !== strpos( $r145_global_crop_css, 'height: 100%;' ) && false !== strpos( $r145_global_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_global_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 homepage, product, Shop and category image notices use the same full-bleed mobile crop; text notices and desktop remain unchanged' );
+
+// R246 — account UI changes stay presentational; payment hiding removes one navigation entry only.
+$r246_account_items = jluxe_hide_account_payment_methods_menu_item(
+	array(
+		'dashboard'       => 'Dashboard',
+		'payment-methods' => 'Saved payment methods',
+		'orders'          => 'Orders',
+		'edit-account'    => 'Account details',
+	)
+);
+check(
+	array( 'dashboard', 'orders', 'edit-account' ) === array_keys( $r246_account_items ) &&
+	! isset( $r246_account_items['payment-methods'] ),
+	'R246 the account menu hides only saved payment methods and preserves dashboard, orders and account details'
+);
+$r246_account_nav_filter = array_filter(
+	$GLOBALS['filters'],
+	static fn( $filter ) => 'woocommerce_account_menu_items' === ( $filter[0] ?? '' ) && 'jluxe_hide_account_payment_methods_menu_item' === ( $filter[1] ?? '' ) && 20 === ( $filter[2] ?? 10 )
+);
+check( ! empty( $r246_account_nav_filter ), 'R246 saved payment methods are hidden through WooCommerce account navigation, not checkout gateway configuration' );
+$r246_account_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
+check(
+	false !== strpos( $r246_account_css, '.woocommerce-Addresses {' ) &&
+	false !== strpos( $r246_account_css, 'grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr))' ) &&
+	false !== strpos( $r246_account_css, '.woocommerce-Address-title a.edit' ) &&
+	false !== strpos( $r246_account_css, '.jluxe-phone-link__fields' ) &&
+	false !== strpos( $r246_account_css, '@media (max-width: 560px)' ),
+	'R246 customer addresses render as responsive cards and the phone-link panel has a mobile-friendly layout'
+);
+$r246_auth_source = file_get_contents( __DIR__ . '/../../inc/auth.php' );
+$r246_phone_script = file_get_contents( __DIR__ . '/../../assets/js/phone-link.js' );
+check(
+	false !== strpos( $r246_auth_source, 'data-jluxe-phone-link' ) &&
+	false !== strpos( $r246_auth_source, 'data-request-url=' ) &&
+	false !== strpos( $r246_auth_source, 'data-confirm-url=' ) &&
+	false !== strpos( $r246_auth_source, 'data-session-url=' ) &&
+	false !== strpos( $r246_auth_source, 'name="phone" type="tel"' ) &&
+	false !== strpos( $r246_auth_source, 'autocomplete="one-time-code"' ) &&
+	false !== strpos( $r246_auth_source, 'data-send-code' ) &&
+	false !== strpos( $r246_auth_source, 'data-link-status' ) &&
+	false !== strpos( $r246_phone_script, "form.querySelector('[data-send-code]')" ) &&
+	false !== strpos( $r246_phone_script, "form.addEventListener('submit'" ),
+	'R246 account phone verification keeps the existing authenticated OTP request/confirm hooks and accessible one-time-code flow'
+);
 $r143_account_nav = file_get_contents( __DIR__ . '/../../woocommerce/myaccount/navigation.php' );
 check( false !== strpos( $r143_account_nav, 'jluxe-account-home-link' ) && false !== strpos( $r143_account_nav, "home_url( '/' )" ) && false !== strpos( $r143_account_nav, "\$jluxe_account_icons['home']" ) && false !== strpos( $r143_account_nav, 'بازگشت به فروشگاه' ) && false === strpos( $r143_account_nav, 'بازگشت به فروشگاه زرین' ), 'R143 account navigation uses the concise approved shop-return label on its site-relative link' );
 $r21_view_order = file_get_contents( __DIR__ . '/../../woocommerce/myaccount/view-order.php' );

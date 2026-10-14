@@ -27,6 +27,10 @@ const {
 const { resolveMobileNavItem, MOBILE_NAV_ACTIONS, siteLink } = await import(
   "../src/lib/mobile-nav-actions.js"
 );
+const {
+  prefetchMobileHome,
+  scheduleMobileHomePrefetch,
+} = await import("../src/lib/mobile-home-prefetch.js");
 
 function runStickyLayout(markup, measurements) {
   const dom = new JSDOM(markup, {
@@ -355,4 +359,62 @@ test("R121 the failed-checkout recovery actions stack at phone width", () => {
   assert.match(thankyouTemplate, /class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center"/);
   assert.match(thankyouTemplate, /h-12 w-full items-center justify-center rounded-lg bg-primary[^\"]*sm:w-auto/);
   assert.match(thankyouTemplate, /h-12 w-full items-center justify-center rounded-lg border border-border[^\"]*sm:w-auto/);
+});
+
+
+test("mobile home navigation is quietly prefetched on idle and on intent without intercepting the native link", () => {
+  const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
+    url: "https://shop.test/store/catalog/",
+  });
+  const { window } = dom;
+  window.matchMedia = () => ({ matches: true });
+
+  assert.equal(prefetchMobileHome("https://shop.test/store/", window), true);
+  const hint = window.document.querySelector(
+    'link[rel="prefetch"][data-jluxe-mobile-home-prefetch]',
+  );
+  assert.equal(hint?.href, "https://shop.test/store/");
+  assert.equal(prefetchMobileHome("https://shop.test/store/", window), true);
+  assert.equal(
+    window.document.querySelectorAll("link[data-jluxe-mobile-home-prefetch]").length,
+    1,
+    "repeat touch/focus/idle triggers share a single hint",
+  );
+  assert.equal(prefetchMobileHome("https://outside.test/", window), false);
+
+  const noPrefetch = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
+    url: "https://shop.test/store/catalog/",
+  });
+  noPrefetch.window.matchMedia = () => ({ matches: true });
+  Object.defineProperty(noPrefetch.window.navigator, "connection", {
+    configurable: true,
+    value: { saveData: true, effectiveType: "4g" },
+  });
+  assert.equal(prefetchMobileHome("https://shop.test/store/", noPrefetch.window), false);
+  assert.equal(noPrefetch.window.document.querySelector("link[rel=prefetch]"), null);
+
+  let runIdle;
+  let cancelledIdle = false;
+  window.requestIdleCallback = (callback) => {
+    runIdle = callback;
+    return 17;
+  };
+  window.cancelIdleCallback = (id) => {
+    cancelledIdle = id === 17;
+  };
+  const cancel = scheduleMobileHomePrefetch("https://shop.test/store/", window);
+  assert.equal(typeof runIdle, "function");
+  runIdle();
+  assert.equal(window.document.querySelectorAll("link[rel=prefetch]").length, 1);
+  cancel();
+  assert.equal(cancelledIdle, true);
+
+  assert.match(mobileNavSource, /scheduleMobileHomePrefetch\(homeHref, window\)/);
+  assert.match(floatingNavSource, /scheduleMobileHomePrefetch\(homeHref, window\)/);
+  assert.match(mobileNavSource, /onTouchStart:[\s\S]*?prefetchMobileHome\(homeHref, window\)/);
+  assert.match(floatingNavSource, /onTouchStart:[\s\S]*?prefetchMobileHome\(homeHref, window\)/);
+  assert.match(mobileNavSource, /else if \(item\.id !== "home"\)/);
+  assert.match(floatingNavSource, /item\.action !== "home"/);
+  dom.window.close();
+  noPrefetch.window.close();
 });

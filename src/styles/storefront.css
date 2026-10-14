@@ -8956,11 +8956,12 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
   scroll-margin-top: calc(var(--jluxe-product-nav-top, 0px) + 49px + 12px);
 }
 
-/* R145: On product phones, use a definite 44px crop frame (like the homepage).
-   Absolute sizing all the way to the image makes cover cropping independent
-   of a campaign GIF's intrinsic desktop ratio, e.g. 2800×100. */
+/* R145: Use one definite, full-bleed 44px image/GIF crop on every storefront
+   page so homepage, products, Shop and product categories share the same frame.
+   Absolute sizing through the image keeps wide campaign GIFs (e.g. 2800×100)
+   centered and crisp without changing desktop or text-mode announcements. */
 @media (max-width: 767.98px) {
-  body.single-product .jluxe-announcement-bar--image {
+  .jluxe-announcement-bar--image {
     box-sizing: border-box;
     display: block;
     width: 100vw;
@@ -8969,7 +8970,7 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
     min-height: 44px;
     margin-inline: calc(50% - 50vw);
   }
-  body.single-product .jluxe-announcement-bar--image .jluxe-announcement-bar__inner {
+  .jluxe-announcement-bar--image .jluxe-announcement-bar__inner {
     position: relative;
     display: block;
     box-sizing: border-box;
@@ -8980,7 +8981,7 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
     margin: 0;
     padding: 0;
   }
-  body.single-product .jluxe-announcement-bar--image .jluxe-announcement-bar__image-link {
+  .jluxe-announcement-bar--image .jluxe-announcement-bar__image-link {
     position: absolute;
     inset: 0;
     display: block;
@@ -8989,7 +8990,7 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
     height: 100%;
     margin: 0;
   }
-  body.single-product .jluxe-announcement-bar--image .jluxe-announcement-bar__image-window {
+  .jluxe-announcement-bar--image .jluxe-announcement-bar__image-window {
     position: absolute;
     inset: 0;
     display: block;
@@ -8999,7 +9000,7 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
     max-height: none;
     overflow: hidden;
   }
-  body.single-product .jluxe-announcement-bar--image .jluxe-announcement-bar__image {
+  .jluxe-announcement-bar--image .jluxe-announcement-bar__image {
     position: absolute;
     inset: 0;
     display: block;
@@ -10108,6 +10109,281 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
   .single-product .product[data-jluxe-layout="default"] .woocommerce-product-gallery .woocommerce-product-gallery__trigger:hover,
   .single-product .product[data-jluxe-layout="default"] .woocommerce-product-gallery .flex-direction-nav a:hover {
     transform: none;
+  }
+}
+
+/* Customer addresses are compact, responsive cards rather than floating WooCommerce columns. */
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Addresses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 14px;
+  width: 100%;
+  margin: 0;
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Addresses .woocommerce-Address {
+  display: flex;
+  box-sizing: border-box;
+  min-width: 0;
+  width: auto;
+  float: none;
+  flex-direction: column;
+  padding: 18px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px;
+  background: linear-gradient(145deg, hsl(var(--surface)), hsl(var(--muted) / .34));
+  box-shadow: 0 8px 22px hsl(var(--foreground) / .045);
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid hsl(var(--border) / .8);
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title h2 {
+  min-width: 0;
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.6;
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title a.edit {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 5px 11px;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 999px;
+  background: hsl(var(--primary) / .07);
+  color: hsl(var(--primary));
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title a.edit:hover {
+  border-color: hsl(var(--primary) / .34);
+  background: hsl(var(--primary) / .12);
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title a.edit:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address address {
+  margin: 13px 0 0;
+  color: hsl(var(--text-secondary));
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+/* Account phone-link panel: visual-only refresh; phone-link.js keeps the same secure OTP hooks. */
+body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 24px 0 0;
+  padding: clamp(17px, 3vw, 25px);
+  border: 1px solid hsl(var(--border));
+  border-radius: 22px;
+  background: linear-gradient(145deg, hsl(var(--surface)), hsl(var(--muted) / .42));
+  box-shadow: 0 12px 30px hsl(var(--foreground) / .055);
+  direction: rtl;
+}
+.jluxe-phone-link__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.jluxe-phone-link__icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  place-items: center;
+  border: 1px solid hsl(var(--primary) / .12);
+  border-radius: 15px;
+  background: hsl(var(--primary) / .09);
+  color: hsl(var(--primary));
+}
+.jluxe-phone-link__icon svg {
+  width: 23px;
+  height: 23px;
+}
+.jluxe-phone-link__intro {
+  min-width: 0;
+  flex: 1;
+}
+.jluxe-phone-link__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.jluxe-phone-link__title {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 850;
+  line-height: 1.6;
+}
+.jluxe-phone-link__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 999px;
+  background: hsl(var(--primary) / .08);
+  color: hsl(var(--primary));
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.jluxe-phone-link__description {
+  margin: 5px 0 0;
+  color: hsl(var(--text-secondary));
+  font-size: 12px;
+  line-height: 1.9;
+}
+.jluxe-phone-link__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(175px, .62fr);
+  align-items: end;
+  gap: 13px 15px;
+}
+.jluxe-phone-link__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+.jluxe-phone-link__field label {
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 750;
+}
+.jluxe-phone-link .jluxe-phone-link__input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: 10px 13px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.jluxe-phone-link .jluxe-phone-link__input:focus {
+  border-color: hsl(var(--primary));
+  outline: 0;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / .12);
+}
+.jluxe-phone-link .jluxe-phone-link__action {
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid hsl(var(--primary) / .18);
+  border-radius: 12px;
+  background: hsl(var(--primary) / .08);
+  color: hsl(var(--primary));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.5;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+.jluxe-phone-link .jluxe-phone-link__action svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.jluxe-phone-link .jluxe-phone-link__action:hover {
+  border-color: hsl(var(--primary) / .36);
+  background: hsl(var(--primary) / .13);
+}
+.jluxe-phone-link .jluxe-phone-link__confirm {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.jluxe-phone-link .jluxe-phone-link__confirm:hover {
+  border-color: hsl(var(--primary) / .82);
+  background: hsl(var(--primary) / .9);
+}
+.jluxe-phone-link .jluxe-phone-link__action:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 3px;
+}
+.jluxe-phone-link .jluxe-phone-link__action:disabled {
+  opacity: .62;
+  cursor: wait;
+  transform: none;
+}
+.jluxe-phone-link__status {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--muted) / .58);
+  color: hsl(var(--text-secondary));
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.jluxe-phone-link__status:empty {
+  display: none;
+}
+@media (max-width: 560px) {
+  .jluxe-phone-link__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .jluxe-phone-link__field,
+  .jluxe-phone-link .jluxe-phone-link__action {
+    grid-column: 1;
+  }
+  .jluxe-phone-link__header {
+    gap: 10px;
+  }
+  .jluxe-phone-link__icon {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 13px;
+  }
+  .jluxe-phone-link__icon svg {
+    width: 21px;
+    height: 21px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-phone-link .jluxe-phone-link__input,
+  .jluxe-phone-link .jluxe-phone-link__action,
+  body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-title a.edit {
+    transition: none;
   }
 }
 

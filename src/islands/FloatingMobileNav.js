@@ -9,6 +9,10 @@ import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { u as useCart } from "../lib/use-cart.js";
 import { N as navIcons, H as fallbackIcon } from "../components/nav-icons.js";
 import { resolveMobileNavItem, siteLink } from "../lib/mobile-nav-actions.js";
+import {
+  prefetchMobileHome,
+  scheduleMobileHomePrefetch,
+} from "../lib/mobile-home-prefetch.js";
 
 const DEFAULT_ITEMS = [
   { id: "support", label: "پشتیبانی", icon: "headphones", action: "assistant", enabled: true },
@@ -69,6 +73,7 @@ function FloatingMobileNav() {
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
   const urls = settings.urls ?? {};
+  const homeHref = siteLink(urls.home || "/", urls);
   const loggedIn = settings.auth?.isLoggedIn ?? false;
   const reducedMotion =
     typeof window !== "undefined" &&
@@ -102,6 +107,10 @@ function FloatingMobileNav() {
     window.addEventListener("popstate", syncPath);
     return () => window.removeEventListener("popstate", syncPath);
   }, []);
+  React.useEffect(
+    () => scheduleMobileHomePrefetch(homeHref, window),
+    [homeHref],
+  );
 
   if (hasMobilePriceBar) return null;
 
@@ -154,7 +163,11 @@ function FloatingMobileNav() {
       toggleMobileDrawer(item.opensDrawer, window);
       return;
     }
-    if (!item.targetBlank && item.action !== "assistant") {
+    if (
+      !item.targetBlank &&
+      item.action !== "assistant" &&
+      item.action !== "home"
+    ) {
       setCurrentHref(item.href);
     }
   };
@@ -194,6 +207,18 @@ function FloatingMobileNav() {
         {
           href: item.href,
           onClick: (event) => handleClick(event, item),
+          onPointerEnter:
+            item.action === "home"
+              ? () => prefetchMobileHome(homeHref, window)
+              : undefined,
+          onFocus:
+            item.action === "home"
+              ? () => prefetchMobileHome(homeHref, window)
+              : undefined,
+          onTouchStart:
+            item.action === "home"
+              ? () => prefetchMobileHome(homeHref, window)
+              : undefined,
           target: item.targetBlank ? "_blank" : undefined,
           rel: item.targetBlank ? "noopener noreferrer" : undefined,
           className: "jluxe-mobile-nav-item jluxe-mobile-nav-item--floating relative flex flex-1 flex-col items-center justify-center gap-1 pt-1 text-[10.5px] font-medium",

@@ -3,6 +3,10 @@
     "file": "assets/mobile-drawers-qfqNlLjh.js",
     "name": "mobile-drawers"
   },
+  "_mobile-home-prefetch-jj-sNs6T.js": {
+    "file": "assets/mobile-home-prefetch-jj-sNs6T.js",
+    "name": "mobile-home-prefetch"
+  },
   "_rolldown-runtime-CbXtAM7H.js": {
     "file": "assets/rolldown-runtime-CbXtAM7H.js",
     "name": "rolldown-runtime"
@@ -93,13 +97,14 @@
     ]
   },
   "src/islands/FloatingMobileNav.js": {
-    "file": "assets/FloatingMobileNav-KWDQUXtc.js",
+    "file": "assets/FloatingMobileNav-BU9IwKbV.js",
     "name": "FloatingMobileNav",
     "src": "src/islands/FloatingMobileNav.js",
     "isDynamicEntry": true,
     "imports": [
       "_shared-shell-ui-D0AWYI3J.js",
-      "_mobile-drawers-qfqNlLjh.js"
+      "_mobile-drawers-qfqNlLjh.js",
+      "_mobile-home-prefetch-jj-sNs6T.js"
     ]
   },
   "src/islands/Footer.js": {
@@ -144,17 +149,18 @@
     ]
   },
   "src/islands/MobileNav.js": {
-    "file": "assets/MobileNav-CctVGcYu.js",
+    "file": "assets/MobileNav-B8FMgt6p.js",
     "name": "MobileNav",
     "src": "src/islands/MobileNav.js",
     "isDynamicEntry": true,
     "imports": [
       "_shared-shell-ui-D0AWYI3J.js",
-      "_mobile-drawers-qfqNlLjh.js"
+      "_mobile-drawers-qfqNlLjh.js",
+      "_mobile-home-prefetch-jj-sNs6T.js"
     ]
   },
   "src/main.js": {
-    "file": "assets/main-DZ9DZHfO.js",
+    "file": "assets/main-DLPlWJdT.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -176,7 +182,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-H55dUtXq.css"
+      "assets/main-Iy7PedVV.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

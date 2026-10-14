@@ -4657,6 +4657,13 @@ function jluxe_maybe_remove_account_downloads_tab( array $items ): array {
 }
 add_filter( 'woocommerce_account_menu_items', 'jluxe_maybe_remove_account_downloads_tab' );
 
+/** Hide saved payment methods from account navigation without touching checkout gateways or order payments. */
+function jluxe_hide_account_payment_methods_menu_item( array $items ): array {
+	unset( $items['payment-methods'] );
+	return $items;
+}
+add_filter( 'woocommerce_account_menu_items', 'jluxe_hide_account_payment_methods_menu_item', 20 );
+
 /**
  * جلوگیری از نشتِ نوتیسِ «X به سبد خرید شما اضافه شد» به صفحه‌های نامربوط
  * (باگِ واقعیِ گزارش‌شده — دوبار: هم توی آرشیوِ دسته‌بندی، هم توی حساب
