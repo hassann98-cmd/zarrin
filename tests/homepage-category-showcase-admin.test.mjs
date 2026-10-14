@@ -8,6 +8,24 @@ const source = await readFile(
   new URL("../assets/js/theme-settings-admin.js", import.meta.url),
   "utf8",
 );
+const homepageSettingsSource = await readFile(
+  new URL("../inc/theme-settings-homepage.php", import.meta.url),
+  "utf8",
+);
+
+test("R305 homepage settings expose an obvious enabled-by-default mobile category swipe-hint switch", () => {
+  assert.match(
+    homepageSettingsSource,
+    /jluxe_hb_field_checkbox\(\s*'homepage',\s*'mobile_category_swipe_hint_enabled'/,
+  );
+  assert.match(
+    homepageSettingsSource,
+    /! array_key_exists\( 'mobile_category_swipe_hint_enabled', \$settings\['homepage'\] \) \|\| ! empty\( \$settings\['homepage'\]\['mobile_category_swipe_hint_enabled'\] \)/,
+    "the homepage-wide control defaults to on while respecting an explicit opt-out",
+  );
+  assert.match(homepageSettingsSource, /mobile_category_swipe_hint_enabled/);
+  assert.match(homepageSettingsSource, /data-jluxe-category-swipe-hint/);
+});
 
 test("category showcase admin toggles category/image fields and optional frame color", async () => {
   const dom = new JSDOM(

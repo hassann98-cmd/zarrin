@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 17;
+const JLUXE_SETTINGS_VERSION = 18;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -270,7 +270,7 @@ function jluxe_theme_settings_defaults(): array {
 			'payment_card_background'          => '#FFFFFF',
 			'payment_card_selected_background' => '#F0FDF4',
 			'show_shipping_accordions'        => true,
-			'shipping_card_radius'            => 18,
+			'shipping_card_radius'            => 10,
 			'copy' => array(
 				'cart_page_title'              => 'سبد خرید',
 				'cart_column_product'           => 'محصول',
@@ -332,8 +332,8 @@ function jluxe_theme_settings_defaults(): array {
 					'note'                      => 'اقتصادی',
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#FFF9E6',
-					'selected_card_border_color' => '#D6A900',
+					'selected_card_background_color' => '#EFF6FF',
+					'selected_card_border_color' => '#2563EB',
 					'note_background_color'     => '#FECB02',
 					'note_text_color'           => '#332900',
 					'details_background_color'  => '#F8FAFC',
@@ -346,8 +346,8 @@ function jluxe_theme_settings_defaults(): array {
 					'note'                      => 'سریع‌تر، هزینه بالا',
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#EDF7F1',
-					'selected_card_border_color' => '#33936E',
+					'selected_card_background_color' => '#EFF6FF',
+					'selected_card_border_color' => '#2563EB',
 					'note_background_color'     => '#33936e',
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => '#F8FAFC',
@@ -360,8 +360,8 @@ function jluxe_theme_settings_defaults(): array {
 					'note'                      => 'مناسب مرسوله‌های حجیم',
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#FFF0F0',
-					'selected_card_border_color' => '#D71925',
+					'selected_card_background_color' => '#EFF6FF',
+					'selected_card_border_color' => '#2563EB',
 					'note_background_color'     => '#d71925',
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => '#F8FAFC',
@@ -526,10 +526,10 @@ function jluxe_theme_settings_defaults(): array {
 			'text_color'          => '',
 			'link_color'          => '',
 			'link_hover_color'    => '',
-			// متن معرفی و چهار مزیت زیر، عیناً به تأیید کاربر برای فوتر ثبت شده‌اند؛
-			// ساعت تماس و متن پشتیبانیِ جداگانه فقط از تنظیم واقعی مدیر می‌آیند.
-			'brand_description'   => 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
-			'support_hours'       => '',
+			// متن معرفی، ساعات تماس و چهار مزیت زیر، طبق درخواست کاربر برای فوتر ثبت شده‌اند؛
+			// مدیر همچنان می‌تواند متن فوتر را از همین تنظیمات ویرایش کند.
+			'brand_description'   => 'JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
+			'support_hours'       => 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب',
 			'support_text'        => '',
 			'feature_cards'  => array(
 				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال فوری به سراسر ایران', 'subtitle' => '' ),
@@ -622,8 +622,8 @@ function jluxe_theme_settings_defaults(): array {
 				// مقادیر تماس زیر از اطلاعاتی آمده‌اند که مدیر برای صفحهٔ تماس
 				// فرستاده است؛ از تنظیمات قابل‌ویرایش‌اند و به‌عنوان تأیید مستقل
 				// شماره‌ها/نشانی ایمیل تلقی نمی‌شوند.
-				'phone'           => '۰۹۳۶۲۴۲۰۲۳۲',
-				'phone_secondary' => '۰۹۱۲۰۹۰۲۳۳۶',
+				'phone'           => '09120902336',
+				'phone_secondary' => '09362420232',
 				'email'           => 'info@jahiziyeluxe.ir',
 				'address'         => '',
 			// اطلاعیه‌ی کوچک در داشبورد حساب کاربری (بخش «دسترسی سریع») —
@@ -845,6 +845,7 @@ function jluxe_theme_settings_defaults(): array {
 			'max_summaries_per_run' => 3,
 		),
 		'homepage' => array(
+			'mobile_category_swipe_hint_enabled' => true,
 			'sections' => array(
 				array(
 					'id'            => 'hero-default',
@@ -1987,6 +1988,78 @@ function jluxe_migrate_settings_v17( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v17→v18: apply the requested footer contact copy and the supplied blue,
+ * compact shipping-card style. Only known former defaults are updated; custom
+ * footer text, contact numbers, and per-carrier colours remain intact.
+ */
+function jluxe_migrate_settings_v18( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	if ( isset( $settings['footer'] ) && is_array( $settings['footer'] ) ) {
+		$approved_brand = 'JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.';
+		$previous_brand = 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.';
+		$brand = $settings['footer']['brand_description'] ?? null;
+		if ( ! is_string( $brand ) || '' === trim( $brand ) || $previous_brand === $brand ) {
+			$settings['footer']['brand_description'] = $approved_brand;
+		}
+
+		$previous_hours = 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.';
+		$hours = $settings['footer']['support_hours'] ?? null;
+		if ( ! is_string( $hours ) || '' === trim( $hours ) || $previous_hours === $hours ) {
+			$settings['footer']['support_hours'] = $defaults['footer']['support_hours'];
+		}
+	}
+
+	if ( isset( $settings['contact'] ) && is_array( $settings['contact'] ) ) {
+		$normalize_phone = static function ( $value ): string {
+			if ( ! is_scalar( $value ) ) {
+				return '';
+			}
+			$digits = strtr(
+				(string) $value,
+				array(
+					'۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+					'۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+					'٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+					'٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+				)
+			);
+			return (string) preg_replace( '/\\D+/', '', $digits );
+		};
+		if ( '09362420232' === $normalize_phone( $settings['contact']['phone'] ?? '' ) && '09120902336' === $normalize_phone( $settings['contact']['phone_secondary'] ?? '' ) ) {
+			$settings['contact']['phone'] = $defaults['contact']['phone'];
+			$settings['contact']['phone_secondary'] = $defaults['contact']['phone_secondary'];
+		}
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$cart = &$settings['cart_checkout'];
+		if ( isset( $cart['shipping_card_radius'] ) && is_scalar( $cart['shipping_card_radius'] ) && 18 === (int) $cart['shipping_card_radius'] ) {
+			$cart['shipping_card_radius'] = $defaults['cart_checkout']['shipping_card_radius'];
+		}
+
+		$previous_carrier_colors = array(
+			'post'   => array( '#FFF9E6', '#D6A900' ),
+			'tipax'  => array( '#EDF7F1', '#33936E' ),
+			'chapar' => array( '#FFF0F0', '#D71925' ),
+		);
+		foreach ( $previous_carrier_colors as $method => $colors ) {
+			if ( empty( $cart['shipping_methods'][ $method ] ) || ! is_array( $cart['shipping_methods'][ $method ] ) ) {
+				continue;
+			}
+			foreach ( array( 'selected_card_background_color', 'selected_card_border_color' ) as $index => $field ) {
+				$current = $cart['shipping_methods'][ $method ][ $field ] ?? null;
+				if ( is_string( $current ) && strtoupper( $current ) === $colors[ $index ] ) {
+					$cart['shipping_methods'][ $method ][ $field ] = $defaults['cart_checkout']['shipping_methods'][ $method ][ $field ];
+				}
+			}
+		}
+		unset( $cart );
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2006,6 +2079,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		15 => 'jluxe_migrate_settings_v15',
 		16 => 'jluxe_migrate_settings_v16',
 		17 => 'jluxe_migrate_settings_v17',
+		18 => 'jluxe_migrate_settings_v18',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -3378,8 +3452,17 @@ function jluxe_set_ai_api_key( string $key ): void {
  * هیچ‌وقت این‌جا نیست، فقط وضعیت واقعی «آیا کلید تنظیم شده یا نه».
  */
 function jluxe_get_ai_public_settings(): array {
-	$ai = jluxe_get_theme_settings()['ai_assistant'];
+	$settings = jluxe_get_theme_settings();
+	$ai = $settings['ai_assistant'];
 	$ticket_form_enabled = ! empty( $ai['widgets']['support_ticket'] );
+	$mobile = $settings['mobile'] ?? array();
+	$floating_nav_items = is_array( $mobile['floating_nav_items'] ?? null ) ? $mobile['floating_nav_items'] : array();
+	$mobile_menu_opens_assistant = 'floating' === ( $mobile['nav_variant'] ?? 'classic' ) && (bool) array_filter(
+		$floating_nav_items,
+		static fn( $item ): bool => is_array( $item ) && ! empty( $item['enabled'] ) && 'assistant' === ( $item['action'] ?? '' )
+	);
+	// If the active floating menu already opens the assistant, suppress the duplicate mobile bubble.
+	$hide_mobile_launcher = ! empty( $ai['hide_mobile_launcher'] ) || $mobile_menu_opens_assistant;
 	return array(
 		'enabled'            => (bool) $ai['enabled'] && '' !== jluxe_get_ai_api_key(),
 		'name'               => $ai['name'],
@@ -3388,7 +3471,7 @@ function jluxe_get_ai_public_settings(): array {
 		'buttonUrl'          => $ai['button_id'] ? wp_get_attachment_image_url( (int) $ai['button_id'], 'thumbnail' ) : '',
 		'showDesktop'        => (bool) $ai['show_desktop'],
 		'showMobile'         => (bool) $ai['show_mobile'], // legacy
-		'hideMobileLauncher' => ! empty( $ai['hide_mobile_launcher'] ),
+		'hideMobileLauncher' => $hide_mobile_launcher,
 		// Floating launcher stays out of the cart/category UI; explicit support links can still open chat.
 		'hideLauncherOnPage' => ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_product_category' ) && is_product_category() ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),

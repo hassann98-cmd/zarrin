@@ -104,7 +104,9 @@ test("R212 shared desktop containers never grow past 1462px, including product-w
 
 test("R126 places the logo, editable mobile search, and enabled action controls in order", () => {
   assert.match(headerIsland, /function MobileSearch\(\)/);
-  assert.match(headerIsland, /className:\s*"h-10 w-full rounded-xl border border-border bg-surface/);
+  assert.match(headerIsland, /className:\s*"h-10 w-full rounded-2xl border border-border bg-surface/);
+  assert.match(headerIsland, /h-14 w-full rounded-2xl border border-transparent/);
+  assert.match(headerIsland, /className: `gap-1\.5 rounded-2xl px-3 md:h-\[58px\] md:w-\[171px\]/);
   assert.match(headerIsland, /placeholder: searchPlaceholder/);
   assert.match(headerIsland, /search_placeholder/);
   assert.match(headerIsland, /show_account_mobile/);

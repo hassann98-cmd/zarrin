@@ -2583,15 +2583,19 @@ function jluxe_billing_fields( array $fields ): array {
 	// چیدمانِ سه‌ستونه/دوستونه با flex-basis روی خودِ .form-row (بر اساس id)
 	// در globals.css پیاده می‌شه، نه با تودرتو کردن DOM.
 	if ( isset( $fields['billing']['billing_state'] ) ) {
-		$fields['billing']['billing_state']['priority'] = 25;
+		$fields['billing']['billing_state']['priority']    = 25;
+		$fields['billing']['billing_state']['autocomplete'] = 'address-level1';
 	}
 	if ( isset( $fields['billing']['billing_city'] ) ) {
 		// شهرستان یک select واقعیه (نه متن آزاد) که بر اساس استانِ انتخابی
 		// با assets/js/woocommerce.js پر می‌شه — چون گزینه‌ها به مقدارِ
 		// billing_state وابسته‌ان، فقط گزینه‌ی مقدارِ فعلی (هنگام ویرایش
 		// آدرس ذخیره‌شده) این‌جا سمت سرور اضافه می‌شه، بقیه سمت کلاینته.
+		// autocompleteهای استاندارد کمک می‌کنند Autofill موبایل این دو فیلد را
+		// به‌عنوان استان/شهر بشناسد، بدون دست‌زدن به کنترل یا اعتبارسنجی WooCommerce.
 		$current_city                                    = WC()->checkout()->get_value( 'billing_city' );
 		$fields['billing']['billing_city']['priority']    = 26;
+		$fields['billing']['billing_city']['autocomplete'] = 'address-level2';
 		$fields['billing']['billing_city']['type']        = 'select';
 		$city_placeholder = jluxe_cart_checkout_required_copy( 'checkout_city_placeholder', 'انتخاب شهرستان' );
 		$city_prompt      = jluxe_cart_checkout_required_copy( 'checkout_city_prompt', 'ابتدا استان را انتخاب کنید' );
@@ -2831,6 +2835,7 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
 		$phone_key = $address_type . '_phone';
 		if ( isset( $fields[ $address_type ][ $phone_key ] ) ) {
+			$fields[ $address_type ][ $phone_key ]['autocomplete'] = 'tel';
 			$phone_attributes = isset( $fields[ $address_type ][ $phone_key ]['custom_attributes'] ) && is_array( $fields[ $address_type ][ $phone_key ]['custom_attributes'] )
 				? $fields[ $address_type ][ $phone_key ]['custom_attributes']
 				: array();
@@ -2847,6 +2852,7 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 		if ( ! isset( $fields[ $address_type ][ $key ] ) ) {
 			continue;
 		}
+		$fields[ $address_type ][ $key ]['autocomplete'] = 'postal-code';
 		$fields[ $address_type ][ $key ]['required']    = false;
 		$fields[ $address_type ][ $key ]['placeholder'] = '';
 		$custom_attributes = isset( $fields[ $address_type ][ $key ]['custom_attributes'] ) && is_array( $fields[ $address_type ][ $key ]['custom_attributes'] )

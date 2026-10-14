@@ -490,7 +490,111 @@
 		});
 	}
 
-	document.addEventListener("DOMContentLoaded", function () {
+	/* ---------------------------------------------------------------
+	 * راهنمای یک‌بارهٔ کشیدنِ ردیف دسته‌ها در موبایل. حرکت واقعیِ اسکرول
+	 * کوتاه است و به نقطهٔ شروع برمی‌گردد؛ اولین لمس/تعامل آن را فوراً لغو
+	 * می‌کند تا با کشیدنِ انگشت یا انتخاب دسته تداخلی نداشته باشد.
+	 * ------------------------------------------------------------- */
+	function initMobileCategorySwipeHint() {
+		if (!window.matchMedia || !window.matchMedia("(max-width: 767.98px)").matches) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (!("IntersectionObserver" in window)) return;
+
+		document.querySelectorAll("[data-jluxe-category-swipe-hint]").forEach(function (scroller) {
+			var observer = null;
+			var started = false;
+			var finished = false;
+			var isAnimating = false;
+			var timer = 0;
+			var frame = 0;
+			var originalScrollBehavior = "";
+			var interactionRoot = scroller.parentElement || scroller;
+
+			function removeInteractionListeners() {
+				["pointerdown", "touchstart", "wheel", "keydown"].forEach(function (eventName) {
+					interactionRoot.removeEventListener(eventName, cancelHint);
+				});
+			}
+
+			function finishHint() {
+				if (finished) return;
+				finished = true;
+				window.clearTimeout(timer);
+				if (frame) window.cancelAnimationFrame(frame);
+				if (isAnimating) scroller.style.scrollBehavior = originalScrollBehavior;
+				if (observer) observer.disconnect();
+				removeInteractionListeners();
+			}
+
+			function cancelHint() {
+				finishHint();
+			}
+
+			function animateTo(target, duration, done) {
+				var start = scroller.scrollLeft;
+				var change = target - start;
+				var startTime = null;
+				function step(timestamp) {
+					if (finished) return;
+					if (null === startTime) startTime = timestamp;
+					var progress = Math.min((timestamp - startTime) / duration, 1);
+					var eased = 1 - Math.pow(1 - progress, 3);
+					scroller.scrollLeft = start + change * eased;
+					if (progress < 1) {
+						frame = window.requestAnimationFrame(step);
+					} else {
+						frame = 0;
+						if (done) done();
+					}
+				}
+				frame = window.requestAnimationFrame(step);
+			}
+
+			function startHint() {
+				if (started || finished) return;
+				started = true;
+				if (observer) observer.disconnect();
+				if (scroller.scrollWidth - scroller.clientWidth < 20 || Math.abs(scroller.scrollLeft) > 1) {
+					finishHint();
+					return;
+				}
+
+				originalScrollBehavior = scroller.style.scrollBehavior;
+				scroller.style.scrollBehavior = "auto";
+				isAnimating = true;
+				var start = scroller.scrollLeft;
+				var peek = Math.min(44, Math.max(32, scroller.clientWidth * 0.11));
+				timer = window.setTimeout(function () {
+					animateTo(start - peek, 220, function () {
+						timer = window.setTimeout(function () {
+							animateTo(start, 620, finishHint);
+						}, 100);
+					});
+				}, 120);
+			}
+
+			observer = new IntersectionObserver(function (entries) {
+				entries.forEach(function (entry) {
+					if (finished || started || !entry.isIntersecting) return;
+					["pointerdown", "touchstart", "wheel", "keydown"].forEach(function (eventName) {
+						interactionRoot.addEventListener(eventName, cancelHint, { passive: true });
+					});
+					startHint();
+				});
+			}, { threshold: 0.35 });
+			observer.observe(scroller);
+		});
+	}
+
+	function whenDocumentReady(callback) {
+		if ("loading" === document.readyState) {
+			document.addEventListener("DOMContentLoaded", callback, { once: true });
+			return;
+		}
+		callback();
+	}
+
+	whenDocumentReady(function () {
 		initStories();
 		initSliders("[data-jluxe-banner-slider]");
 		// R89 — هیرو حالا assets/js/hero-slider.js است (افکت‌ها، حلقه، کشیدن).
@@ -499,5 +603,6 @@
 		initDragScroll();
 		initAutoScroll();
 		initCarouselPeekHint();
+		initMobileCategorySwipeHint();
 	});
 })();

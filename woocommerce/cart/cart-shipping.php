@@ -17,10 +17,10 @@ $formatted_destination    = isset( $formatted_destination ) ? $formatted_destina
 $has_calculated_shipping  = ! empty( $has_calculated_shipping );
 $show_shipping_calculator = ! empty( $show_shipping_calculator );
 $calculator_text          = '';
-$shipping_card_radius     = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 18 ) : 18;
-$shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 18;
-if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
-	$shipping_card_radius = 18;
+$shipping_card_radius     = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 10 ) : 10;
+$shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 10;
+if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) ) {
+	$shipping_card_radius = 10;
 }
 ?>
 <div class="jluxe-shipping-methods">
@@ -50,7 +50,7 @@ if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
 						esc_attr( $presentation['kind'] )
 					);
 					?>
-						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#F0FDF4' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#16A34A' ); ?>">
+						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#EFF6FF' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#2563EB' ); ?>">
 							<span class="jluxe-shipping-card__details">
 								<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
 							</span>

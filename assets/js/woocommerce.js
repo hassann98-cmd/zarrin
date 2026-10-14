@@ -1618,12 +1618,20 @@ function jluxeEnhanceShopSort(root) {
  * فرم ویرایش نشانی حساب. billing در checkout و حساب جفت مستقل خودش را دارد؛
  * shipping فقط در فرم حساب فعال می‌شود تا جریان/فیلدهای ارسال در checkout
  * دست‌نخورده بمانند. فقط cityهای native از نوع select بازسازی می‌شوند.
+ *
+ * مرورگرهای موبایل گاهی استان را با Address Autofill بدون رویداد change
+ * روی select می‌نویسند. تغییر را هم از رویدادها و هم هنگام فوکوس/پرشدنِ
+ * فیلدهای آدرس کوتاه‌مدت بررسی می‌کنیم تا برای بارگذاری فهرست، مشتری مجبور
+ * به انتخاب استان دیگر و برگشتن به استان اصلی نباشد.
  */
 (function () {
 	var cities = window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities;
+	if (!cities || "object" !== typeof cities) { cities = {}; }
 	var checkoutCopy = (window.JLuxeThemeSettings && window.JLuxeThemeSettings.cartCheckout && window.JLuxeThemeSettings.cartCheckout.copy) || {};
 	function getCheckoutText(key, fallback) {
-		var value = checkoutCopy[key];
+		var currentSettings = window.JLuxeThemeSettings || {};
+		var currentCopy = currentSettings.cartCheckout && currentSettings.cartCheckout.copy || checkoutCopy;
+		var value = currentCopy[key];
 		return typeof value === "string" && value.trim() ? value : fallback;
 	}
 
@@ -1639,20 +1647,44 @@ function jluxeEnhanceShopSort(root) {
 	addressPairs.forEach(function (addressPair) {
 		var stateSelect = document.getElementById(addressPair.stateId);
 		var citySelect = document.getElementById(addressPair.cityId);
-		if (!cities || !stateSelect || !citySelect || stateSelect.tagName !== "SELECT" || citySelect.tagName !== "SELECT") {
+		if (!stateSelect || !citySelect || stateSelect.tagName !== "SELECT" || citySelect.tagName !== "SELECT") {
 			return;
 		}
 
-		function rebuildCityOptions(preserveCurrent) {
-			var list = cities[stateSelect.value] || [];
-			var currentCity = preserveCurrent ? citySelect.value : "";
+		function getProvinceCode() {
+			return String(stateSelect.value || "").trim().toUpperCase();
+		}
+
+		function getProvinceCities(provinceCode) {
+			var currentSettings = window.JLuxeThemeSettings || {};
+			var currentCities = currentSettings.iranCities;
+			if (currentCities && "object" === typeof currentCities) {
+				cities = currentCities;
+			}
+			var list = cities[provinceCode];
+			return Array.isArray(list) ? list : [];
+		}
+
+		var renderedProvince = null;
+		var renderedCitySignature = null;
+		function rebuildCityOptions(preserveMode) {
+			var provinceCode = getProvinceCode();
+			var list = getProvinceCities(provinceCode);
+			renderedProvince = provinceCode;
+			renderedCitySignature = list.join("\u0000");
+			var currentCity = citySelect.value;
+			if ("clear" === preserveMode || !currentCity || ("valid" === preserveMode && list.indexOf(currentCity) === -1)) {
+				currentCity = "";
+			}
 
 			citySelect.innerHTML = "";
 			var placeholder = document.createElement("option");
 			placeholder.value = "";
 			placeholder.textContent = list.length
 				? getCheckoutText("checkout_city_placeholder", "انتخاب شهرستان")
-				: getCheckoutText("checkout_city_prompt", "ابتدا استان را انتخاب کنید");
+				: provinceCode
+					? getCheckoutText("checkout_city_unavailable", "فهرست شهرستان‌های این استان در دسترس نیست")
+					: getCheckoutText("checkout_city_prompt", "ابتدا استان را انتخاب کنید");
 			citySelect.appendChild(placeholder);
 
 			list.forEach(function (city) {
@@ -1664,7 +1696,7 @@ function jluxeEnhanceShopSort(root) {
 
 			if (currentCity) {
 				if (list.indexOf(currentCity) === -1) {
-					// Keep a saved/custom value until the customer explicitly chooses another city.
+					// Keep a legacy/custom saved value on first render only.
 					var keep = document.createElement("option");
 					keep.value = currentCity;
 					keep.textContent = currentCity;
@@ -1674,20 +1706,76 @@ function jluxeEnhanceShopSort(root) {
 			}
 		}
 
-		rebuildCityOptions(true);
+		var activeProvince = getProvinceCode();
+		rebuildCityOptions("legacy");
 
-		/* Select2 emits jQuery change events, so bind through jQuery when available. */
-		if (window.jQuery) {
-			window.jQuery(stateSelect).on("change", function () {
-				rebuildCityOptions(false);
-				citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-			});
-		} else {
-			stateSelect.addEventListener("change", function () {
-				rebuildCityOptions(false);
-				citySelect.dispatchEvent(new Event("change", { bubbles: true }));
-			});
+		function stopAutofillWatch() {
+			if (null !== autofillWatchTimer) {
+				window.clearTimeout(autofillWatchTimer);
+				autofillWatchTimer = null;
+			}
 		}
+
+		function syncProvince(preserveMode) {
+			var nextProvince = getProvinceCode();
+			var nextCities = getProvinceCities(nextProvince);
+			var nextCitySignature = nextCities.join("\u0000");
+			var provinceChanged = nextProvince !== activeProvince;
+			var cityListChanged = nextProvince !== renderedProvince || nextCitySignature !== renderedCitySignature;
+			if (!provinceChanged && !cityListChanged) {
+				return false;
+			}
+			activeProvince = nextProvince;
+			rebuildCityOptions(provinceChanged ? preserveMode : "valid");
+			citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+			return true;
+		}
+
+		var autofillWatchTimer = null;
+		function watchForAutofilledProvince() {
+			stopAutofillWatch();
+			var startedAt = Date.now();
+			function checkForAutofill() {
+				if (syncProvince("valid")) {
+					stopAutofillWatch();
+					return;
+				}
+				if (Date.now() - startedAt >= 1800) {
+					stopAutofillWatch();
+					return;
+				}
+				autofillWatchTimer = window.setTimeout(checkForAutofill, 100);
+			}
+			checkForAutofill();
+		}
+
+		function handleProvinceEvent() {
+			if (syncProvince("valid")) {
+				stopAutofillWatch();
+			}
+		}
+
+		/* WooCommerce SelectWoo emits jQuery events; mobile autofill may be native or silent. */
+		if (window.jQuery) {
+			window.jQuery(stateSelect).on("change", handleProvinceEvent);
+		}
+		stateSelect.addEventListener("change", handleProvinceEvent);
+		stateSelect.addEventListener("input", handleProvinceEvent);
+
+		var addressRoot = stateSelect.closest("form") || document;
+		function watchAfterOtherAddressField(event) {
+			// The state control has its own direct handlers; don't rebuild ahead of WooCommerce's change listener.
+			if (event && event.target === stateSelect) {
+				return;
+			}
+			watchForAutofilledProvince();
+		}
+		addressRoot.addEventListener("focusin", watchForAutofilledProvince, true);
+		addressRoot.addEventListener("input", watchAfterOtherAddressField, true);
+		addressRoot.addEventListener("change", watchAfterOtherAddressField, true);
+		window.addEventListener("pageshow", watchForAutofilledProvince);
+		// Catch autofill applied shortly after DOM/script initialization as well.
+		watchForAutofilledProvince();
 	});
 })();
 
@@ -3887,9 +3975,10 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
- * R289 — ارقامِ فارسی/عربی را پیش از validation به مقدارِ ASCII تبدیل می‌کند،
- * اما مقدارِ ASCII را با لایهٔ دیداریِ فارسی نشان می‌دهد تا هم ووکامرس عددِ
- * استاندارد دریافت کند و هم مشتری همان رقم‌های فارسی را ببیند.
+ * R289 — ارقامِ فارسی/عربی را پیش از validation به مقدارِ ASCII تبدیل می‌کند.
+ * خودِ input همیشه متنش را با رندر بومی مرورگر نشان می‌دهد؛ لایهٔ overlay و
+ * شفاف‌کردن نوشتهٔ input حذف شده‌اند تا Address Autofill موبایل هم فوراً
+ * قابل دیدن باشد و عددها بیرون/زیر کادر ظاهر نشوند.
  */
 (function () {
 	var form = document.querySelector("form.checkout");
@@ -3916,48 +4005,37 @@ function jluxeEnhanceShopSort(root) {
 		});
 	}
 
-	function persianDigits(value) {
-		var digits = { "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹" };
-		return String(value).replace(/[0-9]/g, function (digit) { return digits[digit]; });
+	function removeLegacyDigitDisplay(input) {
+		var wrapper = input.closest(".woocommerce-input-wrapper");
+		input.removeAttribute("data-jluxe-ascii-digit-input");
+		if (!wrapper) {
+			return;
+		}
+		wrapper.classList.remove("jluxe-numeric-input-wrapper");
+		wrapper.querySelectorAll(".jluxe-numeric-digit-display").forEach(function (display) {
+			display.remove();
+		});
 	}
 
 	function updateField(input) {
+		// Remove stale markup from a cached/previous version before updating the native value.
+		removeLegacyDigitDisplay(input);
 		var value = input.value;
 		var asciiValue = normalizeDigits(value);
-		if (asciiValue !== value) {
-			var selectionStart = null;
-			var selectionEnd = null;
-			try {
-				selectionStart = input.selectionStart;
-				selectionEnd = input.selectionEnd;
-			} catch (error) { /* Some browser-managed controls do not expose a selection. */ }
-			input.value = asciiValue;
-			if (null !== selectionStart && null !== selectionEnd && typeof input.setSelectionRange === "function") {
-				try { input.setSelectionRange(selectionStart, selectionEnd); } catch (error) { /* Keep the normalized value even if caret restoration is unsupported. */ }
-			}
-		}
-
-		var wrapper = input.closest(".woocommerce-input-wrapper");
-		if (!asciiValue || !wrapper) {
-			input.removeAttribute("data-jluxe-ascii-digit-input");
-			if (wrapper) {
-				wrapper.classList.remove("jluxe-numeric-input-wrapper");
-				var emptyDisplay = wrapper.querySelector(".jluxe-numeric-digit-display");
-				if (emptyDisplay) { emptyDisplay.remove(); }
-			}
+		if (asciiValue === value) {
 			return;
 		}
 
-		input.setAttribute("data-jluxe-ascii-digit-input", "");
-		wrapper.classList.add("jluxe-numeric-input-wrapper");
-		var display = wrapper.querySelector(".jluxe-numeric-digit-display");
-		if (!display) {
-			display = document.createElement("span");
-			display.className = "jluxe-numeric-digit-display";
-			display.setAttribute("aria-hidden", "true");
-			wrapper.appendChild(display);
+		var selectionStart = null;
+		var selectionEnd = null;
+		try {
+			selectionStart = input.selectionStart;
+			selectionEnd = input.selectionEnd;
+		} catch (error) { /* Some browser-managed controls do not expose a selection. */ }
+		input.value = asciiValue;
+		if (null !== selectionStart && null !== selectionEnd && typeof input.setSelectionRange === "function") {
+			try { input.setSelectionRange(selectionStart, selectionEnd); } catch (error) { /* Keep the normalized value even if caret restoration is unsupported. */ }
 		}
-		display.textContent = persianDigits(asciiValue);
 	}
 
 	function isNumericCheckoutField(target) {

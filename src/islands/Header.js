@@ -538,7 +538,7 @@ function MobileSearch() {
                 "aria-label": "جستجو در فروشگاه",
                 enterKeyHint: "search",
                 className:
-                  "h-10 w-full rounded-xl border border-border bg-surface ps-10 pe-3 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
+                  "h-10 w-full rounded-2xl border border-border bg-surface ps-10 pe-3 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
               }),
               e.jsx("input", { type: "hidden", name: "post_type", value: "product" }),
               e.jsx("button", {

@@ -158,8 +158,9 @@ const socialLabels = {
   bale: "بله",
 };
 const defaultBrandDescription =
-  "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.";
-const defaultSupportHours = "";
+  "JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.";
+const defaultSupportHours =
+  "ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب";
 const defaultSupportText = "";
 
 function findFooterSlots(doc = typeof document === "undefined" ? null : document) {
@@ -215,8 +216,14 @@ function Footer() {
     typeof footer?.brand_description === "string"
       ? footer.brand_description.trim()
       : defaultBrandDescription;
-  const supportHours = footer?.support_hours || defaultSupportHours;
-  const supportText = footer?.support_text || defaultSupportText;
+  const supportHours =
+    typeof footer?.support_hours === "string"
+      ? footer.support_hours.trim()
+      : defaultSupportHours;
+  const supportText =
+    typeof footer?.support_text === "string"
+      ? footer.support_text.trim()
+      : defaultSupportText;
   const features = (footer?.feature_cards ?? defaultFeatures)
     .filter((feature) => feature.enabled)
     .map(normalizeLegacyShippingFeature);

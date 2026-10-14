@@ -111,7 +111,7 @@ test("R196 shipping slogan is a full bold heading in the shared footer hierarchy
   const brand = document.querySelector(".jluxe-footer-brand-description");
   assert.equal(
     brand?.textContent,
-    "JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.",
+    "JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.",
   );
   const cards = [...document.querySelectorAll(".jluxe-footer-feature-card")];
   assert.deepEqual(
@@ -138,6 +138,33 @@ test("R196 shipping slogan is a full bold heading in the shared footer hierarchy
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-title\s*\{[^}]*font-size:\s*\.9rem;[^}]*font-weight:\s*700;/s);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-subtitle\s*\{[^}]*font-size:\s*\.77rem;[^}]*min-height:\s*1\.2em;/s);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-copy\s*\{[^}]*display:\s*grid;[^}]*min-height:\s*2\.85rem;/s);
+});
+
+test("R305 footer displays the requested brand, phone hours, and ordered support numbers", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.contact = {
+    phone: "09120902336",
+    phone_secondary: "09362420232",
+  };
+  win.JLuxeThemeSettings.social = {};
+  await render();
+
+  const columns = document.querySelector('[data-jluxe-footer-slot="columns"]');
+  assert.equal(
+    columns.querySelector(".jluxe-footer-brand-description")?.textContent,
+    "JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.",
+  );
+  assert.equal(columns.querySelector(".jluxe-footer-support-title")?.textContent, "پشتیبانی تلفنی");
+  assert.equal(columns.querySelector(".jluxe-footer-support-copy")?.textContent, "ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب");
+  assert.deepEqual(
+    [...columns.querySelectorAll(".jluxe-footer-phone-link")].map((link) => [link.textContent, link.getAttribute("href")]),
+    [["09120902336", "tel:09120902336"], ["09362420232", "tel:09362420232"]],
+  );
+
+  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  assert.match(css, /@media \(max-width: 639\.98px\)[\s\S]*?#jluxe-footer-root \.jluxe-footer-support-card \{\s*display: block;/);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-support-icon \{\s*display: none;/);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-phone-links \{[^}]*flex-wrap: wrap;[^}]*justify-content: flex-start;/);
 });
 
 test("R197 a legacy blank shipping heading is promoted without rewriting other copy", async () => {
@@ -361,7 +388,7 @@ test("R194 intentionally empty footer settings stay empty instead of restoring d
   assert.equal(columns.querySelector(".jluxe-footer-support-card h3")?.textContent, "راه‌های تماس");
   assert.equal(footer.querySelector('[data-jluxe-footer-slot="features"] .jluxe-footer-feature-grid'), null);
   assert.equal(footer.querySelector('[data-jluxe-footer-slot="bottom"] .jluxe-footer-social-row'), null);
-  assert.doesNotMatch(footer.textContent, /JLuxe|ارسال سریع|۲۴ ساعته|کف قیمت بازار|درگاه مطمئن|روز ضمانت/);
+  assert.doesNotMatch(footer.textContent, /JLUXE|ارسال سریع|۲۴ ساعته|کف قیمت بازار|درگاه مطمئن|روز ضمانت/);
 });
 
 test("R108 the footer logo portal has a scoped compact-image rule", async () => {

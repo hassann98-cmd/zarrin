@@ -294,7 +294,7 @@ test("cart and checkout action rows share responsive RTL buttons with return on 
   assert.match(checkoutTemplate, /class="jluxe-checkout-summary/);
 });
 
-test("R289 checkout postal and phone fields submit ASCII digits but display Persian digits", () => {
+test("R289 checkout phone/postcode autofill stays natively visible while submitted digits normalize", () => {
   const dom = new JSDOM(
     `<!doctype html><html lang="fa"><body>
       <form class="checkout">
@@ -313,28 +313,36 @@ test("R289 checkout postal and phone fields submit ASCII digits but display Pers
   const postcode = window.document.getElementById("billing_postcode");
   const phone = window.document.getElementById("billing_phone");
   const email = window.document.getElementById("billing_email");
+  const postcodeWrapper = postcode.closest(".woocommerce-input-wrapper");
+  const phoneWrapper = phone.closest(".woocommerce-input-wrapper");
+
   postcode.value = "۱۲۳٤٥٦٧٨٩٠";
   postcode.setSelectionRange(4, 4);
   postcode.dispatchEvent(new window.Event("input", { bubbles: true }));
   assert.equal(postcode.value, "1234567890", "Persian and Arabic-Indic postal digits normalize immediately");
   assert.equal(postcode.selectionStart, 4, "normalizing digits does not move the caret");
-  assert.equal(postcode.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "۱۲۳۴۵۶۷۸۹۰", "the visible postal code remains Persian");
-  assert.equal(postcode.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").getAttribute("aria-hidden"), "true", "the visual-only Persian layer does not duplicate the accessible input value");
+  assert.equal(postcodeWrapper.querySelector(".jluxe-numeric-digit-display"), null, "the real input is the only visible value; no tiny duplicate is placed below it");
+  assert.equal(postcode.hasAttribute("data-jluxe-ascii-digit-input"), false, "the real input is never made transparent");
 
   phone.value = "٠٩١٢٣٤٥٦٧٨٩";
   phone.dispatchEvent(new window.Event("input", { bubbles: true }));
   assert.equal(phone.value, "09123456789", "Arabic-Indic phone digits normalize immediately");
-  assert.equal(phone.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "۰۹۱۲۳۴۵۶۷۸۹", "the visible phone remains Persian");
+  assert.equal(phoneWrapper.querySelector(".jluxe-numeric-digit-display"), null);
 
   email.value = "١٢٣";
   email.dispatchEvent(new window.Event("input", { bubbles: true }));
   assert.equal(email.value, "١٢٣", "unrelated checkout fields are not modified");
 
+  // Browser/keyboard autofill can set .value without dispatching input; the native control remains visible.
   phone.value = "+٩٨ (٩١٢) ٠٠٠-٠٠٠٠";
+  assert.equal(phone.value, "+٩٨ (٩١٢) ٠٠٠-٠٠٠٠");
+  assert.equal(phoneWrapper.querySelector(".jluxe-numeric-digit-display"), null);
+  assert.doesNotMatch(storefrontStyles, /jluxe-numeric-digit-display|color:\s*transparent\s*!important|text-fill-color:\s*transparent/);
+
   form.addEventListener("submit", (event) => event.preventDefault());
   form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));
-  assert.equal(phone.value, "+98 (912) 000-0000", "submit also normalizes values filled by autofill or scripts without an input event");
-  assert.equal(phone.closest(".woocommerce-input-wrapper").querySelector(".jluxe-numeric-digit-display").textContent, "+۹۸ (۹۱۲) ۰۰۰-۰۰۰۰");
+  assert.equal(phone.value, "+98 (912) 000-0000", "submit normalizes autofilled values even when no input event fired");
+  assert.equal(phoneWrapper.querySelector(".jluxe-numeric-digit-display"), null);
 
   const dynamicWrapper = window.document.createElement("span");
   dynamicWrapper.className = "woocommerce-input-wrapper";
@@ -345,7 +353,7 @@ test("R289 checkout postal and phone fields submit ASCII digits but display Pers
   form.append(dynamicWrapper);
   window.jQuery(window.document.body).trigger("updated_checkout");
   assert.equal(dynamicPostcode.value, "456", "fields replaced during a WooCommerce checkout refresh are normalized too");
-  assert.equal(dynamicWrapper.querySelector(".jluxe-numeric-digit-display").textContent, "۴۵۶");
+  assert.equal(dynamicWrapper.querySelector(".jluxe-numeric-digit-display"), null);
   dom.window.close();
 });
 
@@ -437,7 +445,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardRule, /grid-template-areas:\s*"note details"/);
   assert.match(shippingCardRule, /grid-template-columns:\s*minmax\(0, 1\.15fr\) minmax\(0, 1\.35fr\)/, "wide cards reserve more space for the note without removing the rate details");
   assert.match(shippingCardRule, /direction:\s*ltr/);
-  assert.match(shippingCardRule, /border-radius:\s*var\(--jluxe-shipping-card-radius/);
+  assert.match(shippingCardRule, /border:\s*2px solid var\(--jluxe-shipping-card-border/);
+  assert.match(shippingCardRule, /border-radius:\s*var\(--jluxe-shipping-card-radius, 10px\)/);
   assert.match(shippingCardRule, /background-color:\s*var\(--jluxe-shipping-card-bg/);
   assert.match(shippingCardDetailsRule, /grid-area:\s*details/);
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
@@ -453,8 +462,9 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(checkoutSummaryShippingRule, /grid-template-areas:\s*"details" "note"/, "the narrow desktop checkout summary gives the note its own full-width row");
   assert.match(checkoutSummaryNoteRule, /width:\s*max-content/);
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
-  assert.match(selectedRule, /--jluxe-shipping-card-selected-border/);
-  assert.match(selectedRule, /--jluxe-shipping-card-selected-bg/);
+  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, #2563EB\)/);
+  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, #EFF6FF\)/);
+  assert.match(selectedRule, /box-shadow:/);
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
   assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?grid-template-areas:\s*"details" "note"/);
   assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-note\s*\{/);
@@ -475,9 +485,9 @@ test("all carrier explanations are editable and state postpaid delivery without 
   assert.ok(start >= 0 && end > start, "shipping-method defaults are present in the new settings section");
   const shippingDefaults = themeSettingsSource.slice(start, end);
   const expectedCarrierNotes = {
-    post: { note: ["اقتصادی", "#FECB02"], card: ["#FFFFFF", "#E2E8F0", "#FFF9E6", "#D6A900"] },
-    tipax: { note: ["سریع‌تر، هزینه بالا", "#33936e"], card: ["#FFFFFF", "#E2E8F0", "#EDF7F1", "#33936E"] },
-    chapar: { note: ["مناسب مرسوله‌های حجیم", "#d71925"], card: ["#FFFFFF", "#E2E8F0", "#FFF0F0", "#D71925"] },
+    post: { note: ["اقتصادی", "#FECB02"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
+    tipax: { note: ["سریع‌تر، هزینه بالا", "#33936e"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
+    chapar: { note: ["مناسب مرسوله‌های حجیم", "#d71925"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
   };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
@@ -504,7 +514,9 @@ test("all carrier explanations are editable and state postpaid delivery without 
   assert.match(settingsAdminSource, /'jluxe-cart-checkout'\s*=>\s*array\( 'cart_checkout', 'jluxe_sanitize_cart_checkout' \)/);
   assert.match(settingsSanitizeSource, /function jluxe_sanitize_cart_checkout\(/);
   assert.match(settingsRenderSource, /jluxe_render_cart_checkout_color_field/);
-  assert.match(themeSettingsSource, /'shipping_card_radius'\s*=>\s*18/);
+  assert.match(themeSettingsSource, /'shipping_card_radius'\s*=>\s*10/);
+  assert.match(settingsRenderSource, /array\( 10, 12, 16, 18, 22, 26 \)/);
+  assert.match(settingsSanitizeSource, /array\( 10, 12, 16, 18, 22, 26 \)/);
   assert.match(settingsRenderSource, /cart_checkout\[shipping_card_radius\]/);
   assert.match(settingsSanitizeSource, /'shipping_card_radius'\s*=>\s*\$shipping_card_radius/);
   for (const field of ["card_background_color", "card_border_color", "selected_card_background_color", "selected_card_border_color", "note_background_color", "note_text_color", "details_background_color", "details_text_color"]) {
@@ -615,7 +627,7 @@ test("the four checkout stages stay evenly spaced in RTL on mobile and desktop",
   assert.match(stepperStyles, /@media \(min-width: 640px\)[\s\S]*?\.jluxe-checkout-step__label\s*\{[^}]*white-space:\s*nowrap;/);
 });
 
-test("the historical province-keyed selector populates cities and clears them on a Select2 province change", (t) => {
+test("the historical province-keyed selector populates cities and clears stale choices on a Select2 province change", (t) => {
   const { window, state, city, cityChanges } = bootCity({ state: "THR", initialCity: "تهران" });
   t.after(() => window.close());
 
@@ -626,15 +638,38 @@ test("the historical province-keyed selector populates cities and clears them on
   state.value = "KHZ";
   window.jQuery(state).trigger("change");
   assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "اهواز", "آبادان"]);
-  assert.equal(city.value, "", "changing province clears the prior city instead of carrying it across provinces");
+  assert.equal(city.value, "", "changing province clears a city that is not valid for the new province");
   assert.equal(city.options[0].textContent, "انتخاب شهرستان");
   assert.equal(cityChanges(), 1, "the city select emits a real change event for WooCommerce listeners");
 
   state.value = "UNKNOWN";
   window.jQuery(state).trigger("change");
   assert.deepEqual(Array.from(city.options, (option) => option.value), [""]);
-  assert.equal(city.options[0].textContent, "ابتدا استان را انتخاب کنید");
+  assert.equal(city.options[0].textContent, "فهرست شهرستان‌های این استان در دسترس نیست");
   assert.equal(city.value, "");
+});
+
+test("R305 Android/browser address autofill refreshes the province city list even without a change event", async (t) => {
+  const { window, state, city, cityChanges } = bootCity({ state: "THR" });
+  t.after(() => window.close());
+
+  state.focus();
+  state.value = "KHZ"; // Simulate autofill changing a select.value silently.
+  await new Promise((resolve) => window.setTimeout(resolve, 150));
+
+  assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "اهواز", "آبادان"]);
+  assert.equal(city.value, "", "the dependent city selection is left ready for the customer to choose");
+  assert.equal(city.options[0].textContent, "انتخاب شهرستان");
+  assert.equal(cityChanges(), 1, "WooCommerce receives one city change after silent province autofill");
+});
+
+test("R305 the province list is rechecked if public city settings become available just after initialization", async (t) => {
+  const { window, city } = bootCity({ state: "THR", map: {} });
+  t.after(() => window.close());
+
+  window.JLuxeThemeSettings.iranCities = cityMap;
+  await new Promise((resolve) => window.setTimeout(resolve, 150));
+  assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "تهران", "ری", "اسلامشهر"]);
 });
 
 test("account billing and shipping address forms both load and refresh their own province-scoped city selectors", (t) => {
@@ -685,12 +720,13 @@ test("checkout does not bind or rewrite a separate shipping-city selector", (t) 
   assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "Shipping custom city"]);
 });
 
-test("checkout city prompts use the configurable cart/checkout copy", (t) => {
+test("checkout city prompts distinguish no selected province from an unavailable province list", (t) => {
   const { window, state, city } = bootCity({
-    state: "UNKNOWN",
+    state: "",
     copy: {
       checkout_city_prompt: "استان را برای فهرست شهرها تعیین کنید",
       checkout_city_placeholder: "شهرستان را انتخاب کنید",
+      checkout_city_unavailable: "فهرست این شهرستان‌ها آماده نیست",
     },
   });
   t.after(() => window.close());
@@ -698,6 +734,9 @@ test("checkout city prompts use the configurable cart/checkout copy", (t) => {
   state.value = "THR";
   window.jQuery(state).trigger("change");
   assert.equal(city.options[0].textContent, "شهرستان را انتخاب کنید");
+  state.value = "UNKNOWN";
+  window.jQuery(state).trigger("change");
+  assert.equal(city.options[0].textContent, "فهرست این شهرستان‌ها آماده نیست");
 });
 
 test("an empty required city stays empty; no hidden label or Select2 text is used as a substitute", (t) => {

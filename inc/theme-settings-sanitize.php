@@ -798,12 +798,12 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 	};
 	$shipping_card_radius = isset( $posted['shipping_card_radius'] ) && is_scalar( $posted['shipping_card_radius'] )
 		? (int) $posted['shipping_card_radius']
-		: (int) ( $defaults['shipping_card_radius'] ?? 18 );
-	if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
-		$shipping_card_radius = (int) ( $defaults['shipping_card_radius'] ?? 18 );
+		: (int) ( $defaults['shipping_card_radius'] ?? 10 );
+	if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) ) {
+		$shipping_card_radius = (int) ( $defaults['shipping_card_radius'] ?? 10 );
 	}
-	if ( ! in_array( $shipping_card_radius, array( 12, 16, 18, 22, 26 ), true ) ) {
-		$shipping_card_radius = 18;
+	if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) ) {
+		$shipping_card_radius = 10;
 	}
 	$shipping_methods = array();
 	foreach ( $defaults['shipping_methods'] as $method_key => $default_method ) {
@@ -826,8 +826,8 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 			'note'                     => sanitize_text_field( $note ),
 			'card_background_color'    => $sanitize_color( $method_posted['card_background_color'] ?? ( $default_method['card_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['card_background_color'] ?? '#FFFFFF' ) ),
 			'card_border_color'        => $sanitize_color( $method_posted['card_border_color'] ?? ( $default_method['card_border_color'] ?? '#E2E8F0' ), (string) ( $default_method['card_border_color'] ?? '#E2E8F0' ) ),
-			'selected_card_background_color' => $sanitize_color( $method_posted['selected_card_background_color'] ?? ( $default_method['selected_card_background_color'] ?? '#F0FDF4' ), (string) ( $default_method['selected_card_background_color'] ?? '#F0FDF4' ) ),
-			'selected_card_border_color' => $sanitize_color( $method_posted['selected_card_border_color'] ?? ( $default_method['selected_card_border_color'] ?? '#16A34A' ), (string) ( $default_method['selected_card_border_color'] ?? '#16A34A' ) ),
+			'selected_card_background_color' => $sanitize_color( $method_posted['selected_card_background_color'] ?? ( $default_method['selected_card_background_color'] ?? '#EFF6FF' ), (string) ( $default_method['selected_card_background_color'] ?? '#EFF6FF' ) ),
+			'selected_card_border_color' => $sanitize_color( $method_posted['selected_card_border_color'] ?? ( $default_method['selected_card_border_color'] ?? '#2563EB' ), (string) ( $default_method['selected_card_border_color'] ?? '#2563EB' ) ),
 			'note_background_color'    => $sanitize_color( $method_posted['note_background_color'] ?? ( $default_method['note_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['note_background_color'] ?? '#FFFFFF' ) ),
 			'note_text_color'          => $sanitize_color( $method_posted['note_text_color'] ?? ( $default_method['note_text_color'] ?? '#111827' ), (string) ( $default_method['note_text_color'] ?? '#111827' ) ),
 			'details_background_color' => $sanitize_color( $method_posted['details_background_color'] ?? ( $default_method['details_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['details_background_color'] ?? '#FFFFFF' ) ),
@@ -1730,14 +1730,24 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 }
 
 function jluxe_sanitize_homepage( array $posted, array $defaults ): array {
+	$hint_enabled = array_key_exists( 'mobile_category_swipe_hint_enabled', $posted )
+		? ( is_scalar( $posted['mobile_category_swipe_hint_enabled'] ) && '1' === (string) $posted['mobile_category_swipe_hint_enabled'] )
+		: ( ! array_key_exists( 'mobile_category_swipe_hint_enabled', $defaults ) || ! empty( $defaults['mobile_category_swipe_hint_enabled'] ) );
+
 	if ( ! isset( $posted['sections'] ) || ! is_array( $posted['sections'] ) ) {
-		return $defaults;
+		$sanitized = $defaults;
+		$sanitized['mobile_category_swipe_hint_enabled'] = $hint_enabled;
+		return $sanitized;
 	}
+
 	$sections = array();
 	foreach ( $posted['sections'] as $raw_section ) {
 		if ( is_array( $raw_section ) ) {
 			$sections[] = jluxe_sanitize_homepage_section( $raw_section );
 		}
 	}
-	return array( 'sections' => $sections );
+	return array(
+		'mobile_category_swipe_hint_enabled' => $hint_enabled,
+		'sections' => $sections,
+	);
 }

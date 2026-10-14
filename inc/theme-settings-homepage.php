@@ -48,6 +48,18 @@ function jluxe_render_homepage_page(): void {
 		<form method="post" id="jluxe-homepage-form">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
+			<div class="jluxe-hb-mobile-category-hint-setting">
+				<strong>راهنمای حرکت ردیف دسته‌بندی در موبایل</strong>
+				<?php jluxe_hb_field_checkbox(
+					'homepage',
+					'mobile_category_swipe_hint_enabled',
+					'نمایش یک‌بارهٔ حرکت کوتاه برای نشان‌دادن امکان کشیدن ردیف',
+					! array_key_exists( 'mobile_category_swipe_hint_enabled', $settings['homepage'] ) || ! empty( $settings['homepage']['mobile_category_swipe_hint_enabled'] ),
+					true
+				); ?>
+				<p class="description">این راهنما فقط برای دسته‌بندی‌هایی اجرا می‌شود که چیدمان موبایلشان «نوار افقی» است؛ حرکت با اولین لمس متوقف می‌شود و به تنظیم حرکتِ کاهش‌یافتهٔ دستگاه احترام می‌گذارد.</p>
+			</div>
+
 			<div id="jluxe-hb-sections">
 				<?php foreach ( $settings['homepage']['sections'] as $i => $section ) : ?>
 					<?php jluxe_render_homepage_section_editor( $i, $section, $types ); ?>
@@ -90,6 +102,10 @@ function jluxe_render_homepage_page(): void {
 		</div>
 		<?php
 	} );
+}
+
+function jluxe_homepage_mobile_category_hint_enabled(): bool {
+	return (bool) jluxe_get_setting( 'homepage.mobile_category_swipe_hint_enabled', true );
 }
 
 function jluxe_render_homepage_section_editor( $i, array $section, array $types, bool $is_template = false ): void {
@@ -249,7 +265,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					jluxe_render_category_view_all_fields( $name, $section );
 					jluxe_hb_field_select( $name, 'cards_alignment', 'تراز گروه کادرهای دسته‌بندی', $section['cards_alignment'] ?? 'center', array( 'start' => 'راست', 'center' => 'وسط', 'end' => 'چپ' ) );
 					jluxe_hb_field_select( $name, 'mobile_layout', 'چیدمان دسته‌ها در موبایل', $section['mobile_layout'] ?? 'row', array( 'row' => 'افقی با فلش‌های قبلی/بعدی', 'grid' => 'شبکه‌ای چندستونه' ) );
-					jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد کادر در هر ردیف موبایل', $section['mobile_columns'] ?? 3, array( 2 => '۲ کادر', 3 => '۳ کادر', 4 => '۴ کادر', 5 => '۵ کادر', 6 => '۶ کادر' ) );
+										jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد کادر در هر ردیف موبایل', $section['mobile_columns'] ?? 3, array( 2 => '۲ کادر', 3 => '۳ کادر', 4 => '۴ کادر', 5 => '۵ کادر', 6 => '۶ کادر' ) );
 					$default_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M10 6a4 4 0 1 0-8 0a4 4 0 0 0 8 0Zm0 12a4 4 0 1 0-8 0a4 4 0 0 0 8 0ZM22 6a4 4 0 1 0-8 0a4 4 0 0 0 8 0Zm0 12a4 4 0 1 0-8 0a4 4 0 0 0 8 0Z"></path></svg>';
 					$icon_value = ! empty( $section['icon_svg'] ) ? $section['icon_svg'] : $default_icon;
 					?>
@@ -288,7 +304,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 				case 'category_showcase':
 					jluxe_hb_field_select( $name, 'layout', 'چیدمان دسکتاپ', $section['layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی' ) );
 					jluxe_hb_field_select( $name, 'mobile_layout', 'چیدمان موبایل', $section['mobile_layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای', 'row' => 'نوار افقی' ) );
-					jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد ستون‌های شبکه در موبایل', (string) ( $section['mobile_columns'] ?? 3 ), array( 2 => '۲ ستون', 3 => '۳ ستون', 4 => '۴ ستون', 5 => '۵ ستون', 6 => '۶ ستون' ) );
+										jluxe_hb_field_select( $name, 'mobile_columns', 'تعداد ستون‌های شبکه در موبایل', (string) ( $section['mobile_columns'] ?? 3 ), array( 2 => '۲ ستون', 3 => '۳ ستون', 4 => '۴ ستون', 5 => '۵ ستون', 6 => '۶ ستون' ) );
 					jluxe_hb_field_select( $name, 'show_category_names', 'عنوان زیر تصویر', ( ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] ) ) ? '1' : '0', array( '1' => 'نمایش عنوان', '0' => 'فقط تصویر' ) );
 					jluxe_hb_field_color( $name, 'card_text_color', 'رنگ عنوان زیر تصویر', $section['card_text_color'] ?? '#303936' );
 					jluxe_hb_field_select( $name, 'image_shape', 'شکل تصویر', $section['image_shape'] ?? 'none', array( 'none' => 'بدون قاب/فرم', 'square' => 'مربع با گوشه‌های گرد', 'circle' => 'دایره‌ای' ) );
@@ -727,7 +743,10 @@ function jluxe_hb_field_color( string $prefix, string $key, string $label, strin
 	);
 }
 
-function jluxe_hb_field_checkbox( string $prefix, string $key, string $label, bool $checked ): void {
+function jluxe_hb_field_checkbox( string $prefix, string $key, string $label, bool $checked, bool $include_hidden_value = false ): void {
+	if ( $include_hidden_value ) {
+		printf( '<input type="hidden" name="%s[%s]" value="0" />', esc_attr( $prefix ), esc_attr( $key ) );
+	}
 	printf(
 		'<p><label><input type="checkbox" name="%s[%s]" value="1" %s /> %s</label></p>',
 		esc_attr( $prefix ),
@@ -1752,6 +1771,9 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	$is_woocommerce_active = class_exists( 'WooCommerce' );
 	$desktop_layout = jluxe_homepage_section_choice( $section, 'layout', array( 'grid', 'row' ), 'grid' );
 	$mobile_layout = jluxe_homepage_section_choice( $section, 'mobile_layout', array( 'grid', 'row' ), 'grid' );
+	$swipe_hint_attr = 'row' === $mobile_layout && jluxe_homepage_mobile_category_hint_enabled()
+		? ' data-jluxe-category-swipe-hint'
+		: '';
 	$mobile_columns = max( 2, min( 6, (int) ( $section['mobile_columns'] ?? 3 ) ) );
 	$mobile_gap_total = 8 * ( $mobile_columns - 1 );
 	$mobile_card_width = 'calc((100% - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ')';
@@ -1830,7 +1852,7 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	?>
 	<section class="jluxe-home-section jluxe-category-showcase jluxe-category-showcase-v2<?php echo $show_names ? '' : ' jluxe-category-showcase-image-only'; ?>" style="<?php echo esc_attr( $container_style ); ?>" dir="rtl" aria-label="دسته‌بندی‌های ویژه">
 		<div class="jluxe-category-showcase-scroll-wrap" data-mobile-layout="<?php echo esc_attr( $mobile_layout ); ?>">
-			<div class="<?php echo esc_attr( $grid_class ); ?>" data-jluxe-scroller>
+			<div class="<?php echo esc_attr( $grid_class ); ?>" data-jluxe-scroller<?php echo $swipe_hint_attr; ?>>
 				<?php foreach ( $rows as $row ) : ?>
 					<?php if ( $row['link'] ) : ?>
 						<a href="<?php echo esc_url( $row['link'] ); ?>" class="jluxe-category-showcase-card"<?php echo $row['display_name'] ? ' aria-label="' . esc_attr( $row['display_name'] ) . '"' : ' aria-label="تصویر"'; ?>>
@@ -1927,6 +1949,9 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	$cards_alignment = jluxe_homepage_section_choice( $section, 'cards_alignment', array( 'start', 'center', 'end' ), 'center' );
 	$cards_justify = 'start' === $cards_alignment ? 'flex-start' : ( 'end' === $cards_alignment ? 'flex-end' : 'center' );
 	$mobile_layout = jluxe_homepage_section_choice( $section, 'mobile_layout', array( 'row', 'grid' ), 'row' );
+	$swipe_hint_attr = 'row' === $mobile_layout && jluxe_homepage_mobile_category_hint_enabled()
+		? ' data-jluxe-category-swipe-hint'
+		: '';
 	$mobile_columns = max( 2, min( 6, (int) ( $section['mobile_columns'] ?? 3 ) ) );
 	$mobile_gap_total = 8 * ( $mobile_columns - 1 );
 	$mobile_card_width = 'calc((100% - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ')';
@@ -1971,7 +1996,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 		</div>
 		<div class="jluxe-category-grid-ref-carousel relative" data-mobile-layout="<?php echo esc_attr( $mobile_layout ); ?>">
 			<button type="button" class="jluxe-category-grid-ref-arrow is-prev" data-jluxe-scroll-prev aria-label="اسکرول به چپ"><svg xmlns="http://www.w3.org/2000/svg" width="26" viewBox="0 0 24 24"><path fill="currentColor" d="M14 17.308L8.692 12L14 6.692l.708.708l-4.6 4.6l4.6 4.6z"></path></svg></button>
-			<div class="jluxe-category-grid-ref-scroll <?php echo 'grid' === $layout ? 'is-grid' : 'is-row'; ?>" data-jluxe-scroller>
+			<div class="jluxe-category-grid-ref-scroll <?php echo 'grid' === $layout ? 'is-grid' : 'is-row'; ?>" data-jluxe-scroller<?php echo $swipe_hint_attr; ?>>
 				<?php foreach ( $rows as $row ) : ?>
 					<a href="<?php echo esc_url( get_term_link( $row['term'] ) ); ?>" class="jluxe-category-grid-ref-item<?php echo $lift ? ' is-lift' : ''; ?>" aria-label="<?php echo esc_attr( 'مشاهده دسته‌بندی ' . $row['display_name'] ); ?>" title="<?php echo esc_attr( $row['display_name'] ); ?>">
 						<span class="jluxe-home-card jluxe-category-grid-ref-card">

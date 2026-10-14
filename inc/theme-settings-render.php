@@ -1569,7 +1569,7 @@ function jluxe_render_cart_checkout_page(): void {
 					<th scope="row"><label for="jluxe-shipping-card-radius">گردی گوشهٔ کارت‌ها</label></th>
 					<td>
 						<select id="jluxe-shipping-card-radius" name="cart_checkout[shipping_card_radius]">
-							<?php foreach ( array( 12, 16, 18, 22, 26 ) as $radius ) : ?>
+							<?php foreach ( array( 10, 12, 16, 18, 22, 26 ) as $radius ) : ?>
 								<option value="<?php echo esc_attr( (string) $radius ); ?>" <?php selected( (int) $cart['shipping_card_radius'], $radius ); ?>><?php echo esc_html( $radius . ' پیکسل' ); ?></option>
 							<?php endforeach; ?>
 						</select>
@@ -1717,7 +1717,7 @@ function jluxe_render_mobile_contact_page(): void {
 					</div>
 
 					<h3>آیتم‌های نوار شناورِ نمونه</h3>
-					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
+					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ با فعال‌بودن آن در نوار شناور، دکمهٔ شناورِ جداگانهٔ دستیار در موبایل خودکار پنهان می‌شود. «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
 					<div class="jluxe-repeater jluxe-mobile-floating-nav-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="floating_nav_items">
 							<?php foreach ( $settings['mobile']['floating_nav_items'] as $i => $item ) : ?>
