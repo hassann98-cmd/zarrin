@@ -2532,6 +2532,30 @@ function jluxe_iran_cities(): array {
 }
 
 /**
+ * Never revive billing province/city from a saved checkout session or browser cache.
+ * Explicitly posted checkout values remain available when WooCommerce redisplays errors.
+ */
+function jluxe_checkout_clear_cached_location_values( $value, string $input ) {
+	if ( ! in_array( $input, array( 'billing_state', 'billing_city' ), true ) ) {
+		return $value;
+	}
+	if ( function_exists( 'is_checkout' ) && ! is_checkout() ) {
+		return $value;
+	}
+	if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+		return $value;
+	}
+	if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-received' ) ) {
+		return $value;
+	}
+	if ( isset( $_POST ) && is_array( $_POST ) && array_key_exists( $input, $_POST ) ) {
+		return $value;
+	}
+	return '';
+}
+add_filter( 'woocommerce_checkout_get_value', 'jluxe_checkout_clear_cached_location_values', 999, 2 );
+
+/**
  * نام/نام‌خانوادگی طبقِ مرجعِ تصویریِ جدیدِ کاربر («هر مرحله باید مطابق
  * تصاویر باشه») دوباره دو فیلدِ جدا شدن — نسخه‌ی قبلی این‌جا این دو رو در
  * یک فیلدِ نمایشیِ «نام و نام‌خانوادگی» ادغام کرده بود (طبقِ یک طراحیِ
@@ -2587,24 +2611,42 @@ function jluxe_billing_fields( array $fields ): array {
 	// در globals.css پیاده می‌شه، نه با تودرتو کردن DOM.
 	if ( isset( $fields['billing']['billing_state'] ) ) {
 		$fields['billing']['billing_state']['priority']    = 25;
-		$fields['billing']['billing_state']['autocomplete'] = 'address-level1';
+		$fields['billing']['billing_state']['required']    = true;
+		$fields['billing']['billing_state']['autocomplete'] = 'off';
 	}
 	if ( isset( $fields['billing']['billing_city'] ) ) {
-		// شهرستان یک select واقعیه (نه متن آزاد) که بر اساس استانِ انتخابی
-		// با assets/js/woocommerce.js پر می‌شه — چون گزینه‌ها به مقدارِ
-		// billing_state وابسته‌ان، فقط گزینه‌ی مقدارِ فعلی (هنگام ویرایش
-		// آدرس ذخیره‌شده) این‌جا سمت سرور اضافه می‌شه، بقیه سمت کلاینته.
-		// autocompleteهای استاندارد کمک می‌کنند Autofill موبایل این دو فیلد را
-		// به‌عنوان استان/شهر بشناسد، بدون دست‌زدن به کنترل یا اعتبارسنجی WooCommerce.
-		$current_city                                    = WC()->checkout()->get_value( 'billing_city' );
-		$fields['billing']['billing_city']['priority']    = 26;
-		$fields['billing']['billing_city']['autocomplete'] = 'address-level2';
-		$fields['billing']['billing_city']['type']        = 'select';
+		// استان و شهرِ checkout از آدرسِ ذخیره‌شده یا Autofill انتخاب نمی‌شوند؛
+		// فقط مقدارِ ارسالیِ همین تلاشِ checkout (برای نگه‌داشتن فرمِ خطادار)
+		// به‌صورت موقت روی سرور نگه داشته می‌شود. فهرست شهرها سمتِ کلاینت ساخته می‌شود.
+		$current_city = isset( $_POST['billing_city'] ) && is_scalar( $_POST['billing_city'] )
+			? sanitize_text_field( wp_unslash( (string) $_POST['billing_city'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read only to refill the checkout after WooCommerce validation.
+			: '';
+		$fields['billing']['billing_city']['priority']     = 26;
+		$fields['billing']['billing_city']['required']     = true;
+		$fields['billing']['billing_city']['autocomplete'] = 'off';
+		$fields['billing']['billing_city']['type']         = 'select';
 		$city_placeholder = jluxe_cart_checkout_required_copy( 'checkout_city_placeholder', 'انتخاب شهرستان' );
 		$city_prompt      = jluxe_cart_checkout_required_copy( 'checkout_city_prompt', 'ابتدا استان را انتخاب کنید' );
-		$fields['billing']['billing_city']['options']     = $current_city
+		$fields['billing']['billing_city']['options']      = $current_city
 			? array( '' => $city_placeholder, $current_city => $current_city )
 			: array( '' => $city_prompt );
+	}
+	$preserve_posted_checkout_location = isset( $_POST ) && is_array( $_POST ) && (
+		array_key_exists( 'billing_state', $_POST ) || array_key_exists( 'billing_city', $_POST )
+	);
+	if ( $preserve_posted_checkout_location ) {
+		foreach ( array( 'billing_state', 'billing_city' ) as $location_key ) {
+			if ( ! isset( $fields['billing'][ $location_key ] ) ) {
+				continue;
+			}
+			$location_attributes = isset( $fields['billing'][ $location_key ]['custom_attributes'] ) && is_array( $fields['billing'][ $location_key ]['custom_attributes'] )
+				? $fields['billing'][ $location_key ]['custom_attributes']
+				: array();
+			$fields['billing'][ $location_key ]['custom_attributes'] = array_merge(
+				$location_attributes,
+				array( 'data-jluxe-preserve-checkout-location' => '1' )
+			);
+		}
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
 		$fields['billing']['billing_postcode']['priority']    = 27;
@@ -2613,9 +2655,8 @@ function jluxe_billing_fields( array $fields ): array {
 	}
 
 	if ( isset( $fields['billing']['billing_phone'] ) ) {
-		// موبایل الزامیه (کدِ رهگیریِ پیامکی/پیگیریِ سفارش به همین شماره
-		// ارسال می‌شه) — طبقِ مرجعِ تصویریِ جدید و منطقِ واقعیِ کسب‌وکار،
-		// برخلافِ پیش‌فرضِ اختیاریِ افزونه‌ی «ووکامرس فارسی».
+		// موبایل در تنظیمات پیش‌فرض الزامی است؛ فیلترِ نهاییِ checkout در
+		// priority 999 همین وضعیت را طبقِ checkbox مدیر قابل خاموش‌کردن می‌کند.
 		$fields['billing']['billing_phone']['label']    = jluxe_cart_checkout_required_copy( 'checkout_phone_label', 'موبایل' );
 		$fields['billing']['billing_phone']['priority'] = 15;
 		$fields['billing']['billing_phone']['required'] = true;
@@ -2827,16 +2868,39 @@ function jluxe_account_edit_address_country_value( $value, string $key, string $
 add_filter( 'woocommerce_my_account_edit_address_field_value', 'jluxe_account_edit_address_country_value', 10, 3 );
 
 /**
- * کد پستی در چک‌اوت به‌تنهایی اجباری نیست؛ ممکن است بعضی تنظیمات فروشگاه
- * یا افزونه‌های آدرس این فیلد را دوباره required کنند، پس این فیلترِ دیرتر
- * مقدار نهاییِ billing و shipping را اختیاری می‌کند. در رابط کاربری و سمتِ
- * سرور، کد فقط وقتی لازم می‌شود که کاربر یک نرخِ ادارهٔ پست را انتخاب کرده
- * باشد؛ مقدارهای خالیِ تیپاکس/چاپار پذیرفته می‌شوند و اعتبارسنجیِ کدِ واردشده
- * (از جمله اعتبارسنجی افزونهٔ ووکامرس فارسی) دست‌نخورده می‌ماند.
+ * وضعیتِ اجباری‌بودنِ نام، موبایل و آدرس را در checkout طبقِ تنظیمات مدیر
+ * برای billing/shipping اعمال می‌کند؛ استان و شهر همیشه اجباری می‌مانند.
+ * کد پستی فقط با روشن‌بودن گزینه و انتخاب نرخِ ادارهٔ پست در UI/اعتبارسنجی
+ * سمتِ سرور لازم است؛ مقدارِ خالیِ تیپاکس/چاپار پذیرفته می‌شود و اعتبارسنجیِ
+ * کدِ واردشده (از جمله افزونهٔ ووکامرس فارسی) دست‌نخورده می‌ماند.
  */
 function jluxe_optional_checkout_postcodes( array $fields ): array {
-	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.' );
+	$postcode_required_for_post = jluxe_cart_checkout_option( 'require_postcode_for_post', true );
+	$default_required_description = 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.';
+	$optional_description = 'وارد کردن کد پستی برای همهٔ روش‌های ارسال اختیاری است.';
+	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', $default_required_description );
+	if ( ! $postcode_required_for_post && in_array( trim( $description ), array( '', $default_required_description ), true ) ) {
+		$description = $optional_description;
+	}
+	$field_requirements = array(
+		'first_name' => 'require_first_name',
+		'last_name'  => 'require_last_name',
+		'phone'      => 'require_phone',
+		'address_1'  => 'require_address',
+	);
 	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
+		foreach ( $field_requirements as $field_suffix => $setting_key ) {
+			$field_key = $address_type . '_' . $field_suffix;
+			if ( isset( $fields[ $address_type ][ $field_key ] ) ) {
+				$fields[ $address_type ][ $field_key ]['required'] = jluxe_cart_checkout_option( $setting_key, true );
+			}
+		}
+		if ( isset( $fields[ $address_type ][ $address_type . '_state' ] ) ) {
+			$fields[ $address_type ][ $address_type . '_state' ]['required'] = true;
+		}
+		if ( isset( $fields[ $address_type ][ $address_type . '_city' ] ) ) {
+			$fields[ $address_type ][ $address_type . '_city' ]['required'] = true;
+		}
 		$phone_key = $address_type . '_phone';
 		if ( isset( $fields[ $address_type ][ $phone_key ] ) ) {
 			$fields[ $address_type ][ $phone_key ]['autocomplete'] = 'tel';
@@ -2883,6 +2947,9 @@ add_filter( 'woocommerce_checkout_fields', 'jluxe_optional_checkout_postcodes', 
 
 /** Check the selected rate in each live WooCommerce package, not its cost or checkout styling. */
 function jluxe_checkout_shipping_methods_require_postcode( array $data ): bool {
+	if ( ! jluxe_cart_checkout_option( 'require_postcode_for_post', true ) ) {
+		return false;
+	}
 	$selected_methods = $data['shipping_method'] ?? array();
 	if ( is_scalar( $selected_methods ) ) {
 		$selected_methods = array( 0 => $selected_methods );

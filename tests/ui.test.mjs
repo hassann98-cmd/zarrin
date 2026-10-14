@@ -271,9 +271,12 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
     assert.equal(redirectedTo, "", "wrong OTP never redirects or authenticates");
 
     await act(async () => {
-      changeValue(codeInput, "۱۲۳ ۴۵۶");
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Google/OS SMS suggestions can set the native value without dispatching
+      // input or change; the short DOM sync must still verify the selected code.
+      codeInput.value = "۱۲۳ ۴۵۶";
+      await new Promise((resolve) => setTimeout(resolve, 240));
     });
+    assert.equal(codeInput.value, "123456", "silent OS autofill is normalized and reflected by React");
     assert.equal(requests[2].body.code, "123456");
     assert.match(
       targetWindow.document.querySelector(".jluxe-auth-success")?.textContent ?? "",

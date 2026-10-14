@@ -6448,8 +6448,12 @@ if ( null === $r183_previous_query_vars ) {
 	$GLOBALS['query_vars'] = $r183_previous_query_vars;
 }
 
-// R267 — checkout, payment and province/city selection return to the v1.7.58 contract.
+// R267/R308 — checkout location must start empty, while invalid form submissions and account address editors keep their own values.
 $r267_previous_wc = $GLOBALS['wc'] ?? null;
+$r267_previous_post = $_POST;
+$r267_previous_query_kind = $GLOBALS['query_kind'] ?? null;
+$_POST = array();
+$GLOBALS['query_kind'] = 'checkout';
 $GLOBALS['wc'] = new class() {
 	public $city = '';
 	public function checkout() {
@@ -6471,27 +6475,52 @@ $r267_base_fields = array(
 $r267_empty_fields = jluxe_billing_fields( $r267_base_fields );
 $GLOBALS['wc']->city = 'بیستون';
 $r267_saved_fields = jluxe_billing_fields( $r267_base_fields );
+$r267_checkout_default_state = jluxe_checkout_clear_cached_location_values( 'THR', 'billing_state' );
+$r267_checkout_default_city  = jluxe_checkout_clear_cached_location_values( 'تهران', 'billing_city' );
+$_POST = array( 'billing_state' => 'KRH', 'billing_city' => 'بیستون' );
+$r267_posted_fields = jluxe_billing_fields( $r267_base_fields );
+$r267_checkout_posted_state  = jluxe_checkout_clear_cached_location_values( 'KRH', 'billing_state' );
 if ( null === $r267_previous_wc ) {
 	unset( $GLOBALS['wc'] );
 } else {
 	$GLOBALS['wc'] = $r267_previous_wc;
 }
+$_POST = $r267_previous_post;
+if ( null === $r267_previous_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r267_previous_query_kind;
+}
 $r267_empty_city  = $r267_empty_fields['billing']['billing_city'];
 $r267_saved_city  = $r267_saved_fields['billing']['billing_city'];
+$r267_posted_city = $r267_posted_fields['billing']['billing_city'];
 $r267_city_map    = jluxe_iran_cities();
 $r267_php_source  = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r267_js_source   = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 $r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r267_checkout_value_filter_registered = false;
+foreach ( $GLOBALS['filters'] as $r267_filter ) {
+	if ( 'woocommerce_checkout_get_value' === ( $r267_filter[0] ?? '' ) && 'jluxe_checkout_clear_cached_location_values' === ( $r267_filter[1] ?? '' ) ) {
+		$r267_checkout_value_filter_registered = true;
+		break;
+	}
+}
 check(
 	'select' === $r267_empty_city['type'] && true === $r267_empty_city['required'] &&
 	array( '' => 'ابتدا استان را انتخاب کنید' ) === $r267_empty_city['options'] &&
 	'select' === $r267_saved_city['type'] && true === $r267_saved_city['required'] &&
-	array( '' => 'انتخاب شهرستان', 'بیستون' => 'بیستون' ) === $r267_saved_city['options'] &&
+	array( '' => 'ابتدا استان را انتخاب کنید' ) === $r267_saved_city['options'] &&
+	array( '' => 'انتخاب شهرستان', 'بیستون' => 'بیستون' ) === $r267_posted_city['options'] &&
 	array( 'KRH' => 'کرمانشاه' ) === $r267_empty_fields['billing']['billing_state']['options'] &&
-	'address-level1' === $r267_empty_fields['billing']['billing_state']['autocomplete'] &&
-	'address-level2' === $r267_empty_city['autocomplete'] &&
+	true === $r267_empty_fields['billing']['billing_state']['required'] &&
+	'off' === $r267_empty_fields['billing']['billing_state']['autocomplete'] &&
+	'off' === $r267_empty_city['autocomplete'] &&
+	'' === $r267_checkout_default_state && '' === $r267_checkout_default_city && 'KRH' === $r267_checkout_posted_state &&
+	$r267_checkout_value_filter_registered &&
+	isset( $r267_posted_fields['billing']['billing_state']['custom_attributes']['data-jluxe-preserve-checkout-location'] ) &&
+	isset( $r267_posted_city['custom_attributes']['data-jluxe-preserve-checkout-location'] ) &&
 	! isset( $r267_empty_city['custom_attributes']['data-jluxe-city-select'] ),
-	'R267 billing_city is the required WooCommerce select from v1.7.58; only a real saved value is rendered server-side'
+	'R267/R308 billing province and city are required, empty for saved/session defaults and Autofill, but preserve explicit failed-checkout selections'
 );
 check(
 	isset( $r267_city_map['THR'], $r267_city_map['KRH'] ) &&
@@ -6996,11 +7025,86 @@ check(
 	245000 === $r307_post_rate->cost && 280000 === $r307_tipax_rate->cost && 310000 === $r307_chapar_rate->cost,
 	'R307 server validation requires only the selected Post destination code, accepts empty Tipax/Chapar codes, and leaves entered-code validation and rate costs untouched'
 );
+$r307_previous_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
+$r307_postcode_toggle_off_settings = jluxe_theme_settings_defaults();
+$r307_postcode_toggle_off_settings['cart_checkout']['require_postcode_for_post'] = false;
+update_test_settings( $r307_postcode_toggle_off_settings );
+$r307_toggle_off_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:14' ), 'billing_postcode' => '' ),
+	$r307_toggle_off_errors
+);
+$r307_toggle_off_fields = jluxe_optional_checkout_postcodes(
+	array( 'billing' => array( 'billing_postcode' => array( 'required' => true ) ) )
+);
+check(
+	! jluxe_checkout_shipping_methods_require_postcode( array( 'shipping_method' => array( 0 => 'flat_rate:14' ) ) ) &&
+	array() === $r307_toggle_off_errors->items &&
+	false === $r307_toggle_off_fields['billing']['billing_postcode']['required'],
+	'R308 disabling the postcode-required toggle keeps Post optional in both checkout UI and server validation'
+);
+update_test_settings( $r307_previous_settings );
 if ( null === $r307_previous_wc ) {
 	unset( $GLOBALS['wc'] );
 } else {
 	$GLOBALS['wc'] = $r307_previous_wc;
 }
+
+// R308 — administrator toggles independently control checkout requirements, never province/city.
+$r308_previous_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
+$r308_optional_settings = jluxe_theme_settings_defaults();
+foreach ( array( 'require_first_name', 'require_last_name', 'require_phone', 'require_address', 'require_postcode_for_post' ) as $r308_toggle_key ) {
+	$r308_optional_settings['cart_checkout'][ $r308_toggle_key ] = false;
+}
+update_test_settings( $r308_optional_settings );
+$r308_optional_fields = jluxe_optional_checkout_postcodes(
+	array(
+		'billing' => array(
+			'billing_first_name' => array( 'required' => true ),
+			'billing_last_name'  => array( 'required' => true ),
+			'billing_phone'      => array( 'required' => true, 'custom_attributes' => array( 'maxlength' => 16 ) ),
+			'billing_address_1'  => array( 'required' => true ),
+			'billing_state'      => array( 'required' => false ),
+			'billing_city'       => array( 'required' => false ),
+			'billing_postcode'   => array( 'required' => true ),
+		),
+		'shipping' => array(
+			'shipping_first_name' => array( 'required' => true ),
+			'shipping_last_name'  => array( 'required' => true ),
+			'shipping_phone'      => array( 'required' => true ),
+			'shipping_address_1'  => array( 'required' => true ),
+			'shipping_state'      => array( 'required' => false ),
+			'shipping_city'       => array( 'required' => false ),
+			'shipping_postcode'   => array( 'required' => true ),
+		),
+	)
+);
+jluxe_localize_public_settings();
+$r308_render_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false === $r308_optional_fields['billing']['billing_first_name']['required'] &&
+	false === $r308_optional_fields['billing']['billing_last_name']['required'] &&
+	false === $r308_optional_fields['billing']['billing_phone']['required'] &&
+	false === $r308_optional_fields['billing']['billing_address_1']['required'] &&
+	false === $r308_optional_fields['shipping']['shipping_first_name']['required'] &&
+	false === $r308_optional_fields['shipping']['shipping_last_name']['required'] &&
+	false === $r308_optional_fields['shipping']['shipping_phone']['required'] &&
+	false === $r308_optional_fields['shipping']['shipping_address_1']['required'] &&
+	true === $r308_optional_fields['billing']['billing_state']['required'] &&
+	true === $r308_optional_fields['billing']['billing_city']['required'] &&
+	true === $r308_optional_fields['shipping']['shipping_state']['required'] &&
+	true === $r308_optional_fields['shipping']['shipping_city']['required'] &&
+	false === $r308_optional_fields['billing']['billing_postcode']['required'] &&
+	false === $r308_optional_fields['shipping']['shipping_postcode']['required'] &&
+	'وارد کردن کد پستی برای همهٔ روش‌های ارسال اختیاری است.' === $r308_optional_fields['billing']['billing_postcode']['description'] &&
+	16 === $r308_optional_fields['billing']['billing_phone']['custom_attributes']['maxlength'] &&
+	false === $GLOBALS['localized']['JLuxeThemeSettings']['cartCheckout']['require_postcode_for_post'] &&
+	false !== strpos( $r308_render_source, 'require_first_name' ) &&
+	false !== strpos( $r308_render_source, 'require_postcode_for_post' ) &&
+	false !== strpos( $r308_render_source, 'کد پستی فقط وقتی این گزینه روشن باشد' ),
+	'R308 independent first/last/phone/address/postcode switches apply to billing and shipping, keep province/city required, localize the Post switch, and expose admin controls'
+);
+update_test_settings( $r308_previous_settings );
 
 check(
 	false !== strpos( $r279_shipping_template, 'class="shipping_method sr-only" data-jluxe-shipping-kind="%4$s"' ) &&
@@ -7016,7 +7120,20 @@ check(
 	'R279 real WooCommerce shipping radio/hook and configurable accordion remain; obsolete cart/checkout freight claims are removed'
 );
 $r279_settings_defaults = jluxe_theme_settings_defaults();
+check(
+	true === $r279_settings_defaults['cart_checkout']['require_first_name'] &&
+	true === $r279_settings_defaults['cart_checkout']['require_last_name'] &&
+	true === $r279_settings_defaults['cart_checkout']['require_phone'] &&
+	true === $r279_settings_defaults['cart_checkout']['require_address'] &&
+	true === $r279_settings_defaults['cart_checkout']['require_postcode_for_post'],
+	'R308 checkout requirement switches default to the current required behavior, including Post-only postcode enforcement'
+);
 $r279_posted_checkout   = $r279_settings_defaults['cart_checkout'];
+$r279_posted_checkout['require_first_name'] = false;
+$r279_posted_checkout['require_last_name'] = false;
+$r279_posted_checkout['require_phone'] = false;
+$r279_posted_checkout['require_address'] = false;
+$r279_posted_checkout['require_postcode_for_post'] = false;
 $r279_posted_checkout['shipping_methods']['post']['summary'] = '<b>جزئیات امن</b>';
 $r279_posted_checkout['shipping_methods']['post']['description'] = "کرایه <script>alert(1)</script> هنگام تحویل";
 $r279_posted_checkout['shipping_methods']['post']['note'] = '<b>ارسال فوری</b>';
@@ -7042,7 +7159,12 @@ check(
 	false === strpos( $r279_clean_checkout['shipping_methods']['post']['description'], '<script>' ) &&
 	false === $r279_clean_checkout['shipping_methods']['chapar']['enabled'] &&
 	false === $r279_clean_checkout['cart_shipping_notice_enabled'] &&
-	true === $r279_clean_checkout['checkout_payment_warning_enabled'],
+	true === $r279_clean_checkout['checkout_payment_warning_enabled'] &&
+	false === $r279_clean_checkout['require_first_name'] &&
+	false === $r279_clean_checkout['require_last_name'] &&
+	false === $r279_clean_checkout['require_phone'] &&
+	false === $r279_clean_checkout['require_address'] &&
+	false === $r279_clean_checkout['require_postcode_for_post'],
 	'R279 cart/checkout settings page, independent sanitizer, booleans, and per-carrier safe editable copy are registered'
 );
 check(
@@ -7091,6 +7213,11 @@ $r279_old_stored_section = array( 'version' => JLUXE_SETTINGS_VERSION, 'cart_che
 $r279_merged_section = jluxe_array_merge_deep( $r279_settings_defaults, $r279_old_stored_section );
 check(
 	false === $r279_merged_section['cart_checkout']['show_stepper'] &&
+	true === $r279_merged_section['cart_checkout']['require_first_name'] &&
+	true === $r279_merged_section['cart_checkout']['require_last_name'] &&
+	true === $r279_merged_section['cart_checkout']['require_phone'] &&
+	true === $r279_merged_section['cart_checkout']['require_address'] &&
+	true === $r279_merged_section['cart_checkout']['require_postcode_for_post'] &&
 	10 === $r279_merged_section['cart_checkout']['shipping_card_radius'] &&
 	'#EFF6FF' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&

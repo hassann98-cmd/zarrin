@@ -42,6 +42,10 @@ const postcodeRequirementScript = extractDocumentedIife(
   " * R307 — کد پستی فقط برای نرخِ انتخاب‌شدهٔ ادارهٔ پست",
   "/**\n * R289 — ارقامِ فارسی/عربی",
 );
+const checkoutKeyboardScript = extractDocumentedIife(
+  " * R308 — با بازشدن/تغییر اندازه‌ی کیبورد موبایل",
+  "/**\n * R289 — ارقامِ فارسی/عربی",
+);
 const checkoutDigitsScript = extractDocumentedIife(
   " * R289 — ارقامِ فارسی/عربی را پیش از validation",
   "/**\n * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
@@ -389,6 +393,7 @@ test("R307 postcode becomes required only for a selected Post rate and follows t
   const differentAddress = window.document.getElementById("ship-to-different-address-checkbox");
   let billingPostcode = window.document.getElementById("billing_postcode");
   let shippingPostcode = window.document.getElementById("shipping_postcode");
+  window.JLuxeThemeSettings = { cartCheckout: { require_postcode_for_post: true } };
   window.jQuery = jqueryFactory(window);
   window.eval(postcodeRequirementScript);
 
@@ -428,7 +433,46 @@ test("R307 postcode becomes required only for a selected Post rate and follows t
   window.jQuery(window.document.body).trigger("updated_checkout");
   assert.equal(billingPostcode.required, true, "the rule is reapplied after WooCommerce replaces checkout fields");
   assert.ok(replacement.classList.contains("validate-required"));
+
+  window.JLuxeThemeSettings.cartCheckout.require_postcode_for_post = false;
+  postRate.checked = true;
+  differentAddress.checked = false;
+  window.jQuery(window.document.body).trigger("updated_checkout");
+  assert.equal(billingPostcode.required, false, "disabling the admin toggle makes postcode optional even for Post");
+  assert.equal(shippingPostcode.required, false, "the disabled toggle is shared by billing and shipping destinations");
   dom.window.close();
+});
+
+test("R308 focused checkout fields stay above the mobile keyboard visual viewport", async (t) => {
+  const dom = new JSDOM(
+    '<!doctype html><html><body><form class="checkout"><p class="form-row"><input id="billing_phone" name="billing_phone" type="tel"></p></form></body></html>',
+    { url: "https://shop.test/checkout/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  const { window } = dom;
+  const viewport = new window.EventTarget();
+  viewport.height = 700;
+  viewport.offsetTop = 0;
+  Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+  const input = window.document.getElementById("billing_phone");
+  let fieldTop = 340;
+  const scrolls = [];
+  input.getBoundingClientRect = () => ({ top: fieldTop, bottom: fieldTop + 48, height: 48 });
+  window.scrollBy = (_x, y) => {
+    scrolls.push(y);
+    fieldTop -= y;
+  };
+  window.eval(checkoutKeyboardScript);
+  t.after(() => window.close());
+
+  input.focus();
+  await new Promise((resolve) => window.setTimeout(resolve, 50));
+  assert.deepEqual(scrolls, [], "no unnecessary scroll occurs while the whole field is visible");
+
+  viewport.height = 300; // The on-screen keyboard reduces the visible viewport.
+  viewport.dispatchEvent(new window.Event("resize"));
+  await new Promise((resolve) => window.setTimeout(resolve, 60));
+  assert.ok(scrolls.length > 0, "visualViewport resize scrolls the focused field clear of the keyboard");
+  assert.ok(input.getBoundingClientRect().bottom <= viewport.height - 28, "the complete control remains above the keyboard with a small breathing margin");
 });
 
 test("WooCommerce pagination expands base/format pairs and the page-jump input uses the final pattern", () => {
@@ -746,7 +790,57 @@ test("R305 the province list is rechecked if public city settings become availab
   assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "تهران", "ری", "اسلامشهر"]);
 });
 
-test("account billing and shipping address forms both load and refresh their own province-scoped city selectors", (t) => {
+test("checkout starts with no cached province or city, clears silent autofill, and still accepts deliberate selection", async (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body class="woocommerce-checkout">
+      <form class="checkout woocommerce-checkout">
+        <p class="form-row" id="billing_state_field">
+          <select id="billing_state" name="billing_state" autocomplete="address-level1">
+            <option value="">انتخاب استان</option><option value="THR" selected>تهران</option><option value="KHZ">خوزستان</option>
+          </select>
+        </p>
+        <p class="form-row" id="billing_city_field">
+          <select id="billing_city" name="billing_city" autocomplete="address-level2">
+            <option value="">انتخاب شهرستان</option><option value="تهران" selected>تهران</option>
+          </select>
+        </p>
+      </form>
+    </body></html>`,
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  const { window } = dom;
+  window.JLuxeThemeSettings = { iranCities: cityMap, cartCheckout: { copy: {} } };
+  window.jQuery = jqueryFactory(window);
+  window.eval(cityScript);
+  t.after(() => window.close());
+
+  const state = window.document.getElementById("billing_state");
+  const city = window.document.getElementById("billing_city");
+  assert.equal(state.value, "", "server/cache values are cleared before the customer chooses a province");
+  assert.equal(city.value, "", "the dependent city starts at its empty prompt");
+  assert.equal(state.getAttribute("autocomplete"), "off");
+  assert.equal(city.getAttribute("autocomplete"), "off");
+  assert.deepEqual(Array.from(city.options, (option) => option.value), [""]);
+
+  state.value = "KHZ"; // Simulate browser autofill arriving after the page script, without an event.
+  await new Promise((resolve) => window.setTimeout(resolve, 150));
+  assert.equal(state.value, "", "late/silent browser autofill is rejected on checkout");
+  assert.equal(city.value, "");
+
+  state.dispatchEvent(new window.Event("pointerdown", { bubbles: true }));
+  state.value = "KHZ";
+  state.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.deepEqual(Array.from(city.options, (option) => option.value), ["", "اهواز", "آبادان"]);
+  assert.equal(city.value, "", "a deliberate province choice loads cities but still requires a city choice");
+
+  const cachedPageShow = new window.Event("pageshow");
+  Object.defineProperty(cachedPageShow, "persisted", { value: true });
+  window.dispatchEvent(cachedPageShow);
+  assert.equal(state.value, "", "returning from the browser back-forward cache resets the checkout province");
+  assert.equal(city.value, "", "returning from cache also clears the dependent city");
+});
+
+test("account billing and shipping address forms both load and refresh their own province-scoped city selectors",  (t) => {
   const {
     window,
     billingState,

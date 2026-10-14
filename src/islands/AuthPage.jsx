@@ -161,6 +161,47 @@ export default function AuthPage() {
     if (method === "phone" && sent && !busy && !code) otpInput.current?.focus();
   }, [method, sent, busy, code]);
 
+  const syncOtpFromDom = useCallback(() => {
+    const input = otpInput.current;
+    if (!input) return;
+    const nextCode = normalizeDigits(input.value)
+      .replace(/[^0-9]/g, "")
+      .slice(0, 6);
+    if (input.value !== nextCode) input.value = nextCode;
+    setCode((currentCode) => currentCode === nextCode ? currentCode : nextCode);
+    if (nextCode) setError((currentError) => currentError ? "" : currentError);
+    if (nextCode.length === 6) void verifyOtp(nextCode);
+  }, [verifyOtp]);
+
+  useEffect(() => {
+    if (method !== "phone" || !sent || authSuccess) return undefined;
+    const input = otpInput.current;
+    if (!input) return undefined;
+
+    let active = true;
+    const pollTimer = window.setInterval(() => {
+      if (active) syncOtpFromDom();
+    }, 180);
+    const stopTimer = window.setTimeout(() => window.clearInterval(pollTimer), 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") syncOtpFromDom();
+    };
+    input.addEventListener("focus", syncOtpFromDom);
+    input.addEventListener("animationstart", syncOtpFromDom);
+    window.addEventListener("focus", syncOtpFromDom);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(pollTimer);
+      window.clearTimeout(stopTimer);
+      input.removeEventListener("focus", syncOtpFromDom);
+      input.removeEventListener("animationstart", syncOtpFromDom);
+      window.removeEventListener("focus", syncOtpFromDom);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [method, sent, authSuccess, syncOtpFromDom]);
+
   function handleOtpInput(event) {
     const input = event.currentTarget;
     const nextCode = normalizeDigits(input.value)
@@ -175,7 +216,10 @@ export default function AuthPage() {
   async function submit(event) {
     event.preventDefault();
     if (method === "phone" && sent) {
-      await verifyOtp(code);
+      // Some SMS/browser autofill surfaces update the native input value without
+      // firing React's input/change event. Read the live control before verifying.
+      const submittedCode = otpInput.current ? otpInput.current.value : code;
+      await verifyOtp(submittedCode);
       return;
     }
     if (busy) return;
@@ -365,6 +409,8 @@ export default function AuthPage() {
                     disabled={busy}
                     onInput={handleOtpInput}
                     onChange={handleOtpInput}
+                    onFocus={syncOtpFromDom}
+                    onAnimationStart={syncOtpFromDom}
                     placeholder="••••••"
                   />
                   <button

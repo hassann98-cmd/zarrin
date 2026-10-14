@@ -1438,6 +1438,16 @@ function jluxe_render_cart_checkout_toggle_row( array $settings, string $key, st
 	<?php
 }
 
+function jluxe_render_cart_checkout_required_row( array $settings, string $key, string $label ): void {
+	$id = 'jluxe-required-' . $key;
+	?>
+	<tr>
+		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td><label><input type="checkbox" id="<?php echo esc_attr( $id ); ?>" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> این فیلد الزامی باشد</label></td>
+	</tr>
+	<?php
+}
+
 function jluxe_render_cart_checkout_color_field( string $name, string $id, string $label, string $value, string $description = '' ): void {
 	?>
 	<tr>
@@ -1508,6 +1518,15 @@ function jluxe_render_cart_checkout_page(): void {
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_heading_enabled', 'عنوان انتخاب روش ارسال' ); ?>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_error_enabled', 'پیام خطای انتخاب روش ارسال' ); ?>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_payment_warning_enabled', 'هشدار پیش از پرداخت' ); ?>
+			</table>
+			<h3>فیلدهای اجباریِ تسویه‌حساب</h3>
+			<p class="description">نام، نام خانوادگی، موبایل و آدرس برای بخش‌های صورتحساب و نشانیِ ارسال جداگانه قابل تنظیم‌اند. استان و شهر همیشه باید انتخاب شوند. کد پستی فقط وقتی این گزینه روشن باشد و روش «ادارهٔ پست» انتخاب شود اجباری است؛ برای تیپاکس و چاپار اختیاری می‌ماند.</p>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_first_name', 'نام' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_last_name', 'نام خانوادگی' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_phone', 'شمارهٔ موبایل' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_address', 'آدرس' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_postcode_for_post', 'کد پستی برای ادارهٔ پست' ); ?>
 			</table>
 			<table class="form-table" role="presentation">
 				<?php

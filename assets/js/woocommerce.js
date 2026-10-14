@@ -1665,6 +1665,32 @@ function jluxeEnhanceShopSort(root) {
 			return Array.isArray(list) ? list : [];
 		}
 
+		var checkoutForm = stateSelect.closest("form.checkout");
+		var preservePostedCheckoutLocation = !!(
+			checkoutForm &&
+			(stateSelect.hasAttribute("data-jluxe-preserve-checkout-location") || citySelect.hasAttribute("data-jluxe-preserve-checkout-location"))
+		);
+		var checkoutProvinceTouched = !checkoutForm || preservePostedCheckoutLocation;
+		var checkoutLocationWasPreselected = false;
+		if (checkoutForm) {
+			stateSelect.setAttribute("autocomplete", "off");
+			citySelect.setAttribute("autocomplete", "off");
+			if (!preservePostedCheckoutLocation) {
+				checkoutLocationWasPreselected = !!(stateSelect.value || citySelect.value);
+				var hasBlankProvinceOption = Array.prototype.some.call(stateSelect.options, function (option) {
+					return "" === option.value;
+				});
+				if (!hasBlankProvinceOption) {
+					var blankProvinceOption = document.createElement("option");
+					blankProvinceOption.value = "";
+					blankProvinceOption.textContent = getCheckoutText("checkout_province_placeholder", "انتخاب استان");
+					stateSelect.insertBefore(blankProvinceOption, stateSelect.firstChild);
+				}
+				stateSelect.value = "";
+				citySelect.value = "";
+			}
+		}
+
 		var renderedProvince = null;
 		var renderedCitySignature = null;
 		function rebuildCityOptions(preserveMode) {
@@ -1707,7 +1733,7 @@ function jluxeEnhanceShopSort(root) {
 		}
 
 		var activeProvince = getProvinceCode();
-		rebuildCityOptions("legacy");
+		rebuildCityOptions(checkoutForm && !preservePostedCheckoutLocation ? "clear" : "legacy");
 
 		function stopAutofillWatch() {
 			if (null !== autofillWatchTimer) {
@@ -1732,10 +1758,36 @@ function jluxeEnhanceShopSort(root) {
 		}
 
 		var autofillWatchTimer = null;
+		function clearAutofilledCheckoutLocation() {
+			if (!checkoutForm || checkoutProvinceTouched) {
+				return false;
+			}
+			var hadProvince = !!stateSelect.value;
+			var hadCity = !!citySelect.value;
+			if (!hadProvince && !hadCity) {
+				return false;
+			}
+			stateSelect.value = "";
+			citySelect.value = "";
+			activeProvince = "";
+			rebuildCityOptions("clear");
+			if (hadProvince) {
+				stateSelect.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+			if (hadCity) {
+				citySelect.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+			return true;
+		}
+
 		function watchForAutofilledProvince() {
 			stopAutofillWatch();
 			var startedAt = Date.now();
 			function checkForAutofill() {
+				if (clearAutofilledCheckoutLocation()) {
+					stopAutofillWatch();
+					return;
+				}
 				if (syncProvince("valid")) {
 					stopAutofillWatch();
 					return;
@@ -1749,7 +1801,19 @@ function jluxeEnhanceShopSort(root) {
 			checkForAutofill();
 		}
 
+		function markCheckoutProvinceTouched() {
+			if (!checkoutForm) {
+				return;
+			}
+			checkoutProvinceTouched = true;
+			stopAutofillWatch();
+		}
+
 		function handleProvinceEvent() {
+			if (clearAutofilledCheckoutLocation()) {
+				stopAutofillWatch();
+				return;
+			}
 			if (syncProvince("valid")) {
 				stopAutofillWatch();
 			}
@@ -1758,9 +1822,21 @@ function jluxeEnhanceShopSort(root) {
 		/* WooCommerce SelectWoo emits jQuery events; mobile autofill may be native or silent. */
 		if (window.jQuery) {
 			window.jQuery(stateSelect).on("change", handleProvinceEvent);
+			window.jQuery(stateSelect).on("select2:select", markCheckoutProvinceTouched);
 		}
 		stateSelect.addEventListener("change", handleProvinceEvent);
 		stateSelect.addEventListener("input", handleProvinceEvent);
+		if (checkoutForm) {
+			var stateRow = stateSelect.closest(".form-row");
+			[stateSelect, stateRow].forEach(function (target) {
+				if (!target) {
+					return;
+				}
+				target.addEventListener("pointerdown", markCheckoutProvinceTouched, true);
+				target.addEventListener("touchstart", markCheckoutProvinceTouched, true);
+				target.addEventListener("keydown", markCheckoutProvinceTouched, true);
+			});
+		}
 
 		var addressRoot = stateSelect.closest("form") || document;
 		function watchAfterOtherAddressField(event) {
@@ -1773,7 +1849,18 @@ function jluxeEnhanceShopSort(root) {
 		addressRoot.addEventListener("focusin", watchForAutofilledProvince, true);
 		addressRoot.addEventListener("input", watchAfterOtherAddressField, true);
 		addressRoot.addEventListener("change", watchAfterOtherAddressField, true);
-		window.addEventListener("pageshow", watchForAutofilledProvince);
+		window.addEventListener("pageshow", function (event) {
+			if (checkoutForm && event && event.persisted) {
+				checkoutProvinceTouched = false;
+				clearAutofilledCheckoutLocation();
+			}
+			watchForAutofilledProvince();
+		});
+		if (checkoutLocationWasPreselected) {
+			window.setTimeout(function () {
+				stateSelect.dispatchEvent(new Event("change", { bubbles: true }));
+			}, 0);
+		}
 		// Catch autofill applied shortly after DOM/script initialization as well.
 		watchForAutofilledProvince();
 	});
@@ -3986,6 +4073,12 @@ function jluxeEnhanceShopSort(root) {
 		return;
 	}
 
+	function postcodeRequiredForPost() {
+		var settings = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cartCheckout;
+		var value = settings && settings.require_postcode_for_post;
+		return false !== value && 0 !== value && "0" !== value;
+	}
+
 	function selectedPostRate() {
 		return form.querySelectorAll('input.shipping_method:checked[data-jluxe-shipping-kind="post"]').length > 0;
 	}
@@ -4043,7 +4136,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function updatePostcodeRequirement() {
-		var needsPostcode = selectedPostRate();
+		var needsPostcode = postcodeRequiredForPost() && selectedPostRate();
 		var billingPostcode = form.querySelector('input[name="billing_postcode"]');
 		var shippingPostcode = form.querySelector('input[name="shipping_postcode"]');
 		var shipToDifferent = form.querySelector('#ship-to-different-address-checkbox, input[name="ship_to_different_address"]');
@@ -4058,6 +4151,127 @@ function jluxeEnhanceShopSort(root) {
 		window.jQuery(document.body).on("updated_checkout", updatePostcodeRequirement);
 	}
 	updatePostcodeRequirement();
+})();
+
+/**
+ * R308 — با بازشدن/تغییر اندازه‌ی کیبورد موبایل، فیلد فعالِ checkout را در
+ * محدوده‌ی visual viewport نگه می‌دارد؛ فقط فرم checkout هدف است و محاسبه‌ی
+ * نرخ/مرحله‌های WooCommerce یا فرم‌های ویرایش نشانی حساب را تغییر نمی‌دهد.
+ */
+(function () {
+	var form = document.querySelector("form.checkout");
+	if (!form) {
+		return;
+	}
+
+	var activeField = null;
+	var focusTimers = [];
+	var revealTimer = null;
+
+	function isEditableCheckoutField(target) {
+		if (!target || !form.contains(target) || target.nodeType !== 1) {
+			return false;
+		}
+		var tagName = target.tagName;
+		if ("INPUT" === tagName) {
+			var type = String(target.type || "text").toLowerCase();
+			if (/^(hidden|button|submit|reset|checkbox|radio|file|image|range|color)$/.test(type)) {
+				return false;
+			}
+		} else if ("TEXTAREA" !== tagName && "SELECT" !== tagName && !target.isContentEditable) {
+			return false;
+		}
+		if (target.disabled || target.readOnly || target.closest("[hidden], [aria-hidden='true']")) {
+			return false;
+		}
+		return true;
+	}
+
+	function clearFocusTimers() {
+		focusTimers.forEach(function (timer) {
+			window.clearTimeout(timer);
+		});
+		focusTimers = [];
+		if (null !== revealTimer) {
+			window.clearTimeout(revealTimer);
+			revealTimer = null;
+		}
+	}
+
+	function revealActiveField() {
+		revealTimer = null;
+		if (!isEditableCheckoutField(activeField)) {
+			return;
+		}
+
+		var rect = activeField.getBoundingClientRect();
+		if (!rect || (0 === rect.top && 0 === rect.bottom)) {
+			return;
+		}
+		var viewport = window.visualViewport;
+		var viewportTop = viewport ? Math.max(0, Number(viewport.offsetTop) || 0) : 0;
+		var viewportHeight = viewport && Number(viewport.height) > 0 ? Number(viewport.height) : Number(window.innerHeight);
+		if (!(viewportHeight > 0)) {
+			return;
+		}
+		var visibleBottom = viewportTop + viewportHeight;
+		var safeTop = viewportTop + Math.min(72, Math.max(28, viewportHeight * 0.12));
+		var safeBottom = visibleBottom - 28;
+		var delta = rect.bottom > safeBottom
+			? rect.bottom - safeBottom
+			: rect.top < safeTop
+				? rect.top - safeTop
+				: 0;
+		if (delta && "function" === typeof window.scrollBy) {
+			window.scrollBy(0, delta);
+		}
+	}
+
+	function queueReveal() {
+		if (null !== revealTimer) {
+			window.clearTimeout(revealTimer);
+		}
+		revealTimer = window.setTimeout(revealActiveField, 32);
+	}
+
+	function handleFocusIn(event) {
+		if (!isEditableCheckoutField(event.target)) {
+			return;
+		}
+		activeField = event.target;
+		clearFocusTimers();
+		[0, 120, 280, 520, 850].forEach(function (delay) {
+			focusTimers.push(window.setTimeout(queueReveal, delay));
+		});
+	}
+
+	function handleFocusOut(event) {
+		var leavingField = event.target;
+		window.setTimeout(function () {
+			if (document.activeElement === leavingField || isEditableCheckoutField(document.activeElement)) {
+				return;
+			}
+			activeField = null;
+			clearFocusTimers();
+		}, 0);
+	}
+
+	form.addEventListener("focusin", handleFocusIn, true);
+	form.addEventListener("focusout", handleFocusOut, true);
+	if (window.visualViewport && "function" === typeof window.visualViewport.addEventListener) {
+		window.visualViewport.addEventListener("resize", queueReveal);
+		window.visualViewport.addEventListener("scroll", queueReveal);
+	} else {
+		window.addEventListener("resize", queueReveal);
+	}
+	if (window.jQuery) {
+		window.jQuery(document.body).on("updated_checkout", function () {
+			if (isEditableCheckoutField(document.activeElement)) {
+				activeField = document.activeElement;
+				queueReveal();
+			}
+		});
+	}
 })();
 
 /**
