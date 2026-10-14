@@ -13,6 +13,22 @@ const endToken = "})(window.jQuery);";
 const end = source.indexOf(endToken, start) + endToken.length;
 assert.ok(marker >= 0 && start >= marker && end > start, "variation sticky price IIFE is present");
 const variationStickyPriceIife = source.slice(start, end);
+const storefrontCss = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const themeCss = fs.readFileSync(new URL("../style.css", import.meta.url), "utf8");
+
+function cssBlock(stylesheet, selector, occurrence = "first") {
+  const startAt = occurrence === "last" ? stylesheet.lastIndexOf(selector) : stylesheet.indexOf(selector);
+  assert.notEqual(startAt, -1, `stylesheet contains the ${selector} rule`);
+  const openAt = stylesheet.indexOf("{", startAt);
+  assert.notEqual(openAt, -1, `${selector} rule opens`);
+  let depth = 0;
+  for (let index = openAt; index < stylesheet.length; index += 1) {
+    if (stylesheet[index] === "{") depth += 1;
+    if (stylesheet[index] === "}") depth -= 1;
+    if (depth === 0) return stylesheet.slice(openAt + 1, index);
+  }
+  assert.fail(`${selector} rule closes`);
+}
 
 function setup({ selectedId = "", variations = [] } = {}) {
   const dom = new JSDOM(
@@ -126,4 +142,68 @@ test("R133 a preselected variation initializes stock status from WooCommerce var
     assert.equal(status.dataset.jluxeStockState, "out-of-stock");
   }
   assert.equal(window.document.querySelector("[data-jluxe-sticky-add]").dataset.jluxeStickyMode, "scroll");
+});
+
+test("R306 discounted sticky bars preserve WooCommerce regular/current price markup on variation changes", () => {
+  const { window, $ } = setup();
+  const form = window.document.querySelector("form.variations_form");
+  const saleHtml = '<span class="price"><del><span class="woocommerce-Price-amount amount">۲۱۰٬۰۰۰ تومان</span></del> <ins><span class="woocommerce-Price-amount amount">۱۷۰٬۰۰۰ تومان</span></ins></span>';
+
+  $(form).trigger("found_variation", [{
+    variation_id: 45,
+    price_html: saleHtml,
+    is_purchasable: true,
+    is_in_stock: true,
+  }]);
+
+  for (const selector of ["[data-jluxe-mobile-bar-price]", "[data-jluxe-sticky-variation-price]"]) {
+    const slot = window.document.querySelector(selector);
+    assert.equal(slot.querySelector("del").textContent, "۲۱۰٬۰۰۰ تومان", "the old price remains a separate WooCommerce del element");
+    assert.equal(slot.querySelector("ins").textContent, "۱۷۰٬۰۰۰ تومان", "the selected sale price remains a separate WooCommerce ins element");
+  }
+});
+
+test("R306 sticky sale-price CSS stacks a small muted struck old price above a bold current price", () => {
+  const mobileLayout = cssBlock(themeCss, "[data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price]");
+  const mobilePriceWrapper = cssBlock(themeCss, "[data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] .price");
+  const mobileOldPrice = cssBlock(themeCss, "[data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del");
+  const mobileCurrentPrice = cssBlock(themeCss, "[data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins");
+  const sharedPriceLayout = cssBlock(storefrontCss, ".jluxe-mobile-price-card [data-jluxe-mobile-bar-price],");
+  const sharedOldPrice = cssBlock(storefrontCss, ".jluxe-mobile-price-card [data-jluxe-mobile-bar-price] del,");
+  const sharedCurrentPrice = cssBlock(storefrontCss, ".jluxe-mobile-price-card [data-jluxe-mobile-bar-price] ins,");
+
+  assert.match(mobileLayout, /flex-direction:\s*column/);
+  assert.match(mobileLayout, /align-items:\s*flex-start/);
+  assert.match(mobilePriceWrapper, /display:\s*flex/);
+  assert.match(mobilePriceWrapper, /flex-direction:\s*column/);
+  assert.match(mobileOldPrice, /order:\s*0/);
+  assert.match(mobileOldPrice, /text-decoration:\s*line-through\s*!important/);
+  assert.match(mobileOldPrice, /font-size:\s*11px\s*!important/);
+  assert.match(mobileCurrentPrice, /order:\s*1/);
+  assert.match(mobileCurrentPrice, /font-size:\s*17px\s*!important/);
+  assert.match(mobileCurrentPrice, /font-weight:\s*900\s*!important/);
+
+  assert.match(storefrontCss, /\.jluxe-sticky-cta \.jluxe-sticky-cta-price\s*\{/);
+  assert.match(sharedPriceLayout, /flex-direction:\s*column/);
+  assert.match(storefrontCss, /\.jluxe-sticky-cta \.jluxe-sticky-cta-price del/);
+  assert.match(sharedOldPrice, /text-decoration:\s*line-through/);
+  assert.match(storefrontCss, /\.jluxe-sticky-cta \.jluxe-sticky-cta-price ins/);
+  assert.match(sharedCurrentPrice, /font-size:\s*0\.96rem/);
+  assert.match(sharedCurrentPrice, /font-weight:\s*900/);
+});
+
+test("R306 narrow sticky bars reclaim width with smaller quantity and CTA controls, hiding tiny-screen cart icons", () => {
+  const storefrontCompact = cssBlock(storefrontCss, "@media (max-width: 380px)", "last");
+  const storefrontTiny = cssBlock(storefrontCss, "@media (max-width: 360px)", "last");
+  const criticalCompact = cssBlock(themeCss, "@media (max-width: 380px)", "last");
+  const criticalTiny = cssBlock(themeCss, "@media (max-width: 360px)", "last");
+
+  assert.match(storefrontCompact, /\.jluxe-mobile-quantity-step\s*\{[^}]*width:\s*1\.625rem;[^}]*min-width:\s*1\.625rem;/s);
+  assert.match(storefrontCompact, /\.jluxe-mobile-quantity-value\s*\{[^}]*min-width:\s*1\.25rem;/s);
+  assert.match(storefrontCompact, /\.jluxe-sticky-cta \.jluxe-btn\s*\{[^}]*padding-right:\s*0\.5rem;[^}]*padding-left:\s*0\.5rem;[^}]*font-size:\s*0\.6875rem;/s);
+  assert.match(storefrontTiny, /\.jluxe-sticky-cta \.jluxe-btn > svg\s*\{\s*display:\s*none;/);
+
+  assert.match(criticalCompact, /\.jluxe-mobile-price-card\s*\{[^}]*gap:\s*4px;[^}]*padding-right:\s*8px;[^}]*padding-left:\s*8px;/s);
+  assert.match(criticalCompact, /\[data-jluxe-mobile-bar-add\]\s*\{[^}]*min-width:\s*0;[^}]*padding-right:\s*8px;[^}]*padding-left:\s*8px;/s);
+  assert.match(criticalTiny, /\[data-jluxe-mobile-bar-add\] > svg\s*\{\s*display:\s*none;/);
 });

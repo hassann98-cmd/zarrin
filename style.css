@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.7.141 — RESPONSIVE FOOTER
+Build: JLUXE 1.7.142 — RESPONSIVE FOOTER
 Author: زرین
 Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
-Version: 1.7.141
+Version: 1.7.142
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -98,30 +98,50 @@ Text Domain: jluxe
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] {
     display: flex;
-    align-items: baseline;
-    gap: 7px;
-    flex-wrap: wrap;
-    line-height: 1.25;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.15;
     white-space: nowrap;
   }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] .price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+    max-width: 100%;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del {
-    order: 2;
-    text-decoration: none !important;
+    display: block;
+    order: 0;
+    margin: 0;
+    text-decoration: line-through !important;
     color: #98a2b3 !important;
     font-size: 11px !important;
     font-weight: 500 !important;
+    line-height: 1.05;
     opacity: .9;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del .woocommerce-Price-amount,
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del bdi {
-    text-decoration: none !important;
+    text-decoration: line-through !important;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins {
+    display: block;
     order: 1;
+    margin: 0;
+    background: transparent;
     text-decoration: none !important;
     color: hsl(var(--primary, 170 88% 25%)) !important;
     font-size: 17px !important;
     font-weight: 900 !important;
+    line-height: 1.12;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .woocommerce-Price-amount:not(:has(~ ins)),
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .amount {
@@ -135,7 +155,7 @@ Text Domain: jluxe
     margin-inline-start: 2px;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] {
-    min-width: 132px;
+    min-width: 0;
     height: 46px;
     border-radius: 15px;
     box-shadow: 0 9px 22px -10px hsl(var(--primary, 170 88% 25%));
@@ -158,6 +178,26 @@ Text Domain: jluxe
   }
   .jluxe-mobile-nav-item:active {
     transform: scale(.96);
+  }
+}
+
+@media (max-width: 380px) {
+  [data-jluxe-mobile-price-bar] .jluxe-mobile-price-card {
+    gap: 4px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] {
+    min-width: 0;
+    gap: 4px;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 360px) {
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] > svg {
+    display: none;
   }
 }
 

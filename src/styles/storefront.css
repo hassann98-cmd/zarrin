@@ -7302,7 +7302,72 @@ html {
 /* With a bottom dock, the CTA is measured above it; don't add the same safe-area inset twice. */
 .jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }
 .jluxe-sticky-cta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
-.jluxe-sticky-cta-price { font-weight: 700; font-size: 0.9375rem; color: hsl(var(--foreground)); }
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price],
+.jluxe-sticky-cta .jluxe-sticky-cta-price {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.0625rem;
+  color: hsl(var(--foreground));
+  font-size: 0.9375rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] .price,
+.jluxe-sticky-cta .jluxe-sticky-cta-price .price {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.0625rem;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] del,
+.jluxe-sticky-cta .jluxe-sticky-cta-price del {
+  display: block;
+  order: 0;
+  margin: 0;
+  color: hsl(var(--text-muted));
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.05;
+  opacity: 0.78;
+  text-decoration: line-through;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] ins,
+.jluxe-sticky-cta .jluxe-sticky-cta-price ins {
+  display: block;
+  order: 1;
+  margin: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.96rem;
+  font-weight: 900;
+  line-height: 1.12;
+  text-decoration: none;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] .woocommerce-Price-amount,
+.jluxe-sticky-cta .jluxe-sticky-cta-price .woocommerce-Price-amount {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] del .jluxe-toman-glyph svg,
+.jluxe-sticky-cta .jluxe-sticky-cta-price del .jluxe-toman-glyph svg {
+  width: 0.68rem;
+  height: auto;
+}
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] ins .jluxe-toman-glyph svg,
+.jluxe-sticky-cta .jluxe-sticky-cta-price ins .jluxe-toman-glyph svg {
+  width: 0.86rem;
+  height: auto;
+}
 .jluxe-sticky-cta-stock,
 .jluxe-mobile-price-stock {
   display: inline-flex;
@@ -7355,8 +7420,8 @@ html {
 .jluxe-mobile-quantity[hidden] { display: none; }
 .jluxe-mobile-quantity-step {
   display: grid;
-  width: 2rem;
-  min-width: 2rem;
+  width: 1.875rem;
+  min-width: 1.875rem;
   height: 2.75rem;
   min-height: 2.75rem;
   padding: 0;
@@ -7369,7 +7434,7 @@ html {
 .jluxe-mobile-quantity-step:not(:disabled):active { transform: scale(0.92); }
 .jluxe-mobile-quantity-step:disabled { opacity: 0.4; cursor: not-allowed; }
 .jluxe-mobile-quantity-value {
-  min-width: 1.55rem;
+  min-width: 1.45rem;
   max-width: 3.25rem;
   padding: 0 0.125rem;
   overflow: hidden;
@@ -7383,15 +7448,23 @@ html {
   direction: ltr;
   unicode-bidi: isolate;
 }
+.jluxe-mobile-price-card { gap: 0.375rem; }
+.jluxe-mobile-price-card [data-jluxe-mobile-bar-add] { min-width: 0; }
 .jluxe-sticky-cta { gap: 0.5rem; padding-right: 0.75rem; padding-left: 0.75rem; }
 .jluxe-sticky-cta .jluxe-btn { flex: none; gap: 0.375rem; padding-right: 0.75rem; padding-left: 0.75rem; white-space: nowrap; }
 @media (max-width: 380px) {
-  .jluxe-mobile-quantity-step { width: 1.875rem; min-width: 1.875rem; }
-  .jluxe-mobile-quantity-value { min-width: 1.4rem; font-size: 0.75rem; }
+  .jluxe-mobile-price-card { gap: 0.375rem; padding-right: 0.5rem; padding-left: 0.5rem; }
+  .jluxe-mobile-price-card [data-jluxe-mobile-bar-add] { gap: 0.25rem; padding-right: 0.5rem; padding-left: 0.5rem; font-size: 0.6875rem; }
+  .jluxe-mobile-quantity-step { width: 1.625rem; min-width: 1.625rem; }
+  .jluxe-mobile-quantity-value { min-width: 1.25rem; font-size: 0.75rem; }
   .jluxe-sticky-cta { gap: 0.375rem; padding-right: 0.625rem; padding-left: 0.625rem; }
-  .jluxe-sticky-cta .jluxe-btn { gap: 0.25rem; padding-right: 0.625rem; padding-left: 0.625rem; font-size: 0.75rem; }
-  .jluxe-sticky-cta-price,
+  .jluxe-sticky-cta .jluxe-btn { gap: 0.25rem; padding-right: 0.5rem; padding-left: 0.5rem; font-size: 0.6875rem; }
+  .jluxe-sticky-cta-price { max-width: 100%; min-width: 0; white-space: normal; }
   .jluxe-sticky-cta-stock { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (max-width: 360px) {
+  .jluxe-mobile-price-card [data-jluxe-mobile-bar-add] > svg,
+  .jluxe-sticky-cta .jluxe-btn > svg { display: none; }
 }
 .jluxe-sticky-cta-out {
   flex: none;
