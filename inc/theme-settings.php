@@ -443,8 +443,11 @@ function jluxe_theme_settings_defaults(): array {
 		'announcement_bar' => array(
 			'enabled'          => false,
 			'sticky'           => false, // هنگام اسکرول خود نوار بچسبد؛ پیش‌فرض خاموش تا فقط هدر ثابت بماند.
-			'display_mode'     => 'text', // text | image (GIF هم از همین مسیر و با فایل اصلی نمایش داده می‌شود)
+			'display_mode'     => 'text', // text | ticker | image؛ ticker پیام‌های چرخشی را با HTML/CSS نمایش می‌دهد.
 			'message'          => '',
+			'ticker_label'     => 'ارسال سریع',
+			'ticker_messages'  => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
+			'ticker_logo_id'   => 0, // در صورت خالی بودن، آیکون سایت استفاده می‌شود.
 			'image_id'         => 0,
 			'image_alt'        => '',
 			'link_text'        => '',

@@ -5832,7 +5832,7 @@ check( 'جستجو در فروشگاه' === $r124_header_defaults['search_placeh
 
 // R100 — configurable global announcement bar and stacked header offsets.
 $r100_defaults = jluxe_theme_settings_defaults()['announcement_bar'];
-check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && '' === $r100_defaults['message'] && 0 === $r100_defaults['image_id'], 'R100 the announcement bar is off by default and adds no unsolicited message to restored 1.64.20 settings' );
+check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && '' === $r100_defaults['message'] && 'ارسال سریع' === $r100_defaults['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r100_defaults['ticker_messages'] && 0 === $r100_defaults['image_id'], 'R100 the announcement bar remains off by default and supplies the shipping ticker copy without adding unsolicited content' );
 $r100_clean = jluxe_sanitize_announcement_bar(
 	array(
 		'enabled' => '1',
@@ -5858,6 +5858,16 @@ $r101_image_settings = jluxe_sanitize_announcement_bar(
 );
 $r101_invalid_mode = jluxe_sanitize_announcement_bar( array( 'display_mode' => 'video' ), $r100_defaults );
 check( 'image' === $r101_image_settings['display_mode'] && 901 === $r101_image_settings['image_id'] && 'پیشنهاد متحرک' === $r101_image_settings['image_alt'] && 'text' === $r101_invalid_mode['display_mode'], 'R101 image/GIF mode, positive attachment ID, accessible alt text, and invalid-mode fallback are sanitized' );
+$r102_ticker_clean = jluxe_sanitize_announcement_bar(
+	array(
+		'display_mode'    => 'ticker',
+		'ticker_label'    => ' <b>ارسال سریع</b> ',
+		'ticker_messages' => "\nارسال سفارشات ثبت شده\n\nقبل از ساعت 11\nدر همان روز\n",
+		'ticker_logo_id'  => '903',
+	),
+	$r100_defaults
+);
+check( 'ticker' === $r102_ticker_clean['display_mode'] && 'ارسال سریع' === $r102_ticker_clean['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r102_ticker_clean['ticker_messages'] && 903 === $r102_ticker_clean['ticker_logo_id'], 'R102 ticker settings sanitize the fixed label, trim blank message rows, preserve ordered Persian phrases, and normalize the logo ID' );
 check( isset( jluxe_settings_sections_map()['jluxe-announcement'] ) && function_exists( 'jluxe_render_announcement_page' ), 'R100 the announcement controls are registered in the generic admin settings flow' );
 
 update_test_settings( jluxe_theme_settings_defaults() );
@@ -5909,7 +5919,7 @@ ob_start();
 jluxe_render_announcement_page();
 $r100_admin_markup = ob_get_clean();
 $_POST = $r100_previous_post;
-check( false !== strpos( $r100_admin_markup, 'announcement_bar[enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[message]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[link_url]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[background_color]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[display_mode]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_alt]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[sticky]' ) && false !== strpos( $r100_admin_markup, 'data-preview-size="full"' ) && false !== strpos( $r100_admin_markup, 'data-library-type="image"' ), 'R107 the admin exposes text/image mode, original-size media picker, alt text, and the sticky/flow toggle' );
+check( false !== strpos( $r100_admin_markup, 'announcement_bar[enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[message]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_label]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_messages]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_id]' ) && false !== strpos( $r100_admin_markup, 'data-announcement-mode="ticker"' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[link_url]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[background_color]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[display_mode]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_alt]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[sticky]' ) && false !== strpos( $r100_admin_markup, 'data-preview-size="full"' ) && false !== strpos( $r100_admin_markup, 'data-library-type="image"' ), 'R107 the admin exposes static text, animated ticker copy/logo, image/GIF settings, and the sticky/flow toggle' );
 ob_start();
 jluxe_render_announcement_bar();
 $r100_markup = ob_get_clean();
@@ -5929,6 +5939,25 @@ ob_start();
 jluxe_render_announcement_bar();
 $r101_gif_markup = ob_get_clean();
 check( false !== strpos( $r101_gif_markup, 'data-content-mode="image"' ) && false !== strpos( $r101_gif_markup, 'data-sticky="1"' ) && false !== strpos( $r101_gif_markup, 'jluxe-announcement-bar--sticky' ) && false !== strpos( $r101_gif_markup, 'src="https://shop.test/store/uploads/animated-offer.gif"' ) && false !== strpos( $r101_gif_markup, 'alt="پیشنهاد متحرک"' ) && false !== strpos( $r101_gif_markup, 'width="1200" height="300"' ) && false !== strpos( $r101_gif_markup, 'class="jluxe-announcement-bar__image-link" href="/sale/"' ) && false === strpos( $r101_gif_markup, 'jluxe-announcement-bar__message' ) && false === strpos( $r101_gif_markup, 'class="jluxe-announcement-bar__link"' ) && false === strpos( $r101_gif_markup, 'این متن نباید کنار GIF نمایش داده شود' ) && false === strpos( $r101_gif_markup, '>پیوند متنی قبلی</a>' ), 'R107 sticky preference is rendered on the image banner; R102 image mode still replaces text and uses the original animated GIF' );
+
+$r102_ticker_settings = jluxe_theme_settings_defaults();
+$r102_ticker_settings['announcement_bar'] = array_merge(
+	$r100_defaults,
+	array(
+		'enabled'         => true,
+		'display_mode'    => 'ticker',
+		'ticker_label'    => 'ارسال سریع',
+		'ticker_messages' => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
+		'dismissible'     => false,
+	)
+);
+update_test_settings( $r102_ticker_settings );
+$r102_ticker_payload = jluxe_announcement_content_payload( $r102_ticker_settings['announcement_bar'] );
+check( 'ticker' === $r102_ticker_payload['mode'] && true === $r102_ticker_payload['ready'] && 3 === count( $r102_ticker_payload['ticker_messages'] ) && 'ارسال سفارشات ثبت شده قبل از ساعت 11 در همان روز' === $r102_ticker_payload['ticker_summary'], 'R102 ticker payload keeps the ordered copy and constructs a static accessible summary' );
+ob_start();
+jluxe_render_announcement_bar();
+$r102_ticker_markup = ob_get_clean();
+check( false !== strpos( $r102_ticker_markup, 'data-content-mode="ticker"' ) && false !== strpos( $r102_ticker_markup, 'aria-live="off"' ) && false !== strpos( $r102_ticker_markup, 'ارسال سریع' ) && false !== strpos( $r102_ticker_markup, 'ارسال سفارشات ثبت شده' ) && false !== strpos( $r102_ticker_markup, 'قبل از ساعت 11' ) && false !== strpos( $r102_ticker_markup, 'در همان روز' ) && false !== strpos( $r102_ticker_markup, 'has-multiple' ) && false !== strpos( $r102_ticker_markup, 'ticker-waves' ) && false !== strpos( $r102_ticker_markup, 'ticker-logo-fallback' ) && false === strpos( $r102_ticker_markup, 'animated-offer.gif' ), 'R102 ticker mode renders the fixed label, three HTML messages, CSS background waves, logo fallback, and no GIF request' );
 $GLOBALS['attachment_mimes'][902] = 'application/pdf';
 $r101_settings['announcement_bar']['image_id'] = 902;
 update_test_settings( $r101_settings );
@@ -5960,6 +5989,8 @@ check( false !== strpos( $r106_mobile_inner_css, 'height: 44px;' ) && false !== 
 $r145_global_crop = strpos( $r100_announcement_css, '/* R145: Use one definite, full-bleed' );
 $r145_global_crop_css = false === $r145_global_crop ? '' : substr( $r100_announcement_css, $r145_global_crop, 2200 );
 check( false !== strpos( $r145_global_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar--image {' ) && false === strpos( $r145_global_crop_css, 'body.single-product .jluxe-announcement-bar--image' ) && false !== strpos( $r145_global_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_global_crop_css, 'height: 44px;' ) && false !== strpos( $r145_global_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_global_crop_css, 'position: relative;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_global_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_global_crop_css, 'width: 100%;' ) && false !== strpos( $r145_global_crop_css, 'height: 100%;' ) && false !== strpos( $r145_global_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_global_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 homepage, product, Shop and category image notices use the same full-bleed mobile crop; text notices and desktop remain unchanged' );
+$r102_ticker_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
+check( false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker {' ) && false !== strpos( $r102_ticker_css, '@keyframes jluxe-announcement-ticker-phrase' ) && false !== strpos( $r102_ticker_css, 'animation-duration: var(--jluxe-ticker-cycle, 9s);' ) && false !== strpos( $r102_ticker_css, '@media (prefers-reduced-motion: reduce)' ) && false !== strpos( $r102_ticker_css, 'height: 44px;' ) && false !== strpos( $r102_ticker_css, 'ticker-static' ), 'R102 the animated shipping ticker has a compact mobile frame and static fallback for reduced-motion preferences' );
 
 // R246 — account UI changes stay presentational; payment hiding removes one navigation entry only.
 $r246_account_items = jluxe_hide_account_payment_methods_menu_item(

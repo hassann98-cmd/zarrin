@@ -226,10 +226,12 @@ function jluxe_render_announcement_page(): void {
 				<tr>
 					<th scope="row">نوع محتوا</th>
 					<td>
-						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="text" <?php checked( 'text', $bar['display_mode'] ?? 'text' ); ?> /> متن</label>
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="text" <?php checked( 'text', $bar['display_mode'] ?? 'text' ); ?> /> متن ثابت</label>
+						&nbsp;&nbsp;
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="ticker" <?php checked( 'ticker', $bar['display_mode'] ?? 'text' ); ?> /> پیام‌های متحرک (جایگزین GIF)</label>
 						&nbsp;&nbsp;
 						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="image" <?php checked( 'image', $bar['display_mode'] ?? 'text' ); ?> /> تصویر یا GIF متحرک</label>
-						<p class="description">یکی از دو حالت را انتخاب کنید. برای GIF، فایل اصلی و متحرک استفاده می‌شود؛ تصویر در عرض صفحه جا می‌گیرد و نسبت ابعادش حفظ می‌شود.</p>
+						<p class="description">برای نوارِ «ارسال سریع»، حالتِ پیام‌های متحرک را انتخاب کنید تا نوشته‌ها بدون دانلودِ GIF و با حفظِ ظاهرِ بنر نمایش داده شوند.</p>
 					</td>
 				</tr>
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="text">
@@ -237,6 +239,15 @@ function jluxe_render_announcement_page(): void {
 					<td>
 						<textarea id="jluxe-announcement-message" name="announcement_bar[message]" rows="3" maxlength="500" class="large-text" placeholder="پیام کوتاه اطلاع‌رسانی را وارد کنید"><?php echo esc_textarea( $bar['message'] ); ?></textarea>
 						<p class="description">متن به‌صورت ساده نمایش داده می‌شود؛ برای فعال‌شدن نوار، هم تیکِ نمایش را بزنید و هم متن وارد کنید.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="ticker">
+					<th scope="row">بنر پیام‌های متحرک</th>
+					<td>
+						<p><label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br /><input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" /></p>
+						<p><label for="jluxe-announcement-ticker-messages">پیام‌های چرخشی (هر پیام در یک خط)</label><br /><textarea id="jluxe-announcement-ticker-messages" name="announcement_bar[ticker_messages]" rows="4" maxlength="500" class="large-text" placeholder="هر پیام را در یک خط بنویسید"><?php echo esc_textarea( $bar['ticker_messages'] ?? "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" ); ?></textarea></p>
+						<p><strong>لوگوی دایره‌ای (اختیاری)</strong><br /><?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?></p>
+						<p class="description">هر پیام حدود ۳ ثانیه نمایش داده می‌شود. انیمیشن فقط با CSS اجرا می‌شود؛ در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، متن کامل ثابت می‌شود.</p>
 					</td>
 				</tr>
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="image">

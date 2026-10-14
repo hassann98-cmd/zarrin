@@ -125,7 +125,7 @@ jQuery(function ($) {
 			.html('<span class="description">' + emptyLabel + "</span>");
 	});
 
-	// نمایش یکی از دو فرم محتوای بنر (متن یا تصویر/GIF).
+	// نمایش یکی از فرم‌های محتوای بنر: متن ثابت، پیام‌های متحرک یا تصویر/GIF.
 	function syncAnnouncementMode() {
 		var mode = $(".jluxe-announcement-mode:checked").val() || "text";
 		$("[data-announcement-mode]").each(function () {

@@ -184,9 +184,29 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	$display_mode = isset( $posted['display_mode'] ) && is_scalar( $posted['display_mode'] )
 		? sanitize_key( (string) $posted['display_mode'] )
 		: ( $defaults['display_mode'] ?? 'text' );
-	if ( ! in_array( $display_mode, array( 'text', 'image' ), true ) ) {
+	if ( ! in_array( $display_mode, array( 'text', 'ticker', 'image' ), true ) ) {
 		$display_mode = 'text';
 	}
+	$ticker_label_raw = isset( $posted['ticker_label'] ) && is_scalar( $posted['ticker_label'] )
+		? (string) $posted['ticker_label']
+		: (string) ( $defaults['ticker_label'] ?? 'ارسال سریع' );
+	$ticker_label = sanitize_text_field( $ticker_label_raw );
+	if ( '' === $ticker_label ) {
+		$ticker_label = (string) ( $defaults['ticker_label'] ?? 'ارسال سریع' );
+	}
+	$ticker_messages_raw = isset( $posted['ticker_messages'] ) && is_scalar( $posted['ticker_messages'] )
+		? (string) $posted['ticker_messages']
+		: (string) ( $defaults['ticker_messages'] ?? '' );
+	$ticker_message_lines = preg_split( '/\r\n|\r|\n/', sanitize_textarea_field( $ticker_messages_raw ) );
+	$ticker_message_lines = array_slice(
+		array_values( array_filter( array_map( 'trim', is_array( $ticker_message_lines ) ? $ticker_message_lines : array() ) ) ),
+		0,
+		5
+	);
+	$ticker_messages = implode( "\n", $ticker_message_lines );
+	$ticker_logo_id = isset( $posted['ticker_logo_id'] ) && is_scalar( $posted['ticker_logo_id'] )
+		? absint( $posted['ticker_logo_id'] )
+		: absint( $defaults['ticker_logo_id'] ?? 0 );
 	$image_id = isset( $posted['image_id'] ) && is_scalar( $posted['image_id'] )
 		? absint( $posted['image_id'] )
 		: absint( $defaults['image_id'] ?? 0 );
@@ -199,6 +219,9 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		'sticky'           => ! empty( $posted['sticky'] ),
 		'display_mode'     => $display_mode,
 		'message'          => sanitize_textarea_field( $message_raw ),
+		'ticker_label'     => $ticker_label,
+		'ticker_messages'  => $ticker_messages,
+		'ticker_logo_id'   => $ticker_logo_id,
 		'image_id'         => $image_id,
 		'image_alt'        => sanitize_text_field( $image_alt_raw ),
 		'link_text'        => sanitize_text_field( $link_text_raw ),
