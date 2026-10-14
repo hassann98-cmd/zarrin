@@ -304,7 +304,7 @@ function jluxe_theme_settings_defaults(): array {
 				'checkout_phone_label'          => 'موبایل',
 				'checkout_email_label'          => 'آدرس ایمیل',
 				'checkout_postcode_label'      => 'کد پستی',
-				'checkout_postcode_description' => 'برای ارسال پستی، وارد کردن کد پستی الزامی است.',
+				'checkout_postcode_description' => 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.',
 				'checkout_address_label'        => 'آدرس',
 				'checkout_landline_label'       => 'تلفن ثابت',
 				'checkout_create_account_label' => 'ایجاد حساب کاربری؟',

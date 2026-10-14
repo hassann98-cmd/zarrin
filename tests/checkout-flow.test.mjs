@@ -38,6 +38,10 @@ const checkoutScript = extractDocumentedIife(
   " * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
   "/**\n * اینپوتِ پرشِ صفحه",
 );
+const postcodeRequirementScript = extractDocumentedIife(
+  " * R307 — کد پستی فقط برای نرخِ انتخاب‌شدهٔ ادارهٔ پست",
+  "/**\n * R289 — ارقامِ فارسی/عربی",
+);
 const checkoutDigitsScript = extractDocumentedIife(
   " * R289 — ارقامِ فارسی/عربی را پیش از validation",
   "/**\n * گیت‌کردنِ واقعیِ مرحله‌ی «روش پرداخت»",
@@ -354,6 +358,76 @@ test("R289 checkout phone/postcode autofill stays natively visible while submitt
   window.jQuery(window.document.body).trigger("updated_checkout");
   assert.equal(dynamicPostcode.value, "456", "fields replaced during a WooCommerce checkout refresh are normalized too");
   assert.equal(dynamicWrapper.querySelector(".jluxe-numeric-digit-display"), null);
+  dom.window.close();
+});
+
+test("R307 postcode becomes required only for a selected Post rate and follows the destination address", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html lang="fa"><body>
+      <form class="checkout">
+        <section id="jluxe-shipping-section">
+          <input id="post-rate" class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate:14" data-jluxe-shipping-kind="post">
+          <input id="tipax-rate" class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate:19" data-jluxe-shipping-kind="tipax">
+        </section>
+        <label><input id="ship-to-different-address-checkbox" type="checkbox" name="ship_to_different_address" value="1"> ارسال به آدرس دیگر</label>
+        <p class="form-row validate-optional" id="billing_postcode_field">
+          <label for="billing_postcode">کد پستی <span class="optional"> (اختیاری)</span></label>
+          <input id="billing_postcode" name="billing_postcode" autocomplete="postal-code">
+        </p>
+        <p class="form-row validate-optional" id="shipping_postcode_field">
+          <label for="shipping_postcode">کد پستی <span class="optional"> (اختیاری)</span></label>
+          <input id="shipping_postcode" name="shipping_postcode" autocomplete="postal-code">
+        </p>
+      </form>
+    </body></html>`,
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  const { window } = dom;
+  const form = window.document.querySelector("form.checkout");
+  const postRate = window.document.getElementById("post-rate");
+  const tipaxRate = window.document.getElementById("tipax-rate");
+  const differentAddress = window.document.getElementById("ship-to-different-address-checkbox");
+  let billingPostcode = window.document.getElementById("billing_postcode");
+  let shippingPostcode = window.document.getElementById("shipping_postcode");
+  window.jQuery = jqueryFactory(window);
+  window.eval(postcodeRequirementScript);
+
+  assert.equal(billingPostcode.required, false, "no selected Post rate leaves billing postcode optional");
+  assert.equal(shippingPostcode.required, false, "shipping postcode also stays optional by default");
+
+  postRate.checked = true;
+  postRate.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(billingPostcode.required, true, "the billing destination postcode is required for Post");
+  assert.equal(billingPostcode.getAttribute("aria-required"), "true");
+  assert.ok(billingPostcode.closest(".form-row").classList.contains("validate-required"));
+  assert.ok(billingPostcode.closest(".form-row").querySelector("label .required"), "the label visibly reflects the conditional requirement");
+  assert.equal(shippingPostcode.required, false, "the unused shipping-address postcode is not required");
+
+  differentAddress.checked = true;
+  differentAddress.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(billingPostcode.required, false, "billing is optional when a separate shipping destination is enabled");
+  assert.equal(shippingPostcode.required, true, "the active shipping destination postcode is required for Post");
+
+  tipaxRate.checked = true;
+  tipaxRate.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(billingPostcode.required, false, "Tipax does not require a postcode");
+  assert.equal(shippingPostcode.required, false, "Tipax accepts an empty shipping postcode");
+  assert.ok(shippingPostcode.closest(".form-row").querySelector("label .optional"));
+  assert.equal(shippingPostcode.hasAttribute("aria-required"), false);
+
+  postRate.checked = true;
+  tipaxRate.checked = false;
+  differentAddress.checked = false;
+  window.jQuery(window.document.body).trigger("updated_checkout");
+  const replacement = window.document.createElement("p");
+  replacement.className = "form-row validate-optional";
+  replacement.id = "billing_postcode_field";
+  replacement.innerHTML = '<label for="billing_postcode">کد پستی <span class="optional"> (اختیاری)</span></label><input id="billing_postcode" name="billing_postcode">';
+  form.querySelector("#billing_postcode_field").replaceWith(replacement);
+  billingPostcode = replacement.querySelector("input");
+  window.jQuery(window.document.body).trigger("updated_checkout");
+  assert.equal(billingPostcode.required, true, "the rule is reapplied after WooCommerce replaces checkout fields");
+  assert.ok(replacement.classList.contains("validate-required"));
   dom.window.close();
 });
 

@@ -2398,6 +2398,9 @@ function jluxe_shipping_method_presentation( $method ): array {
 	}
 
 	$identifiers = array( $label );
+	if ( is_scalar( $method ) ) {
+		$identifiers[] = (string) $method;
+	}
 	foreach ( array( 'id', 'method_id', 'instance_id' ) as $property ) {
 		if ( is_object( $method ) && isset( $method->{$property} ) && is_scalar( $method->{$property} ) ) {
 			$identifiers[] = (string) $method->{$property};
@@ -2826,12 +2829,13 @@ add_filter( 'woocommerce_my_account_edit_address_field_value', 'jluxe_account_ed
 /**
  * کد پستی در چک‌اوت به‌تنهایی اجباری نیست؛ ممکن است بعضی تنظیمات فروشگاه
  * یا افزونه‌های آدرس این فیلد را دوباره required کنند، پس این فیلترِ دیرتر
- * مقدار نهاییِ billing و shipping را اختیاری می‌کند. یادداشت زیر فیلد فقط
- * اطلاع می‌دهد که برای روش ارسال پستی واردکردن کد لازم است؛ validation یا
- * گیت جدیدی به انتخاب/ثبت سفارش اضافه نمی‌شود.
+ * مقدار نهاییِ billing و shipping را اختیاری می‌کند. در رابط کاربری و سمتِ
+ * سرور، کد فقط وقتی لازم می‌شود که کاربر یک نرخِ ادارهٔ پست را انتخاب کرده
+ * باشد؛ مقدارهای خالیِ تیپاکس/چاپار پذیرفته می‌شوند و اعتبارسنجیِ کدِ واردشده
+ * (از جمله اعتبارسنجی افزونهٔ ووکامرس فارسی) دست‌نخورده می‌ماند.
  */
 function jluxe_optional_checkout_postcodes( array $fields ): array {
-	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', 'برای ارسال پستی، وارد کردن کد پستی الزامی است.' );
+	$description = jluxe_cart_checkout_copy( 'checkout_postcode_description', 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.' );
 	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
 		$phone_key = $address_type . '_phone';
 		if ( isset( $fields[ $address_type ][ $phone_key ] ) ) {
@@ -2876,6 +2880,77 @@ function jluxe_optional_checkout_postcodes( array $fields ): array {
 	return $fields;
 }
 add_filter( 'woocommerce_checkout_fields', 'jluxe_optional_checkout_postcodes', 999 );
+
+/** Check the selected rate in each live WooCommerce package, not its cost or checkout styling. */
+function jluxe_checkout_shipping_methods_require_postcode( array $data ): bool {
+	$selected_methods = $data['shipping_method'] ?? array();
+	if ( is_scalar( $selected_methods ) ) {
+		$selected_methods = array( 0 => $selected_methods );
+	}
+	if ( ! is_array( $selected_methods ) || ! $selected_methods ) {
+		return false;
+	}
+
+	$packages = array();
+	if ( function_exists( 'WC' ) ) {
+		$woocommerce = WC();
+		if ( is_object( $woocommerce ) && method_exists( $woocommerce, 'shipping' ) ) {
+			$shipping = $woocommerce->shipping();
+			if ( is_object( $shipping ) && method_exists( $shipping, 'get_packages' ) ) {
+				$packages = (array) $shipping->get_packages();
+			}
+		}
+	}
+
+	foreach ( $selected_methods as $package_index => $selected_rate_id ) {
+		if ( ! is_scalar( $selected_rate_id ) ) {
+			continue;
+		}
+		$selected_rate_id = trim( (string) $selected_rate_id );
+		if ( '' === $selected_rate_id ) {
+			continue;
+		}
+
+		$method = $selected_rate_id;
+		if (
+			isset( $packages[ $package_index ]['rates'] ) &&
+			is_array( $packages[ $package_index ]['rates'] ) &&
+			isset( $packages[ $package_index ]['rates'][ $selected_rate_id ] )
+		) {
+			$method = $packages[ $package_index ]['rates'][ $selected_rate_id ];
+		}
+
+		$presentation = jluxe_shipping_method_presentation( $method );
+		if ( 'post' === ( $presentation['kind'] ?? '' ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/** Require only the destination postcode when a selected live rate is classified as Post. */
+function jluxe_validate_required_checkout_postcode_for_post_shipping( array $data, $errors ): void {
+	if ( ! is_object( $errors ) || ! method_exists( $errors, 'add' ) ) {
+		return;
+	}
+	if ( ! jluxe_checkout_shipping_methods_require_postcode( $data ) ) {
+		return;
+	}
+
+	$postcode_key = ! empty( $data['ship_to_different_address'] ) ? 'shipping_postcode' : 'billing_postcode';
+	$postcode     = $data[ $postcode_key ] ?? '';
+	if ( is_scalar( $postcode ) && '' !== trim( (string) $postcode ) ) {
+		return;
+	}
+
+	$errors->add(
+		'jluxe_postcode_required_for_post_shipping',
+		'برای ارسال با پست، کد پستی مقصد را وارد کنید.',
+		array( 'id' => $postcode_key )
+	);
+}
+add_action( 'woocommerce_after_checkout_validation', 'jluxe_validate_required_checkout_postcode_for_post_shipping', 10, 2 );
 
 /** Normalize checkout postal/contact digits before WooCommerce validation and order/customer persistence. */
 function jluxe_normalize_checkout_numeric_fields( array $data ): array {

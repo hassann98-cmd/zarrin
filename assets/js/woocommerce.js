@@ -3975,6 +3975,92 @@ function jluxeEnhanceShopSort(root) {
 })();
 
 /**
+ * R307 — کد پستی فقط برای نرخِ انتخاب‌شدهٔ ادارهٔ پست لازم است.
+ * فیلدها در HTML پایه اختیاری می‌مانند؛ هنگام انتخاب Post، فقط فیلدِ مقصد
+ * (billing یا shipping) در مرورگر required می‌شود. نرخ و مبلغ WooCommerce
+ * دست‌کاری نمی‌شوند و الزامِ سمتِ سرور هم جداگانه اعمال می‌شود.
+ */
+(function () {
+	var form = document.querySelector("form.checkout");
+	if (!form) {
+		return;
+	}
+
+	function selectedPostRate() {
+		return form.querySelectorAll('input.shipping_method:checked[data-jluxe-shipping-kind="post"]').length > 0;
+	}
+
+	function setPostcodeRequired(input, required) {
+		if (!input) {
+			return;
+		}
+
+		var row = input.closest(".form-row");
+		if (row) {
+			row.classList.toggle("validate-required", required);
+			row.classList.toggle("validate-optional", !required);
+			if (!required) {
+				row.classList.remove("woocommerce-invalid", "woocommerce-invalid-required-field");
+			}
+		}
+		input.required = required;
+		if (required) {
+			input.setAttribute("aria-required", "true");
+		} else {
+			input.removeAttribute("aria-required");
+		}
+
+		var label = row ? row.querySelector("label") : null;
+		if (!label) {
+			return;
+		}
+		var requiredMarker = label.querySelector(".required");
+		var optionalMarker = label.querySelector(".optional");
+		if (required) {
+			if (optionalMarker) {
+				optionalMarker.remove();
+			}
+			if (!requiredMarker) {
+				requiredMarker = document.createElement("abbr");
+				requiredMarker.className = "required";
+				requiredMarker.title = "الزامی";
+				requiredMarker.setAttribute("aria-hidden", "true");
+				requiredMarker.textContent = "*";
+				label.appendChild(document.createTextNode(" "));
+				label.appendChild(requiredMarker);
+			}
+		} else {
+			if (requiredMarker) {
+				requiredMarker.remove();
+			}
+			if (!optionalMarker) {
+				optionalMarker = document.createElement("span");
+				optionalMarker.className = "optional";
+				optionalMarker.textContent = " (اختیاری)";
+				label.appendChild(optionalMarker);
+			}
+		}
+	}
+
+	function updatePostcodeRequirement() {
+		var needsPostcode = selectedPostRate();
+		var billingPostcode = form.querySelector('input[name="billing_postcode"]');
+		var shippingPostcode = form.querySelector('input[name="shipping_postcode"]');
+		var shipToDifferent = form.querySelector('#ship-to-different-address-checkbox, input[name="ship_to_different_address"]');
+		var useShippingAddress = !!(shipToDifferent && shipToDifferent.checked && shippingPostcode);
+
+		setPostcodeRequired(billingPostcode, needsPostcode && !useShippingAddress);
+		setPostcodeRequired(shippingPostcode, needsPostcode && useShippingAddress);
+	}
+
+	document.addEventListener("change", updatePostcodeRequirement, true);
+	if (window.jQuery) {
+		window.jQuery(document.body).on("updated_checkout", updatePostcodeRequirement);
+	}
+	updatePostcodeRequirement();
+})();
+
+/**
  * R289 — ارقامِ فارسی/عربی را پیش از validation به مقدارِ ASCII تبدیل می‌کند.
  * خودِ input همیشه متنش را با رندر بومی مرورگر نشان می‌دهد؛ لایهٔ overlay و
  * شفاف‌کردن نوشتهٔ input حذف شده‌اند تا Address Autofill موبایل هم فوراً

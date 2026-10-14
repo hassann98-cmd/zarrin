@@ -6746,7 +6746,7 @@ check(
 );
 
 // R276 — optional postal codes, explicit postal-shipping guidance, shared responsive actions, and tidy shipping-rate cards.
-$r276_postcode_description = 'برای ارسال پستی، وارد کردن کد پستی الزامی است.';
+$r276_postcode_description = 'اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.';
 $r276_postcode_fields = jluxe_optional_checkout_postcodes(
 	array(
 		'billing' => array(
@@ -6891,6 +6891,117 @@ check(
 	'other' === $r279_other_presentation['kind'] && ! isset( $r279_other_presentation['hint'] ),
 	'R279 shipping presentation only classifies Post/Tipax/Chapar and no longer invents repetitive rate claims'
 );
+
+// R307 — only the selected live Post rate requires a destination postcode; no shipping rate or price is rewritten.
+$r307_previous_wc = $GLOBALS['wc'] ?? null;
+$r307_post_rate = new class() {
+	public $id = 'flat_rate:14';
+	public $method_id = 'flat_rate';
+	public $cost = 245000;
+	public function get_label() { return 'پست پیشتاز اقتصادی'; }
+};
+$r307_tipax_rate = new class() {
+	public $id = 'flat_rate:19';
+	public $method_id = 'flat_rate';
+	public $cost = 280000;
+	public function get_label() { return 'ارسال سریع با تیپاکس'; }
+};
+$r307_chapar_rate = new class() {
+	public $id = 'chapar:2';
+	public $method_id = 'chapar';
+	public $cost = 310000;
+	public function get_label() { return 'ارسال عادی با چاپار'; }
+};
+$r307_packages = array(
+	array(
+		'rates' => array(
+			'flat_rate:14' => $r307_post_rate,
+			'flat_rate:19' => $r307_tipax_rate,
+			'chapar:2'     => $r307_chapar_rate,
+		),
+	),
+	array(
+		'rates' => array( 'flat_rate:14' => $r307_post_rate ),
+	),
+);
+$r307_shipping = new class( $r307_packages ) {
+	private $packages;
+	public function __construct( $packages ) { $this->packages = $packages; }
+	public function get_packages() { return $this->packages; }
+};
+$GLOBALS['wc'] = new class( $r307_shipping ) {
+	private $shipping;
+	public function __construct( $shipping ) { $this->shipping = $shipping; }
+	public function shipping() { return $this->shipping; }
+};
+$r307_new_errors = static function () {
+	return new class() {
+		public $items = array();
+		public function add( $code, $message, $data = array() ) {
+			$this->items[] = array( 'code' => $code, 'message' => $message, 'data' => $data );
+		}
+	};
+};
+$r307_post_missing_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:14' ), 'billing_postcode' => '', 'ship_to_different_address' => '0' ),
+	$r307_post_missing_errors
+);
+$r307_tipax_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:19' ), 'billing_postcode' => '' ),
+	$r307_tipax_errors
+);
+$r307_chapar_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'chapar:2' ), 'billing_postcode' => '' ),
+	$r307_chapar_errors
+);
+$r307_different_address_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:14' ), 'ship_to_different_address' => '1', 'billing_postcode' => '1234567890', 'shipping_postcode' => '' ),
+	$r307_different_address_errors
+);
+$r307_shipping_postcode_present_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:14' ), 'ship_to_different_address' => '1', 'shipping_postcode' => '1234567890' ),
+	$r307_shipping_postcode_present_errors
+);
+$r307_mixed_package_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:19', 1 => 'flat_rate:14' ), 'billing_postcode' => '' ),
+	$r307_mixed_package_errors
+);
+$r307_entered_short_code_errors = $r307_new_errors();
+jluxe_validate_required_checkout_postcode_for_post_shipping(
+	array( 'shipping_method' => array( 0 => 'flat_rate:14' ), 'billing_postcode' => '12345' ),
+	$r307_entered_short_code_errors
+);
+$r307_action_registered = false;
+foreach ( $GLOBALS['actions'] as $r307_action ) {
+	if ( 'woocommerce_after_checkout_validation' === ( $r307_action[0] ?? '' ) && 'jluxe_validate_required_checkout_postcode_for_post_shipping' === ( $r307_action[1] ?? '' ) ) {
+		$r307_action_registered = true;
+		break;
+	}
+}
+check(
+	$r307_action_registered &&
+	1 === count( $r307_post_missing_errors->items ) && 'jluxe_postcode_required_for_post_shipping' === $r307_post_missing_errors->items[0]['code'] &&
+	'billing_postcode' === $r307_post_missing_errors->items[0]['data']['id'] &&
+	array() === $r307_tipax_errors->items && array() === $r307_chapar_errors->items &&
+	1 === count( $r307_different_address_errors->items ) && 'shipping_postcode' === $r307_different_address_errors->items[0]['data']['id'] &&
+	array() === $r307_shipping_postcode_present_errors->items &&
+	1 === count( $r307_mixed_package_errors->items ) &&
+	array() === $r307_entered_short_code_errors->items &&
+	245000 === $r307_post_rate->cost && 280000 === $r307_tipax_rate->cost && 310000 === $r307_chapar_rate->cost,
+	'R307 server validation requires only the selected Post destination code, accepts empty Tipax/Chapar codes, and leaves entered-code validation and rate costs untouched'
+);
+if ( null === $r307_previous_wc ) {
+	unset( $GLOBALS['wc'] );
+} else {
+	$GLOBALS['wc'] = $r307_previous_wc;
+}
+
 check(
 	false !== strpos( $r279_shipping_template, 'class="shipping_method sr-only" data-jluxe-shipping-kind="%4$s"' ) &&
 	false !== strpos( $r279_shipping_template, 'jluxe_shipping_method_presentation( $method )' ) &&
