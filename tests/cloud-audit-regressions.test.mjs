@@ -15,17 +15,27 @@ function walk(directory) {
   });
 }
 
-test("R-AUDIT 404 copy and search widths are explicit in shipped storefront CSS", () => {
+test("R-AUDIT 404 actions, search, and recommended products stay separated and compact on mobile", () => {
   const template = read("404.php");
   const css = read("src/styles/storefront.css");
 
   assert.match(template, /class="jluxe-404-copy\b/);
-  assert.match(template, /class="jluxe-404-search\b/);
+  assert.match(template, /class="jluxe-404-actions"/);
+  assert.match(template, /class="jluxe-404-search"/);
+  assert.match(template, /class="jluxe-404-products-grid"/);
+  assert.match(template, /class="jluxe-404-card-media"/);
+  assert.match(template, /class="jluxe-404-card-title"/);
   assert.doesNotMatch(template, /max-w-\[(?:520|440)px\]/);
   assert.match(css, /\.jluxe-404-copy\s*\{[^}]*max-width:\s*520px\s*;/s);
-  assert.match(css, /\.jluxe-404-search\s*\{[^}]*width:\s*min\(100%,\s*440px\)\s*;/s);
+  assert.match(css, /\.jluxe-404-actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(css, /@media \(max-width: 767\.98px\)\s*\{\s*\.jluxe-404-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+  assert.match(css, /\.jluxe-404-search\s*\{[^}]*width:\s*min\(100%,\s*460px\)\s*;/s);
+  assert.match(css, /@media \(max-width: 767\.98px\)[\s\S]*?\.jluxe-404 \.jluxe-404-search \.jluxe-search-field\s*\{\s*height:\s*48px;\s*min-height:\s*48px;/);
+  assert.match(css, /\.jluxe-404-products-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(css, /@media \(max-width: 767\.98px\)[\s\S]*?\.jluxe-404-products-grid\s*\{\s*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(css, /\.jluxe-404-card-media img\s*\{[^}]*object-fit:\s*contain/s);
+  assert.match(css, /-webkit-line-clamp:\s*2/);
 });
-
 test("R-AUDIT mobile and desktop header search results both have explicit viewport caps", () => {
   const header = read("src/islands/Header.js");
   const css = read("src/styles/storefront.css");

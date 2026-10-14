@@ -31,7 +31,7 @@ test("R125 header DOM and keyboard order match each breakpoint's visual order", 
   const miniCart = headerTemplate.indexOf('data-jluxe-island="mini-cart"');
   const categoryDrawer = headerTemplate.indexOf('data-jluxe-island="category-drawer"');
 
-  assert.ok(mobileSearch >= 0 && mobileSearch < logo && logo < actions, "mobile search precedes the logo and action controls");
+  assert.ok(logo >= 0 && logo < mobileSearch && mobileSearch < actions, "mobile order is logo, search, then the settings-controlled action controls");
   assert.match(headerTemplate, /class="md:hidden" data-jluxe-island="header-mobile-search"/);
   assert.match(mainEntry, /"header-mobile-search": \(\) =>[\s\S]*?MobileHeaderSearch/);
   assert.ok(rowEnd > actions && rowEnd < miniCart, "portal-only islands stay outside the grid row");
@@ -102,11 +102,15 @@ test("R212 shared desktop containers never grow past 1462px, including product-w
   assert.match(classicProductTemplate, /class="mx-auto w-full max-w-\[1320px\] px-3 md:px-4 py-2"/);
 });
 
-test("R126 places the editable mobile search beside and before the logo in the same row", () => {
+test("R126 places the logo, editable mobile search, and enabled action controls in order", () => {
   assert.match(headerIsland, /function MobileSearch\(\)/);
   assert.match(headerIsland, /className:\s*"h-10 w-full rounded-xl border border-border bg-surface/);
   assert.match(headerIsland, /placeholder: searchPlaceholder/);
   assert.match(headerIsland, /search_placeholder/);
+  assert.match(headerIsland, /show_account_mobile/);
+  assert.match(headerIsland, /show_cart_mobile/);
+  assert.match(headerIsland, /j \|\| v/);
+  assert.match(headerIsland, /N \|\| w/);
   assert.match(headerTemplate, /data-jluxe-island="header-mobile-search" data-jluxe-header-grid="search"/);
   assert.match(headerTemplate, /jluxe-header-row--has-mobile-search/);
   assert.match(headerTemplate, /jluxe-header-spacer--has-mobile-search/);
@@ -116,7 +120,9 @@ test("R126 places the editable mobile search beside and before the logo in the s
 
   const mobileHeader = storefrontStyles.slice(storefrontStyles.indexOf("/* R126 —"));
   assert.match(mobileHeader, /grid-template-rows: 72px/);
-  assert.match(mobileHeader, /grid-template-areas: "search logo account cart"/);
+  assert.match(mobileHeader, /grid-template-columns: max-content minmax\(0, 1fr\) max-content max-content/);
+  assert.match(mobileHeader, /grid-template-areas: "logo search account cart"/);
+  assert.match(mobileHeader, /grid-template-areas: "logo \. account cart"/);
   assert.match(mobileHeader, /column-gap: 0\.375rem/);
   assert.match(mobileHeader, /jluxe-header-spacer--has-mobile-search\s*\{\s*height: 72px/);
   assert.match(mobileHeader, /--jluxe-product-header-row-height: 72px/);

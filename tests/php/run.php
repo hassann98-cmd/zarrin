@@ -1518,6 +1518,7 @@ unset($_POST,$probe); $GLOBALS['http_post_response']=null; unset($GLOBALS['http_
 $notfound=(string) file_get_contents(ABSPATH.'404.php');
 check(strpos($notfound,'بازگشت به سایت')!==false && strpos($notfound,"esc_url( home_url( '/' ) )")!==false && strpos($notfound,'get_search_form()')!==false, 'R34 404 offers an explicit back-to-site button and search');
 check(strpos($notfound,'jluxe_icon')!==false && strpos($notfound,'wc_get_products')!==false, 'R34 404 uses the inline icon set and guarded product suggestions');
+check(strpos($notfound,'class="jluxe-404-actions"')!==false && strpos($notfound,'class="jluxe-404-search"')!==false && strpos($notfound,'class="jluxe-404-products-grid"')!==false && strpos($notfound,'class="jluxe-404-card-media"')!==false && strpos($notfound,'class="jluxe-404-card-copy"')!==false, 'R303 404 keeps navigation, search and compact product cards in individually styled responsive regions');
 $searchform=(string) file_get_contents(ABSPATH.'searchform.php');
 check(strpos($searchform,'min-height')===false && strpos($searchform,'jluxe-search-field')!==false && strpos($searchform,'aria-label')!==false, 'R34 search form is a labelled custom component styled in CSS');
 

@@ -59,19 +59,19 @@
 	?>
 	<?php
 	/*
-	 * جستجو در موبایل کنارِ لوگو و در همان ردیف ۷۲px قرار می‌گیرد؛ track جستجو
-	 * فضای باقی‌مانده را می‌گیرد تا لوگو و اندازهٔ دکمه‌های حساب/سبد دست‌نخورده بماند.
+	 * ترتیبِ موبایل در RTL: لوگو، جستجو، سپس حساب و سبدی که در تنظیمات فعال‌اند.
+	 * جستجو فضای باقی‌مانده را می‌گیرد؛ اندازهٔ لوگو و کنترل‌ها ثابت می‌ماند.
 	 */
 	?>
 	<div class="<?php echo $jluxe_header_sticky ? 'fixed inset-x-0 z-40 jluxe-header-bar-sticky' : 'relative'; ?> jluxe-header-bar border-b border-white/10 bg-surface/60 shadow-sm backdrop-blur-xl">
 		<div class="jluxe-header-row mx-auto grid h-[72px] max-w-[1320px] items-center px-4 md:h-[90px]<?php echo $jluxe_header_has_mobile_search ? ' jluxe-header-row--has-mobile-search' : ''; ?>">
-			<?php if ( $jluxe_header_has_mobile_search ) : ?>
-				<div class="md:hidden" data-jluxe-island="header-mobile-search" data-jluxe-header-grid="search"></div>
-			<?php endif; ?>
 			<?php /* The logo island owns its home link; this wrapper remains non-interactive for valid nested markup. */ ?>
 			<span class="site-title shrink-0" data-jluxe-island="header-logo" data-jluxe-header-grid="logo">
 				<?php bloginfo( 'name' ); ?>
 			</span>
+			<?php if ( $jluxe_header_has_mobile_search ) : ?>
+				<div class="md:hidden" data-jluxe-island="header-mobile-search" data-jluxe-header-grid="search"></div>
+			<?php endif; ?>
 			<div data-jluxe-island="header-actions"></div>
 		</div>
 		<div data-jluxe-island="mini-cart"></div>

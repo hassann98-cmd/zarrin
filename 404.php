@@ -21,7 +21,7 @@ $jluxe_404_shop = function_exists( 'jluxe_shop_url' ) ? jluxe_shop_url() : home_
 			آدرسی که باز کرده‌اید وجود ندارد یا جابه‌جا شده است. از دکمهٔ زیر به فروشگاه برگردید یا همان‌جا دنبال محصول بگردید.
 		</p>
 
-		<div class="jluxe-404-actions mx-auto mb-8 flex flex-wrap items-center justify-center gap-3">
+		<div class="jluxe-404-actions">
 			<a class="jluxe-btn jluxe-btn-primary" href="<?php echo esc_url( home_url( '/' ) ); ?>">
 				<?php jluxe_icon( 'home', 'size-5' ); ?>بازگشت به سایت
 			</a>
@@ -30,7 +30,7 @@ $jluxe_404_shop = function_exists( 'jluxe_shop_url' ) ? jluxe_shop_url() : home_
 			</a>
 		</div>
 
-		<div class="jluxe-404-search mx-auto">
+		<div class="jluxe-404-search">
 			<?php get_search_form(); ?>
 		</div>
 	</section>
@@ -46,9 +46,9 @@ $jluxe_404_shop = function_exists( 'jluxe_shop_url' ) ? jluxe_shop_url() : home_
 		) );
 		if ( ! empty( $jluxe_404_products ) ) :
 			?>
-			<section class="jluxe-404-products mt-10" aria-labelledby="jluxe-404-products-title">
-				<h2 id="jluxe-404-products-title" class="text-h3 mb-4">شاید این‌ها به کارتان بیاید</h2>
-				<div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+			<section class="jluxe-404-products" aria-labelledby="jluxe-404-products-title">
+				<h2 id="jluxe-404-products-title" class="jluxe-404-products-heading text-h3">شاید این‌ها به کارتان بیاید</h2>
+				<div class="jluxe-404-products-grid">
 					<?php foreach ( $jluxe_404_products as $jluxe_404_product ) : ?>
 						<?php
 						$jluxe_404_id   = method_exists( $jluxe_404_product, 'get_id' ) ? $jluxe_404_product->get_id() : 0;
@@ -57,9 +57,14 @@ $jluxe_404_shop = function_exists( 'jluxe_shop_url' ) ? jluxe_shop_url() : home_
 							continue;
 						}
 						?>
-						<a class="jluxe-404-card group rounded-xl border border-border bg-surface p-3 text-center" href="<?php echo esc_url( $jluxe_404_link ); ?>">
-							<?php echo wp_kses_post( $jluxe_404_product->get_image( 'woocommerce_thumbnail' ) ); ?>
-							<span class="jluxe-404-card-title mt-2 block text-caption text-text-secondary"><?php echo esc_html( $jluxe_404_product->get_name() ); ?></span>
+						<a class="jluxe-404-card" href="<?php echo esc_url( $jluxe_404_link ); ?>">
+							<span class="jluxe-404-card-media">
+								<?php echo wp_kses_post( $jluxe_404_product->get_image( 'woocommerce_thumbnail' ) ); ?>
+							</span>
+							<span class="jluxe-404-card-copy">
+								<span class="jluxe-404-card-title"><?php echo esc_html( $jluxe_404_product->get_name() ); ?></span>
+								<span class="jluxe-404-card-link">مشاهدهٔ محصول</span>
+							</span>
 						</a>
 					<?php endforeach; ?>
 				</div>
