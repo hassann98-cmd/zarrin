@@ -504,7 +504,7 @@ try {
     const billingPostcodeInput = billingPostcodeRow.match(/<input\b(?=[^>]*\bid="billing_postcode")[^>]*>/)?.[0] || "";
     const billingPostcodeOptional = !!billingPostcodeRow &&
       !/\bvalidate-required\b/.test(billingPostcodeRowTag) && !/aria-required="true"/.test(billingPostcodeInput);
-    const billingPostcodeGuide = billingPostcodeRow.includes("برای ارسال پستی، وارد کردن کد پستی الزامی است.");
+    const billingPostcodeGuide = billingPostcodeRow.includes("اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است.");
     const paymentList = response.text.match(/<ul class="wc_payment_methods payment_methods methods jluxe-payment-method-list"[^>]*>[\s\S]*?<\/ul>/)?.[0] || "";
     const paymentGatewayRow = paymentList.match(/<li class="wc_payment_method jluxe-payment-method-item payment_method_[^"]+">[\s\S]*?<\/li>/)?.[0] || "";
     const paymentGatewayInput = paymentGatewayRow.match(/<input\b[^>]*>/)?.[0] || "";
@@ -596,9 +596,9 @@ try {
         coreCityValidation.emptyCityError && coreCityValidation.emptyCityRemainsEmpty &&
         coreCityValidation.postedCityOptionAdded && !coreCityValidation.nonemptyCityError &&
         !coreCityValidation.postcodeRequired && !coreCityValidation.emptyPostcodeError &&
-        coreCityValidation.postcodeDescription === "برای ارسال پستی، وارد کردن کد پستی الزامی است." &&
+        coreCityValidation.postcodeDescription === "اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است." &&
         !coreCityValidation.shippingPostcodeRequired &&
-        coreCityValidation.shippingPostcodeDescription === "برای ارسال پستی، وارد کردن کد پستی الزامی است." &&
+        coreCityValidation.shippingPostcodeDescription === "اگر پست را انتخاب کنید، وارد کردن کد پستی لازم است؛ برای تیپاکس و چاپار اختیاری است." &&
         coreCityValidation.noCustomProvinceMismatch,
       `Real WooCommerce keeps billing/shipping postcode optional with postal-shipping guidance while still enforcing the dependent city (${JSON.stringify(coreCityValidation)})`,
     );
