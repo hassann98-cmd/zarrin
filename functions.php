@@ -70,16 +70,23 @@ function jluxe_setup() {
 }
 add_action( 'after_setup_theme', 'jluxe_setup' );
 
-function jluxe_enqueue_theme_stylesheet(): void {
+/** Parent style.css is bundled by Vite; keep a separate child-theme override. */
+function jluxe_enqueue_child_theme_stylesheet(): void {
+	if ( get_stylesheet_directory() === get_template_directory() ) {
+		return;
+	}
 	$path = get_stylesheet_directory() . '/style.css';
+	if ( ! is_file( $path ) ) {
+		return;
+	}
 	wp_enqueue_style(
 		'jluxe-theme-style',
 		get_stylesheet_uri(),
 		array(),
-		file_exists( $path ) ? (string) filemtime( $path ) : null
+		(string) filemtime( $path )
 	);
 }
-add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_theme_stylesheet', 25 );
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_child_theme_stylesheet', 25 );
 
 function jluxe_enable_checkout_select2_wheel(): void {
 	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {

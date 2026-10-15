@@ -13,6 +13,19 @@ check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme
 jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
+$r314_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
+$r314_bootstrap_source = (string) file_get_contents( ABSPATH . 'functions.php' );
+$r314_manifest = jluxe_vite_manifest();
+$r314_css_file = $r314_manifest['src/main.js']['css'][0] ?? '';
+$r314_css_output = $r314_css_file ? (string) file_get_contents( JLUXE_ASSET_DIR . '/' . $r314_css_file ) : '';
+check(
+	strpos( $r314_main_source, 'import "../style.css";' ) !== false &&
+	strpos( $r314_bootstrap_source, 'jluxe_enqueue_theme_stylesheet' ) === false &&
+	strpos( $r314_bootstrap_source, 'jluxe_enqueue_child_theme_stylesheet' ) !== false &&
+	strpos( $r314_bootstrap_source, 'get_stylesheet_directory() === get_template_directory()' ) !== false &&
+	strpos( $r314_css_output, '.jluxe-home-banner' ) !== false,
+	'R314 WordPress theme CSS is included in the compiled stylesheet, eliminating its separate blocking request'
+);
 
 // R169: modulepreload follows only static manifest imports, not route islands.
 $r169_manifest = jluxe_vite_manifest();
