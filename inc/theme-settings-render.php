@@ -207,6 +207,7 @@ function jluxe_render_announcement_page(): void {
 		: jluxe_theme_settings_defaults()['announcement_bar'];
 
 	jluxe_settings_page_shell( 'نوار اطلاع‌رسانی', 'jluxe-announcement', $status, function () use ( $bar ) {
+		$ticker_options = jluxe_announcement_ticker_options();
 		?>
 		<p class="description">این نوار بالای هدر نمایش داده می‌شود. پیش‌فرض، خود نوار هنگام اسکرول بالا نمی‌چسبد و فقط هدر ثابت می‌ماند؛ رفتار چسبندگی را از گزینهٔ زیر انتخاب کنید. تنظیمات نوار پایین موبایل تغییر نمی‌کند.</p>
 		<form method="post">
@@ -255,10 +256,42 @@ function jluxe_render_announcement_page(): void {
 								<option value="custom" <?php selected( $bar['ticker_theme'] ?? 'classic', 'custom' ); ?>>سفارشی (رنگ‌های انتخاب‌شده در بخش ظاهر)</option>
 							</select>
 						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-effect">افکت ورود و خروج پیام</label><br />
+							<select id="jluxe-announcement-ticker-effect" name="announcement_bar[ticker_effect]">
+								<?php foreach ( $ticker_options['effects'] as $effect_value => $effect_label ) : ?>
+									<option value="<?php echo esc_attr( $effect_value ); ?>" <?php selected( $bar['ticker_effect'] ?? 'vertical', $effect_value ); ?>><?php echo esc_html( $effect_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-duration">مدت نمایش کامل هر پیام</label><br />
+							<select id="jluxe-announcement-ticker-duration" name="announcement_bar[ticker_message_duration_ms]">
+								<?php foreach ( $ticker_options['display_duration_ms'] as $duration_value => $duration_label ) : ?>
+									<option value="<?php echo esc_attr( $duration_value ); ?>" <?php selected( (int) ( $bar['ticker_message_duration_ms'] ?? 2500 ), (int) $duration_value ); ?>><?php echo esc_html( $duration_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-gap">مکث بین پیام‌ها</label><br />
+							<select id="jluxe-announcement-ticker-gap" name="announcement_bar[ticker_inter_message_gap_ms]">
+								<?php foreach ( $ticker_options['inter_message_gap_ms'] as $gap_value => $gap_label ) : ?>
+									<option value="<?php echo esc_attr( $gap_value ); ?>" <?php selected( (int) ( $bar['ticker_inter_message_gap_ms'] ?? 500 ), (int) $gap_value ); ?>><?php echo esc_html( $gap_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-cycle-gap">مکث پس از آخرین پیام تا شروع دور بعد</label><br />
+							<select id="jluxe-announcement-ticker-cycle-gap" name="announcement_bar[ticker_cycle_gap_ms]">
+								<?php foreach ( $ticker_options['cycle_gap_ms'] as $gap_value => $gap_label ) : ?>
+									<option value="<?php echo esc_attr( $gap_value ); ?>" <?php selected( (int) ( $bar['ticker_cycle_gap_ms'] ?? 500 ), (int) $gap_value ); ?>><?php echo esc_html( $gap_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
 						<p><label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br /><input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" /></p>
 						<p><label for="jluxe-announcement-ticker-messages">پیام‌های چرخشی (هر پیام در یک خط)</label><br /><textarea id="jluxe-announcement-ticker-messages" name="announcement_bar[ticker_messages]" rows="4" maxlength="500" class="large-text" placeholder="هر پیام را در یک خط بنویسید"><?php echo esc_textarea( $bar['ticker_messages'] ?? "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" ); ?></textarea></p>
 						<p><strong>لوگوی دایره‌ای (اختیاری)</strong><br /><?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?></p>
-						<p class="description">هر پیام حدود ۴ ثانیه می‌ماند؛ ورود و خروج تدریجی و مکث کوتاه بین پیام‌ها، شروع و پایان هر جمله را مشخص می‌کند. انیمیشن فقط با CSS اجرا می‌شود؛ در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، متن کامل ثابت می‌شود.</p>
+						<p class="description">«مدت نمایش کامل» پس از پایان ورود و پیش از شروع محوشدن محاسبه می‌شود. مکث بین پیام‌ها جدا از مکث پایان چرخه است؛ دومی فقط پس از آخرین پیام اعمال می‌شود. حرکت با CSS اجرا می‌شود و در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، خلاصهٔ کامل پیام‌ها ثابت نمایش داده می‌شود.</p>
 					</td>
 				</tr>
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="image">

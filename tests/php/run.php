@@ -5832,7 +5832,7 @@ check( 'جستجو در فروشگاه' === $r124_header_defaults['search_placeh
 
 // R100 — configurable global announcement bar and stacked header offsets.
 $r100_defaults = jluxe_theme_settings_defaults()['announcement_bar'];
-check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && '' === $r100_defaults['message'] && 'ارسال سریع' === $r100_defaults['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r100_defaults['ticker_messages'] && 0 === $r100_defaults['image_id'] && 'classic' === $r100_defaults['ticker_theme'], 'R100 the announcement bar remains off by default and supplies the shipping ticker copy without adding unsolicited content' );
+check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && '' === $r100_defaults['message'] && 'ارسال سریع' === $r100_defaults['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r100_defaults['ticker_messages'] && 0 === $r100_defaults['image_id'] && 'classic' === $r100_defaults['ticker_theme'] && 'vertical' === $r100_defaults['ticker_effect'] && 2500 === $r100_defaults['ticker_message_duration_ms'] && 500 === $r100_defaults['ticker_inter_message_gap_ms'] && 500 === $r100_defaults['ticker_cycle_gap_ms'], 'R100 the announcement bar remains off by default, supplies ordered shipping copy, and adds conservative ticker effect/timing defaults' );
 $r100_clean = jluxe_sanitize_announcement_bar(
 	array(
 		'enabled' => '1',
@@ -5859,6 +5859,26 @@ $r101_image_settings = jluxe_sanitize_announcement_bar(
 $r101_invalid_mode = jluxe_sanitize_announcement_bar( array( 'display_mode' => 'video' ), $r100_defaults );
 $r102_invalid_theme = jluxe_sanitize_announcement_bar( array( 'ticker_theme' => 'not-a-theme' ), $r100_defaults );
 check( 'classic' === $r102_invalid_theme['ticker_theme'], 'R102 unknown ticker color themes safely fall back to the classic palette' );
+$r312_invalid_timing = jluxe_sanitize_announcement_bar(
+	array(
+		'ticker_effect' => 'url-javascript',
+		'ticker_message_duration_ms' => '999999',
+		'ticker_inter_message_gap_ms' => '-1',
+		'ticker_cycle_gap_ms' => '999999',
+	),
+	$r100_defaults
+);
+$r312_valid_timing = jluxe_sanitize_announcement_bar(
+	array(
+		'ticker_effect' => 'zoom',
+		'ticker_message_duration_ms' => '3000',
+		'ticker_inter_message_gap_ms' => '1000',
+		'ticker_cycle_gap_ms' => '2000',
+	),
+	$r100_defaults
+);
+check( 'vertical' === $r312_invalid_timing['ticker_effect'] && 2500 === $r312_invalid_timing['ticker_message_duration_ms'] && 500 === $r312_invalid_timing['ticker_inter_message_gap_ms'] && 500 === $r312_invalid_timing['ticker_cycle_gap_ms'], 'R312 invalid ticker effects and out-of-range timing values fall back to safe defaults' );
+check( 'zoom' === $r312_valid_timing['ticker_effect'] && 3000 === $r312_valid_timing['ticker_message_duration_ms'] && 1000 === $r312_valid_timing['ticker_inter_message_gap_ms'] && 2000 === $r312_valid_timing['ticker_cycle_gap_ms'], 'R312 valid ticker effect, message duration, inter-message gap, and cycle gap are saved in milliseconds' );
 check( 'image' === $r101_image_settings['display_mode'] && 901 === $r101_image_settings['image_id'] && 'پیشنهاد متحرک' === $r101_image_settings['image_alt'] && 'text' === $r101_invalid_mode['display_mode'], 'R101 image/GIF mode, positive attachment ID, accessible alt text, and invalid-mode fallback are sanitized' );
 $r102_ticker_clean = jluxe_sanitize_announcement_bar(
 	array(
@@ -5922,7 +5942,7 @@ ob_start();
 jluxe_render_announcement_page();
 $r100_admin_markup = ob_get_clean();
 $_POST = $r100_previous_post;
-check( false !== strpos( $r100_admin_markup, 'announcement_bar[enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[message]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_label]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_messages]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_theme]' ) && false !== strpos( $r100_admin_markup, 'value="warning"' ) && false !== strpos( $r100_admin_markup, 'value="discount"' ) && false !== strpos( $r100_admin_markup, 'data-announcement-mode="ticker"' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[link_url]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[background_color]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[display_mode]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_alt]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[sticky]' ) && false !== strpos( $r100_admin_markup, 'data-preview-size="full"' ) && false !== strpos( $r100_admin_markup, 'data-library-type="image"' ), 'R107 the admin exposes static text, animated ticker copy/logo, image/GIF settings, and the sticky/flow toggle' );
+check( false !== strpos( $r100_admin_markup, 'announcement_bar[enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[message]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_label]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_messages]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_theme]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_effect]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_message_duration_ms]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_inter_message_gap_ms]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_cycle_gap_ms]' ) && false !== strpos( $r100_admin_markup, 'مکث پس از آخرین پیام تا شروع دور بعد' ) && false !== strpos( $r100_admin_markup, 'value="warning"' ) && false !== strpos( $r100_admin_markup, 'value="discount"' ) && false !== strpos( $r100_admin_markup, 'data-announcement-mode="ticker"' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[link_url]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[background_color]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[display_mode]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_alt]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[sticky]' ) && false !== strpos( $r100_admin_markup, 'data-preview-size="full"' ) && false !== strpos( $r100_admin_markup, 'data-library-type="image"' ), 'R107 the admin exposes static text, animated ticker copy/logo, image/GIF settings, and the sticky/flow toggle' );
 ob_start();
 jluxe_render_announcement_bar();
 $r100_markup = ob_get_clean();
@@ -5950,19 +5970,30 @@ $r102_ticker_settings['announcement_bar'] = array_merge(
 		'enabled'         => true,
 		'display_mode'    => 'ticker',
 		'ticker_label'    => 'ارسال سریع',
-		'ticker_theme'    => 'warning',
-		'ticker_messages' => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
-		'dismissible'     => false,
+		'ticker_theme'                 => 'warning',
+		'ticker_effect'                => 'zoom',
+		'ticker_message_duration_ms'   => 3000,
+		'ticker_inter_message_gap_ms'  => 1000,
+		'ticker_cycle_gap_ms'          => 2000,
+		'ticker_messages'              => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
+		'dismissible'                  => false,
 	)
 );
 update_test_settings( $r102_ticker_settings );
 $r102_ticker_payload = jluxe_announcement_content_payload( $r102_ticker_settings['announcement_bar'] );
-check( 'ticker' === $r102_ticker_payload['mode'] && true === $r102_ticker_payload['ready'] && 3 === count( $r102_ticker_payload['ticker_messages'] ) && 'warning' === $r102_ticker_payload['ticker_theme'] && 'ارسال سفارشات ثبت شده قبل از ساعت 11 در همان روز' === $r102_ticker_payload['ticker_summary'], 'R102 ticker payload keeps the ordered copy and constructs a static accessible summary' );
+check( 'ticker' === $r102_ticker_payload['mode'] && true === $r102_ticker_payload['ready'] && 3 === count( $r102_ticker_payload['ticker_messages'] ) && 'warning' === $r102_ticker_payload['ticker_theme'] && 'zoom' === $r102_ticker_payload['ticker_effect'] && 3000 === $r102_ticker_payload['ticker_message_duration_ms'] && 1000 === $r102_ticker_payload['ticker_inter_message_gap_ms'] && 2000 === $r102_ticker_payload['ticker_cycle_gap_ms'] && 'ارسال سفارشات ثبت شده قبل از ساعت 11 در همان روز' === $r102_ticker_payload['ticker_summary'], 'R102 ticker payload keeps ordered copy and accessible summary, with the selected effect and timing controls' );
+$r312_ticker_timing = jluxe_announcement_ticker_timing( $r102_ticker_payload );
+$r312_ticker_keyframes = jluxe_announcement_ticker_keyframes_style( $r312_ticker_timing, $r102_ticker_payload['ticker_effect'] );
+check( 4900 === $r312_ticker_timing['slot_ms'] && 15700 === $r312_ticker_timing['cycle_ms'] && false !== strpos( $r312_ticker_keyframes, '2.8662%{opacity:1' ) && false !== strpos( $r312_ticker_keyframes, '21.9745%{opacity:1' ) && false !== strpos( $r312_ticker_keyframes, '24.8408%{opacity:0' ) && false !== strpos( $r312_ticker_keyframes, 'transform:scale(.88)' ) && false !== strpos( $r312_ticker_keyframes, 'transform:scale(.94)' ) && false !== strpos( $r312_ticker_keyframes, '@-webkit-keyframes jluxe-announcement-ticker-phrase' ), 'R312 dynamic CSS keyframes calculate the selected message length, separate gaps, and prefixed zoom effect without JavaScript' );
+ob_start();
+jluxe_announcement_ticker_print_keyframes();
+$r312_head_keyframes = ob_get_clean();
+check( false !== strpos( $r312_head_keyframes, 'id="jluxe-announcement-ticker-keyframes"' ) && false !== strpos( $r312_head_keyframes, 'transform:scale(.88)' ) && false !== strpos( $r312_head_keyframes, '24.8408%' ), 'R312 the frontend head emits keyframes from the saved ticker effect and duration settings' );
 ob_start();
 jluxe_render_announcement_bar();
 $r102_ticker_markup = ob_get_clean();
-check( false !== strpos( $r102_ticker_markup, 'has-multiple has-3' ) && false !== strpos( $r102_ticker_markup, '--jluxe-ticker-cycle:12s;--jluxe-ticker-delay:0s;' ) && false !== strpos( $r102_ticker_markup, '--jluxe-ticker-cycle:12s;--jluxe-ticker-delay:4s;' ) && false !== strpos( $r102_ticker_markup, '--jluxe-ticker-cycle:12s;--jluxe-ticker-delay:8s;' ) && false === strpos( $r102_ticker_markup, '--jluxe-ticker-delay:-' ), 'R311 ticker phrases keep their requested order and use one four-second slot each' );
-check( false !== strpos( $r102_ticker_markup, 'data-content-mode="ticker"' ) && false !== strpos( $r102_ticker_markup, 'data-ticker-theme="warning"' ) && false !== strpos( $r102_ticker_markup, 'aria-live="off"' ) && false !== strpos( $r102_ticker_markup, 'ارسال سریع' ) && false !== strpos( $r102_ticker_markup, 'ارسال سفارشات ثبت شده' ) && false !== strpos( $r102_ticker_markup, 'قبل از ساعت 11' ) && false !== strpos( $r102_ticker_markup, 'در همان روز' ) && false !== strpos( $r102_ticker_markup, 'has-multiple' ) && false !== strpos( $r102_ticker_markup, 'ticker-waves' ) && false !== strpos( $r102_ticker_markup, 'ticker-logo-fallback' ) && false === strpos( $r102_ticker_markup, 'animated-offer.gif' ), 'R102 ticker mode renders the fixed label, three HTML messages, CSS background waves, logo fallback, and no GIF request' );
+check( false !== strpos( $r102_ticker_markup, 'has-multiple' ) && false !== strpos( $r102_ticker_markup, '-webkit-animation-duration:15700ms;animation-duration:15700ms;' ) && false !== strpos( $r102_ticker_markup, '-webkit-animation-delay:0ms;animation-delay:0ms;' ) && false !== strpos( $r102_ticker_markup, '-webkit-animation-delay:4900ms;animation-delay:4900ms;' ) && false !== strpos( $r102_ticker_markup, '-webkit-animation-delay:9800ms;animation-delay:9800ms;' ) && false === strpos( $r102_ticker_markup, 'animation-delay:-' ), 'R312 ticker phrases keep their requested order and use the saved duration/gaps with WebKit-compatible CSS timings' );
+check( false !== strpos( $r102_ticker_markup, 'data-content-mode="ticker"' ) && false !== strpos( $r102_ticker_markup, 'data-ticker-theme="warning"' ) && false !== strpos( $r102_ticker_markup, 'data-ticker-effect="zoom"' ) && false !== strpos( $r102_ticker_markup, 'aria-live="off"' ) && false !== strpos( $r102_ticker_markup, 'ارسال سریع' ) && false !== strpos( $r102_ticker_markup, 'ارسال سفارشات ثبت شده' ) && false !== strpos( $r102_ticker_markup, 'قبل از ساعت 11' ) && false !== strpos( $r102_ticker_markup, 'در همان روز' ) && false !== strpos( $r102_ticker_markup, 'has-multiple' ) && false !== strpos( $r102_ticker_markup, 'ticker-waves' ) && false !== strpos( $r102_ticker_markup, 'ticker-logo-fallback' ) && false === strpos( $r102_ticker_markup, 'animated-offer.gif' ), 'R102 ticker mode renders the fixed label, selected effect, three ordered HTML messages, CSS waves, logo fallback, and no GIF request' );
 $GLOBALS['attachment_mimes'][902] = 'application/pdf';
 $r101_settings['announcement_bar']['image_id'] = 902;
 update_test_settings( $r101_settings );
@@ -5995,7 +6026,7 @@ $r145_global_crop = strpos( $r100_announcement_css, '/* R145: Use one definite, 
 $r145_global_crop_css = false === $r145_global_crop ? '' : substr( $r100_announcement_css, $r145_global_crop, 2200 );
 check( false !== strpos( $r145_global_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar--image {' ) && false === strpos( $r145_global_crop_css, 'body.single-product .jluxe-announcement-bar--image' ) && false !== strpos( $r145_global_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_global_crop_css, 'height: 44px;' ) && false !== strpos( $r145_global_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_global_crop_css, 'position: relative;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_global_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_global_crop_css, 'width: 100%;' ) && false !== strpos( $r145_global_crop_css, 'height: 100%;' ) && false !== strpos( $r145_global_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_global_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 homepage, product, Shop and category image notices use the same full-bleed mobile crop; text notices and desktop remain unchanged' );
 $r102_ticker_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
-check( false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker[data-ticker-theme="info"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="warning"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="discount"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="success"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="custom"]' ) && false !== strpos( $r102_ticker_css, 'min-height: 64px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 44px;' ) && false !== strpos( $r102_ticker_css, '@keyframes jluxe-announcement-ticker-phrase-5' ) && false !== strpos( $r102_ticker_css, 'animation-delay: var(--jluxe-ticker-delay, 0s);' ) && false !== strpos( $r102_ticker_css, '@media (prefers-reduced-motion: reduce)' ) && false !== strpos( $r102_ticker_css, 'ticker-static' ), 'R311 ticker presets, compact desktop/mobile heights, sequential fade timing, and the reduced-motion fallback remain available' );
+check( false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker[data-ticker-theme="info"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="warning"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="discount"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="success"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="custom"]' ) && false !== strpos( $r102_ticker_css, 'min-height: 64px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 44px;' ) && false !== strpos( $r102_ticker_css, '@keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '@-webkit-keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '-webkit-animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-duration: 11.7s;' ) && false !== strpos( $r102_ticker_css, '@media (prefers-reduced-motion: reduce)' ) && false !== strpos( $r102_ticker_css, 'ticker-static' ), 'R312 ticker presets, the compact desktop/mobile heights, a CSS-only fallback timeline, and reduced-motion static copy remain available' );
 
 // R246 — account UI changes stay presentational; payment hiding removes one navigation entry only.
 $r246_account_items = jluxe_hide_account_payment_methods_menu_item(

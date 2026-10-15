@@ -35,6 +35,31 @@ function jluxe_announcement_content_payload( array $settings ): array {
 		if ( ! in_array( $theme, array( 'classic', 'info', 'warning', 'discount', 'success', 'custom' ), true ) ) {
 			$theme = 'classic';
 		}
+		$ticker_options = jluxe_announcement_ticker_options();
+		$effect = isset( $settings['ticker_effect'] ) && is_scalar( $settings['ticker_effect'] )
+			? sanitize_key( (string) $settings['ticker_effect'] )
+			: 'vertical';
+		if ( ! isset( $ticker_options['effects'][ $effect ] ) ) {
+			$effect = 'vertical';
+		}
+		$duration_ms = isset( $settings['ticker_message_duration_ms'] ) && is_scalar( $settings['ticker_message_duration_ms'] )
+			? absint( $settings['ticker_message_duration_ms'] )
+			: 2500;
+		if ( ! isset( $ticker_options['display_duration_ms'][ $duration_ms ] ) ) {
+			$duration_ms = 2500;
+		}
+		$inter_message_gap_ms = isset( $settings['ticker_inter_message_gap_ms'] ) && is_scalar( $settings['ticker_inter_message_gap_ms'] )
+			? absint( $settings['ticker_inter_message_gap_ms'] )
+			: 500;
+		if ( ! isset( $ticker_options['inter_message_gap_ms'][ $inter_message_gap_ms ] ) ) {
+			$inter_message_gap_ms = 500;
+		}
+		$cycle_gap_ms = isset( $settings['ticker_cycle_gap_ms'] ) && is_scalar( $settings['ticker_cycle_gap_ms'] )
+			? absint( $settings['ticker_cycle_gap_ms'] )
+			: 500;
+		if ( ! isset( $ticker_options['cycle_gap_ms'][ $cycle_gap_ms ] ) ) {
+			$cycle_gap_ms = 500;
+		}
 		$raw_messages = isset( $settings['ticker_messages'] ) && is_scalar( $settings['ticker_messages'] )
 			? (string) $settings['ticker_messages']
 			: '';
@@ -50,9 +75,13 @@ function jluxe_announcement_content_payload( array $settings ): array {
 		return array(
 			'mode'            => 'ticker',
 			'ready'           => ! empty( $messages ),
-			'ticker_label'    => $label,
-			'ticker_theme'    => $theme,
-			'ticker_messages' => $messages,
+			'ticker_label'                 => $label,
+			'ticker_theme'                 => $theme,
+			'ticker_effect'                => $effect,
+			'ticker_message_duration_ms'   => $duration_ms,
+			'ticker_inter_message_gap_ms'  => $inter_message_gap_ms,
+			'ticker_cycle_gap_ms'          => $cycle_gap_ms,
+			'ticker_messages'              => $messages,
 			'ticker_summary'  => $summary,
 		);
 	}
@@ -96,6 +125,81 @@ function jluxe_announcement_content_payload( array $settings ): array {
 		'height' => is_array( $image_src ) && isset( $image_src[2] ) ? absint( $image_src[2] ) : 0,
 	);
 }
+
+/** Calculate one shared CSS timeline from the selected, bounded ticker timings. */
+function jluxe_announcement_ticker_timing( array $content ): array {
+	$count         = count( $content['ticker_messages'] ?? array() );
+	$fade_ms       = 450;
+	$duration_ms   = absint( $content['ticker_message_duration_ms'] ?? 2500 );
+	$gap_ms        = absint( $content['ticker_inter_message_gap_ms'] ?? 500 );
+	$cycle_gap_ms  = absint( $content['ticker_cycle_gap_ms'] ?? 500 );
+	$visible_ms    = ( 2 * $fade_ms ) + $duration_ms;
+	$slot_ms       = $visible_ms + $gap_ms;
+	$cycle_ms      = $count > 0
+		? ( $count * $visible_ms ) + ( max( 0, $count - 1 ) * $gap_ms ) + $cycle_gap_ms
+		: 0;
+
+	return array(
+		'fade_ms'       => $fade_ms,
+		'duration_ms'   => $duration_ms,
+		'gap_ms'        => $gap_ms,
+		'cycle_gap_ms'  => $cycle_gap_ms,
+		'slot_ms'       => $slot_ms,
+		'cycle_ms'      => $cycle_ms,
+	);
+}
+
+/** Build safe, server-rendered keyframes from normalized millisecond values. */
+function jluxe_announcement_ticker_keyframes_style( array $timing, string $effect = 'vertical' ): string {
+	$cycle_ms = absint( $timing['cycle_ms'] ?? 0 );
+	if ( 0 === $cycle_ms ) {
+		return '';
+	}
+
+	$transforms = array(
+		'fade'       => array( 'enter' => 'translate(0,0)', 'exit' => 'translate(0,0)' ),
+		'vertical'   => array( 'enter' => 'translateY(7px)', 'exit' => 'translateY(-7px)' ),
+		'horizontal' => array( 'enter' => 'translateX(12px)', 'exit' => 'translateX(-12px)' ),
+		'zoom'       => array( 'enter' => 'scale(.88)', 'exit' => 'scale(.94)' ),
+	);
+	$effect = isset( $transforms[ $effect ] ) ? $effect : 'vertical';
+	$fade_ms = absint( $timing['fade_ms'] ?? 450 );
+	$hold_ms = $fade_ms + absint( $timing['duration_ms'] ?? 2500 );
+	$exit_ms = ( 2 * $fade_ms ) + absint( $timing['duration_ms'] ?? 2500 );
+	$percent = static function ( int $milliseconds ) use ( $cycle_ms ): string {
+		$number = number_format( 100 * $milliseconds / $cycle_ms, 4, '.', '' );
+		return rtrim( rtrim( $number, '0' ), '.' );
+	};
+
+	$enter_transform = $transforms[ $effect ]['enter'];
+	$exit_transform  = $transforms[ $effect ]['exit'];
+	$neutral_transform = 'translate(0,0)';
+	$frames = '0%{opacity:0;-webkit-transform:' . $enter_transform . ';transform:' . $enter_transform . ';}' .
+		$percent( $fade_ms ) . '%{opacity:1;-webkit-transform:' . $neutral_transform . ';transform:' . $neutral_transform . ';}' .
+		$percent( $hold_ms ) . '%{opacity:1;-webkit-transform:' . $neutral_transform . ';transform:' . $neutral_transform . ';}' .
+		$percent( $exit_ms ) . '%{opacity:0;-webkit-transform:' . $exit_transform . ';transform:' . $exit_transform . ';}' .
+		'100%{opacity:0;-webkit-transform:' . $exit_transform . ';transform:' . $exit_transform . ';}';
+
+	return '<style id="jluxe-announcement-ticker-keyframes">@-webkit-keyframes jluxe-announcement-ticker-phrase{' . $frames . '}@keyframes jluxe-announcement-ticker-phrase{' . $frames . '}</style>';
+}
+
+/** Add the dynamic timeline to head after the theme's static stylesheets. */
+function jluxe_announcement_ticker_print_keyframes(): void {
+	if ( ! function_exists( 'jluxe_get_theme_settings' ) ) {
+		return;
+	}
+	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+	$content = jluxe_announcement_content_payload( $settings );
+	if ( 'ticker' !== $content['mode'] || empty( $content['ready'] ) || count( $content['ticker_messages'] ) < 2 ) {
+		return;
+	}
+	$timing = jluxe_announcement_ticker_timing( $content );
+	echo jluxe_announcement_ticker_keyframes_style( $timing, $content['ticker_effect'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- effect and transforms are allow-listed; percentages are derived from bounded integer settings.
+}
+add_action( 'wp_head', 'jluxe_announcement_ticker_print_keyframes', 99 );
 
 /**
  * Render a small, static badge for the text ticker instead of carrying its logo
@@ -194,16 +298,15 @@ function jluxe_render_announcement_bar(): void {
 	$link_url         = isset( $settings['link_url'] ) && is_scalar( $settings['link_url'] ) ? trim( (string) $settings['link_url'] ) : '';
 	$dismissible      = ! empty( $settings['dismissible'] );
 	$image_alt        = ! empty( $content['alt'] ) ? $content['alt'] : 'اطلاعیهٔ سایت';
-	$dismiss_key      = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $content['ticker_theme'] ?? '', $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
+	$dismiss_key      = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $content['ticker_theme'] ?? '', $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
 	$region_label     = $is_ticker
 		? 'اطلاعیهٔ سایت؛ ' . $content['ticker_label'] . ': ' . $content['ticker_summary']
 		: 'اطلاعیهٔ سایت';
-	$ticker_messages         = $is_ticker ? $content['ticker_messages'] : array();
-	$ticker_message_count    = count( $ticker_messages );
-	$ticker_message_duration = 4;
-	$ticker_cycle            = $ticker_message_duration * $ticker_message_count;
-	$ticker_sequence_class   = $ticker_message_count > 1 ? ' has-multiple has-' . $ticker_message_count : '';
-	$ticker_theme             = $is_ticker ? $content['ticker_theme'] : 'classic';
+	$ticker_messages       = $is_ticker ? $content['ticker_messages'] : array();
+	$ticker_message_count  = count( $ticker_messages );
+	$ticker_timing          = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
+	$ticker_sequence_class = $ticker_message_count > 1 ? ' has-multiple' : '';
+	$ticker_theme           = $is_ticker ? $content['ticker_theme'] : 'classic';
 	$ticker_logo_id           = isset( $settings['ticker_logo_id'] ) && is_scalar( $settings['ticker_logo_id'] ) ? absint( $settings['ticker_logo_id'] ) : 0;
 	$ticker_logo_markup       = $is_ticker ? jluxe_announcement_ticker_logo_markup( $ticker_logo_id ) : '';
 	?>
@@ -212,7 +315,7 @@ function jluxe_render_announcement_bar(): void {
 		class="jluxe-announcement-bar jluxe-announcement-bar--<?php echo esc_attr( $content['mode'] ); ?><?php echo $is_sticky ? ' jluxe-announcement-bar--sticky' : ''; ?>"
 		role="region"
 		data-content-mode="<?php echo esc_attr( $content['mode'] ); ?>"
-		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>"<?php endif; ?>
+		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>"<?php endif; ?>
 		data-sticky="<?php echo $is_sticky ? '1' : '0'; ?>"
 		aria-label="<?php echo esc_attr( $region_label ); ?>"
 		aria-live="<?php echo $is_ticker ? 'off' : 'polite'; ?>"
@@ -243,7 +346,7 @@ function jluxe_render_announcement_bar(): void {
 					<span class="jluxe-announcement-bar__ticker-window">
 						<span class="jluxe-announcement-bar__ticker-sequence<?php echo esc_attr( $ticker_sequence_class ); ?>">
 							<?php foreach ( $ticker_messages as $ticker_index => $ticker_message ) : ?>
-								<span class="jluxe-announcement-bar__ticker-phrase" style="--jluxe-ticker-cycle:<?php echo esc_attr( $ticker_cycle ); ?>s;--jluxe-ticker-delay:<?php echo esc_attr( $ticker_message_duration * $ticker_index ); ?>s;"><?php echo esc_html( $ticker_message ); ?></span>
+								<span class="jluxe-announcement-bar__ticker-phrase" style="-webkit-animation-duration:<?php echo esc_attr( $ticker_timing['cycle_ms'] ); ?>ms;animation-duration:<?php echo esc_attr( $ticker_timing['cycle_ms'] ); ?>ms;-webkit-animation-delay:<?php echo esc_attr( $ticker_timing['slot_ms'] * $ticker_index ); ?>ms;animation-delay:<?php echo esc_attr( $ticker_timing['slot_ms'] * $ticker_index ); ?>ms;"><?php echo esc_html( $ticker_message ); ?></span>
 							<?php endforeach; ?>
 						</span>
 						<span class="jluxe-announcement-bar__ticker-static"><?php echo esc_html( $content['ticker_summary'] ); ?></span>

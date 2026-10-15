@@ -158,6 +158,51 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
  * اعلانِ بالای سایت — متنِ ساده یا شناسهٔ attachment تصویر، و لینکِ امنِ داخلی
  * یا HTTP(S) ذخیره شود؛ هیچ HTML یا scheme اجرایی از تنظیماتِ ادمین به صفحهٔ عمومی راه پیدا نکند.
  */
+function jluxe_announcement_ticker_options(): array {
+	return array(
+		'effects' => array(
+			'fade'       => 'محو تدریجی',
+			'vertical'   => 'حرکت عمودی',
+			'horizontal' => 'حرکت افقی',
+			'zoom'       => 'بزرگ‌نمایی و کوچک‌نمایی',
+		),
+		'display_duration_ms' => array(
+			1000  => '۱ ثانیه',
+			1500  => '۱٫۵ ثانیه',
+			2000  => '۲ ثانیه',
+			2500  => '۲٫۵ ثانیه',
+			3000  => '۳ ثانیه',
+			4000  => '۴ ثانیه',
+			5000  => '۵ ثانیه',
+			6000  => '۶ ثانیه',
+			8000  => '۸ ثانیه',
+			10000 => '۱۰ ثانیه',
+		),
+		'inter_message_gap_ms' => array(
+			0    => 'بدون مکث',
+			250  => '۰٫۲۵ ثانیه',
+			500  => '۰٫۵ ثانیه',
+			750  => '۰٫۷۵ ثانیه',
+			1000 => '۱ ثانیه',
+			1500 => '۱٫۵ ثانیه',
+			2000 => '۲ ثانیه',
+			3000 => '۳ ثانیه',
+			5000 => '۵ ثانیه',
+		),
+		'cycle_gap_ms' => array(
+			0     => 'بدون مکث',
+			500   => '۰٫۵ ثانیه',
+			1000  => '۱ ثانیه',
+			1500  => '۱٫۵ ثانیه',
+			2000  => '۲ ثانیه',
+			3000  => '۳ ثانیه',
+			5000  => '۵ ثانیه',
+			8000  => '۸ ثانیه',
+			10000 => '۱۰ ثانیه',
+		),
+	);
+}
+
 function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): array {
 	$message_raw   = isset( $posted['message'] ) && is_scalar( $posted['message'] ) ? (string) $posted['message'] : '';
 	$link_text_raw = isset( $posted['link_text'] ) && is_scalar( $posted['link_text'] ) ? (string) $posted['link_text'] : '';
@@ -213,6 +258,29 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	if ( ! in_array( $ticker_theme, array( 'classic', 'info', 'warning', 'discount', 'success', 'custom' ), true ) ) {
 		$ticker_theme = 'classic';
 	}
+	$ticker_options = jluxe_announcement_ticker_options();
+	$ticker_effect_raw = isset( $posted['ticker_effect'] ) && is_scalar( $posted['ticker_effect'] )
+		? sanitize_key( (string) $posted['ticker_effect'] )
+		: (string) ( $defaults['ticker_effect'] ?? 'vertical' );
+	$ticker_effect = isset( $ticker_options['effects'][ $ticker_effect_raw ] ) ? $ticker_effect_raw : 'vertical';
+	$ticker_duration_ms = isset( $posted['ticker_message_duration_ms'] ) && is_scalar( $posted['ticker_message_duration_ms'] )
+		? absint( $posted['ticker_message_duration_ms'] )
+		: absint( $defaults['ticker_message_duration_ms'] ?? 2500 );
+	if ( ! isset( $ticker_options['display_duration_ms'][ $ticker_duration_ms ] ) ) {
+		$ticker_duration_ms = 2500;
+	}
+	$ticker_inter_message_gap_ms = isset( $posted['ticker_inter_message_gap_ms'] ) && is_scalar( $posted['ticker_inter_message_gap_ms'] )
+		? absint( $posted['ticker_inter_message_gap_ms'] )
+		: absint( $defaults['ticker_inter_message_gap_ms'] ?? 500 );
+	if ( ! isset( $ticker_options['inter_message_gap_ms'][ $ticker_inter_message_gap_ms ] ) ) {
+		$ticker_inter_message_gap_ms = 500;
+	}
+	$ticker_cycle_gap_ms = isset( $posted['ticker_cycle_gap_ms'] ) && is_scalar( $posted['ticker_cycle_gap_ms'] )
+		? absint( $posted['ticker_cycle_gap_ms'] )
+		: absint( $defaults['ticker_cycle_gap_ms'] ?? 500 );
+	if ( ! isset( $ticker_options['cycle_gap_ms'][ $ticker_cycle_gap_ms ] ) ) {
+		$ticker_cycle_gap_ms = 500;
+	}
 	$image_id = isset( $posted['image_id'] ) && is_scalar( $posted['image_id'] )
 		? absint( $posted['image_id'] )
 		: absint( $defaults['image_id'] ?? 0 );
@@ -227,8 +295,12 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		'message'          => sanitize_textarea_field( $message_raw ),
 		'ticker_label'     => $ticker_label,
 		'ticker_messages'  => $ticker_messages,
-		'ticker_logo_id'   => $ticker_logo_id,
-		'ticker_theme'     => $ticker_theme,
+		'ticker_logo_id'                => $ticker_logo_id,
+		'ticker_theme'                  => $ticker_theme,
+		'ticker_effect'                 => $ticker_effect,
+		'ticker_message_duration_ms'    => $ticker_duration_ms,
+		'ticker_inter_message_gap_ms'   => $ticker_inter_message_gap_ms,
+		'ticker_cycle_gap_ms'           => $ticker_cycle_gap_ms,
 		'image_id'         => $image_id,
 		'image_alt'        => sanitize_text_field( $image_alt_raw ),
 		'link_text'        => sanitize_text_field( $link_text_raw ),

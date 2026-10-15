@@ -9173,52 +9173,34 @@ html.jluxe-lite .jluxe-header-bar {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-@keyframes jluxe-announcement-ticker-phrase-2 {
-  0% { opacity: 0; transform: translateY(7px); }
-  6.25% { opacity: 1; transform: translateY(0); }
-  35% { opacity: 1; transform: translateY(0); }
-  41.25% { opacity: 0; transform: translateY(-7px); }
-  50%, 100% { opacity: 0; transform: translateY(-7px); }
+/* Default 3-message timeline; PHP emits percentage keyframes for the saved timings/effect. */
+@-webkit-keyframes jluxe-announcement-ticker-phrase {
+  0% { opacity: 0; -webkit-transform: translateY(7px); transform: translateY(7px); }
+  3.8462% { opacity: 1; -webkit-transform: translate(0, 0); transform: translate(0, 0); }
+  25.2137% { opacity: 1; -webkit-transform: translate(0, 0); transform: translate(0, 0); }
+  29.0598% { opacity: 0; -webkit-transform: translateY(-7px); transform: translateY(-7px); }
+  100% { opacity: 0; -webkit-transform: translateY(-7px); transform: translateY(-7px); }
 }
-@keyframes jluxe-announcement-ticker-phrase-3 {
+@keyframes jluxe-announcement-ticker-phrase {
   0% { opacity: 0; transform: translateY(7px); }
-  4.1667% { opacity: 1; transform: translateY(0); }
-  23.3333% { opacity: 1; transform: translateY(0); }
-  27.5% { opacity: 0; transform: translateY(-7px); }
-  33.3333%, 100% { opacity: 0; transform: translateY(-7px); }
-}
-@keyframes jluxe-announcement-ticker-phrase-4 {
-  0% { opacity: 0; transform: translateY(7px); }
-  3.125% { opacity: 1; transform: translateY(0); }
-  17.5% { opacity: 1; transform: translateY(0); }
-  20.625% { opacity: 0; transform: translateY(-7px); }
-  25%, 100% { opacity: 0; transform: translateY(-7px); }
-}
-@keyframes jluxe-announcement-ticker-phrase-5 {
-  0% { opacity: 0; transform: translateY(7px); }
-  2.5% { opacity: 1; transform: translateY(0); }
-  14% { opacity: 1; transform: translateY(0); }
-  16.5% { opacity: 0; transform: translateY(-7px); }
-  20%, 100% { opacity: 0; transform: translateY(-7px); }
+  3.8462% { opacity: 1; transform: translate(0, 0); }
+  25.2137% { opacity: 1; transform: translate(0, 0); }
+  29.0598% { opacity: 0; transform: translateY(-7px); }
+  100% { opacity: 0; transform: translateY(-7px); }
 }
 .jluxe-announcement-bar__ticker-sequence.has-multiple .jluxe-announcement-bar__ticker-phrase {
-  animation-duration: var(--jluxe-ticker-cycle, 12s);
-  animation-delay: var(--jluxe-ticker-delay, 0s);
+  -webkit-animation-name: jluxe-announcement-ticker-phrase;
+  animation-name: jluxe-announcement-ticker-phrase;
+  -webkit-animation-duration: 11.7s;
+  animation-duration: 11.7s;
+  -webkit-animation-delay: 0s;
+  animation-delay: 0s;
+  -webkit-animation-timing-function: ease-in-out;
   animation-timing-function: ease-in-out;
+  -webkit-animation-iteration-count: infinite;
   animation-iteration-count: infinite;
+  -webkit-animation-fill-mode: both;
   animation-fill-mode: both;
-}
-.jluxe-announcement-bar__ticker-sequence.has-2 .jluxe-announcement-bar__ticker-phrase {
-  animation-name: jluxe-announcement-ticker-phrase-2;
-}
-.jluxe-announcement-bar__ticker-sequence.has-3 .jluxe-announcement-bar__ticker-phrase {
-  animation-name: jluxe-announcement-ticker-phrase-3;
-}
-.jluxe-announcement-bar__ticker-sequence.has-4 .jluxe-announcement-bar__ticker-phrase {
-  animation-name: jluxe-announcement-ticker-phrase-4;
-}
-.jluxe-announcement-bar__ticker-sequence.has-5 .jluxe-announcement-bar__ticker-phrase {
-  animation-name: jluxe-announcement-ticker-phrase-5;
 }
 .jluxe-announcement-bar__dismiss {
   position: absolute;
