@@ -203,6 +203,18 @@ function jluxe_announcement_ticker_options(): array {
 	);
 }
 
+/** Normalize the two independently bounded desktop-height controls for the notice bar. */
+function jluxe_announcement_height_px( $value, int $minimum, int $maximum, int $fallback ): int {
+	$minimum  = max( 0, $minimum );
+	$maximum  = max( $minimum, $maximum );
+	$fallback = min( $maximum, max( $minimum, absint( $fallback ) ) );
+	if ( ! is_scalar( $value ) ) {
+		return $fallback;
+	}
+	$height = absint( $value );
+	return $height >= $minimum && $height <= $maximum ? $height : $fallback;
+}
+
 function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): array {
 	$message_raw   = isset( $posted['message'] ) && is_scalar( $posted['message'] ) ? (string) $posted['message'] : '';
 	$link_text_raw = isset( $posted['link_text'] ) && is_scalar( $posted['link_text'] ) ? (string) $posted['link_text'] : '';
@@ -232,6 +244,18 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	if ( ! in_array( $display_mode, array( 'text', 'ticker', 'image' ), true ) ) {
 		$display_mode = 'text';
 	}
+	$desktop_height_px = jluxe_announcement_height_px(
+		$posted['desktop_height_px'] ?? ( $defaults['desktop_height_px'] ?? 52 ),
+		48,
+		120,
+		(int) ( $defaults['desktop_height_px'] ?? 52 )
+	);
+	$image_desktop_max_height_px = jluxe_announcement_height_px(
+		$posted['image_desktop_max_height_px'] ?? ( $defaults['image_desktop_max_height_px'] ?? 0 ),
+		0,
+		600,
+		(int) ( $defaults['image_desktop_max_height_px'] ?? 0 )
+	);
 	$ticker_label_raw = isset( $posted['ticker_label'] ) && is_scalar( $posted['ticker_label'] )
 		? (string) $posted['ticker_label']
 		: (string) ( $defaults['ticker_label'] ?? 'ارسال سریع' );
@@ -292,6 +316,8 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		'enabled'          => ! empty( $posted['enabled'] ),
 		'sticky'           => ! empty( $posted['sticky'] ),
 		'display_mode'     => $display_mode,
+		'desktop_height_px'           => $desktop_height_px,
+		'image_desktop_max_height_px' => $image_desktop_max_height_px,
 		'message'          => sanitize_textarea_field( $message_raw ),
 		'ticker_label'     => $ticker_label,
 		'ticker_messages'  => $ticker_messages,

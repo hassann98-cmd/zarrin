@@ -444,6 +444,8 @@ function jluxe_theme_settings_defaults(): array {
 			'enabled'          => false,
 			'sticky'           => false, // هنگام اسکرول خود نوار بچسبد؛ پیش‌فرض خاموش تا فقط هدر ثابت بماند.
 			'display_mode'     => 'text', // text | ticker | image؛ ticker پیام‌های چرخشی را با HTML/CSS نمایش می‌دهد.
+			'desktop_height_px'            => 52, // حداقل ارتفاعِ متن/پیام متحرک در دسکتاپ؛ موبایل ثابت می‌ماند.
+			'image_desktop_max_height_px'  => 0, // صفر یعنی ارتفاع طبیعی؛ در صورت تنظیم، تصویر/GIF متناسب کوچک می‌شود.
 			'message'          => '',
 			'ticker_label'     => 'ارسال سریع',
 			'ticker_messages'  => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",

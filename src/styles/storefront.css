@@ -8888,9 +8888,10 @@ html.jluxe-lite .jluxe-header-bar {
   gap: 0.5rem 0.75rem;
   width: 100%;
   max-width: var(--jluxe-container-max, 1320px);
-  min-height: 56px;
+  min-height: 52px;
+  min-height: var(--jluxe-announcement-desktop-height, 52px);
   margin-inline: auto;
-  padding: 8px 56px;
+  padding: 4px 56px;
   text-align: center;
 }
 .jluxe-announcement-bar__message {
@@ -8932,6 +8933,7 @@ html.jluxe-lite .jluxe-header-bar {
   justify-content: center;
   width: max-content;
   max-width: 100%;
+  max-height: var(--jluxe-announcement-image-desktop-max-height, none);
   overflow: hidden;
 }
 .jluxe-announcement-bar__image {
@@ -8940,6 +8942,7 @@ html.jluxe-lite .jluxe-header-bar {
   width: auto;
   max-width: 100%;
   height: auto;
+  max-height: var(--jluxe-announcement-image-desktop-max-height, none);
   object-fit: contain;
   object-position: center center;
 }
@@ -8963,7 +8966,8 @@ html.jluxe-lite .jluxe-header-bar {
   --jluxe-ticker-logo-foreground: #075f56;
   position: relative;
   display: block;
-  min-height: 64px;
+  min-height: 52px;
+  min-height: var(--jluxe-announcement-desktop-height, 52px);
   overflow: hidden;
   color: var(--jluxe-ticker-foreground, #fff);
   background-color: var(--jluxe-announcement-background, #079889);
@@ -9050,9 +9054,10 @@ html.jluxe-lite .jluxe-header-bar {
   justify-content: center;
   width: 100%;
   max-width: none;
-  min-height: 64px;
+  min-height: 52px;
+  min-height: var(--jluxe-announcement-desktop-height, 52px);
   margin: 0;
-  padding: 8px 56px;
+  padding: 0 56px;
 }
 .jluxe-announcement-bar__ticker-visual {
   display: flex;
@@ -9328,7 +9333,8 @@ html.jluxe-lite .jluxe-header-bar {
   .jluxe-announcement-bar--ticker,
   .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
     height: auto;
-    min-height: 64px;
+    min-height: 52px;
+    min-height: var(--jluxe-announcement-desktop-height, 52px);
   }
   .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
     padding-top: 8px;
@@ -9351,6 +9357,13 @@ html.jluxe-lite .jluxe-header-bar {
     line-height: 1.45;
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 767.98px) and (prefers-reduced-motion: reduce) {
+  /* Keep the existing room for the full static summary; the normal mobile ticker stays 44px. */
+  .jluxe-announcement-bar--ticker,
+  .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
+    min-height: 64px;
   }
 }
 

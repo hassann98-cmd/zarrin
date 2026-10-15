@@ -235,6 +235,13 @@ function jluxe_render_announcement_page(): void {
 						<p class="description">برای نوارِ «ارسال سریع»، حالتِ پیام‌های متحرک را انتخاب کنید تا نوشته‌ها بدون دانلودِ GIF و با حفظِ ظاهرِ بنر نمایش داده شوند.</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-announcement-desktop-height">حداقل ارتفاع دسکتاپِ متن و پیام متحرک</label></th>
+					<td>
+						<input id="jluxe-announcement-desktop-height" type="number" name="announcement_bar[desktop_height_px]" min="48" max="120" step="1" value="<?php echo esc_attr( jluxe_announcement_height_px( $bar['desktop_height_px'] ?? 52, 48, 120, 52 ) ); ?>" class="small-text" /> <span>px</span>
+						<p class="description">مقدار پیش‌فرض ۵۲px است (ارتفاع قبلیِ پیام متحرک ۶۴px بود). این مقدار حداقل است؛ اگر متن چندخطی شود، نوار برای جلوگیری از بریدن محتوا بلندتر می‌شود. ارتفاع موبایل همچنان ۴۴px می‌ماند.</p>
+					</td>
+				</tr>
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="text">
 					<th scope="row"><label for="jluxe-announcement-message">متن پیام</label></th>
 					<td>
@@ -299,6 +306,8 @@ function jluxe_render_announcement_page(): void {
 					<td>
 						<?php jluxe_render_media_field( 'announcement_bar[image_id]', absint( $bar['image_id'] ?? 0 ), 'هنوز تصویری انتخاب نشده است.', 'full', '88px', 'image' ); ?>
 						<p><label for="jluxe-announcement-image-alt">متن جایگزین (برای دسترس‌پذیری)</label><br /><input id="jluxe-announcement-image-alt" type="text" name="announcement_bar[image_alt]" value="<?php echo esc_attr( $bar['image_alt'] ?? '' ); ?>" class="regular-text" maxlength="250" /></p>
+						<p><label for="jluxe-announcement-image-desktop-height">حداکثر ارتفاع دسکتاپِ تصویر/GIF</label><br /><input id="jluxe-announcement-image-desktop-height" type="number" name="announcement_bar[image_desktop_max_height_px]" min="0" max="600" step="1" value="<?php echo esc_attr( jluxe_announcement_height_px( $bar['image_desktop_max_height_px'] ?? 0, 0, 600, 0 ) ); ?>" class="small-text" /> <span>px</span></p>
+						<p class="description">۰ یعنی اندازهٔ طبیعی فایل؛ با مقدار بزرگ‌تر، تصویر/GIF فقط متناسب کوچک می‌شود و بریده یا کشیده نمی‌شود. GIF همچنان از فایل اصلی و با همهٔ فریم‌ها نمایش داده می‌شود. قاب موبایل تغییر نمی‌کند.</p>
 						<p class="description">فقط تصویرهای کتابخانهٔ رسانه قابل انتخاب‌اند. برای حفظ انیمیشن، GIF با نشانی فایل اصلی بارگذاری می‌شود، نه thumbnail.</p>
 					</td>
 				</tr>

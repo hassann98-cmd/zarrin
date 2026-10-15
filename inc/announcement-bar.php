@@ -312,6 +312,19 @@ function jluxe_render_announcement_bar(): void {
 	$is_sticky  = ! empty( $settings['sticky'] );
 
 	$defaults         = jluxe_theme_settings_defaults()['announcement_bar'];
+	$desktop_height_px = jluxe_announcement_height_px(
+		$settings['desktop_height_px'] ?? ( $defaults['desktop_height_px'] ?? 52 ),
+		48,
+		120,
+		(int) ( $defaults['desktop_height_px'] ?? 52 )
+	);
+	$image_desktop_max_height_px = jluxe_announcement_height_px(
+		$settings['image_desktop_max_height_px'] ?? ( $defaults['image_desktop_max_height_px'] ?? 0 ),
+		0,
+		600,
+		(int) ( $defaults['image_desktop_max_height_px'] ?? 0 )
+	);
+	$image_desktop_max_height = 0 < $image_desktop_max_height_px ? $image_desktop_max_height_px . 'px' : 'none';
 	$background_color = isset( $settings['background_color'] ) && is_scalar( $settings['background_color'] ) ? sanitize_hex_color( (string) $settings['background_color'] ) : null;
 	$text_color       = isset( $settings['text_color'] ) && is_scalar( $settings['text_color'] ) ? sanitize_hex_color( (string) $settings['text_color'] ) : null;
 	$background_color = $background_color ?: $defaults['background_color'];
@@ -343,7 +356,7 @@ function jluxe_render_announcement_bar(): void {
 		aria-live="<?php echo $is_ticker ? 'off' : 'polite'; ?>"
 		data-dismissible="<?php echo $dismissible ? '1' : '0'; ?>"
 		data-dismiss-key="<?php echo esc_attr( $dismiss_key ); ?>"
-		style="--jluxe-announcement-background:<?php echo esc_attr( $background_color ); ?>;--jluxe-announcement-foreground:<?php echo esc_attr( $text_color ); ?>"
+		style="--jluxe-announcement-background:<?php echo esc_attr( $background_color ); ?>;--jluxe-announcement-foreground:<?php echo esc_attr( $text_color ); ?>;--jluxe-announcement-desktop-height:<?php echo esc_attr( $desktop_height_px ); ?>px;--jluxe-announcement-image-desktop-max-height:<?php echo esc_attr( $image_desktop_max_height ); ?>"
 	>
 		<div class="jluxe-announcement-bar__inner">
 			<?php if ( $is_image ) : ?>
