@@ -149,6 +149,28 @@ function jluxe_announcement_ticker_timing( array $content ): array {
 	);
 }
 
+/** Keep the ticker animation active even when an optimizer purges its CSS selector. */
+function jluxe_announcement_ticker_animation_style( array $timing, int $message_index ): string {
+	$cycle_ms = absint( $timing['cycle_ms'] ?? 0 );
+	if ( 0 === $cycle_ms ) {
+		return '';
+	}
+	$delay_ms = absint( $timing['slot_ms'] ?? 0 ) * max( 0, $message_index );
+
+	return '-webkit-animation-name:jluxe-announcement-ticker-phrase;' .
+		'animation-name:jluxe-announcement-ticker-phrase;' .
+		'-webkit-animation-duration:' . $cycle_ms . 'ms;' .
+		'animation-duration:' . $cycle_ms . 'ms;' .
+		'-webkit-animation-delay:' . $delay_ms . 'ms;' .
+		'animation-delay:' . $delay_ms . 'ms;' .
+		'-webkit-animation-timing-function:ease-in-out;' .
+		'animation-timing-function:ease-in-out;' .
+		'-webkit-animation-iteration-count:infinite;' .
+		'animation-iteration-count:infinite;' .
+		'-webkit-animation-fill-mode:both;' .
+		'animation-fill-mode:both;';
+}
+
 /** Build safe, server-rendered keyframes from normalized millisecond values. */
 function jluxe_announcement_ticker_keyframes_style( array $timing, string $effect = 'vertical' ): string {
 	$cycle_ms = absint( $timing['cycle_ms'] ?? 0 );
@@ -346,7 +368,7 @@ function jluxe_render_announcement_bar(): void {
 					<span class="jluxe-announcement-bar__ticker-window">
 						<span class="jluxe-announcement-bar__ticker-sequence<?php echo esc_attr( $ticker_sequence_class ); ?>">
 							<?php foreach ( $ticker_messages as $ticker_index => $ticker_message ) : ?>
-								<span class="jluxe-announcement-bar__ticker-phrase" style="-webkit-animation-duration:<?php echo esc_attr( $ticker_timing['cycle_ms'] ); ?>ms;animation-duration:<?php echo esc_attr( $ticker_timing['cycle_ms'] ); ?>ms;-webkit-animation-delay:<?php echo esc_attr( $ticker_timing['slot_ms'] * $ticker_index ); ?>ms;animation-delay:<?php echo esc_attr( $ticker_timing['slot_ms'] * $ticker_index ); ?>ms;"><?php echo esc_html( $ticker_message ); ?></span>
+								<span class="jluxe-announcement-bar__ticker-phrase" style="<?php echo esc_attr( jluxe_announcement_ticker_animation_style( $ticker_timing, (int) $ticker_index ) ); ?>"><?php echo esc_html( $ticker_message ); ?></span>
 							<?php endforeach; ?>
 						</span>
 						<span class="jluxe-announcement-bar__ticker-static"><?php echo esc_html( $content['ticker_summary'] ); ?></span>
