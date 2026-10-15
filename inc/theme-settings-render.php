@@ -244,10 +244,21 @@ function jluxe_render_announcement_page(): void {
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="ticker">
 					<th scope="row">بنر پیام‌های متحرک</th>
 					<td>
+						<p>
+							<label for="jluxe-announcement-ticker-theme">رنگ‌بندی پس‌زمینه</label><br />
+							<select id="jluxe-announcement-ticker-theme" name="announcement_bar[ticker_theme]">
+								<option value="classic" <?php selected( $bar['ticker_theme'] ?? 'classic', 'classic' ); ?>>کلاسیک (فیروزه‌ای)</option>
+								<option value="info" <?php selected( $bar['ticker_theme'] ?? 'classic', 'info' ); ?>>اطلاع‌رسانی (آبی)</option>
+								<option value="warning" <?php selected( $bar['ticker_theme'] ?? 'classic', 'warning' ); ?>>هشدار (نارنجی)</option>
+								<option value="discount" <?php selected( $bar['ticker_theme'] ?? 'classic', 'discount' ); ?>>تخفیف (قرمز)</option>
+								<option value="success" <?php selected( $bar['ticker_theme'] ?? 'classic', 'success' ); ?>>موفقیت (سبز)</option>
+								<option value="custom" <?php selected( $bar['ticker_theme'] ?? 'classic', 'custom' ); ?>>سفارشی (رنگ‌های انتخاب‌شده در بخش ظاهر)</option>
+							</select>
+						</p>
 						<p><label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br /><input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" /></p>
 						<p><label for="jluxe-announcement-ticker-messages">پیام‌های چرخشی (هر پیام در یک خط)</label><br /><textarea id="jluxe-announcement-ticker-messages" name="announcement_bar[ticker_messages]" rows="4" maxlength="500" class="large-text" placeholder="هر پیام را در یک خط بنویسید"><?php echo esc_textarea( $bar['ticker_messages'] ?? "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" ); ?></textarea></p>
 						<p><strong>لوگوی دایره‌ای (اختیاری)</strong><br /><?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?></p>
-						<p class="description">هر پیام حدود ۳ ثانیه نمایش داده می‌شود. انیمیشن فقط با CSS اجرا می‌شود؛ در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، متن کامل ثابت می‌شود.</p>
+						<p class="description">هر پیام حدود ۴ ثانیه می‌ماند؛ ورود و خروج تدریجی و مکث کوتاه بین پیام‌ها، شروع و پایان هر جمله را مشخص می‌کند. انیمیشن فقط با CSS اجرا می‌شود؛ در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، متن کامل ثابت می‌شود.</p>
 					</td>
 				</tr>
 				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="image">
@@ -271,6 +282,7 @@ function jluxe_render_announcement_page(): void {
 						<label>پس‌زمینه <input type="color" name="announcement_bar[background_color]" value="<?php echo esc_attr( $bar['background_color'] ); ?>" /></label>
 						&nbsp;&nbsp;
 						<label>رنگ متن <input type="color" name="announcement_bar[text_color]" value="<?php echo esc_attr( $bar['text_color'] ); ?>" /></label>
+						<p class="description">در حالت پیام‌های متحرک، این دو رنگ با انتخاب «سفارشی» به‌کار می‌روند؛ حالت‌های آماده، رنگ متن هماهنگ و خوانا دارند.</p>
 					</td>
 				</tr>
 				<tr>

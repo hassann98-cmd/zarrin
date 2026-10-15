@@ -207,6 +207,12 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	$ticker_logo_id = isset( $posted['ticker_logo_id'] ) && is_scalar( $posted['ticker_logo_id'] )
 		? absint( $posted['ticker_logo_id'] )
 		: absint( $defaults['ticker_logo_id'] ?? 0 );
+	$ticker_theme = isset( $posted['ticker_theme'] ) && is_scalar( $posted['ticker_theme'] )
+		? sanitize_key( (string) $posted['ticker_theme'] )
+		: (string) ( $defaults['ticker_theme'] ?? 'classic' );
+	if ( ! in_array( $ticker_theme, array( 'classic', 'info', 'warning', 'discount', 'success', 'custom' ), true ) ) {
+		$ticker_theme = 'classic';
+	}
 	$image_id = isset( $posted['image_id'] ) && is_scalar( $posted['image_id'] )
 		? absint( $posted['image_id'] )
 		: absint( $defaults['image_id'] ?? 0 );
@@ -222,6 +228,7 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		'ticker_label'     => $ticker_label,
 		'ticker_messages'  => $ticker_messages,
 		'ticker_logo_id'   => $ticker_logo_id,
+		'ticker_theme'     => $ticker_theme,
 		'image_id'         => $image_id,
 		'image_alt'        => sanitize_text_field( $image_alt_raw ),
 		'link_text'        => sanitize_text_field( $link_text_raw ),

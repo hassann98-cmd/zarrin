@@ -8952,12 +8952,77 @@ html.jluxe-lite .jluxe-header-bar {
 
 /* متن‌های بنرِ ارسال سریع به‌جای GIF، با HTML و انیمیشنِ کم‌هزینه نمایش داده می‌شوند. */
 .jluxe-announcement-bar--ticker {
+  --jluxe-ticker-gradient-start: rgba(0, 174, 156, 0.86);
+  --jluxe-ticker-gradient-end: rgba(0, 125, 108, 0.86);
+  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.14);
+  --jluxe-ticker-wave: rgba(216, 255, 244, 0.24);
+  --jluxe-ticker-window-background: rgba(0, 94, 82, 0.78);
+  --jluxe-ticker-foreground: var(--jluxe-announcement-foreground, #fff);
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.76);
+  --jluxe-ticker-logo-background: #fff1a0;
+  --jluxe-ticker-logo-foreground: #075f56;
   position: relative;
   display: block;
-  min-height: 100px;
+  min-height: 64px;
   overflow: hidden;
+  color: var(--jluxe-ticker-foreground, #fff);
   background-color: var(--jluxe-announcement-background, #079889);
-  background-image: radial-gradient(ellipse at 25% 0%, rgba(255, 255, 255, 0.14), transparent 58%), linear-gradient(110deg, rgba(0, 174, 156, 0.86), rgba(0, 125, 108, 0.86));
+  background-image: radial-gradient(ellipse at 25% 0%, var(--jluxe-ticker-highlight), transparent 58%), linear-gradient(110deg, var(--jluxe-ticker-gradient-start), var(--jluxe-ticker-gradient-end));
+}
+.jluxe-announcement-bar--ticker[data-ticker-theme="info"] {
+  --jluxe-ticker-gradient-start: #2772bd;
+  --jluxe-ticker-gradient-end: #174a98;
+  --jluxe-ticker-highlight: rgba(234, 246, 255, 0.22);
+  --jluxe-ticker-wave: rgba(226, 243, 255, 0.32);
+  --jluxe-ticker-window-background: rgba(12, 43, 92, 0.72);
+  --jluxe-ticker-foreground: #fff;
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
+  --jluxe-ticker-logo-background: #e6f2ff;
+  --jluxe-ticker-logo-foreground: #174a98;
+}
+.jluxe-announcement-bar--ticker[data-ticker-theme="warning"] {
+  --jluxe-ticker-gradient-start: #ffc448;
+  --jluxe-ticker-gradient-end: #dc760a;
+  --jluxe-ticker-highlight: rgba(255, 249, 223, 0.36);
+  --jluxe-ticker-wave: rgba(255, 249, 225, 0.38);
+  --jluxe-ticker-window-background: rgba(255, 250, 230, 0.88);
+  --jluxe-ticker-foreground: #211100;
+  --jluxe-ticker-divider: rgba(73, 43, 5, 0.42);
+  --jluxe-ticker-logo-background: #fff6dc;
+  --jluxe-ticker-logo-foreground: #774200;
+}
+.jluxe-announcement-bar--ticker[data-ticker-theme="discount"] {
+  --jluxe-ticker-gradient-start: #c72b4b;
+  --jluxe-ticker-gradient-end: #8a173b;
+  --jluxe-ticker-highlight: rgba(255, 239, 244, 0.22);
+  --jluxe-ticker-wave: rgba(255, 226, 235, 0.3);
+  --jluxe-ticker-window-background: rgba(83, 9, 36, 0.78);
+  --jluxe-ticker-foreground: #fff;
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
+  --jluxe-ticker-logo-background: #ffe8ef;
+  --jluxe-ticker-logo-foreground: #a8174d;
+}
+.jluxe-announcement-bar--ticker[data-ticker-theme="success"] {
+  --jluxe-ticker-gradient-start: #16794f;
+  --jluxe-ticker-gradient-end: #086341;
+  --jluxe-ticker-highlight: rgba(224, 255, 239, 0.2);
+  --jluxe-ticker-wave: rgba(222, 255, 240, 0.3);
+  --jluxe-ticker-window-background: rgba(0, 53, 34, 0.76);
+  --jluxe-ticker-foreground: #fff;
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
+  --jluxe-ticker-logo-background: #e4fff1;
+  --jluxe-ticker-logo-foreground: #086341;
+}
+.jluxe-announcement-bar--ticker[data-ticker-theme="custom"] {
+  --jluxe-ticker-gradient-start: var(--jluxe-announcement-background, #355c5a);
+  --jluxe-ticker-gradient-end: var(--jluxe-announcement-background, #355c5a);
+  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.16);
+  --jluxe-ticker-wave: rgba(255, 255, 255, 0.26);
+  --jluxe-ticker-window-background: rgba(0, 0, 0, 0.22);
+  --jluxe-ticker-foreground: var(--jluxe-announcement-foreground, #fff);
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.76);
+  --jluxe-ticker-logo-background: var(--jluxe-announcement-foreground, #fff);
+  --jluxe-ticker-logo-foreground: var(--jluxe-announcement-background, #355c5a);
 }
 .jluxe-announcement-bar__ticker-waves {
   position: absolute;
@@ -8973,7 +9038,7 @@ html.jluxe-lite .jluxe-header-bar {
 }
 .jluxe-announcement-bar__ticker-waves path {
   fill: none;
-  stroke: rgba(216, 255, 244, 0.24);
+  stroke: var(--jluxe-ticker-wave, rgba(216, 255, 244, 0.24));
   stroke-width: 1.2;
 }
 .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
@@ -8985,7 +9050,7 @@ html.jluxe-lite .jluxe-header-bar {
   justify-content: center;
   width: 100%;
   max-width: none;
-  min-height: 100px;
+  min-height: 64px;
   margin: 0;
   padding: 8px 56px;
 }
@@ -9003,7 +9068,7 @@ html.jluxe-lite .jluxe-header-bar {
 }
 .jluxe-announcement-bar__ticker-label {
   flex: 0 0 auto;
-  color: var(--jluxe-announcement-foreground, #fff);
+  color: var(--jluxe-ticker-foreground, var(--jluxe-announcement-foreground, #fff));
   font-size: 20px;
   font-size: clamp(15px, 1.3vw, 20px);
   font-weight: 800;
@@ -9015,7 +9080,7 @@ html.jluxe-lite .jluxe-header-bar {
   width: 2px;
   height: 28px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.76);
+  background: var(--jluxe-ticker-divider, rgba(255, 255, 255, 0.76));
 }
 .jluxe-announcement-bar__ticker-window {
   position: relative;
@@ -9029,8 +9094,8 @@ html.jluxe-lite .jluxe-header-bar {
   height: 40px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(0, 94, 82, 0.78);
-  color: var(--jluxe-announcement-foreground, #fff);
+  background: var(--jluxe-ticker-window-background, rgba(0, 94, 82, 0.78));
+  color: var(--jluxe-ticker-foreground, var(--jluxe-announcement-foreground, #fff));
   text-align: center;
 }
 .jluxe-announcement-bar__ticker-sequence {
@@ -9079,8 +9144,8 @@ html.jluxe-lite .jluxe-header-bar {
   overflow: hidden;
   border: 2px solid rgb(255 255 255 / 62%);
   border-radius: 50%;
-  background: #fff1a0;
-  color: #075f56;
+  background: var(--jluxe-ticker-logo-background, #fff1a0);
+  color: var(--jluxe-ticker-logo-foreground, #075f56);
 }
 .jluxe-announcement-bar__ticker-logo-image {
   display: block;
@@ -9102,33 +9167,58 @@ html.jluxe-lite .jluxe-header-bar {
 .jluxe-announcement-bar__ticker-link {
   flex: 0 0 auto;
   margin-inline-start: 16px;
-  color: var(--jluxe-announcement-foreground, #fff);
+  color: var(--jluxe-ticker-foreground, var(--jluxe-announcement-foreground, #fff));
   font-size: 12px;
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-@keyframes jluxe-announcement-ticker-phrase {
-  0%, 2% {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  6%, 27% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  33.333%, 100% {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
+@keyframes jluxe-announcement-ticker-phrase-2 {
+  0% { opacity: 0; transform: translateY(7px); }
+  6.25% { opacity: 1; transform: translateY(0); }
+  35% { opacity: 1; transform: translateY(0); }
+  41.25% { opacity: 0; transform: translateY(-7px); }
+  50%, 100% { opacity: 0; transform: translateY(-7px); }
+}
+@keyframes jluxe-announcement-ticker-phrase-3 {
+  0% { opacity: 0; transform: translateY(7px); }
+  4.1667% { opacity: 1; transform: translateY(0); }
+  23.3333% { opacity: 1; transform: translateY(0); }
+  27.5% { opacity: 0; transform: translateY(-7px); }
+  33.3333%, 100% { opacity: 0; transform: translateY(-7px); }
+}
+@keyframes jluxe-announcement-ticker-phrase-4 {
+  0% { opacity: 0; transform: translateY(7px); }
+  3.125% { opacity: 1; transform: translateY(0); }
+  17.5% { opacity: 1; transform: translateY(0); }
+  20.625% { opacity: 0; transform: translateY(-7px); }
+  25%, 100% { opacity: 0; transform: translateY(-7px); }
+}
+@keyframes jluxe-announcement-ticker-phrase-5 {
+  0% { opacity: 0; transform: translateY(7px); }
+  2.5% { opacity: 1; transform: translateY(0); }
+  14% { opacity: 1; transform: translateY(0); }
+  16.5% { opacity: 0; transform: translateY(-7px); }
+  20%, 100% { opacity: 0; transform: translateY(-7px); }
 }
 .jluxe-announcement-bar__ticker-sequence.has-multiple .jluxe-announcement-bar__ticker-phrase {
-  animation-name: jluxe-announcement-ticker-phrase;
-  animation-duration: var(--jluxe-ticker-cycle, 9s);
+  animation-duration: var(--jluxe-ticker-cycle, 12s);
   animation-delay: var(--jluxe-ticker-delay, 0s);
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
   animation-fill-mode: both;
+}
+.jluxe-announcement-bar__ticker-sequence.has-2 .jluxe-announcement-bar__ticker-phrase {
+  animation-name: jluxe-announcement-ticker-phrase-2;
+}
+.jluxe-announcement-bar__ticker-sequence.has-3 .jluxe-announcement-bar__ticker-phrase {
+  animation-name: jluxe-announcement-ticker-phrase-3;
+}
+.jluxe-announcement-bar__ticker-sequence.has-4 .jluxe-announcement-bar__ticker-phrase {
+  animation-name: jluxe-announcement-ticker-phrase-4;
+}
+.jluxe-announcement-bar__ticker-sequence.has-5 .jluxe-announcement-bar__ticker-phrase {
+  animation-name: jluxe-announcement-ticker-phrase-5;
 }
 .jluxe-announcement-bar__dismiss {
   position: absolute;

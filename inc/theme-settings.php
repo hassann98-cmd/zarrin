@@ -448,6 +448,7 @@ function jluxe_theme_settings_defaults(): array {
 			'ticker_label'     => 'ارسال سریع',
 			'ticker_messages'  => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
 			'ticker_logo_id'   => 0, // در صورت خالی بودن، آیکون سایت استفاده می‌شود.
+			'ticker_theme'    => 'classic', // classic | info | warning | discount | success | custom.
 			'image_id'         => 0,
 			'image_alt'        => '',
 			'link_text'        => '',
