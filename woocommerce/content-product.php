@@ -34,14 +34,19 @@ $rating        = (float) $product->get_average_rating();
 $review_count  = (int) $product->get_review_count();
 $image_id      = $product->get_image_id();
 /*
- * منبعِ کارت عمداً از سایزِ uncropped «large» می‌آید: woocommerce_thumbnail
- * و jluxe-product-thumb-sm می‌توانند فایلِ مربعِ hard-crop‌شده باشند؛ در آن
- * صورت object-fit:contain هم محتوای بریده‌شده را برنمی‌گرداند. «large» نسبتِ
- * ذاتیِ تصویر را نگه می‌دارد و srcset هم فقط کاندیدهای هم‌نسبت را ارائه می‌کند؛
+ * src اصلیِ کارت همچنان از سایزِ uncropped «large» می‌آید: woocommerce_thumbnail
+ * و jluxe-product-thumb-sm می‌توانند hard-crop شده باشند؛ در آن صورت
+ * object-fit:contain هم محتوای بریده‌شده را برنمی‌گرداند. srcset یک کاندیدِ
+ * uncropped با عرضِ 480px هم دارد تا تصویرِ ۲۲۱px در نمایشگر Retina مجبور
+ * به انتخابِ فایلِ ۶۰۰px نشود؛ همهٔ کاندیدها نسبتِ ذاتی را حفظ می‌کنند و
  * نسبتِ قابِ کارت همچنان از تنظیمِ square / classic / portrait می‌آید.
  */
 $image_url     = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-$image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'large' ) : '';
+$image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-480' ) : '';
+if ( $image_id && ! $image_srcset ) {
+	// برای رسانه‌های قدیمی تا قبل از ساخت سایز جدید، srcset پیشین را حفظ کن.
+	$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
+}
 /*
  * اخطارِ واقعیِ Lighthouse («This image file is larger than it needs to
  * be … use responsive images»): مقدارِ خودکارِ wp_get_attachment_image_sizes()
@@ -188,15 +193,20 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 			<?php if ( ! empty( $jluxe_gallery_ids ) ) : ?>
 				<div data-jluxe-card-thumbs class="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-hover:pointer-events-auto group-data-[thumbs-active]:opacity-100 group-data-[thumbs-active]:pointer-events-auto">
 					<?php foreach ( $jluxe_gallery_ids as $jluxe_gid ) :
-						$jluxe_thumb_url   = wp_get_attachment_image_url( $jluxe_gid, 'medium' );
+						$jluxe_thumb_image = jluxe_get_responsive_attachment_image( (int) $jluxe_gid, 'jluxe-uncropped-96', '48px' );
+						if ( empty( $jluxe_thumb_image['srcset'] ) && (int) ( $jluxe_thumb_image['width'] ?? 0 ) > 160 ) {
+							// تا پیش از regenerate برای رسانه‌های قدیمی، اندازهٔ medium فعلی را نگه دار.
+							$jluxe_thumb_image = jluxe_get_responsive_attachment_image( (int) $jluxe_gid, 'medium', '48px' );
+						}
+						$jluxe_thumb_url = ! empty( $jluxe_thumb_image['src'] ) ? $jluxe_thumb_image['src'] : wp_get_attachment_image_url( $jluxe_gid, 'medium' );
 						$jluxe_full_url    = wp_get_attachment_image_url( $jluxe_gid, 'large' ) ?: wp_get_attachment_image_url( $jluxe_gid, 'full' );
-						$jluxe_full_srcset = wp_get_attachment_image_srcset( $jluxe_gid, 'large' );
+						$jluxe_full_srcset = wp_get_attachment_image_srcset( $jluxe_gid, 'jluxe-uncropped-480' ) ?: wp_get_attachment_image_srcset( $jluxe_gid, 'large' );
 						if ( ! $jluxe_thumb_url || ! $jluxe_full_url ) {
 							continue;
 						}
 						?>
 						<span data-jluxe-card-thumb data-full="<?php echo esc_url( $jluxe_full_url ); ?>"<?php if ( $jluxe_full_srcset ) : ?> data-srcset="<?php echo esc_attr( $jluxe_full_srcset ); ?>" data-sizes="<?php echo esc_attr( $image_sizes ); ?>"<?php endif; ?> class="size-8 shrink-0 overflow-hidden rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
-							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>" alt="" class="size-full object-contain" loading="lazy" />
+							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_thumb_image ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> alt="" class="size-full object-contain" loading="lazy" />
 						</span>
 					<?php endforeach; ?>
 					<?php if ( $jluxe_gallery_overflow > 0 ) : ?>

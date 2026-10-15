@@ -1856,15 +1856,19 @@ update_test_settings( $r149_previous_settings );
 $GLOBALS['registered_image_sizes'] = array();
 jluxe_setup();
 $r169_expected_sizes = array(
+	'jluxe-uncropped-96'   => array( 'width' => 96, 'height' => 0, 'crop' => false ),
+	'jluxe-uncropped-200'  => array( 'width' => 200, 'height' => 0, 'crop' => false ),
 	'jluxe-uncropped-320'  => array( 'width' => 320, 'height' => 0, 'crop' => false ),
+	'jluxe-uncropped-480'  => array( 'width' => 480, 'height' => 0, 'crop' => false ),
 	'jluxe-uncropped-640'  => array( 'width' => 640, 'height' => 0, 'crop' => false ),
 	'jluxe-uncropped-960'  => array( 'width' => 960, 'height' => 0, 'crop' => false ),
 	'jluxe-uncropped-1280' => array( 'width' => 1280, 'height' => 0, 'crop' => false ),
 );
 check(
 	$r169_expected_sizes === array_intersect_key( $GLOBALS['registered_image_sizes'], $r169_expected_sizes ) &&
+	array( 'width' => 240, 'height' => 240, 'crop' => true ) === ( $GLOBALS['registered_image_sizes']['jluxe-category-grid-ref-240'] ?? array() ) &&
 	true === ( $GLOBALS['registered_image_sizes']['jluxe-product-thumb-sm']['crop'] ?? false ),
-	'R169 four uncropped responsive widths are additive; the existing cropped product thumbnail stays unchanged'
+	'R313 small, retina-ready uncropped widths and a category thumbnail size are additive; existing WooCommerce crops stay unchanged'
 );
 
 $GLOBALS['attachment_image_urls'][901] = array( 'jluxe-uncropped-320' => 'https://shop.test/store/photo-320.webp' );
@@ -1893,6 +1897,12 @@ check(
 	false === $r169_gif_downsize[3] &&
 	false === jluxe_disable_animated_gif_srcset( array( '320w' => array() ), array( 320, 240 ), '', array(), 902 ),
 	'R169 animated GIFs keep the original file and never expose a static intermediate srcset'
+);
+$r313_gif_category_thumbnail = jluxe_get_responsive_attachment_image( 902, 'jluxe-category-grid-ref-240', '105px' );
+check(
+	'https://shop.test/store/animated-original.gif' === $r313_gif_category_thumbnail['src'] &&
+	'' === $r313_gif_category_thumbnail['srcset'],
+	'R313 smaller category-grid source dimensions never replace an animated GIF with a static thumbnail'
 );
 
 $GLOBALS['attachment_image_urls'][903] = false;
@@ -3134,6 +3144,7 @@ check( false !== strpos( $r84_html, 'data-jluxe-card-thumbs' ), 'R84 including t
 $r152_card_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-product.php' );
 check(
 	strpos( $r152_card_template, "wp_get_attachment_image_url( \$image_id, 'large' )" ) !== false &&
+	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_card_template, "'square'  => 'aspect-square'" ) !== false &&
 	strpos( $r152_card_template, "'classic' => 'aspect-[3/4]'" ) !== false &&
@@ -3146,6 +3157,8 @@ check(
 $r152_home_cards = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
+	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-200' )" ) !== false &&
+	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_home_cards, 'sizes="65px"' ) !== false &&
 	strpos( $r152_home_cards, 'sizes="(max-width:639px) 42vw, (max-width:1023px) 28vw, 240px"' ) !== false &&
@@ -3154,7 +3167,9 @@ check(
 	'R152 homepage product cards also use uncropped responsive images, contain the full item, and preserve its colors'
 );
 check(
-	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$jluxe_gid, 'large' )" ) !== false &&
+	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$jluxe_gid, 'jluxe-uncropped-480' )" ) !== false &&
+	strpos( $r152_card_template, "jluxe_get_responsive_attachment_image( (int) \$jluxe_gid, 'jluxe-uncropped-96', '48px' )" ) !== false &&
+	strpos( $r152_card_template, 'jluxe_responsive_image_attributes( $jluxe_thumb_image )' ) !== false &&
 	strpos( $r152_card_template, 'data-srcset=' ) !== false &&
 	strpos( $r152_gallery_js, 'img.dataset.jluxeOriginalSrcset' ) !== false &&
 	strpos( $r152_gallery_js, 'img.dataset.jluxeOriginalSizes' ) !== false &&
@@ -3165,6 +3180,14 @@ check(
 	strpos( $r84_html, 'class="size-full object-contain' ) !== false &&
 	strpos( $r84_html, 'srcset=' ) !== false,
 	'R152 rendered product cards emit a responsive full-item image and semantic stock-dot color'
+);
+$r313_image_delivery_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+check(
+	strpos( $r313_image_delivery_source, "'jluxe-category-grid-ref-240', '240px'" ) !== false &&
+	strpos( $r313_image_delivery_source, "'jluxe-uncropped-200', '(max-width: 639px) 78px, 96px'" ) !== false &&
+	strpos( $r313_image_delivery_source, "\$image_size = 'jluxe-uncropped-200'" ) !== false &&
+	strpos( $r313_image_delivery_source, "'jluxe-uncropped-200' ) : ''" ) !== false,
+	'R313 category tiles, showcase images and brand strips request appropriately small sources while animated GIF safety stays centralized'
 );
 
 // R292 — catalog cards must use eligible variation stock, not a stale variable-parent flag.
@@ -5448,11 +5471,11 @@ check(
 	'R179 showcase editor exposes only category/image-link, optional frame/text, and layout controls—not the legacy forced-background fields'
 );
 
-$GLOBALS['attachment_image_urls'][985] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-category.png' );
-$GLOBALS['attachment_srcsets'][985] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-category.png 1200w' );
+$GLOBALS['attachment_image_urls'][985] = array( 'jluxe-uncropped-200' => 'https://shop.test/store/r179-category-200.png' );
+$GLOBALS['attachment_srcsets'][985] = array( 'jluxe-uncropped-200' => 'https://shop.test/store/r179-category-200.png 200w' );
 $GLOBALS['attachment_image_sources'][985] = array( 'https://shop.test/store/r179-category.png', 1200, 600, true );
-$GLOBALS['attachment_image_urls'][986] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-custom.png' );
-$GLOBALS['attachment_srcsets'][986] = array( 'jluxe-uncropped-1280' => 'https://shop.test/store/r179-custom.png 800w' );
+$GLOBALS['attachment_image_urls'][986] = array( 'jluxe-uncropped-200' => 'https://shop.test/store/r179-custom-200.png' );
+$GLOBALS['attachment_srcsets'][986] = array( 'jluxe-uncropped-200' => 'https://shop.test/store/r179-custom-200.png 200w' );
 $GLOBALS['attachment_image_sources'][986] = array( 'https://shop.test/store/r179-custom.png', 800, 800, true );
 $r179_showcase_visible = array_merge( $r179_showcase_saved, array(
 	'show_category_names' => true,
@@ -5464,8 +5487,8 @@ ob_start();
 jluxe_render_homepage_category_showcase( $r179_showcase_visible );
 $r179_showcase_html = (string) ob_get_clean();
 check(
-	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-category.png"' ) &&
-	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-custom.png"' ) &&
+	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-category-200.png"' ) &&
+	false !== strpos( $r179_showcase_html, 'src="https://shop.test/store/r179-custom-200.png"' ) &&
 	false !== strpos( $r179_showcase_html, 'href="https://shop.test/store/category/gold/"' ) &&
 	false !== strpos( $r179_showcase_html, 'href="https://shop.test/new-page/"' ) &&
 	false !== strpos( $r179_showcase_html, 'نام دلخواه' ) && false !== strpos( $r179_showcase_html, 'تصویر ویژه' ) &&

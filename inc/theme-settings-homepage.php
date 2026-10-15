@@ -1778,7 +1778,7 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	$mobile_gap_total = 8 * ( $mobile_columns - 1 );
 	$mobile_card_width = 'calc((100% - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ')';
 	$mobile_image_size = 'min(96px,max(48px,calc((100vw - 32px - ' . $mobile_gap_total . 'px) / ' . $mobile_columns . ' - 16px)))';
-	$image_size = 'jluxe-uncropped-1280';
+	$image_size = 'jluxe-uncropped-200';
 	$image_sizes = '(max-width: 639px) ' . $mobile_image_size . ', 120px';
 	$rows = array();
 
@@ -1906,8 +1906,11 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 		if ( ! $image_id ) {
 			$image_id = (int) get_term_meta( $term_id, 'thumbnail_id', true );
 		}
-		$img_url    = $image_id ? wp_get_attachment_image_url( $image_id, 'thumbnail' ) : wc_placeholder_img_src( 'thumbnail' );
-		$img_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'thumbnail' ) : '';
+		$image_data = $image_id
+			? jluxe_get_responsive_attachment_image( $image_id, 'jluxe-category-grid-ref-240', '240px' )
+			: array();
+		$img_url    = ! empty( $image_data['src'] ) ? $image_data['src'] : wc_placeholder_img_src( 'thumbnail' );
+		$img_srcset = (string) ( $image_data['srcset'] ?? '' );
 		$display    = trim( (string) ( $item['display_name'] ?? '' ) );
 		$rows[]     = array(
 			'term'         => $term,
@@ -2035,7 +2038,7 @@ function jluxe_render_homepage_brand_marquee( array $section ): void {
 			<div class="jluxe-brand-strip-viewport">
 				<div class="<?php echo esc_attr( $classes ); ?>" style="--jluxe-brand-speed:<?php echo esc_attr( $duration ); ?>s;">
 					<?php for ( $copy = 0; $copy < 2; $copy++ ) foreach ( $items as $item ) :
-						$logo_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-320', '(max-width: 639px) 78px, 96px' );
+						$logo_image = jluxe_get_responsive_attachment_image( (int) $item['image_id'], 'jluxe-uncropped-200', '(max-width: 639px) 78px, 96px' );
 						if ( empty( $logo_image['src'] ) ) {
 							continue;
 						}
@@ -2975,7 +2978,10 @@ function jluxe_render_homepage_brick_products( array $section ): void {
 function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 	$image_id     = $product->get_image_id();
 	$image_url    = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'large' ) : '';
+	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-200' ) : '';
+	if ( $image_id && ! $image_srcset ) {
+		$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
+	}
 
 	$is_variable   = $product->is_type( 'variable' );
 	$regular_price = (float) $product->get_regular_price();
@@ -3152,7 +3158,10 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 function jluxe_render_homepage_recommended_card( WC_Product $product, bool $border_end, bool $border_bottom ): void {
 	$image_id     = $product->get_image_id();
 	$image_url    = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'large' ) : '';
+	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-480' ) : '';
+	if ( $image_id && ! $image_srcset ) {
+		$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
+	}
 
 	$is_variable   = $product->is_type( 'variable' );
 	$regular_price = (float) $product->get_regular_price();
