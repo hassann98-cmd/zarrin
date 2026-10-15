@@ -824,7 +824,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 
 						<?php if ( '' !== trim( (string) $cp3_short_desc ) ) : ?>
 							<div class="cp3-short" data-cp3-short>
-								<div class="cp3-short-body"><?php echo wp_kses_post( wpautop( $cp3_short_desc ) ); ?></div>
+								<div class="cp3-short-body jluxe-product-description-content"><?php echo jluxe_wrap_product_description_tables( wp_kses_post( wpautop( $cp3_short_desc ) ) ); ?></div>
 								<button type="button" class="cp3-short-toggle" data-cp3-short-toggle aria-expanded="false">مشاهده همه</button>
 							</div>
 						<?php endif; ?>
@@ -965,7 +965,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 				</div>
 				<div class="cp3-panelcard">
 					<div class="cp3-descwrap" data-cp3-descwrap>
-						<div class="cp3-descbody"><?php the_content(); ?></div>
+						<div class="cp3-descbody jluxe-product-description-content"><?php the_content(); ?></div>
 						<div class="cp3-descfade">
 							<button type="button" class="cp3-descbtn" data-cp3-descbtn aria-expanded="false">
 								<span>مشاهده بیشتر</span>

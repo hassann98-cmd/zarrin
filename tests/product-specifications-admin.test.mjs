@@ -85,3 +85,93 @@ test("grouped product-specification editor adds unique rows/groups and confirms 
   newGroup.querySelector("[data-jluxe-spec-remove-group]").click();
   assert.equal(root.querySelectorAll("[data-jluxe-spec-group]").length, 1, "confirming removes the selected group and its rows");
 });
+
+function bootEditor(t) {
+  const dom = new JSDOM(editorMarkup(), {
+    url: "https://shop.test/wp-admin/post.php",
+    runScripts: "outside-only",
+    pretendToBeVisual: true,
+  });
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.confirm = () => true;
+  window.eval(source);
+  if (window.document.readyState === "loading") {
+    window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
+  }
+  return { window, root: window.document.getElementById("jluxe-product-spec-groups") };
+}
+
+function pasteClipboard(window, input, data) {
+  const event = new window.Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { getData: (type) => data[type] || "" },
+  });
+  input.dispatchEvent(event);
+  return event;
+}
+
+test("pasting a copied HTML specification table imports rows into the focused group and preserves existing values", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<table><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead><tbody>
+      <tr><td>برند سازنده</td><td>عروس نوین</td></tr>
+      <tr><td>مدل محصول</td><td>هرمس (۱.۵ طبقه)</td></tr>
+      <tr><td>قابلیت‌ها</td><td>جدا شدن سبد بالایی و تغییر جهت کشو</td></tr>
+    </tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true, "a recognized table is handled by the importer");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 4, "three features are added to the existing row");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی", "existing feature label is unchanged");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][value]"]').value, "مقدار", "existing feature value is unchanged");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "برند سازنده");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "عروس نوین");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][3][label]"]').value, "قابلیت‌ها");
+  assert.match(group.querySelector('[role="status"]').textContent, /۳ ویژگی/);
+});
+
+test("pasting a Markdown or tabular plain-text table strips formatting and reuses an empty row", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  group.querySelector("[data-jluxe-spec-add-row]").click();
+  const emptyRow = group.querySelectorAll(".jluxe-spec-row")[1];
+  const target = emptyRow.querySelector('input[name$="[value]"]');
+  const event = pasteClipboard(window, target, {
+    "text/plain": [
+      "| **نام ویژگی** | **مقدار ویژگی** |",
+      "| --- | --- |",
+      "| جنس بدنه | فلز آبکاری شده با رنگ کوره‌ای |",
+      "| ابعاد محصول (سانتی‌متر) | طول ۴۴ × عرض ۳۳ × ارتفاع ۴۰ سانتی‌متر |",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "the existing blank row is reused for the first feature");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس بدنه");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "فلز آبکاری شده با رنگ کوره‌ای");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ابعاد محصول (سانتی‌متر)");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][value]"]').value, "طول ۴۴ × عرض ۳۳ × ارتفاع ۴۰ سانتی‌متر");
+});
+
+test("ordinary text paste is left untouched and a large table respects the 100-row server limit", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const ordinary = pasteClipboard(window, target, { "text/plain": "فقط یک متن معمولی" });
+  assert.equal(ordinary.defaultPrevented, false, "ordinary text keeps native paste behavior");
+  const spacedText = pasteClipboard(window, target, { "text/plain": "متن معمولی  با فاصلهٔ دوبل" });
+  assert.equal(spacedText.defaultPrevented, false, "one ambiguous line separated by spaces is not treated as a table");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 1);
+
+  const lines = ["نام ویژگی\tمقدار ویژگی"];
+  for (let index = 1; index <= 105; index += 1) {
+    lines.push("ویژگی " + index + "\tمقدار " + index);
+  }
+  const largeTable = pasteClipboard(window, target, { "text/plain": lines.join("\n") });
+  assert.equal(largeTable.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 100, "the group never exceeds the server's 100-row limit");
+  assert.match(group.querySelector('[role="status"]').textContent, /۶ ردیف/);
+});

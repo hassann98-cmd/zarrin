@@ -8142,6 +8142,32 @@ check(
 	'R271 the default product template emits no orphan PHP text and calls the modal and after-single-product hook only once'
 );
 
+// R318 — add accessible horizontal scrolling to product-description tables without changing saved content.
+$r318_description_table = '<p>متن پیش از جدول</p><table class="product-specs"><thead><tr><th>ویژگی</th><th>مقدار</th></tr></thead><tbody><tr><td>وزن</td><td>۲۵۰ گرم</td></tr></tbody></table><p>متن پس از جدول</p>';
+$r318_wrapped_table = jluxe_wrap_product_description_tables( $r318_description_table );
+check(
+	1 === substr_count( $r318_wrapped_table, 'class="jluxe-description-table-scroll"' ) &&
+	1 === substr_count( $r318_wrapped_table, 'data-jluxe-description-table="1"' ) &&
+	false !== strpos( $r318_wrapped_table, 'role="region" tabindex="0" aria-label="جدول توضیحات محصول' ) &&
+	false !== strpos( $r318_wrapped_table, '<td>۲۵۰ گرم</td>' ) &&
+	false !== strpos( $r318_wrapped_table, '<p>متن پس از جدول</p>' ),
+	'R318 product-description table wrapper is keyboard-labelled, wraps the table once, and preserves cell and surrounding content'
+);
+$r318_plain_description = '<p>بدون جدول</p>';
+check(
+	$r318_wrapped_table === jluxe_wrap_product_description_tables( $r318_wrapped_table ) &&
+	$r318_plain_description === jluxe_wrap_product_description_tables( $r318_plain_description ),
+	'R318 table wrapper is idempotent and leaves prose-only content untouched'
+);
+$r318_nested_table = '<table><tbody><tr><td>بیرونی<table><tbody><tr><td>درونی</td></tr></tbody></table></td></tr></tbody></table>';
+$r318_wrapped_nested = jluxe_wrap_product_description_tables( $r318_nested_table );
+check(
+	1 === substr_count( $r318_wrapped_nested, 'class="jluxe-description-table-scroll"' ) &&
+	2 === substr_count( $r318_wrapped_nested, '<table' ) &&
+	1 === substr_count( $r318_wrapped_nested, '</div>' ),
+	'R318 nested tables receive one outer scroll region without unbalancing their markup'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

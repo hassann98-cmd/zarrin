@@ -17,6 +17,64 @@ function jluxe_available_variations_for_form( $product ) {
 	return count( $product->get_children() ) <= $threshold ? $product->get_available_variations() : false;
 }
 
+/**
+ * Wrap product-description tables in a keyboard- and touch-scrollable region.
+ * This changes rendered markup only; the saved description and table contents
+ * remain untouched. The data marker also makes repeated the_content passes safe.
+ */
+function jluxe_wrap_product_description_tables( $content ): string {
+	if ( ! is_string( $content ) || false === stripos( $content, '<table' ) ) {
+		return is_string( $content ) ? $content : '';
+	}
+
+	$tokens = function_exists( 'wp_html_split' )
+		? wp_html_split( $content )
+		: preg_split( '/(<[^>]+>)/', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
+	if ( ! is_array( $tokens ) ) {
+		return $content;
+	}
+
+	$output           = '';
+	$table_depth      = 0;
+	$wrap_outer_table = false;
+	foreach ( $tokens as $token ) {
+		if ( preg_match( '/^<table\b/i', $token ) ) {
+			if ( 0 === $table_depth ) {
+				$wrap_outer_table = ! preg_match( '/\bdata-jluxe-description-table(?:\s|=|>)/i', $token );
+				if ( $wrap_outer_table ) {
+					$output .= '<div class="jluxe-description-table-scroll" role="region" tabindex="0" aria-label="جدول توضیحات محصول؛ برای مشاهدهٔ ستون‌های بیشتر، افقی پیمایش کنید.">';
+					$token   = preg_replace( '/^<table\b/i', '<table data-jluxe-description-table="1"', $token, 1 );
+				}
+			}
+			++$table_depth;
+			$output .= $token;
+			continue;
+		}
+
+		if ( preg_match( '/^<\/table\s*>/i', $token ) && $table_depth > 0 ) {
+			$output .= $token;
+			--$table_depth;
+			if ( 0 === $table_depth && $wrap_outer_table ) {
+				$output           .= '</div>';
+				$wrap_outer_table = false;
+			}
+			continue;
+		}
+
+		$output .= $token;
+	}
+
+	return $table_depth > 0 ? $content : $output;
+}
+
+/** Only the long product-description output uses the_content; leave every other page alone. */
+function jluxe_wrap_single_product_description_tables( $content ) {
+	if ( is_admin() || ! function_exists( 'is_product' ) || ! is_product() ) {
+		return $content;
+	}
+	return jluxe_wrap_product_description_tables( $content );
+}
+add_filter( 'the_content', 'jluxe_wrap_single_product_description_tables', 99 );
 
 /**
  * شمارشگرِ ترتیبِ رندرِ کارتِ محصول در طولِ یک درخواست — برای تشخیصِ اینکه

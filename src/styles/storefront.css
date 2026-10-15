@@ -4619,6 +4619,483 @@ body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-messag
 .jluxe-product-description :where(a) {
   color: hsl(var(--primary));
 }
+
+/* R318 — خواناییِ توضیحات کوتاه و بلند، فقط در صفحهٔ تکیِ محصول.
+   عمداً body.single-product دارد؛ کلاسِ مشترکِ .jluxe-product-description
+   در بعضی بخش‌های صفحهٔ اصلی هم استفاده می‌شود. */
+body.single-product .jluxe-product-description,
+body.single-product [data-jluxe-short-desc-text],
+body.single-product .jluxe-cp3 .cp3-descbody,
+body.single-product .jluxe-cp3 .cp3-short-body {
+  color: hsl(var(--text-secondary));
+  font-size: 14px;
+  line-height: 1.95;
+  text-align: start;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+body.single-product .jluxe-product-description p,
+body.single-product [data-jluxe-short-desc-text] p,
+body.single-product .jluxe-cp3 .cp3-descbody p,
+body.single-product .jluxe-cp3 .cp3-short-body p {
+  margin: 0 0 0.85rem;
+  line-height: inherit;
+}
+body.single-product .jluxe-product-description p:last-child,
+body.single-product [data-jluxe-short-desc-text] p:last-child,
+body.single-product .jluxe-cp3 .cp3-descbody p:last-child,
+body.single-product .jluxe-cp3 .cp3-short-body p:last-child {
+  margin-bottom: 0;
+}
+body.single-product .jluxe-product-description h2,
+body.single-product .jluxe-product-description h3,
+body.single-product .jluxe-product-description h4,
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product .jluxe-cp3 .cp3-descbody h2,
+body.single-product .jluxe-cp3 .cp3-descbody h3,
+body.single-product .jluxe-cp3 .cp3-descbody h4,
+body.single-product .jluxe-cp3 .cp3-short-body h2,
+body.single-product .jluxe-cp3 .cp3-short-body h3,
+body.single-product .jluxe-cp3 .cp3-short-body h4 {
+  margin: 1.35rem 0 0.65rem;
+  color: hsl(var(--foreground));
+  font-weight: 800;
+  line-height: 1.6;
+  text-align: start;
+}
+body.single-product .jluxe-product-description h2,
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product .jluxe-cp3 .cp3-descbody h2,
+body.single-product .jluxe-cp3 .cp3-short-body h2 {
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  border-right: 3px solid hsl(var(--primary));
+  border-radius: 8px 0 0 8px;
+  background: hsl(var(--muted));
+  font-size: 1.2rem;
+}
+body.single-product .jluxe-product-description h3,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product .jluxe-cp3 .cp3-descbody h3,
+body.single-product .jluxe-cp3 .cp3-short-body h3 {
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 1.08rem;
+}
+body.single-product .jluxe-product-description h4,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product .jluxe-cp3 .cp3-descbody h4,
+body.single-product .jluxe-cp3 .cp3-short-body h4 {
+  color: hsl(var(--primary));
+  font-size: 0.98rem;
+}
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product .jluxe-cp3 .cp3-short-body h2,
+body.single-product .jluxe-cp3 .cp3-short-body h3,
+body.single-product .jluxe-cp3 .cp3-short-body h4 {
+  margin-top: 0.45rem;
+}
+body.single-product .jluxe-product-description ul,
+body.single-product .jluxe-product-description ol,
+body.single-product [data-jluxe-short-desc-text] ul,
+body.single-product [data-jluxe-short-desc-text] ol,
+body.single-product .jluxe-cp3 .cp3-descbody ul,
+body.single-product .jluxe-cp3 .cp3-descbody ol,
+body.single-product .jluxe-cp3 .cp3-short-body ul,
+body.single-product .jluxe-cp3 .cp3-short-body ol {
+  margin: 0.65rem 0 1rem;
+  padding-right: 1.4rem;
+}
+body.single-product .jluxe-product-description li,
+body.single-product [data-jluxe-short-desc-text] li,
+body.single-product .jluxe-cp3 .cp3-descbody li,
+body.single-product .jluxe-cp3 .cp3-short-body li {
+  margin: 0.25rem 0;
+  padding-inline-start: 0.15rem;
+}
+body.single-product .jluxe-product-description strong,
+body.single-product [data-jluxe-short-desc-text] strong,
+body.single-product .jluxe-cp3 .cp3-descbody strong,
+body.single-product .jluxe-cp3 .cp3-short-body strong {
+  color: hsl(var(--foreground));
+  font-weight: 750;
+}
+body.single-product .jluxe-product-description a,
+body.single-product [data-jluxe-short-desc-text] a,
+body.single-product .jluxe-cp3 .cp3-descbody a,
+body.single-product .jluxe-cp3 .cp3-short-body a {
+  color: hsl(var(--primary));
+  text-underline-offset: 0.18em;
+  overflow-wrap: anywhere;
+}
+body.single-product .jluxe-product-description img,
+body.single-product [data-jluxe-short-desc-text] img,
+body.single-product .jluxe-cp3 .cp3-descbody img,
+body.single-product .jluxe-cp3 .cp3-short-body img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: hsl(var(--surface));
+  box-shadow: 0 7px 20px rgba(20, 16, 12, 0.08);
+}
+body.single-product .jluxe-product-description figure,
+body.single-product [data-jluxe-short-desc-text] figure,
+body.single-product .jluxe-cp3 .cp3-descbody figure,
+body.single-product .jluxe-cp3 .cp3-short-body figure {
+  max-width: 100%;
+  margin: 1rem auto;
+}
+body.single-product .jluxe-product-description figcaption,
+body.single-product [data-jluxe-short-desc-text] figcaption,
+body.single-product .jluxe-cp3 .cp3-descbody figcaption,
+body.single-product .jluxe-cp3 .cp3-short-body figcaption {
+  margin-top: 0.5rem;
+  color: hsl(var(--text-muted));
+  font-size: 0.85rem;
+  line-height: 1.7;
+  text-align: center;
+}
+body.single-product .jluxe-description-table-scroll {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 1.1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--surface));
+  box-shadow: 0 5px 16px rgba(20, 16, 12, 0.05);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+  scrollbar-width: thin;
+}
+body.single-product .jluxe-description-table-scroll:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+body.single-product .jluxe-description-table-scroll > table,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table {
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.9rem;
+  line-height: 1.75;
+  text-align: start;
+}
+body.single-product .jluxe-description-table-scroll th,
+body.single-product .jluxe-description-table-scroll td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll td {
+  min-width: 7rem;
+  padding: 0.7rem 0.85rem;
+  border: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  line-height: 1.75;
+  text-align: start;
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+body.single-product .jluxe-description-table-scroll thead th,
+body.single-product .jluxe-description-table-scroll > table > tr:first-child > th,
+body.single-product .jluxe-description-table-scroll > table > tbody > tr:first-child > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll thead th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tr:first-child > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tbody > tr:first-child > th {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 800;
+}
+body.single-product .jluxe-description-table-scroll tbody th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody th {
+  background: hsl(var(--primary) / 0.08);
+  font-weight: 700;
+}
+body.single-product .jluxe-description-table-scroll tbody tr:nth-child(even),
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.62);
+}
+body.single-product .jluxe-description-table-scroll tbody tr:last-child > th,
+body.single-product .jluxe-description-table-scroll tbody tr:last-child > td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:last-child > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:last-child > td {
+  border-bottom: 0;
+}
+body.single-product .jluxe-description-table-scroll caption,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll caption {
+  padding: 0.75rem 0.9rem;
+  color: hsl(var(--text-secondary));
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: start;
+}
+body.single-product .jluxe-description-table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-track {
+  border-radius: 8px;
+  background: hsl(var(--muted));
+}
+body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid hsl(var(--muted));
+  border-radius: 8px;
+  background: hsl(var(--primary));
+}
+@media (hover: hover) and (pointer: fine) {
+  body.single-product .jluxe-description-table-scroll tbody tr:hover,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:hover {
+    background: hsl(var(--primary) / 0.08);
+  }
+}
+@media (max-width: 600px) {
+  body.single-product .jluxe-product-description,
+  body.single-product [data-jluxe-short-desc-text],
+  body.single-product .jluxe-cp3 .cp3-descbody,
+  body.single-product .jluxe-cp3 .cp3-short-body {
+    font-size: 13.5px;
+    line-height: 1.9;
+  }
+  body.single-product .jluxe-product-description img,
+  body.single-product [data-jluxe-short-desc-text] img,
+  body.single-product .jluxe-cp3 .cp3-descbody img,
+  body.single-product .jluxe-cp3 .cp3-short-body img {
+    margin: 0.8rem auto;
+    border-radius: 12px;
+  }
+  body.single-product .jluxe-description-table-scroll th,
+  body.single-product .jluxe-description-table-scroll td,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll th,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll td {
+    min-width: 6.5rem;
+    padding: 0.6rem 0.7rem;
+    font-size: 13px;
+  }
+  body.single-product .jluxe-product-description h2,
+  body.single-product [data-jluxe-short-desc-text] h2,
+  body.single-product .jluxe-cp3 .cp3-descbody h2,
+  body.single-product .jluxe-cp3 .cp3-short-body h2 {
+    font-size: 1.08rem;
+  }
+}
+
+/* R319 — گالری‌های ساخته‌شده داخلِ توضیحات محصول (بلوک، گالری کلاسیک و shortcode). */
+body.single-product .jluxe-product-description-content .wp-block-gallery,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid,
+body.single-product .jluxe-product-description-content .gallery {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.25rem 0;
+  padding: 0;
+  direction: rtl;
+  list-style: none;
+  text-align: start;
+}
+body.single-product .jluxe-product-description-content .wp-block-gallery > .blocks-gallery-grid {
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+body.single-product .jluxe-product-description-content .wp-block-gallery > .wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images > figure.wp-block-image,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid > .blocks-gallery-item,
+body.single-product .jluxe-product-description-content .wp-block-gallery > .blocks-gallery-item,
+body.single-product .jluxe-product-description-content .gallery > .gallery-item {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 calc(33.333% - 12px);
+  flex-direction: column;
+  align-items: stretch;
+  width: calc(33.333% - 12px);
+  min-width: 0;
+  max-width: none;
+  margin: 6px;
+  padding: 0;
+  float: none;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: hsl(var(--surface));
+  box-shadow: 0 7px 20px rgba(20, 16, 12, 0.07);
+  vertical-align: top;
+}
+body.single-product .jluxe-product-description-content .blocks-gallery-item > figure,
+body.single-product .jluxe-product-description-content .gallery-item > dt,
+body.single-product .jluxe-product-description-content .gallery-item > .gallery-icon {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px;
+  background: hsl(var(--panel));
+  text-align: center;
+}
+body.single-product .jluxe-product-description-content .gallery-item > dt.gallery-icon {
+  margin: 0;
+}
+body.single-product .jluxe-product-description-content .wp-block-gallery a,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid a,
+body.single-product .jluxe-product-description-content .gallery a {
+  display: block;
+  width: 100%;
+  color: inherit;
+  line-height: 0;
+  text-decoration: none;
+}
+body.single-product .jluxe-product-description-content .wp-block-gallery img,
+body.single-product .jluxe-product-description-content .wp-block-gallery.is-cropped img,
+body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images figure.wp-block-image img,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid img,
+body.single-product .jluxe-product-description-content .gallery img {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: hsl(var(--panel));
+  box-shadow: none;
+  object-fit: contain;
+}
+body.single-product .jluxe-product-description-content .gallery-icon img {
+  padding: 0;
+  border-radius: 10px;
+}
+body.single-product .jluxe-product-description-content .wp-block-gallery figcaption,
+body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images figure.wp-block-image figcaption,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid figcaption,
+body.single-product .jluxe-product-description-content .gallery figcaption,
+body.single-product .jluxe-product-description-content .wp-element-caption,
+body.single-product .jluxe-product-description-content .blocks-gallery-item__caption,
+body.single-product .jluxe-product-description-content .gallery-caption,
+body.single-product .jluxe-product-description-content .wp-caption-text {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+  border-radius: 0;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.75;
+  text-align: center;
+  text-shadow: none;
+  overflow-wrap: anywhere;
+}
+body.single-product .jluxe-product-description-content .gallery-columns-1 > .gallery-item,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > .wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > figure.wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > .blocks-gallery-grid > .blocks-gallery-item {
+  flex-basis: calc(100% - 12px);
+  width: calc(100% - 12px);
+}
+body.single-product .jluxe-product-description-content .gallery-columns-2 > .gallery-item,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-2 > .wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-2 > figure.wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-2 > .blocks-gallery-grid > .blocks-gallery-item {
+  flex-basis: calc(50% - 12px);
+  width: calc(50% - 12px);
+}
+body.single-product .jluxe-product-description-content .gallery-columns-4 > .gallery-item,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > .wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > figure.wp-block-image,
+body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > .blocks-gallery-grid > .blocks-gallery-item {
+  flex-basis: calc(25% - 12px);
+  width: calc(25% - 12px);
+}
+body.single-product [data-jluxe-short-desc-text] .wp-block-gallery > .wp-block-image,
+body.single-product [data-jluxe-short-desc-text] .wp-block-gallery.has-nested-images > figure.wp-block-image,
+body.single-product [data-jluxe-short-desc-text] .blocks-gallery-grid > .blocks-gallery-item,
+body.single-product [data-jluxe-short-desc-text] .wp-block-gallery > .blocks-gallery-item,
+body.single-product [data-jluxe-short-desc-text] .gallery > .gallery-item,
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery > .wp-block-image,
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery.has-nested-images > figure.wp-block-image,
+body.single-product .jluxe-cp3 .cp3-short-body .blocks-gallery-grid > .blocks-gallery-item,
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery > .blocks-gallery-item,
+body.single-product .jluxe-cp3 .cp3-short-body .gallery > .gallery-item {
+  flex-basis: calc(50% - 12px);
+  width: calc(50% - 12px);
+}
+@media (max-width: 600px) {
+  body.single-product .jluxe-product-description-content .wp-block-gallery > .wp-block-image,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images > figure.wp-block-image,
+  body.single-product .jluxe-product-description-content .blocks-gallery-grid > .blocks-gallery-item,
+  body.single-product .jluxe-product-description-content .wp-block-gallery > .blocks-gallery-item,
+  body.single-product .jluxe-product-description-content .gallery > .gallery-item {
+    flex-basis: calc(50% - 12px);
+    width: calc(50% - 12px);
+    margin: 6px;
+    border-radius: 13px;
+  }
+  body.single-product .jluxe-product-description-content .gallery-columns-4 > .gallery-item,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > .wp-block-image,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > figure.wp-block-image,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-4 > .blocks-gallery-grid > .blocks-gallery-item {
+    flex-basis: calc(50% - 12px);
+    width: calc(50% - 12px);
+  }
+  body.single-product .jluxe-product-description-content .gallery-columns-1 > .gallery-item,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > .wp-block-image,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > figure.wp-block-image,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.columns-1 > .blocks-gallery-grid > .blocks-gallery-item {
+    flex-basis: calc(100% - 12px);
+    width: calc(100% - 12px);
+  }
+  body.single-product .jluxe-product-description-content .wp-block-gallery img,
+  body.single-product .jluxe-product-description-content .blocks-gallery-grid img,
+  body.single-product .jluxe-product-description-content .gallery img {
+    padding: 6px;
+  }
+  body.single-product .jluxe-product-description-content .wp-block-gallery figcaption,
+  body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images figure.wp-block-image figcaption,
+  body.single-product .jluxe-product-description-content .blocks-gallery-grid figcaption,
+  body.single-product .jluxe-product-description-content .gallery figcaption,
+  body.single-product .jluxe-product-description-content .wp-element-caption,
+  body.single-product .jluxe-product-description-content .blocks-gallery-item__caption,
+  body.single-product .jluxe-product-description-content .gallery-caption,
+  body.single-product .jluxe-product-description-content .wp-caption-text {
+    padding: 9px 10px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+}
 /* ── R66: فرمِ دیدگاه — کارتِ گرد، امتیازِ ستاره‌ای واقعی، ورودی‌های نرم ── */
 #review_form .comment-reply-title {
   display: block;

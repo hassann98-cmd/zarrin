@@ -219,7 +219,7 @@ if ( $jluxe_is_variable ) {
 				if ( $jluxe_short_desc ) :
 					?>
 					<div class="mt-4" data-jluxe-short-desc>
-						<div class="jluxe-clamp-3 text-[13px] leading-6 text-text-secondary" data-jluxe-short-desc-text><?php echo wp_kses_post( wpautop( $jluxe_short_desc ) ); ?></div>
+						<div class="jluxe-clamp-3 text-[13px] leading-6 text-text-secondary" data-jluxe-short-desc-text><?php echo jluxe_wrap_product_description_tables( wp_kses_post( wpautop( $jluxe_short_desc ) ) ); ?></div>
 						<button type="button" class="mt-1.5 hidden text-[12.5px] font-semibold text-primary hover:text-primary-hover" data-jluxe-short-desc-toggle>بیشتر</button>
 					</div>
 				<?php endif; ?>
@@ -337,7 +337,7 @@ if ( $jluxe_is_variable ) {
 				معرفی محصول
 			</h2>
 			<div class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-				<div class="jluxe-product-description w-full space-y-3 text-justify text-[13.5px] leading-7 text-text-secondary">
+				<div class="jluxe-product-description jluxe-product-description-content w-full space-y-3 text-justify text-[13.5px] leading-7 text-text-secondary">
 					<?php the_content(); ?>
 				</div>
 			</div>

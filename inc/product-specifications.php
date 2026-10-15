@@ -110,6 +110,7 @@ function jluxe_render_product_specifications_meta_box( WP_Post $post ): void {
 		@media screen and (max-width: 782px) { .jluxe-spec-group-header { align-items: stretch; flex-direction: column; } .jluxe-spec-row { grid-template-columns: 1fr; } }
 	</style>
 	<p class="description">گروه‌ها و ویژگی‌های Boom قدیمی برای شروع در این فرم بارگذاری می‌شوند. ذخیرهٔ تغییرات فقط override پوسته را می‌نویسد و متای اصلی Boom را دست‌نخورده نگه می‌دارد؛ خالی‌کردن فرم هم به‌عنوان حذف همهٔ گروه‌ها ثبت می‌شود. ویژگی‌های تب «ویژگی‌ها»ی ووکامرس جدا هستند و این فرم آن‌ها را تغییر نمی‌دهد.</p>
+	<p class="description">برای ورود یک‌جای مشخصات، داخل یکی از کادرهای «نام ویژگی» یا «مقدار ویژگی» کلیک کنید و جدول دو ستونه را جای‌گذاری کنید. جدول HTML، متن تب‌دار و Markdown پشتیبانی می‌شوند؛ ردیف‌های قبلی حفظ می‌شوند و ردیف‌های تازه به همان گروه اضافه می‌شوند.</p>
 	<?php wp_nonce_field( 'jluxe_product_specifications_save', 'jluxe_product_specifications_nonce' ); ?>
 	<input type="hidden" name="jluxe_product_specs_present" value="1" />
 	<div id="jluxe-product-spec-groups" data-next-group-index="<?php echo esc_attr( (string) count( $groups ) ); ?>">
