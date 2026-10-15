@@ -2099,13 +2099,13 @@ function jluxe_render_attribute_swatches_html( array $swatches, string $attribut
  *
  * @return array<int, array{title: string, items: array<int, array{label: string, value: string}>}>
  */
-function jluxe_get_product_advanced_attribute_groups( int $product_id ): array {
+function jluxe_get_product_advanced_attribute_groups( int $product_id, bool $use_legacy_boom_meta = false ): array {
 	$product_id = absint( $product_id );
 	if ( $product_id < 1 ) {
 		return array();
 	}
 
-	$has_theme_override = '1' === (string) get_post_meta( $product_id, '_jluxe_product_advanced_attributes_override', true );
+	$has_theme_override = ! $use_legacy_boom_meta && '1' === (string) get_post_meta( $product_id, '_jluxe_product_advanced_attributes_override', true );
 	$meta_key           = $has_theme_override ? '_jluxe_product_advanced_attributes' : '_boom_advanced_attributes';
 	$stored             = get_post_meta( $product_id, $meta_key, true );
 	$data   = null;
@@ -2203,6 +2203,9 @@ function jluxe_get_additional_product_specification_rows( WC_Product $product, a
 	foreach ( (array) $product->get_attributes() as $attribute ) {
 		if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
 			continue;
+		}
+		if ( function_exists( 'jluxe_is_grouped_specification_export_attribute' ) && jluxe_is_grouped_specification_export_attribute( $product, $attribute ) ) {
+			continue; // این ردیف در گروه‌های اصلی چاپ می‌شود؛ در «سایر مشخصات» تکرار نشود.
 		}
 		if ( method_exists( $attribute, 'get_visible' ) && ! $attribute->get_visible() ) {
 			continue;

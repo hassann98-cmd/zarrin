@@ -360,13 +360,32 @@ class JsonReply extends RuntimeException {
  public $success;public $data;public $status;
  function __construct($success,$data,$status){parent::__construct('JSON response');$this->success=$success;$this->data=$data;$this->status=$status;}
 }
+class WC_Product_Attribute {
+ private $id=0; private $name=''; private $options=[]; private $position=0; private $visible=false; private $variation=false;
+ function set_id($value){$this->id=(int)$value;}
+ function get_id(){return $this->id;}
+ function set_name($value){$this->name=(string)$value;}
+ function get_name(){return $this->name;}
+ function set_options($value){$this->options=(array)$value;}
+ function get_options(){return $this->options;}
+ function set_position($value){$this->position=(int)$value;}
+ function get_position(){return $this->position;}
+ function set_visible($value){$this->visible=(bool)$value;}
+ function get_visible(){return $this->visible;}
+ function set_variation($value){$this->variation=(bool)$value;}
+ function get_variation(){return $this->variation;}
+ function is_taxonomy(){return $this->id>0;}
+}
 class WC_Product {
- public $id;public $type='simple';public $status='publish';public $visibility='visible';public $sold=false;public $stock=20;public $manage_stock=false;public $parent=0;public $children=[];public $variationCalls=0;public $meta=[];public $image_id=0;
+ public $id;public $type='simple';public $status='publish';public $visibility='visible';public $sold=false;public $stock=20;public $manage_stock=false;public $parent=0;public $children=[];public $variationCalls=0;public $meta=[];public $image_id=0;public $attributes=[];public $save_count=0;
  function __construct($id){$this->id=$id;}
  function exists(){return true;}
  function get_id(){return $this->id;}
  function update_meta_data($key,$value){$this->meta[$key]=$value;}
  function delete_meta_data($key){unset($this->meta[$key]);}
+ function get_meta($key,$single=true){return array_key_exists($key,$this->meta)?$this->meta[$key]:get_post_meta($this->id,$key,$single);}
+ function save(){++$this->save_count;$GLOBALS['product_attributes'][$this->id]=$this->attributes?:($GLOBALS['product_attributes'][$this->id]??[]);foreach($this->meta as $key=>$value)$GLOBALS['post_meta'][$this->id][$key]=$value;return $this->id;}
+ function set_attributes($attributes){$this->attributes=(array)$attributes;$GLOBALS['product_attributes'][$this->id]=$this->attributes;}
  function is_type($type){return is_array($type)?in_array($this->type,$type):$this->type===$type;}
  function get_status(){return $this->status;}
  function get_catalog_visibility(){return $this->visibility;}

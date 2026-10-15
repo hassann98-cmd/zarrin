@@ -7930,11 +7930,171 @@ check(
 	'شیء' === ( $r272_object->meta['_jluxe_product_advanced_attributes'][0]['items'][0]['value'] ?? '' ),
 	'R272 WooCommerce product-object saves persist grouped specification overrides'
 );
+$r272_object_attributes = $r272_object->get_attributes();
+$r272_export_attribute = null;
+foreach ( $r272_object_attributes as $r272_attribute ) {
+	if ( is_object( $r272_attribute ) && method_exists( $r272_attribute, 'get_name' ) && 'مدل' === $r272_attribute->get_name() ) {
+		$r272_export_attribute = $r272_attribute;
+		break;
+	}
+}
+check(
+	$r272_export_attribute instanceof WC_Product_Attribute &&
+	array( 'شیء' ) === $r272_export_attribute->get_options() &&
+	true === $r272_export_attribute->get_visible() &&
+	false === $r272_export_attribute->get_variation(),
+	'R320 grouped specifications are mirrored as visible, non-variation WooCommerce attributes for standard exports'
+);
 $_POST = $r272_previous_post;
 if ( null === $r272_previous_nonce ) {
 	unset( $GLOBALS['valid_wp_nonce'] );
 } else {
 	$GLOBALS['valid_wp_nonce'] = $r272_previous_nonce;
+}
+
+// R320 — make grouped legacy/theme specifications available as normal WooCommerce attributes for transfer tools.
+$r320_previous_post  = $_POST;
+$r320_previous_nonce = $GLOBALS['valid_wp_nonce'] ?? null;
+$GLOBALS['valid_wp_nonce'] = true;
+$r320_id = 94320;
+$r320_groups = array(
+	array(
+		'title' => 'مشخصات',
+		'items' => array(
+			array( 'label' => 'برند سازنده', 'value' => 'عروس نوین' ),
+			array( 'label' => 'مدل محصول', 'value' => 'هرمس (۱.۵ طبقه)' ),
+			array( 'label' => 'جنس بدنه', 'value' => 'فلز آبکاری شده با رنگ کوره‌ای' ),
+		),
+	),
+);
+$r320_boom_snapshot = $r320_groups;
+$GLOBALS['post_meta'][ $r320_id ]['_boom_advanced_attributes'] = $r320_groups;
+$r320_product = new WC_Product( $r320_id );
+$GLOBALS['products'][ $r320_id ] = $r320_product;
+$r320_manual_attribute = $r269_attribute_factory( 'برند سازنده', array( 'برند دستی' ) );
+$r320_other_attribute  = $r269_attribute_factory( 'وزن', array( '2 کیلوگرم' ) );
+$GLOBALS['product_attributes'][ $r320_id ] = array(
+	'manual-brand' => $r320_manual_attribute,
+	'manual-weight' => $r320_other_attribute,
+);
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+	'jluxe_product_specs' => $r320_groups,
+);
+jluxe_save_product_specifications_meta_object( $r320_product );
+$r320_export_attributes = $r320_product->get_attributes();
+$r320_find_attribute = static function ( array $attributes, string $name ) {
+	foreach ( $attributes as $attribute ) {
+		if ( is_object( $attribute ) && method_exists( $attribute, 'get_name' ) && $name === $attribute->get_name() ) {
+			return $attribute;
+		}
+	}
+	return null;
+};
+$r320_model_attribute = $r320_find_attribute( $r320_export_attributes, 'مدل محصول' );
+$r320_collision_attribute = $r320_find_attribute( $r320_export_attributes, 'مشخصات — برند سازنده' );
+$r320_additional_rows = jluxe_get_additional_product_specification_rows( $r320_product, $r320_groups );
+check(
+	$r320_export_attributes['manual-brand'] === $r320_manual_attribute &&
+	array( 'برند دستی' ) === $r320_manual_attribute->get_options() &&
+	$r320_export_attributes['manual-weight'] === $r320_other_attribute &&
+	$r320_model_attribute instanceof WC_Product_Attribute &&
+	array( 'هرمس (۱.۵ طبقه)' ) === $r320_model_attribute->get_options() &&
+	true === $r320_model_attribute->get_visible() && false === $r320_model_attribute->get_variation() &&
+	$r320_collision_attribute instanceof WC_Product_Attribute &&
+	array( 'عروس نوین' ) === $r320_collision_attribute->get_options() &&
+	1 === count( $r320_additional_rows ) && 'وزن' === $r320_additional_rows[0]['label'] &&
+	$r320_boom_snapshot === $GLOBALS['post_meta'][ $r320_id ]['_boom_advanced_attributes'],
+	'R320 export copies every grouped value into visible standard attributes without overwriting same-label manual data or mutating Boom'
+);
+$_POST['jluxe_product_specs'][0]['items'][1]['value'] = 'هرمس مدل اصلاح‌شده';
+jluxe_save_product_specifications_meta_object( $r320_product );
+$r320_updated_attributes = $r320_product->get_attributes();
+$r320_updated_model = $r320_find_attribute( $r320_updated_attributes, 'مدل محصول' );
+check(
+	$r320_updated_model instanceof WC_Product_Attribute && array( 'هرمس مدل اصلاح‌شده' ) === $r320_updated_model->get_options() &&
+	1 === count( array_filter( $r320_updated_attributes, static function ( $attribute ) use ( $r320_find_attribute ) { return is_object( $attribute ) && method_exists( $attribute, 'get_name' ) && 'مدل محصول' === $attribute->get_name(); } ) ),
+	'R320 repeated product saves refresh generated export attributes instead of accumulating stale duplicate values'
+);
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+);
+jluxe_save_product_specifications_meta_object( $r320_product );
+$r320_cleared_attributes = $r320_product->get_attributes();
+check(
+	2 === count( $r320_cleared_attributes ) &&
+	$r320_cleared_attributes['manual-weight'] === $r320_other_attribute &&
+	$r320_cleared_attributes['manual-brand'] === $r320_manual_attribute &&
+	array() === ( $r320_product->meta['_jluxe_product_advanced_attributes'] ?? null ),
+	'R320 clearing grouped rows removes only unchanged generated export attributes and keeps manual attributes intact'
+);
+$GLOBALS['post_meta'][ $r320_id ]['_boom_advanced_attributes'] = $r320_boom_snapshot;
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'spec-nonce',
+	'jluxe_product_specs_restore_boom' => '1',
+);
+jluxe_save_product_specifications_meta_object( $r320_product );
+$r320_restored_attributes = $r320_product->get_attributes();
+check(
+	! isset( $r320_product->meta['_jluxe_product_advanced_attributes_override'] ) &&
+	$r320_find_attribute( $r320_restored_attributes, 'مدل محصول' ) instanceof WC_Product_Attribute &&
+	$r320_boom_snapshot === $GLOBALS['post_meta'][ $r320_id ]['_boom_advanced_attributes'],
+	'R320 restoring Boom also re-exports the original legacy values without rewriting their source metadata'
+);
+$r320_before_invalid_attributes = $r320_product->get_attributes();
+$r320_before_invalid_meta = $r320_product->meta;
+$_POST = array(
+	'jluxe_product_specs_present' => '1',
+	'jluxe_product_specifications_nonce' => 'invalid',
+	'jluxe_product_specs' => array( array( 'title' => 'دستکاری', 'items' => array( array( 'label' => 'مخفی', 'value' => 'نباید ذخیره شود' ) ) ) ),
+);
+$GLOBALS['valid_wp_nonce'] = false;
+jluxe_save_product_specifications_meta_object( $r320_product );
+check(
+	$r320_before_invalid_attributes === $r320_product->get_attributes() && $r320_before_invalid_meta === $r320_product->meta,
+	'R320 invalid specification nonces cannot create export attributes or alter product metadata'
+);
+$GLOBALS['valid_wp_nonce'] = true;
+
+$r320_bulk_id = 94321;
+$GLOBALS['post_meta'][ $r320_bulk_id ]['_boom_advanced_attributes'] = array(
+	array( 'title' => 'مشخصات', 'items' => array( array( 'label' => 'جنس دسته', 'value' => 'چوب مقاوم رابر' ) ) ),
+);
+$r320_bulk_product = new WC_Product( $r320_bulk_id );
+$GLOBALS['products'][ $r320_bulk_id ] = $r320_bulk_product;
+$GLOBALS['product_attributes'][ $r320_bulk_id ] = array();
+$r320_bulk_menu = jluxe_add_product_specifications_bulk_action( array() );
+$r320_bulk_redirect = jluxe_handle_product_specifications_bulk_action(
+	'/wp-admin/edit.php?post_type=product',
+	'jluxe_sync_product_specs_for_export',
+	array( $r320_bulk_id, $r320_bulk_id, 0 )
+);
+$r320_bulk_attribute = $r320_find_attribute( $r320_bulk_product->get_attributes(), 'جنس دسته' );
+$registered_bulk_filters = array_map( static function ( $filter ) { return $filter[0] ?? ''; }, $GLOBALS['filters'] ?? array() );
+check(
+	'همگام‌سازی مشخصات برای انتقال' === ( $r320_bulk_menu['jluxe_sync_product_specs_for_export'] ?? '' ) &&
+	false !== strpos( $r320_bulk_redirect, 'jluxe_product_specs_transfer_synced=1' ) &&
+	$r320_bulk_attribute instanceof WC_Product_Attribute && array( 'چوب مقاوم رابر' ) === $r320_bulk_attribute->get_options() &&
+	1 === $r320_bulk_product->save_count &&
+	in_array( 'bulk_actions-edit-product', $registered_bulk_filters, true ) &&
+	in_array( 'handle_bulk_actions-edit-product', $registered_bulk_filters, true ),
+	'R320 product-list bulk action batch-syncs existing Boom specs into transferable WooCommerce attributes'
+);
+$GLOBALS['denied_caps'][] = 'edit_products';
+$r320_denied_redirect = jluxe_handle_product_specifications_bulk_action( '/products', 'jluxe_sync_product_specs_for_export', array( $r320_bulk_id ) );
+array_pop( $GLOBALS['denied_caps'] );
+check(
+	'/products' === $r320_denied_redirect,
+	'R320 bulk specification export requires WooCommerce product-edit permission'
+);
+$_POST = $r320_previous_post;
+if ( null === $r320_previous_nonce ) {
+	unset( $GLOBALS['valid_wp_nonce'] );
+} else {
+	$GLOBALS['valid_wp_nonce'] = $r320_previous_nonce;
 }
 
 // R270 — read legacy Boom FAQs without changing either metadata key.

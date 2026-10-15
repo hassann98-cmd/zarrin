@@ -36,6 +36,7 @@ if ( ! function_exists( 'wc_get_product_id_by_sku' ) ) {
 	function wc_get_product_id_by_sku( $sku ) { return (int) ( $GLOBALS['product_manager_sku_map'][ (string) $sku ] ?? 0 ); }
 }
 
+if ( ! class_exists( 'WC_Product_Attribute' ) ) {
 class WC_Product_Attribute {
 	private $id = 0;
 	private $name = '';
@@ -57,6 +58,7 @@ class WC_Product_Attribute {
 	public function set_variation( $value ) { $this->variation = (bool) $value; }
 	public function get_variation() { return $this->variation; }
 	public function is_taxonomy() { return $this->id > 0; }
+}
 }
 
 class WC_Product_Variable {

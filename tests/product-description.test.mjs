@@ -25,14 +25,26 @@ test("R318 description typography and media styling is limited to single product
   assert.match(r318Css, /max-width:\s*100%;[\s\S]*?height:\s*auto;/, "images stay within their content column");
 });
 
-test("R318 tables use accessible horizontal scrolling and readable striped rows", () => {
+test("R318 tables use accessible horizontal scrolling, readable stripes, and a distinct first/header row", () => {
   assert.match(r318Css, /\.jluxe-description-table-scroll\s*\{[\s\S]*?overflow-x:\s*auto;/);
   assert.match(r318Css, /-webkit-overflow-scrolling:\s*touch;/, "older iOS gets momentum scrolling");
   assert.match(r318Css, /nth-child\(even\)/, "alternating table rows are visually distinct");
-  assert.match(r318Css, /thead th[\s\S]*?background:\s*hsl\(var\(--primary\)\)/, "table headings use the theme's high-contrast primary color");
+  assert.match(r318Css, /thead > tr > td/, "table headers remain distinct when editors output td rather than th");
+  assert.match(r318Css, /tbody:first-child > tr:first-child > td/, "the first row is styled even without a thead element");
+  assert.match(r318Css, /background:\s*hsl\(var\(--primary\)\s*\/\s*0\.12\)/, "the heading row gets a soft contrasting background");
+  assert.match(r318Css, /border-bottom:\s*2px solid hsl\(var\(--primary\)\s*\/\s*0\.4\)/, "the header boundary is clear without coloring its text");
   assert.match(woocommerce, /role="region" tabindex="0" aria-label="جدول توضیحات محصول/);
   assert.match(woocommerce, /add_filter\( 'the_content', 'jluxe_wrap_single_product_description_tables', 99 \)/);
   assert.match(woocommerce, /! function_exists\( 'is_product' \) \|\| ! is_product\(\)/, "long-description wrapping is skipped outside product pages");
+});
+
+test("R320 description headings use neutral text and consistent heading-to-paragraph spacing", () => {
+  assert.match(r318Css, /margin:\s*1\.35rem 0 0\.55rem;/, "headings have a consistent gap before the following text");
+  assert.match(r318Css, /margin:\s*0 0 1rem;/, "paragraphs have a readable, predictable vertical rhythm");
+  const headingRule = r318Css.match(/body\.single-product \.jluxe-product-description h2,[\s\S]*?body\.single-product \.jluxe-cp3 \.cp3-short-body h4\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(headingRule, /color:\s*hsl\(var\(--foreground\)\)/, "heading text remains neutral and readable");
+  assert.doesNotMatch(headingRule, /var\(--primary\)/, "decorative accent colors are not applied to description heading text");
+  assert.match(r318Css, /body\.single-product \.jluxe-product-description a,[\s\S]*?\{[^}]*color:\s*inherit;/, "description links keep the surrounding neutral text color and remain underlined");
 });
 
 test("R318 short descriptions get the same responsive table wrapper in all three templates", () => {
@@ -46,21 +58,31 @@ test("R318 short descriptions get the same responsive table wrapper in all three
   }
 });
 
-test("R319 WordPress block and shortcode galleries use polished cards with visible captions", () => {
-  const r319Css = css.split("/* R319 —")[1]?.split("/* ── R66:")[0] ?? "";
-  assert.ok(r319Css, "the R319 gallery stylesheet block exists");
-  for (const selector of ["body.single-product", ".jluxe-product-description-content", ".wp-block-gallery", ".blocks-gallery-grid", ".gallery > .gallery-item"]) {
-    assert.ok(r319Css.includes(selector), `gallery styling covers ${selector} in product descriptions only`);
+test("R320 block and shortcode galleries preserve chosen image size and honor all column settings", () => {
+  const r320Css = css.split("/* R320 —")[1]?.split("/* ── R66:")[0] ?? "";
+  assert.ok(r320Css, "the R320 gallery stylesheet block exists");
+  for (const selector of ["body.single-product", ".jluxe-product-description-content", "[data-jluxe-short-desc-text]", ".wp-block-gallery", ".blocks-gallery-grid", ".gallery > .gallery-item"]) {
+    assert.ok(r320Css.includes(selector), `gallery styling covers ${selector} only inside product descriptions`);
   }
-  assert.match(r319Css, /box-sizing:\s*border-box;/, "gallery images and captions stay inside their cards");
-  assert.match(r319Css, /height:\s*auto;/, "gallery images retain their full intrinsic proportions");
-  assert.match(r319Css, /object-fit:\s*contain;/, "gallery images use the non-cropped contain fit");
-  assert.match(r319Css, /\.gallery-caption/);
-  assert.match(r319Css, /\.wp-element-caption/);
-  assert.match(r319Css, /position:\s*static;/, "block captions stay readable below the image instead of overlaying it");
-  assert.match(r319Css, /@media \(max-width: 600px\)/, "gallery cards adapt to narrow mobile screens");
-  const mobileGalleryCss = r319Css.split("@media (max-width: 600px)")[1] ?? "";
+  assert.match(r320Css, /box-sizing:\s*border-box;/, "gallery images and captions stay inside their cards");
+  assert.match(r320Css, /height:\s*auto;/, "gallery images retain their full intrinsic proportions");
+  assert.match(r320Css, /object-fit:\s*contain;/, "gallery images never use a crop fit");
+  const imageRule = r320Css.match(/body\.single-product \.jluxe-product-description-content \.wp-block-gallery img,[\s\S]*?\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(imageRule, /width:\s*auto;/, "WordPress thumbnail/medium/large/full image dimensions are not stretched to fill a card");
+  assert.match(imageRule, /max-width:\s*100%;/, "larger image sizes shrink only when their responsive card requires it");
+  assert.doesNotMatch(imageRule, /^\s*width:\s*100%;/m, "the gallery does not replace the editor-selected image size");
+  assert.match(r320Css, /\.gallery-caption/);
+  assert.match(r320Css, /\.wp-element-caption/);
+  assert.match(r320Css, /position:\s*static;/, "block captions stay readable below the image instead of overlaying it");
+  for (let columns = 1; columns <= 9; columns += 1) {
+    assert.ok(r320Css.includes(`.wp-block-gallery.columns-${columns}`), `Gutenberg ${columns}-column settings are honored on wider screens`);
+    assert.ok(r320Css.includes(`.gallery-columns-${columns}`), `shortcode ${columns}-column settings are honored on wider screens`);
+  }
+  assert.match(r320Css, /@media \(min-width: 601px\) and \(max-width: 900px\)/, "tablet galleries avoid overly narrow high-column layouts");
+  assert.match(r320Css, /@media \(max-width: 600px\)/, "gallery cards adapt to narrow mobile screens");
+  const mobileGalleryCss = r320Css.split("@media (max-width: 600px)")[1] ?? "";
   assert.match(mobileGalleryCss, /gallery-columns-4[\s\S]*?flex-basis:\s*calc\(50% - 12px\)/, "four-column galleries become readable two-column layouts on phones");
+  assert.match(mobileGalleryCss, /gallery-columns-1[\s\S]*?flex-basis:\s*calc\(100% - 12px\)/, "one-column galleries remain one column on phones");
 
   for (const [index, template] of productTemplates.entries()) {
     assert.match(template, /jluxe-product-description-content/, `template ${index + 1} exposes the shared scoped description class`);
