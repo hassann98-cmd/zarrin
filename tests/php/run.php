@@ -1125,7 +1125,7 @@ check(
 	false !== strpos( $r238_reference_tpl, 'زمان ارسال:' ) &&
 	false === strpos( $r238_reference_tpl, 'نحوهٔ ارسال:' ) &&
 	false === strpos( $r238_reference_tpl, 'is-three-compact' ) &&
-	false !== strpos( $r238_reference_tpl, 'reference-key-features__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ),
+	false !== strpos( $r238_reference_tpl, 'reference-key-features__grid{display:flex;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ),
 	'R246 Reference labels mobile delivery time correctly and keeps feature cards in two columns without the compact three-column mode'
 );
 check(
@@ -1364,16 +1364,17 @@ $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'] = 'no';
 $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] = array( 'capacity' );
 $r246_automatic_cards = jluxe_product_key_feature_cards( $r240_product );
 check(
-	array( 'product_brand', 'pa_color', 'material', 'warranty', 'capacity' ) === array_column( $r246_automatic_cards, 'name' ),
-	'R246 cards ignore legacy manual-selection metadata, show every visible variation attribute, and retain the first three regular attributes after the brand'
+	4 === count( $r246_automatic_cards ) &&
+	array( 'product_brand', 'pa_color', 'material', 'warranty' ) === array_column( $r246_automatic_cards, 'name' ),
+	'R336 cards keep the brand and only the first three non-brand features, prioritizing variation attributes over regular attributes'
 );
-check( 'زرین' === ( $r246_automatic_cards[0]['value'] ?? '' ), 'R246 brand card reads its value from the assigned product_brand taxonomy term' );
+check( 'زرین' === ( $r246_automatic_cards[0]['value'] ?? '' ), 'R237 brand card reads its value from the assigned product_brand taxonomy term' );
 check(
 	'سرمه‌ای' === ( $r246_automatic_cards[1]['value'] ?? '' ) &&
 	'چرم، پارچه' === ( $r246_automatic_cards[2]['value'] ?? '' ) &&
 	'۱۸ ماه' === ( $r246_automatic_cards[3]['value'] ?? '' ) &&
-	'۵ لیتر' === ( $r246_automatic_cards[4]['value'] ?? '' ),
-	'R246 variation and regular attribute cards resolve taxonomy term names and preserve custom values'
+	! isset( $r246_automatic_cards[4] ),
+	'R336 the three selected product features retain their values and the fourth feature is omitted from the summary'
 );
 
 $r246_old_post     = $GLOBALS['post'] ?? null;
@@ -1503,15 +1504,24 @@ check(
 	false !== strpos( $r246_classic_template, 'jluxe_product_key_feature_cards( $product )' ) &&
 	false !== strpos( $r246_reference_template, 'jluxe_product_key_feature_cards( $product )' ) &&
 	false !== strpos( $r246_reference_template, 'data-jluxe-key-feature=' ) &&
-	false === strpos( $r246_reference_template, '.reference-key-feature[data-jluxe-key-feature="product_brand"]{display:none}' ) &&
-	false !== strpos( $r246_classic_template, 'cp3-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem);' ) &&
+	false === strpos( $r246_reference_template, '.reference-key-feature[data-jluxe-key-feature="product_brand"]{display:none}' ),
+	'R246 all three product layouts use the shared feature-card and notice renderers without hiding the brand'
+);
+check(
+	false !== strpos( $r246_classic_template, 'cp3-chips{display:flex;gap:8px;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
+	false !== strpos( $r246_reference_template, 'cp3-chips{display:flex;gap:8px;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
+	false !== strpos( $r246_reference_template, 'reference-key-features__grid{display:flex;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
+	false !== strpos( $r240_storefront_css, ".jluxe-key-features-list {\n  display: flex;\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));" ) &&
+	false !== strpos( $r240_storefront_css, ".jluxe-key-feature {\n  display: flex;\n  min-width: 0;\n  flex: 0 0 calc(50% - 0.25rem);" ),
+	'R336 Boom, Classic, and Reference feature summaries have two columns with flex fallbacks'
+);
+check(
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ) &&
 	false !== strpos( $r240_storefront_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
 	false !== strpos( $r240_storefront_css, '@media (max-width: 480px)' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
-	'R335 all three product layouts render the shared notice, and its typography wraps safely on desktop and small screens'
+	'R335 shared notice styles remain readable and responsive'
 );
 $_POST = $r246_old_request;
 if ( $r246_had_product_meta ) { $GLOBALS['post_meta'][9400] = $r246_old_product_meta; } else { unset( $GLOBALS['post_meta'][9400] ); }

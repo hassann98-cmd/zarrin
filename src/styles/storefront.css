@@ -8588,7 +8588,7 @@ html {
   .jluxe-404-card-title { font-size: 11px; }
 }
 
-/* Product-summary highlights: real brand taxonomy first, followed by up to three non-variation facts. */
+/* Product-summary highlights: real brand first, then up to three product features in two columns. */
 .jluxe-key-features {
   display: flex;
   flex-direction: column;
@@ -8604,6 +8604,8 @@ html {
 }
 .jluxe-key-features-list {
   display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -8613,8 +8615,8 @@ html {
 .jluxe-key-feature {
   display: flex;
   min-width: 0;
-  flex: 1 1 calc(25% - 0.5rem);
-  max-width: 230px;
+  flex: 0 0 calc(50% - 0.25rem);
+  max-width: none;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
@@ -8651,9 +8653,6 @@ html {
 }
 .jluxe-key-features-link:hover { color: hsl(var(--primary-hover)); }
 .jluxe-key-features-link:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; border-radius: 4px; }
-@media (max-width: 767.98px) {
-  .jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem); max-width: none; }
-}
 .jluxe-product-notice {
   display: flex;
   display: grid;

@@ -185,11 +185,10 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through;cursor:not-allowed}
 .jluxe-cp3 .cp3-pill.is-disabled:hover,.jluxe-cp3 .cp3-pill[disabled]:hover,.jluxe-cp3 .cp3-pill[aria-disabled="true"]:hover{border-color:hsl(var(--panel-border))}
 .jluxe-cp3 .cp3-chips-label{font-weight:700;color:hsl(var(--foreground));margin-bottom:10px}
-.jluxe-cp3 .cp3-chips{display:flex;gap:8px;flex-wrap:wrap}
-.jluxe-cp3 .cp3-chip{background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:12px;padding:10px 12px;min-width:96px;max-width:230px}
+.jluxe-cp3 .cp3-chips{display:flex;gap:8px;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.jluxe-cp3 .cp3-chip{background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:12px;padding:10px 12px;flex:0 0 calc(50% - 4px);min-width:0;max-width:none}
 .jluxe-cp3 .cp3-chip small{display:block;font-size:10px;color:hsl(var(--text-muted));margin-bottom:4px}
 .jluxe-cp3 .cp3-chip strong{font-size:12px;color:hsl(var(--foreground));line-height:1.6}
-@media(max-width:767.98px){.jluxe-cp3 .cp3-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.jluxe-cp3 .cp3-chip{min-width:0;max-width:none}}
 .jluxe-cp3 .cp3-side{padding-inline:0;margin-top:20px}
 @media(min-width:768px){.jluxe-cp3 .cp3-side{width:25%;flex:none;margin-top:0;padding-inline-start:16px;position:sticky;top:calc(88px + var(--wp-admin--admin-bar--height,0px));align-self:flex-start}}
 .jluxe-cp3 .cp3-sidebox{background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:2px;font-size:12px}

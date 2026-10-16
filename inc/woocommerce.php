@@ -2024,9 +2024,9 @@ function jluxe_attribute_swatch_options( string $attribute_name, array $options,
 }
 
 /**
- * همهٔ ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های تنوع‌سازِ
- * قابل‌نمایش نیز در اولویت قرار می‌گیرند تا گزینه‌های قابل انتخاب محصول در
- * بخش «ویژگی‌ها» گم نشوند؛ پس از آن حداکثر سه ویژگی عادی می‌آید.
+ * ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های تنوع‌سازِ
+ * قابل‌نمایش در اولویت‌اند؛ در مجموع حداکثر سه ویژگیِ غیر از برند نمایش
+ * داده می‌شود تا تعداد کل کارت‌ها به چهار محدود بماند.
  *
  * @return array<int, array{name: string, attribute_name: string, label: string, value: string, variation: bool}>
  */
@@ -2159,8 +2159,8 @@ function jluxe_product_key_feature_brand_enabled( $product ): bool {
 
 /**
  * Product-summary feature cards: the actual product_brand term comes first,
- * followed by every visible variation attribute, then up to three visible,
- * non-variation WooCommerce attributes. Legacy JLuxe selection metadata is
+ * followed by at most three visible attributes in total. Variation attributes
+ * take priority over regular attributes; legacy JLuxe selection metadata is
  * deliberately ignored and left untouched so native flags stay authoritative.
  *
  * @return array<int, array{name: string, label: string, value: string}>
@@ -2176,34 +2176,37 @@ function jluxe_product_key_feature_cards( $product ): array {
 		$cards[] = $brand_card;
 	}
 
-	$candidates = jluxe_product_key_feature_attribute_candidates( $product );
+	$candidates   = jluxe_product_key_feature_attribute_candidates( $product );
+	$feature_count = 0;
 	foreach ( $candidates as $candidate ) {
 		if ( empty( $candidate['variation'] ) ) {
 			continue;
 		}
+		if ( $feature_count >= 3 ) {
+			break;
+		}
 		$cards[] = array(
 			'name'  => $candidate['name'],
 			'label' => $candidate['label'],
 			'value' => $candidate['value'],
 		);
+		++$feature_count;
 	}
 
-	$regular_count = 0;
 	foreach ( $candidates as $candidate ) {
 		if ( ! empty( $candidate['variation'] ) ) {
 			continue;
 		}
+		if ( $feature_count >= 3 ) {
+			break;
+		}
 		$cards[] = array(
 			'name'  => $candidate['name'],
 			'label' => $candidate['label'],
 			'value' => $candidate['value'],
 		);
-		++$regular_count;
-		if ( $regular_count >= 3 ) {
-			break;
-		}
+		++$feature_count;
 	}
-
 	return $cards;
 }
 

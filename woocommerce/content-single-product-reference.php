@@ -218,8 +218,8 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through;cursor:not-allowed}
 .jluxe-cp3 .cp3-pill.is-disabled:hover,.jluxe-cp3 .cp3-pill[disabled]:hover,.jluxe-cp3 .cp3-pill[aria-disabled="true"]:hover{border-color:hsl(var(--panel-border))}
 .jluxe-cp3 .cp3-chips-label{font-weight:700;color:hsl(var(--foreground));margin-bottom:10px}
-.jluxe-cp3 .cp3-chips{display:flex;gap:8px;flex-wrap:wrap}
-.jluxe-cp3 .cp3-chip{background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:12px;padding:10px 12px;min-width:96px;max-width:230px}
+.jluxe-cp3 .cp3-chips{display:flex;gap:8px;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.jluxe-cp3 .cp3-chip{background:hsl(var(--panel));border:1px solid hsl(var(--panel-border));border-radius:12px;padding:10px 12px;flex:0 0 calc(50% - 4px);min-width:0;max-width:none}
 .jluxe-cp3 .cp3-chip small{display:block;font-size:10px;color:hsl(var(--text-muted));margin-bottom:4px}
 .jluxe-cp3 .cp3-chip strong{font-size:12px;color:hsl(var(--foreground));line-height:1.6}
 .jluxe-cp3 .cp3-side{padding-inline:0;margin-top:20px}
@@ -455,8 +455,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 /* Independent presentation for the selectable third product layout. */
 .jluxe-product-reference .reference-key-features{margin-top:18px;padding-top:16px;border-top:1px solid hsl(var(--panel-border))}
 .jluxe-product-reference .reference-key-features h2{margin:0 0 10px;color:hsl(var(--foreground));font-size:14px;font-weight:800}
-.jluxe-product-reference .reference-key-features__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.jluxe-product-reference .reference-key-feature{min-width:0;border:1px solid hsl(var(--panel-border));border-radius:12px;background:hsl(var(--panel));padding:9px 11px}
+.jluxe-product-reference .reference-key-features__grid{display:flex;flex-wrap:wrap;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.jluxe-product-reference .reference-key-feature{flex:0 0 calc(50% - 4px);min-width:0;border:1px solid hsl(var(--panel-border));border-radius:12px;background:hsl(var(--panel));padding:9px 11px}
 .jluxe-product-reference .reference-key-feature span{display:block;margin-bottom:4px;color:hsl(var(--text-muted));font-size:10px;line-height:1.5}
 .jluxe-product-reference .reference-key-feature strong{display:block;color:hsl(var(--foreground));font-size:12px;font-weight:700;line-height:1.7;overflow-wrap:anywhere}
 
