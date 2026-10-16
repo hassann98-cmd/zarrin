@@ -10,6 +10,7 @@ const productTemplates = [
   "../woocommerce/content-single-product-reference.php",
 ].map((file) => fs.readFileSync(new URL(file, import.meta.url), "utf8"));
 const r318Css = css.split("/* R318 —")[1]?.split("/* ── R66:")[0] ?? "";
+const r322Css = css.split("/* R322 —")[1]?.split("/* ── R66:")[0] ?? "";
 
 test("R318 description typography and media styling is limited to single product layouts", () => {
   assert.ok(r318Css, "the R318 scoped stylesheet block exists");
@@ -31,11 +32,35 @@ test("R318 tables use accessible horizontal scrolling, readable stripes, and a d
   assert.match(r318Css, /nth-child\(even\)/, "alternating table rows are visually distinct");
   assert.match(r318Css, /thead > tr > td/, "table headers remain distinct when editors output td rather than th");
   assert.match(r318Css, /tbody:first-child > tr:first-child > td/, "the first row is styled even without a thead element");
-  assert.match(r318Css, /background:\s*hsl\(var\(--primary\)\s*\/\s*0\.12\)/, "the heading row gets a soft contrasting background");
-  assert.match(r318Css, /border-bottom:\s*2px solid hsl\(var\(--primary\)\s*\/\s*0\.4\)/, "the header boundary is clear without coloring its text");
   assert.match(woocommerce, /role="region" tabindex="0" aria-label="جدول توضیحات محصول/);
   assert.match(woocommerce, /add_filter\( 'the_content', 'jluxe_wrap_single_product_description_tables', 99 \)/);
   assert.match(woocommerce, /! function_exists\( 'is_product' \) \|\| ! is_product\(\)/, "long-description wrapping is skipped outside product pages");
+});
+
+test("R322 description tables shrink to their content, center when compact, and use theme-neutral styling", () => {
+  assert.ok(r322Css, "the R322 product-description styles exist");
+  const wrapperRule = r322Css.match(/body\.single-product \.jluxe-description-table-scroll\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(wrapperRule, /width:\s*-moz-fit-content;/, "older Firefox gets an intrinsic-width fallback");
+  assert.match(wrapperRule, /width:\s*fit-content;/, "short tables fit their content instead of filling the whole column");
+  assert.match(wrapperRule, /margin:\s*1\.1rem auto;/, "compact tables are centered");
+  assert.match(r322Css, /width:\s*auto;[\s\S]*?min-width:\s*0;[\s\S]*?table-layout:\s*auto;/, "short tables use their natural content width");
+  assert.ok(woocommerce.includes("$table_depth > 0 || preg_match("), "copied inline formatting is removed only inside product tables");
+  assert.ok(woocommerce.includes("preg_replace( '/\\s+style\\s*="), "rendering tables strips copied style attributes while preserving their saved content");
+  assert.match(r318Css, /overflow-x:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/, "wide tables retain touch-friendly horizontal scrolling");
+  assert.match(r322Css, /background-color:\s*hsl\(var\(--muted\)\);/, "the header uses a soft neutral surface");
+  assert.match(r322Css, /border-bottom:\s*2px solid hsl\(var\(--border\)\);/, "the header boundary uses the theme border token");
+  assert.doesNotMatch(r322Css, /var\(--primary\)/, "table colors do not depend on the changing primary color");
+});
+
+test("R322 gives all six product-description heading levels a readable hierarchy", () => {
+  assert.ok(r322Css, "the R322 typography styles exist");
+  for (const level of ["h1", "h2", "h3", "h4", "h5", "h6"]) {
+    assert.ok(r322Css.includes(`.jluxe-product-description-content ${level}`), `the long description styles ${level}`);
+    assert.ok(r322Css.includes(`[data-jluxe-short-desc-text] ${level}`), `the short description styles ${level}`);
+  }
+  assert.match(r322Css, /font-size:\s*15px;[\s\S]*?line-height:\s*1\.95;/, "desktop body text is slightly larger with generous line spacing");
+  assert.match(r322Css, /@media \(max-width:\s*600px\)[\s\S]*?font-size:\s*14px;/, "mobile text remains sized for narrow screens");
+  assert.match(r322Css, /color:\s*hsl\(var\(--foreground\)\)/, "heading text uses the neutral readable foreground token");
 });
 
 test("R320 description headings use neutral text and consistent heading-to-paragraph spacing", () => {

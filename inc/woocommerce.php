@@ -109,6 +109,13 @@ function jluxe_wrap_product_description_tables( $content ): string {
 	$table_depth      = 0;
 	$wrap_outer_table = false;
 	foreach ( $tokens as $token ) {
+		// Keep copied table formatting from overriding the product's responsive, theme-neutral table styles.
+		if ( $table_depth > 0 || preg_match( '/^<table\b/i', $token ) ) {
+			$token = preg_replace( '/\s+style\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $token );
+			if ( preg_match( '/^<(?:table|colgroup|col|tr|th|td)\b/i', $token ) ) {
+				$token = preg_replace( '/\s+(?:width|height)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $token );
+			}
+		}
 		if ( preg_match( '/^<img\b/i', $token ) ) {
 			$token = jluxe_product_description_image_tag_with_media_data( $token );
 		}

@@ -74,8 +74,8 @@
     function isHeaderRow(label, value) {
       var labelText = normalizeHeader(label);
       var valueText = normalizeHeader(value);
-      var labelHeaders = ["نام", "نامویژگی", "ناممشخصه", "ویژگی", "مشخصه", "attribute", "property", "name"];
-      var valueHeaders = ["مقدار", "مقدارویژگی", "مقدارمشخصه", "توضیحات", "شرح", "مشخصات", "value", "description", "details"];
+      var labelHeaders = ["نام", "عنوان", "نامویژگی", "ناممشخصه", "ویژگی", "مشخصه", "پارامتر", "attribute", "attributes", "feature", "features", "field", "key", "label", "name", "parameter", "parameters", "property", "properties", "spec", "specification", "specifications"];
+      var valueHeaders = ["مقدار", "توضیحات", "شرح", "مشخصات", "اطلاعات", "جواب", "مقدارویژگی", "مقدارمشخصه", "value", "values", "description", "details", "information", "info", "answer", "result"];
       return labelHeaders.indexOf(labelText) !== -1 && valueHeaders.indexOf(valueText) !== -1;
     }
 

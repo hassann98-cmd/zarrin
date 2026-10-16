@@ -5801,6 +5801,249 @@ body.single-product .jluxe-description-gallery-modal__close {
   }
 }
 
+/* R322 — جدول‌های متناسب با محتوا، خنثی و متن‌خوانا در توضیحات محصول. */
+body.single-product .jluxe-product-description,
+body.single-product .jluxe-product-description-content,
+body.single-product [data-jluxe-short-desc-text],
+body.single-product .jluxe-cp3 .cp3-descbody,
+body.single-product .jluxe-cp3 .cp3-short-body {
+  font-size: 15px;
+  line-height: 1.95;
+}
+body.single-product .jluxe-product-description h1,
+body.single-product .jluxe-product-description h2,
+body.single-product .jluxe-product-description h3,
+body.single-product .jluxe-product-description h4,
+body.single-product .jluxe-product-description h5,
+body.single-product .jluxe-product-description h6,
+body.single-product .jluxe-product-description-content h1,
+body.single-product .jluxe-product-description-content h2,
+body.single-product .jluxe-product-description-content h3,
+body.single-product .jluxe-product-description-content h4,
+body.single-product .jluxe-product-description-content h5,
+body.single-product .jluxe-product-description-content h6,
+body.single-product [data-jluxe-short-desc-text] h1,
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product [data-jluxe-short-desc-text] h5,
+body.single-product [data-jluxe-short-desc-text] h6,
+body.single-product .jluxe-cp3 .cp3-descbody h1,
+body.single-product .jluxe-cp3 .cp3-descbody h2,
+body.single-product .jluxe-cp3 .cp3-descbody h3,
+body.single-product .jluxe-cp3 .cp3-descbody h4,
+body.single-product .jluxe-cp3 .cp3-descbody h5,
+body.single-product .jluxe-cp3 .cp3-descbody h6,
+body.single-product .jluxe-cp3 .cp3-short-body h1,
+body.single-product .jluxe-cp3 .cp3-short-body h2,
+body.single-product .jluxe-cp3 .cp3-short-body h3,
+body.single-product .jluxe-cp3 .cp3-short-body h4,
+body.single-product .jluxe-cp3 .cp3-short-body h5,
+body.single-product .jluxe-cp3 .cp3-short-body h6 {
+  margin: 1.35rem 0 0.6rem;
+  color: hsl(var(--foreground));
+  font-weight: 800;
+  line-height: 1.55;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+body.single-product .jluxe-product-description h1,
+body.single-product .jluxe-product-description-content h1,
+body.single-product [data-jluxe-short-desc-text] h1,
+body.single-product .jluxe-cp3 .cp3-descbody h1,
+body.single-product .jluxe-cp3 .cp3-short-body h1 {
+  margin-top: 1.7rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 1.45rem;
+}
+body.single-product .jluxe-product-description h2,
+body.single-product .jluxe-product-description-content h2,
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product .jluxe-cp3 .cp3-descbody h2,
+body.single-product .jluxe-cp3 .cp3-short-body h2 {
+  padding: 0.4rem 0.75rem 0.4rem 0.6rem;
+  border-right: 3px solid hsl(var(--border));
+  border-radius: 6px 0 0 6px;
+  background: hsl(var(--muted) / 0.55);
+  font-size: 1.28rem;
+}
+body.single-product .jluxe-product-description h3,
+body.single-product .jluxe-product-description-content h3,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product .jluxe-cp3 .cp3-descbody h3,
+body.single-product .jluxe-cp3 .cp3-short-body h3 {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 1.14rem;
+}
+body.single-product .jluxe-product-description h4,
+body.single-product .jluxe-product-description-content h4,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product .jluxe-cp3 .cp3-descbody h4,
+body.single-product .jluxe-cp3 .cp3-short-body h4 {
+  font-size: 1.04rem;
+  font-weight: 700;
+}
+body.single-product .jluxe-product-description h5,
+body.single-product .jluxe-product-description-content h5,
+body.single-product [data-jluxe-short-desc-text] h5,
+body.single-product .jluxe-cp3 .cp3-descbody h5,
+body.single-product .jluxe-cp3 .cp3-short-body h5 {
+  font-size: 0.97rem;
+  font-weight: 700;
+}
+body.single-product .jluxe-product-description h6,
+body.single-product .jluxe-product-description-content h6,
+body.single-product [data-jluxe-short-desc-text] h6,
+body.single-product .jluxe-cp3 .cp3-descbody h6,
+body.single-product .jluxe-cp3 .cp3-short-body h6 {
+  color: hsl(var(--text-secondary));
+  font-size: 0.91rem;
+  font-weight: 700;
+}
+body.single-product [data-jluxe-short-desc-text] h1,
+body.single-product [data-jluxe-short-desc-text] h2,
+body.single-product [data-jluxe-short-desc-text] h3,
+body.single-product [data-jluxe-short-desc-text] h4,
+body.single-product [data-jluxe-short-desc-text] h5,
+body.single-product [data-jluxe-short-desc-text] h6,
+body.single-product .jluxe-cp3 .cp3-short-body h1,
+body.single-product .jluxe-cp3 .cp3-short-body h2,
+body.single-product .jluxe-cp3 .cp3-short-body h3,
+body.single-product .jluxe-cp3 .cp3-short-body h4,
+body.single-product .jluxe-cp3 .cp3-short-body h5,
+body.single-product .jluxe-cp3 .cp3-short-body h6 {
+  margin-top: 0.8rem;
+}
+body.single-product .jluxe-description-table-scroll {
+  width: -moz-fit-content;
+  width: fit-content;
+  margin: 1.1rem auto;
+  scrollbar-color: hsl(var(--border)) hsl(var(--muted));
+}
+body.single-product .jluxe-description-table-scroll > table,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table {
+  width: auto;
+  min-width: 0;
+  table-layout: auto;
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 0;
+}
+body.single-product .jluxe-description-table-scroll th,
+body.single-product .jluxe-description-table-scroll td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll td {
+  width: auto;
+  min-width: 5.25rem;
+  padding: 0.68rem 0.82rem;
+  border: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.75;
+  text-align: start;
+  white-space: normal;
+}
+body.single-product .jluxe-description-table-scroll th *,
+body.single-product .jluxe-description-table-scroll td *,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll th *,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll td * {
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+body.single-product .jluxe-description-table-scroll tbody tr,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr {
+  background-color: transparent;
+}
+body.single-product .jluxe-description-table-scroll tbody tr:nth-child(even),
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.42);
+}
+body.single-product .jluxe-description-table-scroll thead > tr > th,
+body.single-product .jluxe-description-table-scroll thead > tr > td,
+body.single-product .jluxe-description-table-scroll > table > tr:first-child > th,
+body.single-product .jluxe-description-table-scroll > table > tr:first-child > td,
+body.single-product .jluxe-description-table-scroll > table > tbody:first-child > tr:first-child > th,
+body.single-product .jluxe-description-table-scroll > table > tbody:first-child > tr:first-child > td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll thead > tr > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll thead > tr > td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tr:first-child > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tr:first-child > td,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tbody:first-child > tr:first-child > th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll > table > tbody:first-child > tr:first-child > td {
+  border-bottom: 2px solid hsl(var(--border));
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-weight: 800;
+}
+body.single-product .jluxe-description-table-scroll tbody th,
+body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody th {
+  background-color: hsl(var(--muted) / 0.5);
+  font-weight: 700;
+}
+@media (hover: hover) and (pointer: fine) {
+  body.single-product .jluxe-description-table-scroll tbody tr:hover,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.7);
+  }
+}
+body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
+  border-color: hsl(var(--muted));
+  background-color: hsl(var(--border));
+}
+@media (max-width: 600px) {
+  body.single-product .jluxe-product-description,
+  body.single-product .jluxe-product-description-content,
+  body.single-product [data-jluxe-short-desc-text],
+  body.single-product .jluxe-cp3 .cp3-descbody,
+  body.single-product .jluxe-cp3 .cp3-short-body {
+    font-size: 14px;
+    line-height: 1.95;
+  }
+  body.single-product .jluxe-product-description h1,
+  body.single-product .jluxe-product-description-content h1,
+  body.single-product [data-jluxe-short-desc-text] h1,
+  body.single-product .jluxe-cp3 .cp3-descbody h1,
+  body.single-product .jluxe-cp3 .cp3-short-body h1 {
+    font-size: 1.28rem;
+  }
+  body.single-product .jluxe-product-description h2,
+  body.single-product .jluxe-product-description-content h2,
+  body.single-product [data-jluxe-short-desc-text] h2,
+  body.single-product .jluxe-cp3 .cp3-descbody h2,
+  body.single-product .jluxe-cp3 .cp3-short-body h2 {
+    font-size: 1.14rem;
+  }
+  body.single-product .jluxe-product-description h3,
+  body.single-product .jluxe-product-description-content h3,
+  body.single-product [data-jluxe-short-desc-text] h3,
+  body.single-product .jluxe-cp3 .cp3-descbody h3,
+  body.single-product .jluxe-cp3 .cp3-short-body h3 {
+    font-size: 1.05rem;
+  }
+  body.single-product .jluxe-product-description h4,
+  body.single-product .jluxe-product-description-content h4,
+  body.single-product [data-jluxe-short-desc-text] h4,
+  body.single-product .jluxe-cp3 .cp3-descbody h4,
+  body.single-product .jluxe-cp3 .cp3-short-body h4 {
+    font-size: 0.98rem;
+  }
+  body.single-product .jluxe-description-table-scroll th,
+  body.single-product .jluxe-description-table-scroll td,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll th,
+  body.single-product .jluxe-cp3 .jluxe-description-table-scroll td {
+    min-width: 4.75rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.86rem;
+  }
+}
+
 /* ── R66: فرمِ دیدگاه — کارتِ گرد، امتیازِ ستاره‌ای واقعی، ورودی‌های نرم ── */
 #review_form .comment-reply-title {
   display: block;

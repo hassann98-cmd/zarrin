@@ -7826,6 +7826,13 @@ check(
 	false !== strpos( $r272_editor_html, 'jluxe_product_specs_restore_boom' ),
 	'R272 specification editor preloads the legacy Boom groups and provides a separate override/reset control'
 );
+check(
+	false !== strpos( $r272_editor_html, 'Google Sheets' ) &&
+	false !== strpos( $r272_editor_html, 'فقط متن سلول‌ها وارد می‌شود' ) &&
+	false !== strpos( $r272_editor_html, 'PropertyValue' ) &&
+	false !== strpos( $r272_editor_html, 'بلوک بومی «جدول» WordPress' ),
+	'R322 specification editor explains safe table paste and the structured SEO-friendly route for descriptions'
+);
 $r272_legacy_schema_product = new WC_Product( $r272_spec_id );
 $r272_legacy_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r272_legacy_schema_product );
 check(
@@ -8326,6 +8333,23 @@ check(
 	2 === substr_count( $r318_wrapped_nested, '<table' ) &&
 	1 === substr_count( $r318_wrapped_nested, '</div>' ),
 	'R318 nested tables receive one outer scroll region without unbalancing their markup'
+);
+$r322_styled_table_source = '<p style="color:blue">متن بیرون جدول</p><table width="100%" style="width:100%;color:red"><colgroup><col width="300" style="width:300px"></colgroup><tbody><tr height="80" style="background:#f00"><td width="300" height="40" style="width:300px;color:red" colspan="2"><span style="font-size:32px;color:red">متن سلول</span></td></tr></tbody></table>';
+$r322_styled_table_rendered = jluxe_wrap_product_description_tables( $r322_styled_table_source );
+$r322_table_start           = strpos( $r322_styled_table_rendered, '<table' );
+$r322_table_end             = strpos( $r322_styled_table_rendered, '</table>', $r322_table_start );
+$r322_rendered_table_markup = false === $r322_table_start || false === $r322_table_end
+	? ''
+	: substr( $r322_styled_table_rendered, $r322_table_start, $r322_table_end - $r322_table_start + strlen( '</table>' ) );
+check(
+	false !== strpos( $r322_styled_table_rendered, '<p style="color:blue">متن بیرون جدول</p>' ) &&
+	false !== strpos( $r322_styled_table_rendered, '<td colspan="2"><span>متن سلول</span></td>' ) &&
+	false === strpos( $r322_rendered_table_markup, 'style=' ) &&
+	false === strpos( $r322_rendered_table_markup, ' width=' ) &&
+	false === strpos( $r322_rendered_table_markup, ' height=' ) &&
+	false !== strpos( $r322_styled_table_source, 'style="width:100%;color:red"' ) &&
+	$r322_styled_table_rendered === jluxe_wrap_product_description_tables( $r322_styled_table_rendered ),
+	'R322 rendered product tables drop copied inline styling without changing saved content, cell semantics, or surrounding styles'
 );
 
 // R321 — keep attachment-page links intact while exposing original image URLs for the description lightbox.

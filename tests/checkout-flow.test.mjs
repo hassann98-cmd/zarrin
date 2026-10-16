@@ -345,7 +345,7 @@ test("R289 checkout phone/postcode autofill stays natively visible while submitt
   phone.value = "+٩٨ (٩١٢) ٠٠٠-٠٠٠٠";
   assert.equal(phone.value, "+٩٨ (٩١٢) ٠٠٠-٠٠٠٠");
   assert.equal(phoneWrapper.querySelector(".jluxe-numeric-digit-display"), null);
-  assert.doesNotMatch(storefrontStyles, /jluxe-numeric-digit-display|color:\s*transparent\s*!important|text-fill-color:\s*transparent/);
+  assert.doesNotMatch(storefrontStyles, /jluxe-numeric-digit-display|(?:^|[;{}])\s*color\s*:\s*transparent\s*!important|(?:^|[;{}])\s*(?:-webkit-text-fill-color|text-fill-color)\s*:\s*transparent/);
 
   form.addEventListener("submit", (event) => event.preventDefault());
   form.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true }));

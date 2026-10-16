@@ -133,6 +133,23 @@ test("pasting a copied HTML specification table imports rows into the focused gr
   assert.match(group.querySelector('[role="status"]').textContent, /۳ ویژگی/);
 });
 
+test("pasting a copied styled HTML table imports only safe cell text, never copied markup or scripts", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<!--StartFragment--><table style="width:100%;color:red"><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead>
+      <tbody><tr style="background:#f00"><td><span onclick="alert(1)">جنس بدنه</span></td>
+      <td><a href="https://example.test/">استیل ضدزنگ</a><script>window.pastedCodeRan=true</script></td></tr></tbody></table><!--EndFragment-->`,
+  });
+
+  assert.equal(event.defaultPrevented, true, "copied website or office tables are recognized");
+  assert.equal(window.pastedCodeRan, undefined, "clipboard scripts are never executed");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 2);
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس بدنه");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "استیل ضدزنگ");
+});
+
 test("pasting a Markdown or tabular plain-text table strips formatting and reuses an empty row", (t) => {
   const { window, root } = bootEditor(t);
   const group = root.querySelector("[data-jluxe-spec-group]");
@@ -154,6 +171,25 @@ test("pasting a Markdown or tabular plain-text table strips formatting and reuse
   assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "فلز آبکاری شده با رنگ کوره‌ای");
   assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ابعاد محصول (سانتی‌متر)");
   assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][value]"]').value, "طول ۴۴ × عرض ۳۳ × ارتفاع ۴۰ سانتی‌متر");
+});
+
+test("plain-text spreadsheet headings such as Feature and Details are skipped during import", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/plain": [
+      "Feature\tDetails",
+      "Material\tPowder-coated steel",
+      "Height\t40 cm",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "the two records are added without importing the header row");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "Material");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "Powder-coated steel");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "Height");
 });
 
 test("ordinary text paste is left untouched and a large table respects the 100-row server limit", (t) => {
