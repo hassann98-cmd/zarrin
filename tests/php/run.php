@@ -1401,10 +1401,11 @@ check(
 check(
 	false !== strpos( $r246_panel_html, 'id="_jluxe_delivery_time_enabled"' ) &&
 	false !== strpos( $r246_panel_html, 'id="_jluxe_product_notice_enabled"' ) &&
+	1 === preg_match( '/<input type="checkbox" id="_jluxe_product_notice_enabled"[^>]*checked="checked"/', $r246_panel_html ) &&
 	false !== strpos( $r246_panel_html, 'name="_jluxe_product_notice_text"' ) &&
 	1 === substr_count( $r246_panel_html, 'id="_delivery_time"' ) &&
 	false !== strpos( $r246_panel_html, 'placeholder="مثلاً: ارسال سریع یا ارسال طی ۳ روز کاری"' ),
-	'R323 product editor provides one editable delivery-time text box beside its independent visibility toggle'
+	'R335 product editor enables notice display by default and keeps the optional hide control'
 );
 
 $r246_legacy_brand_meta = $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'];
@@ -1432,6 +1433,7 @@ check(
 	$r246_legacy_feature_meta === $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] &&
 	'no' === ( $GLOBALS['post_meta'][9400]['_jluxe_delivery_time_enabled'] ?? '' ) &&
 	false === jluxe_is_product_delivery_time_enabled( $r240_product ) &&
+	'visible' === ( $GLOBALS['post_meta'][9400]['_jluxe_product_notice_visibility'] ?? '' ) &&
 	true === $r246_saved_notice['enabled'] && 'info' === $r246_saved_notice['type'] &&
 	"Notice\nalert(1)" === $r246_saved_notice['text'] &&
 	false !== strpos( $r246_notice_html, 'jluxe-product-notice--info' ) &&
@@ -1449,11 +1451,46 @@ check(
 	false === strpos( $r246_notice_html, 'Notice</script>' ),
 	'R246 delivery-row visibility is independently switchable without changing the existing per-product _delivery_time value'
 );
-update_post_meta( 9400, '_jluxe_product_notice_enabled', 'no' );
+$_POST = array(
+	'jluxe_product_options_present' => '1',
+	'_jluxe_product_notice_type'    => 'info',
+	'_jluxe_product_notice_text'    => $r246_saved_notice['text'],
+	/* The notice checkbox is intentionally absent: this is an explicit opt-out. */
+);
+jluxe_save_product_badge_fields( 9400 );
 ob_start();
 jluxe_render_product_notice( $r240_product );
 $r246_disabled_notice_html = (string) ob_get_clean();
-check( '' === $r246_disabled_notice_html, 'R246 an intentionally disabled product notice renders no box');
+check(
+	'hidden' === ( $GLOBALS['post_meta'][9400]['_jluxe_product_notice_visibility'] ?? '' ) &&
+	'' === $r246_disabled_notice_html,
+	'R335 unchecking the notice control explicitly hides the box while keeping its text saved'
+);
+
+/* Legacy products stored "no" when the old checkbox was missed; text now opts in by default. */
+unset( $GLOBALS['post_meta'][9400]['_jluxe_product_notice_visibility'] );
+update_post_meta( 9400, '_jluxe_product_notice_enabled', 'no' );
+$r335_legacy_notice = jluxe_get_product_notice( $r240_product );
+ob_start();
+jluxe_render_product_notice( $r240_product );
+$r335_legacy_notice_html = (string) ob_get_clean();
+ob_start();
+jluxe_render_product_badge_fields();
+$r335_legacy_panel_html = (string) ob_get_clean();
+check(
+	true === $r335_legacy_notice['enabled'] &&
+	"Notice\nalert(1)" === $r335_legacy_notice['text'] &&
+	false !== strpos( $r335_legacy_notice_html, 'data-jluxe-product-notice' ) &&
+	false !== strpos( $r335_legacy_notice_html, 'alert(1)' ) &&
+	false === strpos( $r335_legacy_notice_html, '<script>' ) &&
+	false !== strpos( $r335_legacy_panel_html, 'id="_jluxe_product_notice_enabled" name="_jluxe_product_notice_enabled" value="1" checked="checked"' ),
+	'R335 legacy notice text is visible by default and the editor reflects that state even when the old flag was no'
+);
+update_post_meta( 9400, '_jluxe_product_notice_visibility', 'hidden' );
+ob_start();
+jluxe_render_product_notice( $r240_product );
+$r335_explicitly_hidden_html = (string) ob_get_clean();
+check( '' === $r335_explicitly_hidden_html, 'R335 a new explicit hide choice continues to suppress a non-empty notice');
 
 $r246_default_template  = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r246_classic_template  = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' );
@@ -1470,8 +1507,11 @@ check(
 	false !== strpos( $r246_classic_template, 'cp3-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-key-feature { flex: 0 0 calc(50% - 0.25rem);' ) &&
 	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ),
-	'R246 all three product layouts use the shared automatic feature cards, reference CSS keeps brand visible, and mobile summaries stay two-column'
+	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ) &&
+	false !== strpos( $r240_storefront_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
+	false !== strpos( $r240_storefront_css, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r240_storefront_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
+	'R335 all three product layouts render the shared notice, and its typography wraps safely on desktop and small screens'
 );
 $_POST = $r246_old_request;
 if ( $r246_had_product_meta ) { $GLOBALS['post_meta'][9400] = $r246_old_product_meta; } else { unset( $GLOBALS['post_meta'][9400] ); }

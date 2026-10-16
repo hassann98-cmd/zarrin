@@ -4930,13 +4930,14 @@ function jluxe_render_product_badge_fields(): void {
 	if ( ! in_array( $notice_type, array( 'warning', 'info' ), true ) ) {
 		$notice_type = 'warning';
 	}
+	$notice_visibility = sanitize_key( (string) get_post_meta( $post->ID, '_jluxe_product_notice_visibility', true ) );
 	echo '<div class="options_group">';
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_product_notice_enabled',
-			'value'       => 'yes' === get_post_meta( $post->ID, '_jluxe_product_notice_enabled', true ) ? 'yes' : 'no',
+			'value'       => 'hidden' === $notice_visibility ? 'no' : 'yes',
 			'label'       => 'نمایش کادر اخطار/اطلاعیه',
-			'description' => 'کادر فقط وقتی نمایش داده می‌شود که این گزینه روشن و متن آن پر شده باشد.',
+			'description' => 'با واردکردن متن، کادر به‌طور پیش‌فرض نمایش داده می‌شود؛ برای پنهان‌کردن آن، این گزینه را خاموش کنید.',
 		)
 	);
 	echo '<p class="form-field"><label for="_jluxe_product_notice_type">نوع کادر</label><select id="_jluxe_product_notice_type" name="_jluxe_product_notice_type"><option value="warning"' . ( 'warning' === $notice_type ? ' selected="selected"' : '' ) . '>اخطار</option><option value="info"' . ( 'info' === $notice_type ? ' selected="selected"' : '' ) . '>اطلاعیه</option></select></p>';
@@ -4993,7 +4994,14 @@ function jluxe_save_product_badge_fields( int $post_id ): void {
 	 * historical product metadata must remain byte-for-byte untouched.
 	 */
 	update_post_meta( $post_id, '_jluxe_delivery_time_enabled', isset( $_POST['_jluxe_delivery_time_enabled'] ) ? 'yes' : 'no' );
-	update_post_meta( $post_id, '_jluxe_product_notice_enabled', isset( $_POST['_jluxe_product_notice_enabled'] ) ? 'yes' : 'no' );
+	$notice_is_visible = isset( $_POST['_jluxe_product_notice_enabled'] );
+	/*
+	 * The legacy yes/no key defaulted to "no", which silently hid text users
+	 * had entered. Keep it in sync for integrations, but use an explicit
+	 * visibility choice so legacy notices with text are visible by default.
+	 */
+	update_post_meta( $post_id, '_jluxe_product_notice_enabled', $notice_is_visible ? 'yes' : 'no' );
+	update_post_meta( $post_id, '_jluxe_product_notice_visibility', $notice_is_visible ? 'visible' : 'hidden' );
 
 	$notice_text = isset( $_POST['_jluxe_product_notice_text'] ) && is_scalar( $_POST['_jluxe_product_notice_text'] )
 		? sanitize_textarea_field( wp_unslash( (string) $_POST['_jluxe_product_notice_text'] ) )
@@ -5092,10 +5100,12 @@ function jluxe_get_product_notice( $product = null ): array {
 	if ( ! in_array( $type, array( 'warning', 'info' ), true ) ) {
 		$type = 'warning';
 	}
-	$text = get_post_meta( $product_id, '_jluxe_product_notice_text', true );
+	$text       = get_post_meta( $product_id, '_jluxe_product_notice_text', true );
+	$visibility = sanitize_key( (string) get_post_meta( $product_id, '_jluxe_product_notice_visibility', true ) );
 
 	return array(
-		'enabled' => 'yes' === get_post_meta( $product_id, '_jluxe_product_notice_enabled', true ),
+		/* Only a deliberate new-style opt-out hides a notice; legacy text remains visible. */
+		'enabled' => 'hidden' !== $visibility,
 		'type'    => $type,
 		'text'    => is_scalar( $text ) ? sanitize_textarea_field( (string) $text ) : '',
 	);

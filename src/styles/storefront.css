@@ -8656,23 +8656,40 @@ html {
 }
 .jluxe-product-notice {
   display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.7rem;
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   margin-top: 1rem;
-  padding: 0.75rem 0.875rem;
+  padding: 0.875rem 1rem;
   border: 1px solid transparent;
-  border-radius: 12px;
-  font-size: 0.8125rem;
-  line-height: 1.75;
+  border-right-width: 3px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.045);
+  font-size: 0.875rem;
+  line-height: 1.85;
 }
-.jluxe-product-notice--warning { border-color: #f4d58a; background: #fffbeb; color: #854d0e; }
-.jluxe-product-notice--info { border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
-.jluxe-product-notice__icon { display: inline-flex; flex: 0 0 1.125rem; width: 1.125rem; height: 1.125rem; margin-top: 0.125rem; }
+.jluxe-product-notice--warning { border-color: #f4d58a; border-right-color: #d97706; background: #fffbeb; color: #854d0e; }
+.jluxe-product-notice--info { border-color: #bfdbfe; border-right-color: #2563eb; background: #eff6ff; color: #1e40af; }
+.jluxe-product-notice__icon { display: inline-flex; flex: 0 0 1.25rem; width: 1.25rem; height: 1.25rem; margin-top: 0.2rem; }
 .jluxe-product-notice__icon svg { display: block; width: 100%; height: 100%; }
-.jluxe-product-notice__content { min-width: 0; }
-.jluxe-product-notice__title { display: block; margin-bottom: 0.125rem; font-weight: 800; }
-.jluxe-product-notice__text { overflow-wrap: anywhere; }
+.jluxe-product-notice__content { flex: 1 1 auto; min-width: 0; }
+.jluxe-product-notice__title { display: block; margin-bottom: 0.2rem; font-weight: 800; }
+.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+@media (max-width: 480px) {
+  .jluxe-product-notice {
+    gap: 0.55rem;
+    margin-top: 0.875rem;
+    padding: 0.75rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    line-height: 1.8;
+  }
+  .jluxe-product-notice__icon { flex-basis: 1.125rem; width: 1.125rem; height: 1.125rem; margin-top: 0.15rem; }
+}
 
 /* =======================================================================
    نوار چسبانِ افزودن به سبد — فقط موبایل و فقط صفحهٔ محصول؛ وقتی
