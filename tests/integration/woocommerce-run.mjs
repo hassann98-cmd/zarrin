@@ -339,10 +339,14 @@ try {
       if (!taxonomy_exists($taxonomy)) register_taxonomy($taxonomy,array('product'));
       $term=wp_insert_term('Red',$taxonomy);
       if (is_wp_error($term)) throw new RuntimeException($term->get_error_message());
+      $persian_term=wp_insert_term('طرح شماره ۳',$taxonomy);
+      if (is_wp_error($persian_term)) throw new RuntimeException($persian_term->get_error_message());
+      $persian_term_object=get_term((int)$persian_term['term_id'],$taxonomy);
+      if (!$persian_term_object || is_wp_error($persian_term_object)) throw new RuntimeException('Persian taxonomy term was not created');
       $attribute=new WC_Product_Attribute();
       $attribute->set_id($attribute_id);
       $attribute->set_name($taxonomy);
-      $attribute->set_options(array((int)$term['term_id']));
+      $attribute->set_options(array((int)$term['term_id'],(int)$persian_term['term_id']));
       $attribute->set_position(0);
       $attribute->set_visible(true);
       $attribute->set_variation(true);
@@ -362,11 +366,21 @@ try {
       $variation->set_stock_quantity(2);
       $variation->set_stock_status('instock');
       $variation_id=$variation->save();
-      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'soldProduct'=>$sold_product_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true),'shippingEnabled'=>wc_shipping_enabled(),'variationNeedsShipping'=>wc_get_product($variation_id)->needs_shipping());
+      $persian_variation=new WC_Product_Variation();
+      $persian_variation->set_parent_id($variable_id);
+      $persian_variation->set_attributes(array($taxonomy=>$persian_term_object->slug));
+      $persian_variation->set_regular_price('16.00');
+      $persian_variation->set_virtual(false);
+      $persian_variation->set_manage_stock(true);
+      $persian_variation->set_stock_quantity(2);
+      $persian_variation->set_stock_status('instock');
+      $persian_variation_id=$persian_variation->save();
+      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'soldProduct'=>$sold_product_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'persianVariation'=>$persian_variation_id,'persianSlug'=>$persian_term_object->slug,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true),'shippingEnabled'=>wc_shipping_enabled(),'variationNeedsShipping'=>wc_get_product($variation_id)->needs_shipping());
     `);
+    const persianSlugIsEncoded = typeof fixtures.persianSlug === "string" && /%[a-f0-9]{2}/i.test(fixtures.persianSlug);
     check(
-      fixtures.simple > 0 && fixtures.soldProduct > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0 && fixtures.shippingEnabled && fixtures.variationNeedsShipping,
-      `Actual WooCommerce data stores persist products, a stocked variation, coupon, custom-checkout page and enabled shippable zone method (${JSON.stringify({ shippingMethods: fixtures.shippingMethods, shippingEnabled: fixtures.shippingEnabled, variationNeedsShipping: fixtures.variationNeedsShipping })})`,
+      fixtures.simple > 0 && fixtures.soldProduct > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.persianVariation > 0 && persianSlugIsEncoded && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0 && fixtures.shippingEnabled && fixtures.variationNeedsShipping,
+      `Actual WooCommerce data stores persist Latin and percent-encoded Persian variations, coupon, custom-checkout page and enabled shippable zone method (${JSON.stringify({ shippingMethods: fixtures.shippingMethods, shippingEnabled: fixtures.shippingEnabled, variationNeedsShipping: fixtures.variationNeedsShipping, persianSlug: fixtures.persianSlug })})`,
     );
     const bestsellerRender = await phpJson(`
       $section=array('id'=>'integration-bestsellers','title'=>'Integration bestsellers','source'=>'bestsellers','columns_desktop'=>2,'columns_tablet'=>2,'columns_mobile'=>1,'rows'=>1,'hide_out_of_stock'=>false);
@@ -444,6 +458,45 @@ try {
       "Theme AJAX resolves a real WooCommerce variation against its parent, taxonomy value and stock",
     );
     const variableKey = snapshot.items.find((item) => item.productId === fixtures.variable).key;
+
+    response = await ajax({
+      action: "jluxe_cart",
+      nonce: session.cartNonce,
+      op: "add",
+      product_id: String(fixtures.variable),
+      variation_id: String(fixtures.persianVariation),
+      quantity: "1",
+      [`attribute_${fixtures.taxonomy}`]: fixtures.persianSlug,
+    });
+    snapshot = response.json().data;
+    const persistedPersianVariation = await phpJson(`
+      foreach (WC()->cart->get_cart() as $cartKey=>$cartItem) {
+        if ((int)($cartItem['variation_id']??0) === ${fixtures.persianVariation}) {
+          return array('key'=>$cartKey,'slug'=>$cartItem['variation']['attribute_${fixtures.taxonomy}']??null);
+        }
+      }
+      return array('key'=>'','slug'=>null);
+    `);
+    check(
+      response.status === 200 && response.json().success === true &&
+        snapshot.itemCount === 4 && snapshot.items.length === 3 &&
+        persistedPersianVariation.key !== "" && persistedPersianVariation.slug === fixtures.persianSlug,
+      `Theme AJAX accepts and stores the exact percent-encoded Persian taxonomy slug (${fixtures.persianSlug})`,
+    );
+    const persianVariationKey = persistedPersianVariation.key;
+
+    response = await ajax({
+      action: "jluxe_cart",
+      nonce: session.cartNonce,
+      op: "remove",
+      key: persianVariationKey,
+    });
+    snapshot = response.json().data;
+    check(
+      response.status === 200 && response.json().success === true &&
+        snapshot.itemCount === 3 && !snapshot.items.some((item) => item.key === persianVariationKey),
+      "Persian-variation regression fixture is removed without changing the pre-existing simple or English-variation cart lines",
+    );
 
     response = await ajax({
       action: "jluxe_cart",

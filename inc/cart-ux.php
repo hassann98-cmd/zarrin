@@ -459,6 +459,32 @@ function jluxe_ajax_cart(): void {
 add_action( 'wp_ajax_jluxe_cart', 'jluxe_ajax_cart' );
 add_action( 'wp_ajax_nopriv_jluxe_cart', 'jluxe_ajax_cart' );
 
+/**
+ * Parse only the variable attributes declared by the parent product, following
+ * WooCommerce's native handler. Taxonomy slugs can contain percent-encoded
+ * UTF-8 (for example Persian terms); wc_clean() strips %xx sequences, so only
+ * text attributes should pass through wc_clean() and entity decoding.
+ */
+function jluxe_cart_variation_attributes_from_request( WC_Product $product ): array {
+	$variations = array();
+	foreach ( $product->get_attributes() as $attribute ) {
+		if ( ! $attribute instanceof WC_Product_Attribute || ! $attribute->get_variation() ) {
+			continue;
+		}
+		$attribute_key = 'attribute_' . sanitize_title( $attribute->get_name() );
+		if ( ! isset( $_POST[ $attribute_key ] ) || ! is_scalar( $_POST[ $attribute_key ] ) ) {
+			continue;
+		}
+		$value = (string) wp_unslash( $_POST[ $attribute_key ] );
+		if ( $attribute->is_taxonomy() ) {
+			$variations[ $attribute_key ] = sanitize_title( $value );
+		} else {
+			$variations[ $attribute_key ] = html_entity_decode( wc_clean( $value ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+		}
+	}
+	return $variations;
+}
+
 function jluxe_ajax_cart_add(): void {
 	$product_id = absint( jluxe_cart_post_string( 'product_id' ) );
 	$variation_id = absint( jluxe_cart_post_string( 'variation_id' ) );
@@ -479,12 +505,7 @@ function jluxe_ajax_cart_add(): void {
 	if ( $selected->is_sold_individually() && $quantity > 1 ) {
 		jluxe_cart_error( 'این محصول فقط به صورت تکی قابل خرید است.' );
 	}
-	$variations = array();
-	foreach ( $_POST as $key => $value ) {
-		if ( 0 === strpos( (string) $key, 'attribute_' ) && is_scalar( $value ) ) {
-			$variations[ sanitize_title( wp_unslash( $key ) ) ] = wc_clean( wp_unslash( $value ) );
-		}
-	}
+	$variations = jluxe_cart_variation_attributes_from_request( $product );
 	wc_clear_notices();
 	$valid = $variation_id
 		? apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variations )

@@ -360,6 +360,60 @@ $GLOBALS['test_filters'] = array();
 check( $stock_two_first_add->success && $stock_two_second_add->success && 1 === $stock_two_first_cart_qty && array( 1, 1 ) === $stock_two_seen_quantities, 'R149 each add request submits one requested unit for a stock-two variation; stock max is never substituted for quantity' );
 unset( $GLOBALS['products'][9520], $GLOBALS['products'][9521] );
 
+// R331: taxonomy variation slugs must not pass through wc_clean(), which strips percent-encoded UTF-8.
+$attribute_parent = new WC_Product( 9530 );
+$attribute_parent->type = 'variable';
+$taxonomy_variation_attribute = new WC_Product_Attribute();
+$taxonomy_variation_attribute->set_id( 23 );
+$taxonomy_variation_attribute->set_name( 'pa_design' );
+$taxonomy_variation_attribute->set_variation( true );
+$text_variation_attribute = new WC_Product_Attribute();
+$text_variation_attribute->set_name( 'finish' );
+$text_variation_attribute->set_variation( true );
+$attribute_parent->set_attributes(
+	array(
+		'pa_design' => $taxonomy_variation_attribute,
+		'finish'    => $text_variation_attribute,
+	)
+);
+$attribute_variation = new WC_Product( 9531 );
+$attribute_variation->type = 'variation';
+$attribute_variation->parent = 9530;
+$GLOBALS['products'][9530] = $attribute_parent;
+$GLOBALS['products'][9531] = $attribute_variation;
+reset_cart();
+WC()->cart->items = array();
+$encoded_persian_design = '%d8%b7%d8%b1%d8%ad-%d8%b4%d9%85%d8%a7%d8%b1%d9%87-3';
+$_POST = array(
+	'op'                  => 'add',
+	'product_id'          => '9530',
+	'variation_id'        => '9531',
+	'quantity'            => '1',
+	'attribute_pa_design' => $encoded_persian_design,
+	'attribute_finish'    => 'A &amp; B',
+);
+$persian_design_add = json_call( 'jluxe_ajax_cart' );
+$persian_design_values = WC()->cart->items['new']['variation'] ?? array();
+check(
+	$persian_design_add->success &&
+	( $persian_design_values['attribute_pa_design'] ?? null ) === $encoded_persian_design &&
+	( $persian_design_values['attribute_finish'] ?? null ) === 'A & B' &&
+	2 === count( $persian_design_values ),
+	'R331 percent-encoded Persian taxonomy slugs survive add-to-cart while text attributes retain WooCommerce cleaning/entity decoding'
+);
+$_POST['attribute_pa_design'] = 'mint-green-3';
+$_POST['attribute_finish'] = 'Matte';
+$english_design_add = json_call( 'jluxe_ajax_cart' );
+$english_design_values = WC()->cart->items['new']['variation'] ?? array();
+check(
+	$english_design_add->success &&
+	( $english_design_values['attribute_pa_design'] ?? null ) === 'mint-green-3' &&
+	( $english_design_values['attribute_finish'] ?? null ) === 'Matte',
+	'R331 English taxonomy slugs and plain text attribute values remain unchanged'
+);
+reset_cart();
+unset( $GLOBALS['products'][9530], $GLOBALS['products'][9531], $GLOBALS['product_attributes'][9530] );
+
 // One schema, one unslash boundary, valid empty arrays and JSON booleans survive.
 $schema=jluxe_settings_sanitizers();
 check(array_diff(array_keys($defaults),array_merge(array('version'),array_keys($schema)))===array(), 'R06 schema covers every settings section');

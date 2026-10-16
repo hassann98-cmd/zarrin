@@ -32,7 +32,7 @@ function PW(){return $GLOBALS['test_pw_instance']??null;}
 function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}
-function get_bloginfo($k){if('language'===$k)return $GLOBALS['blog_language']??'fa-IR';return 'Audit shop';}
+function get_bloginfo($k){if('language'===$k)return $GLOBALS['blog_language']??'fa-IR';if('charset'===$k)return 'UTF-8';return 'Audit shop';}
 function home_url($p=''){return 'https://shop.test/store' . ($p ? '/'.ltrim($p,'/') : '');}
 function __($s,...$a){return $s;}
 function get_option($k,$default=false){
@@ -54,7 +54,7 @@ function get_user_meta($id,$key,...$a){return $GLOBALS['user_meta'][$id][$key]??
 function update_user_meta($id,$key,$val){if(!empty($GLOBALS['fail_user_meta']))return false;$GLOBALS['user_meta'][$id][$key]=$val;return true;}
 function wp_list_pluck($list,$field,$index=null){return array_column($list,$field,$index);}
 function wp_is_numeric_array($a){return is_array($a) && (!$a || array_keys($a)===range(0,count($a)-1));}
-function sanitize_text_field($v){return is_scalar($v)?trim(strip_tags((string)$v)):'';}
+function sanitize_text_field($v){if(!is_scalar($v))return '';return preg_replace('/%[a-f0-9]{2}/i','',trim(strip_tags((string)$v)));}
 function sanitize_textarea_field($v){return sanitize_text_field($v);}
 function sanitize_key($s){return preg_replace('/[^a-z0-9_-]/','',strtolower($s));}
 function sanitize_hex_color($s){return preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i',$s)?$s:null;}
