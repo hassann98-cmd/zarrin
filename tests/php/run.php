@@ -1254,7 +1254,7 @@ check(
 $_POST = $r238_old_request;
 if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
 
-// R237: product-summary highlight cards use the real product_brand taxonomy and exclude variation attributes.
+// R237/R334: product-summary cards use the real product_brand taxonomy and surface visible variation choices.
 $r240_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
 $r240_old_attribute_labels = $GLOBALS['attribute_labels'] ?? array();
 $GLOBALS['taxonomies']['product_brand'] = true;
@@ -1307,7 +1307,7 @@ check(
 	array( 'product_brand', 'pa_color', 'material', 'warranty' ) === array_column( $r240_cards, 'name' ) &&
 	'زرین' === $r240_cards[0]['value'] && 'سرمه‌ای' === $r240_cards[1]['value'] &&
 	'چرم، پارچه' === $r240_cards[2]['value'] && 'گارانتی' === $r240_cards[3]['label'],
-	'R237 cards put the assigned taxonomy brand first, use visible values, omit duplicate-brand/variation/hidden features, and cap regular features at three'
+	'R237 cards put the assigned taxonomy brand first, use visible values, omit duplicate-brand, empty and hidden features, and cap regular features at three'
 );
 unset( $GLOBALS['taxonomies']['product_brand'] );
 $r240_attribute_only_product = new WC_Product( 9401 );
@@ -1342,6 +1342,7 @@ $r246_old_product_meta = $GLOBALS['post_meta'][9400] ?? null;
 $r246_had_product_meta = array_key_exists( 9400, $GLOBALS['post_meta'] ?? array() );
 $r246_old_attributes   = $GLOBALS['product_attributes'][9400] ?? null;
 $r246_had_attributes   = array_key_exists( 9400, $GLOBALS['product_attributes'] ?? array() );
+$r240_product->type = 'variable';
 $GLOBALS['product_attributes'][9400] = array(
 	$r240_attribute( 'pa_brand', array(), false, true, true ),
 	$r240_attribute( 'pa_size', array(), true, true, true ),
@@ -1353,23 +1354,26 @@ $GLOBALS['product_attributes'][9400] = array(
 );
 $r246_candidates = jluxe_product_key_feature_attribute_candidates( $r240_product );
 check(
-	array( 'material', 'warranty', 'capacity' ) === array_column( $r246_candidates, 'attribute_name' ) &&
-	false === in_array( 'pa_color', array_column( $r246_candidates, 'attribute_name' ), true ) &&
+	array( 'pa_color', 'material', 'warranty', 'capacity' ) === array_column( $r246_candidates, 'attribute_name' ) &&
+	true === ( $r246_candidates[0]['variation'] ?? false ) &&
 	false === in_array( 'pa_size', array_column( $r246_candidates, 'attribute_name' ), true ) &&
 	false === in_array( 'pa_brand', array_column( $r246_candidates, 'attribute_name' ), true ),
-	'R246 native attribute candidates include visible non-variation custom attributes and exclude variation, hidden, and duplicate-brand attributes'
+	'R246 candidates include visible variation values and regular attributes, while excluding empty, hidden, and duplicate-brand attributes'
 );
 $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'] = 'no';
 $GLOBALS['post_meta'][9400]['_jluxe_key_feature_attributes'] = array( 'capacity' );
 $r246_automatic_cards = jluxe_product_key_feature_cards( $r240_product );
 check(
-	array( 'product_brand', 'material', 'warranty', 'capacity' ) === array_column( $r246_automatic_cards, 'name' ),
-	'R246 cards ignore legacy manual-selection metadata and automatically include the first three eligible attributes after the brand'
+	array( 'product_brand', 'pa_color', 'material', 'warranty', 'capacity' ) === array_column( $r246_automatic_cards, 'name' ),
+	'R246 cards ignore legacy manual-selection metadata, show every visible variation attribute, and retain the first three regular attributes after the brand'
 );
 check( 'زرین' === ( $r246_automatic_cards[0]['value'] ?? '' ), 'R246 brand card reads its value from the assigned product_brand taxonomy term' );
 check(
-	'چرم، پارچه' === ( $r246_automatic_cards[1]['value'] ?? '' ) && '۱۸ ماه' === ( $r246_automatic_cards[2]['value'] ?? '' ),
-	'R246 custom attribute cards show values from the product attributes'
+	'سرمه‌ای' === ( $r246_automatic_cards[1]['value'] ?? '' ) &&
+	'چرم، پارچه' === ( $r246_automatic_cards[2]['value'] ?? '' ) &&
+	'۱۸ ماه' === ( $r246_automatic_cards[3]['value'] ?? '' ) &&
+	'۵ لیتر' === ( $r246_automatic_cards[4]['value'] ?? '' ),
+	'R246 variation and regular attribute cards resolve taxonomy term names and preserve custom values'
 );
 
 $r246_old_post     = $GLOBALS['post'] ?? null;
@@ -1474,6 +1478,29 @@ if ( $r246_had_product_meta ) { $GLOBALS['post_meta'][9400] = $r246_old_product_
 if ( $r246_had_products ) { $GLOBALS['products'][9400] = $r246_old_product; } else { unset( $GLOBALS['products'][9400] ); }
 if ( null === $r246_old_post ) { unset( $GLOBALS['post'] ); } else { $GLOBALS['post'] = $r246_old_post; }
 $GLOBALS['taxonomies'] = $r246_old_taxonomies;
+
+// R334: visible custom variation attributes appear in the summary cards without changing WooCommerce keys.
+$r334_old_attribute_labels = $GLOBALS['attribute_labels'] ?? array();
+$r334_id = 94334;
+$GLOBALS['attribute_labels']['set_type'] = 'آیتم مورد نظر را انتخاب کنید';
+$GLOBALS['product_attributes'][ $r334_id ] = array(
+	$r240_attribute( 'set_type', array( 'ست 4 تیکه با شیرینی خوری پایه دار', 'ست 4 تیکه با شیرینی خوری 2 طبقه' ), true, true, false ),
+);
+$r334_product = new WC_Product( $r334_id );
+$r334_product->type = 'variable';
+$r334_candidates = jluxe_product_key_feature_attribute_candidates( $r334_product );
+$r334_cards      = jluxe_product_key_feature_cards( $r334_product );
+check(
+	1 === count( $r334_cards ) &&
+	'set_type' === ( $r334_cards[0]['name'] ?? '' ) &&
+	'گزینه‌های محصول' === ( $r334_cards[0]['label'] ?? '' ) &&
+	'ست 4 تیکه با شیرینی خوری پایه دار، ست 4 تیکه با شیرینی خوری 2 طبقه' === ( $r334_cards[0]['value'] ?? '' ) &&
+	true === ( $r334_candidates[0]['variation'] ?? false ) &&
+	'set_type' === ( $r334_candidates[0]['attribute_name'] ?? '' ),
+	'R334 a visible custom variation is shown with its option values and a safe display-only fallback for the malformed placeholder label'
+);
+unset( $GLOBALS['product_attributes'][ $r334_id ] );
+$GLOBALS['attribute_labels'] = $r334_old_attribute_labels;
 
 // R32: AI comments — auto replies + editable summaries. All provider traffic is the deterministic mock.
 reset_security();

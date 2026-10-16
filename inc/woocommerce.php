@@ -2024,11 +2024,11 @@ function jluxe_attribute_swatch_options( string $attribute_name, array $options,
 }
 
 /**
- * همهٔ ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های variation،
- * پنهان و ویژگیِ تکراریِ برند این‌جا قرار نمی‌گیرند؛ سه مورد اول به ترتیب
- * تنظیم‌شده در ویژگی‌های بومی WooCommerce نمایش داده می‌شوند.
+ * همهٔ ویژگی‌های واجد شرایط برای کارت‌های خلاصهٔ محصول. ویژگی‌های تنوع‌سازِ
+ * قابل‌نمایش نیز در اولویت قرار می‌گیرند تا گزینه‌های قابل انتخاب محصول در
+ * بخش «ویژگی‌ها» گم نشوند؛ پس از آن حداکثر سه ویژگی عادی می‌آید.
  *
- * @return array<int, array{name: string, attribute_name: string, label: string, value: string}>
+ * @return array<int, array{name: string, attribute_name: string, label: string, value: string, variation: bool}>
  */
 function jluxe_product_key_feature_attribute_candidates( $product ): array {
 	if ( ! $product instanceof WC_Product ) {
@@ -2048,15 +2048,19 @@ function jluxe_product_key_feature_attribute_candidates( $product ): array {
 		if ( function_exists( 'wc_attributes_array_filter_visible' ) && ! wc_attributes_array_filter_visible( $attribute ) ) {
 			continue;
 		}
-		if ( $attribute->get_variation() ) {
-			continue;
-		}
 
-		$attribute_name = trim( (string) $attribute->get_name() );
+		$is_variation_attribute = $product->is_type( 'variable' ) && (bool) $attribute->get_variation();
+		$attribute_name         = trim( (string) $attribute->get_name() );
 		if ( '' === $attribute_name || isset( $seen_names[ $attribute_name ] ) ) {
 			continue;
 		}
 		$attribute_label = function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $attribute_name, $product ) : $attribute_name;
+		$normalized_label = strtolower( preg_replace( '/[\\s\\p{Cf}]+/u', ' ', trim( wp_strip_all_tags( $attribute_label ) ) ) ?? '' );
+		if ( $is_variation_attribute && in_array( $normalized_label, array( 'آیتم مورد نظر را انتخاب کنید', 'یک ویژگی را انتخاب کنید', 'انتخاب یک ویژگی', 'select an attribute', 'choose an attribute' ), true ) ) {
+			// این متنِ راهنما در نمونهٔ محصول به‌جای نامِ واقعی ویژگی ذخیره شده است.
+			// فقط برچسبِ این کارت را جایگزین می‌کنیم؛ کلید و دادهٔ WooCommerce ثابت می‌مانند.
+			$attribute_label = 'گزینه‌های محصول';
+		}
 		$normalized_name = strtolower( sanitize_title( $attribute_name ) );
 		if (
 			in_array( $normalized_name, array( 'brand', 'pa_brand', 'product_brand' ), true ) ||
@@ -2099,6 +2103,7 @@ function jluxe_product_key_feature_attribute_candidates( $product ): array {
 			'attribute_name' => $attribute_name,
 			'label'          => $attribute_label,
 			'value'          => implode( '، ', array_unique( $values ) ),
+			'variation'      => $is_variation_attribute,
 		);
 	}
 
@@ -2154,9 +2159,9 @@ function jluxe_product_key_feature_brand_enabled( $product ): bool {
 
 /**
  * Product-summary feature cards: the actual product_brand term comes first,
- * followed automatically by the first three visible, non-variation WooCommerce
- * attributes. Legacy JLuxe selection metadata is deliberately ignored and left
- * untouched so the native product-attribute flags stay authoritative.
+ * followed by every visible variation attribute, then up to three visible,
+ * non-variation WooCommerce attributes. Legacy JLuxe selection metadata is
+ * deliberately ignored and left untouched so native flags stay authoritative.
  *
  * @return array<int, array{name: string, label: string, value: string}>
  */
@@ -2171,15 +2176,30 @@ function jluxe_product_key_feature_cards( $product ): array {
 		$cards[] = $brand_card;
 	}
 
-	$extra_count = 0;
-	foreach ( jluxe_product_key_feature_attribute_candidates( $product ) as $candidate ) {
+	$candidates = jluxe_product_key_feature_attribute_candidates( $product );
+	foreach ( $candidates as $candidate ) {
+		if ( empty( $candidate['variation'] ) ) {
+			continue;
+		}
 		$cards[] = array(
 			'name'  => $candidate['name'],
 			'label' => $candidate['label'],
 			'value' => $candidate['value'],
 		);
-		++$extra_count;
-		if ( $extra_count >= 3 ) {
+	}
+
+	$regular_count = 0;
+	foreach ( $candidates as $candidate ) {
+		if ( ! empty( $candidate['variation'] ) ) {
+			continue;
+		}
+		$cards[] = array(
+			'name'  => $candidate['name'],
+			'label' => $candidate['label'],
+			'value' => $candidate['value'],
+		);
+		++$regular_count;
+		if ( $regular_count >= 3 ) {
 			break;
 		}
 	}
