@@ -2874,19 +2874,14 @@ function jluxe_render_homepage_brick_products( array $section ): void {
 			break;
 
 		default: // bestsellers
-			// ترتیب را به سازوکار فروش واقعیِ خود ووکامرس می‌سپاریم، اما ردیف‌های
-			// بدون فروش را عمداً حذف می‌کنیم؛ محصولی که هنوز total_sales ندارد
-			// یا مقدار آن صفر است نباید فقط برای پرشدن ظرفیت گرید «پرفروش» شود.
-			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Needed to filter unsold products.
-			$args['meta_query'] = array(
-				array(
-					'key'     => 'total_sales',
-					'value'   => 0,
-					'compare' => '>',
-					'type'    => 'NUMERIC',
-				),
-			);
-			$args['orderby']   = 'popularity';
+			// wc_get_products() forwards these meta_* query vars to WP_Query;
+			// the WooCommerce CPT data store does not forward a generic meta_query.
+			// Thus only products with numeric total_sales > 0 stay eligible.
+			$args['meta_key']     = 'total_sales';
+			$args['meta_value']   = 0;
+			$args['meta_compare'] = '>';
+			$args['meta_type']    = 'NUMERIC';
+			$args['orderby']      = 'popularity';
 			$args['order']     = 'DESC';
 			$products          = wc_get_products( $args );
 	}

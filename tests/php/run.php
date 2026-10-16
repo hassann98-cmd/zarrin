@@ -8641,18 +8641,18 @@ $r329_brick_section = array(
 );
 jluxe_render_homepage_brick_products( $r329_brick_section );
 $r329_bestseller_args = $GLOBALS['r329_brick_queries'][0] ?? array();
-$r329_sales_filter    = $r329_bestseller_args['meta_query'][0] ?? array();
 check(
 	6 === ( $r329_bestseller_args['limit'] ?? 0 ) &&
 	'publish' === ( $r329_bestseller_args['status'] ?? '' ) &&
 	'instock' === ( $r329_bestseller_args['stock_status'] ?? '' ) &&
 	'popularity' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
 	'DESC' === ( $r329_bestseller_args['order'] ?? '' ) &&
-	'total_sales' === ( $r329_sales_filter['key'] ?? '' ) &&
-	0 === ( $r329_sales_filter['value'] ?? null ) &&
-	'>' === ( $r329_sales_filter['compare'] ?? '' ) &&
-	'NUMERIC' === ( $r329_sales_filter['type'] ?? '' ),
-	'R329 bestseller source keeps WooCommerce sales ordering but excludes products with no recorded sales'
+	'total_sales' === ( $r329_bestseller_args['meta_key'] ?? '' ) &&
+	0 === ( $r329_bestseller_args['meta_value'] ?? null ) &&
+	'>' === ( $r329_bestseller_args['meta_compare'] ?? '' ) &&
+	'NUMERIC' === ( $r329_bestseller_args['meta_type'] ?? '' ) &&
+	! isset( $r329_bestseller_args['meta_query'] ),
+	'R329 bestseller source sends a WooCommerce-supported numeric sales threshold while preserving popularity order'
 );
 
 $GLOBALS['terms_by_id'][32901] = (object) array( 'slug' => 'r329-brick-category' );
