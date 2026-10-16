@@ -200,10 +200,30 @@ function jluxe_product_specifications_posted_groups( int $post_id, ?bool &$resto
 	return $clean;
 }
 
+/** Normalize exported labels and strip WooCommerce's historical numeric collision suffix. */
+function jluxe_product_specifications_export_label( $label ): string {
+	$label = trim( preg_replace( '/\\s+/u', ' ', wp_strip_all_tags( (string) $label ) ) ?? '' );
+	$label = preg_replace( '/\\s*[\\(（]\\s*[0-9۰-۹٠-٩]+\\s*[\\)）]\\s*$/u', '', $label ) ?? $label;
+	return trim( $label );
+}
+
 /** Normalize a specification or attribute label for safe duplicate detection. */
 function jluxe_product_specifications_export_label_key( $label ): string {
-	$label = trim( preg_replace( '/\\s+/u', ' ', wp_strip_all_tags( (string) $label ) ) ?? '' );
-	return strtolower( $label );
+	return strtolower( jluxe_product_specifications_export_label( $label ) );
+}
+
+/** Include the base label of attributes created by older group-prefixed exports. */
+function jluxe_product_specifications_export_label_keys( $label ): array {
+	$label = jluxe_product_specifications_export_label( $label );
+	$keys  = '' !== $label ? array( strtolower( $label ) ) : array();
+	$separator_position = strrpos( $label, ' — ' );
+	if ( false !== $separator_position ) {
+		$base_label = jluxe_product_specifications_export_label( substr( $label, $separator_position + strlen( ' — ' ) ) );
+		if ( '' !== $base_label ) {
+			$keys[] = strtolower( $base_label );
+		}
+	}
+	return array_values( array_unique( $keys ) );
 }
 
 /** Read normalized string options from a saved WooCommerce attribute. */
@@ -300,17 +320,20 @@ function jluxe_sync_product_specifications_to_wc_attributes( WC_Product $product
 			}
 		}
 
-		$label = function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $name, $product ) : $name;
-		$label_key = jluxe_product_specifications_export_label_key( $label );
-		if ( '' === $label_key ) {
+		$label      = function_exists( 'wc_attribute_label' ) ? (string) wc_attribute_label( $name, $product ) : $name;
+		$label_keys = jluxe_product_specifications_export_label_keys( $label );
+		if ( ! $label_keys ) {
 			continue;
 		}
 		$visible = ! method_exists( $attribute, 'get_visible' ) || (bool) $attribute->get_visible();
-		if ( ! isset( $existing_by_name[ $label_key ] ) ) {
-			$existing_by_name[ $label_key ] = array( 'visible' => false, 'values' => array() );
+		$values  = jluxe_product_specifications_export_attribute_values( $product, $attribute );
+		foreach ( $label_keys as $label_key ) {
+			if ( ! isset( $existing_by_name[ $label_key ] ) ) {
+				$existing_by_name[ $label_key ] = array( 'visible' => false, 'values' => array() );
+			}
+			$existing_by_name[ $label_key ]['visible'] = $existing_by_name[ $label_key ]['visible'] || $visible;
+			$existing_by_name[ $label_key ]['values']  = array_values( array_unique( array_merge( $existing_by_name[ $label_key ]['values'], $values ) ) );
 		}
-		$existing_by_name[ $label_key ]['visible'] = $existing_by_name[ $label_key ]['visible'] || $visible;
-		$existing_by_name[ $label_key ]['values']  = array_values( array_unique( array_merge( $existing_by_name[ $label_key ]['values'], jluxe_product_specifications_export_attribute_values( $product, $attribute ) ) ) );
 	}
 
 	$rows = array();
@@ -318,16 +341,15 @@ function jluxe_sync_product_specifications_to_wc_attributes( WC_Product $product
 		if ( ! is_array( $group ) ) {
 			continue;
 		}
-		$group_title = isset( $group['title'] ) && is_scalar( $group['title'] ) ? sanitize_text_field( (string) $group['title'] ) : 'مشخصات فنی';
 		$items = isset( $group['items'] ) && is_array( $group['items'] ) ? array_slice( $group['items'], 0, 100 ) : array();
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item['label'], $item['value'] ) || ! is_scalar( $item['label'] ) || ! is_scalar( $item['value'] ) ) {
 				continue;
 			}
-			$label = sanitize_text_field( (string) $item['label'] );
+			$label = jluxe_product_specifications_export_label( sanitize_text_field( (string) $item['label'] ) );
 			$value = sanitize_text_field( (string) $item['value'] );
 			if ( '' !== $label && '' !== $value ) {
-				$rows[] = array( 'group' => $group_title, 'label' => $label, 'value' => $value );
+				$rows[] = array( 'label' => $label, 'value' => $value );
 			}
 		}
 	}
@@ -336,39 +358,12 @@ function jluxe_sync_product_specifications_to_wc_attributes( WC_Product $product
 	$generated_by_name = array();
 	foreach ( $rows as $row ) {
 		$label_key = jluxe_product_specifications_export_label_key( $row['label'] );
-		if ( '' === $label_key ) {
-			continue;
-		}
-		if ( isset( $generated_by_name[ $label_key ] ) && in_array( $row['value'], $generated_by_name[ $label_key ], true ) ) {
-			continue;
-		}
-		if ( isset( $existing_by_name[ $label_key ] ) && $existing_by_name[ $label_key ]['visible'] && in_array( $row['value'], $existing_by_name[ $label_key ]['values'], true ) ) {
-			continue;
+		if ( '' === $label_key || isset( $generated_by_name[ $label_key ] ) || isset( $existing_by_name[ $label_key ] ) ) {
+			continue; // یک نام ویژگی فقط یک‌بار صادر می‌شود؛ مقدار دستی یا ردیف قبلی دست‌نخورده می‌ماند.
 		}
 
 		$attribute_name = $row['label'];
-		$name_key       = $label_key;
-		if ( isset( $existing_by_name[ $label_key ] ) || isset( $generated_by_name[ $label_key ] ) ) {
-			$prefix        = '' !== trim( $row['group'] ) ? trim( $row['group'] ) : 'مشخصات فنی';
-			$attribute_name = $prefix . ' — ' . $row['label'];
-			$name_key       = jluxe_product_specifications_export_label_key( $attribute_name );
-		}
-		$base_name = $attribute_name;
-		$suffix    = 2;
-		while ( '' === $name_key || isset( $existing_by_name[ $name_key ] ) || isset( $generated_by_name[ $name_key ] ) ) {
-			if ( isset( $existing_by_name[ $name_key ] ) && $existing_by_name[ $name_key ]['visible'] && in_array( $row['value'], $existing_by_name[ $name_key ]['values'], true ) ) {
-				$attribute_name = '';
-				break;
-			}
-			$attribute_name = $base_name . ' (' . $suffix . ')';
-			$name_key       = jluxe_product_specifications_export_label_key( $attribute_name );
-			++$suffix;
-		}
-		if ( '' === $attribute_name ) {
-			continue;
-		}
-
-		$wc_attribute = new WC_Product_Attribute();
+		$wc_attribute  = new WC_Product_Attribute();
 		$wc_attribute->set_id( 0 );
 		$wc_attribute->set_name( $attribute_name );
 		$wc_attribute->set_options( array( $row['value'] ) );
@@ -388,8 +383,8 @@ function jluxe_sync_product_specifications_to_wc_attributes( WC_Product $product
 			'name'   => $attribute_name,
 			'values' => array( $row['value'] ),
 		);
-		$generated_by_name[ $name_key ] = array( $row['value'] );
-		$existing_by_name[ $name_key ]  = array( 'visible' => true, 'values' => array( $row['value'] ) );
+		$generated_by_name[ $label_key ] = true;
+		$existing_by_name[ $label_key ]  = array( 'visible' => true, 'values' => array( $row['value'] ) );
 	}
 
 	$product->set_attributes( $attributes );

@@ -2371,30 +2371,47 @@ function jluxe_get_additional_product_specification_rows( WC_Product $product, a
 	return $rows;
 }
 
-/** Render legacy Boom groups and WooCommerce's remaining attributes safely. */
-function jluxe_render_grouped_product_specifications( array $groups, array $additional_rows = array() ): string {
-	if ( ! $groups ) {
-		return '';
-	}
-
+/**
+ * Return only grouped sections that should be visible in the product table.
+ * The original groups remain untouched for storage, exports, and Product JSON-LD.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function jluxe_get_displayable_product_specification_groups( array $groups ): array {
 	$normalize_title = static function ( $title ): string {
 		$title = trim( preg_replace( '/\\s+/', ' ', wp_strip_all_tags( (string) $title ) ) ?? '' );
 		return strtolower( $title );
 	};
 	$other_title = $normalize_title( 'سایر مشخصات' );
-	$other_index = null;
-	foreach ( $groups as $index => $group ) {
-		if ( $other_title === $normalize_title( $group['title'] ?? '' ) ) {
-			$other_index = $index;
-			break;
+	$visible     = array();
+
+	foreach ( $groups as $group ) {
+		if ( ! is_array( $group ) ) {
+			continue;
 		}
+		$title = isset( $group['title'] ) && is_scalar( $group['title'] ) ? sanitize_text_field( (string) $group['title'] ) : '';
+		$items = isset( $group['items'] ) && is_array( $group['items'] ) ? $group['items'] : array();
+		if ( '' === $title || $other_title === $normalize_title( $title ) || ! $items ) {
+			continue;
+		}
+		$group['title'] = $title;
+		$visible[]      = $group;
 	}
-	if ( $additional_rows ) {
-		if ( null === $other_index ) {
-			$groups[]    = array( 'title' => 'سایر مشخصات', 'items' => array() );
-			$other_index = array_key_last( $groups );
-		}
-		$groups[ $other_index ]['items'] = array_merge( (array) ( $groups[ $other_index ]['items'] ?? array() ), $additional_rows );
+
+	return $visible;
+}
+
+/**
+ * Render only the intended grouped specifications. The «سایر مشخصات» group
+ * and extra WooCommerce attributes stay intact in storage/schema/export data,
+ * but are deliberately omitted from the visual product table.
+ *
+ * @param array $additional_rows Kept for backwards compatibility; not rendered.
+ */
+function jluxe_render_grouped_product_specifications( array $groups, array $additional_rows = array() ): string {
+	$groups = jluxe_get_displayable_product_specification_groups( $groups );
+	if ( ! $groups ) {
+		return '';
 	}
 
 	$html = '<div class="jluxe-product-advanced-specs" dir="rtl">';
@@ -2405,11 +2422,9 @@ function jluxe_render_grouped_product_specifications( array $groups, array $addi
 			continue;
 		}
 
-		$is_other = $other_title === $normalize_title( $title );
-		$classes  = 'jluxe-product-advanced-specs__group' . ( $is_other ? ' jluxe-product-advanced-specs__group--other' : '' );
-		$html    .= '<section class="' . esc_attr( $classes ) . '">';
-		$html    .= '<header class="jluxe-product-advanced-specs__heading"><span class="jluxe-product-advanced-specs__accent" aria-hidden="true"></span><h4>' . esc_html( $title ) . '</h4></header>';
-		$html    .= '<dl class="jluxe-product-advanced-specs__rows">';
+		$html .= '<section class="jluxe-product-advanced-specs__group">';
+		$html .= '<header class="jluxe-product-advanced-specs__heading"><span class="jluxe-product-advanced-specs__accent" aria-hidden="true"></span><h4>' . esc_html( $title ) . '</h4></header>';
+		$html .= '<dl class="jluxe-product-advanced-specs__rows">';
 
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item['label'], $item['value'] ) || ! is_scalar( $item['label'] ) || ! is_scalar( $item['value'] ) ) {

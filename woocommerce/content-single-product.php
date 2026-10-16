@@ -91,6 +91,10 @@ usort(
 	}
 );
 $jluxe_advanced_attribute_groups = jluxe_get_product_advanced_attribute_groups( (int) $product->get_id() );
+$jluxe_display_advanced_groups   = jluxe_get_displayable_product_specification_groups( $jluxe_advanced_attribute_groups );
+$jluxe_has_specs                 = $jluxe_advanced_attribute_groups
+	? ! empty( $jluxe_display_advanced_groups )
+	: ! empty( $attributes );
 $jluxe_additional_spec_rows       = $jluxe_advanced_attribute_groups
 	? jluxe_get_additional_product_specification_rows( $product, $jluxe_advanced_attribute_groups )
 	: array();
@@ -323,7 +327,7 @@ if ( $jluxe_is_variable ) {
 				<?php if ( $jluxe_faq_items ) : ?>
 					<li><a href="#faq" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">سوالات متداول</a></li>
 				<?php endif; ?>
-			<?php if ( $attributes || $jluxe_advanced_attribute_groups ) : ?>
+			<?php if ( $jluxe_has_specs ) : ?>
 				<li><a href="#specs" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">مشخصات</a></li>
 			<?php endif; ?>
 				<li><a href="#reviews" class="flex h-12 items-center whitespace-nowrap px-3.5 text-[13px] font-medium text-text-secondary hover:text-foreground">دیدگاه کاربران</a></li>
@@ -347,15 +351,15 @@ if ( $jluxe_is_variable ) {
 			<?php jluxe_render_product_faq_section( $product ); ?>
 		<?php endif; ?>
 
-		<?php if ( $attributes || $jluxe_advanced_attribute_groups ) : ?>
+		<?php if ( $jluxe_has_specs ) : ?>
 			<section id="specs" class="jluxe-product-section-anchor scroll-mt-16 py-6">
 				<h2 class="mb-4 flex items-center gap-2 text-base font-bold text-foreground sm:text-lg">
 					<span class="h-4 w-[3px] rounded-full bg-primary" aria-hidden="true"></span>
-					<?php echo esc_html( $jluxe_advanced_attribute_groups ? 'مشخصات' : 'مشخصات فنی' ); ?>
+					<?php echo esc_html( $jluxe_display_advanced_groups ? 'مشخصات' : 'مشخصات فنی' ); ?>
 				</h2>
-				<?php if ( $jluxe_advanced_attribute_groups ) : ?>
+				<?php if ( $jluxe_display_advanced_groups ) : ?>
 					<div class="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5">
-						<?php echo jluxe_render_grouped_product_specifications( $jluxe_advanced_attribute_groups, $jluxe_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
+						<?php echo jluxe_render_grouped_product_specifications( $jluxe_display_advanced_groups, $jluxe_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
 					</div>
 				<?php else : ?>
 					<div class="overflow-hidden rounded-2xl border border-border bg-surface">

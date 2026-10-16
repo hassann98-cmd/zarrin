@@ -7794,11 +7794,37 @@ $r269_rendered_groups = jluxe_render_grouped_product_specifications( $r269_json_
 check(
 	false !== strpos( $r269_rendered_groups, 'مشخصات فنی' ) &&
 	false !== strpos( $r269_rendered_groups, 'ابعاد محصول (سانتی‌متر)' ) &&
-	false !== strpos( $r269_rendered_groups, 'سایر مشخصات' ) &&
-	false !== strpos( $r269_rendered_groups, 'رنگ' ) &&
-	false !== strpos( $r269_rendered_groups, 'سفید، طوسی' ) &&
+	false === strpos( $r269_rendered_groups, 'سایر مشخصات' ) &&
+	false === strpos( $r269_rendered_groups, 'jluxe-product-advanced-specs__group--other' ) &&
+	false === strpos( $r269_rendered_groups, 'رنگ' ) &&
+	false === strpos( $r269_rendered_groups, 'سفید، طوسی' ) &&
 	false !== strpos( $r269_rendered_groups, 'jluxe-product-advanced-specs__row' ),
-	'R269 grouped markup renders technical, dimension, and remaining-WooCommerce groups with semantic label/value rows'
+	'R269/R325 grouped markup renders intended sections and omits the visual-only other-specifications group and its extra WooCommerce rows'
+);
+$r325_other_group_id = 94327;
+$r325_other_group = array(
+	array(
+		'title' => 'سایر مشخصات',
+		'items' => array(
+			array( 'label' => 'جنس کفه', 'value' => 'توری فلزی + ام‌دی‌اف ۳ میلی‌متری قهوه‌ای' ),
+			array( 'label' => 'جنس بدنه (2)', 'value' => 'فلز آبکاری شده مقاوم' ),
+		),
+	),
+);
+$GLOBALS['post_meta'][ $r325_other_group_id ]['_jluxe_product_advanced_attributes_override'] = '1';
+$GLOBALS['post_meta'][ $r325_other_group_id ]['_jluxe_product_advanced_attributes'] = $r325_other_group;
+$GLOBALS['product_attributes'][ $r325_other_group_id ] = array();
+$r325_other_loaded_groups = jluxe_get_product_advanced_attribute_groups( $r325_other_group_id );
+$r325_other_product = new WC_Product( $r325_other_group_id );
+$r325_other_html = jluxe_render_grouped_product_specifications( $r325_other_loaded_groups );
+$r325_other_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r325_other_product );
+check(
+	1 === count( $r325_other_loaded_groups ) && 'سایر مشخصات' === $r325_other_loaded_groups[0]['title'] &&
+	2 === count( $r325_other_loaded_groups[0]['items'] ) && '' === $r325_other_html &&
+	2 === count( $r325_other_schema['additionalProperty'] ?? array() ) &&
+	'جنس کفه' === ( $r325_other_schema['additionalProperty'][0]['name'] ?? '' ) &&
+	'سایر مشخصات' === ( $r325_other_schema['additionalProperty'][0]['description'] ?? '' ),
+	'R325 hides only the other-specifications visual section while retaining its source rows and Product JSON-LD'
 );
 $r269_product_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r269_product );
 $r269_schema_properties = $r269_product_schema['additionalProperty'] ?? array();
@@ -7849,10 +7875,16 @@ foreach ( $r269_templates as $r269_template ) {
 }
 check(
 	$r269_all_templates_integrated &&
-	false !== strpos( $r269_templates[0], '$attributes || $jluxe_advanced_attribute_groups' ) &&
+	false !== strpos( $r269_templates[0], '$jluxe_has_specs' ) &&
 	false !== strpos( $r269_templates[1], '$cp3_advanced_attribute_groups' ) &&
 	false !== strpos( $r269_templates[2], '$cp3_advanced_attribute_groups' ),
 	'R269 default, classic, and reference templates all route legacy groups through the shared read-only renderer'
+);
+check(
+	false !== strpos( $r269_templates[0], '$jluxe_display_advanced_groups' ) && false !== strpos( $r269_templates[0], '$jluxe_has_specs' ) &&
+	false !== strpos( $r269_templates[1], '$cp3_display_advanced_groups' ) && false !== strpos( $r269_templates[1], '$cp3_has_specs' ) &&
+	false !== strpos( $r269_templates[2], '$cp3_display_advanced_groups' ) && false !== strpos( $r269_templates[2], '$cp3_has_specs' ),
+	'R325 all three product layouts omit the entire specs navigation/section when only hidden other-specification rows exist'
 );
 
 // R272 — product-editor CRUD uses a separate override and exposes the effective data to Product JSON-LD.
@@ -8057,11 +8089,10 @@ check(
 	$r320_model_attribute instanceof WC_Product_Attribute &&
 	array( 'هرمس (۱.۵ طبقه)' ) === $r320_model_attribute->get_options() &&
 	true === $r320_model_attribute->get_visible() && false === $r320_model_attribute->get_variation() &&
-	$r320_collision_attribute instanceof WC_Product_Attribute &&
-	array( 'عروس نوین' ) === $r320_collision_attribute->get_options() &&
+	null === $r320_collision_attribute &&
 	1 === count( $r320_additional_rows ) && 'وزن' === $r320_additional_rows[0]['label'] &&
 	$r320_boom_snapshot === $GLOBALS['post_meta'][ $r320_id ]['_boom_advanced_attributes'],
-	'R320 export copies every grouped value into visible standard attributes without overwriting same-label manual data or mutating Boom'
+	'R320/R325 export keeps same-label manual attributes untouched, creates no duplicate/prefixed copy, and mirrors non-conflicting grouped values'
 );
 $_POST['jluxe_product_specs'][0]['items'][1]['value'] = 'هرمس مدل اصلاح‌شده';
 jluxe_save_product_specifications_meta_object( $r320_product );
@@ -8144,6 +8175,71 @@ array_pop( $GLOBALS['denied_caps'] );
 check(
 	'/products' === $r320_denied_redirect,
 	'R320 bulk specification export requires WooCommerce product-edit permission'
+);
+
+$r325_dedupe_id = 94325;
+$r325_old_export_name = 'مشخصات فنی — جنس بدنه (2)';
+$r325_old_export = new WC_Product_Attribute();
+$r325_old_export->set_id( 0 );
+$r325_old_export->set_name( $r325_old_export_name );
+$r325_old_export->set_options( array( 'فلز قدیمی' ) );
+$r325_old_export->set_visible( true );
+$r325_old_export->set_variation( false );
+$GLOBALS['product_attributes'][ $r325_dedupe_id ] = array( 'old-export' => $r325_old_export );
+$r325_dedupe_product = new WC_Product( $r325_dedupe_id );
+$r325_old_export_key = sanitize_title( $r325_old_export_name );
+$r325_dedupe_product->meta['_jluxe_product_specs_export_snapshot'] = array(
+	$r325_old_export_key => array( 'name' => $r325_old_export_name, 'values' => array( 'فلز قدیمی' ) ),
+);
+$r325_dedupe_groups = array(
+	array(
+		'title' => 'مشخصات فنی',
+		'items' => array(
+			array( 'label' => 'جنس بدنه', 'value' => 'فلز آبکاری‌شده' ),
+			array( 'label' => 'جنس بدنه (2)', 'value' => 'فلز آبکاری‌شده' ),
+			array( 'label' => 'جنس کفه (2)', 'value' => 'توری فلزی' ),
+		),
+	),
+	array(
+		'title' => 'سایر مشخصات',
+		'items' => array( array( 'label' => 'جنس بدنه', 'value' => 'مقدار تکراری از گروه دیگر' ) ),
+	),
+);
+jluxe_sync_product_specifications_to_wc_attributes( $r325_dedupe_product, $r325_dedupe_groups );
+$r325_dedupe_attributes = $r325_dedupe_product->get_attributes();
+$r325_body_attribute = $r320_find_attribute( $r325_dedupe_attributes, 'جنس بدنه' );
+$r325_sole_attribute = $r320_find_attribute( $r325_dedupe_attributes, 'جنس کفه' );
+$r325_dedupe_additional = jluxe_get_additional_product_specification_rows( $r325_dedupe_product, $r325_dedupe_groups );
+check(
+	2 === count( $r325_dedupe_attributes ) &&
+	$r325_body_attribute instanceof WC_Product_Attribute && array( 'فلز آبکاری‌شده' ) === $r325_body_attribute->get_options() &&
+	$r325_sole_attribute instanceof WC_Product_Attribute && array( 'توری فلزی' ) === $r325_sole_attribute->get_options() &&
+	null === $r320_find_attribute( $r325_dedupe_attributes, $r325_old_export_name ) &&
+	null === $r320_find_attribute( $r325_dedupe_attributes, 'جنس بدنه (2)' ) &&
+	! $r325_dedupe_additional &&
+	'جنس بدنه' === jluxe_product_specifications_export_label( 'جنس بدنه (2)' ),
+	'R325 the next sync replaces unchanged legacy numbered exports with one clean WooCommerce attribute per grouped label'
+);
+$r325_manual_prefix_id = 94326;
+$r325_manual_prefix_name = 'مشخصات فنی — مدل محصول';
+$r325_manual_prefix = new WC_Product_Attribute();
+$r325_manual_prefix->set_id( 0 );
+$r325_manual_prefix->set_name( $r325_manual_prefix_name );
+$r325_manual_prefix->set_options( array( 'مقدار دستیِ اصلاح‌شده' ) );
+$r325_manual_prefix->set_visible( true );
+$r325_manual_prefix->set_variation( false );
+$GLOBALS['product_attributes'][ $r325_manual_prefix_id ] = array( 'manual-prefixed' => $r325_manual_prefix );
+$r325_manual_prefix_product = new WC_Product( $r325_manual_prefix_id );
+jluxe_sync_product_specifications_to_wc_attributes(
+	$r325_manual_prefix_product,
+	array( array( 'title' => 'مشخصات فنی', 'items' => array( array( 'label' => 'مدل محصول', 'value' => 'مقدار جدول' ) ) ) )
+);
+$r325_manual_prefix_attrs = $r325_manual_prefix_product->get_attributes();
+check(
+	1 === count( $r325_manual_prefix_attrs ) && $r325_manual_prefix_attrs['manual-prefixed'] === $r325_manual_prefix &&
+	array( 'مقدار دستیِ اصلاح‌شده' ) === $r325_manual_prefix->get_options() &&
+	null === $r320_find_attribute( $r325_manual_prefix_attrs, 'مدل محصول' ),
+	'R325 existing group-prefixed or edited attributes are preserved and do not trigger a second base-label copy'
 );
 $_POST = $r320_previous_post;
 if ( null === $r320_previous_nonce ) {

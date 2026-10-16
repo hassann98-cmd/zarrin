@@ -49,6 +49,10 @@ foreach ( array_filter( $product->get_attributes(), 'wc_attributes_array_filter_
 	}
 }
 $cp3_advanced_attribute_groups = jluxe_get_product_advanced_attribute_groups( (int) $product->get_id() );
+$cp3_display_advanced_groups   = jluxe_get_displayable_product_specification_groups( $cp3_advanced_attribute_groups );
+$cp3_has_specs                 = $cp3_advanced_attribute_groups
+	? ! empty( $cp3_display_advanced_groups )
+	: ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) );
 $cp3_additional_spec_rows       = $cp3_advanced_attribute_groups
 	? jluxe_get_additional_product_specification_rows( $product, $cp3_advanced_attribute_groups )
 	: array();
@@ -720,7 +724,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			</div>
 			<nav class="cp3-tabs" aria-label="بخش‌های صفحه محصول">
 				<button type="button" class="cp3-tab is-active" data-cp3-tab="sec-desc">توضیحات</button>
-				<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) || ! empty( $cp3_advanced_attribute_groups ) ) : ?>
+				<?php if ( $cp3_has_specs ) : ?>
 					<button type="button" class="cp3-tab" data-cp3-tab="sec-specs">مشخصات</button>
 				<?php endif; ?>
 				<button type="button" class="cp3-tab" data-cp3-tab="sec-reviews">دیدگاه‌ها</button>
@@ -760,7 +764,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			</section>
 
 			<!-- ۲) مشخصات -->
-			<?php if ( ! empty( $cp3_specs ) || ! empty( $cp3_variation_specs ) || ! empty( $cp3_advanced_attribute_groups ) ) : ?>
+			<?php if ( $cp3_has_specs ) : ?>
 			<section id="sec-specs" class="cp3-sec" data-cp3-section="مشخصات">
 				<div class="cp3-sechead">
 					<span class="cp3-num" dir="ltr">2</span>
@@ -768,8 +772,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<span class="line" aria-hidden="true"></span>
 				</div>
 				<div class="cp3-panelcard">
-					<?php if ( $cp3_advanced_attribute_groups ) : ?>
-						<?php echo jluxe_render_grouped_product_specifications( $cp3_advanced_attribute_groups, $cp3_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
+					<?php if ( $cp3_display_advanced_groups ) : ?>
+						<?php echo jluxe_render_grouped_product_specifications( $cp3_display_advanced_groups, $cp3_additional_spec_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Helper escapes all labels/values and emits only sanitized swatches. ?>
 					<?php else : ?>
 						<?php if ( ! empty( $cp3_specs ) ) : ?>
 							<div class="cp3-specgroup">
