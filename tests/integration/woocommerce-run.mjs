@@ -44,6 +44,40 @@ function check(condition, label) {
   console.log(`PASS: ${label}`);
 }
 
+function localizedObjectFromHtml(html) {
+  const marker = "var JLuxeThemeSettings";
+  const markerIndex = html.indexOf(marker);
+  if (markerIndex < 0) return null;
+  const start = html.indexOf("{", markerIndex + marker.length);
+  if (start < 0) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < html.length; index += 1) {
+    const character = html[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character.charCodeAt(0) === 92) escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === "{") depth += 1;
+    else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(start, index + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 async function verifiedArchive(name, expectedSha256) {
   const bytes = await fs.readFile(path.join(archives, name));
   const actual = createHash("sha256").update(bytes).digest("hex");
@@ -591,8 +625,18 @@ try {
       /type="radio"/.test(paymentGatewayInput) &&
       /class="[^"]*\bsr-only\b[^"]*"/.test(paymentGatewayInput) &&
       /<label\b[^>]*for="payment_method_[^"]+"[^>]*class="[^"]*jluxe-payment-card/.test(paymentGatewayRow);
-    const legacyCityMapLoaded = response.text.includes('"iranCities"') && response.text.includes('"KRH"');
-    const expandedCityMapLoaded = ['دهگلان', 'آرمرده', 'توپ آغاج', 'ابوموسی'].every((city) => response.text.includes(city));
+    const localizedSettings = localizedObjectFromHtml(response.text);
+    const localizedIranCities = localizedSettings?.iranCities;
+    const localizedCityCount = localizedIranCities && typeof localizedIranCities === "object"
+      ? Object.values(localizedIranCities).reduce((total, cities) => total + (Array.isArray(cities) ? cities.length : 0), 0)
+      : 0;
+    const legacyCityMapLoaded = Array.isArray(localizedIranCities?.KRH) && localizedIranCities.KRH.includes("جوانرود");
+    const expandedCityMapLoaded = Object.keys(localizedIranCities || {}).length === 31 && localizedCityCount === 1347 && [
+      ["KRD", "دهگلان"],
+      ["KRD", "آرمرده"],
+      ["KRD", "توپ آغاج"],
+      ["HRZ", "ابوموسی"],
+    ].every(([state, city]) => Array.isArray(localizedIranCities?.[state]) && localizedIranCities[state].includes(city));
     const checkoutAddressDataRemoved = !response.text.includes('checkoutAddressData');
     const cityLabelPayloadRemoved = !response.text.includes('jluxe_billing_city_label');
     const checkoutStepCount = (response.text.match(/data-jluxe-step="/g) || []).length;
@@ -605,7 +649,7 @@ try {
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodePlaceholder=${billingPostcodePlaceholder}; postcodeHelpRemoved=${billingPostcodeHelpRemoved}; cityMap=${legacyCityMapLoaded}; expandedCityMap=${expandedCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; paymentList=${!!paymentList}; gatewayRow=${!!paymentGatewayRow}; horizontalGatewayCard=${paymentListHasHorizontalGatewayCard}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodePlaceholder=${billingPostcodePlaceholder}; postcodeHelpRemoved=${billingPostcodeHelpRemoved}; cityMap=${legacyCityMapLoaded}; localizedCityStates=${Object.keys(localizedIranCities || {}).length}; localizedCityCount=${localizedCityCount}; expandedCityMap=${expandedCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; paymentList=${!!paymentList}; gatewayRow=${!!paymentGatewayRow}; horizontalGatewayCard=${paymentListHasHorizontalGatewayCard}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
