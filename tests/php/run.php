@@ -2490,6 +2490,7 @@ check(
 	'' === $r152_color_defaults['product_page']['discount_color'] &&
 	'' === $r152_color_defaults['product_page']['savings_color'] &&
 	'' === $r152_color_defaults['product_page']['star_color'] &&
+	'' === $r152_color_defaults['product_page']['variation_label_color'] &&
 	strpos( $r51_css, '--jluxe-sale-color: hsl(var(--error))' ) !== false &&
 	strpos( $r51_css, '--jluxe-savings-color: hsl(var(--success))' ) !== false,
 	'R152 sale, stock, savings, and star UI colors use semantic defaults unless an admin override exists'
@@ -2562,6 +2563,7 @@ $r152_page_override = jluxe_sanitize_product_page(
 		'discount_color'                => '#234567',
 		'savings_color'                 => '#345678',
 		'star_color'                    => '#456789',
+		'variation_label_color'         => '#785634',
 		'description_link_bg_color'     => '#F8ECE6',
 		'description_link_text_color'   => '#813B27',
 		'description_link_border_color' => '#B85C38',
@@ -2573,16 +2575,20 @@ check(
 	'#234567' === $r152_page_override['discount_color'] &&
 	'#345678' === $r152_page_override['savings_color'] &&
 	'#456789' === $r152_page_override['star_color'] &&
+	'#785634' === $r152_page_override['variation_label_color'] &&
 	'#F8ECE6' === $r152_page_override['description_link_bg_color'] &&
 	'#813B27' === $r152_page_override['description_link_text_color'] &&
 	'#B85C38' === $r152_page_override['description_link_border_color'],
 	'R152/R326 sanitizers retain valid admin color overrides and blank fields preserve theme-token defaults'
 );
+$r152_invalid_page_color = jluxe_sanitize_product_page( array( 'variation_label_color' => 'url(javascript:alert(1))' ), $r152_color_defaults['product_page'] );
+check( '' === $r152_invalid_page_color['variation_label_color'], 'R333 invalid variation-label colors are discarded by the product-page sanitizer' );
 $r152_saved_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
 $r152_test_settings = jluxe_theme_settings_defaults();
 $r152_test_settings['product_page']['discount_color'] = '#234567';
 $r152_test_settings['product_page']['savings_color'] = '#345678';
 $r152_test_settings['product_page']['star_color'] = '#456789';
+$r152_test_settings['product_page']['variation_label_color'] = '#785634';
 $r152_test_settings['product_page']['description_link_bg_color'] = '#F8ECE6';
 $r152_test_settings['product_page']['description_link_text_color'] = '#813B27';
 $r152_test_settings['product_page']['description_link_border_color'] = '#B85C38';
@@ -2596,6 +2602,7 @@ check(
 	strpos( $r152_color_css, '--jluxe-sale-color:#234567' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-savings-color:#345678' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-rating-color:#456789' ) !== false &&
+	strpos( $r152_color_css, '--jluxe-variation-label-color:#785634' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-description-link-bg:#F8ECE6' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-description-link-text:#813B27' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-description-link-border:#B85C38' ) !== false,
@@ -2607,14 +2614,18 @@ $r326_theme_color_vars = jluxe_generate_color_variables( jluxe_theme_settings_de
 check(
 	'' === $r326_product_defaults['description_link_bg_color'] &&
 	'' === $r326_product_defaults['description_link_text_color'] &&
+	'' === $r326_product_defaults['variation_label_color'] &&
 	'' === $r326_product_defaults['description_link_border_color'] &&
 	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-soft:#F2DDD4' ) &&
 	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-active:#89452A' ) &&
 	false !== strpos( $r326_settings_render_source, 'پیوندهای توضیحات محصول' ) &&
 	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_bg_color]"' ) &&
 	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_text_color]"' ) &&
-	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_border_color]"' ),
-	'R326 settings expose editable link background/text/border colors and default to the live theme-primary styling'
+	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_border_color]"' ) &&
+	false !== strpos( $r326_settings_render_source, 'name="product_page[variation_label_color]"' ) &&
+	false !== strpos( $r51_css, '[data-jluxe-variation-selected]' ) &&
+	false !== strpos( $r51_css, 'var(--jluxe-variation-label-color, hsl(var(--primary)))' ),
+	'R326/R333 settings expose editable product colors while selected variation labels default to the live theme-primary color'
 );
 check(strpos($cp3,'shortBody.scrollHeight <= shortBody.clientHeight + 2')!==false && strpos($cp3,'shortBtn.hidden = true;')!==false, 'R51 the short-description toggle hides itself when the text is not clamped');
 // R52: final parity pass against the user's full reference DOM (buttonsAddToCard row).

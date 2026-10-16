@@ -4592,6 +4592,7 @@ function jluxe_output_product_page_colors_css(): void {
 			'discount_color'                      => '--jluxe-sale-color',
 			'savings_color'                       => '--jluxe-savings-color',
 			'star_color'                          => '--jluxe-rating-color',
+			'variation_label_color'               => '--jluxe-variation-label-color',
 			'description_link_bg_color'           => '--jluxe-description-link-bg',
 			'description_link_text_color'         => '--jluxe-description-link-text',
 			'description_link_border_color'       => '--jluxe-description-link-border',

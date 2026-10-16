@@ -1167,7 +1167,7 @@ function jluxe_render_product_page(): void {
 					</table>
 
 					<h3>رنگ‌های صفحه‌ی محصول</h3>
-					<p class="description">خالی‌بودنِ هر فیلد یعنی استفاده از توکنِ semantic (تخفیف: خطا، سود: موفقیت، ستاره: هشدارِ پرکنتراست). مقدارِ انتخاب‌شدهٔ مدیر بدونِ تغییر حفظ می‌شود.</p>
+					<p class="description">خالی‌بودنِ هر فیلد یعنی استفاده از توکنِ semantic (تخفیف: خطا، سود: موفقیت، ستاره: هشدارِ پرکنتراست)؛ رنگ مقدارِ ویژگیِ انتخاب‌شده هم در حالتِ خالی از رنگ اصلی پوسته پیروی می‌کند. مقدارِ انتخاب‌شدهٔ مدیر بدونِ تغییر حفظ می‌شود.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">رنگ بج/درصد تخفیف</th>
@@ -1180,6 +1180,10 @@ function jluxe_render_product_page(): void {
 						<tr>
 							<th scope="row">رنگ ستاره‌ی امتیاز</th>
 							<td><input type="text" name="product_page[star_color]" value="<?php echo esc_attr( $pp['star_color'] ); ?>" class="jluxe-color-field" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ مقدار انتخاب‌شدهٔ ویژگی (مثل رنگ یا سایز)</th>
+							<td><input type="text" name="product_page[variation_label_color]" value="<?php echo esc_attr( $pp['variation_label_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#89452A" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 					</table>
 

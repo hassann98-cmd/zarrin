@@ -8,6 +8,7 @@ const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "u
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
 const mainSource = await readFile(new URL("src/main.js", root), "utf8");
 const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
+const mobileDockModeSource = await readFile(new URL("src/lib/mobile-dock-mode.js", root), "utf8");
 const categoryDrawerSource = await readFile(new URL("src/islands/CategoryDrawer.js", root), "utf8");
 const miniCartSource = await readFile(new URL("src/islands/MiniCart.js", root), "utf8");
 const drawerStateSource = await readFile(new URL("src/lib/mobile-drawers.js", root), "utf8");
@@ -204,7 +205,8 @@ test("R182 custom floating-menu links support new tabs while invalid actions fai
   assert.match(floatingNavSource, /jluxe-mobile-nav--floating/);
   assert.match(floatingNavSource, /data-jluxe-mobile-nav-variant/);
   assert.match(floatingNavSource, /jluxe:toggle-mobile-bar/);
-  assert.match(floatingNavSource, /data-jluxe-mobile-price-bar/);
+  assert.match(floatingNavSource, /getMobilePriceBarVisibleFromEvent/);
+  assert.match(mobileDockModeSource, /data-jluxe-mobile-price-bar/);
 });
 
 test("R182 floating links follow configured routes and retain a WordPress subdirectory", () => {

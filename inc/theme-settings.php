@@ -839,6 +839,8 @@ function jluxe_theme_settings_defaults(): array {
 			'discount_color'                => '',
 			'savings_color'                 => '',
 			'star_color'                    => '',
+			// خالی یعنی رنگِ مقدار انتخاب‌شده از رنگِ اصلیِ پوسته پیروی کند.
+			'variation_label_color'         => '',
 			// رنگ‌های لینکِ توضیحات: خالی یعنی رنگ‌های هماهنگ با --primary.
 			'description_link_bg_color'     => '',
 			'description_link_text_color'   => '',

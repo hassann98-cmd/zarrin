@@ -2133,6 +2133,103 @@ function jluxeEnhanceShopSort(root) {
 
 	var cartFeedbackRevision = 0;
 
+	function isConnectedElement(element) {
+		if (!element) { return false; }
+		if (typeof element.isConnected === "boolean") { return element.isConnected; }
+		return !!(document.documentElement && document.documentElement.contains(element));
+	}
+
+	function isVisibleElement(element) {
+		if (!isConnectedElement(element)) { return false; }
+		var current = element;
+		while (current && 1 === current.nodeType) {
+			if (current.hidden || current.hasAttribute("hidden") || current.hasAttribute("inert") || current.getAttribute("aria-hidden") === "true" || current.classList.contains("hidden")) {
+				return false;
+			}
+			var style = window.getComputedStyle(current);
+			if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse" || style.opacity === "0") {
+				return false;
+			}
+			current = current.parentElement;
+		}
+		var rect = element.getBoundingClientRect();
+		var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+		var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+		var right = typeof rect.right === "number" ? rect.right : rect.left + rect.width;
+		var bottom = typeof rect.bottom === "number" ? rect.bottom : rect.top + rect.height;
+		return rect.width > 0 && rect.height > 0 && right > 0 && bottom > 0 && rect.left < viewportWidth && rect.top < viewportHeight;
+	}
+
+	function cartGlyphInside(control) {
+		if (!control) { return null; }
+		var glyph = control.matches && control.matches("svg")
+			? control
+			: (control.querySelector && (control.querySelector("[data-jluxe-cart-icon-glyph]") || control.querySelector("svg")));
+		if (glyph && isVisibleElement(glyph)) { return glyph; }
+		return isVisibleElement(control) ? control : null;
+	}
+
+	function externalMobileCartLink() {
+		var navigation = document.querySelector("#bottom-navigation");
+		if (!isVisibleElement(navigation)) { return null; }
+		var links = navigation.querySelectorAll("a[href], button, [role='link'], [role='button']");
+		for (var linkIndex = 0; linkIndex < links.length; linkIndex++) {
+			var link = links[linkIndex];
+			if (!isVisibleElement(link)) { continue; }
+			var href = (link.getAttribute("href") || "").toLowerCase();
+			var label = [link.getAttribute("aria-label"), link.getAttribute("title"), link.textContent]
+				.filter(Boolean).join(" ").toLowerCase();
+			if (/(?:cart|basket)/.test(href) || /سبد/.test(label)) { return link; }
+		}
+		return null;
+	}
+
+	function findCartFeedbackTarget(isMobile) {
+		var selectors = isMobile
+			? [
+				"[data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add]",
+				"[data-jluxe-sticky-cta].is-visible [data-jluxe-sticky-add]",
+				"[data-jluxe-cart-icon-mobile]",
+			]
+			: ["[data-jluxe-cart-icon-desktop]"];
+		for (var selectorIndex = 0; selectorIndex < selectors.length; selectorIndex++) {
+			var controls = document.querySelectorAll(selectors[selectorIndex]);
+			for (var controlIndex = 0; controlIndex < controls.length; controlIndex++) {
+				var glyph = cartGlyphInside(controls[controlIndex]);
+				if (glyph) { return glyph; }
+			}
+		}
+		if (isMobile) {
+			var oldDockCart = externalMobileCartLink();
+			if (oldDockCart) { return cartGlyphInside(oldDockCart); }
+			var priceBar = document.querySelector("[data-jluxe-mobile-price-bar]");
+			if (isVisibleElement(priceBar)) { return cartGlyphInside(priceBar); }
+		}
+		return null;
+	}
+
+	document.addEventListener("click", function (event) {
+		var target = event.target && 1 === event.target.nodeType ? event.target : event.target && event.target.parentElement;
+		var origin = target && target.closest
+			? target.closest("[data-jluxe-mobile-bar-add], [data-jluxe-sticky-add]")
+			: null;
+		if (!origin || !isVisibleElement(origin) || origin.disabled) { return; }
+		if (origin.getAttribute("data-jluxe-mobile-bar-mode") === "scroll" || origin.getAttribute("data-jluxe-sticky-mode") === "scroll") { return; }
+		var realButton = document.querySelector("form.cart .single_add_to_cart_button");
+		if (realButton && !realButton.disabled) {
+			realButton._jluxeCartFeedbackOrigin = { element: origin, time: Date.now() };
+		}
+	}, true);
+
+	function takeCartFeedbackOrigin(button) {
+		if (!button || !button._jluxeCartFeedbackOrigin) { return button; }
+		var pending = button._jluxeCartFeedbackOrigin;
+		delete button._jluxeCartFeedbackOrigin;
+		return Date.now() - pending.time <= 30000 && isVisibleElement(pending.element)
+			? pending.element
+			: button;
+	}
+
 	function discardSuggestedModal() {
 		var stale = document.querySelector("[data-jluxe-suggested-modal]");
 		if (stale && stale.parentNode) { stale.parentNode.removeChild(stale); }
@@ -2297,38 +2394,25 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	/**
-	 * انیمیشنِ «پرواز» یک نقطه از روی دکمه‌ی افزودن به سمتِ آیکونِ سبدِ
-	 * خرید — سبک و بدونِ کتابخانه (فقط یک <span> با CSS transition روی
-	 * transform/opacity، هر دو GPU-composited، بدون rAF loop). دسکتاپ و
-	 * موبایل آیکونِ سبدِ متفاوتی هدف می‌گیرن، چون طبقِ درخواستِ کاربر سبدِ
-	 * موبایل توی نوارِ پایینه (data-jluxe-cart-icon-mobile در
-	 * MobileNav.tsx) نه هدرِ بالا (data-jluxe-cart-icon-desktop در
-	 * Header.tsx) — بریک‌پوینتِ ۷۶۸px عمداً هم‌راستا با md: خودِ Tailwind
-	 * توی همین پروژه‌ست.
+	 * انیمیشنِ سبکِ سبد (یک span و CSS transform/opacity، بدونِ rAF loop).
+	 * مبدأ از کنترلِ stickyای می‌آید که مشتری واقعاً زده—نوارِ Boom یا
+	 * Classic—نه دکمهٔ واقعیِ فرم که ممکن است بالاتر و بیرونِ دید باشد؛ مقصد
+	 * هم آیکونِ قابل‌مشاهدهٔ dock فعال است: CTA خرید، MobileNav یا dock قدیمی.
+	 * نقطهٔ پرواز بالاتر از نوار خرید و sheet پیشنهادها قرار می‌گیرد.
 	 */
-	function animateAddToCart(button) {
+	function animateAddToCart(button, visualOrigin) {
 		if (!button) {
 			return;
 		}
 		var isMobile = window.innerWidth < 768;
-		// توی صفحه‌ی محصول (موبایل)، MobileNav با نوارِ چسبانِ قیمت/سبد
-		// (content-single-product.php، الگوی Boom) عوض می‌شه، پس
-		// [data-jluxe-cart-icon-mobile] اصلاً توی DOM نیست تا وقتی کاربر
-		// دستی toggle نکرده — بدونِ این fallback، پرواز به سمتِ سبد روی
-		// شایع‌ترین حالتِ واقعیِ موبایل (صفحه‌ی محصول) اصلاً دیده نمی‌شد.
-		var cartControl = isMobile
-			? document.querySelector("[data-jluxe-cart-icon-mobile]") || document.querySelector("[data-jluxe-mobile-price-bar]")
-			: document.querySelector("[data-jluxe-cart-icon-desktop]");
-		if (!cartControl) {
-			return;
-		}
-		// Fly to the actual cart glyph, not the center of the wide desktop button.
-		// The fallback keeps the animation working with an older cached header build.
-		var target = !isMobile && cartControl.querySelector
-			? cartControl.querySelector("[data-jluxe-cart-icon-glyph]") || cartControl
-			: cartControl;
+		var target = findCartFeedbackTarget(isMobile);
+		if (!target) { return; }
+		// The proxy sticky CTA is what the customer actually tapped. Prefer it
+		// over the often-offscreen WooCommerce form button for the animation start.
+		var origin = visualOrigin || button;
+		if (!isVisibleElement(origin)) { origin = target; }
 
-		var startRect = button.getBoundingClientRect();
+		var startRect = origin.getBoundingClientRect();
 		var endRect = target.getBoundingClientRect();
 		var startX = startRect.left + startRect.width / 2;
 		var startY = startRect.top + startRect.height / 2;
@@ -2415,9 +2499,10 @@ function jluxeEnhanceShopSort(root) {
 			});
 		}, 0);
 		var isMobile = window.innerWidth < 768;
-		// On mobile the quick button pulse replaces the success toast, which
-		// otherwise sits over the fixed bottom navigation. Error toasts remain.
-		if (isMobile) { fadeButtonPulse(button); }
+		var visualOrigin = takeCartFeedbackOrigin(button);
+		// On mobile pulse the control the customer actually tapped (the form
+		// button can be off-screen behind the fixed product dock).
+		if (isMobile && isVisibleElement(visualOrigin)) { fadeButtonPulse(visualOrigin); }
 		var name = productNameFromButton(button);
 		var fromSuggestion = !!(button && button.closest("[data-jluxe-suggested-modal], .jluxe-variant-modal-backdrop[data-jluxe-from-suggested='1']"));
 		var hasSuggestionPayload = !!(cartSnapshot && typeof cartSnapshot.suggested_html === "string");
@@ -2432,7 +2517,7 @@ function jluxeEnhanceShopSort(root) {
 			suggestedHtml: suggestedHtml,
 			sourceButton: button,
 		});
-		animateAddToCart(button);
+		animateAddToCart(button, visualOrigin);
 		/* R63 (فاز ۲): Quick Add واقعی روی دکمهٔ دایره‌ای کارت — آیکون +
 		تبدیل به تیک و برچسبِ «به سبد اضافه شد»، بعدِ ~۲ ثانیه بازگشت.
 		(بجِ سبد/مینی‌کارت توسطِ رویدادِ jluxe:cart-updatedِ همین هندلر —
@@ -3833,11 +3918,11 @@ function jluxeEnhanceShopSort(root) {
  * woocommerce/content-single-product.php این نوار رو رندر می‌کنه؛ این‌جا
  * فقط رفتارش وصل می‌شه: دکمه‌ی افزودن دکمه‌ی واقعیِ فرم رو کلیک می‌کنه،
  * دکمه‌ی toggle یک رویدادِ jluxe:toggle-mobile-bar می‌فرسته که هم خودِ
- * این نوار (کلاسِ hidden) هم MobileNav.tsx (React، state داخلیِ خودش)
- * روش گوش می‌دن. عمداً classList روی خودِ nav.tsx دستکاری نمی‌شه — چون
- * اون کامپوننت با هر تغییرِ سبدِ خرید re-render می‌شه و className
- * دستیِ بیرونی رو پاک می‌کرد (باگِ واقعیِ کشف‌شده حینِ ساختِ همین
- * قابلیت)؛ به‌جاش خودِ MobileNav با state رفتار می‌کنه.
+ * این نوار (کلاسِ hidden) هم MobileNav (React، state داخلیِ خودش) گوش می‌ده.
+ * رویداد حالتِ صریح می‌فرسته، نه toggle؛ خودِ React هم هنگامِ mount و
+ * pageshow دوباره state را از DOM می‌خواند تا tap پیش از hydration گم نشود.
+ * اگر dock قدیمیِ #bottom-navigation روی صفحه حاضر باشد، هنگامِ نمایشِ
+ * نوارِ خرید موقتاً کنار می‌رود و در حالتِ منو با وضعیتِ اصلی‌اش برمی‌گردد.
  */
 (function () {
 	var priceBar = document.querySelector("[data-jluxe-mobile-price-bar]");
@@ -3846,6 +3931,84 @@ function jluxeEnhanceShopSort(root) {
 		return;
 	}
 	var addBtn = priceBar.querySelector("[data-jluxe-mobile-bar-add]");
+	var yieldedBottomNavigation = [];
+
+	function bottomNavigationStateIndex(dock) {
+		for (var stateIndex = 0; stateIndex < yieldedBottomNavigation.length; stateIndex++) {
+			if (yieldedBottomNavigation[stateIndex].dock === dock) { return stateIndex; }
+		}
+		return -1;
+	}
+
+	function setBottomNavigationYielded(yielded) {
+		var docks = document.querySelectorAll("#bottom-navigation");
+		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
+			var dock = docks[dockIndex];
+			var dockStateIndex = bottomNavigationStateIndex(dock);
+			if (yielded) {
+				if (-1 === dockStateIndex) {
+					var dockStyle = window.getComputedStyle(dock);
+					var mobileViewport = window.innerWidth < 768;
+					var available = !dock.hidden && !dock.classList.contains("hidden") && dock.style.display !== "none" && dock.getAttribute("aria-hidden") !== "true" && !dock.hasAttribute("inert") && !!dock.querySelector("a[href], button, [role='link'], [role='button']") && (!mobileViewport || (dockStyle.display !== "none" && dockStyle.visibility !== "hidden"));
+					yieldedBottomNavigation.push({
+						dock: dock,
+						hidden: dock.hidden,
+						ariaHidden: dock.getAttribute("aria-hidden"),
+						inert: dock.hasAttribute("inert"),
+						available: available,
+						availabilityAttribute: dock.getAttribute("data-jluxe-mobile-bar-available"),
+					});
+					dock.setAttribute("data-jluxe-mobile-bar-available", available ? "true" : "false");
+				}
+				dock.setAttribute("data-jluxe-mobile-bar-yielded", "");
+				dock.hidden = true;
+				dock.setAttribute("aria-hidden", "true");
+				dock.setAttribute("inert", "");
+				continue;
+			}
+			if (-1 === dockStateIndex) { continue; }
+			var original = yieldedBottomNavigation[dockStateIndex];
+			dock.removeAttribute("data-jluxe-mobile-bar-yielded");
+			dock.hidden = original.hidden;
+			if (null === original.ariaHidden) { dock.removeAttribute("aria-hidden"); }
+			else { dock.setAttribute("aria-hidden", original.ariaHidden); }
+			if (!original.inert) { dock.removeAttribute("inert"); }
+			if (null === original.availabilityAttribute) { dock.removeAttribute("data-jluxe-mobile-bar-available"); }
+			else { dock.setAttribute("data-jluxe-mobile-bar-available", original.availabilityAttribute); }
+			yieldedBottomNavigation.splice(dockStateIndex, 1);
+		}
+	}
+
+	function hasAvailableBottomNavigation() {
+		var docks = document.querySelectorAll("#bottom-navigation");
+		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
+			var dock = docks[dockIndex];
+			var stateIndex = bottomNavigationStateIndex(dock);
+			var original = -1 === stateIndex ? null : yieldedBottomNavigation[stateIndex];
+			if (original) {
+				if (original.available) { return true; }
+				continue;
+			}
+			var dockStyle = window.getComputedStyle(dock);
+			var mobileViewport = window.innerWidth < 768;
+			if (!dock.hidden && !dock.classList.contains("hidden") && dock.style.display !== "none" && dock.getAttribute("aria-hidden") !== "true" && !dock.hasAttribute("inert") && dock.querySelector("a[href], button, [role='link'], [role='button']") && (!mobileViewport || (dockStyle.display !== "none" && dockStyle.visibility !== "hidden"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function dispatchMobileBarMode() {
+		var priceBarVisible = !priceBar.classList.contains("hidden");
+		priceBar.setAttribute("data-jluxe-mobile-bar-ready", "true");
+		window.dispatchEvent(new CustomEvent("jluxe:toggle-mobile-bar", {
+			detail: {
+				mode: priceBarVisible ? "purchase" : "navigation",
+				priceBarVisible: priceBarVisible,
+				externalNavigationAvailable: hasAvailableBottomNavigation(),
+			},
+		}));
+	}
 
 	function guideToVariationChoice() {
 		var variationForm = document.querySelector("form.variations_form.cart");
@@ -3939,7 +4102,7 @@ function jluxeEnhanceShopSort(root) {
 				var nav = navCandidates[navIndex];
 				var navRect = nav.getBoundingClientRect();
 				var navStyle = window.getComputedStyle(nav);
-				if (navRect.height > 0 && navRect.bottom > 0 && navRect.top < viewportH && navStyle.display !== "none" && navStyle.visibility !== "hidden") {
+				if (!nav.hidden && navRect.height > 0 && navRect.bottom > 0 && navRect.top < viewportH && navStyle.display !== "none" && navStyle.visibility !== "hidden") {
 					activeTop = null === activeTop ? navRect.top : Math.min(activeTop, navRect.top);
 				}
 			}
@@ -3974,16 +4137,18 @@ function jluxeEnhanceShopSort(root) {
 		for (var iconIndex = 0; iconIndex < icons.length; iconIndex++) {
 			icons[iconIndex].hidden = icons[iconIndex].getAttribute("data-jluxe-mobile-bar-mode-icon") !== (priceMode ? "menu" : "purchase");
 		}
+		setBottomNavigationYielded(priceMode);
 		positionToggle();
 	}
 
 	priceBar.classList.remove("hidden");
 	syncToggleState();
+	dispatchMobileBarMode();
 
 	toggleBtn.addEventListener("click", function () {
 		priceBar.classList.toggle("hidden");
-		window.dispatchEvent(new CustomEvent("jluxe:toggle-mobile-bar"));
 		syncToggleState();
+		dispatchMobileBarMode();
 		if (typeof window.requestAnimationFrame === "function") { window.requestAnimationFrame(positionToggle); }
 		window.setTimeout(positionToggle, 0);
 	});
@@ -4005,6 +4170,8 @@ function jluxeEnhanceShopSort(root) {
 				for (var nodeIndex = 0; nodeIndex < changedNodes.length; nodeIndex++) {
 					var node = changedNodes[nodeIndex];
 					if (1 === node.nodeType && (node.matches("#bottom-navigation, .jluxe-mobile-nav") || node.querySelector("#bottom-navigation, .jluxe-mobile-nav"))) {
+						setBottomNavigationYielded(!priceBar.classList.contains("hidden"));
+						dispatchMobileBarMode();
 						positionToggle();
 						return;
 					}

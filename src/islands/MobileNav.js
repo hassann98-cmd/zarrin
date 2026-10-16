@@ -17,6 +17,12 @@ import {
   prefetchMobileHome,
   scheduleMobileHomePrefetch,
 } from "../lib/mobile-home-prefetch.js";
+import {
+  getMobilePriceBarVisible,
+  getMobilePriceBarVisibleFromEvent,
+  hasExternalMobileNavigation,
+  hasExternalMobileNavigationFromEvent,
+} from "../lib/mobile-dock-mode.js";
 
 const DESTINATIONS = {
   track: { href: siteUrl("track_order") },
@@ -54,10 +60,14 @@ function MobileNav() {
   const [currentHref, setCurrentHref] = React.useState(
     typeof window === "undefined" ? "/" : window.location.href,
   );
-  const [hasPriceBar, setHasPriceBar] = React.useState(
+  const [hasPriceBar, setHasPriceBar] = React.useState(() =>
+    typeof document !== "undefined" && getMobilePriceBarVisible(document),
+  );
+  const [hasExternalProductNav, setHasExternalProductNav] = React.useState(
     () =>
       typeof document !== "undefined" &&
-      Boolean(document.querySelector("[data-jluxe-mobile-price-bar]")),
+      document.body?.classList.contains("single-product") &&
+      hasExternalMobileNavigation(document),
   );
 
   React.useEffect(
@@ -65,9 +75,21 @@ function MobileNav() {
     [],
   );
   React.useEffect(() => {
-    const toggle = () => setHasPriceBar((visible) => !visible);
-    window.addEventListener("jluxe:toggle-mobile-bar", toggle);
-    return () => window.removeEventListener("jluxe:toggle-mobile-bar", toggle);
+    const syncMode = (event) => {
+      setHasPriceBar(getMobilePriceBarVisibleFromEvent(event, document));
+      setHasExternalProductNav(
+        document.body?.classList.contains("single-product") &&
+          hasExternalMobileNavigationFromEvent(event, document),
+      );
+    };
+    window.addEventListener("jluxe:toggle-mobile-bar", syncMode);
+    window.addEventListener("pageshow", syncMode);
+    // The visible HTML toggle can be used before this island hydrates.
+    syncMode();
+    return () => {
+      window.removeEventListener("jluxe:toggle-mobile-bar", syncMode);
+      window.removeEventListener("pageshow", syncMode);
+    };
   }, []);
   React.useEffect(() => {
     const syncPath = () => setCurrentHref(window.location.href);
@@ -79,7 +101,7 @@ function MobileNav() {
     [homeHref],
   );
 
-  if (hasPriceBar) return null;
+  if (hasPriceBar || hasExternalProductNav) return null;
 
   const colors = {
     background: style.background ?? "#fff",

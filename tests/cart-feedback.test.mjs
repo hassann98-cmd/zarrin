@@ -5,6 +5,7 @@ import jquery from "jquery";
 import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
+const styles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 const marker = source.indexOf("فیدبکِ افزودن به سبد جایگزینِ نوتیس استاندارد ووکامرس است.");
 const start = source.indexOf("(function () {", marker);
 const endMarker = source.indexOf("\n})();\n\n/*\n * R73:", start);
@@ -13,16 +14,46 @@ const cartFeedbackScript = source.slice(start, endMarker + "\n})();".length);
 
 function boot() {
   const dom = new JSDOM(
-    `<!doctype html><html><body>
+    `<!doctype html><html><head><style>
+      .hidden { display: none !important; }
+      [hidden] { display: none !important; }
+      #bottom-navigation[data-jluxe-mobile-bar-yielded] { display: none !important; }
+      .jluxe-sticky-cta { display: none; }
+      .jluxe-sticky-cta.is-visible { display: flex; }
+    </style></head><body>
       <div data-jluxe-island="mini-cart"></div>
       <h1 data-jluxe-product-title>محصول نمونه</h1>
       <form class="cart"><button id="add" class="single_add_to_cart_button" data-product_id="321">افزودن</button></form>
       <a data-jluxe-cart-icon-desktop><svg data-jluxe-cart-icon-glyph viewBox="0 0 24 24"></svg></a>
-      <button data-jluxe-mobile-price-bar></button>
+      <div data-jluxe-mobile-price-bar><button data-jluxe-mobile-bar-add data-jluxe-mobile-bar-mode="add"><svg id="mobile-price-cart-glyph" viewBox="0 0 24 24"></svg>افزودن</button></div>
+      <div class="jluxe-sticky-cta" data-jluxe-sticky-cta><button data-jluxe-sticky-add data-jluxe-sticky-mode="add"><svg id="classic-sticky-cart-glyph" viewBox="0 0 24 24"></svg>افزودن</button></div>
+      <nav class="jluxe-mobile-nav" data-jluxe-mobile-nav-dock><a data-jluxe-cart-icon-mobile href="/cart/"><svg id="mobile-navigation-cart-glyph" viewBox="0 0 24 24"></svg></a></nav>
+      <nav id="bottom-navigation"><div id="tabs"><a id="legacy-cart-link" href="/cart/"><svg id="legacy-cart-glyph" viewBox="0 0 24 24"></svg>سبد خرید</a></div></nav>
     </body></html>`,
     { url: "https://shop.test/product/sample/", runScripts: "outside-only", pretendToBeVisual: true },
   );
   const { window } = dom;
+  const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
+  const rects = new Map([
+    ["#add", rect(20, 200, 120, 44)],
+    ["[data-jluxe-mobile-bar-add]", rect(18, 720, 354, 56)],
+    ["#mobile-price-cart-glyph", rect(325, 738, 18, 18)],
+    ["[data-jluxe-sticky-cta]", rect(10, 720, 370, 64)],
+    ["[data-jluxe-sticky-add]", rect(210, 728, 160, 48)],
+    ["#classic-sticky-cart-glyph", rect(330, 740, 20, 20)],
+    ["[data-jluxe-mobile-nav-dock]", rect(0, 690, 390, 78)],
+    ["[data-jluxe-cart-icon-mobile]", rect(310, 700, 64, 56)],
+    ["#mobile-navigation-cart-glyph", rect(330, 710, 24, 24)],
+    ["#bottom-navigation", rect(0, 690, 390, 76)],
+    ["#legacy-cart-link", rect(300, 700, 60, 48)],
+    ["#legacy-cart-glyph", rect(320, 710, 20, 20)],
+    ["[data-jluxe-cart-icon-desktop]", rect(280, 20, 48, 48)],
+    ["[data-jluxe-cart-icon-glyph]", rect(292, 32, 24, 24)],
+  ]);
+  for (const [selector, elementRect] of rects) {
+    const element = window.document.querySelector(selector);
+    if (element) element.getBoundingClientRect = () => elementRect;
+  }
   window.jQuery = jquery(window);
   window.jluxeWcSettings = { cartUrl: "https://shop.test/basket/" };
   window.JLuxeThemeSettings = {
@@ -175,6 +206,65 @@ test("the desktop header cart glyph animates to the added item even when suggest
 
   flyingCart.dispatchEvent(new window.Event("animationend"));
   assert.equal(glyph.classList.contains("jluxe-cart-bump"), true, "the header cart glyph visibly bumps when the item arrives");
+});
+
+test("Boom mobile feedback starts on the tapped purchase CTA and visibly lands on its cart glyph", (t) => {
+  const dom = boot();
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.innerWidth = 390;
+  const realButton = window.document.getElementById("add");
+  const tapped = window.document.querySelector("[data-jluxe-mobile-bar-add]");
+  const glyph = window.document.getElementById("mobile-price-cart-glyph");
+
+  tapped.click();
+  addToCart(window, realButton, { suggested_html: "" });
+
+  const flyingCart = window.document.querySelector(".jluxe-cart-fly-dot");
+  assert.ok(flyingCart, "mobile successful adds always create the flight feedback");
+  assert.equal(flyingCart.style.left, "195px", "the start is the visible sticky CTA, not the hidden form button");
+  assert.equal(flyingCart.style.top, "748px");
+  assert.equal(flyingCart.style.getPropertyValue("--jluxe-fly-end-x"), "139px", "the endpoint is the cart glyph inside the visible mobile CTA");
+  assert.equal(tapped.classList.contains("jluxe-btn-added-pulse"), true);
+  assert.equal(realButton.classList.contains("jluxe-btn-added-pulse"), false, "the off-screen native button is not pulsed instead");
+  flyingCart.dispatchEvent(new window.Event("animationend"));
+  assert.equal(glyph.classList.contains("jluxe-cart-bump"), true);
+  assert.match(styles, /\.jluxe-cart-fly-dot\s*\{[\s\S]*?z-index: 200;/, "the dot clears both the CTA and suggested-products sheet layers");
+});
+
+test("mobile menu mode targets the visible legacy dock cart, and Classic mode targets its sticky CTA", (t) => {
+  const dom = boot();
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.innerWidth = 390;
+  const realButton = window.document.getElementById("add");
+  const priceBar = window.document.querySelector("[data-jluxe-mobile-price-bar]");
+  const mobileNav = window.document.querySelector("[data-jluxe-mobile-nav-dock]");
+  const stickyBar = window.document.querySelector("[data-jluxe-sticky-cta]");
+  const legacyNav = window.document.querySelector("#bottom-navigation");
+  const legacyGlyph = window.document.getElementById("legacy-cart-glyph");
+
+  priceBar.classList.add("hidden");
+  mobileNav.classList.add("hidden");
+  addToCart(window, realButton, { suggested_html: "" });
+  let flyingCart = window.document.querySelector(".jluxe-cart-fly-dot");
+  assert.ok(flyingCart);
+  assert.equal(flyingCart.style.getPropertyValue("--jluxe-fly-end-x"), "250px", "the legacy dock's cart link is used when React navigation is not rendered");
+  flyingCart.dispatchEvent(new window.Event("animationend"));
+  assert.equal(legacyGlyph.classList.contains("jluxe-cart-bump"), true);
+
+  legacyNav.classList.add("hidden");
+  stickyBar.classList.add("is-visible");
+  const stickyAdd = window.document.querySelector("[data-jluxe-sticky-add]");
+  const stickyGlyph = window.document.getElementById("classic-sticky-cart-glyph");
+  stickyAdd.click();
+  addToCart(window, realButton, { suggested_html: "" });
+  flyingCart = window.document.querySelector(".jluxe-cart-fly-dot");
+  assert.ok(flyingCart);
+  assert.equal(flyingCart.style.left, "290px", "Classic feedback begins at its actual sticky purchase button");
+  assert.equal(flyingCart.style.getPropertyValue("--jluxe-fly-end-x"), "50px", "Classic feedback lands on its cart glyph");
+  flyingCart.dispatchEvent(new window.Event("animationend"));
+  assert.equal(stickyGlyph.classList.contains("jluxe-cart-bump"), true);
 });
 
 test("empty server suggestions remove stale recommendations and do not open a modal", async (t) => {

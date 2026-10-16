@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.7.171 — PRODUCT GALLERY CAPTIONS
+Build: JLUXE 1.7.172 — PRODUCT GALLERY CAPTIONS
 Author: زرین
 Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
-Version: 1.7.171
+Version: 1.7.172
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -165,7 +165,7 @@ Text Domain: jluxe
     transform: translateY(1px) scale(.98);
   }
   [data-jluxe-mobile-bar-toggle] {
-    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     border-radius: 15px !important;
     opacity: .9;
   }
@@ -354,9 +354,12 @@ Text Domain: jluxe
   }
 
   /* Keep other floating controls clear of the 76px dock plus its 10px gap. */
-  body:has(#bottom-navigation) .jluxe-pwa-install,
-  body:has(#bottom-navigation) [data-jluxe-mobile-bar-toggle] {
+  body:has(#bottom-navigation) .jluxe-pwa-install {
     bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* JS measures the active product dock; keep this only as its no-JS fallback. */
+  body:has(#bottom-navigation) [data-jluxe-mobile-bar-toggle] {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
 }

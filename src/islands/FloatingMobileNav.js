@@ -13,6 +13,12 @@ import {
   prefetchMobileHome,
   scheduleMobileHomePrefetch,
 } from "../lib/mobile-home-prefetch.js";
+import {
+  getMobilePriceBarVisible,
+  getMobilePriceBarVisibleFromEvent,
+  hasExternalMobileNavigation,
+  hasExternalMobileNavigationFromEvent,
+} from "../lib/mobile-dock-mode.js";
 
 const DEFAULT_ITEMS = [
   { id: "support", label: "پشتیبانی", icon: "headphones", action: "assistant", enabled: true },
@@ -86,10 +92,14 @@ function FloatingMobileNav() {
   const [currentHref, setCurrentHref] = React.useState(
     typeof window === "undefined" ? "/" : window.location.href,
   );
-  const [hasMobilePriceBar, setHasMobilePriceBar] = React.useState(
+  const [hasMobilePriceBar, setHasMobilePriceBar] = React.useState(() =>
+    typeof document !== "undefined" && getMobilePriceBarVisible(document),
+  );
+  const [hasExternalProductNav, setHasExternalProductNav] = React.useState(
     () =>
       typeof document !== "undefined" &&
-      Boolean(document.querySelector("[data-jluxe-mobile-price-bar]")),
+      document.body?.classList.contains("single-product") &&
+      hasExternalMobileNavigation(document),
   );
 
   React.useEffect(
@@ -97,10 +107,21 @@ function FloatingMobileNav() {
     [],
   );
   React.useEffect(() => {
-    const toggleMobilePriceBar = () => setHasMobilePriceBar((visible) => !visible);
-    window.addEventListener("jluxe:toggle-mobile-bar", toggleMobilePriceBar);
-    return () =>
-      window.removeEventListener("jluxe:toggle-mobile-bar", toggleMobilePriceBar);
+    const syncMode = (event) => {
+      setHasMobilePriceBar(getMobilePriceBarVisibleFromEvent(event, document));
+      setHasExternalProductNav(
+        document.body?.classList.contains("single-product") &&
+          hasExternalMobileNavigationFromEvent(event, document),
+      );
+    };
+    window.addEventListener("jluxe:toggle-mobile-bar", syncMode);
+    window.addEventListener("pageshow", syncMode);
+    // Reconcile with the DOM in case a fast tap preceded React hydration.
+    syncMode();
+    return () => {
+      window.removeEventListener("jluxe:toggle-mobile-bar", syncMode);
+      window.removeEventListener("pageshow", syncMode);
+    };
   }, []);
   React.useEffect(() => {
     const syncPath = () => setCurrentHref(window.location.href);
@@ -112,7 +133,7 @@ function FloatingMobileNav() {
     [homeHref],
   );
 
-  if (hasMobilePriceBar) return null;
+  if (hasMobilePriceBar || hasExternalProductNav) return null;
 
   const colors = {
     background: style.background ?? "#ffffff",

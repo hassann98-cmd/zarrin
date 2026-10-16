@@ -1,11 +1,11 @@
 {
+  "_mobile-dock-mode-ZLd58HX9.js": {
+    "file": "assets/mobile-dock-mode-ZLd58HX9.js",
+    "name": "mobile-dock-mode"
+  },
   "_mobile-drawers-qfqNlLjh.js": {
     "file": "assets/mobile-drawers-qfqNlLjh.js",
     "name": "mobile-drawers"
-  },
-  "_mobile-home-prefetch-jj-sNs6T.js": {
-    "file": "assets/mobile-home-prefetch-jj-sNs6T.js",
-    "name": "mobile-home-prefetch"
   },
   "_rolldown-runtime-CbXtAM7H.js": {
     "file": "assets/rolldown-runtime-CbXtAM7H.js",
@@ -97,14 +97,14 @@
     ]
   },
   "src/islands/FloatingMobileNav.js": {
-    "file": "assets/FloatingMobileNav-BU9IwKbV.js",
+    "file": "assets/FloatingMobileNav-CCU8L1Fs.js",
     "name": "FloatingMobileNav",
     "src": "src/islands/FloatingMobileNav.js",
     "isDynamicEntry": true,
     "imports": [
       "_shared-shell-ui-D0AWYI3J.js",
       "_mobile-drawers-qfqNlLjh.js",
-      "_mobile-home-prefetch-jj-sNs6T.js"
+      "_mobile-dock-mode-ZLd58HX9.js"
     ]
   },
   "src/islands/Footer.js": {
@@ -149,18 +149,18 @@
     ]
   },
   "src/islands/MobileNav.js": {
-    "file": "assets/MobileNav-B8FMgt6p.js",
+    "file": "assets/MobileNav-BTOuAiDC.js",
     "name": "MobileNav",
     "src": "src/islands/MobileNav.js",
     "isDynamicEntry": true,
     "imports": [
       "_shared-shell-ui-D0AWYI3J.js",
       "_mobile-drawers-qfqNlLjh.js",
-      "_mobile-home-prefetch-jj-sNs6T.js"
+      "_mobile-dock-mode-ZLd58HX9.js"
     ]
   },
   "src/main.js": {
-    "file": "assets/main-B3hZq75n.js",
+    "file": "assets/main-D8k2UNca.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -182,7 +182,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-CktYOVLS.css"
+      "assets/main-MBD952M6.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

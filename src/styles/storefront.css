@@ -6709,7 +6709,8 @@ del .woocommerce-Price-amount {
     0 0 0 1px hsl(var(--primary-hover) / 0.4) inset;
   color: hsl(var(--primary-foreground));
   pointer-events: none;
-  z-index: 80;
+  /* Must clear the fixed product CTA (165) and the suggested-products sheet (190). */
+  z-index: 200;
   will-change: transform, opacity;
   animation: jluxe-cart-fly 0.62s cubic-bezier(0.3, 0, 0.35, 1) forwards;
 }
@@ -8937,6 +8938,7 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
     left: max(8px, env(safe-area-inset-left, 0px));
     border: 1px solid hsl(var(--border));
   }
+  #bottom-navigation[data-jluxe-mobile-bar-yielded] { display: none !important; }
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] #bottom-navigation,
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav { display: none; }
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-sticky-cta { display: none; }
@@ -9306,6 +9308,10 @@ button.jluxe-swatch-disabled[data-active] {
 /* R64 — ناحیهٔ انتخاب تنوع (صفحهٔ محصول + مودال انتخاب سریع):
 برچسبِ سایز/رنگ کمی کوچک‌تر، قیمتِ تنوع مشکی و جمع‌وجورتر */
 [data-jluxe-variation-group] > p { font-size: 11.5px; line-height: 1.7; }
+[data-jluxe-variation-selected] {
+  color: var(--jluxe-variation-label-color, hsl(var(--primary)));
+  font-weight: 700;
+}
 .jluxe-variant-modal .price,
 .jluxe-variant-modal .woocommerce-variation-price {
   font-size: 14px;

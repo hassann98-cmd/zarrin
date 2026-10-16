@@ -81,7 +81,10 @@ test("both CP3 product layouts render a selected-value slot without changing var
   assert.match(wooPhp, /<\?php if \( \$is_color_attr \) : \?>انتخاب <\?php endif; \?>/, "the existing color title stays intact while non-color titles retain their original wording");
 });
 
-test("default variation swatches use a more visible but restrained selected state", () => {
+test("default variation swatches and selected-value labels use restrained theme-primary styling", () => {
   const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
   assert.match(css, /\[data-jluxe-variation-value\]\[data-active\]\s*\{[^}]*box-shadow:\s*0 0 0 1px hsl\(var\(--primary\) \/ 0\.18\)/s);
+  assert.match(css, /\[data-jluxe-variation-selected\]\s*\{[^}]*color:\s*var\(--jluxe-variation-label-color, hsl\(var\(--primary\)\)\);[^}]*font-weight:\s*700;/s);
+  const settings = fs.readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
+  assert.match(settings, /name="product_page\[variation_label_color\]"/);
 });
