@@ -5644,6 +5644,163 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-caption-text {
   line-height: 1.7;
 }
 }
+/* R321 — lightbox گالری‌های پیوندشده در متن توضیحات محصول. */
+body.single-product .jluxe-product-description-content a[data-jluxe-description-gallery-trigger],
+body.single-product [data-jluxe-short-desc-text] a[data-jluxe-description-gallery-trigger] {
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+body.single-product .jluxe-product-description-content a[data-jluxe-description-gallery-trigger]:focus,
+body.single-product [data-jluxe-short-desc-text] a[data-jluxe-description-gallery-trigger]:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+body.single-product .jluxe-description-gallery-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: hsl(var(--foreground) / 0.96);
+  color: hsl(var(--surface));
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+body.single-product .jluxe-description-gallery-modal.flex {
+  display: flex;
+}
+body.single-product .jluxe-description-gallery-modal.hidden {
+  display: none;
+}
+body.single-product .jluxe-description-gallery-modal:not(.opacity-0) {
+  opacity: 1;
+}
+body.single-product .jluxe-description-gallery-modal > * + * {
+  margin-top: 12px;
+}
+body.single-product .jluxe-description-gallery-modal__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 44px;
+  direction: rtl;
+}
+body.single-product .jluxe-description-gallery-modal__counter {
+  color: hsl(var(--surface) / 0.82);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+body.single-product .jluxe-description-gallery-modal__stage {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1280px;
+  height: 82vh;
+  max-height: 900px;
+  min-height: 0;
+  direction: ltr;
+}
+body.single-product .jluxe-description-gallery-modal__track {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-width: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+body.single-product .jluxe-description-gallery-modal__track img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform: scale(0.96);
+  transform-origin: center center;
+  transition: opacity 0.18s ease, transform 0.15s ease-out;
+  will-change: transform;
+}
+body.single-product .jluxe-description-gallery-modal__track img[aria-hidden="false"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+  cursor: zoom-in;
+}
+body.single-product .jluxe-description-gallery-modal__track img[aria-hidden="false"][data-jluxe-zoom-scale]:not([data-jluxe-zoom-scale="1"]) {
+  cursor: grab;
+}
+body.single-product .jluxe-description-gallery-modal__button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 6px;
+  padding: 0;
+  border: 1px solid hsl(var(--surface) / 0.24);
+  border-radius: 14px;
+  background: hsl(var(--surface) / 0.1);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body.single-product .jluxe-description-gallery-modal__button:hover {
+  background: hsl(var(--surface) / 0.2);
+}
+body.single-product .jluxe-description-gallery-modal__button:focus {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 3px;
+}
+body.single-product .jluxe-description-gallery-modal__close {
+  border-color: transparent;
+  background: transparent;
+}
+@media (max-width: 767px) {
+  body.single-product .jluxe-description-gallery-modal {
+    padding: 10px;
+  }
+  body.single-product .jluxe-description-gallery-modal__stage {
+    height: 78vh;
+  }
+  body.single-product .jluxe-description-gallery-modal__button {
+    width: 44px;
+    height: 44px;
+    margin: 0 2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.single-product .jluxe-description-gallery-modal,
+  body.single-product .jluxe-description-gallery-modal__button,
+  body.single-product .jluxe-description-gallery-modal__track img {
+    transition: none;
+  }
+}
+
 /* ── R66: فرمِ دیدگاه — کارتِ گرد، امتیازِ ستاره‌ای واقعی، ورودی‌های نرم ── */
 #review_form .comment-reply-title {
   display: block;

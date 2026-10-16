@@ -8328,6 +8328,42 @@ check(
 	'R318 nested tables receive one outer scroll region without unbalancing their markup'
 );
 
+// R321 — keep attachment-page links intact while exposing original image URLs for the description lightbox.
+$GLOBALS['attachment_image_urls'][43901] = array(
+	'full'      => 'https://shop.test/uploads/gallery-one-full.jpg',
+	'thumbnail' => 'https://shop.test/uploads/gallery-one-thumb.jpg',
+);
+$GLOBALS['attachment_urls'][43901]      = 'https://shop.test/uploads/gallery-one-original.jpg';
+$GLOBALS['attachment_links'][43901]     = 'https://shop.test/attachment/gallery-one/';
+$GLOBALS['attachment_srcsets'][43901]   = array( 'full' => 'https://shop.test/uploads/gallery-one-800.jpg 800w, https://shop.test/uploads/gallery-one-full.jpg 1600w' );
+$GLOBALS['attachment_mimes'][43901]     = 'image/jpeg';
+$r321_attachment_markup                = '<div class="wp-block-gallery"><figure><a href="https://shop.test/attachment/gallery-one/"><img class="wp-image-43901 size-thumbnail" src="https://shop.test/uploads/gallery-one-thumb.jpg" alt="نمای جلو"></a></figure></div>';
+$r321_attachment_rendered               = jluxe_wrap_product_description_tables( $r321_attachment_markup );
+check(
+	false !== strpos( $r321_attachment_rendered, 'href="https://shop.test/attachment/gallery-one/"' ) &&
+	false !== strpos( $r321_attachment_rendered, 'data-jluxe-attachment-url="https://shop.test/attachment/gallery-one/"' ) &&
+	false !== strpos( $r321_attachment_rendered, 'data-jluxe-full-src="https://shop.test/uploads/gallery-one-full.jpg"' ) &&
+	false !== strpos( $r321_attachment_rendered, 'data-jluxe-media-url="https://shop.test/uploads/gallery-one-original.jpg"' ) &&
+	false !== strpos( $r321_attachment_rendered, 'data-jluxe-full-srcset="https://shop.test/uploads/gallery-one-800.jpg 800w, https://shop.test/uploads/gallery-one-full.jpg 1600w"' ) &&
+		false === strpos( $r321_attachment_markup, 'data-jluxe-full-src=' ) &&
+		$r321_attachment_rendered === jluxe_wrap_product_description_tables( $r321_attachment_rendered ),
+	'R321 rendered attachment-page gallery images expose full/media/srcset URLs idempotently without changing their saved link'
+);
+$GLOBALS['attachment_image_urls'][43902] = array( 'full' => 'https://shop.test/uploads/animated-resized.gif' );
+$GLOBALS['attachment_urls'][43902]      = 'https://shop.test/uploads/animated-original.gif';
+$GLOBALS['attachment_links'][43902]     = 'https://shop.test/attachment/animated-gif/';
+$GLOBALS['attachment_srcsets'][43902]   = array( 'full' => 'https://shop.test/uploads/static-first-frame.gif 320w' );
+$GLOBALS['attachment_mimes'][43902]     = 'image/gif';
+$r321_gif_rendered = jluxe_wrap_product_description_tables( '<div class="gallery"><a href="https://shop.test/attachment/animated-gif/"><img class="wp-image-43902 size-thumbnail" src="https://shop.test/uploads/animated-thumb.gif" alt="تصویر متحرک"></a></div>' );
+check(
+	false !== strpos( $r321_gif_rendered, 'data-jluxe-full-src="https://shop.test/uploads/animated-original.gif"' ) &&
+	false !== strpos( $r321_gif_rendered, 'data-jluxe-media-url="https://shop.test/uploads/animated-original.gif"' ) &&
+	false === strpos( $r321_gif_rendered, 'animated-resized.gif' ) &&
+	false === strpos( $r321_gif_rendered, 'data-jluxe-full-srcset=' ) &&
+	false === strpos( $r321_gif_rendered, 'static-first-frame.gif' ),
+	'R321 animated GIF gallery images always use the original animation and never a possibly flattened thumbnail/srcset'
+);
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

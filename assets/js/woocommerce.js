@@ -4828,6 +4828,222 @@ function jluxeEnhanceShopSort(root) {
 	);
 })();
 
+/* R321 — Product-description gallery links open in an accessible, navigable lightbox. */
+(function () {
+	var descriptionSelector = '.jluxe-product-description-content, [data-jluxe-short-desc-text]';
+	var gallerySelector     = '.wp-block-gallery, .gallery, .blocks-gallery-grid';
+	var modalSequence       = 0;
+
+	function faNumber( value ) {
+		var digits = [ '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹' ];
+		return String( value ).replace( /\d/g, function ( digit ) { return digits[ parseInt( digit, 10 ) ] || digit; } );
+	}
+
+	function normalizedUrl( value ) {
+		if ( ! value ) { return ''; }
+		var link = document.createElement( 'a' );
+		link.href = String( value );
+		var path = link.pathname || '/';
+		path = path.replace( /\/+$/, '' );
+		return link.protocol.toLowerCase() + '//' + link.host.toLowerCase() + path;
+	}
+
+	function sameUrl( first, second ) {
+		return !!first && !!second && normalizedUrl( first ) === normalizedUrl( second );
+	}
+
+	function isImageUrl( value ) {
+		return /\.(?:avif|bmp|gif|jpe?g|png|svg|webp)(?:$|[?#])/i.test( String( value || '' ) );
+	}
+
+	function isGifUrl( value ) {
+		return /\.gif(?:$|[?#])/i.test( String( value || '' ) );
+	}
+
+	function largestSrcsetUrl( srcset ) {
+		if ( ! srcset ) { return ''; }
+		var bestUrl = '';
+		var bestSize = -1;
+		String( srcset ).split( ',' ).forEach( function ( candidate ) {
+			var parts = candidate.trim().split( /\s+/ );
+			if ( ! parts[ 0 ] ) { return; }
+			var descriptor = parts[ 1 ] || '1x';
+			var width = descriptor.match( /^(\d+)w$/ );
+			var density = descriptor.match( /^(\d+(?:\.\d+)?)x$/ );
+			var size = width ? parseInt( width[ 1 ], 10 ) : ( density ? parseFloat( density[ 1 ] ) * 1000000 : 1 );
+			if ( size > bestSize ) { bestSize = size; bestUrl = parts[ 0 ]; }
+		} );
+		return bestUrl;
+	}
+
+	function classifyImageLink( anchor, image ) {
+		if ( ! anchor || ! anchor.href ) { return { eligible: false, media: false }; }
+		var href = anchor.href;
+		var attachmentUrl = image.getAttribute( 'data-jluxe-attachment-url' ) || '';
+		var mediaUrl = image.getAttribute( 'data-jluxe-media-url' ) || '';
+		var fullUrl = image.getAttribute( 'data-jluxe-full-src' ) || '';
+		var attachmentPage = sameUrl( href, attachmentUrl );
+		var mediaFile = sameUrl( href, mediaUrl ) || sameUrl( href, fullUrl ) || isImageUrl( href );
+		return { eligible: attachmentPage || mediaFile, media: mediaFile };
+	}
+
+	function slideSource( image, anchor, linkInfo ) {
+		var mediaUrl = image.getAttribute( 'data-jluxe-media-url' ) || '';
+		if ( isGifUrl( mediaUrl ) ) { return mediaUrl; }
+		var fullUrl = image.getAttribute( 'data-jluxe-full-src' ) || '';
+		if ( fullUrl ) { return fullUrl; }
+		if ( linkInfo.media && anchor && anchor.href ) { return anchor.href; }
+		var current = image.currentSrc || image.getAttribute( 'src' ) || image.getAttribute( 'data-src' ) || '';
+		if ( isGifUrl( current ) ) { return current; }
+		return largestSrcsetUrl( image.getAttribute( 'srcset' ) ) || current;
+	}
+
+	function imageAnchor( image, gallery ) {
+		var parent = image.parentElement;
+		while ( parent && parent !== gallery ) {
+			if ( 'A' === parent.tagName && parent.hasAttribute( 'href' ) ) { return parent; }
+			parent = parent.parentElement;
+		}
+		return null;
+	}
+
+	function hasGalleryClass( element ) {
+		var classes = element && element.classList;
+		return !!classes && ( classes.contains( 'wp-block-gallery' ) || classes.contains( 'gallery' ) || classes.contains( 'blocks-gallery-grid' ) );
+	}
+
+	function hasGalleryAncestor( element, boundary ) {
+		var parent = element.parentElement;
+		while ( parent && parent !== boundary ) {
+			if ( hasGalleryClass( parent ) ) { return true; }
+			parent = parent.parentElement;
+		}
+		return false;
+	}
+
+	function makeButton( action, label, path ) {
+		var button = document.createElement( 'button' );
+		button.type = 'button';
+		button.className = 'jluxe-description-gallery-modal__button';
+		button.setAttribute( 'data-jluxe-gallery-modal-' + action, '' );
+		button.setAttribute( 'aria-label', label );
+		if ( 'close' === action ) { button.className += ' jluxe-description-gallery-modal__close'; }
+		button.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="' + path + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+		return button;
+	}
+
+	function buildModal( modalId, entries ) {
+		var modal = document.createElement( 'div' );
+		modal.id = modalId;
+		modal.className = 'jluxe-description-gallery-modal hidden opacity-0';
+		modal.setAttribute( 'data-jluxe-gallery-modal', '' );
+		modal.setAttribute( 'data-jluxe-gallery-modal-current', '0' );
+		modal.setAttribute( 'role', 'dialog' );
+		modal.setAttribute( 'aria-modal', 'true' );
+		modal.setAttribute( 'aria-label', 'گالری تصاویر توضیحات محصول' );
+		modal.setAttribute( 'aria-hidden', 'true' );
+		modal.setAttribute( 'tabindex', '-1' );
+
+		var top = document.createElement( 'div' );
+		top.className = 'jluxe-description-gallery-modal__top';
+		var counter = document.createElement( 'span' );
+		counter.className = 'jluxe-description-gallery-modal__counter';
+		counter.setAttribute( 'data-jluxe-gallery-modal-counter', '' );
+		counter.setAttribute( 'aria-live', 'polite' );
+		counter.textContent = faNumber( 1 ) + ' / ' + faNumber( entries.length );
+		top.appendChild( counter );
+		top.appendChild( makeButton( 'close', 'بستن گالری', 'm6 6 12 12M18 6 6 18' ) );
+		modal.appendChild( top );
+
+		var stage = document.createElement( 'div' );
+		stage.className = 'jluxe-description-gallery-modal__stage';
+		if ( entries.length > 1 ) { stage.appendChild( makeButton( 'prev', 'تصویر قبلی', 'm14 6-6 6 6 6' ) ); }
+		var track = document.createElement( 'div' );
+		track.className = 'jluxe-description-gallery-modal__track';
+		track.setAttribute( 'data-jluxe-gallery-modal-track', '' );
+		entries.forEach( function ( entry, index ) {
+			var slide = document.createElement( 'img' );
+			slide.setAttribute( 'data-jluxe-gallery-modal-image', '' );
+			slide.setAttribute( 'data-src', entry.src );
+			if ( entry.srcset ) { slide.setAttribute( 'data-srcset', entry.srcset ); }
+			if ( entry.sizes ) { slide.setAttribute( 'data-sizes', entry.sizes ); }
+			slide.setAttribute( 'alt', entry.alt || ( 'تصویر ' + faNumber( index + 1 ) ) );
+			slide.setAttribute( 'aria-hidden', 'true' );
+			slide.setAttribute( 'draggable', 'false' );
+			track.appendChild( slide );
+		} );
+		stage.appendChild( track );
+		if ( entries.length > 1 ) { stage.appendChild( makeButton( 'next', 'تصویر بعدی', 'm10 6 6 6-6 6' ) ); }
+		modal.appendChild( stage );
+		document.body.appendChild( modal );
+	}
+
+	function initializeGallery( gallery ) {
+		if ( '1' === gallery.getAttribute( 'data-jluxe-description-gallery-initialized' ) ) { return; }
+		var images = gallery.querySelectorAll( 'img' );
+		var entries = [];
+		var hasOpenableLink = false;
+		Array.prototype.forEach.call( images, function ( image ) {
+			var anchor = imageAnchor( image, gallery );
+			var linkInfo = classifyImageLink( anchor, image );
+			var src = slideSource( image, anchor, linkInfo );
+			if ( ! src ) { return; }
+			if ( isGifUrl( src ) && ! image.getAttribute( 'data-jluxe-full-src' ) && !( linkInfo.media && anchor ) ) { return; }
+			entries.push( {
+				image: image,
+				anchor: anchor,
+				linkInfo: linkInfo,
+				src: src,
+				srcset: isGifUrl( src ) ? '' : ( image.getAttribute( 'data-jluxe-full-srcset' ) || '' ),
+				sizes: isGifUrl( src ) ? '' : ( image.getAttribute( 'data-jluxe-full-sizes' ) || ( image.getAttribute( 'data-jluxe-full-srcset' ) ? '90vw' : '' ) ),
+				alt: image.getAttribute( 'alt' ) || '',
+			} );
+			if ( linkInfo.eligible ) { hasOpenableLink = true; }
+		} );
+		if ( ! hasOpenableLink || ! entries.length ) { return; }
+
+		modalSequence += 1;
+		var modalId = 'jluxe-description-gallery-modal-' + modalSequence;
+		while ( document.getElementById( modalId ) ) {
+			modalSequence += 1;
+			modalId = 'jluxe-description-gallery-modal-' + modalSequence;
+		}
+		gallery.setAttribute( 'data-jluxe-description-gallery-initialized', '1' );
+		gallery.setAttribute( 'data-jluxe-gallery', '' );
+		gallery.setAttribute( 'data-jluxe-gallery-current', '0' );
+		gallery.setAttribute( 'data-jluxe-gallery-modal-id', modalId );
+		entries.forEach( function ( entry, index ) {
+			if ( ! entry.anchor || ! entry.linkInfo.eligible ) { return; }
+			entry.anchor.setAttribute( 'data-jluxe-gallery-open', String( index ) );
+			entry.anchor.setAttribute( 'data-jluxe-description-gallery-trigger', '' );
+			entry.anchor.setAttribute( 'aria-haspopup', 'dialog' );
+			entry.anchor.setAttribute( 'aria-controls', modalId );
+			if ( ! entry.alt && ! entry.anchor.hasAttribute( 'aria-label' ) ) {
+				entry.anchor.setAttribute( 'aria-label', 'باز کردن تصویر ' + faNumber( index + 1 ) + ' در گالری' );
+			}
+		} );
+		buildModal( modalId, entries );
+	}
+
+	function initializeDescriptionGalleries() {
+		if ( ! document.body ) { return; }
+		var scopes = document.querySelectorAll( descriptionSelector );
+		Array.prototype.forEach.call( scopes, function ( scope ) {
+			var galleries = scope.querySelectorAll( gallerySelector );
+			Array.prototype.forEach.call( galleries, function ( gallery ) {
+				if ( hasGalleryAncestor( gallery, scope ) ) { return; }
+				initializeGallery( gallery );
+			} );
+		} );
+	}
+
+	if ( 'loading' === document.readyState ) {
+		document.addEventListener( 'DOMContentLoaded', initializeDescriptionGalleries );
+	} else {
+		initializeDescriptionGalleries();
+	}
+})();
+
 /**
  * پاپ‌آپِ آلبومِ تصاویرِ محصول (woocommerce/single-product/product-image.php):
  * کلیک روی هر تامبنیلِ ردیفِ ثابتِ زیرِ عکس (data-jluxe-gallery-open) این
@@ -4945,12 +5161,12 @@ function jluxeEnhanceShopSort(root) {
 	 * بازوبسته‌شدنِ مینی‌کارت هم پیش اومده بود) — برای همین از double-rAF
 	 * استفاده می‌شه، نه یک setTimeout ساده.
 	 */
-	function openModal(modal, index) {
+	function openModal(modal, index, returnFocusElement) {
 		if (modal._jluxeCloseTimer) {
 			window.clearTimeout(modal._jluxeCloseTimer);
 			modal._jluxeCloseTimer = null;
 		}
-		modal._jluxeReturnFocus = document.activeElement;
+		modal._jluxeReturnFocus = returnFocusElement && returnFocusElement.focus ? returnFocusElement : document.activeElement;
 		modal._jluxePreviousOverflow = document.body.style.overflow;
 		modal.classList.remove("hidden");
 		modal.classList.add("flex");
@@ -5002,6 +5218,14 @@ function jluxeEnhanceShopSort(root) {
 		return parseInt(modal.getAttribute("data-jluxe-gallery-modal-current"), 10) || 0;
 	}
 
+	function modalForGallery(gallery) {
+		var modalId = gallery && gallery.getAttribute("data-jluxe-gallery-modal-id");
+		if (modalId) {
+			return document.getElementById(modalId);
+		}
+		return document.querySelector("[data-jluxe-gallery-modal]");
+	}
+
 	document.addEventListener("click", function (event) {
 		// هم تامبنیل‌های ثابتِ زیرِ عکس (data-jluxe-gallery-open) هم دکمه‌ی
 		// «مشاهده گالری» رویِ خودِ تصویرِ اصلی (data-jluxe-gallery-open-current)
@@ -5009,18 +5233,21 @@ function jluxeEnhanceShopSort(root) {
 		// خودِ گالری (که listener جداگانه‌ی prev/next نگه‌داری‌اش می‌کنه) می‌خونه.
 		// نکته: خودِ پاپ‌آپ دیگه داخلِ [data-jluxe-gallery] نیست (relocateModalsToBody
 		// اون رو مستقیم زیرِ body برده)، پس دیگه نمی‌شه با gallery.querySelector
-		// پیداش کرد — چون همیشه فقط یک گالری/پاپ‌آپ رویِ صفحه‌ی محصول هست،
-		// جستجویِ سراسری کافی و امنه.
-		var opener = event.target.closest("[data-jluxe-gallery-open]");
-		var openCurrent = event.target.closest("[data-jluxe-gallery-open-current]");
+		// پیداش کرد. گالری‌های توضیحات شناسهٔ مودالِ خودشان را روی ریشه دارند؛
+		// گالری اصلی همان انتخابگر سراسریِ قبلی را به‌عنوان fallback نگه می‌دارد.
+		var clickTarget = event.target;
+		var opener = clickTarget.closest && clickTarget.closest("[data-jluxe-gallery-open]");
+		var openCurrent = clickTarget.closest && clickTarget.closest("[data-jluxe-gallery-open-current]");
 		if (opener || openCurrent) {
-			var gallery = (opener || openCurrent).closest("[data-jluxe-gallery]");
-			var modal = document.querySelector("[data-jluxe-gallery-modal]");
+			var trigger = opener || openCurrent;
+			var gallery = trigger.closest("[data-jluxe-gallery]");
+			var modal = modalForGallery(gallery);
 			if (modal && gallery) {
+				if ("A" === trigger.tagName) { event.preventDefault(); }
 				var startIndex = opener
 					? parseInt(opener.getAttribute("data-jluxe-gallery-open"), 10) || 0
 					: parseInt(gallery.getAttribute("data-jluxe-gallery-current"), 10) || 0;
-				openModal(modal, startIndex);
+				openModal(modal, startIndex, trigger);
 			}
 			return;
 		}
@@ -5043,8 +5270,8 @@ function jluxeEnhanceShopSort(root) {
 		}
 	});
 
-	document.addEventListener("keydown", function (event) {
-		var openModalEl = document.querySelector("[data-jluxe-gallery-modal]:not(.hidden)");
+		document.addEventListener("keydown", function (event) {
+		var openModalEl = document.querySelector('[data-jluxe-gallery-modal][aria-hidden="false"]');
 		if (!openModalEl) {
 			return;
 		}

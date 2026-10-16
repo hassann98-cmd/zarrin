@@ -17,14 +17,85 @@ function jluxe_available_variations_for_form( $product ) {
 	return count( $product->get_children() ) <= $threshold ? $product->get_available_variations() : false;
 }
 
+/** Add the original attachment URLs to WordPress images in rendered descriptions. */
+function jluxe_product_description_image_tag_with_media_data( string $tag ): string {
+	$attachment_id = 0;
+	if ( preg_match( '/\bclass\s*=\s*(["\'])(.*?)\1/i', $tag, $class_match ) && preg_match( '/(?:^|\s)wp-image-(\d+)(?:\s|$)/', $class_match[2], $id_match ) ) {
+		$attachment_id = absint( $id_match[1] );
+	} elseif ( preg_match( '/\bdata-id\s*=\s*(["\'])(\d+)\1/i', $tag, $id_match ) ) {
+		$attachment_id = absint( $id_match[2] );
+	}
+	if ( ! $attachment_id || ! function_exists( 'wp_get_attachment_image_url' ) ) {
+		return $tag;
+	}
+
+	$media_url = function_exists( 'wp_get_attachment_url' ) ? (string) wp_get_attachment_url( $attachment_id ) : '';
+	$mime_type = function_exists( 'get_post_mime_type' ) ? (string) get_post_mime_type( $attachment_id ) : '';
+	$full_url  = (string) ( wp_get_attachment_image_url( $attachment_id, 'full' ) ?: $media_url );
+	if ( 'image/gif' === strtolower( $mime_type ) && '' !== $media_url ) {
+		$full_url = $media_url;
+	}
+	$attributes = array();
+	if ( '' !== $full_url ) {
+		$attributes['data-jluxe-full-src'] = $full_url;
+	}
+	if ( '' !== $media_url ) {
+		$attributes['data-jluxe-media-url'] = $media_url;
+	}
+	if ( function_exists( 'get_attachment_link' ) ) {
+		$attachment_url = (string) get_attachment_link( $attachment_id );
+	} else {
+		$attachment_url = function_exists( 'get_permalink' ) ? (string) get_permalink( $attachment_id ) : '';
+	}
+	if ( '' !== $attachment_url ) {
+		$attributes['data-jluxe-attachment-url'] = $attachment_url;
+	}
+
+	// A resized GIF can lose animation frames; keep the original media file and no srcset.
+	if ( 'image/gif' !== strtolower( $mime_type ) && function_exists( 'wp_get_attachment_image_srcset' ) ) {
+		$srcset = wp_get_attachment_image_srcset( $attachment_id, 'full' );
+		if ( is_string( $srcset ) && '' !== $srcset ) {
+			$attributes['data-jluxe-full-srcset'] = $srcset;
+			$attributes['data-jluxe-full-sizes']  = '90vw';
+		}
+	}
+	if ( ! $attributes ) {
+		return $tag;
+	}
+
+	foreach ( array_keys( $attributes ) as $name ) {
+		$pattern = '/\s+' . preg_quote( $name, '/' ) . '\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i';
+		$tag     = preg_replace( $pattern, '', $tag );
+	}
+	$attribute_html = '';
+	foreach ( $attributes as $name => $value ) {
+		$is_url_attribute = in_array( $name, array( 'data-jluxe-full-src', 'data-jluxe-media-url', 'data-jluxe-attachment-url' ), true );
+		$escaped_value    = $is_url_attribute ? esc_url_raw( $value ) : $value;
+		$attribute_html  .= ' ' . $name . '="' . esc_attr( $escaped_value ) . '"';
+	}
+	$tag = preg_replace_callback(
+		'/\s*\/?>$/',
+		static function ( array $matches ) use ( $attribute_html ): string {
+			return $attribute_html . $matches[0];
+		},
+		$tag,
+		1
+	);
+	return is_string( $tag ) ? $tag : '';
+}
+
 /**
- * Wrap product-description tables in a keyboard- and touch-scrollable region.
- * This changes rendered markup only; the saved description and table contents
- * remain untouched. The data marker also makes repeated the_content passes safe.
+ * Add media metadata to rendered WordPress images and wrap description tables.
+ * Saved product content remains untouched; data markers make repeated passes safe.
  */
 function jluxe_wrap_product_description_tables( $content ): string {
-	if ( ! is_string( $content ) || false === stripos( $content, '<table' ) ) {
-		return is_string( $content ) ? $content : '';
+	if ( ! is_string( $content ) ) {
+		return '';
+	}
+	$has_table = false !== stripos( $content, '<table' );
+	$has_wp_image = (bool) preg_match( '/<img\b[^>]*(?:\bwp-image-\d+\b|\bdata-id\s*=\s*["\']\d+["\'])/i', $content );
+	if ( ! $has_table && ! $has_wp_image ) {
+		return $content;
 	}
 
 	$tokens = function_exists( 'wp_html_split' )
@@ -38,6 +109,9 @@ function jluxe_wrap_product_description_tables( $content ): string {
 	$table_depth      = 0;
 	$wrap_outer_table = false;
 	foreach ( $tokens as $token ) {
+		if ( preg_match( '/^<img\b/i', $token ) ) {
+			$token = jluxe_product_description_image_tag_with_media_data( $token );
+		}
 		if ( preg_match( '/^<table\b/i', $token ) ) {
 			if ( 0 === $table_depth ) {
 				$wrap_outer_table = ! preg_match( '/\bdata-jluxe-description-table(?:\s|=|>)/i', $token );

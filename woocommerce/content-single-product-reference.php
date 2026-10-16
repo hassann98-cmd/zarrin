@@ -578,7 +578,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			<div class="cp3-grid">
 
 				<!-- گالری -->
-				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0">
+				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal">
 					<button type="button" class="cp3-zoom" data-cp3-zoom-box data-jluxe-gallery-open-current aria-label="نمایش تصویر محصول به‌صورت تمام‌صفحه">
 						<?php
 						$cp3_main_size   = 'large';
@@ -625,7 +625,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php endif; ?>
 				</div>
 
-				<div class="jluxe-cp3-gallery-modal hidden opacity-0" data-jluxe-gallery-modal data-jluxe-gallery-modal-current="0" role="dialog" aria-modal="true" aria-label="گالری تصاویر محصول" aria-hidden="true" tabindex="-1">
+				<div id="jluxe-product-gallery-modal" class="jluxe-cp3-gallery-modal hidden opacity-0" data-jluxe-gallery-modal data-jluxe-gallery-modal-current="0" role="dialog" aria-modal="true" aria-label="گالری تصاویر محصول" aria-hidden="true" tabindex="-1">
 					<div class="jluxe-cp3-gallery-modal__top">
 						<span class="jluxe-cp3-gallery-modal__counter" data-jluxe-gallery-modal-counter>۱ / <?php echo esc_html( jluxe_fa_digits( (string) count( $jluxe_gallery_ids ) ) ); ?></span>
 						<button type="button" class="jluxe-cp3-gallery-modal__button jluxe-cp3-gallery-modal__close" data-jluxe-gallery-modal-close aria-label="بستن گالری"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>

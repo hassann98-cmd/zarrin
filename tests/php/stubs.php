@@ -262,6 +262,7 @@ function wc_get_price_decimal_separator(){return '.';}
 function wc_get_price_thousand_separator(){return ',';}
 function wc_price($amount){return '<span>'.$amount.'</span>';}
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
+function get_attachment_link($id){return $GLOBALS['attachment_links'][$id]??home_url('/attachment/'.$id.'/');}
 function wp_get_attachment_image_url(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$images=$GLOBALS['attachment_image_urls']??[];if(array_key_exists($id,$images)){$value=$images[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return home_url('/image.jpg');}
 function wp_get_attachment_image_srcset(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$sets=$GLOBALS['attachment_srcsets']??[];if(array_key_exists($id,$sets)){$value=$sets[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w';}
 function wp_get_attachment_url($id){if(array_key_exists($id,$GLOBALS['attachment_urls']??[]))return $GLOBALS['attachment_urls'][$id];return home_url('/uploads/'.$id.'.gif');}
