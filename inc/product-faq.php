@@ -36,8 +36,21 @@ function jluxe_render_product_faq_meta_box( WP_Post $post ): void {
 		.jluxe-faq-item-content p { margin: 0 0 10px; }
 		.jluxe-faq-item-content label { display: block; margin-bottom: 4px; font-weight: 600; }
 		#jluxe-faq-item-template { display: none; }
+		.jluxe-faq-bulk-import { margin: 14px 0; padding: 12px; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; }
+		.jluxe-faq-bulk-import__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+		#jluxe-faq-bulk-status:empty { display: none; }
 	</style>
 	<p class="description">سوال‌وجواب‌هایی که اینجا می‌بینی همان موارد قابل‌نمایش هستند؛ دادهٔ قدیمی Boom برای شروع بارگذاری شده و تغییرات فقط در override پوسته ذخیره می‌شوند. کلید قدیمی Boom حذف یا بازنویسی نمی‌شود. FAQ نهایی زیرِ «معرفی محصول» نمایش داده می‌شود و برای همان محتوا FAQPage JSON-LD ساخته می‌شود.</p>
+	<div class="jluxe-faq-bulk-import">
+		<p><label for="jluxe-faq-bulk-paste"><strong>ورود یک‌جای سوال‌ها و جواب‌ها</strong></label></p>
+		<p class="description">کل متن را یک‌بار اینجا جای‌گذاری کنید؛ متن‌هایی مثل «**۱. سوال؟** جواب» و قالب پرسش‌وپاسخِ پررنگِ Word پشتیبانی می‌شوند. تیترهایی مثل «سوالات متداول خریداران» به‌عنوان سوال ثبت نمی‌شوند. بعد از تشخیص، برای جایگزینی یا افزودن به فهرست فعلی یکی از دکمه‌ها را بزنید.</p>
+		<textarea id="jluxe-faq-bulk-paste" class="widefat" rows="6" placeholder="سوالات متداول خریداران&#10;&#10;**۱. آیا محصول قابل شست‌وشو است؟** بله، با دستمال مرطوب تمیز می‌شود."></textarea>
+		<div class="jluxe-faq-bulk-import__actions">
+			<button type="button" class="button button-primary" id="jluxe-faq-import-replace" disabled>جایگزینی سوال‌های فعلی</button>
+			<button type="button" class="button" id="jluxe-faq-import-append" disabled>افزودن به انتهای فهرست</button>
+		</div>
+		<p id="jluxe-faq-bulk-status" class="description" role="status" aria-live="polite"></p>
+	</div>
 	<?php wp_nonce_field( 'jluxe_product_faq_save', 'jluxe_product_faq_nonce' ); ?>
 	<input type="hidden" name="jluxe_product_faq_present" value="1" />
 	<div id="jluxe-faq-items" class="jluxe-faq-items">

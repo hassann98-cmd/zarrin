@@ -2370,7 +2370,7 @@ $GLOBALS['terms_by_slug']['pa_size'] = array(
 $attribute_swatches_source=(string) file_get_contents(ABSPATH.'inc/attribute-swatches.php');
 check(strpos($cp3,'jluxe_attribute_option_label( $cp3_value, $cp3_name, $product )')!==false && strpos($attribute_swatches_source,"get_term_by( 'slug', \$slug, \$taxonomy )")!==false && strpos($attribute_swatches_source,'woocommerce_variation_option_name')!==false, 'R48 variation pill labels use the shared slug/name resolver and never expose an unresolved percent-encoded slug');
 // 2) pills are filtered to options that actually have variations (wildcard attributes keep everything).
-check(strpos($cp3,'str_replace( \'attribute_\', \'\', (string) $cp3_attr_key )')!==false && strpos($cp3,'[\'*\'] = true;')!==false && strpos($cp3,'cp3_valid_options[ $cp3_attr_name ]')!==false, 'R48 pills only offer options backed by real variations (or wildcard attributes)');
+check(strpos($cp3,'jluxe_normalize_variable_attribute_name( (string) $cp3_attr_key )')!==false && strpos($cp3,'[\'*\'] = true;')!==false && strpos($cp3,'cp3_valid_options[ $cp3_attr_name ]')!==false, 'R48/R324 pills only offer options backed by real variations (or wildcard attributes) after canonicalizing attribute keys');
 $pa_r48_orig = jluxe_get_theme_settings();
 check(function_exists('jluxe_render_site_diagnosis_page') && function_exists('jluxe_diagnosis_repair_pages'), 'R48 the site diagnosis page and repair routine ship');
 $GLOBALS['existing_pages'] = array();
@@ -2872,6 +2872,45 @@ $p74automatic->jluxe_rows[3]['price_html'] = '<span class="woocommerce-Price-amo
 $cp3_blue_variation = jluxe_find_default_variable_variation( $p74automatic, array( 'pa_rang' => 'blue' ) );
 $cp3_blue_price = jluxe_default_variable_variation_price_html( $p74automatic, array( 'pa_rang' => 'blue' ) );
 check($p74automatic->jluxe_rows[2] === $cp3_blue_variation && strpos($cp3_blue_price, '۲۱۵,۰۰۰') !== false && strpos($cp3_blue_price, '۴۵۰,۰۰۰') === false, 'R139 the initial classic price uses the selected in-stock variation price, not the parent variable price range');
+$r324_encoded_attribute_name = 'pa_%d8%b1%d9%86%da%af';
+$r324_decoded_attribute_name = 'pa_رنگ';
+check( jluxe_normalize_variable_attribute_name( 'attribute_' . $r324_encoded_attribute_name ) === $r324_decoded_attribute_name, 'R324 percent-encoded Persian variation keys normalize to the same WooCommerce attribute name as decoded keys' );
+$p323_unicode_variation = new JLuxe_Var_Product( 753 );
+$p323_unicode_variation->jluxe_defs = array( $r324_decoded_attribute_name => 'blue' );
+$p323_unicode_variation->jluxe_option_map = array( $r324_encoded_attribute_name => array( 'red', 'blue' ) );
+$p323_unicode_variation->jluxe_rows = array(
+	array( 'attributes' => array( 'attribute_' . $r324_decoded_attribute_name => 'red' ), 'is_in_stock' => true, 'is_purchasable' => true, 'price_html' => '<span>۱۲۰,۰۰۰ تومان</span>' ),
+	array( 'attributes' => array( 'attribute_' . $r324_encoded_attribute_name => 'blue' ), 'is_in_stock' => true, 'is_purchasable' => true, 'price_html' => '<span>۲۱۵,۰۰۰ تومان</span>' ),
+);
+$r324_unicode_defaults = jluxe_default_variation_pick( $p323_unicode_variation );
+$r324_unicode_price = jluxe_default_variable_variation_price_html( $p323_unicode_variation, $r324_unicode_defaults );
+$r324_unicode_payload = jluxe_available_variations_for_form( $p323_unicode_variation );
+check(
+	array( $r324_decoded_attribute_name => 'blue' ) === $r324_unicode_defaults &&
+	strpos( $r324_unicode_price, '۲۱۵,۰۰۰' ) !== false && false === strpos( $r324_unicode_price, '۱۲۰,۰۰۰' ) &&
+	isset( $r324_unicode_payload[1]['attributes'][ 'attribute_' . $r324_decoded_attribute_name ] ),
+	'R324 a saved Persian variation default still resolves to its exact price when WooCommerce mixes encoded and decoded attribute keys, and the form payload is canonicalized to match its select'
+);
+ob_start(); jluxe_render_variation_swatches( $p323_unicode_variation, $p323_unicode_variation->jluxe_option_map ); $r324_unicode_swatches = (string) ob_get_clean();
+check( strpos( $r324_unicode_swatches, 'data-jluxe-variation-value="blue"' ) !== false && strpos( $r324_unicode_swatches, 'data-active=""' ) !== false && strpos( $r324_unicode_swatches, 'value="blue" selected' ) !== false, 'R324 decoded/encoded Persian attribute keys still preselect the correct visible swatch and native WooCommerce select' );
+$p323_unicode_object_parent = new JLuxe_Var_Product( 754 );
+$p323_unicode_object_parent->children = array( 755, 756 );
+$p323_unicode_object_parent->jluxe_defs = array( $r324_decoded_attribute_name => 'blue' );
+$p323_unicode_object_parent->jluxe_option_map = array( $r324_encoded_attribute_name => array( 'red', 'blue' ) );
+$p323_unicode_object_red = new JLuxe_Var_Product( 755 );
+$p323_unicode_object_red->type = 'variation';
+$p323_unicode_object_red->jluxe_option_map = array( 'attribute_' . $r324_decoded_attribute_name => 'red' );
+$p323_unicode_object_blue = new JLuxe_Var_Product( 756 );
+$p323_unicode_object_blue->type = 'variation';
+$p323_unicode_object_blue->jluxe_option_map = array( 'attribute_' . $r324_encoded_attribute_name => 'blue' );
+$GLOBALS['products'][755] = $p323_unicode_object_red;
+$GLOBALS['products'][756] = $p323_unicode_object_blue;
+$GLOBALS['product_price_html'][755] = '<span>۱۲۰,۰۰۰ تومان</span>';
+$GLOBALS['product_price_html'][756] = '<span>۲۱۵,۰۰۰ تومان</span>';
+$r324_unicode_object_defaults = jluxe_default_variation_pick( $p323_unicode_object_parent );
+$r324_unicode_object_price = jluxe_default_variable_variation_price_html( $p323_unicode_object_parent, $r324_unicode_object_defaults );
+check( $r324_unicode_object_defaults === array( $r324_decoded_attribute_name => 'blue' ) && strpos( $r324_unicode_object_price, '۲۱۵,۰۰۰' ) !== false && false === strpos( $r324_unicode_object_price, '۱۲۰,۰۰۰' ), 'R324 the production child-object path resolves an encoded Persian default to the selected variation exact price' );
+unset( $GLOBALS['products'][755], $GLOBALS['products'][756], $GLOBALS['product_price_html'][755], $GLOBALS['product_price_html'][756] );
 check('انتخاب سایز:' === jluxe_variable_attribute_prompt( 'سایز مورد نظر را انتخاب کنید' ) && 'انتخاب رنگ:' === jluxe_variable_attribute_prompt( 'رنگ' ), 'R139 attribute labels strip an existing instruction and render a single clear selection prompt');
 $p74child_parent = new JLuxe_Var_Product(745);
 $p74child_parent->children = array( 746, 747, 748 );
@@ -2930,9 +2969,10 @@ $r149_nonpurchasable_swatches = (string) ob_get_clean();
 check( preg_match( '/data-jluxe-variation-value="red"[^>]*disabled="disabled"/', $r149_nonpurchasable_swatches ) === 1 && preg_match( '/data-jluxe-variation-value="blue"[^>]*disabled="disabled"/', $r149_nonpurchasable_swatches ) !== 1, 'R149 in-stock but non-purchasable variations are disabled in visible swatches just like out-of-stock variations');
 $classic74=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($classic74,'$cp3_defaults')!==false && strpos($classic74,"' is-active' : ''; ?>")!==false, 'R138 the classic product layout receives the same auto-selected variation before JavaScript runs');
-check(strpos($classic74,'jluxe_default_variable_variation_price_html( $product, $cp3_defaults )')!==false && strpos($classic74,'data-cp3-empty-text=')!==false && strpos($classic74,'در حال حاضر تنوعِ قابل‌خریدی موجود نیست.')!==false && strpos($classic74,'aria-live="polite"')!==false, 'R139 the classic price starts with the selected variation amount or a clear no-available-variation prompt instead of a parent price range');
+check(strpos($classic74,'jluxe_default_variable_variation_price_html( $product, $cp3_defaults )')!==false && strpos($classic74,'data-cp3-empty-text=')!==false && strpos($classic74,"? 'ناموجود' : 'برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید.'")!==false && strpos($classic74,'aria-live="polite"')!==false && strpos($classic74,'jluxe_normalize_variable_attribute_name')!==false, 'R139/R324 the classic price starts with the exact selected variation amount, normalizes attribute keys, and clearly says ناموجود when no purchasable default exists');
 check(strpos($classic74,'$cp3_is_in_stock = $jluxe_is_variable ? ! empty( $cp3_defaults ) : $product->is_in_stock();')!==false && strpos($classic74,'if ( $cp3_is_in_stock ) :')!==false, 'R149 classic variable stock status follows an actually purchasable in-stock default, not a stale parent stock flag');
 $reference74=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-reference.php');
+check(strpos($reference74,'jluxe_normalize_variable_attribute_name')!==false && strpos($reference74,"? 'ناموجود' : 'برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید.'")!==false, 'R324 the reference product layout uses the same canonical variation keys and explicit unavailable label');
 check(strpos($classic74,'$cp3_no_available_variation = $jluxe_is_variable && empty( $cp3_defaults );')!==false && strpos($reference74,'$cp3_no_available_variation = $jluxe_is_variable && empty( $cp3_defaults );')!==false && substr_count($classic74,'if ( ! empty( $cp3_defaults ) ) :')>=1 && substr_count($reference74,'if ( ! empty( $cp3_defaults ) ) :')>=1 && strpos($reference74,'$cp3_mobile_in_stock      = $cp3_is_in_stock;')!==false, 'R149 both CP3 layouts disable all pills, suppress the usable add-to-cart row, and render mobile/DOM stock from the eligible default when none is purchasable');
 $r174_purchase_tag = jluxe_protect_purchase_script_optimization( '<script defer src="/woocommerce/assets/js/add-to-cart.js"></script>', 'wc-add-to-cart' );
 $r174_unrelated_tag = jluxe_protect_purchase_script_optimization( '<script src="/wp-includes/js/jquery.js"></script>', 'jquery-core' );
@@ -8212,8 +8252,11 @@ check(
 	false !== strpos( $r273_editor_html, 'value="پرسش Boom؟"' ) &&
 	false !== strpos( $r273_editor_html, 'value="پرسش قبلی پوسته؟"' ) &&
 	false !== strpos( $r273_editor_html, 'jluxe_product_faq_restore_boom' ) &&
-	false !== strpos( $r273_editor_html, 'FAQPage JSON-LD' ),
-	'R273 FAQ editor preloads Boom and existing theme questions and offers a reset control'
+	false !== strpos( $r273_editor_html, 'FAQPage JSON-LD' ) &&
+	false !== strpos( $r273_editor_html, 'id="jluxe-faq-bulk-paste"' ) &&
+	false !== strpos( $r273_editor_html, 'id="jluxe-faq-import-replace"' ) &&
+	false !== strpos( $r273_editor_html, 'id="jluxe-faq-import-append"' ),
+	'R273/R324 FAQ editor preloads existing content, offers safe replace/append bulk-paste controls, and retains the reset control'
 );
 $r273_previous_post = $_POST;
 $r273_previous_nonce = $GLOBALS['valid_wp_nonce'] ?? null;

@@ -11,10 +11,44 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Normalize variation attribute names to WooCommerce's canonical, unprefixed form. */
+function jluxe_normalize_variable_attribute_name( string $name ): string {
+	if ( 0 === strpos( $name, 'attribute_' ) ) {
+		$name = substr( $name, 10 );
+	}
+	return sanitize_title( rawurldecode( $name ) );
+}
+
 /** false asks wc-add-to-cart-variation to resolve a selection over AJAX. */
 function jluxe_available_variations_for_form( $product ) {
-	$threshold = max( 0, (int) apply_filters( 'woocommerce_ajax_variation_threshold', 30, $product ) );
-	return count( $product->get_children() ) <= $threshold ? $product->get_available_variations() : false;
+	$threshold  = max( 0, (int) apply_filters( 'woocommerce_ajax_variation_threshold', 30, $product ) );
+	$variations = count( $product->get_children() ) <= $threshold ? $product->get_available_variations() : false;
+	if ( ! is_array( $variations ) ) {
+		return $variations;
+	}
+
+	/*
+	 * WooCommerce's parent attributes, variation meta, and saved defaults can
+	 * contain the same Persian attribute slug in decoded or percent-encoded
+	 * form. Normalize the payload as well as the PHP comparison path so the
+	 * native variation script receives keys identical to the rendered selects.
+	 */
+	foreach ( $variations as &$variation ) {
+		if ( ! is_array( $variation ) || ! isset( $variation['attributes'] ) || ! is_array( $variation['attributes'] ) ) {
+			continue;
+		}
+		$attributes = array();
+		foreach ( $variation['attributes'] as $name => $value ) {
+			$name = jluxe_normalize_variable_attribute_name( (string) $name );
+			if ( '' !== $name ) {
+				$attributes[ 'attribute_' . $name ] = $value;
+			}
+		}
+		$variation['attributes'] = $attributes;
+	}
+	unset( $variation );
+
+	return $variations;
 }
 
 /** Add the original attachment URLs to WordPress images in rendered descriptions. */
@@ -1277,11 +1311,7 @@ function jluxe_normalize_variable_attributes( $attributes, bool $keep_empty = fa
 		if ( ! is_scalar( $value ) && null !== $value ) {
 			continue;
 		}
-		$name = (string) $name;
-		if ( 0 === strpos( $name, 'attribute_' ) ) {
-			$name = substr( $name, 10 );
-		}
-		$name  = sanitize_title( $name );
+		$name  = jluxe_normalize_variable_attribute_name( (string) $name );
 		$value = null === $value ? '' : (string) $value;
 		if ( '' === $name || ( '' === $value && ! $keep_empty ) ) {
 			continue;
@@ -1391,7 +1421,7 @@ function jluxe_pick_variable_default_attributes( WC_Product $product, $stored_de
 	$options   = array();
 	if ( method_exists( $product, 'get_variation_attributes' ) ) {
 		foreach ( (array) $product->get_variation_attributes() as $name => $values ) {
-			$name = sanitize_title( str_replace( 'attribute_', '', (string) $name ) );
+			$name = jluxe_normalize_variable_attribute_name( (string) $name );
 			if ( '' === $name ) {
 				continue;
 			}
@@ -1701,7 +1731,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		بداند چنین گزینه‌ای وجود دارد اما فعلاً خریدنی نیست). */
 		$jluxe_in_stock = jluxe_variable_variation_is_available( $jluxe_variation );
 		foreach ( $jluxe_variation['attributes'] as $jluxe_attr_key => $jluxe_attr_value ) {
-			$jluxe_attr_name = str_replace( 'attribute_', '', $jluxe_attr_key );
+			$jluxe_attr_name = jluxe_normalize_variable_attribute_name( (string) $jluxe_attr_key );
 			if ( '' === $jluxe_attr_value ) {
 				// مقدارِ خالی یعنی «هر مقداری» — این Variation با هر گزینه‌ای
 				// از این ویژگی مچ می‌شه، پس فیلترکردن برایِ این ویژگی معنی
@@ -1717,6 +1747,7 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 	}
 
 	foreach ( $variation_attributes as $attr_name => $attr_options ) {
+		$attr_name          = jluxe_normalize_variable_attribute_name( (string) $attr_name );
 		$attr_label         = wc_attribute_label( rawurldecode( $attr_name ) );
 		$select_id          = sanitize_title( $attr_name );
 		$is_color_attr      = jluxe_is_color_attribute( $attr_name );

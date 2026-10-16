@@ -59,7 +59,7 @@ if ( $jluxe_is_variable ) {
 	$jluxe_available_variations       = jluxe_available_variations_for_form( $product );
 	$cp3_defaults                     = function_exists( 'jluxe_default_variation_pick' ) ? jluxe_default_variation_pick( $product ) : array();
 	$cp3_default_variation_price_html = function_exists( 'jluxe_default_variable_variation_price_html' ) ? jluxe_default_variable_variation_price_html( $product, $cp3_defaults ) : '';
-	$cp3_price_placeholder            = empty( $cp3_defaults ) ? 'در حال حاضر تنوعِ قابل‌خریدی موجود نیست.' : 'برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید.';
+	$cp3_price_placeholder            = empty( $cp3_defaults ) ? 'ناموجود' : 'برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید.';
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 $cp3_is_in_stock = $jluxe_is_variable ? ! empty( $cp3_defaults ) : $product->is_in_stock();
@@ -709,7 +709,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						$cp3_valid_options = array();
 						foreach ( (array) $jluxe_available_variations as $cp3_variation ) {
 							foreach ( (array) ( $cp3_variation['attributes'] ?? array() ) as $cp3_attr_key => $cp3_attr_value ) {
-								$cp3_valid_name = str_replace( 'attribute_', '', (string) $cp3_attr_key );
+								$cp3_valid_name = jluxe_normalize_variable_attribute_name( (string) $cp3_attr_key );
 								if ( '' === (string) $cp3_attr_value ) {
 									$cp3_valid_options[ $cp3_valid_name ]['*'] = true;
 								} else {
@@ -733,7 +733,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 									continue;
 								}
 								foreach ( (array) ( $cp3_stocky_variation['attributes'] ?? array() ) as $cp3_stocky_key => $cp3_stocky_value ) {
-									$cp3_stocky_name = str_replace( 'attribute_', '', (string) $cp3_stocky_key );
+									$cp3_stocky_name = jluxe_normalize_variable_attribute_name( (string) $cp3_stocky_key );
 									if ( '' === (string) $cp3_stocky_value ) {
 										$cp3_stocky_options[ $cp3_stocky_name ]['*'] = true;
 									} else {
@@ -742,6 +742,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								}
 							}
 
+							$cp3_attr_name     = jluxe_normalize_variable_attribute_name( (string) $cp3_attr_name );
 							$cp3_attr_slug      = sanitize_title( $cp3_attr_name );
 							$cp3_attr_prompt    = jluxe_variable_attribute_prompt( $cp3_attr_name );
 							$cp3_attr_is_color  = jluxe_is_color_attribute( $cp3_attr_name );
