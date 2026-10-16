@@ -592,6 +592,7 @@ try {
       /class="[^"]*\bsr-only\b[^"]*"/.test(paymentGatewayInput) &&
       /<label\b[^>]*for="payment_method_[^"]+"[^>]*class="[^"]*jluxe-payment-card/.test(paymentGatewayRow);
     const legacyCityMapLoaded = response.text.includes('"iranCities"') && response.text.includes('"KRH"');
+    const expandedCityMapLoaded = ['دهگلان', 'آرمرده', 'توپ آغاج', 'ابوموسی'].every((city) => response.text.includes(city));
     const checkoutAddressDataRemoved = !response.text.includes('checkoutAddressData');
     const cityLabelPayloadRemoved = !response.text.includes('jluxe_billing_city_label');
     const checkoutStepCount = (response.text.match(/data-jluxe-step="/g) || []).length;
@@ -604,12 +605,12 @@ try {
     const shipDifferentAddress = response.text.match(/<input\b[^>]*id="ship-to-different-address-checkbox"[^>]*>/);
     const shipsToBillingByDefault = !!shipDifferentAddress && !/\bchecked(?:="checked")?/.test(shipDifferentAddress[0]);
     const hiddenShippingRecipientIsRequired = /<p\b(?=[^>]*id="shipping_first_name_field")(?=[^>]*class="[^"]*validate-required)[^>]*>/.test(response.text);
-    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodePlaceholder=${billingPostcodePlaceholder}; postcodeHelpRemoved=${billingPostcodeHelpRemoved}; cityMap=${legacyCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; paymentList=${!!paymentList}; gatewayRow=${!!paymentGatewayRow}; horizontalGatewayCard=${paymentListHasHorizontalGatewayCard}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
+    const checkoutDiagnostic = `HTTP=${response.status}; v1758CitySelect=${cityIsV1758Select}; cityRequiredRow=${cityIsRequired}; cityOptions=${cityOptionCount}; stateOptions=${stateOptionCount}; postcodeOptional=${billingPostcodeOptional}; postcodePlaceholder=${billingPostcodePlaceholder}; postcodeHelpRemoved=${billingPostcodeHelpRemoved}; cityMap=${legacyCityMapLoaded}; expandedCityMap=${expandedCityMapLoaded}; addressJsonRemoved=${checkoutAddressDataRemoved}; cityLabelRemoved=${cityLabelPayloadRemoved}; baselineProgress=${baselineProgress}; checkoutStepCount=${checkoutStepCount}; placeOrder=${hasPlaceOrderButton}; nonce=${hasCheckoutNonce}; hiddenShippingRequired=${hiddenShippingRecipientIsRequired}; shippingToBilling=${shipsToBillingByDefault}; form=${response.text.includes('class="checkout woocommerce-checkout"')}; payment=${response.text.includes("payment_method")}; paymentList=${!!paymentList}; gatewayRow=${!!paymentGatewayRow}; horizontalGatewayCard=${paymentListHasHorizontalGatewayCard}; selectedTemplate=${selectedTemplate}; query=${JSON.stringify(queryState)}; resolution=${JSON.stringify(checkoutResolution)}; empty=${/cart is empty|سبد.*خالی/i.test(checkoutText)}; body=${checkoutText}`;
     check(
       response.status === 200 &&
         response.text.includes('class="checkout woocommerce-checkout"') &&
         response.text.includes("payment_method") && paymentListHasHorizontalGatewayCard && cityIsV1758Select && cityIsRequired && cityOptionCount >= 1 && stateOptionCount >= 2 &&
-        legacyCityMapLoaded && checkoutAddressDataRemoved && cityLabelPayloadRemoved && baselineProgress &&
+        legacyCityMapLoaded && expandedCityMapLoaded && checkoutAddressDataRemoved && cityLabelPayloadRemoved && baselineProgress &&
         billingPostcodeOptional && billingPostcodePlaceholder === "برای ارسال پستی، کد پستی الزامی است" && billingPostcodeHelpRemoved && shipsToBillingByDefault && hiddenShippingRecipientIsRequired && hasPlaceOrderButton && hasCheckoutNonce,
       `The real classic checkout renders the required dependent city, native postcode placeholder without a separate help row, a single-column gateway with its real WooCommerce radio, order button and nonce (${checkoutDiagnostic})`,
     );
@@ -651,6 +652,25 @@ try {
       $args=array(&$posted,&$errors);
       $validator->invokeArgs($checkout,$args);
       $validCodes=$errors->get_error_codes();
+      $unknownCityErrors=new WP_Error();
+      do_action('woocommerce_after_checkout_validation',$posted,$unknownCityErrors);
+      $unknownCityCodes=$unknownCityErrors->get_error_codes();
+      $knownMismatchErrors=new WP_Error();
+      do_action('woocommerce_after_checkout_validation',array(
+        'billing_country'=>'IR','billing_state'=>'THR','billing_city'=>'دهگلان'
+      ),$knownMismatchErrors);
+      $knownMismatchCodes=$knownMismatchErrors->get_error_codes();
+      $knownCorrectErrors=new WP_Error();
+      do_action('woocommerce_after_checkout_validation',array(
+        'billing_country'=>'IR','billing_state'=>'KRD','billing_city'=>'توپ‌آغاج'
+      ),$knownCorrectErrors);
+      $knownCorrectCodes=$knownCorrectErrors->get_error_codes();
+      $shippingMismatchErrors=new WP_Error();
+      do_action('woocommerce_after_checkout_validation',array(
+        'billing_country'=>'IR','billing_state'=>'KRD','billing_city'=>'سنندج',
+        'shipping_country'=>'IR','shipping_state'=>'THR','shipping_city'=>'آرمرده'
+      ),$shippingMismatchErrors);
+      $shippingMismatchCodes=$shippingMismatchErrors->get_error_codes();
       $result=array(
         'type'=>$cityFields['billing']['billing_city']['type']??'',
         'required'=>!empty($cityFields['billing']['billing_city']['required']),
@@ -665,7 +685,10 @@ try {
         'shippingPostcodeRequired'=>!empty($shippingPostcodeField['required']),
         'shippingPostcodePlaceholder'=>$shippingPostcodeField['placeholder']??'',
         'shippingPostcodeDescriptionMissing'=>!array_key_exists('description',$shippingPostcodeField),
-        'noCustomProvinceMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$validCodes,true)
+        'noCustomProvinceMismatch'=>!in_array('jluxe_billing_city_province_mismatch',$unknownCityCodes,true),
+        'knownMismatchRejected'=>in_array('jluxe_billing_city_province_mismatch',$knownMismatchCodes,true),
+        'knownCorrectCityAccepted'=>!in_array('jluxe_billing_city_province_mismatch',$knownCorrectCodes,true),
+        'shippingMismatchRejected'=>in_array('jluxe_shipping_city_province_mismatch',$shippingMismatchCodes,true)
       );
       $fieldsProperty->setValue($checkout,null);
       $_POST=$previousPost;
@@ -681,8 +704,11 @@ try {
         !coreCityValidation.shippingPostcodeRequired &&
         coreCityValidation.shippingPostcodePlaceholder === coreCityValidation.postcodePlaceholder &&
         coreCityValidation.shippingPostcodeDescriptionMissing &&
-        coreCityValidation.noCustomProvinceMismatch,
-      `Real WooCommerce keeps billing/shipping postcode optional with a native placeholder and no help description while still enforcing the dependent city (${JSON.stringify(coreCityValidation)})`,
+        coreCityValidation.noCustomProvinceMismatch &&
+        coreCityValidation.knownMismatchRejected &&
+        coreCityValidation.knownCorrectCityAccepted &&
+        coreCityValidation.shippingMismatchRejected,
+      `Real WooCommerce preserves postcode rules, allows unknown custom cities, rejects only known cross-province city mismatches, and checks a separate shipping address (${JSON.stringify(coreCityValidation)})`,
     );
 
     const updateOrderReviewNonce = response.text.match(/update_order_review_nonce["']?\s*:\s*["']([^"']+)/)?.[1] || "";

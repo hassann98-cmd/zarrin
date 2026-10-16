@@ -6968,26 +6968,114 @@ check(
 	! isset( $r267_empty_city['custom_attributes']['data-jluxe-city-select'] ),
 	'R267/R308 billing province and city are required, empty for saved/session defaults and Autofill, but preserve explicit failed-checkout selections'
 );
+$r267_city_count = array_sum( array_map( 'count', $r267_city_map ) );
+$r267_unique_city_values = true;
+foreach ( $r267_city_map as $r267_state => $r267_state_cities ) {
+	$r267_city_keys = array();
+	foreach ( $r267_state_cities as $r267_city ) {
+		$r267_key = jluxe_iran_city_name_key( $r267_city );
+		if ( isset( $r267_city_keys[ $r267_key ] ) ) {
+			$r267_unique_city_values = false;
+		}
+		$r267_city_keys[ $r267_key ] = true;
+	}
+}
 check(
-	isset( $r267_city_map['THR'], $r267_city_map['KRH'] ) &&
+	isset( $r267_city_map['THR'], $r267_city_map['KRH'], $r267_city_map['HRZ'] ) &&
 	in_array( 'تهران', $r267_city_map['THR'], true ) &&
 	in_array( 'جوانرود', $r267_city_map['KRH'], true ) &&
+	in_array( 'دهگلان', $r267_city_map['KRD'], true ) &&
+	in_array( 'آرمرده', $r267_city_map['KRD'], true ) &&
+	in_array( 'توپ آغاج', $r267_city_map['KRD'], true ) &&
+	in_array( 'ابوموسی', $r267_city_map['HRZ'], true ) &&
+	1347 === $r267_city_count && $r267_unique_city_values &&
 	false !== strpos( $r267_js_source, 'window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities' ) &&
 	false !== strpos( $r267_js_source, 'window.jQuery(stateSelect).on("change"' ),
-	'R267 the restored city selector uses the v1.7.58 province-keyed map and listens to WooCommerce/Select2 province changes'
+	'R267 the expanded 31-province map keeps legacy options, includes MIT-source cities, deduplicates Persian spelling variants and preserves the dependent selector'
 );
 $r267_previous_localized = $GLOBALS['localized']['JLuxeThemeSettings'] ?? null;
+$r267_localize_previous_query = $GLOBALS['query_kind'] ?? null;
+$r267_localize_previous_endpoint = $GLOBALS['endpoint'] ?? null;
+$GLOBALS['query_kind'] = 'checkout';
 jluxe_localize_public_settings();
-$r267_localized_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
+$r267_localized_checkout_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
+$GLOBALS['query_kind'] = 'shop';
+$GLOBALS['endpoint'] = '';
+jluxe_localize_public_settings();
+$r267_localized_shop_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? null;
+$GLOBALS['query_kind'] = 'account';
+$GLOBALS['endpoint'] = 'edit-address';
+jluxe_localize_public_settings();
+$r267_localized_account_cities = $GLOBALS['localized']['JLuxeThemeSettings']['iranCities'] ?? array();
+if ( null === $r267_localize_previous_query ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $r267_localize_previous_query;
+}
+if ( null === $r267_localize_previous_endpoint ) {
+	unset( $GLOBALS['endpoint'] );
+} else {
+	$GLOBALS['endpoint'] = $r267_localize_previous_endpoint;
+}
 check(
-	$r267_localized_cities === $r267_city_map,
-	'R267 public settings localize the same historical province-keyed city map consumed by checkout JavaScript'
+	$r267_localized_checkout_cities === $r267_city_map &&
+	array() === $r267_localized_shop_cities &&
+	$r267_localized_account_cities === $r267_city_map,
+	'R267 public settings send the city map to checkout and account address editing only, not unrelated shop pages'
 );
 if ( null === $r267_previous_localized ) {
 	unset( $GLOBALS['localized']['JLuxeThemeSettings'] );
 } else {
 	$GLOBALS['localized']['JLuxeThemeSettings'] = $r267_previous_localized;
 }
+
+$r267_city_validation_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) { $this->items[] = array( 'code' => $code, 'message' => $message, 'data' => $data ); }
+};
+$r267_city_validation_errors->items = array();
+jluxe_validate_checkout_iran_city_province(
+	array( 'billing_country' => 'IR', 'billing_state' => 'THR', 'billing_city' => 'دهگلان' ),
+	$r267_city_validation_errors
+);
+$r267_known_mismatch_rejected = in_array( 'jluxe_billing_city_province_mismatch', array_column( $r267_city_validation_errors->items, 'code' ), true );
+$r267_city_validation_errors->items = array();
+jluxe_validate_checkout_iran_city_province(
+	array( 'billing_country' => 'IR', 'billing_state' => 'KRD', 'billing_city' => 'توپ‌آغاج' ),
+	$r267_city_validation_errors
+);
+$r267_variant_in_correct_state_accepted = empty( $r267_city_validation_errors->items );
+$r267_city_validation_errors->items = array();
+jluxe_validate_checkout_iran_city_province(
+	array( 'billing_country' => 'IR', 'billing_state' => 'THR', 'billing_city' => 'شهر آزمایشی سفارشی' ),
+	$r267_city_validation_errors
+);
+$r267_unknown_city_allowed = empty( $r267_city_validation_errors->items );
+$r267_city_validation_errors->items = array();
+jluxe_validate_checkout_iran_city_province(
+	array( 'billing_country' => 'US', 'billing_state' => 'THR', 'billing_city' => 'دهگلان' ),
+	$r267_city_validation_errors
+);
+$r267_non_iran_city_allowed = empty( $r267_city_validation_errors->items );
+$r267_city_validation_errors->items = array();
+jluxe_validate_checkout_iran_city_province(
+	array( 'billing_country' => 'IR', 'billing_state' => 'KRD', 'billing_city' => 'سنندج', 'shipping_country' => 'IR', 'shipping_state' => 'THR', 'shipping_city' => 'آرمرده' ),
+	$r267_city_validation_errors
+);
+$r267_shipping_mismatch_rejected = in_array( 'jluxe_shipping_city_province_mismatch', array_column( $r267_city_validation_errors->items, 'code' ), true );
+$r267_city_validation_hook_registered = false;
+foreach ( $GLOBALS['actions'] as $r267_action ) {
+	if ( 'woocommerce_after_checkout_validation' === ( $r267_action[0] ?? '' ) && 'jluxe_validate_checkout_iran_city_province' === ( $r267_action[1] ?? '' ) ) {
+		$r267_city_validation_hook_registered = true;
+		break;
+	}
+}
+check(
+	$r267_known_mismatch_rejected && $r267_variant_in_correct_state_accepted &&
+	$r267_unknown_city_allowed && $r267_non_iran_city_allowed && $r267_shipping_mismatch_rejected &&
+	$r267_city_validation_hook_registered,
+	'R267 city/province validation rejects only a known cross-province mismatch, accepts ZWNJ variants/unknown cities/non-Iran addresses, and checks a separately supplied shipping address'
+);
 check(
 	false === strpos( $r267_php_source, 'jluxe_ir_checkout_city_data' ) &&
 	false === strpos( $r267_php_source, 'jluxe_billing_city_label' ) &&

@@ -3,6 +3,8 @@
  * Plugin Name: JLuxe Consolidated (MU)
  * Description: Consolidated, persistent site logic migrated out of Code Snippets Pro into a single always-on mu-plugin. Covers: admin API auth/store-lock/media/FCM push, REST product cache, performance tweaks, SEO/schema fixes, and redirects.
  *
+ * SECURITY: configure admin tokens outside this file and keep the Firebase service-account JSON in a readable file outside the public web root (or an existing secure environment variable). Never commit either credential. Values found in older copies must be rotated.
+ *
  * IMPORTANT - before activating this file:
  * The equivalent Code Snippets Pro snippets (IDs 14, 21, 23, 29, 32, 36,
  * 37, 38, 39, 44, 45, 48, 49, 50, 51, 52, 63, 65, 71, 72, 73, 74, 75,
@@ -95,13 +97,40 @@ if (!defined('JLUXE_FCM_PROJECT_ID')) {
 if (!function_exists('jluxe_admin_check_token')) {
     function jluxe_admin_check_token(WP_REST_Request $request) {
         $header = $request->get_header('x-jluxe-token');
-        $expected = defined('JLUXE_ADMIN_TOKEN') ? constant('JLUXE_ADMIN_TOKEN') : getenv('JLUXE_ADMIN_TOKEN');
-
-        if (!is_string($header) || '' === $header || !is_string($expected) || '' === $expected) {
+        if (!is_string($header) || '' === $header) {
             return false;
         }
 
-        return hash_equals($expected, $header);
+        // An array allows a short, overlap-safe token rotation for mobile/web clients.
+        // The legacy single-token constant/environment variable remains supported.
+        $expected_tokens = array();
+        $has_token_list = false;
+        $configured_tokens = defined('JLUXE_ADMIN_TOKENS')
+            ? constant('JLUXE_ADMIN_TOKENS')
+            : getenv('JLUXE_ADMIN_TOKENS');
+        if (is_array($configured_tokens)) {
+            $expected_tokens = $configured_tokens;
+            $has_token_list = true;
+        } elseif (is_string($configured_tokens) && '' !== $configured_tokens) {
+            $decoded_tokens = json_decode($configured_tokens, true);
+            $expected_tokens = is_array($decoded_tokens) ? $decoded_tokens : array($configured_tokens);
+            $has_token_list = true;
+        }
+
+        if (!$has_token_list) {
+            $legacy_token = defined('JLUXE_ADMIN_TOKEN') ? constant('JLUXE_ADMIN_TOKEN') : getenv('JLUXE_ADMIN_TOKEN');
+            if (is_string($legacy_token) && '' !== $legacy_token) {
+                $expected_tokens[] = $legacy_token;
+            }
+        }
+
+        $matched = false;
+        foreach ($expected_tokens as $expected) {
+            if (is_string($expected) && '' !== $expected && hash_equals($expected, $header)) {
+                $matched = true;
+            }
+        }
+        return $matched;
     }
 }
 
@@ -285,10 +314,22 @@ if (!function_exists('jluxe_fcm_get_access_token')) {
         $cached = get_transient('jluxe_fcm_access_token');
         if ($cached) return $cached;
 
-        // Supply this JSON through wp-config.php or the server environment, never this public file.
-        $service_account_json = defined('JLUXE_FCM_SERVICE_ACCOUNT_JSON')
-            ? constant('JLUXE_FCM_SERVICE_ACCOUNT_JSON')
-            : getenv('JLUXE_FCM_SERVICE_ACCOUNT_JSON');
+        // Prefer a credential file outside the web root; JSON constants/environment remain supported for compatibility.
+        $service_account_file = defined('JLUXE_FCM_SERVICE_ACCOUNT_FILE')
+            ? constant('JLUXE_FCM_SERVICE_ACCOUNT_FILE')
+            : getenv('JLUXE_FCM_SERVICE_ACCOUNT_FILE');
+        $service_account_json = null;
+        if (is_string($service_account_file) && '' !== trim($service_account_file) && is_readable($service_account_file)) {
+            $file_contents = file_get_contents($service_account_file);
+            if (is_string($file_contents)) {
+                $service_account_json = $file_contents;
+            }
+        }
+        if (!is_string($service_account_json) || '' === trim($service_account_json)) {
+            $service_account_json = defined('JLUXE_FCM_SERVICE_ACCOUNT_JSON')
+                ? constant('JLUXE_FCM_SERVICE_ACCOUNT_JSON')
+                : getenv('JLUXE_FCM_SERVICE_ACCOUNT_JSON');
+        }
         if (!is_string($service_account_json) || '' === trim($service_account_json)) {
             return null;
         }
@@ -2713,6 +2754,11 @@ add_action('wp_enqueue_scripts', function () {
 });
 
 
+/*
+ * The older tracking helpers below are privately prefixed so the MU plugin can
+ * load before the theme without redeclaring helpers from inc/order-tracking.php.
+ * The public REST route and the theme-owned order tracking handler stay unchanged.
+ */
 /* ============================================================
  * 26) Order Tracking REST API - GET /wp-json/jluxe/v1/order-track
  * ?order_number=X&phone=Y. Public endpoint (order number + last-10-
@@ -2754,42 +2800,42 @@ add_action('rest_api_init', function () {
 /**if (!function_exists('jluxe_order_track_handler')) {
     function jluxe_order_track_handler(WP_REST_Request $request) {
 
-        if (!jluxe_track_rate_limit_ok()) {
-            return jluxe_track_error_response('تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه دیگر تلاش کنید.', 429);
+        if (!jluxe_mu_legacy_track_rate_limit_ok()) {
+            return jluxe_mu_legacy_track_error_response('تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه دیگر تلاش کنید.', 429);
         }
 
         $order_number_raw = $request->get_param('order_number');
         $phone_raw = $request->get_param('phone');
 
-        $order_number_input = jluxe_convert_digits_to_en($order_number_raw);
+        $order_number_input = jluxe_mu_legacy_convert_digits_to_en($order_number_raw);
         $order_number_input = trim(ltrim(trim($order_number_input), '#'));
-        $phone_last10 = jluxe_normalize_phone_last10($phone_raw);
+        $phone_last10 = jluxe_mu_legacy_normalize_phone_last10($phone_raw);
 
         if ('' === $order_number_input || strlen($phone_last10) < 9) {
-            return jluxe_track_not_found_error();
+            return jluxe_mu_legacy_track_not_found_error();
         }
 
-        $order = jluxe_find_order_by_number($order_number_input);
+        $order = jluxe_mu_legacy_find_order_by_number($order_number_input);
 
         if (!$order instanceof WC_Order) {
-            return jluxe_track_not_found_error();
+            return jluxe_mu_legacy_track_not_found_error();
         }
 
-        $order_phone_last10 = jluxe_normalize_phone_last10($order->get_billing_phone());
+        $order_phone_last10 = jluxe_mu_legacy_normalize_phone_last10($order->get_billing_phone());
 
         if (empty($order_phone_last10) || !hash_equals($order_phone_last10, $phone_last10)) {
-            return jluxe_track_not_found_error();
+            return jluxe_mu_legacy_track_not_found_error();
         }
 
         $response = array(
             'success' => true,
             'version' => '1.1',
             'data' => array(
-                'order' => jluxe_build_order_data($order),
-                'customer' => jluxe_build_customer_data($order),
-                'shipping' => jluxe_build_shipping_data($order),
-                'items' => jluxe_build_items_data($order),
-                'timeline' => jluxe_build_timeline_data($order),
+                'order' => jluxe_mu_legacy_build_order_data($order),
+                'customer' => jluxe_mu_legacy_build_customer_data($order),
+                'shipping' => jluxe_mu_legacy_build_shipping_data($order),
+                'items' => jluxe_mu_legacy_build_items_data($order),
+                'timeline' => jluxe_mu_legacy_build_timeline_data($order),
             ),
         );
 
@@ -2797,8 +2843,8 @@ add_action('rest_api_init', function () {
     }
 }
 
-if (!function_exists('jluxe_find_order_by_number')) {
-    function jluxe_find_order_by_number($input) {
+if (!function_exists('jluxe_mu_legacy_find_order_by_number')) {
+    function jluxe_mu_legacy_find_order_by_number($input) {
 
         $numeric_id = absint($input);
         if ($numeric_id > 0) {
@@ -2832,8 +2878,8 @@ if (!function_exists('jluxe_find_order_by_number')) {
     }
 }
 
-if (!function_exists('jluxe_convert_digits_to_en')) {
-    function jluxe_convert_digits_to_en($string) {
+if (!function_exists('jluxe_mu_legacy_convert_digits_to_en')) {
+    function jluxe_mu_legacy_convert_digits_to_en($string) {
         $persian = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
         $arabic = array('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩');
         $english = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
@@ -2845,8 +2891,8 @@ if (!function_exists('jluxe_convert_digits_to_en')) {
     }
 }
 
-if (!function_exists('jluxe_convert_digits_to_fa')) {
-    function jluxe_convert_digits_to_fa($string) {
+if (!function_exists('jluxe_mu_legacy_convert_digits_to_fa')) {
+    function jluxe_mu_legacy_convert_digits_to_fa($string) {
         $english = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
         $persian = array('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹');
 
@@ -2854,9 +2900,9 @@ if (!function_exists('jluxe_convert_digits_to_fa')) {
     }
 }
 
-if (!function_exists('jluxe_normalize_phone_last10')) {
-    function jluxe_normalize_phone_last10($phone) {
-        $phone = jluxe_convert_digits_to_en($phone);
+if (!function_exists('jluxe_mu_legacy_normalize_phone_last10')) {
+    function jluxe_mu_legacy_normalize_phone_last10($phone) {
+        $phone = jluxe_mu_legacy_convert_digits_to_en($phone);
         $digits_only = preg_replace('/\D+/', '', $phone);
 
         if (strlen($digits_only) < 10) {
@@ -2867,8 +2913,8 @@ if (!function_exists('jluxe_normalize_phone_last10')) {
     }
 }
 
-if (!function_exists('jluxe_track_error_response')) {
-    function jluxe_track_error_response($message, $status = 404) {
+if (!function_exists('jluxe_mu_legacy_track_error_response')) {
+    function jluxe_mu_legacy_track_error_response($message, $status = 404) {
         return new WP_REST_Response(
             array(
                 'success' => false,
@@ -2879,14 +2925,14 @@ if (!function_exists('jluxe_track_error_response')) {
     }
 }
 
-if (!function_exists('jluxe_track_not_found_error')) {
-    function jluxe_track_not_found_error() {
-        return jluxe_track_error_response('اطلاعات سفارش صحیح نیست.', 404);
+if (!function_exists('jluxe_mu_legacy_track_not_found_error')) {
+    function jluxe_mu_legacy_track_not_found_error() {
+        return jluxe_mu_legacy_track_error_response('اطلاعات سفارش صحیح نیست.', 404);
     }
 }
 
-if (!function_exists('jluxe_track_rate_limit_ok')) {
-    function jluxe_track_rate_limit_ok() {
+if (!function_exists('jluxe_mu_legacy_track_rate_limit_ok')) {
+    function jluxe_mu_legacy_track_rate_limit_ok() {
         $ip = jluxe_get_client_ip();
         $key = 'jluxe_track_' . md5($ip);
         $window = 10 * MINUTE_IN_SECONDS;
@@ -2934,14 +2980,14 @@ if (!function_exists('jluxe_get_client_ip')) {
     }
 }
 
-if (!function_exists('jluxe_gregorian_timestamp_to_jalali_string')) {
-    function jluxe_gregorian_timestamp_to_jalali_string($timestamp, $format = 'Y/m/d H:i') {
+if (!function_exists('jluxe_mu_legacy_gregorian_timestamp_to_jalali_string')) {
+    function jluxe_mu_legacy_gregorian_timestamp_to_jalali_string($timestamp, $format = 'Y/m/d H:i') {
 
         if (function_exists('jdate')) {
             return jdate($format, $timestamp);
         }
 
-        list($jy, $jm, $jd) = jluxe_gregorian_to_jalali(
+        list($jy, $jm, $jd) = jluxe_mu_legacy_gregorian_to_jalali(
             (int) gmdate('Y', $timestamp),
             (int) gmdate('n', $timestamp),
             (int) gmdate('j', $timestamp)
@@ -2958,8 +3004,8 @@ if (!function_exists('jluxe_gregorian_timestamp_to_jalali_string')) {
     }
 }
 
-if (!function_exists('jluxe_gregorian_to_jalali')) {
-    function jluxe_gregorian_to_jalali($gy, $gm, $gd) {
+if (!function_exists('jluxe_mu_legacy_gregorian_to_jalali')) {
+    function jluxe_mu_legacy_gregorian_to_jalali($gy, $gm, $gd) {
         $g_days_in_month = array(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334);
 
         $gy2 = ($gm > 2) ? ($gy + 1) : $gy;
@@ -2994,12 +3040,12 @@ if (!function_exists('jluxe_gregorian_to_jalali')) {
     }
 }
 
-if (!function_exists('jluxe_format_price')) {
-    function jluxe_format_price($raw_amount) {
+if (!function_exists('jluxe_mu_legacy_format_price')) {
+    function jluxe_mu_legacy_format_price($raw_amount) {
         $divided = ((float) $raw_amount) / JLUXE_CURRENCY_DIVIDE_BY;
 
         $formatted_en = number_format($divided, 0);
-        $formatted_fa = jluxe_convert_digits_to_fa($formatted_en) . ' ' . JLUXE_CURRENCY_UNIT_LABEL;
+        $formatted_fa = jluxe_mu_legacy_convert_digits_to_fa($formatted_en) . ' ' . JLUXE_CURRENCY_UNIT_LABEL;
 
         return array(
             'raw' => $divided,
@@ -3009,8 +3055,8 @@ if (!function_exists('jluxe_format_price')) {
     }
 }
 
-if (!function_exists('jluxe_build_order_data')) {
-    function jluxe_build_order_data(WC_Order $order) {
+if (!function_exists('jluxe_mu_legacy_build_order_data')) {
+    function jluxe_mu_legacy_build_order_data(WC_Order $order) {
         $status = $order->get_status();
         $date_obj = $order->get_date_created();
         $timestamp = $date_obj ? $date_obj->getTimestamp() : time();
@@ -3019,19 +3065,19 @@ if (!function_exists('jluxe_build_order_data')) {
             'order_id' => $order->get_id(),
             'order_number' => $order->get_order_number(),
             'status' => $status,
-            'status_label' => jluxe_get_status_label($status),
+            'status_label' => jluxe_mu_legacy_get_status_label($status),
             'created_date' => array(
                 'gregorian' => $date_obj ? $date_obj->date('Y-m-d H:i') : null,
-                'jalali' => $date_obj ? jluxe_gregorian_timestamp_to_jalali_string($timestamp) : null,
+                'jalali' => $date_obj ? jluxe_mu_legacy_gregorian_timestamp_to_jalali_string($timestamp) : null,
             ),
-            'total' => jluxe_format_price($order->get_total()),
+            'total' => jluxe_mu_legacy_format_price($order->get_total()),
             'payment_method' => $order->get_payment_method_title(),
         );
     }
 }
 
-if (!function_exists('jluxe_build_customer_data')) {
-    function jluxe_build_customer_data(WC_Order $order) {
+if (!function_exists('jluxe_mu_legacy_build_customer_data')) {
+    function jluxe_mu_legacy_build_customer_data(WC_Order $order) {
         $address_parts = array_filter(array(
             $order->get_billing_state(),
             $order->get_billing_city(),
@@ -3049,9 +3095,9 @@ if (!function_exists('jluxe_build_customer_data')) {
     }
 }
 
-if (!function_exists('jluxe_build_shipping_data')) {
-    function jluxe_build_shipping_data(WC_Order $order) {
-        $tracking = jluxe_get_tracking_info($order);
+if (!function_exists('jluxe_mu_legacy_build_shipping_data')) {
+    function jluxe_mu_legacy_build_shipping_data(WC_Order $order) {
+        $tracking = jluxe_mu_legacy_get_tracking_info($order);
 
         return array(
             'shipping_method' => $order->get_shipping_method() ? $order->get_shipping_method() : null,
@@ -3062,8 +3108,8 @@ if (!function_exists('jluxe_build_shipping_data')) {
     }
 }
 
-if (!function_exists('jluxe_get_tracking_info')) {
-    function jluxe_get_tracking_info(WC_Order $order) {
+if (!function_exists('jluxe_mu_legacy_get_tracking_info')) {
+    function jluxe_mu_legacy_get_tracking_info(WC_Order $order) {
 
         $company = $order->get_meta('_jluxe_shipping_company');
         $code = $order->get_meta('_jluxe_tracking_code');
@@ -3142,8 +3188,8 @@ if (!function_exists('jluxe_get_tracking_info')) {
     }
 }
 
-if (!function_exists('jluxe_build_items_data')) {
-    function jluxe_build_items_data(WC_Order $order) {
+if (!function_exists('jluxe_mu_legacy_build_items_data')) {
+    function jluxe_mu_legacy_build_items_data(WC_Order $order) {
         $items = array();
 
         foreach ($order->get_items() as $item_id => $item) {
@@ -3192,8 +3238,8 @@ if (!function_exists('jluxe_build_items_data')) {
                     'full' => $full_url,
                 ),
                 'quantity' => (int) $item->get_quantity(),
-                'price' => jluxe_format_price($unit_price),
-                'subtotal' => jluxe_format_price($line_total),
+                'price' => jluxe_mu_legacy_format_price($unit_price),
+                'subtotal' => jluxe_mu_legacy_format_price($line_total),
                 'sku' => $product ? $product->get_sku() : null,
                 'attributes' => $attributes,
             );
@@ -3203,8 +3249,8 @@ if (!function_exists('jluxe_build_items_data')) {
     }
 }
 
-if (!function_exists('jluxe_get_status_label')) {
-    function jluxe_get_status_label($status) {
+if (!function_exists('jluxe_mu_legacy_get_status_label')) {
+    function jluxe_mu_legacy_get_status_label($status) {
         $map = array(
             'pending' => 'در انتظار پرداخت',
             'on-hold' => 'در انتظار بررسی پرداخت',
@@ -3219,8 +3265,8 @@ if (!function_exists('jluxe_get_status_label')) {
     }
 }
 
-if (!function_exists('jluxe_build_timeline_data')) {
-    function jluxe_build_timeline_data(WC_Order $order) {
+if (!function_exists('jluxe_mu_legacy_build_timeline_data')) {
+    function jluxe_mu_legacy_build_timeline_data(WC_Order $order) {
 
         $steps = array(
             1 => 'ثبت سفارش',
@@ -3232,7 +3278,7 @@ if (!function_exists('jluxe_build_timeline_data')) {
         );
 
         $status = $order->get_status();
-        $tracking = jluxe_get_tracking_info($order);
+        $tracking = jluxe_mu_legacy_get_tracking_info($order);
         $tracking_code = $tracking['tracking_code'];
         $is_cancelled = in_array($status, array('cancelled', 'failed', 'refunded'), true);
 
@@ -3267,7 +3313,7 @@ if (!function_exists('jluxe_build_timeline_data')) {
 
         return array(
             'is_cancelled' => $is_cancelled,
-            'cancel_label' => $is_cancelled ? jluxe_get_status_label($status) : null,
+            'cancel_label' => $is_cancelled ? jluxe_mu_legacy_get_status_label($status) : null,
             'current_step' => $current_step,
             'steps' => $timeline,
         );

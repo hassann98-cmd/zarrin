@@ -2598,6 +2598,18 @@ function jluxe_footer_background_style( ?array $background = null ): string {
  */
 function jluxe_localize_public_settings(): void {
 	$settings = jluxe_get_theme_settings();
+	$include_iran_cities = function_exists( 'is_checkout' ) && is_checkout();
+	if ( $include_iran_cities && function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+		$include_iran_cities = false;
+	}
+	if (
+		! $include_iran_cities &&
+		function_exists( 'is_account_page' ) && is_account_page() &&
+		function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' )
+	) {
+		$include_iran_cities = true;
+	}
+	$iran_cities = $include_iran_cities && function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array();
 
 	/*
 	 * باگِ واقعیِ گزارش‌شده («فقط قسمت اینمادش کار نمی‌کنه»، بقیه‌ی نمادها
@@ -2630,8 +2642,8 @@ function jluxe_localize_public_settings(): void {
 			'mobileLogoImage'  => jluxe_get_mobile_logo_image_data(),
 			'shopUrl'          => jluxe_shop_url(),
 			'cartCheckout'     => $settings['cart_checkout'],
-			// v1.7.58 checkout contract: city options are selected from a province-scoped map.
-			'iranCities'       => function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array(),
+			// v1.7.58 checkout contract: ship the province-scoped map only on forms that use it.
+			'iranCities'       => $iran_cities,
 			'urls' => jluxe_public_urls(),
 			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),
 			'rest' => array(

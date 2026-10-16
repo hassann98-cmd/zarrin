@@ -2775,14 +2775,35 @@ function jluxe_render_checkout_stepper( string $active_id ): void {
 }
 
 /**
- * شهرستان‌های واقعیِ هر استان — کلیدها دقیقاً همون کدهای واقعیِ
- * WC()->countries->get_states('IR') (از woocommerce/i18n/states.php)ن،
- * چون billing_city باید بر اساس مقدار واقعیِ billing_state فیلتر بشه.
- * فهرست شهرستان‌های اصلی/شناخته‌شده‌ی هر استانه (نه لزوماً همه‌ی
- * بخش‌های اداری) — برای انتخابِ آدرس در چک‌اوت کافیه.
+ * کلیدهای نقشه دقیقاً کدهای استان ایران در ووکامرس‌اند. گزینه‌های قدیمیِ
+ * پوسته حفظ شده‌اند و شهرهای منبع MIT به‌صورت افزوده و بدون تکرار بارگذاری می‌شوند.
+ */
+/**
+ * Comparison-only normalization for Persian city names. The original label and
+ * stored WooCommerce value are never rewritten; this only matches ZWNJ/space,
+ * hyphen, Arabic Yeh/Kaf and Tatweel variants.
+ */
+function jluxe_iran_city_name_key( $city ): string {
+	if ( ! is_scalar( $city ) ) {
+		return '';
+	}
+	$city = str_replace( array( 'ي', 'ك', 'ـ' ), array( 'ی', 'ک', '' ), (string) $city );
+	$city = preg_replace( '/[\s\p{Z}\x{002D}\x{200C}\x{200D}\x{2060}\x{FEFF}\x{2010}-\x{2015}\x{2212}]+/u', '', $city );
+	return is_string( $city ) ? trim( $city ) : '';
+}
+
+/**
+ * WooCommerce IR-state city map. The original theme values remain first as a
+ * fallback and to preserve legacy labels; MIT-licensed additions are loaded
+ * from inc/data/iran-cities.json when present.
  */
 function jluxe_iran_cities(): array {
-	return array(
+	static $cities = null;
+	if ( null !== $cities ) {
+		return $cities;
+	}
+
+	$cities = array(
 		'THR' => array( 'تهران', 'ری', 'شمیرانات', 'اسلامشهر', 'پاکدشت', 'ورامین', 'شهریار', 'رباط‌کریم', 'پیشوا', 'فیروزکوه', 'دماوند', 'پردیس', 'ملارد', 'قدس' ),
 		'ABZ' => array( 'کرج', 'نظرآباد', 'ساوجبلاغ', 'فردیس', 'اشتهارد', 'طالقان' ),
 		'EAZ' => array( 'تبریز', 'مراغه', 'میانه', 'مرند', 'اهر', 'بناب', 'سراب', 'شبستر', 'هریس', 'بستان‌آباد', 'ملکان', 'آذرشهر', 'اسکو' ),
@@ -2815,7 +2836,96 @@ function jluxe_iran_cities(): array {
 		'ZJN' => array( 'زنجان', 'ابهر', 'خدابنده', 'خرمدره', 'ماه‌نشان' ),
 		'QHM' => array( 'قم' ),
 	);
+
+	$data_path = __DIR__ . '/data/iran-cities.json';
+	if ( ! is_readable( $data_path ) ) {
+		return $cities;
+	}
+	$json       = file_get_contents( $data_path );
+	$additional = is_string( $json ) ? json_decode( $json, true ) : null;
+	if ( ! is_array( $additional ) ) {
+		return $cities;
+	}
+
+	foreach ( $cities as $state => $legacy_cities ) {
+		$seen   = array();
+		$merged = array();
+		$new_cities = isset( $additional[ $state ] ) && is_array( $additional[ $state ] )
+			? $additional[ $state ]
+			: array();
+		foreach ( array_merge( $legacy_cities, $new_cities ) as $city ) {
+			if ( ! is_string( $city ) ) {
+				continue;
+			}
+			$city = trim( $city );
+			$key  = jluxe_iran_city_name_key( $city );
+			if ( '' === $key || isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$merged[]     = $city;
+		}
+		$cities[ $state ] = $merged;
+	}
+
+	return $cities;
 }
+
+/**
+ * Reject only a listed Iranian city paired with a different known province.
+ * Unknown/custom/legacy city values remain valid so rural and customer-entered
+ * addresses do not get blocked by an incomplete administrative dataset.
+ */
+function jluxe_validate_checkout_iran_city_province( $data, $errors ): void {
+	if ( ! is_array( $data ) || ! is_object( $errors ) || ! method_exists( $errors, 'add' ) ) {
+		return;
+	}
+
+	static $known_city_states = null;
+	if ( null === $known_city_states ) {
+		$known_city_states = array();
+		foreach ( jluxe_iran_cities() as $state => $state_cities ) {
+			foreach ( $state_cities as $city ) {
+				$key = jluxe_iran_city_name_key( $city );
+				if ( '' !== $key ) {
+					$known_city_states[ $key ][ $state ] = true;
+				}
+			}
+		}
+	}
+
+	foreach ( array( 'billing', 'shipping' ) as $address_type ) {
+		$country_key = $address_type . '_country';
+		$state_key   = $address_type . '_state';
+		$city_key    = $address_type . '_city';
+		$country     = isset( $data[ $country_key ] ) && is_scalar( $data[ $country_key ] )
+			? strtoupper( trim( (string) $data[ $country_key ] ) )
+			: '';
+		if ( 'IR' !== $country ) {
+			continue;
+		}
+		$state = isset( $data[ $state_key ] ) && is_scalar( $data[ $state_key ] )
+			? strtoupper( trim( (string) $data[ $state_key ] ) )
+			: '';
+		$city = isset( $data[ $city_key ] ) && is_scalar( $data[ $city_key ] )
+			? sanitize_text_field( (string) $data[ $city_key ] )
+			: '';
+		$city_name_key = jluxe_iran_city_name_key( $city );
+		if ( '' === $state || '' === $city_name_key || ! isset( $known_city_states[ $city_name_key ] ) ) {
+			continue;
+		}
+		if ( isset( $known_city_states[ $city_name_key ][ $state ] ) ) {
+			continue;
+		}
+
+		$errors->add(
+			'jluxe_' . $address_type . '_city_province_mismatch',
+			'شهر انتخاب‌شده با استان انتخابی هم‌خوانی ندارد. لطفاً شهر استان را انتخاب کنید.',
+			array( 'id' => $city_key )
+		);
+	}
+}
+add_action( 'woocommerce_after_checkout_validation', 'jluxe_validate_checkout_iran_city_province', 20, 2 );
 
 /**
  * Never revive billing province/city from a saved checkout session or browser cache.
