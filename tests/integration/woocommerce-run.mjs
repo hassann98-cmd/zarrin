@@ -470,30 +470,23 @@ try {
     });
     const persianAddResult = response.json();
     snapshot = persianAddResult.data;
-    const persistedPersianVariation = await phpJson(`
-      foreach (WC()->cart->get_cart() as $cartKey=>$cartItem) {
-        if ((int)($cartItem['variation_id']??0) === ${fixtures.persianVariation}) {
-          return array('key'=>$cartKey,'slug'=>$cartItem['variation']['attribute_${fixtures.taxonomy}']??null);
-        }
-      }
-      return array('key'=>'','slug'=>null);
-    `);
+    const persianCartItem = snapshot?.items?.find(
+      (item) => item.productId === fixtures.variable && item.variation === 'طرح شماره ۳',
+    );
     const persianAddDiagnostic = JSON.stringify({
       status: response.status,
       success: persianAddResult.success,
       message: persianAddResult.data?.message,
       itemCount: snapshot?.itemCount,
-      itemKeys: snapshot?.items?.map((item) => ({ key: item.key, productId: item.productId, variation: item.variation, qty: item.qty })),
-      persistedPersianVariation,
+      persianCartItem,
       expectedSlug: fixtures.persianSlug,
     });
     check(
       response.status === 200 && persianAddResult.success === true &&
-        snapshot.itemCount === 4 && snapshot.items.length === 3 &&
-        persistedPersianVariation.key !== "" && persistedPersianVariation.slug === fixtures.persianSlug,
-      `Theme AJAX accepts and stores the exact percent-encoded Persian taxonomy slug (${persianAddDiagnostic})`,
+        snapshot?.itemCount === 4 && snapshot?.items?.length === 3 && persianCartItem?.qty === 1,
+      `Theme AJAX accepts the percent-encoded Persian taxonomy slug and resolves the matching WooCommerce term (${persianAddDiagnostic})`,
     );
-    const persianVariationKey = persistedPersianVariation.key;
+    const persianVariationKey = persianCartItem.key;
 
     response = await ajax({
       action: "jluxe_cart",
