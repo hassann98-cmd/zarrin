@@ -8619,6 +8619,116 @@ check(
 	'R321 animated GIF gallery images always use the original animation and never a possibly flattened thumbnail/srcset'
 );
 
+// R329 — each homepage brick source keeps its own product-eligibility rules.
+$r329_old_query_handler = $GLOBALS['product_query_handler'] ?? null;
+$r329_old_query_args    = $GLOBALS['product_query_args'] ?? null;
+$r329_old_query_results = $GLOBALS['product_query_results'] ?? null;
+$r329_old_terms_by_id   = $GLOBALS['terms_by_id'] ?? null;
+$r329_old_taxonomies    = $GLOBALS['taxonomies'] ?? null;
+$GLOBALS['r329_brick_queries'] = array();
+$GLOBALS['product_query_handler'] = static function ( $query ) {
+	$GLOBALS['r329_brick_queries'][] = $query;
+	return array();
+};
+$r329_brick_section = array(
+	'id'                 => 'r329-source-mode',
+	'source'             => 'bestsellers',
+	'columns_desktop'    => 3,
+	'columns_tablet'     => 2,
+	'columns_mobile'     => 1,
+	'rows'               => 2,
+	'hide_out_of_stock'  => true,
+);
+jluxe_render_homepage_brick_products( $r329_brick_section );
+$r329_bestseller_args = $GLOBALS['r329_brick_queries'][0] ?? array();
+$r329_sales_filter    = $r329_bestseller_args['meta_query'][0] ?? array();
+check(
+	6 === ( $r329_bestseller_args['limit'] ?? 0 ) &&
+	'publish' === ( $r329_bestseller_args['status'] ?? '' ) &&
+	'instock' === ( $r329_bestseller_args['stock_status'] ?? '' ) &&
+	'popularity' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
+	'DESC' === ( $r329_bestseller_args['order'] ?? '' ) &&
+	'total_sales' === ( $r329_sales_filter['key'] ?? '' ) &&
+	0 === ( $r329_sales_filter['value'] ?? null ) &&
+	'>' === ( $r329_sales_filter['compare'] ?? '' ) &&
+	'NUMERIC' === ( $r329_sales_filter['type'] ?? '' ),
+	'R329 bestseller source keeps WooCommerce sales ordering but excludes products with no recorded sales'
+);
+
+$GLOBALS['terms_by_id'][32901] = (object) array( 'slug' => 'r329-brick-category' );
+$r329_brick_section['source'] = 'category';
+$r329_brick_section['category'] = 32901;
+$r329_brick_section['hide_out_of_stock'] = false;
+jluxe_render_homepage_brick_products( $r329_brick_section );
+$r329_category_args = end( $GLOBALS['r329_brick_queries'] );
+check(
+	array( 'r329-brick-category' ) === ( $r329_category_args['category'] ?? array() ) &&
+	'date' === ( $r329_category_args['orderby'] ?? '' ) &&
+	'DESC' === ( $r329_category_args['order'] ?? '' ) &&
+	! isset( $r329_category_args['meta_query'] ) &&
+	! isset( $r329_category_args['stock_status'] ),
+	'R329 category source stays newest-first and can include new products without imposing a sales filter'
+);
+
+$GLOBALS['terms_by_id'][32902] = (object) array( 'slug' => 'r329-brick-brand' );
+$GLOBALS['taxonomies']['product_brand'] = true;
+$r329_brick_section['source'] = 'brand';
+$r329_brick_section['brand'] = 32902;
+$r329_brick_section['hide_out_of_stock'] = true;
+jluxe_render_homepage_brick_products( $r329_brick_section );
+$r329_brand_args = end( $GLOBALS['r329_brick_queries'] );
+$r329_brand_query = $r329_brand_args['tax_query'][0] ?? array();
+check(
+	'product_brand' === ( $r329_brand_query['taxonomy'] ?? '' ) &&
+	'term_id' === ( $r329_brand_query['field'] ?? '' ) &&
+	32902 === ( $r329_brand_query['terms'] ?? 0 ) &&
+	'date' === ( $r329_brand_args['orderby'] ?? '' ) &&
+	'instock' === ( $r329_brand_args['stock_status'] ?? '' ) &&
+	! isset( $r329_brand_args['meta_query'] ),
+	'R329 brand source remains limited to the selected brand and keeps new products eligible'
+);
+
+$r329_brick_section['source'] = 'manual';
+$r329_brick_section['product_ids'] = array( 32911, 32912 );
+jluxe_render_homepage_brick_products( $r329_brick_section );
+$r329_manual_args = end( $GLOBALS['r329_brick_queries'] );
+check(
+	array( 32911, 32912 ) === ( $r329_manual_args['include'] ?? array() ) &&
+	'include' === ( $r329_manual_args['orderby'] ?? '' ) &&
+	'instock' === ( $r329_manual_args['stock_status'] ?? '' ) &&
+	! isset( $r329_manual_args['meta_query'] ),
+	'R329 manual source preserves the administrator-selected order and does not apply bestseller eligibility rules'
+);
+$r329_homepage_admin_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+check(
+	false !== strpos( $r329_homepage_admin_source, 'فقط کالاهای دارای فروش ثبت‌شده نمایش داده می‌شوند' ) &&
+	false !== strpos( $r329_homepage_admin_source, 'برای نمایش کالای تازه یا بدون فروش' ),
+	'R329 homepage settings explain which source modes include products without recorded sales'
+);
+
+$GLOBALS['product_query_handler'] = $r329_old_query_handler;
+if ( null === $r329_old_query_args ) {
+	unset( $GLOBALS['product_query_args'] );
+} else {
+	$GLOBALS['product_query_args'] = $r329_old_query_args;
+}
+if ( null === $r329_old_query_results ) {
+	unset( $GLOBALS['product_query_results'] );
+} else {
+	$GLOBALS['product_query_results'] = $r329_old_query_results;
+}
+if ( null === $r329_old_terms_by_id ) {
+	unset( $GLOBALS['terms_by_id'] );
+} else {
+	$GLOBALS['terms_by_id'] = $r329_old_terms_by_id;
+}
+if ( null === $r329_old_taxonomies ) {
+	unset( $GLOBALS['taxonomies'] );
+} else {
+	$GLOBALS['taxonomies'] = $r329_old_taxonomies;
+}
+unset( $GLOBALS['r329_brick_queries'] );
+
 update_test_settings( jluxe_theme_settings_defaults() );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

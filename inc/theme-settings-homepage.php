@@ -468,6 +468,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 							</select>
 						</label>
 					</p>
+					<p class="description">در حالت «پرفروش‌ترین‌ها» فقط کالاهای دارای فروش ثبت‌شده نمایش داده می‌شوند؛ برای نمایش کالای تازه یا بدون فروش، دسته‌بندی، برند یا فهرست دستی را انتخاب کنید.</p>
 
 					<div data-jluxe-show-if="<?php echo esc_attr( $bp_toggle_id ); ?>:category">
 						<?php jluxe_hb_field_select( $name, 'category', 'دسته‌ی ووکامرس', (string) ( $section['category'] ?? 0 ), jluxe_hb_category_options() ); ?>
@@ -2872,16 +2873,22 @@ function jluxe_render_homepage_brick_products( array $section ): void {
 			$products        = wc_get_products( $args );
 			break;
 
-		default: // bestsellers — 'popularity' (نه meta_value_num دستی) چون
-			// خودِ ووکامرس این orderby رو با LEFT JOIN مدیریت می‌کنه؛ محصولی
-			// که هنوز هیچ فروشی نداشته (متای total_sales اصلاً وجود نداره)
-			// هم در نتیجه می‌مونه (با ۰ فروش، آخر لیست). باگ واقعیِ گزارش‌شده
-			// («این بخش الان کار نمی‌کنه») دقیقاً همین بود: نسخه‌ی قبلی مستقیم
-			// meta_key/meta_value_num می‌داد که توی یک فروشگاهِ تازه (بدون
-			// هیچ سفارشِ ثبت‌شده‌ای، پس بدون هیچ total_sales meta ای) کوئری
-			// عملاً هیچ محصولی برنمی‌گردوند — از دید ادمین یعنی «بخش خاموشه».
-			$args['orderby'] = 'popularity';
-			$products        = wc_get_products( $args );
+		default: // bestsellers
+			// ترتیب را به سازوکار فروش واقعیِ خود ووکامرس می‌سپاریم، اما ردیف‌های
+			// بدون فروش را عمداً حذف می‌کنیم؛ محصولی که هنوز total_sales ندارد
+			// یا مقدار آن صفر است نباید فقط برای پرشدن ظرفیت گرید «پرفروش» شود.
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Needed to filter unsold products.
+			$args['meta_query'] = array(
+				array(
+					'key'     => 'total_sales',
+					'value'   => 0,
+					'compare' => '>',
+					'type'    => 'NUMERIC',
+				),
+			);
+			$args['orderby']   = 'popularity';
+			$args['order']     = 'DESC';
+			$products          = wc_get_products( $args );
 	}
 
 	if ( empty( $products ) ) {

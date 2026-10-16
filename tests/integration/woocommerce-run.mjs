@@ -313,7 +313,17 @@ try {
       $simple->set_manage_stock(true);
       $simple->set_stock_quantity(3);
       $simple->set_stock_status('instock');
+      $simple->set_total_sales(0);
       $simple_id=$simple->save();
+
+      $sold_product=new WC_Product_Simple();
+      $sold_product->set_name('Integration bestseller with sales');
+      $sold_product->set_status('publish');
+      $sold_product->set_catalog_visibility('visible');
+      $sold_product->set_virtual(true);
+      $sold_product->set_regular_price('12.00');
+      $sold_product->set_total_sales(3);
+      $sold_product_id=$sold_product->save();
 
       $coupon=new WC_Coupon();
       $coupon->set_code('integration-fixed');
@@ -352,11 +362,22 @@ try {
       $variation->set_stock_quantity(2);
       $variation->set_stock_status('instock');
       $variation_id=$variation->save();
-      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true),'shippingEnabled'=>wc_shipping_enabled(),'variationNeedsShipping'=>wc_get_product($variation_id)->needs_shipping());
+      return array('cartPage'=>$cart_page,'checkoutPage'=>$checkout_page,'checkoutSlug'=>get_post_field('post_name',$checkout_page),'simple'=>$simple_id,'soldProduct'=>$sold_product_id,'coupon'=>$coupon_id,'variable'=>$variable_id,'variation'=>$variation_id,'taxonomy'=>$taxonomy,'shippingMethods'=>wc_get_shipping_method_count(true),'shippingEnabled'=>wc_shipping_enabled(),'variationNeedsShipping'=>wc_get_product($variation_id)->needs_shipping());
     `);
     check(
-      fixtures.simple > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0 && fixtures.shippingEnabled && fixtures.variationNeedsShipping,
+      fixtures.simple > 0 && fixtures.soldProduct > 0 && fixtures.coupon > 0 && fixtures.variable > 0 && fixtures.variation > 0 && fixtures.checkoutSlug === "checkout" && fixtures.shippingMethods > 0 && fixtures.shippingEnabled && fixtures.variationNeedsShipping,
       `Actual WooCommerce data stores persist products, a stocked variation, coupon, custom-checkout page and enabled shippable zone method (${JSON.stringify({ shippingMethods: fixtures.shippingMethods, shippingEnabled: fixtures.shippingEnabled, variationNeedsShipping: fixtures.variationNeedsShipping })})`,
+    );
+    const bestsellerRender = await phpJson(`
+      $section=array('id'=>'integration-bestsellers','title'=>'Integration bestsellers','source'=>'bestsellers','columns_desktop'=>2,'columns_tablet'=>2,'columns_mobile'=>1,'rows'=>1,'hide_out_of_stock'=>false);
+      ob_start();
+      jluxe_render_homepage_brick_products($section);
+      $html=(string)ob_get_clean();
+      return array('soldVisible'=>false!==strpos($html,'Integration bestseller with sales'),'zeroSalesVisible'=>false!==strpos($html,'Integration simple product'));
+    `);
+    check(
+      bestsellerRender.soldVisible && !bestsellerRender.zeroSalesVisible,
+      "Homepage bestseller bricks include WooCommerce products with sales and exclude a published product with zero sales",
     );
 
     const home = await request(root, { method: "GET" });
