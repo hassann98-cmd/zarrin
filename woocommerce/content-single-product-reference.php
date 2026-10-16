@@ -590,7 +590,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					</button>
 					<div class="reference-mobile-gallery-actions" role="group" aria-label="اقدام‌های محصول">
 						<a class="reference-mobile-gallery-button" href="<?php echo esc_url( $cp3_mobile_back_url ); ?>" aria-label="بازگشت به فروشگاه">
-							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
 						</a>
 						<div class="reference-mobile-gallery-actions__cluster">
 							<button type="button" class="reference-mobile-gallery-button" data-jluxe-share aria-label="اشتراک‌گذاری محصول">

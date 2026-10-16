@@ -1089,6 +1089,11 @@ check(
 	false !== strpos( $r238_reference_tpl, "gallery.setAttribute( 'data-jluxe-gallery-current'" ),
 	'R238 the reference layout relies on its always-visible mobile purchase dock, avoids duplicate buy controls, and supports a synchronized swipe gallery'
 );
+check(
+	false !== strpos( $r238_reference_tpl, 'aria-label="بازگشت به فروشگاه"' ) &&
+	false !== strpos( $r238_reference_tpl, 'd="m9 18 6-6-6-6"' ),
+	'R323 reference product back-to-store chevron points right'
+);
 $r238_hooks = array_column( $GLOBALS['actions'], 0 );
 $r238_id = 94238;
 $r238_had_meta = array_key_exists( $r238_id, $GLOBALS['post_meta'] ?? array() );
@@ -1121,7 +1126,7 @@ check(
 	'ارسال در ۳ روز' === $r238_primary_object_saved && 'ارسال در ۳ روز' === $r238_primary_legacy_saved &&
 	'' === $r238_empty_primary && 'ارسال طی ۲ روز' === $r238_legacy_display &&
 	'ارسال در ۴ روز' === $r238_legacy_object_saved && 'ارسال در ۴ روز' === $r238_legacy_saved,
-	'R238 uses the existing _delivery_time editor field without adding a duplicate and preserves _jluxe_delivery_time as a sanitized legacy fallback'
+	'R238 keeps the canonical _delivery_time value editable and preserves _jluxe_delivery_time as a sanitized legacy fallback'
 );
 check(
 	false !== strpos( $default_tpl, 'data-jluxe-delivery-time-row' ) &&
@@ -1336,8 +1341,9 @@ check(
 	false !== strpos( $r246_panel_html, 'id="_jluxe_delivery_time_enabled"' ) &&
 	false !== strpos( $r246_panel_html, 'id="_jluxe_product_notice_enabled"' ) &&
 	false !== strpos( $r246_panel_html, 'name="_jluxe_product_notice_text"' ) &&
-	false === strpos( $r246_panel_html, 'id="_delivery_time"' ),
-	'R246 existing delivery/notice controls remain and no duplicate delivery field is added'
+	1 === substr_count( $r246_panel_html, 'id="_delivery_time"' ) &&
+	false !== strpos( $r246_panel_html, 'placeholder="مثلاً: ارسال سریع یا ارسال طی ۳ روز کاری"' ),
+	'R323 product editor provides one editable delivery-time text box beside its independent visibility toggle'
 );
 
 $r246_legacy_brand_meta = $GLOBALS['post_meta'][9400]['_jluxe_key_feature_brand_enabled'];
@@ -7828,10 +7834,12 @@ check(
 );
 check(
 	false !== strpos( $r272_editor_html, 'Google Sheets' ) &&
+	false !== strpos( $r272_editor_html, 'کادر «عنوان گروه»' ) &&
+	false !== strpos( $r272_editor_html, 'ردیف تک‌خانهٔ اول' ) &&
 	false !== strpos( $r272_editor_html, 'فقط متن سلول‌ها وارد می‌شود' ) &&
 	false !== strpos( $r272_editor_html, 'PropertyValue' ) &&
 	false !== strpos( $r272_editor_html, 'بلوک بومی «جدول» WordPress' ),
-	'R322 specification editor explains safe table paste and the structured SEO-friendly route for descriptions'
+	'R323 specification editor explains one-paste group import and the structured SEO-friendly route for descriptions'
 );
 $r272_legacy_schema_product = new WC_Product( $r272_spec_id );
 $r272_legacy_schema = jluxe_add_grouped_product_specs_to_schema( array( '@type' => 'Product' ), $r272_legacy_schema_product );

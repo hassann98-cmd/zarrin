@@ -62,6 +62,7 @@ test("grouped product-specification editor adds unique rows/groups and confirms 
   const newGroup = root.querySelectorAll("[data-jluxe-spec-group]")[1];
   assert.equal(newGroup.getAttribute("data-group-index"), "1", "new group indexes continue after existing groups");
   assert.equal(newGroup.querySelector('[name="jluxe_product_specs[1][title]"]').value, "");
+  assert.equal(window.document.activeElement, newGroup.querySelector('[name="jluxe_product_specs[1][title]"]'), "new groups focus the title field so a copied title and table can be pasted in one step");
   assert.equal(newGroup.querySelector('[name="jluxe_product_specs[1][items][0][label]"]').value, "", "new group starts with a usable blank feature row");
 
   newGroup.querySelector("[data-jluxe-spec-add-row]").click();
@@ -131,6 +132,82 @@ test("pasting a copied HTML specification table imports rows into the focused gr
   assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "عروس نوین");
   assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][3][label]"]').value, "قابلیت‌ها");
   assert.match(group.querySelector('[role="status"]').textContent, /۳ ویژگی/);
+});
+
+test("pasting a heading and its whole HTML table into the group title fills the title and all specification rows", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/html": `<div><h2>مشخصات فنی</h2><table><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead>
+      <tbody><tr><td>جنس</td><td><span onclick="alert(1)">چوب طبیعی</span></td></tr>
+      <tr><td>ابعاد</td><td>۱۰۰ × ۶۰ سانتی‌متر<script>window.pastedCodeRan=true</script></td></tr></tbody></table></div>`,
+    "text/plain": "مشخصات فنی\nنام ویژگی\tمقدار ویژگی\nجنس\tچوب طبیعی\nابعاد\t۱۰۰ × ۶۰ سانتی‌متر",
+  });
+
+  assert.equal(event.defaultPrevented, true, "the clipboard title and table are imported together instead of being pasted into one input");
+  assert.equal(titleInput.value, "مشخصات فنی");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "both table records are added to the current group");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی", "existing rows stay untouched");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "چوب طبیعی");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ابعاد");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][value]"]').value, "۱۰۰ × ۶۰ سانتی‌متر");
+  assert.equal(window.pastedCodeRan, undefined, "HTML remains inert and only cell text enters the form");
+  assert.match(group.querySelector('[role="status"]').textContent, /عنوان گروه «مشخصات فنی»/);
+  assert.match(group.querySelector('[role="status"]').textContent, /۲ ویژگی/);
+});
+
+test("a table caption updates the group title even when the paste starts in a feature field", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<table><caption>مشخصات ساخت</caption><tbody><tr><td>جنس</td><td>استیل</td></tr></tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelector('input[name$="[title]"]').value, "مشخصات ساخت");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "استیل");
+});
+
+test("a single-cell title row in a copied HTML table becomes the group title automatically", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/html": `<table><tbody><tr><td colspan="2">مشخصات ظاهری</td></tr>
+      <tr><th>ویژگی</th><th>مقدار</th></tr><tr><td>رنگ</td><td>سفید</td></tr></tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(titleInput.value, "مشخصات ظاهری");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 2, "the title and header rows are not imported as product features");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "رنگ");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "سفید");
+});
+
+test("a plain-text heading plus a complete spreadsheet table imports as one titled group", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/plain": [
+      "مشخصات فنی",
+      "ویژگی\tمقدار",
+      "جنس\tفلز آبکاری‌شده",
+      "ارتفاع\t۴۰ سانتی‌متر",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(titleInput.value, "مشخصات فنی");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3);
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "فلز آبکاری‌شده");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ارتفاع");
+  assert.match(group.querySelector('[role="status"]').textContent, /عنوان گروه «مشخصات فنی»/);
 });
 
 test("pasting a copied styled HTML table imports only safe cell text, never copied markup or scripts", (t) => {

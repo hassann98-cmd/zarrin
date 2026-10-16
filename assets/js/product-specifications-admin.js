@@ -87,19 +87,54 @@
 
     function appendParsedRow(output, cells) {
       if (!cells || cells.length < 2 || isMarkdownSeparator(cells)) {
-        return;
+        return false;
       }
       var label = cleanCellText(cells[0]);
       var value = cleanCellText(cells.slice(1).join(" | "));
       if (!label || !value || isHeaderRow(label, value)) {
-        return;
+        return false;
       }
       output.push({ label: label, value: value });
+      return true;
+    }
+
+    function findHtmlTableTitle(parsedDocument, table) {
+      var captions = table.querySelectorAll("caption");
+      if (captions.length) {
+        var caption = cleanCellText(captions[0].textContent);
+        if (caption) {
+          return caption;
+        }
+      }
+
+      var title = "";
+      var headings = parsedDocument.querySelectorAll("h1,h2,h3,h4,h5,h6");
+      Array.prototype.forEach.call(headings, function (heading) {
+        if (heading.compareDocumentPosition(table) & 4) {
+          title = cleanCellText(heading.textContent);
+        }
+      });
+      if (title) {
+        return title;
+      }
+
+      var previous = table.previousElementSibling;
+      while (previous) {
+        if (previous.tagName && previous.tagName.toUpperCase() === "P") {
+          var paragraph = cleanCellText(previous.textContent);
+          if (paragraph && paragraph.length <= 120) {
+            return paragraph;
+          }
+        }
+        previous = previous.previousElementSibling;
+      }
+      return "";
     }
 
     function parseHtmlTable(html) {
+      var emptyResult = { rows: [], title: "" };
       if (!html || typeof window.DOMParser !== "function") {
-        return [];
+        return emptyResult;
       }
       var safeHtml = String(html)
         .replace(/<!--([\s\S]*?)-->/g, "")
@@ -112,15 +147,14 @@
       try {
         parsedDocument = new window.DOMParser().parseFromString(safeHtml, "text/html");
       } catch (error) {
-        return [];
+        return emptyResult;
       }
       var tables = parsedDocument.querySelectorAll("table");
       var output = [];
+      var title = tables.length ? findHtmlTableTitle(parsedDocument, tables[0]) : "";
+      var hasDataRows = false;
       Array.prototype.forEach.call(tables, function (table) {
         Array.prototype.forEach.call(table.querySelectorAll("tr"), function (row) {
-          if (row.parentElement && row.parentElement.tagName === "THEAD") {
-            return;
-          }
           if (typeof row.closest === "function" && row.closest("table") !== table) {
             return;
           }
@@ -131,10 +165,24 @@
               cells.push(cleanCellText(cell.textContent));
             }
           });
-          appendParsedRow(output, cells);
+          var nonEmptyCells = cells.filter(function (cell) { return !!cell; });
+          var isHeader = row.parentElement && row.parentElement.tagName === "THEAD";
+          if (isHeader) {
+            if (!title && !hasDataRows && nonEmptyCells.length === 1) {
+              title = nonEmptyCells[0];
+            }
+            return;
+          }
+          if (!title && !hasDataRows && nonEmptyCells.length === 1) {
+            title = nonEmptyCells[0];
+            return;
+          }
+          if (appendParsedRow(output, cells)) {
+            hasDataRows = true;
+          }
         });
       });
-      return output;
+      return { rows: output, title: title };
     }
 
     function splitPlainTableLine(line) {
@@ -153,6 +201,7 @@
     function parsePlainTable(text) {
       var lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
       var output = [];
+      var title = "";
       var spaceSeparatedRows = 0;
       var hasExplicitDelimiters = lines.some(function (line) {
         return line.indexOf("\t") !== -1 || line.indexOf("|") !== -1;
@@ -164,11 +213,24 @@
         if (line.indexOf("\t") === -1 && line.indexOf("|") === -1 && /\s{2,}/.test(line)) {
           spaceSeparatedRows += 1;
         }
-        appendParsedRow(output, splitPlainTableLine(line));
+        if (!title && !output.length && hasExplicitDelimiters && line.indexOf("\t") === -1 && line.indexOf("|") === -1) {
+          title = cleanCellText(line);
+          return;
+        }
+        var cells = splitPlainTableLine(line);
+        var nonEmptyCells = cells.map(cleanCellText).filter(function (cell) { return !!cell; });
+        if (!title && !output.length && nonEmptyCells.length === 1 && cells.length > 1) {
+          title = nonEmptyCells[0];
+          return;
+        }
+        appendParsedRow(output, cells);
       });
       // Two-column text aligned only with spaces is ambiguous; require multiple
       // structured lines before intercepting it, so ordinary sentences paste normally.
-      return hasExplicitDelimiters || spaceSeparatedRows >= 2 ? output : [];
+      if (!hasExplicitDelimiters && spaceSeparatedRows < 2) {
+        return { rows: [], title: "" };
+      }
+      return { rows: output, title: title };
     }
 
     function clipboardValue(clipboard, type) {
@@ -179,14 +241,15 @@
       }
     }
 
-    function getClipboardRows(clipboard) {
+    function getClipboardContent(clipboard) {
       var html = clipboardValue(clipboard, "text/html");
-      var rows = parseHtmlTable(html);
-      if (rows.length) {
-        return rows;
-      }
+      var htmlContent = parseHtmlTable(html);
       var text = clipboardValue(clipboard, "text/plain") || clipboardValue(clipboard, "Text");
-      return parsePlainTable(text);
+      var plainContent = parsePlainTable(text);
+      if (htmlContent.rows.length) {
+        return { rows: htmlContent.rows, title: htmlContent.title || plainContent.title };
+      }
+      return { rows: plainContent.rows, title: htmlContent.title || plainContent.title };
     }
 
     function getRowInputs(row) {
@@ -239,7 +302,7 @@
       status.textContent = message;
     }
 
-    function importRows(group, sourceRows, preferredRow) {
+    function importRows(group, sourceRows, preferredRow, importedGroupTitle) {
       var rowsContainer = group.querySelector("[data-jluxe-spec-rows]");
       if (!rowsContainer) {
         return;
@@ -264,7 +327,14 @@
           setInputValue(fields.value, item.value);
         }
       });
+      var titleField = group.querySelector('input[name$="[title]"]');
+      if (importedGroupTitle && titleField) {
+        setInputValue(titleField, importedGroupTitle);
+      }
       var message = toPersianDigits(rowsToImport.length) + " ویژگی به گروه فعلی اضافه شد؛ ویژگی‌های قبلی حفظ شدند.";
+      if (importedGroupTitle && titleField) {
+        message = "عنوان گروه «" + importedGroupTitle + "» هم ثبت شد. " + message;
+      }
       if (rowsToImport.length < sourceRows.length) {
         message += " " + toPersianDigits(sourceRows.length - rowsToImport.length) + " ردیف به‌دلیل سقف ۱۰۰ ویژگی وارد نشد.";
       }
@@ -279,8 +349,8 @@
       var group = fragment.querySelector("[data-jluxe-spec-group]");
       root.appendChild(fragment);
       if (group) {
-        var row = addRow(group);
-        var focusTarget = row ? row.querySelector('input[type="text"]') : group.querySelector('input[type="text"]');
+        addRow(group);
+        var focusTarget = group.querySelector('input[name$="[title]"]');
         if (focusTarget) {
           focusTarget.focus();
         }
@@ -336,21 +406,24 @@
 
     root.addEventListener("paste", function (event) {
       var target = event.target;
-      if (!target || target.tagName !== "INPUT" || !/\[(?:label|value)\]$/.test(target.name || "")) {
+      var targetName = target && target.name ? target.name : "";
+      var isGroupTitle = /\[title\]$/.test(targetName);
+      var isRowField = /\[(?:label|value)\]$/.test(targetName);
+      if (!target || target.tagName !== "INPUT" || (!isGroupTitle && !isRowField)) {
         return;
       }
       var row = typeof target.closest === "function" ? target.closest(".jluxe-spec-row") : null;
-      var group = row && typeof row.closest === "function" ? row.closest("[data-jluxe-spec-group]") : null;
+      var group = typeof target.closest === "function" ? target.closest("[data-jluxe-spec-group]") : null;
       if (!group) {
         return;
       }
       var clipboard = event.clipboardData || window.clipboardData;
-      var importedRows = getClipboardRows(clipboard);
-      if (!importedRows.length) {
+      var content = getClipboardContent(clipboard);
+      if (!content.rows.length) {
         return;
       }
       event.preventDefault();
-      importRows(group, importedRows, row);
+      importRows(group, content.rows, row, content.title);
     });
   }
 

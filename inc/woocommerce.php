@@ -4762,12 +4762,22 @@ function jluxe_render_product_badge_fields(): void {
 	echo '</div>';
 
 	echo '<div class="options_group">';
+	woocommerce_wp_text_input(
+		array(
+			'id'          => '_delivery_time',
+			'value'       => jluxe_get_product_delivery_time( (int) $post->ID ),
+			'label'       => 'زمان ارسال',
+			'placeholder' => 'مثلاً: ارسال سریع یا ارسال طی ۳ روز کاری',
+			'description' => 'متنی که در صفحهٔ محصول کنار عنوان «زمان ارسال» نمایش داده می‌شود.',
+			'desc_tip'    => true,
+		)
+	);
 	woocommerce_wp_checkbox(
 		array(
 			'id'          => '_jluxe_delivery_time_enabled',
 			'value'       => jluxe_is_product_delivery_time_enabled( (int) $post->ID ) ? 'yes' : 'no',
 			'label'       => 'نمایش ردیف زمان ارسال',
-			'description' => 'متن زمان ارسال از فیلدِ موجودِ «زمان ارسال» همین محصول خوانده می‌شود؛ این گزینه فیلد تکراری نمی‌سازد.',
+			'description' => 'برای نمایش یا پنهان‌کردن همین ردیف در صفحهٔ محصول.',
 		)
 	);
 	echo '</div>';
