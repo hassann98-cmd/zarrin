@@ -1077,6 +1077,86 @@ function jluxeBindCp3VariationPrice(form) {
 	}).on("reset_data.jluxeCp3Price hide_variation.jluxeCp3Price", restoreInitialPriceOrPrompt);
 }
 
+/** Keep low-stock warnings in both CP3 layouts in sync with the selected variation. */
+function jluxeBindCp3StockWarning(form) {
+	var $ = window.jQuery;
+	if (!$ || !form) {
+		return;
+	}
+	var root = form.closest(".jluxe-cp3");
+	var stockSlots = root && root.querySelectorAll("[data-cp3-low-stock]");
+	if (!stockSlots || !stockSlots.length || form.jluxeCp3StockWarningBound) {
+		return;
+	}
+
+	form.jluxeCp3StockWarningBound = true;
+	var $form = $(form);
+	var initialValue = form.getAttribute("data-cp3-low-stock-initial-quantity");
+	var initialQuantity = initialValue !== null && initialValue !== "" && isFinite(Number(initialValue)) ? Number(initialValue) : null;
+	var selects = Array.prototype.slice.call(form.querySelectorAll('select[name^="attribute_"]'));
+	var initialAttributes = selects.map(function (select) { return select.value; });
+	var threshold = parseInt(form.getAttribute("data-cp3-low-stock-threshold") || "10", 10);
+	if (isNaN(threshold) || threshold < 1) {
+		threshold = 10;
+	}
+	var faDigitsMap = { "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴", "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹" };
+
+	function formatFaDigits(value) {
+		return String(value).replace(/[0-9]/g, function (digit) { return faDigitsMap[digit]; });
+	}
+
+	function stillHasInitialSelection() {
+		var currentSelects = form.querySelectorAll('select[name^="attribute_"]');
+		if (!initialAttributes.length || currentSelects.length !== initialAttributes.length) {
+			return false;
+		}
+		for (var index = 0; index < currentSelects.length; index++) {
+			if (!initialAttributes[index] || currentSelects[index].value !== initialAttributes[index]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function setLowStockQuantity(quantity, available) {
+		var numericQuantity = quantity !== null && quantity !== undefined && quantity !== "" ? Number(quantity) : NaN;
+		var showWarning = available && isFinite(numericQuantity) && numericQuantity > 0 && numericQuantity <= threshold;
+		for (var slotIndex = 0; slotIndex < stockSlots.length; slotIndex++) {
+			var slot = stockSlots[slotIndex];
+			slot.hidden = !showWarning;
+			slot.style.display = showWarning ? "" : "none";
+			var quantityNode = slot.querySelector("[data-cp3-stock-quantity]");
+			if (!showWarning) {
+				if (quantityNode) {
+					quantityNode.textContent = "";
+				}
+				continue;
+			}
+			if (quantityNode) {
+				quantityNode.textContent = formatFaDigits(numericQuantity);
+			}
+		}
+	}
+
+	function updateFromVariation(variation) {
+		if (!variation || variation.is_in_stock === false || variation.is_purchasable === false || !Object.prototype.hasOwnProperty.call(variation, "jluxe_stock_quantity")) {
+			setLowStockQuantity(null, false);
+			return;
+		}
+		setLowStockQuantity(variation.jluxe_stock_quantity, true);
+	}
+
+	$form.on("found_variation.jluxeCp3StockWarning", function (event, variation) {
+		updateFromVariation(variation);
+	}).on("reset_data.jluxeCp3StockWarning hide_variation.jluxeCp3StockWarning", function () {
+		if (stillHasInitialSelection()) {
+			setLowStockQuantity(initialQuantity, true);
+		} else {
+			setLowStockQuantity(null, false);
+		}
+	});
+}
+
 /**
  * R65: unavailable variations are never selectable in any UI.
  *
@@ -1177,6 +1257,7 @@ function jluxeSyncAllVariationForms() {
 	document.querySelectorAll(".variations_form[data-product_variations]").forEach(function (form) {
 		jluxeBindClassicVariationGallery(form);
 		jluxeBindCp3VariationPrice(form);
+		jluxeBindCp3StockWarning(form);
 		if (form.jluxeAvailabilityBound) { return; }
 		form.jluxeAvailabilityBound = true;
 		form.addEventListener("change", function () {

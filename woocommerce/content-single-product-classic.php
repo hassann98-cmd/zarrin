@@ -90,7 +90,9 @@ $cp3_short_desc    = $product->get_short_description();
 $cp3_delivery_time = jluxe_get_product_delivery_time( $product );
 $cp3_delivery_time_visible = jluxe_is_product_delivery_time_enabled( $product );
 $cp3_faq_items   = function_exists( 'jluxe_get_product_faq_items' ) ? jluxe_get_product_faq_items( $product->get_id() ) : array();
-$cp3_stock_qty   = $product->managing_stock() ? $product->get_stock_quantity() : null;
+$cp3_stock_qty   = jluxe_product_stock_quantity_for_display( $product, $jluxe_is_variable ? $cp3_defaults : null );
+$cp3_stock_qty   = is_numeric( $cp3_stock_qty ) ? (int) $cp3_stock_qty : null;
+$cp3_stock_warning_is_low = null !== $cp3_stock_qty && $cp3_stock_qty > 0 && $cp3_stock_qty <= 10;
 
 /* خلاصه‌ی رأی‌ها: مثبت (۴–۵)، بی‌طرف (۳)، منفی (۱–۲) */
 $cp3_counts = array( 'pos' => 0, 'neu' => 0, 'neg' => 0 );
@@ -201,6 +203,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-row .is-ok{color:hsl(var(--success))}
 .jluxe-cp3 .cp3-row .is-out{color:hsl(var(--error))}
 .jluxe-cp3 .cp3-stockwarn{display:flex;align-items:center;gap:10px;background:hsl(var(--primary)/.07);color:hsl(var(--primary));border:none;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:600;margin-top:8px}
+.jluxe-cp3 [data-cp3-low-stock][hidden]{display:none!important}
 .jluxe-cp3 .cp3-sku{color:hsl(var(--text-muted));font-size:12px;margin:14px 0}
 .jluxe-cp3 .cp3-dashed{height:1px;border-bottom:1px dashed hsl(var(--panel-border));margin-bottom:12px}
 .jluxe-cp3 .cp3-price{font-size:26px;font-weight:800;color:hsl(var(--foreground))}
@@ -445,7 +448,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 
 		<?php if ( $jluxe_is_variable ) : ?>
 			<?php $cp3_variations_json = wc_esc_json( wp_json_encode( $jluxe_available_variations ) ); ?>
-			<form class="variations_form cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype="multipart/form-data" data-product_id="<?php echo absint( $product->get_id() ); ?>" data-product_variations="<?php echo $cp3_variations_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>">
+			<form class="variations_form cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype="multipart/form-data" data-product_id="<?php echo absint( $product->get_id() ); ?>" data-product_variations="<?php echo $cp3_variations_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>" data-cp3-low-stock-initial-quantity="<?php echo null !== $cp3_stock_qty ? esc_attr( (string) $cp3_stock_qty ) : ''; ?>">
 		<?php endif; ?>
 
 		<div class="cp3-card">
@@ -653,10 +656,10 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								<span class="cp3-rowval is-out">ناموجود</span>
 							<?php endif; ?>
 						</div>
-						<?php if ( null !== $cp3_stock_qty && $cp3_stock_qty > 0 && $cp3_stock_qty <= 10 ) : ?>
-							<div class="cp3-stockwarn">
+						<?php if ( $jluxe_is_variable || $cp3_stock_warning_is_low ) : ?>
+							<div class="cp3-stockwarn" data-cp3-low-stock<?php echo $cp3_stock_warning_is_low ? '' : ' hidden="hidden"'; ?> aria-live="polite" aria-atomic="true">
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9V14M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21ZM12.0498 17V17.1L11.9502 17.1002V17H12.0498Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-								<span>فقط <?php echo esc_html( jluxe_fa_digits( $cp3_stock_qty ) ); ?> عدد موجود است</span>
+								<span>فقط <bdi data-cp3-stock-quantity><?php echo $cp3_stock_warning_is_low ? esc_html( jluxe_fa_digits( $cp3_stock_qty ) ) : ''; ?></bdi> عدد موجود است</span>
 							</div>
 						<?php endif; ?>
 					</div>

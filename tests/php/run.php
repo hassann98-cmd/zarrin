@@ -2979,6 +2979,31 @@ $GLOBALS['products'][746] = $p74child_oos;
 $GLOBALS['products'][747] = $p74child_first;
 $GLOBALS['products'][748] = $p74child_next;
 check(array( 'pa_rang' => 'red' ) === jluxe_default_variation_pick( $p74child_parent ), 'R138 the production child-object path scans variation IDs in Woo order and stops at the first available child');
+// R330: low-stock display must use the selected variation's managed quantity, never the variable parent's aggregate.
+$p74child_parent->manage_stock = true;
+$p74child_parent->stock = 4;
+$p74child_parent->jluxe_defs = array( 'pa_rang' => 'red' );
+$p74child_first->manage_stock = true;
+$p74child_first->stock = 1;
+$p74child_next->manage_stock = true;
+$p74child_next->stock = 7;
+$r330_red_qty = jluxe_product_stock_quantity_for_display( $p74child_parent, jluxe_default_variation_pick( $p74child_parent ) );
+$p74child_parent->jluxe_defs = array( 'pa_rang' => 'blue' );
+$r330_blue_qty = jluxe_product_stock_quantity_for_display( $p74child_parent, jluxe_default_variation_pick( $p74child_parent ) );
+$r330_unselected_qty = jluxe_product_stock_quantity_for_display( $p74child_parent, array() );
+$r330_variation_payload = jluxe_variation_stock_quantity_payload( array(), $p74child_parent, $p74child_first );
+$p74child_next->manage_stock = false;
+$r330_unmanaged_payload = jluxe_variation_stock_quantity_payload( array(), $p74child_parent, $p74child_next );
+$p74child_next->manage_stock = true;
+$r330_simple_stock = new WC_Product( 759 );
+$r330_simple_stock->manage_stock = true;
+$r330_simple_stock->stock = 2;
+check(
+	1 === $r330_red_qty && 7 === $r330_blue_qty && null === $r330_unselected_qty &&
+	1 === ( $r330_variation_payload['jluxe_stock_quantity'] ?? null ) && ! isset( $r330_unmanaged_payload['jluxe_stock_quantity'] ) &&
+	2 === jluxe_product_stock_quantity_for_display( $r330_simple_stock ),
+	'R330 low-stock display follows the selected managed variation, omits an unselected/untracked variation count, preserves the exact simple-product quantity, and never substitutes the parent aggregate'
+);
 unset( $GLOBALS['products'][746], $GLOBALS['products'][747], $GLOBALS['products'][748] );
 $p74automatic->jluxe_rows[2]['is_in_stock'] = false;
 $p74automatic->jluxe_rows[3]['is_in_stock'] = false;

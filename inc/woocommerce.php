@@ -955,6 +955,18 @@ function jluxe_variation_saving_html( array $data, $product, $variation ): array
 }
 add_filter( 'woocommerce_available_variation', 'jluxe_variation_saving_html', 10, 3 );
 
+/** Attach the exact managed stock quantity to WooCommerce's variation event data. */
+function jluxe_variation_stock_quantity_payload( array $data, $product, $variation ): array {
+	if ( $variation instanceof WC_Product && method_exists( $variation, 'managing_stock' ) && $variation->managing_stock() && method_exists( $variation, 'get_stock_quantity' ) ) {
+		$quantity = $variation->get_stock_quantity();
+		if ( is_numeric( $quantity ) ) {
+			$data['jluxe_stock_quantity'] = (int) $quantity;
+		}
+	}
+	return $data;
+}
+add_filter( 'woocommerce_available_variation', 'jluxe_variation_stock_quantity_payload', 20, 3 );
+
 /**
  * موقعیتِ نماد پول (آیکونِ تومان بعد از عدد، با فاصله — طبق رسم‌الخط فارسی) —
  * مستقیم فیلتر می‌شه (نه فقط از تنظیمات wc-settings→General→Currency
@@ -1633,6 +1645,42 @@ add_filter( 'woocommerce_product_get_default_attributes', 'jluxe_auto_variable_d
 function jluxe_default_variation_pick( WC_Product $product ): array {
 	$stored_defaults = method_exists( $product, 'get_default_attributes' ) ? $product->get_default_attributes( 'edit' ) : array();
 	return jluxe_pick_variable_default_attributes( $product, $stored_defaults );
+}
+
+/**
+ * Read only the stock level that belongs to the product currently shown.
+ * Variable parents can hold an aggregate/cache quantity that is not the
+ * quantity of the selected child, so resolve the effective default variation
+ * first and ask that variation (which naturally inherits parent-managed stock
+ * in WooCommerce) for its stock quantity. An unselected/untracked variation
+ * has no exact count to show.
+ */
+function jluxe_product_stock_quantity_for_display( WC_Product $product, $default_attributes = null ) {
+	$stock_product = $product;
+	if ( $product->is_type( 'variable' ) ) {
+		if ( ! is_array( $default_attributes ) ) {
+			$default_attributes = jluxe_default_variation_pick( $product );
+		}
+		if ( empty( $default_attributes ) ) {
+			return null;
+		}
+
+		$stock_product = jluxe_find_default_variable_variation( $product, $default_attributes );
+		if ( is_array( $stock_product ) ) {
+			$variation_id = absint( $stock_product['variation_id'] ?? 0 );
+			$stock_product = $variation_id && function_exists( 'wc_get_product' ) ? wc_get_product( $variation_id ) : false;
+		}
+		if ( ! ( $stock_product instanceof WC_Product ) ) {
+			return null;
+		}
+	}
+
+	if ( ! method_exists( $stock_product, 'managing_stock' ) || ! $stock_product->managing_stock() || ! method_exists( $stock_product, 'get_stock_quantity' ) ) {
+		return null;
+	}
+
+	$quantity = $stock_product->get_stock_quantity();
+	return is_numeric( $quantity ) ? (int) $quantity : null;
 }
 
 /** Do not expose a variable parent as in stock through WooCommerce's view API when no child can be bought. */
