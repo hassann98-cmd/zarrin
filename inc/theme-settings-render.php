@@ -264,6 +264,15 @@ function jluxe_render_announcement_page(): void {
 							</select>
 						</p>
 						<p>
+							<label for="jluxe-announcement-ticker-texture">بافت پس‌زمینه</label><br />
+							<select id="jluxe-announcement-ticker-texture" name="announcement_bar[ticker_texture]">
+								<?php foreach ( $ticker_options['textures'] as $texture_value => $texture_label ) : ?>
+									<option value="<?php echo esc_attr( $texture_value ); ?>" <?php selected( $bar['ticker_texture'] ?? 'waves', $texture_value ); ?>><?php echo esc_html( $texture_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p class="description">بافت به‌صورت لایه‌ای ظریف و پشت متن، جداکننده‌ها و تصویر نمایش داده می‌شود.</p>
+						<p>
 							<label for="jluxe-announcement-ticker-effect">افکت ورود و خروج پیام</label><br />
 							<select id="jluxe-announcement-ticker-effect" name="announcement_bar[ticker_effect]">
 								<?php foreach ( $ticker_options['effects'] as $effect_value => $effect_label ) : ?>
@@ -295,9 +304,18 @@ function jluxe_render_announcement_page(): void {
 								<?php endforeach; ?>
 							</select>
 						</p>
-						<p><label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br /><input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" /></p>
+						<p>
+							<label><input type="checkbox" name="announcement_bar[ticker_label_enabled]" value="1" <?php checked( ! empty( $bar['ticker_label_enabled'] ?? true ) ); ?> /> نمایش عنوان ثابت کنار پیام‌ها</label><br />
+							<label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br />
+							<input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" />
+						</p>
+						<p class="description">با خاموش‌کردن عنوان ثابت، جداکنندهٔ کنار آن هم حذف می‌شود.</p>
 						<p><label for="jluxe-announcement-ticker-messages">پیام‌های چرخشی (هر پیام در یک خط)</label><br /><textarea id="jluxe-announcement-ticker-messages" name="announcement_bar[ticker_messages]" rows="4" maxlength="500" class="large-text" placeholder="هر پیام را در یک خط بنویسید"><?php echo esc_textarea( $bar['ticker_messages'] ?? "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" ); ?></textarea></p>
-						<p><strong>لوگوی دایره‌ای (اختیاری)</strong><br /><?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?></p>
+						<p><label><input type="checkbox" name="announcement_bar[ticker_logo_enabled]" value="1" <?php checked( ! empty( $bar['ticker_logo_enabled'] ?? true ) ); ?> /> نمایش تصویر کنار پیام‌ها</label></p>
+						<p><strong>تصویر کنار پیام (اختیاری)</strong></p>
+						<?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?>
+						<p><label><input type="checkbox" name="announcement_bar[ticker_logo_frame]" value="1" <?php checked( ! empty( $bar['ticker_logo_frame'] ?? true ) ); ?> /> نمایش تصویر داخل قاب دایره‌ای</label></p>
+						<p class="description">با خاموش‌کردن قاب، تصویر بدون کادر و پس‌زمینه و با حفظ تناسب، متناسب با ارتفاع بنر کوچک می‌شود؛ می‌توانید تصویر شفافِ غیرلوگویی هم انتخاب کنید.</p>
 						<p class="description">«مدت نمایش کامل» پس از پایان ورود و پیش از شروع محوشدن محاسبه می‌شود. مکث بین پیام‌ها جدا از مکث پایان چرخه است؛ دومی فقط پس از آخرین پیام اعمال می‌شود. حرکت با CSS اجرا می‌شود و در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، خلاصهٔ کامل پیام‌ها ثابت نمایش داده می‌شود.</p>
 					</td>
 				</tr>

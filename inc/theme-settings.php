@@ -448,9 +448,13 @@ function jluxe_theme_settings_defaults(): array {
 			'image_desktop_max_height_px'  => 0, // صفر یعنی ارتفاع طبیعی؛ در صورت تنظیم، تصویر/GIF متناسب کوچک می‌شود.
 			'message'          => '',
 			'ticker_label'     => 'ارسال سریع',
+			'ticker_label_enabled'         => true, // عنوان و جداکنندهٔ مربوط به آن را می‌توان مستقل خاموش کرد.
 			'ticker_messages'  => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
-			'ticker_logo_id'   => 0, // در صورت خالی بودن، آیکون سایت استفاده می‌شود.
+			'ticker_logo_id'               => 0, // در صورت خالی بودن، آیکون سایت استفاده می‌شود.
+			'ticker_logo_enabled'          => true, // رفتار پیش‌فرض فعلی را حفظ می‌کند.
+			'ticker_logo_frame'            => true, // قاب دایره‌ای پیش‌فرض قابل خاموش‌کردن است.
 			'ticker_theme'                 => 'classic', // classic | info | warning | discount | success | custom.
+			'ticker_texture'               => 'waves', // waves | glow | diagonal | dots | grid | none.
 			'ticker_effect'                => 'vertical', // fade | vertical | horizontal | zoom.
 			'ticker_message_duration_ms'   => 2500, // زمانِ نمایشِ کاملِ پیام، بدونِ زمانِ ورود/خروج.
 			'ticker_inter_message_gap_ms'  => 500, // مکث میانِ خروجِ یک پیام و ورودِ بعدی.

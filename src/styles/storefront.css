@@ -10390,6 +10390,7 @@ html.jluxe-lite .jluxe-header-bar {
   --jluxe-ticker-logo-background: #fff1a0;
   --jluxe-ticker-logo-foreground: #075f56;
   position: relative;
+  isolation: isolate;
   display: block;
   min-height: 52px;
   min-height: var(--jluxe-announcement-desktop-height, 52px);
@@ -10397,6 +10398,35 @@ html.jluxe-lite .jluxe-header-bar {
   color: var(--jluxe-ticker-foreground, #fff);
   background-color: var(--jluxe-announcement-background, #079889);
   background-image: radial-gradient(ellipse at 25% 0%, var(--jluxe-ticker-highlight), transparent 58%), linear-gradient(110deg, var(--jluxe-ticker-gradient-start), var(--jluxe-ticker-gradient-end));
+}
+/* موج و بافت در لایهٔ ۰ می‌مانند؛ تمام نوشته‌ها، قاب‌ها، جداکننده‌ها و تصویر در لایهٔ ۱ هستند. */
+.jluxe-announcement-bar--ticker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: none;
+  opacity: 0.72;
+  pointer-events: none;
+}
+.jluxe-announcement-bar--ticker[data-ticker-texture="glow"]::before {
+  display: block;
+  background-image: radial-gradient(ellipse at 18% 25%, var(--jluxe-ticker-wave), transparent 55%), radial-gradient(ellipse at 82% 78%, var(--jluxe-ticker-wave), transparent 55%);
+}
+.jluxe-announcement-bar--ticker[data-ticker-texture="diagonal"]::before {
+  display: block;
+  background-image: repeating-linear-gradient(135deg, transparent 0, transparent 15px, var(--jluxe-ticker-wave) 16px, var(--jluxe-ticker-wave) 17px, transparent 18px, transparent 34px);
+}
+.jluxe-announcement-bar--ticker[data-ticker-texture="dots"]::before {
+  display: block;
+  background-image: radial-gradient(circle, var(--jluxe-ticker-wave) 1px, transparent 1.6px);
+  background-position: center center;
+  background-size: 24px 24px;
+}
+.jluxe-announcement-bar--ticker[data-ticker-texture="grid"]::before {
+  display: block;
+  background-image: linear-gradient(to right, var(--jluxe-ticker-wave) 1px, transparent 1px), linear-gradient(to bottom, var(--jluxe-ticker-wave) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 .jluxe-announcement-bar--ticker[data-ticker-theme="info"] {
   --jluxe-ticker-gradient-start: #2772bd;
@@ -10463,12 +10493,14 @@ html.jluxe-lite .jluxe-header-bar {
   z-index: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.75;
   pointer-events: none;
 }
 .jluxe-announcement-bar__ticker-waves path {
   fill: none;
   stroke: var(--jluxe-ticker-wave, rgba(216, 255, 244, 0.24));
   stroke-width: 1.2;
+  stroke-linecap: round;
 }
 .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
   position: relative;
@@ -10582,6 +10614,28 @@ html.jluxe-lite .jluxe-header-bar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
+  object-fit: contain;
+}
+.jluxe-announcement-bar__ticker-logo--plain {
+  flex: 0 1 auto;
+  width: auto;
+  height: auto;
+  max-width: 160px;
+  max-height: 44px;
+  max-height: calc(var(--jluxe-announcement-desktop-height, 52px) - 8px);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--jluxe-ticker-foreground, var(--jluxe-announcement-foreground, #fff));
+}
+.jluxe-announcement-bar__ticker-logo--plain .jluxe-announcement-bar__ticker-logo-image {
+  width: auto;
+  height: auto;
+  max-width: 160px;
+  max-height: 44px;
+  max-height: calc(var(--jluxe-announcement-desktop-height, 52px) - 8px);
+  border-radius: 0;
   object-fit: contain;
 }
 .jluxe-announcement-bar__ticker-logo-fallback {
@@ -10744,6 +10798,26 @@ html.jluxe-lite .jluxe-header-bar {
     width: 34px;
     height: 34px;
     border-width: 1px;
+  }
+  .jluxe-announcement-bar__ticker-logo--plain {
+    flex: 0 1 auto;
+    width: auto;
+    height: auto;
+    max-width: 128px;
+    max-width: min(40vw, 128px);
+    max-height: 36px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .jluxe-announcement-bar__ticker-logo--plain .jluxe-announcement-bar__ticker-logo-image {
+    width: auto;
+    height: auto;
+    max-width: 128px;
+    max-width: min(40vw, 128px);
+    max-height: 36px;
+    border-radius: 0;
   }
   .jluxe-announcement-bar__ticker-logo-fallback {
     font-size: 7px;

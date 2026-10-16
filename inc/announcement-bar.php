@@ -29,6 +29,9 @@ function jluxe_announcement_content_payload( array $settings ): array {
 			? trim( (string) $settings['ticker_label'] )
 			: 'ارسال سریع';
 		$label = '' !== $label ? $label : 'ارسال سریع';
+		$label_enabled = ! array_key_exists( 'ticker_label_enabled', $settings ) || ! empty( $settings['ticker_label_enabled'] );
+		$logo_enabled  = ! array_key_exists( 'ticker_logo_enabled', $settings ) || ! empty( $settings['ticker_logo_enabled'] );
+		$logo_frame    = ! array_key_exists( 'ticker_logo_frame', $settings ) || ! empty( $settings['ticker_logo_frame'] );
 		$theme = isset( $settings['ticker_theme'] ) && is_scalar( $settings['ticker_theme'] )
 			? sanitize_key( (string) $settings['ticker_theme'] )
 			: 'classic';
@@ -36,6 +39,12 @@ function jluxe_announcement_content_payload( array $settings ): array {
 			$theme = 'classic';
 		}
 		$ticker_options = jluxe_announcement_ticker_options();
+		$texture = isset( $settings['ticker_texture'] ) && is_scalar( $settings['ticker_texture'] )
+			? sanitize_key( (string) $settings['ticker_texture'] )
+			: 'waves';
+		if ( ! isset( $ticker_options['textures'][ $texture ] ) ) {
+			$texture = 'waves';
+		}
 		$effect = isset( $settings['ticker_effect'] ) && is_scalar( $settings['ticker_effect'] )
 			? sanitize_key( (string) $settings['ticker_effect'] )
 			: 'vertical';
@@ -73,11 +82,15 @@ function jluxe_announcement_content_payload( array $settings ): array {
 		$summary = implode( ' ', $messages );
 
 		return array(
-			'mode'            => 'ticker',
-			'ready'           => ! empty( $messages ),
-			'ticker_label'                 => $label,
-			'ticker_theme'                 => $theme,
-			'ticker_effect'                => $effect,
+			'mode'                      => 'ticker',
+			'ready'                     => ! empty( $messages ),
+			'ticker_label'              => $label,
+			'ticker_label_enabled'      => $label_enabled,
+			'ticker_logo_enabled'       => $logo_enabled,
+			'ticker_logo_frame'         => $logo_frame,
+			'ticker_theme'              => $theme,
+			'ticker_texture'            => $texture,
+			'ticker_effect'             => $effect,
 			'ticker_message_duration_ms'   => $duration_ms,
 			'ticker_inter_message_gap_ms'  => $inter_message_gap_ms,
 			'ticker_cycle_gap_ms'          => $cycle_gap_ms,
@@ -228,9 +241,11 @@ add_action( 'wp_head', 'jluxe_announcement_ticker_print_keyframes', 99 );
  * inside a large animated banner. Prefer an explicitly selected logo, then the
  * WordPress site icon, and finally an accessible text badge.
  */
-function jluxe_announcement_ticker_logo_markup( int $logo_id = 0 ): string {
+function jluxe_announcement_ticker_logo_markup( int $logo_id = 0, bool $framed = true ): string {
 	$site_icon_id = function_exists( 'get_option' ) ? absint( get_option( 'site_icon' ) ) : 0;
 	$logo_ids     = array_values( array_unique( array_filter( array( absint( $logo_id ), $site_icon_id ) ) ) );
+	$image_size   = $framed ? array( 96, 96 ) : 'medium';
+	$image_sizes  = $framed ? '48px' : '160px';
 
 	foreach ( $logo_ids as $candidate_id ) {
 		$mime_type = function_exists( 'get_post_mime_type' ) ? strtolower( (string) get_post_mime_type( $candidate_id ) ) : '';
@@ -239,30 +254,29 @@ function jluxe_announcement_ticker_logo_markup( int $logo_id = 0 ): string {
 		}
 
 		if ( function_exists( 'wp_get_attachment_image' ) ) {
-			$image = wp_get_attachment_image(
-				$candidate_id,
-				array( 96, 96 ),
-				false,
-				array(
-					'class'         => 'jluxe-announcement-bar__ticker-logo-image',
-					'alt'           => '',
-					'aria-hidden'   => 'true',
-					'width'         => 96,
-					'height'        => 96,
-					'loading'       => 'eager',
-					'decoding'      => 'async',
-					'sizes'         => '48px',
-				)
+			$image_attributes = array(
+				'class'       => 'jluxe-announcement-bar__ticker-logo-image',
+				'alt'         => '',
+				'aria-hidden' => 'true',
+				'loading'     => 'eager',
+				'decoding'    => 'async',
+				'sizes'       => $image_sizes,
 			);
+			if ( $framed ) {
+				$image_attributes['width']  = 96;
+				$image_attributes['height'] = 96;
+			}
+			$image = wp_get_attachment_image( $candidate_id, $image_size, false, $image_attributes );
 			if ( is_string( $image ) && '' !== $image ) {
 				return $image;
 			}
 		}
 
 		if ( function_exists( 'wp_get_attachment_image_url' ) ) {
-			$image_url = wp_get_attachment_image_url( $candidate_id, 'thumbnail' );
+			$image_url = wp_get_attachment_image_url( $candidate_id, $framed ? 'thumbnail' : 'medium' );
 			if ( $image_url ) {
-				return '<img class="jluxe-announcement-bar__ticker-logo-image" src="' . esc_url( $image_url ) . '" alt="" aria-hidden="true" width="96" height="96" loading="eager" decoding="async" sizes="48px" />';
+				$dimensions = $framed ? ' width="96" height="96"' : '';
+				return '<img class="jluxe-announcement-bar__ticker-logo-image" src="' . esc_url( $image_url ) . '" alt="" aria-hidden="true"' . $dimensions . ' loading="eager" decoding="async" sizes="' . esc_attr( $image_sizes ) . '" />';
 			}
 		}
 	}
@@ -331,26 +345,31 @@ function jluxe_render_announcement_bar(): void {
 	$text_color       = $text_color ?: $defaults['text_color'];
 	$link_text        = isset( $settings['link_text'] ) && is_scalar( $settings['link_text'] ) ? trim( (string) $settings['link_text'] ) : '';
 	$link_url         = isset( $settings['link_url'] ) && is_scalar( $settings['link_url'] ) ? trim( (string) $settings['link_url'] ) : '';
-	$dismissible      = ! empty( $settings['dismissible'] );
-	$image_alt        = ! empty( $content['alt'] ) ? $content['alt'] : 'اطلاعیهٔ سایت';
-	$dismiss_key      = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $content['ticker_theme'] ?? '', $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
-	$region_label     = $is_ticker
-		? 'اطلاعیهٔ سایت؛ ' . $content['ticker_label'] . ': ' . $content['ticker_summary']
+	$dismissible           = ! empty( $settings['dismissible'] );
+	$image_alt             = ! empty( $content['alt'] ) ? $content['alt'] : 'اطلاعیهٔ سایت';
+	$ticker_label_enabled  = $is_ticker && ! empty( $content['ticker_label_enabled'] );
+	$ticker_logo_enabled   = $is_ticker && ! empty( $content['ticker_logo_enabled'] );
+	$ticker_logo_frame     = $is_ticker && ! empty( $content['ticker_logo_frame'] );
+	$ticker_texture        = $is_ticker ? $content['ticker_texture'] : 'waves';
+	$dismiss_key           = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $ticker_label_enabled, $ticker_logo_enabled, $ticker_logo_frame, $content['ticker_theme'] ?? '', $ticker_texture, $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
+	$region_label          = $is_ticker
+		? 'اطلاعیهٔ سایت؛ ' . ( $ticker_label_enabled ? $content['ticker_label'] . ': ' : '' ) . $content['ticker_summary']
 		: 'اطلاعیهٔ سایت';
 	$ticker_messages       = $is_ticker ? $content['ticker_messages'] : array();
 	$ticker_message_count  = count( $ticker_messages );
-	$ticker_timing          = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
+	$ticker_timing         = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
 	$ticker_sequence_class = $ticker_message_count > 1 ? ' has-multiple' : '';
-	$ticker_theme           = $is_ticker ? $content['ticker_theme'] : 'classic';
-	$ticker_logo_id           = isset( $settings['ticker_logo_id'] ) && is_scalar( $settings['ticker_logo_id'] ) ? absint( $settings['ticker_logo_id'] ) : 0;
-	$ticker_logo_markup       = $is_ticker ? jluxe_announcement_ticker_logo_markup( $ticker_logo_id ) : '';
+	$ticker_theme          = $is_ticker ? $content['ticker_theme'] : 'classic';
+	$ticker_logo_id        = isset( $settings['ticker_logo_id'] ) && is_scalar( $settings['ticker_logo_id'] ) ? absint( $settings['ticker_logo_id'] ) : 0;
+	$ticker_logo_markup    = $ticker_logo_enabled ? jluxe_announcement_ticker_logo_markup( $ticker_logo_id, $ticker_logo_frame ) : '';
+	$ticker_logo_class     = 'jluxe-announcement-bar__ticker-logo' . ( $ticker_logo_frame ? ' jluxe-announcement-bar__ticker-logo--framed' : ' jluxe-announcement-bar__ticker-logo--plain' );
 	?>
 	<div
 		id="jluxe-announcement-bar"
 		class="jluxe-announcement-bar jluxe-announcement-bar--<?php echo esc_attr( $content['mode'] ); ?><?php echo $is_sticky ? ' jluxe-announcement-bar--sticky' : ''; ?>"
 		role="region"
 		data-content-mode="<?php echo esc_attr( $content['mode'] ); ?>"
-		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>"<?php endif; ?>
+		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>" data-ticker-texture="<?php echo esc_attr( $ticker_texture ); ?>"<?php endif; ?>
 		data-sticky="<?php echo $is_sticky ? '1' : '0'; ?>"
 		aria-label="<?php echo esc_attr( $region_label ); ?>"
 		aria-live="<?php echo $is_ticker ? 'off' : 'polite'; ?>"
@@ -358,6 +377,13 @@ function jluxe_render_announcement_bar(): void {
 		data-dismiss-key="<?php echo esc_attr( $dismiss_key ); ?>"
 		style="--jluxe-announcement-background:<?php echo esc_attr( $background_color ); ?>;--jluxe-announcement-foreground:<?php echo esc_attr( $text_color ); ?>;--jluxe-announcement-desktop-height:<?php echo esc_attr( $desktop_height_px ); ?>px;--jluxe-announcement-image-desktop-max-height:<?php echo esc_attr( $image_desktop_max_height ); ?>"
 	>
+		<?php if ( $is_ticker && 'waves' === $ticker_texture ) : ?>
+			<svg class="jluxe-announcement-bar__ticker-waves" viewBox="0 0 1600 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+				<path d="M-100 58 C100 4 300 4 500 58 S900 112 1100 58 S1500 4 1700 58 S2100 112 2300 58" vector-effect="non-scaling-stroke" />
+				<path d="M-100 24 C100 62 300 62 500 24 S900 -14 1100 24 S1500 62 1700 24 S2100 -14 2300 24" vector-effect="non-scaling-stroke" />
+				<path d="M-100 86 C100 54 300 54 500 86 S900 118 1100 86 S1500 54 1700 86 S2100 118 2300 86" vector-effect="non-scaling-stroke" />
+			</svg>
+		<?php endif; ?>
 		<div class="jluxe-announcement-bar__inner">
 			<?php if ( $is_image ) : ?>
 				<?php if ( '' !== $link_url ) : ?>
@@ -370,14 +396,11 @@ function jluxe_render_announcement_bar(): void {
 					</a>
 				<?php endif; ?>
 			<?php elseif ( $is_ticker ) : ?>
-				<svg class="jluxe-announcement-bar__ticker-waves" viewBox="0 0 1600 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-					<path d="M-20 46 C35 16 72 76 127 46 S219 16 274 46 S366 76 421 46 S513 16 568 46 S660 76 715 46 S807 16 862 46 S954 76 1009 46 S1101 16 1156 46 S1248 76 1303 46 S1395 16 1450 46 S1542 76 1597 46 S1689 16 1744 46" />
-					<path d="M-20 70 C35 40 72 100 127 70 S219 40 274 70 S366 100 421 70 S513 40 568 70 S660 100 715 70 S807 40 862 70 S954 100 1009 70 S1101 40 1156 70 S1248 100 1303 70 S1395 40 1450 70 S1542 100 1597 70 S1689 40 1744 70" />
-					<path d="M-20 22 C35 -8 72 52 127 22 S219 -8 274 22 S366 52 421 22 S513 -8 568 22 S660 52 715 22 S807 -8 862 22 S954 52 1009 22 S1101 -8 1156 22 S1248 52 1303 22 S1395 -8 1450 22 S1542 52 1597 22 S1689 -8 1744 22" />
-				</svg>
 				<div class="jluxe-announcement-bar__ticker-visual" dir="rtl" aria-hidden="true">
-					<strong class="jluxe-announcement-bar__ticker-label"><?php echo esc_html( $content['ticker_label'] ); ?></strong>
-					<span class="jluxe-announcement-bar__ticker-divider"></span>
+					<?php if ( $ticker_label_enabled ) : ?>
+						<strong class="jluxe-announcement-bar__ticker-label"><?php echo esc_html( $content['ticker_label'] ); ?></strong>
+						<span class="jluxe-announcement-bar__ticker-divider" aria-hidden="true"></span>
+					<?php endif; ?>
 					<span class="jluxe-announcement-bar__ticker-window">
 						<span class="jluxe-announcement-bar__ticker-sequence<?php echo esc_attr( $ticker_sequence_class ); ?>">
 							<?php foreach ( $ticker_messages as $ticker_index => $ticker_message ) : ?>
@@ -386,7 +409,10 @@ function jluxe_render_announcement_bar(): void {
 						</span>
 						<span class="jluxe-announcement-bar__ticker-static"><?php echo esc_html( $content['ticker_summary'] ); ?></span>
 					</span>
-					<span class="jluxe-announcement-bar__ticker-logo"><?php echo $ticker_logo_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- تولیدشده توسط wp_get_attachment_image یا fallback ثابتِ خودِ تم. ?></span>
+					<?php if ( $ticker_logo_enabled ) : ?>
+						<span class="jluxe-announcement-bar__ticker-divider" aria-hidden="true"></span>
+						<span class="<?php echo esc_attr( $ticker_logo_class ); ?>"><?php echo $ticker_logo_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- تولیدشده توسط wp_get_attachment_image یا fallback ثابتِ خودِ تم. ?></span>
+					<?php endif; ?>
 				</div>
 				<?php if ( '' !== $link_text && '' !== $link_url ) : ?>
 					<a class="jluxe-announcement-bar__ticker-link" href="<?php echo esc_url( $link_url ); ?>"><?php echo esc_html( $link_text ); ?></a>

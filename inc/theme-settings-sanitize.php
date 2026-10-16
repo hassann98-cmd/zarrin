@@ -166,6 +166,14 @@ function jluxe_announcement_ticker_options(): array {
 			'horizontal' => 'حرکت افقی',
 			'zoom'       => 'بزرگ‌نمایی و کوچک‌نمایی',
 		),
+		'textures' => array(
+			'waves'    => 'موج‌های نرم و پیوسته',
+			'glow'     => 'درخشش‌های لطیف',
+			'diagonal' => 'خطوط مورب',
+			'dots'     => 'نقاط ظریف',
+			'grid'     => 'شبکهٔ مینیمال',
+			'none'     => 'بدون بافت',
+		),
 		'display_duration_ms' => array(
 			1000  => '۱ ثانیه',
 			1500  => '۱٫۵ ثانیه',
@@ -263,6 +271,7 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	if ( '' === $ticker_label ) {
 		$ticker_label = (string) ( $defaults['ticker_label'] ?? 'ارسال سریع' );
 	}
+	$ticker_label_enabled = ! empty( $posted['ticker_label_enabled'] );
 	$ticker_messages_raw = isset( $posted['ticker_messages'] ) && is_scalar( $posted['ticker_messages'] )
 		? (string) $posted['ticker_messages']
 		: (string) ( $defaults['ticker_messages'] ?? '' );
@@ -276,6 +285,8 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 	$ticker_logo_id = isset( $posted['ticker_logo_id'] ) && is_scalar( $posted['ticker_logo_id'] )
 		? absint( $posted['ticker_logo_id'] )
 		: absint( $defaults['ticker_logo_id'] ?? 0 );
+	$ticker_logo_enabled = ! empty( $posted['ticker_logo_enabled'] );
+	$ticker_logo_frame   = ! empty( $posted['ticker_logo_frame'] );
 	$ticker_theme = isset( $posted['ticker_theme'] ) && is_scalar( $posted['ticker_theme'] )
 		? sanitize_key( (string) $posted['ticker_theme'] )
 		: (string) ( $defaults['ticker_theme'] ?? 'classic' );
@@ -283,6 +294,10 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		$ticker_theme = 'classic';
 	}
 	$ticker_options = jluxe_announcement_ticker_options();
+	$ticker_texture_raw = isset( $posted['ticker_texture'] ) && is_scalar( $posted['ticker_texture'] )
+		? sanitize_key( (string) $posted['ticker_texture'] )
+		: (string) ( $defaults['ticker_texture'] ?? 'waves' );
+	$ticker_texture = isset( $ticker_options['textures'][ $ticker_texture_raw ] ) ? $ticker_texture_raw : 'waves';
 	$ticker_effect_raw = isset( $posted['ticker_effect'] ) && is_scalar( $posted['ticker_effect'] )
 		? sanitize_key( (string) $posted['ticker_effect'] )
 		: (string) ( $defaults['ticker_effect'] ?? 'vertical' );
@@ -319,11 +334,15 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
 		'desktop_height_px'           => $desktop_height_px,
 		'image_desktop_max_height_px' => $image_desktop_max_height_px,
 		'message'          => sanitize_textarea_field( $message_raw ),
-		'ticker_label'     => $ticker_label,
-		'ticker_messages'  => $ticker_messages,
-		'ticker_logo_id'                => $ticker_logo_id,
-		'ticker_theme'                  => $ticker_theme,
-		'ticker_effect'                 => $ticker_effect,
+		'ticker_label'                 => $ticker_label,
+		'ticker_label_enabled'         => $ticker_label_enabled,
+		'ticker_messages'              => $ticker_messages,
+		'ticker_logo_id'               => $ticker_logo_id,
+		'ticker_logo_enabled'          => $ticker_logo_enabled,
+		'ticker_logo_frame'            => $ticker_logo_frame,
+		'ticker_theme'                 => $ticker_theme,
+		'ticker_texture'               => $ticker_texture,
+		'ticker_effect'                => $ticker_effect,
 		'ticker_message_duration_ms'    => $ticker_duration_ms,
 		'ticker_inter_message_gap_ms'   => $ticker_inter_message_gap_ms,
 		'ticker_cycle_gap_ms'           => $ticker_cycle_gap_ms,
