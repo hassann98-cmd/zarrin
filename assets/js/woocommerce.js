@@ -1280,6 +1280,48 @@ document.addEventListener("DOMContentLoaded", jluxeSyncAllVariationForms);
 window.jluxeSyncAllVariationForms = jluxeSyncAllVariationForms;
 
 /**
+ * Keep the localized choice beside every variation attribute title. The
+ * option's visible text is used intentionally; select values remain WooCommerce
+ * slugs/internal keys and must never leak into the shopper-facing label.
+ */
+(function () {
+	function updateSelectedLabel(select) {
+		if (!select || !select.name || select.name.indexOf("attribute_") !== 0) {
+			return;
+		}
+		var group = select;
+		while (group && group !== document && !(group.nodeType === 1 && group.hasAttribute("data-jluxe-variation-group"))) {
+			group = group.parentElement;
+		}
+		if (!group || group === document) {
+			return;
+		}
+		var label = group.querySelector("[data-jluxe-variation-selected]");
+		if (!label) {
+			return;
+		}
+		var option = select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
+		label.textContent = select.value && option ? option.textContent.trim() : "";
+	}
+
+	function syncAllSelectedLabels() {
+		var selects = document.querySelectorAll('select[name^="attribute_"]');
+		for (var i = 0; i < selects.length; i++) {
+			updateSelectedLabel(selects[i]);
+		}
+	}
+
+	document.addEventListener("change", function (event) {
+		var select = event.target;
+		if (select && "SELECT" === select.tagName) {
+			updateSelectedLabel(select);
+		}
+	});
+	syncAllSelectedLabels();
+	document.addEventListener("DOMContentLoaded", syncAllSelectedLabels);
+})();
+
+/**
  * سواچ‌های pill محصول متغیر (woocommerce/single-product/add-to-cart/variable.php):
  * کلیک روی دکمه، مقدار select واقعی (مخفی، sr-only) رو ست کرده و change
  * واقعی dispatch می‌کنه تا wc-add-to-cart-variation.js خودِ ووکامرس
@@ -2274,12 +2316,17 @@ function jluxeEnhanceShopSort(root) {
 		// [data-jluxe-cart-icon-mobile] اصلاً توی DOM نیست تا وقتی کاربر
 		// دستی toggle نکرده — بدونِ این fallback، پرواز به سمتِ سبد روی
 		// شایع‌ترین حالتِ واقعیِ موبایل (صفحه‌ی محصول) اصلاً دیده نمی‌شد.
-		var target = isMobile
+		var cartControl = isMobile
 			? document.querySelector("[data-jluxe-cart-icon-mobile]") || document.querySelector("[data-jluxe-mobile-price-bar]")
 			: document.querySelector("[data-jluxe-cart-icon-desktop]");
-		if (!target) {
+		if (!cartControl) {
 			return;
 		}
+		// Fly to the actual cart glyph, not the center of the wide desktop button.
+		// The fallback keeps the animation working with an older cached header build.
+		var target = !isMobile && cartControl.querySelector
+			? cartControl.querySelector("[data-jluxe-cart-icon-glyph]") || cartControl
+			: cartControl;
 
 		var startRect = button.getBoundingClientRect();
 		var endRect = target.getBoundingClientRect();

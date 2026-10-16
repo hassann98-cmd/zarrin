@@ -1844,13 +1844,10 @@ function jluxe_render_variation_swatches( WC_Product $product, array $variation_
 		}
 		?>
 		<div class="mt-4" data-jluxe-variation-group="<?php echo esc_attr( $select_id ); ?>">
-			<?php if ( $is_color_attr ) : ?>
-				<p class="text-[12.5px] font-medium text-foreground" data-jluxe-variation-label>
-					انتخاب <?php echo esc_html( $attr_label ); ?>: <span data-jluxe-variation-selected><?php echo esc_html( $jluxe_default_label ); ?></span>
-				</p>
-			<?php else : ?>
-				<p class="text-[12.5px] font-medium text-foreground"><?php echo esc_html( $attr_label ); ?></p>
-			<?php endif; ?>
+			<p class="text-[12.5px] font-medium text-foreground" data-jluxe-variation-label>
+				<?php if ( $is_color_attr ) : ?>انتخاب <?php endif; ?><?php echo esc_html( $attr_label ); ?>:
+				<span data-jluxe-variation-selected aria-live="polite" aria-atomic="true"><?php echo esc_html( $jluxe_default_label ); ?></span>
+			</p>
 			<div class="mt-1.5 flex flex-wrap items-center gap-2" data-jluxe-variation-swatches>
 				<?php foreach ( $attr_options as $option ) :
 					$option_label = jluxe_attribute_option_label( (string) $option, $attr_name, $product );

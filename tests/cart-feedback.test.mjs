@@ -17,7 +17,7 @@ function boot() {
       <div data-jluxe-island="mini-cart"></div>
       <h1 data-jluxe-product-title>محصول نمونه</h1>
       <form class="cart"><button id="add" class="single_add_to_cart_button" data-product_id="321">افزودن</button></form>
-      <button data-jluxe-cart-icon-desktop></button>
+      <a data-jluxe-cart-icon-desktop><svg data-jluxe-cart-icon-glyph viewBox="0 0 24 24"></svg></a>
       <button data-jluxe-mobile-price-bar></button>
     </body></html>`,
     { url: "https://shop.test/product/sample/", runScripts: "outside-only", pretendToBeVisual: true },
@@ -151,6 +151,30 @@ test("an older native-add snapshot cannot replace or reopen a newer successful a
   assert.equal(receivedSnapshot.itemCount, 2, "a delayed earlier snapshot cannot roll back the latest cart state");
   assert.match(window.mountedSuggestions, /latest offers/, "stale suggestions cannot replace the newer server markup");
   assert.equal(window.openedSuggestions, 1, "only the latest successful add opens the recommendation modal");
+});
+
+test("the desktop header cart glyph animates to the added item even when suggestions are empty", (t) => {
+  const dom = boot();
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  const button = window.document.getElementById("add");
+  const cartControl = window.document.querySelector("[data-jluxe-cart-icon-desktop]");
+  const glyph = cartControl.querySelector("[data-jluxe-cart-icon-glyph]");
+  window.innerWidth = 1280;
+  button.getBoundingClientRect = () => ({ left: 10, top: 20, width: 50, height: 40 });
+  glyph.getBoundingClientRect = () => ({ left: 300, top: 30, width: 20, height: 24 });
+
+  addToCart(window, button, { suggested_html: "" });
+
+  const flyingCart = window.document.querySelector(".jluxe-cart-fly-dot");
+  assert.ok(flyingCart, "a successful add creates the cart-flight feedback without any recommendation markup");
+  assert.equal(flyingCart.style.getPropertyValue("--jluxe-fly-end-x"), "275px", "the flight ends at the actual header cart glyph, not the wider button center");
+  assert.equal(flyingCart.style.getPropertyValue("--jluxe-fly-end-y"), "2px");
+  assert.equal(window.document.querySelector("[data-jluxe-suggested-modal]"), null);
+  assert.equal(window.openedSuggestions || 0, 0);
+
+  flyingCart.dispatchEvent(new window.Event("animationend"));
+  assert.equal(glyph.classList.contains("jluxe-cart-bump"), true, "the header cart glyph visibly bumps when the item arrives");
 });
 
 test("empty server suggestions remove stale recommendations and do not open a modal", async (t) => {

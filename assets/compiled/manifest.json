@@ -108,7 +108,7 @@
     ]
   },
   "src/islands/Footer.js": {
-    "file": "assets/Footer-eaYF9JHE.js",
+    "file": "assets/Footer-CRxb6yMN.js",
     "name": "Footer",
     "src": "src/islands/Footer.js",
     "isDynamicEntry": true,
@@ -120,7 +120,7 @@
     ]
   },
   "src/islands/Header.js": {
-    "file": "assets/Header-DVzqo5La.js",
+    "file": "assets/Header-DM8PhKI_.js",
     "name": "Header",
     "src": "src/islands/Header.js",
     "isDynamicEntry": true,
@@ -160,7 +160,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-BmDgottT.js",
+    "file": "assets/main-B3hZq75n.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -182,7 +182,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-CsjWtVJA.css"
+      "assets/main-CktYOVLS.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

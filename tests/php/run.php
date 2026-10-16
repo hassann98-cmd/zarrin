@@ -2111,11 +2111,11 @@ check(
 	'R176 the classic modal keeps previous/next controls physically left/right in RTL and omits the zoom hint'
 );
 check(
-	false !== strpos( $cp3, '.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary))}' ) &&
+	false !== strpos( $cp3, '.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary));box-shadow:0 0 0 1px hsl(var(--primary)/.18),0 3px 9px hsl(var(--primary)/.13)}' ) &&
 	false !== strpos( $cp3, '.jluxe-cp3 .cp3-pill--swatch{gap:8px}' ) &&
 	false !== strpos( $cp3, '.jluxe-cp3 .cp3-swatch-color,.jluxe-cp3 .cp3-swatch-image{display:inline-block;width:18px;height:18px' ) &&
 	false === strpos( $cp3, '.jluxe-cp3 .cp3-pill.is-active{background:' ),
-	'R176 classic selected variations change only the border while actual color/image swatches stay rendered'
+	'R176/R332 classic selected variations use the primary border and a restrained shadow while actual color/image swatches stay rendered'
 );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
@@ -3186,10 +3186,11 @@ $encoded_color_slug = rawurlencode( $encoded_color_term->slug );
 check(jluxe_get_attribute_term('pa_rang',$encoded_color_slug)===$encoded_color_term && jluxe_attribute_option_label($encoded_color_slug,'pa_rang')==='قهوه‌ای' && jluxe_persian_color_to_hex($encoded_color_slug)==='#78350F', 'R99 percent-encoded Persian color slugs resolve back to the real term name and known color');
 $encoded_color_product = new JLuxe_Var_Product(799);
 $encoded_color_product->jluxe_rows = array( array( 'attributes' => array( 'attribute_pa_rang' => $encoded_color_slug ), 'is_in_stock' => true ) );
+$encoded_color_product->jluxe_option_map = array( 'pa_rang' => array( $encoded_color_slug ) );
 ob_start();
 jluxe_render_variation_swatches( $encoded_color_product, array( 'pa_rang' => array( $encoded_color_slug ) ) );
 $encoded_color_html = (string) ob_get_clean();
-check(strpos($encoded_color_html,'style="background:#78350F"')!==false && strpos($encoded_color_html,'title="قهوه‌ای"')!==false && strpos($encoded_color_html,'>قهوه-ای</button>')===false && strpos($encoded_color_html,'>قهوه‌ای</option>')!==false, 'R99 the variable-product swatch (shared with the quick-pick modal) renders a color dot and human-readable label, not the slug');
+check(strpos($encoded_color_html,'style="background:#78350F"')!==false && strpos($encoded_color_html,'title="قهوه‌ای"')!==false && strpos($encoded_color_html,'>قهوه-ای</button>')===false && strpos($encoded_color_html,'>قهوه‌ای</option>')!==false && strpos($encoded_color_html,'<span data-jluxe-variation-selected aria-live="polite" aria-atomic="true">قهوه‌ای</span>')!==false, 'R99 the variable-product swatch (shared with the quick-pick modal) renders a color dot and displays the exact Persian variation label beside its title, not the slug');
 
 // R113: a known color inside a descriptive term/slug still resolves to a color swatch.
 $composite_color_term = (object) array( 'term_id' => 9910, 'name' => 'کرپ (صورتی تیره)', 'slug' => 'crepe-dark-pink', 'taxonomy' => 'pa_rang' );
@@ -3201,6 +3202,14 @@ $GLOBALS['taxonomies']['pa_material'] = true;
 $material_term = (object) array( 'term_id' => 9911, 'name' => 'پارچه کرپ', 'slug' => 'crepe-fabric', 'taxonomy' => 'pa_material' );
 $GLOBALS['terms_by_slug']['pa_material']['crepe-fabric'] = $material_term;
 check( 'پارچه کرپ' === jluxe_attribute_option_label( 'crepe-fabric', 'pa_material' ) && ! jluxe_is_color_attribute( 'pa_material' ), 'R113 non-color variation pills continue to use the human taxonomy term name, not the option slug');
+$GLOBALS['attribute_labels']['pa_material'] = 'جنس';
+$material_variation_product = new JLuxe_Var_Product( 790 );
+$material_variation_product->jluxe_rows = array( array( 'attributes' => array( 'attribute_pa_material' => 'crepe-fabric' ), 'is_in_stock' => true ) );
+$material_variation_product->jluxe_option_map = array( 'pa_material' => array( 'crepe-fabric' ) );
+ob_start();
+jluxe_render_variation_swatches( $material_variation_product, array( 'pa_material' => array( 'crepe-fabric' ) ) );
+$material_variation_html = (string) ob_get_clean();
+check( strpos( $material_variation_html, '<p class="text-[12.5px] font-medium text-foreground" data-jluxe-variation-label>' ) !== false && strpos( $material_variation_html, 'جنس:' ) !== false && strpos( $material_variation_html, '<span data-jluxe-variation-selected aria-live="polite" aria-atomic="true">پارچه کرپ</span>' ) !== false && strpos( $material_variation_html, 'name="attribute_pa_material"' ) !== false && strpos( $material_variation_html, '<option value="crepe-fabric" selected>پارچه کرپ</option>' ) !== false, 'R332 variation labels show the selected Persian name beside every attribute title while preserving WooCommerce form keys and taxonomy option slugs' );
 
 // R114: known vanilla color plus actual swatches in the classic variation layout.
 $GLOBALS['taxonomies']['pa_color'] = true;

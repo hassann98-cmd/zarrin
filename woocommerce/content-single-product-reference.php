@@ -213,7 +213,7 @@ foreach ( (array) $product->get_rating_counts() as $cp3_stars => $cp3_c ) {
 .jluxe-cp3 .cp3-swatch-image{object-fit:cover;border:1px solid rgba(15,23,42,.18)}
 .jluxe-cp3 .cp3-swatch-label{line-height:1.3}
 .jluxe-cp3 .cp3-pill:hover{border-color:hsl(var(--primary)/.5)}
-.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary))}
+.jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary));box-shadow:0 0 0 1px hsl(var(--primary)/.18),0 3px 9px hsl(var(--primary)/.13)}
 /* گزینه‌ای که ووکامرس در update_variation_values کارت می‌کند — مثل مرجع: کم‌رنگ + خط‌خورده */
 .jluxe-cp3 .cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through;cursor:not-allowed}
 .jluxe-cp3 .cp3-pill.is-disabled:hover,.jluxe-cp3 .cp3-pill[disabled]:hover,.jluxe-cp3 .cp3-pill[aria-disabled="true"]:hover{border-color:hsl(var(--panel-border))}
@@ -757,9 +757,19 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							if ( ! empty( $cp3_valid_options[ $cp3_attr_name ] ) && empty( $cp3_valid_options[ $cp3_attr_name ]['*'] ) ) {
 								$cp3_attr_options = array_values( array_filter( (array) $cp3_attr_options, fn( $cp3_opt ) => isset( $cp3_valid_options[ $cp3_attr_name ][ (string) $cp3_opt ] ) ) );
 							}
+							$cp3_default_label = '';
+							if ( '' !== $cp3_default_pick ) {
+								foreach ( (array) $cp3_attr_options as $cp3_default_option ) {
+									$cp3_default_option = (string) $cp3_default_option;
+									if ( $cp3_default_option === $cp3_default_pick || rawurldecode( $cp3_default_option ) === rawurldecode( $cp3_default_pick ) ) {
+										$cp3_default_label = $cp3_option_label( $cp3_default_option, $cp3_attr_name );
+										break;
+									}
+								}
+							}
 							?>
-							<div class="reference-mobile-variation-option">
-								<div class="cp3-varlabel"><?php echo esc_html( $cp3_attr_prompt ); ?></div>
+							<div class="reference-mobile-variation-option" data-jluxe-variation-group="<?php echo esc_attr( $cp3_attr_slug ); ?>">
+								<div class="cp3-varlabel"><?php echo esc_html( $cp3_attr_prompt ); ?> <span data-jluxe-variation-selected aria-live="polite" aria-atomic="true"><?php echo esc_html( $cp3_default_label ); ?></span></div>
 								<div class="cp3-pills" data-cp3-pills="<?php echo esc_attr( $cp3_attr_slug ); ?>">
 									<?php foreach ( $cp3_attr_options as $cp3_opt ) : ?>
 										<?php $cp3_opt = (string) $cp3_opt; ?>

@@ -9,6 +9,11 @@ const priceStart = wooSource.indexOf("function jluxeBindCp3VariationPrice(form) 
 const priceEnd = wooSource.indexOf("\nfunction jluxeSyncVariationAvailability(form)", priceStart);
 assert.ok(priceStart >= 0 && priceEnd > priceStart, "the shared CP3 variation-price binder is present");
 const priceBinder = wooSource.slice(priceStart, priceEnd);
+const labelMarker = wooSource.indexOf("Keep the localized choice beside every variation attribute title.");
+const labelStart = wooSource.indexOf("(function () {", labelMarker);
+const labelEnd = wooSource.indexOf("\n})();", labelStart);
+assert.ok(labelMarker >= 0 && labelStart > labelMarker && labelEnd > labelStart, "the shared localized variation-label listener is present");
+const labelBinder = wooSource.slice(labelStart, labelEnd + "\n})();".length);
 
 const templates = [
   ["classic", fs.readFileSync(new URL("../woocommerce/content-single-product-classic.php", import.meta.url), "utf8")],
@@ -28,15 +33,18 @@ function markup(variations) {
   return `<!doctype html><html><body>
     <div class="jluxe-cp3">
       <form class="variations_form" data-product_variations='${JSON.stringify(variations)}'>
-        <div class="cp3-pills" data-cp3-pills="pa_color">
-          <button type="button" class="cp3-pill is-active" data-value="red">قرمز</button>
-          <button type="button" class="cp3-pill" data-value="blue">آبی</button>
-        </div>
-        <div class="variations">
-          <select name="attribute_pa_color" data-cp3-select="pa_color">
-            <option value="red" selected>قرمز</option>
-            <option value="blue">آبی</option>
-          </select>
+        <div data-jluxe-variation-group="pa_color">
+          <div class="cp3-varlabel">انتخاب رنگ: <span data-jluxe-variation-selected aria-live="polite" aria-atomic="true">مقدار قدیمی</span></div>
+          <div class="cp3-pills" data-cp3-pills="pa_color">
+            <button type="button" class="cp3-pill is-active" data-value="red">قرمز</button>
+            <button type="button" class="cp3-pill" data-value="blue">آبی</button>
+          </div>
+          <div class="variations">
+            <select name="attribute_pa_color" data-cp3-select="pa_color">
+              <option value="red" selected>قرمز</option>
+              <option value="blue">آبی</option>
+            </select>
+          </div>
         </div>
         <input class="variation_id" name="variation_id" value="0">
         <div class="cp3-price" data-cp3-price data-cp3-empty-text="برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید." aria-live="polite" aria-atomic="true"><ins>قیمت پیش‌فرضِ سرور</ins></div>
@@ -73,12 +81,15 @@ for (const [name, template] of templates) {
     const $ = jquery(window);
     window.jQuery = $;
     window.eval(`${priceBinder}\nwindow.testBindCp3VariationPrice = jluxeBindCp3VariationPrice;`);
+    window.eval(labelBinder);
 
     const root = window.document.querySelector(".jluxe-cp3");
     const form = root.querySelector("form.variations_form");
     const select = form.querySelector('select[name="attribute_pa_color"]');
     const variationId = form.querySelector("input.variation_id");
     const priceBox = root.querySelector("[data-cp3-price]");
+    const selectedLabel = form.querySelector("[data-jluxe-variation-selected]");
+    assert.equal(selectedLabel.textContent, "قرمز", "the server-selected option starts with its exact Persian label");
     const originalDefaultPrice = priceBox.innerHTML;
 
     window.testBindCp3VariationPrice(form);
@@ -116,6 +127,7 @@ for (const [name, template] of templates) {
 
     form.querySelector('.cp3-pill[data-value="blue"]').click();
     assert.equal(select.value, "blue", "the visible pill updates the native WooCommerce select");
+    assert.equal(selectedLabel.textContent, "آبی", "the CP3 pill click updates the Persian value beside its attribute title");
     assert.equal(variationId.value, "42", "WooCommerce resolves the selected variation ID, not merely the pill state");
     assert.equal(form.querySelector('.cp3-pill[data-value="blue"]').classList.contains("is-active"), true);
     assert.equal(form.querySelector('.cp3-pill[data-value="red"]').classList.contains("is-active"), false);
@@ -134,6 +146,8 @@ for (const [name, template] of templates) {
 
     select.value = "";
     variationId.value = "0";
+    select.dispatchEvent(new window.Event("change", { bubbles: true }));
+    assert.equal(selectedLabel.textContent, "", "resetting the select clears its stale selected-value label");
     $(form).trigger("reset_data");
     assert.equal(priceBox.textContent, "برای دیدن قیمت دقیق، یک تنوع را انتخاب کنید.");
   });

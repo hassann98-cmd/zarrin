@@ -413,7 +413,11 @@ function J() {
                   className: "hidden text-button md:inline",
                   children: "سبد خرید",
                 }),
-                e.jsx($, { className: "size-5", "aria-hidden": !0 }),
+                e.jsx($, {
+                  className: "size-5",
+                  "aria-hidden": !0,
+                  "data-jluxe-cart-icon-glyph": !0,
+                }),
               ],
             }),
           })

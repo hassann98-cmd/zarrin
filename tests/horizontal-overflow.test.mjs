@@ -32,7 +32,7 @@ test("R176 classic product columns reflow before their fixed desktop widths can 
   );
 });
 
-test("R176 modal navigation stays physically LTR, removes the hint, and styles selection by border only", () => {
+test("R176/R332 modal navigation stays physically LTR, removes the hint, and gives the selected pill a restrained shadow", () => {
   assert.match(classicProductSource, /\.jluxe-cp3-gallery-modal__stage\{display:flex;flex-direction:row;direction:ltr;/);
   const previous = classicProductSource.indexOf("data-jluxe-gallery-modal-prev");
   const track = classicProductSource.indexOf("data-jluxe-gallery-modal-track", previous);
@@ -41,5 +41,5 @@ test("R176 modal navigation stays physically LTR, removes the hint, and styles s
   assert.doesNotMatch(classicProductSource, /jluxe-cp3-gallery-modal__hint|برای بزرگ‌نمایی دو بار بزنید/);
 
   const activePillRule = classicProductSource.match(/\.jluxe-cp3 \.cp3-pill\.is-active\{[^}]*\}/)?.[0];
-  assert.equal(activePillRule, ".jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary))}");
+  assert.equal(activePillRule, ".jluxe-cp3 .cp3-pill.is-active{border-color:hsl(var(--primary));box-shadow:0 0 0 1px hsl(var(--primary)/.18),0 3px 9px hsl(var(--primary)/.13)}");
 });
