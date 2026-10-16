@@ -4733,6 +4733,7 @@ body.single-product .jluxe-cp3 .cp3-short-body a {
   text-underline-offset: 0.18em;
   overflow-wrap: anywhere;
 }
+/* R328 — عکس‌های توضیحات بدون قاب و پس‌زمینه؛ فقط سایهٔ بسیار ملایم. */
 body.single-product .jluxe-product-description img,
 body.single-product [data-jluxe-short-desc-text] img,
 body.single-product .jluxe-cp3 .cp3-descbody img,
@@ -4742,10 +4743,10 @@ body.single-product .jluxe-cp3 .cp3-short-body img {
   max-width: 100%;
   height: auto;
   margin: 1rem auto;
-  border: 1px solid hsl(var(--border));
+  border: 0;
   border-radius: 16px;
-  background: hsl(var(--surface));
-  box-shadow: 0 7px 20px rgba(20, 16, 12, 0.08);
+  background: transparent;
+  box-shadow: 0 2px 6px rgba(20, 16, 12, 0.06);
 }
 body.single-product .jluxe-product-description figure,
 body.single-product [data-jluxe-short-desc-text] figure,
@@ -4966,11 +4967,11 @@ body.single-product .jluxe-cp3 .cp3-short-body .gallery > .gallery-item {
   margin: 6px;
   padding: 0;
   float: none;
-  overflow: hidden;
-  border: 1px solid hsl(var(--border));
-  border-radius: 16px;
-  background: hsl(var(--surface));
-  box-shadow: 0 7px 20px rgba(20, 16, 12, 0.07);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   vertical-align: top;
 }
 body.single-product .jluxe-product-description-content .blocks-gallery-item > figure,
@@ -4986,8 +4987,8 @@ body.single-product .jluxe-cp3 .cp3-short-body .gallery-item > .gallery-icon {
   display: block;
   width: 100%;
   margin: 0;
-  padding: 8px;
-  background: hsl(var(--panel));
+  padding: 0;
+  background: transparent;
   text-align: center;
 }
 body.single-product .jluxe-product-description-content .wp-block-gallery a,
@@ -5026,11 +5027,11 @@ body.single-product .jluxe-cp3 .cp3-short-body .gallery img {
   max-width: 100%;
   height: auto;
   margin: 0 auto;
-  padding: 8px;
+  padding: 0;
   border: 0;
   border-radius: 12px;
-  background: hsl(var(--panel));
-  box-shadow: none;
+  background: transparent;
+  box-shadow: 0 2px 6px rgba(20, 16, 12, 0.06);
   object-fit: contain;
 }
 body.single-product .jluxe-product-description-content .gallery-icon img,
@@ -5613,7 +5614,7 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery.is-cropped img,
 body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery.has-nested-images figure.wp-block-image img,
 body.single-product .jluxe-cp3 .cp3-short-body .blocks-gallery-grid img,
 body.single-product .jluxe-cp3 .cp3-short-body .gallery img {
-  padding: 6px;
+  padding: 0;
 }
 body.single-product .jluxe-product-description-content .wp-block-gallery figcaption,
 body.single-product .jluxe-product-description-content .wp-block-gallery.has-nested-images figure.wp-block-image figcaption,
@@ -13319,4 +13320,61 @@ body.single-product .jluxe-cp3 .cp3-descbody a[href]:not([data-jluxe-description
 body.single-product .jluxe-cp3 .cp3-short-body a[href]:not([data-jluxe-description-gallery-trigger]):focus {
   outline: 2px solid var(--jluxe-description-link-border, hsl(var(--primary)));
   outline-offset: 2px;
+}
+
+/* R328 — پیوندهای عکس همواره شفاف می‌مانند؛ ظاهر دکمه فقط برای پیوند متنی است. */
+body.single-product .jluxe-product-description .gallery a[href],
+body.single-product .jluxe-product-description .wp-block-gallery a[href],
+body.single-product .jluxe-product-description .blocks-gallery-grid a[href],
+body.single-product .jluxe-product-description .wp-block-image > a[href],
+body.single-product .jluxe-product-description-content .gallery a[href],
+body.single-product .jluxe-product-description-content .wp-block-gallery a[href],
+body.single-product .jluxe-product-description-content .blocks-gallery-grid a[href],
+body.single-product .jluxe-product-description-content .wp-block-image > a[href],
+body.single-product [data-jluxe-short-desc-text] .gallery a[href],
+body.single-product [data-jluxe-short-desc-text] .wp-block-gallery a[href],
+body.single-product [data-jluxe-short-desc-text] .blocks-gallery-grid a[href],
+body.single-product [data-jluxe-short-desc-text] .wp-block-image > a[href],
+body.single-product .jluxe-cp3 .cp3-descbody .gallery a[href],
+body.single-product .jluxe-cp3 .cp3-descbody .wp-block-gallery a[href],
+body.single-product .jluxe-cp3 .cp3-descbody .blocks-gallery-grid a[href],
+body.single-product .jluxe-cp3 .cp3-descbody .wp-block-image > a[href],
+body.single-product .jluxe-cp3 .cp3-short-body .gallery a[href],
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery a[href],
+body.single-product .jluxe-cp3 .cp3-short-body .blocks-gallery-grid a[href],
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href] {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: none;
+  transform: none;
+}
+body.single-product .jluxe-product-description .gallery a[href]:hover,
+body.single-product .jluxe-product-description .wp-block-gallery a[href]:hover,
+body.single-product .jluxe-product-description .blocks-gallery-grid a[href]:hover,
+body.single-product .jluxe-product-description .wp-block-image > a[href]:hover,
+body.single-product .jluxe-product-description-content .gallery a[href]:hover,
+body.single-product .jluxe-product-description-content .wp-block-gallery a[href]:hover,
+body.single-product .jluxe-product-description-content .blocks-gallery-grid a[href]:hover,
+body.single-product .jluxe-product-description-content .wp-block-image > a[href]:hover,
+body.single-product [data-jluxe-short-desc-text] .gallery a[href]:hover,
+body.single-product [data-jluxe-short-desc-text] .wp-block-gallery a[href]:hover,
+body.single-product [data-jluxe-short-desc-text] .blocks-gallery-grid a[href]:hover,
+body.single-product [data-jluxe-short-desc-text] .wp-block-image > a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-descbody .gallery a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-descbody .wp-block-gallery a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-descbody .blocks-gallery-grid a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-descbody .wp-block-image > a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-short-body .gallery a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-gallery a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-short-body .blocks-gallery-grid a[href]:hover,
+body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
+  box-shadow: none;
+  transform: none;
 }

@@ -45,6 +45,58 @@ test("R212 mobile product galleries use 44px controls, token colors, clear focus
   assert.doesNotMatch(nativeMobile, /#[0-9a-f]{3,8}\b/i, "the native gallery keeps colors on theme tokens");
 });
 
+function declarationBlock(selector, occurrence = 0) {
+  let start = -1;
+  for (let index = 0; index <= occurrence; index++) {
+    start = storefrontStyles.indexOf(selector, start + 1);
+    assert.ok(start >= 0, `CSS selector is present: ${selector} (occurrence ${index})`);
+  }
+  const open = storefrontStyles.indexOf("{", start);
+  const close = storefrontStyles.indexOf("}", open);
+  assert.ok(open > start && close > open, `CSS rule is complete: ${selector}`);
+  return storefrontStyles.slice(open + 1, close);
+}
+
+test("R328 product-description photos and gallery links have no colored frame", () => {
+  const image = declarationBlock("body.single-product .jluxe-product-description img,");
+  assert.match(image, /border:\s*0;/);
+  assert.match(image, /background:\s*transparent;/);
+  assert.match(image, /box-shadow:\s*0 2px 6px rgba\(20, 16, 12, 0\.06\);/);
+
+  const galleryItem = declarationBlock("body.single-product .jluxe-product-description-content .wp-block-gallery > .wp-block-image,");
+  assert.match(galleryItem, /overflow:\s*visible;/, "the image's faint shadow is not clipped");
+  assert.match(galleryItem, /border:\s*0;/);
+  assert.match(galleryItem, /background:\s*transparent;/);
+  assert.match(galleryItem, /box-shadow:\s*none;/);
+
+  const galleryIcon = declarationBlock("body.single-product .jluxe-product-description-content .gallery-item > dt,");
+  assert.match(galleryIcon, /padding:\s*0;/);
+  assert.match(galleryIcon, /background:\s*transparent;/);
+
+  const galleryImageSelector = "body.single-product .jluxe-product-description-content .wp-block-gallery img,";
+  const galleryImage = declarationBlock(galleryImageSelector);
+  assert.match(galleryImage, /padding:\s*0;/);
+  assert.match(galleryImage, /border:\s*0;/);
+  assert.match(galleryImage, /background:\s*transparent;/);
+  assert.match(galleryImage, /border-radius:\s*12px;/, "the established rounded-photo styling is retained");
+  assert.match(galleryImage, /box-shadow:\s*0 2px 6px rgba\(20, 16, 12, 0\.06\);/);
+  const mobileGalleryImage = declarationBlock(galleryImageSelector, 1);
+  assert.match(mobileGalleryImage, /padding:\s*0;/, "the later mobile gallery rule does not restore an image frame");
+  assert.match(
+    declarationBlock("body.single-product .jluxe-product-description-content .gallery-icon img,"),
+    /border-radius:\s*10px;/,
+  );
+
+  const imageLink = declarationBlock("body.single-product .jluxe-product-description-content .gallery a[href],");
+  assert.match(imageLink, /border:\s*0;/);
+  assert.match(imageLink, /background:\s*transparent;/);
+  assert.match(imageLink, /box-shadow:\s*none;/);
+  assert.match(
+    declarationBlock("body.single-product .jluxe-product-description-content .gallery a[href]:hover,"),
+    /transform:\s*none;/,
+  );
+});
+
 function setup() {
   const dom = new JSDOM(
     `<!doctype html><html><body style="overflow:auto"><main>
