@@ -1443,12 +1443,13 @@ function jluxe_render_shop_page(): void {
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="jluxe-shop-oos-last">ناموجودها در انتهای لیست</label></th>
+					<th scope="row"><label for="jluxe-shop-oos-last">ناموجودها در انتهای بخش‌های خودکار</label></th>
 					<td>
 						<label>
 							<input type="checkbox" id="jluxe-shop-oos-last" name="shop[out_of_stock_last]" value="1" <?php checked( ! empty( $shop['out_of_stock_last'] ) ); ?> />
-							محصولات ناموجود همیشه در انتهای فهرست نمایش داده شوند — در همهٔ حالت‌ها: آرشیو/دسته، بخش‌های صفحهٔ اصلی، محصولات مرتبط و پیشنهادیِ «اضافه خرید»
+							در فهرست‌های خودکارِ فرعی، محصولات ناموجود پس از محصولات موجود بیایند.
 						</label>
+						<p class="description">آرشیو اصلی فروشگاه، برند، دسته‌بندی و ویژگی، و نیز محصولات مرتبط، همیشه ابتدا موجودها را نشان می‌دهند و در هر گروه جدیدترین محصول جلوتر است؛ این ترتیب ثابت به این گزینه وابسته نیست.</p>
 					</td>
 				</tr>
 				<tr>
@@ -1464,7 +1465,7 @@ function jluxe_render_shop_page(): void {
 					<td><input type="number" id="jluxe-cols-mobile" name="shop[columns_mobile]" value="<?php echo esc_attr( $shop['columns_mobile'] ); ?>" min="1" max="3" class="small-text" /></td>
 				</tr>
 			</table>
-			<p class="description">سایدبار/فیلتر/مرتب‌سازی فعلاً در قالب آرشیوِ فعلی (<code>woocommerce_content()</code> پیش‌فرض) وجود ندارن — اضافه‌کردنشون نیاز به override تمپلیت جداگانه داره؛ برای جلوگیری از fake کنترل، این‌جا نمایش داده نمی‌شن.</p>
+			<p class="description">کنترل کاربر برای تغییر ترتیب/فیلتر محصولات در قالب آرشیوِ فعلی (<code>woocommerce_content()</code> پیش‌فرض) وجود ندارد؛ ترتیب ثابتِ فروشگاه، برند، دسته‌بندی و ویژگی «موجودها، سپس جدیدترین‌ها» است.</p>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">تبِ «دانلودها» در حساب کاربری</th>

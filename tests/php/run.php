@@ -2853,24 +2853,39 @@ check(strpos((string) file_get_contents(ABSPATH.'src/lib/api.js'),'export functi
 check(strpos($functions_php,'--jluxe-primary:hsl(var(--primary))')!==false && strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,15,30,0.06)')!==false, 'R63 the central design tokens (--jluxe-primary/surface/border/radii/shadows) ship in the static :root block');
 check(strpos($store_css,'@media (hover: hover)')!==false && strpos($store_css,'.jluxe-card-shine:hover')!==false && strpos($store_css,'.jluxe-btn-added { background: hsl(var(--primary))')!==false && strpos($store_css,'.jluxe-pa-viewcart')!==false, 'R63 the card shine hover is guarded by (hover: hover) and the new footer/quick-add styles exist in storefront.css');
 check(strpos($header_tpl,'jluxe-skip-link')!==false && strpos($header_tpl,'href="#primary"')!==false && strpos($store_css,'.jluxe-skip-link:focus-visible')!==false, 'R63 a real skip-to-content link targets the main landmark and only appears on keyboard focus');
-// R64: out-of-stock-last toggle, left toman glyph, unified ATC buttons, variant-modal logic, responsive modal footer.
+// R64/R337: fixed stock/date ordering on main catalog archives, plus the legacy toggle for secondary product lists.
 $render_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-render.php');
 $san_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php');
-check(strpos($settings_inc,"'out_of_stock_last'          => true")!==false && strpos($render_php,'name="shop[out_of_stock_last]"')!==false && strpos($san_php,"'out_of_stock_last'            => ! empty( \$posted['out_of_stock_last'] )")!==false, 'R64 the out-of-stock-last toggle exists as a checked-by-default shop setting with renderer and boolean sanitizer');
-$__oos_settings=jluxe_get_theme_settings();
+$__oos_original_settings=jluxe_get_theme_settings();
+check(strpos($settings_inc,"'out_of_stock_last'          => true")!==false && strpos($render_php,'name="shop[out_of_stock_last]"')!==false && strpos($render_php,'ترتیب ثابت به این گزینه وابسته نیست')!==false && strpos($san_php,"'out_of_stock_last'            => ! empty( \$posted['out_of_stock_last'] )")!==false, 'R337 archive and related ordering is described as fixed while the legacy shop toggle remains a checked-by-default boolean for secondary product lists');
+$__oos_settings=$__oos_original_settings;
+$__oos_settings['shop']['out_of_stock_last']=false;
+update_test_settings($__oos_settings);
+$__archive_sort_expected="CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC, wp_posts.ID DESC";
+$__archive_contexts=array('shop','product_category','product_brand','product_attribute');
+$__archives_sorted=true;
+foreach($__archive_contexts as $__archive_context){
+ $GLOBALS['query_kind']=$__archive_context;
+ $__archive_query=new WP_Query(array('post_type'=>'product','is_main_query'=>true));
+ $__archive_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.menu_order ASC'),$__archive_query);
+ $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],' AS jluxe_oos ') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
+}
+check($__archives_sorted, 'R337 shop, category, brand, and product-attribute main archives always sort available first and newest first within each group, even when the legacy toggle is off');
+$GLOBALS['query_kind']='front';
+$__secondary_query=new WP_Query(array('post_type'=>'product'));
+$__secondary_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=>'wp_posts.menu_order ASC'),$__secondary_query);
+check($__secondary_clauses===array('join'=>'','orderby'=>'wp_posts.menu_order ASC'), 'R337 a secondary product query respects the disabled legacy toggle and keeps its custom order');
 $__oos_settings['shop']['out_of_stock_last']=true;
 update_test_settings($__oos_settings);
-$GLOBALS['query_kind']='front';
 $__q=new WP_Query(array('post_type'=>'product'));
 $__c=jluxe_out_of_stock_last_clauses(array('join'=>' INNER JOIN wp_term_relationships ON x ','where'=>'1=1','orderby'=>'wp_posts.post_date DESC'),$__q);
-check(false!==strpos($__c['join'],' AS jluxe_oos ') && strpos($__c['join'],'jluxe_oos.meta_key = ')!==false && strpos($__c['orderby'],"CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC")===0, 'R64 with the toggle on, a product query gets the stock-status join and the out-of-stock-last CASE prefix keeping the original order inside each group');
+check(false!==strpos($__c['join'],' AS jluxe_oos ') && strpos($__c['join'],'jluxe_oos.meta_key = ')!==false && strpos($__c['orderby'],"CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC")===0, 'R64 the enabled legacy toggle places out-of-stock products last while preserving a secondary query\'s original order');
 $__c2=jluxe_out_of_stock_last_clauses($__c,$__q);
 check(substr_count($__c2['join'],' AS jluxe_oos ')===1, 'R64 the stock join is never duplicated when the clauses round-trip through the filter again');
 $__q2=new WP_Query(array('post_type'=>'post'));
 $__c3=jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=>'wp_posts.post_date DESC'),$__q2);
 check(strpos($__c3['orderby'],'CASE')===false && strpos($__c3['join'],'jluxe_oos')===false, 'R64 non-product queries (blog posts) are left untouched');
-$GLOBALS['options']=array();
-check(jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=>'x'),new WP_Query(array('post_type'=>'product')))===array('join'=>'','orderby'=>'x') || true, 'R64 nothing fatals with pristine settings');
+update_test_settings($__oos_original_settings);
 check(strpos($woo_inc,"add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 )")!==false && strpos($store_css,'flex-direction: row-reverse')!==false && strpos($store_css,'.woocommerce-Price-amount bdi')!==false, 'R64 the central posts_clauses filter is registered and the toman glyph is pinned to the LEFT of the price via row-reverse flex on the amount bdi');
 check(strpos($store_css,'[data-jluxe-variation-group] > p { font-size: 11.5px')!==false && strpos($store_css,'.jluxe-variant-modal .woocommerce-variation-price')!==false && strpos($store_css,'.jluxe-pa-price { color: hsl(var(--foreground))')!==false, 'R64 size/color labels and variation prices are smaller and the price color is black (foreground) in the picker, product page and suggestion rows');
 check(strpos($store_css,'.single_add_to_cart_button.button')!==false && strpos($store_css,'.jluxe-btn-primary[data-jluxe-sticky-add]')!==false && substr_count($store_css,'min-height: 48px')>=2 && strpos($store_css,'.single_add_to_cart_button.disabled')!==false, 'R64 every textual add-to-cart button (single form, variant modal, sticky CTA, modal confirm) shares one 48px/16px-radius primary style with a real disabled state');
@@ -3690,8 +3705,8 @@ jluxe_related_slider_assets();
 check( ! isset( $GLOBALS['scripts']['jluxe-related-slider'] ), 'R85 and it is loaded nowhere else (performance budget)' );
 
 /*
- * R119 — related products can be ordered manually, while automatic suggestions
- * prioritize same-category products and place genuinely available items first.
+ * R119/R337 — manual selections define the related-product candidates; every related list
+ * is finally ordered by genuine availability, then newest publication date.
  */
 $r119_old_query_kind    = $GLOBALS['query_kind'];
 $r119_old_post_data     = $_POST;
@@ -3700,6 +3715,7 @@ $r119_old_post_meta     = $GLOBALS['post_meta'] ?? array();
 $r119_old_query_handler = $GLOBALS['product_query_handler'] ?? null;
 $r119_old_query_results = $GLOBALS['product_query_results'] ?? array();
 $r119_old_query_args    = $GLOBALS['product_query_args'] ?? null;
+$r119_old_product_dates = $GLOBALS['product_dates'] ?? array();
 $r119_old_settings      = jluxe_get_theme_settings();
 $r119_settings          = $r119_old_settings;
 $r119_settings['product_page']['related_count'] = 6;
@@ -3720,13 +3736,21 @@ $GLOBALS['products'][7301] = new WC_Product( 7301 );
 $GLOBALS['products'][7302] = new WC_Product( 7302 );
 $GLOBALS['products'][7303] = new WC_Product( 7303 );
 $GLOBALS['products'][7304] = new WC_Product( 7304 );
+$GLOBALS['products'][7305] = new WC_Product( 7305 );
+$GLOBALS['products'][7306] = new WC_Product( 7306 );
 $GLOBALS['products'][7303]->visibility = 'hidden';
 $GLOBALS['products'][7304]->status = 'draft';
+$GLOBALS['products'][7305]->stock = 0;
+$GLOBALS['products'][7306]->stock = 0;
+$GLOBALS['product_dates'][7301] = new DateTimeImmutable( '@300' );
+$GLOBALS['product_dates'][7302] = new DateTimeImmutable( '@100' );
+$GLOBALS['product_dates'][7305] = new DateTimeImmutable( '@400' );
+$GLOBALS['product_dates'][7306] = new DateTimeImmutable( '@200' );
 $GLOBALS['post_meta'][7300]['_jluxe_related_product_ids'] = array( 7302, 7301 );
 ob_start();
 jluxe_render_manual_related_products_field();
 $r119_selector_markup = ob_get_clean();
-check( false !== strpos( $r119_selector_markup, 'class="wc-product-search"' ) && false !== strpos( $r119_selector_markup, 'data-action="woocommerce_json_search_products"' ) && false !== strpos( $r119_selector_markup, 'name="_jluxe_related_product_order" value="7302,7301"' ) && false !== strpos( $r119_selector_markup, 'value="7302" selected="selected"' ) && strpos( $r119_selector_markup, 'value="7302"' ) < strpos( $r119_selector_markup, 'value="7301"' ), 'R119 the Linked Products tab renders a searchable selector and restores the manager-selected order' );
+check( false !== strpos( $r119_selector_markup, 'class="wc-product-search"' ) && false !== strpos( $r119_selector_markup, 'data-action="woocommerce_json_search_products"' ) && false !== strpos( $r119_selector_markup, 'name="_jluxe_related_product_order" value="7302,7301"' ) && false !== strpos( $r119_selector_markup, 'value="7302" selected="selected"' ) && strpos( $r119_selector_markup, 'value="7302"' ) < strpos( $r119_selector_markup, 'value="7301"' ) && false !== strpos( $r119_selector_markup, 'ترتیب نمایش همیشه بر اساس موجودی' ), 'R119/R337 the Linked Products selector preserves the manager candidate list and clarifies the public availability/date ordering' );
 $r119_order_js = (string) file_get_contents( ABSPATH . 'assets/js/related-products-admin.js' );
 check( false !== strpos( $r119_order_js, 'select2:select' ) && false !== strpos( $r119_order_js, 'select2:unselect' ) && false !== strpos( $r119_order_js, 'select2:clear' ) && false !== strpos( $r119_order_js, 'order.push(id)' ), 'R119 admin script records selection order and updates it when products are removed or cleared' );
 
@@ -3761,6 +3785,10 @@ foreach ( array( 7200, 7201, 7202, 7203, 7204 ) as $r119_id ) {
 }
 $GLOBALS['products'][7202]->stock = 0;
 $GLOBALS['products'][7204]->stock = 0;
+$GLOBALS['product_dates'][7201] = new DateTimeImmutable( '@500' );
+$GLOBALS['product_dates'][7202] = new DateTimeImmutable( '@900' );
+$GLOBALS['product_dates'][7203] = new DateTimeImmutable( '@300' );
+$GLOBALS['product_dates'][7204] = new DateTimeImmutable( '@600' );
 $GLOBALS['product_category_ids'][7200] = array( 7 );
 $GLOBALS['product_category_ids'][7201] = array( 7 );
 $GLOBALS['product_category_ids'][7202] = array( 7 );
@@ -3769,17 +3797,17 @@ $GLOBALS['product_category_ids'][7204] = array( 8 );
 $GLOBALS['post_meta'][7200]['_jluxe_related_product_ids'] = array();
 $GLOBALS['r119_related_queries'] = array();
 $r119_automatic = jluxe_order_related_products( array( 7202, 7203, 7204 ), 7200, array( 'limit' => 4, 'excluded_ids' => array( 0, 7200 ) ) );
-check( array( 7201, 7202, 7203, 7204 ) === $r119_automatic, 'R119 automatic order is same-category in-stock, same-category out-of-stock, then WooCommerce tag fallbacks sorted by availability' );
-check( 3 === count( $GLOBALS['r119_related_queries'] ) && array( 'instock', 'onbackorder', 'outofstock' ) === array_column( $GLOBALS['r119_related_queries'], 'stock_status' ) && 'same-category' === $GLOBALS['r119_related_queries'][0]['category'][0] && in_array( 7200, $GLOBALS['r119_related_queries'][0]['exclude'], true ), 'R119 automatic queries explicitly cover all stock states for the current product category and exclude the current product' );
+check( array( 7201, 7203, 7202, 7204 ) === $r119_automatic, 'R337 related suggestions globally sort available products first and newest-first within both stock groups, across category and WooCommerce fallbacks' );
+check( 3 === count( $GLOBALS['r119_related_queries'] ) && array( 'instock', 'onbackorder', 'outofstock' ) === array_column( $GLOBALS['r119_related_queries'], 'stock_status' ) && 'same-category' === $GLOBALS['r119_related_queries'][0]['category'][0] && in_array( 7200, $GLOBALS['r119_related_queries'][0]['exclude'], true ) && array( 'date', 'date', 'date' ) === array_column( $GLOBALS['r119_related_queries'], 'orderby' ) && array( 'DESC', 'DESC', 'DESC' ) === array_column( $GLOBALS['r119_related_queries'], 'order' ), 'R337 automatic related queries cover every stock state, exclude the current product, and fetch newest same-category candidates first' );
 
 $GLOBALS['product_query_handler'] = static function ( $query ) {
 	$GLOBALS['r119_manual_query_count']++;
 	return array();
 };
 $GLOBALS['r119_manual_query_count'] = 0;
-$GLOBALS['post_meta'][7300]['_jluxe_related_product_ids'] = array( 7302, 7301, 7302 );
+$GLOBALS['post_meta'][7300]['_jluxe_related_product_ids'] = array( 7306, 7302, 7305, 7301, 7302 );
 $r119_manual = jluxe_order_related_products( array( 7201, 7202 ), 7300, array( 'limit' => 1, 'excluded_ids' => array( 0, 7300 ) ) );
-check( array( 7302, 7301 ) === $r119_manual && 0 === $GLOBALS['r119_manual_query_count'], 'R119 a nonempty manual list replaces automatic suggestions and preserves its order without category queries' );
+check( array( 7301, 7302, 7305, 7306 ) === $r119_manual && 0 === $GLOBALS['r119_manual_query_count'], 'R337 manual selections restrict the candidate set but display by availability and newest-first within each group without category queries' );
 
 $GLOBALS['query_kind'] = $r119_old_query_kind;
 $_POST = $r119_old_post_data;
@@ -3788,6 +3816,7 @@ $GLOBALS['post_meta'] = $r119_old_post_meta;
 $GLOBALS['product_query_handler'] = $r119_old_query_handler;
 $GLOBALS['product_query_results'] = $r119_old_query_results;
 $GLOBALS['product_query_args'] = $r119_old_query_args;
+$GLOBALS['product_dates'] = $r119_old_product_dates;
 update_test_settings( $r119_old_settings );
 
 /*

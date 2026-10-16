@@ -3739,7 +3739,7 @@ function jluxe_render_manual_related_products_field(): void {
 	echo '</select>';
 	echo '<input type="hidden" name="_jluxe_related_product_order" value="' . esc_attr( implode( ',', $selected ) ) . '" />';
 	echo '<input type="hidden" name="_jluxe_related_product_ids_present" value="1" />';
-	echo '<span class="description">' . esc_html__( 'ترتیب انتخاب‌شده حفظ می‌شود. اگر این فهرست خالی باشد، محصولات هم‌دستهٔ موجود و سپس ناموجودها نمایش داده می‌شوند؛ در صورت کمبود، پیشنهادهای ووکامرس هم اضافه می‌شوند.', 'jluxe' ) . '</span>';
+	echo '<span class="description">' . esc_html__( 'فهرست دستی مشخص می‌کند کدام محصولات نمایش داده شوند؛ ترتیب نمایش همیشه بر اساس موجودی (موجودها اول) و سپس جدیدتر بودن است. اگر فهرست خالی باشد، محصولات هم‌دسته و در صورت کمبود پیشنهادهای ووکامرس به‌عنوان نامزد اضافه می‌شوند.', 'jluxe' ) . '</span>';
 	echo '</p>';
 }
 add_action( 'woocommerce_product_options_related', 'jluxe_render_manual_related_products_field' );
@@ -3831,7 +3831,8 @@ function jluxe_related_product_is_public( $product ): bool {
 
 /**
  * Query a bounded set of same-category products by stock status. We make the stock buckets
- * explicit so catalog hide-out-of-stock settings do not silently drop the final fallback.
+ * explicit so catalog hide-out-of-stock settings do not silently drop the final fallback;
+ * each bucket starts with its newest products.
  */
 function jluxe_related_category_stock_pools( array $category_slugs, int $product_id, array $excluded_ids, int $limit ): array {
 	$pools = array(
@@ -3855,7 +3856,8 @@ function jluxe_related_category_stock_pools( array $category_slugs, int $product
 				'exclude'      => $query_exclusions,
 				'category'     => $category_slugs,
 				'limit'        => $query_limit,
-				'orderby'      => 'rand',
+				'orderby'      => 'date',
+				'order'        => 'DESC',
 				'return'       => 'objects',
 			)
 		);
@@ -3883,10 +3885,65 @@ function jluxe_related_category_stock_pools( array $category_slugs, int $product
 	return $pools;
 }
 
+/** Return a product's publication timestamp, preferring WooCommerce's typed date object. */
+function jluxe_related_product_date_timestamp( int $product_id, $product = null ): int {
+	if ( ! $product instanceof WC_Product && function_exists( 'wc_get_product' ) ) {
+		$product = wc_get_product( $product_id );
+	}
+
+	if ( $product instanceof WC_Product && method_exists( $product, 'get_date_created' ) ) {
+		$date = $product->get_date_created();
+		if ( is_object( $date ) && method_exists( $date, 'getTimestamp' ) ) {
+			return (int) $date->getTimestamp();
+		}
+		if ( is_numeric( $date ) ) {
+			return (int) $date;
+		}
+	}
+
+	$post_date = function_exists( 'get_post_field' ) ? get_post_field( 'post_date_gmt', $product_id ) : '';
+	if ( ! is_string( $post_date ) || '' === trim( $post_date ) || '0000-00-00 00:00:00' === $post_date ) {
+		$post_date = function_exists( 'get_post_field' ) ? get_post_field( 'post_date', $product_id ) : '';
+	}
+	$timestamp = is_string( $post_date ) && '' !== trim( $post_date ) ? strtotime( $post_date ) : false;
+
+	return false === $timestamp ? 0 : (int) $timestamp;
+}
+
+/** Sort a known set of related IDs by availability, then newest publication date. */
+function jluxe_sort_related_product_ids( array $product_ids ): array {
+	$product_ids = array_values( array_unique( array_filter( array_map( 'absint', $product_ids ) ) ) );
+	$sort_keys   = array();
+
+	foreach ( $product_ids as $product_id ) {
+		$product                 = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
+		$sort_keys[ $product_id ] = array(
+			'availability' => jluxe_suggested_is_available( $product ) ? 0 : 1,
+			'date'         => jluxe_related_product_date_timestamp( $product_id, $product ),
+		);
+	}
+
+	usort(
+		$product_ids,
+		static function ( int $left, int $right ) use ( $sort_keys ): int {
+			$availability_order = $sort_keys[ $left ]['availability'] <=> $sort_keys[ $right ]['availability'];
+			if ( 0 !== $availability_order ) {
+				return $availability_order;
+			}
+
+			$date_order = $sort_keys[ $right ]['date'] <=> $sort_keys[ $left ]['date'];
+			return 0 !== $date_order ? $date_order : ( $right <=> $left );
+		}
+	);
+
+	return $product_ids;
+}
+
 /**
- * Rank product-page related products: selected IDs first, then same-category products
- * (available before unavailable), then WooCommerce's remaining tag-based suggestions.
- * WooCommerce limits the final rendered list using its existing related-products setting.
+ * Rank product-page related products by one consistent rule: genuinely available first,
+ * then newest-to-oldest. Manual selections define the candidate set; automatic suggestions
+ * use same-category candidates before WooCommerce's fallbacks, but every final candidate is
+ * sorted by the same availability/date rule before WooCommerce applies its display limit.
  */
 function jluxe_order_related_products( $related_posts, $product_id, $args = array() ): array {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -3918,7 +3975,7 @@ function jluxe_order_related_products( $related_posts, $product_id, $args = arra
 		}
 
 		if ( ! empty( $ordered_manual ) ) {
-			return $ordered_manual;
+			return jluxe_sort_related_product_ids( $ordered_manual );
 		}
 	}
 
@@ -3932,10 +3989,6 @@ function jluxe_order_related_products( $related_posts, $product_id, $args = arra
 	$pools           = jluxe_related_category_stock_pools( $category_slugs, $product_id, array_keys( $excluded ), $limit );
 	$ordered         = array_merge( $pools['available'], $pools['unavailable'] );
 
-	$core_category_available   = array();
-	$core_category_unavailable = array();
-	$core_available            = array();
-	$core_unavailable          = array();
 	foreach ( is_array( $related_posts ) ? $related_posts : array() as $related_post_id ) {
 		$related_id = absint( $related_post_id );
 		if ( ! $related_id || isset( $excluded[ $related_id ] ) ) {
@@ -3943,27 +3996,12 @@ function jluxe_order_related_products( $related_posts, $product_id, $args = arra
 		}
 
 		$related_product = wc_get_product( $related_id );
-		if ( ! jluxe_related_product_is_public( $related_product ) ) {
-			continue;
-		}
-
-		$related_category_ids = method_exists( $related_product, 'get_category_ids' ) ? $related_product->get_category_ids() : array();
-		$is_same_category    = ! empty( array_intersect( $category_ids, array_map( 'absint', (array) $related_category_ids ) ) );
-		$is_available        = jluxe_suggested_is_available( $related_product );
-
-		if ( $is_same_category && $is_available ) {
-			$core_category_available[] = $related_id;
-		} elseif ( $is_same_category ) {
-			$core_category_unavailable[] = $related_id;
-		} elseif ( $is_available ) {
-			$core_available[] = $related_id;
-		} else {
-			$core_unavailable[] = $related_id;
+		if ( jluxe_related_product_is_public( $related_product ) ) {
+			$ordered[] = $related_id;
 		}
 	}
 
-	$ordered = array_merge( $ordered, $core_category_available, $core_category_unavailable, $core_available, $core_unavailable );
-	$unique  = array();
+	$unique = array();
 	foreach ( $ordered as $related_id ) {
 		$related_id = absint( $related_id );
 		if ( $related_id && ! isset( $excluded[ $related_id ] ) && ! in_array( $related_id, $unique, true ) ) {
@@ -3971,7 +4009,7 @@ function jluxe_order_related_products( $related_posts, $product_id, $args = arra
 		}
 	}
 
-	return $unique;
+	return jluxe_sort_related_product_ids( $unique );
 }
 add_filter( 'woocommerce_related_products', 'jluxe_order_related_products', 99, 3 );
 
@@ -4520,35 +4558,51 @@ function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConv
 }
 
 /**
- * R64: تیکِ «ناموجودها همیشه انتهای لیست» (پنل زرین ← فروشگاه).
- *
- * یک فیلترِ مرکزیِ posts_clauses برای «همهٔ» کوئری‌های محصولِ فرانت —
- * آرشیو/دسته/جستجوی محصول، بخش‌های صفحهٔ اصلی، محصولاتِ مرتبط و پیشنهادی
- * (همه سرانجام WP_Query با post_type=product می‌شوند، شاملِ مسیرِ
- * wc_get_products خودِ ووکامرس). ناموجودها حذف نمی‌شوند؛ فقط بعدِ
- * موجودها می‌نشینند و ترتیبِ اصلی (تاریخ/محبوبیت/post__in) داخلِ هر گروه
- * حفظ می‌شود. ادمین (و AJAX ادمین) مستثناست؛ مقدارِ گمشدهٔ
- * _stock_status «موجود» فرض می‌شود تا رفتارِ محتاطانه باشد.
+ * R64/R337: stock-first ordering for product queries. The main shop and product-taxonomy
+ * archives (category, brand and attribute) always use availability, then post_date DESC;
+ * this is deliberately independent of the legacy toggle. Other product queries retain the
+ * prior optional stock grouping and their own order (for example homepage/popular/random rows).
+ * Admin screens are excluded; missing _stock_status is treated as instock for safe fallback.
  */
 function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
 	if ( is_admin() && ! wp_doing_ajax() ) {
 		return $clauses;
 	}
-	if ( ! jluxe_get_setting( 'shop.out_of_stock_last', true ) ) {
+
+	$post_type        = $query->get( 'post_type' );
+	$is_product_query = 'product' === $post_type || ( is_array( $post_type ) && array( 'product' ) === $post_type );
+	if ( ! $is_product_query ) {
 		return $clauses;
 	}
-	$post_type = $query->get( 'post_type' );
-	if ( 'product' !== $post_type && ! ( is_array( $post_type ) && array( 'product' ) === $post_type ) ) {
+
+	$is_catalog_archive = $query->is_main_query()
+		&& (
+			( function_exists( 'is_shop' ) && is_shop() ) ||
+			( function_exists( 'is_product_category' ) && is_product_category() ) ||
+			( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) ||
+			( function_exists( 'is_product_tag' ) && is_product_tag() )
+		);
+	if ( ! $is_catalog_archive && ! jluxe_get_setting( 'shop.out_of_stock_last', true ) ) {
 		return $clauses;
 	}
+
 	global $wpdb;
 	if ( false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
 		$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
 	}
-	$base = trim( (string) $clauses['orderby'] );
-	if ( '' === $base ) {
-		$base = "{$wpdb->posts}.post_date DESC";
+
+	if ( $is_catalog_archive ) {
+		// Fixed sort for the requested catalog archives: stock priority, newest first,
+		// then ID as a deterministic tie-breaker. Do not let WooCommerce's menu order,
+		// popularity, or post__in order override this storefront rule.
+		$base = "{$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC";
+	} else {
+		$base = trim( (string) $clauses['orderby'] );
+		if ( '' === $base ) {
+			$base = "{$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC";
+		}
 	}
+
 	$clauses['orderby'] = "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
 	return $clauses;
 }

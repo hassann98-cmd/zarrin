@@ -311,7 +311,7 @@ function get_queried_object_id(){return $GLOBALS['queried_object_id']??1;}
 function is_product(){return $GLOBALS['query_kind']==='product';}
 function is_product_category(){return $GLOBALS['query_kind']==='product_category';}
 function is_shop(){return $GLOBALS['query_kind']==='shop';}
-function is_product_taxonomy(){return false;}
+function is_product_taxonomy(){return in_array($GLOBALS['query_kind']??'',array('product_taxonomy','product_brand','product_attribute'),true);}
 function wc_review_ratings_enabled(){return $GLOBALS['ratings_enabled']??true;}
 function wc_review_ratings_required(){return $GLOBALS['ratings_required']??true;}
 function is_cart(){return $GLOBALS['query_kind']==='cart';}
@@ -382,6 +382,7 @@ class WC_Product {
  function __construct($id){$this->id=$id;}
  function exists(){return true;}
  function get_id(){return $this->id;}
+ function get_date_created(){return $GLOBALS['product_dates'][$this->id]??null;}
  function update_meta_data($key,$value){$this->meta[$key]=$value;}
  function delete_meta_data($key){unset($this->meta[$key]);}
  function get_meta($key,$single=true){return array_key_exists($key,$this->meta)?$this->meta[$key]:get_post_meta($this->id,$key,$single);}
@@ -534,6 +535,7 @@ class WP_Query {
  }
  function get($key){return $this->args[$key]??null;}
  function set($key,$value){$this->args[$key]=$value;}
+ function is_main_query(){return !empty($this->args['is_main_query']);}
 }
 function wp_reset_postdata(){}
 function wp_timezone(){return new DateTimeZone('Asia/Tehran');}
