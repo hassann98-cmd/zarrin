@@ -468,7 +468,8 @@ try {
       quantity: "1",
       [`attribute_${fixtures.taxonomy}`]: fixtures.persianSlug,
     });
-    snapshot = response.json().data;
+    const persianAddResult = response.json();
+    snapshot = persianAddResult.data;
     const persistedPersianVariation = await phpJson(`
       foreach (WC()->cart->get_cart() as $cartKey=>$cartItem) {
         if ((int)($cartItem['variation_id']??0) === ${fixtures.persianVariation}) {
@@ -477,11 +478,20 @@ try {
       }
       return array('key'=>'','slug'=>null);
     `);
+    const persianAddDiagnostic = JSON.stringify({
+      status: response.status,
+      success: persianAddResult.success,
+      message: persianAddResult.data?.message,
+      itemCount: snapshot?.itemCount,
+      itemKeys: snapshot?.items?.map((item) => ({ key: item.key, productId: item.productId, variation: item.variation, qty: item.qty })),
+      persistedPersianVariation,
+      expectedSlug: fixtures.persianSlug,
+    });
     check(
-      response.status === 200 && response.json().success === true &&
+      response.status === 200 && persianAddResult.success === true &&
         snapshot.itemCount === 4 && snapshot.items.length === 3 &&
         persistedPersianVariation.key !== "" && persistedPersianVariation.slug === fixtures.persianSlug,
-      `Theme AJAX accepts and stores the exact percent-encoded Persian taxonomy slug (${fixtures.persianSlug})`,
+      `Theme AJAX accepts and stores the exact percent-encoded Persian taxonomy slug (${persianAddDiagnostic})`,
     );
     const persianVariationKey = persistedPersianVariation.key;
 
