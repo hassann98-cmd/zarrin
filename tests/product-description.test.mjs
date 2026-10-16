@@ -11,6 +11,7 @@ const productTemplates = [
 ].map((file) => fs.readFileSync(new URL(file, import.meta.url), "utf8"));
 const r318Css = css.split("/* R318 —")[1]?.split("/* ── R66:")[0] ?? "";
 const r322Css = css.split("/* R322 —")[1]?.split("/* ── R66:")[0] ?? "";
+const r326Css = css.split("/* R326 —")[1] ?? "";
 
 test("R318 description typography and media styling is limited to single product layouts", () => {
   assert.ok(r318Css, "the R318 scoped stylesheet block exists");
@@ -52,6 +53,26 @@ test("R322 description tables shrink to their content, center when compact, and 
   assert.doesNotMatch(r322Css, /var\(--primary\)/, "table colors do not depend on the changing primary color");
 });
 
+test("R326 product-description text links look like configurable, accessible buttons without styling gallery-image links", () => {
+  assert.ok(r326Css, "the R326 product-description link styles exist");
+  for (const selector of [
+    ".jluxe-product-description a[href]:not([data-jluxe-description-gallery-trigger])",
+    ".jluxe-product-description-content a[href]:not([data-jluxe-description-gallery-trigger])",
+    "[data-jluxe-short-desc-text] a[href]:not([data-jluxe-description-gallery-trigger])",
+    ".jluxe-cp3 .cp3-descbody a[href]:not([data-jluxe-description-gallery-trigger])",
+    ".jluxe-cp3 .cp3-short-body a[href]:not([data-jluxe-description-gallery-trigger])",
+  ]) {
+    assert.ok(r326Css.includes(selector), `the button treatment covers ${selector}`);
+  }
+  assert.match(r326Css, /display:\s*inline-block;/, "links remain inline with surrounding description text");
+  assert.match(r326Css, /border:\s*1px solid var\(--jluxe-description-link-border,/, "the outline color is configurable");
+  assert.match(r326Css, /background-color:\s*#F2DDD4;[\s\S]*?background-color:\s*var\(--jluxe-description-link-bg,\s*var\(--jluxe-primary-soft,\s*#F2DDD4\)\)/, "older browsers keep a safe pale fallback while modern themes derive the tint from primary");
+  assert.match(r326Css, /color:\s*var\(--jluxe-description-link-text,\s*var\(--jluxe-primary-active,\s*#89452A\)\)/, "the text color is configurable with a primary-derived contrast fallback");
+  assert.match(r326Css, /text-decoration:\s*none;/, "the button treatment replaces the old underline");
+  assert.match(r326Css, /overflow-wrap:\s*anywhere;/, "long Persian link labels can wrap on narrow screens");
+  assert.match(r326Css, /:focus\s*\{[^}]*outline:\s*2px solid/, "keyboard focus remains visible");
+});
+
 test("R322 gives all six product-description heading levels a readable hierarchy", () => {
   assert.ok(r322Css, "the R322 typography styles exist");
   for (const level of ["h1", "h2", "h3", "h4", "h5", "h6"]) {
@@ -69,7 +90,6 @@ test("R320 description headings use neutral text and consistent heading-to-parag
   const headingRule = r318Css.match(/body\.single-product \.jluxe-product-description h2,[\s\S]*?body\.single-product \.jluxe-cp3 \.cp3-short-body h4\s*\{([^}]*)\}/)?.[1] ?? "";
   assert.match(headingRule, /color:\s*hsl\(var\(--foreground\)\)/, "heading text remains neutral and readable");
   assert.doesNotMatch(headingRule, /var\(--primary\)/, "decorative accent colors are not applied to description heading text");
-  assert.match(r318Css, /body\.single-product \.jluxe-product-description a,[\s\S]*?\{[^}]*color:\s*inherit;/, "description links keep the surrounding neutral text color and remain underlined");
 });
 
 test("R318 short descriptions get the same responsive table wrapper in all three templates", () => {

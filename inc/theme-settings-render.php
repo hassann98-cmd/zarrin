@@ -1165,6 +1165,23 @@ function jluxe_render_product_page(): void {
 						</tr>
 					</table>
 
+					<h3>پیوندهای توضیحات محصول</h3>
+					<p class="description">پیوندهای متنیِ توضیحات کوتاه و بلند به‌شکل دکمه نمایش داده می‌شوند؛ پیوندِ عکس‌های گالری تغییر نمی‌کند. خالی‌بودن رنگ‌ها، استایل هماهنگ با رنگ اصلی پوسته را نگه می‌دارد.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row">پس‌زمینهٔ دکمهٔ پیوند</th>
+							<td><input type="text" name="product_page[description_link_bg_color]" value="<?php echo esc_attr( $pp['description_link_bg_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#F2DDD4" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ متن پیوند</th>
+							<td><input type="text" name="product_page[description_link_text_color]" value="<?php echo esc_attr( $pp['description_link_text_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#89452A" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ کادر پیوند</th>
+							<td><input type="text" name="product_page[description_link_border_color]" value="<?php echo esc_attr( $pp['description_link_border_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#B85C38" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+					</table>
+
 					<h3>ردیف‌های اعتماد (زیرِ جعبه‌ی خرید)</h3>
 					<p class="description">عنوان/توضیح هر ردیف قابل‌ویرایش و هرکدوم جدا قابل‌فعال/غیرفعال‌سازیه؛ آیکونشون ثابته.</p>
 					<table class="form-table" role="presentation">

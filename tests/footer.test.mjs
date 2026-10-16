@@ -287,7 +287,9 @@ test("R191 footer is compact, keeps phone numbers together, and merges configure
     new URL("../src/styles/storefront.css", import.meta.url),
     "utf8",
   );
-  const r191 = css.slice(css.indexOf("/* R191 —"));
+  const r191Start = css.indexOf("/* R191 —");
+  const r326Start = css.indexOf("/* R326 —", r191Start);
+  const r191 = css.slice(r191Start, r326Start === -1 ? undefined : r326Start);
   assert.match(r191, /\.jluxe-footer-feature-grid\s*\{[^}]*display:\s*grid;/s);
   assert.match(r191, /\.jluxe-footer-content-grid\s*\{[^}]*display:\s*grid;/s);
   assert.match(r191, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);

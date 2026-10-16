@@ -1578,9 +1578,39 @@ function jluxe_default_variable_variation_price_html( WC_Product $product, $defa
 	return jluxe_price_kses( jluxe_reference_price_html( $price_html ) );
 }
 
+/** Resolve a taxonomy/encoded attribute key to readable text without changing the WooCommerce key. */
+function jluxe_variable_attribute_display_label( string $attribute_name ): string {
+	$label         = trim( (string) wc_attribute_label( $attribute_name ) );
+	$decoded_label = rawurldecode( $label );
+	$decoded_name  = rawurldecode( $attribute_name );
+
+	/*
+	 * WooCommerce normally supplies its configured attribute label. If it
+	 * instead returns the taxonomy key (for example pa_%d8%b1...), decode it
+	 * for display and remove only the internal pa_ prefix. Variation keys,
+	 * option values, defaults and swatches continue using their canonical slugs.
+	 */
+	$is_attribute_key = $decoded_label !== $label ||
+		$decoded_label === $decoded_name ||
+		0 === stripos( $decoded_label, 'attribute_pa_' ) ||
+		0 === stripos( $decoded_label, 'pa_' );
+	if ( $is_attribute_key ) {
+		$label = $decoded_label;
+		$label = preg_replace( '/^attribute_/i', '', $label );
+		if ( 0 === stripos( (string) $label, 'pa_' ) ) {
+			$label = substr( (string) $label, 3 );
+		}
+		$label = preg_replace( '/[-_]+/u', ' ', (string) $label );
+	} else {
+		$label = $decoded_label;
+	}
+
+	return trim( (string) preg_replace( '/\s+/u', ' ', (string) $label ) );
+}
+
 /** Produce one concise choice label even when the saved attribute name already contains an instruction. */
 function jluxe_variable_attribute_prompt( string $attribute_name ): string {
-	$label = trim( (string) wc_attribute_label( $attribute_name ) );
+	$label = trim( jluxe_variable_attribute_display_label( $attribute_name ) );
 	$label = preg_replace( '/\s*[:：]\s*$/u', '', $label );
 	$label = preg_replace( '/\s*(?:(?:مورد\s+نظر\s+)?را\s+)?انتخاب\s+کنید\s*[.!؟?،؛:：]*$/u', '', (string) $label );
 	$label = trim( (string) $label, " \t\n\r\0\x0B:：" );
@@ -4504,18 +4534,22 @@ function jluxe_output_shop_columns_css(): void {
 add_action( 'wp_head', 'jluxe_output_shop_columns_css', 30 );
 
 /**
- * رنگ‌های صفحه‌ی محصول (تنظیمات → صفحه محصول). پیش‌فرض‌ها از توکن‌های
- * semantic در storefront.css می‌آیند؛ فقط انتخابِ صریحِ مدیر روی aliasهای
- * قدیمی اعمال می‌شود تا تنظیماتِ سفارشیِ فعلی بدونِ تغییر باقی بمانند.
+ * رنگ‌های صفحه‌ی محصول (تنظیمات → صفحه محصول). پیش‌فرض‌هایِ رنگِ تخفیف/سود/
+ * امتیاز از توکن‌های semantic و رنگ‌های پیوند از توکنِ اصلی پوسته می‌آیند؛
+ * فقط انتخابِ صریحِ مدیر به‌صورت override ذخیره و رندر می‌شود.
  */
 function jluxe_output_product_page_colors_css(): void {
-	$pp = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings()['product_page'] : array();
+	$settings = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings() : array();
+	$pp = isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ? $settings['product_page'] : array();
 	$overrides = array();
 	foreach (
 		array(
-			'discount_color' => '--jluxe-sale-color',
-			'savings_color'  => '--jluxe-savings-color',
-			'star_color'     => '--jluxe-rating-color',
+			'discount_color'                      => '--jluxe-sale-color',
+			'savings_color'                       => '--jluxe-savings-color',
+			'star_color'                          => '--jluxe-rating-color',
+			'description_link_bg_color'           => '--jluxe-description-link-bg',
+			'description_link_text_color'         => '--jluxe-description-link-text',
+			'description_link_border_color'       => '--jluxe-description-link-border',
 		) as $setting_key => $variable
 	) {
 		$color = isset( $pp[ $setting_key ] ) ? sanitize_hex_color( $pp[ $setting_key ] ) : '';
@@ -4797,13 +4831,9 @@ function jluxe_render_product_badge_fields(): void {
 	$key_feature_preview     = jluxe_product_key_feature_cards( $product );
 
 	echo '<div class="options_group">';
-	echo '<p class="form-field"><strong>ویژگی‌های برجستهٔ محصول</strong><br><span class="description">برندِ تخصیص‌یافته به product_brand اول نمایش داده می‌شود. سپس سه ویژگیِ اولِ بخش «ویژگی‌ها» که «نمایش در برگه محصول» دارند و «استفاده برای متغیرها» برایشان خاموش است، خودکار می‌آیند.</span></p>';
-	if ( $key_feature_preview ) {
-		foreach ( $key_feature_preview as $feature_preview ) {
-			echo '<p class="form-field"><strong>' . esc_html( $feature_preview['label'] ) . ':</strong> ' . esc_html( $feature_preview['value'] ) . '</p>';
-		}
-	} else {
-		echo '<p class="form-field"><span class="description">برای نمایش این کارت‌ها، ویژگی‌های قابل‌نمایش را در بخش بومی «ویژگی‌ها» تعریف کنید.</span></p>';
+	echo '<p class="form-field"><strong>ویژگی‌های برجستهٔ محصول</strong></p>';
+	foreach ( $key_feature_preview as $feature_preview ) {
+		echo '<p class="form-field"><strong>' . esc_html( $feature_preview['label'] ) . ':</strong> ' . esc_html( $feature_preview['value'] ) . '</p>';
 	}
 	echo '</div>';
 

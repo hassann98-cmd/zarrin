@@ -1106,10 +1106,13 @@ function jluxe_sanitize_product_page( array $posted, array $defaults ): array {
 		'layout'         => in_array( $layout, array( 'default', 'classic', 'reference' ), true ) ? $layout : $defaults['layout'],
 		'show_related'   => ! empty( $posted['show_related'] ),
 		'related_count'  => max( 2, min( 8, $count ) ),
-		'discount_color' => isset( $posted['discount_color'] ) ? ( sanitize_hex_color( $posted['discount_color'] ) ?: '' ) : $defaults['discount_color'],
-		'savings_color'  => isset( $posted['savings_color'] ) ? ( sanitize_hex_color( $posted['savings_color'] ) ?: '' ) : $defaults['savings_color'],
-		'star_color'     => isset( $posted['star_color'] ) ? ( sanitize_hex_color( $posted['star_color'] ) ?: '' ) : $defaults['star_color'],
-		'trust_items'    => $trust_items,
+		'discount_color'                => isset( $posted['discount_color'] ) ? ( sanitize_hex_color( $posted['discount_color'] ) ?: '' ) : $defaults['discount_color'],
+		'savings_color'                 => isset( $posted['savings_color'] ) ? ( sanitize_hex_color( $posted['savings_color'] ) ?: '' ) : $defaults['savings_color'],
+		'star_color'                    => isset( $posted['star_color'] ) ? ( sanitize_hex_color( $posted['star_color'] ) ?: '' ) : $defaults['star_color'],
+		'description_link_bg_color'     => isset( $posted['description_link_bg_color'] ) ? ( sanitize_hex_color( $posted['description_link_bg_color'] ) ?: '' ) : ( $defaults['description_link_bg_color'] ?? '' ),
+		'description_link_text_color'   => isset( $posted['description_link_text_color'] ) ? ( sanitize_hex_color( $posted['description_link_text_color'] ) ?: '' ) : ( $defaults['description_link_text_color'] ?? '' ),
+		'description_link_border_color' => isset( $posted['description_link_border_color'] ) ? ( sanitize_hex_color( $posted['description_link_border_color'] ) ?: '' ) : ( $defaults['description_link_border_color'] ?? '' ),
+		'trust_items'                   => $trust_items,
 	);
 }
 

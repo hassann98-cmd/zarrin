@@ -1332,10 +1332,13 @@ check(
 	'R246 product editor removes retired manual feature/brand selection controls'
 );
 check(
-	false !== strpos( $r246_panel_html, 'product_brand' ) &&
-	false !== strpos( $r246_panel_html, 'سه ویژگیِ اول' ) &&
+	false !== strpos( $r246_panel_html, '<strong>ویژگی‌های برجستهٔ محصول</strong>' ) &&
+	false === strpos( $r246_panel_html, 'برندِ تخصیص‌یافته به product_brand' ) &&
+	false === strpos( $r246_panel_html, 'سه ویژگیِ اول' ) &&
+	false === strpos( $r246_panel_html, 'برای نمایش این کارت‌ها' ) &&
+	false !== strpos( $r246_panel_html, 'زرین' ) &&
 	false !== strpos( $r246_panel_html, 'چرم، پارچه' ),
-	'R246 product editor explains the automatic WooCommerce flags and previews the generated cards'
+	'R326 product editor removes the noisy feature explanation while retaining the heading and generated values'
 );
 check(
 	false !== strpos( $r246_panel_html, 'id="_jluxe_delivery_time_enabled"' ) &&
@@ -2501,21 +2504,34 @@ check(
 update_test_settings( $defaults );
 $r152_card_override = jluxe_sanitize_product_card( array( 'in_stock_color' => '#123456' ), $r152_color_defaults['product_card'] );
 $r152_page_override = jluxe_sanitize_product_page(
-	array( 'discount_color' => '#234567', 'savings_color' => '#345678', 'star_color' => '#456789' ),
+	array(
+		'discount_color'                => '#234567',
+		'savings_color'                 => '#345678',
+		'star_color'                    => '#456789',
+		'description_link_bg_color'     => '#F8ECE6',
+		'description_link_text_color'   => '#813B27',
+		'description_link_border_color' => '#B85C38',
+	),
 	$r152_color_defaults['product_page']
 );
 check(
 	'#123456' === $r152_card_override['in_stock_color'] &&
 	'#234567' === $r152_page_override['discount_color'] &&
 	'#345678' === $r152_page_override['savings_color'] &&
-	'#456789' === $r152_page_override['star_color'],
-	'R152 sanitizers keep valid admin color overrides while blank values fall back to semantic tokens'
+	'#456789' === $r152_page_override['star_color'] &&
+	'#F8ECE6' === $r152_page_override['description_link_bg_color'] &&
+	'#813B27' === $r152_page_override['description_link_text_color'] &&
+	'#B85C38' === $r152_page_override['description_link_border_color'],
+	'R152/R326 sanitizers retain valid admin color overrides and blank fields preserve theme-token defaults'
 );
 $r152_saved_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
 $r152_test_settings = jluxe_theme_settings_defaults();
 $r152_test_settings['product_page']['discount_color'] = '#234567';
 $r152_test_settings['product_page']['savings_color'] = '#345678';
 $r152_test_settings['product_page']['star_color'] = '#456789';
+$r152_test_settings['product_page']['description_link_bg_color'] = '#F8ECE6';
+$r152_test_settings['product_page']['description_link_text_color'] = '#813B27';
+$r152_test_settings['product_page']['description_link_border_color'] = '#B85C38';
 update_test_settings( $r152_test_settings );
 ob_start();
 jluxe_output_product_page_colors_css();
@@ -2525,8 +2541,26 @@ jluxe_get_theme_settings( true );
 check(
 	strpos( $r152_color_css, '--jluxe-sale-color:#234567' ) !== false &&
 	strpos( $r152_color_css, '--jluxe-savings-color:#345678' ) !== false &&
-	strpos( $r152_color_css, '--jluxe-rating-color:#456789' ) !== false,
-	'R152 frontend CSS continues to render the exact configured admin color overrides'
+	strpos( $r152_color_css, '--jluxe-rating-color:#456789' ) !== false &&
+	strpos( $r152_color_css, '--jluxe-description-link-bg:#F8ECE6' ) !== false &&
+	strpos( $r152_color_css, '--jluxe-description-link-text:#813B27' ) !== false &&
+	strpos( $r152_color_css, '--jluxe-description-link-border:#B85C38' ) !== false,
+	'R152/R326 frontend CSS renders the exact configured product and description-link colors'
+);
+$r326_settings_render_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+$r326_product_defaults = jluxe_theme_settings_defaults()['product_page'];
+$r326_theme_color_vars = jluxe_generate_color_variables( jluxe_theme_settings_defaults()['colors'] );
+check(
+	'' === $r326_product_defaults['description_link_bg_color'] &&
+	'' === $r326_product_defaults['description_link_text_color'] &&
+	'' === $r326_product_defaults['description_link_border_color'] &&
+	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-soft:#F2DDD4' ) &&
+	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-active:#89452A' ) &&
+	false !== strpos( $r326_settings_render_source, 'پیوندهای توضیحات محصول' ) &&
+	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_bg_color]"' ) &&
+	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_text_color]"' ) &&
+	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_border_color]"' ),
+	'R326 settings expose editable link background/text/border colors and default to the live theme-primary styling'
 );
 check(strpos($cp3,'shortBody.scrollHeight <= shortBody.clientHeight + 2')!==false && strpos($cp3,'shortBtn.hidden = true;')!==false, 'R51 the short-description toggle hides itself when the text is not clamped');
 // R52: final parity pass against the user's full reference DOM (buttonsAddToCard row).
@@ -2911,7 +2945,21 @@ $r324_unicode_object_defaults = jluxe_default_variation_pick( $p323_unicode_obje
 $r324_unicode_object_price = jluxe_default_variable_variation_price_html( $p323_unicode_object_parent, $r324_unicode_object_defaults );
 check( $r324_unicode_object_defaults === array( $r324_decoded_attribute_name => 'blue' ) && strpos( $r324_unicode_object_price, '۲۱۵,۰۰۰' ) !== false && false === strpos( $r324_unicode_object_price, '۱۲۰,۰۰۰' ), 'R324 the production child-object path resolves an encoded Persian default to the selected variation exact price' );
 unset( $GLOBALS['products'][755], $GLOBALS['products'][756], $GLOBALS['product_price_html'][755], $GLOBALS['product_price_html'][756] );
-check('انتخاب سایز:' === jluxe_variable_attribute_prompt( 'سایز مورد نظر را انتخاب کنید' ) && 'انتخاب رنگ:' === jluxe_variable_attribute_prompt( 'رنگ' ), 'R139 attribute labels strip an existing instruction and render a single clear selection prompt');
+$r326_encoded_attribute_name = 'pa_%d8%b1%d9%86%da%af';
+$r326_previous_attribute_label = $GLOBALS['attribute_labels'][ $r326_encoded_attribute_name ] ?? null;
+$GLOBALS['attribute_labels'][ $r326_encoded_attribute_name ] = $r326_encoded_attribute_name;
+$r326_encoded_prompt = jluxe_variable_attribute_prompt( $r326_encoded_attribute_name );
+if ( null === $r326_previous_attribute_label ) {
+	unset( $GLOBALS['attribute_labels'][ $r326_encoded_attribute_name ] );
+} else {
+	$GLOBALS['attribute_labels'][ $r326_encoded_attribute_name ] = $r326_previous_attribute_label;
+}
+check(
+	'انتخاب سایز:' === jluxe_variable_attribute_prompt( 'سایز مورد نظر را انتخاب کنید' ) &&
+	'انتخاب رنگ:' === jluxe_variable_attribute_prompt( 'رنگ' ) &&
+	'انتخاب رنگ:' === $r326_encoded_prompt,
+	'R139/R326 variation prompts remove duplicate instructions and decode Persian taxonomy names for display only'
+);
 $p74child_parent = new JLuxe_Var_Product(745);
 $p74child_parent->children = array( 746, 747, 748 );
 $p74child_parent->jluxe_option_map = array( 'pa_rang' => array( 'bone', 'red', 'blue' ) );

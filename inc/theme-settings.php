@@ -832,9 +832,13 @@ function jluxe_theme_settings_defaults(): array {
 			'related_count' => 4,
 			// خالی یعنی semantic token (error / success / warning-strong).
 			// رنگِ غیرخالی انتخابِ آگاهانهٔ ادمین است و هنگامِ رندر حفظ می‌شود.
-			'discount_color' => '',
-			'savings_color'  => '',
-			'star_color'     => '',
+			'discount_color'                => '',
+			'savings_color'                 => '',
+			'star_color'                    => '',
+			// رنگ‌های لینکِ توضیحات: خالی یعنی رنگ‌های هماهنگ با --primary.
+			'description_link_bg_color'     => '',
+			'description_link_text_color'   => '',
+			'description_link_border_color' => '',
 			// ردیف‌های اعتماد فقط پس از واردکردن و فعال‌کردن متنِ تأییدشده
 			// توسط مدیر نمایش داده می‌شوند؛ مهلت، شرکت حمل یا درگاه فرض نمی‌شود.
 			'trust_items'    => array(
@@ -2317,6 +2321,8 @@ function jluxe_generate_color_variables( array $colors ): string {
 	// triplet) رو Tailwind (tailwind.config.ts) مصرف می‌کنه، این‌ها رو نه.
 	$vars['--jluxe-primary']         = $colors['primary'];
 	$vars['--jluxe-primary-hover']   = '#' . jluxe_hsl_to_hex( $primary_hsl, -5 );
+	$vars['--jluxe-primary-active']  = '#' . jluxe_hsl_to_hex( $primary_hsl, -12 );
+	$vars['--jluxe-primary-soft']    = '#' . jluxe_hsl_to_hex( $primary_hsl, 42 );
 	$vars['--jluxe-secondary']       = $colors['secondary'];
 	$vars['--jluxe-secondary-hover'] = '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 );
 	$vars['--jluxe-accent']          = $colors['accent'];
