@@ -9430,6 +9430,14 @@ selector اول با .button هم‌تراز است تا سبکِ پیش‌فر�
   .jluxe-pa-foot { padding: 14px 24px 18px; }
   .jluxe-pa-foot-main .jluxe-pa-confirm { flex: 0 0 auto; }
 }
+/* شمارش‌معکوس همیشه پایینِ چپِ فوتر می‌ماند و فقط وقتی زمان‌دار فعال است نمایش داده می‌شود. */
+.jluxe-pa-countdown { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin-right: auto; padding: 6px 10px; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--panel)); color: hsl(var(--text-secondary)); font-size: 11.5px; line-height: 1.4; }
+.jluxe-pa-countdown[hidden] { display: none; }
+.jluxe-pa-countdown > svg { flex: none; width: 16px; height: 16px; color: hsl(var(--primary)); }
+.jluxe-pa-countdown-value { min-width: 3.5em; color: hsl(var(--primary)); font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 800; text-align: center; }
+.jluxe-pa-countdown[data-pa-countdown-urgent="1"] { border-color: hsl(var(--error) / 0.4); background: hsl(var(--error) / 0.06); color: hsl(var(--error)); }
+.jluxe-pa-countdown[data-pa-countdown-urgent="1"] > svg,
+.jluxe-pa-countdown[data-pa-countdown-urgent="1"] .jluxe-pa-countdown-value { color: hsl(var(--error)); }
 /* R63 (فاز ۲) — state موفقِ Quick Add روی دکمهٔ کارت */
 .jluxe-btn-added { background: hsl(var(--primary)) !important; color: hsl(var(--primary-foreground)) !important; transform: scale(1.05); }
 /* R63 (فاز ۵) — هدرِ فشردهٔ اسکرول */

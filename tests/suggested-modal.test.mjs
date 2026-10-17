@@ -72,6 +72,7 @@ test("suggested-product modal retains selections, retries only failed adds, and 
   trigger.focus();
   window.jluxeOpenSuggestedProductsModal();
   assert.equal(modal.getAttribute("aria-hidden"), "false");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null, "a disabled auto-close timer adds no countdown to the suggestion sheet");
   assert.equal(window.document.body.style.overflow, "hidden");
   assert.ok(modal.querySelector(".jluxe-pa-sheet").contains(window.document.activeElement), "opening suggestions moves focus into the dialog");
   close.click();
@@ -183,13 +184,15 @@ test("R343 closing the suggestion sheet after a home-page variation leaves the m
   assert.equal(window.document.body.style.overflow, "", "the drawer still restores its original lock after both overlays close");
 });
 
-test("R343 the optional timer closes only an open suggestion sheet after the configured seconds", async (t) => {
+test("R343 the optional timer shows a live Persian countdown, then closes the open sheet", async (t) => {
   const dom = new JSDOM(
     `<!doctype html><html><body>${suggestedMarkup(false, true, 27)}</body></html>`,
     { url: "https://shop.test/", runScripts: "outside-only", pretendToBeVisual: true },
   );
   t.after(() => dom.window.close());
   const { window } = dom;
+  let now = 100_000;
+  window.Date.now = () => now;
   window.JLuxeThemeSettings = { cart: { ajaxUrl: "https://shop.test/cart-ajax", nonce: "nonce-test" } };
   window.eval(read("../assets/js/storefront-utils.js"));
   const source = read("../assets/js/woocommerce.js");
@@ -200,23 +203,51 @@ test("R343 the optional timer closes only an open suggestion sheet after the con
   window.eval(source.slice(start, end + "\n})();".length));
 
   const timers = new Map();
+  const intervals = new Map();
   let nextTimer = 1;
+  let nextInterval = 1;
   window.setTimeout = (callback, delay) => {
     const id = nextTimer++;
     timers.set(id, { callback, delay });
     return id;
   };
   window.clearTimeout = (id) => timers.delete(id);
+  window.setInterval = (callback, delay) => {
+    const id = nextInterval++;
+    intervals.set(id, { callback, delay });
+    return id;
+  };
+  window.clearInterval = (id) => intervals.delete(id);
   const modal = window.document.querySelector("[data-jluxe-suggested-modal]");
+  const countdown = modal.querySelector("[data-pa-countdown]");
+  const countdownValue = countdown.querySelector("[data-pa-countdown-value]");
+  assert.equal(countdown.hidden, true, "the countdown stays hidden before the sheet opens");
   window.jluxeOpenSuggestedProductsModal();
-  assert.equal(timers.size, 1, "opening schedules one timer");
+  assert.equal(timers.size, 1, "opening schedules one auto-close timer");
+  assert.equal(intervals.size, 1, "opening starts one lightweight display ticker");
   const [timerId, timer] = timers.entries().next().value;
   assert.equal(timer.delay, 27_000, "the saved seconds value is converted to milliseconds once");
+  assert.equal(countdown.hidden, false, "the visible countdown appears with the open sheet");
+  assert.equal(countdownValue.textContent, "۰۰:۲۷", "the starting time uses Persian digits");
+
+  now += 8_000;
+  intervals.values().next().value.callback();
+  assert.equal(countdownValue.textContent, "۰۰:۱۹", "the display follows the actual remaining time rather than decrement drift");
+  now += 17_000;
   timers.delete(timerId);
   timer.callback();
   assert.equal(modal.classList.contains("hidden"), true, "the elapsed timer closes the sheet");
+  assert.equal(countdown.hidden, true, "closing hides the countdown with its modal");
+  assert.equal(intervals.size, 0, "closing clears the display ticker");
   assert.equal(window.jluxeCloseSuggestedProductsModal, null, "timer close clears its global callback");
   assert.equal(window.document.body.style.overflow, "", "timer close releases the scroll lock");
+});
+
+test("R344 the enabled countdown is styled as a compact lower-left footer chip", () => {
+  const css = read("../src/styles/storefront.css");
+  assert.match(css, /\.jluxe-pa-countdown\s*\{[^}]*margin-right:\s*auto/);
+  assert.match(css, /\.jluxe-pa-countdown\[hidden\]\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.jluxe-pa-countdown\[data-pa-countdown-urgent="1"\]/);
 });
 
 test("variable recommendations preserve and retry pending sheet choices after a successful variation", async (t) => {
@@ -486,6 +517,11 @@ test("the variation picker keeps an uncertain add visible and blocks in-flight d
 function suggestedMarkup(selected, autoClose = false, autoCloseSeconds = 15) {
   const productPressed = selected ? "true" : "false";
   const servicePressed = selected ? "true" : "false";
+  const countdownMinutes = String(Math.floor(autoCloseSeconds / 60)).padStart(2, "0");
+  const countdownRemainder = String(autoCloseSeconds % 60).padStart(2, "0");
+  const countdown = autoClose
+    ? `<div class="jluxe-pa-countdown" data-pa-countdown hidden role="timer" aria-live="off"><span class="jluxe-pa-countdown-label">تا بسته‌شدن پیشنهادها</span><strong class="jluxe-pa-countdown-value" data-pa-countdown-value dir="ltr">${countdownMinutes}:${countdownRemainder}</strong></div>`
+    : "";
   return `<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="500" data-pa-main="100" data-pa-auto-close="${autoClose ? "1" : "0"}" data-pa-auto-close-seconds="${autoCloseSeconds}">
     <div class="jluxe-pa-backdrop" data-jluxe-suggested-close></div>
     <section class="jluxe-pa-sheet" role="dialog" aria-modal="true" aria-label="Suggestions">
@@ -498,6 +534,7 @@ function suggestedMarkup(selected, autoClose = false, autoCloseSeconds = 15) {
       </div>
       <strong data-pa-total></strong>
       <button type="button" data-pa-confirm data-pa-confirm-selected="Add selected" data-pa-confirm-empty="Continue"><span data-pa-confirm-label></span></button>
+      ${countdown}
     </section>
   </div>`;
 }

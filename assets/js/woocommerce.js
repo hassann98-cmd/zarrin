@@ -2742,6 +2742,10 @@ function jluxeEnhanceShopSort(root) {
 		var releaseDialogFocus = null;
 		var previousBodyOverflow = "";
 		var autoCloseTimer = null;
+		var autoCloseCountdownTimer = null;
+		var autoCloseDeadline = 0;
+		var countdownDisplay = modal.querySelector("[data-pa-countdown]");
+		var countdownValue = countdownDisplay && countdownDisplay.querySelector("[data-pa-countdown-value]");
 		var autoCloseEnabled = modal.getAttribute("data-pa-auto-close") === "1";
 		var autoCloseSeconds = parseInt(modal.getAttribute("data-pa-auto-close-seconds"), 10);
 		if (!isFinite(autoCloseSeconds)) { autoCloseSeconds = 15; }
@@ -2752,11 +2756,47 @@ function jluxeEnhanceShopSort(root) {
 				window.clearTimeout(autoCloseTimer);
 				autoCloseTimer = null;
 			}
+			if (autoCloseCountdownTimer !== null) {
+				window.clearInterval(autoCloseCountdownTimer);
+				autoCloseCountdownTimer = null;
+			}
+			autoCloseDeadline = 0;
+		}
+
+		function formatSuggestedCountdown(seconds) {
+			var minutes = Math.floor(seconds / 60);
+			var remainder = seconds % 60;
+			var value = (minutes < 10 ? "0" : "") + minutes + ":" + (remainder < 10 ? "0" : "") + remainder;
+			return value.replace(/[0-9]/g, function (digit) { return "۰۱۲۳۴۵۶۷۸۹".charAt(Number(digit)); });
+		}
+
+		function updateSuggestedCountdown() {
+			if (!countdownValue || !autoCloseDeadline) { return; }
+			var remaining = Math.max(0, Math.ceil((autoCloseDeadline - Date.now()) / 1000));
+			countdownValue.textContent = formatSuggestedCountdown(remaining);
+			if (countdownDisplay) {
+				if (remaining <= 5) { countdownDisplay.setAttribute("data-pa-countdown-urgent", "1"); }
+				else { countdownDisplay.removeAttribute("data-pa-countdown-urgent"); }
+			}
+			if (remaining === 0 && autoCloseCountdownTimer !== null) {
+				window.clearInterval(autoCloseCountdownTimer);
+				autoCloseCountdownTimer = null;
+			}
 		}
 
 		function scheduleSuggestedAutoClose() {
 			clearSuggestedAutoCloseTimer();
-			if (!autoCloseEnabled || modal.classList.contains("hidden")) { return; }
+			if (!autoCloseEnabled || modal.classList.contains("hidden")) {
+				if (countdownDisplay) {
+					countdownDisplay.hidden = true;
+					countdownDisplay.removeAttribute("data-pa-countdown-urgent");
+				}
+				return;
+			}
+			autoCloseDeadline = Date.now() + autoCloseSeconds * 1000;
+			if (countdownDisplay) { countdownDisplay.hidden = false; }
+			updateSuggestedCountdown();
+			if (countdownValue) { autoCloseCountdownTimer = window.setInterval(updateSuggestedCountdown, 1000); }
 			autoCloseTimer = window.setTimeout(function () {
 				autoCloseTimer = null;
 				// Never dismiss the sheet in the middle of a WooCommerce mutation.
@@ -2787,6 +2827,10 @@ function jluxeEnhanceShopSort(root) {
 		function closeSuggestedProductsModal() {
 			if (isCommitting || modal.classList.contains("hidden")) { return false; }
 			clearSuggestedAutoCloseTimer();
+			if (countdownDisplay) {
+				countdownDisplay.hidden = true;
+				countdownDisplay.removeAttribute("data-pa-countdown-urgent");
+			}
 			modal.classList.add("hidden");
 			modal.setAttribute("aria-hidden", "true");
 			var drawerStillOpen = document.documentElement && document.documentElement.hasAttribute("data-jluxe-mobile-drawer");
