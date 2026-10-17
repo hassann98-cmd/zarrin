@@ -1066,6 +1066,10 @@ function jluxe_sanitize_purchase_addons( array $posted, array $defaults ): array
 	$max_products = isset( $posted['max_products'] ) && is_scalar( $posted['max_products'] )
 		? absint( $posted['max_products'] )
 		: absint( $defaults['max_products'] ?? 4 );
+	$auto_close_seconds_raw = isset( $posted['auto_close_seconds'] ) && is_scalar( $posted['auto_close_seconds'] )
+		? $posted['auto_close_seconds']
+		: ( $defaults['auto_close_seconds'] ?? 15 );
+	$auto_close_seconds = max( 3, min( 300, absint( $auto_close_seconds_raw ) ) );
 	$text_defaults = array(
 		'modal_title'            => 'افزودن به سبد خرید',
 		'products_heading'       => 'ممکن است این‌ها را هم لازم داشته باشید',
@@ -1087,9 +1091,11 @@ function jluxe_sanitize_purchase_addons( array $posted, array $defaults ): array
 
 	return array_merge(
 		array(
-			'enabled'           => ! empty( $posted['enabled'] ),
-			'mode'              => $mode,
-			'fixed_ids'         => $fixed_ids,
+			'enabled'             => ! empty( $posted['enabled'] ),
+			'auto_close_enabled'  => ! empty( $posted['auto_close_enabled'] ),
+			'auto_close_seconds'  => $auto_close_seconds,
+			'mode'                => $mode,
+			'fixed_ids'           => $fixed_ids,
 			'max_products'      => max( 1, min( 4, $max_products ) ),
 			'show_main_product' => ! empty( $posted['show_main_product'] ),
 			'show_products'     => ! empty( $posted['show_products'] ),

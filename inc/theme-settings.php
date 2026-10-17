@@ -381,6 +381,9 @@ function jluxe_theme_settings_defaults(): array {
 		'purchase_addons' => array(
 			// R61: the modal remains opt-out; each content block can be controlled independently.
 			'enabled'                => true,
+			// رفتارِ فعلی حفظ می‌شود؛ بستنِ خودکار فقط با انتخابِ مدیر فعال است.
+			'auto_close_enabled'     => false,
+			'auto_close_seconds'     => 15,
 			'mode'                   => 'per_product',
 			'fixed_ids'              => array(),
 			'max_products'           => 4,

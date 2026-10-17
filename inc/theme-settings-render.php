@@ -1257,6 +1257,19 @@ function jluxe_render_purchase_addons_page(): void {
 					</label>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row">بستن خودکار پنجرهٔ پیشنهادها</th>
+				<td>
+					<label>
+						<input type="checkbox" name="purchase_addons[auto_close_enabled]" value="1" <?php checked( $pa['auto_close_enabled'] ?? false ); ?> />
+						پس از زمان تعیین‌شده، پنجرهٔ پیشنهادها بسته شود
+					</label>
+					<p class="description">در حالت خاموش، پنجره فقط با انتخابِ کاربر بسته می‌شود و رفتارِ فعلی تغییر نمی‌کند.</p>
+					<label for="jluxe-pa-auto-close-seconds">زمان بازماندن پنجره (ثانیه)</label>
+					<input type="number" id="jluxe-pa-auto-close-seconds" name="purchase_addons[auto_close_seconds]" value="<?php echo esc_attr( (string) ( $pa['auto_close_seconds'] ?? 15 ) ); ?>" min="3" max="300" step="1" class="small-text" />
+					<p class="description">مقدار مجاز: ۳ تا ۳۰۰ ثانیه. پیش‌فرض ۱۵ ثانیه است؛ تا وقتی گزینهٔ بالا روشن نشود، تایمر اجرا نمی‌شود.</p>
+				</td>
+			</tr>
 		</table>
 
 		<h2>بخش‌های مودال و متن‌ها</h2>

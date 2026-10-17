@@ -2232,6 +2232,12 @@ function jluxeEnhanceShopSort(root) {
 
 	function discardSuggestedModal() {
 		var stale = document.querySelector("[data-jluxe-suggested-modal]");
+		if (stale && !stale.classList.contains("hidden") && typeof window.jluxeCloseSuggestedProductsModal === "function") {
+			window.jluxeCloseSuggestedProductsModal();
+		}
+		if (stale && typeof stale._jluxeClearSuggestedAutoCloseTimer === "function") {
+			stale._jluxeClearSuggestedAutoCloseTimer();
+		}
 		if (stale && stale.parentNode) { stale.parentNode.removeChild(stale); }
 		window.jluxeOpenSuggestedProductsModal = null;
 		window.jluxeCloseSuggestedProductsModal = null;
@@ -2734,10 +2740,39 @@ function jluxeEnhanceShopSort(root) {
 		modal.setAttribute("data-cp3-pa-bound", "1");
 
 		var releaseDialogFocus = null;
+		var previousBodyOverflow = "";
+		var autoCloseTimer = null;
+		var autoCloseEnabled = modal.getAttribute("data-pa-auto-close") === "1";
+		var autoCloseSeconds = parseInt(modal.getAttribute("data-pa-auto-close-seconds"), 10);
+		if (!isFinite(autoCloseSeconds)) { autoCloseSeconds = 15; }
+		autoCloseSeconds = Math.max(3, Math.min(300, autoCloseSeconds));
+
+		function clearSuggestedAutoCloseTimer() {
+			if (autoCloseTimer !== null) {
+				window.clearTimeout(autoCloseTimer);
+				autoCloseTimer = null;
+			}
+		}
+
+		function scheduleSuggestedAutoClose() {
+			clearSuggestedAutoCloseTimer();
+			if (!autoCloseEnabled || modal.classList.contains("hidden")) { return; }
+			autoCloseTimer = window.setTimeout(function () {
+				autoCloseTimer = null;
+				// Never dismiss the sheet in the middle of a WooCommerce mutation.
+				if (isCommitting) { scheduleSuggestedAutoClose(); return; }
+				closeSuggestedProductsModal();
+			}, autoCloseSeconds * 1000);
+		}
+		modal._jluxeClearSuggestedAutoCloseTimer = clearSuggestedAutoCloseTimer;
+
 		window.jluxeOpenSuggestedProductsModal = function () {
+			var wasHidden = modal.classList.contains("hidden");
+			if (wasHidden) { previousBodyOverflow = document.body.style.overflow; }
 			modal.classList.remove("hidden");
 			modal.setAttribute("aria-hidden", "false");
 			document.body.style.overflow = "hidden";
+			window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
 			/* R63 (فاز ۶): تلهٔ فوکوسِ مشترک (storefront-utils.js) — Tab داخل
 			شیت می‌ماند، فوکوس اول به خودِ مودال می‌رود و بعد از بستن به
 			عنصرِ قبلی برمی‌گردد. */
@@ -2746,16 +2781,22 @@ function jluxeEnhanceShopSort(root) {
 					if (typeof window.jluxeCloseSuggestedProductsModal === "function") { window.jluxeCloseSuggestedProductsModal(); }
 				});
 			}
+			if (wasHidden) { scheduleSuggestedAutoClose(); }
 		};
 
 		function closeSuggestedProductsModal() {
-			if (isCommitting) { return; }
+			if (isCommitting || modal.classList.contains("hidden")) { return false; }
+			clearSuggestedAutoCloseTimer();
 			modal.classList.add("hidden");
 			modal.setAttribute("aria-hidden", "true");
-			document.body.style.overflow = "";
+			var drawerStillOpen = document.documentElement && document.documentElement.hasAttribute("data-jluxe-mobile-drawer");
+			document.body.style.overflow = drawerStillOpen ? "hidden" : previousBodyOverflow;
 			if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
+			if (window.jluxeCloseSuggestedProductsModal === closeSuggestedProductsModal) {
+				window.jluxeCloseSuggestedProductsModal = null;
+			}
+			return true;
 		}
-		window.jluxeCloseSuggestedProductsModal = closeSuggestedProductsModal;
 
 		modal.querySelectorAll("[data-jluxe-suggested-close]").forEach(function (el) {
 			el.addEventListener("click", closeSuggestedProductsModal);
@@ -3082,6 +3123,12 @@ function jluxeEnhanceShopSort(root) {
 
 	window.jluxeMountSuggestedModal = function (html, selectionState) {
 		var old = document.querySelector("[data-jluxe-suggested-modal]");
+		if (old && typeof old._jluxeClearSuggestedAutoCloseTimer === "function") {
+			old._jluxeClearSuggestedAutoCloseTimer();
+		}
+		if (old && !old.classList.contains("hidden") && typeof window.jluxeCloseSuggestedProductsModal === "function") {
+			window.jluxeCloseSuggestedProductsModal();
+		}
 		if (old && old.parentNode) { old.parentNode.removeChild(old); }
 		var wrap = document.createElement("div");
 		wrap.innerHTML = html;

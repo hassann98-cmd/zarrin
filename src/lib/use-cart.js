@@ -16,6 +16,8 @@ let snapshot = {
   ...empty,
   itemCount: getThemeSettings().cart?.initialCount ?? 0,
 };
+let authoritativeSnapshot = snapshot;
+const pendingRemovals = new Set();
 let loaded = false;
 let revision = 0;
 let initialRequest;
@@ -23,11 +25,32 @@ let queue = Promise.resolve();
 const subscribers = new Set();
 // Each DOM event is shared by header, drawer and mobile subscribers.
 const refreshEvents = new WeakMap();
+function applyPendingRemovals(next) {
+  if (!pendingRemovals.size || !Array.isArray(next.items)) return next;
+  let removedQuantity = 0;
+  const items = next.items.filter((item) => {
+    if (!pendingRemovals.has(String(item.key))) return true;
+    const quantity = Number(item.qty);
+    if (Number.isFinite(quantity) && quantity > 0) removedQuantity += quantity;
+    return false;
+  });
+  if (items.length === next.items.length) return next;
+  const count = Number(next.itemCount);
+  return {
+    ...next,
+    items,
+    itemCount: Number.isFinite(count)
+      ? Math.max(0, count - removedQuantity)
+      : next.itemCount,
+  };
+}
+
 function publish(next) {
-  snapshot = next;
+  authoritativeSnapshot = next;
+  snapshot = applyPendingRemovals(next);
   loaded = true;
   revision += 1;
-  subscribers.forEach((subscriber) => subscriber(next));
+  subscribers.forEach((subscriber) => subscriber(snapshot));
 }
 
 /** Serialize drawer requests; never turn a network/server rejection into a successful mutation. */
@@ -148,14 +171,31 @@ function useCart() {
     setBusy(false);
     return !result.error;
   }, []);
+  const removeItem = useCallback(async (key) => {
+    const itemKey = String(key);
+    if (pendingRemovals.has(itemKey)) return false;
+    // Hide the row/count immediately, including across newer snapshots from
+    // earlier queued mutations. The authoritative WooCommerce reply replaces
+    // the optimistic view; any failure restores the latest server snapshot.
+    pendingRemovals.add(itemKey);
+    publish(authoritativeSnapshot);
+    setLoading(true);
+    setError(null);
+    const result = await cartRequest("remove", { key: itemKey });
+    pendingRemovals.delete(itemKey);
+    if (result.error) publish(authoritativeSnapshot);
+    setError(result.error ?? null);
+    setLoading(false);
+    return !result.error;
+  }, []);
   return {
     snapshot: current,
-    loading,
+    loading: loading || pendingRemovals.size > 0,
     error,
     couponLoading,
     couponError,
     updateQty: (key, qty) => mutate("update_qty", { key, qty: String(qty) }),
-    removeItem: (key) => mutate("remove", { key }),
+    removeItem,
     applyCoupon: (coupon_code) => mutate("apply_coupon", { coupon_code }, true),
     removeCoupon: (coupon_code) =>
       mutate("remove_coupon", { coupon_code }, true),

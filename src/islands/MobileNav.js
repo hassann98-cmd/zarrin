@@ -1,6 +1,7 @@
 import { siteUrl } from "../lib/api.js";
 import {
   getActiveMobileDrawer,
+  openMobileDrawer,
   subscribeMobileDrawerState,
   toggleMobileDrawer,
 } from "../lib/mobile-drawers.js";
@@ -174,15 +175,13 @@ function MobileNav() {
               if (isModifiedClick(event)) return;
               if (item.opensDrawer) {
                 event.preventDefault();
-                const wasOpen =
-                  getActiveMobileDrawer(window) === item.opensDrawer;
-                if (
-                  !wasOpen &&
-                  typeof window.jluxeCloseSuggestedProductsModal === "function"
-                ) {
-                  window.jluxeCloseSuggestedProductsModal();
-                }
-                toggleMobileDrawer(item.opensDrawer, window);
+                const closedSuggestions =
+                  typeof window.jluxeCloseSuggestedProductsModal === "function" &&
+                  window.jluxeCloseSuggestedProductsModal() === true;
+                // Dismissing an overlay must reveal/open the requested drawer,
+                // not let stale drawer state interpret this tap as a second toggle.
+                if (closedSuggestions) openMobileDrawer(item.opensDrawer, window);
+                else toggleMobileDrawer(item.opensDrawer, window);
               } else if (item.id !== "home") {
                 setCurrentHref(item.href);
               }

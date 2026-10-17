@@ -242,8 +242,8 @@ test("mobile category/cart controls keep their normal icons, expose close state,
   assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
   assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
   assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(mobileNavSource, /!wasOpen[\s\S]*?jluxeCloseSuggestedProductsModal/);
-  assert.match(floatingNavSource, /!wasOpen[\s\S]*?jluxeCloseSuggestedProductsModal/);
+  assert.match(mobileNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
+  assert.match(floatingNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
   assert.match(mobileNavSource, /aria-expanded": drawerOpen/);
   assert.match(floatingNavSource, /aria-expanded": drawerOpen/);
   assert.match(mobileNavSource, /"aria-current": routeActive \? "page"/);

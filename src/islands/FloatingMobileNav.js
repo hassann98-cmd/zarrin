@@ -2,6 +2,7 @@ import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
 import {
   getActiveMobileDrawer,
+  openMobileDrawer,
   subscribeMobileDrawerState,
   toggleMobileDrawer,
 } from "../lib/mobile-drawers.js";
@@ -174,14 +175,13 @@ function FloatingMobileNav() {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
       event.preventDefault();
-      const wasOpen = getActiveMobileDrawer(window) === item.opensDrawer;
-      if (
-        !wasOpen &&
-        typeof window.jluxeCloseSuggestedProductsModal === "function"
-      ) {
-        window.jluxeCloseSuggestedProductsModal();
-      }
-      toggleMobileDrawer(item.opensDrawer, window);
+      const closedSuggestions =
+        typeof window.jluxeCloseSuggestedProductsModal === "function" &&
+        window.jluxeCloseSuggestedProductsModal() === true;
+      // A just-dismissed modal should reveal the chosen drawer even if the
+      // prior drawer state is stale or its close animation is still running.
+      if (closedSuggestions) openMobileDrawer(item.opensDrawer, window);
+      else toggleMobileDrawer(item.opensDrawer, window);
       return;
     }
     if (

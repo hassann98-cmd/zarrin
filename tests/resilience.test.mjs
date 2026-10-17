@@ -260,6 +260,119 @@ test("R22 three cart consumers refresh once per event and ignore an older read a
   assert.equal(calls, 3, "complete snapshot does not need a redundant request");
 });
 
+test("R343 drawer removal updates immediately, rolls back on a network timeout, and accepts WooCommerce truth on success", async () => {
+  const instance = dom();
+  const { u: useCart, cartRequest } = await freshCart();
+  const before = {
+    ...cartData(3),
+    items: [
+      { key: "line-1", qty: 2, name: "First product" },
+      { key: "line-2", qty: 1, name: "Second product" },
+    ],
+  };
+  const afterQueuedUpdate = {
+    ...before,
+    items: [{ ...before.items[0], qty: 3 }, before.items[1]],
+    itemCount: 4,
+  };
+  let signalQueuedUpdate;
+  const queuedUpdateStarted = new Promise((resolve) => {
+    signalQueuedUpdate = resolve;
+  });
+  let releaseQueuedUpdate;
+  let signalRemoveStarted;
+  const removeStarted = new Promise((resolve) => {
+    signalRemoveStarted = resolve;
+  });
+  let rejectFirstRemove;
+  let removals = 0;
+  globalThis.fetch = async (_url, options) => {
+    const operation = options.body.get("op");
+    if (operation === "get") return json({ success: true, data: before });
+    if (operation === "update_qty") {
+      signalQueuedUpdate();
+      return new Promise((resolve) => {
+        releaseQueuedUpdate = resolve;
+      });
+    }
+    if (operation !== "remove") throw new Error(`Unexpected cart operation ${operation}`);
+    removals++;
+    if (removals === 1) {
+      signalRemoveStarted();
+      return new Promise((_resolve, reject) => {
+        rejectFirstRemove = reject;
+      });
+    }
+    return json({
+      success: true,
+      data: {
+        ...afterQueuedUpdate,
+        items: [afterQueuedUpdate.items[1]],
+        itemCount: 1,
+        subtotalHtml: "updated by WooCommerce",
+      },
+    });
+  };
+  let currentCart;
+  function Consumer() {
+    currentCart = useCart();
+    const { snapshot, loading, error } = currentCart;
+    return React.createElement(
+      "output",
+      null,
+      `${snapshot.itemCount}|${snapshot.items.map((item) => item.key).join(",")}|${loading ? "busy" : "idle"}|${error ?? ""}`,
+    );
+  }
+  const root = createRoot(document.getElementById("root"));
+  disposers.push(() => act(() => root.unmount()));
+  await act(async () => {
+    root.render(React.createElement(Consumer));
+  });
+  assert.equal(document.querySelector("output")?.textContent, "3|line-1,line-2|idle|");
+
+  const queuedUpdate = cartRequest("update_qty", { key: "line-1", qty: "3" });
+  await queuedUpdateStarted;
+  let failedRemove;
+  await act(async () => {
+    failedRemove = currentCart.removeItem("line-1");
+    await Promise.resolve();
+  });
+  assert.equal(
+    document.querySelector("output")?.textContent,
+    "1|line-2|busy|",
+    "the selected row and its quantity disappear immediately even while an earlier WooCommerce mutation is queued",
+  );
+  await act(async () => {
+    releaseQueuedUpdate(json({ success: true, data: afterQueuedUpdate }));
+    await queuedUpdate;
+    await removeStarted;
+  });
+  assert.equal(
+    document.querySelector("output")?.textContent,
+    "1|line-2|busy|",
+    "a newer queued cart snapshot cannot reinsert the row or clear the pending remove state",
+  );
+  await act(async () => {
+    rejectFirstRemove(new TypeError("simulated request timeout"));
+    await failedRemove;
+  });
+  assert.equal(
+    document.querySelector("output")?.textContent,
+    "4|line-1,line-2|idle|ارتباط با سرور برقرار نشد. دوباره تلاش کنید.",
+    "an ambiguous transport failure restores the newest confirmed snapshot, reports the error and is never treated as success",
+  );
+
+  await act(async () => {
+    await currentCart.removeItem("line-1");
+  });
+  assert.equal(
+    document.querySelector("output")?.textContent,
+    "1|line-2|idle|",
+    "a successful reply replaces the optimistic view with WooCommerce's current cart",
+  );
+  assert.equal(removals, 2, "each intentional remove sends exactly one server mutation");
+});
+
 const tracker = fs.readFileSync(
   new URL("../assets/js/order-tracking.js", import.meta.url),
   "utf8",

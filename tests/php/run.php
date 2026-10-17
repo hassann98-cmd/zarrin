@@ -2275,9 +2275,9 @@ $pa_original_settings = jluxe_get_theme_settings();
 reset_cart();
 $GLOBALS['wc']->session = new FakeSession();
 $pa_defaults = $pa_original_settings['purchase_addons'] ?? array();
-check(is_array($pa_defaults) && true === ( $pa_defaults['enabled'] ?? false ) && 'per_product' === ( $pa_defaults['mode'] ?? '' ) && 4 === ( $pa_defaults['max_products'] ?? 0 ) && false === ( $pa_defaults['show_main_product'] ?? true ) && true === ( $pa_defaults['show_products'] ?? false ) && false === ( $pa_defaults['show_services'] ?? true ) && is_array( $pa_defaults['services'] ?? null ), 'R47 purchase-addons defaults stay enabled but compact: up to four suggestions, no added-product card or services unless enabled');
+check(is_array($pa_defaults) && true === ( $pa_defaults['enabled'] ?? false ) && 'per_product' === ( $pa_defaults['mode'] ?? '' ) && 4 === ( $pa_defaults['max_products'] ?? 0 ) && false === ( $pa_defaults['show_main_product'] ?? true ) && true === ( $pa_defaults['show_products'] ?? false ) && false === ( $pa_defaults['show_services'] ?? true ) && false === ( $pa_defaults['auto_close_enabled'] ?? true ) && 15 === ( $pa_defaults['auto_close_seconds'] ?? 0 ) && is_array( $pa_defaults['services'] ?? null ), 'R47 purchase-addons defaults stay compact, and the new auto-close timer remains disabled by default at fifteen seconds');
 $pa_admin = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
-check( strpos( $pa_admin, 'name="purchase_addons[show_products]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[show_services]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[products_heading]"' ) !== false && strpos( $pa_admin, 'max="4"' ) !== false && strpos( $pa_admin, 'id="jluxe-pa-add-service"' ) !== false && strpos( $pa_admin, 'class="button jluxe-pa-remove"' ) !== false && strpos( $pa_admin, 'field.name.replace( /__i__/g, String( nextIndex ) )' ) !== false, 'R47 theme settings expose section visibility, editable copy, a four-item cap and uniquely indexed add/remove service rows');
+check( strpos( $pa_admin, 'name="purchase_addons[show_products]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[show_services]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[products_heading]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[auto_close_enabled]"' ) !== false && strpos( $pa_admin, 'name="purchase_addons[auto_close_seconds]"' ) !== false && strpos( $pa_admin, 'min="3" max="300" step="1"' ) !== false && strpos( $pa_admin, 'max="4"' ) !== false && strpos( $pa_admin, 'id="jluxe-pa-add-service"' ) !== false && strpos( $pa_admin, 'class="button jluxe-pa-remove"' ) !== false && strpos( $pa_admin, 'field.name.replace( /__i__/g, String( nextIndex ) )' ) !== false, 'R47 theme settings expose timer controls with bounded seconds, section visibility, editable copy and uniquely indexed service rows');
 $pa_san = jluxe_sanitize_purchase_addons( array(
 	'enabled' => '1',
 	'mode' => 'nonsense',
@@ -2285,6 +2285,8 @@ $pa_san = jluxe_sanitize_purchase_addons( array(
 	'max_products' => '9',
 	'show_products' => '1',
 	'show_services' => '1',
+	'auto_close_enabled' => '1',
+	'auto_close_seconds' => '999',
 	'products_heading' => '<b>این محصول را هم اضافه کن</b>',
 	'services_heading' => 'خدمات ویژه',
 	'services' => array(
@@ -2293,7 +2295,9 @@ $pa_san = jluxe_sanitize_purchase_addons( array(
 		array( 'title' => 'س', 'amount' => '-3' ),
 	),
 ), $pa_defaults );
-check(true === $pa_san['enabled'] && 'per_product' === $pa_san['mode'] && array( 7, 11 ) === $pa_san['fixed_ids'] && 4 === $pa_san['max_products'] && true === $pa_san['show_products'] && true === $pa_san['show_services'] && 'این محصول را هم اضافه کن' === $pa_san['products_heading'] && 'خدمات ویژه' === $pa_san['services_heading'], 'R47 sanitizer whitelists modes, clamps suggestions to four and safely stores display toggles and editable section text');
+check(true === $pa_san['enabled'] && 'per_product' === $pa_san['mode'] && array( 7, 11 ) === $pa_san['fixed_ids'] && 4 === $pa_san['max_products'] && true === $pa_san['show_products'] && true === $pa_san['show_services'] && true === $pa_san['auto_close_enabled'] && 300 === $pa_san['auto_close_seconds'] && 'این محصول را هم اضافه کن' === $pa_san['products_heading'] && 'خدمات ویژه' === $pa_san['services_heading'], 'R47 sanitizer whitelists modes, clamps suggestions and timer duration, and safely stores display toggles and editable copy');
+$pa_san_off = jluxe_sanitize_purchase_addons( array( 'auto_close_seconds' => '1' ), $pa_defaults );
+check( false === $pa_san_off['auto_close_enabled'] && 3 === $pa_san_off['auto_close_seconds'], 'R343 auto-close stays opt-in and clamps seconds to the supported three-second minimum');
 $pa_sv = array_values( $pa_san['services'] );
 check(2 === count( $pa_sv ) && 'بیمه' === $pa_sv[0]['title'] && 12000.0 === $pa_sv[0]['amount'] && 'modal' === $pa_sv[0]['context'] && true === $pa_sv[0]['auto'] && 0.0 === $pa_sv[1]['amount'], 'R47 service rows normalize title/amount/context/auto and drop empty ones');
 $GLOBALS['products'][500] = new WC_Product(500);
@@ -2387,10 +2391,12 @@ $GLOBALS['product_prices'][501] = array( 'price' => 300000.0, 'regular' => 30000
 ob_start();
 jluxe_render_suggested_products_modal( $GLOBALS['products'][500] );
 $pa_default_html = ob_get_clean();
-check( false !== strpos( $pa_default_html, 'data-pa-product="501"' ) && false === strpos( $pa_default_html, 'class="jluxe-pa-main"' ) && false === strpos( $pa_default_html, 'data-pa-service=' ) && false === strpos( $pa_default_html, 'jluxe-pa-foot-top' ), 'R47 default modal is compact: it offers the cross-sell but hides the just-added card, services and optional footer links');
+check( false !== strpos( $pa_default_html, 'data-pa-product="501"' ) && false === strpos( $pa_default_html, 'class="jluxe-pa-main"' ) && false === strpos( $pa_default_html, 'data-pa-service=' ) && false === strpos( $pa_default_html, 'jluxe-pa-foot-top' ) && false !== strpos( $pa_default_html, 'data-pa-auto-close="0"' ) && false !== strpos( $pa_default_html, 'data-pa-auto-close-seconds="15"' ), 'R47 default modal stays compact and preserves manual-close behavior with the new timer disabled');
 $GLOBALS['post_meta'][500]['_jluxe_suggested_modal_enabled'] = 'no';
 $pa_base = $pa_original_settings;
 $pa_base['purchase_addons']['enabled'] = true;
+$pa_base['purchase_addons']['auto_close_enabled'] = true;
+$pa_base['purchase_addons']['auto_close_seconds'] = 42;
 $pa_base['purchase_addons']['mode'] = 'fixed';
 $pa_base['purchase_addons']['fixed_ids'] = array( 502 );
 $pa_base['purchase_addons']['services'] = array(
@@ -2422,7 +2428,7 @@ ob_start();
 jluxe_render_suggested_products_modal( $GLOBALS['products'][500] );
 $pa_html = ob_get_clean();
 check(strpos($pa_html,'افزودن به سبد خرید')!==false && strpos($pa_html,'این محصول را هم اضافه کن')!==false && strpos($pa_html,'مجموع سبد')!==false && strpos($pa_html,'data-pa-confirm')!==false && strpos($pa_html,'افزودن انتخاب‌ها به سبد')!==false && strpos($pa_html,'ادامه بدون افزودن')!==false, 'R47 modal sections and both confirm states use editable admin copy');
-check(strpos($pa_html,'data-pa-context="500"')!==false && strpos($pa_html,'data-pa-product="502"')!==false && strpos($pa_html,'data-pa-service="s0"')!==false && strpos($pa_html,'aria-pressed="true"')!==false && strpos($pa_html,'data-pa-service="s1"')===false && strpos($pa_html,'فقط سبد')===false, 'R47 auto service preselected, cart-only service excluded, suggestion row carries its id and modal context');
+check(strpos($pa_html,'data-pa-context="500"')!==false && strpos($pa_html,'data-pa-product="502"')!==false && strpos($pa_html,'data-pa-service="s0"')!==false && strpos($pa_html,'aria-pressed="true"')!==false && strpos($pa_html,'data-pa-service="s1"')===false && strpos($pa_html,'فقط سبد')===false && strpos($pa_html,'data-pa-auto-close="1"')!==false && strpos($pa_html,'data-pa-auto-close-seconds="42"')!==false, 'R47 optional auto-close settings reach the server-rendered sheet while cart-only services remain excluded');
 check(strpos($pa_html,'<del>')!==false && strpos($pa_html,'۲۰٪')!==false && strpos($pa_html,'data-pa-main="1250000"')!==false && strpos($pa_html,'class="jluxe-pa-main"')!==false, 'R47 the optional main card shows discount pricing while the total starts from the current cart value');
 check(strpos($pa_html,'محتویات سبد:')!==false && strpos($pa_html,'رفتن به سبد')!==false && strpos($pa_html,'بازگشت به خرید')!==false, 'R47 optional cart summary and footer actions are individually customizable');
 $pa_sections = $pa_base;

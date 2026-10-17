@@ -2,6 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { JSDOM } from "jsdom";
+import {
+  registerMobileDrawer,
+  setMobileDrawerScrollLock,
+  toggleMobileDrawer,
+} from "../src/lib/mobile-drawers.js";
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -72,11 +77,13 @@ test("suggested-product modal retains selections, retries only failed adds, and 
   close.click();
   assert.equal(modal.getAttribute("aria-hidden"), "true");
   assert.equal(window.document.body.style.overflow, "");
+  assert.equal(window.jluxeCloseSuggestedProductsModal, null, "a closed sheet no longer leaves a stale global close callback");
   assert.equal(window.document.activeElement, trigger, "closing suggestions restores focus to the opener");
   assert.equal(product501.getAttribute("aria-pressed"), "true", "closing does not discard product choices");
   assert.equal(service.getAttribute("aria-pressed"), "true", "closing does not discard service choices");
 
   window.jluxeOpenSuggestedProductsModal();
+  assert.equal(typeof window.jluxeCloseSuggestedProductsModal, "function", "reopening a retained sheet re-registers its close callback");
   product502.click();
   assert.equal(product502.getAttribute("aria-pressed"), "false");
   assert.equal(modal.querySelector("[data-pa-total]").textContent, "۱۶۰", "selection toggles recalculate the total");
@@ -109,6 +116,107 @@ test("suggested-product modal retains selections, retries only failed adds, and 
   assert.equal(requests.filter((request) => request.op === "add").map((request) => request.productId).join(","), "501,502,502", "retry does not add the previously successful product twice");
   assert.equal(modal.getAttribute("aria-hidden"), "true", "a fully successful retry closes the sheet");
   assert.equal(window.document.body.style.overflow, "");
+});
+
+test("R343 closing the suggestion sheet after a home-page variation leaves the mobile cart drawer usable", async (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body><button id="home-variation">Choose variation</button>${suggestedMarkup(false)}</body></html>`,
+    { url: "https://shop.test/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.JLuxeThemeSettings = { cart: { ajaxUrl: "https://shop.test/cart-ajax", nonce: "nonce-test" } };
+  window.eval(read("../assets/js/storefront-utils.js"));
+  const source = read("../assets/js/woocommerce.js");
+  const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
+  const start = source.indexOf("(function () {", marker);
+  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  assert.ok(start > marker && end > start);
+  window.eval(source.slice(start, end + "\n})();".length));
+
+  const initialModal = window.document.querySelector("[data-jluxe-suggested-modal]");
+  assert.equal(window.jluxeCloseSuggestedProductsModal, undefined, "a hidden sheet exposes no stale close callback");
+  const modal = window.jluxeMountSuggestedModal(suggestedMarkup(false));
+  assert.notEqual(modal, initialModal, "a successful home-page variation can replace the server-rendered hidden sheet with a fresh snapshot");
+  assert.equal(modal.getAttribute("data-pa-auto-close"), "0", "legacy/default markup keeps manual-close behavior");
+  let scheduledTimers = 0;
+  const nativeSetTimeout = window.setTimeout.bind(window);
+  window.setTimeout = (callback, delay) => {
+    scheduledTimers++;
+    return nativeSetTimeout(callback, delay);
+  };
+  nativeSetTimeout(() => window.jluxeOpenSuggestedProductsModal(), 0);
+  await new Promise((resolve) => nativeSetTimeout(resolve, 10));
+  let drawerOpens = 0;
+  const unregister = registerMobileDrawer(
+    "cart",
+    {
+      open: () => {
+        drawerOpens++;
+        setMobileDrawerScrollLock("cart", true, window);
+      },
+      close: () => setMobileDrawerScrollLock("cart", false, window),
+    },
+    window,
+  );
+  t.after(unregister);
+
+  assert.equal(typeof window.jluxeCloseSuggestedProductsModal, "function");
+  assert.equal(scheduledTimers, 0, "the timer is not scheduled unless enabled in theme settings");
+  const continueButton = modal.querySelectorAll(".jluxe-pa-sheet button[data-jluxe-suggested-close]")[1];
+  continueButton.click();
+  assert.equal(modal.classList.contains("hidden"), true, "Continue shopping closes the suggestion sheet");
+  assert.equal(window.jluxeCloseSuggestedProductsModal, null, "closing clears the modal's global close callback");
+  assert.equal(window.document.body.style.overflow, "", "closing does not leave the page locked");
+
+  toggleMobileDrawer("cart", window);
+  assert.equal(drawerOpens, 1, "the next mobile cart tap opens the registered mini-cart");
+  assert.equal(window.document.body.style.overflow, "hidden", "the drawer owns the scroll lock after the sheet closes");
+  toggleMobileDrawer("cart", window);
+  assert.equal(window.document.body.style.overflow, "", "closing the drawer restores the original scroll state");
+
+  toggleMobileDrawer("cart", window);
+  window.jluxeOpenSuggestedProductsModal();
+  continueButton.click();
+  assert.equal(window.document.body.style.overflow, "hidden", "closing a suggestion overlay never releases a cart drawer's existing scroll lock");
+  toggleMobileDrawer("cart", window);
+  assert.equal(window.document.body.style.overflow, "", "the drawer still restores its original lock after both overlays close");
+});
+
+test("R343 the optional timer closes only an open suggestion sheet after the configured seconds", async (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body>${suggestedMarkup(false, true, 27)}</body></html>`,
+    { url: "https://shop.test/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.JLuxeThemeSettings = { cart: { ajaxUrl: "https://shop.test/cart-ajax", nonce: "nonce-test" } };
+  window.eval(read("../assets/js/storefront-utils.js"));
+  const source = read("../assets/js/woocommerce.js");
+  const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
+  const start = source.indexOf("(function () {", marker);
+  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  assert.ok(start > marker && end > start);
+  window.eval(source.slice(start, end + "\n})();".length));
+
+  const timers = new Map();
+  let nextTimer = 1;
+  window.setTimeout = (callback, delay) => {
+    const id = nextTimer++;
+    timers.set(id, { callback, delay });
+    return id;
+  };
+  window.clearTimeout = (id) => timers.delete(id);
+  const modal = window.document.querySelector("[data-jluxe-suggested-modal]");
+  window.jluxeOpenSuggestedProductsModal();
+  assert.equal(timers.size, 1, "opening schedules one timer");
+  const [timerId, timer] = timers.entries().next().value;
+  assert.equal(timer.delay, 27_000, "the saved seconds value is converted to milliseconds once");
+  timers.delete(timerId);
+  timer.callback();
+  assert.equal(modal.classList.contains("hidden"), true, "the elapsed timer closes the sheet");
+  assert.equal(window.jluxeCloseSuggestedProductsModal, null, "timer close clears its global callback");
+  assert.equal(window.document.body.style.overflow, "", "timer close releases the scroll lock");
 });
 
 test("variable recommendations preserve and retry pending sheet choices after a successful variation", async (t) => {
@@ -375,13 +483,14 @@ test("the variation picker keeps an uncertain add visible and blocks in-flight d
   assert.equal(addRequests, 1, "closing and reopening the picker never retries the ambiguous add automatically");
 });
 
-function suggestedMarkup(selected) {
+function suggestedMarkup(selected, autoClose = false, autoCloseSeconds = 15) {
   const productPressed = selected ? "true" : "false";
   const servicePressed = selected ? "true" : "false";
-  return `<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="500" data-pa-main="100">
+  return `<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="500" data-pa-main="100" data-pa-auto-close="${autoClose ? "1" : "0"}" data-pa-auto-close-seconds="${autoCloseSeconds}">
     <div class="jluxe-pa-backdrop" data-jluxe-suggested-close></div>
     <section class="jluxe-pa-sheet" role="dialog" aria-modal="true" aria-label="Suggestions">
       <button type="button" data-jluxe-suggested-close>Close</button>
+      <button type="button" data-jluxe-suggested-close>Continue shopping</button>
       <div class="jluxe-pa-body">
         <button class="jluxe-pa-row ${selected ? "is-selected" : ""}" data-pa-product="501" data-pa-amount="50" aria-pressed="${productPressed}"><span class="jluxe-pa-name">Cross-sell</span></button>
         <button class="jluxe-pa-row ${selected ? "is-selected" : ""}" data-pa-service="s0" data-pa-amount="10" aria-pressed="${servicePressed}"><span class="jluxe-pa-name">Warranty</span></button>

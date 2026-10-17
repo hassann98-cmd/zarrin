@@ -4480,6 +4480,8 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 	$cart_summary_label     = (string) jluxe_get_setting( 'purchase_addons.cart_summary_label', 'سبد شما' );
 	$view_cart_label        = (string) jluxe_get_setting( 'purchase_addons.view_cart_label', 'مشاهده سبد' );
 	$continue_label         = (string) jluxe_get_setting( 'purchase_addons.continue_label', 'ادامه خرید' );
+	$auto_close_enabled     = (bool) jluxe_get_setting( 'purchase_addons.auto_close_enabled', false );
+	$auto_close_seconds     = max( 3, min( 300, absint( jluxe_get_setting( 'purchase_addons.auto_close_seconds', 15 ) ) ) );
 
 	$initial_selection_count = 0;
 	foreach ( $services as $service ) {
@@ -4490,7 +4492,7 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 
 	ob_start();
 	?>
-	<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-pa-unit="<?php echo esc_attr( $unit ); ?>" data-pa-main="<?php echo esc_attr( (string) $total_base ); ?>">
+	<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-pa-unit="<?php echo esc_attr( $unit ); ?>" data-pa-main="<?php echo esc_attr( (string) $total_base ); ?>" data-pa-auto-close="<?php echo $auto_close_enabled ? '1' : '0'; ?>" data-pa-auto-close-seconds="<?php echo esc_attr( (string) $auto_close_seconds ); ?>">
 		<div class="jluxe-pa-backdrop" data-jluxe-suggested-close></div>
 		<div class="jluxe-pa-sheet" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr( $modal_title ); ?>">
 			<header class="jluxe-pa-head">

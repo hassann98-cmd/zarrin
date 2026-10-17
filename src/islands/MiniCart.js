@@ -152,7 +152,7 @@ function J() {
                         ],
                       })
                     : null,
-                  s.items.length > 0 && s.freeShipping
+                  s.items.length > 0 && s.freeShipping && !d
                     ? e.jsxs("div", {
                         className:
                           "border-b border-border bg-muted/40 px-4 py-3",
@@ -205,7 +205,7 @@ function J() {
                       d && s.items.length === 0
                         ? e.jsx("p", {
                             role: "status",
-                            children: "در حال خواندن سبد خرید…",
+                            children: "در حال به‌روزرسانی سبد خرید…",
                           })
                         : cartError && s.items.length === 0
                           ? null
@@ -483,13 +483,17 @@ function J() {
                               }),
                               e.jsx("span", {
                                 className: "font-bold text-foreground",
-                                dangerouslySetInnerHTML: {
-                                  __html: s.subtotalHtml,
-                                },
+                                children: d
+                                  ? "در حال به‌روزرسانی…"
+                                  : e.jsx("span", {
+                                      dangerouslySetInnerHTML: {
+                                        __html: s.subtotalHtml,
+                                      },
+                                    }),
                               }),
                             ],
                           }),
-                          s.discountHtml
+                          s.discountHtml && !d
                             ? e.jsxs("div", {
                                 className:
                                   "mb-3 flex items-center justify-between text-caption",
