@@ -2746,7 +2746,7 @@ function jluxeEnhanceShopSort(root) {
 		var autoCloseDeadline = 0;
 		var countdownDisplay = modal.querySelector("[data-pa-countdown]");
 		var countdownValue = countdownDisplay && countdownDisplay.querySelector("[data-pa-countdown-value]");
-		var autoCloseEnabled = modal.getAttribute("data-pa-auto-close") === "1";
+		var autoCloseEnabled = modal.getAttribute("data-pa-auto-close") === "1" && modal._jluxeAutoCloseSuppressed !== true;
 		var autoCloseSeconds = parseInt(modal.getAttribute("data-pa-auto-close-seconds"), 10);
 		if (!isFinite(autoCloseSeconds)) { autoCloseSeconds = 15; }
 		autoCloseSeconds = Math.max(3, Math.min(300, autoCloseSeconds));
@@ -2763,6 +2763,19 @@ function jluxeEnhanceShopSort(root) {
 			autoCloseDeadline = 0;
 		}
 
+		function cancelSuggestedAutoCloseForInteraction() {
+			if (!autoCloseEnabled) { return; }
+			autoCloseEnabled = false;
+			modal._jluxeAutoCloseSuppressed = true;
+			modal.setAttribute("data-pa-auto-close", "0");
+			clearSuggestedAutoCloseTimer();
+			if (countdownDisplay && countdownDisplay.parentNode) {
+				countdownDisplay.parentNode.removeChild(countdownDisplay);
+			}
+			countdownDisplay = null;
+			countdownValue = null;
+		}
+
 		function formatSuggestedCountdown(seconds) {
 			var minutes = Math.floor(seconds / 60);
 			var remainder = seconds % 60;
@@ -2774,10 +2787,6 @@ function jluxeEnhanceShopSort(root) {
 			if (!countdownValue || !autoCloseDeadline) { return; }
 			var remaining = Math.max(0, Math.ceil((autoCloseDeadline - Date.now()) / 1000));
 			countdownValue.textContent = formatSuggestedCountdown(remaining);
-			if (countdownDisplay) {
-				if (remaining <= 5) { countdownDisplay.setAttribute("data-pa-countdown-urgent", "1"); }
-				else { countdownDisplay.removeAttribute("data-pa-countdown-urgent"); }
-			}
 			if (remaining === 0 && autoCloseCountdownTimer !== null) {
 				window.clearInterval(autoCloseCountdownTimer);
 				autoCloseCountdownTimer = null;
@@ -2787,10 +2796,7 @@ function jluxeEnhanceShopSort(root) {
 		function scheduleSuggestedAutoClose() {
 			clearSuggestedAutoCloseTimer();
 			if (!autoCloseEnabled || modal.classList.contains("hidden")) {
-				if (countdownDisplay) {
-					countdownDisplay.hidden = true;
-					countdownDisplay.removeAttribute("data-pa-countdown-urgent");
-				}
+				if (countdownDisplay) { countdownDisplay.hidden = true; }
 				return;
 			}
 			autoCloseDeadline = Date.now() + autoCloseSeconds * 1000;
@@ -2827,10 +2833,7 @@ function jluxeEnhanceShopSort(root) {
 		function closeSuggestedProductsModal() {
 			if (isCommitting || modal.classList.contains("hidden")) { return false; }
 			clearSuggestedAutoCloseTimer();
-			if (countdownDisplay) {
-				countdownDisplay.hidden = true;
-				countdownDisplay.removeAttribute("data-pa-countdown-urgent");
-			}
+			if (countdownDisplay) { countdownDisplay.hidden = true; }
 			modal.classList.add("hidden");
 			modal.setAttribute("aria-hidden", "true");
 			var drawerStillOpen = document.documentElement && document.documentElement.hasAttribute("data-jluxe-mobile-drawer");
@@ -2908,6 +2911,9 @@ function jluxeEnhanceShopSort(root) {
 			paUpdateTotal();
 		}
 
+		modal.querySelectorAll(".jluxe-pa-row, [data-pa-service], [data-pa-product], [data-jluxe-quick-variant]").forEach(function (row) {
+			row.addEventListener("click", cancelSuggestedAutoCloseForInteraction);
+		});
 		modal.querySelectorAll("[data-pa-service], [data-pa-product]").forEach(function (row) {
 			row.addEventListener("click", function () {
 				if (isCommitting) { return; }
@@ -3167,6 +3173,7 @@ function jluxeEnhanceShopSort(root) {
 
 	window.jluxeMountSuggestedModal = function (html, selectionState) {
 		var old = document.querySelector("[data-jluxe-suggested-modal]");
+		var suppressAutoClose = !!(old && old._jluxeAutoCloseSuppressed === true);
 		if (old && typeof old._jluxeClearSuggestedAutoCloseTimer === "function") {
 			old._jluxeClearSuggestedAutoCloseTimer();
 		}
@@ -3178,6 +3185,12 @@ function jluxeEnhanceShopSort(root) {
 		wrap.innerHTML = html;
 		var fresh = wrap.firstElementChild;
 		if (!fresh) { return null; }
+		if (suppressAutoClose) {
+			fresh._jluxeAutoCloseSuppressed = true;
+			fresh.setAttribute("data-pa-auto-close", "0");
+			var freshCountdown = fresh.querySelector("[data-pa-countdown]");
+			if (freshCountdown && freshCountdown.parentNode) { freshCountdown.parentNode.removeChild(freshCountdown); }
+		}
 		document.body.appendChild(fresh);
 		jluxeBindSuggestedModal(fresh);
 		if (selectionState && typeof selectionState === "object") {

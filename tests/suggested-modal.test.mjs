@@ -243,11 +243,127 @@ test("R343 the optional timer shows a live Persian countdown, then closes the op
   assert.equal(window.document.body.style.overflow, "", "timer close releases the scroll lock");
 });
 
-test("R344 the enabled countdown is styled as a compact lower-left footer chip", () => {
+test("R345 choosing a suggested row removes and permanently cancels the auto-close timer", async (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body>${suggestedMarkup(false, true, 3)}</body></html>`,
+    { url: "https://shop.test/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.JLuxeThemeSettings = { cart: { ajaxUrl: "https://shop.test/cart-ajax", nonce: "nonce-test" } };
+  window.eval(read("../assets/js/storefront-utils.js"));
+  const source = read("../assets/js/woocommerce.js");
+  const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
+  const start = source.indexOf("(function () {", marker);
+  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  assert.ok(start > marker && end > start);
+  window.eval(source.slice(start, end + "\n})();".length));
+
+  const timers = new Map();
+  const intervals = new Map();
+  let nextTimer = 1;
+  let nextInterval = 1;
+  window.setTimeout = (callback, delay) => {
+    const id = nextTimer++;
+    timers.set(id, { callback, delay });
+    return id;
+  };
+  window.clearTimeout = (id) => timers.delete(id);
+  window.setInterval = (callback, delay) => {
+    const id = nextInterval++;
+    intervals.set(id, { callback, delay });
+    return id;
+  };
+  window.clearInterval = (id) => intervals.delete(id);
+
+  let modal = window.document.querySelector("[data-jluxe-suggested-modal]");
+  window.jluxeOpenSuggestedProductsModal();
+  assert.equal(timers.size, 1);
+  assert.equal(intervals.size, 1);
+  assert.ok(modal.querySelector("[data-pa-countdown]"));
+
+  modal.querySelector('[data-pa-service="s0"]').click();
+  assert.equal(modal.getAttribute("aria-hidden"), "false", "choosing an option leaves the sheet open for the old manual-close flow");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null, "the circle is removed immediately after interaction");
+  assert.equal(timers.size, 0, "the auto-close timeout is canceled rather than paused");
+  assert.equal(intervals.size, 0, "the countdown ticker is stopped as well");
+  assert.equal(modal._jluxeAutoCloseSuppressed, true);
+
+  modal.querySelector("button[data-jluxe-suggested-close]").click();
+  window.jluxeOpenSuggestedProductsModal();
+  assert.equal(timers.size, 0, "manual reopen does not restart auto-close after the customer engaged");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null);
+
+  modal = window.jluxeMountSuggestedModal(suggestedMarkup(false, true, 3));
+  assert.equal(modal.getAttribute("data-pa-auto-close"), "0", "suppression follows a refreshed suggestion snapshot");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null, "a refreshed sheet has no countdown appearance");
+  window.jluxeOpenSuggestedProductsModal();
+  assert.equal(timers.size, 0, "refreshed suggestions keep the original manual-close behavior");
+});
+
+test("R345 the variable-product picker returns to suggestions without restoring auto-close", async (t) => {
+  const dom = new JSDOM(
+    `<!doctype html><html><body>${suggestedMarkup(false, true, 3)}</body></html>`,
+    { url: "https://shop.test/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.JLuxeThemeSettings = { cart: { ajaxUrl: "https://shop.test/cart-ajax", nonce: "nonce-test" } };
+  window.eval(read("../assets/js/storefront-utils.js"));
+  window.jluxeCartPost = () => Promise.resolve({ success: false, data: { message: "test" } });
+  const source = read("../assets/js/woocommerce.js");
+
+  const modalMarker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
+  const modalStart = source.indexOf("(function () {", modalMarker);
+  const modalEnd = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", modalStart);
+  assert.ok(modalStart > modalMarker && modalEnd > modalStart);
+  window.eval(source.slice(modalStart, modalEnd + "\n})();".length));
+
+  const timers = new Map();
+  const intervals = new Map();
+  let nextId = 1;
+  window.setTimeout = (callback, delay) => {
+    const id = nextId++;
+    timers.set(id, { callback, delay });
+    return id;
+  };
+  window.clearTimeout = (id) => timers.delete(id);
+  window.setInterval = (callback, delay) => {
+    const id = nextId++;
+    intervals.set(id, { callback, delay });
+    return id;
+  };
+  window.clearInterval = (id) => intervals.delete(id);
+
+  const pickerMarker = source.indexOf("مودالِ انتخاب سریعِ تنوع");
+  const pickerStart = source.indexOf("(function () {", pickerMarker);
+  const pickerEnd = source.indexOf("\n})();\n\n/**", pickerStart);
+  assert.ok(pickerStart > pickerMarker && pickerEnd > pickerStart);
+  window.eval(source.slice(pickerStart, pickerEnd + "\n})();".length));
+
+  const modal = window.document.querySelector("[data-jluxe-suggested-modal]");
+  window.jluxeOpenSuggestedProductsModal();
+  assert.equal(timers.size, 1);
+  modal.querySelector("[data-jluxe-quick-variant]").click();
+  assert.equal(timers.size, 0, "the variable choice cancels the auto-close timeout before opening its picker");
+  assert.equal(intervals.size, 0, "the ticker is canceled before the picker opens");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null, "the countdown circle is removed immediately");
+  assert.equal(modal.getAttribute("aria-hidden"), "true", "the existing variation-picker flow temporarily hides the suggestions sheet");
+  assert.ok(window.document.querySelector(".jluxe-variant-modal-backdrop"));
+
+  window.document.querySelector(".jluxe-variant-modal-close").click();
+  assert.equal(modal.getAttribute("aria-hidden"), "false", "canceling the picker restores the suggestions sheet");
+  assert.equal(timers.size, 0, "returning from the picker does not restart auto-close");
+  assert.equal(modal.querySelector("[data-pa-countdown]"), null);
+});
+
+test("R345 the countdown is a minimal black circle beside the confirm button", () => {
   const css = read("../src/styles/storefront.css");
-  assert.match(css, /\.jluxe-pa-countdown\s*\{[^}]*margin-right:\s*auto/);
+  assert.match(css, /\.jluxe-pa-action-row\s*\{[^}]*display:\s*flex/);
+  assert.match(css, /\.jluxe-pa-countdown\s*\{[^}]*width:\s*44px[^}]*height:\s*44px[^}]*border:\s*1px solid #000[^}]*border-radius:\s*50%/);
+  assert.match(css, /\.jluxe-pa-countdown-value\s*\{[^}]*font-size:\s*12px/);
   assert.match(css, /\.jluxe-pa-countdown\[hidden\]\s*\{\s*display:\s*none;/);
-  assert.match(css, /\.jluxe-pa-countdown\[data-pa-countdown-urgent="1"\]/);
+  assert.doesNotMatch(css, /data-pa-countdown-urgent/);
 });
 
 test("variable recommendations preserve and retry pending sheet choices after a successful variation", async (t) => {
@@ -520,7 +636,7 @@ function suggestedMarkup(selected, autoClose = false, autoCloseSeconds = 15) {
   const countdownMinutes = String(Math.floor(autoCloseSeconds / 60)).padStart(2, "0");
   const countdownRemainder = String(autoCloseSeconds % 60).padStart(2, "0");
   const countdown = autoClose
-    ? `<div class="jluxe-pa-countdown" data-pa-countdown hidden role="timer" aria-live="off"><span class="jluxe-pa-countdown-label">تا بسته‌شدن پیشنهادها</span><strong class="jluxe-pa-countdown-value" data-pa-countdown-value dir="ltr">${countdownMinutes}:${countdownRemainder}</strong></div>`
+    ? `<span class="jluxe-pa-countdown" data-pa-countdown hidden role="timer" aria-live="off"><span class="sr-only">زمان باقی‌مانده تا بسته‌شدن پیشنهادها</span><strong class="jluxe-pa-countdown-value" data-pa-countdown-value dir="ltr">${countdownMinutes}:${countdownRemainder}</strong></span>`
     : "";
   return `<div class="jluxe-pa fixed inset-0 hidden" data-jluxe-suggested-modal aria-hidden="true" data-pa-context="500" data-pa-main="100" data-pa-auto-close="${autoClose ? "1" : "0"}" data-pa-auto-close-seconds="${autoCloseSeconds}">
     <div class="jluxe-pa-backdrop" data-jluxe-suggested-close></div>
@@ -533,8 +649,10 @@ function suggestedMarkup(selected, autoClose = false, autoCloseSeconds = 15) {
         <button type="button" class="jluxe-pa-row" data-jluxe-quick-variant="700">Choose variable option</button>
       </div>
       <strong data-pa-total></strong>
-      <button type="button" data-pa-confirm data-pa-confirm-selected="Add selected" data-pa-confirm-empty="Continue"><span data-pa-confirm-label></span></button>
-      ${countdown}
+      <div class="jluxe-pa-action-row">
+        <button type="button" data-pa-confirm data-pa-confirm-selected="Add selected" data-pa-confirm-empty="Continue"><span data-pa-confirm-label></span></button>
+        ${countdown}
+      </div>
     </section>
   </div>`;
 }

@@ -4640,18 +4640,19 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 							</span>
 						</span>
 					<?php endif; ?>
-					<button type="button" class="jluxe-pa-confirm" data-pa-confirm data-pa-confirm-selected="<?php echo esc_attr( $confirm_selected_label ); ?>" data-pa-confirm-empty="<?php echo esc_attr( $confirm_empty_label ); ?>">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
-						<span data-pa-confirm-label><?php echo esc_html( $initial_selection_count > 0 ? $confirm_selected_label : $confirm_empty_label ); ?></span>
-					</button>
-				</div>
-				<?php if ( $auto_close_enabled ) : ?>
-					<div class="jluxe-pa-countdown" data-pa-countdown hidden role="timer" aria-live="off">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-						<span class="jluxe-pa-countdown-label">تا بسته‌شدن پیشنهادها</span>
-						<strong class="jluxe-pa-countdown-value" data-pa-countdown-value dir="ltr"><?php echo esc_html( jluxe_fa_digits( sprintf( '%02d:%02d', intdiv( $auto_close_seconds, 60 ), $auto_close_seconds % 60 ) ) ); ?></strong>
+					<div class="jluxe-pa-action-row">
+						<button type="button" class="jluxe-pa-confirm" data-pa-confirm data-pa-confirm-selected="<?php echo esc_attr( $confirm_selected_label ); ?>" data-pa-confirm-empty="<?php echo esc_attr( $confirm_empty_label ); ?>">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+							<span data-pa-confirm-label><?php echo esc_html( $initial_selection_count > 0 ? $confirm_selected_label : $confirm_empty_label ); ?></span>
+						</button>
+						<?php if ( $auto_close_enabled ) : ?>
+							<span class="jluxe-pa-countdown" data-pa-countdown hidden role="timer" aria-live="off">
+								<span class="sr-only">زمان باقی‌مانده تا بسته‌شدن پیشنهادها</span>
+								<strong class="jluxe-pa-countdown-value" data-pa-countdown-value dir="ltr"><?php echo esc_html( jluxe_fa_digits( sprintf( '%02d:%02d', intdiv( $auto_close_seconds, 60 ), $auto_close_seconds % 60 ) ) ); ?></strong>
+							</span>
+						<?php endif; ?>
 					</div>
-				<?php endif; ?>
+				</div>
 			</footer>
 		</div>
 	</div>

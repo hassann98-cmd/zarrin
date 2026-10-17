@@ -32,6 +32,60 @@
       return fragment;
     }
 
+    function getGroupRows(group) {
+      var rowsContainer = group ? group.querySelector("[data-jluxe-spec-rows]") : null;
+      return rowsContainer ? Array.prototype.slice.call(rowsContainer.querySelectorAll(".jluxe-spec-row")) : [];
+    }
+
+    function updateMoveButtons(group) {
+      var rows = getGroupRows(group);
+      rows.forEach(function (row, index) {
+        var moveUpButton = row.querySelector('[data-jluxe-spec-move-row="up"]');
+        var moveDownButton = row.querySelector('[data-jluxe-spec-move-row="down"]');
+        if (moveUpButton) {
+          moveUpButton.disabled = index === 0;
+        }
+        if (moveDownButton) {
+          moveDownButton.disabled = index === rows.length - 1;
+        }
+      });
+    }
+
+    function renumberRows(group) {
+      var groupIndex = group.getAttribute("data-group-index") || "0";
+      var rows = getGroupRows(group);
+      rows.forEach(function (row, index) {
+        var fields = getRowInputs(row);
+        if (fields.label) {
+          fields.label.name = "jluxe_product_specs[" + groupIndex + "][items][" + index + "][label]";
+        }
+        if (fields.value) {
+          fields.value.name = "jluxe_product_specs[" + groupIndex + "][items][" + index + "][value]";
+        }
+      });
+      group.setAttribute("data-next-row-index", String(rows.length));
+    }
+
+    function announceRowMove(group, row, index) {
+      var status = group.querySelector("[data-jluxe-spec-order-status]");
+      if (!status) {
+        status = document.createElement("p");
+        status.className = "description";
+        status.setAttribute("data-jluxe-spec-order-status", "");
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        var rowsContainer = group.querySelector("[data-jluxe-spec-rows]");
+        if (rowsContainer && rowsContainer.parentNode) {
+          rowsContainer.parentNode.insertBefore(status, rowsContainer.nextSibling);
+        } else {
+          group.appendChild(status);
+        }
+      }
+      var fields = getRowInputs(row);
+      var label = fields.label && fields.label.value.trim() ? "ویژگی «" + fields.label.value.trim() + "»" : "ویژگی";
+      status.textContent = label + " به ردیف " + toPersianDigits(index + 1) + " منتقل شد.";
+    }
+
     function addRow(group) {
       var rows = group.querySelector("[data-jluxe-spec-rows]");
       if (!rows) {
@@ -49,6 +103,7 @@
       });
       var row = fragment.querySelector(".jluxe-spec-row");
       rows.appendChild(fragment);
+      updateMoveButtons(group);
       return row;
     }
 
@@ -341,6 +396,8 @@
       announcePaste(group, message);
     }
 
+    Array.prototype.forEach.call(root.querySelectorAll("[data-jluxe-spec-group]"), updateMoveButtons);
+
     addGroupButton.addEventListener("click", function () {
       var groupIndex = nextGroupIndex;
       nextGroupIndex += 1;
@@ -376,6 +433,43 @@
         return;
       }
 
+      var moveRowButton = target.closest("[data-jluxe-spec-move-row]");
+      if (moveRowButton) {
+        var movingRow = moveRowButton.closest(".jluxe-spec-row");
+        var movingGroup = movingRow ? movingRow.closest("[data-jluxe-spec-group]") : null;
+        var rowsContainer = movingGroup ? movingGroup.querySelector("[data-jluxe-spec-rows]") : null;
+        var groupRows = movingGroup ? getGroupRows(movingGroup) : [];
+        var currentIndex = groupRows.indexOf(movingRow);
+        var direction = moveRowButton.getAttribute("data-jluxe-spec-move-row");
+        var destination = -1;
+
+        if (direction === "up" && currentIndex > 0) {
+          destination = currentIndex - 1;
+          rowsContainer.insertBefore(movingRow, groupRows[destination]);
+        } else if (direction === "down" && currentIndex !== -1 && currentIndex < groupRows.length - 1) {
+          destination = currentIndex + 1;
+          rowsContainer.insertBefore(groupRows[destination], movingRow);
+        }
+
+        if (destination !== -1) {
+          renumberRows(movingGroup);
+          updateMoveButtons(movingGroup);
+          announceRowMove(movingGroup, movingRow, destination);
+
+          var reverseDirection = direction === "up" ? "down" : "up";
+          var focusButton = movingRow.querySelector('[data-jluxe-spec-move-row="' + reverseDirection + '"]');
+          if (focusButton && !focusButton.disabled) {
+            focusButton.focus();
+          } else {
+            var focusField = getRowInputs(movingRow).label;
+            if (focusField) {
+              focusField.focus();
+            }
+          }
+        }
+        return;
+      }
+
       var removeRowButton = target.closest("[data-jluxe-spec-remove-row]");
       if (removeRowButton) {
         var row = removeRowButton.closest(".jluxe-spec-row");
@@ -384,7 +478,12 @@
             return input.value.trim() !== "";
           });
           if (!hasRowContent || window.confirm("این ویژگی حذف بشه؟")) {
+            var rowGroup = row.closest("[data-jluxe-spec-group]");
             row.remove();
+            if (rowGroup) {
+              renumberRows(rowGroup);
+              updateMoveButtons(rowGroup);
+            }
           }
         }
         return;

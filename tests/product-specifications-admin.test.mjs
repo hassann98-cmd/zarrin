@@ -14,7 +14,11 @@ function editorMarkup() {
           <div class="jluxe-spec-row">
             <input type="text" name="jluxe_product_specs[0][items][0][label]" value="ویژگی">
             <input type="text" name="jluxe_product_specs[0][items][0][value]" value="مقدار">
-            <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+            <div class="jluxe-spec-row-actions">
+              <button type="button" data-jluxe-spec-move-row="up" aria-label="انتقال به بالا">↑</button>
+              <button type="button" data-jluxe-spec-move-row="down" aria-label="انتقال به پایین">↓</button>
+              <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+            </div>
           </div>
         </div>
         <button type="button" data-jluxe-spec-add-row>افزودن ویژگی</button>
@@ -33,7 +37,11 @@ function editorMarkup() {
       <div class="jluxe-spec-row">
         <input type="text" name="jluxe_product_specs[__GROUP__][items][__ROW__][label]" value="">
         <input type="text" name="jluxe_product_specs[__GROUP__][items][__ROW__][value]" value="">
-        <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+        <div class="jluxe-spec-row-actions">
+          <button type="button" data-jluxe-spec-move-row="up" aria-label="انتقال به بالا">↑</button>
+          <button type="button" data-jluxe-spec-move-row="down" aria-label="انتقال به پایین">↓</button>
+          <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+        </div>
       </div>
     </template>
     <button type="button" data-jluxe-spec-add-group>افزودن گروه</button>
@@ -102,6 +110,45 @@ function bootEditor(t) {
   }
   return { window, root: window.document.getElementById("jluxe-product-spec-groups") };
 }
+
+test("product specification rows move up and down, preserve field values, and submit in the displayed order", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const addRow = group.querySelector("[data-jluxe-spec-add-row]");
+  addRow.click();
+  addRow.click();
+
+  let rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  rows[0].querySelector('input[name$="[label]"]').value = "ویژگی اول";
+  rows[1].querySelector('input[name$="[label]"]').value = "ویژگی دوم";
+  rows[2].querySelector('input[name$="[label]"]').value = "ویژگی سوم";
+  rows[0].querySelector('input[name$="[value]"]').value = "مقدار اول";
+  rows[1].querySelector('input[name$="[value]"]').value = "مقدار دوم";
+  rows[2].querySelector('input[name$="[value]"]').value = "مقدار سوم";
+
+  assert.equal(rows[0].querySelector('[data-jluxe-spec-move-row="up"]').disabled, true, "the first row cannot move above the group");
+  assert.equal(rows[0].querySelector('[data-jluxe-spec-move-row="down"]').disabled, false);
+  assert.equal(rows[2].querySelector('[data-jluxe-spec-move-row="down"]').disabled, true, "the last row cannot move below the group");
+
+  const secondRow = rows[1];
+  secondRow.querySelector('[data-jluxe-spec-move-row="up"]').click();
+  rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  assert.deepEqual(rows.map((row) => row.querySelector('input[name$="[label]"]').value), ["ویژگی دوم", "ویژگی اول", "ویژگی سوم"]);
+  assert.equal(rows[0].querySelector('input[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی دوم", "the moved row receives the first submitted index");
+  assert.equal(rows[0].querySelector('input[name="jluxe_product_specs[0][items][0][value]"]').value, "مقدار دوم", "the feature value stays paired with its label");
+  assert.equal(group.getAttribute("data-next-row-index"), "3", "future rows continue after the reindexed list");
+  assert.equal(window.document.activeElement, secondRow.querySelector('[data-jluxe-spec-move-row="down"]'), "focus stays with the moved row and offers the reverse move");
+  assert.match(group.querySelector('[data-jluxe-spec-order-status]').textContent, /ردیف ۱/);
+
+  secondRow.querySelector('[data-jluxe-spec-move-row="down"]').click();
+  rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  assert.deepEqual(rows.map((row) => row.querySelector('input[name$="[label]"]').value), ["ویژگی اول", "ویژگی دوم", "ویژگی سوم"]);
+  assert.equal(window.document.activeElement, secondRow.querySelector('[data-jluxe-spec-move-row="up"]'));
+
+  addRow.click();
+  const newRow = group.querySelectorAll(".jluxe-spec-row")[3];
+  assert.ok(newRow.querySelector('input[name="jluxe_product_specs[0][items][3][label]"]'), "adding after a reorder does not reuse an existing field name");
+});
 
 function pasteClipboard(window, input, data) {
   const event = new window.Event("paste", { bubbles: true, cancelable: true });

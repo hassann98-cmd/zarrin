@@ -53,7 +53,15 @@ function jluxe_render_product_specification_row_fields( $group_index, $row_index
 			<span class="screen-reader-text">مقدار ویژگی</span>
 			<input type="text" class="widefat" name="jluxe_product_specs[<?php echo esc_attr( (string) $group_index ); ?>][items][<?php echo esc_attr( (string) $row_index ); ?>][value]" value="<?php echo esc_attr( $item['value'] ?? '' ); ?>" placeholder="مقدار ویژگی" aria-label="مقدار ویژگی" />
 		</label>
-		<button type="button" class="button jluxe-spec-remove-row" data-jluxe-spec-remove-row aria-label="حذف این ویژگی">حذف ویژگی</button>
+		<div class="jluxe-spec-row-actions">
+			<button type="button" class="button jluxe-spec-move-row" data-jluxe-spec-move-row="up" aria-label="انتقال این ویژگی به بالا" title="انتقال به بالا">
+				<span aria-hidden="true">↑</span><span class="screen-reader-text">انتقال ویژگی به بالا</span>
+			</button>
+			<button type="button" class="button jluxe-spec-move-row" data-jluxe-spec-move-row="down" aria-label="انتقال این ویژگی به پایین" title="انتقال به پایین">
+				<span aria-hidden="true">↓</span><span class="screen-reader-text">انتقال ویژگی به پایین</span>
+			</button>
+			<button type="button" class="button jluxe-spec-remove-row" data-jluxe-spec-remove-row aria-label="حذف این ویژگی">حذف ویژگی</button>
+		</div>
 	</div>
 	<?php
 }
@@ -104,12 +112,16 @@ function jluxe_render_product_specifications_meta_box( WP_Post $post ): void {
 		.jluxe-spec-rows { display: grid; gap: 8px; }
 		.jluxe-spec-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 		.jluxe-spec-field { min-width: 0; }
+		.jluxe-spec-row-actions { display: flex; align-items: center; gap: 4px; }
+		.jluxe-spec-move-row { min-width: 32px; }
+		.jluxe-spec-move-row:disabled { cursor: not-allowed; opacity: .5; }
 		.jluxe-spec-remove-group, .jluxe-spec-remove-row { color: #b32d2e; }
 		.jluxe-spec-add-row-wrap { margin: 10px 0 0; }
 		#jluxe-product-spec-group-template, #jluxe-product-spec-row-template { display: none; }
 		@media screen and (max-width: 782px) { .jluxe-spec-group-header { align-items: stretch; flex-direction: column; } .jluxe-spec-row { grid-template-columns: 1fr; } }
 	</style>
 	<p class="description">گروه‌ها و ویژگی‌های Boom قدیمی برای شروع در این فرم بارگذاری می‌شوند. ذخیرهٔ تغییرات فقط override پوسته را می‌نویسد و متای اصلی Boom را دست‌نخورده نگه می‌دارد؛ خالی‌کردن فرم هم به‌عنوان حذف همهٔ گروه‌ها ثبت می‌شود. ویژگی‌های تب «ویژگی‌ها»ی ووکامرس جدا هستند و این فرم آن‌ها را تغییر نمی‌دهد.</p>
+	<p class="description">برای تغییر ترتیب ویژگی‌ها، از دکمه‌های ↑ و ↓ کنار هر ردیف استفاده کنید؛ ترتیبِ جدید پس از ذخیرهٔ محصول در سایت هم اعمال می‌شود.</p>
 	<p class="description">برای واردکردن یک گروه کامل در یک مرحله، عنوان گروه و جدول دو ستونه را باهم از Excel، Google Sheets، Word یا وب انتخاب و کپی کنید؛ سپس روی کادر «عنوان گروه» یا یکی از ورودی‌های همان گروه کلیک و جای‌گذاری کنید. تیترِ پیش از جدول، Caption یا ردیف تک‌خانهٔ اول خودکار عنوان گروه می‌شود و ردیف‌های ویژگی/مقدار هم پر می‌شوند؛ اگر کلیپ‌بورد عنوان نداشته باشد، عنوان فعلی گروه حفظ می‌شود. اگر فقط خود جدول را کپی می‌کنید، آن را داخل یکی از ورودی‌های نام/مقدارِ همان گروه جای‌گذاری کنید. سرستون‌های رایج و جداکنندهٔ Markdown رد می‌شوند؛ فقط متن سلول‌ها وارد می‌شود، نه قالب‌بندی، لینک یا کد. ردیف‌های قبلی حفظ می‌شوند و متن عادی مثل همیشه جای‌گذاری می‌شود.</p>
 	<p class="description">برای مشخصات فنیِ «ویژگی ← مقدار»، همین ویرایشگر بهترین مسیر است: خروجیِ قابل‌خواندن و ساخت‌یافته تولید می‌کند، در Product JSON-LD به‌صورت PropertyValue می‌آید و به ویژگی‌های استاندارد ووکامرس هم منتقل می‌شود. برای جدول مقایسه‌ای یا اطلاعات چندستونه، از بلوک بومی «جدول» WordPress در توضیحات محصول استفاده کنید، ردیف اول را در تنظیمات بلوک سرستون قرار دهید و در صورت نیاز عنوان کوتاهی در Caption بنویسید؛ جدول را به‌صورت عکس وارد نکنید تا متن برای کاربران و موتورهای جست‌وجو قابل‌خواندن بماند. برای انتقال محصولات قبلی، در فهرست محصولات «اقدامات گروهی» ← «همگام‌سازی مشخصات برای انتقال» را اجرا کنید (حداکثر ۱۰۰ محصول در هر اجرا).</p>
 	<?php wp_nonce_field( 'jluxe_product_specifications_save', 'jluxe_product_specifications_nonce' ); ?>
