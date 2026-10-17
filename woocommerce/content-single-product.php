@@ -127,6 +127,11 @@ if ( $jluxe_is_variable ) {
 	// می‌مونه) چون خودِ اسکریپتِ match‌کننده اصلاً لود نشده.
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
+$jluxe_simple_stock_qty = null;
+if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quantity_for_display' ) ) {
+	$jluxe_simple_stock_qty = jluxe_product_stock_quantity_for_display( $product );
+	$jluxe_simple_stock_qty = is_numeric( $jluxe_simple_stock_qty ) ? (int) $jluxe_simple_stock_qty : null;
+}
 ?>
 <div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
@@ -261,6 +266,12 @@ if ( $jluxe_is_variable ) {
 						</div>
 					<?php endif; ?>
 					<?php wc_get_template_part( 'single-product/price' ); ?>
+					<?php if ( null !== $jluxe_simple_stock_qty && $product->is_in_stock() ) : ?>
+						<div class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-small" data-jluxe-stock-count>
+							<span class="text-text-secondary">موجودی انبار</span>
+							<strong class="font-bold text-primary"><bdi data-jluxe-stock-quantity><?php echo esc_html( jluxe_fa_digits( (string) $jluxe_simple_stock_qty ) ); ?></bdi> عدد</strong>
+						</div>
+					<?php endif; ?>
 					<?php if ( $jluxe_is_variable ) : ?>
 						<?php if ( ! empty( $jluxe_available_variations ) || false === $jluxe_available_variations ) : ?>
 							<div class="single_variation_wrap">

@@ -3161,6 +3161,27 @@ check(
 	2 === jluxe_product_stock_quantity_for_display( $r330_simple_stock ),
 	'R330 low-stock display follows the selected managed variation, omits an unselected/untracked variation count, preserves the exact simple-product quantity, and never substitutes the parent aggregate'
 );
+$r330_simple_high_stock = new WC_Product( 760 );
+$r330_simple_high_stock->manage_stock = true;
+$r330_simple_high_stock->stock = 25;
+$r330_simple_unmanaged_stock = new WC_Product( 761 );
+$r330_simple_unmanaged_stock->stock = 25;
+check(
+	25 === jluxe_product_stock_quantity_for_display( $r330_simple_high_stock ) && null === jluxe_product_stock_quantity_for_display( $r330_simple_unmanaged_stock ),
+	'R330 high simple-product inventory is available for display only when WooCommerce manages its stock'
+);
+$r330_default_stock_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
+$r330_classic_stock_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-classic.php' );
+$r330_reference_stock_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
+check(
+	false !== strpos( $r330_default_stock_template, 'data-jluxe-stock-count' ) &&
+	false !== strpos( $r330_classic_stock_template, 'data-jluxe-stock-count' ) &&
+	false !== strpos( $r330_classic_stock_template, '! $cp3_stock_warning_is_low' ) &&
+	2 <= substr_count( $r330_reference_stock_template, 'data-jluxe-stock-count' ) &&
+	false !== strpos( $r330_reference_stock_template, '! $cp3_stock_warning_is_low' ) &&
+	false !== strpos( $r330_reference_stock_template, 'reference-mobile-stock-count' ),
+	'R330 managed simple-product counts above the low-stock threshold appear in default, classic, and both desktop/mobile reference layouts'
+);
 unset( $GLOBALS['products'][746], $GLOBALS['products'][747], $GLOBALS['products'][748] );
 $p74automatic->jluxe_rows[2]['is_in_stock'] = false;
 $p74automatic->jluxe_rows[3]['is_in_stock'] = false;

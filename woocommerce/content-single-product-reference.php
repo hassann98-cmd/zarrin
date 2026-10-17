@@ -689,6 +689,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12.2 2.4 2.4 4.6-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
 							<?php echo esc_html( $cp3_mobile_in_stock ? 'موجود' : 'ناموجود' ); ?>
 						</span>
+						<?php if ( $jluxe_is_simple && $cp3_mobile_in_stock && null !== $cp3_stock_qty && ! $cp3_stock_warning_is_low ) : ?>
+							<span class="reference-mobile-meta-item reference-mobile-stock-count" data-jluxe-stock-count><span>موجودی:</span><bdi data-jluxe-stock-quantity><?php echo esc_html( jluxe_fa_digits( (string) $cp3_stock_qty ) ); ?></bdi><span>عدد</span></span>
+						<?php endif; ?>
 						<?php if ( $product->get_sku() ) : ?>
 							<span class="reference-mobile-meta-item" data-reference-sku><span>کد محصول:</span><bdi dir="ltr"><?php echo esc_html( $product->get_sku() ); ?></bdi></span>
 						<?php endif; ?>
@@ -884,6 +887,12 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								<span class="cp3-rowval is-out">ناموجود</span>
 							<?php endif; ?>
 						</div>
+						<?php if ( $jluxe_is_simple && $cp3_is_in_stock && null !== $cp3_stock_qty && ! $cp3_stock_warning_is_low ) : ?>
+							<div class="cp3-row" data-jluxe-stock-count>
+								<span class="cp3-rowlab">موجودی انبار</span>
+								<span class="cp3-rowval is-ok"><bdi data-jluxe-stock-quantity><?php echo esc_html( jluxe_fa_digits( (string) $cp3_stock_qty ) ); ?></bdi> عدد</span>
+							</div>
+						<?php endif; ?>
 						<?php if ( $jluxe_is_variable || $cp3_stock_warning_is_low ) : ?>
 							<div class="cp3-stockwarn" data-cp3-low-stock<?php echo $cp3_stock_warning_is_low ? '' : ' hidden="hidden"'; ?> aria-live="polite" aria-atomic="true">
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9V14M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21ZM12.0498 17V17.1L11.9502 17.1002V17H12.0498Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
