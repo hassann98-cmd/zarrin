@@ -4146,6 +4146,67 @@ check(
 	! jluxe_search_product_name_matches_tokens( 'superpillow cover', array( 'pillow' ) ),
 	'R131 product title matching keeps useful word prefixes but rejects fuzzy-only and interior-substring matches'
 );
+$r131_pillow_category = new WP_Term();
+$r131_pillow_category->term_id = 777;
+$r131_pillow_category->name = 'تشک و بالش';
+$r131_pillow_post = new WP_Post();
+$r131_pillow_post->ID = 103;
+$r131_category_query_seen = false;
+$GLOBALS['wp_query_handler'] = static function ( $args ) use ( $r131_pillow_post, &$r131_category_query_seen ) {
+	$category_clause = $args['tax_query'][0] ?? array();
+	if (
+		'product_cat' === ( $category_clause['taxonomy'] ?? '' ) &&
+		in_array( 777, (array) ( $category_clause['terms'] ?? array() ), true )
+	) {
+		$r131_category_query_seen = true;
+		return array( $r131_pillow_post );
+	}
+	return array();
+};
+$r131_category_pillow_posts = jluxe_search_category_product_posts(
+	array( array( 'term' => $r131_pillow_category, 'score' => 100 ) ),
+	array(),
+	12
+);
+$r131_category_pillow_results = jluxe_search_format_products( $r131_category_pillow_posts, array( 'بالش' ), 6 );
+check(
+	$r131_category_query_seen && 1 === count( $r131_category_pillow_results['items'] ) && 'بالش طبی' === $r131_category_pillow_results['items'][0]['name'],
+	'R131 a product whose title matches the query is suggested through its directly matching category when the text query misses it'
+);
+$r341_title_only_query = new WP_Query( array( 's' => 'بالش', 'jluxe_search_title_only' => '1' ) );
+$r341_title_only_sql = jluxe_search_title_only_posts_search( ' AND (core search)', $r341_title_only_query );
+check(
+	false !== strpos( $r341_title_only_sql, ' AND (core search)' ) &&
+	false !== strpos( $r341_title_only_sql, 'wp_posts.post_title LIKE %s' ) &&
+	false !== strpos( $r341_title_only_sql, 'بالش' ),
+	'R341 the live product query adds an escaped title-only match before LIMIT while preserving WordPress search conditions'
+);
+$r341_unscoped_query = new WP_Query( array( 's' => 'بالش' ) );
+check(
+	'core search' === jluxe_search_title_only_posts_search( 'core search', $r341_unscoped_query ),
+	'R341 title-only SQL is scoped to the theme autocomplete query and leaves unrelated searches unchanged'
+);
+$r341_search_query_args = array();
+$r341_old_query_handler = $GLOBALS['wp_query_handler'] ?? null;
+$GLOBALS['wp_query_handler'] = static function ( $args ) use ( &$r341_search_query_args ) {
+	$r341_search_query_args = $args;
+	return array();
+};
+$r341_filters_before = count( $GLOBALS['filters'] ?? array() );
+jluxe_search_run_product_query( 'بالش', array(), 12 );
+$r341_new_filters = array_slice( $GLOBALS['filters'] ?? array(), $r341_filters_before );
+$r341_title_filter_registered = false;
+foreach ( $r341_new_filters as $r341_filter_call ) {
+	if ( 'posts_search' === ( $r341_filter_call[0] ?? '' ) && 'jluxe_search_title_only_posts_search' === ( $r341_filter_call[1] ?? '' ) && PHP_INT_MAX === ( $r341_filter_call[2] ?? 0 ) ) {
+		$r341_title_filter_registered = true;
+		break;
+	}
+}
+check(
+	$r341_title_filter_registered && array( 'post_title' ) === ( $r341_search_query_args['search_columns'] ?? array() ) && '1' === ( $r341_search_query_args['jluxe_search_title_only'] ?? '' ),
+	'R341 autocomplete registers the title constraint and requests title-only columns before the twelve-result cap'
+);
+$GLOBALS['wp_query_handler'] = $r341_old_query_handler;
 $r131_arabic_post = new WP_Post();
 $r131_arabic_post->ID = 199;
 $GLOBALS['wp_query_handler'] = static function ( $args ) use ( $r131_arabic_post ) {

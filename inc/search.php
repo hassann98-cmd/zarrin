@@ -443,6 +443,34 @@ function jluxe_search_post_id( $post ): int {
 	return is_numeric( $post ) ? absint( $post ) : 0;
 }
 
+/**
+ * کاندیدهایِ autocomplete باید پیش ازِ LIMIT عنوانِ منطبق داشته باشند؛
+ * تطبیقِ معمولِ WP_Query متنِ توضیحات را هم می‌خواند و آن نتایج می‌توانند
+ * محصول‌هایِ واقعاً منطبق با عنوان را از سقفِ ۱۲تایی بیرون بیندازند.
+ */
+function jluxe_search_title_only_posts_search( string $search, WP_Query $query ): string {
+	if ( '1' !== (string) $query->get( 'jluxe_search_title_only' ) ) {
+		return $search;
+	}
+	$tokens = jluxe_search_tokens( (string) $query->get( 's' ) );
+	if ( empty( $tokens ) ) {
+		return $search;
+	}
+	global $wpdb;
+	if ( ! is_object( $wpdb ) || empty( $wpdb->posts ) || ! method_exists( $wpdb, 'prepare' ) ) {
+		return $search;
+	}
+	$title_conditions = array();
+	foreach ( $tokens as $token ) {
+		$escaped_token = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $token ) : addcslashes( $token, '_%\\' );
+		$title_match   = $wpdb->prepare( $wpdb->posts . '.post_title LIKE %s', '%' . $escaped_token . '%' );
+		if ( is_string( $title_match ) && '' !== $title_match ) {
+			$title_conditions[] = $title_match;
+		}
+	}
+	return empty( $title_conditions ) ? $search : $search . ' AND (' . implode( ' AND ', $title_conditions ) . ')';
+}
+
 /** یک WP_Query محدود، با filter اختیاری رویِ taxonomy برند. */
 function jluxe_search_run_product_query( string $search_term, array $brand_ids, int $limit = 12 ): array {
 	if ( '' === $search_term && empty( $brand_ids ) ) {
@@ -455,8 +483,11 @@ function jluxe_search_run_product_query( string $search_term, array $brand_ids, 
 		'ignore_sticky_posts' => true,
 		'no_found_rows'       => true,
 	);
-	if ( '' !== $search_term ) {
-		$args['s'] = $search_term;
+	$has_search_term = '' !== $search_term;
+	if ( $has_search_term ) {
+		$args['s']                       = $search_term;
+		$args['search_columns']          = array( 'post_title' );
+		$args['jluxe_search_title_only'] = '1';
 	}
 	if ( ! empty( $brand_ids ) ) {
 		$args['tax_query'] = array(
@@ -469,7 +500,67 @@ function jluxe_search_run_product_query( string $search_term, array $brand_ids, 
 			),
 		);
 	}
-	$query = new WP_Query( $args );
+	if ( $has_search_term ) {
+		add_filter( 'posts_search', 'jluxe_search_title_only_posts_search', PHP_INT_MAX, 2 );
+	}
+	try {
+		$query = new WP_Query( $args );
+	} finally {
+		if ( $has_search_term ) {
+			remove_filter( 'posts_search', 'jluxe_search_title_only_posts_search', PHP_INT_MAX );
+		}
+	}
+	return isset( $query->posts ) && is_array( $query->posts ) ? $query->posts : array();
+}
+
+/**
+ * محصولاتِ دسته‌هایِ مستقیمِ منطبق را هم به‌عنوانِ کاندید می‌گیرد.
+ * بعضیِ فیلترها/جستجوگرهایِ سایت، WP_Queryِ دارایِ s را برایِ product محدود
+ * می‌کنند؛ وقتی نامِ دسته با query منطبق است، این مسیرِ کمکی محصولِ منتشرشده
+ * را از خودِ دسته می‌گیرد و بعد همان فیلترِ دقیقِ عنوان را اعمال می‌کند.
+ */
+function jluxe_search_category_product_posts( array $category_matches, array $brand_ids = array(), int $limit = 12 ): array {
+	$category_ids = array();
+	foreach ( $category_matches as $match ) {
+		$category_id = (int) ( $match['term']->term_id ?? 0 );
+		if ( $category_id > 0 ) {
+			$category_ids[] = $category_id;
+		}
+	}
+	$category_ids = array_values( array_unique( $category_ids ) );
+	if ( empty( $category_ids ) ) {
+		return array();
+	}
+
+	$tax_query = array(
+		'relation' => 'AND',
+		array(
+			'taxonomy'         => 'product_cat',
+			'field'            => 'term_id',
+			'terms'            => $category_ids,
+			'include_children' => true,
+			'operator'         => 'IN',
+		),
+	);
+	if ( ! empty( $brand_ids ) ) {
+		$tax_query[] = array(
+			'taxonomy' => 'product_brand',
+			'field'    => 'term_id',
+			'terms'    => array_values( array_unique( array_map( 'absint', $brand_ids ) ) ),
+			'operator' => 'IN',
+		);
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'           => 'product',
+			'post_status'         => 'publish',
+			'posts_per_page'      => max( 1, min( 12, $limit ) ),
+			'ignore_sticky_posts' => true,
+			'no_found_rows'       => true,
+			'tax_query'           => $tax_query,
+		)
+	);
 	return isset( $query->posts ) && is_array( $query->posts ) ? $query->posts : array();
 }
 
@@ -824,6 +915,22 @@ function jluxe_ajax_search(): void {
 	}
 
 	$product_results = jluxe_search_format_products( $selected_posts, $score_tokens, 6 );
+	if ( count( $product_results['items'] ) < 6 && ! empty( $category_matches ) ) {
+		// اگر query مستقیمِ محصول به‌علتِ فیلترِ WP_Query نتیجه نداد، از دستهٔ
+		// منطبق هم کاندید می‌گیریم؛ فیلترِ عنوان پایین‌تر همچنان واژهٔ جستجو را الزامی می‌کند.
+		$category_posts = jluxe_search_category_product_posts( $category_matches, $brand_ids, 12 );
+		$merged_posts   = array();
+		foreach ( array_merge( $selected_posts, $category_posts ) as $post ) {
+			$post_id = jluxe_search_post_id( $post );
+			if ( $post_id ) {
+				$merged_posts[ $post_id ] = $post;
+			}
+		}
+		if ( count( $merged_posts ) > count( $selected_posts ) ) {
+			$selected_posts = array_values( $merged_posts );
+			$product_results = jluxe_search_format_products( $selected_posts, $score_tokens, 6 );
+		}
+	}
 	$categories      = jluxe_search_format_taxonomy_results( 'product_cat', $category_matches, $product_results['facet_ids'], 4 );
 	$brands          = taxonomy_exists( 'product_brand' )
 		? jluxe_search_format_taxonomy_results( 'product_brand', $brand_matches, $product_results['facet_ids'], 4 )
