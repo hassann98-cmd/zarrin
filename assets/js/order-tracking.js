@@ -8,7 +8,7 @@
   var requestVersion = 0;
 
   var CARRIERS = {
-    پست: { url: "https://tracking.post.ir/", color: "#fcba24" },
+    پست: { url: "https://tracking.post.ir/search.aspx?id=%CODE%", color: "#fcba24" },
     تیپاکس: { url: "https://tipaxco.com/en/tracking", color: "#0ea5e9" },
     چاپار: { url: "https://www.chaparnet.com/track/%CODE%", color: "#16a34a" },
   };
@@ -421,7 +421,7 @@
           html += '<p class="jto-shipping-help">کد را در سامانهٔ رسمی شرکت حمل‌ونقل وارد کنید.</p>';
         }
         if (shipping.requires_captcha) {
-          html += '<p class="jto-captcha-note">کد را در سامانهٔ پست وارد کنید و برای ادامه، کپچا را خودتان تکمیل کنید.</p>';
+          html += '<p class="jto-captcha-note">لینک بالا کد مرسوله را در سامانهٔ پست باز می‌کند. اگر کپچا نمایش داده شد، آن را تکمیل کنید؛ اگر لینک مستقیم خطا داد، <a href="https://tracking.post.ir/" target="_blank" rel="noopener noreferrer">صفحهٔ اصلی پست</a> را باز کنید و کد بالا را وارد کنید.</p>';
         }
       } else if (shipping.shipping_method) {
         html += '<p class="jto-shipping-help">کد رهگیری پس از تحویل مرسوله و ثبت آن توسط فروشگاه در این بخش نمایش داده می‌شود.</p>';
@@ -538,7 +538,11 @@
     if (!companyName || !trackingCode) {
       return null;
     }
-    var carrier = CARRIERS[companyName.trim()];
+    var name = companyName.trim();
+    var carrier = CARRIERS[name];
+    if (!carrier && (name.indexOf("پست") !== -1 || /\bpost\b/i.test(name))) {
+      carrier = CARRIERS["پست"];
+    }
     if (!carrier) {
       return null;
     }

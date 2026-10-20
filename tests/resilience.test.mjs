@@ -469,7 +469,7 @@ function trackedOrder(access) {
         shipping_method: "پست پیشتاز",
         tracking_code: "12345678901234567890",
         shipping_company: "پست",
-        tracking_url: "https://tracking.post.ir/",
+        tracking_url: "https://tracking.post.ir/search.aspx?id=12345678901234567890",
         requires_captcha: true,
         shipping_note: "مرسوله تحویل پست شد",
       },
@@ -518,7 +518,14 @@ test("R21 phone-matched tracking shows timeline and limited shipment data while 
   assert.match(result.textContent, /۱۲۳۴۵۶۷۸۹۰۱۲۳۴۵۶۷۸۹۰/);
   assert.equal(result.querySelectorAll(".jto-timeline__step").length, 4);
   assert.equal(result.querySelector('.jto-timeline__step[aria-current="step"] .jto-timeline__label').textContent, "ارسال");
-  assert.equal(result.querySelector(".jto-carrier-link").href, "https://tracking.post.ir/");
+  assert.equal(
+    result.querySelector(".jto-carrier-link").href,
+    "https://tracking.post.ir/search.aspx?id=12345678901234567890",
+  );
+  assert.equal(
+    result.querySelector(".jto-captcha-note a").href,
+    "https://tracking.post.ir/",
+  );
   assert.equal(result.querySelector("a").href, base + "native-account/");
   assert.equal(win.localStorage.length, 0);
 });
@@ -539,6 +546,31 @@ test("R21 Tipax tracking uses its official English tracking route", async () => 
   assert.equal(
     win.document.querySelector(".jto-carrier-link").href,
     "https://tipaxco.com/en/tracking",
+  );
+});
+
+test("R21 postal fallback uses the official code-prefilled route and offers manual CAPTCHA entry", async () => {
+  const { window: win } = trackingDom();
+  win.fetch = async (url) => {
+    if (url.includes("admin-ajax.php"))
+      return json({ success: true, data: { restNonce: "" } });
+    const payload = trackedOrder("status_only");
+    payload.data.shipping.shipping_company = "شرکت پست";
+    payload.data.shipping.tracking_url = "";
+    return json(payload);
+  };
+  const completed = trackingResult(win);
+  submitTracking(win);
+  await completed;
+  const result = win.document.getElementById("jto-result-area");
+  assert.equal(
+    result.querySelector(".jto-carrier-link").href,
+    "https://tracking.post.ir/search.aspx?id=12345678901234567890",
+  );
+  assert.match(result.querySelector(".jto-captcha-note").textContent, /کپچا/);
+  assert.equal(
+    result.querySelector(".jto-captcha-note a").href,
+    "https://tracking.post.ir/",
   );
 });
 

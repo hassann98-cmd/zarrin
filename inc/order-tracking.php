@@ -369,8 +369,8 @@ function jluxe_get_tracking_url( $company, $tracking_code ): string {
 	$encoded_code = rawurlencode( $code );
 	switch ( jluxe_tracking_carrier_key( $company ) ) {
 		case 'post':
-			// The official portal requires manual entry and CAPTCHA; no public prefill parameter is documented.
-			return 'https://tracking.post.ir/';
+			// The official lookup route accepts the shipment number as `id`; any CAPTCHA remains manual.
+			return 'https://tracking.post.ir/search.aspx?id=' . $encoded_code;
 		case 'tipax':
 			// The official page requires manual entry; no supported prefill parameter is documented.
 			return 'https://tipaxco.com/en/tracking';
@@ -516,7 +516,7 @@ function jluxe_render_order_tracking_admin_fields( $order ): void {
 			<textarea id="jluxe_shipping_note" name="jluxe_shipping_note" rows="3" maxlength="1000"><?php echo esc_textarea( $tracking['shipping_note'] ?? '' ); ?></textarea>
 		</p>
 		<p class="form-field form-field-wide description" style="margin-top:0;">
-			<?php esc_html_e( 'روش ارسال، کد و این یادداشت در حساب کاربری و پیگیری سریع سفارش نمایش داده می‌شود. سامانهٔ پست کپچا را خودش درخواست می‌کند و باید توسط مشتری تکمیل شود.', 'zarrin' ); ?>
+			<?php esc_html_e( 'روش ارسال، کد و این یادداشت در حساب کاربری و پیگیری سریع سفارش نمایش داده می‌شود. لینک پست کد را در سامانه وارد می‌کند؛ اگر کپچا خواسته شد مشتری آن را تکمیل کند. در صورت خطای لینک مستقیم، مشتری می‌تواند از صفحهٔ اصلی پست کد را دستی وارد کند.', 'zarrin' ); ?>
 		</p>
 		<input type="hidden" name="jluxe_shipping_tracking_present" value="1" />
 		<?php wp_nonce_field( 'jluxe_save_order_tracking_' . $order->get_id(), 'jluxe_shipping_tracking_nonce' ); ?>

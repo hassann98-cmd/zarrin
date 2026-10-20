@@ -96,7 +96,7 @@ $jluxe_address_parts  = array_filter(
 						پیگیری در سایت <?php echo esc_html( $jluxe_shipping['shipping_company'] ?: 'شرکت حمل' ); ?>
 					</a>
 					<?php if ( ! empty( $jluxe_shipping['requires_captcha'] ) ) : ?>
-						<p class="mt-2 text-caption text-text-muted">کد را در سامانهٔ پست وارد کنید و برای ادامه، کپچای نمایش‌داده‌شده را خودتان تکمیل کنید.</p>
+						<p class="mt-2 text-caption text-text-muted">لینک بالا کد مرسوله را در سامانهٔ پست باز می‌کند. اگر کپچا نمایش داده شد، آن را تکمیل کنید؛ اگر لینک مستقیم خطا داد، <a href="https://tracking.post.ir/" target="_blank" rel="noopener noreferrer" class="font-semibold underline">صفحهٔ اصلی پست</a> را باز کنید و کد بالا را وارد کنید.</p>
 					<?php endif; ?>
 				<?php else : ?>
 					<p class="mt-2 text-caption text-text-muted">کد رهگیری ثبت شده است؛ آن را در سامانهٔ شرکت حمل‌ونقل وارد کنید.</p>
