@@ -1360,21 +1360,26 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 				<div class="relative">
 					<div data-jluxe-scroller<?php echo jluxe_carousel_autoscroll_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
 						<?php
-						foreach ( $products as $product ) {
-							$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-							/*
-						 * lg (دسکتاپ) طبقِ اندازه‌گیریِ زنده از صفحه‌ی فروشگاه به w-[300px]
-						 * عریض شده تا کارتِ محصولِ کروسلِ صفحه‌ی اصلی هم‌اندازه‌ی کارتِ
-						 * صفحه‌ی فروشگاه (grid ستون‌بندیِ ۴تایی، ~304px در 1440px) بشه —
-						 * طبقِ درخواستِ صریحِ کاربر. موبایل (w-[160px]) و تبلت
-						 * (sm:w-[190px]) دست‌نخورده مونده، چون کاربر گفته اونا از قبل
-						 * درستن.
-						 */
-						echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
-							wc_get_template_part( 'content', 'product' );
-							echo '</div>';
-						}
-						wp_reset_postdata();
+						jluxe_with_product_card_image_sizes(
+							'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px',
+							static function () use ( $products ): void {
+								/*
+								 * lg (دسکتاپ) طبقِ اندازه‌گیریِ زنده از صفحه‌ی فروشگاه به w-[300px]
+								 * عریض شده تا کارتِ محصولِ کروسلِ صفحه‌ی اصلی هم‌اندازه‌ی کارتِ
+								 * صفحه‌ی فروشگاه (grid ستون‌بندیِ ۴تایی، ~304px در 1440px) بشه —
+								 * طبقِ درخواستِ صریحِ کاربر. موبایل (w-[160px]) و تبلت
+								 * (sm:w-[190px]) دست‌نخورده مونده، چون کاربر گفته اونا از قبل
+								 * درستن.
+								 */
+								foreach ( $products as $product ) {
+									$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+									echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
+									wc_get_template_part( 'content', 'product' );
+									echo '</div>';
+								}
+								wp_reset_postdata();
+							}
+						);
 						?>
 					</div>
 					<?php jluxe_scroll_arrows(); ?>
@@ -1386,11 +1391,16 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 						@media(min-width:1024px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_d ); ?>,1fr)!important}}
 					</style>
 					<?php
-					foreach ( $products as $product ) {
-						$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-						wc_get_template_part( 'content', 'product' );
-					}
-					wp_reset_postdata();
+					jluxe_with_product_card_image_sizes(
+						jluxe_product_card_grid_image_sizes( $cols_m, $cols_t, $cols_d, $highlight, 640 ),
+						static function () use ( $products ): void {
+							foreach ( $products as $product ) {
+								$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+								wc_get_template_part( 'content', 'product' );
+							}
+							wp_reset_postdata();
+						}
+					);
 					?>
 				</div>
 			<?php endif; ?>
@@ -1521,9 +1531,10 @@ function jluxe_render_homepage_special_products( array $section ): void {
 		<div class="relative">
 			<div data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
 				<?php
-				foreach ( $products as $product ) {
-					$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-					/*
+				jluxe_with_product_card_image_sizes(
+					'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px',
+					static function () use ( $products ): void {
+						/*
 						 * lg (دسکتاپ) طبقِ اندازه‌گیریِ زنده از صفحه‌ی فروشگاه به w-[300px]
 						 * عریض شده تا کارتِ محصولِ کروسلِ صفحه‌ی اصلی هم‌اندازه‌ی کارتِ
 						 * صفحه‌ی فروشگاه (grid ستون‌بندیِ ۴تایی، ~304px در 1440px) بشه —
@@ -1531,11 +1542,15 @@ function jluxe_render_homepage_special_products( array $section ): void {
 						 * (sm:w-[190px]) دست‌نخورده مونده، چون کاربر گفته اونا از قبل
 						 * درستن.
 						 */
-						echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
-					wc_get_template_part( 'content', 'product' );
-					echo '</div>';
-				}
-				wp_reset_postdata();
+						foreach ( $products as $product ) {
+							$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+							echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
+							wc_get_template_part( 'content', 'product' );
+							echo '</div>';
+						}
+						wp_reset_postdata();
+					}
+				);
 				?>
 			</div>
 			<?php jluxe_scroll_arrows(); ?>

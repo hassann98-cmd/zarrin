@@ -48,15 +48,38 @@ if ( $image_id && ! $image_srcset ) {
 	$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
 }
 /*
- * اخطارِ واقعیِ Lighthouse («This image file is larger than it needs to
- * be … use responsive images»): مقدارِ خودکارِ wp_get_attachment_image_sizes()
- * فرض می‌کنه اسلات تا ۳۰۰px (عرضِ اسمیِ خودِ سایزِ woocommerce_thumbnail)
- * می‌تونه بره، در حالی که در گریدِ واقعیِ کارتِ محصول عرضِ نمایشِ واقعی
- * حدودِ ۲۲۰-۲۴۰px هست — روی گوشیِ retina (dpr=2/3) همین اختلاف باعث می‌شه
- * مرورگر به‌جای نسخه‌ی ۳۰۰w، نسخه‌ی ۶۰۰w (خیلی بزرگ‌تر از لازم) رو انتخاب
- * کنه. مقدارِ دستیِ زیر با عرضِ واقعیِ کارت در گریدِ ۲/۳/۴ستونه هماهنگه.
+ * `sizes` باید عرضِ واقعیِ خودِ تصویر را (نه عرضِ تقریبیِ کل کارت) توصیف
+ * کند. این template هم در گریدهایِ قابل‌تنظیمِ صفحهٔ اصلی/آرشیو و هم در
+ * کاروسل‌هایِ ۱۶۰/۱۹۰/۳۰۰px استفاده می‌شود؛ مقدارِ ثابتِ قبلی تا ۱۸۰px
+ * اعلام می‌کرد و در کارتِ ۳۰۰px دسکتاپ باعث انتخابِ کاندیدِ کم‌عرض‌تر از
+ * فضای واقعیِ ۲۶۶px تصویر می‌شد.
+ *
+ * رندرکنندهٔ صفحهٔ اصلی اندازهٔ دقیقِ همان گرید/کاروسل را موقتاً می‌فرستد.
+ * در آرشیو، از ستون‌های واقعیِ تنظیم‌شدهٔ فروشگاه استفاده می‌کنیم؛ در
+ * سایرِ loopها هم برآورد بر پایهٔ همان تنظیماتِ ستون‌بندی انجام می‌شود.
  */
-$image_sizes = $image_id ? '(max-width: 480px) 42vw, (max-width: 1024px) 24vw, 180px' : '';
+$jluxe_card_sizes_override = $GLOBALS['jluxe_product_card_image_sizes'] ?? '';
+if ( ! is_string( $jluxe_card_sizes_override ) || '' === trim( $jluxe_card_sizes_override ) ) {
+	$jluxe_is_catalog_context = ( function_exists( 'is_shop' ) && is_shop() )
+		|| ( function_exists( 'is_product_category' ) && is_product_category() )
+		|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
+		|| ( function_exists( 'is_search' ) && is_search() );
+	$jluxe_shop_columns_mobile  = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_mobile', 2 ) : 2;
+	$jluxe_shop_columns_tablet  = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_tablet', 3 ) : 3;
+	$jluxe_shop_columns_desktop = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_desktop', 4 ) : 4;
+	$jluxe_shop_tablet_break    = $jluxe_is_catalog_context ? 600 : 640;
+
+	$jluxe_card_sizes_override = function_exists( 'jluxe_product_card_grid_image_sizes' )
+		? jluxe_product_card_grid_image_sizes(
+			$jluxe_shop_columns_mobile,
+			$jluxe_shop_columns_tablet,
+			$jluxe_shop_columns_desktop,
+			false,
+			$jluxe_shop_tablet_break
+		)
+		: '100vw';
+}
+$image_sizes = $image_id ? $jluxe_card_sizes_override : '';
 /*
  * اخطارِ واقعیِ Lighthouse («Improve image delivery»): این تصویر نه srcset
  * داشت (یعنی موبایل هم همون فایلِ اندازه‌ی ثابتِ دسکتاپ رو دانلود می‌کرد)

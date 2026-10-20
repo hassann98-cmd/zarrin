@@ -3455,6 +3455,9 @@ wc_set_loop_prop( 'columns', 4 );
 
 $r84_thrown = '';
 $r84_html   = '';
+$r84_had_query_kind = array_key_exists( 'query_kind', $GLOBALS );
+$r84_previous_query_kind = $r84_had_query_kind ? $GLOBALS['query_kind'] : null;
+$GLOBALS['query_kind'] = 'shop';
 ob_start();
 try {
 	jluxe_test_render_card_probe( 'content', 'product' );
@@ -3463,9 +3466,25 @@ try {
 	ob_end_clean();
 	$r84_thrown = get_class( $r84_error ) . ': ' . $r84_error->getMessage();
 }
+if ( $r84_had_query_kind ) {
+	$GLOBALS['query_kind'] = $r84_previous_query_kind;
+} else {
+	unset( $GLOBALS['query_kind'] );
+}
 check( '' === $r84_thrown, 'R84 the product card template actually renders end to end without a runtime error: ' . ( '' !== $r84_thrown ? $r84_thrown : 'ok' ) );
 check( false !== strpos( $r84_html, 'class="product' ) && false !== strpos( $r84_html, 'Public product' ), 'R84 and it emits the product markup (the loop item and the product name are there)' );
 check( false !== strpos( $r84_html, 'data-jluxe-card-thumbs' ), 'R84 including the card effect attributes that 1.65.0 shipped broken' );
+$r84_expected_sizes = jluxe_product_card_grid_image_sizes(
+	(int) jluxe_get_setting( 'shop.columns_mobile', 2 ),
+	(int) jluxe_get_setting( 'shop.columns_tablet', 3 ),
+	(int) jluxe_get_setting( 'shop.columns_desktop', 4 ),
+	false,
+	600
+);
+check(
+	false !== strpos( $r84_html, 'sizes="' . esc_attr( $r84_expected_sizes ) . '"' ),
+	'R84 rendered product cards send the browser a sizes hint matching the configured archive columns and image inset'
+);
 $r152_card_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-product.php' );
 check(
 	strpos( $r152_card_template, "wp_get_attachment_image_url( \$image_id, 'large' )" ) !== false &&
@@ -3474,10 +3493,36 @@ check(
 	strpos( $r152_card_template, "'square'  => 'aspect-square'" ) !== false &&
 	strpos( $r152_card_template, "'classic' => 'aspect-[3/4]'" ) !== false &&
 	strpos( $r152_card_template, "'portrait' => 'aspect-[4/5]'" ) !== false &&
-	strpos( $r152_card_template, 'size-full object-contain' ) !== false &&
-	strpos( $r152_card_template, 'bg-success ring-2 ring-surface' ) !== false &&
-	strpos( $r152_card_template, 'mix-blend-mode' ) === false,
-	'R152 product cards use uncropped responsive candidates, preserve all configured aspect ratios, show the whole item, and never blend image colors'
+		strpos( $r152_card_template, 'size-full object-contain' ) !== false &&
+		strpos( $r152_card_template, 'bg-success ring-2 ring-surface' ) !== false &&
+		strpos( $r152_card_template, 'mix-blend-mode' ) === false &&
+		strpos( $r152_card_template, 'jluxe_product_card_grid_image_sizes' ) !== false &&
+		strpos( $r152_card_template, 'jluxe_product_card_image_sizes' ) !== false,
+		'R152 product cards use uncropped responsive candidates, preserve all configured aspect ratios, show the whole item, avoid blend modes, and derive srcset sizes from the real card slot'
+);
+$r152_default_grid_sizes = jluxe_product_card_grid_image_sizes( 2, 3, 4, false, 640 );
+$r152_highlight_grid_sizes = jluxe_product_card_grid_image_sizes( 2, 3, 4, true, 640 );
+check(
+	'(max-width: 639px) calc(50vw - 54px), (max-width: 767px) calc(33.3333vw - 52.67px), (max-width: 1023px) calc(33.3333vw - 55.33px), (max-width: 1319px) calc(25vw - 54px), 276px' === $r152_default_grid_sizes &&
+	'(max-width: 639px) calc(50vw - 66px), (max-width: 767px) calc(33.3333vw - 63.33px), (max-width: 1023px) calc(33.3333vw - 66px), (max-width: 1319px) calc(25vw - 62px), 268px' === $r152_highlight_grid_sizes &&
+	'(max-width: 599px) calc(100vw - 58px), (max-width: 767px) calc(50vw - 54px), (max-width: 1023px) calc(50vw - 58px), (max-width: 1319px) calc(25vw - 54px), 276px' === jluxe_product_card_grid_image_sizes( 1, 2, 4, false, 600 ),
+	'Product-card srcset sizes account for actual image inset, grid gaps, responsive column counts, highlight padding, archive breakpoints and the capped container width'
+);
+$r152_had_card_sizes = array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
+$r152_previous_card_sizes = $r152_had_card_sizes ? $GLOBALS['jluxe_product_card_image_sizes'] : null;
+$r152_seen_card_sizes = '';
+jluxe_with_product_card_image_sizes(
+	'inner-test-size',
+	static function () use ( &$r152_seen_card_sizes ): void {
+		$r152_seen_card_sizes = $GLOBALS['jluxe_product_card_image_sizes'] ?? '';
+	}
+);
+$r152_context_restored = $r152_had_card_sizes
+	? ( $GLOBALS['jluxe_product_card_image_sizes'] ?? null ) === $r152_previous_card_sizes
+	: ! array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
+check(
+	'inner-test-size' === $r152_seen_card_sizes && $r152_context_restored,
+	'Product-card image sizes are scoped to their render loop and cannot leak into following cards/sections'
 );
 $r152_home_cards = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
@@ -3490,6 +3535,12 @@ check(
 	strpos( $r152_home_cards, 'size-full object-contain transition-transform' ) !== false &&
 	strpos( $r152_home_cards, 'mix-blend-multiply' ) === false,
 	'R152 homepage product cards also use uncropped responsive images, contain the full item, and preserve its colors'
+);
+check(
+	strpos( $r152_home_cards, 'jluxe_product_card_grid_image_sizes( $cols_m, $cols_t, $cols_d, $highlight, 640 )' ) !== false &&
+	strpos( $r152_home_cards, 'jluxe_with_product_card_image_sizes' ) !== false &&
+	2 === substr_count( $r152_home_cards, "'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px'" ),
+	'Homepage product grids derive srcset sizes from configured columns and carousel cards use their exact 126/156/266px image slots'
 );
 check(
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$jluxe_gid, 'jluxe-uncropped-480' )" ) !== false &&

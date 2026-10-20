@@ -8,6 +8,92 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Calculate the `sizes` value for a product card inside a configurable grid.
+ *
+ * The card template is used by homepage grids, product archives and fixed-size
+ * carousels. A single guessed width caused `srcset` to under-select on wide
+ * cards (notably the 300px homepage carousel card). This calculation mirrors
+ * the shared 1320px section/archive container, 16px grid gap, 1px card border
+ * and the card image's `inset-4` (32px total). A highlighted homepage grid has
+ * an extra `p-3 sm:p-4` wrapper, which is included when requested.
+ *
+ * @param int  $columns_mobile     Number of columns below the tablet breakpoint.
+ * @param int  $columns_tablet     Number of columns from tablet to desktop.
+ * @param int  $columns_desktop    Number of desktop columns.
+ * @param bool $highlight         Whether the grid has the homepage highlight padding.
+ * @param int  $tablet_breakpoint Viewport width where tablet columns begin.
+ * @param int  $container_max     Outer container max-width in CSS pixels.
+ * @return string
+ */
+function jluxe_product_card_grid_image_sizes(
+	int $columns_mobile,
+	int $columns_tablet,
+	int $columns_desktop,
+	bool $highlight = false,
+	int $tablet_breakpoint = 640,
+	int $container_max = 1320
+): string {
+	$columns_mobile     = max( 1, min( 3, $columns_mobile ) );
+	$columns_tablet     = max( 1, min( 4, $columns_tablet ) );
+	$columns_desktop    = max( 1, min( 6, $columns_desktop ) );
+	$tablet_breakpoint  = max( 1, min( 767, $tablet_breakpoint ) );
+	$container_max      = max( 320, $container_max );
+	$highlight_sm_pad   = $highlight ? 16 : 0;
+
+	$slot_size = static function ( int $columns, int $outer_side_padding, int $highlight_side_padding ): string {
+		$columns = max( 1, $columns );
+		$vw      = rtrim( rtrim( number_format( 100 / $columns, 4, '.', '' ), '0' ), '.' );
+		$fixed   = ( ( 2 * $outer_side_padding ) + ( 2 * $highlight_side_padding ) + ( 16 * ( $columns - 1 ) ) ) / $columns + 34;
+		$fixed   = rtrim( rtrim( number_format( $fixed, 2, '.', '' ), '0' ), '.' );
+
+		return 'calc(' . $vw . 'vw - ' . $fixed . 'px)';
+	};
+
+	$mobile_size       = $slot_size( $columns_mobile, 12, $highlight ? 12 : 0 );
+	$tablet_sm_size    = $slot_size( $columns_tablet, 12, $highlight_sm_pad );
+	$tablet_md_size    = $slot_size( $columns_tablet, 16, $highlight_sm_pad );
+	$desktop_size      = $slot_size( $columns_desktop, 16, $highlight_sm_pad );
+	$max_image_width   = ( ( $container_max - 32 - ( 2 * $highlight_sm_pad ) - ( 16 * ( $columns_desktop - 1 ) ) ) / $columns_desktop ) - 34;
+	$max_image_width   = max( 1, (int) ceil( $max_image_width ) );
+
+	return sprintf(
+		'(max-width: %1$dpx) %2$s, (max-width: 767px) %3$s, (max-width: 1023px) %4$s, (max-width: %5$dpx) %6$s, %7$dpx',
+		$tablet_breakpoint - 1,
+		$mobile_size,
+		$tablet_sm_size,
+		$tablet_md_size,
+		$container_max - 1,
+		$desktop_size,
+		$max_image_width
+	);
+}
+
+/**
+ * Temporarily provide the card renderer with the exact image slot size for
+ * its current homepage grid/carousel, then restore any enclosing context.
+ *
+ * @param string   $sizes Responsive image slot sizes.
+ * @param callable $render Renderer that includes one or more product cards.
+ * @return void
+ */
+function jluxe_with_product_card_image_sizes( string $sizes, callable $render ): void {
+	$key          = 'jluxe_product_card_image_sizes';
+	$had_previous = array_key_exists( $key, $GLOBALS );
+	$previous     = $had_previous ? $GLOBALS[ $key ] : null;
+	$GLOBALS[ $key ] = $sizes;
+
+	try {
+		$render();
+	} finally {
+		if ( $had_previous ) {
+			$GLOBALS[ $key ] = $previous;
+		} else {
+			unset( $GLOBALS[ $key ] );
+		}
+	}
+}
+
+/**
  * Resolve a usable responsive image without ever replacing an animated GIF
  * with WordPress's generated (static) intermediate frame.
  *
