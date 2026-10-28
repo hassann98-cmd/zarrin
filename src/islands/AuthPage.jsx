@@ -3,6 +3,7 @@ import { UserRound, ChevronRight, CheckCircle2, Smartphone } from "lucide-react"
 import { getThemeSettings } from "../lib/theme-settings.js";
 import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
+import { watchOtpInputViewport } from "../lib/otp-viewport.js";
 
 // Keep the silent native-autofill fallback alive for the full OTP lifetime;
 // older Android/iOS autofill services may update the input without an event.
@@ -52,7 +53,6 @@ export default function AuthPage() {
   const [method, setMethod] = useState(smsEnabled ? "phone" : "username");
   const [mode, setMode] = useState("login");
   const [sent, setSent] = useState(false);
-  const [listeningForOtp, setListeningForOtp] = useState(false);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [login, setLogin] = useState("");
@@ -66,8 +66,16 @@ export default function AuthPage() {
   const verifyingOtp = useRef(false);
   const otpRequestReady = useRef(false);
   const pendingWebOtp = useRef("");
+  const webOtpController = useRef(null);
+  const webOtpGeneration = useRef(0);
   const authSucceeded = useRef(false);
   const successTimer = useRef(0);
+
+  const cancelWebOtp = useCallback(() => {
+    webOtpGeneration.current += 1;
+    webOtpController.current?.abort();
+    webOtpController.current = null;
+  }, []);
 
   const verifyOtp = useCallback(
     async (rawCode) => {
@@ -96,7 +104,7 @@ export default function AuthPage() {
         authSucceeded.current = true;
         otpRequestReady.current = false;
         pendingWebOtp.current = "";
-        setListeningForOtp(false);
+        cancelWebOtp();
         setAuthSuccess(true);
         successTimer.current = window.setTimeout(() => {
           window.location.assign(resolvePostAuthUrl());
@@ -112,35 +120,34 @@ export default function AuthPage() {
         setBusy(false);
       }
     },
-    [phone],
+    [phone, cancelWebOtp],
   );
 
-  useEffect(() => () => {
-    if (successTimer.current) window.clearTimeout(successTimer.current);
-  }, []);
-
-  useEffect(() => {
-    if (
-      method !== "phone" ||
-      !listeningForOtp ||
-      typeof window === "undefined"
-    ) {
-      return;
-    }
+  const startWebOtp = useCallback(() => {
+    cancelWebOtp();
+    if (typeof window === "undefined") return;
     const credentials = window.navigator?.credentials;
     if (!window.isSecureContext || typeof credentials?.get !== "function") return;
 
+    const generation = webOtpGeneration.current;
     const controller = typeof window.AbortController === "function"
       ? new window.AbortController()
       : null;
-    let active = true;
+    webOtpController.current = controller;
     const options = { otp: { transport: ["sms"] } };
     if (controller) options.signal = controller.signal;
     try {
+      // Start listening synchronously from the submit gesture, before the server
+      // can send the SMS. Other browsers simply use their native one-time-code UI.
       Promise.resolve(credentials.get(options))
         .then((credential) => {
-          if (!active || controller?.signal.aborted || typeof credential?.code !== "string")
+          if (
+            generation !== webOtpGeneration.current ||
+            controller?.signal.aborted ||
+            typeof credential?.code !== "string"
+          ) {
             return;
+          }
           const receivedCode = normalizeDigits(credential.code)
             .replace(/[^0-9]/g, "")
             .slice(0, 6);
@@ -154,16 +161,23 @@ export default function AuthPage() {
         });
     } catch {
       // A browser may expose CredentialsContainer without implementing WebOTP.
+      cancelWebOtp();
     }
-    return () => {
-      active = false;
-      controller?.abort();
-    };
-  }, [method, listeningForOtp, verifyOtp]);
+  }, [cancelWebOtp, verifyOtp]);
+
+  useEffect(() => () => {
+    cancelWebOtp();
+    if (successTimer.current) window.clearTimeout(successTimer.current);
+  }, [cancelWebOtp]);
 
   useEffect(() => {
     if (method === "phone" && sent && !busy && !code) otpInput.current?.focus();
   }, [method, sent, busy, code]);
+
+  useEffect(() => {
+    if (method !== "phone" || !sent || authSuccess) return undefined;
+    return watchOtpInputViewport(otpInput.current, window);
+  }, [method, sent, authSuccess]);
 
   const syncOtpFromDom = useCallback(() => {
     const input = otpInput.current;
@@ -238,7 +252,7 @@ export default function AuthPage() {
         if (!normalizedPhone) throw new Error("شماره موبایل معتبر نیست.");
         otpRequestReady.current = false;
         pendingWebOtp.current = "";
-        setListeningForOtp(true);
+        startWebOtp();
         await restRequest(
           "auth/otp-request",
           { phone: normalizedPhone },
@@ -269,7 +283,7 @@ export default function AuthPage() {
       if (method === "phone" && !sent) {
         otpRequestReady.current = false;
         pendingWebOtp.current = "";
-        setListeningForOtp(false);
+        cancelWebOtp();
       }
       setError(
         cause instanceof Error ? cause.message : "ارتباط با سرور برقرار نشد.",
@@ -280,11 +294,11 @@ export default function AuthPage() {
   }
 
   function changeMethod(next) {
+    cancelWebOtp();
     setMethod(next);
     setSent(false);
     otpRequestReady.current = false;
     pendingWebOtp.current = "";
-    setListeningForOtp(false);
     setCode("");
     setError("");
     setPassword("");
@@ -429,10 +443,10 @@ export default function AuthPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => {
+                      cancelWebOtp();
                       setSent(false);
                       otpRequestReady.current = false;
                       pendingWebOtp.current = "";
-                      setListeningForOtp(false);
                       setCode("");
                       setError("");
                     }}

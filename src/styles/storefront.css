@@ -8213,7 +8213,7 @@ del .woocommerce-Price-amount {
 .jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs,
 .jluxe-auth-screen[data-otp-only] .jluxe-auth-recovery { display: none; }
 
-.jluxe-auth-route-overlay { position: fixed; inset: 0; z-index: 100010; overflow: auto; overscroll-behavior: contain; background: hsl(var(--background)); }
+.jluxe-auth-route-overlay { position: fixed; inset: 0; z-index: 100010; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: hsl(var(--background)); }
 .jluxe-auth-route-overlay[hidden] { display: none; }
 .jluxe-auth-screen { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; background: hsl(var(--background)); }
 .jluxe-auth-card { width: 100%; max-width: 420px; border: 1px solid hsl(var(--border)); border-radius: 28px; background: hsl(var(--surface)); padding: 2rem; box-shadow: 0 12px 32px hsl(var(--foreground) / .08); }
@@ -8263,6 +8263,7 @@ del .woocommerce-Price-amount {
 .jluxe-auth-card input.jluxe-auth-code-input {
   min-height: 60px;
   margin-bottom: .35rem;
+  scroll-margin-block: 1.25rem;
   border-color: hsl(var(--primary) / .25);
   border-radius: 16px;
   background: hsl(var(--surface));
