@@ -1033,6 +1033,7 @@ function jluxe_theme_settings_defaults(): array {
 			// از wp-login.php وارد می‌شوند — این مسیر حذف نمی‌شود.
 			'otp_only' => false,
 			'provider' => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی. گزینه‌ها: kavenegar | melipayamak
+			'otp_mode' => 'pattern', // ملی‌پیامک: pattern (پیش‌فرض فعلی) یا dedicated (ارسال متن آزاد از خط اختصاصی).
 			// ملی‌پیامک: نام کاربریِ پنل (سرویسِ REST کلاسیک —
 			// rest.payamak-panel.com/api/SendSMS/SendSMS — به هر دوی
 			// نام‌کاربری/رمز نیاز داره، نه فقط یکی؛ باگِ واقعیِ گزارش‌شده:

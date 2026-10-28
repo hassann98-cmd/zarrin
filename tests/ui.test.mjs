@@ -63,6 +63,9 @@ test("R98 login UI omits the redundant hint and retains OTP autofill support", (
   const authSource = fs.readFileSync(new URL("../src/islands/AuthPage.jsx", import.meta.url), "utf8");
   assert.match(authSource, /name="one-time-code"/);
   assert.match(authSource, /autoComplete="one-time-code"/);
+  assert.match(authSource, /OTP_AUTOFILL_SYNC_WINDOW_MS = 120_000/);
+  assert.match(authSource, /jluxe-auth-otp-note jluxe-auth-error/);
+  assert.match(authSource, /id="jluxe-auth-error" className="jluxe-auth-error" role="alert"/);
   assert.doesNotMatch(authSource, /maxLength=\{6\}|pattern="\[0-9\]\{6\}"/, "native and Google OTP autofill must not be pre-truncated by HTML validation");
   assert.doesNotMatch(html, /ورود پیامکی فقط برای حساب‌های موجود/);
   assert.doesNotMatch(authSource, /jluxe-auth-hint|با کد درست/);

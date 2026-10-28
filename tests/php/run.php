@@ -91,15 +91,16 @@ foreach ( array( 'jquery-core', 'jquery-migrate', 'underscore', 'wp-util' ) as $
 }
 jluxe_defer_core_scripts_to_footer( $r161_scripts );
 $r161_previous_wp_scripts = $GLOBALS['wp_scripts'] ?? null;
-$r161_scripts->registered['jquery-blockui'] = new stdClass();
-$r161_scripts->registered['wc-jquery-blockui'] = new stdClass();
+$r161_scripts->registered['jquery-blockui'] = (object) array( 'src' => '' ); // WordPress/WooCommerce alias: no source may receive a strategy.
+$r161_scripts->registered['wc-jquery-blockui'] = (object) array( 'src' => '/woocommerce/assets/js/jquery-blockui/jquery.blockUI.min.js' );
 $GLOBALS['wp_scripts'] = $r161_scripts;
 jluxe_defer_woocommerce_blockui();
 $r161_all_deferred = true;
-foreach ( array( 'jquery-core', 'jquery-migrate', 'underscore', 'wp-util', 'jquery-blockui', 'wc-jquery-blockui' ) as $r161_handle ) {
+foreach ( array( 'jquery-core', 'jquery-migrate', 'underscore', 'wp-util', 'wc-jquery-blockui' ) as $r161_handle ) {
 	$r161_all_deferred = $r161_all_deferred && 'defer' === ( $r161_scripts->strategies[ $r161_handle ]['strategy'] ?? '' );
 }
-check( $r161_all_deferred, 'R161 jQuery, WordPress utilities and WooCommerce BlockUI all retain dependency-safe defer strategies' );
+$r161_alias_untouched = ! isset( $r161_scripts->strategies['jquery-blockui']['strategy'] );
+check( $r161_all_deferred && $r161_alias_untouched, 'R161 dependency-safe deferral skips the source-less jquery-blockui alias and keeps the real WooCommerce BlockUI script deferred' );
 if ( null === $r161_previous_wp_scripts ) {
 	unset( $GLOBALS['wp_scripts'] );
 } else {
@@ -269,6 +270,17 @@ function reset_cart(): void {
 	$GLOBALS['wc']->cart->items['existing']=array('data'=>$GLOBALS['products'][1], 'product_id'=>1, 'variation_id'=>0, 'variation'=>array(), 'quantity'=>1);
 	$GLOBALS['test_filters']=array();
 }
+
+// R348: the MiniCart GET-like read must reuse totals WooCommerce restored at wp_loaded.
+reset_cart();
+$_POST=array('op'=>'get');
+$r348_read_only_cart=json_call('jluxe_ajax_cart');
+check(
+	$r348_read_only_cart->success && $r348_read_only_cart->data['itemCount']===1 &&
+	count($r348_read_only_cart->data['items'])===1 && WC()->cart->totalsCalls===0,
+	'R348 read-only MiniCart refresh returns the existing cart snapshot without recalculating totals'
+);
+
 reset_cart();$_POST=array('op'=>'add','product_id'=>'2','quantity'=>'1');
 $reply=json_call('jluxe_ajax_cart');
 check($reply->success && isset(WC()->cart->items['existing'],WC()->cart->items['new']), 'R04 adding keeps the valid in-memory/persistent cart');
@@ -876,7 +888,7 @@ check($response->get_headers()===jluxe_private_rest_headers(), 'R21 even core RE
 $response=jluxe_protect_private_rest_responses(new WP_REST_Response(),null,new WP_REST_Request(array('_route'=>'/wp/v2/posts')));
 check($response->get_headers()===array(), 'R21 unrelated public REST resources keep their own cache policy');
 check(jluxe_get_status_label('completed')==='تکمیل شده', 'R21 WooCommerce completion is not misrepresented as confirmed delivery');
-check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/search.aspx?id=12345' && jluxe_get_tracking_url('شرکت پست','۰۱۲۳۴۵')==='https://tracking.post.ir/search.aspx?id=012345' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/en/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages, prefill Post/Chapar, and preserve postal codes beginning with zero');
+check(jluxe_get_tracking_url('پست','۱۲۳۴۵')==='https://tracking.post.ir/?id=12345' && jluxe_get_tracking_url('شرکت پست','۰۱۲۳۴۵')==='https://tracking.post.ir/?id=012345' && jluxe_get_tracking_url('پست','۰۲۸۶۷۰۵۲۱۹۰۱۳۰۱۸۶۰۰۰۰۱۴۷')==='https://tracking.post.ir/?id=028670521901301860000147' && jluxe_get_tracking_url('تیپاکس','۱۲۳۴۵')==='https://tipaxco.com/en/tracking' && jluxe_get_tracking_url('چاپار','۱۲۳۴۵')==='https://www.chaparnet.com/track/12345', 'R21 carrier links use official tracking pages, prefill Post/Chapar, preserve leading-zero postal codes, and match the confirmed 24-digit example');
 $r231_shipping_guide_defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking']['body_html'] ?? '';
 check(
 	false !== strpos( $r231_shipping_guide_defaults, 'روش پست پیشتاز' ) &&
@@ -930,7 +942,7 @@ $_POST=array(
 jluxe_save_order_tracking_admin_fields(51,$order);
 $shipping=jluxe_build_shipping_data($order);
 check($order->save_count===1 && $order->meta['_jluxe_tracking_configured']==='yes' && $order->meta['_jluxe_shipping_company']==='پست' && $order->meta['_jluxe_tracking_code']==='1234567890', 'R21 admin shipment save normalizes the tracking code and persists metadata through the order object');
-check($shipping['shipping_method']==='Test shipping' && $shipping['shipping_company']==='پست' && $shipping['tracking_url']==='https://tracking.post.ir/search.aspx?id=1234567890' && $shipping['requires_captcha'] && strpos($shipping['shipping_note'],'مرسوله تحویل پست شد.')===0, 'R21 customer shipping data combines WooCommerce method with a prefilled official Post link, manual CAPTCHA, and admin note');
+check($shipping['shipping_method']==='Test shipping' && $shipping['shipping_company']==='پست' && $shipping['tracking_url']==='https://tracking.post.ir/?id=1234567890' && $shipping['requires_captcha'] && strpos($shipping['shipping_note'],'مرسوله تحویل پست شد.')===0, 'R21 customer shipping data combines WooCommerce method with a prefilled official Post link, manual CAPTCHA, and admin note');
 $r21_hpos_save_hook=false;
 foreach($GLOBALS['actions'] as $r21_hook){
  if(($r21_hook[0]??'')==='woocommerce_process_shop_order_meta' && ($r21_hook[1]??'')==='jluxe_save_order_tracking_admin_fields' && ($r21_hook[2]??0)===45 && ($r21_hook[3]??0)===2){$r21_hpos_save_hook=true;break;}
@@ -5692,10 +5704,37 @@ jluxe_set_sms_api_key( 'kave-token-0000-1111' );
 $_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'kavenegar', 'username' => 'jluxeadmin' ), 'sms_api_key' => 'My-WP-Login-Pass!' );
 ob_start(); jluxe_render_sms_page(); $r90sms = (string) ob_get_clean();
 check( 'kave-token-0000-1111' === jluxe_get_sms_api_key() && false !== strpos( $r90sms, 'notice-warning' ) && false !== strpos( $r90sms, '…1111' ), 'R90 SMS key is protected from login-password autofill too' );
-check( false !== strpos( $r90sms, '@shop.test #123456' ) && false !== strpos( $r90sms, 'HTTPS' ), 'R117 SMS settings show the exact origin-bound footer needed for supported WebOTP autofill' );
+check(
+	false !== strpos( $r90sms, '@shop.test #123456' ) &&
+	false !== strpos( $r90sms, 'HTTPS' ) &&
+	false !== strpos( $r90sms, 'یک خط جداگانه' ) &&
+	false !== strpos( $r90sms, 'هیچ متنی پس از آن نیاید' ) &&
+	false !== strpos( $r90sms, 'متن واقعی پیامک را بررسی کنید' ),
+	'R117 SMS settings explain the exact last-line origin footer, HTTPS and provider-generated final SMS checks needed for WebOTP'
+);
 $_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'melipayamak' ), 'sms_api_key' => 'pass with space' );
-ob_start(); jluxe_render_sms_page(); ob_end_clean();
+ob_start(); jluxe_render_sms_page(); $r90melihtml = (string) ob_get_clean();
 check( 'pass with space' === jluxe_get_sms_api_key(), 'R90 SMS password keeps inner spaces (it may be a panel password)' );
+check(
+	false !== strpos( $r90melihtml, 'مشتری عزیز کد تأیید شما {0} می‌باشد.' ) &&
+	false !== strpos( $r90melihtml, '@shop.test #{0}' ) &&
+	false !== strpos( $r90melihtml, 'کد را فقط یک بار می‌فرستد' ) &&
+	false !== strpos( $r90melihtml, 'Body ID جدید' ) &&
+	false !== strpos( $r90melihtml, 'name="sms[otp_mode]"' ) &&
+	false !== strpos( $r90melihtml, 'پترن خدماتی / Body ID (پیش‌فرض و روش فعلی)' ),
+	'R117 MeliPayamak settings retain the confirmed one-variable pattern as the selected default and expose the separate OTP delivery-mode selector'
+);
+$_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'melipayamak', 'otp_mode' => 'dedicated' ) );
+ob_start(); jluxe_render_sms_page(); $r90meli_dedicated_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r90meli_dedicated_html, 'خط اختصاصی از API ارسال عادی ملی‌پیامک استفاده می‌کند' ) &&
+	false !== strpos( $r90meli_dedicated_html, '@shop.test #123456' ) &&
+	false !== strpos( $r90meli_dedicated_html, 'selected=\'selected\'>خط اختصاصی / متن آزاد' ) &&
+	false !== strpos( $r90meli_dedicated_html, 'Body ID پترن در این حالت استفاده نمی‌شود' ),
+	'R349 dedicated OTP mode explains the ordinary-send requirement, selects its option, and previews a final-line WebOTP message'
+);
+$_POST = array( 'jluxe_settings_nonce' => 'n', 'sms' => array( 'provider' => 'melipayamak', 'otp_mode' => 'pattern' ) );
+ob_start(); jluxe_render_sms_page(); ob_end_clean();
 check( '' === jluxe_secret_hint( 'short-key' ), 'R90 short secrets get no hint' );
 $_POST = array();
 $GLOBALS['authenticated_user'] = 0;
@@ -6598,7 +6637,7 @@ $r21_payment_labels = file_get_contents( __DIR__ . '/../../inc/order-tracking.ph
 $r21_thankyou = file_get_contents( __DIR__ . '/../../woocommerce/checkout/thankyou.php' );
 check( false !== strpos( $r21_view_order, 'jluxe-order-timeline' ) && false !== strpos( $r21_view_order, 'aria-current="step"' ) && false !== strpos( $r21_view_order, 'jluxe_build_timeline_data' ) && false !== strpos( $r21_view_order, 'jluxe-order-shipment__tracking-code' ) && false !== strpos( $r21_view_order, 'shipping_note' ) && false !== strpos( $r21_view_order, 'requires_captcha' ) && false !== strpos( $r21_view_order, 'https://tracking.post.ir/' ) && false !== strpos( $r21_view_order, 'صفحهٔ اصلی پست' ) && false !== strpos( $r21_view_order, 'target="_blank"' ), 'R21 account order details render shipment code, the official prefilled link, CAPTCHA guidance, and a manual-entry fallback' );
 check( false !== strpos( $r21_order_css, '.jluxe-order-timeline' ) && false !== strpos( $r21_order_css, 'grid-template-columns: repeat(4, minmax(0, 1fr))' ) && false !== strpos( $r21_order_css, '@media (max-width: 480px)' ) && false !== strpos( $r21_order_css, '.jluxe-order-shipment__note' ), 'R21 account shipment/timeline styling keeps four clear, responsive steps and readable shipment notes' );
-check( false !== strpos( $r21_quick_js, 'jto-timeline__step' ) && false !== strpos( $r21_quick_js, 'shipping.tracking_url' ) && false !== strpos( $r21_quick_js, 'shipping.shipping_note' ) && false !== strpos( $r21_quick_js, 'requires_captcha' ) && false !== strpos( $r21_quick_js, 'https://tracking.post.ir/search.aspx?id=%CODE%' ) && false !== strpos( $r21_quick_js, 'https://tracking.post.ir/' ) && false !== strpos( $r21_payment_labels, 'function jluxe_get_payment_method_label' ) && false !== strpos( $r21_payment_labels, "'card-to-card'" ) && false !== strpos( $r21_payment_labels, "return 'کارت به کارت'" ) && false !== strpos( $r21_thankyou, 'jluxe_get_payment_method_label' ), 'R21 quick tracking offers the official code-prefilled Post route and manual CAPTCHA/homepage fallback' );
+check( false !== strpos( $r21_quick_js, 'jto-timeline__step' ) && false !== strpos( $r21_quick_js, 'shipping.tracking_url' ) && false !== strpos( $r21_quick_js, 'shipping.shipping_note' ) && false !== strpos( $r21_quick_js, 'requires_captcha' ) && false !== strpos( $r21_quick_js, 'https://tracking.post.ir/?id=%CODE%' ) && false !== strpos( $r21_quick_js, 'https://tracking.post.ir/' ) && false !== strpos( $r21_payment_labels, 'function jluxe_get_payment_method_label' ) && false !== strpos( $r21_payment_labels, "'card-to-card'" ) && false !== strpos( $r21_payment_labels, "return 'کارت به کارت'" ) && false !== strpos( $r21_thankyou, 'jluxe_get_payment_method_label' ), 'R21 quick tracking offers the official code-prefilled Post route and manual CAPTCHA/homepage fallback' );
 
 // R144 — simple-product steppers stay visible in both product layouts and keep their bounds.
 $r144_simple_template = file_get_contents( __DIR__ . '/../../woocommerce/single-product/add-to-cart/simple.php' );
@@ -6748,6 +6787,75 @@ check(
 	'' === $r160_sms_array_input['stock_alert_message'],
 	'R213 SMS settings preserve emoji/newlines, cap custom text at the UI/renderer limit of 1500, reject array input, and restrict delivery mode'
 );
+$r349_sms_mode_default = jluxe_theme_settings_defaults()['sms']['otp_mode'] ?? '';
+$r349_sms_mode_dedicated = jluxe_sanitize_sms( array( 'provider' => 'melipayamak', 'otp_mode' => 'dedicated' ), $r160_sms_defaults );
+$r349_sms_mode_invalid = jluxe_sanitize_sms( array( 'otp_mode' => 'custom-endpoint' ), $r160_sms_defaults );
+check(
+	'pattern' === $r349_sms_mode_default &&
+	'dedicated' === $r349_sms_mode_dedicated['otp_mode'] &&
+	'pattern' === $r349_sms_mode_invalid['otp_mode'],
+	'R349 OTP delivery mode defaults to the existing pattern route and sanitizer accepts only pattern or dedicated'
+);
+
+$GLOBALS['http_posts'] = array();
+$GLOBALS['http_post_responses'] = array();
+$GLOBALS['http_post_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '7654321' );
+$GLOBALS['provider_response'] = array( 'response' => array( 'code' => 200 ), 'body' => '{"return":{"status":200}}' );
+$r349_meli_settings = $r160_sms_defaults;
+$r349_meli_settings['provider'] = 'melipayamak';
+$r349_meli_settings['username'] = 'sms-user';
+$r349_meli_settings['sender'] = '300012345';
+$r349_meli_settings['body_id'] = '532701';
+$r349_meli_settings['otp_mode'] = 'pattern';
+$r349_pattern_result = jluxe_send_otp_sms( $r349_meli_settings, 'dummy-test-key', '9120000000', '123456' );
+$r349_pattern_request = end( $GLOBALS['http_posts'] );
+$r349_pattern_body = $r349_pattern_request['args']['body'] ?? array();
+check(
+	true === $r349_pattern_result &&
+	'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber' === ( $r349_pattern_request['url'] ?? '' ) &&
+	'123456' === ( $r349_pattern_body['text'] ?? '' ) &&
+	'532701' == ( $r349_pattern_body['bodyId'] ?? '' ) &&
+	! isset( $r349_pattern_body['from'] ),
+	'R349 the existing MelliPayamak pattern OTP route still sends the code and Body ID through BaseServiceNumber'
+);
+$r349_meli_settings['otp_mode'] = 'dedicated';
+$r349_meli_settings['body_id'] = '';
+$GLOBALS['http_posts'] = array();
+$r349_dedicated_result = jluxe_send_otp_sms( $r349_meli_settings, 'dummy-test-key', '9120000000', '123456' );
+$r349_dedicated_request = end( $GLOBALS['http_posts'] );
+$r349_dedicated_body = $r349_dedicated_request['args']['body'] ?? array();
+$r349_expected_sms = "مشتری عزیز کد تأیید شما 123456 می‌باشد.\n\n@shop.test #123456";
+check(
+	true === $r349_dedicated_result &&
+	'https://rest.payamak-panel.com/api/SendSMS/SendSMS' === ( $r349_dedicated_request['url'] ?? '' ) &&
+	'300012345' === ( $r349_dedicated_body['from'] ?? '' ) &&
+	'09120000000' === ( $r349_dedicated_body['to'] ?? '' ) &&
+	$r349_expected_sms === ( $r349_dedicated_body['text'] ?? '' ) &&
+	! isset( $r349_dedicated_body['bodyId'] ),
+	'R349 dedicated MelliPayamak OTP sends the configured line and a generated message ending exactly in @host #code, without Body ID'
+);
+$r349_meli_settings['sender'] = '';
+$GLOBALS['http_posts'] = array();
+$r349_missing_sender = jluxe_send_otp_sms( $r349_meli_settings, 'dummy-test-key', '9120000000', '123456' );
+check(
+	is_wp_error( $r349_missing_sender ) &&
+	'jluxe_sms_missing_sender' === $r349_missing_sender->get_error_code() &&
+	0 === count( $GLOBALS['http_posts'] ),
+	'R349 dedicated OTP fails closed when no sending line is configured'
+);
+$r349_kavenegar_settings = $r160_sms_defaults;
+$r349_kavenegar_settings['provider'] = 'kavenegar';
+$r349_kavenegar_settings['template'] = 'verify';
+$r349_kavenegar_settings['otp_mode'] = 'dedicated';
+$r349_kavenegar_result = jluxe_send_otp_sms( $r349_kavenegar_settings, 'dummy-test-key', '9120000000', '123456' );
+check(
+	true === $r349_kavenegar_result &&
+	false !== strpos( (string) ( $GLOBALS['provider_url'] ?? '' ), 'https://api.kavenegar.com/v1/' ) &&
+	0 === count( $GLOBALS['http_posts'] ),
+	'R349 Kavenegar continues using its unchanged Verify Lookup route regardless of the Melli-only mode setting'
+);
+unset( $GLOBALS['http_post_response'], $GLOBALS['provider_response'] );
+$GLOBALS['http_post_responses'] = array();
 
 $r160_stock_settings = jluxe_theme_settings_defaults();
 $r160_stock_settings['sms']['provider'] = 'kavenegar';

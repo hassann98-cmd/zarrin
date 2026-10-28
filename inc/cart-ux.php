@@ -325,7 +325,10 @@ function jluxe_ajax_cart(): void {
 	}
 	$op = sanitize_key( jluxe_cart_post_string( 'op', 'get' ) );
 	$cart = WC()->cart;
-	$cart_totals_are_current = false;
+	// WooCommerce restores the saved totals during wp_loaded and recalculates
+	// them there when its session checks require it. A read-only `get` should
+	// reuse those totals, not rerun shipping/tax/fee hooks on every MiniCart read.
+	$cart_totals_are_current = 'get' === $op;
 	wc_clear_notices();
 
 	if ( in_array( $op, array( 'remove', 'update_qty' ), true ) ) {
@@ -423,8 +426,7 @@ function jluxe_ajax_cart(): void {
 		jluxe_cart_error( 'عملیات معتبر نیست.' );
 	}
 	wc_clear_notices();
-	// Let WooCommerce own session persistence; compute totals once after a
-	// mutation. Positive set_quantity calls already refreshed totals above.
+	// Recalculate after writes unless WooCommerce/set_quantity already did it.
 	if ( ! $cart_totals_are_current ) {
 		$cart->calculate_totals();
 	}

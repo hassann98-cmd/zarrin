@@ -4,6 +4,10 @@ import { getThemeSettings } from "../lib/theme-settings.js";
 import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
 
+// Keep the silent native-autofill fallback alive for the full OTP lifetime;
+// older Android/iOS autofill services may update the input without an event.
+const OTP_AUTOFILL_SYNC_WINDOW_MS = 120_000;
+
 export function resolvePostAuthUrl() {
   const fallback = siteUrl("home");
   try {
@@ -182,7 +186,10 @@ export default function AuthPage() {
     const pollTimer = window.setInterval(() => {
       if (active) syncOtpFromDom();
     }, 180);
-    const stopTimer = window.setTimeout(() => window.clearInterval(pollTimer), 30000);
+    const stopTimer = window.setTimeout(
+      () => window.clearInterval(pollTimer),
+      OTP_AUTOFILL_SYNC_WINDOW_MS,
+    );
     const handleVisibility = () => {
       if (document.visibilityState === "visible") syncOtpFromDom();
     };
@@ -400,7 +407,11 @@ export default function AuthPage() {
                     autoCapitalize="off"
                     spellCheck={false}
                     enterKeyHint="done"
-                    aria-describedby="jluxe-auth-otp-note"
+                    aria-describedby={
+                      error
+                        ? "jluxe-auth-otp-note jluxe-auth-error"
+                        : "jluxe-auth-otp-note"
+                    }
                     aria-label="کد شش رقمی پیامک"
                     dir="ltr"
                     required
@@ -498,7 +509,7 @@ export default function AuthPage() {
             </>
           )}
           {error && (
-            <p className="jluxe-auth-error" role="alert">
+            <p id="jluxe-auth-error" className="jluxe-auth-error" role="alert">
               {error}
             </p>
           )}

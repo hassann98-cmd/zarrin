@@ -1480,6 +1480,9 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 
 function jluxe_sanitize_sms( array $posted, array $defaults ): array {
 	$provider = isset( $posted['provider'] ) && is_scalar( $posted['provider'] ) ? sanitize_key( (string) $posted['provider'] ) : '';
+	$otp_mode = isset( $posted['otp_mode'] ) && is_scalar( $posted['otp_mode'] )
+		? sanitize_key( (string) $posted['otp_mode'] )
+		: ( $defaults['otp_mode'] ?? 'pattern' );
 	$stock_alert_mode = isset( $posted['stock_alert_mode'] ) && is_scalar( $posted['stock_alert_mode'] )
 		? sanitize_key( (string) $posted['stock_alert_mode'] )
 		: ( $defaults['stock_alert_mode'] ?? 'pattern' );
@@ -1491,6 +1494,7 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
 		'enabled'  => ! empty( $posted['enabled'] ),
 		'otp_only' => ! empty( $posted['otp_only'] ),
 		'provider' => in_array( $provider, array( '', 'kavenegar', 'melipayamak' ), true ) ? $provider : '',
+		'otp_mode' => in_array( $otp_mode, array( 'pattern', 'dedicated' ), true ) ? $otp_mode : 'pattern',
 		'username' => isset( $posted['username'] ) ? sanitize_text_field( $posted['username'] ) : $defaults['username'],
 		'sender'   => isset( $posted['sender'] ) ? sanitize_text_field( $posted['sender'] ) : $defaults['sender'],
 		'template'            => isset( $posted['template'] ) ? sanitize_text_field( $posted['template'] ) : $defaults['template'],

@@ -370,7 +370,7 @@ function jluxe_get_tracking_url( $company, $tracking_code ): string {
 	switch ( jluxe_tracking_carrier_key( $company ) ) {
 		case 'post':
 			// The official lookup route accepts the shipment number as `id`; any CAPTCHA remains manual.
-			return 'https://tracking.post.ir/search.aspx?id=' . $encoded_code;
+			return 'https://tracking.post.ir/?id=' . $encoded_code;
 		case 'tipax':
 			// The official page requires manual entry; no supported prefill parameter is documented.
 			return 'https://tipaxco.com/en/tracking';

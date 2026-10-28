@@ -35,11 +35,22 @@ function jluxe_render_sms_page(): void {
 	$has_key  = '' !== $sms_key;
 	$key_hint = jluxe_secret_hint( $sms_key );
 	unset( $sms_key );
-	$webotp_host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+	$webotp_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
 
 	jluxe_settings_page_shell( 'ورود با پیامک (OTP)', 'jluxe-sms', $status, function () use ( $sms, $has_key, $key_hint, $warnings, $webotp_host ) {
 		?>
-		<p class="description">در صفحهٔ «ورود و عضویت»، کدِ درستِ پیامکی هم ورود را انجام می‌دهد و هم برای شمارهٔ تازه یک حساب مشتریِ کمینه می‌سازد؛ اگر شماره در billing phone یک حساب موجود باشد، همان حساب پس از تأیید OTP به شماره پیوند می‌خورد. این مسیر مستقل از فعال‌بودن ثبت‌نامِ نام‌کاربری/رمز در WooCommerce است و نام/نشانی را می‌توان هنگام تسویه‌حساب گرفت. تب موبایل تا تنظیم provider و کلید واقعی غیرفعال می‌ماند و هیچ کدی به‌صورت فیک ارسال یا تأیید نمی‌شود. برای WebOTP در Chrome/Android، صفحه باید HTTPS باشد و متنِ نهاییِ الگوی تأییدشده باید با دامنهٔ همین سایت و کد پایان یابد؛ نمونهٔ انتهای پیام: <code dir="ltr">@<?php echo esc_html( $webotp_host ); ?> #123456</code> (عدد با کد واقعی جایگزین می‌شود). اگر پنل پیامکی امکانِ این قالب را ندهد، دریافتِ مستقیمِ خودکار ممکن نیست؛ پیشنهادِ سیستم‌عامل یا ورود دستی همچنان در دسترس است.</p>
+		<p class="description">در صفحهٔ «ورود و عضویت»، کدِ درستِ پیامکی هم ورود را انجام می‌دهد و هم برای شمارهٔ تازه یک حساب مشتریِ کمینه می‌سازد؛ اگر شماره در billing phone یک حساب موجود باشد، همان حساب پس از تأیید OTP به شماره پیوند می‌خورد. این مسیر مستقل از فعال‌بودن ثبت‌نامِ نام‌کاربری/رمز در WooCommerce است و نام/نشانی را می‌توان هنگام تسویه‌حساب گرفت. تب موبایل تا تنظیم provider و کلید واقعی غیرفعال می‌ماند و هیچ کدی به‌صورت فیک ارسال یا تأیید نمی‌شود. برای WebOTP در Chrome/Android، صفحه باید با HTTPS و روی همان میزبان (host)ی باز باشد که در پیامک می‌آید؛ تفاوتِ دامنه، زیردامنه یا www مهم است. متن نهایی پیامک باید در یک خط جداگانه، دقیقاً با این فرمت تمام شود و هیچ متنی پس از آن نیاید: <code dir="ltr">@<?php echo esc_html( $webotp_host ); ?> #123456</code> (عدد با کد واقعی جایگزین می‌شود؛ بدونِ https://، مسیر یا پورت). در حالت پترن، افزونه کد را به‌عنوان متغیر می‌فرستد و قالبِ تأییدشده متن نهایی را می‌سازد؛ در حالت خط اختصاصی، متن OTP و این خط پایانی را خود پوسته می‌سازد. پس از ارسال آزمایشی، متن واقعی پیامک را بررسی کنید؛ اگر خط پایانی در SMS نباشد، WebOTP کار نمی‌کند؛ ورود دستی همیشه ممکن است و نمایشِ پیشنهادِ سیستم‌عامل به دستگاه و قالبِ پیامک بستگی دارد.</p>
+		<?php if ( 'melipayamak' === ( $sms['provider'] ?? '' ) && 'dedicated' === ( $sms['otp_mode'] ?? 'pattern' ) ) : ?>
+			<p class="description">حالت خط اختصاصی از API ارسال عادی ملی‌پیامک استفاده می‌کند؛ شمارهٔ خط باید اجازهٔ ارسال عادی داشته باشد. متن OTP و footer میزبان به‌صورت خودکار ساخته می‌شود و Body ID پترن در این حالت استفاده نمی‌شود. نمونهٔ پیام خروجی:</p>
+			<pre dir="auto" style="white-space:pre-wrap;max-width:760px;padding:12px;background:#f6f7f7;border:1px solid #dcdcde">مشتری عزیز کد تأیید شما 123456 می‌باشد.
+
+@<?php echo esc_html( $webotp_host ); ?> #123456</pre>
+		<?php elseif ( 'melipayamak' === ( $sms['provider'] ?? '' ) ) : ?>
+			<p class="description">حالت پترن، روش پیش‌فرض و فعلی است. برای ملی‌پیامک یک پترن جدید بسازید و برای تأیید ارسال کنید. پشتیبانی ملی‌پیامک تأیید کرده همان متغیر <code>{0}</code> می‌تواند دو بار در پترن بیاید؛ این افزونه هم کد را فقط یک بار می‌فرستد، پس نیازی به تغییر وب‌سرویس یا ارسال دو مقدار نیست. پس از تأیید، Body ID جدید را در فیلد «کد متن / Body ID پترن» وارد کنید. نمونهٔ متن پترن:</p>
+			<pre dir="auto" style="white-space:pre-wrap;max-width:760px;padding:12px;background:#f6f7f7;border:1px solid #dcdcde">مشتری عزیز کد تأیید شما {0} می‌باشد.
+
+@<?php echo esc_html( $webotp_host ); ?> #{0}</pre>
+		<?php endif; ?>
 		<?php jluxe_render_secret_warnings( $warnings ); ?>
 		<form method="post" autocomplete="off">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
@@ -77,6 +88,16 @@ function jluxe_render_sms_page(): void {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="jluxe-sms-otp-mode">روش ارسال OTP در ملی‌پیامک</label></th>
+					<td>
+						<select id="jluxe-sms-otp-mode" name="sms[otp_mode]">
+							<option value="pattern" <?php selected( $sms['otp_mode'] ?? 'pattern', 'pattern' ); ?>>پترن خدماتی / Body ID (پیش‌فرض و روش فعلی)</option>
+							<option value="dedicated" <?php selected( $sms['otp_mode'] ?? 'pattern', 'dedicated' ); ?>>خط اختصاصی / متن آزاد</option>
+						</select>
+						<p class="description">این انتخاب فقط برای ملی‌پیامک است؛ کاوه‌نگار همچنان از Verify Lookup خودش استفاده می‌کند. در حالت خط اختصاصی، شمارهٔ خطِ تنظیم‌شده در ادامه باید مجاز به ارسال عادی از وب‌سرویس باشد.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-sms-username">نام کاربری</label></th>
 					<td><input type="text" id="jluxe-sms-username" name="sms[username]" value="<?php echo esc_attr( $sms['username'] ); ?>" class="regular-text" dir="ltr" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" placeholder="فقط برای ملی‌پیامک — نام کاربری پنل" />
 						<p class="description">سرویس ارسال ملی‌پیامک (REST کلاسیک) به نام‌کاربری و رمز، هر دو، نیاز داره — رمز رو پایین به‌عنوان «کلید API» وارد کن.</p>
@@ -101,7 +122,10 @@ function jluxe_render_sms_page(): void {
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-sender">شماره خط ارسال</label></th>
-					<td><input type="text" id="jluxe-sms-sender" name="sms[sender]" value="<?php echo esc_attr( $sms['sender'] ); ?>" class="regular-text" dir="ltr" placeholder="فقط برای ملی‌پیامک — شماره خط اختصاصی" /></td>
+					<td>
+						<input type="text" id="jluxe-sms-sender" name="sms[sender]" value="<?php echo esc_attr( $sms['sender'] ); ?>" class="regular-text" dir="ltr" placeholder="فقط برای ملی‌پیامک — شماره خط اختصاصی" />
+						<p class="description">در حالت خط اختصاصی OTP، این شماره در پارامتر <code>from</code> فرستاده می‌شود؛ در حالت پترن استفاده نمی‌شود.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-sms-template">نام الگو (Template)</label></th>
@@ -111,7 +135,7 @@ function jluxe_render_sms_page(): void {
 					<th scope="row"><label for="jluxe-sms-body-id">کد متن / Body ID پترن</label></th>
 					<td>
 						<input type="text" id="jluxe-sms-body-id" name="sms[body_id]" value="<?php echo esc_attr( $sms['body_id'] ?? '' ); ?>" class="regular-text" dir="ltr" inputmode="numeric" placeholder="مثلاً 532701" />
-						<p class="description">برای ملی‌پیامک: کد متنِ وب‌سرویس خدماتی/پترن. این مقدار از پنل شما خوانده می‌شود و در کد هاردکد نشده است.</p>
+						<p class="description">برای OTP ملی‌پیامک فقط در حالت پترن استفاده می‌شود؛ در حالت خط اختصاصی نادیده گرفته می‌شود. مقدار از پنل شما خوانده می‌شود و هاردکد نشده است.</p>
 					</td>
 				</tr>
 			</table>
@@ -478,45 +502,55 @@ function jluxe_send_otp_sms( array $settings, string $api_key, string $phone, st
 
 	if ( 'melipayamak' === $settings['provider'] ) {
 		/*
-		 * ملی‌پیامک: مسیر وب‌سرویس خدماتی اشتراکی/پترن.
-		 * این همان BaseServiceNumber است که در WP SMS و SDK رسمی ملی‌پیامک
-		 * استفاده می‌شود. برخلاف SendSMS/SendSMS، خط تبلیغاتیِ فرستنده را
-		 * درگیر نمی‌کند.
-		 *
-		 * قرارداد API:
-		 * username = نام کاربری
-		 * password = APIKey/credential وب‌سرویس
-		 * text     = مقادیر متغیرهای پترن، به ترتیب و با ;
-		 * to       = شماره 09xxxxxxxx
-		 * bodyId   = کد متن پترن
+		 * حالت پیش‌فرض pattern از BaseServiceNumber و Body ID فعلی استفاده
+		 * می‌کند؛ حالت اختیاری dedicated از API متن آزاد SendSMS و خط تنظیم‌شده.
+		 * در هر دو حالت کد OTP یکی است و منطق احراز هویت/چالش اینجا تغییر نمی‌کند.
 		 */
-		if ( '' === $settings['username'] ) {
+		if ( '' === trim( (string) ( $settings['username'] ?? '' ) ) ) {
 			return new WP_Error( 'jluxe_sms_missing_username', 'نام کاربریِ ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
 		}
 
-		$body_id = isset( $settings['body_id'] ) ? absint( $settings['body_id'] ) : 0;
-		if ( ! $body_id ) {
-			return new WP_Error( 'jluxe_sms_missing_body_id', 'کد متن / Body ID پترن ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
+		$is_dedicated = 'dedicated' === ( $settings['otp_mode'] ?? 'pattern' );
+		$endpoint     = 'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber';
+		$request_body = array(
+			'username' => $settings['username'],
+			'password' => $api_key,
+			'to'       => '0' . $phone,
+		);
+
+		if ( $is_dedicated ) {
+			$sender = trim( (string) ( $settings['sender'] ?? '' ) );
+			if ( '' === $sender ) {
+				return new WP_Error( 'jluxe_sms_missing_sender', 'شمارهٔ خط اختصاصی ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
+			}
+
+			$host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+			if ( '' === $host ) {
+				return new WP_Error( 'jluxe_sms_missing_host', 'میزبان سایت برای ساخت پیامک WebOTP پیدا نشد.', array( 'status' => 500 ) );
+			}
+
+			$endpoint              = 'https://rest.payamak-panel.com/api/SendSMS/SendSMS';
+			$request_body['from']  = $sender;
+			$request_body['text']  = 'مشتری عزیز کد تأیید شما ' . $code . " می‌باشد.\n\n@" . $host . ' #' . $code;
+		} else {
+			$body_id = isset( $settings['body_id'] ) ? absint( $settings['body_id'] ) : 0;
+			if ( ! $body_id ) {
+				return new WP_Error( 'jluxe_sms_missing_body_id', 'کد متن / Body ID پترن ملی‌پیامک تنظیم نشده است.', array( 'status' => 500 ) );
+			}
+
+			/* در حالت پترن، مقدار ارسالی فقط خود کد است تا قالب تأییدشده بسازد. */
+			$request_body['text']   = $code;
+			$request_body['bodyId'] = $body_id;
 		}
 
-		/*
-		 * پترن OTP باید یک متغیر داشته باشد؛ مقدار ارسالی فقط خود کد است.
-		 * این باعث می‌شود متن نهایی توسط الگوی تأییدشده‌ی پنل ساخته شود.
-		 */
 		$response = wp_remote_post(
-			'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber',
+			$endpoint,
 			array(
 				'timeout' => 20,
 				'headers' => array(
 					'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
 				),
-				'body'    => array(
-					'username' => $settings['username'],
-					'password' => $api_key,
-					'to'       => '0' . $phone,
-					'text'     => $code,
-					'bodyId'   => $body_id,
-				),
+				'body'    => $request_body,
 			)
 		);
 
@@ -541,10 +575,9 @@ function jluxe_send_otp_sms( array $settings, string $api_key, string $phone, st
 		}
 
 		/*
-		 * BaseServiceNumber در کتابخانه‌های ملی‌پیامک/WP SMS پاسخ را معمولاً
-		 * به‌صورت Value/StrRetStatus برمی‌گرداند. هر دو حالت JSON و متن خام
-		 * را برای تشخیص خطا پوشش می‌دهیم، اما موفقیت را فقط وقتی اعلام می‌کنیم
-		 * که Value عددیِ مثبت باشد.
+		 * REST ملی‌پیامک معمولاً پاسخ را به‌صورت Value/StrRetStatus برمی‌گرداند.
+		 * هر دو حالت JSON و متن خام را برای تشخیص خطا پوشش می‌دهیم، اما موفقیت
+		 * را فقط وقتی اعلام می‌کنیم که Value عددیِ مثبت باشد.
 		 */
 		if ( is_array( $body ) && array_key_exists( 'Value', $body ) ) {
 			$value = (int) $body['Value'];

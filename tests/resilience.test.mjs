@@ -469,7 +469,7 @@ function trackedOrder(access) {
         shipping_method: "پست پیشتاز",
         tracking_code: "12345678901234567890",
         shipping_company: "پست",
-        tracking_url: "https://tracking.post.ir/search.aspx?id=12345678901234567890",
+        tracking_url: "https://tracking.post.ir/?id=12345678901234567890",
         requires_captcha: true,
         shipping_note: "مرسوله تحویل پست شد",
       },
@@ -520,7 +520,7 @@ test("R21 phone-matched tracking shows timeline and limited shipment data while 
   assert.equal(result.querySelector('.jto-timeline__step[aria-current="step"] .jto-timeline__label').textContent, "ارسال");
   assert.equal(
     result.querySelector(".jto-carrier-link").href,
-    "https://tracking.post.ir/search.aspx?id=12345678901234567890",
+    "https://tracking.post.ir/?id=12345678901234567890",
   );
   assert.equal(
     result.querySelector(".jto-captcha-note a").href,
@@ -565,7 +565,7 @@ test("R21 postal fallback uses the official code-prefilled route and offers manu
   const result = win.document.getElementById("jto-result-area");
   assert.equal(
     result.querySelector(".jto-carrier-link").href,
-    "https://tracking.post.ir/search.aspx?id=12345678901234567890",
+    "https://tracking.post.ir/?id=12345678901234567890",
   );
   assert.match(result.querySelector(".jto-captcha-note").textContent, /کپچا/);
   assert.equal(

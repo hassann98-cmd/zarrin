@@ -8,7 +8,7 @@
   var requestVersion = 0;
 
   var CARRIERS = {
-    پست: { url: "https://tracking.post.ir/search.aspx?id=%CODE%", color: "#fcba24" },
+    پست: { url: "https://tracking.post.ir/?id=%CODE%", color: "#fcba24" },
     تیپاکس: { url: "https://tipaxco.com/en/tracking", color: "#0ea5e9" },
     چاپار: { url: "https://www.chaparnet.com/track/%CODE%", color: "#16a34a" },
   };

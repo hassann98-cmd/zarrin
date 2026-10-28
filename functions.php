@@ -503,10 +503,9 @@ function jluxe_defer_core_scripts_to_footer( $scripts ) {
 add_action( 'wp_default_scripts', 'jluxe_defer_core_scripts_to_footer' );
 
 /**
- * WooCommerce registers its jQuery BlockUI dependency after wp_default_scripts.
- * Mark it deferred after storefront enqueueing so it cannot force jQuery and
- * its other dependencies back to parser-blocking mode in WordPress's strategy
- * resolution. Preserve the normal dependency order; do not rewrite script URLs.
+ * WooCommerce may register `jquery-blockui` as an alias without a source URL.
+ * WordPress 6.3+ rejects loading strategies on aliases, so defer only the real
+ * BlockUI script(s) with a non-empty source. Preserve dependency order/URLs.
  */
 function jluxe_defer_woocommerce_blockui(): void {
 	if ( is_admin() ) {
@@ -517,7 +516,8 @@ function jluxe_defer_woocommerce_blockui(): void {
 		return;
 	}
 	foreach ( array( 'jquery-blockui', 'wc-jquery-blockui' ) as $handle ) {
-		if ( isset( $wp_scripts->registered[ $handle ] ) ) {
+		$registered_script = $wp_scripts->registered[ $handle ] ?? null;
+		if ( is_object( $registered_script ) && ! empty( $registered_script->src ) ) {
 			$wp_scripts->add_data( $handle, 'strategy', 'defer' );
 		}
 	}
