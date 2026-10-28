@@ -1416,9 +1416,9 @@ function jluxe_sanitize_ai_assistant( array $posted, array $defaults ): array {
 	}
 	$prompt_mode = isset( $posted['system_prompt_mode'] ) ? sanitize_key( $posted['system_prompt_mode'] ) : 'append';
 	$breakpoint  = isset( $posted['mobile_breakpoint'] ) ? absint( $posted['mobile_breakpoint'] ) : ( $defaults['mobile_breakpoint'] ?? 820 );
-	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'UTC' );
+	$phone_tz    = isset( $posted['phone_timezone'] ) ? sanitize_text_field( (string) $posted['phone_timezone'] ) : ( $defaults['phone_timezone'] ?? 'Asia/Tehran' );
 	if ( '' === $phone_tz || ( function_exists( 'timezone_identifiers_list' ) && ! in_array( $phone_tz, timezone_identifiers_list(), true ) ) ) {
-		$phone_tz = $defaults['phone_timezone'] ?? 'UTC';
+		$phone_tz = $defaults['phone_timezone'] ?? 'Asia/Tehran';
 	}
 
 	return array(

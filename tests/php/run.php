@@ -4386,7 +4386,7 @@ check(
 	array_reduce( $r194_restored_v7['footer']['feature_cards'], static function ( $enabled, $card ) {
 		return $enabled && ! empty( $card['enabled'] );
 	}, true ),
-	'R197 v7 settings migrate through v18 to the consistent benefit headings and enable the four cards'
+	'R197 v7 settings migrate through v19 to the consistent benefit headings and enable the four cards'
 );
 $r194_custom_v7 = array(
 	'footer' => array(
@@ -4423,7 +4423,7 @@ check(
 	'truck' === $r195_migrated_v8['footer']['feature_cards'][0]['icon'] &&
 	'پشتیبانیِ سفارشی' === $r195_migrated_v8['footer']['feature_cards'][1]['title'] &&
 	'متن ثبت‌شده توسط مدیر' === $r195_migrated_v8['footer']['feature_cards'][1]['subtitle'],
-	'R197 v8 settings migrate through v18 to the full bold shipping slogan and preserves the other configured card'
+	'R197 v8 settings migrate through v19 to the full bold shipping slogan and preserves the other configured card'
 );
 $r195_custom_first_v8 = array(
 	'footer' => array(
@@ -4542,6 +4542,11 @@ $r192_legacy_v6 = array(
 		),
 	),
 );
+$r192_v7_direct = jluxe_migrate_settings_v7( $r192_legacy_v6 );
+check(
+	'Asia/Tehran' === $r192_v7_direct['ai_assistant']['phone_timezone'] && false === $r192_v7_direct['ai_assistant']['phone_hours']['enabled'] && '' === $r192_v7_direct['ai_assistant']['phone_hours']['start'] && '' === $r192_v7_direct['ai_assistant']['phone_hours']['end'],
+	'R351 the v7 migration preserves Tehran and disables only the guessed legacy phone schedule'
+);
 $r192_migrated_v6 = jluxe_migrate_settings_to_current_version( $r192_legacy_v6, 6 );
 check(
 	JLUXE_SETTINGS_VERSION === $r192_migrated_v6['version'] && $r194_approved_brand === $r192_migrated_v6['footer']['brand_description'] &&
@@ -4551,13 +4556,13 @@ check(
 	'مزیتِ نوشته‌شده' === $r192_migrated_v6['footer']['feature_cards'][1]['title'] && '' === $r192_migrated_v6['footer']['feature_cards'][1]['subtitle'] &&
 	'درباره زرین' === $r192_migrated_v6['header_nav']['items'][0]['label'] && 'درباره ما' === $r192_migrated_v6['header_nav']['items'][1]['label'] &&
 	'<p>داستان واقعیِ ثبت‌شده</p>' === $r192_migrated_v6['info_pages']['about']['story_html'],
-	'R197 v6 settings migrate through v18: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
+	'R197 v6 settings migrate through v19: restore footer copy and show the complete approved shipping heading, and preserve merchant-edited text'
 );
 check(
 	false === $r192_migrated_v6['ai_assistant']['phone_hours']['enabled'] && '' === $r192_migrated_v6['ai_assistant']['phone_hours']['start'] &&
-	'UTC' === $r192_migrated_v6['ai_assistant']['phone_timezone'] && '' === $r192_migrated_v6['ai_assistant']['contact_icons']['phone'] &&
+	'Asia/Tehran' === $r192_migrated_v6['ai_assistant']['phone_timezone'] && '' === $r192_migrated_v6['ai_assistant']['contact_icons']['phone'] &&
 	'https://merchant.example/custom-whatsapp.webp' === $r192_migrated_v6['ai_assistant']['contact_icons']['whatsapp'],
-	'R192 legacy guessed phone hours/timezone and hard-coded JLuxe icons are removed without clearing merchant URLs'
+	'R192 legacy guessed phone hours stay disabled, the timezone returns to Tehran, and merchant URLs survive migration'
 );
 $r192_custom_schedule = $r192_legacy_v6;
 $r192_custom_schedule['ai_assistant']['phone_hours']['start'] = '11:00';
@@ -4569,8 +4574,42 @@ check(
 	'America/Chicago' === $r192_custom_migrated['ai_assistant']['phone_timezone'] && 'ساعاتِ ویژهٔ ثبت‌شده توسط مدیر' === $r192_custom_migrated['footer']['support_hours'],
 	'R192 custom phone schedules, their timezone, and merchant-specific footer hours survive migration'
 );
+$r351_ai_defaults = jluxe_theme_settings_defaults()['ai_assistant'];
+check(
+	'Asia/Tehran' === $r351_ai_defaults['phone_timezone'] && false === $r351_ai_defaults['phone_hours']['enabled'] && '' === $r351_ai_defaults['phone_hours']['start'] && '' === $r351_ai_defaults['phone_hours']['end'],
+	'R351 Tehran is the default timezone while the phone schedule remains disabled and has no guessed hours'
+);
+$r351_legacy_timezone_migration_ok = true;
+foreach ( array( 'UTC', 'Etc/UTC', '' ) as $r351_old_timezone ) {
+	$r351_old_v18 = array(
+		'ai_assistant' => array(
+			'phone_timezone' => $r351_old_timezone,
+			'phone_hours' => array( 'enabled' => false, 'start' => '', 'end' => '', 'closed_days' => array() ),
+		),
+	);
+	$r351_new = jluxe_migrate_settings_to_current_version( $r351_old_v18, 18 );
+	$r351_legacy_timezone_migration_ok = $r351_legacy_timezone_migration_ok &&
+		JLUXE_SETTINGS_VERSION === $r351_new['version'] && 'Asia/Tehran' === $r351_new['ai_assistant']['phone_timezone'] &&
+		false === $r351_new['ai_assistant']['phone_hours']['enabled'] && '' === $r351_new['ai_assistant']['phone_hours']['start'] && '' === $r351_new['ai_assistant']['phone_hours']['end'];
+}
+check(
+	$r351_legacy_timezone_migration_ok,
+	'R351 the v19 migration restores the legacy UTC defaults to Tehran without activating or displaying phone hours'
+);
+$r351_custom_v18 = array(
+	'ai_assistant' => array(
+		'phone_timezone' => 'America/Chicago',
+		'phone_hours' => array( 'enabled' => true, 'start' => '11:00', 'end' => '17:00', 'closed_days' => array( 0 ) ),
+	),
+);
+$r351_custom_v19 = jluxe_migrate_settings_to_current_version( $r351_custom_v18, 18 );
+check(
+	JLUXE_SETTINGS_VERSION === $r351_custom_v19['version'] && 'America/Chicago' === $r351_custom_v19['ai_assistant']['phone_timezone'] &&
+	true === $r351_custom_v19['ai_assistant']['phone_hours']['enabled'] && '11:00' === $r351_custom_v19['ai_assistant']['phone_hours']['start'] && '17:00' === $r351_custom_v19['ai_assistant']['phone_hours']['end'] && array( 0 ) === $r351_custom_v19['ai_assistant']['phone_hours']['closed_days'],
+	'R351 the v19 migration preserves explicit non-Tehran zones and existing configured schedules'
+);
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v18 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v19 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -4969,7 +5008,7 @@ $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v18 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v19 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -6301,14 +6340,14 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v18 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v19 with legacy fixes, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v18 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v19 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
-check( 'tel:+989120902336' === $r94_contact['tel'] && 'UTC' === $r94_contact['timezone'] && false === $r94_contact['hours']['enabled'] && '' === $r94_contact['hoursLabel'] && array() === $r94_contact['hours']['closedDays'], 'R192 default AI contact exposes a normalized phone link but no assumed schedule or locale' );
+check( 'tel:+989120902336' === $r94_contact['tel'] && 'Asia/Tehran' === $r94_contact['timezone'] && false === $r94_contact['hours']['enabled'] && '' === $r94_contact['hoursLabel'] && array() === $r94_contact['hours']['closedDays'], 'R192 default AI contact uses Tehran but exposes no assumed schedule' );
 check( '' === jluxe_ai_days_label( $r94_defaults ) && '' === jluxe_ai_hours_label( $r94_defaults ), 'R192 default phone schedule produces no response days or hours until configured' );
 $r95_availability = jluxe_sanitize_ai_assistant(
 	array(
@@ -6328,10 +6367,15 @@ $r350_footer_admin_source = file_get_contents( __DIR__ . '/../../inc/theme-setti
 check(
 	false !== strpos( $r350_ai_hours_admin_source, 'id="jluxe-phone-hours-settings"' ) &&
 	false !== strpos( $r350_ai_hours_admin_source, 'فعال‌سازیِ برنامهٔ تماس تلفنیِ فوتر' ) &&
+	false !== strpos( $r350_ai_hours_admin_source, '<code dir="ltr">Asia/Tehran</code>' ) &&
+	false !== strpos( $r350_ai_hours_admin_source, "?? 'Asia/Tehran'" ) &&
+	false === strpos( $r350_ai_hours_admin_source, 'UTC' ) &&
 	false !== strpos( $r350_footer_admin_source, 'admin.php?page=jluxe-ai-assistant#jluxe-phone-hours-settings' ) &&
 	false !== strpos( $r350_footer_admin_source, 'راه‌های آنلاینِ فعال را نشان می‌دهد' ),
-	'R350 footer settings link to the existing shared timezone/day-based phone schedule and explain the off-hours online-support route'
+	'R350/R351 the shared contact schedule keeps its opt-in behavior and the admin help defaults to Tehran without a UTC sample'
 );
+$r351_invalid_timezone = jluxe_sanitize_ai_assistant( array( 'phone_timezone' => 'Invalid/StoreZone' ), jluxe_theme_settings_defaults()['ai_assistant'] );
+check( 'Asia/Tehran' === $r351_invalid_timezone['phone_timezone'], 'R351 an invalid phone timezone safely falls back to the Tehran default' );
 $r94_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), 'phone_timezone' => 'Asia/Tehran' );
 $r94_friday = ( new DateTimeImmutable( '2026-09-25 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
 $r94_saturday = ( new DateTimeImmutable( '2026-09-26 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();

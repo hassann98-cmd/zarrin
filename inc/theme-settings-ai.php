@@ -366,8 +366,8 @@ function jluxe_render_ai_assistant_page(): void {
 								<label style="display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid #dcdcde;border-radius:8px;background:#fff"><input type="checkbox" name="ai_assistant[phone_hours][open_days][]" value="<?php echo esc_attr( $jluxe_ai_day ); ?>" <?php checked( ! in_array( $jluxe_ai_day, $jluxe_ai_closed_days, true ) ); ?> /> <?php echo esc_html( $jluxe_ai_label ); ?></label>
 							<?php endforeach; ?>
 						</div>
-						<p class="description">برنامهٔ ساعت تا زمانِ واردکردن و فعال‌کردنِ ساعات واقعی نمایش داده نمی‌شود. منطقهٔ زمانیِ پیش‌فرض UTC است؛ پیش از فعال‌سازی، نامِ معتبرِ IANA متناسب با فروشگاه را وارد کنید (برای نمونه <code dir="ltr">Etc/UTC</code>).</p>
-						<label>منطقهٔ زمانی: <input type="text" dir="ltr" class="regular-text" name="ai_assistant[phone_timezone]" value="<?php echo esc_attr( $ai['phone_timezone'] ?? 'UTC' ); ?>" /></label>
+						<p class="description">برنامهٔ ساعت تا زمانِ واردکردنِ ساعات واقعی و فعال‌سازیِ صریح نمایش داده نمی‌شود. منطقهٔ زمانیِ پیش‌فرضِ فروشگاه ایران <code dir="ltr">Asia/Tehran</code> است؛ برای منطقه‌های دیگر، نامِ معتبرِ IANA را وارد کنید.</p>
+						<label>منطقهٔ زمانی: <input type="text" dir="ltr" class="regular-text" name="ai_assistant[phone_timezone]" value="<?php echo esc_attr( $ai['phone_timezone'] ?? 'Asia/Tehran' ); ?>" placeholder="Asia/Tehran" /></label>
 					</td>
 				</tr>
 				<tr><th scope="row"><label for="jluxe-ai-open">پیام هنگامِ پاسخگویی</label></th><td><textarea id="jluxe-ai-open" class="large-text" rows="2" name="ai_assistant[phone_open_text]"><?php echo esc_textarea( $ai['phone_open_text'] ?? '' ); ?></textarea><p class="description">متنِ کارتِ سبزِ وضعیتِ تماس.</p></td></tr>

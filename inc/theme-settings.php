@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 18;
+const JLUXE_SETTINGS_VERSION = 19;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -1004,7 +1004,7 @@ function jluxe_theme_settings_defaults(): array {
 				'end'         => '',
 				'closed_days' => array(), // روز/ساعت فقط پس از ورود اطلاعات واقعی فعال شود.
 			),
-			'phone_timezone'    => 'UTC', // UTC خنثی است؛ مدیر باید منطقهٔ واقعی فروشگاه را انتخاب کند.
+			'phone_timezone'    => 'Asia/Tehran', // منطقهٔ زمانیِ پیش‌فرضِ فروشگاه ایران؛ برنامه همچنان تا فعال‌سازیِ صریح خاموش است.
 
 			'phone_open_text'   => '🟢 اکنون پاسخگوی تلفنی هستیم؛ {days}، {hours}.',
 			'phone_closed_text' => '🔴 اکنون خارج از ساعت پاسخگویی تلفنی هستیم. ساعات پاسخگویی: {days}، {hours}. می‌تونید همینجا با دستیار ادامه بدید یا پیام بگذارید.',
@@ -1571,8 +1571,8 @@ function jluxe_migrate_settings_v7( array $settings ): array {
 		unset( $item );
 	}
 
-	// Disable only the exact legacy schedule and remove the old implicit
-	// timezone default; custom hours and explicitly configured zones survive.
+	// Disable only the exact legacy schedule. Preserve configured IANA zones;
+	// v19 separately repairs the UTC default persisted by older releases.
 	$hours = $settings['ai_assistant']['phone_hours'] ?? null;
 	if (
 		is_array( $hours ) && ! empty( $hours['enabled'] ) &&
@@ -1586,10 +1586,6 @@ function jluxe_migrate_settings_v7( array $settings ): array {
 			'closed_days' => array(),
 		);
 	}
-	if ( 'Asia/Tehran' === ( $settings['ai_assistant']['phone_timezone'] ?? null ) ) {
-		$settings['ai_assistant']['phone_timezone'] = 'UTC';
-	}
-
 	$legacy_icons = array(
 		'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
 		'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
@@ -2087,6 +2083,23 @@ function jluxe_migrate_settings_v18( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v18→v19: use Tehran as the store's default phone-hours timezone. Older
+ * releases' v7 migration and admin guidance stored UTC for Tehran; replace
+ * only those legacy UTC defaults and leave any other administrator-selected
+ * IANA timezone untouched. This migration never enables phone-hours display.
+ */
+function jluxe_migrate_settings_v19( array $settings ): array {
+	if ( isset( $settings['ai_assistant'] ) && is_array( $settings['ai_assistant'] ) ) {
+		$timezone = $settings['ai_assistant']['phone_timezone'] ?? null;
+		if ( ! is_string( $timezone ) || '' === trim( $timezone ) || in_array( trim( $timezone ), array( 'UTC', 'Etc/UTC' ), true ) ) {
+			$settings['ai_assistant']['phone_timezone'] = 'Asia/Tehran';
+		}
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2107,6 +2120,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		16 => 'jluxe_migrate_settings_v16',
 		17 => 'jluxe_migrate_settings_v17',
 		18 => 'jluxe_migrate_settings_v18',
+		19 => 'jluxe_migrate_settings_v19',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {

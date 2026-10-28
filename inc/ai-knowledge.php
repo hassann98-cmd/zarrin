@@ -962,7 +962,7 @@ function jluxe_ai_public_contact( array $settings ): array {
 			'daysLabel'  => $days_label,
 		),
 		'hoursLabel' => $hours_label,
-		'timezone'   => (string) ( $settings['phone_timezone'] ?? 'UTC' ),
+		'timezone'   => (string) ( $settings['phone_timezone'] ?? 'Asia/Tehran' ),
 		'openText'   => strtr( (string) ( $settings['phone_open_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
 		'closedText' => strtr( (string) ( $settings['phone_closed_text'] ?? '' ), array( '{hours}' => $hours_label, '{days}' => $days_label ) ),
 	);
