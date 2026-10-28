@@ -6323,6 +6323,15 @@ check( array( 1, 3, 4, 5 ) === $r95_availability['phone_hours']['closed_days'] &
 check( 'شنبه و یکشنبه، سه‌شنبه' === $r95_public_hours['hours']['daysLabel'] && '۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['hoursLabel'] && 'پاسخگو شنبه و یکشنبه، سه‌شنبه از ۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['openText'] && 'بعداً شنبه و یکشنبه، سه‌شنبه، ۱۱:۳۰ صبح تا ۷ عصر' === $r95_public_hours['closedText'], 'R95 response notices replace the {days} and {hours} settings tokens and expose a readable schedule' );
 $r95_admin_source = file_get_contents( __DIR__ . '/../../inc/theme-settings-ai.php' );
 check( false !== strpos( $r95_admin_source, 'phone_hours][open_days][]' ) && false !== strpos( $r95_admin_source, 'پیام هنگامِ پاسخگویی' ) && false !== strpos( $r95_admin_source, 'پیام خارج از ساعت پاسخگویی' ), 'R95 admin exposes editable response days, hours, and open/closed message text' );
+$r350_ai_hours_admin_source = file_get_contents( __DIR__ . '/../../inc/theme-settings-ai.php' );
+$r350_footer_admin_source = file_get_contents( __DIR__ . '/../../inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r350_ai_hours_admin_source, 'id="jluxe-phone-hours-settings"' ) &&
+	false !== strpos( $r350_ai_hours_admin_source, 'فعال‌سازیِ برنامهٔ تماس تلفنیِ فوتر' ) &&
+	false !== strpos( $r350_footer_admin_source, 'admin.php?page=jluxe-ai-assistant#jluxe-phone-hours-settings' ) &&
+	false !== strpos( $r350_footer_admin_source, 'راه‌های آنلاینِ فعال را نشان می‌دهد' ),
+	'R350 footer settings link to the existing shared timezone/day-based phone schedule and explain the off-hours online-support route'
+);
 $r94_schedule = array( 'phone_hours' => array( 'enabled' => true, 'start' => '10:00', 'end' => '20:00', 'closed_days' => array( 5 ) ), 'phone_timezone' => 'Asia/Tehran' );
 $r94_friday = ( new DateTimeImmutable( '2026-09-25 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();
 $r94_saturday = ( new DateTimeImmutable( '2026-09-26 11:00:00', new DateTimeZone( 'Asia/Tehran' ) ) )->getTimestamp();

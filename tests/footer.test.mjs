@@ -60,6 +60,14 @@ function dom(markup, footer = {}) {
     },
     social: { instagram: { enabled: true, url: "https://instagram.com/x" } },
     contact: {},
+    aiAssistant: {
+      enabled: true,
+      contact: {
+        timezone: "Etc/UTC",
+        hours: { enabled: true, start: "00:00", end: "23:59", closedDays: [], daysLabel: "هر روز" },
+        hoursLabel: "تمام روز",
+      },
+    },
   };
   globalThis.window = win;
   globalThis.document = win.document;
@@ -165,6 +173,68 @@ test("R305 footer displays the requested brand, phone hours, and ordered support
   assert.match(css, /@media \(max-width: 639\.98px\)[\s\S]*?#jluxe-footer-root \.jluxe-footer-support-card \{\s*display: block;/);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-support-icon \{\s*display: none;/);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-phone-links \{[^}]*flex-wrap: wrap;[^}]*justify-content: flex-start;/);
+  assert.match(css, /#jluxe-footer-root \.jluxe-footer-phone-status\.is-open/);
+  assert.match(css, /\.jluxe-footer-contact-backdrop \{/);
+  assert.match(css, /\.jluxe-footer-contact-social-grid \{[^}]*grid-template-columns: repeat\(2,/s);
+});
+
+test("footer phone buttons fail closed outside configured hours and open only active online channels", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.contact = { phone: "09120000000", phone_secondary: "02100000000" };
+  const weekdayName = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Etc/UTC" })
+    .formatToParts(new Date())
+    .find((part) => part.type === "weekday")?.value;
+  const weekday = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekdayName];
+  win.JLuxeThemeSettings.aiAssistant.contact.hours.closedDays = [weekday];
+  win.JLuxeThemeSettings.social = {
+    instagram: { enabled: true, url: "https://instagram.com/store" },
+    telegram: { enabled: false, url: "https://t.me/store" },
+    whatsapp: { enabled: true, url: "https://wa.me/989120000000" },
+  };
+  await render();
+
+  const phoneButtons = [...document.querySelectorAll(".jluxe-footer-phone-links button")];
+  assert.equal(phoneButtons.length, 2);
+  assert.ok(phoneButtons.every((button) => !button.hasAttribute("href")), "closed numbers cannot launch a tel: call");
+  assert.ok(phoneButtons[0].getAttribute("aria-haspopup") === "dialog");
+  await act(async () => phoneButtons[0].dispatchEvent(new win.MouseEvent("click", { bubbles: true })));
+
+  const dialog = document.getElementById("jluxe-footer-phone-dialog");
+  assert.ok(dialog, "clicking a closed-hours number opens the accessible support dialog");
+  assert.equal(dialog.getAttribute("aria-modal"), "true");
+  assert.match(dialog.textContent, /ساعت پاسخگویی تلفنی تمام شده/);
+  assert.match(dialog.textContent, /دستیار هوشمند/);
+  assert.ok(dialog.querySelector('a[href="#open-ai-assistant"]'), "the configured assistant opens through its existing supported trigger");
+  assert.deepEqual(
+    [...dialog.querySelectorAll(".jluxe-footer-contact-social-link")].map((link) => link.getAttribute("href")),
+    ["https://instagram.com/store", "https://wa.me/989120000000"],
+    "only enabled social links appear, using their configured messaging destinations",
+  );
+  assert.equal(dialog.querySelectorAll('a[href^="tel:"]').length, 0, "the off-hours dialog never exposes a phone-call bypass");
+  assert.equal(document.body.style.overflow, "hidden", "opening the dialog prevents the page behind it from scrolling");
+
+  await act(async () => document.dispatchEvent(new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+  assert.equal(document.getElementById("jluxe-footer-phone-dialog"), null, "Escape closes the dialog");
+  assert.equal(document.body.style.overflow, "", "closing restores the body's prior scrolling state");
+});
+
+test("footer phone calls fail closed when the configured timezone cannot be evaluated", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.contact = { phone: "09120000000" };
+  win.JLuxeThemeSettings.aiAssistant.enabled = false;
+  win.JLuxeThemeSettings.aiAssistant.contact.timezone = "Invalid/Shop_Timezone";
+  await render();
+  assert.equal(document.querySelector(".jluxe-footer-phone-links button")?.textContent, "09120000000");
+  assert.equal(document.querySelector('.jluxe-footer-phone-links a[href^="tel:"]'), null);
+});
+
+test("footer phone calls fail closed when the configured day list is invalid", async () => {
+  const win = dom(shell());
+  win.JLuxeThemeSettings.contact = { phone: "09120000000" };
+  win.JLuxeThemeSettings.aiAssistant.contact.hours.closedDays = [7];
+  await render();
+  assert.equal(document.querySelector('.jluxe-footer-phone-links a[href^="tel:"]'), null);
+  assert.ok(document.querySelector(".jluxe-footer-phone-links button"), "an out-of-range weekday cannot accidentally enable phone contact");
 });
 
 test("R197 a legacy blank shipping heading is promoted without rewriting other copy", async () => {

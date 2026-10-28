@@ -12918,6 +12918,273 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
   margin-top: .3rem;
 }
 
+#jluxe-footer-root .jluxe-footer-phone-link--closed {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+#jluxe-footer-root .jluxe-footer-phone-status {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-inline-start: .4rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: .08rem .48rem;
+  font-size: .67rem;
+  font-weight: 750;
+  line-height: 1.7;
+  vertical-align: middle;
+}
+#jluxe-footer-root .jluxe-footer-phone-status::before {
+  width: .42rem;
+  height: .42rem;
+  flex: 0 0 .42rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+#jluxe-footer-root .jluxe-footer-phone-status.is-open {
+  border-color: rgb(185 223 197);
+  background: rgb(234 247 238);
+  color: rgb(33 102 61);
+}
+#jluxe-footer-root .jluxe-footer-phone-status.is-closed {
+  border-color: rgb(240 216 165);
+  background: rgb(255 246 228);
+  color: rgb(129 93 32);
+}
+#jluxe-footer-root .jluxe-footer-phone-status.is-unconfigured {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted));
+  color: hsl(var(--text-secondary));
+}
+
+/* Fallback-safe, accessible off-hours support dialog for phones without a native dial link. */
+.jluxe-footer-contact-backdrop {
+  position: fixed;
+  z-index: 99999;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 16px;
+  background: rgba(17, 28, 25, .6);
+  animation: jluxe-footer-contact-fade .18s ease-out both;
+}
+.jluxe-footer-contact-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  width: min(100%, 440px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  border: 1px solid hsl(var(--border));
+  border-radius: 24px;
+  background: hsl(var(--surface));
+  padding: 22px;
+  color: hsl(var(--foreground));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  animation: jluxe-footer-contact-rise .2s cubic-bezier(.2, .8, .2, 1) both;
+}
+.jluxe-footer-contact-dialog:focus { outline: none; }
+.jluxe-footer-contact-dialog-head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+  margin-block-end: 14px;
+}
+.jluxe-footer-contact-dialog-mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border-radius: 15px;
+  background: hsl(var(--muted));
+  background: color-mix(in srgb, hsl(var(--secondary)) 12%, hsl(var(--surface)));
+  color: hsl(var(--secondary));
+}
+.jluxe-footer-contact-dialog-head > div { min-width: 0; flex: 1 1 auto; }
+.jluxe-footer-contact-dialog-state {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: .68rem;
+  font-weight: 750;
+  line-height: 1.7;
+}
+.jluxe-footer-contact-dialog-state.is-open {
+  background: rgb(234 247 238);
+  color: rgb(33 102 61);
+}
+.jluxe-footer-contact-dialog-state.is-closed {
+  background: rgb(255 246 228);
+  color: rgb(129 93 32);
+}
+.jluxe-footer-contact-dialog-state.is-unconfigured {
+  background: hsl(var(--muted));
+  color: hsl(var(--text-secondary));
+}
+.jluxe-footer-contact-dialog-title {
+  margin: 5px 0 0;
+  color: hsl(var(--foreground));
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.55;
+}
+.jluxe-footer-contact-dialog-close {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 13px;
+  background: transparent;
+  color: hsl(var(--text-secondary));
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.jluxe-footer-contact-dialog-copy {
+  margin: 0 0 14px;
+  color: hsl(var(--text-secondary));
+  font-size: .86rem;
+  line-height: 1.85;
+  text-wrap: pretty;
+}
+.jluxe-footer-contact-schedule {
+  margin-block-end: 15px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 13px;
+  background: hsl(var(--muted));
+  padding: 9px 12px;
+  color: hsl(var(--text-secondary));
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1.7;
+}
+.jluxe-footer-contact-ai-link,
+.jluxe-footer-contact-social-link {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  padding: 9px 12px;
+  color: hsl(var(--foreground));
+  font-size: .82rem;
+  font-weight: 750;
+  line-height: 1.5;
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+.jluxe-footer-contact-ai-link {
+  margin-block-end: 15px;
+  border-color: color-mix(in srgb, hsl(var(--secondary)) 32%, hsl(var(--border)));
+  background: hsl(var(--muted));
+  background: color-mix(in srgb, hsl(var(--secondary)) 8%, hsl(var(--surface)));
+  color: hsl(var(--secondary));
+}
+.jluxe-footer-contact-link-arrow {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  color: hsl(var(--text-secondary));
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.jluxe-footer-contact-social-title {
+  margin: 0 0 9px;
+  color: hsl(var(--foreground));
+  font-size: .81rem;
+  font-weight: 800;
+  line-height: 1.7;
+}
+.jluxe-footer-contact-social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.jluxe-footer-contact-social-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: hsl(var(--muted));
+  color: hsl(var(--secondary));
+}
+.jluxe-footer-contact-social-icon svg { display: block; width: 17px; height: 17px; }
+.jluxe-footer-contact-social-name { min-width: 0; overflow-wrap: anywhere; }
+.jluxe-footer-contact-empty {
+  margin: 10px 0 0;
+  border-radius: 13px;
+  background: hsl(var(--muted));
+  padding: 11px 12px;
+  color: hsl(var(--text-secondary));
+  font-size: .8rem;
+  line-height: 1.8;
+}
+.jluxe-footer-contact-dialog a:focus,
+.jluxe-footer-contact-dialog button:focus {
+  outline: 2px solid hsl(var(--secondary));
+  outline-offset: 2px;
+}
+.jluxe-footer-contact-dialog a:focus:not(:focus-visible),
+.jluxe-footer-contact-dialog button:focus:not(:focus-visible) { outline: none; }
+@keyframes jluxe-footer-contact-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jluxe-footer-contact-rise { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (hover: hover) {
+  .jluxe-footer-contact-dialog-close:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+  .jluxe-footer-contact-ai-link:hover,
+  .jluxe-footer-contact-social-link:hover { border-color: hsl(var(--secondary) / .42); background: hsl(var(--muted)); transform: translateY(-1px); }
+}
+@media (max-width: 520px) {
+  .jluxe-footer-contact-backdrop {
+    align-items: flex-end;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .jluxe-footer-contact-dialog {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 22px 22px 16px 16px;
+    padding: 18px 16px;
+  }
+  .jluxe-footer-contact-social-grid { gap: 7px; }
+  .jluxe-footer-contact-social-link { gap: 7px; padding-inline: 9px; }
+}
+@supports (height: 100dvh) {
+  .jluxe-footer-contact-dialog { max-height: calc(100dvh - 32px); }
+}
+@media (max-width: 520px) {
+  @supports (height: 100dvh) {
+    .jluxe-footer-contact-dialog { max-height: 90dvh; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-footer-contact-backdrop,
+  .jluxe-footer-contact-dialog,
+  .jluxe-footer-contact-ai-link,
+  .jluxe-footer-contact-social-link { animation: none; transition: none; }
+}
+
+
 /* Small theme-color marker; link rows wrap only at Persian word boundaries. */
 #jluxe-footer-root .jluxe-footer-column-title,
 #jluxe-footer-root .jluxe-site-badges-section > h3 {

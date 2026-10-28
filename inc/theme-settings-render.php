@@ -773,7 +773,10 @@ function jluxe_render_footer_page(): void {
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-support-hours">ساعات پشتیبانی</label></th>
-					<td><input type="text" id="jluxe-support-hours" name="footer[support_hours]" value="<?php echo esc_attr( $settings['footer']['support_hours'] ); ?>" class="regular-text" /></td>
+					<td>
+						<input type="text" id="jluxe-support-hours" name="footer[support_hours]" value="<?php echo esc_attr( $settings['footer']['support_hours'] ); ?>" class="regular-text" />
+						<p class="description">این متن توضیحیِ فوتر است. برای تعیین روزها/ساعت‌هایی که شمارهٔ فوتر تماس مستقیم می‌گیرد، <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-ai-assistant#jluxe-phone-hours-settings' ) ); ?>">برنامهٔ پاسخگویی تلفنی</a> را در تنظیمات دستیار هوشمند فعال کنید؛ بیرون از آن زمان‌ها، کلیک روی شماره به‌جای تماس، راه‌های آنلاینِ فعال را نشان می‌دهد.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-support-text">متن پشتیبانی متنی</label></th>

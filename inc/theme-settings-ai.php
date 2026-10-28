@@ -341,8 +341,8 @@ function jluxe_render_ai_assistant_page(): void {
 				</tr>
 			</table>
 
-			<h2>ساعت و پیامِ پاسخگویی</h2>
-			<p class="description">برنامهٔ زیر برای اعلانِ دسترسیِ تلفنی/پشتیبانیِ انسانی در چت استفاده می‌شود؛ خارج از این زمان‌ها هم گفت‌وگو با دستیار هوشمند محدود نمی‌شود. وقتی دستیار راه‌های تماس را می‌دهد، شماره و شبکه‌های فعال را به شکل دکمه‌های آیکون‌دار نشان می‌دهد.</p>
+			<h2 id="jluxe-phone-hours-settings">ساعت و پیامِ پاسخگویی</h2>
+			<p class="description">این برنامه مرجعِ تماسِ فوتر است: شماره‌ها فقط در روزها و ساعت‌های انتخاب‌شده لینک تماس مستقیم دارند؛ خارج از آن زمان‌ها، کلیک روی شماره راه‌های آنلاینِ فعال را نشان می‌دهد. همین برنامه، کارتِ وضعیتِ تماس در گفت‌وگوی دستیار را هم کنترل می‌کند؛ گفت‌وگو با دستیار هوشمند بیرون از این ساعت‌ها همچنان در دسترس است.</p>
 			<?php
 			$jluxe_ai_hours       = array_merge( array( 'enabled' => false, 'start' => '', 'end' => '', 'closed_days' => array() ), (array) ( $ai['phone_hours'] ?? array() ) );
 			$jluxe_ai_closed_days = array_map( 'intval', (array) $jluxe_ai_hours['closed_days'] );
@@ -355,7 +355,7 @@ function jluxe_render_ai_assistant_page(): void {
 					<td>
 						<input type="hidden" name="ai_assistant[phone_hours][present]" value="1" />
 						<input type="hidden" name="ai_assistant[phone_hours][open_days_present]" value="1" />
-						<label><input type="checkbox" name="ai_assistant[phone_hours][enabled]" value="1" <?php checked( ! empty( $jluxe_ai_hours['enabled'] ) ); ?> /> نمایشِ کارتِ وضعیت و ساعت پاسخگویی در پیامِ تماس</label>
+						<label><input type="checkbox" name="ai_assistant[phone_hours][enabled]" value="1" <?php checked( ! empty( $jluxe_ai_hours['enabled'] ) ); ?> /> فعال‌سازیِ برنامهٔ تماس تلفنیِ فوتر و نمایشِ وضعیت تماس در دستیار</label>
 						<p style="margin:10px 0 6px"><strong>ساعتِ پاسخگویی:</strong>
 							<label style="margin-inline-start:8px">از <input type="time" aria-label="شروع ساعت پاسخگویی" name="ai_assistant[phone_hours][start]" value="<?php echo esc_attr( $jluxe_ai_hours['start'] ); ?>" /></label>
 							<label style="margin-inline-start:8px">تا <input type="time" aria-label="پایان ساعت پاسخگویی" name="ai_assistant[phone_hours][end]" value="<?php echo esc_attr( $jluxe_ai_hours['end'] ); ?>" /></label>

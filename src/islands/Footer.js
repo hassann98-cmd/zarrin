@@ -8,7 +8,8 @@ import { S as ShieldCheck } from "../icons/shield-check.js";
 import { S as Send } from "../icons/send.js";
 import { P as Phone } from "../icons/phone.js";
 import { r as ReactDOM } from "../lib/react-dom.js";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDialog } from "../lib/use-dialog.js";
 import "../components/button.js";
 import "../lib/utils.js";
 import "../lib/use-cart.js";
@@ -204,11 +205,89 @@ function findSocialLinks(settings) {
   );
 }
 
+function getFooterPhoneState(contact, now = new Date()) {
+  const hours = contact?.hours ?? {};
+  if (hours.enabled !== true) return null;
+  const timePattern = /^(?:[01]?\d|2[0-3]):[0-5]\d$/;
+  const start = String(hours.start ?? "");
+  const end = String(hours.end ?? "");
+  const timezone = typeof contact?.timezone === "string" ? contact.timezone.trim() : "";
+  const closedDays = hours.closedDays;
+  if (
+    !timePattern.test(start) ||
+    !timePattern.test(end) ||
+    !timezone ||
+    !Array.isArray(closedDays) ||
+    closedDays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)
+  ) return null;
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  const startAt = startHour * 60 + startMinute;
+  const endAt = endHour * 60 + endMinute;
+  if (startAt >= endAt) return null;
+
+  try {
+    const options = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      weekday: "short",
+      timeZone: timezone,
+    };
+    const parts = new Intl.DateTimeFormat("en-US", options).formatToParts(now);
+    const hour = Number(parts.find((part) => part.type === "hour")?.value);
+    const minute = Number(parts.find((part) => part.type === "minute")?.value);
+    const weekday = parts.find((part) => part.type === "weekday")?.value;
+    const day = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekday];
+    if (!Number.isInteger(day) || !Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    const currentAt = hour * 60 + minute;
+    return !closedDays.includes(day) && currentAt >= startAt && currentAt < endAt;
+  } catch {
+    // Invalid/unsupported time zones fail closed; online support remains available.
+    return null;
+  }
+}
+
+function footerSocialHref(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const resolved = siteLink(value.trim());
+    const base = typeof window === "undefined" ? "https://example.invalid/" : window.location.href;
+    const url = new URL(resolved, base);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
 function Footer() {
-  /** R88 — the server owns the three portal slots and the official badge markup. */
-  const [slots] = useState(() => findFooterSlots());
   const settings = getThemeSettings();
   const footer = settings.footer;
+  const aiAssistant = settings.aiAssistant ?? {};
+  const phoneContact = aiAssistant.contact ?? {};
+  /** R88 — the server owns the three portal slots and the official badge markup. */
+  const [slots] = useState(() => findFooterSlots());
+  const [phoneAvailability, setPhoneAvailability] = useState(() => getFooterPhoneState(phoneContact));
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
+  const phoneDialogRef = useRef(null);
+  const closePhoneDialog = () => setPhoneDialogOpen(false);
+  useDialog(phoneDialogOpen, phoneDialogRef, closePhoneDialog);
+
+  useEffect(() => {
+    const refreshPhoneAvailability = () => setPhoneAvailability(getFooterPhoneState(phoneContact));
+    refreshPhoneAvailability();
+    const timer = window.setInterval(refreshPhoneAvailability, 30_000);
+    return () => window.clearInterval(timer);
+  }, [phoneContact]);
+
+  useEffect(() => {
+    if (!phoneDialogOpen || !document.body) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [phoneDialogOpen]);
+
   if (footer && !footer.enabled) return null;
 
   const siteName = settings.siteName || "فروشگاه";
@@ -232,6 +311,13 @@ function Footer() {
   const badges = Array.isArray(footer?.trust_badges) ? footer.trust_badges : [];
   const badgeTitle = footer?.trust_badges_title || "نمادهای اعتماد";
   const socials = findSocialLinks(settings.social);
+  const dialogSocials = socials
+    .map(([network, networkSettings]) => ({
+      network,
+      settings: networkSettings,
+      href: footerSocialHref(networkSettings.url),
+    }))
+    .filter((item) => item.href);
   const textStyle = footer?.text_color ? { color: footer.text_color } : undefined;
   const linkColor = footer?.link_color || undefined;
   const linkStyle = linkColor ? { color: linkColor } : undefined;
@@ -249,6 +335,21 @@ function Footer() {
     .map((phone) => phone.trim())
     .filter((phone, index, all) => all.indexOf(phone) === index);
   const phoneSupportTitle = phoneNumbers.length > 0 ? "پشتیبانی تلفنی" : "راه‌های تماس";
+  const phoneStatusLabel = phoneAvailability === true
+    ? "اکنون پاسخگوی تماس"
+    : phoneAvailability === false
+      ? "خارج از ساعت پاسخگویی"
+      : phoneContact.hoursLabel
+        ? "وضعیت تماس قابل بررسی نیست"
+        : "ساعت تماس تنظیم نشده";
+  const phoneStatusClass = phoneAvailability === true
+    ? "is-open"
+    : phoneAvailability === false
+      ? "is-closed"
+      : "is-unconfigured";
+  const phoneHoursSummary = [phoneContact.hours?.daysLabel, phoneContact.hoursLabel]
+    .filter((value) => typeof value === "string" && value.trim())
+    .join(" • ");
 
   const featuresNode =
     features.length > 0
@@ -315,19 +416,47 @@ function Footer() {
           className: "jluxe-footer-phone-links",
           children: phoneNumbers.map((number, index) => {
             const href = phoneHref(number);
-            const tag = href ? "a" : "span";
-            const props = {
+            const key = `phone-${index}`;
+            if (phoneAvailability !== true) {
+              return e.jsx("button", {
+                type: "button",
+                className: "jluxe-footer-phone-link jluxe-footer-phone-link--closed",
+                "data-jluxe-footer-link": true,
+                dir: "ltr",
+                style: linkStyle,
+                "aria-haspopup": "dialog",
+                "aria-controls": "jluxe-footer-phone-dialog",
+                "aria-label": `تماس با ${number} خارج از دسترس است؛ مشاهدهٔ راه‌های پشتیبانی آنلاین`,
+                onClick: () => setPhoneDialogOpen(true),
+                children: number,
+              }, key);
+            }
+            if (!href) {
+              return e.jsx("span", {
+                className: "jluxe-footer-phone-link",
+                "data-jluxe-footer-link": true,
+                dir: "ltr",
+                style: linkStyle,
+                children: number,
+              }, key);
+            }
+            return e.jsx("a", {
+              href,
               className: "jluxe-footer-phone-link",
               "data-jluxe-footer-link": true,
               dir: "ltr",
               style: linkStyle,
+              "aria-label": `تماس تلفنی با ${number}`,
+              onClick: (event) => {
+                const currentState = getFooterPhoneState(phoneContact);
+                if (currentState !== true) {
+                  event.preventDefault();
+                  setPhoneAvailability(currentState);
+                  setPhoneDialogOpen(true);
+                }
+              },
               children: number,
-            };
-            if (href) {
-              props.href = href;
-              props["aria-label"] = `تماس تلفنی با ${number}`;
-            }
-            return e.jsx(tag, props, `phone-${index}`);
+            }, key);
           }),
         })
       : e.jsx("a", {
@@ -358,6 +487,13 @@ function Footer() {
                 style: textStyle,
                 children: phoneSupportTitle,
               }),
+              phoneNumbers.length > 0
+                ? e.jsx("span", {
+                    className: `jluxe-footer-phone-status ${phoneStatusClass}`,
+                    role: "status",
+                    children: phoneStatusLabel,
+                  })
+                : null,
               supportHours
                 ? e.jsx("p", {
                     className: "jluxe-footer-support-copy",
@@ -559,6 +695,139 @@ function Footer() {
         children: `#jluxe-footer-root [data-jluxe-footer-link]:hover,#jluxe-footer-root [data-jluxe-footer-link]:focus-visible,#jluxe-footer-root [data-jluxe-footer-link]:active{color:${hoverColor}!important}`,
       })
     : null;
+  const phoneDialogTitle = phoneAvailability === false
+    ? "ساعت پاسخگویی تلفنی تمام شده"
+    : phoneContact.hoursLabel
+      ? "تماس تلفنی فعلاً در دسترس نیست"
+      : "پاسخگویی تلفنی در دسترس نیست";
+  const phoneDialogCopy = phoneAvailability === false
+    ? "در این روز یا ساعت پاسخگوی تماس تلفنی نیستیم. برای دریافت پاسخ، از دستیار هوشمند یا یکی از شبکه‌های اجتماعی پیام دهید."
+    : phoneContact.hoursLabel
+      ? "امکان بررسی ساعت تماس در این دستگاه فراهم نشد؛ برای اینکه تماس در زمان نامناسب برقرار نشود، فعلاً از راه‌های آنلاین استفاده کنید."
+      : "ساعت پاسخگویی تلفنی در حال حاضر فعال نیست؛ برای راهنمایی از دستیار هوشمند یا شبکه‌های اجتماعی پیام دهید.";
+  const phoneDialogNode = phoneDialogOpen
+    ? e.jsx("div", {
+        className: "jluxe-footer-contact-backdrop",
+        onClick: (event) => {
+          if (event.target === event.currentTarget) closePhoneDialog();
+        },
+        children: e.jsxs("section", {
+          id: "jluxe-footer-phone-dialog",
+          ref: phoneDialogRef,
+          className: "jluxe-footer-contact-dialog",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-labelledby": "jluxe-footer-phone-dialog-title",
+          "aria-describedby": "jluxe-footer-phone-dialog-description",
+          children: [
+            e.jsxs("div", {
+              className: "jluxe-footer-contact-dialog-head",
+              children: [
+                e.jsx("span", {
+                  className: "jluxe-footer-contact-dialog-mark",
+                  "aria-hidden": true,
+                  children: e.jsx(Phone, { className: "size-5" }),
+                }),
+                e.jsxs("div", {
+                  className: "min-w-0",
+                  children: [
+                    e.jsx("span", {
+                      className: `jluxe-footer-contact-dialog-state ${phoneStatusClass}`,
+                      children: phoneAvailability === false ? "پایان ساعت پاسخگویی" : "تماس تلفنی غیرفعال",
+                    }),
+                    e.jsx("h2", {
+                      id: "jluxe-footer-phone-dialog-title",
+                      className: "jluxe-footer-contact-dialog-title",
+                      children: phoneDialogTitle,
+                    }),
+                  ],
+                }),
+                e.jsx("button", {
+                  type: "button",
+                  className: "jluxe-footer-contact-dialog-close",
+                  "aria-label": "بستن پنجرهٔ راه‌های پشتیبانی",
+                  "data-dialog-initial-focus": true,
+                  onClick: closePhoneDialog,
+                  children: "×",
+                }),
+              ],
+            }),
+            e.jsx("p", {
+              id: "jluxe-footer-phone-dialog-description",
+              className: "jluxe-footer-contact-dialog-copy",
+              children: phoneDialogCopy,
+            }),
+            phoneHoursSummary
+              ? e.jsx("div", {
+                  className: "jluxe-footer-contact-schedule",
+                  children: ["ساعات پاسخگویی تلفنی:", phoneHoursSummary].join(" "),
+                })
+              : null,
+            aiAssistant.enabled
+              ? e.jsxs("a", {
+                  href: "#open-ai-assistant",
+                  className: "jluxe-footer-contact-ai-link",
+                  onClick: closePhoneDialog,
+                  children: [
+                    e.jsx(Send, { className: "size-4", "aria-hidden": true }),
+                    e.jsx("span", { children: "گفتگو با دستیار هوشمند" }),
+                    e.jsx("span", { className: "jluxe-footer-contact-link-arrow", "aria-hidden": true, children: "‹" }),
+                  ],
+                })
+              : null,
+            dialogSocials.length > 0
+              ? e.jsxs("div", {
+                  className: "jluxe-footer-contact-social-section",
+                  children: [
+                    e.jsx("h3", {
+                      className: "jluxe-footer-contact-social-title",
+                      children: "ارسال پیام در شبکه‌های اجتماعی",
+                    }),
+                    e.jsx("div", {
+                      className: "jluxe-footer-contact-social-grid",
+                      children: dialogSocials.map(({ network, settings: networkSettings, href }) => {
+                        const Icon = socialIcons[network] ?? Send;
+                        return e.jsxs("a", {
+                          href,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          className: "jluxe-footer-contact-social-link",
+                          "aria-label": `${socialLabels[network] ?? network}، بازشدن در زبانهٔ جدید`,
+                          onClick: closePhoneDialog,
+                          children: [
+                            networkSettings.svg
+                              ? e.jsx("span", {
+                                  className: "jluxe-footer-contact-social-icon",
+                                  "aria-hidden": true,
+                                  dangerouslySetInnerHTML: { __html: networkSettings.svg },
+                                })
+                              : e.jsx("span", {
+                                  className: "jluxe-footer-contact-social-icon",
+                                  "aria-hidden": true,
+                                  children: e.jsx(Icon, { className: "size-4" }),
+                                }),
+                            e.jsx("span", { className: "jluxe-footer-contact-social-name", children: socialLabels[network] ?? network }),
+                            e.jsx("span", { className: "jluxe-footer-contact-link-arrow", "aria-hidden": true, children: "↗" }),
+                          ],
+                        }, network);
+                      }),
+                    }),
+                  ],
+                })
+              : null,
+            !aiAssistant.enabled && dialogSocials.length === 0
+              ? e.jsx("p", {
+                  className: "jluxe-footer-contact-empty",
+                  children: "در حال حاضر راه پیام‌رسانی آنلاینی در تنظیمات فعال نشده است؛ لطفاً در ساعات پاسخگویی دوباره تماس بگیرید.",
+                })
+              : null,
+          ],
+        }),
+      })
+    : null;
+  const phoneDialogPortal = phoneDialogNode && typeof document !== "undefined" && document.body
+    ? ReactDOM.createPortal(phoneDialogNode, document.body, "footer-phone-support-dialog")
+    : phoneDialogNode;
 
   /*
    * R88 — footer.php renders the shell and official trust badges server-side.
@@ -568,6 +837,7 @@ function Footer() {
   if (slots) {
     return e.jsxs(e.Fragment, {
       children: [
+        phoneDialogPortal,
         ReactDOM.createPortal(featuresNode, slots.features, "features"),
         ReactDOM.createPortal(
           e.jsx(e.Fragment, { children: columnsNode }),
@@ -612,6 +882,7 @@ function Footer() {
           ],
         }),
       }),
+      phoneDialogPortal,
       hoverNode,
     ],
   });
