@@ -50,7 +50,11 @@ function MobileNav() {
   const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
-  const loggedIn = settings.auth?.isLoggedIn ?? false;
+  const loggedIn =
+    typeof window !== "undefined" &&
+    typeof window.jluxeCurrentAuthStatus === "boolean"
+      ? window.jluxeCurrentAuthStatus
+      : settings.auth?.isLoggedIn ?? false;
   const [activeDrawer, setActiveDrawer] = React.useState(() =>
     typeof window === "undefined" ? null : getActiveMobileDrawer(window),
   );
@@ -130,6 +134,11 @@ function MobileNav() {
         item.id === "account"
           ? siteUrl(loggedIn ? "dashboard" : "login")
           : DESTINATIONS[item.id].href,
+      accountLabel:
+        item.id === "account" &&
+        (!item.label || item.label === "حساب" || item.label === "ورود")
+          ? "حساب کاربری"
+          : item.label,
       label: item.id === "account" && !loggedIn ? "ورود" : item.label,
     }));
 
@@ -206,6 +215,14 @@ function MobileNav() {
                 : "none",
             },
             "aria-current": routeActive ? "page" : undefined,
+            ...(item.id === "account"
+              ? {
+                  "data-jluxe-account-link": "",
+                  "data-jluxe-account-login-href": siteUrl("login"),
+                  "data-jluxe-account-dashboard-href": siteUrl("dashboard"),
+                  "data-jluxe-account-logged-label": item.accountLabel || "حساب کاربری",
+                }
+              : {}),
             ...(item.opensDrawer
               ? {
                   "aria-label": drawerOpen
@@ -249,7 +266,11 @@ function MobileNav() {
                     : null,
                 ],
               }),
-              jsx.jsx("span", { className: "leading-none", children: item.label }),
+              jsx.jsx("span", {
+                className: "leading-none",
+                ...(item.id === "account" ? { "data-jluxe-account-label": "" } : {}),
+                children: item.label,
+              }),
             ],
           },
           item.id,

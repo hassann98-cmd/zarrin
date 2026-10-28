@@ -345,6 +345,29 @@ add_action( 'wp_head', 'jluxe_output_critical_css', 3 );
 /**
  * Enqueue the theme's JS/CSS entry, dev server in dev mode, hashed assets/compiled files in prod.
  */
+function jluxe_enqueue_mobile_auth_status(): void {
+	$file = '/assets/js/mobile-auth-status.js';
+	$path = JLUXE_THEME_DIR . $file;
+	wp_enqueue_script(
+		'jluxe-mobile-auth-status',
+		JLUXE_THEME_URI . $file,
+		array(),
+		file_exists( $path ) ? (string) filemtime( $path ) : null,
+		array(
+			'in_footer' => false,
+			'strategy'  => 'defer',
+		)
+	);
+	wp_localize_script(
+		'jluxe-mobile-auth-status',
+		'jluxeMobileAuthSettings',
+		array(
+			'sessionUrl' => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_mobile_auth_status', 4 );
+
 function jluxe_enqueue_assets() {
 	$entry = 'src/main.js';
 

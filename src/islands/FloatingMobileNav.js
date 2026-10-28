@@ -81,7 +81,11 @@ function FloatingMobileNav() {
   const style = mobile.nav_style ?? {};
   const urls = settings.urls ?? {};
   const homeHref = siteLink(urls.home || "/", urls);
-  const loggedIn = settings.auth?.isLoggedIn ?? false;
+  const loggedIn =
+    typeof window !== "undefined" &&
+    typeof window.jluxeCurrentAuthStatus === "boolean"
+      ? window.jluxeCurrentAuthStatus
+      : settings.auth?.isLoggedIn ?? false;
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -164,6 +168,11 @@ function FloatingMobileNav() {
       return {
         ...resolved,
         href: siteLink(resolved.href, urls),
+        accountLabel:
+          resolved.action === "account" &&
+          (!resolved.label || resolved.label === "حساب" || resolved.label === "ورود")
+            ? "حساب کاربری"
+            : resolved.label,
         label:
           resolved.action === "account" && !loggedIn
             ? "ورود"
@@ -248,6 +257,14 @@ function FloatingMobileNav() {
             transition: animate ? "color 220ms ease,transform 180ms ease" : "none",
           },
           "aria-current": routeActive ? "page" : undefined,
+          ...(item.action === "account"
+            ? {
+                "data-jluxe-account-link": "",
+                "data-jluxe-account-login-href": siteLink(urls.login || urls.home || "/", urls),
+                "data-jluxe-account-dashboard-href": siteLink(urls.dashboard || urls.login || urls.home || "/", urls),
+                "data-jluxe-account-logged-label": item.accountLabel || "حساب کاربری",
+              }
+            : {}),
           ...(item.opensDrawer
             ? {
                 "aria-label": drawerOpen
@@ -293,6 +310,7 @@ function FloatingMobileNav() {
             }),
             jsx.jsx("span", {
               className: "jluxe-mobile-nav-label leading-none",
+              ...(item.action === "account" ? { "data-jluxe-account-label": "" } : {}),
               children: item.label,
             }),
           ],
