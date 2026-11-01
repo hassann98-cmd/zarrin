@@ -250,6 +250,110 @@ jQuery(function ($) {
 	}
 
 	// ===================================================================
+	// منوی هدر — هر کارت یک آیتم کامل (همراه با شناسه و تمام زیرمنوهاست).
+	// بعد از هر جابه‌جایی، فقط شماره‌ی [items][N] بازنویسی می‌شه تا آرایه‌ی
+	// ارسال‌شده با ترتیبِ روی صفحه یکی باشه و فیلدهای تو‌در‌تو کنار آیتم بمانند.
+	// ===================================================================
+	function headerNavPersianNumber(value) {
+		var digits = "۰۱۲۳۴۵۶۷۸۹";
+		return String(value).replace(/[0-9]/g, function (digit) {
+			return digits.charAt(parseInt(digit, 10));
+		});
+	}
+
+	function renumberHeaderNavItems($list, $movedItem, announce) {
+		var $items = $list.children(".jluxe-header-nav-item");
+		$items.each(function (index) {
+			var $item = $(this);
+			var number = headerNavPersianNumber(index + 1);
+			$item.find("[name]").each(function () {
+				var $field = $(this);
+				var name = $field.attr("name") || "";
+				var renamed = name.replace(/(\[items\])\[[^\]]*\]/, "$1[" + index + "]");
+				if (renamed !== name) {
+					$field.attr("name", renamed);
+				}
+			});
+
+			$item.find(".jluxe-header-nav-item__number").text("آیتم " + number);
+			var label = $.trim(String($item.find("[data-jluxe-header-nav-label]").first().val() || ""));
+			$item.find("[data-jluxe-header-nav-title]").text(label || "بدون عنوان");
+			$item.find(".jluxe-header-nav-item__controls").attr("aria-label", "کنترل ترتیب آیتم " + number);
+			$item.find(".jluxe-header-nav-item__drag")
+				.attr("title", "برای کشیدن و جابه‌جایی آیتم " + number)
+				.attr("aria-label", "دستگیرهٔ جابه‌جایی آیتم " + number);
+			$item.find(".jluxe-header-nav-item__move-up")
+				.prop("disabled", index === 0)
+				.attr("title", "انتقال به بالا")
+				.attr("aria-label", "انتقال آیتم " + number + " به بالا");
+			$item.find(".jluxe-header-nav-item__move-down")
+				.prop("disabled", index === $items.length - 1)
+				.attr("title", "انتقال به پایین")
+				.attr("aria-label", "انتقال آیتم " + number + " به پایین");
+		});
+
+		if (announce && $movedItem && $movedItem.length) {
+			var newIndex = $items.index($movedItem);
+			var movedLabel = $.trim(String($movedItem.find("[data-jluxe-header-nav-label]").first().val() || ""));
+			$list.closest("form").find("[data-jluxe-header-nav-live]").first().text(
+				"ترتیب منوی هدر تغییر کرد. «" + (movedLabel || "بدون عنوان") + "» اکنون آیتم " + headerNavPersianNumber(newIndex + 1) + " است."
+			);
+		}
+	}
+
+	$(".jluxe-header-nav-list").each(function () {
+		var $list = $(this);
+		renumberHeaderNavItems($list);
+		$list.sortable({
+			items: "> .jluxe-header-nav-item",
+			handle: ".jluxe-header-nav-item__drag",
+			axis: "y",
+			// jQuery UI به‌طور پیش‌فرض دکمه‌ها را از شروع drag مستثنا می‌کند؛
+			// این‌جا دستگیره خودش دکمه‌ی قابل‌دسترسی است، پس فقط فیلدهای فرم cancel شوند.
+			cancel: "input,textarea,select,option",
+			distance: 5,
+			update: function (event, ui) {
+				renumberHeaderNavItems($(this), ui.item, true);
+			},
+		});
+		$list.closest("form").on("submit", function () {
+			renumberHeaderNavItems($list);
+		});
+	});
+
+	$(document).on("click", ".jluxe-header-nav-item__move-up", function (event) {
+		event.preventDefault();
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var $previous = $item.prev(".jluxe-header-nav-item");
+		if (!$previous.length) return;
+		var $list = $item.parent();
+		$item.insertBefore($previous);
+		renumberHeaderNavItems($list, $item, true);
+		var $focusButton = $item.find(".jluxe-header-nav-item__move-up");
+		if ($focusButton.prop("disabled")) $focusButton = $item.find(".jluxe-header-nav-item__move-down");
+		$focusButton.trigger("focus");
+	});
+
+	$(document).on("click", ".jluxe-header-nav-item__move-down", function (event) {
+		event.preventDefault();
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var $next = $item.next(".jluxe-header-nav-item");
+		if (!$next.length) return;
+		var $list = $item.parent();
+		$item.insertAfter($next);
+		renumberHeaderNavItems($list, $item, true);
+		var $focusButton = $item.find(".jluxe-header-nav-item__move-down");
+		if ($focusButton.prop("disabled")) $focusButton = $item.find(".jluxe-header-nav-item__move-up");
+		$focusButton.trigger("focus");
+	});
+
+	$(document).on("input change", "[data-jluxe-header-nav-label]", function () {
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var label = $.trim(String($(this).val() || ""));
+		$item.find("[data-jluxe-header-nav-title]").text(label || "بدون عنوان");
+	});
+
+	// ===================================================================
 	// هومپیج بیلدر — drag&drop، افزودن/حذف/تکثیر بخش، renumber ایندکس‌ها
 	// قبل از هر submit تا name="homepage[sections][N][...]" با ترتیب واقعیِ
 	// نمایش‌داده‌شده یکی بمونه (وگرنه بعد از جابه‌جایی، ترتیبِ ذخیره‌شده

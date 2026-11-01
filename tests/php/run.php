@@ -11,6 +11,48 @@ function check($condition, $message) {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+// R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
+$r357_nav_defaults = jluxe_theme_settings_defaults();
+ob_start();
+jluxe_render_header_nav_form_fields( $r357_nav_defaults );
+$r357_header_nav_html = (string) ob_get_clean();
+check(
+	8 === substr_count( $r357_header_nav_html, 'class="jluxe-header-nav-item"' ) &&
+	8 === substr_count( $r357_header_nav_html, 'class="jluxe-header-nav-item__accordion"' ) &&
+	8 === substr_count( $r357_header_nav_html, 'class="jluxe-header-nav-item__move-up"' ) &&
+	8 === substr_count( $r357_header_nav_html, 'class="jluxe-header-nav-item__move-down"' ) &&
+	false !== strpos( $r357_header_nav_html, 'name="header_nav[items][3][id]"' ) &&
+	false !== strpos( $r357_header_nav_html, 'name="header_nav[items][3][children][4][svg]"' ) &&
+	false !== strpos( $r357_header_nav_html, 'data-jluxe-header-nav-live' ) &&
+	false !== strpos( $r357_header_nav_html, 'مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه' ),
+	'R357 header-navigation admin renders eight accessible accordion cards and preserves all parent/submenu fields after the fixed categories mega menu'
+);
+$r357_posted_nav = array(
+	'items' => array(
+		array(
+			'id' => 'nav-third', 'label' => 'آیتم سوم', 'url' => '/third', 'icon' => 'bag', 'svg' => '',
+			'children' => array( array( 'label' => 'زیرمنوی سوم', 'url' => '/third/child', 'icon' => 'bag', 'svg' => '' ) ),
+		),
+		array( 'id' => 'unused-empty-slot', 'label' => '', 'url' => '/ignored', 'children' => array( array( 'label' => 'نادیده' ) ) ),
+		array(
+			'id' => 'nav-first', 'label' => 'آیتم اول', 'url' => '/first', 'icon' => 'heart', 'svg' => '',
+			'children' => array( array( 'label' => 'زیرمنوی اول', 'url' => '/first/child', 'icon' => 'heart', 'svg' => '' ) ),
+		),
+	),
+);
+$r357_sanitized_nav = jluxe_sanitize_header_nav( $r357_posted_nav, $r357_nav_defaults['header_nav'] );
+check(
+	2 === count( $r357_sanitized_nav['items'] ) &&
+	'nav-third' === $r357_sanitized_nav['items'][0]['id'] &&
+	'آیتم سوم' === $r357_sanitized_nav['items'][0]['label'] &&
+	'زیرمنوی سوم' === $r357_sanitized_nav['items'][0]['children'][0]['label'] &&
+	'/third/child' === $r357_sanitized_nav['items'][0]['children'][0]['url'] &&
+	'nav-first' === $r357_sanitized_nav['items'][1]['id'] &&
+	'زیرمنوی اول' === $r357_sanitized_nav['items'][1]['children'][0]['label'] &&
+	'/first/child' === $r357_sanitized_nav['items'][1]['children'][0]['url'],
+	'R357 header navigation sanitizer stores the posted item order, skips only the empty slot, and keeps each submenu with its parent'
+);
+
 // R338: temporary store closure is separate from announcement settings and blocks only new storefront purchases.
 $r338_option_key = JLUXE_STORE_CLOSURE_OPTION;
 $r338_had_option = array_key_exists( $r338_option_key, $GLOBALS['options'] );

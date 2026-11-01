@@ -444,54 +444,85 @@ function jluxe_render_header_nav_form_fields( array $settings ): void {
 	$items = $settings['header_nav']['items'] ?? array();
 	$icons = jluxe_nav_icon_options();
 	?>
-	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل ویرایش نیست. آیتم‌های زیر بعد از اون، به همون ترتیب نمایش داده می‌شن. لینک رو می‌تونی مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل بدی. اگه برای یک آیتم زیرمنو تعریف کنی، خودِ آیتم هم قابل کلیکه هم روش هاور/فوکوس یک منوی کشویی باز می‌شه.</p>
-	<form method="post">
+	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل ویرایش نیست. ترتیب آیتم‌های زیر را با دکمه‌های بالا/پایین یا کشیدن دستگیره تغییر بده؛ تغییرها بعد از ذخیره روی سایت اعمال می‌شن. برای خلوت‌ماندن صفحه، تنظیمات هر آیتم با کلیک روی عنوانش باز می‌شه. لینک می‌تونه مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل باشه. اگه برای یک آیتم زیرمنو تعریف کنی، خودِ آیتم هم قابل کلیکه هم روش هاور/فوکوس یک منوی کشویی باز می‌شه.</p>
+	<form method="post" class="jluxe-header-nav-form">
 		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
-		<?php for ( $i = 0; $i < 8; $i++ ) : $item = $items[ $i ] ?? array(); ?>
-			<div class="jluxe-hb-banner-item">
-				<strong>آیتم <?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></strong>
-				<p>
-					<label>عنوان<br />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][label]" value="<?php echo esc_attr( $item['label'] ?? '' ); ?>" class="regular-text" />
-					</label>
-				</p>
-				<p>
-					<label>لینک<br />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][url]" value="<?php echo esc_attr( $item['url'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="/shop/" />
-					</label>
-				</p>
-				<p>
-					<label>آیکون<br />
-						<select name="header_nav[items][<?php echo $i; ?>][icon]">
-							<?php foreach ( $icons as $val => $label ) : ?>
-								<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</label>
-				</p>
-				<p>
-					<label>یا کدِ SVG سفارشی (اختیاری — اگه پر بشه، به‌جای آیکونِ بالا استفاده می‌شه)<br />
-						<textarea name="header_nav[items][<?php echo $i; ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $item['svg'] ?? '' ); ?></textarea>
-					</label>
-				</p>
-				<input type="hidden" name="header_nav[items][<?php echo $i; ?>][id]" value="<?php echo esc_attr( $item['id'] ?? '' ); ?>" />
+		<p class="screen-reader-text" data-jluxe-header-nav-live aria-live="polite" aria-atomic="true"></p>
+		<div id="jluxe-header-nav-items" class="jluxe-header-nav-list" role="list" aria-label="آیتم‌های قابل‌تنظیمِ منوی هدر">
+		<?php for ( $i = 0; $i < 8; $i++ ) :
+			$item       = $items[ $i ] ?? array();
+			$item_label = isset( $item['label'] ) && is_scalar( $item['label'] ) ? trim( (string) $item['label'] ) : '';
+		?>
+			<div class="jluxe-header-nav-item" role="listitem">
+				<details class="jluxe-header-nav-item__accordion">
+					<summary class="jluxe-header-nav-item__summary">
+						<span class="jluxe-header-nav-item__summary-title">
+							<strong class="jluxe-header-nav-item__number">آیتم <?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></strong>
+							<span class="jluxe-header-nav-item__title" data-jluxe-header-nav-title><?php echo '' !== $item_label ? esc_html( $item_label ) : 'بدون عنوان'; ?></span>
+						</span>
+						<span class="jluxe-header-nav-item__summary-hint">برای ویرایش باز کنید</span>
+					</summary>
+					<div class="jluxe-header-nav-item__body">
+						<div class="jluxe-header-nav-item__fields">
+							<p>
+								<label>عنوان<br />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][label]" value="<?php echo esc_attr( $item['label'] ?? '' ); ?>" class="regular-text jluxe-header-nav-item__label" data-jluxe-header-nav-label />
+								</label>
+							</p>
+							<p>
+								<label>لینک<br />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][url]" value="<?php echo esc_attr( $item['url'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="/shop/" />
+								</label>
+							</p>
+							<p>
+								<label>آیکون<br />
+									<select name="header_nav[items][<?php echo $i; ?>][icon]">
+										<?php foreach ( $icons as $val => $label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</label>
+							</p>
+							<p>
+								<label>یا کدِ SVG سفارشی (اختیاری — اگه پر بشه، به‌جای آیکونِ بالا استفاده می‌شه)<br />
+									<textarea name="header_nav[items][<?php echo $i; ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $item['svg'] ?? '' ); ?></textarea>
+								</label>
+							</p>
+							<input type="hidden" name="header_nav[items][<?php echo $i; ?>][id]" value="<?php echo esc_attr( $item['id'] ?? '' ); ?>" />
+						</div>
 
-				<p class="description">زیرمنو (اختیاری — هر زیرمنوی بدون عنوان نادیده گرفته می‌شه):</p>
-				<?php for ( $c = 0; $c < 5; $c++ ) : $child = $item['children'][ $c ] ?? array(); ?>
-					<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][label]" value="<?php echo esc_attr( $child['label'] ?? '' ); ?>" placeholder="عنوان زیرمنو <?php echo esc_attr( jluxe_fa_digits( $c + 1 ) ); ?>" class="regular-text" />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][url]" value="<?php echo esc_attr( $child['url'] ?? '' ); ?>" placeholder="/لینک/" class="regular-text" dir="ltr" />
-						<select name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][icon]">
-							<?php foreach ( $icons as $val => $label ) : ?>
-								<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $child['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][svg]" value="<?php echo esc_attr( $child['svg'] ?? '' ); ?>" placeholder="کدِ SVG سفارشی (اختیاری)" class="regular-text code" dir="ltr" />
+						<p class="description">زیرمنو (اختیاری — هر زیرمنوی بدون عنوان نادیده گرفته می‌شه):</p>
+						<div class="jluxe-header-nav-item__children">
+							<?php for ( $c = 0; $c < 5; $c++ ) : $child = $item['children'][ $c ] ?? array(); ?>
+								<div class="jluxe-header-nav-child">
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][label]" value="<?php echo esc_attr( $child['label'] ?? '' ); ?>" placeholder="عنوان زیرمنو <?php echo esc_attr( jluxe_fa_digits( $c + 1 ) ); ?>" class="regular-text" />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][url]" value="<?php echo esc_attr( $child['url'] ?? '' ); ?>" placeholder="/لینک/" class="regular-text" dir="ltr" />
+									<select name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][icon]">
+										<?php foreach ( $icons as $val => $label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $child['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][svg]" value="<?php echo esc_attr( $child['svg'] ?? '' ); ?>" placeholder="کدِ SVG سفارشی (اختیاری)" class="regular-text code" dir="ltr" />
+								</div>
+							<?php endfor; ?>
+						</div>
 					</div>
-				<?php endfor; ?>
+				</details>
+				<div class="jluxe-header-nav-item__controls" role="group" aria-label="کنترل ترتیب آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>">
+					<button type="button" class="jluxe-header-nav-item__drag" title="برای کشیدن و جابه‌جایی آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>" aria-label="دستگیرهٔ جابه‌جایی آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>">
+						<span class="dashicons dashicons-move" aria-hidden="true"></span>
+					</button>
+					<button type="button" class="jluxe-header-nav-item__move-up" title="انتقال به بالا" aria-label="انتقال آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?> به بالا"<?php echo 0 === $i ? ' disabled="disabled"' : ''; ?>>
+						<span aria-hidden="true">↑</span>
+					</button>
+					<button type="button" class="jluxe-header-nav-item__move-down" title="انتقال به پایین" aria-label="انتقال آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?> به پایین"<?php echo 7 === $i ? ' disabled="disabled"' : ''; ?>>
+						<span aria-hidden="true">↓</span>
+					</button>
+				</div>
 			</div>
 		<?php endfor; ?>
+		</div>
 
 		<?php jluxe_settings_submit_button( false ); ?>
 	</form>
