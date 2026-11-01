@@ -674,3 +674,34 @@
 .jluxe-cats-browse-demo--stack i:last-child:before{content:"←"}
 .jluxe-cats-browse-demo--grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
 .jluxe-cats-admin-preview .jc-rail{position:static;max-height:none}
+
+/* کنترلِ تعطیلیِ فروشگاه — پنلِ مستقل و قابل‌استفاده با لمس در موبایل */
+.jluxe-store-closure-panel{max-width:920px;margin:18px 0 24px;padding:20px;border:1px solid #dcdcde;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(16,24,40,.04);box-sizing:border-box}
+.jluxe-store-closure-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.jluxe-store-closure-heading>.dashicons{width:28px;height:28px;font-size:28px;color:#50575e;flex:none}
+.jluxe-store-closure-heading>div{flex:1;min-width:0}
+.jluxe-store-closure-heading h2{margin:0 0 4px;font-size:18px;line-height:1.5}
+.jluxe-store-closure-heading p{margin:0;color:#646970;line-height:1.7}
+.jluxe-store-closure-badge{flex:none;padding:5px 12px;border-radius:999px;font-size:13px;line-height:1.6}
+.jluxe-store-closure-badge.is-open{color:#176b43;background:#edfaef}
+.jluxe-store-closure-badge.is-closed{color:#9a3412;background:#fff1e8}
+.jluxe-store-closure-scheduled{margin:14px 0 0;color:#50575e}
+.jluxe-store-closure-form{display:grid;gap:16px;margin-top:18px}
+.jluxe-store-closure-field{min-width:0}
+.jluxe-store-closure-field>label{display:block;margin:0 0 6px;font-weight:600}
+.jluxe-store-closure-field textarea,.jluxe-store-closure-field input[type="datetime-local"]{display:block;width:100%;max-width:100%;min-height:42px;box-sizing:border-box}
+.jluxe-store-closure-field input[type="datetime-local"]{direction:ltr;text-align:left}
+.jluxe-store-closure-field textarea{min-height:86px;resize:vertical}
+.jluxe-store-closure-field .description{margin:6px 0 0;line-height:1.8}
+.jluxe-store-closure-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.jluxe-store-closure-submit,.jluxe-store-closure-open{min-height:42px;padding:0 16px!important}
+.jluxe-store-closure-open{color:#9a3412!important;border-color:#dba38a!important}
+.jluxe-store-closure-open:hover{color:#7c2d12!important;border-color:#9a3412!important}
+@media(max-width:782px){
+	.jluxe-store-closure-panel{margin:14px 0 20px;padding:16px;border-radius:10px}
+	.jluxe-store-closure-heading{align-items:flex-start;flex-wrap:wrap}
+	.jluxe-store-closure-heading>div{flex:1 1 calc(100% - 44px)}
+	.jluxe-store-closure-badge{margin-inline-start:40px}
+	.jluxe-store-closure-actions{display:grid;grid-template-columns:1fr;width:100%}
+	.jluxe-store-closure-submit,.jluxe-store-closure-open{width:100%;min-height:48px!important;font-size:15px!important}
+}

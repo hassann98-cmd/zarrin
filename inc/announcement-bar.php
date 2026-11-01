@@ -227,6 +227,9 @@ function jluxe_announcement_ticker_print_keyframes(): void {
 	if ( ! is_array( $settings ) ) {
 		return;
 	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
+	}
 	$content = jluxe_announcement_content_payload( $settings );
 	if ( 'ticker' !== $content['mode'] || empty( $content['ready'] ) || count( $content['ticker_messages'] ) < 2 ) {
 		return;
@@ -293,7 +296,13 @@ function jluxe_announcement_body_classes( array $classes ): array {
 		return $classes;
 	}
 	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
-	if ( ! is_array( $settings ) || empty( $settings['enabled'] ) ) {
+	if ( ! is_array( $settings ) ) {
+		return $classes;
+	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
+	}
+	if ( empty( $settings['enabled'] ) ) {
 		return $classes;
 	}
 	$content = jluxe_announcement_content_payload( $settings );
@@ -315,6 +324,9 @@ function jluxe_render_announcement_bar(): void {
 	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
 	if ( ! is_array( $settings ) ) {
 		return;
+	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
 	}
 	$content = jluxe_announcement_content_payload( $settings );
 	if ( empty( $settings['enabled'] ) || empty( $content['ready'] ) ) {

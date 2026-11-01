@@ -12,9 +12,10 @@
 	 * polling یا MutationObserver در کار نیست (پیش‌تر بود: R87 همین را پیدا کرد).
 	 */
 	if ( jluxe_should_render_site_footer() ) :
-		$jluxe_footer_bg = jluxe_footer_background_style();
+		$jluxe_footer_bg      = jluxe_footer_background_style();
+		$jluxe_footer_variant = 'premium' === jluxe_get_setting( 'footer.variant', 'current' ) ? 'premium' : 'current';
 		?>
-	<footer id="jluxe-footer-root" class="flow-root" data-jluxe-footer<?php echo '' !== $jluxe_footer_bg ? ' style="' . esc_attr( $jluxe_footer_bg ) . '"' : ''; ?>>
+	<footer id="jluxe-footer-root" class="flow-root" data-jluxe-footer data-jluxe-footer-variant="<?php echo esc_attr( $jluxe_footer_variant ); ?>"<?php echo '' !== $jluxe_footer_bg ? ' style="' . esc_attr( $jluxe_footer_bg ) . '"' : ''; ?>>
 		<div class="jluxe-footer-content-wrap mx-auto mt-4 mb-24 w-full max-w-[1320px] px-3 md:px-4 md:mb-6">
 			<div class="jluxe-footer-shell overflow-hidden rounded-2xl border border-border bg-muted/40">
 				<div data-jluxe-footer-slot="features"></div>

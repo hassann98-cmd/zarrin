@@ -10,6 +10,141 @@ function check($condition, $message) {
 	echo "PASS: $message\n";
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
+
+// R338: temporary store closure is separate from announcement settings and blocks only new storefront purchases.
+$r338_option_key = JLUXE_STORE_CLOSURE_OPTION;
+$r338_had_option = array_key_exists( $r338_option_key, $GLOBALS['options'] );
+$r338_old_option = $GLOBALS['options'][ $r338_option_key ] ?? null;
+$r338_old_scheduled = $GLOBALS['scheduled'] ?? array();
+$r338_had_fired = array_key_exists( 'fired', $GLOBALS );
+$r338_old_fired = $GLOBALS['fired'] ?? null;
+unset( $GLOBALS['options'][ $r338_option_key ] );
+$GLOBALS['scheduled'] = array();
+check( ! jluxe_store_closure_is_closed(), 'R338 store closure is open by default' );
+
+$r338_normal_announcement = array(
+	'enabled' => false,
+	'display_mode' => 'ticker',
+	'message' => 'پیام عادی',
+	'ticker_messages' => "ارسال سریع\nتخفیف",
+	'dismissible' => true,
+	'link_text' => 'لینک عادی',
+	'link_url' => 'https://shop.test/normal',
+);
+$r338_save = jluxe_store_closure_save( 'close', 'ثبت سفارش موقتاً متوقف است. سفارش‌های قبلی قابل پیگیری هستند.' );
+$r338_override = jluxe_store_closure_announcement_override( $r338_normal_announcement );
+check(
+	! empty( $r338_save['ok'] ) && jluxe_store_closure_is_closed() &&
+	! empty( $r338_override['enabled'] ) && 'text' === $r338_override['display_mode'] &&
+	false === $r338_override['dismissible'] && '' === $r338_override['link_url'] &&
+	$r338_normal_announcement['enabled'] === false && 'ticker' === $r338_normal_announcement['display_mode'] &&
+	'پیام عادی' === $r338_normal_announcement['message'],
+	'R338 closure temporarily overrides the announcement bar without mutating its normal settings'
+);
+$r338_had_theme_option = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
+$r338_old_theme_option = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'announcement_bar' => $r338_normal_announcement );
+jluxe_get_theme_settings( true );
+$r338_bar_classes = jluxe_announcement_body_classes( array() );
+ob_start();
+jluxe_render_announcement_bar();
+$r338_bar_html = (string) ob_get_clean();
+check(
+	in_array( 'jluxe-has-announcement', $r338_bar_classes, true ) &&
+	false !== strpos( $r338_bar_html, 'ثبت سفارش موقتاً متوقف است.' ) &&
+	false !== strpos( $r338_bar_html, 'data-dismissible="0"' ) &&
+	false === strpos( $r338_bar_html, 'class="jluxe-announcement-bar__dismiss"' ) &&
+	false === strpos( $r338_bar_html, 'پیام عادی' ),
+	'R338 the real announcement renderer shows the closure message even when the normal bar is disabled and never adds a dismiss control'
+);
+if ( $r338_had_theme_option ) { $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r338_old_theme_option; } else { unset( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ); }
+jluxe_get_theme_settings( true );
+ob_start();
+jluxe_render_store_closure_control( 'dashboard' );
+$r338_admin_control_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r338_admin_control_html, 'type="datetime-local"' ) &&
+	false !== strpos( $r338_admin_control_html, 'بازگشایی فروشگاه' ) &&
+	false !== strpos( $r338_admin_control_html, 'Asia/Tehran' ),
+	'R338 manager control renders the mobile-ready reopen field and site-timezone guidance'
+);
+check(
+	false === jluxe_store_closure_validate_add_to_cart( true, 17, 1 ),
+	'R338 server-side WooCommerce validation rejects add-to-cart while closed'
+);
+$r338_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) { $this->items[] = array( $code, $message, $data ); }
+};
+jluxe_store_closure_validate_checkout( array(), $r338_errors );
+$r338_store_api_error = jluxe_store_closure_block_store_api( null, null, new WP_REST_Request( array( '_method' => 'POST', '_route' => '/wc/store/v1/cart/add-item' ) ) );
+$r338_store_api_checkout_error = jluxe_store_closure_block_store_api( null, null, new WP_REST_Request( array( '_method' => 'POST', '_route' => '/wc/store/v1/checkout' ) ) );
+$r338_existing_order_route = jluxe_store_closure_block_store_api( null, null, new WP_REST_Request( array( '_method' => 'GET', '_route' => '/wc/store/v1/order/51' ) ) );
+check(
+	1 === count( $r338_errors->items ) && 'jluxe_store_closed' === $r338_errors->items[0][0] &&
+	$r338_store_api_error instanceof WP_Error && 'jluxe_store_closed' === $r338_store_api_error->get_error_code() &&
+	$r338_store_api_checkout_error instanceof WP_Error && 'jluxe_store_closed' === $r338_store_api_checkout_error->get_error_code() &&
+	null === $r338_existing_order_route,
+	'R338 classic checkout and Store API new-order routes are rejected without blocking existing-order routes'
+);
+$r338_had_wc_session = isset( $GLOBALS['wc']->session );
+$r338_old_wc_session = $GLOBALS['wc']->session ?? null;
+$r338_old_wc_cart = $GLOBALS['wc']->cart;
+$r338_had_order_338 = isset( $GLOBALS['orders'][338] );
+$r338_old_order_338 = $GLOBALS['orders'][338] ?? null;
+$GLOBALS['wc']->session = new class() {
+	public function get( $key, $default = 0 ) { return 'store_api_draft_order' === $key ? 338 : $default; }
+};
+$GLOBALS['wc']->cart = new class() {
+	public function get_cart_hash() { return 'same-existing-cart'; }
+};
+$GLOBALS['orders'][338] = new class() {
+	public function needs_payment() { return true; }
+	public function has_cart_hash( $hash ) { return 'same-existing-cart' === $hash; }
+	public function get_status() { return 'pending'; }
+	public function get_customer_id() { return 0; }
+};
+$r338_existing_order_retry = jluxe_store_closure_block_store_api( null, null, new WP_REST_Request( array( '_method' => 'POST', '_route' => '/wc/store/v1/checkout' ) ) );
+$r338_retry_errors = new class() {
+	public $items = array();
+	public function add( $code, $message, $data = array() ) { $this->items[] = array( $code, $message, $data ); }
+};
+jluxe_store_closure_validate_checkout( array(), $r338_retry_errors );
+check(
+	null === $r338_existing_order_retry && 0 === count( $r338_retry_errors->items ),
+	'R338 an existing payable order with an unchanged cart can still complete its payment retry while new orders remain blocked'
+);
+if ( $r338_had_wc_session ) { $GLOBALS['wc']->session = $r338_old_wc_session; } else { unset( $GLOBALS['wc']->session ); }
+$GLOBALS['wc']->cart = $r338_old_wc_cart;
+if ( $r338_had_order_338 ) { $GLOBALS['orders'][338] = $r338_old_order_338; } else { unset( $GLOBALS['orders'][338] ); }
+$r338_invalid_time = jluxe_store_closure_save( 'close', 'نباید ذخیره شود', '2020-01-01T12:00' );
+check(
+	empty( $r338_invalid_time['ok'] ) && 'invalid_reopen_time' === $r338_invalid_time['code'] &&
+	'ثبت سفارش موقتاً متوقف است. سفارش‌های قبلی قابل پیگیری هستند.' === jluxe_store_closure_message(),
+	'R338 invalid or past automatic reopening times leave the active closure unchanged'
+);
+$r338_local_time = '2035-11-01T12:30';
+$r338_expected_time = DateTimeImmutable::createFromFormat( '!Y-m-d\\TH:i', $r338_local_time, wp_timezone() )->getTimestamp();
+$r338_timed_close = jluxe_store_closure_save( 'close', 'پیام تعطیلی', $r338_local_time );
+check(
+	! empty( $r338_timed_close['ok'] ) && $r338_expected_time === jluxe_store_closure_settings()['reopen_at'] &&
+	$r338_expected_time === wp_next_scheduled( JLUXE_STORE_CLOSURE_REOPEN_HOOK ),
+	'R338 scheduled reopening is stored and scheduled using the WordPress site timezone'
+);
+$r338_open = jluxe_store_closure_save( 'open', 'پیام تعطیلی' );
+check(
+	! empty( $r338_open['ok'] ) && ! jluxe_store_closure_is_closed() &&
+	false === wp_next_scheduled( JLUXE_STORE_CLOSURE_REOPEN_HOOK ) &&
+	$r338_normal_announcement === jluxe_store_closure_announcement_override( $r338_normal_announcement ),
+	'R338 reopening restores the untouched normal announcement and clears the scheduled event'
+);
+update_option( JLUXE_STORE_CLOSURE_OPTION, array( 'closed' => true, 'message' => 'زمان تمام شد', 'reopen_at' => time() - 60 ), false );
+jluxe_store_closure_maybe_auto_reopen();
+check( ! jluxe_store_closure_is_closed() && 0 === jluxe_store_closure_settings()['reopen_at'], 'R338 expired closure automatically opens and clears its deadline' );
+if ( $r338_had_option ) { $GLOBALS['options'][ $r338_option_key ] = $r338_old_option; } else { unset( $GLOBALS['options'][ $r338_option_key ] ); }
+$GLOBALS['scheduled'] = $r338_old_scheduled;
+if ( $r338_had_fired ) { $GLOBALS['fired'] = $r338_old_fired; } else { unset( $GLOBALS['fired'] ); }
+
 jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
@@ -9327,6 +9462,98 @@ if ( null === $r329_old_taxonomies ) {
 	$GLOBALS['taxonomies'] = $r329_old_taxonomies;
 }
 unset( $GLOBALS['r329_brick_queries'] );
+
+$r341_ui_variant_defaults = jluxe_theme_settings_defaults();
+$r341_header_current = jluxe_sanitize_header( array(), $r341_ui_variant_defaults['header'] );
+$r341_footer_current = jluxe_sanitize_footer( array(), $r341_ui_variant_defaults['footer'] );
+$r341_card_current = jluxe_sanitize_product_card( array(), $r341_ui_variant_defaults['product_card'] );
+check(
+	'current' === $r341_ui_variant_defaults['header']['variant'] &&
+	'current' === $r341_ui_variant_defaults['footer']['variant'] &&
+	'current' === $r341_ui_variant_defaults['product_card']['variant'] &&
+	'current' === $r341_header_current['variant'] &&
+	'current' === $r341_footer_current['variant'] &&
+	'current' === $r341_card_current['variant'],
+	'R354 optional header, footer, and product-card designs default safely to the existing presentation'
+);
+$r341_header_premium = jluxe_sanitize_header( array( 'variant' => 'premium' ), $r341_ui_variant_defaults['header'] );
+$r341_footer_premium = jluxe_sanitize_footer( array( 'variant' => 'premium' ), $r341_ui_variant_defaults['footer'] );
+$r341_card_premium = jluxe_sanitize_product_card( array( 'variant' => 'premium' ), $r341_ui_variant_defaults['product_card'] );
+check(
+	'premium' === $r341_header_premium['variant'] &&
+	'premium' === $r341_footer_premium['variant'] &&
+	'premium' === $r341_card_premium['variant'],
+	'R354 the new design can be selected independently for header, footer, and product cards'
+);
+$r341_header_invalid = jluxe_sanitize_header( array( 'variant' => 'untrusted-value' ), $r341_ui_variant_defaults['header'] );
+$r341_footer_invalid = jluxe_sanitize_footer( array( 'variant' => array( 'premium' ) ), $r341_ui_variant_defaults['footer'] );
+$r341_card_invalid = jluxe_sanitize_product_card( array( 'variant' => 'untrusted-value' ), $r341_ui_variant_defaults['product_card'] );
+check(
+	'current' === $r341_header_invalid['variant'] &&
+	'current' === $r341_footer_invalid['variant'] &&
+	'current' === $r341_card_invalid['variant'],
+	'R354 invalid or non-scalar design variants fall back to the current presentation'
+);
+$r341_variant_header_source = (string) file_get_contents( ABSPATH . 'header.php' );
+$r341_variant_footer_source = (string) file_get_contents( ABSPATH . 'footer.php' );
+$r341_variant_card_source = (string) file_get_contents( ABSPATH . 'woocommerce/content-product.php' );
+$r341_variant_admin_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+$r341_variant_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
+$r341_variant_css_source = (string) file_get_contents( ABSPATH . 'src/styles/design-variants.css' );
+check(
+	false !== strpos( $r341_variant_header_source, 'data-jluxe-header-variant=' ) &&
+	false !== strpos( $r341_variant_footer_source, 'data-jluxe-footer-variant=' ) &&
+	false !== strpos( $r341_variant_card_source, 'data-jluxe-product-card-variant=' ) &&
+	false !== strpos( $r341_variant_admin_source, 'name="header[variant]"' ) &&
+	false !== strpos( $r341_variant_admin_source, 'name="footer[variant]"' ) &&
+	false !== strpos( $r341_variant_admin_source, 'name="product_card[variant]"' ) &&
+	false !== strpos( $r341_variant_main_source, 'design-variants.css' ) &&
+	false !== strpos( $r341_variant_css_source, 'data-jluxe-product-card-variant="premium"' ),
+	'R354 admin can select each opt-in variant; scoped CSS restyles existing PHP/WooCommerce markup via the frontend entry'
+);
+
+$r355_visual_defaults = jluxe_theme_settings_defaults();
+check(
+	'current' === $r355_visual_defaults['visual_design']['variant'] &&
+	isset( jluxe_settings_sections_map()['jluxe-visual-design'] ),
+	'R355 the site-wide design setting defaults to current and uses the normal settings save map'
+);
+$r355_visual_active = jluxe_sanitize_visual_design( array( 'variant' => 'canva_home' ), $r355_visual_defaults['visual_design'] );
+$r355_visual_invalid = jluxe_sanitize_visual_design( array( 'variant' => array( 'canva_home' ) ), $r355_visual_defaults['visual_design'] );
+check(
+	'canva_home' === $r355_visual_active['variant'] &&
+	'current' === $r355_visual_invalid['variant'],
+	'R355 the global design accepts only the whitelisted variant and rejects non-scalar input'
+);
+$r355_legacy_defaults = $r355_visual_defaults;
+unset( $r355_legacy_defaults['visual_design'] );
+update_test_settings( $r355_legacy_defaults );
+check(
+	'current' === jluxe_get_setting( 'visual_design.variant', 'current' ) &&
+	! in_array( 'jluxe-design-canva-home', jluxe_visual_design_body_classes( array( 'site' ) ), true ),
+	'R355 older settings without the new key preserve the existing storefront and add no design class'
+);
+$r355_active_settings = $r355_visual_defaults;
+$r355_active_settings['visual_design'] = $r355_visual_active;
+update_test_settings( $r355_active_settings );
+$r355_classes = jluxe_visual_design_body_classes( array( 'site' ) );
+check(
+	in_array( 'jluxe-design-canva-home', $r355_classes, true ) &&
+	1 === count( array_keys( $r355_classes, 'jluxe-design-canva-home', true ) ),
+	'R355 selecting the site-wide visual system adds one scoped body class'
+);
+$r355_old_post = $_POST;
+$_POST = array(
+	'jluxe_settings_nonce' => 'test-nonce',
+	'visual_design' => array( 'variant' => 'canva_home' ),
+);
+$r355_save_status = jluxe_handle_colors_typography_combined_save();
+check(
+	'saved' === $r355_save_status &&
+	'canva_home' === jluxe_get_setting( 'visual_design.variant', 'current' ),
+	'R355 the combined color-and-typography admin form saves the global design through its nonce and sanitizer path'
+);
+$_POST = $r355_old_post;
 
 update_test_settings( jluxe_theme_settings_defaults() );
 

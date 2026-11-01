@@ -140,6 +140,57 @@ function C({ query: l, results: r, loading: n }) {
                   ]
                 : ["پیشنهادها برای «", l, "»"],
             }),
+            r.products.length > 0
+              ? e.jsxs("div", {
+                  children: [
+                    e.jsx("p", {
+                      className:
+                        "mb-2 text-caption font-bold text-text-secondary",
+                      children: "محصولات",
+                    }),
+                    e.jsx("div", {
+                      className: "flex flex-col gap-1",
+                      children: r.products.map((t) =>
+                        e.jsxs(
+                          "a",
+                          {
+                            href: t.url,
+                            className:
+                              "flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted",
+                            children: [
+                              e.jsx("img", {
+                                src: t.image,
+                                alt: t.name,
+                                className:
+                                  "size-12 shrink-0 rounded-lg border border-border object-cover",
+                                loading: "lazy",
+                              }),
+                              e.jsxs("div", {
+                                className: "min-w-0 flex-1",
+                                children: [
+                                  e.jsx("p", {
+                                    className:
+                                      "truncate text-small text-foreground",
+                                    children: t.name,
+                                  }),
+                                  e.jsx("p", {
+                                    className:
+                                      "truncate text-caption text-primary [&_del]:text-text-muted [&_del]:me-1 [&_ins]:no-underline",
+                                    dangerouslySetInnerHTML: {
+                                      __html: t.price,
+                                    },
+                                  }),
+                                ],
+                              }),
+                            ],
+                          },
+                          t.id,
+                        ),
+                      ),
+                    }),
+                  ],
+                })
+              : null,
             r.categories.length > 0
               ? e.jsxs("div", {
                   children: [
@@ -192,57 +243,6 @@ function C({ query: l, results: r, loading: n }) {
                             ],
                           },
                           t.url,
-                        ),
-                      ),
-                    }),
-                  ],
-                })
-              : null,
-            r.products.length > 0
-              ? e.jsxs("div", {
-                  children: [
-                    e.jsx("p", {
-                      className:
-                        "mb-2 text-caption font-bold text-text-secondary",
-                      children: "محصولات",
-                    }),
-                    e.jsx("div", {
-                      className: "flex flex-col gap-1",
-                      children: r.products.map((t) =>
-                        e.jsxs(
-                          "a",
-                          {
-                            href: t.url,
-                            className:
-                              "flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted",
-                            children: [
-                              e.jsx("img", {
-                                src: t.image,
-                                alt: t.name,
-                                className:
-                                  "size-12 shrink-0 rounded-lg border border-border object-cover",
-                                loading: "lazy",
-                              }),
-                              e.jsxs("div", {
-                                className: "min-w-0 flex-1",
-                                children: [
-                                  e.jsx("p", {
-                                    className:
-                                      "truncate text-small text-foreground",
-                                    children: t.name,
-                                  }),
-                                  e.jsx("p", {
-                                    className:
-                                      "truncate text-caption text-primary [&_del]:text-text-muted [&_del]:me-1 [&_ins]:no-underline",
-                                    dangerouslySetInnerHTML: {
-                                      __html: t.price,
-                                    },
-                                  }),
-                                ],
-                              }),
-                            ],
-                          },
-                          t.id,
                         ),
                       ),
                     }),

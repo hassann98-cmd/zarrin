@@ -32,7 +32,7 @@
 
 <?php /* Theme-colored translucent surface; keep header controls and navigation as separate rows. */ ?>
 <a class="jluxe-skip-link" href="#primary">پرش به محتوای اصلی</a>
-<header id="masthead" class="site-header">
+<header id="masthead" class="site-header" data-jluxe-header-variant="<?php echo esc_attr( ( function_exists( 'jluxe_get_setting' ) && 'premium' === jluxe_get_setting( 'header.variant', 'current' ) ) ? 'premium' : 'current' ); ?>">
 <?php /* The action row may be fixed independently; the navigation row stays in normal document flow. */ ?>
 	<?php
 	// header.sticky (JLuxe Theme → هدر) — وقتی خاموشه، ردیف اول یک بلوک عادی

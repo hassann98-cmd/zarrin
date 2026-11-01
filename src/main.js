@@ -10,6 +10,8 @@ import "./styles/storefront.css";
 // Bundle the WordPress theme stylesheet here too, so it shares the compiled
 // CSS request instead of creating a second render-blocking stylesheet request.
 import "../style.css";
+import "./styles/design-variants.css";
+import "./styles/sitewide-design.css";
 import { setupPwa } from "./lib/pwa.js";
 // R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
 setupPwa(window, window.JLuxeThemeSettings?.pwa);

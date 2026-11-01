@@ -216,6 +216,11 @@ function jluxe_theme_settings_defaults(): array {
 			'success'    => '#16865A',
 			'accent'     => '#C89B3C',
 		),
+		// Optional, site-wide visual system. Keep the existing storefront as
+		// the default; selecting a new design changes presentation only.
+		'visual_design' => array(
+			'variant' => 'current', // current | canva_home
+		),
 		'shop' => array(
 			'products_per_page'          => 12,
 			'columns_desktop'            => 4,
@@ -431,6 +436,7 @@ function jluxe_theme_settings_defaults(): array {
 			'line_height'    => 1.625,
 		),
 		'header' => array(
+			'variant'              => 'current', // current | premium — premium is an opt-in design alternative.
 			'sticky'               => true,
 			'search_placeholder'   => 'جستجو در فروشگاه',
 			'show_search_desktop'  => true,
@@ -526,6 +532,8 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'footer' => array(
 			'enabled'             => true,
+			'variant'             => 'current', // current | premium — visual only; content and behavior stay unchanged.
+
 			'show_gradient_strip' => false,
 			// پس‌زمینه‌ی خودِ فوتر — 'default' یعنی هیچ‌چیز اضافه نشه (رنگ
 			// پیش‌فرضِ صفحه)، 'solid' یک رنگِ ثابت، 'gradient' یک گرادیانِ
@@ -817,6 +825,7 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		'product_card' => array(
+			'variant'          => 'current', // current | premium — visual only; WooCommerce markup stays server-rendered.
 			'image_ratio'      => 'square', // square (۱:۱) | classic (۳:۴) | portrait (۴:۵)
 			'radius'           => 'lg',     // sm | md | lg
 			// طبقِ درخواستِ صریحِ کاربر — گردیِ خودِ عکس مستقل از گردیِ کلیِ
@@ -2161,6 +2170,15 @@ function jluxe_get_setting( string $path, $default = null ) {
 	}
 	return $value;
 }
+
+/** Add the opt-in storefront design class without changing markup or content. */
+function jluxe_visual_design_body_classes( array $classes ): array {
+	if ( 'canva_home' === jluxe_get_setting( 'visual_design.variant', 'current' ) && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
+		$classes[] = 'jluxe-design-canva-home';
+	}
+	return $classes;
+}
+add_filter( 'body_class', 'jluxe_visual_design_body_classes', 20, 1 );
 
 /**
  * نوشتنِ یک بخش کامل (همون چیزی که هر فرم ادمین می‌فرسته) — مستقیماً روی

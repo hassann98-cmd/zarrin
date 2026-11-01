@@ -110,6 +110,7 @@ $jluxe_ratio_map = array(
 	'portrait' => 'aspect-[4/5]',
 );
 $jluxe_pc       = function_exists( 'jluxe_get_theme_settings' ) ? jluxe_get_theme_settings()['product_card'] : array();
+$jluxe_card_variant = 'premium' === ( $jluxe_pc['variant'] ?? 'current' ) ? 'premium' : 'current';
 $jluxe_ratio    = $jluxe_ratio_map[ $jluxe_pc['image_ratio'] ?? 'square' ] ?? $jluxe_ratio_map['square'];
 $jluxe_show_rating = $jluxe_pc['show_rating'] ?? true;
 $jluxe_show_sale   = $jluxe_pc['show_sale_badge'] ?? true;
@@ -144,7 +145,7 @@ $jluxe_radius   = $jluxe_radius_map[ $jluxe_pc['radius'] ?? 'lg' ] ?? $jluxe_rad
 $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounded' ) ) ? '' : $jluxe_radius['image_inner'];
 
 ?>
-<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30', $product ); ?>>
+<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30', $product ); ?> data-jluxe-product-card-variant="<?php echo esc_attr( $jluxe_card_variant ); ?>">
 	<?php
 	// گالری محصول (عکس‌های دیگه، غیر از تصویر شاخص) — با هاور (دسکتاپ) یا
 	// لمس طولانی (موبایل) به‌صورت ردیف تامبنیل کوچیک پایین باکس تصویر
@@ -206,7 +207,7 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 			</div>
 
 			<?php if ( $has_discount && $jluxe_show_sale ) : ?>
-				<span class="absolute top-2 end-2 rounded-lg bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground"><?php echo esc_html( jluxe_fa_digits( $discount_pct ) ); ?>٪</span>
+				<span class="jluxe-product-card-sale-badge absolute top-2 end-2 rounded-lg bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground"><?php echo esc_html( jluxe_fa_digits( $discount_pct ) ); ?>٪</span>
 			<?php elseif ( $out_of_stock && $jluxe_show_stock ) : ?>
 				<span class="absolute top-2 end-2 rounded-lg bg-muted-foreground/80 px-2 py-0.5 text-[11px] font-bold text-white">ناموجود</span>
 			<?php else : ?>

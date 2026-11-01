@@ -22,6 +22,7 @@ function jluxe_settings_sections_map(): array {
 		'jluxe-ai-comments' => array( 'ai_comments', 'jluxe_sanitize_ai_comments' ),
 		'jluxe-sms' => array( 'sms', 'jluxe_sanitize_sms' ),
 		'jluxe-colors'        => array( 'colors', 'jluxe_sanitize_colors' ),
+		'jluxe-visual-design' => array( 'visual_design', 'jluxe_sanitize_visual_design' ),
 		'jluxe-identity'      => array( 'identity', 'jluxe_sanitize_identity' ),
 		'jluxe-urls'          => array( 'urls', 'jluxe_sanitize_urls' ),
 		'jluxe-typography'    => array( 'typography', 'jluxe_sanitize_typography' ),
@@ -294,12 +295,15 @@ function jluxe_handle_advanced_combined_save(): ?string {
 }
 
 /**
- * تبِ «رنگ و تایپوگرافی» — همون الگوی dispatcher بالا برای دو فرمِ مستقلِ
- * «رنگ‌ها» و «تایپوگرافی» روی یک صفحه.
+ * تبِ «رنگ و تایپوگرافی» — dispatcher برای فرم‌های مستقلِ پالت، طراحی کلی،
+ * و تایپوگرافی روی یک صفحه.
  */
 function jluxe_handle_colors_typography_combined_save(): ?string {
 	if ( isset( $_POST['jluxe_apply_preset'] ) ) {
 		return jluxe_handle_apply_preset();
+	}
+	if ( isset( $_POST['visual_design'] ) ) {
+		return jluxe_handle_generic_settings_save( 'jluxe-visual-design' );
 	}
 	if ( isset( $_POST['colors'] ) ) {
 		return jluxe_handle_generic_settings_save( 'jluxe-colors' );

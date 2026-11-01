@@ -4,6 +4,7 @@ import { getThemeSettings } from "../lib/theme-settings.js";
 import { restRequest, siteUrl } from "../lib/api.js";
 import { normalizeDigits, normalizePhone } from "../lib/input.js";
 import { watchOtpInputViewport } from "../lib/otp-viewport.js";
+import { supportsWebOtp } from "../lib/web-otp.js";
 
 // Keep the silent native-autofill fallback alive for the full OTP lifetime;
 // older Android/iOS autofill services may update the input without an event.
@@ -126,8 +127,8 @@ export default function AuthPage() {
   const startWebOtp = useCallback(() => {
     cancelWebOtp();
     if (typeof window === "undefined") return;
-    const credentials = window.navigator?.credentials;
-    if (!window.isSecureContext || typeof credentials?.get !== "function") return;
+    if (!supportsWebOtp(window)) return;
+    const credentials = window.navigator.credentials;
 
     const generation = webOtpGeneration.current;
     const controller = typeof window.AbortController === "function"

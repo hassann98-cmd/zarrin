@@ -139,17 +139,36 @@ test("R126 places the logo, editable mobile search, and enabled action controls 
   assert.ok(rowContent - logo - account - cart - gaps >= 72);
 });
 
-test("live search keeps category, brand and product suggestions grouped and surfaces spelling corrections", () => {
+test("live search prioritizes product suggestions, keeps category and brand groups, and surfaces spelling corrections", () => {
   const categories = headerIsland.indexOf("r.categories.map");
   const brands = headerIsland.indexOf("r.brands.map");
   const products = headerIsland.indexOf("r.products.map");
 
-  assert.ok(categories >= 0 && categories < brands && brands < products);
+  assert.ok(products >= 0 && products < categories && categories < brands);
   assert.match(headerIsland, /setTimeout\(\(\) => \{[\s\S]*?\}, 300\)/);
   assert.match(headerIsland, /fetchLiveSearch\(i, m\)/);
   assert.match(headerIsland, /r\.correctedQuery/);
   assert.match(headerIsland, /املای جستجو از/);
   assert.match(headerIsland, /displayQuery/);
+});
+
+test("R342 desktop search results use native wheel scrolling and release it at their edges", () => {
+  assert.doesNotMatch(headerIsland, /scrollSearchResultsWithWheel|addEventListener\([\"']wheel[\"']|onWheel:/);
+  assert.match(
+    headerIsland,
+    /jluxe-header-search-results--desktop[^\"]*overflow-y-auto/,
+  );
+  assert.match(
+    storefrontStyles,
+    /\.jluxe-header-search-results--desktop\s*\{[^}]*max-height:\s*70vh;[^}]*overscroll-behavior-y:\s*auto;/s,
+  );
+});
+
+test("R342 mobile live-search results are wider, centered, and capped inside the viewport", () => {
+  assert.match(
+    storefrontStyles,
+    /\.jluxe-header-search-results--mobile\s*\{[^}]*width:\s*360px;[^}]*max-width:\s*calc\(100vw - 48px\);[^}]*left:\s*50%;[^}]*right:\s*auto;[^}]*transform:\s*translateX\(-50%\);[^}]*-webkit-overflow-scrolling:\s*touch;/s,
+  );
 });
 
 test("R152 Enter submits a full product search from desktop, mobile header, and mobile dialog", () => {

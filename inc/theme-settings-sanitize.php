@@ -39,6 +39,20 @@ function jluxe_sanitize_settings_payload( array $incoming, array $current ): arr
 
 
 /**
+ * فقط دو طرحِ شناخته‌شده برای هدر، فوتر و کارت محصول پذیرفته می‌شود؛
+ * مقدار پیش‌فرض، رفتار فعلی سایت را برای تنظیمات قدیمی حفظ می‌کند.
+ */
+function jluxe_sanitize_ui_variant( $value, string $default = 'current' ): string {
+	$allowed = array( 'current', 'premium' );
+	$default = in_array( $default, $allowed, true ) ? $default : 'current';
+	if ( ! is_scalar( $value ) ) {
+		return $default;
+	}
+	$value = sanitize_key( (string) $value );
+	return in_array( $value, $allowed, true ) ? $value : $default;
+}
+
+/**
  * پاک‌سازیِ SVG سفارشی — طبق درخواستِ کاربر («برای هر آیتم بشه یک آیکونِ
  * SVG دلخواه تعریف کرد») علاوه‌بر مجموعه‌ی ثابتِ jluxe_nav_icon_options()
  * حالا هر آیتمی (منوی هدر، لینک فوتر، شبکه‌ی اجتماعی) می‌تونه کدِ SVG خامِ
@@ -100,6 +114,21 @@ function jluxe_sanitize_colors( array $posted, array $defaults ): array {
 	return $out;
 }
 
+/** Validate the opt-in site-wide visual system independently of color presets. */
+function jluxe_sanitize_visual_design( array $posted, array $defaults ): array {
+	$allowed = array( 'current', 'canva_home' );
+	$default = isset( $defaults['variant'] ) && in_array( $defaults['variant'], $allowed, true )
+		? $defaults['variant']
+		: 'current';
+	$raw = isset( $posted['variant'] ) && is_scalar( $posted['variant'] )
+		? sanitize_key( (string) $posted['variant'] )
+		: $default;
+
+	return array(
+		'variant' => in_array( $raw, $allowed, true ) ? $raw : $default,
+	);
+}
+
 function jluxe_sanitize_identity( array $posted, array $defaults ): array {
 	return array(
 		'logo_id'            => isset( $posted['logo_id'] ) ? absint( $posted['logo_id'] ) : $defaults['logo_id'],
@@ -132,6 +161,7 @@ function jluxe_sanitize_typography( array $posted, array $defaults ): array {
 }
 
 function jluxe_sanitize_header( array $posted, array $defaults ): array {
+	$variant = jluxe_sanitize_ui_variant( $posted['variant'] ?? null, $defaults['variant'] ?? 'current' );
 	$search_placeholder = isset( $posted['search_placeholder'] ) && is_scalar( $posted['search_placeholder'] )
 		? sanitize_text_field( (string) $posted['search_placeholder'] )
 		: (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
@@ -140,6 +170,7 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
 	}
 
 	return array(
+		'variant'              => $variant,
 		'sticky'               => ! empty( $posted['sticky'] ),
 		'search_placeholder'   => $search_placeholder,
 		// نمایش/عدم‌نمایش هر آیتم حالا مستقل برای موبایل و دسکتاپه (قبلاً
@@ -398,6 +429,7 @@ function jluxe_sanitize_header_nav( array $posted, array $defaults ): array {
 }
 
 function jluxe_sanitize_footer( array $posted, array $defaults ): array {
+	$variant = jluxe_sanitize_ui_variant( $posted['variant'] ?? null, $defaults['variant'] ?? 'current' );
 	// آیکونِ هر کارتِ مزیت حالا واقعاً انتخابیه، ولی فقط از یک whitelistِ
 	// ثابت (نه SVG/کلیدِ دلخواه) — همون مجموعه‌ی مشترکِ منو + badge-percent.
 	$jluxe_valid_feature_icons               = array_keys( function_exists( 'jluxe_nav_icon_options' ) ? jluxe_nav_icon_options() : array() );
@@ -573,6 +605,7 @@ function jluxe_sanitize_footer( array $posted, array $defaults ): array {
 
 	return array(
 		'enabled'                      => ! empty( $posted['enabled'] ),
+		'variant'                      => $variant,
 		'show_gradient_strip'          => ! empty( $posted['show_gradient_strip'] ),
 		'background'                   => $jluxe_background,
 		'text_color'                   => isset( $posted['text_color'] ) ? ( sanitize_hex_color( $posted['text_color'] ) ?: '' ) : $defaults['text_color'],
@@ -872,11 +905,13 @@ function jluxe_sanitize_mobile( array $posted, array $defaults ): array {
 }
 
 function jluxe_sanitize_product_card( array $posted, array $defaults ): array {
+	$variant = jluxe_sanitize_ui_variant( $posted['variant'] ?? null, $defaults['variant'] ?? 'current' );
 	$ratio   = isset( $posted['image_ratio'] ) ? sanitize_key( $posted['image_ratio'] ) : $defaults['image_ratio'];
 	$radius  = isset( $posted['radius'] ) ? sanitize_key( $posted['radius'] ) : $defaults['radius'];
 	$corners = isset( $posted['image_corners'] ) ? sanitize_key( $posted['image_corners'] ) : $defaults['image_corners'];
 
 	return array(
+		'variant'          => $variant,
 		'image_ratio'      => in_array( $ratio, array( 'square', 'classic', 'portrait' ), true ) ? $ratio : $defaults['image_ratio'],
 		'radius'           => in_array( $radius, array( 'sm', 'md', 'lg' ), true ) ? $radius : $defaults['radius'],
 		'image_corners'    => in_array( $corners, array( 'rounded', 'sharp' ), true ) ? $corners : $defaults['image_corners'],

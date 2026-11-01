@@ -8217,6 +8217,16 @@ del .woocommerce-Price-amount {
 .jluxe-auth-route-overlay[hidden] { display: none; }
 .jluxe-auth-screen { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; background: hsl(var(--background)); }
 .jluxe-auth-card { width: 100%; max-width: 420px; border: 1px solid hsl(var(--border)); border-radius: 28px; background: hsl(var(--surface)); padding: 2rem; box-shadow: 0 12px 32px hsl(var(--foreground) / .08); }
+/* A single compositor-friendly entrance for the React login screen; never loop or flash. */
+.jluxe-auth-screen > .jluxe-auth-card { animation: jluxe-auth-page-enter .2s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes jluxe-auth-page-enter {
+  from { opacity: 0; transform: translateY(5px) scale(.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+html.jluxe-lite .jluxe-auth-screen > .jluxe-auth-card { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-auth-screen > .jluxe-auth-card { animation: none; }
+}
 .jluxe-auth-back { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; color: hsl(var(--text-secondary)); }
 .jluxe-auth-brand { display: grid; place-items: center; margin: 1.25rem auto .75rem; width: 56px; height: 56px; border-radius: 16px; color: hsl(var(--primary)); background: hsl(var(--primary) / .1); }
 .jluxe-auth-card h1 { font-size: 1.35rem; text-align: center; font-weight: 700; margin-bottom: 1.5rem; }
@@ -8963,10 +8973,20 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
      موجود اولویت دارند و چیزی نمی‌شکند). */
   :where(a.button, button, [type="submit"], [role="button"]) { min-height: 44px; }
 }
-/* سقفِ ارتفاعِ فهرستِ نتایجِ جست‌وجویِ هدر — کلاس‌هایِ معنایی جایِ
-   utilityهایِ arbitrary را می‌گیرند تا در خروجیِ CSS نیز حتماً حاضر باشند. */
-.jluxe-header-search-results--desktop { max-height: 70vh; }
-.jluxe-header-search-results--mobile { max-height: 60vh; }
+/* فهرست نتایج هدر: سقف ارتفاع، و عرض نزدیک به viewport در موبایل. */
+.jluxe-header-search-results--desktop {
+  max-height: 70vh;
+  overscroll-behavior-y: auto;
+}
+.jluxe-header-search-results--mobile {
+  max-height: 60vh;
+  width: 360px;
+  max-width: calc(100vw - 48px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  -webkit-overflow-scrolling: touch;
+}
 
 /* فرم جست‌وجوی زرین (searchform.php) — هدف لمسی ۴۸px، RTL. */
 .jluxe-search { display: flex; align-items: stretch; gap: 0.5rem; }
@@ -12918,7 +12938,6 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
 #jluxe-footer-root .jluxe-footer-contact-link {
   margin-top: .3rem;
 }
-
 #jluxe-footer-root .jluxe-footer-phone-link--closed {
   -webkit-appearance: none;
   appearance: none;
@@ -13184,7 +13203,6 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
   .jluxe-footer-contact-ai-link,
   .jluxe-footer-contact-social-link { animation: none; transition: none; }
 }
-
 
 /* Small theme-color marker; link rows wrap only at Persian word boundaries. */
 #jluxe-footer-root .jluxe-footer-column-title,

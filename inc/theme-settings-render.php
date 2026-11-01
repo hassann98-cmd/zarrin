@@ -172,6 +172,8 @@ function jluxe_render_dashboard_page(): void {
 			<?php endforeach; ?>
 		</div>
 
+		<?php if ( function_exists( 'jluxe_render_store_closure_control' ) ) { jluxe_render_store_closure_control( 'dashboard' ); } ?>
+
 		<?php if ( ! $settings['ai_assistant']['enabled'] ) : ?>
 			<div class="notice notice-warning inline"><p>دستیار هوش مصنوعی غیرفعاله. از <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-ai-assistant' ) ); ?>">این‌جا</a> فعالش کن.</p></div>
 		<?php endif; ?>
@@ -187,6 +189,7 @@ function jluxe_render_dashboard_page(): void {
 			<a class="button" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank">مشاهده‌ی سایت</a>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-advanced' ) ); ?>">برون‌بری تنظیمات</a>
 			<?php if ( $wc_active ) : ?>
+				<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-store-status' ) ); ?>">مدیریت وضعیت سفارش‌گیری</a>
 				<a class="button" href="<?php echo esc_url( wc_get_cart_url() ); ?>" target="_blank">مشاهده‌ی سبد خرید</a>
 				<a class="button" href="<?php echo esc_url( wc_get_checkout_url() ); ?>" target="_blank">مشاهده‌ی تسویه‌حساب</a>
 				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings' ) ); ?>">تنظیمات ووکامرس</a>
@@ -373,6 +376,16 @@ function jluxe_render_header_page(): void {
 
 			<h2>رفتار هدر</h2>
 			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="jluxe-header-variant">طرح هدر</label></th>
+					<td>
+						<select id="jluxe-header-variant" name="header[variant]">
+							<option value="current" <?php selected( $settings['header']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+							<option value="premium" <?php selected( $settings['header']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+						</select>
+						<p class="description">ردیفِ جستجو و دکمه‌ها با نوار ناوبریِ کپسولی بازطراحی شده؛ نسخهٔ فعلی پیش‌فرض می‌ماند و لینک‌ها و تعاملات هدر حفظ می‌شوند.</p>
+					</td>
+				</tr>
 				<tr>
 					<th scope="row">هدر چسبان</th>
 					<td><label><input type="checkbox" name="header[sticky]" value="1" <?php checked( $settings['header']['sticky'] ); ?> /> هنگام اسکرول بالای صفحه بمونه</label></td>
@@ -622,6 +635,16 @@ function jluxe_render_footer_page(): void {
 				<tr>
 					<th scope="row">نمایش فوتر</th>
 					<td><label><input type="checkbox" name="footer[enabled]" value="1" <?php checked( $settings['footer']['enabled'] ); ?> /> فوتر در سایت نمایش داده بشه</label></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-footer-variant">طرح فوتر</label></th>
+					<td>
+						<select id="jluxe-footer-variant" name="footer[variant]">
+							<option value="current" <?php selected( $settings['footer']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+							<option value="premium" <?php selected( $settings['footer']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+						</select>
+						<p class="description">ساختار چندبخشیِ تازه با نوار مزیت، پنل معرفی و پشتیبانی، کارت‌های لینک و نمادها؛ چیدمان واکنش‌گرا حفظ می‌شود و نسخهٔ فعلی پیش‌فرض می‌ماند.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row">نوار رنگیِ تزئینی زیر فوتر</th>
@@ -957,6 +980,33 @@ function jluxe_render_colors_typography_page(): void {
 			</div>
 		</details>
 
+		<details class="jluxe-hb-section-details" open>
+			<summary class="jluxe-hb-section-head">
+				<span class="dashicons dashicons-admin-customizer"></span>
+				<strong class="jluxe-hb-type-label">طراحی یکپارچهٔ کل سایت</strong>
+				<span class="dashicons dashicons-arrow-down-alt2 jluxe-hb-chevron" aria-hidden="true"></span>
+			</summary>
+			<div class="jluxe-hb-section-body">
+				<form method="post">
+					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+					<p class="description">یک ظاهر کامل و اختیاری برای صفحهٔ اصلی و فروشگاه، شامل هدر، فوتر، کارت‌های محصول، دکمه‌ها، فرم‌ها و کادرها. فقط لایهٔ بصری تغییر می‌کند؛ محتوای واقعی PHP/WooCommerce، سئو و تعامل‌ها حفظ می‌شوند. «نسخهٔ فعلی» پیش‌فرض است و انتخاب‌های جداگانهٔ هدر/فوتر/کارت محصول هم باقی می‌مانند.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="jluxe-visual-design-variant">سبک کلی فروشگاه</label></th>
+							<td>
+								<select id="jluxe-visual-design-variant" name="visual_design[variant]">
+									<option value="current" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی سایت (پیش‌فرض)</option>
+									<option value="canva_home" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'canva_home' ); ?>>خانهٔ رنگی و خانگی — الهام‌گرفته از Canva</option>
+								</select>
+								<p class="description">در طراحی خانهٔ رنگی، پالت سبز، کرم و سفالی با کارت‌های نرم و فاصله‌گذاری یکپارچه به‌کار می‌رود. تا وقتی این طرح روشن است، پالت اختصاصی آن اولویت دارد؛ رنگ‌های ذخیره‌شده حذف نمی‌شوند و با بازگشت به «نسخهٔ فعلی» دوباره اعمال می‌شوند. این طرح در Canva ساخته نشده و از فایل یا قالب اختصاصی Canva استفاده نمی‌کند.</p>
+							</td>
+						</tr>
+					</table>
+					<?php jluxe_settings_submit_button( true, 'visual_design' ); ?>
+				</form>
+			</div>
+		</details>
+
 		<details class="jluxe-hb-section-details">
 			<summary class="jluxe-hb-section-head">
 				<span class="dashicons dashicons-admin-customizer"></span>
@@ -1056,6 +1106,16 @@ function jluxe_render_product_page(): void {
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="jluxe-product-card-variant">طرح کارت محصول</label></th>
+							<td>
+								<select id="jluxe-product-card-variant" name="product_card[variant]">
+									<option value="current" <?php selected( $pc['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+									<option value="premium" <?php selected( $pc['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+								</select>
+								<p class="description">کارتِ دو‌سطحیِ تصویر و اطلاعات، رتبه‌بندیِ قیمت و CTA گرد؛ نسخهٔ فعلی پیش‌فرض می‌ماند و نام، قیمت، SEO و رفتار WooCommerce حفظ می‌شود.</p>
+							</td>
+						</tr>
 						<tr>
 							<th scope="row">نسبت تصویر</th>
 							<td>
