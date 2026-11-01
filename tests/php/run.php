@@ -23,11 +23,24 @@ check(
 	8 === substr_count( $r357_header_nav_html, 'class="jluxe-header-nav-item__move-down"' ) &&
 	false !== strpos( $r357_header_nav_html, 'name="header_nav[items][3][id]"' ) &&
 	false !== strpos( $r357_header_nav_html, 'name="header_nav[items][3][children][4][svg]"' ) &&
-	false !== strpos( $r357_header_nav_html, 'data-jluxe-header-nav-live' ) &&
-	false !== strpos( $r357_header_nav_html, 'مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه' ),
+		false !== strpos( $r357_header_nav_html, 'data-jluxe-header-nav-live' ) &&
+		false !== strpos( $r357_header_nav_html, 'مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه' ) &&
+		false !== strpos( $r357_header_nav_html, 'header_nav[categories_mega_menu][open_mode]' ) &&
+		false !== strpos( $r357_header_nav_html, 'header_nav[categories_mega_menu][icon_svg]' ) &&
+		false !== strpos( $r357_header_nav_html, 'header_nav[categories_mega_menu][panel_background_color]' ),
 	'R357 header-navigation admin renders eight accessible accordion cards and preserves all parent/submenu fields after the fixed categories mega menu'
 );
 $r357_posted_nav = array(
+	'categories_mega_menu' => array(
+		'icon' => 'tag',
+		'icon_svg' => '<svg viewBox="0 0 24 24"><path d="M1 1"/></svg>',
+		'open_mode' => 'click',
+		'trigger_effect' => 'glow',
+		'panel_effect' => 'zoom',
+		'duration_ms' => '240',
+		'text_color' => '#123456',
+		'accent_color' => 'url(javascript:alert(1))',
+	),
 	'items' => array(
 		array(
 			'id' => 'nav-third', 'label' => 'آیتم سوم', 'url' => '/third', 'icon' => 'bag', 'svg' => '',
@@ -47,10 +60,43 @@ check(
 	'آیتم سوم' === $r357_sanitized_nav['items'][0]['label'] &&
 	'زیرمنوی سوم' === $r357_sanitized_nav['items'][0]['children'][0]['label'] &&
 	'/third/child' === $r357_sanitized_nav['items'][0]['children'][0]['url'] &&
-	'nav-first' === $r357_sanitized_nav['items'][1]['id'] &&
-	'زیرمنوی اول' === $r357_sanitized_nav['items'][1]['children'][0]['label'] &&
-	'/first/child' === $r357_sanitized_nav['items'][1]['children'][0]['url'],
+		'nav-first' === $r357_sanitized_nav['items'][1]['id'] &&
+		'زیرمنوی اول' === $r357_sanitized_nav['items'][1]['children'][0]['label'] &&
+		'/first/child' === $r357_sanitized_nav['items'][1]['children'][0]['url'] &&
+		'tag' === $r357_sanitized_nav['categories_mega_menu']['icon'] &&
+		'click' === $r357_sanitized_nav['categories_mega_menu']['open_mode'] &&
+		'glow' === $r357_sanitized_nav['categories_mega_menu']['trigger_effect'] &&
+		'zoom' === $r357_sanitized_nav['categories_mega_menu']['panel_effect'] &&
+		240 === $r357_sanitized_nav['categories_mega_menu']['duration_ms'] &&
+		'#123456' === $r357_sanitized_nav['categories_mega_menu']['text_color'] &&
+		'#C2410C' === $r357_sanitized_nav['categories_mega_menu']['accent_color'] &&
+		false === stripos( $r357_sanitized_nav['categories_mega_menu']['icon_svg'], '<script' ),
 	'R357 header navigation sanitizer stores the posted item order, skips only the empty slot, and keeps each submenu with its parent'
+);
+$r359_invalid_menu = jluxe_sanitize_categories_mega_menu(
+	array(
+		'icon' => 'not-an-icon',
+		'open_mode' => 'javascript',
+		'trigger_effect' => 'expression',
+		'panel_effect' => 'rotate',
+		'duration_ms' => '999',
+		'accent_color' => 'url(javascript:alert(1))',
+	),
+	$r357_nav_defaults['header_nav']['categories_mega_menu']
+);
+check(
+	'grid' === $r359_invalid_menu['icon'] && 'hover' === $r359_invalid_menu['open_mode'] &&
+	'lift' === $r359_invalid_menu['trigger_effect'] && 'fade' === $r359_invalid_menu['panel_effect'] &&
+	180 === $r359_invalid_menu['duration_ms'] && '#C2410C' === $r359_invalid_menu['accent_color'],
+	'R359 invalid menu icon, opening mode, effects, speed, and color fall back to the released appearance'
+);
+$r359_oversized_svg = jluxe_sanitize_categories_mega_menu(
+	array( 'icon' => 'tag', 'icon_svg' => '<svg>' . str_repeat( 'x', 20001 ) . '</svg>' ),
+	$r357_nav_defaults['header_nav']['categories_mega_menu']
+);
+check(
+	'' === $r359_oversized_svg['icon_svg'],
+	'R359 oversized custom SVG input is rejected before it can be stored or rendered'
 );
 
 // R338: temporary store closure is separate from announcement settings and blocks only new storefront purchases.
@@ -6416,13 +6462,46 @@ check( 1 === substr_count( $r93admin, 'name="categories_page[header_link]"' ) &&
 unset( $GLOBALS['options']['jluxe_theme_settings']['categories_page'] ); jluxe_get_theme_settings( true );
 $r93hdr = (string) file_get_contents( ABSPATH . 'header.php' );
 check(
-	false !== strpos( $r93hdr, 'id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu"' ) &&
+	false !== strpos( $r93hdr, 'id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu" data-open-mode=' ) &&
 	false !== strpos( $r93hdr, 'function_exists( \'jluxe_header_categories_url\' ) ? jluxe_header_categories_url() : jluxe_shop_url()' ) &&
-	false !== strpos( $r93hdr, 'class="jluxe-header-categories-trigger">دسته‌بندی‌ها<?php echo $jluxe_chevron;' ),
-	'R93b/R358 server-rendered header keeps the original destination and exposes the categories submenu affordance before JavaScript'
+	false !== strpos( $r93hdr, 'class="jluxe-header-categories-trigger" aria-haspopup="true" aria-controls="jluxe-header-categories-panel"' ) &&
+	false !== strpos( $r93hdr, 'jluxe_categories_mega_menu_style( $jluxe_categories_menu_settings )' ) &&
+	false !== strpos( $r93hdr, 'class="jluxe-header-categories-icon" aria-hidden="true"' ),
+	'R93b/R358/R359 server-rendered header keeps the destination and renders the configured icon, open mode, effects, and style variables before React'
 );
+$r359_had_settings = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
+$r359_old_settings = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$r359_settings = jluxe_theme_settings_defaults();
+$r359_settings['header_nav']['categories_mega_menu'] = $r357_sanitized_nav['categories_mega_menu'];
+update_test_settings( $r359_settings );
+jluxe_get_theme_settings( true );
+$r359_public_menu = jluxe_categories_mega_menu_config();
+$r359_menu_css = jluxe_categories_mega_menu_style( $r359_public_menu );
+check(
+	'click' === $r359_public_menu['open_mode'] && 'zoom' === $r359_public_menu['panel_effect'] &&
+	false !== strpos( $r359_public_menu['icon_markup'], '<svg' ) && false === stripos( $r359_public_menu['icon_markup'], '<script' ) &&
+	false !== strpos( $r359_menu_css, '--jluxe-categories-trigger-text:#123456' ) &&
+	false !== strpos( $r359_menu_css, '--jluxe-categories-motion-duration:240ms' ) &&
+	false !== strpos( $r359_menu_css, '--jluxe-categories-accent-shadow:rgba(194,65,12,.22)' ),
+	'R359 normalized category-menu settings produce safe SVG, selected behavior, and allowlisted CSS variables'
+);
+$r359_settings['header_nav']['categories_mega_menu']['icon_svg'] = '<svg>' . str_repeat( 'x', 20001 ) . '</svg>';
+update_test_settings( $r359_settings );
+jluxe_get_theme_settings( true );
+$r359_legacy_menu = jluxe_categories_mega_menu_config();
+check(
+	'' === $r359_legacy_menu['icon_svg'] && false !== strpos( $r359_legacy_menu['icon_markup'], '<svg' ),
+	'R359 invalid oversized saved SVG falls back to the selected safe built-in icon during SSR/localization'
+);
+if ( $r359_had_settings ) { $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r359_old_settings; } else { unset( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ); }
+jluxe_get_theme_settings( true );
 $r93ts = (string) file_get_contents( ABSPATH . 'inc/theme-settings.php' );
-check( 1 === preg_match( "#'megaMenu'\s*=>\s*array\(.*?'url'\s*=>\s*function_exists\( 'jluxe_header_categories_url' \)#s", $r93ts ), 'R93b mega-menu island receives the same URL' );
+check(
+	1 === preg_match( "#'megaMenu'\\s*=>\\s*array\\(.*?'url'\\s*=>\\s*function_exists\\( 'jluxe_header_categories_url' \\)#s", $r93ts ) &&
+	false !== strpos( $r93ts, "'iconMarkup'" ) &&
+	false !== strpos( $r93ts, "'openMode'" ),
+	'R93b/R359 mega-menu localization keeps the same URL and sends the selected icon/opening behavior to React'
+);
 $GLOBALS['existing_pages'] = $r93saved_pages;
 
 

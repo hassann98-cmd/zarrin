@@ -815,6 +815,14 @@ test("R184 the optional assistant waits until after page load and stays outside 
   visit("src/main.js", closure);
   for (const key of initialIslands) visit(key, closure);
 
+  for (const key of [
+    "src/islands/MegaMenuClickToggle.js",
+    "src/islands/MegaMenuPanel.js",
+  ]) {
+    assert.ok(entry.dynamicImports?.includes(key), `${key} loads on menu interaction`);
+    assert.ok(!closure.has(key), `${key} stays outside the initial home closure`);
+  }
+
   const jsFiles = [...closure]
     .map((key) => manifest[key]?.file)
     .filter((file) => file?.endsWith(".js"));

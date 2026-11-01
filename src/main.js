@@ -15,6 +15,12 @@ import "./styles/sitewide-design.css";
 import { setupPwa } from "./lib/pwa.js";
 // R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
 setupPwa(window, window.JLuxeThemeSettings?.pwa);
+// Keep the configurable categories panel and click-only controls outside the
+// initial shell; MegaMenu requests these chunks only when the menu is engaged.
+window.JLuxeMegaMenuChunks = {
+  clickToggle: () => import("./islands/MegaMenuClickToggle.js"),
+  panel: () => import("./islands/MegaMenuPanel.js"),
+};
 const islands = {
   footer: () => import("./islands/Footer.js"),
   "header-logo": () =>

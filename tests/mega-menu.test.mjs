@@ -31,13 +31,21 @@ const cats = [
 ];
 
 async function render(megaMenu) {
+  const appearance = megaMenu.appearance ?? {};
+  const openMode = ["hover", "click", "both"].includes(appearance.openMode)
+    ? appearance.openMode
+    : "hover";
   const dom = new JSDOM(
-    '<div id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu"><a href="/ssr/" class="jluxe-header-categories-trigger">دسته‌بندی‌ها</a></div>',
+    `<div id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu" data-open-mode="${openMode}" data-trigger-effect="${appearance.triggerEffect ?? "lift"}" data-panel-effect="${appearance.panelEffect ?? "fade"}"><a href="/ssr/" class="jluxe-header-categories-trigger"><span class="jluxe-header-categories-label">دسته‌بندی‌ها</span><span class="jluxe-header-categories-chevron-wrap"><svg class="jluxe-header-categories-chevron"></svg></span></a></div>`,
     { url: "https://shop.test/", pretendToBeVisual: true },
   );
   dom.window.JLuxeThemeSettings = {
     urls: { home: "https://shop.test/", shop: "https://shop.test/فروشگاه/" },
     megaMenu,
+  };
+  dom.window.JLuxeMegaMenuChunks = {
+    clickToggle: () => import("../src/islands/MegaMenuClickToggle.js"),
+    panel: () => import("../src/islands/MegaMenuPanel.js"),
   };
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
@@ -48,34 +56,121 @@ async function render(megaMenu) {
   await act(async () => {
     dispose = await mountIsland(el, () => import("../src/islands/MegaMenu.js"));
   });
+  if (megaMenu.categories?.length) {
+    await act(async () => {
+      el.querySelector(".jluxe-header-categories-trigger").dispatchEvent(
+        new dom.window.Event("pointerover", { bubbles: true }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
   if (typeof dispose === "function") disposers.push(() => act(async () => dispose()));
   return el;
 }
 const trigger = (el) =>
   [...el.querySelectorAll("a")].find((a) => a.textContent.trim() === "دسته‌بندی‌ها");
 
-test("R358 categories trigger styling is bold, unmistakably menu-like, and reduced-motion aware", () => {
-  assert.match(categoryTriggerCss, /#masthead #jluxe-header-categories-menu > \.group > a::before/);
+test("categories trigger exposes theme-controlled colors, icon, opening mode, effects, and reduced motion", () => {
+  assert.match(categoryTriggerCss, /\.jluxe-header-categories-icon/);
+  assert.match(categoryTriggerCss, /data-open-mode="hover"/);
+  assert.match(categoryTriggerCss, /data-trigger-effect="lift"/);
+  assert.match(categoryTriggerCss, /data-panel-effect="slide"/);
+  assert.match(categoryTriggerCss, /--jluxe-categories-trigger-text/);
+  assert.match(categoryTriggerCss, /--jluxe-categories-panel-bg/);
   assert.match(categoryTriggerCss, /font-weight: 700/);
-  assert.match(categoryTriggerCss, /#2F6B52/);
-  assert.match(categoryTriggerCss, /#C2410C/);
   assert.match(categoryTriggerCss, /prefers-reduced-motion: reduce/);
 });
 
-test("header «دسته‌بندی‌ها» opens the categories page; the hover panel is untouched", async () => {
-  const el = await render({ categories: cats, url: "https://shop.test/product-categories/" });
+test("header «دسته‌بندی‌ها» keeps its target, configurable icon, and hover panel", async () => {
+  const el = await render({
+    categories: cats,
+    url: "https://shop.test/product-categories/",
+    appearance: {
+      openMode: "hover",
+      iconMarkup: '<svg class="custom-categories-icon" aria-hidden="true"></svg>',
+    },
+  });
   assert.equal(el.id, "jluxe-header-categories-menu");
   assert.equal(trigger(el).getAttribute("href"), "https://shop.test/product-categories/");
-  assert.ok(trigger(el).querySelector("svg"), "the down-chevron remains visible beside the label");
+  assert.ok(el.querySelector(".jluxe-header-categories-icon .custom-categories-icon"));
+  assert.ok(trigger(el).querySelector(".jluxe-header-categories-chevron"), "the down-chevron remains visible beside the label");
   assert.ok(el.querySelector('nav[aria-label="دسته‌بندی‌های اصلی"]'), "mega panel still rendered");
   const hrefs = [...el.querySelectorAll("nav a")].map((a) => a.getAttribute("href"));
   assert.deepEqual(hrefs, cats.map((c) => c.url), "each category still links to its own archive");
 });
 
-test("no categories yet → compact plain link with no false submenu chevron, same target", async () => {
-  const el = await render({ categories: [], url: "https://shop.test/product-categories/" });
+test("click opening uses a separate accessible toggle and preserves the category-page link", async () => {
+  const el = await render({
+    categories: cats,
+    url: "https://shop.test/product-categories/",
+    appearance: { openMode: "click", panelEffect: "zoom" },
+  });
+  const link = trigger(el);
+  const toggle = el.querySelector(".jluxe-header-categories-toggle");
+  const inner = el.querySelector(".jluxe-header-categories-menu__inner");
+  assert.equal(link.getAttribute("href"), "https://shop.test/product-categories/");
+  assert.ok(toggle, "the arrow is a separate button, not part of the destination link");
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(el.dataset.openMode, "click");
+
+  await act(async () => {
+    toggle.dispatchEvent(new el.ownerDocument.defaultView.MouseEvent("click", { bubbles: true }));
+  });
+  assert.equal(toggle.getAttribute("aria-expanded"), "true");
+  assert.ok(inner.classList.contains("is-click-open"));
+
+  await act(async () => {
+    el.ownerDocument.dispatchEvent(
+      new el.ownerDocument.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+  });
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(el.ownerDocument.activeElement, toggle, "Escape closes the panel and restores focus to its toggle");
+
+  await act(async () => {
+    toggle.dispatchEvent(new el.ownerDocument.defaultView.MouseEvent("click", { bubbles: true }));
+    el.ownerDocument.body.dispatchEvent(
+      new el.ownerDocument.defaultView.MouseEvent("pointerdown", { bubbles: true }),
+    );
+  });
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.ok(!inner.classList.contains("is-click-open"), "an outside pointer closes the click-open panel");
+});
+
+test("an invalid opening mode falls back to hover without changing the category-page link", async () => {
+  const el = await render({
+    categories: cats,
+    url: "https://shop.test/product-categories/",
+    appearance: { openMode: "javascript" },
+  });
+  assert.equal(el.dataset.openMode, "hover");
   assert.equal(trigger(el).getAttribute("href"), "https://shop.test/product-categories/");
-  assert.equal(trigger(el).querySelector("svg"), null);
+  assert.ok(trigger(el).querySelector(".jluxe-header-categories-chevron"));
+  assert.equal(el.querySelector(".jluxe-header-categories-toggle"), null);
+});
+
+test("both mode supports a click toggle; empty categories keep the same link and omit the chevron", async () => {
+  const both = await render({ categories: cats, appearance: { openMode: "both" } });
+  const bothToggle = both.querySelector(".jluxe-header-categories-toggle");
+  assert.ok(bothToggle);
+  assert.equal(both.dataset.openMode, "both");
+  await act(async () => {
+    bothToggle.dispatchEvent(new both.ownerDocument.defaultView.MouseEvent("click", { bubbles: true }));
+  });
+  assert.equal(bothToggle.getAttribute("aria-expanded"), "true");
+  await act(async () => {
+    bothToggle.dispatchEvent(new both.ownerDocument.defaultView.MouseEvent("click", { bubbles: true }));
+  });
+  assert.equal(bothToggle.getAttribute("aria-expanded"), "false");
+
+  const el = await render({
+    categories: [],
+    url: "https://shop.test/product-categories/",
+    appearance: { iconMarkup: '<svg class="custom-categories-icon"></svg>' },
+  });
+  assert.equal(trigger(el).getAttribute("href"), "https://shop.test/product-categories/");
+  assert.ok(trigger(el).querySelector(".jluxe-header-categories-icon .custom-categories-icon"));
+  assert.equal(trigger(el).querySelector(".jluxe-header-categories-chevron"), null);
   assert.equal(el.querySelector("nav"), null);
 });
 

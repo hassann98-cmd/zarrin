@@ -480,6 +480,27 @@ function jluxe_theme_settings_defaults(): array {
 		// دقیقاً همون ساختار فعلیِ هاردکدشده در header.php هستن — فعال‌سازی این
 		// تنظیمات به‌تنهایی هیچ تغییری در سایت ایجاد نمی‌کنه.
 		'header_nav' => array(
+			// مگامنوی ثابت دسته‌بندی‌ها؛ جدا از فهرستِ آیتم‌های قابل‌مرتب‌سازی.
+			'categories_mega_menu' => array(
+				'icon'                    => 'grid',
+				'icon_svg'                => '',
+				'open_mode'               => 'hover', // hover | click | both؛ کلیکِ عنوان همیشه مقصدِ دسته‌بندی‌هاست.
+				'trigger_effect'          => 'lift', // lift | glow | underline | none.
+				'panel_effect'            => 'fade', // fade | slide | zoom | fade-slide | none.
+				'duration_ms'             => 180,
+				'text_color'              => '#2F6B52',
+				'background_color'        => '#F3F8F5',
+				'border_color'            => '#C8DED2',
+				'icon_background_color'   => '#2F6B52',
+				'icon_color'              => '#FFFFFF',
+				'hover_background_color'  => '#2F6B52',
+				'hover_text_color'        => '#FFFFFF',
+				'accent_color'            => '#C2410C',
+				'panel_background_color'  => '#FFFFFF',
+				'panel_border_color'      => '#E2E8F0',
+				'panel_text_color'        => '#1F2937',
+				'panel_accent_color'      => '#2F6B52',
+			),
 			'items' => array(
 				array(
 					'id'       => 'shop',
@@ -1142,6 +1163,36 @@ function jluxe_mobile_nav_icon_options(): array {
 }
 
 /** عملکردهای امن و محدودِ قابل‌اتصال به دکمه‌های نوار شناور موبایل. */
+/** گزینه‌های معتبر برای ظاهر و رفتار مگامنوی ثابت «دسته‌بندی‌ها». */
+function jluxe_categories_mega_menu_choices(): array {
+	return array(
+		'open_mode' => array(
+			'hover' => 'هاور و فوکوس (رفتار فعلی)',
+			'click'  => 'کلیک روی فلشِ جداگانه',
+			'both'   => 'هاور یا کلیک روی فلشِ جداگانه',
+		),
+		'trigger_effect' => array(
+			'lift'      => 'بالاآمدن و تغییر رنگ',
+			'glow'      => 'درخشش',
+			'underline' => 'خط زیر متن',
+			'none'      => 'بدون افکت',
+		),
+		'panel_effect' => array(
+			'fade'      => 'محو تدریجی',
+			'slide'     => 'حرکت از بالا',
+			'zoom'      => 'بزرگ‌نمایی نرم',
+			'fade-slide'=> 'محو و حرکت',
+			'none'      => 'بدون انیمیشن',
+		),
+		'duration_ms' => array(
+			120 => 'خیلی سریع — ۱۲۰ میلی‌ثانیه',
+			180 => 'سریع — ۱۸۰ میلی‌ثانیه',
+			240 => 'متعادل — ۲۴۰ میلی‌ثانیه',
+			360 => 'آرام — ۳۶۰ میلی‌ثانیه',
+		),
+	);
+}
+
 function jluxe_mobile_nav_action_options(): array {
 	return array(
 		'assistant'  => 'بازکردن دستیار پشتیبانی',
@@ -2632,8 +2683,113 @@ function jluxe_footer_background_style( ?array $background = null ): string {
  * window.JLuxeThemeSettings، برای Footer.tsx، Header.tsx، MobileNav.tsx و
  * هر آیلند دیگه‌ای که نیاز داشته باشه. هیچ‌وقت شامل کلید API نمی‌شه.
  */
+/**
+ * تنظیماتِ امن و نهاییِ نشانگرِ ثابتِ مگامنوی دسته‌بندی‌ها برای SSR و React.
+ * مقدارهای ذخیره‌شده دوباره اعتبارسنجی می‌شن تا حتی بکاپ/دیتابیسِ دستی هم
+ * نتونه HTML یا CSS نامعتبر وارد هدر کنه.
+ */
+function jluxe_categories_mega_menu_config(): array {
+	$all_defaults = jluxe_theme_settings_defaults();
+	$defaults     = (array) ( $all_defaults['header_nav']['categories_mega_menu'] ?? array() );
+	$settings     = jluxe_get_theme_settings();
+	$stored       = (array) ( $settings['header_nav']['categories_mega_menu'] ?? array() );
+	$config       = array_merge( $defaults, $stored );
+	$choices      = jluxe_categories_mega_menu_choices();
+	$icons        = jluxe_nav_icon_options();
+
+	$icon = isset( $config['icon'] ) && is_scalar( $config['icon'] ) ? sanitize_key( (string) $config['icon'] ) : 'grid';
+	$config['icon'] = array_key_exists( $icon, $icons ) ? $icon : (string) ( $defaults['icon'] ?? 'grid' );
+	foreach ( array( 'open_mode' => 'hover', 'trigger_effect' => 'lift', 'panel_effect' => 'fade' ) as $key => $fallback ) {
+		$raw = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_key( (string) $config[ $key ] ) : $fallback;
+		$config[ $key ] = isset( $choices[ $key ][ $raw ] ) ? $raw : $fallback;
+	}
+
+	$duration = isset( $config['duration_ms'] ) && is_scalar( $config['duration_ms'] ) ? absint( $config['duration_ms'] ) : 180;
+	$config['duration_ms'] = array_key_exists( $duration, $choices['duration_ms'] ) ? $duration : 180;
+
+	foreach ( array(
+		'text_color', 'background_color', 'border_color',
+		'icon_background_color', 'icon_color',
+		'hover_background_color', 'hover_text_color', 'accent_color',
+		'panel_background_color', 'panel_border_color', 'panel_text_color', 'panel_accent_color',
+	) as $key ) {
+		$default = isset( $defaults[ $key ] ) ? (string) $defaults[ $key ] : '#FFFFFF';
+		$config[ $key ] = isset( $config[ $key ] ) && is_scalar( $config[ $key ] )
+			? ( sanitize_hex_color( (string) $config[ $key ] ) ?: $default )
+			: $default;
+	}
+
+	$svg_raw = isset( $config['icon_svg'] ) && is_scalar( $config['icon_svg'] )
+		? (string) $config['icon_svg']
+		: '';
+	$custom_svg = strlen( $svg_raw ) <= 20000 ? jluxe_sanitize_svg_markup( $svg_raw ) : '';
+	$config['icon_svg']   = $custom_svg;
+	$config['icon_markup'] = '' !== $custom_svg
+		? $custom_svg
+		: jluxe_nav_icon_svg( $config['icon'], 'jluxe-header-categories-icon-svg' );
+
+	return $config;
+}
+
+/** Build a short inline style from allowlisted hex colors and a fixed duration. */
+function jluxe_categories_mega_menu_style( array $config ): string {
+	$variables = array(
+		'--jluxe-categories-trigger-text'       => 'text_color',
+		'--jluxe-categories-trigger-bg'          => 'background_color',
+		'--jluxe-categories-trigger-border'      => 'border_color',
+		'--jluxe-categories-icon-bg'             => 'icon_background_color',
+		'--jluxe-categories-icon-color'          => 'icon_color',
+		'--jluxe-categories-hover-bg'            => 'hover_background_color',
+		'--jluxe-categories-hover-text'          => 'hover_text_color',
+		'--jluxe-categories-accent'              => 'accent_color',
+		'--jluxe-categories-panel-bg'             => 'panel_background_color',
+		'--jluxe-categories-panel-border'         => 'panel_border_color',
+		'--jluxe-categories-panel-text'           => 'panel_text_color',
+		'--jluxe-categories-panel-accent'         => 'panel_accent_color',
+	);
+	$style = array();
+	foreach ( $variables as $css_name => $key ) {
+		$color = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_hex_color( (string) $config[ $key ] ) : '';
+		if ( $color ) {
+			$style[] = $css_name . ':' . $color;
+		}
+	}
+	$duration = isset( $config['duration_ms'] ) && is_scalar( $config['duration_ms'] ) ? absint( $config['duration_ms'] ) : 180;
+	if ( ! in_array( $duration, array( 120, 180, 240, 360 ), true ) ) {
+		$duration = 180;
+	}
+	$style[] = '--jluxe-categories-motion-duration:' . $duration . 'ms';
+
+	foreach ( array(
+		'accent_color' => array( '--jluxe-categories-accent-shadow', '.22' ),
+		'hover_background_color' => array( '--jluxe-categories-hover-shadow', '.20' ),
+	) as $key => $shadow ) {
+		$color = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_hex_color( (string) $config[ $key ] ) : '';
+		if ( ! $color ) {
+			continue;
+		}
+		$hex = ltrim( $color, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( 6 === strlen( $hex ) && ctype_xdigit( $hex ) ) {
+			$style[] = sprintf(
+				'%s:rgba(%d,%d,%d,%s)',
+				$shadow[0],
+				hexdec( substr( $hex, 0, 2 ) ),
+				hexdec( substr( $hex, 2, 2 ) ),
+				hexdec( substr( $hex, 4, 2 ) ),
+				$shadow[1]
+			);
+		}
+	}
+
+	return implode( ';', $style );
+}
+
 function jluxe_localize_public_settings(): void {
 	$settings = jluxe_get_theme_settings();
+	$categories_menu = jluxe_categories_mega_menu_config();
 	$include_iran_cities = function_exists( 'is_checkout' ) && is_checkout();
 	if ( $include_iran_cities && function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
 		$include_iran_cities = false;
@@ -2715,6 +2871,13 @@ function jluxe_localize_public_settings(): void {
 				'categories' => function_exists( 'jluxe_get_mega_menu_categories' ) ? jluxe_get_mega_menu_categories() : array(),
 				// R93b — مقصدِ کلیک روی «دسته‌بندی‌ها» (همان href سمتِ سرورِ header.php).
 				'url'        => function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url(),
+				'appearance' => array(
+					'iconMarkup'      => $categories_menu['icon_markup'],
+					'openMode'        => $categories_menu['open_mode'],
+					'triggerEffect'   => $categories_menu['trigger_effect'],
+					'panelEffect'     => $categories_menu['panel_effect'],
+					'durationMs'      => $categories_menu['duration_ms'],
+				),
 			),
 			// دراور سبدِ کشویی (src/islands/MiniCart.tsx) و مودال انتخاب سریعِ
 			// تنوع (inc/cart-ux.php) — یک nonce مشترک، چون هر دو تغییرِ سبدند.

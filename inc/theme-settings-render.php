@@ -441,14 +441,85 @@ function jluxe_render_header_page(): void {
  * از تبِ «هدر» (بالا) و هم مستقیم قابلِ رندر باشه.
  */
 function jluxe_render_header_nav_form_fields( array $settings ): void {
-	$items = $settings['header_nav']['items'] ?? array();
-	$icons = jluxe_nav_icon_options();
+	$items          = $settings['header_nav']['items'] ?? array();
+	$categories_menu = $settings['header_nav']['categories_mega_menu'] ?? array();
+	$icons          = jluxe_nav_icon_options();
+	$menu_choices   = jluxe_categories_mega_menu_choices();
 	?>
-	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل ویرایش نیست. ترتیب آیتم‌های زیر را با دکمه‌های بالا/پایین یا کشیدن دستگیره تغییر بده؛ تغییرها بعد از ذخیره روی سایت اعمال می‌شن. برای خلوت‌ماندن صفحه، تنظیمات هر آیتم با کلیک روی عنوانش باز می‌شه. لینک می‌تونه مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل باشه. اگه برای یک آیتم زیرمنو تعریف کنی، خودِ آیتم هم قابل کلیکه هم روش هاور/فوکوس یک منوی کشویی باز می‌شه.</p>
+	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل‌مرتب‌سازی یا حذف نیست. ظاهر، آیکون، مدل بازشدن و افکت‌هایش را از بخش جداگانهٔ زیر تنظیم کن. آیتم‌های قابل‌تنظیمِ بعد از آن را با دکمه‌های بالا/پایین یا کشیدن دستگیره مرتب کن؛ لینک می‌تونه مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل باشه.</p>
 	<form method="post" class="jluxe-header-nav-form">
 		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
 		<p class="screen-reader-text" data-jluxe-header-nav-live aria-live="polite" aria-atomic="true"></p>
+		<h3>ظاهر و رفتار مگامنوی ثابت «دسته‌بندی‌ها»</h3>
+		<p class="description">در حالت «کلیک»، دکمهٔ فلش پنل را باز و بسته می‌کند؛ خودِ نوشته همچنان به مقصد فعلیِ دسته‌بندی‌ها می‌رود. آیکون SVG سفارشی، اگر وارد شود، جای آیکون آماده را می‌گیرد. این تنظیم‌ها به آیتم‌های مرتب‌شونده اضافه نمی‌شوند.</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-icon">آیکون نشانگر</label></th>
+				<td>
+					<select id="jluxe-categories-menu-icon" name="header_nav[categories_mega_menu][icon]">
+						<?php foreach ( $icons as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['icon'] ?? 'grid', $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">«بدون آیکون» را انتخاب کن یا SVG دلخواه را در فیلد پایین بگذار.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-icon-svg">SVG سفارشی</label></th>
+				<td><textarea id="jluxe-categories-menu-icon-svg" name="header_nav[categories_mega_menu][icon_svg]" rows="3" maxlength="20000" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot; ...&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $categories_menu['icon_svg'] ?? '' ); ?></textarea><p class="description">تگ‌ها و ویژگی‌های SVG در زمان ذخیره پاک‌سازی می‌شوند؛ اسکریپت و handlerهای رویداد پذیرفته نمی‌شوند.</p></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-open-mode">مدل بازشدن پنل</label></th>
+				<td>
+					<select id="jluxe-categories-menu-open-mode" name="header_nav[categories_mega_menu][open_mode]">
+						<?php foreach ( $menu_choices['open_mode'] as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['open_mode'] ?? 'hover', $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-trigger-effect">افکت نشانگر</label></th>
+				<td><select id="jluxe-categories-menu-trigger-effect" name="header_nav[categories_mega_menu][trigger_effect]"><?php foreach ( $menu_choices['trigger_effect'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['trigger_effect'] ?? 'lift', $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-panel-effect">افکت بازشدن پنل</label></th>
+				<td><select id="jluxe-categories-menu-panel-effect" name="header_nav[categories_mega_menu][panel_effect]"><?php foreach ( $menu_choices['panel_effect'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['panel_effect'] ?? 'fade', $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-duration">سرعت انیمیشن</label></th>
+				<td><select id="jluxe-categories-menu-duration" name="header_nav[categories_mega_menu][duration_ms]"><?php foreach ( $menu_choices['duration_ms'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( (int) ( $categories_menu['duration_ms'] ?? 180 ), (int) $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><p class="description">با فعال‌بودن تنظیم «کاهش حرکت» در دستگاه بازدیدکننده، انیمیشن‌ها خودکار خاموش می‌شوند.</p></td>
+			</tr>
+		</table>
+		<h4>رنگ‌های نشانگر</h4>
+		<table class="form-table" role="presentation">
+			<?php foreach ( array(
+				'text_color'             => 'متن نشانگر',
+				'background_color'       => 'پس‌زمینهٔ عادی',
+				'border_color'           => 'کادر عادی',
+				'icon_background_color'  => 'پس‌زمینهٔ آیکون',
+				'icon_color'             => 'رنگ آیکون',
+				'hover_background_color' => 'پس‌زمینه هنگام تعامل',
+				'hover_text_color'       => 'متن هنگام تعامل',
+				'accent_color'           => 'رنگ تأکیدی فلش/فوکوس',
+			) as $key => $label ) : ?>
+				<tr><th scope="row"><label for="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th><td><input id="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>" type="color" name="header_nav[categories_mega_menu][<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $categories_menu[ $key ] ?? '#FFFFFF' ); ?>" /></td></tr>
+			<?php endforeach; ?>
+		</table>
+		<h4>رنگ‌های پنل زیرمنو</h4>
+		<table class="form-table" role="presentation">
+			<?php foreach ( array(
+				'panel_background_color' => 'پس‌زمینهٔ پنل',
+				'panel_border_color'     => 'کادر پنل',
+				'panel_text_color'       => 'متنِ دستهٔ انتخاب‌شده',
+				'panel_accent_color'     => 'رنگِ انتخاب/تأکید در پنل',
+			) as $key => $label ) : ?>
+				<tr><th scope="row"><label for="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th><td><input id="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>" type="color" name="header_nav[categories_mega_menu][<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $categories_menu[ $key ] ?? '#FFFFFF' ); ?>" /></td></tr>
+			<?php endforeach; ?>
+		</table>
+		<hr />
+		<h3>آیتم‌های قابل‌مرتب‌سازیِ منوی هدر</h3>
 		<div id="jluxe-header-nav-items" class="jluxe-header-nav-list" role="list" aria-label="آیتم‌های قابل‌تنظیمِ منوی هدر">
 		<?php for ( $i = 0; $i < 8; $i++ ) :
 			$item       = $items[ $i ] ?? array();

@@ -98,10 +98,17 @@
 			 * دقیقاً همون باگی که کاربر گزارش داد («مگامنو زیر صفحات باز می‌شه»).
 			 * با برگشت به ۶ آیتم، دیگه نیازی به overflow-x-auto نیست و این باگ هم حل می‌شه.
 			 */
-			$jluxe_chevron = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 transition-transform group-hover:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+			$jluxe_chevron = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="jluxe-header-categories-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+			$jluxe_categories_menu_settings = function_exists( 'jluxe_categories_mega_menu_config' ) ? jluxe_categories_mega_menu_config() : array(
+				'icon_markup' => '',
+				'open_mode' => 'hover',
+				'trigger_effect' => 'lift',
+				'panel_effect' => 'fade',
+			);
+			$jluxe_categories_menu_style = function_exists( 'jluxe_categories_mega_menu_style' ) ? jluxe_categories_mega_menu_style( $jluxe_categories_menu_settings ) : '';
 			$jluxe_nav_items = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'header_nav.items', array() ) : array();
 			?>
-			<div id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu"><a href="<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>" class="jluxe-header-categories-trigger">دسته‌بندی‌ها<?php echo $jluxe_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a></div>
+			<div id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu" data-open-mode="<?php echo esc_attr( $jluxe_categories_menu_settings['open_mode'] ); ?>" data-trigger-effect="<?php echo esc_attr( $jluxe_categories_menu_settings['trigger_effect'] ); ?>" data-panel-effect="<?php echo esc_attr( $jluxe_categories_menu_settings['panel_effect'] ); ?>" style="<?php echo esc_attr( $jluxe_categories_menu_style ); ?>"><a href="<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>" class="jluxe-header-categories-trigger" aria-haspopup="true" aria-controls="jluxe-header-categories-panel"><?php if ( ! empty( $jluxe_categories_menu_settings['icon_markup'] ) ) : ?><span class="jluxe-header-categories-icon" aria-hidden="true"><?php echo $jluxe_categories_menu_settings['icon_markup']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- آیکون از whitelist یا SVG پاک‌سازی‌شده ساخته شده است. ?></span><?php endif; ?><span class="jluxe-header-categories-label">دسته‌بندی‌ها</span><span class="jluxe-header-categories-chevron-wrap" aria-hidden="true"><?php echo $jluxe_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></a></div>
 
 			<?php
 			/*

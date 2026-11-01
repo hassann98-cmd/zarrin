@@ -548,144 +548,335 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
   }
 }
 
-/* R358 — the fixed categories mega-menu now reads like a clear, polished menu trigger. */
+/* R358/R359 — the fixed categories trigger is theme-configurable; PHP fallback and React share this wrapper. */
 #masthead #jluxe-header-categories-menu {
   position: relative;
   flex: 0 0 auto;
 }
 
-#masthead #jluxe-header-categories-menu > a,
-#masthead #jluxe-header-categories-menu > .group > a {
+#masthead #jluxe-header-categories-menu > .jluxe-header-categories-menu__inner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+#masthead #jluxe-header-categories-menu > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
   min-height: 42px;
-  padding: 0.3rem 0.55rem 0.3rem 0.75rem;
-  border: 1px solid rgba(47, 107, 82, 0.22);
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--jluxe-categories-trigger-border, #C8DED2);
   border-radius: 999px;
-  background: linear-gradient(120deg, rgba(47, 107, 82, 0.08), rgba(194, 65, 12, 0.035));
-  color: #2F6B52;
+  background: var(--jluxe-categories-trigger-bg, #F3F8F5);
+  color: var(--jluxe-categories-trigger-text, #2F6B52);
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.25;
   text-decoration: none;
   white-space: nowrap;
   box-shadow: 0 3px 10px rgba(47, 107, 82, 0.08);
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition:
+    background-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    border-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    color var(--jluxe-categories-motion-duration, 180ms) ease,
+    box-shadow var(--jluxe-categories-motion-duration, 180ms) ease,
+    transform var(--jluxe-categories-motion-duration, 180ms) ease;
 }
 
-#masthead #jluxe-header-categories-menu > a::before,
-#masthead #jluxe-header-categories-menu > .group > a::before {
-  content: "";
-  display: inline-block;
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-icon {
+  display: inline-grid;
   flex: 0 0 1.75rem;
   width: 1.75rem;
   height: 1.75rem;
+  place-items: center;
+  overflow: hidden;
   border-radius: 50%;
-  background-color: #2F6B52;
-  background-image: linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF);
-  background-repeat: no-repeat;
-  background-size: 4px 4px;
-  background-position: 8px 8px, 16px 8px, 8px 16px, 16px 16px;
-  box-shadow: 0 2px 6px rgba(47, 107, 82, 0.18);
-  transition: background-color 180ms ease, box-shadow 180ms ease;
+  background: var(--jluxe-categories-icon-bg, #2F6B52);
+  color: var(--jluxe-categories-icon-color, #FFFFFF);
+  transition:
+    background-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    color var(--jluxe-categories-motion-duration, 180ms) ease,
+    transform var(--jluxe-categories-motion-duration, 180ms) ease;
 }
 
-#masthead #jluxe-header-categories-menu > a > svg,
-#masthead #jluxe-header-categories-menu > .group > a > svg {
-  box-sizing: content-box;
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-icon svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  max-width: 100%;
+  max-height: 100%;
+  color: inherit;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-chevron-wrap {
+  display: inline-grid;
   flex: 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border: 1px solid var(--jluxe-categories-accent, #C2410C);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--jluxe-categories-accent, #C2410C);
+  transition:
+    background-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    border-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    color var(--jluxe-categories-motion-duration, 180ms) ease,
+    transform var(--jluxe-categories-motion-duration, 180ms) ease;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-chevron {
+  display: block;
   width: 0.875rem;
   height: 0.875rem;
-  padding: 0.2rem;
-  border: 1px solid rgba(194, 65, 12, 0.22);
+  transition: transform var(--jluxe-categories-motion-duration, 180ms) ease;
+}
+
+#masthead #jluxe-header-categories-menu > .jluxe-header-categories-menu__inner > .jluxe-header-categories-toggle {
+  display: inline-grid;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--jluxe-categories-trigger-border, #C8DED2);
   border-radius: 50%;
-  background: rgba(194, 65, 12, 0.08);
-  color: #C2410C;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  background: var(--jluxe-categories-trigger-bg, #F3F8F5);
+  color: var(--jluxe-categories-accent, #C2410C);
+  cursor: pointer;
+  transition:
+    background-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    border-color var(--jluxe-categories-motion-duration, 180ms) ease,
+    color var(--jluxe-categories-motion-duration, 180ms) ease,
+    box-shadow var(--jluxe-categories-motion-duration, 180ms) ease,
+    transform var(--jluxe-categories-motion-duration, 180ms) ease;
 }
 
-#masthead #jluxe-header-categories-menu:hover > a,
-#masthead #jluxe-header-categories-menu:focus-within > a,
-#masthead #jluxe-header-categories-menu:hover > .group > a,
-#masthead #jluxe-header-categories-menu:focus-within > .group > a {
-  border-color: #2F6B52;
-  background: #2F6B52;
-  color: #FFFFFF;
-  box-shadow: 0 7px 18px rgba(47, 107, 82, 0.2);
-  transform: translateY(-1px);
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-toggle .jluxe-header-categories-chevron {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
-#masthead #jluxe-header-categories-menu:hover > a::before,
-#masthead #jluxe-header-categories-menu:focus-within > a::before,
-#masthead #jluxe-header-categories-menu:hover > .group > a::before,
-#masthead #jluxe-header-categories-menu:focus-within > .group > a::before {
-  background-color: #FFFFFF;
-  background-image: linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
-}
-
-#masthead #jluxe-header-categories-menu:hover > a > svg,
-#masthead #jluxe-header-categories-menu:focus-within > a > svg,
-#masthead #jluxe-header-categories-menu:hover > .group > a > svg,
-#masthead #jluxe-header-categories-menu:focus-within > .group > a > svg {
-  border-color: #C2410C;
-  background: #C2410C;
-  color: #FFFFFF;
-  transform: rotate(180deg);
-}
-
-#masthead #jluxe-header-categories-menu > a:focus-visible,
-#masthead #jluxe-header-categories-menu > .group > a:focus-visible {
-  outline: 3px solid rgba(194, 65, 12, 0.48);
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-trigger:focus-visible,
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-toggle:focus-visible {
+  outline: 3px solid var(--jluxe-categories-accent, #C2410C);
   outline-offset: 3px;
 }
 
+/* The lift effect is the default and retains the released R358 appearance. */
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:hover > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:focus-within > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:hover > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:focus-within > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"] .jluxe-header-categories-menu__inner.is-click-open > a.jluxe-header-categories-trigger {
+  border-color: var(--jluxe-categories-hover-bg, #2F6B52);
+  background: var(--jluxe-categories-hover-bg, #2F6B52);
+  color: var(--jluxe-categories-hover-text, #FFFFFF);
+  box-shadow: 0 7px 18px var(--jluxe-categories-hover-shadow, rgba(47, 107, 82, 0.2));
+  transform: translateY(-1px);
+}
+
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:hover > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:focus-within > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:hover > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:focus-within > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"] .jluxe-header-categories-menu__inner.is-click-open > a.jluxe-header-categories-trigger {
+  border-color: var(--jluxe-categories-accent, #C2410C);
+  background: var(--jluxe-categories-trigger-bg, #F3F8F5);
+  color: var(--jluxe-categories-trigger-text, #2F6B52);
+  box-shadow: 0 0 0 3px var(--jluxe-categories-accent-shadow, rgba(194, 65, 12, 0.22)), 0 4px 14px var(--jluxe-categories-hover-shadow, rgba(47, 107, 82, 0.18));
+}
+
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:hover > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:focus-within > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:hover > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:focus-within > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"] .jluxe-header-categories-menu__inner.is-click-open > a.jluxe-header-categories-trigger {
+  border-color: var(--jluxe-categories-trigger-border, #C8DED2);
+  background: var(--jluxe-categories-trigger-bg, #F3F8F5);
+  color: var(--jluxe-categories-accent, #C2410C);
+  box-shadow: none;
+  transform: none;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-trigger::after {
+  position: absolute;
+  inset-inline: 0.85rem;
+  bottom: 0.2rem;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--jluxe-categories-accent, #C2410C);
+  content: "";
+  transition: width var(--jluxe-categories-motion-duration, 180ms) ease;
+}
+
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:hover .jluxe-header-categories-trigger::after,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"]:focus-within .jluxe-header-categories-trigger::after,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="underline"] .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-trigger::after {
+  width: calc(100% - 1.7rem);
+}
+
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:hover .jluxe-header-categories-icon,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:focus-within .jluxe-header-categories-icon,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"] .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-icon {
+  background: var(--jluxe-categories-hover-text, #FFFFFF);
+  color: var(--jluxe-categories-hover-bg, #2F6B52);
+  transform: scale(1.04);
+}
+
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:hover .jluxe-header-categories-chevron-wrap,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:focus-within .jluxe-header-categories-chevron-wrap,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:hover .jluxe-header-categories-toggle,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"]:focus-within .jluxe-header-categories-toggle,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"] .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-chevron-wrap,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="lift"] .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-toggle,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:hover .jluxe-header-categories-toggle,
+#masthead #jluxe-header-categories-menu[data-trigger-effect="glow"]:focus-within .jluxe-header-categories-toggle {
+  border-color: var(--jluxe-categories-accent, #C2410C);
+  background: var(--jluxe-categories-accent, #C2410C);
+  color: var(--jluxe-categories-hover-text, #FFFFFF);
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-chevron,
+#masthead #jluxe-header-categories-menu[data-open-mode="hover"]:hover .jluxe-header-categories-chevron,
+#masthead #jluxe-header-categories-menu[data-open-mode="hover"]:focus-within .jluxe-header-categories-chevron,
+#masthead #jluxe-header-categories-menu[data-open-mode="both"]:hover .jluxe-header-categories-chevron {
+  transform: rotate(180deg);
+}
+
+/* Panel visibility is explicitly mode-controlled; link clicks always keep their destination. */
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  z-index: 40;
+  width: calc(100vw - 32px);
+  max-width: 1180px;
+  border-color: var(--jluxe-categories-panel-border, #E2E8F0);
+  background: var(--jluxe-categories-panel-bg, #FFFFFF);
+  color: var(--jluxe-categories-panel-text, #1F2937);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0);
+  transition:
+    opacity var(--jluxe-categories-motion-duration, 180ms) ease,
+    transform var(--jluxe-categories-motion-duration, 180ms) ease,
+    visibility 0s linear var(--jluxe-categories-motion-duration, 180ms);
+}
+
+#masthead #jluxe-header-categories-menu[data-open-mode="hover"]:hover .jluxe-header-categories-panel,
+#masthead #jluxe-header-categories-menu[data-open-mode="hover"]:focus-within .jluxe-header-categories-panel,
+#masthead #jluxe-header-categories-menu[data-open-mode="both"]:hover .jluxe-header-categories-panel,
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-menu__inner.is-click-open .jluxe-header-categories-panel {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+
+#masthead #jluxe-header-categories-menu[data-panel-effect="slide"] .jluxe-header-categories-panel {
+  transform: translateY(-0.45rem);
+}
+
+#masthead #jluxe-header-categories-menu[data-panel-effect="zoom"] .jluxe-header-categories-panel {
+  transform: scale(0.97);
+}
+
+#masthead #jluxe-header-categories-menu[data-panel-effect="fade-slide"] .jluxe-header-categories-panel {
+  transform: translateY(0.45rem);
+}
+
+#masthead #jluxe-header-categories-menu[data-panel-effect="none"] .jluxe-header-categories-panel {
+  transition: none;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__nav,
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__heading {
+  border-color: var(--jluxe-categories-panel-border, #E2E8F0);
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category {
+  border-color: transparent;
+  color: var(--jluxe-categories-panel-text, #1F2937);
+  text-decoration: none;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--jluxe-categories-panel-accent, #2F6B52);
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category.is-active {
+  border-color: var(--jluxe-categories-panel-accent, #2F6B52);
+  background: #F0FDF4;
+  background: color-mix(in srgb, var(--jluxe-categories-panel-accent, #2F6B52) 9%, var(--jluxe-categories-panel-bg, #FFFFFF));
+  color: var(--jluxe-categories-panel-accent, #2F6B52);
+  font-weight: 700;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__title {
+  color: var(--jluxe-categories-panel-text, #1F2937);
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__group-title {
+  border-color: var(--jluxe-categories-panel-accent, #2F6B52);
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__link {
+  color: var(--jluxe-categories-panel-text, #1F2937);
+  text-decoration: none;
+  transition: color var(--jluxe-categories-motion-duration, 180ms) ease;
+}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__link:hover,
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__link:focus-visible {
+  color: var(--jluxe-categories-panel-accent, #2F6B52);
+}
+
 @media (min-width: 768px) and (max-width: 1023.98px) {
-  #masthead #jluxe-header-categories-menu > a,
-  #masthead #jluxe-header-categories-menu > .group > a {
+  #masthead #jluxe-header-categories-menu > a.jluxe-header-categories-trigger,
+  #masthead #jluxe-header-categories-menu > .jluxe-header-categories-menu__inner > a.jluxe-header-categories-trigger {
     gap: 0.4rem;
     min-height: 38px;
-    padding: 0.25rem 0.4rem 0.25rem 0.55rem;
+    padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
   }
 
-  #masthead #jluxe-header-categories-menu > a::before,
-  #masthead #jluxe-header-categories-menu > .group > a::before {
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-icon {
     flex-basis: 1.5rem;
     width: 1.5rem;
     height: 1.5rem;
-    background-size: 3px 3px;
-    background-position: 6px 6px, 13px 6px, 6px 13px, 13px 13px;
   }
 
-  #masthead #jluxe-header-categories-menu > a > svg,
-  #masthead #jluxe-header-categories-menu > .group > a > svg {
-    width: 0.75rem;
-    height: 0.75rem;
-    padding: 0.15rem;
+  #masthead #jluxe-header-categories-menu > .jluxe-header-categories-menu__inner > .jluxe-header-categories-toggle {
+    width: 1.8rem;
+    height: 1.8rem;
+    flex-basis: 1.8rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #masthead #jluxe-header-categories-menu > a,
-  #masthead #jluxe-header-categories-menu > .group > a,
-  #masthead #jluxe-header-categories-menu > a::before,
-  #masthead #jluxe-header-categories-menu > .group > a::before,
-  #masthead #jluxe-header-categories-menu > a > svg,
-  #masthead #jluxe-header-categories-menu > .group > a > svg {
-    transition: none;
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-trigger,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-toggle,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-icon,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-chevron-wrap,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-chevron,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__link {
+    transition: none !important;
   }
 
-  #masthead #jluxe-header-categories-menu:hover > a,
-  #masthead #jluxe-header-categories-menu:focus-within > a,
-  #masthead #jluxe-header-categories-menu:hover > .group > a,
-  #masthead #jluxe-header-categories-menu:focus-within > .group > a,
-  #masthead #jluxe-header-categories-menu:hover > a > svg,
-  #masthead #jluxe-header-categories-menu:focus-within > a > svg,
-  #masthead #jluxe-header-categories-menu:hover > .group > a > svg,
-  #masthead #jluxe-header-categories-menu:focus-within > .group > a > svg {
-    transform: none;
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-trigger,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-icon,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-chevron,
+  #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel {
+    transform: none !important;
   }
 }

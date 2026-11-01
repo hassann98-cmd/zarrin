@@ -392,10 +392,67 @@ function jluxe_sanitize_announcement_bar( array $posted, array $defaults ): arra
  * کشویی اختیاری برای هرکدوم. تعداد آیتم و تعداد زیرمنو پویاست (نه یک عدد
  * ثابت مثل اسلایدها) چون این یک منوئه، نه اسلات‌های محدود.
  */
+function jluxe_sanitize_categories_mega_menu( array $posted, array $defaults ): array {
+	$choices = jluxe_categories_mega_menu_choices();
+	$icons   = jluxe_nav_icon_options();
+
+	$icon_raw = isset( $posted['icon'] ) && is_scalar( $posted['icon'] )
+		? sanitize_key( (string) $posted['icon'] )
+		: (string) ( $defaults['icon'] ?? 'grid' );
+	$icon = array_key_exists( $icon_raw, $icons ) ? $icon_raw : (string) ( $defaults['icon'] ?? 'grid' );
+
+	$clean_choice = static function ( string $key, string $fallback ) use ( $posted, $defaults, $choices ): string {
+		$default = isset( $defaults[ $key ] ) && is_scalar( $defaults[ $key ] ) ? (string) $defaults[ $key ] : $fallback;
+		$raw     = isset( $posted[ $key ] ) && is_scalar( $posted[ $key ] ) ? sanitize_key( (string) $posted[ $key ] ) : $default;
+		return isset( $choices[ $key ][ $raw ] ) ? $raw : $default;
+	};
+
+	$clean_colors = array();
+	foreach ( array(
+		'text_color', 'background_color', 'border_color',
+		'icon_background_color', 'icon_color',
+		'hover_background_color', 'hover_text_color', 'accent_color',
+		'panel_background_color', 'panel_border_color', 'panel_text_color', 'panel_accent_color',
+	) as $color_key ) {
+		$default_color = isset( $defaults[ $color_key ] ) ? (string) $defaults[ $color_key ] : '#FFFFFF';
+		$raw_color     = isset( $posted[ $color_key ] ) && is_scalar( $posted[ $color_key ] )
+			? sanitize_hex_color( (string) $posted[ $color_key ] )
+			: '';
+		$clean_colors[ $color_key ] = $raw_color ?: $default_color;
+	}
+
+	$duration_raw = isset( $posted['duration_ms'] ) && is_scalar( $posted['duration_ms'] )
+		? absint( $posted['duration_ms'] )
+		: absint( $defaults['duration_ms'] ?? 180 );
+	$duration_ms = array_key_exists( $duration_raw, $choices['duration_ms'] )
+		? $duration_raw
+		: absint( $defaults['duration_ms'] ?? 180 );
+
+	$svg_raw = isset( $posted['icon_svg'] ) && is_scalar( $posted['icon_svg'] ) ? (string) $posted['icon_svg'] : '';
+	if ( strlen( $svg_raw ) > 20000 ) {
+		$svg_raw = '';
+	}
+
+	return array_merge(
+		$clean_colors,
+		array(
+			'icon'           => $icon,
+			'icon_svg'       => jluxe_sanitize_svg_markup( $svg_raw ),
+			'open_mode'      => $clean_choice( 'open_mode', 'hover' ),
+			'trigger_effect' => $clean_choice( 'trigger_effect', 'lift' ),
+			'panel_effect'   => $clean_choice( 'panel_effect', 'fade' ),
+			'duration_ms'    => $duration_ms,
+		)
+	);
+}
+
 function jluxe_sanitize_header_nav( array $posted, array $defaults ): array {
-	$items_in = $posted['items'] ?? array();
+	$items_in = isset( $posted['items'] ) && is_array( $posted['items'] ) ? $posted['items'] : array();
 	$items    = array();
 	foreach ( $items_in as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
 		$label = isset( $item['label'] ) ? sanitize_text_field( $item['label'] ) : '';
 		if ( '' === $label ) {
 			continue; // آیتم بدون عنوان یعنی خالی — رد شو.
@@ -425,7 +482,17 @@ function jluxe_sanitize_header_nav( array $posted, array $defaults ): array {
 			'children' => $children,
 		);
 	}
-	return array( 'items' => $items );
+	$category_menu_posted = isset( $posted['categories_mega_menu'] ) && is_array( $posted['categories_mega_menu'] )
+		? $posted['categories_mega_menu']
+		: array();
+	$category_menu_defaults = isset( $defaults['categories_mega_menu'] ) && is_array( $defaults['categories_mega_menu'] )
+		? $defaults['categories_mega_menu']
+		: array();
+
+	return array(
+		'categories_mega_menu' => jluxe_sanitize_categories_mega_menu( $category_menu_posted, $category_menu_defaults ),
+		'items'                => $items,
+	);
 }
 
 function jluxe_sanitize_footer( array $posted, array $defaults ): array {
