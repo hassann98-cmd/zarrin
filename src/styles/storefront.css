@@ -10373,6 +10373,35 @@ html.jluxe-lite .jluxe-header-bar {
   padding: 4px 56px;
   text-align: center;
 }
+.jluxe-announcement-bar__closure-icon {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 12%);
+  color: inherit;
+  transform-origin: center;
+}
+.jluxe-announcement-bar__closure-icon svg {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+.jluxe-announcement-bar--store-closure .jluxe-announcement-bar__closure-icon {
+  -webkit-animation: jluxe-store-closure-icon-blink 1.2s ease-in-out infinite;
+  animation: jluxe-store-closure-icon-blink 1.2s ease-in-out infinite;
+}
+@-webkit-keyframes jluxe-store-closure-icon-blink {
+  0%, 100% { opacity: 1; -webkit-transform: scale(1); transform: scale(1); }
+  50% { opacity: .45; -webkit-transform: scale(.94); transform: scale(.94); }
+}
+@keyframes jluxe-store-closure-icon-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.94); }
+}
 .jluxe-announcement-bar__message {
   max-width: 100%;
   margin: 0;
@@ -10776,6 +10805,15 @@ html.jluxe-lite .jluxe-header-bar {
   .jluxe-announcement-bar__link {
     font-size: 0.8125rem;
   }
+  .jluxe-announcement-bar__closure-icon {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+  }
+  .jluxe-announcement-bar__closure-icon svg {
+    width: 29px;
+    height: 29px;
+  }
   .jluxe-announcement-bar__image-link,
   .jluxe-announcement-bar__image-window {
     display: flex;
@@ -10883,6 +10921,10 @@ html.jluxe-lite .jluxe-header-bar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .jluxe-announcement-bar--store-closure .jluxe-announcement-bar__closure-icon {
+    -webkit-animation: none;
+    animation: none;
+  }
   .jluxe-announcement-bar--ticker,
   .jluxe-announcement-bar--ticker .jluxe-announcement-bar__inner {
     height: auto;

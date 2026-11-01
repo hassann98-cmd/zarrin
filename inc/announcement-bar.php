@@ -333,9 +333,10 @@ function jluxe_render_announcement_bar(): void {
 		return;
 	}
 	$message    = isset( $content['message'] ) ? $content['message'] : '';
-	$is_image   = 'image' === $content['mode'];
-	$is_ticker  = 'ticker' === $content['mode'];
-	$is_sticky  = ! empty( $settings['sticky'] );
+	$is_image        = 'image' === $content['mode'];
+	$is_ticker       = 'ticker' === $content['mode'];
+	$is_sticky       = ! empty( $settings['sticky'] );
+	$is_store_closure = ! empty( $settings['_jluxe_store_closure_active'] );
 
 	$defaults         = jluxe_theme_settings_defaults()['announcement_bar'];
 	$desktop_height_px = jluxe_announcement_height_px(
@@ -364,9 +365,11 @@ function jluxe_render_announcement_bar(): void {
 	$ticker_logo_frame     = $is_ticker && ! empty( $content['ticker_logo_frame'] );
 	$ticker_texture        = $is_ticker ? $content['ticker_texture'] : 'waves';
 	$dismiss_key           = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $ticker_label_enabled, $ticker_logo_enabled, $ticker_logo_frame, $content['ticker_theme'] ?? '', $ticker_texture, $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
-	$region_label          = $is_ticker
-		? 'اطلاعیهٔ سایت؛ ' . ( $ticker_label_enabled ? $content['ticker_label'] . ': ' : '' ) . $content['ticker_summary']
-		: 'اطلاعیهٔ سایت';
+	$region_label          = $is_store_closure
+		? 'تعطیلی موقت فروشگاه؛ ' . $message
+		: ( $is_ticker
+			? 'اطلاعیهٔ سایت؛ ' . ( $ticker_label_enabled ? $content['ticker_label'] . ': ' : '' ) . $content['ticker_summary']
+			: 'اطلاعیهٔ سایت' );
 	$ticker_messages       = $is_ticker ? $content['ticker_messages'] : array();
 	$ticker_message_count  = count( $ticker_messages );
 	$ticker_timing         = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
@@ -378,7 +381,8 @@ function jluxe_render_announcement_bar(): void {
 	?>
 	<div
 		id="jluxe-announcement-bar"
-		class="jluxe-announcement-bar jluxe-announcement-bar--<?php echo esc_attr( $content['mode'] ); ?><?php echo $is_sticky ? ' jluxe-announcement-bar--sticky' : ''; ?>"
+		class="jluxe-announcement-bar jluxe-announcement-bar--<?php echo esc_attr( $content['mode'] ); ?><?php echo $is_sticky ? ' jluxe-announcement-bar--sticky' : ''; ?><?php echo $is_store_closure ? ' jluxe-announcement-bar--store-closure' : ''; ?>"
+		data-store-closure="<?php echo $is_store_closure ? '1' : '0'; ?>"
 		role="region"
 		data-content-mode="<?php echo esc_attr( $content['mode'] ); ?>"
 		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>" data-ticker-texture="<?php echo esc_attr( $ticker_texture ); ?>"<?php endif; ?>
@@ -430,6 +434,18 @@ function jluxe_render_announcement_bar(): void {
 					<a class="jluxe-announcement-bar__ticker-link" href="<?php echo esc_url( $link_url ); ?>"><?php echo esc_html( $link_text ); ?></a>
 				<?php endif; ?>
 			<?php else : ?>
+				<?php if ( $is_store_closure ) : ?>
+					<span class="jluxe-announcement-bar__closure-icon" aria-hidden="true">
+						<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" focusable="false">
+							<path d="M10 20v16h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M8 19 11 9h17l3 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M8 19c0 2.7 4.1 3.5 5.3.8 1.2 2.7 5.2 2.7 6.4 0 1.2 2.7 5.2 2.7 6.4 0 1.2 2.7 5.3 1.9 5.3-.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M13 26h11v10H13zM13 29.3h11M13 32.6h11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+							<circle cx="34" cy="34" r="9.5" fill="none" stroke="currentColor" stroke-width="2" />
+							<path d="M34 29.5v4.8l3.1 1.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
+					</span>
+				<?php endif; ?>
 				<p class="jluxe-announcement-bar__message"><?php echo esc_html( $message ); ?></p>
 				<?php if ( '' !== $link_text && '' !== $link_url ) : ?>
 					<a class="jluxe-announcement-bar__link" href="<?php echo esc_url( $link_url ); ?>"><?php echo esc_html( $link_text ); ?></a>

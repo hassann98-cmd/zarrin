@@ -8,6 +8,7 @@ defined( 'ABSPATH' ) || exit;
 
 const JLUXE_STORE_CLOSURE_OPTION = 'jluxe_store_closure';
 const JLUXE_STORE_CLOSURE_DEFAULT_MESSAGE = 'ثبت سفارش موقتاً متوقف است. به‌محض فعال‌شدن دوبارهٔ فروشگاه اطلاع‌رسانی می‌کنیم. سفارش‌های قبلی همچنان قابل پیگیری هستند.';
+const JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR = '#C2410C';
 const JLUXE_STORE_CLOSURE_REOPEN_HOOK = 'jluxe_store_closure_auto_reopen';
 
 /** منطقهٔ زمانیِ تنظیم‌شده در وردپرس؛ زمان‌های فرم هم با همین منطقه تفسیر می‌شوند. */
@@ -35,11 +36,15 @@ function jluxe_store_closure_settings(): array {
 	$message = isset( $stored['message'] ) && is_scalar( $stored['message'] )
 		? sanitize_textarea_field( (string) $stored['message'] )
 		: '';
+	$background_color = isset( $stored['background_color'] ) && is_scalar( $stored['background_color'] )
+		? sanitize_hex_color( (string) $stored['background_color'] )
+		: null;
 
 	return array(
-		'closed'    => ! empty( $stored['closed'] ),
-		'message'   => '' !== trim( $message ) ? $message : JLUXE_STORE_CLOSURE_DEFAULT_MESSAGE,
-		'reopen_at' => isset( $stored['reopen_at'] ) ? max( 0, (int) $stored['reopen_at'] ) : 0,
+		'closed'           => ! empty( $stored['closed'] ),
+		'message'          => '' !== trim( $message ) ? $message : JLUXE_STORE_CLOSURE_DEFAULT_MESSAGE,
+		'reopen_at'        => isset( $stored['reopen_at'] ) ? max( 0, (int) $stored['reopen_at'] ) : 0,
+		'background_color' => $background_color ?: JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR,
 	);
 }
 
@@ -55,6 +60,34 @@ function jluxe_store_closure_is_closed(): bool {
 
 function jluxe_store_closure_message(): string {
 	return jluxe_store_closure_settings()['message'];
+}
+
+/** انتخابِ سفید/مشکیِ دارای کنتراستِ بهتر برای خواناییِ پیام روی رنگِ انتخاب‌شده. */
+function jluxe_store_closure_text_color( string $background_color ): string {
+	$hex = sanitize_hex_color( $background_color );
+	if ( ! is_string( $hex ) ) {
+		return '#FFFFFF';
+	}
+
+	$hex = ltrim( $hex, '#' );
+	if ( 3 === strlen( $hex ) ) {
+		$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+	}
+	if ( 6 !== strlen( $hex ) ) {
+		return '#FFFFFF';
+	}
+
+	$channels = array_map( 'hexdec', str_split( $hex, 2 ) );
+	$linear   = array_map(
+		static function ( int $channel ): float {
+			$value = $channel / 255;
+			return $value <= 0.04045 ? $value / 12.92 : pow( ( $value + 0.055 ) / 1.055, 2.4 );
+		},
+		$channels
+	);
+	$luminance = ( 0.2126 * $linear[0] ) + ( 0.7152 * $linear[1] ) + ( 0.0722 * $linear[2] );
+
+	return $luminance > 0.179 ? '#000000' : '#FFFFFF';
 }
 
 /** تاریخِ ورودیِ datetime-local را بر اساسِ منطقهٔ زمانیِ سایت به timestamp تبدیل می‌کند. */
@@ -96,7 +129,7 @@ function jluxe_store_closure_purge_caches(): void {
 }
 
 /** ذخیرهٔ امنِ وضعیت؛ تاریخِ نامعتبر/گذشته هیچ تغییری در وضعیتِ فعلی ایجاد نمی‌کند. */
-function jluxe_store_closure_save( string $action, string $message, string $reopen_local = '' ): array {
+function jluxe_store_closure_save( string $action, string $message, string $reopen_local = '', string $background_color = '' ): array {
 	$action = sanitize_key( $action );
 	if ( ! in_array( $action, array( 'close', 'open' ), true ) ) {
 		return array( 'ok' => false, 'code' => 'invalid_action' );
@@ -123,10 +156,12 @@ function jluxe_store_closure_save( string $action, string $message, string $reop
 		$reopen_at = (int) $parsed;
 	}
 
+	$background_color = sanitize_hex_color( $background_color ) ?: JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR;
 	$stored = array(
-		'closed'    => 'close' === $action,
-		'message'   => $message,
-		'reopen_at' => $reopen_at,
+		'closed'           => 'close' === $action,
+		'message'          => $message,
+		'reopen_at'        => $reopen_at,
+		'background_color' => $background_color,
 	);
 	update_option( JLUXE_STORE_CLOSURE_OPTION, $stored, false );
 	jluxe_store_closure_schedule_reopen( $reopen_at );
@@ -176,12 +211,16 @@ function jluxe_store_closure_announcement_override( array $announcement_settings
 		return $announcement_settings;
 	}
 
-	$announcement_settings['enabled']      = true;
-	$announcement_settings['display_mode'] = 'text';
-	$announcement_settings['message']      = jluxe_store_closure_message();
-	$announcement_settings['link_text']    = '';
-	$announcement_settings['link_url']     = '';
-	$announcement_settings['dismissible']  = false;
+	$closure_settings = jluxe_store_closure_settings();
+	$announcement_settings['enabled']                  = true;
+	$announcement_settings['display_mode']             = 'text';
+	$announcement_settings['message']                  = $closure_settings['message'];
+	$announcement_settings['background_color']         = $closure_settings['background_color'];
+	$announcement_settings['text_color']               = jluxe_store_closure_text_color( $closure_settings['background_color'] );
+	$announcement_settings['_jluxe_store_closure_active'] = true;
+	$announcement_settings['link_text']                = '';
+	$announcement_settings['link_url']                 = '';
+	$announcement_settings['dismissible']              = false;
 
 	return $announcement_settings;
 }
@@ -379,6 +418,12 @@ function jluxe_render_store_closure_control( string $return_to = 'store-status' 
 			</div>
 
 			<div class="jluxe-store-closure-field">
+				<label for="jluxe-store-closure-background">رنگ پس‌زمینهٔ اطلاعیهٔ تعطیلی</label>
+				<input id="jluxe-store-closure-background" type="color" name="store_closure_background_color" value="<?php echo esc_attr( $settings['background_color'] ); ?>" />
+				<p class="description">این رنگ فقط هنگامِ بسته‌بودنِ فروشگاه استفاده می‌شود؛ رنگ نوار اطلاع‌رسانیِ عادی را تغییر نمی‌دهد. رنگ متن برای خوانایی به‌طور خودکار تنظیم می‌شود.</p>
+			</div>
+
+			<div class="jluxe-store-closure-field">
 				<label for="jluxe-store-closure-reopen">بازگشایی خودکار (اختیاری)</label>
 				<input id="jluxe-store-closure-reopen" type="datetime-local" name="store_closure_reopen_at" value="<?php echo esc_attr( jluxe_store_closure_datetime_input_value( (int) $settings['reopen_at'] ) ); ?>" />
 				<p class="description">زمان بر اساس منطقهٔ زمانیِ سایت، <code><?php echo esc_html( $timezone->getName() ); ?></code> است. خالی بگذارید تا فروشگاه را دستی باز کنید. اگر WP-Cron سایت اجرا نشود، بازگشایی ممکن است تا اولین درخواستِ بعد از زمان تعیین‌شده کمی به‌تأخیر بیفتد.</p>
@@ -439,7 +484,10 @@ function jluxe_handle_store_closure_admin_post(): void {
 	$reopen_local = isset( $_POST['store_closure_reopen_at'] ) && is_scalar( $_POST['store_closure_reopen_at'] )
 		? sanitize_text_field( wp_unslash( (string) $_POST['store_closure_reopen_at'] ) )
 		: '';
-	$result = jluxe_store_closure_save( $action, $message, $reopen_local );
+	$background_color = isset( $_POST['store_closure_background_color'] ) && is_scalar( $_POST['store_closure_background_color'] )
+		? sanitize_text_field( wp_unslash( (string) $_POST['store_closure_background_color'] ) )
+		: '';
+	$result = jluxe_store_closure_save( $action, $message, $reopen_local, $background_color );
 	$result_slug = ! empty( $result['ok'] )
 		? $result['code']
 		: ( 'invalid_reopen_time' === ( $result['code'] ?? '' ) ? 'invalid_reopen_time' : ( 'invalid_action' === ( $result['code'] ?? '' ) ? 'invalid_action' : 'error' ) );

@@ -691,6 +691,7 @@
 .jluxe-store-closure-field>label{display:block;margin:0 0 6px;font-weight:600}
 .jluxe-store-closure-field textarea,.jluxe-store-closure-field input[type="datetime-local"]{display:block;width:100%;max-width:100%;min-height:42px;box-sizing:border-box}
 .jluxe-store-closure-field input[type="datetime-local"]{direction:ltr;text-align:left}
+.jluxe-store-closure-field input[type="color"]{display:block;width:64px;height:48px;padding:4px;border:1px solid #8c8f94;border-radius:8px;background:#fff;cursor:pointer;box-sizing:border-box}
 .jluxe-store-closure-field textarea{min-height:86px;resize:vertical}
 .jluxe-store-closure-field .description{margin:6px 0 0;line-height:1.8}
 .jluxe-store-closure-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}

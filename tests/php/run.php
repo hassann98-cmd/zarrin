@@ -20,7 +20,14 @@ $r338_had_fired = array_key_exists( 'fired', $GLOBALS );
 $r338_old_fired = $GLOBALS['fired'] ?? null;
 unset( $GLOBALS['options'][ $r338_option_key ] );
 $GLOBALS['scheduled'] = array();
-check( ! jluxe_store_closure_is_closed(), 'R338 store closure is open by default' );
+check(
+	! jluxe_store_closure_is_closed() && '#C2410C' === jluxe_store_closure_settings()['background_color'],
+	'R338 store closure is open by default and has a safe accent-color default'
+);
+check(
+	'#FFFFFF' === jluxe_store_closure_text_color( '#C2410C' ) && '#000000' === jluxe_store_closure_text_color( '#F1F5F9' ),
+	'R356 closure text automatically chooses a high-contrast color for both dark and light backgrounds'
+);
 
 $r338_normal_announcement = array(
 	'enabled' => false,
@@ -31,10 +38,11 @@ $r338_normal_announcement = array(
 	'link_text' => 'لینک عادی',
 	'link_url' => 'https://shop.test/normal',
 );
-$r338_save = jluxe_store_closure_save( 'close', 'ثبت سفارش موقتاً متوقف است. سفارش‌های قبلی قابل پیگیری هستند.' );
+$r338_save = jluxe_store_closure_save( 'close', 'ثبت سفارش موقتاً متوقف است. سفارش‌های قبلی قابل پیگیری هستند.', '', '#2F6B52' );
 $r338_override = jluxe_store_closure_announcement_override( $r338_normal_announcement );
 check(
 	! empty( $r338_save['ok'] ) && jluxe_store_closure_is_closed() &&
+	'#2F6B52' === $r338_override['background_color'] && '#FFFFFF' === $r338_override['text_color'] && ! empty( $r338_override['_jluxe_store_closure_active'] ) &&
 	! empty( $r338_override['enabled'] ) && 'text' === $r338_override['display_mode'] &&
 	false === $r338_override['dismissible'] && '' === $r338_override['link_url'] &&
 	$r338_normal_announcement['enabled'] === false && 'ticker' === $r338_normal_announcement['display_mode'] &&
@@ -52,10 +60,14 @@ $r338_bar_html = (string) ob_get_clean();
 check(
 	in_array( 'jluxe-has-announcement', $r338_bar_classes, true ) &&
 	false !== strpos( $r338_bar_html, 'ثبت سفارش موقتاً متوقف است.' ) &&
+	false !== strpos( $r338_bar_html, 'jluxe-announcement-bar--store-closure' ) &&
+	false !== strpos( $r338_bar_html, 'jluxe-announcement-bar__closure-icon' ) &&
+	false !== strpos( $r338_bar_html, 'viewBox="0 0 48 48"' ) &&
+	false !== strpos( $r338_bar_html, '--jluxe-announcement-background:#2F6B52' ) &&
 	false !== strpos( $r338_bar_html, 'data-dismissible="0"' ) &&
 	false === strpos( $r338_bar_html, 'class="jluxe-announcement-bar__dismiss"' ) &&
 	false === strpos( $r338_bar_html, 'پیام عادی' ),
-	'R338 the real announcement renderer shows the closure message even when the normal bar is disabled and never adds a dismiss control'
+	'R338/R356 the renderer shows the closure color and animated store-and-clock icon without a dismiss control or mutation to the normal bar'
 );
 if ( $r338_had_theme_option ) { $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r338_old_theme_option; } else { unset( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ); }
 jluxe_get_theme_settings( true );
@@ -64,9 +76,11 @@ jluxe_render_store_closure_control( 'dashboard' );
 $r338_admin_control_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r338_admin_control_html, 'type="datetime-local"' ) &&
+	false !== strpos( $r338_admin_control_html, 'name="store_closure_background_color"' ) &&
+	false !== strpos( $r338_admin_control_html, 'value="#2F6B52"' ) &&
 	false !== strpos( $r338_admin_control_html, 'بازگشایی فروشگاه' ) &&
 	false !== strpos( $r338_admin_control_html, 'Asia/Tehran' ),
-	'R338 manager control renders the mobile-ready reopen field and site-timezone guidance'
+	'R338/R356 manager control renders the selectable closure color and mobile-ready site-timezone reopening field'
 );
 check(
 	false === jluxe_store_closure_validate_add_to_cart( true, 17, 1 ),
@@ -122,6 +136,12 @@ check(
 	empty( $r338_invalid_time['ok'] ) && 'invalid_reopen_time' === $r338_invalid_time['code'] &&
 	'ثبت سفارش موقتاً متوقف است. سفارش‌های قبلی قابل پیگیری هستند.' === jluxe_store_closure_message(),
 	'R338 invalid or past automatic reopening times leave the active closure unchanged'
+);
+$r338_invalid_color = jluxe_store_closure_save( 'close', 'پیام با رنگ نامعتبر', '', 'url(javascript:alert(1))' );
+check(
+	! empty( $r338_invalid_color['ok'] ) &&
+	JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR === jluxe_store_closure_settings()['background_color'],
+	'R356 invalid background-color input is discarded in favor of the safe default'
 );
 $r338_local_time = '2035-11-01T12:30';
 $r338_expected_time = DateTimeImmutable::createFromFormat( '!Y-m-d\\TH:i', $r338_local_time, wp_timezone() )->getTimestamp();
