@@ -547,3 +547,145 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
     transform: none;
   }
 }
+
+/* R358 — the fixed categories mega-menu now reads like a clear, polished menu trigger. */
+#masthead #jluxe-header-categories-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+#masthead #jluxe-header-categories-menu > a,
+#masthead #jluxe-header-categories-menu > .group > a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 42px;
+  padding: 0.3rem 0.55rem 0.3rem 0.75rem;
+  border: 1px solid rgba(47, 107, 82, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(120deg, rgba(47, 107, 82, 0.08), rgba(194, 65, 12, 0.035));
+  color: #2F6B52;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(47, 107, 82, 0.08);
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+#masthead #jluxe-header-categories-menu > a::before,
+#masthead #jluxe-header-categories-menu > .group > a::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background-color: #2F6B52;
+  background-image: linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF), linear-gradient(#FFFFFF, #FFFFFF);
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  background-position: 8px 8px, 16px 8px, 8px 16px, 16px 16px;
+  box-shadow: 0 2px 6px rgba(47, 107, 82, 0.18);
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+#masthead #jluxe-header-categories-menu > a > svg,
+#masthead #jluxe-header-categories-menu > .group > a > svg {
+  box-sizing: content-box;
+  flex: 0 0 auto;
+  width: 0.875rem;
+  height: 0.875rem;
+  padding: 0.2rem;
+  border: 1px solid rgba(194, 65, 12, 0.22);
+  border-radius: 50%;
+  background: rgba(194, 65, 12, 0.08);
+  color: #C2410C;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+#masthead #jluxe-header-categories-menu:hover > a,
+#masthead #jluxe-header-categories-menu:focus-within > a,
+#masthead #jluxe-header-categories-menu:hover > .group > a,
+#masthead #jluxe-header-categories-menu:focus-within > .group > a {
+  border-color: #2F6B52;
+  background: #2F6B52;
+  color: #FFFFFF;
+  box-shadow: 0 7px 18px rgba(47, 107, 82, 0.2);
+  transform: translateY(-1px);
+}
+
+#masthead #jluxe-header-categories-menu:hover > a::before,
+#masthead #jluxe-header-categories-menu:focus-within > a::before,
+#masthead #jluxe-header-categories-menu:hover > .group > a::before,
+#masthead #jluxe-header-categories-menu:focus-within > .group > a::before {
+  background-color: #FFFFFF;
+  background-image: linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52), linear-gradient(#2F6B52, #2F6B52);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+#masthead #jluxe-header-categories-menu:hover > a > svg,
+#masthead #jluxe-header-categories-menu:focus-within > a > svg,
+#masthead #jluxe-header-categories-menu:hover > .group > a > svg,
+#masthead #jluxe-header-categories-menu:focus-within > .group > a > svg {
+  border-color: #C2410C;
+  background: #C2410C;
+  color: #FFFFFF;
+  transform: rotate(180deg);
+}
+
+#masthead #jluxe-header-categories-menu > a:focus-visible,
+#masthead #jluxe-header-categories-menu > .group > a:focus-visible {
+  outline: 3px solid rgba(194, 65, 12, 0.48);
+  outline-offset: 3px;
+}
+
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  #masthead #jluxe-header-categories-menu > a,
+  #masthead #jluxe-header-categories-menu > .group > a {
+    gap: 0.4rem;
+    min-height: 38px;
+    padding: 0.25rem 0.4rem 0.25rem 0.55rem;
+    font-size: 0.875rem;
+  }
+
+  #masthead #jluxe-header-categories-menu > a::before,
+  #masthead #jluxe-header-categories-menu > .group > a::before {
+    flex-basis: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-size: 3px 3px;
+    background-position: 6px 6px, 13px 6px, 6px 13px, 13px 13px;
+  }
+
+  #masthead #jluxe-header-categories-menu > a > svg,
+  #masthead #jluxe-header-categories-menu > .group > a > svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    padding: 0.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #masthead #jluxe-header-categories-menu > a,
+  #masthead #jluxe-header-categories-menu > .group > a,
+  #masthead #jluxe-header-categories-menu > a::before,
+  #masthead #jluxe-header-categories-menu > .group > a::before,
+  #masthead #jluxe-header-categories-menu > a > svg,
+  #masthead #jluxe-header-categories-menu > .group > a > svg {
+    transition: none;
+  }
+
+  #masthead #jluxe-header-categories-menu:hover > a,
+  #masthead #jluxe-header-categories-menu:focus-within > a,
+  #masthead #jluxe-header-categories-menu:hover > .group > a,
+  #masthead #jluxe-header-categories-menu:focus-within > .group > a,
+  #masthead #jluxe-header-categories-menu:hover > a > svg,
+  #masthead #jluxe-header-categories-menu:focus-within > a > svg,
+  #masthead #jluxe-header-categories-menu:hover > .group > a > svg,
+  #masthead #jluxe-header-categories-menu:focus-within > .group > a > svg {
+    transform: none;
+  }
+}

@@ -6415,7 +6415,12 @@ ob_start(); jluxe_render_categories_page_settings(); $r93admin = (string) ob_get
 check( 1 === substr_count( $r93admin, 'name="categories_page[header_link]"' ) && false !== strpos( $r93admin, 'value="shop"  selected=' ), 'R93b admin select rendered with the saved value' );
 unset( $GLOBALS['options']['jluxe_theme_settings']['categories_page'] ); jluxe_get_theme_settings( true );
 $r93hdr = (string) file_get_contents( ABSPATH . 'header.php' );
-check( false !== strpos( $r93hdr, "<div data-jluxe-island=\"mega-menu\"><a href=\"<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>\">دسته‌بندی‌ها</a></div>" ), 'R93b server-rendered header link (works before/without JS) uses the same target' );
+check(
+	false !== strpos( $r93hdr, 'id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu"' ) &&
+	false !== strpos( $r93hdr, 'function_exists( \'jluxe_header_categories_url\' ) ? jluxe_header_categories_url() : jluxe_shop_url()' ) &&
+	false !== strpos( $r93hdr, 'class="jluxe-header-categories-trigger">دسته‌بندی‌ها<?php echo $jluxe_chevron;' ),
+	'R93b/R358 server-rendered header keeps the original destination and exposes the categories submenu affordance before JavaScript'
+);
 $r93ts = (string) file_get_contents( ABSPATH . 'inc/theme-settings.php' );
 check( 1 === preg_match( "#'megaMenu'\s*=>\s*array\(.*?'url'\s*=>\s*function_exists\( 'jluxe_header_categories_url' \)#s", $r93ts ), 'R93b mega-menu island receives the same URL' );
 $GLOBALS['existing_pages'] = $r93saved_pages;

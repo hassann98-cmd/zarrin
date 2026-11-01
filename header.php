@@ -101,7 +101,7 @@
 			$jluxe_chevron = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 transition-transform group-hover:rotate-180" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 			$jluxe_nav_items = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'header_nav.items', array() ) : array();
 			?>
-			<div data-jluxe-island="mega-menu"><a href="<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>">دسته‌بندی‌ها</a></div>
+			<div id="jluxe-header-categories-menu" class="jluxe-header-categories-menu" data-jluxe-island="mega-menu"><a href="<?php echo esc_url( function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url() ); ?>" class="jluxe-header-categories-trigger">دسته‌بندی‌ها<?php echo $jluxe_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></a></div>
 
 			<?php
 			/*
