@@ -1109,16 +1109,35 @@ function jluxe_render_homepage_sections(): void {
 	<?php
 	$builder_preview = function_exists( 'jluxe_visual_builder_preview_request_is_authorized' ) && jluxe_visual_builder_preview_request_is_authorized();
 	foreach ( $settings['homepage']['sections'] as $index => $section ) {
-		if ( empty( $section['enabled'] ) ) {
+		if ( ! is_array( $section ) ) {
 			continue;
 		}
-		if ( $builder_preview ) {
-			echo '<div class="jvb-preview-section" data-jvb-preview-index="' . esc_attr( (string) $index ) . '" style="display:contents">';
+		$enabled = ! empty( $section['enabled'] );
+		if ( ! $builder_preview && ! $enabled ) {
+			continue;
 		}
-		jluxe_render_homepage_section_frontend( $section );
-		if ( $builder_preview ) {
-			echo '</div>';
+		if ( ! $builder_preview ) {
+			jluxe_render_homepage_section_frontend( $section );
+			continue;
 		}
+
+		$section_type = isset( $section['type'] ) ? sanitize_key( (string) $section['type'] ) : '';
+		echo '<div class="jvb-preview-section" data-jvb-preview-index="' . esc_attr( (string) $index ) . '" data-jvb-preview-enabled="' . ( $enabled ? 'true' : 'false' ) . '" data-jvb-preview-type="' . esc_attr( $section_type ) . '" style="display:contents">';
+		if ( ! $enabled ) {
+			jluxe_visual_builder_render_preview_placeholder( $section, 'disabled' );
+		} else {
+			ob_start();
+			jluxe_render_homepage_section_frontend( $section );
+			$section_html = (string) ob_get_clean();
+			$visible_html = preg_replace( '#<(style|script)\b[^>]*>.*?</\1\s*>#is', '', $section_html );
+			$visible_html = preg_replace( '/<!--.*?-->/s', '', (string) $visible_html );
+			if ( '' === trim( (string) $visible_html ) ) {
+				jluxe_visual_builder_render_preview_placeholder( $section, 'empty' );
+			} else {
+				echo $section_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered by the native section renderer above.
+			}
+		}
+		echo '</div>';
 	}
 	if ( function_exists( 'jluxe_render_recent_products_panel' ) ) {
 		jluxe_render_recent_products_panel( 'home' );

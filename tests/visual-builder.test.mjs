@@ -5,13 +5,14 @@ import { JSDOM } from "jsdom";
 import jquery from "jquery";
 
 const source = await readFile(new URL("../assets/js/visual-builder.js", import.meta.url), "utf8");
+const settingsAdminSource = await readFile(new URL("../assets/js/theme-settings-admin.js", import.meta.url), "utf8");
 const styleSource = await readFile(new URL("../assets/css/visual-builder.css", import.meta.url), "utf8");
 
 function wait(window, delay = 0) {
 	return new Promise((resolve) => window.setTimeout(resolve, delay));
 }
 
-function createDom() {
+function createDom({ nativeHomepageActions = false } = {}) {
 	const dom = new JSDOM(`<!doctype html><html><body>
 		<div id="jluxe-visual-builder" data-preview-kind="live" data-preview-url="https://shop.test/">
 			<form id="jluxe-visual-builder-form">
@@ -56,6 +57,9 @@ function createDom() {
 				<span data-jvb-stage-subtitle></span>
 				<select id="jluxe-hb-add-type"><option value="banner">banner</option></select>
 				<button type="button" id="jluxe-hb-add"></button>
+				<div id="jluxe-hb-templates" hidden>
+					<template data-hb-template="banner"><div class="jluxe-hb-section" data-type="banner"><details open><summary><span class="jluxe-hb-type-label">بنر تک</span><label class="jluxe-hb-enabled"><input type="checkbox" name="homepage[sections][__INDEX__][enabled]" value="1" checked></label></summary><input name="homepage[sections][__INDEX__][title]" value=""></details></div></template>
+				</div>
 			</form>
 		</div>
 	</body></html>`, {
@@ -87,14 +91,20 @@ function createDom() {
 
 	const sections = window.document.getElementById("jluxe-hb-sections") || window.document.querySelector("[data-jvb-canvas]");
 	sections.id = "jluxe-hb-sections";
-	window.document.getElementById("jluxe-hb-add").addEventListener("click", () => {
-		const index = sections.querySelectorAll(":scope > .jluxe-hb-section").length;
-		const section = window.document.createElement("div");
-		section.className = "jluxe-hb-section";
-		section.setAttribute("data-type", "banner");
-		section.innerHTML = `<details open><summary><span class="jluxe-hb-type-label">بنر تک</span><label class="jluxe-hb-enabled"><input type="checkbox" name="homepage[sections][${index}][enabled]" value="1" checked></label></summary><input name="homepage[sections][${index}][title]"></details>`;
-		sections.appendChild(section);
-	});
+	if (nativeHomepageActions) {
+		window.jQuery.fn.sortable = function () { return this; };
+		window.jQuery.fn.wpColorPicker = function () { return this; };
+		window.eval(settingsAdminSource);
+	} else {
+		window.document.getElementById("jluxe-hb-add").addEventListener("click", () => {
+			const index = sections.querySelectorAll(":scope > .jluxe-hb-section").length;
+			const section = window.document.createElement("div");
+			section.className = "jluxe-hb-section";
+			section.setAttribute("data-type", "banner");
+			section.innerHTML = `<details open><summary><span class="jluxe-hb-type-label">بنر تک</span><label class="jluxe-hb-enabled"><input type="checkbox" name="homepage[sections][${index}][enabled]" value="1" checked></label></summary><input name="homepage[sections][${index}][title]"></details>`;
+			sections.appendChild(section);
+		});
+	}
 	window.eval(source);
 	return dom;
 }
@@ -240,8 +250,21 @@ test("undo and redo restore native text and checkbox values while text-field Ctr
 	dom.window.close();
 });
 
-test("dragging a library widget onto the rendered page inserts it at that visual position", async () => {
-	const dom = createDom();
+test("a library click uses the native WordPress homepage template to add a real section", async () => {
+	const dom = createDom({ nativeHomepageActions: true });
+	const { document } = dom.window;
+	await wait(dom.window, 10);
+	document.querySelector("[data-jvb-add-section]").click();
+	await wait(dom.window, 25);
+	const cards = Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section"));
+	assert.deepEqual(cards.map((card) => card.getAttribute("data-type")), ["text", "banner"]);
+	assert.equal(cards[1].querySelector('input[name="homepage[sections][1][title]"]') !== null, true, "the real PHP-style section template is cloned and reindexed by the native manager");
+	assert.match(document.querySelector("[data-jvb-save-state]").textContent, /ذخیره‌نشده/);
+	dom.window.close();
+});
+
+test("dragging a library widget through the native homepage builder inserts it at that visual position", async () => {
+	const dom = createDom({ nativeHomepageActions: true });
 	const { document } = dom.window;
 	dom.window.fetch = (url, init) => {
 		dom.window.__previewRequests.push({ url, body: init.body });

@@ -1339,7 +1339,13 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 		$cached = null;
 	}
 	if ( null !== $cached ) {
-		return $cached;
+		// The visual-builder preview is request-specific. A template, plugin or
+		// enqueue callback may warm this static cache before the main query is
+		// available, so apply the private preview overlay on every read without
+		// ever caching it into the active settings value.
+		return function_exists( 'jluxe_visual_builder_filter_frontend_settings_for_preview' )
+			? jluxe_visual_builder_filter_frontend_settings_for_preview( $cached )
+			: $cached;
 	}
 	$stored = get_option( JLUXE_SETTINGS_OPTION, array() );
 	if ( ! is_array( $stored ) ) {
@@ -1353,7 +1359,9 @@ function jluxe_get_theme_settings( bool $refresh = false ): array {
 	}
 
 	$cached = jluxe_array_merge_deep( jluxe_theme_settings_defaults(), $stored );
-	return $cached;
+	return function_exists( 'jluxe_visual_builder_filter_frontend_settings_for_preview' )
+		? jluxe_visual_builder_filter_frontend_settings_for_preview( $cached )
+		: $cached;
 }
 
 /**

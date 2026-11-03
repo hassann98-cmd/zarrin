@@ -154,9 +154,11 @@ function jluxe_visual_builder_get_authorized_preview_homepage(): ?array {
 }
 
 /**
- * جایگزینیِ موقتِ تنظیماتِ صفحهٔ اصلی فقط در درخواستِ مجازِ preview.
- * نسخهٔ تنظیمات را به نسخهٔ جاری می‌بریم تا migration دادهٔ پیش‌نمایش را
- * روی option اصلیِ سایت ننویسد.
+ * لایهٔ موقتِ تنظیماتِ صفحهٔ اصلی فقط در درخواستِ مجازِ preview.
+ * این لایه از jluxe_get_theme_settings() برمی‌گردد، نه از get_option()، و
+ * داخل کشِ static هم ذخیره نمی‌شود؛ بنابراین خواندنِ زودهنگامِ تنظیمات پیش
+ * از آماده‌شدنِ query، پیش‌نمایش را از دسترس خارج نمی‌کند. نسخه را به نسخهٔ
+ * جاری می‌بریم تا migration دادهٔ پیش‌نمایش روی option اصلی نوشته نشود.
  */
 function jluxe_visual_builder_filter_frontend_settings_for_preview( $settings ) {
 	$homepage = jluxe_visual_builder_get_authorized_preview_homepage();
@@ -169,7 +171,6 @@ function jluxe_visual_builder_filter_frontend_settings_for_preview( $settings ) 
 	$settings['version']  = JLUXE_SETTINGS_VERSION;
 	return $settings;
 }
-add_filter( 'option_' . JLUXE_SETTINGS_OPTION, 'jluxe_visual_builder_filter_frontend_settings_for_preview', 10, 1 );
 
 /** پیش‌نمایشِ خصوصی cache نمی‌شود و به موتورهای جست‌وجو معرفی نمی‌شود. */
 function jluxe_visual_builder_prepare_preview_response(): void {
@@ -276,6 +277,32 @@ function jluxe_visual_builder_sanitize_posted_homepage(): array {
 }
 
 /**
+ * جای خالیِ ویجت‌های بی‌محتوا فقط داخل پیش‌نمایشِ مجاز نمایش داده می‌شود؛
+ * دادهٔ جعلی وارد سایت نمی‌شود و بازدیدکنندهٔ عمومی هرگز این placeholder را نمی‌بیند.
+ */
+function jluxe_visual_builder_render_preview_placeholder( array $section, string $state = 'empty' ): void {
+	$type  = isset( $section['type'] ) ? sanitize_key( (string) $section['type'] ) : '';
+	$types = jluxe_visual_builder_section_types();
+	$label = $types[ $type ] ?? ( '' !== $type ? $type : 'بخش صفحه' );
+	$title = isset( $section['title'] ) && is_scalar( $section['title'] ) ? sanitize_text_field( (string) $section['title'] ) : '';
+	$title = '' !== $title ? $title : $label;
+	$state = 'disabled' === $state ? 'disabled' : 'empty';
+	$description = 'disabled' === $state
+		? 'این بخش در سایت خاموش است. برای نمایش آن، گزینهٔ «فعال» را در تنظیمات بزنید.'
+		: 'هنوز محتوای قابل‌نمایشی ندارد. عکس، محصول یا متن این بخش را از تنظیمات بومی اضافه کنید.';
+	?>
+	<section class="jvb-preview-placeholder" data-jvb-preview-placeholder="<?php echo esc_attr( $state ); ?>" data-jvb-preview-type="<?php echo esc_attr( $type ); ?>" role="note" aria-label="<?php echo esc_attr( $title . ' — پیش‌نمایش ویرایشی' ); ?>">
+		<span class="jvb-preview-placeholder__icon" aria-hidden="true">＋</span>
+		<span class="jvb-preview-placeholder__copy">
+			<strong><?php echo esc_html( $title ); ?></strong>
+			<span><?php echo esc_html( $description ); ?></span>
+		</span>
+		<span class="jvb-preview-placeholder__badge"><?php echo 'disabled' === $state ? 'غیرفعال' : 'آمادهٔ تنظیم'; ?></span>
+	</section>
+	<?php
+}
+
+/**
  * پیش‌نمایش زنده فقط در transient کوتاه‌عمرِ مدیر ذخیره می‌شود؛ option اصلی و
  * پیش‌نویسِ ذخیره‌شده با تایپ‌کردن یا افزودن یک جزء بازنویسی نمی‌شوند.
  */
@@ -309,7 +336,10 @@ function jluxe_visual_builder_handle_live_preview(): void {
 		),
 		home_url( '/' )
 	);
-	wp_send_json_success( array( 'url' => esc_url( $preview_url ) ) );
+	// The URL is returned in JSON, not embedded in HTML. esc_url() entity-encodes
+	// query-string ampersands as &#038;, which turns the remaining nonce into a
+	// fragment when iframe.src is assigned and causes WordPress to discard it.
+	wp_send_json_success( array( 'url' => esc_url_raw( $preview_url ) ) );
 }
 add_action( 'wp_ajax_jluxe_visual_builder_preview', 'jluxe_visual_builder_handle_live_preview' );
 

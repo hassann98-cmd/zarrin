@@ -30,6 +30,19 @@ add_filter( 'template_include', function ( $template ) {
 	return $template;
 }, PHP_INT_MAX );
 
+// Reproduce the builder's old cache-timing bug: warm the theme settings while
+// the signed preview query exists but before WordPress has parsed the front-page
+// query. The later homepage render must re-apply the user-scoped preview overlay.
+add_action( 'after_setup_theme', function () {
+	if ( isset( $_GET['jluxe_builder_preview'] ) && function_exists( 'jluxe_get_theme_settings' ) ) {
+		$settings = jluxe_get_theme_settings();
+		update_option( 'zarrin_test_preview_cache_warm', array(
+			'front_page' => is_front_page(),
+			'first_type' => $settings['homepage']['sections'][0]['type'] ?? '',
+		), false );
+	}
+}, PHP_INT_MAX );
+
 add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
 	if ( 0 === strpos( $url, 'https://api.kavenegar.com/v1/integration-only-no-real-provider/verify/lookup.json?' ) ) {
 		parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $parameters );

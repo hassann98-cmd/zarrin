@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
+import { JSDOM } from "jsdom";
+import jquery from "jquery";
 import { loadNodeRuntime } from "@php-wasm/node";
 import { HttpCookieStore } from "@php-wasm/universal";
 import { bootWordPressAndRequestHandler } from "@wp-playground/wordpress";
@@ -15,6 +17,8 @@ assert.ok(
   "Integration SDK requires Node >=24.18 (the normal frontend build still supports Node 22.12+).",
 );
 const repo = fileURLToPath(new URL("../../", import.meta.url));
+const themeSettingsAdminScript = await fs.readFile(path.join(repo, "assets/js/theme-settings-admin.js"), "utf8");
+const visualBuilderScript = await fs.readFile(path.join(repo, "assets/js/visual-builder.js"), "utf8");
 const archives = path.resolve(
   process.env.ZARRIN_INTEGRATION_DOWNLOADS ||
     path.join(repo, ".cache/integration/archives"),
@@ -235,6 +239,207 @@ try {
       !home.text.includes("Private fixture"),
     "Theme renders anonymously without WooCommerce or cached customer identity",
   );
+  // R367: exercise the builder through real wp-admin, admin-ajax, transients,
+  // WordPress front-page routing, login cookies and the actual PHP homepage renderer.
+  const visualBuilderFixture = await phpJson(`
+    $settings=jluxe_get_theme_settings(true);
+    update_option('zarrin_test_saved_homepage',$settings['homepage'],false);
+    $settings['homepage']=array(
+      'mobile_category_swipe_hint_enabled'=>true,
+      'sections'=>array(array('id'=>'only-blog','type'=>'blog','enabled'=>true,'title'=>'از وبلاگ','count'=>3))
+    );
+    update_option(JLUXE_SETTINGS_OPTION,$settings,false);
+    update_option(JLUXE_VISUAL_BUILDER_DRAFT_OPTION,array(),false);
+    $post_id=wp_insert_post(array('post_title'=>'Builder blog fixture','post_status'=>'publish','post_type'=>'post','post_content'=>'Visible blog fixture'));
+    return array('post_id'=>(int)$post_id,'front_page'=>(string)get_option('show_on_front'));
+  `);
+  freshVisitor();
+  const blogOnlyHome = await request(root, { method: "GET" });
+  check(
+    blogOnlyHome.status === 200 &&
+      blogOnlyHome.text.includes("Builder blog fixture") &&
+      !blogOnlyHome.text.includes("R367 preview-only text"),
+    "A homepage configured with only a blog section renders that real blog section before builder preview",
+  );
+  await login("integration-staff");
+  const visualBuilderAdmin = await request(
+    `${root}wp-admin/admin.php?page=jluxe-visual-builder`,
+    { method: "GET" },
+  );
+  const visualConfigMatch = visualBuilderAdmin.text.match(
+    /var jluxeVisualBuilder\s*=\s*(\{[^;]+\});/,
+  );
+  assert.equal(visualBuilderAdmin.status, 200, visualBuilderAdmin.text.slice(-700));
+  assert.ok(visualConfigMatch, "The real admin page localizes its preview action and nonce");
+  const visualConfig = JSON.parse(visualConfigMatch[1]);
+
+  // Drive the real admin page's component library, the theme's native section
+  // template/handler and its drag target in jsdom, then bridge the DOM's
+  // FormData to real WordPress admin-ajax and fetch the resulting private page.
+  const editorDom = new JSDOM(visualBuilderAdmin.text, {
+    url: `https://shop.test${root}wp-admin/admin.php?page=jluxe-visual-builder`,
+    runScripts: "outside-only",
+    pretendToBeVisual: true,
+  });
+  const editorWindow = editorDom.window;
+  const editorDocument = editorWindow.document;
+  editorWindow.jQuery = jquery(editorWindow);
+  editorWindow.confirm = () => false;
+  editorWindow.HTMLElement.prototype.scrollIntoView = function () {};
+  editorWindow.jQuery.fn.sortable = function () { return this; };
+  editorWindow.jQuery.fn.wpColorPicker = function () { return this; };
+  editorWindow.jQuery.fn.selectWoo = function () { return this; };
+  editorWindow.jluxeVisualBuilder = visualConfig;
+  editorWindow.__editorAjaxCalls = [];
+  editorWindow.fetch = async (url, init = {}) => {
+    const form = new URLSearchParams();
+    if (init.body && typeof init.body.entries === "function") {
+      for (const [key, value] of init.body.entries()) form.append(key, typeof value === "string" ? value : "");
+    }
+    const response = await request(new URL(String(url), `https://shop.test${root}`).href, {
+      method: init.method || "POST",
+      body: form.toString(),
+      form: true,
+    });
+    assert.equal(response.status, 200, response.text);
+    const payload = response.json();
+    editorWindow.__editorAjaxCalls.push({ form, payload });
+    // Keep jsdom's iframe on its same-origin blank document. We retain and GET
+    // the real WordPress preview URL separately below.
+    const uiPayload = { ...payload, data: { ...payload.data, url: "about:blank" } };
+    return { ok: true, json: async () => uiPayload };
+  };
+  editorWindow.eval(themeSettingsAdminScript);
+  editorWindow.eval(visualBuilderScript);
+  async function waitForEditorAjax(count) {
+    const deadline = Date.now() + 10_000;
+    while (editorWindow.__editorAjaxCalls.length < count) {
+      if (Date.now() > deadline) assert.fail(`Timed out waiting for editor AJAX #${count}`);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+  await waitForEditorAjax(1);
+  const firstEditorPreviewUrl = editorWindow.__editorAjaxCalls[0].payload.data.url;
+  const firstEditorPreview = await request(firstEditorPreviewUrl, { method: "GET" });
+  assert.equal(firstEditorPreview.status, 200, firstEditorPreview.text.slice(-500));
+  const editorFrame = editorDocument.querySelector("[data-jvb-preview-frame]");
+  const editorFrameDocument = editorFrame.contentDocument || editorFrame.contentWindow.document;
+  const parsedFirstPreview = new JSDOM(firstEditorPreview.text);
+  editorFrameDocument.body.innerHTML = parsedFirstPreview.window.document.body.innerHTML;
+  parsedFirstPreview.window.close();
+  editorFrame.dispatchEvent(new editorWindow.Event("load"));
+
+  const nativeBanner = editorDocument.querySelector('[data-jvb-add-section][data-type="banner"]');
+  const bannerTemplate = editorDocument.querySelector('#jluxe-hb-templates template[data-hb-template="banner"]');
+  const libraryTypes = Array.from(editorDocument.querySelectorAll("[data-jvb-add-section]"), (item) => item.getAttribute("data-type"));
+  const templateTypes = Array.from(editorDocument.querySelectorAll("#jluxe-hb-templates template[data-hb-template]"), (template) => template.getAttribute("data-hb-template"));
+  const selectorTypes = Array.from(editorDocument.querySelectorAll("#jluxe-hb-add-type option"), (option) => option.value);
+  check(
+    nativeBanner && bannerTemplate && libraryTypes.length > 0 &&
+      new Set(libraryTypes).size === libraryTypes.length &&
+      libraryTypes.every((type) => templateTypes.includes(type) && selectorTypes.includes(type)),
+    "Every real WordPress builder component has a matching native PHP template and add-selector option",
+  );
+  const dataTransferValues = new Map();
+  const dataTransferTypes = [];
+  const dataTransfer = {
+    types: dataTransferTypes,
+    setData(type, value) { if (!dataTransferTypes.includes(type)) dataTransferTypes.push(type); dataTransferValues.set(type, value); },
+    getData(type) { return dataTransferValues.get(type) || ""; },
+  };
+  const dragStart = new editorWindow.Event("dragstart", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragStart, "dataTransfer", { value: dataTransfer });
+  nativeBanner.dispatchEvent(dragStart);
+  assert.equal(dataTransfer.getData("application/x-jluxe-section"), "banner");
+  const renderedTarget = editorFrameDocument.querySelector("[data-jvb-preview-index=\"0\"]");
+  assert.ok(renderedTarget, "The real private homepage supplies an indexed visual drop target");
+  const dragOver = new editorFrameDocument.defaultView.Event("dragover", { bubbles: true, cancelable: true });
+  Object.defineProperty(dragOver, "dataTransfer", { value: dataTransfer });
+  Object.defineProperty(dragOver, "clientY", { value: 0 });
+  renderedTarget.dispatchEvent(dragOver);
+  assert.equal(dragOver.defaultPrevented, true);
+  const callsBeforeDrop = editorWindow.__editorAjaxCalls.length;
+  const drop = new editorFrameDocument.defaultView.Event("drop", { bubbles: true, cancelable: true });
+  Object.defineProperty(drop, "dataTransfer", { value: dataTransfer });
+  Object.defineProperty(drop, "clientY", { value: 0 });
+  renderedTarget.dispatchEvent(drop);
+  await new Promise((resolve) => editorWindow.setTimeout(resolve, 25));
+  const nativeCards = Array.from(editorDocument.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section"));
+  assert.ok(nativeCards.some((card) => card.getAttribute("data-type") === "banner"), "Dropping the real library item clones the native section template into the settings form");
+  await waitForEditorAjax(callsBeforeDrop + 1);
+  const droppedPreview = editorWindow.__editorAjaxCalls.at(-1);
+  assert.equal(droppedPreview.payload.success, true);
+  const droppedPreviewPage = await request(droppedPreview.payload.data.url, { method: "GET" });
+  check(
+    droppedPreviewPage.status === 200 &&
+      droppedPreviewPage.text.includes('data-jvb-preview-index="0" data-jvb-preview-enabled="true" data-jvb-preview-type="banner"') &&
+      droppedPreviewPage.text.includes('data-jvb-preview-index="1" data-jvb-preview-enabled="true" data-jvb-preview-type="blog"') &&
+      nativeCards.some((card) => card.querySelector('[name="homepage[sections][0][type]"]')?.value === "banner") &&
+      (await phpJson("return array_column(get_option(JLUXE_SETTINGS_OPTION)['homepage']['sections'], 'type');"))?.join(",") === "blog",
+    "Real WordPress admin drag/drop clones the native widget, submits its reordered form to admin-ajax, renders the private result, and leaves the active blog-only homepage untouched",
+  );
+  editorWindow.close();
+
+  const previewAjax = await ajax({
+    action: "jluxe_visual_builder_preview",
+    nonce: visualConfig.previewNonce,
+    "homepage[sections_present]": "1",
+    "homepage[mobile_category_swipe_hint_enabled]": "1",
+    "homepage[sections][0][id]": "preview-blog",
+    "homepage[sections][0][type]": "blog",
+    "homepage[sections][0][enabled]": "1",
+    "homepage[sections][0][title]": "از وبلاگ",
+    "homepage[sections][0][count]": "3",
+    "homepage[sections][1][id]": "preview-banner",
+    "homepage[sections][1][type]": "banner",
+    "homepage[sections][1][enabled]": "1",
+    "homepage[sections][2][id]": "preview-text",
+    "homepage[sections][2][type]": "text",
+    "homepage[sections][2][enabled]": "1",
+    "homepage[sections][2][title]": "R367 preview-only text",
+    "homepage[sections][2][content]": "<p>Preview content from the draft only</p>",
+    "homepage[sections][3][id]": "preview-disabled-hero",
+    "homepage[sections][3][type]": "hero",
+  });
+  assert.equal(previewAjax.status, 200, previewAjax.text);
+  assert.equal(previewAjax.json().success, true, previewAjax.text);
+  const previewUrl = previewAjax.json().data.url;
+  assert.ok(previewUrl.includes("&jvb_nonce=") && !previewUrl.includes("&#038;"), "JSON preview URLs keep raw query separators so the nonce is not converted into a URL fragment");
+  const builderPreview = await request(previewUrl, { method: "GET" });
+  const earlyPreviewCache = await phpJson("return get_option('zarrin_test_preview_cache_warm', array());");
+  check(
+    earlyPreviewCache.front_page === false && earlyPreviewCache.first_type === "blog",
+    "WordPress first warms live settings before it knows the request is the front page",
+  );
+  check(
+    builderPreview.status === 200 &&
+      builderPreview.text.includes("Builder blog fixture") &&
+      builderPreview.text.includes("R367 preview-only text") &&
+      builderPreview.text.includes('class="jvb-preview-section" data-jvb-preview-index="0"') &&
+      builderPreview.text.includes('class="jvb-preview-section" data-jvb-preview-index="1"') &&
+      builderPreview.text.includes('data-jvb-preview-placeholder="empty" data-jvb-preview-type="banner"') &&
+      builderPreview.text.includes('data-jvb-preview-placeholder="disabled" data-jvb-preview-type="hero"'),
+    "Real private preview applies the AJAX draft, marks each section, and shows empty/disabled widget placeholders",
+  );
+  freshVisitor();
+  const activeAfterPreview = await request(root, { method: "GET" });
+  check(
+    activeAfterPreview.status === 200 &&
+      activeAfterPreview.text.includes("Builder blog fixture") &&
+      !activeAfterPreview.text.includes("R367 preview-only text") &&
+      !activeAfterPreview.text.includes("jvb-preview-placeholder"),
+    "Live page stays blog-only after a private builder preview; transient edits/placeholders never leak to visitors",
+  );
+  await phpJson(`
+    $settings=jluxe_get_theme_settings(true);
+    $settings['homepage']=get_option('zarrin_test_saved_homepage');
+    update_option(JLUXE_SETTINGS_OPTION,$settings,false);
+    delete_option('zarrin_test_saved_homepage');
+    delete_option('zarrin_test_preview_cache_warm');
+    delete_option(JLUXE_VISUAL_BUILDER_DRAFT_OPTION);
+    return true;
+  `);
+  freshVisitor();
   check(
     await phpJson(
       "return is_wp_error(wp_remote_get('https://example.invalid/blocked')) && false === wp_mail('nobody@example.invalid','blocked','blocked');",

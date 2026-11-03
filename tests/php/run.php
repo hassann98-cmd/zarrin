@@ -3275,17 +3275,18 @@ $GLOBALS['can_manage'] = true;
 $GLOBALS['valid_wp_nonce'] = true;
 $r361_live_settings = array( 'version' => 1, 'homepage' => array( 'sections' => array( array( 'id' => 'active-live' ) ) ), 'colors' => array( 'primary' => '#123456' ) );
 $r361_preview_settings = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
-$r361_preview_option = get_option( JLUXE_SETTINGS_OPTION, array() );
 $GLOBALS['no_cache'] = false;
+$r361_preview_getter_settings = jluxe_get_theme_settings( true );
 jluxe_visual_builder_prepare_preview_response();
 check(
 	jluxe_visual_builder_preview_request_is_authorized() &&
 	$r360_sanitized === $r361_preview_settings['homepage'] &&
-	$r360_sanitized === ( $r361_preview_option['homepage'] ?? null ) &&
+	$r360_sanitized === $r361_preview_getter_settings['homepage'] &&
 	JLUXE_SETTINGS_VERSION === $r361_preview_settings['version'] &&
+	JLUXE_SETTINGS_VERSION === $r361_preview_getter_settings['version'] &&
 	true === $GLOBALS['no_cache'] &&
 	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ),
-	'R361 a valid administrator nonce previews only the saved draft, forces no-cache/current schema, and leaves the active option untouched'
+	'R361 a valid administrator nonce previews only the saved draft through the theme accessor, forces no-cache/current schema, and leaves the raw option untouched'
 );
 $GLOBALS['can_manage'] = false;
 $r361_forbidden_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
@@ -3350,22 +3351,27 @@ $_GET = array(
 );
 $GLOBALS['valid_wp_nonce'] = true;
 $GLOBALS['no_cache'] = false;
+$GLOBALS['query_kind'] = 'product';
+$r361_prequery_theme_settings = jluxe_get_theme_settings( true );
+$GLOBALS['query_kind'] = 'front';
 $r361_live_preview_settings = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
-$r361_live_preview_option = get_option( JLUXE_SETTINGS_OPTION, array() );
+$r361_live_preview_theme_settings = jluxe_get_theme_settings();
+$r361_live_preview_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
 jluxe_visual_builder_prepare_preview_response();
-jluxe_get_theme_settings( true );
 ob_start();
 jluxe_render_homepage_sections();
 $r361_live_preview_markup = (string) ob_get_clean();
 check(
 	jluxe_visual_builder_preview_request_is_authorized() &&
+	$r361_prequery_theme_settings['homepage'] !== $r361_live_preview_homepage &&
 	$r361_live_preview_homepage === $r361_live_preview_settings['homepage'] &&
-	$r361_live_preview_homepage === ( $r361_live_preview_option['homepage'] ?? null ) &&
+	$r361_live_preview_homepage === $r361_live_preview_theme_settings['homepage'] &&
+	$r360_active_before_draft_save === $r361_live_preview_option &&
 	true === $GLOBALS['no_cache'] &&
 	false !== strpos( $r361_live_preview_markup, 'class="jvb-preview-section" data-jvb-preview-index="0"' ) &&
 	false !== strpos( $r361_live_preview_markup, 'پیش‌نمایش زنده' ) &&
 	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ),
-	'R364 the private preview route renders the sanitized unsaved layout with position markers and no-cache headers while the public option remains unchanged'
+	'R364 the private preview route re-applies the unsaved layout after an early live-settings cache warm, emits position markers and no-cache headers, and leaves the raw option untouched'
 );
 $GLOBALS['authenticated_user'] = 88;
 $r361_other_user_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
