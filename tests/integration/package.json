@@ -16,5 +16,9 @@
     "@php-wasm/node": "3.1.55",
     "@php-wasm/universal": "3.1.55",
     "@wp-playground/wordpress": "3.1.55"
+  },
+  "devDependencies": {
+    "jquery": "3.7.1",
+    "jsdom": "26.1.0"
   }
 }
