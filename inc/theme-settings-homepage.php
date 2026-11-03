@@ -1149,7 +1149,8 @@ function jluxe_render_homepage_sections(): void {
  * Static/default homepages should not pay for the carousel/story scripts.
  */
 function jluxe_enqueue_homepage_assets(): void {
-	if ( ! is_front_page() ) {
+	$preview_request = function_exists( 'jluxe_visual_builder_preview_request_is_authorized' ) && jluxe_visual_builder_preview_request_is_authorized();
+	if ( ! is_front_page() && ! $preview_request ) {
 		return;
 	}
 

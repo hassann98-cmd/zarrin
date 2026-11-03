@@ -3260,6 +3260,8 @@ check(
 	'R361 saving a visual-builder draft writes its private option without touching the active theme-settings option'
 );
 $r361_old_get = $_GET;
+$r361_old_request_uri_exists = array_key_exists( 'REQUEST_URI', $_SERVER );
+$r361_old_request_uri = $_SERVER['REQUEST_URI'] ?? null;
 $r361_old_query_kind = $GLOBALS['query_kind'] ?? null;
 $r361_old_user = $GLOBALS['authenticated_user'] ?? null;
 $r361_old_manage = $GLOBALS['can_manage'] ?? null;
@@ -3273,6 +3275,19 @@ $_GET = array(
 $GLOBALS['authenticated_user'] = 77;
 $GLOBALS['can_manage'] = true;
 $GLOBALS['valid_wp_nonce'] = true;
+$_SERVER['REQUEST_URI'] = '/store/?jluxe_builder_preview=draft';
+$GLOBALS['query_kind'] = 'blog';
+$r361_root_posts_preview_allowed = jluxe_visual_builder_preview_request_is_authorized();
+$r361_root_posts_page_context = jluxe_page_context();
+$_SERVER['REQUEST_URI'] = '/store/blog/?jluxe_builder_preview=draft';
+$r361_blog_archive_preview_allowed = jluxe_visual_builder_preview_request_is_authorized();
+$r361_blog_archive_template = jluxe_visual_builder_preview_template_include( '/theme/index.php' );
+$GLOBALS['query_kind'] = 'front';
+$_SERVER['REQUEST_URI'] = '/store/?jluxe_builder_preview=draft';
+check(
+	$r361_root_posts_preview_allowed && 'home' === $r361_root_posts_page_context && ! $r361_blog_archive_preview_allowed && '/theme/index.php' === $r361_blog_archive_template,
+	'R369 a signed preview is allowed when the root is_home posts index is not is_front_page, but denied on the separate /blog/ archive path'
+);
 $r361_live_settings = array( 'version' => 1, 'homepage' => array( 'sections' => array( array( 'id' => 'active-live' ) ) ), 'colors' => array( 'primary' => '#123456' ) );
 $r361_preview_settings = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
 $GLOBALS['no_cache'] = false;
@@ -3391,6 +3406,7 @@ check(
 	'R364 live preview requires the current administrator and a valid nonce, and cannot reveal another user’s transient'
 );
 $_GET = $r361_old_get;
+if ( $r361_old_request_uri_exists ) { $_SERVER['REQUEST_URI'] = $r361_old_request_uri; } else { unset( $_SERVER['REQUEST_URI'] ); }
 if ( null === $r361_old_user ) { unset( $GLOBALS['authenticated_user'] ); } else { $GLOBALS['authenticated_user'] = $r361_old_user; }
 if ( null === $r361_old_manage ) { unset( $GLOBALS['can_manage'] ); } else { $GLOBALS['can_manage'] = $r361_old_manage; }
 if ( null === $r361_old_nonce ) { unset( $GLOBALS['valid_wp_nonce'] ); } else { $GLOBALS['valid_wp_nonce'] = $r361_old_nonce; }

@@ -406,6 +406,16 @@ try {
   const previewUrl = previewAjax.json().data.url;
   assert.ok(previewUrl.includes("&jvb_nonce=") && !previewUrl.includes("&#038;"), "JSON preview URLs keep raw query separators so the nonce is not converted into a URL fragment");
   const builderPreview = await request(previewUrl, { method: "GET" });
+  const previewQueryFlags = await phpJson("return get_option('zarrin_test_last_query', array());");
+  check(
+    previewQueryFlags.is_home === true && previewQueryFlags.is_front_page === false,
+    "Regression fixture reaches the reported root posts-index state: is_home() true and is_front_page() false",
+  );
+  const previewTemplate = await phpJson("return get_option('zarrin_test_last_template', '');");
+  check(
+    previewTemplate.endsWith('/front-page.php'),
+    "An authorized root posts-index preview selects the complete front-page template rather than the blog index template",
+  );
   const earlyPreviewCache = await phpJson("return get_option('zarrin_test_preview_cache_warm', array());");
   check(
     earlyPreviewCache.front_page === false && earlyPreviewCache.first_type === "blog",

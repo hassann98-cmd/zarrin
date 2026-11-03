@@ -7,6 +7,13 @@ if ( ! defined( 'ZARRIN_INTEGRATION_TEST' ) || ! ZARRIN_INTEGRATION_TEST ) {
 
 // No mail, network, paid API calls, gateway requests or real SMS delivery.
 add_filter( 'pre_wp_mail', '__return_false', PHP_INT_MAX );
+// Force one real builder-preview request into the reported WordPress state:
+// retain the root posts query but make is_front_page() false, as on a separate
+// posts-index route. The query is still rendered by home.php/index.php.
+add_filter( 'pre_option_show_on_front', function ( $value ) {
+	return isset( $_GET['jluxe_builder_preview'] ) ? 'page' : $value;
+}, PHP_INT_MAX );
+
 // Capture which real theme template WordPress resolves for the most recent
 // front-end request; this is test-only state in the disposable database.
 add_action( 'wp', function () {

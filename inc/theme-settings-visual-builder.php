@@ -118,8 +118,33 @@ function jluxe_visual_builder_preview_request_mode(): string {
 	return in_array( $mode, array( 'draft', 'live' ), true ) ? $mode : '';
 }
 
+/**
+ * مجازکردنِ مسیرِ صفحهٔ اصلی، هم وقتی WordPress آن را front page می‌داند و
+ * هم وقتی صفحهٔ اصلیِ سایت، فهرست نوشته‌هاست (is_home=true). در حالت دوم،
+ * تطبیقِ مسیر با home_url('/') مانع فعال‌شدنِ preview روی /blog/ می‌شود.
+ */
+function jluxe_visual_builder_preview_is_homepage_request(): bool {
+	if ( ! function_exists( 'is_front_page' ) || ! function_exists( 'is_home' ) || ! function_exists( 'wp_parse_url' ) || ! function_exists( 'home_url' ) ) {
+		return false;
+	}
+
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+	if ( '' === $request_uri ) {
+		return is_front_page();
+	}
+
+	$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+	$home_path    = wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+	if ( ! is_string( $request_path ) || ! is_string( $home_path ) ) {
+		return false;
+	}
+
+	$path_matches_home = untrailingslashit( rawurldecode( $request_path ) ) === untrailingslashit( rawurldecode( $home_path ) );
+	return $path_matches_home && ( is_front_page() || is_home() );
+}
+
 function jluxe_visual_builder_preview_request_is_authorized(): bool {
-	if ( is_admin() || ( function_exists( 'is_front_page' ) && ! is_front_page() ) || '' === jluxe_visual_builder_preview_request_mode() ) {
+	if ( is_admin() || '' === jluxe_visual_builder_preview_request_mode() || ! jluxe_visual_builder_preview_is_homepage_request() ) {
 		return false;
 	}
 	if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) || ! isset( $_GET['jvb_nonce'] ) || ! is_string( $_GET['jvb_nonce'] ) ) {
@@ -129,6 +154,20 @@ function jluxe_visual_builder_preview_request_is_authorized(): bool {
 	$nonce = sanitize_text_field( wp_unslash( $_GET['jvb_nonce'] ) );
 	return '' !== $nonce && (bool) wp_verify_nonce( $nonce, 'jluxe_visual_builder_preview' );
 }
+
+/**
+ * درخواستِ preview مجاز باید همان پوستهٔ کاملِ خانه را رندر کند؛ WordPress
+ * ممکن است برای فهرست نوشته‌های ریشه، قالبِ blog/index را انتخاب کرده باشد.
+ */
+function jluxe_visual_builder_preview_template_include( $template ) {
+	if ( ! jluxe_visual_builder_preview_request_is_authorized() || ! function_exists( 'locate_template' ) ) {
+		return $template;
+	}
+
+	$homepage_template = locate_template( array( 'front-page.php' ) );
+	return is_string( $homepage_template ) && '' !== $homepage_template ? $homepage_template : $template;
+}
+add_filter( 'template_include', 'jluxe_visual_builder_preview_template_include', 99 );
 
 function jluxe_visual_builder_live_preview_transient_key( int $user_id = 0 ): string {
 	$user_id = $user_id > 0 ? $user_id : (int) get_current_user_id();
