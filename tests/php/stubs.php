@@ -44,7 +44,13 @@ function get_option($k,$default=false){
   $accepted=max(1,(int)($filter[3]??1));
   $pre_option=call_user_func_array($filter[1],array_slice(array($pre_option,$k,$default),0,$accepted));
  }
- return false!==$pre_option?$pre_option:$value;
+ $value=false!==$pre_option?$pre_option:$value;
+ foreach($GLOBALS['filters']??[] as $filter){
+  if(($filter[0]??'')!=='option_'.$k || !is_callable($filter[1]??null)) continue;
+  $accepted=max(1,(int)($filter[3]??1));
+  $value=call_user_func_array($filter[1],array_slice(array($value,$k),0,$accepted));
+ }
+ return $value;
 }
 function update_option($k,$v,...$a){$GLOBALS['options'][$k]=$v; return true;}
 function delete_option($k){unset($GLOBALS['options'][$k]);}

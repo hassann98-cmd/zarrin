@@ -1980,6 +1980,18 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['title'] = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : '';
 			break;
 
+		case 'cta':
+			$section['eyebrow'] = isset( $posted['eyebrow'] ) && is_scalar( $posted['eyebrow'] ) ? sanitize_text_field( (string) $posted['eyebrow'] ) : '';
+			$section['title'] = isset( $posted['title'] ) && is_scalar( $posted['title'] ) ? sanitize_text_field( (string) $posted['title'] ) : '';
+			$section['content'] = isset( $posted['content'] ) && is_scalar( $posted['content'] ) ? sanitize_textarea_field( (string) $posted['content'] ) : '';
+			$section['button_label'] = isset( $posted['button_label'] ) && is_scalar( $posted['button_label'] ) ? sanitize_text_field( (string) $posted['button_label'] ) : '';
+			$section['button_url'] = isset( $posted['button_url'] ) && is_scalar( $posted['button_url'] ) ? esc_url_raw( trim( (string) $posted['button_url'] ) ) : '';
+			$tone = isset( $posted['tone'] ) && is_scalar( $posted['tone'] ) ? sanitize_key( (string) $posted['tone'] ) : 'soft';
+			$section['tone'] = in_array( $tone, array( 'soft', 'brand' ), true ) ? $tone : 'soft';
+			$alignment = isset( $posted['alignment'] ) && is_scalar( $posted['alignment'] ) ? sanitize_key( (string) $posted['alignment'] ) : 'start';
+			$section['alignment'] = in_array( $alignment, array( 'start', 'center' ), true ) ? $alignment : 'start';
+			break;
+
 		case 'text':
 			$section['title']   = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : '';
 			$section['content'] = isset( $posted['content'] ) ? wp_kses_post( $posted['content'] ) : '';

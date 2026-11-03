@@ -23,6 +23,7 @@ function jluxe_settings_nav_groups(): array {
 		'ظاهر و صفحه‌ساز' => array(
 			array( 'jluxe-identity', 'هویت سایت', 'id', 'نام فروشگاه، لوگو، فاویکون و توضیح کوتاه سایت.' ),
 			array( 'jluxe-homepage', 'صفحهٔ اصلی', 'admin-home', 'چیدمان و ترتیب بخش‌های صفحهٔ اصلی.' ),
+			array( 'jluxe-visual-builder', 'صفحه‌ساز بصری (آزمایشی)', 'layout', 'ویرایش جداگانهٔ پیش‌نویس صفحهٔ اصلی؛ انتشار فقط با تأیید صریح.' ),
 			array( 'jluxe-colors-typography', 'رنگ و تایپوگرافی', 'admin-customizer', 'رنگ‌های پوسته، تایپوگرافی و طرح‌های اختیاری.' ),
 			array( 'jluxe-header', 'هدر و منوی هدر', 'align-center', 'تنظیم اجزای هدر، منوها و رفتار دسته‌بندی‌ها.' ),
 			array( 'jluxe-announcement', 'نوار اطلاع‌رسانی', 'admin-comments', 'متن، تصویر یا پیام‌های نوار بالای هدر.' ),

@@ -3191,6 +3191,240 @@ foreach ( $settings_nav_groups as $settings_nav_group => $settings_nav_items ) {
 	}
 }
 check( count( $settings_nav_groups ) >= 7 && $settings_nav_count >= 25 && $settings_nav_routes_rendered && $settings_nav_routes_registered && false === strpos( $settings_nav_html, 'boom-' ) && strpos( $settings_nav_html, 'page=jluxe-homepage' ) !== false && strpos( $settings_nav_html, 'page=jluxe-cart-checkout' ) !== false && strpos( $settings_nav_html, 'page=jluxe-ai-assistant' ) !== false && strpos( $settings_nav_html, 'page=jluxe-import-export' ) !== false, 'R358 the new grouped sidebar maps searchable dashboard cards to existing Zarrin settings routes rather than inventing Boom-only pages' );
+
+// R361: the visual builder is a separate, draft-only admin screen that reuses the native homepage section editors.
+$r361_preview_vars = jluxe_visual_builder_register_preview_query_vars( array( 'p' ) );
+check(
+	in_array( 'p', $r361_preview_vars, true ) &&
+	in_array( 'jluxe_builder_preview', $r361_preview_vars, true ) &&
+	in_array( 'jvb_nonce', $r361_preview_vars, true ),
+	'R361 preview query variables are registered once so WordPress canonical redirects preserve the signed preview URL'
+);
+$r360_old_post = $_POST;
+$r360_draft_option = $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] ?? null;
+$r360_live_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
+unset( $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] );
+ob_start();
+jluxe_render_visual_builder_page();
+$r360_builder_html = (string) ob_get_clean();
+check(
+	19 === count( jluxe_homepage_section_types() ) &&
+	20 === count( jluxe_visual_builder_section_types() ) &&
+	false !== strpos( $r360_builder_html, 'صفحه‌ساز بصری' ) &&
+	false !== strpos( $r360_builder_html, 'name="homepage[sections][0][type]"' ) &&
+		20 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
+		false !== strpos( $r360_builder_html, 'data-hb-template="cta"' ) &&
+		false !== strpos( $r360_builder_html, 'متنِ دکمه' ) &&
+		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
+		false !== strpos( $r360_builder_html, 'هنوز پیش‌نویس ذخیره‌شده‌ای وجود ندارد' ) &&
+	false === strpos( $r360_builder_html, 'id="jluxe-homepage-form"' ) &&
+	! array_key_exists( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, $GLOBALS['options'] ) &&
+	( $r360_live_option === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ) ),
+	'R361 the independent visual builder renders all native section templates on a separate screen without writing either the draft or active homepage on first view'
+);
+$_POST['homepage'] = array(
+	'sections_present' => '1',
+	'mobile_category_swipe_hint_enabled' => '0',
+	'sections' => array(
+		array( 'id' => 'visual-text', 'type' => 'text', 'enabled' => '1', 'title' => 'متن پیش‌نویس', 'content' => '<strong>نمونه</strong>' ),
+		array( 'id' => 'invalid-section', 'type' => 'not-a-native-widget', 'enabled' => '1' ),
+	),
+);
+$r360_sanitized = jluxe_visual_builder_sanitize_posted_homepage();
+$_POST['homepage'] = array( 'sections_present' => '1', 'mobile_category_swipe_hint_enabled' => '0' );
+$r360_intentionally_empty = jluxe_visual_builder_sanitize_posted_homepage();
+check(
+	1 === count( $r360_sanitized['sections'] ) &&
+	'visual-text' === $r360_sanitized['sections'][0]['id'] &&
+	'متن پیش‌نویس' === $r360_sanitized['sections'][0]['title'] &&
+	false === $r360_sanitized['mobile_category_swipe_hint_enabled'] &&
+	array() === $r360_intentionally_empty['sections'],
+	'R361 visual builder draft sanitization keeps only native sections and can intentionally save an empty layout'
+);
+$r360_active_before_draft_save = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
+jluxe_visual_builder_store_draft( $r360_sanitized );
+$r360_draft_after_save = $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] ?? array();
+check(
+	isset( $r360_draft_after_save['homepage']['sections'][0]['id'] ) &&
+	'visual-text' === $r360_draft_after_save['homepage']['sections'][0]['id'] &&
+	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ),
+	'R361 saving a visual-builder draft writes its private option without touching the active theme-settings option'
+);
+$r361_old_get = $_GET;
+$r361_old_query_kind = $GLOBALS['query_kind'] ?? null;
+$r361_old_user = $GLOBALS['authenticated_user'] ?? null;
+$r361_old_manage = $GLOBALS['can_manage'] ?? null;
+$r361_old_nonce = $GLOBALS['valid_wp_nonce'] ?? null;
+$r361_old_no_cache = $GLOBALS['no_cache'] ?? null;
+$GLOBALS['query_kind'] = 'front';
+$_GET = array(
+	'jluxe_builder_preview' => 'draft',
+	'jvb_nonce' => wp_create_nonce( 'jluxe_visual_builder_preview' ),
+);
+$GLOBALS['authenticated_user'] = 77;
+$GLOBALS['can_manage'] = true;
+$GLOBALS['valid_wp_nonce'] = true;
+$r361_live_settings = array( 'version' => 1, 'homepage' => array( 'sections' => array( array( 'id' => 'active-live' ) ) ), 'colors' => array( 'primary' => '#123456' ) );
+$r361_preview_settings = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$r361_preview_option = get_option( JLUXE_SETTINGS_OPTION, array() );
+$GLOBALS['no_cache'] = false;
+jluxe_visual_builder_prepare_preview_response();
+check(
+	jluxe_visual_builder_preview_request_is_authorized() &&
+	$r360_sanitized === $r361_preview_settings['homepage'] &&
+	$r360_sanitized === ( $r361_preview_option['homepage'] ?? null ) &&
+	JLUXE_SETTINGS_VERSION === $r361_preview_settings['version'] &&
+	true === $GLOBALS['no_cache'] &&
+	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ),
+	'R361 a valid administrator nonce previews only the saved draft, forces no-cache/current schema, and leaves the active option untouched'
+);
+$GLOBALS['can_manage'] = false;
+$r361_forbidden_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$GLOBALS['can_manage'] = true;
+$GLOBALS['valid_wp_nonce'] = false;
+$r361_invalid_nonce_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$GLOBALS['valid_wp_nonce'] = true;
+$GLOBALS['query_kind'] = 'product';
+$r361_non_home_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$GLOBALS['query_kind'] = 'front';
+check(
+	$r361_live_settings === $r361_forbidden_preview &&
+	$r361_live_settings === $r361_invalid_nonce_preview &&
+	$r361_live_settings === $r361_non_home_preview,
+	'R361 anonymous, unauthorized, invalid-nonce, or non-home requests keep the published settings'
+);
+$GLOBALS['valid_wp_nonce'] = true;
+ob_start();
+jluxe_render_visual_builder_page();
+$r361_saved_preview_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r361_saved_preview_html, 'data-preview-kind="draft"' ) &&
+	false !== strpos( $r361_saved_preview_html, 'jluxe_builder_preview=draft' ) &&
+	false !== strpos( $r361_saved_preview_html, 'jvb_nonce=nonce-jluxe_visual_builder_preview' ) &&
+	false !== strpos( $r361_saved_preview_html, 'فقط برای مدیرِ واردشده' ),
+	'R361 the builder links to a nonce-protected private preview of the last saved draft and labels unsaved edits accurately'
+);
+$_GET = $r361_old_get;
+if ( null === $r361_old_user ) { unset( $GLOBALS['authenticated_user'] ); } else { $GLOBALS['authenticated_user'] = $r361_old_user; }
+if ( null === $r361_old_manage ) { unset( $GLOBALS['can_manage'] ); } else { $GLOBALS['can_manage'] = $r361_old_manage; }
+if ( null === $r361_old_nonce ) { unset( $GLOBALS['valid_wp_nonce'] ); } else { $GLOBALS['valid_wp_nonce'] = $r361_old_nonce; }
+if ( null === $r361_old_no_cache ) { unset( $GLOBALS['no_cache'] ); } else { $GLOBALS['no_cache'] = $r361_old_no_cache; }
+if ( null === $r361_old_query_kind ) { unset( $GLOBALS['query_kind'] ); } else { $GLOBALS['query_kind'] = $r361_old_query_kind; }
+$_POST = $r360_old_post;
+if ( null === $r360_draft_option ) {
+	unset( $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] );
+} else {
+	$GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] = $r360_draft_option;
+}
+if ( null === $r360_live_option ) {
+	unset( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] );
+} else {
+	$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = $r360_live_option;
+}
+
+// R362: an additional native, token-driven CTA widget is additive and only renders when explicitly enabled.
+$r362_cta = jluxe_sanitize_homepage_section(
+	array(
+		'id'           => 'phase-three-cta',
+		'type'         => 'cta',
+		'enabled'      => '1',
+		'eyebrow'      => '<b>پیشنهاد تازه</b>',
+		'title'        => '<em>برای خرید</em>',
+		'content'      => "از فروشگاه دیدن کنید.\nمحصول مورد نظر را پیدا کنید.",
+		'button_label' => '<strong>مشاهدهٔ فروشگاه</strong>',
+		'button_url'   => 'https://shop.test/shop/',
+		'tone'         => 'brand',
+		'alignment'    => 'center',
+	)
+);
+$r362_cta_invalid_choices = jluxe_sanitize_homepage_section(
+	array(
+		'id'        => 'phase-three-cta-invalid',
+		'type'      => 'cta',
+		'tone'      => 'unapproved',
+		'alignment' => 'left',
+	)
+);
+$r362_homepage_types = array_keys( jluxe_homepage_section_types() );
+$r362_visual_builder_types = array_keys( jluxe_visual_builder_section_types() );
+$r362_default_home_types = array_column( jluxe_theme_settings_defaults()['homepage']['sections'], 'type' );
+$r362_old_post = $_POST;
+$_POST['homepage'] = array(
+	'sections_present' => '1',
+	'sections' => array( array( 'id' => 'visual-cta', 'type' => 'cta', 'enabled' => '1', 'title' => 'خرید', 'button_label' => 'مشاهده', 'button_url' => 'https://shop.test/shop/' ) ),
+);
+$r362_builder_sanitized = jluxe_visual_builder_sanitize_posted_homepage();
+$_POST = $r362_old_post;
+ob_start();
+jluxe_render_homepage_section_frontend( $r362_cta );
+$r362_cta_html = (string) ob_get_clean();
+ob_start();
+jluxe_render_homepage_cta( array( 'title' => '<script>no</script>', 'content' => '<img src=x>', 'button_label' => '<b>متن</b>', 'button_url' => 'https://shop.test/' ) );
+$r362_escaped_cta_html = (string) ob_get_clean();
+check(
+	19 === count( $r362_homepage_types ) &&
+	20 === count( $r362_visual_builder_types ) &&
+	array( 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'html', 'spacer' ) === $r362_homepage_types &&
+	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 19 ) &&
+	array( 'cta' ) === array_slice( $r362_visual_builder_types, 19, 1 ) &&
+	! in_array( 'cta', $r362_default_home_types, true ) &&
+	'cta' === ( $r362_builder_sanitized['sections'][0]['type'] ?? '' ) &&
+	'https://shop.test/shop/' === ( $r362_builder_sanitized['sections'][0]['button_url'] ?? '' ) &&
+	'پیشنهاد تازه' === $r362_cta['eyebrow'] &&
+	'برای خرید' === $r362_cta['title'] &&
+	'brand' === $r362_cta['tone'] &&
+	'center' === $r362_cta['alignment'] &&
+	'soft' === $r362_cta_invalid_choices['tone'] &&
+	'start' === $r362_cta_invalid_choices['alignment'] &&
+	false !== strpos( $r362_cta_html, 'jluxe-home-cta--brand' ) &&
+	false !== strpos( $r362_cta_html, 'jluxe-home-cta--align-center' ) &&
+	false !== strpos( $r362_cta_html, 'href="https://shop.test/shop/"' ) &&
+	false === strpos( $r362_cta_html, '<em>' ) &&
+	false !== strpos( $r362_escaped_cta_html, '&lt;script&gt;' ) &&
+	false === strpos( $r362_escaped_cta_html, '<script>' ),
+	'R362 the CTA section sanitizes fields, allow-lists visual variants, renders semantic token-driven markup, and escapes output'
+);
+$r362_home_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
+$r362_home_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
+$r362_old_query_kind = $GLOBALS['query_kind'] ?? null;
+$r362_old_styles = $GLOBALS['styles'] ?? array();
+$r362_home_settings = jluxe_get_theme_settings();
+$r362_home_settings['homepage']['sections'] = array( array( 'type' => 'cta', 'enabled' => true, 'title' => 'دعوت' ) );
+$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = $r362_home_settings;
+jluxe_get_theme_settings( true );
+$GLOBALS['query_kind'] = 'front';
+$GLOBALS['styles'] = array();
+jluxe_enqueue_homepage_assets();
+$r362_cta_style_enqueued = isset( $GLOBALS['styles']['jluxe-homepage-cta'] );
+$r362_home_settings['homepage']['sections'][0]['enabled'] = false;
+$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = $r362_home_settings;
+jluxe_get_theme_settings( true );
+$GLOBALS['styles'] = array();
+jluxe_enqueue_homepage_assets();
+$r362_disabled_cta_style_skipped = ! isset( $GLOBALS['styles']['jluxe-homepage-cta'] );
+$GLOBALS['query_kind'] = 'product';
+$GLOBALS['styles'] = array();
+jluxe_enqueue_homepage_assets();
+$r362_non_home_cta_style_skipped = ! isset( $GLOBALS['styles']['jluxe-homepage-cta'] );
+$r362_cta_css = (string) file_get_contents( ABSPATH . 'assets/css/homepage-cta.css' );
+check(
+	$r362_cta_style_enqueued &&
+	$r362_disabled_cta_style_skipped &&
+	$r362_non_home_cta_style_skipped &&
+	false !== strpos( $r362_cta_css, '.home .jluxe-home-cta' ) &&
+	false !== strpos( $r362_cta_css, 'hsl(var(--primary))' ) &&
+	false !== strpos( $r362_cta_css, 'prefers-reduced-motion: reduce' ),
+	'R362 CTA styles load only on the homepage when enabled, stay scoped, and use active theme tokens with reduced-motion support'
+);
+if ( $r362_home_option_exists ) {
+	$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = $r362_home_option;
+} else {
+	unset( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] );
+}
+$GLOBALS['query_kind'] = $r362_old_query_kind;
+$GLOBALS['styles'] = $r362_old_styles;
+jluxe_get_theme_settings( true );
+
 ob_start();
 jluxe_settings_page_shell( 'آزمون پنل', 'jluxe-product-page', null, static function () { echo '<form id="settings-form-sentinel" method="post"></form>'; } );
 $settings_shell_html = ob_get_clean();

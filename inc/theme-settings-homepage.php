@@ -111,7 +111,7 @@ function jluxe_homepage_mobile_category_hint_enabled(): bool {
 function jluxe_render_homepage_section_editor( $i, array $section, array $types, bool $is_template = false ): void {
 	$type    = $section['type'] ?? 'text';
 	$name    = "homepage[sections][{$i}]";
-	$label   = $types[ $type ] ?? $type;
+	$label   = $types[ $type ] ?? ( 'cta' === $type ? 'دعوت به اقدام' : $type );
 	?>
 	<div class="jluxe-hb-section" data-type="<?php echo esc_attr( $type ); ?>">
 		<input type="hidden" class="jluxe-hb-type-input" name="<?php echo esc_attr( $name ); ?>[type]" value="<?php echo esc_attr( $type ); ?>" />
@@ -677,6 +677,21 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					jluxe_hb_field_text( $name, 'title', 'عنوان بخش', $section['title'] ?? '' );
 					break;
 
+				case 'cta':
+					echo '<p class="description">یک بلوکِ فراخوانِ مستقل با تیتر، توضیح و پیوند؛ رنگ‌ها از پالتِ فعالِ سایت پیروی می‌کنند.</p>';
+					jluxe_hb_field_text( $name, 'eyebrow', 'برچسبِ کوچک (اختیاری)', (string) ( $section['eyebrow'] ?? '' ) );
+					jluxe_hb_field_text( $name, 'title', 'عنوان', (string) ( $section['title'] ?? '' ) );
+					?>
+					<p><label>توضیح<br />
+						<textarea name="<?php echo esc_attr( $name ); ?>[content]" rows="3" class="large-text"><?php echo esc_textarea( $section['content'] ?? '' ); ?></textarea>
+					</label></p>
+					<?php
+					jluxe_hb_field_text( $name, 'button_label', 'متنِ دکمه', (string) ( $section['button_label'] ?? '' ) );
+					jluxe_hb_field_text( $name, 'button_url', 'پیوندِ دکمه', (string) ( $section['button_url'] ?? '' ) );
+					jluxe_hb_field_select( $name, 'tone', 'ظاهر', (string) ( $section['tone'] ?? 'soft' ), array( 'soft' => 'روشن و ملایم', 'brand' => 'پس‌زمینهٔ رنگ اصلی' ) );
+					jluxe_hb_field_select( $name, 'alignment', 'تراز', (string) ( $section['alignment'] ?? 'start' ), array( 'start' => 'راست‌چین', 'center' => 'وسط‌چین' ) );
+					break;
+
 				case 'text':
 					jluxe_hb_field_text( $name, 'title', 'عنوان', $section['title'] ?? '' );
 					?>
@@ -1119,12 +1134,16 @@ function jluxe_enqueue_homepage_assets(): void {
 
 	$needs_homepage_script = false;
 	$needs_hero_slider     = false;
+	$needs_cta_styles      = false;
 	foreach ( $sections as $section ) {
 		if ( ! is_array( $section ) || empty( $section['enabled'] ) ) {
 			continue;
 		}
 
 		$type = $section['type'] ?? '';
+		if ( 'cta' === $type ) {
+			$needs_cta_styles = true;
+		}
 		if ( 'hero' === $type ) {
 			$slides = array_filter(
 				(array) ( $section['items'] ?? array() ),
@@ -1199,8 +1218,56 @@ function jluxe_enqueue_homepage_assets(): void {
 			array( 'in_footer' => true, 'strategy' => 'defer' )
 		);
 	}
+
+	if ( $needs_cta_styles ) {
+		$cta_style_path = JLUXE_THEME_DIR . '/assets/css/homepage-cta.css';
+		wp_enqueue_style(
+			'jluxe-homepage-cta',
+			JLUXE_THEME_URI . '/assets/css/homepage-cta.css',
+			array(),
+			file_exists( $cta_style_path ) ? (string) filemtime( $cta_style_path ) : '1.0.0'
+		);
+	}
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_homepage_assets' );
+
+/** A small, semantic call-to-action section that uses the active theme color tokens. */
+function jluxe_render_homepage_cta( array $section ): void {
+	$title        = isset( $section['title'] ) && is_scalar( $section['title'] ) ? trim( (string) $section['title'] ) : '';
+	$eyebrow      = isset( $section['eyebrow'] ) && is_scalar( $section['eyebrow'] ) ? trim( (string) $section['eyebrow'] ) : '';
+	$content      = isset( $section['content'] ) && is_scalar( $section['content'] ) ? trim( (string) $section['content'] ) : '';
+	$button_label = isset( $section['button_label'] ) && is_scalar( $section['button_label'] ) ? trim( (string) $section['button_label'] ) : '';
+	$button_url   = isset( $section['button_url'] ) && is_scalar( $section['button_url'] ) ? trim( (string) $section['button_url'] ) : '';
+	$tone         = isset( $section['tone'] ) && 'brand' === $section['tone'] ? 'brand' : 'soft';
+	$alignment    = isset( $section['alignment'] ) && 'center' === $section['alignment'] ? 'center' : 'start';
+
+	if ( '' === $title && '' === $eyebrow && '' === $content && ( '' === $button_label || '' === $button_url ) ) {
+		return;
+	}
+
+	printf(
+		'<section class="jluxe-home-section jluxe-home-cta jluxe-home-cta--%1$s jluxe-home-cta--align-%2$s" aria-label="%3$s"><div class="jluxe-home-cta__panel"><div class="jluxe-home-cta__copy">',
+		esc_attr( $tone ),
+		esc_attr( $alignment ),
+		esc_attr( '' !== $title ? $title : 'دعوت به اقدام' )
+	);
+
+	if ( '' !== $eyebrow ) {
+		echo '<p class="jluxe-home-cta__eyebrow">' . esc_html( $eyebrow ) . '</p>';
+	}
+	if ( '' !== $title ) {
+		echo '<h2 class="jluxe-home-cta__title">' . esc_html( $title ) . '</h2>';
+	}
+	if ( '' !== $content ) {
+		echo '<p class="jluxe-home-cta__description">' . nl2br( esc_html( $content ) ) . '</p>';
+	}
+	echo '</div>';
+
+	if ( '' !== $button_label && '' !== $button_url ) {
+		echo '<a class="jluxe-home-cta__button" href="' . esc_url( $button_url ) . '">' . esc_html( $button_label ) . '</a>';
+	}
+	echo '</div></section>';
+}
 
 function jluxe_render_homepage_section_frontend( array $section ): void {
 	switch ( $section['type'] ?? '' ) {
@@ -1260,6 +1327,10 @@ function jluxe_render_homepage_section_frontend( array $section ): void {
 
 		case 'blog':
 			jluxe_render_homepage_blog( $section );
+			break;
+
+		case 'cta':
+			jluxe_render_homepage_cta( $section );
 			break;
 
 		case 'text':

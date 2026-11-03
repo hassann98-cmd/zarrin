@@ -4148,6 +4148,7 @@ require_once __DIR__ . '/theme-settings-secrets.php';
 require_once __DIR__ . '/categories-page.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
+require_once __DIR__ . '/theme-settings-visual-builder.php';
 require_once __DIR__ . '/theme-settings-ai.php';
 require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت برای دستیار (RAG)
 require_once __DIR__ . '/ai-stream.php'; // R134 — ارسالِ تدریجیِ پاسخ‌های providerهای OpenAI-compatible

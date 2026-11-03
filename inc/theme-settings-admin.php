@@ -65,6 +65,7 @@ function jluxe_register_settings_menu(): void {
 	$submenus = array(
 		JLUXE_SETTINGS_MENU_SLUG => array( 'داشبورد', 'jluxe_render_dashboard_page' ),
 		'jluxe-homepage'          => array( 'صفحه اصلی', 'jluxe_render_homepage_page' ),
+		'jluxe-visual-builder'    => array( 'صفحه‌ساز بصری (آزمایشی)', 'jluxe_render_visual_builder_page' ),
 		'jluxe-identity'          => array( 'هویت سایت', 'jluxe_render_identity_page' ),
 		'jluxe-urls'              => array( 'آدرس‌های ورود و کاربر', 'jluxe_render_urls_page' ),
 		'jluxe-header'            => array( 'هدر', 'jluxe_render_header_page' ),
