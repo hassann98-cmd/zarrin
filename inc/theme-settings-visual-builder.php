@@ -12,7 +12,7 @@ const JLUXE_VISUAL_BUILDER_DRAFT_OPTION = 'jluxe_visual_builder_draft';
 
 /** query varهای preview ثبت می‌شوند تا canonical redirect امضای لینک را حذف نکند. */
 function jluxe_visual_builder_register_preview_query_vars( array $vars ): array {
-	foreach ( array( 'jluxe_builder_preview', 'jvb_nonce' ) as $query_var ) {
+	foreach ( array( 'jluxe_builder_preview', 'jvb_nonce', 'jvb_revision' ) as $query_var ) {
 		if ( ! in_array( $query_var, $vars, true ) ) {
 			$vars[] = $query_var;
 		}
@@ -48,6 +48,15 @@ function jluxe_visual_builder_enqueue_assets( string $hook ): void {
 		array( 'jquery', 'jquery-ui-sortable', 'jluxe-settings-admin' ),
 		file_exists( $script_path ) ? (string) filemtime( $script_path ) : '1.0.0',
 		true
+	);
+	wp_localize_script(
+		'jluxe-visual-builder',
+		'jluxeVisualBuilder',
+		array(
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'previewNonce' => wp_create_nonce( 'jluxe_visual_builder_live_preview' ),
+			'previewAction'=> 'jluxe_visual_builder_preview',
+		)
 	);
 	wp_enqueue_style(
 		'jluxe-visual-builder',
@@ -99,9 +108,18 @@ function jluxe_visual_builder_store_draft( array $homepage ): void {
 	);
 }
 
-/** پیش‌نمایشِ پیش‌نویس فقط با نشستِ مدیرِ واردشده و nonce همان purpose مجاز است. */
+/** نوع پیش‌نمایش باید در صفحهٔ اصلی و با نشستِ معتبرِ مدیر باز شود. */
+function jluxe_visual_builder_preview_request_mode(): string {
+	if ( ! isset( $_GET['jluxe_builder_preview'] ) || ! is_string( $_GET['jluxe_builder_preview'] ) ) {
+		return '';
+	}
+
+	$mode = sanitize_key( wp_unslash( $_GET['jluxe_builder_preview'] ) );
+	return in_array( $mode, array( 'draft', 'live' ), true ) ? $mode : '';
+}
+
 function jluxe_visual_builder_preview_request_is_authorized(): bool {
-	if ( is_admin() || ( function_exists( 'is_front_page' ) && ! is_front_page() ) || ! isset( $_GET['jluxe_builder_preview'] ) || ! is_string( $_GET['jluxe_builder_preview'] ) || 'draft' !== $_GET['jluxe_builder_preview'] ) {
+	if ( is_admin() || ( function_exists( 'is_front_page' ) && ! is_front_page() ) || '' === jluxe_visual_builder_preview_request_mode() ) {
 		return false;
 	}
 	if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) || ! isset( $_GET['jvb_nonce'] ) || ! is_string( $_GET['jvb_nonce'] ) ) {
@@ -112,23 +130,42 @@ function jluxe_visual_builder_preview_request_is_authorized(): bool {
 	return '' !== $nonce && (bool) wp_verify_nonce( $nonce, 'jluxe_visual_builder_preview' );
 }
 
+function jluxe_visual_builder_live_preview_transient_key( int $user_id = 0 ): string {
+	$user_id = $user_id > 0 ? $user_id : (int) get_current_user_id();
+	return 'jluxe_visual_builder_live_' . absint( $user_id );
+}
+
+/** دریافتِ تنها دادهٔ مجاز برای preview؛ هیچ option عمومی در این مسیر نوشته نمی‌شود. */
+function jluxe_visual_builder_get_authorized_preview_homepage(): ?array {
+	if ( ! jluxe_visual_builder_preview_request_is_authorized() ) {
+		return null;
+	}
+
+	$mode = jluxe_visual_builder_preview_request_mode();
+	$data = 'live' === $mode
+		? get_transient( jluxe_visual_builder_live_preview_transient_key() )
+		: get_option( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, array() );
+
+	if ( ! is_array( $data ) || ! isset( $data['homepage'] ) || ! is_array( $data['homepage'] ) || ! isset( $data['homepage']['sections'] ) || ! is_array( $data['homepage']['sections'] ) ) {
+		return null;
+	}
+
+	return $data['homepage'];
+}
+
 /**
  * جایگزینیِ موقتِ تنظیماتِ صفحهٔ اصلی فقط در درخواستِ مجازِ preview.
- * نسخهٔ تنظیمات را هم به نسخهٔ جاری می‌بریم تا مسیرِ migration در
- * jluxe_get_theme_settings() نتواند دادهٔ پیش‌نویس را روی option فعال بنویسد.
+ * نسخهٔ تنظیمات را به نسخهٔ جاری می‌بریم تا migration دادهٔ پیش‌نمایش را
+ * روی option اصلیِ سایت ننویسد.
  */
 function jluxe_visual_builder_filter_frontend_settings_for_preview( $settings ) {
-	if ( ! jluxe_visual_builder_preview_request_is_authorized() ) {
+	$homepage = jluxe_visual_builder_get_authorized_preview_homepage();
+	if ( null === $homepage ) {
 		return $settings;
 	}
 
-	$draft = get_option( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, array() );
-	if ( ! is_array( $draft ) || ! isset( $draft['homepage'] ) || ! is_array( $draft['homepage'] ) || ! isset( $draft['homepage']['sections'] ) || ! is_array( $draft['homepage']['sections'] ) ) {
-		return $settings;
-	}
-
-	$settings           = is_array( $settings ) ? $settings : array();
-	$settings['homepage'] = $draft['homepage'];
+	$settings            = is_array( $settings ) ? $settings : array();
+	$settings['homepage'] = $homepage;
 	$settings['version']  = JLUXE_SETTINGS_VERSION;
 	return $settings;
 }
@@ -136,12 +173,7 @@ add_filter( 'option_' . JLUXE_SETTINGS_OPTION, 'jluxe_visual_builder_filter_fron
 
 /** پیش‌نمایشِ خصوصی cache نمی‌شود و به موتورهای جست‌وجو معرفی نمی‌شود. */
 function jluxe_visual_builder_prepare_preview_response(): void {
-	if ( ! jluxe_visual_builder_preview_request_is_authorized() ) {
-		return;
-	}
-
-	$draft = get_option( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, array() );
-	if ( ! is_array( $draft ) || ! isset( $draft['homepage']['sections'] ) || ! is_array( $draft['homepage']['sections'] ) ) {
+	if ( null === jluxe_visual_builder_get_authorized_preview_homepage() ) {
 		return;
 	}
 
@@ -201,18 +233,9 @@ function jluxe_visual_builder_section_icon( string $type ): string {
  * دادهٔ فرم را با sanitizer بومی صفحهٔ اصلی پاک‌سازی می‌کند، اما در مسیرِ
  * ذخیرهٔ پیش‌نویس فقط option مستقل را می‌نویسد.
  */
-function jluxe_visual_builder_sanitize_posted_homepage(): array {
-	if ( ! isset( $_POST['homepage'] ) || ! is_array( $_POST['homepage'] ) ) {
-		wp_die( esc_html__( 'دادهٔ صفحه‌ساز معتبر نیست.', 'jluxe' ), '', array( 'response' => 400 ) );
-	}
-
-	$posted = wp_unslash( $_POST['homepage'] );
-	if ( ! is_array( $posted ) ) {
-		wp_die( esc_html__( 'دادهٔ صفحه‌ساز معتبر نیست.', 'jluxe' ), '', array( 'response' => 400 ) );
-	}
-
+function jluxe_visual_builder_sanitize_homepage_data( array $posted ): array {
 	// نبودنِ ردیف‌ها وقتی کاربر همهٔ بخش‌ها را پاک کرده، با یک فرمِ خالی
-	// اشتباه نشود؛ sentinel داخل فرم به sanitizer می‌گوید این آرایه عمداً خالی است.
+	// اشتباه نشود؛ sentinel داخل فرم می‌گوید این آرایه عمداً خالی است.
 	if ( ! isset( $posted['sections'] ) && isset( $posted['sections_present'] ) ) {
 		$posted['sections'] = array();
 	}
@@ -238,6 +261,57 @@ function jluxe_visual_builder_sanitize_posted_homepage(): array {
 	$defaults = isset( $settings['homepage'] ) && is_array( $settings['homepage'] ) ? $settings['homepage'] : array();
 	return jluxe_sanitize_homepage( $posted, $defaults );
 }
+
+function jluxe_visual_builder_sanitize_posted_homepage(): array {
+	if ( ! isset( $_POST['homepage'] ) || ! is_array( $_POST['homepage'] ) ) {
+		wp_die( esc_html__( 'دادهٔ صفحه‌ساز معتبر نیست.', 'jluxe' ), '', array( 'response' => 400 ) );
+	}
+
+	$posted = wp_unslash( $_POST['homepage'] );
+	if ( ! is_array( $posted ) ) {
+		wp_die( esc_html__( 'دادهٔ صفحه‌ساز معتبر نیست.', 'jluxe' ), '', array( 'response' => 400 ) );
+	}
+
+	return jluxe_visual_builder_sanitize_homepage_data( $posted );
+}
+
+/**
+ * پیش‌نمایش زنده فقط در transient کوتاه‌عمرِ مدیر ذخیره می‌شود؛ option اصلی و
+ * پیش‌نویسِ ذخیره‌شده با تایپ‌کردن یا افزودن یک جزء بازنویسی نمی‌شوند.
+ */
+function jluxe_visual_builder_handle_live_preview(): void {
+	$user_id = (int) get_current_user_id();
+	$nonce   = isset( $_POST['nonce'] ) && is_string( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+
+	if ( $user_id < 1 || ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'اجازهٔ ساخت پیش‌نمایش را ندارید.' ), 403 );
+	}
+	if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'jluxe_visual_builder_live_preview' ) ) {
+		wp_send_json_error( array( 'message' => 'نشست صفحه‌ساز منقضی شده است؛ صفحه را تازه‌سازی کنید.' ), 403 );
+	}
+	if ( ! isset( $_POST['homepage'] ) || ! is_array( $_POST['homepage'] ) ) {
+		wp_send_json_error( array( 'message' => 'دادهٔ صفحه‌ساز معتبر نیست.' ), 400 );
+	}
+
+	$posted   = wp_unslash( $_POST['homepage'] );
+	$homepage = jluxe_visual_builder_sanitize_homepage_data( $posted );
+	set_transient(
+		jluxe_visual_builder_live_preview_transient_key( $user_id ),
+		array( 'homepage' => $homepage ),
+		15 * MINUTE_IN_SECONDS
+	);
+
+	$preview_url = add_query_arg(
+		array(
+			'jluxe_builder_preview' => 'live',
+			'jvb_nonce'             => wp_create_nonce( 'jluxe_visual_builder_preview' ),
+			'jvb_revision'          => uniqid( '', false ),
+		),
+		home_url( '/' )
+	);
+	wp_send_json_success( array( 'url' => esc_url( $preview_url ) ) );
+}
+add_action( 'wp_ajax_jluxe_visual_builder_preview', 'jluxe_visual_builder_handle_live_preview' );
 
 function jluxe_visual_builder_redirect( string $status ): void {
 	$url = add_query_arg(
@@ -331,8 +405,8 @@ function jluxe_render_visual_builder_page(): void {
 						<button type="button" data-jvb-viewport="tablet" aria-pressed="false" title="نمایش تبلت"><span class="dashicons dashicons-tablet" aria-hidden="true"></span><span class="jvb-device-label">تبلت</span></button>
 						<button type="button" data-jvb-viewport="mobile" aria-pressed="false" title="نمایش موبایل"><span class="dashicons dashicons-smartphone" aria-hidden="true"></span><span class="jvb-device-label">موبایل</span></button>
 					</div>
-					<button type="button" class="jvb-preview-toggle" data-jvb-preview-toggle aria-pressed="false">
-						<span class="dashicons dashicons-visibility" aria-hidden="true"></span><span data-jvb-preview-label><?php echo $has_saved_draft ? 'پیش‌نمایش پیش‌نویس ذخیره‌شده' : 'پیش‌نمایش سایت فعلی'; ?></span>
+					<button type="button" class="jvb-preview-toggle" data-jvb-preview-toggle aria-pressed="false" title="بزرگ‌نماییِ پیش‌نمایش">
+						<span class="dashicons dashicons-fullscreen-alt" aria-hidden="true"></span><span data-jvb-preview-label>تمرکز روی پیش‌نمایش</span>
 					</button>
 				</div>
 
@@ -402,13 +476,13 @@ function jluxe_render_visual_builder_page(): void {
 
 				<main class="jvb-stage" aria-label="بوم صفحه‌ساز">
 					<div class="jvb-stage-toolbar">
-						<div><strong data-jvb-stage-title>چیدمان صفحهٔ اصلی</strong><span data-jvb-stage-subtitle>پیش‌نویس مستقل از سایت فعال</span></div>
-						<a class="jvb-open-site" href="<?php echo esc_url( $preview_url ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span><?php echo $has_saved_draft ? 'بازکردن پیش‌نویس در زبانهٔ تازه' : 'بازکردن سایت فعلی در زبانهٔ تازه'; ?></a>
+						<div><strong data-jvb-stage-title>پیش‌نمایش زندهٔ صفحهٔ اصلی</strong><span data-jvb-stage-subtitle>تغییراتِ ذخیره‌نشده فقط در این بومِ خصوصی نمایش داده می‌شوند</span></div>
+						<a class="jvb-open-site" data-jvb-open-preview href="<?php echo esc_url( $preview_url ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span>بازکردن همین پیش‌نمایش در زبانهٔ تازه</a>
 					</div>
 
 					<div class="jvb-canvas-wrap" data-jvb-canvas-wrap data-viewport="desktop">
-						<div class="jvb-canvas" data-jvb-canvas>
-							<div class="jvb-canvas-intro"><span class="dashicons dashicons-layout" aria-hidden="true"></span><div><strong>ساختار پیش‌نویس</strong><p>ترتیب و تنظیمات بخش‌ها را اینجا مدیریت کنید. برای تغییر محتوای هر بخش، عنوان آن را باز کنید.</p></div></div>
+						<div class="jvb-canvas" data-jvb-canvas aria-label="تنظیمات بخش‌ها">
+							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong>تنظیمات و ترتیب بخش‌ها</strong><p>از کتابخانه یک بخش بکشید؛ یا برای انتخاب، ویرایش و جابه‌جایی روی بخشِ نمایش‌داده‌شده در پیش‌نمایش کلیک کنید.</p></div></div>
 							<div class="jvb-global-setting">
 								<strong>تنظیمات کلی صفحه</strong>
 								<?php jluxe_hb_field_checkbox( 'homepage', 'mobile_category_swipe_hint_enabled', 'نمایش یک‌بارهٔ راهنمای حرکت ردیف دسته‌بندی در موبایل', ! array_key_exists( 'mobile_category_swipe_hint_enabled', $homepage ) || ! empty( $homepage['mobile_category_swipe_hint_enabled'] ), true ); ?>
@@ -419,13 +493,18 @@ function jluxe_render_visual_builder_page(): void {
 									<?php if ( is_array( $section ) ) { jluxe_render_homepage_section_editor( $index, $section, $types ); } ?>
 								<?php endforeach; ?>
 							</div>
-							<div class="jvb-drop-hint" data-jvb-drop-hint <?php echo empty( $sections ) ? '' : 'hidden'; ?>><span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span><strong>بوم صفحه خالی است</strong><span>یک بخش را از کتابخانه انتخاب کنید یا اینجا بکشید.</span></div>
-							<div class="jvb-canvas-footnote"><span class="dashicons dashicons-info" aria-hidden="true"></span>این بوم، ترتیب و فیلدهای واقعیِ بخش‌های صفحه‌ساز تم را ویرایش می‌کند؛ تغییرات تا زدنِ «انتشار» روی سایت نمایش داده نمی‌شوند.</div>
+							<div class="jvb-drop-hint" data-jvb-drop-hint <?php echo empty( $sections ) ? '' : 'hidden'; ?>><span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span><strong>صفحه خالی است</strong><span>از کتابخانه یک بخش را روی پیش‌نمایش بکشید یا روی آن کلیک کنید.</span></div>
+							<div class="jvb-canvas-footnote"><span class="dashicons dashicons-info" aria-hidden="true"></span>این پیش‌نمایش از رندر واقعیِ پوسته و داده‌های فروشگاه استفاده می‌کند؛ ذخیره یا انتشار فقط با دکمه‌های بالا انجام می‌شود.</div>
 						</div>
 
-						<div class="jvb-live-preview" data-jvb-live-preview hidden>
-							<div class="jvb-preview-disclaimer"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span><span data-jvb-preview-disclaimer-text><?php echo $has_saved_draft ? 'پیش‌نویس ذخیره‌شده فقط برای مدیرِ واردشده نمایش داده می‌شود؛ تغییرات ذخیره‌نشده در این قاب دیده نمی‌شوند.' : 'هنوز پیش‌نویس ذخیره‌شده‌ای وجود ندارد؛ این قاب نسخهٔ منتشرشدهٔ فعلی را نشان می‌دهد. ابتدا پیش‌نویس را ذخیره کنید.'; ?></span></div>
-							<iframe title="<?php echo $has_saved_draft ? 'پیش‌نمایش پیش‌نویس ذخیره‌شدهٔ صفحهٔ اصلی' : 'پیش‌نمایش نسخهٔ فعلی صفحهٔ اصلی'; ?>" data-jvb-preview-frame data-src="<?php echo esc_url( $preview_url ); ?>" loading="lazy"></iframe>
+						<div class="jvb-live-preview" data-jvb-live-preview>
+							<div class="jvb-preview-disclaimer"><span class="dashicons dashicons-lock" aria-hidden="true"></span><span data-jvb-preview-disclaimer-text>پیش‌نمایش خصوصی و زنده است؛ بازدیدکنندگان تا زمان انتشار همان صفحهٔ فعلی را می‌بینند.</span></div>
+							<div class="jvb-preview-frame-shell" data-jvb-preview-frame-shell>
+								<iframe title="پیش‌نمایش زندهٔ صفحهٔ اصلی" data-jvb-preview-frame data-src="<?php echo esc_url( $preview_url ); ?>" src="<?php echo esc_url( $preview_url ); ?>" loading="eager"></iframe>
+								<div class="jvb-preview-loading" data-jvb-preview-loading role="status" hidden>در حال به‌روزرسانی پیش‌نمایش زنده…</div>
+								<div class="jvb-preview-drop-overlay" data-jvb-preview-drop-overlay hidden><span class="dashicons dashicons-move" aria-hidden="true"></span><strong>برای افزودن به انتهای صفحه رها کنید</strong></div>
+							</div>
+							<div class="jvb-preview-status" data-jvb-preview-status role="status" aria-live="polite">در حال آماده‌سازی بوم زنده…</div>
 						</div>
 					</div>
 				</main>

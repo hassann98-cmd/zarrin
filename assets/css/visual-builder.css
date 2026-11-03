@@ -625,26 +625,31 @@ body.jluxe-visual-builder-screen #wpbody-content {
 }
 
 #jluxe-visual-builder .jvb-canvas-wrap {
-	display: flex;
-	justify-content: center;
+	display: grid;
+	grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+	align-items: stretch;
+	gap: 12px;
 	flex: 1 1 auto;
 	min-height: 0;
-	overflow: auto;
-	padding: 20px;
+	overflow: hidden;
+	padding: 14px;
 	transition: padding 0.2s ease;
 }
 
 #jluxe-visual-builder .jvb-canvas {
-	width: 100%;
-	max-width: 1180px;
-	min-height: 100%;
-	margin: 0 auto;
-	padding: 18px;
+	width: auto;
+	max-width: none;
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	padding: 14px;
 	border: 1px solid #E6E8EF;
 	border-radius: 15px;
 	background: #FFFFFF;
 	box-shadow: 0 10px 40px -32px rgba(15, 23, 42, 0.3);
-	transition: width 0.2s ease, max-width 0.2s ease;
+	overflow: auto;
+	overscroll-behavior: contain;
+	transition: opacity 0.2s ease, width 0.2s ease;
 }
 
 #jluxe-visual-builder .jvb-canvas-intro {
@@ -722,6 +727,12 @@ body.jluxe-visual-builder-screen #wpbody-content {
 	border-radius: 12px;
 	background: #FFFFFF;
 	box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+	transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+#jluxe-visual-builder .jluxe-hb-section.jvb-selected {
+	border-color: var(--jvb-primary);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--jvb-primary) 15%, transparent);
 }
 
 #jluxe-visual-builder .jluxe-hb-section-head {
@@ -840,11 +851,14 @@ body.jluxe-visual-builder-screen #wpbody-content {
 }
 
 #jluxe-visual-builder .jvb-live-preview {
+	position: relative;
+	display: flex;
+	flex-direction: column;
 	width: 100%;
-	max-width: 1180px;
-	min-height: 450px;
-	margin: 0 auto;
-	padding: 12px;
+	min-width: 0;
+	min-height: 0;
+	margin: 0;
+	padding: 10px;
 	border: 1px solid var(--jvb-border);
 	border-radius: 15px;
 	background: #FFFFFF;
@@ -855,31 +869,116 @@ body.jluxe-visual-builder-screen #wpbody-content {
 	display: flex;
 	align-items: center;
 	gap: 7px;
-	margin-bottom: 10px;
+	flex: 0 0 auto;
+	margin-bottom: 9px;
 	padding: 8px 10px;
 	border-radius: 9px;
 	background: var(--jvb-primary-soft);
 	color: var(--jvb-primary-hover);
 	font-size: 9px;
+	line-height: 1.7;
 }
 
-#jluxe-visual-builder .jvb-live-preview iframe {
-	display: block;
-	width: 100%;
-	height: min(72vh, 820px);
+#jluxe-visual-builder .jvb-preview-disclaimer .dashicons {
+	flex: 0 0 auto;
+}
+
+#jluxe-visual-builder .jvb-preview-frame-shell {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 320px;
+	overflow: auto;
 	border: 1px solid #E2E8F0;
 	border-radius: 10px;
 	background: #FFFFFF;
+	overscroll-behavior: contain;
 }
 
-#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="tablet"] .jvb-canvas,
-#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="tablet"] .jvb-live-preview {
+#jluxe-visual-builder .jvb-preview-frame-shell iframe {
+	display: block;
+	width: 100%;
+	min-width: 0;
+	min-height: 420px;
+	height: min(72vh, 820px);
+	border: 0;
+	background: #FFFFFF;
+	transition: max-width 0.2s ease;
+}
+
+#jluxe-visual-builder .jvb-preview-frame-shell[data-loading="true"] iframe {
+	opacity: 0.42;
+}
+
+#jluxe-visual-builder .jvb-preview-loading {
+	position: absolute;
+	z-index: 2;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.72);
+	color: var(--jvb-muted);
+	font-size: 11px;
+	pointer-events: none;
+}
+
+#jluxe-visual-builder .jvb-preview-drop-overlay {
+	position: absolute;
+	z-index: 4;
+	inset: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 8px;
+	border: 2px dashed var(--jvb-primary);
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--jvb-primary-soft) 92%, #FFFFFF);
+	color: var(--jvb-primary-hover);
+	font-size: 12px;
+	text-align: center;
+	pointer-events: auto;
+}
+
+#jluxe-visual-builder .jvb-preview-drop-overlay .dashicons {
+	font-size: 24px;
+}
+
+#jluxe-visual-builder .jvb-preview-status {
+	flex: 0 0 auto;
+	min-height: 24px;
+	padding: 5px 4px 0;
+	color: var(--jvb-muted);
+	font-size: 9px;
+	line-height: 1.5;
+}
+
+#jluxe-visual-builder .jvb-preview-status.is-error {
+	color: var(--jvb-danger);
+}
+
+#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="tablet"] .jvb-preview-frame-shell iframe {
 	max-width: 820px;
 }
 
-#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="mobile"] .jvb-canvas,
-#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="mobile"] .jvb-live-preview {
+#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="mobile"] .jvb-preview-frame-shell iframe {
 	max-width: 420px;
+}
+
+#jluxe-visual-builder.jvb-preview-focus .jvb-workspace {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+#jluxe-visual-builder.jvb-preview-focus .jvb-library,
+#jluxe-visual-builder.jvb-preview-focus .jvb-canvas {
+	display: none;
+}
+
+#jluxe-visual-builder.jvb-preview-focus .jvb-canvas-wrap {
+	grid-template-columns: minmax(0, 1fr);
 }
 
 #jluxe-visual-builder .jvb-legacy-controls,
@@ -917,6 +1016,16 @@ body.jluxe-visual-builder-screen #wpbody-content {
 
 	#jluxe-visual-builder .jvb-workspace {
 		grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
+	}
+
+	#jluxe-visual-builder .jvb-canvas-wrap {
+		grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+		gap: 9px;
+		padding: 10px;
+	}
+
+	#jluxe-visual-builder .jvb-canvas {
+		padding: 10px;
 	}
 
 	#jluxe-visual-builder .jvb-device-label {
@@ -1030,7 +1139,7 @@ body.jluxe-visual-builder-screen #wpbody-content {
 	#jluxe-visual-builder .jvb-stage {
 		order: 1;
 		min-height: 60vh;
-		max-height: 75vh;
+		max-height: none;
 	}
 
 	#jluxe-visual-builder .jvb-library {
@@ -1039,10 +1148,31 @@ body.jluxe-visual-builder-screen #wpbody-content {
 	}
 
 	#jluxe-visual-builder .jvb-canvas-wrap {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 		padding: 10px;
+		overflow: visible;
+	}
+
+	#jluxe-visual-builder .jvb-live-preview {
+		order: 1;
+		min-height: 58vh;
+	}
+
+	#jluxe-visual-builder .jvb-preview-frame-shell {
+		min-height: 46vh;
+		max-height: 62vh;
+	}
+
+	#jluxe-visual-builder .jvb-preview-frame-shell iframe {
+		min-height: 46vh;
+		height: 56vh;
 	}
 
 	#jluxe-visual-builder .jvb-canvas {
+		order: 2;
+		min-height: 300px;
 		padding: 10px;
 	}
 

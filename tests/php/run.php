@@ -3197,7 +3197,8 @@ $r361_preview_vars = jluxe_visual_builder_register_preview_query_vars( array( 'p
 check(
 	in_array( 'p', $r361_preview_vars, true ) &&
 	in_array( 'jluxe_builder_preview', $r361_preview_vars, true ) &&
-	in_array( 'jvb_nonce', $r361_preview_vars, true ),
+	in_array( 'jvb_nonce', $r361_preview_vars, true ) &&
+	in_array( 'jvb_revision', $r361_preview_vars, true ),
 	'R361 preview query variables are registered once so WordPress canonical redirects preserve the signed preview URL'
 );
 $r360_old_post = $_POST;
@@ -3216,7 +3217,9 @@ check(
 		false !== strpos( $r360_builder_html, 'data-hb-template="cta"' ) &&
 		false !== strpos( $r360_builder_html, 'متنِ دکمه' ) &&
 		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
-		false !== strpos( $r360_builder_html, 'هنوز پیش‌نویس ذخیره‌شده‌ای وجود ندارد' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-preview-frame' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-preview-drop-overlay' ) &&
+		false !== strpos( $r360_builder_html, 'پیش‌نمایش خصوصی و زنده است' ) &&
 	false === strpos( $r360_builder_html, 'id="jluxe-homepage-form"' ) &&
 	! array_key_exists( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, $GLOBALS['options'] ) &&
 	( $r360_live_option === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ) ),
@@ -3301,8 +3304,79 @@ check(
 	false !== strpos( $r361_saved_preview_html, 'data-preview-kind="draft"' ) &&
 	false !== strpos( $r361_saved_preview_html, 'jluxe_builder_preview=draft' ) &&
 	false !== strpos( $r361_saved_preview_html, 'jvb_nonce=nonce-jluxe_visual_builder_preview' ) &&
-	false !== strpos( $r361_saved_preview_html, 'فقط برای مدیرِ واردشده' ),
-	'R361 the builder links to a nonce-protected private preview of the last saved draft and labels unsaved edits accurately'
+	false !== strpos( $r361_saved_preview_html, 'بازدیدکنندگان تا زمان انتشار همان صفحهٔ فعلی را می‌بینند' ) &&
+	false !== strpos( $r361_saved_preview_html, 'data-jvb-preview-status' ),
+	'R361 the builder links to a nonce-protected private draft while its always-visible live canvas clearly separates preview from publication'
+);
+
+$r361_live_preview_key = jluxe_visual_builder_live_preview_transient_key( 77 );
+$r361_old_live_preview = $GLOBALS['transients'][ $r361_live_preview_key ] ?? null;
+$_POST = array(
+	'nonce'    => wp_create_nonce( 'jluxe_visual_builder_live_preview' ),
+	'homepage' => array(
+		'sections_present' => '1',
+		'mobile_category_swipe_hint_enabled' => '0',
+		'sections' => array(
+			array( 'id' => 'live-preview-text', 'type' => 'text', 'enabled' => '1', 'title' => 'پیش‌نمایش زنده', 'content' => '<strong>بدون ذخیره</strong>' ),
+		),
+	),
+);
+$r361_live_preview_response = json_call( 'jluxe_visual_builder_handle_live_preview' );
+$r361_live_preview_data = $GLOBALS['transients'][ $r361_live_preview_key ] ?? array();
+$r361_live_preview_homepage = $r361_live_preview_data['homepage'] ?? array();
+parse_str( (string) parse_url( $r361_live_preview_response->data['url'] ?? '', PHP_URL_QUERY ), $r361_live_preview_query );
+check(
+	$r361_live_preview_response->success &&
+	200 === $r361_live_preview_response->status &&
+	'live' === ( $r361_live_preview_query['jluxe_builder_preview'] ?? '' ) &&
+	'nonce-jluxe_visual_builder_preview' === ( $r361_live_preview_query['jvb_nonce'] ?? '' ) &&
+	! empty( $r361_live_preview_query['jvb_revision'] ) &&
+	isset( $r361_live_preview_homepage['sections'][0]['title'] ) &&
+	'پیش‌نمایش زنده' === $r361_live_preview_homepage['sections'][0]['title'] &&
+	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ) &&
+	$r360_draft_after_save === ( $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] ?? null ),
+	'R364 live-preview AJAX sanitizes the current form into a short-lived user transient without touching the active homepage or saved draft'
+);
+$_GET = array(
+	'jluxe_builder_preview' => 'live',
+	'jvb_nonce' => wp_create_nonce( 'jluxe_visual_builder_preview' ),
+	'jvb_revision' => 'test-revision',
+);
+$GLOBALS['valid_wp_nonce'] = true;
+$GLOBALS['no_cache'] = false;
+$r361_live_preview_settings = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$r361_live_preview_option = get_option( JLUXE_SETTINGS_OPTION, array() );
+jluxe_visual_builder_prepare_preview_response();
+jluxe_get_theme_settings( true );
+ob_start();
+jluxe_render_homepage_sections();
+$r361_live_preview_markup = (string) ob_get_clean();
+check(
+	jluxe_visual_builder_preview_request_is_authorized() &&
+	$r361_live_preview_homepage === $r361_live_preview_settings['homepage'] &&
+	$r361_live_preview_homepage === ( $r361_live_preview_option['homepage'] ?? null ) &&
+	true === $GLOBALS['no_cache'] &&
+	false !== strpos( $r361_live_preview_markup, 'class="jvb-preview-section" data-jvb-preview-index="0"' ) &&
+	false !== strpos( $r361_live_preview_markup, 'پیش‌نمایش زنده' ) &&
+	$r360_active_before_draft_save === ( $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null ),
+	'R364 the private preview route renders the sanitized unsaved layout with position markers and no-cache headers while the public option remains unchanged'
+);
+$GLOBALS['authenticated_user'] = 88;
+$r361_other_user_preview = jluxe_visual_builder_filter_frontend_settings_for_preview( $r361_live_settings );
+$GLOBALS['authenticated_user'] = 77;
+$GLOBALS['can_manage'] = false;
+$r361_forbidden_live_preview = json_call( 'jluxe_visual_builder_handle_live_preview' );
+$GLOBALS['can_manage'] = true;
+$GLOBALS['valid_wp_nonce'] = false;
+$r361_invalid_nonce_live_preview = json_call( 'jluxe_visual_builder_handle_live_preview' );
+$GLOBALS['valid_wp_nonce'] = true;
+check(
+	$r361_live_settings === $r361_other_user_preview &&
+	! $r361_forbidden_live_preview->success &&
+	403 === $r361_forbidden_live_preview->status &&
+	! $r361_invalid_nonce_live_preview->success &&
+	403 === $r361_invalid_nonce_live_preview->status,
+	'R364 live preview requires the current administrator and a valid nonce, and cannot reveal another user’s transient'
 );
 $_GET = $r361_old_get;
 if ( null === $r361_old_user ) { unset( $GLOBALS['authenticated_user'] ); } else { $GLOBALS['authenticated_user'] = $r361_old_user; }
@@ -3321,6 +3395,12 @@ if ( null === $r360_live_option ) {
 } else {
 	$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = $r360_live_option;
 }
+if ( null === $r361_old_live_preview ) {
+	unset( $GLOBALS['transients'][ $r361_live_preview_key ] );
+} else {
+	$GLOBALS['transients'][ $r361_live_preview_key ] = $r361_old_live_preview;
+}
+jluxe_get_theme_settings( true );
 
 // R362: an additional native, token-driven CTA widget is additive and only renders when explicitly enabled.
 $r362_cta = jluxe_sanitize_homepage_section(

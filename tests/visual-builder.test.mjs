@@ -6,9 +6,13 @@ import jquery from "jquery";
 
 const source = await readFile(new URL("../assets/js/visual-builder.js", import.meta.url), "utf8");
 
+function wait(window, delay = 0) {
+	return new Promise((resolve) => window.setTimeout(resolve, delay));
+}
+
 function createDom() {
 	const dom = new JSDOM(`<!doctype html><html><body>
-		<div id="jluxe-visual-builder" data-preview-url="https://shop.test/">
+		<div id="jluxe-visual-builder" data-preview-kind="live" data-preview-url="https://shop.test/">
 			<form id="jluxe-visual-builder-form">
 				<span data-jvb-save-state>پیش‌نویس تازه</span>
 				<p data-jvb-section-count>پیش‌نویس مستقل · 1 بخش</p>
@@ -28,20 +32,22 @@ function createDom() {
 				<p data-jvb-outline-empty hidden></p>
 				<div data-jvb-canvas-wrap data-viewport="desktop">
 					<div data-jvb-canvas>
-						<div id="jluxe-hb-sections">
-							<div class="jluxe-hb-section" data-type="text">
-								<details><summary><span class="jluxe-hb-type-label">متن سفارشی</span><label class="jluxe-hb-enabled"><input type="checkbox" checked></label></summary></details>
-							</div>
+						<div class="jluxe-hb-section" data-type="text">
+							<details><summary><span class="jluxe-hb-type-label">متن سفارشی</span><label class="jluxe-hb-enabled"><input type="checkbox" checked></label></summary><input name="homepage[sections][0][title]" value="متن فعلی"></details>
 						</div>
-						<p data-jvb-drop-hint hidden></p>
 					</div>
-					<div data-jvb-live-preview hidden><iframe data-jvb-preview-frame data-src="https://shop.test/"></iframe></div>
+					<div data-jvb-live-preview>
+						<div data-jvb-preview-frame-shell><iframe data-jvb-preview-frame data-src="https://shop.test/"></iframe><div data-jvb-preview-loading hidden></div><div data-jvb-preview-drop-overlay hidden></div></div>
+						<span data-jvb-preview-status></span>
+					</div>
 				</div>
+				<a data-jvb-open-preview href="https://shop.test/"></a>
 				<button type="button" data-jvb-viewport="desktop" aria-pressed="true"></button>
 				<button type="button" data-jvb-viewport="tablet" aria-pressed="false"></button>
-				<button type="button" data-jvb-preview-toggle aria-pressed="false"><span data-jvb-preview-label>پیش‌نمایش سایت فعلی</span></button>
-				<strong data-jvb-stage-title>چیدمان صفحهٔ اصلی</strong>
-				<span data-jvb-stage-subtitle>پیش‌نویس مستقل از سایت فعال</span>
+				<button type="button" data-jvb-viewport="mobile" aria-pressed="false"></button>
+				<button type="button" data-jvb-preview-toggle aria-pressed="false"><span data-jvb-preview-label>تمرکز روی پیش‌نمایش</span></button>
+				<strong data-jvb-stage-title>پیش‌نمایش زندهٔ صفحهٔ اصلی</strong>
+				<span data-jvb-stage-subtitle></span>
 				<select id="jluxe-hb-add-type"><option value="banner">banner</option></select>
 				<button type="button" id="jluxe-hb-add"></button>
 			</form>
@@ -55,7 +61,26 @@ function createDom() {
 	window.jQuery = jquery(window);
 	window.confirm = () => false;
 	window.HTMLElement.prototype.scrollIntoView = function () {};
-	const sections = window.document.getElementById("jluxe-hb-sections");
+	window.jluxeVisualBuilder = {
+		ajaxUrl: "https://shop.test/wp-admin/admin-ajax.php",
+		previewNonce: "preview-nonce",
+		previewAction: "jluxe_visual_builder_preview",
+	};
+	window.__previewRequests = [];
+	window.fetch = (url, init) => {
+		window.__previewRequests.push({ url, body: init.body });
+		const revision = window.__previewRequests.length;
+		return Promise.resolve({
+			ok: true,
+			json: () => Promise.resolve({
+				success: true,
+				data: { url: `https://shop.test/?jluxe_builder_preview=live&jvb_revision=${revision}` },
+			}),
+		});
+	};
+
+	const sections = window.document.getElementById("jluxe-hb-sections") || window.document.querySelector("[data-jvb-canvas]");
+	sections.id = "jluxe-hb-sections";
 	window.document.getElementById("jluxe-hb-add").addEventListener("click", () => {
 		const index = sections.querySelectorAll(":scope > .jluxe-hb-section").length;
 		const section = window.document.createElement("div");
@@ -68,7 +93,29 @@ function createDom() {
 	return dom;
 }
 
-test("visual builder tabs, outline, search, and native section library stay in sync", async () => {
+function fakeDataTransfer() {
+	const values = new Map();
+	const types = [];
+	return {
+		types,
+		effectAllowed: "",
+		dropEffect: "",
+		setData(type, value) {
+			if (!types.includes(type)) types.push(type);
+			values.set(type, value);
+		},
+		getData(type) {
+			return values.get(type) || "";
+		},
+	};
+}
+
+function attachDataTransfer(event, dataTransfer) {
+	Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+	return event;
+}
+
+test("library search and tabs stay separate, while added widgets update the private live preview", async () => {
 	const dom = createDom();
 	const { document } = dom.window;
 	const sections = document.getElementById("jluxe-hb-sections");
@@ -92,31 +139,72 @@ test("visual builder tabs, outline, search, and native section library stay in s
 	search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 	assert.equal(component.hidden, false);
 
+	await wait(dom.window, 10);
+	assert.equal(dom.window.__previewRequests.length, 1, "initial form state gets a live preview");
 	component.click();
-	await new Promise((resolve) => dom.window.setTimeout(resolve, 10));
+	await wait(dom.window, 30);
 	assert.equal(sections.querySelectorAll(":scope > .jluxe-hb-section").length, 2);
-	assert.equal(sections.querySelectorAll("[name^='homepage[sections]']").length, 1);
 	assert.equal(document.querySelector("[data-jvb-outline-count]").textContent, "2");
 	assert.match(document.querySelector("[data-jvb-save-state]").textContent, /ذخیره‌نشده/);
+	await wait(dom.window, 180);
+
+	const requests = dom.window.__previewRequests;
+	assert.ok(requests.length >= 2, "adding a component refreshes the server-rendered preview");
+	const latestRequest = requests[requests.length - 1];
+	assert.equal(latestRequest.url, "https://shop.test/wp-admin/admin-ajax.php");
+	assert.equal(latestRequest.body.get("action"), "jluxe_visual_builder_preview");
+	assert.equal(latestRequest.body.get("nonce"), "preview-nonce");
+	assert.equal(latestRequest.body.get("homepage[sections][1][title]"), "");
+	assert.match(document.querySelector("[data-jvb-preview-frame]").getAttribute("src"), /jluxe_builder_preview=live/);
+	assert.equal(document.querySelector("[data-jvb-open-preview]").getAttribute("href"), document.querySelector("[data-jvb-preview-frame]").getAttribute("src"));
+	assert.match(document.querySelector("[data-jvb-preview-status]").textContent, /به‌روز شد/);
 	dom.window.close();
 });
 
-test("saved-draft preview mode is explicitly labeled and remains separate from the published version", () => {
+test("dragging a library widget onto the rendered page inserts it at that visual position", async () => {
 	const dom = createDom();
 	const { document } = dom.window;
-	const root = document.getElementById("jluxe-visual-builder");
-	root.setAttribute("data-preview-kind", "draft");
-	const previewToggle = document.querySelector("[data-jvb-preview-toggle]");
+	dom.window.fetch = (url, init) => {
+		dom.window.__previewRequests.push({ url, body: init.body });
+		return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, data: { url: "about:blank" } }) });
+	};
+	await wait(dom.window, 10);
 
-	previewToggle.click();
-	assert.equal(document.querySelector("[data-jvb-stage-title]").textContent, "پیش‌نویس ذخیره‌شده");
-	assert.match(document.querySelector("[data-jvb-stage-subtitle]").textContent, /مدیرِ واردشده/);
-	previewToggle.click();
-	assert.equal(document.querySelector("[data-jvb-preview-label]").textContent, "پیش‌نمایش پیش‌نویس ذخیره‌شده");
+	const frame = document.querySelector("[data-jvb-preview-frame]");
+	const frameDocument = frame.contentDocument || frame.contentWindow.document;
+	assert.ok(frameDocument && frameDocument.body, "same-origin preview iframe exposes a document for editor interactions");
+	frameDocument.body.innerHTML = `<main id="primary"><div class="jvb-preview-section" data-jvb-preview-index="0"><section class="jluxe-home-section">Existing content</section></div></main>`;
+	frame.dispatchEvent(new dom.window.Event("load"));
+
+	const component = document.querySelector("[data-jvb-add-section]");
+	const transfer = fakeDataTransfer();
+	component.dispatchEvent(attachDataTransfer(new dom.window.Event("dragstart", { bubbles: true, cancelable: true }), transfer));
+	assert.equal(transfer.getData("application/x-jluxe-section"), "banner");
+
+	const renderedSection = frameDocument.querySelector(".jluxe-home-section");
+	const dragover = attachDataTransfer(new frameDocument.defaultView.Event("dragover", { bubbles: true, cancelable: true }), transfer);
+	Object.defineProperty(dragover, "clientY", { value: 0 });
+	renderedSection.dispatchEvent(dragover);
+	assert.equal(dragover.defaultPrevented, true);
+
+	const drop = attachDataTransfer(new frameDocument.defaultView.Event("drop", { bubbles: true, cancelable: true }), transfer);
+	Object.defineProperty(drop, "clientY", { value: 0 });
+	renderedSection.dispatchEvent(drop);
+	await wait(dom.window, 30);
+
+	const cards = Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section"));
+	assert.deepEqual(cards.map((card) => card.getAttribute("data-type")), ["banner", "text"]);
+	assert.equal(cards[0].querySelector("input[name^='homepage[sections][0]']") !== null, true);
+	assert.equal(cards[1].querySelector("input[name^='homepage[sections][1]']") !== null, true);
+
+	const click = new frameDocument.defaultView.MouseEvent("click", { bubbles: true, cancelable: true });
+	renderedSection.dispatchEvent(click);
+	assert.equal(cards[0].classList.contains("jvb-selected"), true, "clicking a section in preview selects its editor");
+	assert.equal(click.defaultPrevented, true, "preview clicks edit instead of following storefront links");
 	dom.window.close();
 });
 
-test("device preview is read-only and publish requires explicit confirmation", () => {
+test("device widths affect the visible iframe and focus mode leaves the live preview open", () => {
 	const dom = createDom();
 	const { document } = dom.window;
 	const viewport = document.querySelector('[data-jvb-viewport="tablet"]');
@@ -126,11 +214,12 @@ test("device preview is read-only and publish requires explicit confirmation", (
 
 	const previewToggle = document.querySelector("[data-jvb-preview-toggle]");
 	previewToggle.click();
+	assert.equal(document.getElementById("jluxe-visual-builder").classList.contains("jvb-preview-focus"), true);
 	assert.equal(document.querySelector("[data-jvb-live-preview]").hidden, false);
-	assert.equal(document.querySelector("[data-jvb-preview-frame]").getAttribute("src"), "https://shop.test/");
-	assert.equal(document.querySelector("[data-jvb-canvas]").hidden, true);
+	assert.equal(document.querySelector("[data-jvb-canvas]").hidden, false, "focus mode is managed by the layout, not by replacing the page preview");
+	assert.equal(document.querySelector("[data-jvb-preview-label]").textContent, "بازگشت به ویرایش");
 	previewToggle.click();
-	assert.equal(document.querySelector("[data-jvb-canvas]").hidden, false);
+	assert.equal(document.getElementById("jluxe-visual-builder").classList.contains("jvb-preview-focus"), false);
 
 	let prevented = false;
 	const submit = new dom.window.SubmitEvent("submit", {

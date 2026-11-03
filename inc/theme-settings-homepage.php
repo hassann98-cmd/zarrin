@@ -1107,11 +1107,18 @@ function jluxe_render_homepage_sections(): void {
 	@media(prefers-reduced-motion:reduce){.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel,.jluxe-home-section .jluxe-home-media{transition:none!important;transform:none!important;}}
 	</style>
 	<?php
-	foreach ( $settings['homepage']['sections'] as $section ) {
+	$builder_preview = function_exists( 'jluxe_visual_builder_preview_request_is_authorized' ) && jluxe_visual_builder_preview_request_is_authorized();
+	foreach ( $settings['homepage']['sections'] as $index => $section ) {
 		if ( empty( $section['enabled'] ) ) {
 			continue;
 		}
+		if ( $builder_preview ) {
+			echo '<div class="jvb-preview-section" data-jvb-preview-index="' . esc_attr( (string) $index ) . '" style="display:contents">';
+		}
 		jluxe_render_homepage_section_frontend( $section );
+		if ( $builder_preview ) {
+			echo '</div>';
+		}
 	}
 	if ( function_exists( 'jluxe_render_recent_products_panel' ) ) {
 		jluxe_render_recent_products_panel( 'home' );
