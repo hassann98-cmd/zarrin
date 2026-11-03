@@ -18,75 +18,86 @@
 defined( 'ABSPATH' ) || exit;
 
 function jluxe_get_design_presets(): array {
-	$palette = jluxe_electric_indigo_palette();
 	return array(
-		'electric_indigo' => array(
-			'label' => 'نیلی الکتریکی (پیش‌فرض زرین)',
-			'description' => 'طیفِ یکپارچهٔ Electric Indigo از بنفشِ بسیار روشن تا نیلیِ عمیق، هماهنگ با رنگ‌های پیش‌فرض پوسته.',
-			'colors' => array(
-				'primary' => $palette['500'], 'secondary' => $palette['700'], 'background' => $palette['50'], 'success' => $palette['600'], 'accent' => $palette['400'],
-			),
-			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
-		),
 		'jewelry_luxe' => array(
-			'label' => 'جواهرفروشی لوکس — نیلی عمیق',
-			'description' => 'ترکیب نیلیِ عمیق و سطوح روشن از طیف Electric Indigo؛ مناسب فروشگاه طلا و جواهر با ظاهر Premium.',
+			'label' => 'جواهرفروشی لوکس',
+			'description' => 'شرابی عمیق، شامپاینی و ایوری؛ مناسب فروشگاه طلا و جواهر با ظاهر Premium.',
 			'colors' => array(
-				'primary' => $palette['500'], 'secondary' => $palette['900'], 'background' => $palette['50'], 'success' => $palette['600'], 'accent' => $palette['400'],
+				'primary' => '#7A2438', 'secondary' => '#24313A', 'background' => '#FBF8F3', 'success' => '#26734D', 'accent' => '#C8A45D',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
 		),
 		'home_warm' => array(
-			'label' => 'لوازم خانه — نیلی روشن',
-			'description' => 'سطوح روشن و سایه‌های هماهنگ Electric Indigo؛ مناسب جهیزیه و لوازم آشپزخانه.',
+			'label' => 'لوازم خانه گرم و مدرن',
+			'description' => 'تراکوتای کنترل‌شده، سبز زیتونی و کرم روشن؛ مناسب جهیزیه و لوازم آشپزخانه.',
 			'colors' => array(
-				'primary' => $palette['400'], 'secondary' => $palette['800'], 'background' => $palette['50'], 'success' => $palette['600'], 'accent' => $palette['500'],
+				'primary' => '#B6533C', 'secondary' => '#355C55', 'background' => '#FAF7F1', 'success' => '#2D7A55', 'accent' => '#C69A4B',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.65),
 		),
 		'digikala_clean' => array(
-			'label' => 'فروشگاهی شفاف و مینیمال — نیلی',
-			'description' => 'سفید و طیف Electric Indigo با تأکید روشن و مدرن؛ مناسب فروشگاه عمومی.',
+			'label' => 'فروشگاهی شفاف و مینیمال',
+			'description' => 'سفید، آبی عمیق و قرمز پرقدرت؛ مناسب فروشگاه عمومی و حس سریع و مدرن شبیه فروشگاه‌های بزرگ.',
 			'colors' => array(
-				'primary' => $palette['500'], 'secondary' => $palette['700'], 'background' => '#FFFFFF', 'success' => $palette['600'], 'accent' => $palette['400'],
+				'primary' => '#D92D3F', 'secondary' => '#155E9B', 'background' => '#FFFFFF', 'success' => '#16834A', 'accent' => '#F59E0B',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
 		'minimal_black_gold' => array(
-			'label' => 'مینیمال نیلی و روشن',
-			'description' => 'زمینهٔ روشن با نیلیِ عمیق و تأکیدهای Electric Indigo؛ تمیز و مناسب برندهای پریمیوم.',
+			'label' => 'مینیمال مشکی و طلایی',
+			'description' => 'زمینه روشن، مشکی خنثی و طلایی محدود؛ تمیز و بسیار مناسب برندهای پریمیوم.',
 			'colors' => array(
-				'primary' => $palette['800'], 'secondary' => $palette['700'], 'background' => '#FFFFFF', 'success' => $palette['600'], 'accent' => $palette['500'],
+				'primary' => '#222222', 'secondary' => '#4B5563', 'background' => '#FAFAF8', 'success' => '#287A52', 'accent' => '#B58A3A',
 			),
 			'typography' => array('base_size' => 15, 'heading_weight' => 700, 'line_height' => 1.58),
 		),
 		'joyful_coral_teal' => array(
-			'label' => 'شاد و پرانرژی — نیلی روشن',
-			'description' => 'ترکیب روشن از رنگ‌های Electric Indigo؛ مناسب فروشگاه جوان، شاد و پرتحرک.',
+			'label' => 'شاد و پرانرژی',
+			'description' => 'مرجانی و فیروزه‌ای با زمینه بسیار روشن؛ مناسب فروشگاه جوان، شاد و پرتحرک.',
 			'colors' => array(
-				'primary' => $palette['500'], 'secondary' => $palette['400'], 'background' => $palette['50'], 'success' => $palette['700'], 'accent' => $palette['400'],
+				'primary' => '#E23B45', 'secondary' => '#087F7A', 'background' => '#F7FCFB', 'success' => '#168A50', 'accent' => '#F2A93B',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.65),
 		),
 		/*
-		 * شناسهٔ قدیمیِ preset برای سازگاریِ ذخیره‌شده حفظ شده؛ رنگ‌هایش
-		 * اکنون از همان Electric Indigo موردِ استفادهٔ بقیهٔ پوسته هستند.
+		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
+		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
+		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
+		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
 		 */
 		'jluxe_brand_red' => array(
-			'label' => 'برند زرین — Electric Indigo',
-			'description' => 'طیف Electric Indigo با زمینهٔ روشن و رنگ‌های تأکیدیِ هماهنگ با پوسته.',
+			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
+			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
 			'colors' => array(
-				'primary' => $palette['500'], 'secondary' => $palette['900'], 'background' => $palette['50'], 'success' => $palette['600'], 'accent' => $palette['400'],
+				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
 		'emerald_modern' => array(
-			'label' => 'نیلی مدرن',
-			'description' => 'نیلیِ عمیق و تأکیدهای Electric Indigo؛ متفاوت و باوقار برای برندهای خانه و جواهر.',
+			'label' => 'زمردی مدرن',
+			'description' => 'سبز زمردی، سرمه‌ای و طلایی ملایم؛ متفاوت، باوقار و مناسب برندهای خانه و جواهر.',
 			'colors' => array(
-				'primary' => $palette['600'], 'secondary' => $palette['900'], 'background' => $palette['50'], 'success' => $palette['700'], 'accent' => $palette['400'],
+				'primary' => '#087A68', 'secondary' => '#243746', 'background' => '#F6FAF8', 'success' => '#19734C', 'accent' => '#B9974F',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'electric_indigo' => array(
+			'label' => 'نیلی الکتریکی (افزوده‌شده)',
+			'description' => 'پالت تازهٔ Electric Indigo به‌عنوان گزینه‌ای مستقل؛ هفت پریست قبلی با رنگ‌های اصلی خود باقی می‌مانند.',
+			'colors' => array(
+				'primary' => '#5100FF', 'secondary' => '#300099', 'background' => '#EEE5FF', 'success' => '#16865A', 'accent' => '#7433FF',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'legacy_default' => array(
+			'label' => 'پالت پیش‌فرض پیشین زرین',
+			'description' => 'رنگ‌های پایهٔ پوسته پیش از Electric Indigo؛ گزینه‌ای جداگانه و قابل‌اعمال، بدون تغییر خودکارِ تنظیمات ذخیره‌شده.',
+			'colors' => array(
+				'primary' => '#B85C38', 'secondary' => '#355C5A', 'background' => '#F7F3EE', 'success' => '#16865A', 'accent' => '#C89B3C',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
 	);
 }

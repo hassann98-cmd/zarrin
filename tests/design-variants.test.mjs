@@ -23,16 +23,17 @@ function contrastRatio(a, b) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-test("R354 the optional home-and-kitchen variant uses the requested Electric Indigo palette without changing the default", () => {
-  assert.match(css, /--jluxe-home-primary:\s*var\(--color-electric-indigo-500\)/i);
-  assert.match(css, /--jluxe-home-clay:\s*var\(--color-electric-indigo-400\)/i);
-  assert.match(css, /--jluxe-home-cream:\s*var\(--color-electric-indigo-50\)/i);
-  assert.match(css, /background-color:\s*var\(--color-electric-indigo-500\)/i);
+test("R354 the optional home-and-kitchen variant retains its original green/clay palette without changing the default", () => {
+  assert.match(css, /--jluxe-home-primary:\s*#2F6B52/i);
+  assert.match(css, /--jluxe-home-primary-hover:\s*#245C46/i);
+  assert.match(css, /--jluxe-home-clay:\s*#C2410C/i);
+  assert.match(css, /--jluxe-home-cream:\s*#FAF5F2/i);
+  assert.match(css, /background-color:\s*#2F6B52/i);
   assert.match(css, /background-color:\s*#FFFFFF/i);
-  assert.doesNotMatch(css, /#2F6B52|#FAF7F1|#FFFDF9/i);
+  assert.doesNotMatch(css, /var\(--color-electric-indigo-/i);
 
   assert.match(settings, /<option value="current"[\s\S]*?>نسخهٔ فعلی<\/option>/);
-  assert.equal((settings.match(/خانه و آشپزخانه — نیلی الکتریکی \(اختیاری\)/g) ?? []).length, 4);
+  assert.equal((settings.match(/بازطراحی خانه و آشپزخانه — طبیعی \(اختیاری\)/g) ?? []).length, 3);
   assert.match(settings, /نسخهٔ فعلی پیش‌فرض می‌ماند/);
   assert.match(settings, /رفتار WooCommerce حفظ می‌شود/);
   assert.match(settings, /SEO/);
@@ -75,24 +76,27 @@ test("R354 optional effects stay scoped and include focus, low-power, and reduce
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("R355 site-wide Electric Indigo design stays opt-in and covers the storefront without replacing content or grids", () => {
+test("R355 site-wide green/clay home design stays opt-in and covers the storefront without replacing content or grids", () => {
   assert.match(settingsPhp, /'visual_design'\s*=>\s*array\(\s*'variant'\s*=>\s*'current'/);
   assert.match(settingsPhp, /function jluxe_visual_design_body_classes/);
   assert.match(settingsPhp, /jluxe-design-canva-home/);
   assert.match(sanitizePhp, /function jluxe_sanitize_visual_design[\s\S]*?'current', 'canva_home'/);
   assert.match(settings, /name="visual_design\[variant\]"/);
   assert.match(settings, /value="canva_home"/);
+  assert.match(settings, /خانهٔ رنگی و خانگی — الهام‌گرفته از Canva/);
+  assert.match(settings, /پالت سبز، کرم و سفالی/);
   assert.match(settings, /انتخاب‌های جداگانهٔ هدر\/فوتر\/کارت محصول هم باقی می‌مانند/);
   assert.match(adminPhp, /'jluxe-visual-design'\s*=>\s*array\(\s*'visual_design', 'jluxe_sanitize_visual_design'\s*\)/);
   assert.match(adminPhp, /isset\( \$_POST\['visual_design'\] \)/);
   assert.match(mainJs, /\.\/styles\/sitewide-design\.css/);
 
   assert.match(sitewideCss, /body\.jluxe-design-canva-home/);
-  assert.match(sitewideCss, /--primary:\s*259\.06 100% 50%/);
-  assert.match(sitewideCss, /--accent:\s*259\.12 100% 60%/);
-  assert.match(sitewideCss, /var\(--color-electric-indigo-500\)/);
-  assert.match(sitewideCss, /var\(--color-electric-indigo-50\)/);
-  assert.doesNotMatch(sitewideCss, /#2F6B52|#FFF9F0/i);
+  assert.match(sitewideCss, /--primary:\s*155 39% 30%/);
+  assert.match(sitewideCss, /--accent:\s*18 88% 40%/);
+  assert.match(sitewideCss, /--jluxe-home-green:\s*#2F6B52/i);
+  assert.match(sitewideCss, /--jluxe-home-clay:\s*#C2410C/i);
+  assert.match(sitewideCss, /#FFF9F0/i);
+  assert.doesNotMatch(sitewideCss, /var\(--color-electric-indigo-/i);
   assert.match(sitewideCss, /\.jluxe-home-section/);
   assert.match(sitewideCss, /padding-inline:\s*clamp\(12px, 2vw, 24px\)/);
   assert.match(sitewideCss, /\.jluxe-home-section:nth-of-type\(4n \+ 2\)/);
@@ -104,8 +108,8 @@ test("R355 site-wide Electric Indigo design stays opt-in and covers the storefro
   assert.match(sitewideCss, /@media \(max-width: 767\.98px\)/);
   assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(sitewideCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
-  assert.ok(contrastRatio("#5100FF", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#7433FF", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#2F6B52", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#C2410C", "#FFFFFF") >= 4.5);
 });
 
 test("R362 ordinary text is neutral while action, hover, and semantic status colors remain distinct", () => {
@@ -135,7 +139,7 @@ test("R362 ordinary text is neutral while action, hover, and semantic status col
   assert.match(sitewideCss, /\.woocommerce-message \{[\s\S]*?color: #166534/);
   assert.match(sitewideCss, /\.woocommerce-info \{[\s\S]*?color: #1D4ED8/);
   assert.match(sitewideCss, /\.woocommerce-error \{[\s\S]*?color: #B91C1C/);
-  assert.match(sitewideCss, /nav > a:hover,[\s\S]*?color: var\(--color-electric-indigo-400\)/, "interactive hover color stays Electric Indigo");
+  assert.match(sitewideCss, /nav > a:hover,[\s\S]*?color: #C2410C/, "interactive hover retains the original clay accent");
   assert.equal((aboutPage.match(/\[&_\.jluxe-about-eyebrow\]:text-text-secondary/g) ?? []).length, 2);
   assert.doesNotMatch(aboutPage, /\[&_\.jluxe-about-eyebrow\]:text-primary/);
   assert.doesNotMatch(sitewideCss, /color:\s*var\(--color-electric-indigo-(?:700|800|900)\)/);

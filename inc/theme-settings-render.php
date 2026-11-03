@@ -519,7 +519,7 @@ function jluxe_render_header_page(): void {
 					<td>
 						<select id="jluxe-header-variant" name="header[variant]">
 							<option value="current" <?php selected( $settings['header']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
-							<option value="premium" <?php selected( $settings['header']['variant'] ?? 'current', 'premium' ); ?>>خانه و آشپزخانه — نیلی الکتریکی (اختیاری)</option>
+							<option value="premium" <?php selected( $settings['header']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
 						</select>
 						<p class="description">ردیفِ جستجو و دکمه‌ها با نوار ناوبریِ کپسولی بازطراحی شده؛ نسخهٔ فعلی پیش‌فرض می‌ماند و لینک‌ها و تعاملات هدر حفظ می‌شوند.</p>
 					</td>
@@ -881,7 +881,7 @@ function jluxe_render_footer_page(): void {
 					<td>
 						<select id="jluxe-footer-variant" name="footer[variant]">
 							<option value="current" <?php selected( $settings['footer']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
-							<option value="premium" <?php selected( $settings['footer']['variant'] ?? 'current', 'premium' ); ?>>خانه و آشپزخانه — نیلی الکتریکی (اختیاری)</option>
+							<option value="premium" <?php selected( $settings['footer']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
 						</select>
 						<p class="description">ساختار چندبخشیِ تازه با نوار مزیت، پنل معرفی و پشتیبانی، کارت‌های لینک و نمادها؛ چیدمان واکنش‌گرا حفظ می‌شود و نسخهٔ فعلی پیش‌فرض می‌ماند.</p>
 					</td>
@@ -899,16 +899,24 @@ function jluxe_render_footer_page(): void {
 			<?php
 			$jluxe_bg          = $settings['footer']['background'];
 			$jluxe_palette     = jluxe_electric_indigo_palette();
-			$jluxe_bg_presets  = array( $jluxe_palette['900'], $jluxe_palette['800'], $jluxe_palette['700'], $jluxe_palette['600'], $jluxe_palette['500'], $jluxe_palette['400'], $jluxe_palette['300'], $jluxe_palette['50'] );
-			// چند گرادیانِ آماده از همان طیفِ Electric Indigo؛ انتخابِ پیش‌فرض
-			// و چیدمانِ فوتر تغییر نمی‌کند و رنگ‌ها همچنان قابلِ‌ویرایش‌اند.
+			// گزینه‌های اصلی فوتر حفظ شده‌اند؛ گام‌های Electric Indigo به‌صورتِ
+			// انتخاب‌های تازه در انتهای همان فهرست اضافه می‌شوند.
+			$jluxe_bg_presets  = array(
+				'#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3',
+				$jluxe_palette['900'], $jluxe_palette['800'], $jluxe_palette['700'], $jluxe_palette['600'],
+				$jluxe_palette['500'], $jluxe_palette['400'], $jluxe_palette['300'], $jluxe_palette['50'],
+			);
+			// شش گرادیانِ قبلی به همان ترتیب مانده‌اند؛ دو ترکیب Electric Indigo
+			// به‌عنوان گزینه‌های تازه به فهرست افزوده شده‌اند.
 			$jluxe_gradient_presets = array(
+				array( 'label' => 'آبی نیمه‌شب', 'colors' => array( '#0F172A', '#1E3A5F' ) ),
+				array( 'label' => 'بنفش رویایی', 'colors' => array( '#2D1B4E', '#6B21A8' ) ),
+				array( 'label' => 'زمردیِ تیره', 'colors' => array( '#052E16', '#0F3D2E' ) ),
+				array( 'label' => 'طلاییِ گرم', 'colors' => array( '#451A03', '#92400E' ) ),
+				array( 'label' => 'خاکستریِ شیک', 'colors' => array( '#18181B', '#3F3F46' ) ),
+				array( 'label' => 'یاقوتیِ تیره', 'colors' => array( '#4C0519', '#881337' ) ),
 				array( 'label' => 'نیلی الکتریکی', 'colors' => array( $jluxe_palette['500'], $jluxe_palette['700'] ) ),
-				array( 'label' => 'نیلی عمیق', 'colors' => array( $jluxe_palette['700'], $jluxe_palette['950'] ) ),
-				array( 'label' => 'بنفش روشن', 'colors' => array( $jluxe_palette['400'], $jluxe_palette['600'] ) ),
-				array( 'label' => 'نیلی میانی', 'colors' => array( $jluxe_palette['600'], $jluxe_palette['800'] ) ),
-				array( 'label' => 'طیف روشن', 'colors' => array( $jluxe_palette['300'], $jluxe_palette['500'] ) ),
-				array( 'label' => 'شب نیلی', 'colors' => array( $jluxe_palette['800'], $jluxe_palette['950'] ) ),
+				array( 'label' => 'نیلی روشن', 'colors' => array( $jluxe_palette['300'], $jluxe_palette['500'] ) ),
 			);
 			$jluxe_bg_dirs     = array(
 				'to top'          => 'از پایین به بالا',
@@ -1234,9 +1242,9 @@ function jluxe_render_colors_typography_page(): void {
 							<td>
 								<select id="jluxe-visual-design-variant" name="visual_design[variant]">
 									<option value="current" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی سایت (پیش‌فرض)</option>
-									<option value="canva_home" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'canva_home' ); ?>>خانه و آشپزخانه — نیلی الکتریکی (اختیاری)</option>
+									<option value="canva_home" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'canva_home' ); ?>>خانهٔ رنگی و خانگی — الهام‌گرفته از Canva</option>
 								</select>
-								<p class="description">در این طرح اختیاری از طیف Electric Indigo استفاده می‌شود. «نسخهٔ فعلی» پیش‌فرض می‌ماند و چیدمان، محتوای PHP/WooCommerce، سئو و تعامل‌ها حفظ می‌شوند؛ رنگ‌های ذخیره‌شده حذف نمی‌شوند و با بازگشت به «نسخهٔ فعلی» دوباره اعمال می‌شوند.</p>
+								<p class="description">در طراحی خانهٔ رنگی، پالت سبز، کرم و سفالی با کارت‌های نرم و فاصله‌گذاری یکپارچه به‌کار می‌رود. تا وقتی این طرح روشن است، پالت اختصاصی آن اولویت دارد؛ رنگ‌های ذخیره‌شده حذف نمی‌شوند و با بازگشت به «نسخهٔ فعلی» دوباره اعمال می‌شوند. این طرح در Canva ساخته نشده و از فایل یا قالب اختصاصی Canva استفاده نمی‌کند.</p>
 							</td>
 						</tr>
 					</table>
@@ -1349,7 +1357,7 @@ function jluxe_render_product_page(): void {
 							<td>
 								<select id="jluxe-product-card-variant" name="product_card[variant]">
 									<option value="current" <?php selected( $pc['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
-									<option value="premium" <?php selected( $pc['variant'] ?? 'current', 'premium' ); ?>>خانه و آشپزخانه — نیلی الکتریکی (اختیاری)</option>
+									<option value="premium" <?php selected( $pc['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
 								</select>
 								<p class="description">کارتِ دو‌سطحیِ تصویر و اطلاعات، رتبه‌بندیِ قیمت و CTA گرد؛ نسخهٔ فعلی پیش‌فرض می‌ماند و نام، قیمت، SEO و رفتار WooCommerce حفظ می‌شود.</p>
 							</td>

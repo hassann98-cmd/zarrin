@@ -3038,20 +3038,71 @@ check(strpos($inc_woo,"\$data['price_html'] = jluxe_reference_price_html")!==fal
 check(strpos($inc_woo,"\$allowed['svg']")!==false && strpos($inc_woo,"\$allowed['clippath']")!==false && strpos($cp3,'.jluxe-toman-glyph,')!==false, 'R55 the kses allowlist keeps the glyph svg and the glyph has explicit styles in the price box and sticky CTA');
 check(strpos($urls,'preg_match( \'/^(shop|فروشگاه)$/u\', $slug )')!==false && strpos($urls,'preg_match( \'/^(blog|وبلاگ)$/u\', $slug )')!==false && strpos($urls,'get_option( \'page_for_posts\' )')!==false, 'R56 the nav link resolver maps shop/blog header links to their real destinations (Woo shop permalink, posts page, published blog page, home fallback) instead of raw slugs that 404');
 check(strpos($urls,'get_page_by_path( $slug, OBJECT, \'page\' )')!==false && strpos($urls,"'publish' === \$page->post_status")!==false, 'R56 any single-slug nav link that matches a published page goes to its real permalink, while drafts stay untouched for the admin setup flow');
-check(strpos($presets, 'electric_indigo') !== false && strpos($presets, 'jluxe_brand_red') !== false && strpos($presets, '\'primary\' => $palette[\'500\']') !== false && strpos($presets, '\'background\' => $palette[\'50\']') !== false, 'R57 legacy preset IDs remain available while every design preset uses the shared Electric Indigo palette');
-$r57_allowed_preset_colors = array_values( array_map( 'strtoupper', jluxe_electric_indigo_palette() ) );
-$r57_allowed_preset_colors[] = '#FFFFFF';
-$r57_all_presets = jluxe_get_design_presets();
-$r57_presets_use_shared_palette = true;
-foreach ( $r57_all_presets as $r57_preset ) {
-	foreach ( $r57_preset['colors'] as $r57_color ) {
-		if ( ! in_array( strtoupper( $r57_color ), $r57_allowed_preset_colors, true ) ) {
-			$r57_presets_use_shared_palette = false;
-		}
+$r363_legacy_preset_colors = array(
+	'jewelry_luxe' => array( 'primary' => '#7A2438', 'secondary' => '#24313A', 'background' => '#FBF8F3', 'success' => '#26734D', 'accent' => '#C8A45D' ),
+	'home_warm' => array( 'primary' => '#B6533C', 'secondary' => '#355C55', 'background' => '#FAF7F1', 'success' => '#2D7A55', 'accent' => '#C69A4B' ),
+	'digikala_clean' => array( 'primary' => '#D92D3F', 'secondary' => '#155E9B', 'background' => '#FFFFFF', 'success' => '#16834A', 'accent' => '#F59E0B' ),
+	'minimal_black_gold' => array( 'primary' => '#222222', 'secondary' => '#4B5563', 'background' => '#FAFAF8', 'success' => '#287A52', 'accent' => '#B58A3A' ),
+	'joyful_coral_teal' => array( 'primary' => '#E23B45', 'secondary' => '#087F7A', 'background' => '#F7FCFB', 'success' => '#168A50', 'accent' => '#F2A93B' ),
+	'jluxe_brand_red' => array( 'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623' ),
+	'emerald_modern' => array( 'primary' => '#087A68', 'secondary' => '#243746', 'background' => '#F6FAF8', 'success' => '#19734C', 'accent' => '#B9974F' ),
+);
+$r363_electric_indigo_colors = array(
+	'primary' => '#5100FF', 'secondary' => '#300099', 'background' => '#EEE5FF', 'success' => '#16865A', 'accent' => '#7433FF',
+);
+$r363_previous_default_colors = array(
+	'primary' => '#B85C38', 'secondary' => '#355C5A', 'background' => '#F7F3EE', 'success' => '#16865A', 'accent' => '#C89B3C',
+);
+$r363_all_presets = jluxe_get_design_presets();
+$r363_legacy_presets_preserved = true;
+foreach ( $r363_legacy_preset_colors as $r363_id => $r363_colors ) {
+	if ( ! isset( $r363_all_presets[ $r363_id ]['colors'] ) || $r363_all_presets[ $r363_id ]['colors'] !== $r363_colors ) {
+		$r363_legacy_presets_preserved = false;
 	}
 }
-check( $r57_presets_use_shared_palette, 'R57 every saved design preset stays on the shared Electric Indigo scale (white remains a neutral surface)' );
-check(substr_count($presets,'typography')>=7 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R57 the new preset card flows through the same apply pipeline and sanitizer gates as the other preset cards');
+check(
+	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'legacy_default' ) ) &&
+	$r363_legacy_presets_preserved &&
+	$r363_all_presets['electric_indigo']['colors'] === $r363_electric_indigo_colors &&
+	'نیلی الکتریکی (افزوده‌شده)' === $r363_all_presets['electric_indigo']['label'] &&
+	$r363_all_presets['legacy_default']['colors'] === $r363_previous_default_colors &&
+	'پالت پیش‌فرض پیشین زرین' === $r363_all_presets['legacy_default']['label'],
+	'R363 the seven original palettes retain their exact order, Electric Indigo is eighth, and the former theme-default palette remains a separate ninth option'
+);
+$r363_saved_post = $_POST;
+$r363_defaults = jluxe_theme_settings_defaults();
+$r363_defaults['visual_design']['variant'] = 'canva_home';
+update_test_settings( $r363_defaults );
+$_POST = array(
+	'jluxe_apply_preset' => '1',
+	'jluxe_settings_nonce' => 'test-nonce',
+	'jluxe_preset_id' => 'legacy_default',
+);
+$r363_apply_status = jluxe_handle_apply_preset();
+$r363_applied_settings = jluxe_get_theme_settings( true );
+check(
+	'preset_applied' === $r363_apply_status &&
+	$r363_previous_default_colors === $r363_applied_settings['colors'] &&
+	'canva_home' === $r363_applied_settings['visual_design']['variant'],
+	'R363 the previous default colors apply as an explicit choice without altering unrelated saved settings'
+);
+$_POST = $r363_saved_post;
+update_test_settings( jluxe_theme_settings_defaults() );
+$r363_previous_footer_swatches = array( '#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3' );
+$r363_footer_swatches_preserved = true;
+foreach ( $r363_previous_footer_swatches as $r363_color ) {
+	if ( false === strpos( $r326_settings_render_source, "'" . $r363_color . "'" ) ) {
+		$r363_footer_swatches_preserved = false;
+	}
+}
+check(
+	$r363_footer_swatches_preserved &&
+	false !== strpos( $r326_settings_render_source, "array( 'label' => 'آبی نیمه‌شب'" ) &&
+	false !== strpos( $r326_settings_render_source, "array( 'label' => 'نیلی الکتریکی'" ) &&
+	false !== strpos( $r326_settings_render_source, 'jluxe_electric_indigo_palette()' ),
+	'R363 the previous footer solid-color and gradient swatches remain, with Electric Indigo choices appended'
+);
+check(substr_count($presets,'typography')>=9 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R363 all nine palette cards still flow through the same apply pipeline and sanitizer gates');
 check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
 check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false && strpos($woo_inc,'data-jluxe-sticky-variation-price')!==false && strpos($woo_inc,'data-jluxe-price-placeholder=""')!==false, 'R136 simple sticky prices keep the toman glyph while variable products start with an empty price placeholder');
 $home_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
