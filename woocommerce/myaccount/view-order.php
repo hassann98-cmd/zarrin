@@ -23,6 +23,7 @@ $jluxe_progress       = ( $jluxe_timeline && ! $jluxe_is_cancelled && $jluxe_tim
 $jluxe_status_color   = $jluxe_is_cancelled ? 'text-error' : ( 'completed' === $jluxe_status ? 'text-success' : 'text-primary' );
 $jluxe_shipping       = function_exists( 'jluxe_build_shipping_data' ) ? jluxe_build_shipping_data( $order ) : array();
 $jluxe_tracking       = function_exists( 'jluxe_get_tracking_info' ) ? jluxe_get_tracking_info( $order ) : array( 'tracking_code' => null, 'shipping_company' => null, 'shipping_note' => null );
+$jluxe_invoice_url    = function_exists( 'jluxe_invoice_customer_url' ) ? jluxe_invoice_customer_url( $order ) : '';
 
 $jluxe_address_parts  = array_filter(
 	array(
@@ -40,7 +41,15 @@ $jluxe_address_parts  = array_filter(
 			<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
 			بازگشت
 		</a>
-		<h1 class="text-h4 font-bold text-foreground" dir="ltr">#<?php echo esc_html( jluxe_fa_digits( $order->get_order_number() ) ); ?></h1>
+		<div class="flex items-center gap-2">
+			<?php if ( '' !== $jluxe_invoice_url ) : ?>
+				<a href="<?php echo esc_url( $jluxe_invoice_url ); ?>" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-caption font-bold text-primary-foreground transition-colors hover:bg-primary-hover">
+					<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h8M9 17h8"/></svg>
+					چاپ فاکتور
+				</a>
+			<?php endif; ?>
+			<h1 class="text-h4 font-bold text-foreground" dir="ltr">#<?php echo esc_html( jluxe_fa_digits( $order->get_order_number() ) ); ?></h1>
+		</div>
 	</div>
 
 	<div class="rounded-2xl border border-border bg-surface p-4 sm:p-5">

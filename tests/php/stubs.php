@@ -121,6 +121,17 @@ class WP_REST_Response {
  function get_headers(){return $this->headers;}
  function header($key,$value){$this->headers[$key]=$value;}
 }
+class WC_Order_Item_Product {
+ public $name='';
+ public $quantity=1;
+ public $subtotal=0;
+ public $total=0;
+ function __construct($name='',$quantity=1,$subtotal=0,$total=0){$this->name=$name;$this->quantity=$quantity;$this->subtotal=$subtotal;$this->total=$total;}
+ function get_name(){return $this->name;}
+ function get_quantity(){return $this->quantity;}
+ function get_subtotal(){return $this->subtotal;}
+ function get_total(){return $this->total;}
+}
 class WC_Order {
  public $id=51;
  public $customer_id=42;
@@ -128,6 +139,22 @@ class WC_Order {
  public $phone='09120000000';
  public $shipping_phone='';
  public $order_number='51';
+ public $billing_first_name='Private';
+ public $billing_last_name='Customer';
+ public $billing_state='Private state';
+ public $billing_city='Private city';
+ public $billing_address_1='Private address';
+ public $billing_address_2='Private unit';
+ public $billing_email='private@example.invalid';
+ public $items=[];
+ public $fees=[];
+ public $subtotal=450000;
+ public $discount_total=0;
+ public $shipping_total=0;
+ public $total_tax=0;
+ public $total=450000;
+ public $currency='IRR';
+ public $date_created=null;
  public $shipping_first_name='';
  public $shipping_last_name='';
  public $shipping_address_1='';
@@ -148,21 +175,26 @@ class WC_Order {
  function get_order_number(){return $this->order_number;}
  function get_customer_id(){return $this->customer_id;}
  function get_status(){return $this->status;}
- function get_date_created(){return null;}
+ function get_date_created(){return $this->date_created;}
  function get_date_modified(){return null;}
- function get_total(){return 450000;}
- function get_currency(){return 'IRR';}
+ function get_total(){return $this->total;}
+ function get_subtotal(){return $this->subtotal;}
+ function get_discount_total(){return $this->discount_total;}
+ function get_shipping_total(){return $this->shipping_total;}
+ function get_total_tax(){return $this->total_tax;}
+ function get_currency(){return $this->currency;}
  function get_payment_method(){return $this->payment_method;}
  function get_payment_method_title(){return $this->payment_method_title;}
  function get_billing_phone(){return $this->phone;}
  function get_shipping_phone(){return $this->shipping_phone;}
- function get_billing_first_name(){return 'Private';}
- function get_billing_last_name(){return 'Customer';}
- function get_formatted_billing_full_name(){return 'Private Customer';}
- function get_billing_state(){return 'Private state';}
- function get_billing_city(){return 'Private city';}
- function get_billing_address_1(){return 'Private address';}
- function get_billing_address_2(){return 'Private unit';}
+ function get_billing_first_name(){return $this->billing_first_name;}
+ function get_billing_last_name(){return $this->billing_last_name;}
+ function get_formatted_billing_full_name(){return trim($this->billing_first_name.' '.$this->billing_last_name);}
+ function get_billing_state(){return $this->billing_state;}
+ function get_billing_city(){return $this->billing_city;}
+ function get_billing_address_1(){return $this->billing_address_1;}
+ function get_billing_address_2(){return $this->billing_address_2;}
+ function get_billing_email(){return $this->billing_email;}
  function get_billing_postcode(){return $this->billing_postcode;}
  function get_billing_country(){return $this->billing_country;}
  function get_shipping_first_name(){return $this->shipping_first_name;}
@@ -175,7 +207,7 @@ class WC_Order {
  function get_shipping_country(){return $this->shipping_country;}
  function get_customer_note(){return $this->customer_note;}
  function get_shipping_method(){return 'Test shipping';}
- function get_items(){return [];}
+ function get_items($type='line_item'){return 'fee'===$type?$this->fees:$this->items;}
  function get_meta($key){return $this->meta[$key]??'';}
  function update_meta_data($key,$value){$this->meta[$key]=$value;}
  function delete_meta_data($key){unset($this->meta[$key]);}
@@ -268,7 +300,7 @@ function get_woocommerce_currency_symbol($currency=''){if(''===$currency)$curren
 function wc_get_price_decimals(){return 0;}
 function wc_get_price_decimal_separator(){return '.';}
 function wc_get_price_thousand_separator(){return ',';}
-function wc_price($amount){return '<span>'.$amount.'</span>';}
+function wc_price($amount,$args=array()){return '<span>'.(isset($args['currency'])?esc_html($args['currency']).' ':'').$amount.'</span>';}
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
 function get_attachment_link($id){return $GLOBALS['attachment_links'][$id]??home_url('/attachment/'.$id.'/');}
 function wp_get_attachment_image_url(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$images=$GLOBALS['attachment_image_urls']??[];if(array_key_exists($id,$images)){$value=$images[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return home_url('/image.jpg');}

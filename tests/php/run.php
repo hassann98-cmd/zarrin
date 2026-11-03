@@ -10278,4 +10278,178 @@ $_POST = $r355_old_post;
 
 update_test_settings( jluxe_theme_settings_defaults() );
 
+
+// R366: invoice settings are opt-in only for their own option, while secure order output uses WooCommerce order data.
+$r366_had_invoice_option = array_key_exists( JLUXE_INVOICE_SETTINGS_OPTION, $GLOBALS['options'] );
+$r366_old_invoice_option = $GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ] ?? null;
+$r366_theme_option_before = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$r366_invoice_defaults = jluxe_invoice_default_settings();
+$r366_bad_settings = jluxe_invoice_sanitize_settings(
+	array(
+		'company_name' => '<b>فروشگاه</b><script>alert(1)</script>',
+		'company_email' => 'not-an-email',
+		'company_website' => 'javascript:alert(1)',
+		'company_logo_url' => 'javascript:alert(1)',
+		'enable_invoice' => '0',
+		'default_size' => 'legal',
+		'footer_text' => '<script>unsafe()</script>متن امن',
+	),
+	$r366_invoice_defaults
+);
+check(
+	'a5' === $r366_invoice_defaults['default_size'] &&
+	true === $r366_invoice_defaults['enable_invoice'] &&
+	false === $r366_bad_settings['enable_invoice'] &&
+	'a5' === $r366_bad_settings['default_size'] &&
+	'' === $r366_bad_settings['company_email'] &&
+	'' === $r366_bad_settings['company_website'] &&
+	'' === $r366_bad_settings['company_logo_url'] &&
+	false === stripos( $r366_bad_settings['company_name'], '<script' ) &&
+	false === stripos( $r366_bad_settings['footer_text'], '<script' ),
+	'R366 invoice defaults are enabled with A5 and seller fields, size, URLs, email, and visible text are sanitized'
+);
+$r366_clean_settings = jluxe_invoice_update_settings(
+	array(
+		'company_name' => 'فروشگاه فاکتور آزمایشی',
+		'company_phone' => '02100000000',
+		'company_email' => 'billing@example.test',
+		'company_website' => 'https://shop.test/billing',
+		'company_address' => 'خیابان نمونه، پلاک ۱',
+		'company_postcode' => '1234567890',
+		'company_logo_id' => '0',
+		'company_logo_url' => '',
+		'enable_invoice' => '1',
+		'show_logo' => '1',
+		'auto_print' => '0',
+		'default_size' => 'a5',
+		'footer_text' => 'با تشکر از خرید شما',
+	)
+);
+check(
+	'فروشگاه فاکتور آزمایشی' === $r366_clean_settings['company_name'] &&
+	'a5' === $r366_clean_settings['default_size'] &&
+	false === $r366_clean_settings['auto_print'] &&
+	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] === $r366_theme_option_before,
+	'R366 invoice save updates only the independent invoice option and preserves the active theme settings'
+);
+$r366_order = new WC_Order();
+$r366_order->id = 366;
+$r366_order->order_number = 'Z-366';
+$r366_order->customer_id = 42;
+$r366_order->billing_first_name = 'Billing';
+$r366_order->billing_last_name = 'Fallback';
+$r366_order->shipping_first_name = 'گیرنده';
+$r366_order->shipping_last_name = 'آزمایشی';
+$r366_order->shipping_address_1 = 'نشانی ارسال واقعی';
+$r366_order->shipping_city = 'تهران';
+$r366_order->shipping_state = 'THR';
+$r366_order->shipping_postcode = '1234500000';
+$r366_order->shipping_country = 'IR';
+$r366_order->shipping_phone = '09121111111';
+$r366_order->items = array( new WC_Order_Item_Product( '<script>alert(1)</script>تشک آزمایشی', 2, 400000, 360000 ) );
+$r366_order->fees = array( new WC_Order_Item_Product( 'هزینهٔ بسته‌بندی', 1, 10000, 10000 ) );
+$r366_order->subtotal = 400000;
+$r366_order->discount_total = 40000;
+$r366_order->shipping_total = 50000;
+$r366_order->total_tax = 0;
+$r366_order->total = 420000;
+$r366_order_data = jluxe_invoice_order_data( $r366_order );
+check(
+	'Z-366' === $r366_order_data['order_number'] &&
+	'گیرنده آزمایشی' === $r366_order_data['buyer']['name'] &&
+	'نشانی ارسال واقعی' === $r366_order_data['buyer']['address'] &&
+	'09121111111' === $r366_order_data['buyer']['phone'] &&
+	360000.0 === $r366_order_data['items'][0]['total'] &&
+	40000.0 === $r366_order_data['totals']['discount'] &&
+	50000.0 === $r366_order_data['totals']['shipping'] &&
+	10000.0 === $r366_order_data['totals']['fees'] &&
+	'هزینهٔ بسته‌بندی' === $r366_order_data['fees'][0]['name'] &&
+	420000.0 === $r366_order_data['totals']['order'],
+	'R366 invoice payload uses the actual order number, shipping recipient, line item, discount, shipping, and total'
+);
+ob_start();
+jluxe_invoice_render_document( $r366_order_data, 'a4', array(), false );
+$r366_invoice_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r366_invoice_html, 'A4 portrait' ) &&
+	false !== strpos( $r366_invoice_html, 'Z-366' ) &&
+	false !== strpos( $r366_invoice_html, 'تشک آزمایشی' ) &&
+	false !== strpos( $r366_invoice_html, 'فروشگاه فاکتور آزمایشی' ) &&
+	false !== strpos( $r366_invoice_html, 'هزینهٔ بسته‌بندی' ) &&
+	false === strpos( $r366_invoice_html, '<script>alert(1)</script>' ),
+	'R366 printable A4 HTML includes order/seller data, escapes product names, and has no untrusted order HTML'
+);
+$r366_old_user = $GLOBALS['authenticated_user'] ?? null;
+$r366_old_can_manage = $GLOBALS['can_manage'] ?? null;
+$r366_old_denied_caps = $GLOBALS['denied_caps'] ?? null;
+$GLOBALS['can_manage'] = false;
+$GLOBALS['denied_caps'] = array( 'manage_woocommerce', 'edit_shop_orders', 'edit_shop_order' );
+$GLOBALS['authenticated_user'] = 42;
+$r366_owner_url = jluxe_invoice_customer_url( $r366_order );
+$r366_owner_print_allowed = jluxe_invoice_print_request_allowed( $r366_order );
+$GLOBALS['authenticated_user'] = 43;
+$r366_other_url = jluxe_invoice_customer_url( $r366_order );
+$r366_other_print_allowed = jluxe_invoice_print_request_allowed( $r366_order );
+$GLOBALS['authenticated_user'] = 0;
+$r366_guest_url = jluxe_invoice_customer_url( $r366_order );
+$GLOBALS['can_manage'] = true;
+$r366_admin_url = jluxe_invoice_print_url( 366, 'a4' );
+check(
+	false !== strpos( $r366_owner_url, 'order_id=366' ) &&
+	false !== strpos( $r366_owner_url, 'type=invoice' ) &&
+	false !== strpos( $r366_owner_url, 'size=a5' ) &&
+	false === strpos( $r366_other_url, 'order_id=366' ) &&
+	true === $r366_owner_print_allowed && false === $r366_other_print_allowed &&
+	'' === $r366_guest_url &&
+	false !== strpos( $r366_admin_url, 'size=a4' ) &&
+	false !== strpos( $r366_admin_url, '_wpnonce=nonce-jluxe_print_invoice_366' ),
+	'R366 only the authenticated owner gets a customer invoice link; the manager URL is nonce-bound and supports A4'
+);
+$GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ]['enable_invoice'] = false;
+$GLOBALS['authenticated_user'] = 42;
+check(
+	'' === jluxe_invoice_customer_url( $r366_order ),
+	'R366 disabling invoices removes the customer link even for the order owner'
+);
+$r366_old_get = $_GET;
+$GLOBALS['can_manage'] = true;
+$GLOBALS['denied_caps'] = array();
+$_GET = array( 'tab' => 'seller' );
+ob_start();
+jluxe_invoice_render_admin_page();
+$r366_seller_admin_html = (string) ob_get_clean();
+$_GET = array( 'tab' => 'design' );
+ob_start();
+jluxe_invoice_render_admin_page();
+$r366_design_admin_html = (string) ob_get_clean();
+$_GET = array( 'tab' => 'preview', 'size' => 'a4' );
+ob_start();
+jluxe_invoice_render_admin_page();
+$r366_preview_admin_html = (string) ob_get_clean();
+check(
+	false !== strpos( $r366_seller_admin_html, 'invoice_settings[company_name]' ) &&
+	false !== strpos( $r366_seller_admin_html, 'data-jib-select-logo' ) &&
+	false !== strpos( $r366_seller_admin_html, 'invoice_settings[enable_invoice]' ) &&
+	false !== strpos( $r366_design_admin_html, 'invoice_settings[default_size]' ) &&
+	false !== strpos( $r366_design_admin_html, 'invoice_settings[auto_print]' ) &&
+	false !== strpos( $r366_preview_admin_html, 'پیش‌نمایش نمونهٔ فاکتور' ) &&
+	false !== strpos( $r366_preview_admin_html, 'srcdoc=' ) &&
+	false !== strpos( $r366_preview_admin_html, 'size=a4' ),
+	'R366 admin page renders separate seller, print-design, and A4/A5 preview controls'
+);
+$_GET = $r366_old_get;
+$r366_hook_names = array_map( static function ( $hook ) { return $hook[0] ?? ''; }, $GLOBALS['actions'] );
+$r366_account_template = (string) file_get_contents( ABSPATH . 'woocommerce/myaccount/view-order.php' );
+check(
+	in_array( 'admin_post_jluxe_print_invoice', $r366_hook_names, true ) &&
+	! in_array( 'admin_post_nopriv_jluxe_print_invoice', $r366_hook_names, true ) &&
+	false !== strpos( $r366_account_template, 'jluxe_invoice_customer_url' ) &&
+	false !== strpos( $r366_account_template, 'چاپ فاکتور' ),
+	'R366 printing is registered only on the authenticated admin-post route and account details expose the owner-only link'
+);
+if ( null === $r366_old_user ) { unset( $GLOBALS['authenticated_user'] ); } else { $GLOBALS['authenticated_user'] = $r366_old_user; }
+if ( null === $r366_old_can_manage ) { unset( $GLOBALS['can_manage'] ); } else { $GLOBALS['can_manage'] = $r366_old_can_manage; }
+if ( null === $r366_old_denied_caps ) { unset( $GLOBALS['denied_caps'] ); } else { $GLOBALS['denied_caps'] = $r366_old_denied_caps; }
+if ( $r366_had_invoice_option ) { $GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ] = $r366_old_invoice_option; } else { unset( $GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ] ); }
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
