@@ -28,7 +28,19 @@ jobs:
       - run: npm ci
       - name: Audit the locked root dependency tree
         run: npm audit --audit-level=moderate
-      - run: npm run check
+      - name: Run build and regression checks
+        shell: bash
+        run: |
+          log_file="$RUNNER_TEMP/zarrin-check.log"
+          if npm run check >"$log_file" 2>&1; then
+            cat "$log_file"
+          else
+            status=$?
+            tail -n 45 "$log_file"
+            summary="$(tail -n 35 "$log_file" | tr '\n' ' ' | cut -c1-3500)"
+            echo "::error title=Check failure::$summary"
+            exit "$status"
+          fi
       - name: Committed build must match source
         shell: bash
         run: |

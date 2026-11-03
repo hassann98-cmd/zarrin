@@ -100,7 +100,18 @@ jobs:
 
       - name: Run the full build and regression checks
         if: steps.release.outputs.publish == 'true'
-        run: npm run check
+        shell: bash
+        run: |
+          log_file="$RUNNER_TEMP/zarrin-check.log"
+          if npm run check >"$log_file" 2>&1; then
+            cat "$log_file"
+          else
+            status=$?
+            tail -n 45 "$log_file"
+            summary="$(tail -n 35 "$log_file" | tr '\n' ' ' | cut -c1-3500)"
+            echo "::error title=Check failure::$summary"
+            exit "$status"
+          fi
 
       - name: Ensure the tag contains its committed build
         if: steps.release.outputs.publish == 'true'
