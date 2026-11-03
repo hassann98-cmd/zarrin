@@ -37,7 +37,11 @@ jobs:
           else
             status=$?
             tail -n 45 "$log_file"
-            summary="$(tail -n 35 "$log_file" | tr '\n' ' ' | cut -c1-3500)"
+            summary="$(
+              { grep -n -A 20 -B 2 -E '^not ok [0-9]+|AssertionError|ERR_ASSERTION|PHP check failed|Parse error:|Fatal error:|^FAIL:' "$log_file" || true
+                tail -n 10 "$log_file"
+              } | tail -n 50 | tr '\n' ' ' | cut -c1-3500
+            )"
             echo "::error title=Check failure::$summary"
             exit "$status"
           fi
