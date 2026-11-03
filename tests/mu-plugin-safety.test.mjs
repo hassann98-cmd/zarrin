@@ -2,9 +2,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const plugin = fs.readFileSync(new URL("../11.php", import.meta.url), "utf8");
+const pluginUrl = new URL("../11.php", import.meta.url);
+const hasLocalMuPlugin = fs.existsSync(pluginUrl);
+const plugin = hasLocalMuPlugin ? fs.readFileSync(pluginUrl, "utf8") : "";
+const localMuPluginTestOptions = hasLocalMuPlugin
+  ? {}
+  : { skip: "the local-only MU plugin is intentionally excluded from the public repository" };
 
-test("MU plugin keeps the mobile/web REST routes and does not block WooCommerce order sync", () => {
+test("MU plugin keeps the mobile/web REST routes and does not block WooCommerce order sync", localMuPluginTestOptions, () => {
   for (const [namespace, route] of [
     ["jluxe-admin/v1", "/store-lock"],
     ["jluxe-admin/v1", "/media"],
@@ -19,7 +24,7 @@ test("MU plugin keeps the mobile/web REST routes and does not block WooCommerce 
   assert.match(plugin, /Deliberately do not block WooCommerce REST writes/);
 });
 
-test("MU plugin reads credentials from external configuration and contains no embedded private key or token", () => {
+test("MU plugin reads credentials from external configuration and contains no embedded private key or token", localMuPluginTestOptions, () => {
   assert.match(plugin, /JLUXE_ADMIN_TOKENS/);
   assert.match(plugin, /getenv\('JLUXE_ADMIN_TOKEN'\)/);
   assert.match(plugin, /JLUXE_FCM_SERVICE_ACCOUNT_FILE/);
@@ -35,7 +40,7 @@ test("MU plugin reads credentials from external configuration and contains no em
 
 const themeTracking = fs.readFileSync(new URL("../inc/order-tracking.php", import.meta.url), "utf8");
 
-test("legacy MU tracking helpers are namespaced to avoid fatal collisions with the theme", () => {
+test("legacy MU tracking helpers are namespaced to avoid fatal collisions with the theme", localMuPluginTestOptions, () => {
   const legacyHelpers = [
     "jluxe_build_customer_data",
     "jluxe_build_items_data",
