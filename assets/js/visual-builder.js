@@ -36,6 +36,23 @@
 	var selectedSectionIndex = -1;
 	var activeFrameTarget = null;
 	var frameDropSupported = false;
+	var undoButton = root.querySelector("[data-jvb-undo]");
+	var redoButton = root.querySelector("[data-jvb-redo]");
+	var historyList = root.querySelector("[data-jvb-history-list]");
+	var historyEmpty = root.querySelector("[data-jvb-history-empty]");
+	var historyCount = root.querySelector("[data-jvb-history-count]");
+	var panelTitle = root.querySelector("[data-jvb-panel-title]");
+	var panelCount = root.querySelector("[data-jvb-panel-count]");
+	var selectionTitle = root.querySelector("[data-jvb-selection-title]");
+	var historyEntries = [];
+	var historyIndex = -1;
+	var nextHistoryId = 1;
+	var historyCaptureTimer = null;
+	var historyPendingLabel = "";
+	var historyRestoring = false;
+	var ignoreHistoryMutations = false;
+	var activePanel = "components";
+	var historyLimit = 30;
 
 	if (!form || !sections) return;
 
@@ -43,6 +60,279 @@
 		return Array.prototype.filter.call(sections.children, function (child) {
 			return child.classList && child.classList.contains("jluxe-hb-section");
 		});
+	}
+
+	function getSectionLabel(card) {
+		var title = card && card.querySelector(".jluxe-hb-type-label");
+		return title ? title.textContent.trim() : (card && card.getAttribute("data-type")) || "بخش";
+	}
+
+	function ensureSectionActions() {
+		getSectionCards().forEach(function (card, index, cards) {
+			var summary = card.querySelector("summary.jluxe-hb-section-head") || card.querySelector("summary");
+			if (!summary) return;
+			var group = summary.querySelector("[data-jvb-section-actions]");
+			var chevron = summary.querySelector(".jluxe-hb-chevron");
+			if (!group) {
+				group = document.createElement("span");
+				group.className = "jvb-section-actions";
+				group.setAttribute("data-jvb-section-actions", "true");
+				group.setAttribute("aria-label", "ترتیب بخش");
+				summary.insertBefore(group, chevron || null);
+			}
+
+			[
+				{ action: "up", label: "یک پله بالا", icon: "arrow-up-alt2", disabled: index === 0 },
+				{ action: "down", label: "یک پله پایین", icon: "arrow-down-alt2", disabled: index === cards.length - 1 },
+			].forEach(function (item) {
+				var button = group.querySelector('[data-jvb-section-action="' + item.action + '"]');
+				if (!button) {
+					button = document.createElement("button");
+					button.type = "button";
+					button.className = "button-link jvb-section-order-button";
+					button.setAttribute("data-jvb-section-action", item.action);
+					button.setAttribute("aria-label", item.label);
+					button.title = item.label;
+					var icon = document.createElement("span");
+					icon.className = "dashicons dashicons-" + item.icon;
+					icon.setAttribute("aria-hidden", "true");
+					button.appendChild(icon);
+				}
+				button.disabled = item.disabled;
+				if (button.parentNode !== group) group.appendChild(button);
+			});
+		});
+	}
+
+	function getHomepageControls() {
+		return Array.prototype.slice.call(form.querySelectorAll('input[name^="homepage["], select[name^="homepage["], textarea[name^="homepage["]'));
+	}
+
+	function captureControlState(field) {
+		var state = {
+			name: field.getAttribute("name") || "",
+			tag: field.tagName.toLowerCase(),
+			type: String(field.type || "").toLowerCase(),
+			value: field.value,
+		};
+		if ("select" === state.tag) {
+			state.selected = [];
+			Array.prototype.forEach.call(field.options, function (option, index) {
+				if (option.selected) state.selected.push(index);
+			});
+		} else if ("checkbox" === state.type || "radio" === state.type) {
+			state.checked = Boolean(field.checked);
+		}
+		return state;
+	}
+
+	function captureHistorySnapshot(label) {
+		return {
+			label: label || "ویرایش صفحه",
+			createdAt: new Date(),
+			sectionsHtml: sections.innerHTML,
+			controls: getHomepageControls().map(captureControlState),
+			selectedIndex: selectedSectionIndex,
+		};
+	}
+
+	function snapshotsEqual(left, right) {
+		if (!left || !right || left.sectionsHtml !== right.sectionsHtml || left.controls.length !== right.controls.length) return false;
+		for (var i = 0; i < left.controls.length; i += 1) {
+			var a = left.controls[i];
+			var b = right.controls[i];
+			if (a.name !== b.name || a.tag !== b.tag || a.type !== b.type || a.value !== b.value || a.checked !== b.checked) return false;
+			if (JSON.stringify(a.selected || []) !== JSON.stringify(b.selected || [])) return false;
+		}
+		return true;
+	}
+
+	function formatHistoryCount(value) {
+		try {
+			return new Intl.NumberFormat("fa-IR").format(value);
+		} catch (error) {
+			return String(value);
+		}
+	}
+
+	function formatHistoryTime(date) {
+		try {
+			return date.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+		} catch (error) {
+			return date.toLocaleTimeString();
+		}
+	}
+
+	function updateHistoryControls() {
+		if (undoButton) undoButton.disabled = historyIndex <= 0;
+		if (redoButton) redoButton.disabled = historyIndex < 0 || historyIndex >= historyEntries.length - 1;
+	}
+
+	function updatePanelMetadata() {
+		var cards = getSectionCards();
+		var titles = {
+			components: "المان‌های صفحه",
+			settings: selectedSectionIndex >= 0 && cards[selectedSectionIndex] ? "تنظیمات بخش" : "تنظیمات صفحه",
+			structure: "ساختار صفحه",
+			history: "تاریخچهٔ صفحه",
+			page: "برگهٔ اصلی",
+		};
+		var counts = {
+			components: root.querySelectorAll("[data-jvb-add-section]").length,
+			settings: cards.length,
+			structure: cards.length,
+			history: historyEntries.length,
+			page: "۱",
+		};
+		if (panelTitle) panelTitle.textContent = titles[activePanel] || titles.components;
+		if (panelCount) panelCount.textContent = typeof counts[activePanel] === "number" ? formatHistoryCount(counts[activePanel]) : counts[activePanel];
+		if (selectionTitle) {
+			selectionTitle.textContent = selectedSectionIndex >= 0 && cards[selectedSectionIndex]
+				? "ویرایش «" + getSectionLabel(cards[selectedSectionIndex]) + "»"
+				: "تنظیمات صفحهٔ اصلی";
+		}
+	}
+
+	function activatePanel(name) {
+		var validPanels = ["components", "settings", "structure", "history", "page"];
+		if (validPanels.indexOf(name) === -1) return;
+		activePanel = name;
+		root.querySelectorAll("[data-jvb-tab]").forEach(function (tab) {
+			tab.setAttribute("aria-selected", tab.getAttribute("data-jvb-tab") === name ? "true" : "false");
+		});
+		root.querySelectorAll("[data-jvb-panel]").forEach(function (panel) {
+			panel.hidden = panel.getAttribute("data-jvb-panel") !== name;
+		});
+		var navigation = root.querySelector(".jvb-tabs");
+		if (navigation) {
+			navigation.setAttribute("aria-orientation", window.matchMedia && window.matchMedia("(max-width: 782px)").matches ? "horizontal" : "vertical");
+		}
+		updatePanelMetadata();
+	}
+
+	function renderHistoryPanel() {
+		if (historyCount) historyCount.textContent = formatHistoryCount(historyEntries.length);
+		if (historyEmpty) historyEmpty.hidden = historyEntries.length > 1;
+		if (historyList) {
+			historyList.replaceChildren();
+			for (var i = historyEntries.length - 1; i >= 0; i -= 1) {
+				var entry = historyEntries[i];
+				var item = document.createElement("li");
+				var button = document.createElement("button");
+				var label = document.createElement("span");
+				var time = document.createElement("time");
+				button.type = "button";
+				button.className = "jvb-history-entry";
+				button.setAttribute("data-jvb-history-id", String(entry.id));
+				button.setAttribute("aria-label", entry.label + "، ساعت " + formatHistoryTime(entry.createdAt));
+				if (i === historyIndex) button.setAttribute("aria-current", "step");
+				label.className = "jvb-history-entry-label";
+				label.textContent = entry.label;
+				time.textContent = formatHistoryTime(entry.createdAt);
+				time.dateTime = entry.createdAt.toISOString();
+				button.appendChild(label);
+				button.appendChild(time);
+				item.appendChild(button);
+				historyList.appendChild(item);
+			}
+		}
+		updateHistoryControls();
+		updatePanelMetadata();
+	}
+
+	function commitHistoryCapture() {
+		if (historyCaptureTimer) window.clearTimeout(historyCaptureTimer);
+		historyCaptureTimer = null;
+		if (historyRestoring) return;
+		var label = historyPendingLabel || "ویرایش صفحه";
+		historyPendingLabel = "";
+		var snapshot = captureHistorySnapshot(label);
+		if (historyIndex >= 0 && snapshotsEqual(historyEntries[historyIndex], snapshot)) return;
+		if (historyIndex < historyEntries.length - 1) historyEntries.splice(historyIndex + 1);
+		snapshot.id = nextHistoryId;
+		nextHistoryId += 1;
+		historyEntries.push(snapshot);
+		if (historyEntries.length > historyLimit) {
+			historyEntries.shift();
+		}
+		historyIndex = historyEntries.length - 1;
+		renderHistoryPanel();
+	}
+
+	function queueHistoryCapture(label) {
+		if (historyRestoring) return;
+		if (label && (!historyPendingLabel || label !== "تغییر ساختار")) historyPendingLabel = label;
+		if (historyCaptureTimer) window.clearTimeout(historyCaptureTimer);
+		historyCaptureTimer = window.setTimeout(commitHistoryCapture, 320);
+	}
+
+	function flushHistoryCapture() {
+		if (historyCaptureTimer) commitHistoryCapture();
+	}
+
+	function applyControlState(field, state) {
+		if (!state || field.getAttribute("name") !== state.name || field.tagName.toLowerCase() !== state.tag) return;
+		if ("select" === state.tag) {
+			Array.prototype.forEach.call(field.options, function (option, index) {
+				option.selected = (state.selected || []).indexOf(index) !== -1;
+			});
+		} else if ("checkbox" === state.type || "radio" === state.type) {
+			field.checked = Boolean(state.checked);
+		} else {
+			field.value = state.value;
+		}
+	}
+
+	function restoreHistoryEntry(index) {
+		var entry = historyEntries[index];
+		if (!entry) return false;
+		ignoreHistoryMutations = true;
+		historyRestoring = true;
+		sections.innerHTML = entry.sectionsHtml;
+		renumberSectionInputs();
+		getHomepageControls().forEach(function (field, fieldIndex) {
+			applyControlState(field, entry.controls[fieldIndex]);
+		});
+		selectedSectionIndex = entry.selectedIndex >= 0 && entry.selectedIndex < getSectionCards().length ? entry.selectedIndex : -1;
+		getSectionCards().forEach(function (card, cardIndex) {
+			card.classList.toggle("jvb-selected", cardIndex === selectedSectionIndex);
+		});
+		historyIndex = index;
+		updateOutline();
+		updateHistoryControls();
+		updatePanelMetadata();
+		markDirty();
+		if (selectedSectionIndex >= 0) highlightFrameSection(selectedSectionIndex);
+		schedulePreviewRefresh(90);
+		setPreviewStatus("نسخهٔ انتخاب‌شده از تاریخچه بازیابی شد؛ برای ثبت آن، پیش‌نویس را ذخیره کنید.", false);
+		renderHistoryPanel();
+		historyRestoring = false;
+		window.setTimeout(function () {
+			ignoreHistoryMutations = false;
+		}, 0);
+		return true;
+	}
+
+	function stepHistory(direction) {
+		flushHistoryCapture();
+		var targetIndex = historyIndex + direction;
+		if (targetIndex < 0 || targetIndex >= historyEntries.length) return false;
+		return restoreHistoryEntry(targetIndex);
+	}
+
+	function handleHistoryShortcut(event) {
+		if (!event || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+		var key = String(event.key || "").toLowerCase();
+		var target = event.target;
+		var isEditingField = target && typeof target.closest === "function" && target.closest('input, textarea, select, [contenteditable="true"]');
+		if (isEditingField) return;
+		var undo = "z" === key && !event.shiftKey;
+		var redo = ("z" === key && event.shiftKey) || ("y" === key && !event.shiftKey);
+		if (!undo && !redo) return;
+		var available = undo ? historyIndex > 0 : historyIndex >= 0 && historyIndex < historyEntries.length - 1;
+		if (!available) return;
+		event.preventDefault();
+		stepHistory(undo ? -1 : 1);
 	}
 
 	function setPreviewStatus(message, isError) {
@@ -66,7 +356,14 @@
 
 	function updateOutline() {
 		if (!outline) return;
+		ensureSectionActions();
 		var cards = getSectionCards();
+		var selectedCard = sections.querySelector(".jluxe-hb-section.jvb-selected");
+		if (selectedCard) {
+			selectedSectionIndex = cards.indexOf(selectedCard);
+		} else if (selectedSectionIndex >= cards.length) {
+			selectedSectionIndex = -1;
+		}
 		outline.replaceChildren();
 
 		cards.forEach(function (card, index) {
@@ -97,6 +394,7 @@
 		if (outlineEmpty) outlineEmpty.hidden = cards.length > 0;
 		if (dropHint) dropHint.hidden = cards.length > 0;
 		if (countLabel) countLabel.textContent = "پیش‌نویس مستقل · " + cards.length + " بخش";
+		updatePanelMetadata();
 	}
 
 	function renumberSectionInputs() {
@@ -120,6 +418,7 @@
 		});
 		card.classList.add("jvb-selected");
 		selectedSectionIndex = index;
+		activatePanel("settings");
 
 		var details = card.querySelector("details");
 		if (details) details.open = true;
@@ -129,10 +428,34 @@
 
 		if (fromPreview) {
 			var title = card.querySelector(".jluxe-hb-type-label");
-			setPreviewStatus("بخش «" + (title ? title.textContent.trim() : "صفحه") + "» انتخاب شد؛ تنظیماتش در پنل کنار پیش‌نمایش باز است.", false);
+			setPreviewStatus("بخش «" + (title ? title.textContent.trim() : "صفحه") + "» انتخاب شد؛ تنظیمات بومی آن در پنل کناری باز شد.", false);
 		}
 		highlightFrameSection(index);
 	}
+
+	sections.addEventListener("click", function (event) {
+		var button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-jvb-section-action]") : null;
+		if (!button || !sections.contains(button)) return;
+		event.preventDefault();
+		event.stopPropagation();
+		var cards = getSectionCards();
+		var card = button.closest(".jluxe-hb-section");
+		var index = cards.indexOf(card);
+		var action = button.getAttribute("data-jvb-section-action");
+		if (index < 0 || ("up" === action && index === 0) || ("down" === action && index >= cards.length - 1)) return;
+
+		queueHistoryCapture("جابه‌جایی «" + getSectionLabel(card) + "»");
+		if ("up" === action) {
+			sections.insertBefore(card, cards[index - 1]);
+		} else {
+			sections.insertBefore(cards[index + 1], card);
+		}
+		renumberSectionInputs();
+		updateOutline();
+		markDirty();
+		selectSection(getSectionCards().indexOf(card), false);
+		schedulePreviewRefresh(120);
+	});
 
 	function highlightFrameSection(index) {
 		if (!previewFrame) return;
@@ -247,11 +570,20 @@
 		if (previewDropOverlay) previewDropOverlay.hidden = true;
 	}
 
+	function getTypeLabel(type) {
+		var components = root.querySelectorAll("[data-jvb-add-section]");
+		for (var i = 0; i < components.length; i += 1) {
+			if (components[i].getAttribute("data-type") === type) return components[i].textContent.trim().replace(/\s+/g, " ");
+		}
+		return type || "بخش";
+	}
+
 	function addSection(type, insertIndex) {
 		var selector = document.getElementById("jluxe-hb-add-type");
 		var addButton = document.getElementById("jluxe-hb-add");
 		if (!selector || !addButton || !type) return;
 
+		queueHistoryCapture("افزودن «" + getTypeLabel(type) + "»");
 		var oldCount = getSectionCards().length;
 		selector.value = type;
 		addButton.click();
@@ -287,15 +619,43 @@
 	// پنل کتابخانه: انتخاب تب، جست‌وجو و افزودن با کلیک.
 	root.querySelectorAll("[data-jvb-tab]").forEach(function (tab) {
 		tab.addEventListener("click", function () {
-			var selected = tab.getAttribute("data-jvb-tab");
-			root.querySelectorAll("[data-jvb-tab]").forEach(function (otherTab) {
-				otherTab.setAttribute("aria-selected", otherTab === tab ? "true" : "false");
-			});
-			root.querySelectorAll("[data-jvb-panel]").forEach(function (panel) {
-				panel.hidden = panel.getAttribute("data-jvb-panel") !== selected;
-			});
+			activatePanel(tab.getAttribute("data-jvb-tab") || "components");
 		});
 	});
+	var tabsNavigation = root.querySelector(".jvb-tabs");
+	if (tabsNavigation) {
+		tabsNavigation.addEventListener("keydown", function (event) {
+			var tabs = Array.prototype.slice.call(root.querySelectorAll("[data-jvb-tab]"));
+			var currentIndex = tabs.indexOf(event.target);
+			if (currentIndex < 0 || !tabs.length) return;
+			var horizontal = tabsNavigation.getAttribute("aria-orientation") === "horizontal";
+			var direction = 0;
+			if (horizontal && "ArrowRight" === event.key) direction = 1;
+			if (horizontal && "ArrowLeft" === event.key) direction = -1;
+			if (!horizontal && "ArrowDown" === event.key) direction = 1;
+			if (!horizontal && "ArrowUp" === event.key) direction = -1;
+			if ("Home" === event.key) direction = -tabs.length;
+			if ("End" === event.key) direction = tabs.length;
+			if (!direction) return;
+			event.preventDefault();
+			var nextIndex = Math.max(0, Math.min(tabs.length - 1, currentIndex + direction));
+			tabs[nextIndex].focus();
+			activatePanel(tabs[nextIndex].getAttribute("data-jvb-tab") || "components");
+		});
+	}
+
+	if (undoButton) undoButton.addEventListener("click", function () { stepHistory(-1); });
+	if (redoButton) redoButton.addEventListener("click", function () { stepHistory(1); });
+	if (historyList) {
+		historyList.addEventListener("click", function (event) {
+			var button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-jvb-history-id]") : null;
+			if (!button) return;
+			flushHistoryCapture();
+			var id = parseInt(button.getAttribute("data-jvb-history-id"), 10);
+			var index = historyEntries.findIndex(function (entry) { return entry.id === id; });
+			if (index >= 0) restoreHistoryEntry(index);
+		});
+	}
 
 	var search = root.querySelector("[data-jvb-search]");
 	if (search) {
@@ -359,6 +719,10 @@
 			}
 
 			frameDropSupported = true;
+			if (!doc.__jluxeVisualBuilderHistoryKeys) {
+				doc.addEventListener("keydown", handleHistoryShortcut, true);
+				doc.__jluxeVisualBuilderHistoryKeys = true;
+			}
 			if (doc.__jluxeVisualBuilderBound) {
 				highlightFrameSection(selectedSectionIndex);
 				return;
@@ -558,13 +922,38 @@
 		return Boolean(target && target.name && target.name.indexOf("homepage[") === 0);
 	}
 
+	function getFieldHistoryLabel(target) {
+		var card = target && typeof target.closest === "function" ? target.closest(".jluxe-hb-section") : null;
+		return card ? "ویرایش «" + getSectionLabel(card) + "»" : "ویرایش تنظیمات کلی صفحه";
+	}
+
+	form.addEventListener("click", function (event) {
+		var button = event.target && typeof event.target.closest === "function" ? event.target.closest(".jluxe-hb-duplicate, .jluxe-hb-remove") : null;
+		if (!button) return;
+		var card = button.closest(".jluxe-hb-section");
+		if (!card) return;
+		var label = getSectionLabel(card);
+		var isDuplicate = button.classList.contains("jluxe-hb-duplicate");
+		queueHistoryCapture(isDuplicate ? "تکثیر «" + label + "»" : "حذف «" + label + "»");
+		if (!isDuplicate && card.classList.contains("jvb-selected")) {
+			window.setTimeout(function () {
+				if (!sections.contains(card)) {
+					selectedSectionIndex = -1;
+					updatePanelMetadata();
+				}
+			}, 0);
+		}
+	}, true);
+
 	form.addEventListener("input", function (event) {
 		if (!isHomepageField(event.target)) return;
+		queueHistoryCapture(getFieldHistoryLabel(event.target));
 		markDirty();
 		schedulePreviewRefresh();
 	});
 	form.addEventListener("change", function (event) {
 		if (!isHomepageField(event.target)) return;
+		queueHistoryCapture(getFieldHistoryLabel(event.target));
 		markDirty();
 		if (event.target.closest(".jluxe-hb-section")) updateOutline();
 		schedulePreviewRefresh();
@@ -575,7 +964,8 @@
 			var sectionsChanged = records.some(function (record) {
 				return record.target === sections || sections.contains(record.target);
 			});
-			if (sectionsChanged) {
+			if (sectionsChanged && !ignoreHistoryMutations && !historyRestoring) {
+				queueHistoryCapture("تغییر ساختار");
 				updateOutline();
 				markDirty();
 				schedulePreviewRefresh(220);
@@ -603,9 +993,21 @@
 		event.preventDefault();
 		event.returnValue = "";
 	});
+	document.addEventListener("keydown", handleHistoryShortcut, true);
 
 	if (previewFrame && previewFrame.getAttribute("src")) latestPreviewUrl = previewFrame.getAttribute("src");
 	setPreviewLoading(true);
+	ignoreHistoryMutations = true;
 	updateOutline();
+	var initialHistorySnapshot = captureHistorySnapshot("شروع صفحه‌ساز");
+	initialHistorySnapshot.id = nextHistoryId;
+	nextHistoryId += 1;
+	historyEntries.push(initialHistorySnapshot);
+	historyIndex = 0;
+	renderHistoryPanel();
+	activatePanel("components");
+	window.setTimeout(function () {
+		ignoreHistoryMutations = false;
+	}, 0);
 	schedulePreviewRefresh(0);
 }(jQuery));

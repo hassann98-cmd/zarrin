@@ -1211,3 +1211,505 @@ body.jluxe-visual-builder-screen #wpbody-content {
 		grid-template-columns: 1fr 1fr;
 	}
 }
+
+/* چیدمانِ نزدیک به ویرایشگرهای بصری: نوار ابزار کناری + پنل‌های زنده + بومِ واقعی. */
+#jluxe-visual-builder .jvb-workspace {
+	direction: ltr;
+}
+
+#jluxe-visual-builder .jvb-library {
+	flex-direction: row;
+	direction: ltr;
+}
+
+#jluxe-visual-builder .jvb-stage {
+	direction: rtl;
+}
+
+#jluxe-visual-builder .jvb-library-content {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	direction: rtl;
+}
+
+#jluxe-visual-builder .jvb-tabs {
+	display: flex;
+	flex: 0 0 58px;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	width: 58px;
+	padding: 8px 4px;
+	direction: ltr;
+	border: 0;
+	border-inline-end: 1px solid var(--jvb-border);
+	background: #F8FAFC;
+}
+
+#jluxe-visual-builder .jvb-tabs button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 4px;
+	width: 48px;
+	min-height: 52px;
+	padding: 5px 2px;
+	border: 0;
+	border-radius: 9px;
+	color: var(--jvb-muted);
+	font-size: 8px;
+	font-weight: 650;
+	line-height: 1.2;
+	white-space: nowrap;
+	direction: rtl;
+}
+
+#jluxe-visual-builder .jvb-tabs button::after {
+	display: none;
+}
+
+#jluxe-visual-builder .jvb-tabs button:hover {
+	background: #F1F5F9;
+	color: var(--jvb-ink);
+}
+
+#jluxe-visual-builder .jvb-tabs button[aria-selected="true"] {
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary-hover);
+}
+
+#jluxe-visual-builder .jvb-tabs button .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
+#jluxe-visual-builder .jvb-library-heading {
+	min-height: 58px;
+	padding: 10px 12px 8px;
+	border-bottom: 1px solid var(--jvb-border);
+}
+
+#jluxe-visual-builder .jvb-library-heading h2 {
+	font-size: 13px;
+}
+
+#jluxe-visual-builder .jvb-tab-panel {
+	min-width: 0;
+}
+
+#jluxe-visual-builder .jvb-tab-panel[data-jvb-panel="settings"] {
+	padding: 0;
+}
+
+#jluxe-visual-builder .jvb-tab-panel[data-jvb-panel="settings"] .jvb-canvas {
+	width: 100%;
+	max-width: none;
+	min-height: 100%;
+	margin: 0;
+	padding: 12px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	overflow: visible;
+}
+
+#jluxe-visual-builder .jvb-canvas-intro {
+	padding: 10px;
+}
+
+#jluxe-visual-builder .jvb-canvas-intro p {
+	font-size: 8px;
+}
+
+#jluxe-visual-builder .jvb-canvas-footnote {
+	font-size: 8px;
+}
+
+#jluxe-visual-builder .jvb-canvas-wrap {
+	display: flex;
+	grid-template-columns: none;
+	justify-content: center;
+	padding: 14px;
+}
+
+#jluxe-visual-builder .jvb-live-preview {
+	width: 100%;
+	max-width: none;
+}
+
+#jluxe-visual-builder .jvb-canvas-wrap[data-viewport="mobile"] .jvb-preview-frame-shell iframe {
+	max-width: 390px;
+}
+
+#jluxe-visual-builder .jvb-history-controls {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--jvb-border);
+	border-radius: 10px;
+	background: var(--jvb-surface);
+}
+
+#jluxe-visual-builder .jvb-history-controls button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--jvb-muted);
+	cursor: pointer;
+}
+
+#jluxe-visual-builder .jvb-history-controls button:hover:not(:disabled),
+#jluxe-visual-builder .jvb-history-controls button:focus-visible:not(:disabled) {
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary);
+}
+
+#jluxe-visual-builder .jvb-history-controls button:disabled {
+	color: #CBD5E1;
+	cursor: not-allowed;
+}
+
+#jluxe-visual-builder .jvb-history-controls .dashicons {
+	width: 17px;
+	height: 17px;
+	font-size: 17px;
+}
+
+#jluxe-visual-builder .jvb-history-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 2px 0 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--jvb-border);
+}
+
+#jluxe-visual-builder .jvb-history-heading > div {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+#jluxe-visual-builder .jvb-history-heading strong {
+	color: var(--jvb-ink);
+	font-size: 11px;
+}
+
+#jluxe-visual-builder .jvb-history-heading > div > span,
+#jluxe-visual-builder .jvb-history-entry time {
+	color: var(--jvb-muted);
+	font-size: 8px;
+}
+
+#jluxe-visual-builder .jvb-history-count {
+	display: grid;
+	width: 25px;
+	height: 25px;
+	place-items: center;
+	border-radius: 8px;
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary);
+	font-size: 10px;
+	font-weight: 700;
+}
+
+#jluxe-visual-builder .jvb-history-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+#jluxe-visual-builder .jvb-history-list li {
+	position: relative;
+	margin: 0;
+	padding: 0 0 7px 10px;
+}
+
+#jluxe-visual-builder .jvb-history-list li::before {
+	position: absolute;
+	inset-inline-start: 2px;
+	top: 15px;
+	bottom: -1px;
+	width: 1px;
+	background: var(--jvb-border);
+	content: "";
+}
+
+#jluxe-visual-builder .jvb-history-list li:last-child::before {
+	content: none;
+}
+
+#jluxe-visual-builder .jvb-history-entry {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	width: 100%;
+	min-height: 34px;
+	padding: 6px 8px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--jvb-muted);
+	font-family: inherit;
+	font-size: 9px;
+	text-align: right;
+	cursor: pointer;
+}
+
+#jluxe-visual-builder .jvb-history-entry:hover {
+	background: #F8FAFC;
+	color: var(--jvb-ink);
+}
+
+#jluxe-visual-builder .jvb-history-entry[aria-current="step"] {
+	border-color: var(--jvb-border);
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary-hover);
+	font-weight: 700;
+}
+
+#jluxe-visual-builder .jvb-history-entry-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#jluxe-visual-builder .jvb-history-entry time {
+	flex: 0 0 auto;
+}
+
+#jluxe-visual-builder .jvb-history-empty,
+#jluxe-visual-builder .jvb-history-hint {
+	color: var(--jvb-muted);
+	font-size: 9px;
+	line-height: 1.8;
+}
+
+#jluxe-visual-builder .jvb-history-empty {
+	padding: 12px 8px;
+	text-align: center;
+}
+
+#jluxe-visual-builder .jvb-history-hint {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	margin: 16px 0 0;
+	padding: 9px;
+	border-radius: 9px;
+	background: #F8FAFC;
+}
+
+#jluxe-visual-builder .jvb-history-hint .dashicons {
+	flex: 0 0 auto;
+	color: var(--jvb-primary);
+}
+
+#jluxe-visual-builder .jvb-page-card {
+	padding: 13px;
+	border: 1px solid var(--jvb-border);
+	border-radius: 12px;
+	background: #FFFFFF;
+}
+
+#jluxe-visual-builder .jvb-page-card-heading {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	margin-bottom: 12px;
+}
+
+#jluxe-visual-builder .jvb-page-card-heading > .dashicons {
+	color: var(--jvb-primary);
+	font-size: 19px;
+}
+
+#jluxe-visual-builder .jvb-page-card-heading > div {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+#jluxe-visual-builder .jvb-page-card-heading strong {
+	color: var(--jvb-ink);
+	font-size: 12px;
+}
+
+#jluxe-visual-builder .jvb-page-card-heading span {
+	color: var(--jvb-muted);
+	font-size: 8px;
+}
+
+#jluxe-visual-builder .jvb-page-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 5px 8px;
+	border-radius: 7px;
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary-hover);
+	font-size: 8px;
+	font-weight: 700;
+}
+
+#jluxe-visual-builder .jvb-page-card p {
+	margin: 11px 0;
+	color: var(--jvb-muted);
+	font-size: 9px;
+	line-height: 1.9;
+}
+
+#jluxe-visual-builder .jvb-page-metadata {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 12px 0;
+	padding: 9px 0;
+	border-block: 1px solid var(--jvb-border);
+	font-size: 8px;
+}
+
+#jluxe-visual-builder .jvb-page-metadata strong {
+	color: var(--jvb-ink);
+}
+
+#jluxe-visual-builder .jvb-page-metadata span {
+	color: var(--jvb-muted);
+	direction: ltr;
+	text-align: right;
+}
+
+#jluxe-visual-builder .jvb-page-link {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	min-height: 34px;
+	padding: 5px 7px;
+	border-radius: 8px;
+	color: var(--jvb-primary-hover);
+	font-size: 9px;
+	text-decoration: none;
+}
+
+#jluxe-visual-builder .jvb-page-link:hover {
+	background: var(--jvb-primary-soft);
+}
+
+#jluxe-visual-builder .jvb-section-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 1px;
+	flex: 0 0 auto;
+	margin-inline: 2px;
+}
+
+#jluxe-visual-builder .jvb-section-order-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 25px;
+	width: 25px;
+	height: 25px;
+	padding: 0;
+	border: 0;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--jvb-muted);
+	cursor: pointer;
+}
+
+#jluxe-visual-builder .jvb-section-order-button:hover:not(:disabled) {
+	background: var(--jvb-primary-soft);
+	color: var(--jvb-primary);
+}
+
+#jluxe-visual-builder .jvb-section-order-button:disabled {
+	color: #CBD5E1;
+	cursor: not-allowed;
+}
+
+#jluxe-visual-builder .jvb-section-order-button .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+@media (max-width: 782px) {
+	#jluxe-visual-builder .jvb-library {
+		flex-direction: column;
+	}
+
+	#jluxe-visual-builder .jvb-tabs {
+		flex: 0 0 auto;
+		flex-direction: row;
+		justify-content: stretch;
+		gap: 1px;
+		width: auto;
+		padding: 5px 4px;
+		border: 0;
+		border-bottom: 1px solid var(--jvb-border);
+	}
+
+	#jluxe-visual-builder .jvb-tabs button {
+		flex: 1 1 0;
+		width: auto;
+		min-width: 0;
+		min-height: 48px;
+		font-size: 8px;
+	}
+
+	#jluxe-visual-builder .jvb-library-content {
+		min-height: 350px;
+	}
+
+	#jluxe-visual-builder .jvb-tab-panel {
+		max-height: 58vh;
+	}
+
+	#jluxe-visual-builder .jvb-tab-panel[data-jvb-panel="settings"] .jvb-canvas {
+		padding: 10px;
+	}
+
+	#jluxe-visual-builder .jvb-history-controls button {
+		width: 27px;
+		height: 27px;
+	}
+}
+
+@media (max-width: 420px) {
+	#jluxe-visual-builder .jvb-tabs button {
+		gap: 2px;
+		font-size: 7px;
+	}
+
+	#jluxe-visual-builder .jvb-tabs button .dashicons {
+		width: 16px;
+		height: 16px;
+		font-size: 16px;
+	}
+
+	#jluxe-visual-builder .jvb-history-controls button {
+		width: 25px;
+		height: 25px;
+	}
+
+	#jluxe-visual-builder .jvb-preview-toggle [data-jvb-preview-label] {
+		display: none;
+	}
+}

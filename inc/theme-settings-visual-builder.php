@@ -402,8 +402,12 @@ function jluxe_render_visual_builder_page(): void {
 				<div class="jvb-toolbar" aria-label="ابزار پیش‌نمایش">
 					<div class="jvb-device-switch" role="group" aria-label="اندازهٔ نمایش">
 						<button type="button" data-jvb-viewport="desktop" aria-pressed="true" title="نمایش دسکتاپ"><span class="dashicons dashicons-desktop" aria-hidden="true"></span><span class="jvb-device-label">دسکتاپ</span></button>
-						<button type="button" data-jvb-viewport="tablet" aria-pressed="false" title="نمایش تبلت"><span class="dashicons dashicons-tablet" aria-hidden="true"></span><span class="jvb-device-label">تبلت</span></button>
-						<button type="button" data-jvb-viewport="mobile" aria-pressed="false" title="نمایش موبایل"><span class="dashicons dashicons-smartphone" aria-hidden="true"></span><span class="jvb-device-label">موبایل</span></button>
+						<button type="button" data-jvb-viewport="tablet" aria-pressed="false" title="نمایش تبلت، ۸۲۰ پیکسل"><span class="dashicons dashicons-tablet" aria-hidden="true"></span><span class="jvb-device-label">تبلت</span></button>
+						<button type="button" data-jvb-viewport="mobile" aria-pressed="false" title="نمایش موبایل، ۳۹۰ پیکسل"><span class="dashicons dashicons-smartphone" aria-hidden="true"></span><span class="jvb-device-label">موبایل</span></button>
+					</div>
+					<div class="jvb-history-controls" role="group" aria-label="واگرد و ازنو">
+						<button type="button" data-jvb-undo disabled aria-label="واگرد (Ctrl+Z)" title="واگرد (Ctrl+Z)"><span class="dashicons dashicons-undo" aria-hidden="true"></span></button>
+						<button type="button" data-jvb-redo disabled aria-label="ازنو (Ctrl+Shift+Z)" title="ازنو (Ctrl+Shift+Z)"><span class="dashicons dashicons-redo" aria-hidden="true"></span></button>
 					</div>
 					<button type="button" class="jvb-preview-toggle" data-jvb-preview-toggle aria-pressed="false" title="بزرگ‌نماییِ پیش‌نمایش">
 						<span class="dashicons dashicons-fullscreen-alt" aria-hidden="true"></span><span data-jvb-preview-label>تمرکز روی پیش‌نمایش</span>
@@ -428,15 +432,19 @@ function jluxe_render_visual_builder_page(): void {
 			<?php endif; ?>
 
 			<div class="jvb-workspace">
-				<aside class="jvb-library" aria-label="کتابخانهٔ بخش‌ها">
-					<div class="jvb-library-heading">
-						<div><span class="jvb-eyebrow">ابزارهای بومی تم</span><h2>افزودن به صفحه</h2></div>
-						<span class="jvb-library-count"><?php echo esc_html( count( $types ) ); ?></span>
-					</div>
-					<div class="jvb-tabs" role="tablist" aria-label="پنل صفحه‌ساز">
-						<button type="button" role="tab" id="jvb-tab-components" aria-controls="jvb-panel-components" aria-selected="true" data-jvb-tab="components">اجزا</button>
-						<button type="button" role="tab" id="jvb-tab-structure" aria-controls="jvb-panel-structure" aria-selected="false" data-jvb-tab="structure">ساختار</button>
-					</div>
+				<aside class="jvb-library" aria-label="پنل‌های صفحه‌ساز">
+					<nav class="jvb-tabs" role="tablist" aria-label="پنل صفحه‌ساز" aria-orientation="vertical">
+						<button type="button" role="tab" id="jvb-tab-components" aria-controls="jvb-panel-components" aria-selected="true" data-jvb-tab="components"><span class="dashicons dashicons-screenoptions" aria-hidden="true"></span><span>المان‌ها</span></button>
+						<button type="button" role="tab" id="jvb-tab-settings" aria-controls="jvb-panel-settings" aria-selected="false" data-jvb-tab="settings"><span class="dashicons dashicons-admin-generic" aria-hidden="true"></span><span>تنظیمات</span></button>
+						<button type="button" role="tab" id="jvb-tab-structure" aria-controls="jvb-panel-structure" aria-selected="false" data-jvb-tab="structure"><span class="dashicons dashicons-screenoptions" aria-hidden="true"></span><span>ساختار</span></button>
+						<button type="button" role="tab" id="jvb-tab-history" aria-controls="jvb-panel-history" aria-selected="false" data-jvb-tab="history"><span class="dashicons dashicons-backup" aria-hidden="true"></span><span>تاریخچه</span></button>
+						<button type="button" role="tab" id="jvb-tab-page" aria-controls="jvb-panel-page" aria-selected="false" data-jvb-tab="page"><span class="dashicons dashicons-admin-page" aria-hidden="true"></span><span>برگه</span></button>
+					</nav>
+					<div class="jvb-library-content">
+						<div class="jvb-library-heading">
+							<div><span class="jvb-eyebrow">ابزارهای بومی تم</span><h2 data-jvb-panel-title>المان‌های صفحه</h2></div>
+							<span class="jvb-library-count" data-jvb-panel-count><?php echo esc_html( count( $types ) ); ?></span>
+						</div>
 
 					<div id="jvb-panel-components" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-components" data-jvb-panel="components">
 						<label class="screen-reader-text" for="jvb-component-search">جست‌وجوی اجزای صفحه</label>
@@ -462,27 +470,9 @@ function jluxe_render_visual_builder_page(): void {
 						<p class="jvb-library-tip"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای جابه‌جایی، دستگیرهٔ کنار هر بخش را بکشید. تنظیمات جزئی همان بخش با کلیک باز می‌شود.</p>
 					</div>
 
-					<div id="jvb-panel-structure" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-structure" data-jvb-panel="structure" hidden>
-						<div class="jvb-outline-heading"><strong>ترتیب فعلی</strong><span data-jvb-outline-count><?php echo esc_html( count( $sections ) ); ?></span></div>
-						<ol class="jvb-outline" data-jvb-outline>
-							<?php foreach ( $sections as $index => $section ) : ?>
-								<?php $section_type = is_array( $section ) ? (string) ( $section['type'] ?? '' ) : ''; ?>
-								<li><button type="button" data-jvb-outline-target="<?php echo esc_attr( (string) $index ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( jluxe_visual_builder_section_icon( $section_type ) ); ?>" aria-hidden="true"></span><span><?php echo esc_html( $types[ $section_type ] ?? $section_type ); ?></span><span class="jvb-outline-state"><?php echo ! empty( $section['enabled'] ) ? 'فعال' : 'خاموش'; ?></span></button></li>
-							<?php endforeach; ?>
-						</ol>
-						<p class="jvb-outline-empty" data-jvb-outline-empty <?php echo empty( $sections ) ? '' : 'hidden'; ?>>هنوز بخشی به پیش‌نویس اضافه نشده است.</p>
-					</div>
-				</aside>
-
-				<main class="jvb-stage" aria-label="بوم صفحه‌ساز">
-					<div class="jvb-stage-toolbar">
-						<div><strong data-jvb-stage-title>پیش‌نمایش زندهٔ صفحهٔ اصلی</strong><span data-jvb-stage-subtitle>تغییراتِ ذخیره‌نشده فقط در این بومِ خصوصی نمایش داده می‌شوند</span></div>
-						<a class="jvb-open-site" data-jvb-open-preview href="<?php echo esc_url( $preview_url ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span>بازکردن همین پیش‌نمایش در زبانهٔ تازه</a>
-					</div>
-
-					<div class="jvb-canvas-wrap" data-jvb-canvas-wrap data-viewport="desktop">
-						<div class="jvb-canvas" data-jvb-canvas aria-label="تنظیمات بخش‌ها">
-							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong>تنظیمات و ترتیب بخش‌ها</strong><p>از کتابخانه یک بخش بکشید؛ یا برای انتخاب، ویرایش و جابه‌جایی روی بخشِ نمایش‌داده‌شده در پیش‌نمایش کلیک کنید.</p></div></div>
+					<div id="jvb-panel-settings" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-settings" data-jvb-panel="settings" hidden>
+						<div class="jvb-canvas" data-jvb-canvas aria-label="تنظیمات صفحه و بخش‌ها">
+							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong data-jvb-selection-title>تنظیمات صفحهٔ اصلی</strong><p>انتخاب یک بخش در پیش‌نمایش یا ساختار، تنظیمات بومی همان بخش را اینجا باز می‌کند.</p></div></div>
 							<div class="jvb-global-setting">
 								<strong>تنظیمات کلی صفحه</strong>
 								<?php jluxe_hb_field_checkbox( 'homepage', 'mobile_category_swipe_hint_enabled', 'نمایش یک‌بارهٔ راهنمای حرکت ردیف دسته‌بندی در موبایل', ! array_key_exists( 'mobile_category_swipe_hint_enabled', $homepage ) || ! empty( $homepage['mobile_category_swipe_hint_enabled'] ), true ); ?>
@@ -496,7 +486,46 @@ function jluxe_render_visual_builder_page(): void {
 							<div class="jvb-drop-hint" data-jvb-drop-hint <?php echo empty( $sections ) ? '' : 'hidden'; ?>><span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span><strong>صفحه خالی است</strong><span>از کتابخانه یک بخش را روی پیش‌نمایش بکشید یا روی آن کلیک کنید.</span></div>
 							<div class="jvb-canvas-footnote"><span class="dashicons dashicons-info" aria-hidden="true"></span>این پیش‌نمایش از رندر واقعیِ پوسته و داده‌های فروشگاه استفاده می‌کند؛ ذخیره یا انتشار فقط با دکمه‌های بالا انجام می‌شود.</div>
 						</div>
+					</div>
 
+					<div id="jvb-panel-structure" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-structure" data-jvb-panel="structure" hidden>
+						<div class="jvb-outline-heading"><strong>ترتیب فعلی</strong><span data-jvb-outline-count><?php echo esc_html( count( $sections ) ); ?></span></div>
+						<ol class="jvb-outline" data-jvb-outline>
+							<?php foreach ( $sections as $index => $section ) : ?>
+								<?php $section_type = is_array( $section ) ? (string) ( $section['type'] ?? '' ) : ''; ?>
+								<li><button type="button" data-jvb-outline-target="<?php echo esc_attr( (string) $index ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( jluxe_visual_builder_section_icon( $section_type ) ); ?>" aria-hidden="true"></span><span><?php echo esc_html( $types[ $section_type ] ?? $section_type ); ?></span><span class="jvb-outline-state"><?php echo ! empty( $section['enabled'] ) ? 'فعال' : 'خاموش'; ?></span></button></li>
+							<?php endforeach; ?>
+						</ol>
+						<p class="jvb-outline-empty" data-jvb-outline-empty <?php echo empty( $sections ) ? '' : 'hidden'; ?>>هنوز بخشی به پیش‌نویس اضافه نشده است.</p>
+					</div>
+
+					<div id="jvb-panel-history" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-history" data-jvb-panel="history" hidden>
+						<div class="jvb-history-heading"><div><strong>تغییرهای این نشست</strong><span>ذخیره‌شده در مرورگر، تا پیش از خروج از صفحه</span></div><span class="jvb-history-count" data-jvb-history-count>۱</span></div>
+						<p class="jvb-history-empty" data-jvb-history-empty>با شروع ویرایش، واگردها و نسخه‌های قبلی اینجا نمایش داده می‌شوند.</p>
+						<ol class="jvb-history-list" data-jvb-history-list aria-label="فهرست تاریخچهٔ صفحه"></ol>
+						<p class="jvb-history-hint"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای واگرد و ازنو از دکمه‌های نوار بالا یا میانبرهای Ctrl+Z و Ctrl+Shift+Z استفاده کنید. تغییرها فقط در پیش‌نویس مستقل باقی می‌مانند.</p>
+					</div>
+
+					<div id="jvb-panel-page" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-page" data-jvb-panel="page" hidden>
+						<div class="jvb-page-card">
+							<div class="jvb-page-card-heading"><span class="dashicons dashicons-admin-home" aria-hidden="true"></span><div><strong>صفحهٔ اصلی</strong><span>تنها برگهٔ قابل ویرایش در این صفحه‌ساز</span></div></div>
+							<div class="jvb-page-badge"><span class="dashicons dashicons-lock" aria-hidden="true"></span>پیش‌نویس مستقل و خصوصی</div>
+							<p>ذخیره‌کردن این صفحه، نسخهٔ فعال سایت را تغییر نمی‌دهد. فقط با انتخاب صریح «انتشار» چیدمان فعلی صفحهٔ اصلی جایگزین می‌شود.</p>
+							<div class="jvb-page-metadata"><strong>آخرین ذخیره</strong><span><?php echo ! empty( $metadata['updated_at'] ) ? esc_html( (string) $metadata['updated_at'] ) : 'هنوز ذخیره نشده'; ?></span></div>
+							<a class="jvb-page-link" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span>مشاهدهٔ نسخهٔ منتشرشده</a>
+							<a class="jvb-page-link" href="<?php echo esc_url( $exit_url ); ?>"><span class="dashicons dashicons-admin-settings" aria-hidden="true"></span>بازگشت به تنظیمات بومی صفحهٔ اصلی</a>
+						</div>
+					</div>
+				</div>
+				</aside>
+
+				<main class="jvb-stage" aria-label="بوم صفحه‌ساز">
+					<div class="jvb-stage-toolbar">
+						<div><strong data-jvb-stage-title>پیش‌نمایش زندهٔ صفحهٔ اصلی</strong><span data-jvb-stage-subtitle>تغییراتِ ذخیره‌نشده فقط در این بومِ خصوصی نمایش داده می‌شوند</span></div>
+						<a class="jvb-open-site" data-jvb-open-preview href="<?php echo esc_url( $preview_url ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span>بازکردن همین پیش‌نمایش در زبانهٔ تازه</a>
+					</div>
+
+					<div class="jvb-canvas-wrap" data-jvb-canvas-wrap data-viewport="desktop">
 						<div class="jvb-live-preview" data-jvb-live-preview>
 							<div class="jvb-preview-disclaimer"><span class="dashicons dashicons-lock" aria-hidden="true"></span><span data-jvb-preview-disclaimer-text>پیش‌نمایش خصوصی و زنده است؛ بازدیدکنندگان تا زمان انتشار همان صفحهٔ فعلی را می‌بینند.</span></div>
 							<div class="jvb-preview-frame-shell" data-jvb-preview-frame-shell>

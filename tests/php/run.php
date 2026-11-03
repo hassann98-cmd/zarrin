@@ -3219,6 +3219,12 @@ check(
 		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
 		false !== strpos( $r360_builder_html, 'data-jvb-preview-frame' ) &&
 		false !== strpos( $r360_builder_html, 'data-jvb-preview-drop-overlay' ) &&
+		5 === substr_count( $r360_builder_html, 'data-jvb-tab=' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-tab="settings"' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-tab="history"' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-panel="page"' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-undo' ) &&
+		false !== strpos( $r360_builder_html, 'data-jvb-redo' ) &&
 		false !== strpos( $r360_builder_html, 'پیش‌نمایش خصوصی و زنده است' ) &&
 	false === strpos( $r360_builder_html, 'id="jluxe-homepage-form"' ) &&
 	! array_key_exists( JLUXE_VISUAL_BUILDER_DRAFT_OPTION, $GLOBALS['options'] ) &&

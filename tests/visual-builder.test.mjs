@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom";
 import jquery from "jquery";
 
 const source = await readFile(new URL("../assets/js/visual-builder.js", import.meta.url), "utf8");
+const styleSource = await readFile(new URL("../assets/css/visual-builder.css", import.meta.url), "utf8");
 
 function wait(window, delay = 0) {
 	return new Promise((resolve) => window.setTimeout(resolve, delay));
@@ -18,24 +19,29 @@ function createDom() {
 				<p data-jvb-section-count>پیش‌نویس مستقل · 1 بخش</p>
 				<button class="jvb-save-button" name="action" value="jluxe_visual_builder_save"></button>
 				<button data-jvb-publish name="action" value="jluxe_visual_builder_publish"></button>
-				<button type="button" data-jvb-tab="components" aria-selected="true"></button>
-				<button type="button" data-jvb-tab="structure" aria-selected="false"></button>
+				<button type="button" data-jvb-undo disabled></button>
+				<button type="button" data-jvb-redo disabled></button>
+				<nav class="jvb-tabs">
+					<button type="button" data-jvb-tab="components" aria-selected="true"></button>
+					<button type="button" data-jvb-tab="settings" aria-selected="false"></button>
+					<button type="button" data-jvb-tab="structure" aria-selected="false"></button>
+					<button type="button" data-jvb-tab="history" aria-selected="false"></button>
+					<button type="button" data-jvb-tab="page" aria-selected="false"></button>
+				</nav>
+				<h2 data-jvb-panel-title></h2><span data-jvb-panel-count></span>
 				<div data-jvb-panel="components"></div>
-				<div data-jvb-panel="structure" hidden></div>
+				<div data-jvb-panel="settings" hidden><span data-jvb-selection-title></span><div data-jvb-canvas><div id="jluxe-hb-sections"><div class="jluxe-hb-section" data-type="text"><details><summary><span class="jluxe-hb-type-label">متن سفارشی</span><label class="jluxe-hb-enabled"><input type="checkbox" name="homepage[sections][0][enabled]" value="1" checked></label></summary><input name="homepage[sections][0][title]" value="متن فعلی"></details></div></div></div></div>
+				<div data-jvb-panel="structure" hidden><ol data-jvb-outline></ol></div>
+				<div data-jvb-panel="history" hidden><span data-jvb-history-count></span><p data-jvb-history-empty></p><ol data-jvb-history-list></ol></div>
+				<div data-jvb-panel="page" hidden></div>
 				<input data-jvb-search>
 				<div data-jvb-group>
 					<button type="button" data-jvb-add-section data-type="banner" data-search-label="بنر تک">بنر تک</button>
 				</div>
 				<p data-jvb-empty-search hidden></p>
-				<ol data-jvb-outline><li><button type="button" data-jvb-outline-target="0"></button></li></ol>
 				<span data-jvb-outline-count>1</span>
 				<p data-jvb-outline-empty hidden></p>
 				<div data-jvb-canvas-wrap data-viewport="desktop">
-					<div data-jvb-canvas>
-						<div class="jluxe-hb-section" data-type="text">
-							<details><summary><span class="jluxe-hb-type-label">متن سفارشی</span><label class="jluxe-hb-enabled"><input type="checkbox" checked></label></summary><input name="homepage[sections][0][title]" value="متن فعلی"></details>
-						</div>
-					</div>
 					<div data-jvb-live-preview>
 						<div data-jvb-preview-frame-shell><iframe data-jvb-preview-frame data-src="https://shop.test/"></iframe><div data-jvb-preview-loading hidden></div><div data-jvb-preview-drop-overlay hidden></div></div>
 						<span data-jvb-preview-status></span>
@@ -86,7 +92,7 @@ function createDom() {
 		const section = window.document.createElement("div");
 		section.className = "jluxe-hb-section";
 		section.setAttribute("data-type", "banner");
-		section.innerHTML = `<details open><summary><span class="jluxe-hb-type-label">بنر تک</span><label class="jluxe-hb-enabled"><input type="checkbox" checked></label></summary><input name="homepage[sections][${index}][title]"></details>`;
+		section.innerHTML = `<details open><summary><span class="jluxe-hb-type-label">بنر تک</span><label class="jluxe-hb-enabled"><input type="checkbox" name="homepage[sections][${index}][enabled]" value="1" checked></label></summary><input name="homepage[sections][${index}][title]"></details>`;
 		sections.appendChild(section);
 	});
 	window.eval(source);
@@ -128,6 +134,11 @@ test("library search and tabs stay separate, while added widgets update the priv
 	assert.equal(document.querySelector('[data-jvb-panel="components"]').hidden, true);
 	componentTab.click();
 	assert.equal(document.querySelector('[data-jvb-panel="components"]').hidden, false);
+	const tabArrow = new dom.window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+	componentTab.dispatchEvent(tabArrow);
+	assert.equal(tabArrow.defaultPrevented, true);
+	assert.equal(document.querySelector('[data-jvb-tab="settings"]').getAttribute("aria-selected"), "true", "the vertical tab rail supports arrow-key navigation");
+	componentTab.click();
 
 	const search = document.querySelector("[data-jvb-search]");
 	const component = document.querySelector("[data-jvb-add-section]");
@@ -158,6 +169,74 @@ test("library search and tabs stay separate, while added widgets update the priv
 	assert.match(document.querySelector("[data-jvb-preview-frame]").getAttribute("src"), /jluxe_builder_preview=live/);
 	assert.equal(document.querySelector("[data-jvb-open-preview]").getAttribute("href"), document.querySelector("[data-jvb-preview-frame]").getAttribute("src"));
 	assert.match(document.querySelector("[data-jvb-preview-status]").textContent, /به‌روز شد/);
+	dom.window.close();
+});
+
+test("undo, redo, keyboard shortcuts, and history restore the independent homepage draft", async () => {
+	const dom = createDom();
+	const { document } = dom.window;
+	await wait(dom.window, 15);
+
+	const component = document.querySelector("[data-jvb-add-section]");
+	component.click();
+	await wait(dom.window, 30);
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["text", "banner"]);
+	assert.equal(document.querySelector('[data-jvb-tab="settings"]').getAttribute("aria-selected"), "true", "adding or selecting a section opens its native settings panel");
+	await wait(dom.window, 350);
+
+	let cards = Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section"));
+	cards[1].querySelector('[data-jvb-section-action="up"]').click();
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["banner", "text"], "the section action moves one item without losing its fields");
+	await wait(dom.window, 350);
+
+	const undo = document.querySelector("[data-jvb-undo]");
+	const redo = document.querySelector("[data-jvb-redo]");
+	assert.equal(undo.disabled, false);
+	undo.click();
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["text", "banner"]);
+	assert.equal(redo.disabled, false);
+	redo.click();
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["banner", "text"]);
+
+	const historyTab = document.querySelector('[data-jvb-tab="history"]');
+	historyTab.click();
+	assert.equal(document.querySelector('[data-jvb-panel="history"]').hidden, false);
+	assert.ok(document.querySelector('[data-jvb-history-list] [data-jvb-history-id]'), "the history panel exposes restorable entries");
+	const keyboardUndo = new dom.window.KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true });
+	document.body.dispatchEvent(keyboardUndo);
+	assert.equal(keyboardUndo.defaultPrevented, true);
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["text", "banner"]);
+	const keyboardRedo = new dom.window.KeyboardEvent("keydown", { key: "z", shiftKey: true, ctrlKey: true, bubbles: true, cancelable: true });
+	document.body.dispatchEvent(keyboardRedo);
+	assert.equal(keyboardRedo.defaultPrevented, true);
+	assert.deepEqual(Array.from(document.querySelectorAll("#jluxe-hb-sections > .jluxe-hb-section")).map((card) => card.getAttribute("data-type")), ["banner", "text"]);
+
+	dom.window.close();
+});
+
+test("undo and redo restore native text and checkbox values while text-field Ctrl+Z remains native", async () => {
+	const dom = createDom();
+	const { document } = dom.window;
+	await wait(dom.window, 15);
+	const title = document.querySelector('input[name="homepage[sections][0][title]"]');
+	const enabled = document.querySelector(".jluxe-hb-enabled input[type=checkbox]");
+	title.value = "متن ویرایش‌شده";
+	title.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+	enabled.checked = false;
+	enabled.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+	await wait(dom.window, 350);
+
+	const undo = document.querySelector("[data-jvb-undo]");
+	const redo = document.querySelector("[data-jvb-redo]");
+	const nativeUndo = new dom.window.KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true });
+	title.dispatchEvent(nativeUndo);
+	assert.equal(nativeUndo.defaultPrevented, false, "typing undo stays with the browser when a field has focus");
+	undo.click();
+	assert.equal(document.querySelector('input[name="homepage[sections][0][title]"]').value, "متن فعلی");
+	assert.equal(document.querySelector(".jluxe-hb-enabled input[type=checkbox]").checked, true);
+	redo.click();
+	assert.equal(document.querySelector('input[name="homepage[sections][0][title]"]').value, "متن ویرایش‌شده");
+	assert.equal(document.querySelector(".jluxe-hb-enabled input[type=checkbox]").checked, false);
 	dom.window.close();
 });
 
@@ -200,11 +279,14 @@ test("dragging a library widget onto the rendered page inserts it at that visual
 	const click = new frameDocument.defaultView.MouseEvent("click", { bubbles: true, cancelable: true });
 	renderedSection.dispatchEvent(click);
 	assert.equal(cards[0].classList.contains("jvb-selected"), true, "clicking a section in preview selects its editor");
+	assert.equal(document.querySelector('[data-jvb-tab="settings"]').getAttribute("aria-selected"), "true", "preview selection opens the matching native settings panel");
 	assert.equal(click.defaultPrevented, true, "preview clicks edit instead of following storefront links");
 	dom.window.close();
 });
 
-test("device widths affect the visible iframe and focus mode leaves the live preview open", () => {
+test("device widths affect the live iframe, match the reference viewports, and focus mode keeps preview open", () => {
+	assert.ok(styleSource.includes('.jvb-canvas-wrap[data-viewport="tablet"] .jvb-preview-frame-shell iframe {\n\tmax-width: 820px;'));
+	assert.ok(styleSource.includes('.jvb-canvas-wrap[data-viewport="mobile"] .jvb-preview-frame-shell iframe {\n\tmax-width: 390px;'));
 	const dom = createDom();
 	const { document } = dom.window;
 	const viewport = document.querySelector('[data-jvb-viewport="tablet"]');
