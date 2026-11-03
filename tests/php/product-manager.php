@@ -255,6 +255,7 @@ $GLOBALS['product_manager_object_terms'][5304] = array(
 
 $GLOBALS['scripts'] = array();
 $GLOBALS['styles'] = array();
+$GLOBALS['inline_styles'] = array();
 $GLOBALS['product_manager_menu_page'] = array();
 jluxe_product_manager_register_page();
 product_manager_check(
@@ -287,11 +288,14 @@ product_manager_check( empty( $GLOBALS['scripts']['jluxe-product-manager'] ), 'p
 jluxe_product_manager_enqueue_assets( 'toplevel_page_' . JLUXE_PRODUCT_MANAGER_PAGE );
 product_manager_check(
 	isset( $GLOBALS['scripts']['jluxe-product-manager'], $GLOBALS['styles']['jluxe-product-manager'] ) &&
+	isset( $GLOBALS['inline_styles']['jluxe-product-manager'][0] ) &&
+	false !== strpos( $GLOBALS['inline_styles']['jluxe-product-manager'][0], '#jluxe-product-manager{' ) &&
+	false !== strpos( $GLOBALS['inline_styles']['jluxe-product-manager'][0], '--pm-primary:var(--jluxe-primary)' ) &&
 	isset( $GLOBALS['localized']['jluxeProductManager']['nonce'] ) &&
 	true === $GLOBALS['localized']['jluxeProductManager']['canUpload'] && ! empty( $GLOBALS['product_manager_media_enqueued'] ) &&
 	'product_brand' === $GLOBALS['localized']['jluxeProductManager']['brandTaxonomy'] &&
 	$GLOBALS['localized']['jluxeProductManager']['attributes'][0]['taxonomy'] === $taxonomy,
-	'dedicated top-level screen enqueues only the focused editor assets and its allowed taxonomy configuration'
+	'dedicated top-level screen enqueues focused assets, scoped editable color tokens, and its allowed taxonomy configuration'
 );
 $GLOBALS['denied_caps'] = array( 'upload_files' );
 unset( $GLOBALS['product_manager_media_enqueued'] );

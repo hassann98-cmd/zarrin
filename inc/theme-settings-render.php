@@ -898,16 +898,21 @@ function jluxe_render_footer_page(): void {
 			<h3>پس‌زمینه‌ی فوتر</h3>
 			<?php
 			$jluxe_bg          = $settings['footer']['background'];
-			$jluxe_palette     = jluxe_electric_indigo_palette();
-			// گزینه‌های اصلی فوتر حفظ شده‌اند؛ گام‌های Electric Indigo به‌صورتِ
-			// انتخاب‌های تازه در انتهای همان فهرست اضافه می‌شوند.
+			$jluxe_palette       = jluxe_electric_indigo_palette();
+			$jluxe_royal_palette = jluxe_royal_orchid_palette();
+			// گزینه‌های قبلیِ فوتر و Electric Indigo حفظ شده‌اند؛ Royal Orchid فقط
+			// به انتهای همان فهرست افزوده می‌شود.
 			$jluxe_bg_presets  = array(
 				'#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3',
 				$jluxe_palette['900'], $jluxe_palette['800'], $jluxe_palette['700'], $jluxe_palette['600'],
 				$jluxe_palette['500'], $jluxe_palette['400'], $jluxe_palette['300'], $jluxe_palette['50'],
+				$jluxe_royal_palette['950'], $jluxe_royal_palette['900'], $jluxe_royal_palette['800'],
+				$jluxe_royal_palette['700'], $jluxe_royal_palette['600'], $jluxe_royal_palette['500'],
+				$jluxe_royal_palette['400'], $jluxe_royal_palette['300'], $jluxe_royal_palette['200'],
+				$jluxe_royal_palette['100'], $jluxe_royal_palette['50'],
 			);
-			// شش گرادیانِ قبلی به همان ترتیب مانده‌اند؛ دو ترکیب Electric Indigo
-			// به‌عنوان گزینه‌های تازه به فهرست افزوده شده‌اند.
+			// گرادیان‌های قبلی دست‌نخورده‌اند؛ Electric Indigo و Royal Orchid
+			// فقط به انتهای فهرست انتخاب‌ها اضافه می‌شوند.
 			$jluxe_gradient_presets = array(
 				array( 'label' => 'آبی نیمه‌شب', 'colors' => array( '#0F172A', '#1E3A5F' ) ),
 				array( 'label' => 'بنفش رویایی', 'colors' => array( '#2D1B4E', '#6B21A8' ) ),
@@ -917,6 +922,8 @@ function jluxe_render_footer_page(): void {
 				array( 'label' => 'یاقوتیِ تیره', 'colors' => array( '#4C0519', '#881337' ) ),
 				array( 'label' => 'نیلی الکتریکی', 'colors' => array( $jluxe_palette['500'], $jluxe_palette['700'] ) ),
 				array( 'label' => 'نیلی روشن', 'colors' => array( $jluxe_palette['300'], $jluxe_palette['500'] ) ),
+				array( 'label' => 'Royal Orchid', 'colors' => array( $jluxe_royal_palette['600'], $jluxe_royal_palette['800'] ) ),
+				array( 'label' => 'ارکید روشن', 'colors' => array( $jluxe_royal_palette['400'], $jluxe_royal_palette['700'] ) ),
 			);
 			$jluxe_bg_dirs     = array(
 				'to top'          => 'از پایین به بالا',
@@ -987,7 +994,7 @@ function jluxe_render_footer_page(): void {
 									type="button"
 									class="jluxe-gradient-preset-swatch"
 									data-jluxe-fill-gradient="<?php echo esc_attr( implode( ',', $jluxe_gp['colors'] ) ); ?>"
-									style="background:linear-gradient(135deg, <?php echo esc_attr( implode( ', ', $jluxe_gp['colors'] ) ); ?>);width:60px;height:34px;border-radius:8px;border:1px solid #dcccff;cursor:pointer;"
+									style="background:linear-gradient(135deg, <?php echo esc_attr( implode( ', ', $jluxe_gp['colors'] ) ); ?>);width:60px;height:34px;border-radius:8px;border:1px solid var(--jluxe-admin-border);cursor:pointer;"
 									title="<?php echo esc_attr( $jluxe_gp['label'] ); ?>"
 								></button>
 							<?php endforeach; ?>
@@ -1112,7 +1119,7 @@ function jluxe_render_footer_page(): void {
 				$jluxe_col      = $jluxe_link_columns[ $jluxe_col_i ] ?? array();
 				$jluxe_col_name = "footer[link_columns][{$jluxe_col_i}]";
 				?>
-				<div style="border:1px solid #dcccff;border-radius:6px;padding:12px;margin-bottom:12px;">
+				<div style="border:1px solid var(--jluxe-admin-border);border-radius:6px;padding:12px;margin-bottom:12px;">
 					<p>
 						<label>عنوان ستون <?php echo esc_html( jluxe_fa_digits( $jluxe_col_i + 1 ) ); ?><br />
 							<input type="text" name="<?php echo esc_attr( $jluxe_col_name ); ?>[title]" value="<?php echo esc_attr( $jluxe_col['title'] ?? '' ); ?>" class="regular-text" placeholder="مثلاً راهنما" />
@@ -1189,7 +1196,7 @@ function jluxe_render_colors_typography_page(): void {
 
 	jluxe_settings_page_shell( 'رنگ و تایپوگرافی', 'jluxe-colors-typography', $status, function () use ( $settings ) {
 		$color_labels = array(
-			'primary'    => array( 'رنگ اصلی', 'دکمه‌های اصلی، افزودن به سبد، ثبت سفارش.' ),
+			'primary'    => array( 'رنگ اصلی', 'همهٔ دکمه‌های عمومی، افزودن به سبد، ثبت سفارش و CTAهای storefront.' ),
 			'secondary'  => array( 'رنگ ثانویه', 'لینک‌ها و عناصر کم‌اهمیت‌تر.' ),
 			'background' => array( 'پس‌زمینه', 'پس‌زمینه‌ی کلی صفحات.' ),
 			'success'    => array( 'رنگ موفقیت', 'وضعیت موجود/تکمیل‌شده.' ),
@@ -1262,7 +1269,7 @@ function jluxe_render_colors_typography_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">این ۵ رنگ کل سیستم رنگی سایت رو کنترل می‌کنن؛ حالت‌های hover/active و رنگ متن روی هرکدوم خودکار (بر اساس محاسبه‌ی واقعی کنتراست WCAG) تولید می‌شن. تغییرات روی هدر، فوتر، دکمه‌ها، صفحه‌ی محصول، سبد و تسویه‌حساب یکجا اعمال می‌شه (توکن مشترک).</p>
+					<p class="description">این ۵ رنگ کل سیستم storefront را کنترل می‌کنند؛ دکمه‌های عمومی، افزودن به سبد، ثبت سفارش، CTA، صفحهٔ محصول، کارت محصول و اجزای اصلی هدر/فوتر از توکن‌های مشترک استفاده می‌کنند. hover/active و رنگ متن به‌صورت خودکار با محاسبهٔ کنتراست WCAG ساخته می‌شود. اگر برای ناوبری موبایل، مگامنوی دسته‌بندی‌ها یا فوتر رنگ جداگانه‌ای وارد کرده باشید، همان تنظیم اختصاصی اولویت دارد. بعد از اعمال هر پریست، همهٔ پنج رنگ دستی قابل‌ویرایش‌اند.</p>
 					<table class="form-table" role="presentation">
 						<?php foreach ( $color_labels as $key => [ $label, $desc ] ) : ?>
 							<tr>
@@ -1492,7 +1499,7 @@ function jluxe_render_product_page(): void {
 						</tr>
 						<tr>
 							<th scope="row">رنگ مقدار انتخاب‌شدهٔ ویژگی (مثل رنگ یا سایز)</th>
-							<td><input type="text" name="product_page[variation_label_color]" value="<?php echo esc_attr( $pp['variation_label_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#300099" placeholder="خالی = رنگ اصلی پوسته" /></td>
+							<td><input type="text" name="product_page[variation_label_color]" value="<?php echo esc_attr( $pp['variation_label_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#7A0F8A" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 					</table>
 
@@ -1501,15 +1508,15 @@ function jluxe_render_product_page(): void {
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">پس‌زمینهٔ دکمهٔ پیوند</th>
-							<td><input type="text" name="product_page[description_link_bg_color]" value="<?php echo esc_attr( $pp['description_link_bg_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#EEE5FF" placeholder="خالی = رنگ اصلی پوسته" /></td>
+							<td><input type="text" name="product_page[description_link_bg_color]" value="<?php echo esc_attr( $pp['description_link_bg_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#FAE8FD" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 						<tr>
 							<th scope="row">رنگ متن پیوند</th>
-							<td><input type="text" name="product_page[description_link_text_color]" value="<?php echo esc_attr( $pp['description_link_text_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#300099" placeholder="خالی = رنگ اصلی پوسته" /></td>
+							<td><input type="text" name="product_page[description_link_text_color]" value="<?php echo esc_attr( $pp['description_link_text_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#7A0F8A" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 						<tr>
 							<th scope="row">رنگ کادر پیوند</th>
-							<td><input type="text" name="product_page[description_link_border_color]" value="<?php echo esc_attr( $pp['description_link_border_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#5100FF" placeholder="خالی = رنگ اصلی پوسته" /></td>
+							<td><input type="text" name="product_page[description_link_border_color]" value="<?php echo esc_attr( $pp['description_link_border_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#A313B9" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 					</table>
 
@@ -2211,10 +2218,10 @@ function jluxe_render_mobile_contact_page(): void {
 							<th scope="row">رنگ‌ها</th>
 							<td>
 								<label>پس‌زمینه <input type="color" name="mobile[nav_style][background]" value="<?php echo esc_attr( $mstyle['background'] ?? '#ffffff' ); ?>"></label>
-								<label style="margin-inline-start:18px;">رنگ فعال <input type="color" name="mobile[nav_style][active_color]" value="<?php echo esc_attr( $mstyle['active_color'] ?? '#5100FF' ); ?>"></label>
-								<label style="margin-inline-start:18px;">رنگ آیکون <input type="color" name="mobile[nav_style][icon_color]" value="<?php echo esc_attr( $mstyle['icon_color'] ?? '#4100CC' ); ?>"></label>
-								<label style="margin-inline-start:18px;">پس‌زمینه آیکون <input type="color" name="mobile[nav_style][icon_bg]" value="<?php echo esc_attr( $mstyle['icon_bg'] ?? '#eee5ff' ); ?>"></label>
-								<label style="margin-inline-start:18px;">پس‌زمینه فعال <input type="color" name="mobile[nav_style][active_bg]" value="<?php echo esc_attr( $mstyle['active_bg'] ?? '#eee5ff' ); ?>"></label>
+								<label style="margin-inline-start:18px;">رنگ فعال <input type="color" name="mobile[nav_style][active_color]" value="<?php echo esc_attr( $mstyle['active_color'] ?? '#A313B9' ); ?>"></label>
+								<label style="margin-inline-start:18px;">رنگ آیکون <input type="color" name="mobile[nav_style][icon_color]" value="<?php echo esc_attr( $mstyle['icon_color'] ?? '#7A0F8A' ); ?>"></label>
+								<label style="margin-inline-start:18px;">پس‌زمینه آیکون <input type="color" name="mobile[nav_style][icon_bg]" value="<?php echo esc_attr( $mstyle['icon_bg'] ?? '#FAE8FD' ); ?>"></label>
+								<label style="margin-inline-start:18px;">پس‌زمینه فعال <input type="color" name="mobile[nav_style][active_bg]" value="<?php echo esc_attr( $mstyle['active_bg'] ?? '#FAE8FD' ); ?>"></label>
 							</td>
 						</tr>
 						<tr>

@@ -206,6 +206,16 @@ function jluxe_settings_enqueue_admin_assets( string $hook ): void {
 		array(),
 		file_exists( $css_path ) ? (string) filemtime( $css_path ) : '2.0.0'
 	);
+	if ( function_exists( 'jluxe_generate_color_variables' ) && function_exists( 'jluxe_get_theme_settings' ) ) {
+		$settings   = jluxe_get_theme_settings();
+		$admin_css  = jluxe_generate_color_variables( (array) ( $settings['colors'] ?? array() ) );
+		$admin_css  = str_replace( ':root{', '.jluxe-settings{', $admin_css );
+		$admin_css  = rtrim( $admin_css, '}' );
+		$admin_css .= '--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-accent);--jluxe-admin-border:var(--jluxe-border);--jluxe-admin-bg:var(--jluxe-primary-soft);--jluxe-admin-soft:var(--jluxe-primary-soft);}';
+		$admin_css .= '.jluxe-settings[data-jluxe-settings-app]{--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-accent);--jluxe-admin-border:var(--jluxe-border);--jluxe-admin-bg:var(--jluxe-primary-soft);--jluxe-admin-soft:var(--jluxe-primary-soft);}';
+		$admin_css .= '.jluxe-settings[data-theme="dark"],.jluxe-settings[data-jluxe-settings-app][data-theme="dark"]{--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-primary-soft);--jluxe-admin-border:var(--jluxe-primary-hover);--jluxe-admin-bg:var(--jluxe-primary-active);--jluxe-admin-soft:var(--jluxe-primary-active);}';
+		wp_add_inline_style( 'jluxe-settings-admin', $admin_css );
+	}
 	// nonce تست‌اتصالِ دستیار هوش مصنوعی (inc/theme-settings-ai.php) — فقط
 	// همین یک مقدار لازمه؛ ajaxurl خودش توسط وردپرس در همه‌ی صفحات ادمین
 	// به‌صورت گلوبال موجوده، نیازی به localize کردنش نیست.

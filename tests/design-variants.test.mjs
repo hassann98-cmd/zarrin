@@ -9,6 +9,8 @@ const sitewideCss = readFileSync(new URL("../src/styles/sitewide-design.css", im
 const settingsPhp = readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const sanitizePhp = readFileSync(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
 const adminPhp = readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
+const adminCss = readFileSync(new URL("../assets/css/theme-settings-admin.css", import.meta.url), "utf8");
+const productManagerPhp = readFileSync(new URL("../inc/product-manager.php", import.meta.url), "utf8");
 const mainJs = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const aboutPage = readFileSync(new URL("../page-about-us.php", import.meta.url), "utf8");
 
@@ -59,10 +61,25 @@ test("R354 footer gets distinct feature, brand, link, and trust modules without 
   assert.ok(baseFooter.includes("grid-template-columns: minmax(0, 1.15fr)"));
 });
 
-test("R354 Electric Indigo primary and action colors meet WCAG AA for normal white button text", () => {
+test("Royal Orchid theme settings feed storefront and scoped admin controls dynamically", () => {
+  assert.match(settingsPhp, /function jluxe_royal_orchid_palette\(\): array/);
+  assert.match(settingsPhp, /'primary'\s*=>\s*\$palette\['600'\]/);
+  assert.match(settingsPhp, /'background'\s*=>\s*\$palette\['50'\]/);
+  assert.match(settingsPhp, /\$vars\['--jluxe-primary'\]\s*=\s*strtoupper\( \$colors\['primary'\] \)/);
+  assert.match(adminPhp, /jluxe_generate_color_variables\( \(array\) \( \$settings\['colors'\] \?\? array\(\) \) \)/);
+  assert.match(adminPhp, /wp_add_inline_style\( 'jluxe-settings-admin', \$admin_css \)/);
+  assert.match(adminCss, /var\(--jluxe-admin-primary\)/);
+  assert.match(productManagerPhp, /wp_add_inline_style\( 'jluxe-product-manager', \$pm_css \)/);
+});
+
+test("R354 preserved Electric Indigo actions and Royal Orchid defaults meet white-text contrast requirements", () => {
   assert.ok(contrastRatio("#5100FF", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#7433FF", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#4100CC", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#A313B9", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#7A0F8A", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#510A5C", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#CB18E7", "#FFFFFF") < 4.5, "shade 500 needs a dark foreground for accessibility");
 });
 
 test("R354 optional effects stay scoped and include focus, low-power, and reduced-motion fallbacks", () => {

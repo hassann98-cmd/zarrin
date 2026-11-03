@@ -588,8 +588,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(checkoutSummaryShippingRule, /grid-template-areas:\s*"details" "note"/, "the narrow desktop checkout summary gives the note its own full-width row");
   assert.match(checkoutSummaryNoteRule, /width:\s*max-content/);
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
-  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--color-electric-indigo-500\)\)/);
-  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, var\(--color-electric-indigo-50\)\)/);
+  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);
+  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, var\(--jluxe-primary-soft, var\(--color-royal-orchid-50\)\)\)/);
   assert.match(selectedRule, /box-shadow:/);
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
   assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?grid-template-areas:\s*"details" "note"/);
@@ -618,7 +618,7 @@ test("all carrier explanations are editable and state postpaid delivery without 
   const expectedPaletteKeys = {
     card_border_color: "100",
     selected_card_background_color: "50",
-    selected_card_border_color: "500",
+    selected_card_border_color: "600",
     note_background_color: "600",
     details_background_color: "50",
   };

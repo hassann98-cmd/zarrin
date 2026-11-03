@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/product-manager.js", import.meta.url), "utf8");
 const styles = fs.readFileSync(new URL("../assets/css/product-manager.css", import.meta.url), "utf8");
+const managerPhp = fs.readFileSync(new URL("../inc/product-manager.php", import.meta.url), "utf8");
 
 function filterMarkup(key, taxonomy, disabled = false) {
   const title = key === "category" ? "دسته‌بندی" : key === "brand" ? "برند" : "مقدار ویژگی";
@@ -737,16 +738,19 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
 });
 
-test("product manager uses the shared Electric Indigo palette without gradients or stale brand colors", () => {
-  assert.match(styles, /--pm-primary:\s*#5100FF;/);
-  assert.match(styles, /--pm-accent:\s*#7433FF;/);
+test("product manager follows editable Royal Orchid theme tokens without gradients or stale brand colors", () => {
+  assert.match(styles, /--pm-primary:\s*var\(--jluxe-primary, #A313B9\);/);
+  assert.match(styles, /--pm-accent:\s*var\(--jluxe-accent, #7A0F8A\);/);
   assert.match(styles, /--pm-ink:\s*#1F2937;/);
   assert.match(styles, /--pm-muted:\s*#475569;/);
   assert.match(styles, /--pm-success:\s*#16865A;/);
   assert.match(styles, /--pm-warning:\s*#C2410C;/);
   assert.match(styles, /--pm-danger:\s*#DC2626;/);
-  assert.match(styles, /--pm-row-alt:\s*#EEE5FF;/);
-  assert.match(styles, /--pm-row-hover:\s*#DCCCFF;/);
+  assert.match(styles, /--pm-row-alt:\s*var\(--jluxe-primary-soft, #FAE8FD\);/);
+  assert.match(styles, /--pm-row-hover:\s*var\(--jluxe-border, #F5D1FA\);/);
+  assert.match(managerPhp, /jluxe_generate_color_variables\( \(array\) \( \$settings\['colors'\] \?\? array\(\) \) \)/);
+  assert.match(managerPhp, /wp_add_inline_style\( 'jluxe-product-manager', \$pm_css \)/);
+  assert.match(styles, /--pm-border-strong:\s*var\(--jluxe-border-strong, #EAA3F5\);/);
   assert.match(styles, /\.jluxe-pm-notice\.is-error[\s\S]*?color:\s*var\(--pm-danger\)/);
   assert.match(styles, /\.jluxe-pm-stock-pill\.is-in[\s\S]*?color:\s*var\(--pm-success\)/);
   assert.match(styles, /\.jluxe-pm-stock-pill\.is-backorder[\s\S]*?color:\s*var\(--pm-warning\)/);
@@ -755,8 +759,8 @@ test("product manager uses the shared Electric Indigo palette without gradients 
   assert.match(styles, /\.jluxe-pm-sale-toggle \{/);
 });
 
-test("product and variation tables share consistent, easy-to-read Electric Indigo row stripes", () => {
-  assert.match(styles, /--pm-row-alt:\s*#EEE5FF;/);
+test("product and variation tables share consistent, theme-configurable Royal Orchid row stripes", () => {
+  assert.match(styles, /--pm-row-alt:\s*var\(--jluxe-primary-soft, #FAE8FD\);/);
   assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);

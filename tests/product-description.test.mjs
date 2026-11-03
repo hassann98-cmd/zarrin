@@ -66,8 +66,8 @@ test("R326 product-description text links look like configurable, accessible but
   }
   assert.match(r326Css, /display:\s*inline-block;/, "links remain inline with surrounding description text");
   assert.match(r326Css, /border:\s*1px solid var\(--jluxe-description-link-border,/, "the outline color is configurable");
-  assert.match(r326Css, /background-color:\s*var\(--color-electric-indigo-50\);[\s\S]*?background-color:\s*var\(--jluxe-description-link-bg,\s*var\(--jluxe-primary-soft,\s*var\(--color-electric-indigo-50\)\)\)/, "the link background follows the shared Electric Indigo soft tint and remains configurable");
-  assert.match(r326Css, /color:\s*var\(--jluxe-description-link-text,\s*var\(--jluxe-primary-active,\s*var\(--color-electric-indigo-700\)\)\)/, "the text color remains configurable with a high-contrast Indigo fallback");
+  assert.match(r326Css, /background-color:\s*var\(--jluxe-description-link-bg,\s*var\(--jluxe-primary-soft,\s*var\(--color-royal-orchid-50\)\)\)/, "the link background follows the editable Royal Orchid soft tint");
+  assert.match(r326Css, /color:\s*var\(--jluxe-description-link-text,\s*var\(--jluxe-primary-active,\s*var\(--color-royal-orchid-800\)\)\)/, "the text color remains configurable with a high-contrast Royal Orchid fallback");
   assert.match(r326Css, /text-decoration:\s*none;/, "the button treatment replaces the old underline");
   assert.match(r326Css, /overflow-wrap:\s*anywhere;/, "long Persian link labels can wrap on narrow screens");
   assert.match(r326Css, /:focus\s*\{[^}]*outline:\s*2px solid/, "keyboard focus remains visible");

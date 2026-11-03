@@ -99,6 +99,14 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
+		'royal_orchid' => array(
+			'label' => 'رویال ارکید (Royal Orchid)',
+			'description' => 'طیف دقیق Royal Orchid؛ رنگ اصلی از shade 600 انتخاب شده تا متن سفیدِ دکمه‌ها کنتراست WCAG AA داشته باشد. هر ۵ رنگ پس از اعمال قابل‌ویرایش است.',
+			'colors' => array(
+				'primary' => '#A313B9', 'secondary' => '#510A5C', 'background' => '#FAE8FD', 'success' => '#16865A', 'accent' => '#7A0F8A',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
 	);
 }
 

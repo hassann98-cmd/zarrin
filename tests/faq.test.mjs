@@ -106,7 +106,7 @@ test("R180 FAQ styling is centered, capped at 900px, token-based and responsive"
   assert.match(css, /@media\s*\(max-width:\s*639px\)[\s\S]*?\.jluxe-site-faq/);
   assert.match(css, /hsl\(var\(--surface\)\)/);
   assert.match(css, /hsl\(var\(--foreground\)\)/);
-  assert.match(css, /\.dark \.jluxe-site-faq__card\s*\{[^}]*background:\s*#100033/s);
+  assert.match(css, /\.dark \.jluxe-site-faq__card\s*\{[^}]*background:\s*var\(--color-royal-orchid-950\)/s);
   assert.match(css, /\.dark \.jluxe-site-faq__question\s*\{[^}]*#F3F4F6/s);
   assert.match(css, /\.dark \.jluxe-site-faq__empty\s*\{[^}]*#D1D5DB/s);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);

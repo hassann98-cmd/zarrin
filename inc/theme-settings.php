@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 21;
+const JLUXE_SETTINGS_VERSION = 22;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -224,20 +224,43 @@ function jluxe_electric_indigo_palette(): array {
 }
 
 /**
+ * طیف دقیق Royal Orchid که کاربر تعیین کرده؛ این تابع از Electric Indigo
+ * جداست تا هر دو پالتِ قابل‌انتخاب بدون تغییرِ مقدارهای قبلی در دسترس بمانند.
+ *
+ * @return array<string, string>
+ */
+function jluxe_royal_orchid_palette(): array {
+	return array(
+		'50'  => '#fae8fd',
+		'100' => '#f5d1fa',
+		'200' => '#eaa3f5',
+		'300' => '#e075f0',
+		'400' => '#d646ec',
+		'500' => '#cb18e7',
+		'600' => '#a313b9',
+		'700' => '#7a0f8a',
+		'800' => '#510a5c',
+		'900' => '#29052e',
+		'950' => '#1c0320',
+	);
+}
+
+/**
  * مقادیر پیش‌فرضِ عمومی؛ محتوای راهنماهای پرداخت، ارسال/پیگیری و مرجوعی
  * مطابق متن ارسالی مدیر است؛ سایر داده‌ها و سیاست‌های وابسته به فروشگاه
  * باید از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
-	$palette = jluxe_electric_indigo_palette();
+	$palette = jluxe_royal_orchid_palette();
 	return array(
 		'version' => JLUXE_SETTINGS_VERSION,
 		'colors'  => array(
-			'primary'    => $palette['500'],
-			'secondary'  => $palette['700'],
+			// Shade 600 is the primary action color so white button text meets WCAG AA.
+			'primary'    => $palette['600'],
+			'secondary'  => $palette['800'],
 			'background' => $palette['50'],
 			'success'    => '#16865A',
-			'accent'     => $palette['400'],
+			'accent'     => $palette['700'],
 		),
 		// Optional, site-wide visual system. Keep the existing storefront as
 		// the default; selecting a new design changes presentation only.
@@ -297,7 +320,7 @@ function jluxe_theme_settings_defaults(): array {
 			'require_phone'                  => true,
 			'require_address'                => true,
 			'require_postcode_for_post'      => true,
-			'checkout_payment_warning_background' => $palette['50'],
+			'checkout_payment_warning_background' => '#FFF7ED',
 			'checkout_payment_warning_text_color' => '#334155',
 			'payment_card_background'          => '#FFFFFF',
 			'payment_card_selected_background' => $palette['50'],
@@ -364,7 +387,7 @@ function jluxe_theme_settings_defaults(): array {
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => $palette['100'],
 					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['500'],
+					'selected_card_border_color' => $palette['600'],
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
@@ -378,7 +401,7 @@ function jluxe_theme_settings_defaults(): array {
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => $palette['100'],
 					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['500'],
+					'selected_card_border_color' => $palette['600'],
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
@@ -392,7 +415,7 @@ function jluxe_theme_settings_defaults(): array {
 					'card_background_color'     => '#FFFFFF',
 					'card_border_color'         => $palette['100'],
 					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['500'],
+					'selected_card_border_color' => $palette['600'],
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
@@ -514,15 +537,15 @@ function jluxe_theme_settings_defaults(): array {
 				'text_color'              => '#1F2937',
 				'background_color'        => $palette['50'],
 				'border_color'            => $palette['100'],
-				'icon_background_color'   => $palette['500'],
+				'icon_background_color'   => $palette['600'],
 				'icon_color'              => '#FFFFFF',
 				'hover_background_color'  => $palette['600'],
 				'hover_text_color'        => '#FFFFFF',
-				'accent_color'            => $palette['400'],
+				'accent_color'            => $palette['700'],
 				'panel_background_color'  => '#FFFFFF',
 				'panel_border_color'      => $palette['100'],
 				'panel_text_color'        => '#1F2937',
-				'panel_accent_color'      => $palette['500'],
+				'panel_accent_color'      => $palette['600'],
 			),
 			'items' => array(
 				array(
@@ -857,8 +880,8 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'nav_style' => array(
 				'background'   => '#ffffff',
-				'active_color' => $palette['500'],
-				'icon_color'   => $palette['600'],
+				'active_color' => $palette['600'],
+				'icon_color'   => $palette['700'],
 				'icon_bg'      => $palette['50'],
 				'active_bg'    => $palette['50'],
 				'shadow'       => 'medium',
@@ -2369,6 +2392,94 @@ function jluxe_migrate_settings_v21( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v21→v22: apply the requested Royal Orchid theme to values that still equal
+ * the previous Electric Indigo defaults. Explicitly different merchant colors
+ * remain untouched, and semantic success/warning/error colors stay semantic.
+ */
+function jluxe_migrate_settings_v22( array $settings ): array {
+	$royal = jluxe_royal_orchid_palette();
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		$replace( $settings['colors'], 'primary', '#5100FF', $royal['600'] );
+		$replace( $settings['colors'], 'secondary', '#300099', $royal['800'] );
+		$replace( $settings['colors'], 'background', '#EEE5FF', $royal['50'] );
+		$replace( $settings['colors'], 'accent', '#7433FF', $royal['700'] );
+	}
+
+	if ( isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] ) ) {
+		$replace( $settings['announcement_bar'], 'background_color', '#300099', $royal['700'] );
+	}
+
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		$replace( $menu, 'text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'panel_text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'background_color', '#EEE5FF', $royal['50'] );
+		$replace( $menu, 'border_color', '#DCCCFF', $royal['100'] );
+		$replace( $menu, 'icon_background_color', '#5100FF', $royal['600'] );
+		$replace( $menu, 'hover_background_color', '#4100CC', $royal['600'] );
+		$replace( $menu, 'accent_color', '#7433FF', $royal['700'] );
+		$replace( $menu, 'panel_border_color', '#DCCCFF', $royal['100'] );
+		$replace( $menu, 'panel_accent_color', '#5100FF', $royal['600'] );
+		unset( $menu );
+	}
+
+	if ( isset( $settings['mobile']['nav_style'] ) && is_array( $settings['mobile']['nav_style'] ) ) {
+		$nav = &$settings['mobile']['nav_style'];
+		$replace( $nav, 'active_color', '#5100FF', $royal['600'] );
+		$replace( $nav, 'icon_color', '#4100CC', $royal['700'] );
+		$replace( $nav, 'icon_bg', '#EEE5FF', $royal['50'] );
+		$replace( $nav, 'active_bg', '#EEE5FF', $royal['50'] );
+		unset( $nav );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_background', '#EEE5FF', '#FFF7ED' );
+		$replace( $checkout, 'payment_card_selected_background', '#EEE5FF', $royal['50'] );
+		if ( isset( $checkout['shipping_methods'] ) && is_array( $checkout['shipping_methods'] ) ) {
+			foreach ( $checkout['shipping_methods'] as &$method ) {
+				if ( ! is_array( $method ) ) {
+					continue;
+				}
+				$replace( $method, 'card_border_color', '#DCCCFF', $royal['100'] );
+				$replace( $method, 'selected_card_background_color', '#EEE5FF', $royal['50'] );
+				$replace( $method, 'selected_card_border_color', '#5100FF', $royal['600'] );
+				$replace( $method, 'note_background_color', '#4100CC', $royal['600'] );
+				$replace( $method, 'details_background_color', '#EEE5FF', $royal['50'] );
+				$replace( $method, 'details_text_color', '#300099', '#475569' );
+			}
+			unset( $method );
+		}
+		unset( $checkout );
+	}
+
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'variation_label_color', '#300099', '' );
+		$replace( $settings['product_page'], 'description_link_bg_color', '#EEE5FF', '' );
+		$replace( $settings['product_page'], 'description_link_text_color', '#300099', '' );
+		$replace( $settings['product_page'], 'description_link_border_color', '#5100FF', '' );
+	}
+
+	if ( isset( $settings['homepage']['sections'] ) && is_array( $settings['homepage']['sections'] ) ) {
+		foreach ( $settings['homepage']['sections'] as &$section ) {
+			if ( is_array( $section ) ) {
+				$replace( $section, 'image_frame_color', '#DCCCFF', $royal['100'] );
+			}
+		}
+		unset( $section );
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2392,6 +2503,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		19 => 'jluxe_migrate_settings_v19',
 		20 => 'jluxe_migrate_settings_v20',
 		21 => 'jluxe_migrate_settings_v21',
+		22 => 'jluxe_migrate_settings_v22',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -2596,7 +2708,15 @@ function jluxe_auto_foreground( string $bg_hex ): string {
  * پلی بین تنظیمات ادمین و frontend است.
  */
 function jluxe_generate_color_variables( array $colors ): string {
-	$vars = array();
+	$defaults = array(
+		'primary'    => '#A313B9',
+		'secondary'  => '#510A5C',
+		'accent'     => '#7A0F8A',
+		'success'    => '#16865A',
+		'background' => '#FAE8FD',
+	);
+	$colors = array_merge( $defaults, $colors );
+	$vars   = array();
 
 	foreach ( array( 'primary', 'secondary', 'accent', 'success' ) as $key ) {
 		$hex               = $colors[ $key ];
@@ -2605,53 +2725,82 @@ function jluxe_generate_color_variables( array $colors ): string {
 		$vars[ "--{$key}-foreground" ] = jluxe_auto_foreground( $hex );
 	}
 
-	$palette = jluxe_electric_indigo_palette();
+	$electric = jluxe_electric_indigo_palette();
+	$royal    = jluxe_royal_orchid_palette();
 	$primary_hsl   = jluxe_hex_to_hsl( $colors['primary'] );
 	$secondary_hsl = jluxe_hex_to_hsl( $colors['secondary'] );
 	$accent_hsl    = jluxe_hex_to_hsl( $colors['accent'] );
 
-	// The default theme uses exact palette steps; administrator-selected colors
-	// keep the existing dynamically derived hover/active behavior.
-	$is_electric_indigo_primary   = strtoupper( $colors['primary'] ) === strtoupper( $palette['500'] );
-	$is_electric_indigo_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $palette['700'] );
-	$is_electric_indigo_accent    = strtoupper( $colors['accent'] ) === strtoupper( $palette['400'] );
-	$primary_hover_hsl   = jluxe_hex_to_hsl( $is_electric_indigo_primary ? $palette['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) );
-	$primary_active_hsl  = jluxe_hex_to_hsl( $is_electric_indigo_primary ? $palette['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) );
-	$secondary_hover_hsl = jluxe_hex_to_hsl( $is_electric_indigo_secondary ? $palette['800'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) );
-	$accent_hover_hsl    = jluxe_hex_to_hsl( $is_electric_indigo_accent ? $palette['600'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) );
+	$is_electric_primary   = strtoupper( $colors['primary'] ) === strtoupper( $electric['500'] );
+	$is_royal_primary      = strtoupper( $colors['primary'] ) === strtoupper( $royal['600'] );
+	$is_electric_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $electric['700'] );
+	$is_royal_secondary    = strtoupper( $colors['secondary'] ) === strtoupper( $royal['800'] );
+	$is_electric_accent    = strtoupper( $colors['accent'] ) === strtoupper( $electric['400'] );
+	$is_royal_accent       = strtoupper( $colors['accent'] ) === strtoupper( $royal['700'] );
 
-	$vars['--primary-hover']  = jluxe_hsl_css_value( $primary_hover_hsl );
-	$vars['--primary-active'] = jluxe_hsl_css_value( $primary_active_hsl );
-	$vars['--secondary-hover'] = jluxe_hsl_css_value( $secondary_hover_hsl );
-	$vars['--accent-hover']    = jluxe_hsl_css_value( $accent_hover_hsl );
+	$primary_hover_hex = $is_electric_primary
+		? $electric['600']
+		: ( $is_royal_primary ? $royal['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) );
+	$primary_active_hex = $is_electric_primary
+		? $electric['700']
+		: ( $is_royal_primary ? $royal['800'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) );
+	$secondary_hover_hex = $is_electric_secondary
+		? $electric['800']
+		: ( $is_royal_secondary ? $royal['900'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) );
+	$accent_hover_hex = $is_electric_accent
+		? $electric['600']
+		: ( $is_royal_accent ? $royal['800'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) );
+	$primary_soft_hex = $is_electric_primary
+		? $electric['50']
+		: ( $is_royal_primary ? $royal['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) );
+	$border_hex = $is_electric_primary
+		? $electric['100']
+		: ( $is_royal_primary ? $royal['100'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) );
+	$border_strong_hex = $is_electric_primary
+		? $electric['200']
+		: ( $is_royal_primary ? $royal['200'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) );
 
-	$vars['--foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
-	$vars['--surface-foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
-	$vars['--text-secondary'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
-	$vars['--text-muted'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
-	$vars['--muted-foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
-	$vars['--background'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
+	$vars['--primary-hover']   = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_hover_hex ) );
+	$vars['--primary-active']  = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_active_hex ) );
+	$vars['--secondary-hover'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $secondary_hover_hex ) );
+	$vars['--accent-hover']    = jluxe_hsl_css_value( jluxe_hex_to_hsl( $accent_hover_hex ) );
+
+	$neutral_ink   = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
+	$neutral_muted = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
+	$background_hsl = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
+	$border_hsl = jluxe_hsl_css_value( jluxe_hex_to_hsl( $border_hex ) );
+	$vars['--foreground']        = $neutral_ink;
+	$vars['--surface']           = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#FFFFFF' ) );
+	$vars['--surface-foreground'] = $neutral_ink;
+	$vars['--surface-elevated']  = $background_hsl;
+	$vars['--text-secondary']    = $neutral_muted;
+	$vars['--text-muted']        = $neutral_muted;
+	$vars['--muted']             = $background_hsl;
+	$vars['--muted-foreground']  = $neutral_muted;
+	$vars['--border']            = $border_hsl;
+	$vars['--ring']              = jluxe_hsl_css_value( $primary_hsl );
+	$vars['--background']        = $background_hsl;
+	$vars['--panel']              = $background_hsl;
+	$vars['--panel-border']       = $border_hsl;
 	$info_hsl = jluxe_hex_to_hsl( '#2563EB' );
-	$vars['--info']       = jluxe_hsl_css_value( $info_hsl );
-	$vars['--info-foreground'] = jluxe_auto_foreground( '#2563EB' );
+	$vars['--info']              = jluxe_hsl_css_value( $info_hsl );
+	$vars['--info-foreground']   = jluxe_auto_foreground( '#2563EB' );
 
-	// نام‌های عمومی --jluxe-* (طبق مستندسازی/برندینگ) — مقدار HEX مستقیم،
-	// برای استفاده‌ی مستقل (مثلاً background:var(--jluxe-primary)) بدون نیاز
-	// به wrap کردن با hsl(). توکن‌های --primary/--secondary/... بالا (HSL
-	// triplet) رو Tailwind مصرف می‌کنه، این‌ها رو نه.
-	$vars['--jluxe-primary']         = $colors['primary'];
-	$vars['--jluxe-primary-hover']   = $is_electric_indigo_primary ? $palette['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 );
-	$vars['--jluxe-primary-active']  = $is_electric_indigo_primary ? $palette['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 );
-	$vars['--jluxe-primary-soft']    = $is_electric_indigo_primary ? $palette['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 );
-	$vars['--jluxe-secondary']       = $colors['secondary'];
-	$vars['--jluxe-secondary-hover'] = $is_electric_indigo_secondary ? $palette['800'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 );
-	$vars['--jluxe-accent']          = $colors['accent'];
-	$vars['--jluxe-success']         = $colors['success'];
-	$vars['--jluxe-page-bg']         = $colors['background'];
+	// Public HEX aliases keep standalone components and legacy PHP templates on the same editable theme colors.
+	$vars['--jluxe-primary']         = strtoupper( $colors['primary'] );
+	$vars['--jluxe-primary-hover']   = strtoupper( $primary_hover_hex );
+	$vars['--jluxe-primary-active']  = strtoupper( $primary_active_hex );
+	$vars['--jluxe-primary-soft']    = strtoupper( $primary_soft_hex );
+	$vars['--jluxe-secondary']       = strtoupper( $colors['secondary'] );
+	$vars['--jluxe-secondary-hover'] = strtoupper( $secondary_hover_hex );
+	$vars['--jluxe-accent']          = strtoupper( $colors['accent'] );
+	$vars['--jluxe-success']         = strtoupper( $colors['success'] );
+	$vars['--jluxe-page-bg']         = strtoupper( $colors['background'] );
 	$vars['--jluxe-surface']         = '#FFFFFF';
 	$vars['--jluxe-text']            = '#1F2937';
 	$vars['--jluxe-text-muted']      = '#475569';
-	$vars['--jluxe-border']          = $palette['100'];
+	$vars['--jluxe-border']          = strtoupper( $border_hex );
+	$vars['--jluxe-border-strong']  = strtoupper( $border_strong_hex );
 
 	$css = ':root{';
 	foreach ( $vars as $name => $value ) {
@@ -3940,7 +4089,7 @@ function jluxe_get_ai_public_settings(): array {
 		// Floating launcher stays out of the cart/category UI; explicit support links can still open chat.
 		'hideLauncherOnPage' => ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_product_category' ) && is_product_category() ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),
-		'primaryColor'       => $ai['primary_color'],
+		'primaryColor'       => '' !== (string) $ai['primary_color'] ? $ai['primary_color'] : $settings['colors']['primary'],
 		'textColor'          => $ai['text_color'],
 		'bgUserColor'        => $ai['bg_user_color'],
 		'bgBotColor'         => $ai['bg_bot_color'],

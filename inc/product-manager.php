@@ -32,6 +32,14 @@ function jluxe_product_manager_enqueue_assets( string $hook ): void {
 	}
 	wp_enqueue_script( 'jluxe-product-manager', JLUXE_THEME_URI . '/assets/js/product-manager.js', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/product-manager.js' ), true );
 	wp_enqueue_style( 'jluxe-product-manager', JLUXE_THEME_URI . '/assets/css/product-manager.css', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/css/product-manager.css' ) );
+	if ( function_exists( 'jluxe_generate_color_variables' ) && function_exists( 'jluxe_get_theme_settings' ) ) {
+		$settings = jluxe_get_theme_settings();
+		$pm_css   = jluxe_generate_color_variables( (array) ( $settings['colors'] ?? array() ) );
+		$pm_css   = str_replace( ':root{', '#jluxe-product-manager{', $pm_css );
+		$pm_css   = rtrim( $pm_css, '}' );
+		$pm_css  .= '--pm-border:var(--jluxe-border);--pm-border-strong:var(--jluxe-border-strong);--pm-soft:var(--jluxe-primary-soft);--pm-soft-accent:var(--jluxe-border);--pm-primary:var(--jluxe-primary);--pm-primary-dark:var(--jluxe-primary-hover);--pm-accent:var(--jluxe-accent);--pm-accent-dark:var(--jluxe-primary-hover);--pm-focus:var(--jluxe-primary);--pm-row-alt:var(--jluxe-primary-soft);--pm-row-hover:var(--jluxe-border);--pm-row-head:var(--jluxe-primary-soft);--pm-row-line:var(--jluxe-border);--pm-field-border:var(--jluxe-border);}';
+		wp_add_inline_style( 'jluxe-product-manager', $pm_css );
+	}
 	$attribute_filters = array();
 	foreach ( jluxe_product_manager_registered_attributes() as $taxonomy => $attribute ) {
 		$attribute_filters[] = array( 'taxonomy' => $taxonomy, 'label' => $attribute['label'] );

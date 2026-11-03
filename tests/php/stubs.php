@@ -19,6 +19,7 @@ $GLOBALS['test_pw_instance']=null;
 $GLOBALS['actions']=[];
 $GLOBALS['scripts']=[];
 $GLOBALS['styles']=[];
+$GLOBALS['inline_styles']=[];
 $GLOBALS['user_meta']=[];
 $GLOBALS['create_calls']=0;
 function add_action(...$a){$GLOBALS['actions'][]=$a;}
@@ -96,6 +97,7 @@ function wp_generate_password(...$a){return bin2hex(random_bytes(16));}
 function wp_generate_uuid4(){return bin2hex(random_bytes(16));}
 function wp_enqueue_script($h,...$a){$GLOBALS['scripts'][$h]=$a;}
 function wp_enqueue_style($h,...$a){$GLOBALS['styles'][$h]=$a;}
+function wp_add_inline_style($h,$css){$GLOBALS['inline_styles'][$h][]=$css;return true;}
 function is_wp_error($e){return $e instanceof WP_Error;}
 class WP_Error {public $code; public $data; public $message; public function __construct($code='',$message='',$data=[]){$this->code=$code;$this->data=$data;$this->message=$message;} public function get_error_code(){return $this->code;} public function get_error_message(){return $this->message;} public function has_errors(){return (bool)$this->code;}}
 class WP_REST_Request {
