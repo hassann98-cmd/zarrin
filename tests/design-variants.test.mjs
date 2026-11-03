@@ -10,6 +10,7 @@ const settingsPhp = readFileSync(new URL("../inc/theme-settings.php", import.met
 const sanitizePhp = readFileSync(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
 const adminPhp = readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
 const mainJs = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
+const aboutPage = readFileSync(new URL("../page-about-us.php", import.meta.url), "utf8");
 
 function luminance(hex) {
   const channels = hex.match(/[0-9a-f]{2}/gi).map((channel) => parseInt(channel, 16) / 255);
@@ -28,7 +29,7 @@ test("R354 the optional home-and-kitchen variant uses the requested Electric Ind
   assert.match(css, /--jluxe-home-cream:\s*var\(--color-electric-indigo-50\)/i);
   assert.match(css, /background-color:\s*var\(--color-electric-indigo-500\)/i);
   assert.match(css, /background-color:\s*#FFFFFF/i);
-  assert.doesNotMatch(css, /#2F6B52|#C2410C|#FAF7F1|#FFFDF9/i);
+  assert.doesNotMatch(css, /#2F6B52|#FAF7F1|#FFFDF9/i);
 
   assert.match(settings, /<option value="current"[\s\S]*?>نسخهٔ فعلی<\/option>/);
   assert.equal((settings.match(/خانه و آشپزخانه — نیلی الکتریکی \(اختیاری\)/g) ?? []).length, 4);
@@ -91,7 +92,7 @@ test("R355 site-wide Electric Indigo design stays opt-in and covers the storefro
   assert.match(sitewideCss, /--accent:\s*259\.12 100% 60%/);
   assert.match(sitewideCss, /var\(--color-electric-indigo-500\)/);
   assert.match(sitewideCss, /var\(--color-electric-indigo-50\)/);
-  assert.doesNotMatch(sitewideCss, /#2F6B52|#C2410C|#FFF9F0/i);
+  assert.doesNotMatch(sitewideCss, /#2F6B52|#FFF9F0/i);
   assert.match(sitewideCss, /\.jluxe-home-section/);
   assert.match(sitewideCss, /padding-inline:\s*clamp\(12px, 2vw, 24px\)/);
   assert.match(sitewideCss, /\.jluxe-home-section:nth-of-type\(4n \+ 2\)/);
@@ -105,4 +106,37 @@ test("R355 site-wide Electric Indigo design stays opt-in and covers the storefro
   assert.doesNotMatch(sitewideCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
   assert.ok(contrastRatio("#5100FF", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#7433FF", "#FFFFFF") >= 4.5);
+});
+
+test("R362 ordinary text is neutral while action, hover, and semantic status colors remain distinct", () => {
+  assert.match(storefrontCss, /--foreground:\s*215 28% 17%/);
+  assert.match(storefrontCss, /--surface-foreground:\s*215 28% 17%/);
+  assert.match(storefrontCss, /--text-secondary:\s*215 19% 35%/);
+  assert.match(storefrontCss, /--text-muted:\s*215 19% 35%/);
+  assert.match(storefrontCss, /--success:\s*156\.43 71\.79% 30\.59%/);
+  assert.match(storefrontCss, /--warning:\s*17\.47 88\.35% 40\.39%/);
+  assert.match(storefrontCss, /--error:\s*0 72\.22% 50\.59%/);
+  assert.match(storefrontCss, /--info:\s*221\.21 83\.19% 53\.33%/);
+  assert.match(storefrontCss, /\.text-gray-600 \{\s*--tw-text-opacity: 1;\s*color: rgb\(71 85 105/);
+  assert.match(storefrontCss, /\.dark\\:text-gray-300:is\(\.dark \*\) \{\s*--tw-text-opacity: 1;\s*color: rgb\(209 213 219/);
+  assert.match(storefrontCss, /\.dark \.jluxe-site-faq__heading h1,[\s\S]*?color: #F3F4F6/);
+  assert.match(storefrontCss, /\.dark \.jluxe-site-faq__empty \{ color: #D1D5DB; \}/);
+  assert.match(sitewideCss, /--jluxe-home-ink:\s*#1F2937/);
+  assert.match(sitewideCss, /\.jluxe-home-section h2:not\(\.text-white\) \{\s*color: #1F2937;/);
+  assert.match(sitewideCss, /\.jluxe-product-card-title \{\s*color: #1F2937;/);
+  assert.match(css, /\.jluxe-product-card-title \{\s*color: #1F2937;/);
+  assert.match(css, /\.jluxe-product-card-current-price \{\s*color: #1F2937;/);
+  assert.match(storefrontCss, /\.jluxe-blog-listing__eyebrow \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
+  assert.match(storefrontCss, /\.jluxe-pa-price \{[\s\S]*?color: hsl\(var\(--foreground\)\)/);
+  assert.match(storefrontCss, /\.jluxe-recent-products__count \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
+  assert.match(storefrontCss, /\.jluxe-recent-products__eyebrow \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
+  assert.match(storefrontCss, /\.jluxe-recent-card__price\[data-on-sale="true"\] \.jluxe-recent-card__price-current \{ color: hsl\(var\(--error\)\)/);
+  assert.match(css, /\.jluxe-product-card-sale-badge \{[\s\S]*?background-color: #DC2626/);
+  assert.match(sitewideCss, /\.woocommerce-message \{[\s\S]*?color: #166534/);
+  assert.match(sitewideCss, /\.woocommerce-info \{[\s\S]*?color: #1D4ED8/);
+  assert.match(sitewideCss, /\.woocommerce-error \{[\s\S]*?color: #B91C1C/);
+  assert.match(sitewideCss, /nav > a:hover,[\s\S]*?color: var\(--color-electric-indigo-400\)/, "interactive hover color stays Electric Indigo");
+  assert.equal((aboutPage.match(/\[&_\.jluxe-about-eyebrow\]:text-text-secondary/g) ?? []).length, 2);
+  assert.doesNotMatch(aboutPage, /\[&_\.jluxe-about-eyebrow\]:text-primary/);
+  assert.doesNotMatch(sitewideCss, /color:\s*var\(--color-electric-indigo-(?:700|800|900)\)/);
 });

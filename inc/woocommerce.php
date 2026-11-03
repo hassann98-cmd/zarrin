@@ -308,9 +308,9 @@ function jluxe_cart_checkout_shipping_method_settings( string $kind ): array {
 			'selected_card_background_color' => '#EEE5FF',
 			'selected_card_border_color' => '#5100FF',
 			'note_background_color' => '#FFFFFF',
-			'note_text_color' => '#100033',
+			'note_text_color' => '#1F2937',
 			'details_background_color' => '#FFFFFF',
-			'details_text_color' => '#300099',
+			'details_text_color' => '#475569',
 		);
 	}
 

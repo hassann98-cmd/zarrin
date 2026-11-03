@@ -1,6 +1,6 @@
 #jluxe-product-manager {
-	--pm-ink: #100033;
-	--pm-muted: #4100CC;
+	--pm-ink: #1F2937;
+	--pm-muted: #475569;
 	--pm-border: #DCCCFF;
 	--pm-border-strong: #B999FF;
 	--pm-surface: #ffffff;
@@ -10,9 +10,9 @@
 	--pm-primary-dark: #4100CC;
 	--pm-accent: #7433FF;
 	--pm-accent-dark: #4100CC;
-	--pm-success: #4100CC;
-	--pm-warning: #300099;
-	--pm-danger: #200066;
+	--pm-success: #16865A;
+	--pm-warning: #C2410C;
+	--pm-danger: #DC2626;
 	--pm-focus: #5100FF;
 	--pm-row-alt: #EEE5FF;
 	--pm-row-hover: #DCCCFF;
@@ -102,15 +102,15 @@
 }
 
 .jluxe-pm-notice.is-error {
-	border-color: #B999FF;
-	background: #EEE5FF;
-	color: #200066;
+	border-color: #FECACA;
+	background: #FEF2F2;
+	color: var(--pm-danger);
 }
 
 .jluxe-pm-notice.is-warning {
-	border-color: #9666FF;
-	background: #EEE5FF;
-	color: #300099;
+	border-color: #FED7AA;
+	background: #FFF7ED;
+	color: var(--pm-warning);
 }
 
 .jluxe-pm-filters {
@@ -199,7 +199,7 @@
 }
 
 .jluxe-pm-search-submit:hover {
-	border-color: #4100CC;
+	border-color: var(--pm-primary-dark);
 	background: #4100CC;
 	color: #fff;
 }
@@ -278,7 +278,7 @@
 
 .jluxe-pm-filter-search:disabled {
 	background: #EEE5FF;
-	color: #4100CC;
+	color: var(--pm-muted);
 	cursor: not-allowed;
 }
 
@@ -598,7 +598,7 @@
 	border: 1px solid #B999FF;
 	border-radius: 999px;
 	background: #EEE5FF;
-	color: #300099;
+	color: var(--pm-muted);
 	font-size: 10px;
 	font-weight: 750;
 	white-space: nowrap;
@@ -607,13 +607,13 @@
 .jluxe-pm-type-pill.is-variable {
 	border-color: #B999FF;
 	background: #EEE5FF;
-	color: #300099;
+	color: var(--pm-muted);
 }
 
 .jluxe-pm-type-pill.is-simple {
 	border-color: #B999FF;
 	background: #EEE5FF;
-	color: #300099;
+	color: var(--pm-muted);
 }
 
 .jluxe-pm-sku {
@@ -723,7 +723,7 @@
 .jluxe-pm-control:disabled {
 	border-color: #DCCCFF;
 	background: #EEE5FF;
-	color: #4100CC;
+	color: var(--pm-muted);
 	cursor: not-allowed;
 }
 
@@ -896,21 +896,21 @@
 }
 
 .jluxe-pm-stock-pill.is-in {
-	border-color: #9666FF;
-	background: #EEE5FF;
-	color: #4100CC;
+	border-color: #86EFAC;
+	background: #ECFDF5;
+	color: var(--pm-success);
 }
 
 .jluxe-pm-stock-pill.is-out {
-	border-color: #B999FF;
-	background: #EEE5FF;
-	color: #200066;
+	border-color: #FECACA;
+	background: #FEF2F2;
+	color: var(--pm-danger);
 }
 
 .jluxe-pm-stock-pill.is-backorder {
-	border-color: #9666FF;
-	background: #EEE5FF;
-	color: #300099;
+	border-color: #FED7AA;
+	background: #FFF7ED;
+	color: var(--pm-warning);
 }
 
 .jluxe-pm-category-cell {
@@ -1037,7 +1037,7 @@
 
 .jluxe-pm-pagination .button:disabled {
 	background: #EEE5FF;
-	color: #4100CC;
+	color: var(--pm-muted);
 	cursor: not-allowed;
 }
 
@@ -1299,7 +1299,7 @@
 	padding: 2px 6px;
 	border: 0;
 	background: transparent;
-	color: #200066;
+	color: var(--pm-danger);
 	font-size: 9px;
 	font-weight: 700;
 	cursor: pointer;
@@ -1602,10 +1602,10 @@
 
 .jluxe-pm-error {
 	padding: 13px;
-	border: 1px solid #B999FF;
+	border: 1px solid #FECACA;
 	border-radius: 9px;
-	background: #EEE5FF;
-	color: #200066;
+	background: #FEF2F2;
+	color: var(--pm-danger);
 	font-size: 12px;
 	line-height: 1.7;
 }

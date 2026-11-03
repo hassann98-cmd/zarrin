@@ -7,7 +7,7 @@
  */
 body.jluxe-design-canva-home {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -19,22 +19,22 @@ body.jluxe-design-canva-home {
   --accent-foreground: 0 0% 100%;
   --accent-hover: 259.12 100% 40%;
   --surface: 0 0% 100%;
-  --surface-foreground: 258.82 100% 10%;
+  --surface-foreground: 215 28% 17%;
   --surface-elevated: 260.77 100% 94.9%;
-  --text-secondary: 258.82 100% 30%;
-  --text-muted: 259.12 100% 40%;
+  --text-secondary: 215 19% 35%;
+  --text-muted: 215 19% 35%;
   --muted: 260.77 100% 94.9%;
-  --muted-foreground: 258.82 100% 30%;
+  --muted-foreground: 215 19% 35%;
   --border: 258.82 100% 90%;
   --ring: 259.06 100% 50%;
-  --success: 259.12 100% 40%;
+  --success: 156.43 71.79% 30.59%;
   --success-foreground: 0 0% 100%;
-  --warning: 259.12 100% 60%;
+  --warning: 17.47 88.35% 40.39%;
   --warning-foreground: 0 0% 100%;
-  --warning-strong: 259.12 100% 40%;
-  --error: 258.82 100% 20%;
+  --warning-strong: 17.47 88.35% 40.39%;
+  --error: 0 72.22% 50.59%;
   --error-foreground: 0 0% 100%;
-  --info: 258.82 100% 30%;
+  --info: 221.21 83.19% 53.33%;
   --info-foreground: 0 0% 100%;
   --panel: 260.77 100% 94.9%;
   --panel-border: 258.82 100% 90%;
@@ -43,11 +43,11 @@ body.jluxe-design-canva-home {
   --jluxe-radius-md: 15px;
   --jluxe-radius-lg: 22px;
   --jluxe-radius-xl: 28px;
-  --jluxe-rating-color: var(--color-electric-indigo-400);
-  --boom-star: var(--color-electric-indigo-400);
+  --jluxe-rating-color: #F7B731;
+  --boom-star: var(--jluxe-rating-color);
   --jluxe-home-paper: #FFFFFF;
   --jluxe-home-cream: var(--color-electric-indigo-50);
-  --jluxe-home-ink: var(--color-electric-indigo-900);
+  --jluxe-home-ink: #1F2937;
   --jluxe-home-green: var(--color-electric-indigo-500);
   --jluxe-home-clay: var(--color-electric-indigo-400);
   --jluxe-home-sage: var(--color-electric-indigo-50);
@@ -58,7 +58,7 @@ body.jluxe-design-canva-home {
   --jluxe-home-shadow: 0 14px 34px hsl(var(--foreground) / 0.09);
   --jluxe-home-soft-shadow: 0 5px 16px hsl(var(--foreground) / 0.07);
   background-color: var(--color-electric-indigo-50);
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 /* Keep the existing typography choice and layout dimensions; strengthen only the shared canvas. */
@@ -69,18 +69,18 @@ body.jluxe-design-canva-home :focus-visible {
 
 body.jluxe-design-canva-home .site-main,
 body.jluxe-design-canva-home #primary {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 body.jluxe-design-canva-home .woocommerce-breadcrumb,
 body.jluxe-design-canva-home .jluxe-breadcrumb {
-  color: var(--color-electric-indigo-600);
+  color: #475569;
 }
 
 /* Header: pale Indigo surfaces and solid accessible controls; layout is unchanged. */
 body.jluxe-design-canva-home #masthead {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -112,14 +112,14 @@ body.jluxe-design-canva-home #masthead > .hidden.border-t nav {
   background-color: var(--color-electric-indigo-50);
   background-image: linear-gradient(105deg, var(--color-electric-indigo-50) 0%, var(--color-electric-indigo-50) 64%, var(--color-electric-indigo-50) 100%);
   box-shadow: 0 4px 14px hsl(var(--primary) / 0.07);
-  color: var(--color-electric-indigo-800);
+  color: #1F2937;
 }
 
 body.jluxe-design-canva-home #masthead > .hidden.border-t nav > a,
 body.jluxe-design-canva-home #masthead > .hidden.border-t nav > div > a,
 body.jluxe-design-canva-home #masthead > .hidden.border-t nav > div.group > a {
   border-radius: 10px;
-  color: var(--color-electric-indigo-700);
+  color: #1F2937;
   transition: color 180ms ease, background-color 180ms ease;
 }
 
@@ -166,14 +166,14 @@ body.jluxe-design-canva-home #masthead [data-jluxe-header-grid="cart"] {
   border: 1px solid var(--color-electric-indigo-100);
   border-radius: 15px;
   background-color: rgba(255, 255, 255, 0.92);
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
   box-shadow: 0 3px 10px hsl(var(--foreground) / 0.06);
 }
 
 @media (hover: hover) and (pointer: fine) {
   body.jluxe-design-canva-home #masthead [data-jluxe-header-grid="account"]:hover {
-    border-color: var(--color-electric-indigo-600);
-    background-color: var(--color-electric-indigo-600);
+    border-color: #475569;
+    background-color: #475569;
     color: #FFFFFF;
     box-shadow: 0 7px 16px hsl(var(--foreground) / 0.2);
     transform: translateY(-1px);
@@ -210,7 +210,7 @@ body.jluxe-design-canva-home .jluxe-home-section > div.mb-3.flex.items-center.ju
 }
 
 body.jluxe-design-canva-home .jluxe-home-section h2:not(.text-white) {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
   font-size: clamp(1.18rem, 1.7vw, 1.52rem);
   line-height: 1.45;
 }
@@ -295,11 +295,11 @@ body.jluxe-design-canva-home ul.products li.product {
 }
 
 body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-title {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-sale-badge {
-  background-color: var(--color-electric-indigo-400);
+  background-color: #DC2626;
   color: #FFFFFF;
 }
 
@@ -312,7 +312,7 @@ body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-cta {
 }
 
 body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added, .jluxe-btn-added) {
-  background-color: var(--color-electric-indigo-600);
+  background-color: #475569;
   color: #FFFFFF;
 }
 
@@ -346,16 +346,25 @@ body.jluxe-design-canva-home .jluxe-product-buybox {
   box-shadow: 0 5px 17px hsl(var(--foreground) / 0.06);
 }
 
-body.jluxe-design-canva-home .woocommerce-message,
-body.jluxe-design-canva-home .woocommerce-info {
-  border-color: var(--color-electric-indigo-100);
+body.jluxe-design-canva-home .woocommerce-message {
+  border-color: #BBF7D0;
   border-radius: 14px;
-  background-color: var(--color-electric-indigo-50);
-  color: var(--color-electric-indigo-800);
+  background-color: #F0FDF4;
+  color: #166534;
+}
+
+body.jluxe-design-canva-home .woocommerce-info {
+  border-color: #BFDBFE;
+  border-radius: 14px;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
 }
 
 body.jluxe-design-canva-home .woocommerce-error {
+  border-color: #FECACA;
   border-radius: 14px;
+  background-color: #FEF2F2;
+  color: #B91C1C;
 }
 
 body.jluxe-design-canva-home .woocommerce table.shop_table th,
@@ -386,7 +395,7 @@ body.jluxe-design-canva-home select {
   border-color: var(--color-electric-indigo-100);
   border-radius: 12px;
   background-color: #FFFFFF;
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
   box-shadow: inset 0 1px 2px hsl(var(--foreground) / 0.025);
 }
 
@@ -407,8 +416,8 @@ body.jluxe-design-canva-home select:focus {
   body.jluxe-design-canva-home .woocommerce #respond input#submit:hover,
   body.jluxe-design-canva-home .single_add_to_cart_button:hover,
   body.jluxe-design-canva-home .checkout-button:hover {
-    border-color: var(--color-electric-indigo-600);
-    background-color: var(--color-electric-indigo-600);
+    border-color: #475569;
+    background-color: #475569;
     color: #FFFFFF;
     box-shadow: 0 7px 15px hsl(var(--foreground) / 0.2);
     transform: translateY(-1px);
@@ -418,7 +427,7 @@ body.jluxe-design-canva-home select:focus {
 /* Footer: layered Indigo surfaces; responsive grid placement remains untouched. */
 body.jluxe-design-canva-home #jluxe-footer-root {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -428,13 +437,13 @@ body.jluxe-design-canva-home #jluxe-footer-root {
   --surface: 0 0% 100%;
   --surface-elevated: 260.77 100% 94.9%;
   --muted: 260.77 100% 94.9%;
-  --muted-foreground: 258.82 100% 30%;
-  --text-muted: 259.12 100% 40%;
+  --muted-foreground: 215 19% 35%;
+  --text-muted: 215 19% 35%;
   --border: 258.82 100% 90%;
   --ring: 259.06 100% 50%;
   background-color: var(--color-electric-indigo-50);
   background-image: radial-gradient(ellipse at 88% 8%, hsl(var(--accent) / 0.055), transparent 32%);
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-shell {
@@ -469,12 +478,12 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-feature-icon {
 
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-feature-title,
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-column-title {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-feature-subtitle,
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-brand-description {
-  color: var(--color-electric-indigo-600);
+  color: #475569;
 }
 
 body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-brand-column {
@@ -570,7 +579,7 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
   border: 1px solid var(--jluxe-categories-trigger-border, var(--color-electric-indigo-100));
   border-radius: 999px;
   background: var(--jluxe-categories-trigger-bg, var(--color-electric-indigo-50));
-  color: var(--jluxe-categories-trigger-text, var(--color-electric-indigo-500));
+  color: var(--jluxe-categories-trigger-text, #1F2937);
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.25;
@@ -757,7 +766,7 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
   max-width: 1180px;
   border-color: var(--jluxe-categories-panel-border, var(--color-electric-indigo-100));
   background: var(--jluxe-categories-panel-bg, #FFFFFF);
-  color: var(--jluxe-categories-panel-text, var(--color-electric-indigo-900));
+  color: var(--jluxe-categories-panel-text, #1F2937);
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -802,7 +811,7 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
 
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category {
   border-color: transparent;
-  color: var(--jluxe-categories-panel-text, var(--color-electric-indigo-900));
+  color: var(--jluxe-categories-panel-text, #1F2937);
   text-decoration: none;
 }
 
@@ -820,7 +829,7 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
 }
 
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__title {
-  color: var(--jluxe-categories-panel-text, var(--color-electric-indigo-900));
+  color: var(--jluxe-categories-panel-text, #1F2937);
 }
 
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__group-title {
@@ -828,7 +837,7 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
 }
 
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__link {
-  color: var(--jluxe-categories-panel-text, var(--color-electric-indigo-900));
+  color: var(--jluxe-categories-panel-text, #1F2937);
   text-decoration: none;
   transition: color var(--jluxe-categories-motion-duration, 180ms) ease;
 }

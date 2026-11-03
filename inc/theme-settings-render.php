@@ -1399,7 +1399,7 @@ function jluxe_render_product_page(): void {
 							<th scope="row">رنگ قیمت</th>
 							<td>
 								<input type="hidden" name="product_card[price_color]" id="jluxe-price-color-value" value="<?php echo esc_attr( $pc['price_color'] ); ?>" />
-								<input type="color" id="jluxe-price-color-picker" value="<?php echo esc_attr( $pc['price_color'] ?: '#100033' ); ?>" />
+								<input type="color" id="jluxe-price-color-picker" value="<?php echo esc_attr( $pc['price_color'] ?: '#1F2937' ); ?>" />
 								<label><input type="checkbox" id="jluxe-price-color-default" <?php checked( '' === $pc['price_color'] ); ?> /> استفاده از رنگ پیش‌فرض متن</label>
 								<p class="description">اگه «رنگ پیش‌فرض» تیک بخوره، قیمت با رنگ استاندارد متن سایت نمایش داده می‌شه؛ در غیر این صورت همیشه با رنگ انتخاب‌شده.</p>
 								<script>
@@ -2868,13 +2868,13 @@ function jluxe_render_advanced_page(): void {
 					<tr><th scope="row">نسخه‌ی PHP</th><td><?php echo esc_html( phpversion() ); ?></td></tr>
 					<tr><th scope="row">نسخه‌ی ووکامرس</th><td><?php echo esc_html( defined( 'WC_VERSION' ) ? WC_VERSION : 'ووکامرس فعال نیست' ); ?></td></tr>
 					<tr><th scope="row">نسخه‌ی پوسته‌ی زرین</th><td><?php echo esc_html( $theme->get( 'Version' ) ?: '—' ); ?></td></tr>
-					<tr><th scope="row">حالت دیباگ (WP_DEBUG)</th><td><?php echo defined( 'WP_DEBUG' ) && WP_DEBUG ? '<span style="color:#200066">روشن</span>' : '<span style="color:#4100CC">خاموش</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
+					<tr><th scope="row">حالت دیباگ (WP_DEBUG)</th><td><?php echo defined( 'WP_DEBUG' ) && WP_DEBUG ? '<span style="color:#C2410C">روشن</span>' : '<span style="color:#16865A">خاموش</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">کش آبجکت خارجی (Redis/Memcached)</th><td><?php echo wp_using_ext_object_cache() ? 'فعال' : 'غیرفعال (کش پیش‌فرض وردپرس)'; ?></td></tr>
 					<tr><th scope="row">افزونه‌ی کش صفحه (LiteSpeed و مشابه)</th><td><?php echo defined( 'LSCWP_V' ) ? 'LiteSpeed Cache فعال' : 'شناسایی نشد'; ?></td></tr>
 					<tr><th scope="row">حداکثر آپلود (PHP)</th><td><?php echo esc_html( size_format( wp_max_upload_size() ) ); ?></td></tr>
 					<tr><th scope="row">memory_limit (PHP)</th><td><?php echo esc_html( ini_get( 'memory_limit' ) ); ?></td></tr>
 					<tr><th scope="row">max_execution_time (PHP)</th><td><?php echo esc_html( ini_get( 'max_execution_time' ) ); ?> ثانیه</td></tr>
-					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#200066">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
+					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#C2410C">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">نسخه‌ی تنظیمات پوسته</th><td><?php echo esc_html( (string) JLUXE_SETTINGS_VERSION ); ?></td></tr>
 					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (assets/compiled)'; ?></td></tr>
 					<tr><th scope="row">آخرین به‌روزرسانی تنظیمات</th><td><?php echo esc_html( get_option( 'jluxe_theme_settings_updated_at', '—' ) ); ?></td></tr>

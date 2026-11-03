@@ -1078,9 +1078,9 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 			'selected_card_background_color' => $sanitize_color( $method_posted['selected_card_background_color'] ?? ( $default_method['selected_card_background_color'] ?? '#EEE5FF' ), (string) ( $default_method['selected_card_background_color'] ?? '#EEE5FF' ) ),
 			'selected_card_border_color' => $sanitize_color( $method_posted['selected_card_border_color'] ?? ( $default_method['selected_card_border_color'] ?? '#5100FF' ), (string) ( $default_method['selected_card_border_color'] ?? '#5100FF' ) ),
 			'note_background_color'    => $sanitize_color( $method_posted['note_background_color'] ?? ( $default_method['note_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['note_background_color'] ?? '#FFFFFF' ) ),
-			'note_text_color'          => $sanitize_color( $method_posted['note_text_color'] ?? ( $default_method['note_text_color'] ?? '#100033' ), (string) ( $default_method['note_text_color'] ?? '#100033' ) ),
+			'note_text_color'          => $sanitize_color( $method_posted['note_text_color'] ?? ( $default_method['note_text_color'] ?? '#1F2937' ), (string) ( $default_method['note_text_color'] ?? '#1F2937' ) ),
 			'details_background_color' => $sanitize_color( $method_posted['details_background_color'] ?? ( $default_method['details_background_color'] ?? '#FFFFFF' ), (string) ( $default_method['details_background_color'] ?? '#FFFFFF' ) ),
-			'details_text_color'       => $sanitize_color( $method_posted['details_text_color'] ?? ( $default_method['details_text_color'] ?? '#300099' ), (string) ( $default_method['details_text_color'] ?? '#300099' ) ),
+			'details_text_color'       => $sanitize_color( $method_posted['details_text_color'] ?? ( $default_method['details_text_color'] ?? '#475569' ), (string) ( $default_method['details_text_color'] ?? '#475569' ) ),
 		);
 	}
 
@@ -1102,7 +1102,7 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		'require_address'                 => ! empty( $posted['require_address'] ),
 		'require_postcode_for_post'       => ! empty( $posted['require_postcode_for_post'] ),
 		'checkout_payment_warning_background' => $sanitize_color( $posted['checkout_payment_warning_background'] ?? ( $defaults['checkout_payment_warning_background'] ?? '#EEE5FF' ), (string) ( $defaults['checkout_payment_warning_background'] ?? '#EEE5FF' ) ),
-		'checkout_payment_warning_text_color' => $sanitize_color( $posted['checkout_payment_warning_text_color'] ?? ( $defaults['checkout_payment_warning_text_color'] ?? '#100033' ), (string) ( $defaults['checkout_payment_warning_text_color'] ?? '#100033' ) ),
+		'checkout_payment_warning_text_color' => $sanitize_color( $posted['checkout_payment_warning_text_color'] ?? ( $defaults['checkout_payment_warning_text_color'] ?? '#1F2937' ), (string) ( $defaults['checkout_payment_warning_text_color'] ?? '#1F2937' ) ),
 		'payment_card_background'          => $sanitize_color( $posted['payment_card_background'] ?? ( $defaults['payment_card_background'] ?? '#FFFFFF' ), (string) ( $defaults['payment_card_background'] ?? '#FFFFFF' ) ),
 		'payment_card_selected_background' => $sanitize_color( $posted['payment_card_selected_background'] ?? ( $defaults['payment_card_selected_background'] ?? '#EEE5FF' ), (string) ( $defaults['payment_card_selected_background'] ?? '#EEE5FF' ) ),
 		'show_shipping_accordions'         => ! empty( $posted['show_shipping_accordions'] ),
@@ -1883,7 +1883,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				$section['image_frame_mode'] = in_array( $frame_mode, array( 'none', 'transparent', 'color' ), true ) ? $frame_mode : 'none';
 				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#DCCCFF';
 				$section['show_category_names'] = ! array_key_exists( 'show_category_names', $posted ) || '1' === (string) $posted['show_category_names'];
-				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#100033';
+				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#1F2937';
 			}
 			// دسته‌بندی‌ها دیگه خودکار از همه‌ی ترم‌های ووکامرس pull نمی‌شن
 			// (باگ واقعی: با hide_empty=true، دسته‌های تازه‌ساخته‌شده‌ی بدون

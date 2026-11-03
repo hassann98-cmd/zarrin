@@ -1501,18 +1501,18 @@ check(
 	'R244 the AI buyer-review summary text column grows across the available card width in every product layout'
 );
 check(
-	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: var(--color-electric-indigo-400);' ) &&
+	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: #F7B731;' ) &&
 	false !== strpos( $r244_storefront_css, '.jluxe-reviews .star-rating span:before {
   content: "★★★★★";
   color: var(--jluxe-rating-color);' ) &&
 	false !== strpos( $classic_tpl, '?> دیدگاه</div>' ) && false === strpos( $classic_tpl, '?> امتیاز</div>' ) &&
 	false !== strpos( $r238_reference_tpl, '?> دیدگاه</div>' ) && false === strpos( $r238_reference_tpl, '?> امتیاز</div>' ),
-	'R244 filled customer-review stars use Electric Indigo and the review count is labeled as دیدگاه rather than امتیاز'
+	'R244 filled customer-review stars use the gold rating color and the review count is labeled as دیدگاه rather than امتیاز'
 );
 check(
 	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-success'" ) &&
 	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-info'" ) &&
-	false !== strpos( $r244_storefront_css, '--boom-info: var(--color-electric-indigo-500);' ) &&
+	false !== strpos( $r244_storefront_css, '--boom-info: #2563EB;' ) &&
 	false !== strpos( $classic_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
 	false !== strpos( $r238_reference_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
 	false !== strpos( $r238_reference_tpl, '.jluxe-product-reference .cp3-side .cp3-price{width:100%;font-size:20px;line-height:1.6}' ),
@@ -1942,7 +1942,7 @@ check(strpos($notfound,'class="jluxe-404-actions"')!==false && strpos($notfound,
 $searchform=(string) file_get_contents(ABSPATH.'searchform.php');
 check(strpos($searchform,'min-height')===false && strpos($searchform,'jluxe-search-field')!==false && strpos($searchform,'aria-label')!==false, 'R34 search form is a labelled custom component styled in CSS');
 
-// R35: palette contrast is measured, not assumed — WCAG 2.1 AA math on the live tokens.
+// R35: neutral text and semantic status contrast are measured on the live tokens.
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 preg_match_all('/:root\s*\{([^}]*)\}/u',$css,$roots);
 $tokens=array();
@@ -1968,8 +1968,8 @@ check(contrast(tok_rgb($tokens['text-muted']),$bg)>=4.5 && contrast(tok_rgb($tok
 check(contrast(tok_rgb($tokens['text-secondary']),$bg)>=4.5, 'R35 secondary text reaches AA');
 check(contrast($white,tok_rgb($tokens['primary']))>=4.5 && contrast($white,tok_rgb($tokens['primary-hover']))>=4.5, 'R35 white-on-primary buttons reach AA');
 check(contrast($white,tok_rgb($tokens['error']))>=4.5 && contrast($white,tok_rgb($tokens['success']))>=4.5 && contrast($white,tok_rgb($tokens['info']))>=4.5, 'R35 status colors keep AA with their foreground');
-check(contrast(tok_rgb($tokens['warning-foreground']),tok_rgb($tokens['warning']))>=4.5, 'R35 warning pairs reach AA');
-check(contrast(tok_rgb($tokens['warning-strong']),$white)>=3, 'R35 amber used as text/graphics meets WCAG 1.4.11 non-text 3:1');
+check(contrast(tok_rgb($tokens['warning-foreground']),tok_rgb($tokens['warning']))>=4.5, 'R35 orange warning pairs reach AA');
+check(contrast(tok_rgb($tokens['warning-strong']),$white)>=3, 'R35 orange warning text/graphics meets WCAG 1.4.11 non-text 3:1');
 check(contrast(tok_rgb($tokens['accent-foreground']),tok_rgb($tokens['accent']))>=4.5, 'R35 accent pairs reach AA');
 check(strpos($css,'font-family: IRANYekan, Vazirmatn')!==false, 'R35 the storefront font stack actually applies IRANYekan with local fallbacks');
 
@@ -2847,7 +2847,7 @@ $r51_range = '<div class="cp3-price" data-cp3-price=""><span class="woocommerce-
 $r51_out = jluxe_amount_first_price_html( $r51_range );
 check(strpos($r51_out,'۱۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'۱,۵۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'محدوده قیمت: &#65020; ۱۰۰,۰۰۰ تا')!==false && jluxe_amount_first_price_html( $r51_out ) === $r51_out, 'R51 the final price HTML (get_price_html late filter) reorders the symbol-first range and leaves the screen-reader summary untouched, idempotently');
 $r51_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: var(--color-electric-indigo-400)')!==false, 'R51 the missing utilities ship and rating fills use the shared Electric Indigo token');
+check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: #F7B731')!==false, 'R51 the missing utilities ship and rating fills use the shared gold rating token');
 
 $r152_color_defaults = jluxe_theme_settings_defaults();
 check(
@@ -2990,7 +2990,7 @@ check(
 	'#5100FF' === strtoupper( $r326_theme_settings['colors']['primary'] ) &&
 	'#EEE5FF' === strtoupper( $r326_theme_settings['colors']['background'] ) &&
 	JLUXE_SETTINGS_VERSION === $r326_theme_settings['version'],
-	'R326 v20 exposes the exact de-duplicated Electric Indigo steps, matching HSL tokens, and Electric Indigo theme defaults'
+	'R326 v21 exposes the exact de-duplicated Electric Indigo steps, matching HSL tokens, and current theme defaults'
 );
 check(
 	'' === $r326_product_defaults['description_link_bg_color'] &&
@@ -5330,7 +5330,7 @@ $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v20 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v21 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -5447,6 +5447,57 @@ check(
 	'#5100ff' === $r326_migrated_colors['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
 	'#300099' === $r326_migrated_colors['cart_checkout']['shipping_methods']['post']['details_text_color'],
 	'R326 v20 recolors known legacy defaults across theme surfaces while preserving explicit merchant selections'
+);
+$r326_v20_neutral_defaults = array(
+	'colors' => array( 'success' => '#4100CC' ),
+	'header_nav' => array(
+		'categories_mega_menu' => array(
+			'text_color' => '#100033',
+			'panel_text_color' => '#100033',
+			'accent_color' => '#ABCDEF',
+		),
+	),
+	'cart_checkout' => array(
+		'checkout_payment_warning_text_color' => '#100033',
+		'shipping_methods' => array(
+			'post' => array( 'details_text_color' => '#300099' ),
+			'tipax' => array( 'details_text_color' => '#123456' ),
+		),
+	),
+	'product_card' => array( 'in_stock_color' => '#4100CC' ),
+	'product_page' => array(
+		'discount_color' => '#200066',
+		'savings_color' => '#4100CC',
+		'star_color' => '#7433FF',
+		'description_link_text_color' => '#AABBCC',
+	),
+	'homepage' => array(
+		'sections' => array(
+			array( 'type' => 'category_showcase', 'card_text_color' => '#100033' ),
+			array( 'type' => 'category_showcase', 'card_text_color' => '#123456' ),
+			array( 'type' => 'product_grid', 'card_text_color' => '#100033' ),
+		),
+	),
+);
+$r326_v21_migrated = jluxe_migrate_settings_to_current_version( $r326_v20_neutral_defaults, 20 );
+check(
+	JLUXE_SETTINGS_VERSION === $r326_v21_migrated['version'] &&
+	'#16865A' === $r326_v21_migrated['colors']['success'] &&
+	'#1F2937' === $r326_v21_migrated['header_nav']['categories_mega_menu']['text_color'] &&
+	'#1F2937' === $r326_v21_migrated['header_nav']['categories_mega_menu']['panel_text_color'] &&
+	'#ABCDEF' === $r326_v21_migrated['header_nav']['categories_mega_menu']['accent_color'] &&
+	'#334155' === $r326_v21_migrated['cart_checkout']['checkout_payment_warning_text_color'] &&
+	'#475569' === $r326_v21_migrated['cart_checkout']['shipping_methods']['post']['details_text_color'] &&
+	'#123456' === $r326_v21_migrated['cart_checkout']['shipping_methods']['tipax']['details_text_color'] &&
+	'' === $r326_v21_migrated['product_card']['in_stock_color'] &&
+	'' === $r326_v21_migrated['product_page']['discount_color'] &&
+	'' === $r326_v21_migrated['product_page']['savings_color'] &&
+	'' === $r326_v21_migrated['product_page']['star_color'] &&
+	'#AABBCC' === $r326_v21_migrated['product_page']['description_link_text_color'] &&
+	'#1F2937' === $r326_v21_migrated['homepage']['sections'][0]['card_text_color'] &&
+	'#123456' === $r326_v21_migrated['homepage']['sections'][1]['card_text_color'] &&
+	'#100033' === $r326_v21_migrated['homepage']['sections'][2]['card_text_color'],
+	'R362 v21 migrates only recognized v20 text/status defaults and preserves merchant-selected colors'
 );
 $r233_old_contact = array(
 	'version'     => 15,
@@ -6320,7 +6371,7 @@ check(
 	'grid' === $r179_showcase_defaults['layout'] && 'grid' === $r179_showcase_defaults['mobile_layout'] &&
 	3 === $r179_showcase_defaults['mobile_columns'] && 'none' === $r179_showcase_defaults['image_shape'] &&
 	'none' === $r179_showcase_defaults['image_frame_mode'] && true === $r179_showcase_defaults['show_category_names'] &&
-	'#100033' === $r179_showcase_defaults['card_text_color'] && 'category' === $r179_showcase_defaults['items'][0]['mode'] &&
+	'#1F2937' === $r179_showcase_defaults['card_text_color'] && 'category' === $r179_showcase_defaults['items'][0]['mode'] &&
 	! isset( $r179_showcase_defaults['section_bg_color'] ) && ! isset( $r179_showcase_defaults['card_bg_color'] ),
 	'R179 showcase defaults to independent grid layouts, optional frames, visible category names, and no saved background colors'
 );
@@ -6727,10 +6778,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v20 with legacy fixes, semantic palette defaults, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v21 with legacy fixes, semantic color defaults, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v20 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v21 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
@@ -8410,7 +8461,7 @@ check(
 	'#abcdef' === $r279_clean_checkout['shipping_methods']['post']['details_background_color'] &&
 	'#123' === $r279_clean_checkout['shipping_methods']['post']['details_text_color'] &&
 	'#334455' === $r279_clean_checkout['checkout_payment_warning_background'] &&
-	'#100033' === $r279_clean_checkout['checkout_payment_warning_text_color'] &&
+	'#334155' === $r279_clean_checkout['checkout_payment_warning_text_color'] &&
 	'#223344' === $r279_clean_checkout['payment_card_background'] &&
 	'#445566' === $r279_clean_checkout['payment_card_selected_background'],
 	'R287 carrier badges, accordion backgrounds/text, VPN warning, and gateway card colors sanitize safely'

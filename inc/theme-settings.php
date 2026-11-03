@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 20;
+const JLUXE_SETTINGS_VERSION = 21;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -236,7 +236,7 @@ function jluxe_theme_settings_defaults(): array {
 			'primary'    => $palette['500'],
 			'secondary'  => $palette['700'],
 			'background' => $palette['50'],
-			'success'    => $palette['600'],
+			'success'    => '#16865A',
 			'accent'     => $palette['400'],
 		),
 		// Optional, site-wide visual system. Keep the existing storefront as
@@ -298,7 +298,7 @@ function jluxe_theme_settings_defaults(): array {
 			'require_address'                => true,
 			'require_postcode_for_post'      => true,
 			'checkout_payment_warning_background' => $palette['50'],
-			'checkout_payment_warning_text_color' => $palette['900'],
+			'checkout_payment_warning_text_color' => '#334155',
 			'payment_card_background'          => '#FFFFFF',
 			'payment_card_selected_background' => $palette['50'],
 			'show_shipping_accordions'        => true,
@@ -368,7 +368,7 @@ function jluxe_theme_settings_defaults(): array {
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
-					'details_text_color'        => $palette['700'],
+					'details_text_color'        => '#475569',
 				),
 				'tipax' => array(
 					'enabled'                   => true,
@@ -382,7 +382,7 @@ function jluxe_theme_settings_defaults(): array {
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
-					'details_text_color'        => $palette['700'],
+					'details_text_color'        => '#475569',
 				),
 				'chapar' => array(
 					'enabled'                   => true,
@@ -396,7 +396,7 @@ function jluxe_theme_settings_defaults(): array {
 					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
 					'details_background_color'  => $palette['50'],
-					'details_text_color'        => $palette['700'],
+					'details_text_color'        => '#475569',
 				),
 			),
 		),
@@ -511,7 +511,7 @@ function jluxe_theme_settings_defaults(): array {
 				'trigger_effect'          => 'lift', // lift | glow | underline | none.
 				'panel_effect'            => 'fade', // fade | slide | zoom | fade-slide | none.
 				'duration_ms'             => 180,
-				'text_color'              => $palette['900'],
+				'text_color'              => '#1F2937',
 				'background_color'        => $palette['50'],
 				'border_color'            => $palette['100'],
 				'icon_background_color'   => $palette['500'],
@@ -521,7 +521,7 @@ function jluxe_theme_settings_defaults(): array {
 				'accent_color'            => $palette['400'],
 				'panel_background_color'  => '#FFFFFF',
 				'panel_border_color'      => $palette['100'],
-				'panel_text_color'        => $palette['900'],
+				'panel_text_color'        => '#1F2937',
 				'panel_accent_color'      => $palette['500'],
 			),
 			'items' => array(
@@ -2309,6 +2309,66 @@ function jluxe_migrate_settings_v20( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v20→v21: keep Electric Indigo on action/surface roles, while returning
+ * ordinary text and semantic status defaults to readable neutral/semantic
+ * colors. Only exact values written as v20 defaults are migrated; other
+ * administrator-selected colors are preserved.
+ */
+function jluxe_migrate_settings_v21( array $settings ): array {
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		$replace( $settings['colors'], 'success', '#4100CC', '#16865A' );
+	}
+
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		$replace( $menu, 'text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'panel_text_color', '#100033', '#1F2937' );
+		unset( $menu );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_text_color', '#100033', '#334155' );
+		if ( isset( $checkout['shipping_methods'] ) && is_array( $checkout['shipping_methods'] ) ) {
+			foreach ( $checkout['shipping_methods'] as &$method ) {
+				if ( is_array( $method ) ) {
+					$replace( $method, 'details_text_color', '#300099', '#475569' );
+				}
+			}
+			unset( $method );
+		}
+		unset( $checkout );
+	}
+
+	if ( isset( $settings['product_card'] ) && is_array( $settings['product_card'] ) ) {
+		$replace( $settings['product_card'], 'in_stock_color', '#4100CC', '' );
+	}
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'discount_color', '#200066', '' );
+		$replace( $settings['product_page'], 'savings_color', '#4100CC', '' );
+		$replace( $settings['product_page'], 'star_color', '#7433FF', '' );
+	}
+
+	if ( isset( $settings['homepage']['sections'] ) && is_array( $settings['homepage']['sections'] ) ) {
+		foreach ( $settings['homepage']['sections'] as &$section ) {
+			if ( is_array( $section ) && 'category_showcase' === ( $section['type'] ?? '' ) ) {
+				$replace( $section, 'card_text_color', '#100033', '#1F2937' );
+			}
+		}
+		unset( $section );
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2331,6 +2391,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		18 => 'jluxe_migrate_settings_v18',
 		19 => 'jluxe_migrate_settings_v19',
 		20 => 'jluxe_migrate_settings_v20',
+		21 => 'jluxe_migrate_settings_v21',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -2526,8 +2587,8 @@ function jluxe_contrast_ratio( string $hex_a, string $hex_b ): float {
 
 function jluxe_auto_foreground( string $bg_hex ): string {
 	$white_ratio = jluxe_contrast_ratio( $bg_hex, '#FFFFFF' );
-	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#100033' );
-	return $white_ratio >= $dark_ratio ? '0 0% 100%' : jluxe_hsl_css_value( jluxe_hex_to_hsl( '#100033' ) );
+	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#1F2937' );
+	return $white_ratio >= $dark_ratio ? '0 0% 100%' : jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
 }
 
 /**
@@ -2564,9 +2625,15 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$vars['--secondary-hover'] = jluxe_hsl_css_value( $secondary_hover_hsl );
 	$vars['--accent-hover']    = jluxe_hsl_css_value( $accent_hover_hsl );
 
+	$vars['--foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
+	$vars['--surface-foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
+	$vars['--text-secondary'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
+	$vars['--text-muted'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
+	$vars['--muted-foreground'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
 	$vars['--background'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
-	$vars['--info']       = $vars['--secondary'];
-	$vars['--info-foreground'] = $vars['--secondary-foreground'];
+	$info_hsl = jluxe_hex_to_hsl( '#2563EB' );
+	$vars['--info']       = jluxe_hsl_css_value( $info_hsl );
+	$vars['--info-foreground'] = jluxe_auto_foreground( '#2563EB' );
 
 	// نام‌های عمومی --jluxe-* (طبق مستندسازی/برندینگ) — مقدار HEX مستقیم،
 	// برای استفاده‌ی مستقل (مثلاً background:var(--jluxe-primary)) بدون نیاز
@@ -2582,8 +2649,8 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$vars['--jluxe-success']         = $colors['success'];
 	$vars['--jluxe-page-bg']         = $colors['background'];
 	$vars['--jluxe-surface']         = '#FFFFFF';
-	$vars['--jluxe-text']            = $palette['900'];
-	$vars['--jluxe-text-muted']      = $palette['600'];
+	$vars['--jluxe-text']            = '#1F2937';
+	$vars['--jluxe-text-muted']      = '#475569';
 	$vars['--jluxe-border']          = $palette['100'];
 
 	$css = ':root{';

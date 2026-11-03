@@ -740,9 +740,17 @@ test("quick organization editor omits specialist product fields and keeps native
 test("product manager uses the shared Electric Indigo palette without gradients or stale brand colors", () => {
   assert.match(styles, /--pm-primary:\s*#5100FF;/);
   assert.match(styles, /--pm-accent:\s*#7433FF;/);
+  assert.match(styles, /--pm-ink:\s*#1F2937;/);
+  assert.match(styles, /--pm-muted:\s*#475569;/);
+  assert.match(styles, /--pm-success:\s*#16865A;/);
+  assert.match(styles, /--pm-warning:\s*#C2410C;/);
+  assert.match(styles, /--pm-danger:\s*#DC2626;/);
   assert.match(styles, /--pm-row-alt:\s*#EEE5FF;/);
   assert.match(styles, /--pm-row-hover:\s*#DCCCFF;/);
-  assert.doesNotMatch(styles, /linear-gradient|#087A68|#B85C38|#2F6B52|#C2410C/i);
+  assert.match(styles, /\.jluxe-pm-notice\.is-error[\s\S]*?color:\s*var\(--pm-danger\)/);
+  assert.match(styles, /\.jluxe-pm-stock-pill\.is-in[\s\S]*?color:\s*var\(--pm-success\)/);
+  assert.match(styles, /\.jluxe-pm-stock-pill\.is-backorder[\s\S]*?color:\s*var\(--pm-warning\)/);
+  assert.doesNotMatch(styles, /linear-gradient|#087A68|#B85C38|#2F6B52/i);
   assert.match(styles, /\.jluxe-pm-toggle input:checked \+ \.jluxe-pm-toggle-track/);
   assert.match(styles, /\.jluxe-pm-sale-toggle \{/);
 });

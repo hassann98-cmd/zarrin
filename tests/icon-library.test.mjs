@@ -25,10 +25,11 @@ test("R360 shared Flaticon catalog has normalized, colorable paths and attributi
   }
 });
 
-test("R360 attribution is emitted server-side for both enabled and disabled footer layouts", () => {
+test("R360 keeps required public attribution on the About page, outside the global footer", () => {
   const footer = fs.readFileSync(new URL("../footer.php", import.meta.url), "utf8");
-  assert.equal((footer.match(/jluxe_uicons_attribution\(\s*(?:true\s*)?\)/g) ?? []).length, 2);
-  assert.match(footer, /if \( \$jluxe_render_site_footer \)[\s\S]*?jluxe_uicons_attribution\(\)[\s\S]*?else :[\s\S]*?jluxe_uicons_attribution\(\s*true\s*\)/);
+  const about = fs.readFileSync(new URL("../page-about-us.php", import.meta.url), "utf8");
+  assert.doesNotMatch(footer, /jluxe_uicons_attribution/);
+  assert.match(about, /jluxe_uicons_attribution\(\s*true\s*\)/);
   const navSource = fs.readFileSync(new URL("../src/components/nav-icons.js", import.meta.url), "utf8");
   assert.doesNotMatch(navSource, /flaticon-uicons\.json/);
   const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");

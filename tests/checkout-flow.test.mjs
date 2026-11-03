@@ -621,7 +621,6 @@ test("all carrier explanations are editable and state postpaid delivery without 
     selected_card_border_color: "500",
     note_background_color: "600",
     details_background_color: "50",
-    details_text_color: "700",
   };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
@@ -637,6 +636,7 @@ test("all carrier explanations are editable and state postpaid delivery without 
     for (const [field, paletteKey] of Object.entries(expectedPaletteKeys)) {
       assert.match(block, new RegExp(`'${field}'\\s*=>\\s*\\$palette\\['${paletteKey}'\\]`));
     }
+    assert.match(block, /'details_text_color'\s*=>\s*'#475569'/);
     assert.match(block, /'note_text_color'\s*=>/);
     assert.match(block, /'details_background_color'\s*=>/);
     assert.match(block, /'details_text_color'\s*=>/);

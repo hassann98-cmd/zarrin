@@ -429,7 +429,7 @@ Source distribution: `@flaticon/flaticon-uicons@3.3.1` from the npm registry. Th
 
 The package supplies a **Flaticon License**. Its included license text describes use in commercial and personal projects, modifications/derived works, and requires attribution for free use; its full terms and restrictions remain controlling. Review the current [Flaticon terms of use](https://www.freepikcompany.com/legal?#nav-flaticon), especially before redistributing the theme or using icons in a product where they could be considered the main element. This notice is informational and is not legal advice.
 
-Required free-use credit, rendered as a visible link in `footer.php` (also when the theme footer is disabled):
+Required free-use credit, rendered as a visible link at the bottom of the public `page-about-us.php` page (outside the global footer):
 
 ```html
 Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>

@@ -162,8 +162,8 @@ function jluxe_pwa_offline_html(): string {
 	$primary    = sanitize_hex_color( (string) jluxe_get_setting( 'colors.primary', '#5100ff' ) ) ?: '#5100ff';
 	return '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
 		. '<title>اتصال برقرار نیست — ' . $name . '</title><style>'
-		. 'html,body{height:100%;margin:0}body{display:grid;place-items:center;background:' . $background . ';color:#100033;font-family:IRANYekan,Vazirmatn,Tahoma,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}'
-		. 'main{max-width:340px}svg{width:56px;height:56px;color:' . $primary . '}h1{font-size:20px;margin:16px 0 8px}p{font-size:14px;line-height:1.9;color:#4100cc;margin:0 0 20px}'
+		. 'html,body{height:100%;margin:0}body{display:grid;place-items:center;background:' . $background . ';color:#1f2937;font-family:IRANYekan,Vazirmatn,Tahoma,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}'
+		. 'main{max-width:340px}svg{width:56px;height:56px;color:' . $primary . '}h1{font-size:20px;margin:16px 0 8px}p{font-size:14px;line-height:1.9;color:#475569;margin:0 0 20px}'
 		. 'button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:12px 28px;background:' . $primary . ';color:#fff;cursor:pointer}button:focus-visible{outline:3px solid #300099;outline-offset:3px}'
 		. '</style></head><body><main>'
 		. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.43"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>'

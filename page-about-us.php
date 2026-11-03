@@ -48,13 +48,13 @@ $jluxe_about_cta_button_style = ! empty( $jluxe_about_info['cta_button_color'] )
 		</div>
 
 		<?php if ( $jluxe_about_story_html ) : ?>
-			<div class="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 sm:mt-14 sm:p-8 [&_.jluxe-about-eyebrow]:mb-2 [&_.jluxe-about-eyebrow]:block [&_.jluxe-about-eyebrow]:text-[12px] [&_.jluxe-about-eyebrow]:font-bold [&_.jluxe-about-eyebrow]:tracking-wide [&_.jluxe-about-eyebrow]:text-primary [&_h2]:mb-3.5 [&_h2]:mt-2 [&_h2]:text-[19px] [&_h2]:font-extrabold [&_h2]:leading-relaxed [&_h2]:text-foreground [&_p]:mb-2.5 [&_p]:text-[14px] [&_p]:leading-8 [&_p]:text-text-secondary [&_p:last-child]:mb-0">
+			<div class="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 sm:mt-14 sm:p-8 [&_.jluxe-about-eyebrow]:mb-2 [&_.jluxe-about-eyebrow]:block [&_.jluxe-about-eyebrow]:text-[12px] [&_.jluxe-about-eyebrow]:font-bold [&_.jluxe-about-eyebrow]:tracking-wide [&_.jluxe-about-eyebrow]:text-text-secondary [&_h2]:mb-3.5 [&_h2]:mt-2 [&_h2]:text-[19px] [&_h2]:font-extrabold [&_h2]:leading-relaxed [&_h2]:text-foreground [&_p]:mb-2.5 [&_p]:text-[14px] [&_p]:leading-8 [&_p]:text-text-secondary [&_p:last-child]:mb-0">
 				<?php echo wp_kses_post( $jluxe_about_story_html ); ?>
 			</div>
 		<?php endif; ?>
 
 		<?php if ( $jluxe_about_why_html ) : ?>
-			<div class="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 sm:mt-14 sm:p-8 [&_.jluxe-about-eyebrow]:mb-2 [&_.jluxe-about-eyebrow]:block [&_.jluxe-about-eyebrow]:text-[12px] [&_.jluxe-about-eyebrow]:font-bold [&_.jluxe-about-eyebrow]:tracking-wide [&_.jluxe-about-eyebrow]:text-primary [&_h2]:mb-3.5 [&_h2]:mt-2 [&_h2]:text-[19px] [&_h2]:font-extrabold [&_h2]:leading-relaxed [&_h2]:text-foreground [&_p]:mb-2.5 [&_p]:text-[14px] [&_p]:leading-8 [&_p]:text-text-secondary [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:ps-5 [&_li]:text-[14px] [&_li]:leading-7 [&_li]:text-text-secondary [&_strong]:font-bold [&_strong]:text-foreground">
+			<div class="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-surface p-6 sm:mt-14 sm:p-8 [&_.jluxe-about-eyebrow]:mb-2 [&_.jluxe-about-eyebrow]:block [&_.jluxe-about-eyebrow]:text-[12px] [&_.jluxe-about-eyebrow]:font-bold [&_.jluxe-about-eyebrow]:tracking-wide [&_.jluxe-about-eyebrow]:text-text-secondary [&_h2]:mb-3.5 [&_h2]:mt-2 [&_h2]:text-[19px] [&_h2]:font-extrabold [&_h2]:leading-relaxed [&_h2]:text-foreground [&_p]:mb-2.5 [&_p]:text-[14px] [&_p]:leading-8 [&_p]:text-text-secondary [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:ps-5 [&_li]:text-[14px] [&_li]:leading-7 [&_li]:text-text-secondary [&_strong]:font-bold [&_strong]:text-foreground">
 				<?php echo wp_kses_post( $jluxe_about_why_html ); ?>
 			</div>
 		<?php endif; ?>
@@ -72,6 +72,12 @@ $jluxe_about_cta_button_style = ! empty( $jluxe_about_info['cta_button_color'] )
 
 	</div>
 </main>
+
+<?php if ( function_exists( 'jluxe_uicons_attribution' ) ) : ?>
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4">
+		<?php jluxe_uicons_attribution( true ); ?>
+	</div>
+<?php endif; ?>
 
 <?php
 get_footer();

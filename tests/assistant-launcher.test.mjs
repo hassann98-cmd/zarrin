@@ -22,7 +22,7 @@ test("assistant mobile sheet tracks the keyboard, keeps prompts readable, and us
   assert.match(styles, /\.jluxe-ai-quick-replies\s*\{\s*display: grid;/);
   assert.match(styles, /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 156px\), 1fr\)\)/);
   assert.match(styles, /\.jluxe-ai-quick-reply\s*\{[^}]*white-space: normal/s);
-  assert.match(styles, /\.jluxe-ai-hours-notice\.is-closed\s*\{[^}]*var\(--color-electric-indigo-800\)/s);
+  assert.match(styles, /\.jluxe-ai-hours-notice\.is-closed\s*\{[^}]*color:\s*hsl\(var\(--warning\)\)/s);
   assert.match(styles, /\.jluxe-ai-error\s*\{[^}]*color:\s*hsl\(var\(--error\)\)/s);
   assert.match(styles, /@keyframes jluxe-ai-window-out/);
   assert.match(styles, /@keyframes jluxe-ai-backdrop-out/);

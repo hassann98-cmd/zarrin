@@ -6,7 +6,7 @@
 #masthead[data-jluxe-header-variant="premium"],
 #jluxe-footer-root[data-jluxe-footer-variant="premium"],
 ul.products li.product[data-jluxe-product-card-variant="premium"] {
-  --jluxe-home-ink: var(--color-electric-indigo-900);
+  --jluxe-home-ink: #1F2937;
   --jluxe-home-primary: var(--color-electric-indigo-500);
   --jluxe-home-primary-hover: var(--color-electric-indigo-600);
   --jluxe-home-clay: var(--color-electric-indigo-400);
@@ -18,7 +18,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 /* Header: pale Indigo surfaces, a clear navigation rail, and unchanged search/actions. */
 #masthead[data-jluxe-header-variant="premium"] {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -29,12 +29,12 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
   --accent-foreground: 0 0% 100%;
   --accent-hover: 259.12 100% 40%;
   --surface: 0 0% 100%;
-  --surface-foreground: 258.82 100% 10%;
+  --surface-foreground: 215 28% 17%;
   --surface-elevated: 260.77 100% 94.9%;
   --muted: 260.77 100% 94.9%;
-  --muted-foreground: 258.82 100% 30%;
-  --text-secondary: 258.82 100% 30%;
-  --text-muted: 259.12 100% 40%;
+  --muted-foreground: 215 19% 35%;
+  --text-secondary: 215 19% 35%;
+  --text-muted: 215 19% 35%;
   --border: 258.82 100% 90%;
   --ring: 259.06 100% 50%;
 }
@@ -61,14 +61,14 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
   background-color: var(--color-electric-indigo-50);
   background-image: linear-gradient(105deg, var(--color-electric-indigo-50) 0%, var(--color-electric-indigo-50) 100%);
   box-shadow: 0 3px 12px hsl(var(--primary) / .07), inset 0 1px 0 rgba(255, 255, 255, .72);
-  color: var(--color-electric-indigo-800);
+  color: #1F2937;
 }
 
 #masthead[data-jluxe-header-variant="premium"] > .hidden.border-t nav > a,
 #masthead[data-jluxe-header-variant="premium"] > .hidden.border-t nav > div > a,
 #masthead[data-jluxe-header-variant="premium"] > .hidden.border-t nav > div.group > a {
   border-radius: 8px;
-  color: var(--color-electric-indigo-700);
+  color: #1F2937;
   transition: color .18s ease, background-color .18s ease;
 }
 
@@ -127,7 +127,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 }
 
 #masthead[data-jluxe-header-variant="premium"] :focus-visible {
-  outline-color: var(--color-electric-indigo-700);
+  outline-color: #1F2937;
   outline-offset: 3px;
 }
 
@@ -149,7 +149,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 /* Footer: a responsive card composition; grid tracks stay owned by storefront.css. */
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -160,12 +160,12 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
   --accent-foreground: 0 0% 100%;
   --accent-hover: 259.12 100% 40%;
   --surface: 0 0% 100%;
-  --surface-foreground: 258.82 100% 10%;
+  --surface-foreground: 215 28% 17%;
   --surface-elevated: 260.77 100% 94.9%;
   --muted: 260.77 100% 94.9%;
-  --muted-foreground: 258.82 100% 30%;
-  --text-secondary: 258.82 100% 30%;
-  --text-muted: 259.12 100% 40%;
+  --muted-foreground: 215 19% 35%;
+  --text-secondary: 215 19% 35%;
+  --text-muted: 215 19% 35%;
   --border: 258.82 100% 90%;
   --ring: 259.06 100% 50%;
   background-color: var(--color-electric-indigo-50);
@@ -217,13 +217,13 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 }
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-feature-title {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
   font-size: .87rem;
   font-weight: 750;
 }
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-feature-subtitle {
-  color: var(--color-electric-indigo-600);
+  color: #475569;
   font-size: .75rem;
   line-height: 1.55;
 }
@@ -285,7 +285,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-column-title,
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-site-badges-section > h3 {
-  color: var(--color-electric-indigo-800);
+  color: #1F2937;
 }
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-column-title::before,
@@ -299,7 +299,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-social-link,
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-phone-link,
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-footer-contact-link {
-  color: var(--color-electric-indigo-800);
+  color: #1F2937;
 }
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] .jluxe-site-badge-card {
@@ -327,7 +327,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 }
 
 #jluxe-footer-root[data-jluxe-footer-variant="premium"] :focus-visible {
-  outline-color: var(--color-electric-indigo-700);
+  outline-color: #1F2937;
   outline-offset: 3px;
 }
 
@@ -405,7 +405,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
 /* Product cards: unchanged image/layout treatment with the shared Indigo surfaces. */
 ul.products li.product[data-jluxe-product-card-variant="premium"] {
   --background: 260.77 100% 94.9%;
-  --foreground: 258.82 100% 10%;
+  --foreground: 215 28% 17%;
   --primary: 259.06 100% 50%;
   --primary-foreground: 0 0% 100%;
   --primary-hover: 259.12 100% 40%;
@@ -416,15 +416,15 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] {
   --accent-foreground: 0 0% 100%;
   --accent-hover: 259.12 100% 40%;
   --surface: 0 0% 100%;
-  --surface-foreground: 258.82 100% 10%;
+  --surface-foreground: 215 28% 17%;
   --surface-elevated: 260.77 100% 94.9%;
   --muted: 260.77 100% 94.9%;
-  --muted-foreground: 258.82 100% 30%;
-  --text-secondary: 258.82 100% 30%;
-  --text-muted: 259.12 100% 40%;
+  --muted-foreground: 215 19% 35%;
+  --text-secondary: 215 19% 35%;
+  --text-muted: 215 19% 35%;
   --border: 258.82 100% 90%;
   --ring: 259.06 100% 50%;
-  --jluxe-rating-color: var(--color-electric-indigo-400);
+  --jluxe-rating-color: #F7B731;
   --boom-star: var(--jluxe-rating-color);
   overflow: hidden;
   border: 1px solid var(--jluxe-home-border);
@@ -450,7 +450,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] > .flex-1.flex
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product-card-title {
-  color: var(--color-electric-indigo-900);
+  color: #1F2937;
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product-card-title:hover {
@@ -464,17 +464,17 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-card-sh
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product-card-current-price {
-  color: var(--color-electric-indigo-600);
+  color: #1F2937;
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product-card-old-price {
-  color: var(--color-electric-indigo-600);
+  color: #64748B;
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product-card-sale-badge {
-  border: 1px solid hsl(var(--accent) / .12);
-  background-color: var(--color-electric-indigo-400);
-  background-image: linear-gradient(135deg, var(--color-electric-indigo-400), var(--color-electric-indigo-600));
+  border: 1px solid #B91C1C;
+  background-color: #DC2626;
+  background-image: linear-gradient(135deg, #DC2626, #B91C1C);
   color: #FFFFFF;
   box-shadow: 0 3px 9px rgba(81, 0, 255, .16);
 }
@@ -482,7 +482,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] .jluxe-product
 ul.products li.product[data-jluxe-product-card-variant="premium"] span.rounded-lg.bg-muted-foreground\/80 {
   border: 1px solid var(--color-electric-indigo-100);
   background-color: var(--color-electric-indigo-50);
-  color: var(--color-electric-indigo-800);
+  color: #475569;
 }
 
 ul.products li.product[data-jluxe-product-card-variant="premium"] a.jluxe-product-card-cta {
@@ -499,7 +499,7 @@ ul.products li.product[data-jluxe-product-card-variant="premium"] a.jluxe-produc
   border-color: var(--color-electric-indigo-100);
   background-color: var(--color-electric-indigo-100);
   background-image: none;
-  color: var(--color-electric-indigo-600);
+  color: #64748B;
   box-shadow: none;
 }
 

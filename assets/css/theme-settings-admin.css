@@ -12,8 +12,8 @@
 	--jluxe-admin-primary: #5100FF;
 	--jluxe-admin-primary-dark: #4100CC;
 	--jluxe-admin-accent: #7433FF;
-	--jluxe-admin-ink: #100033;
-	--jluxe-admin-muted: #4100CC;
+	--jluxe-admin-ink: #1F2937;
+	--jluxe-admin-muted: #475569;
 	--jluxe-admin-border: #DCCCFF;
 	--jluxe-admin-surface: #ffffff;
 	--jluxe-admin-bg: #EEE5FF;
@@ -181,13 +181,13 @@
 }
 
 .jluxe-status-card.is-ok {
-	border-color: var(--jluxe-admin-primary);
-	background: #EEE5FF;
+	border-color: #86EFAC;
+	background: #F0FDF4;
 }
 
 .jluxe-status-card.is-warn {
-	border-color: #7433FF;
-	background: #EEE5FF;
+	border-color: #FDBA74;
+	background: #FFF7ED;
 }
 
 .jluxe-status-card .dashicons {
@@ -195,11 +195,11 @@
 }
 
 .jluxe-status-card.is-ok .dashicons {
-	color: var(--jluxe-admin-primary);
+	color: #16865A;
 }
 
 .jluxe-status-card.is-warn .dashicons {
-	color: #7433FF;
+	color: #C2410C;
 }
 
 .jluxe-status-card p {
@@ -787,7 +787,7 @@
 /* راهنمای خرید — پنل ویرایش تمیز و تفکیک‌شده */
 .jluxe-guide-admin-intro{background:#EEE5FF;border:1px solid #DCCCFF;border-right:4px solid #5100FF;border-radius:12px;padding:16px 18px;margin:0 0 18px}
 .jluxe-guide-admin-intro h2{margin:0 0 7px;font-size:18px}
-.jluxe-guide-admin-intro p{margin:4px 0;color:#4100CC}
+.jluxe-guide-admin-intro p{margin:4px 0;color:#475569}
 .jluxe-guide-editor-form .jluxe-hb-section-details{margin-bottom:10px}
 .jluxe-guide-step-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#5100FF;color:#fff;font-weight:800;margin-left:8px}
 .jluxe-guide-editor-form .wp-editor-wrap{margin:0 0 14px}
@@ -795,7 +795,7 @@
 .jluxe-guide-callout-editor{background:#EEE5FF;border:1px solid #DCCCFF;border-radius:10px;padding:12px 14px;margin-top:12px}
 .jluxe-guide-callout-editor h4{margin:0 0 10px;font-size:13px}
 .jluxe-guide-inline-grid{display:grid;grid-template-columns:180px 1fr;gap:12px;margin-bottom:10px}
-.jluxe-guide-inline-grid label,.jluxe-guide-callout-editor>label{display:block;font-weight:600;font-size:12px;color:#100033}
+.jluxe-guide-inline-grid label,.jluxe-guide-callout-editor>label{display:block;font-weight:600;font-size:12px;color:#1F2937}
 .jluxe-guide-inline-grid input,.jluxe-guide-inline-grid select,.jluxe-guide-callout-editor textarea{width:100%;margin-top:5px}
 .jluxe-guide-callout-editor textarea{min-height:70px}
 @media(max-width:700px){.jluxe-guide-inline-grid{grid-template-columns:1fr}.jluxe-guide-admin-intro{padding:13px}}
@@ -816,11 +816,11 @@
 .jluxe-site-badges-editor .jluxe-site-badge-item{display:block!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:14px!important;border:1px solid #DCCCFF!important;border-radius:10px!important;background:#fff!important;box-shadow:0 1px 2px rgba(16,24,40,.04)!important;transition:border-color .15s ease,box-shadow .15s ease!important}
 .jluxe-site-badges-editor .jluxe-site-badge-item:focus-within{border-color:#4100CC!important;box-shadow:0 2px 8px rgba(16,24,40,.08)!important}
 .jluxe-site-badges-editor .jluxe-site-badge-field{display:block!important;width:100%!important;margin:0 0 12px!important;padding:0!important}
-.jluxe-site-badges-editor .jluxe-site-badge-field label{display:block!important;margin:0 0 6px!important;font-weight:600!important;color:#100033!important}
+.jluxe-site-badges-editor .jluxe-site-badge-field label{display:block!important;margin:0 0 6px!important;font-weight:600!important;color:#1F2937!important}
 .jluxe-site-badges-editor .jluxe-site-badge-field .field-link{display:block!important;width:100%!important;max-width:none!important;min-height:40px!important;box-sizing:border-box!important;margin:0!important;direction:ltr!important;text-align:left!important}
 .jluxe-site-badges-editor .jluxe-site-badge-field .field-html{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;min-height:180px!important;box-sizing:border-box!important;margin:0!important;resize:vertical!important;direction:ltr!important;text-align:left!important;font-family:Consolas,Monaco,monospace!important;line-height:1.55!important;white-space:pre-wrap!important}
 .jluxe-site-badges-editor .jluxe-site-badge-remove{display:inline-block!important;position:static!important;float:none!important;margin:0!important;transition:color .15s ease,border-color .15s ease!important}
-.jluxe-site-badges-editor .jluxe-site-badge-remove:hover{color:#200066!important;border-color:#200066!important}
+.jluxe-site-badges-editor .jluxe-site-badge-remove:hover{color:#DC2626!important;border-color:#DC2626!important}
 .jluxe-site-badges-actions{display:block!important;width:100%!important;margin:12px 0 0!important;padding:0!important}
 .jluxe-site-badges-actions .jluxe-site-badge-add{display:inline-block!important;position:static!important;float:none!important;margin:0!important}
 
@@ -830,7 +830,7 @@
 
 /* R90 — فیلدِ کلیدِ مخفی (AI/پیامک): وضعیتِ «ذخیره شده» + «تغییر کلید» */
 .jluxe-secret__status{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
-.jluxe-secret__saved{color:#4100CC;font-weight:600}
+.jluxe-secret__saved{color:#16865A;font-weight:600}
 .jluxe-secret__saved code{font-weight:400}
 .jluxe-secret__box{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
 .jluxe-secret__box[hidden]{display:none}
@@ -867,11 +867,11 @@
 .jluxe-store-closure-heading>.dashicons{width:28px;height:28px;font-size:28px;color:#4100CC;flex:none}
 .jluxe-store-closure-heading>div{flex:1;min-width:0}
 .jluxe-store-closure-heading h2{margin:0 0 4px;font-size:18px;line-height:1.5}
-.jluxe-store-closure-heading p{margin:0;color:#4100CC;line-height:1.7}
+.jluxe-store-closure-heading p{margin:0;color:#475569;line-height:1.7}
 .jluxe-store-closure-badge{flex:none;padding:5px 12px;border-radius:999px;font-size:13px;line-height:1.6}
-.jluxe-store-closure-badge.is-open{color:#4100CC;background:#EEE5FF}
-.jluxe-store-closure-badge.is-closed{color:#300099;background:#EEE5FF}
-.jluxe-store-closure-scheduled{margin:14px 0 0;color:#4100CC}
+.jluxe-store-closure-badge.is-open{color:#16865A;background:#ECFDF5}
+.jluxe-store-closure-badge.is-closed{color:#DC2626;background:#FEF2F2}
+.jluxe-store-closure-scheduled{margin:14px 0 0;color:#475569}
 .jluxe-store-closure-form{display:grid;gap:16px;margin-top:18px}
 .jluxe-store-closure-field{min-width:0}
 .jluxe-store-closure-field>label{display:block;margin:0 0 6px;font-weight:600}
@@ -901,8 +901,8 @@
 	--jluxe-admin-primary: #5100ff;
 	--jluxe-admin-primary-dark: #4100cc;
 	--jluxe-admin-accent: #7433ff;
-	--jluxe-admin-ink: #100033;
-	--jluxe-admin-muted: #4100cc;
+	--jluxe-admin-ink: #1F2937;
+	--jluxe-admin-muted: #475569;
 	--jluxe-admin-border: #dcccff;
 	--jluxe-admin-surface: #fff;
 	--jluxe-admin-bg: #eee5ff;
@@ -926,8 +926,8 @@
 	--jluxe-admin-primary: #9666ff;
 	--jluxe-admin-primary-dark: #7433ff;
 	--jluxe-admin-accent: #b999ff;
-	--jluxe-admin-ink: #f1e5ff;
-	--jluxe-admin-muted: #dcccff;
+	--jluxe-admin-ink: #F3F4F6;
+	--jluxe-admin-muted: #D1D5DB;
 	--jluxe-admin-border: #4100cc;
 	--jluxe-admin-surface: #100033;
 	--jluxe-admin-bg: #0b0024;
@@ -1294,7 +1294,7 @@
 .jluxe-dashboard-metric-label { overflow: hidden; color: var(--jluxe-admin-muted); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .jluxe-dashboard-metric strong { overflow: hidden; color: var(--jluxe-admin-ink); font-size: 22px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .jluxe-dashboard-metric-detail { overflow: hidden; color: var(--jluxe-admin-muted); font-size: 10px; line-height: 1.6; text-overflow: ellipsis; white-space: nowrap; }
-.jluxe-dashboard-metric.is-warn .jluxe-dashboard-metric-icon { background: #fff4e5; color: #9a5800; }
+.jluxe-dashboard-metric.is-warn .jluxe-dashboard-metric-icon { background: #FFF7ED; color: #C2410C; }
 .jluxe-dashboard-shortcuts,
 .jluxe-dashboard-feature-index { margin-top: 24px; }
 .jluxe-dashboard-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -1359,7 +1359,7 @@
 .jluxe-settings[data-theme="dark"] .jluxe-dashboard-metric,
 .jluxe-settings[data-theme="dark"] .jluxe-dashboard-feature-card,
 .jluxe-settings[data-theme="dark"] .jluxe-dashboard-shortcut-list a { background: var(--jluxe-admin-surface); }
-.jluxe-settings[data-theme="dark"] .jluxe-dashboard-metric.is-warn .jluxe-dashboard-metric-icon { background: #4100cc; color: #f1e5ff; }
+.jluxe-settings[data-theme="dark"] .jluxe-dashboard-metric.is-warn .jluxe-dashboard-metric-icon { background: #431407; color: #FDBA74; }
 
 /* Desktop collapse and mobile drawer. */
 .jluxe-settings[data-sidebar-collapsed="true"] .jluxe-settings-app-layout { grid-template-columns: 72px minmax(0, 1fr); }
