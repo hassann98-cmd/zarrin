@@ -588,8 +588,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(checkoutSummaryShippingRule, /grid-template-areas:\s*"details" "note"/, "the narrow desktop checkout summary gives the note its own full-width row");
   assert.match(checkoutSummaryNoteRule, /width:\s*max-content/);
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
-  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, #2563EB\)/);
-  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, #EFF6FF\)/);
+  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--color-electric-indigo-500\)\)/);
+  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, var\(--color-electric-indigo-50\)\)/);
   assert.match(selectedRule, /box-shadow:/);
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
   assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?grid-template-areas:\s*"details" "note"/);
@@ -611,9 +611,17 @@ test("all carrier explanations are editable and state postpaid delivery without 
   assert.ok(start >= 0 && end > start, "shipping-method defaults are present in the new settings section");
   const shippingDefaults = themeSettingsSource.slice(start, end);
   const expectedCarrierNotes = {
-    post: { note: ["اقتصادی", "#FECB02"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
-    tipax: { note: ["سریع‌تر، هزینه بالا", "#33936e"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
-    chapar: { note: ["مناسب مرسوله‌های حجیم", "#d71925"], card: ["#FFFFFF", "#E2E8F0", "#EFF6FF", "#2563EB"] },
+    post: "اقتصادی",
+    tipax: "سریع‌تر، هزینه بالا",
+    chapar: "مناسب مرسوله‌های حجیم",
+  };
+  const expectedPaletteKeys = {
+    card_border_color: "100",
+    selected_card_background_color: "50",
+    selected_card_border_color: "500",
+    note_background_color: "600",
+    details_background_color: "50",
+    details_text_color: "700",
   };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
@@ -623,15 +631,11 @@ test("all carrier explanations are editable and state postpaid delivery without 
     assert.match(description, /پس‌کرایه/);
     assert.match(description, /هنگام تحویل/);
     assert.doesNotMatch(description, /پیش.?پرداخت|پرداخت هنگام ثبت سفارش|همراه مبلغ سفارش/);
-    assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier].note[0]}'`));
-    assert.match(block, new RegExp(`'note_background_color'\\s*=>\\s*'${expectedCarrierNotes[carrier].note[1]}'`));
-    for (const [field, index] of [
-      ["card_background_color", 0],
-      ["card_border_color", 1],
-      ["selected_card_background_color", 2],
-      ["selected_card_border_color", 3],
-    ]) {
-      assert.match(block, new RegExp(`'${field}'\\s*=>\\s*'${expectedCarrierNotes[carrier].card[index]}'`));
+    assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier]}'`));
+    assert.match(block, /'note_background_color'\s*=>\s*\$palette\['600'\]/);
+    assert.match(block, /'card_background_color'\s*=>\s*'#FFFFFF'/);
+    for (const [field, paletteKey] of Object.entries(expectedPaletteKeys)) {
+      assert.match(block, new RegExp(`'${field}'\\s*=>\\s*\\$palette\\['${paletteKey}'\\]`));
     }
     assert.match(block, /'note_text_color'\s*=>/);
     assert.match(block, /'details_background_color'\s*=>/);

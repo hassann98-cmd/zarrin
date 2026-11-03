@@ -10,7 +10,7 @@ import { S as CartIcon } from "../icons/shopping-cart.js";
 import { useDialog } from "../lib/use-dialog.js";
 
 const h = React.createElement;
-const DEFAULT_ASSISTANT_ACCENT = "#2f7468";
+const DEFAULT_ASSISTANT_ACCENT = "#5100ff";
 const MessageIcon = createIcon("MessageCircle", [
   ["path", { d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z", key: "message" }],
 ]);
@@ -166,7 +166,7 @@ function iconMark(key, contact, nodeKey) {
   const src = icons[key] || "";
   return h(
     "span",
-    { key: nodeKey, className: "jluxe-ai-contact-icon", style: { "--jluxe-ai-brand": BRAND_COLORS[key] || "#53766d" } },
+    { key: nodeKey, className: "jluxe-ai-contact-icon", style: { "--jluxe-ai-brand": BRAND_COLORS[key] || "#5100ff" } },
     src
       ? h("img", {
           key: "icon-image",

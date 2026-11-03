@@ -562,22 +562,6 @@ jQuery(function ($) {
 			});
 	});
 
-	// ناوبری گروهی تنظیمات زرین
-	$(document).on('click', '.jluxe-settings-nav-group-toggle', function (e) {
-		e.preventDefault();
-		var $group = $(this).closest('.jluxe-settings-nav-group');
-		var expanded = $(this).attr('aria-expanded') === 'true';
-		$('.jluxe-settings-nav-group').not($group).removeClass('is-open').find('.jluxe-settings-nav-group-toggle').attr('aria-expanded', 'false');
-		$group.toggleClass('is-open', !expanded);
-		$(this).attr('aria-expanded', expanded ? 'false' : 'true');
-	});
-
-	$(document).on('click', function (e) {
-		if (!$(e.target).closest('.jluxe-settings-nav-group').length) {
-			$('.jluxe-settings-nav-group').removeClass('is-open').find('.jluxe-settings-nav-group-toggle').attr('aria-expanded', 'false');
-		}
-	});
-
 });
 
 // ===================================================================

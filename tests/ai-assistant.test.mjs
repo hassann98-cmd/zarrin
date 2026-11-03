@@ -203,8 +203,8 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.ok(mount.querySelector(".jluxe-ai-root.is-product"), "single-product pages receive the refined product launcher treatment");
   assert.ok(mount.querySelector(".jluxe-ai-launcher-mark svg"), "without a selected image, the existing assistant glyph remains the launcher content");
   assert.equal(mount.querySelector(".jluxe-ai-launcher").classList.contains("jluxe-ai-launcher--custom-image"), false, "the product guide chip does not enter the circular custom-image mode");
-  assert.equal(mount.querySelector(".jluxe-ai-launcher").style.background, "rgb(47, 116, 104)", "without a selected image, the launcher keeps its accent-colored surface");
-  assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#2f7468", "the assistant has a calm teal default accent when no admin color is configured");
+  assert.equal(mount.querySelector(".jluxe-ai-launcher").style.background, "rgb(81, 0, 255)", "without a selected image, the launcher keeps its accent-colored surface");
+  assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#5100ff", "the assistant uses the shared Electric Indigo default when no admin color is configured");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.zIndex, "90", "the closed launcher keeps its established base layer");
   assert.equal(mount.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the product launcher clears the measured price-and-add bar with a 12px gap");
@@ -444,7 +444,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   const mobileProductLauncher = mount.querySelector(".jluxe-ai-launcher");
   assert.ok(mobileProductLauncher.classList.contains("jluxe-ai-launcher--product"), "the product guide retains its chip layout when an image is configured");
   assert.equal(mobileProductLauncher.classList.contains("jluxe-ai-launcher--custom-image"), false, "the circular image treatment is limited to ordinary launchers");
-  assert.equal(mobileProductLauncher.style.background, "rgb(47, 116, 104)", "the product guide retains its accent surface");
+  assert.equal(mobileProductLauncher.style.background, "rgb(81, 0, 255)", "the product guide retains its Electric Indigo accent surface");
   assert.equal(mobileProductLauncher.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید", "the product guide label remains alongside its compact image");
 
   await act(async () => root.unmount());

@@ -125,14 +125,11 @@ add_action( 'admin_menu', 'jluxe_register_settings_menu' );
  * می‌زد — که کارش فقط «حذفِ ردیف از منو» نیست، رکوردِ صفحه رو کلاً از
  * $submenu پاک می‌کنه؛ و چون خودِ admin.php برای تشخیصِ «این کاربر اجازه‌ی
  * بازکردنِ page=X رو داره یا نه» دقیقاً همین آرایه‌ی $submenu رو می‌گرده،
- * وقتی ردیف حذف بشه ووردپرس نمی‌تونه capability لازم رو پیدا کنه و با خطای
- * واقعیِ «اجازه‌ی دسترسی ندارید» صفحه رو کلاً می‌بنده — دقیقاً همون چیزی
- * که با تست زنده در کروم روی تبِ «هدر» بازتولید شد. remove_submenu_page
- * فقط برای صفحاتی درسته که واقعاً می‌خوایم غیرقابل‌دسترس بشن، نه صفحاتی که
- * فقط نمی‌خوایم توی سایدبار لیست بشن ولی هنوز باید از تبِ بالای صفحه قابل
- * بازشدن باشن. راه‌حلِ درست: خودِ ثبتِ صفحات (add_submenu_page) دست‌نخورده
- * می‌مونه (پس $submenu/capability سالمه)، فقط ردیف‌های اضافیِ سایدبار با
- * CSS مخفی می‌شن.
+ * وقتی ردیف حذف بشه وردپرس نمی‌تونه capability لازم رو پیدا کنه و صفحه رو
+ * کلاً می‌بنده — همان خطایی که قبلاً روی صفحهٔ هدر بازتولید شد. بنابراین
+ * صفحه‌های مخفی‌شده از منوی بومی وردپرس همچنان باید در سایدبارِ داخلیِ پنل
+ * تنظیمات زرین قابل‌دسترسی باشند. خودِ ثبتِ صفحه‌ها و capability دست‌نخورده
+ * می‌مانند و فقط ردیف‌های اضافیِ منوی بومی وردپرس با CSS پنهان می‌شوند.
  */
 function jluxe_hide_settings_submenus_css(): void {
 	?>
@@ -141,13 +138,9 @@ function jluxe_hide_settings_submenus_css(): void {
 			display: none;
 		}
 		/*
-		 * طبقِ درخواستِ صریحِ بعدیِ کاربر («این ۵تا رو از تبِ تنظیمات خارج
-		 * کن و بیارشون زیرِ منوی زرین») این ۵ صفحه دیگه فقط از تبِ افقیِ
-		 * بالای صفحه (jluxe_render_settings_nav در theme-settings-render.php
-		 * — همون‌جا هم حذف شدن) در دسترس نیستن؛ توی سایدبارِ پیشخوانِ
-		 * وردپرس هم واقعاً دیده/کلیک‌پذیرن، نه فقط تبِ بالای صفحه. بقیه‌ی
-		 * صفحات (هدر، فوتر، رنگ و...) طبقِ همون تصمیمِ قبلی فقط از تب در
-		 * دسترسن، توی سایدبار مخفی می‌مونن.
+		 * این پنج صفحه علاوه بر سایدبارِ داخلیِ پنل، در زیرمنوی بومیِ وردپرس
+		 * هم قابل‌مشاهده می‌مانند. سایر صفحه‌های تنظیمات فقط از سایدبارِ داخلی
+		 * اپ زرین در دسترس‌اند؛ ردیف‌هایشان در زیرمنوی بومی پنهان است، نه حذف.
 		 */
 		#toplevel_page_jluxe-theme-settings .wp-submenu li:has(> a[href*="page=jluxe-ai-assistant"]),
 		#toplevel_page_jluxe-theme-settings .wp-submenu li:has(> a[href*="page=jluxe-sms"]),
@@ -179,8 +172,9 @@ function jluxe_settings_enqueue_admin_assets( string $hook ): void {
 	}
 	// CSS اصلی فرانت‌اند را داخل wp-admin لود نمی‌کنیم؛ Tailwind reset آن روی * و body و فرم‌ها اعمال می‌شود و Dashicons و چیدمان پیشخوان را به‌هم می‌ریزد.
 	// فونت IRANYekan به‌صورت محلی در theme-settings-admin.css تعریف شده است.
-	$js_path  = JLUXE_THEME_DIR . '/assets/js/theme-settings-admin.js';
-	$css_path = JLUXE_THEME_DIR . '/assets/css/theme-settings-admin.css';
+	$js_path      = JLUXE_THEME_DIR . '/assets/js/theme-settings-admin.js';
+	$app_js_path  = JLUXE_THEME_DIR . '/assets/js/theme-settings-app.js';
+	$css_path     = JLUXE_THEME_DIR . '/assets/css/theme-settings-admin.css';
 	wp_enqueue_script(
 		'jluxe-settings-admin',
 		JLUXE_THEME_URI . '/assets/js/theme-settings-admin.js',
@@ -188,6 +182,24 @@ function jluxe_settings_enqueue_admin_assets( string $hook ): void {
 		file_exists( $js_path ) ? (string) filemtime( $js_path ) : '2.0.0',
 		true
 	);
+	$app_page_slugs = array( JLUXE_SETTINGS_MENU_SLUG );
+	if ( function_exists( 'jluxe_settings_nav_groups' ) ) {
+		foreach ( jluxe_settings_nav_groups() as $app_page_items ) {
+			foreach ( $app_page_items as $app_page_item ) {
+				$app_page_slugs[] = $app_page_item[0];
+			}
+		}
+	}
+	$current_page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+	if ( in_array( $current_page, $app_page_slugs, true ) ) {
+		wp_enqueue_script(
+			'jluxe-settings-app',
+			JLUXE_THEME_URI . '/assets/js/theme-settings-app.js',
+			array(),
+			file_exists( $app_js_path ) ? (string) filemtime( $app_js_path ) : '1.0.0',
+			true
+		);
+	}
 	wp_enqueue_style(
 		'jluxe-settings-admin',
 		JLUXE_THEME_URI . '/assets/css/theme-settings-admin.css',

@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 19;
+const JLUXE_SETTINGS_VERSION = 20;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -202,19 +202,42 @@ function jluxe_shipping_tracking_default_body_html(): string {
 }
 
 /**
+ * طیفِ مرجعِ Electric Indigo. مقدارِ 50 در درخواست دو بار آمده بود؛ مقدارِ
+ * دوم (#eee5ff) به‌عنوان مقدارِ مؤثرِ یگانه نگه داشته می‌شود.
+ *
+ * @return array<string, string>
+ */
+function jluxe_electric_indigo_palette(): array {
+	return array(
+		'50'  => '#eee5ff',
+		'100' => '#dcccff',
+		'200' => '#b999ff',
+		'300' => '#9666ff',
+		'400' => '#7433ff',
+		'500' => '#5100ff',
+		'600' => '#4100cc',
+		'700' => '#300099',
+		'800' => '#200066',
+		'900' => '#100033',
+		'950' => '#0b0024',
+	);
+}
+
+/**
  * مقادیر پیش‌فرضِ عمومی؛ محتوای راهنماهای پرداخت، ارسال/پیگیری و مرجوعی
  * مطابق متن ارسالی مدیر است؛ سایر داده‌ها و سیاست‌های وابسته به فروشگاه
  * باید از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
+	$palette = jluxe_electric_indigo_palette();
 	return array(
 		'version' => JLUXE_SETTINGS_VERSION,
 		'colors'  => array(
-			'primary'    => '#B85C38',
-			'secondary'  => '#355C5A',
-			'background' => '#F7F3EE',
-			'success'    => '#16865A',
-			'accent'     => '#C89B3C',
+			'primary'    => $palette['500'],
+			'secondary'  => $palette['700'],
+			'background' => $palette['50'],
+			'success'    => $palette['600'],
+			'accent'     => $palette['400'],
 		),
 		// Optional, site-wide visual system. Keep the existing storefront as
 		// the default; selecting a new design changes presentation only.
@@ -274,10 +297,10 @@ function jluxe_theme_settings_defaults(): array {
 			'require_phone'                  => true,
 			'require_address'                => true,
 			'require_postcode_for_post'      => true,
-			'checkout_payment_warning_background' => '#FFF8E6',
-			'checkout_payment_warning_text_color' => '#334155',
+			'checkout_payment_warning_background' => $palette['50'],
+			'checkout_payment_warning_text_color' => $palette['900'],
 			'payment_card_background'          => '#FFFFFF',
-			'payment_card_selected_background' => '#F0FDF4',
+			'payment_card_selected_background' => $palette['50'],
 			'show_shipping_accordions'        => true,
 			'shipping_card_radius'            => 10,
 			'copy' => array(
@@ -339,13 +362,13 @@ function jluxe_theme_settings_defaults(): array {
 					'description'               => 'کرایهٔ ارسال پست پیشتاز به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور پست پرداخت می‌شود.',
 					'note'                      => 'اقتصادی',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#EFF6FF',
-					'selected_card_border_color' => '#2563EB',
-					'note_background_color'     => '#FECB02',
-					'note_text_color'           => '#332900',
-					'details_background_color'  => '#F8FAFC',
-					'details_text_color'        => '#475569',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['500'],
+					'note_background_color'     => $palette['600'],
+					'note_text_color'           => '#FFFFFF',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => $palette['700'],
 				),
 				'tipax' => array(
 					'enabled'                   => true,
@@ -353,13 +376,13 @@ function jluxe_theme_settings_defaults(): array {
 					'description'               => 'کرایهٔ ارسال تیپاکس به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور تیپاکس پرداخت می‌شود.',
 					'note'                      => 'سریع‌تر، هزینه بالا',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#EFF6FF',
-					'selected_card_border_color' => '#2563EB',
-					'note_background_color'     => '#33936e',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['500'],
+					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
-					'details_background_color'  => '#F8FAFC',
-					'details_text_color'        => '#475569',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => $palette['700'],
 				),
 				'chapar' => array(
 					'enabled'                   => true,
@@ -367,13 +390,13 @@ function jluxe_theme_settings_defaults(): array {
 					'description'               => 'کرایهٔ ارسال چاپار به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور چاپار پرداخت می‌شود.',
 					'note'                      => 'مناسب مرسوله‌های حجیم',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => '#E2E8F0',
-					'selected_card_background_color' => '#EFF6FF',
-					'selected_card_border_color' => '#2563EB',
-					'note_background_color'     => '#d71925',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['500'],
+					'note_background_color'     => $palette['600'],
 					'note_text_color'           => '#FFFFFF',
-					'details_background_color'  => '#F8FAFC',
-					'details_text_color'        => '#475569',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => $palette['700'],
 				),
 			),
 		),
@@ -472,7 +495,7 @@ function jluxe_theme_settings_defaults(): array {
 			'link_text'        => '',
 			'link_url'         => '',
 			'dismissible'      => true,
-			'background_color' => '#355C5A',
+			'background_color' => $palette['700'],
 			'text_color'       => '#FFFFFF',
 		),
 		// منوی هدر (بعد از مگامنوی «دسته‌بندی‌ها» که همیشه ثابت و به‌صورت
@@ -488,18 +511,18 @@ function jluxe_theme_settings_defaults(): array {
 				'trigger_effect'          => 'lift', // lift | glow | underline | none.
 				'panel_effect'            => 'fade', // fade | slide | zoom | fade-slide | none.
 				'duration_ms'             => 180,
-				'text_color'              => '#2F6B52',
-				'background_color'        => '#F3F8F5',
-				'border_color'            => '#C8DED2',
-				'icon_background_color'   => '#2F6B52',
+				'text_color'              => $palette['900'],
+				'background_color'        => $palette['50'],
+				'border_color'            => $palette['100'],
+				'icon_background_color'   => $palette['500'],
 				'icon_color'              => '#FFFFFF',
-				'hover_background_color'  => '#2F6B52',
+				'hover_background_color'  => $palette['600'],
 				'hover_text_color'        => '#FFFFFF',
-				'accent_color'            => '#C2410C',
+				'accent_color'            => $palette['400'],
 				'panel_background_color'  => '#FFFFFF',
-				'panel_border_color'      => '#E2E8F0',
-				'panel_text_color'        => '#1F2937',
-				'panel_accent_color'      => '#2F6B52',
+				'panel_border_color'      => $palette['100'],
+				'panel_text_color'        => $palette['900'],
+				'panel_accent_color'      => $palette['500'],
 			),
 			'items' => array(
 				array(
@@ -834,10 +857,10 @@ function jluxe_theme_settings_defaults(): array {
 			),
 			'nav_style' => array(
 				'background'   => '#ffffff',
-				'active_color' => '#087A68',
-				'icon_color'   => '#667085',
-				'icon_bg'      => '#f5f7f8',
-				'active_bg'    => '#e8f4f1',
+				'active_color' => $palette['500'],
+				'icon_color'   => $palette['600'],
+				'icon_bg'      => $palette['50'],
+				'active_bg'    => $palette['50'],
 				'shadow'       => 'medium',
 				'radius'       => '22',
 				'height'       => '68',
@@ -2185,6 +2208,107 @@ function jluxe_migrate_settings_v19( array $settings ): array {
 	return $settings;
 }
 
+/**
+ * v19→v20: move only known, former theme defaults onto the Electric Indigo
+ * scale. Any color that differs from its old default is an explicit merchant
+ * choice and is preserved. This also updates settings that had previously
+ * saved the old defaults as literal values.
+ */
+function jluxe_migrate_settings_v20( array $settings ): array {
+	$palette = jluxe_electric_indigo_palette();
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		foreach (	array(
+			'primary'    => array( '#B85C38', $palette['500'] ),
+			'secondary'  => array( '#355C5A', $palette['700'] ),
+			'background' => array( '#F7F3EE', $palette['50'] ),
+			'success'    => array( '#16865A', $palette['600'] ),
+			'accent'     => array( '#C89B3C', $palette['400'] ),
+		) as $key => $colors ) {
+			$replace( $settings['colors'], $key, $colors[0], $colors[1] );
+		}
+	}
+
+	if ( isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] ) ) {
+		$replace( $settings['announcement_bar'], 'background_color', '#355C5A', $palette['700'] );
+	}
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		foreach (	array(
+			'text_color'            => array( '#2F6B52', $palette['900'] ),
+			'background_color'      => array( '#F3F8F5', $palette['50'] ),
+			'border_color'          => array( '#C8DED2', $palette['100'] ),
+			'icon_background_color' => array( '#2F6B52', $palette['500'] ),
+			'hover_background_color'=> array( '#2F6B52', $palette['600'] ),
+			'accent_color'          => array( '#C2410C', $palette['400'] ),
+			'panel_border_color'    => array( '#E2E8F0', $palette['100'] ),
+			'panel_text_color'      => array( '#1F2937', $palette['900'] ),
+			'panel_accent_color'    => array( '#2F6B52', $palette['500'] ),
+		) as $key => $colors ) {
+			$replace( $menu, $key, $colors[0], $colors[1] );
+		}
+		unset( $menu );
+	}
+	if ( isset( $settings['mobile']['nav_style'] ) && is_array( $settings['mobile']['nav_style'] ) ) {
+		$nav = &$settings['mobile']['nav_style'];
+		foreach (	array(
+			'active_color' => array( '#087A68', $palette['500'] ),
+			'icon_color'   => array( '#667085', $palette['600'] ),
+			'icon_bg'      => array( '#F5F7F8', $palette['50'] ),
+			'active_bg'    => array( '#E8F4F1', $palette['50'] ),
+		) as $key => $colors ) {
+			$replace( $nav, $key, $colors[0], $colors[1] );
+		}
+		unset( $nav );
+	}
+
+	if ( isset( $settings['product_card'] ) && is_array( $settings['product_card'] ) ) {
+		$replace( $settings['product_card'], 'in_stock_color', '#34D399', $palette['600'] );
+	}
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'discount_color', '#EF4056', $palette['800'] );
+		$replace( $settings['product_page'], 'savings_color', '#00A049', $palette['600'] );
+		$replace( $settings['product_page'], 'star_color', '#F7B731', $palette['400'] );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_background', '#FFF8E6', $palette['50'] );
+		$replace( $checkout, 'checkout_payment_warning_text_color', '#334155', $palette['900'] );
+		$replace( $checkout, 'payment_card_selected_background', '#F0FDF4', $palette['50'] );
+		$shipping_defaults = array(
+			'post' => array( '#FECB02', '#332900' ),
+			'tipax' => array( '#33936E', null ),
+			'chapar' => array( '#D71925', null ),
+		);
+		foreach ( $shipping_defaults as $method => $legacy ) {
+			if ( ! isset( $checkout['shipping_methods'][ $method ] ) || ! is_array( $checkout['shipping_methods'][ $method ] ) ) {
+				continue;
+			}
+			$card = &$checkout['shipping_methods'][ $method ];
+			$replace( $card, 'card_border_color', '#E2E8F0', $palette['100'] );
+			$replace( $card, 'selected_card_background_color', '#EFF6FF', $palette['50'] );
+			$replace( $card, 'selected_card_border_color', '#2563EB', $palette['500'] );
+			$replace( $card, 'note_background_color', $legacy[0], $palette['600'] );
+			if ( null !== $legacy[1] ) {
+				$replace( $card, 'note_text_color', $legacy[1], '#FFFFFF' );
+			}
+			$replace( $card, 'details_background_color', '#F8FAFC', $palette['50'] );
+			$replace( $card, 'details_text_color', '#475569', $palette['700'] );
+			unset( $card );
+		}
+		unset( $checkout );
+	}
+
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2206,6 +2330,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		17 => 'jluxe_migrate_settings_v17',
 		18 => 'jluxe_migrate_settings_v18',
 		19 => 'jluxe_migrate_settings_v19',
+		20 => 'jluxe_migrate_settings_v20',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -2322,7 +2447,9 @@ function jluxe_hex_to_hsl( string $hex ): array {
 		$h /= 6;
 	}
 
-	return array( round( $h * 360 ), round( $s * 100 ), round( $l * 100 ) );
+	// Preserve enough precision to round-trip the supplied palette hex values;
+	// integer rounding visibly shifts several Electric Indigo steps.
+	return array( round( $h * 360, 2 ), round( $s * 100, 2 ), round( $l * 100, 2 ) );
 }
 
 function jluxe_hsl_css_value( array $hsl, float $lightness_delta = 0 ): string {
@@ -2399,8 +2526,8 @@ function jluxe_contrast_ratio( string $hex_a, string $hex_b ): float {
 
 function jluxe_auto_foreground( string $bg_hex ): string {
 	$white_ratio = jluxe_contrast_ratio( $bg_hex, '#FFFFFF' );
-	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#202124' );
-	return $white_ratio >= $dark_ratio ? '0 0% 100%' : '225 6% 13%';
+	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#100033' );
+	return $white_ratio >= $dark_ratio ? '0 0% 100%' : jluxe_hsl_css_value( jluxe_hex_to_hsl( '#100033' ) );
 }
 
 /**
@@ -2417,16 +2544,25 @@ function jluxe_generate_color_variables( array $colors ): string {
 		$vars[ "--{$key}-foreground" ] = jluxe_auto_foreground( $hex );
 	}
 
-	// hover/active با کاهش lightness — همون منطق دستیِ توکن‌های فعلی.
-	$primary_hsl              = jluxe_hex_to_hsl( $colors['primary'] );
-	$vars['--primary-hover']  = jluxe_hsl_css_value( $primary_hsl, -5 );
-	$vars['--primary-active'] = jluxe_hsl_css_value( $primary_hsl, -12 );
+	$palette = jluxe_electric_indigo_palette();
+	$primary_hsl   = jluxe_hex_to_hsl( $colors['primary'] );
+	$secondary_hsl = jluxe_hex_to_hsl( $colors['secondary'] );
+	$accent_hsl    = jluxe_hex_to_hsl( $colors['accent'] );
 
-	$secondary_hsl             = jluxe_hex_to_hsl( $colors['secondary'] );
-	$vars['--secondary-hover'] = jluxe_hsl_css_value( $secondary_hsl, -6 );
+	// The default theme uses exact palette steps; administrator-selected colors
+	// keep the existing dynamically derived hover/active behavior.
+	$is_electric_indigo_primary   = strtoupper( $colors['primary'] ) === strtoupper( $palette['500'] );
+	$is_electric_indigo_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $palette['700'] );
+	$is_electric_indigo_accent    = strtoupper( $colors['accent'] ) === strtoupper( $palette['400'] );
+	$primary_hover_hsl   = jluxe_hex_to_hsl( $is_electric_indigo_primary ? $palette['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) );
+	$primary_active_hsl  = jluxe_hex_to_hsl( $is_electric_indigo_primary ? $palette['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) );
+	$secondary_hover_hsl = jluxe_hex_to_hsl( $is_electric_indigo_secondary ? $palette['800'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) );
+	$accent_hover_hsl    = jluxe_hex_to_hsl( $is_electric_indigo_accent ? $palette['600'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) );
 
-	$accent_hsl              = jluxe_hex_to_hsl( $colors['accent'] );
-	$vars['--accent-hover']  = jluxe_hsl_css_value( $accent_hsl, -8 );
+	$vars['--primary-hover']  = jluxe_hsl_css_value( $primary_hover_hsl );
+	$vars['--primary-active'] = jluxe_hsl_css_value( $primary_active_hsl );
+	$vars['--secondary-hover'] = jluxe_hsl_css_value( $secondary_hover_hsl );
+	$vars['--accent-hover']    = jluxe_hsl_css_value( $accent_hover_hsl );
 
 	$vars['--background'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
 	$vars['--info']       = $vars['--secondary'];
@@ -2435,20 +2571,20 @@ function jluxe_generate_color_variables( array $colors ): string {
 	// نام‌های عمومی --jluxe-* (طبق مستندسازی/برندینگ) — مقدار HEX مستقیم،
 	// برای استفاده‌ی مستقل (مثلاً background:var(--jluxe-primary)) بدون نیاز
 	// به wrap کردن با hsl(). توکن‌های --primary/--secondary/... بالا (HSL
-	// triplet) رو Tailwind (tailwind.config.ts) مصرف می‌کنه، این‌ها رو نه.
+	// triplet) رو Tailwind مصرف می‌کنه، این‌ها رو نه.
 	$vars['--jluxe-primary']         = $colors['primary'];
-	$vars['--jluxe-primary-hover']   = '#' . jluxe_hsl_to_hex( $primary_hsl, -5 );
-	$vars['--jluxe-primary-active']  = '#' . jluxe_hsl_to_hex( $primary_hsl, -12 );
-	$vars['--jluxe-primary-soft']    = '#' . jluxe_hsl_to_hex( $primary_hsl, 42 );
+	$vars['--jluxe-primary-hover']   = $is_electric_indigo_primary ? $palette['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 );
+	$vars['--jluxe-primary-active']  = $is_electric_indigo_primary ? $palette['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 );
+	$vars['--jluxe-primary-soft']    = $is_electric_indigo_primary ? $palette['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 );
 	$vars['--jluxe-secondary']       = $colors['secondary'];
-	$vars['--jluxe-secondary-hover'] = '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 );
+	$vars['--jluxe-secondary-hover'] = $is_electric_indigo_secondary ? $palette['800'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 );
 	$vars['--jluxe-accent']          = $colors['accent'];
 	$vars['--jluxe-success']         = $colors['success'];
 	$vars['--jluxe-page-bg']         = $colors['background'];
 	$vars['--jluxe-surface']         = '#FFFFFF';
-	$vars['--jluxe-text']            = '#202124';
-	$vars['--jluxe-text-muted']      = '#90909A';
-	$vars['--jluxe-border']          = '#DDD9E3';
+	$vars['--jluxe-text']            = $palette['900'];
+	$vars['--jluxe-text-muted']      = $palette['600'];
+	$vars['--jluxe-border']          = $palette['100'];
 
 	$css = ':root{';
 	foreach ( $vars as $name => $value ) {

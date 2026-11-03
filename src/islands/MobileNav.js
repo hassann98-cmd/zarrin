@@ -110,10 +110,10 @@ function MobileNav() {
 
   const colors = {
     background: style.background ?? "#fff",
-    active: style.active_color ?? "#087A68",
-    icon: style.icon_color ?? "#667085",
-    iconBg: style.icon_bg ?? "#f5f7f8",
-    activeBg: style.active_bg ?? "#e8f4f1",
+    active: style.active_color ?? "#5100ff",
+    icon: style.icon_color ?? "#4100cc",
+    iconBg: style.icon_bg ?? "#eee5ff",
+    activeBg: style.active_bg ?? "#eee5ff",
     radius: style.radius ?? "22",
     height: style.height ?? "68",
   };

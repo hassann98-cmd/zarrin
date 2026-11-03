@@ -437,7 +437,7 @@ add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_img_skeleton' );
  * پس‌زمینهٔ فروشگاه می‌شود (حسِ اپ). قابل تغییر با فیلتر.
  */
 function jluxe_mobile_theme_color(): void {
-	printf( '<meta name="theme-color" content="%s">' . "\n", esc_attr( (string) apply_filters( 'jluxe_theme_color', '#F7F3EE' ) ) );
+	printf( '<meta name="theme-color" content="%s">' . "\n", esc_attr( (string) apply_filters( 'jluxe_theme_color', '#eee5ff' ) ) );
 }
 add_action( 'wp_head', 'jluxe_mobile_theme_color', 2 );
 

@@ -69,7 +69,7 @@ check(
 		'zoom' === $r357_sanitized_nav['categories_mega_menu']['panel_effect'] &&
 		240 === $r357_sanitized_nav['categories_mega_menu']['duration_ms'] &&
 		'#123456' === $r357_sanitized_nav['categories_mega_menu']['text_color'] &&
-		'#C2410C' === $r357_sanitized_nav['categories_mega_menu']['accent_color'] &&
+		'#7433ff' === $r357_sanitized_nav['categories_mega_menu']['accent_color'] &&
 		false === stripos( $r357_sanitized_nav['categories_mega_menu']['icon_svg'], '<script' ),
 	'R357 header navigation sanitizer stores the posted item order, skips only the empty slot, and keeps each submenu with its parent'
 );
@@ -87,7 +87,7 @@ $r359_invalid_menu = jluxe_sanitize_categories_mega_menu(
 check(
 	'grid' === $r359_invalid_menu['icon'] && 'hover' === $r359_invalid_menu['open_mode'] &&
 	'lift' === $r359_invalid_menu['trigger_effect'] && 'fade' === $r359_invalid_menu['panel_effect'] &&
-	180 === $r359_invalid_menu['duration_ms'] && '#C2410C' === $r359_invalid_menu['accent_color'],
+	180 === $r359_invalid_menu['duration_ms'] && '#7433ff' === $r359_invalid_menu['accent_color'],
 	'R359 invalid menu icon, opening mode, effects, speed, and color fall back to the released appearance'
 );
 $r359_oversized_svg = jluxe_sanitize_categories_mega_menu(
@@ -109,9 +109,21 @@ $r338_old_fired = $GLOBALS['fired'] ?? null;
 unset( $GLOBALS['options'][ $r338_option_key ] );
 $GLOBALS['scheduled'] = array();
 check(
-	! jluxe_store_closure_is_closed() && '#C2410C' === jluxe_store_closure_settings()['background_color'],
+	! jluxe_store_closure_is_closed() && '#5100FF' === jluxe_store_closure_settings()['background_color'],
 	'R338 store closure is open by default and has a safe accent-color default'
 );
+$GLOBALS['options'][ $r338_option_key ] = array( 'state' => 'open', 'background_color' => '#C2410C' );
+$r338_migrated_closure = jluxe_store_closure_settings();
+check(
+	'#5100FF' === $r338_migrated_closure['background_color'] && '#5100FF' === $GLOBALS['options'][ $r338_option_key ]['background_color'],
+	'R338 closure migrates the former built-in color while retaining the open state'
+);
+$GLOBALS['options'][ $r338_option_key ] = array( 'state' => 'open', 'background_color' => '#123456' );
+check(
+	'#123456' === jluxe_store_closure_settings()['background_color'],
+	'R338 closure leaves an explicitly selected color untouched'
+);
+unset( $GLOBALS['options'][ $r338_option_key ] );
 check(
 	'#FFFFFF' === jluxe_store_closure_text_color( '#C2410C' ) && '#000000' === jluxe_store_closure_text_color( '#F1F5F9' ),
 	'R356 closure text automatically chooses a high-contrast color for both dark and light backgrounds'
@@ -1489,22 +1501,22 @@ check(
 	'R244 the AI buyer-review summary text column grows across the available card width in every product layout'
 );
 check(
-	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: #d4af37;' ) &&
+	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: var(--color-electric-indigo-400);' ) &&
 	false !== strpos( $r244_storefront_css, '.jluxe-reviews .star-rating span:before {
   content: "★★★★★";
   color: var(--jluxe-rating-color);' ) &&
 	false !== strpos( $classic_tpl, '?> دیدگاه</div>' ) && false === strpos( $classic_tpl, '?> امتیاز</div>' ) &&
 	false !== strpos( $r238_reference_tpl, '?> دیدگاه</div>' ) && false === strpos( $r238_reference_tpl, '?> امتیاز</div>' ),
-	'R244 filled customer-review stars use gold and the review count is labeled as دیدگاه rather than امتیاز'
+	'R244 filled customer-review stars use Electric Indigo and the review count is labeled as دیدگاه rather than امتیاز'
 );
 check(
 	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-success'" ) &&
 	false !== strpos( $r244_woocommerce_source, "'text_class' => 'text-boom-info'" ) &&
-	false !== strpos( $r244_storefront_css, '--boom-info: #2563eb;' ) &&
+	false !== strpos( $r244_storefront_css, '--boom-info: var(--color-electric-indigo-500);' ) &&
 	false !== strpos( $classic_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
 	false !== strpos( $r238_reference_tpl, '.jluxe-cp3 .cp3-price{font-size:26px;' ) &&
 	false !== strpos( $r238_reference_tpl, '.jluxe-product-reference .cp3-side .cp3-price{width:100%;font-size:20px;line-height:1.6}' ),
-	'R244 authenticity stays green, warranty is clearly blue, and product prices rise only slightly in desktop and Reference mobile layouts'
+	'R244 authenticity uses the semantic success token, warranty uses Electric Indigo, and product prices rise only slightly in desktop and Reference mobile layouts'
 );
 $_POST = $r238_old_request;
 if ( $r238_had_meta ) { $GLOBALS['post_meta'][ $r238_id ] = $r238_old_meta; } else { unset( $GLOBALS['post_meta'][ $r238_id ] ); }
@@ -2120,7 +2132,7 @@ check(
 
 // R41: app-like browser chrome via theme-color, filterable, escaped.
 ob_start(); jluxe_mobile_theme_color(); $meta=(string) ob_get_clean();
-check(strpos($meta,'name="theme-color"')!==false && strpos($meta,'#F7F3EE')!==false, 'R41 theme-color meta ships with the storefront background');
+check(strpos($meta,'name="theme-color"')!==false && stripos($meta,'#EEE5FF')!==false, 'R41 theme-color meta ships with the storefront background');
 $GLOBALS['test_filters']['jluxe_theme_color']=fn($c)=>'#1122" onmouseover="x';
 ob_start(); jluxe_mobile_theme_color(); $meta=(string) ob_get_clean();
 check(strpos($meta,'content="#1122&quot; onmouseover=&quot;x"')!==false, 'R41 theme-color is filterable and escaped');
@@ -2230,7 +2242,7 @@ $tpl_cls=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-
 check(strpos($tpl_def,'jluxe-reviews jluxe-panel')!==false, 'R44 the default layout wraps reviews in the new panel');
 check(strpos($tpl_cls,'class="jluxe-reviews jluxe-panel mt-6"')!==false && strpos($tpl_cls,'<div id="reviews" class="jluxe-panel mt-6">')===false, 'R44/R140 the classic layout wraps WooCommerce reviews with their shared styles without duplicating the reviews anchor ID');
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($css,'--panel: 210 29% 98%')!==false && strpos($css,'--panel-border: 240 6% 92%')!==false, 'R44 panel tokens ship with the reference palette');
+check(strpos($css,'--panel: 260.77 100% 94.9%')!==false && strpos($css,'--panel-border: 258.82 100% 90%')!==false, 'R44 panel tokens ship with the Electric Indigo palette');
 check(preg_match('/\.jluxe-panel\s*\{[^}]*border-radius: 22px;[^}]*box-shadow: 0 2px 14px rgba\(0, 0, 0, 0\.04\);/s',$css)===1, 'R44 the panel card matches the reference radius and soft shadow');
 check(preg_match('/@media \(min-width: 768px\)\s*\{\s*\.jluxe-panel \{ padding: 1\.75rem;/s',$css)===1, 'R44 panel padding scales 20px to 28px at md');
 check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$css)===1, 'R44 each review is a recessed card instead of a divider list');
@@ -2835,7 +2847,7 @@ $r51_range = '<div class="cp3-price" data-cp3-price=""><span class="woocommerce-
 $r51_out = jluxe_amount_first_price_html( $r51_range );
 check(strpos($r51_out,'۱۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'۱,۵۰۰,۰۰۰ <span class="woocommerce-Price-currencySymbol"')!==false && strpos($r51_out,'محدوده قیمت: &#65020; ۱۰۰,۰۰۰ تا')!==false && jluxe_amount_first_price_html( $r51_out ) === $r51_out, 'R51 the final price HTML (get_price_html late filter) reorders the symbol-first range and leaves the screen-reader summary untouched, idempotently');
 $r51_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: #d4af37')!==false, 'R51 the missing utilities ship and rating fills use the shared gold-star token');
+check(strpos($r51_css,'.screen-reader-text {')!==false && strpos($r51_css,'clip-path: inset(50%)')!==false && strpos($r51_css,'.max-md\\:hidden { display: none; }')!==false && strpos($r51_css,'.md\\:px-5 { padding-inline: 20px; }')!==false && strpos($r51_css,'.bg-boom-star { background-color: var(--jluxe-rating-color); }')!==false && strpos($r51_css,'--jluxe-rating-color: var(--color-electric-indigo-400)')!==false, 'R51 the missing utilities ship and rating fills use the shared Electric Indigo token');
 
 $r152_color_defaults = jluxe_theme_settings_defaults();
 check(
@@ -2962,15 +2974,31 @@ check(
 	'R152/R326 frontend CSS renders the exact configured product and description-link colors'
 );
 $r326_settings_render_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+$r326_palette = jluxe_electric_indigo_palette();
+$r326_expected_palette = array(
+	'50' => '#EEE5FF', '100' => '#DCCCFF', '200' => '#B999FF', '300' => '#9666FF',
+	'400' => '#7433FF', '500' => '#5100FF', '600' => '#4100CC', '700' => '#300099',
+	'800' => '#200066', '900' => '#100033', '950' => '#0B0024',
+);
 $r326_product_defaults = jluxe_theme_settings_defaults()['product_page'];
-$r326_theme_color_vars = jluxe_generate_color_variables( jluxe_theme_settings_defaults()['colors'] );
+$r326_theme_settings = jluxe_theme_settings_defaults();
+$r326_theme_color_vars = jluxe_generate_color_variables( $r326_theme_settings['colors'] );
+check(
+	$r326_expected_palette === array_map( 'strtoupper', $r326_palette ) &&
+	'260.77 100% 94.9%' === jluxe_hsl_css_value( jluxe_hex_to_hsl( $r326_palette['50'] ) ) &&
+	'259.06 100% 50%' === jluxe_hsl_css_value( jluxe_hex_to_hsl( $r326_palette['500'] ) ) &&
+	'#5100FF' === strtoupper( $r326_theme_settings['colors']['primary'] ) &&
+	'#EEE5FF' === strtoupper( $r326_theme_settings['colors']['background'] ) &&
+	JLUXE_SETTINGS_VERSION === $r326_theme_settings['version'],
+	'R326 v20 exposes the exact de-duplicated Electric Indigo steps, matching HSL tokens, and Electric Indigo theme defaults'
+);
 check(
 	'' === $r326_product_defaults['description_link_bg_color'] &&
 	'' === $r326_product_defaults['description_link_text_color'] &&
 	'' === $r326_product_defaults['variation_label_color'] &&
 	'' === $r326_product_defaults['description_link_border_color'] &&
-	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-soft:#F2DDD4' ) &&
-	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-active:#89452A' ) &&
+	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-soft:#eee5ff' ) &&
+	false !== strpos( $r326_theme_color_vars, '--jluxe-primary-active:#300099' ) &&
 	false !== strpos( $r326_settings_render_source, 'پیوندهای توضیحات محصول' ) &&
 	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_bg_color]"' ) &&
 	false !== strpos( $r326_settings_render_source, 'name="product_page[description_link_text_color]"' ) &&
@@ -3010,7 +3038,19 @@ check(strpos($inc_woo,"\$data['price_html'] = jluxe_reference_price_html")!==fal
 check(strpos($inc_woo,"\$allowed['svg']")!==false && strpos($inc_woo,"\$allowed['clippath']")!==false && strpos($cp3,'.jluxe-toman-glyph,')!==false, 'R55 the kses allowlist keeps the glyph svg and the glyph has explicit styles in the price box and sticky CTA');
 check(strpos($urls,'preg_match( \'/^(shop|فروشگاه)$/u\', $slug )')!==false && strpos($urls,'preg_match( \'/^(blog|وبلاگ)$/u\', $slug )')!==false && strpos($urls,'get_option( \'page_for_posts\' )')!==false, 'R56 the nav link resolver maps shop/blog header links to their real destinations (Woo shop permalink, posts page, published blog page, home fallback) instead of raw slugs that 404');
 check(strpos($urls,'get_page_by_path( $slug, OBJECT, \'page\' )')!==false && strpos($urls,"'publish' === \$page->post_status")!==false, 'R56 any single-slug nav link that matches a published page goes to its real permalink, while drafts stay untouched for the admin setup flow');
-check(strpos($presets,'\'jluxe_brand_red\'')!==false && strpos($presets,'\'primary\' => \'#ED1A45\'')!==false && strpos($presets,'\'secondary\' => \'#101113\'')!==false && strpos($presets,'\'background\' => \'#F7F8FA\'')!==false, 'R57 the design presets include the reference brand red (ED1A45 primary, 101113 secondary, F7F8FA background) exactly as the user requested from the reference DOM');
+check(strpos($presets, 'electric_indigo') !== false && strpos($presets, 'jluxe_brand_red') !== false && strpos($presets, '\'primary\' => $palette[\'500\']') !== false && strpos($presets, '\'background\' => $palette[\'50\']') !== false, 'R57 legacy preset IDs remain available while every design preset uses the shared Electric Indigo palette');
+$r57_allowed_preset_colors = array_values( array_map( 'strtoupper', jluxe_electric_indigo_palette() ) );
+$r57_allowed_preset_colors[] = '#FFFFFF';
+$r57_all_presets = jluxe_get_design_presets();
+$r57_presets_use_shared_palette = true;
+foreach ( $r57_all_presets as $r57_preset ) {
+	foreach ( $r57_preset['colors'] as $r57_color ) {
+		if ( ! in_array( strtoupper( $r57_color ), $r57_allowed_preset_colors, true ) ) {
+			$r57_presets_use_shared_palette = false;
+		}
+	}
+}
+check( $r57_presets_use_shared_palette, 'R57 every saved design preset stays on the shared Electric Indigo scale (white remains a neutral surface)' );
 check(substr_count($presets,'typography')>=7 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R57 the new preset card flows through the same apply pipeline and sanitizer gates as the other preset cards');
 check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
 check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false && strpos($woo_inc,'data-jluxe-sticky-variation-price')!==false && strpos($woo_inc,'data-jluxe-price-placeholder=""')!==false, 'R136 simple sticky prices keep the toman glyph while variable products start with an empty price placeholder');
@@ -3057,6 +3097,30 @@ ob_start();jluxe_render_settings_nav('jluxe-product-page');$suggestion_nav=ob_ge
 check(strpos($suggestion_nav,'page=jluxe-purchase-addons')!==false && strpos($suggestion_nav,'پیشنهادهای پس از خرید')!==false, 'R127 post-purchase product suggestions are directly accessible from the theme settings navigation');
 ob_start();jluxe_render_settings_nav('jluxe-purchase-addons');$suggestion_active_nav=ob_get_clean();
 check(strpos($suggestion_active_nav,'page=jluxe-purchase-addons')!==false && strpos($suggestion_active_nav,'jluxe-settings-nav-item-active')!==false, 'R127 the post-purchase suggestion settings tab is marked active on its own page');
+$settings_nav_groups = jluxe_settings_nav_groups();
+$settings_admin_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-admin.php' );
+ob_start();
+jluxe_render_settings_nav( '' );
+$settings_nav_html = ob_get_clean();
+$settings_nav_count = 0;
+$settings_nav_routes_rendered = true;
+$settings_nav_routes_registered = true;
+foreach ( $settings_nav_groups as $settings_nav_group => $settings_nav_items ) {
+	foreach ( $settings_nav_items as $settings_nav_item ) {
+		$settings_nav_count++;
+		$settings_nav_routes_rendered = $settings_nav_routes_rendered && strpos( $settings_nav_html, 'page=' . $settings_nav_item[0] ) !== false;
+		$settings_nav_routes_registered = $settings_nav_routes_registered && strpos( $settings_admin_source, "'" . $settings_nav_item[0] . "'" ) !== false;
+	}
+}
+check( count( $settings_nav_groups ) >= 7 && $settings_nav_count >= 25 && $settings_nav_routes_rendered && $settings_nav_routes_registered && false === strpos( $settings_nav_html, 'boom-' ) && strpos( $settings_nav_html, 'page=jluxe-homepage' ) !== false && strpos( $settings_nav_html, 'page=jluxe-cart-checkout' ) !== false && strpos( $settings_nav_html, 'page=jluxe-ai-assistant' ) !== false && strpos( $settings_nav_html, 'page=jluxe-import-export' ) !== false, 'R358 the new grouped sidebar maps searchable dashboard cards to existing Zarrin settings routes rather than inventing Boom-only pages' );
+ob_start();
+jluxe_settings_page_shell( 'آزمون پنل', 'jluxe-product-page', null, static function () { echo '<form id="settings-form-sentinel" method="post"></form>'; } );
+$settings_shell_html = ob_get_clean();
+check( strpos( $settings_shell_html, 'data-jluxe-settings-app' ) !== false && strpos( $settings_shell_html, 'data-jluxe-settings-search' ) !== false && strpos( $settings_shell_html, 'data-jluxe-sidebar-toggle' ) !== false && strpos( $settings_shell_html, 'data-jluxe-theme-toggle' ) !== false && strpos( $settings_shell_html, 'target="_blank" rel="noopener noreferrer"' ) !== false && strpos( $settings_shell_html, 'settings-form-sentinel' ) !== false && strpos( $settings_shell_html, 'aria-current="page"' ) !== false, 'R358 the shared settings shell adds accessible app controls while preserving the original form-render callback and active route' );
+ob_start();
+jluxe_render_dashboard_page();
+$settings_dashboard_html = ob_get_clean();
+check( strpos( $settings_dashboard_html, 'به پنل زرین خوش آمدید' ) !== false && strpos( $settings_dashboard_html, 'jluxe-dashboard-metrics' ) !== false && strpos( $settings_dashboard_html, 'همهٔ بخش‌ها' ) !== false && strpos( $settings_dashboard_html, 'page=jluxe-homepage' ) !== false && strpos( $settings_dashboard_html, 'page=jluxe-purchase-addons' ) !== false && strpos( $settings_dashboard_html, 'page=wc-settings&tab=shipping' ) !== false, 'R358 the dashboard renders current theme settings, real available counts, and WooCommerce shortcuts without changing any save handler' );
 check(strpos($woo_inc,"'orderby'      => 'rand'")!==false && strpos($woo_inc,"data-jluxe-quick-variant=\"<?php echo esc_attr( (string) \$sp->get_id() ); ?>\"")!==false && strpos($settings_inc,"'enabled'                => true")!==false && strpos($settings_inc,"'max_products'           => 4")!==false, 'R72 (was R61) random suggestions stay available, variable suggestions use the quick picker, and purchase_addons defaults remain enabled with a four-product cap');
 // R62: systematic per-page asset plan + two-layer mega-menu cache (roadmap phase 1).
 $assets_php=(string) file_get_contents(ABSPATH.'inc/assets.php');
@@ -4867,7 +4931,7 @@ check(
 	'R351 the v19 migration preserves explicit non-Tehran zones and existing configured schedules'
 );
 $r192_v4_migrated = jluxe_migrate_settings_to_current_version( array( 'faq' => array( 'items' => array() ) ), 4 );
-check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v19 migrations in order' );
+check( JLUXE_SETTINGS_VERSION === $r192_v4_migrated['version'] && 10 === count( $r192_v4_migrated['faq']['items'] ), 'R197 the centralized version migrator executes missing v5 through v20 migrations in order' );
 
 $r229_legacy_guide = array(
 	'version' => 11,
@@ -5266,7 +5330,7 @@ $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v19 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v20 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -5330,12 +5394,12 @@ check(
 	'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $r305_migrated_settings['footer']['support_hours'] &&
 	'09120902336' === $r305_migrated_settings['contact']['phone'] && '09362420232' === $r305_migrated_settings['contact']['phone_secondary'] &&
 	10 === $r305_migrated_settings['cart_checkout']['shipping_card_radius'] &&
-	'#EFF6FF' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#2563EB' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#EFF6FF' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#2563EB' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
-	'#F0FDF4' === $r305_migrated_settings['cart_checkout']['payment_card_selected_background'],
-	'R305 v18 migrates only former footer, phone-order, and shipping-appearance defaults while leaving payment colors unchanged'
+	'#eee5ff' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#5100ff' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#eee5ff' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#5100ff' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#eee5ff' === $r305_migrated_settings['cart_checkout']['payment_card_selected_background'],
+	'R305/R326 migrations move recognized legacy shipping and payment defaults to Electric Indigo while preserving unrelated settings'
 );
 $r305_custom_settings = array(
 	'footer' => array( 'brand_description' => 'متن برند سفارشی', 'support_hours' => 'ساعات اختصاصی فروشگاه' ),
@@ -5356,6 +5420,33 @@ check(
 	'#445566' === $r305_custom_migrated['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
 	'#AABBCC' === $r305_custom_migrated['cart_checkout']['payment_card_selected_background'],
 	'R305 v18 preserves merchant-authored footer, contact, carrier, and payment settings'
+);
+$r326_legacy_colors = array(
+	'colors' => array(
+		'primary' => '#B85C38', 'secondary' => '#355C5A', 'background' => '#F7F3EE',
+		'success' => '#16865A', 'accent' => '#C89B3C',
+	),
+	'announcement_bar' => array( 'background_color' => '#AABBCC' ),
+	'header_nav' => array( 'categories_mega_menu' => array( 'icon_background_color' => '#2F6B52', 'accent_color' => '#C2410C' ) ),
+	'mobile' => array( 'nav_style' => array( 'active_color' => '#087A68', 'icon_color' => '#ABCDEF' ) ),
+	'cart_checkout' => array(
+		'checkout_payment_warning_background' => '#FFF8E6',
+		'shipping_methods' => array( 'post' => array( 'selected_card_background_color' => '#EFF6FF', 'selected_card_border_color' => '#2563EB', 'details_text_color' => '#475569' ) ),
+	),
+);
+$r326_migrated_colors = jluxe_migrate_settings_v20( $r326_legacy_colors );
+check(
+	'#5100ff' === $r326_migrated_colors['colors']['primary'] && '#300099' === $r326_migrated_colors['colors']['secondary'] &&
+	'#eee5ff' === $r326_migrated_colors['colors']['background'] && '#4100cc' === $r326_migrated_colors['colors']['success'] &&
+	'#7433ff' === $r326_migrated_colors['colors']['accent'] && '#AABBCC' === $r326_migrated_colors['announcement_bar']['background_color'] &&
+	'#5100ff' === $r326_migrated_colors['header_nav']['categories_mega_menu']['icon_background_color'] &&
+	'#7433ff' === $r326_migrated_colors['header_nav']['categories_mega_menu']['accent_color'] &&
+	'#5100ff' === $r326_migrated_colors['mobile']['nav_style']['active_color'] && '#ABCDEF' === $r326_migrated_colors['mobile']['nav_style']['icon_color'] &&
+	'#eee5ff' === $r326_migrated_colors['cart_checkout']['checkout_payment_warning_background'] &&
+	'#eee5ff' === $r326_migrated_colors['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#5100ff' === $r326_migrated_colors['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#300099' === $r326_migrated_colors['cart_checkout']['shipping_methods']['post']['details_text_color'],
+	'R326 v20 recolors known legacy defaults across theme surfaces while preserving explicit merchant selections'
 );
 $r233_old_contact = array(
 	'version'     => 15,
@@ -6229,7 +6320,7 @@ check(
 	'grid' === $r179_showcase_defaults['layout'] && 'grid' === $r179_showcase_defaults['mobile_layout'] &&
 	3 === $r179_showcase_defaults['mobile_columns'] && 'none' === $r179_showcase_defaults['image_shape'] &&
 	'none' === $r179_showcase_defaults['image_frame_mode'] && true === $r179_showcase_defaults['show_category_names'] &&
-	'#303936' === $r179_showcase_defaults['card_text_color'] && 'category' === $r179_showcase_defaults['items'][0]['mode'] &&
+	'#100033' === $r179_showcase_defaults['card_text_color'] && 'category' === $r179_showcase_defaults['items'][0]['mode'] &&
 	! isset( $r179_showcase_defaults['section_bg_color'] ) && ! isset( $r179_showcase_defaults['card_bg_color'] ),
 	'R179 showcase defaults to independent grid layouts, optional frames, visible category names, and no saved background colors'
 );
@@ -6497,7 +6588,7 @@ check(
 	false !== strpos( $r359_public_menu['icon_markup'], '<svg' ) && false === stripos( $r359_public_menu['icon_markup'], '<script' ) &&
 	false !== strpos( $r359_menu_css, '--jluxe-categories-trigger-text:#123456' ) &&
 	false !== strpos( $r359_menu_css, '--jluxe-categories-motion-duration:240ms' ) &&
-	false !== strpos( $r359_menu_css, '--jluxe-categories-accent-shadow:rgba(194,65,12,.22)' ),
+	false !== strpos( $r359_menu_css, '--jluxe-categories-accent-shadow:rgba(116,51,255,.22)' ),
 	'R359 normalized category-menu settings produce safe SVG, selected behavior, and allowlisted CSS variables'
 );
 $r359_settings['header_nav']['categories_mega_menu']['icon_svg'] = '<svg>' . str_repeat( 'x', 20001 ) . '</svg>';
@@ -6636,10 +6727,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v19 with legacy fixes, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v20 with legacy fixes, semantic palette defaults, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v19 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v20 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
@@ -8312,14 +8403,14 @@ check(
 	'#112233' === $r279_clean_checkout['shipping_methods']['post']['card_border_color'] &&
 	'#DDEEFF' === $r279_clean_checkout['shipping_methods']['post']['selected_card_background_color'] &&
 	'#334455' === $r279_clean_checkout['shipping_methods']['post']['selected_card_border_color'] &&
-	'#2563EB' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#5100ff' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
 	'ارسال فوری' === $r279_clean_checkout['shipping_methods']['post']['note'] &&
 	'#123ABC' === $r279_clean_checkout['shipping_methods']['post']['note_background_color'] &&
-	'#332900' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
+	'#FFFFFF' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
 	'#abcdef' === $r279_clean_checkout['shipping_methods']['post']['details_background_color'] &&
 	'#123' === $r279_clean_checkout['shipping_methods']['post']['details_text_color'] &&
 	'#334455' === $r279_clean_checkout['checkout_payment_warning_background'] &&
-	'#334155' === $r279_clean_checkout['checkout_payment_warning_text_color'] &&
+	'#100033' === $r279_clean_checkout['checkout_payment_warning_text_color'] &&
 	'#223344' === $r279_clean_checkout['payment_card_background'] &&
 	'#445566' === $r279_clean_checkout['payment_card_selected_background'],
 	'R287 carrier badges, accordion backgrounds/text, VPN warning, and gateway card colors sanitize safely'
@@ -8334,19 +8425,20 @@ check(
 );
 check(
 	10 === $r279_settings_defaults['cart_checkout']['shipping_card_radius'] &&
-	'#EFF6FF' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#2563EB' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#EFF6FF' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#2563EB' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
-	'#EFF6FF' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
-	'#2563EB' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#eee5ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#5100ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#eee5ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#5100ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#eee5ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
+	'#5100ff' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
 	'اقتصادی' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#FECB02' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
-	'#33936e' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
-	'#d71925' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
-	'#FFF8E6' === $r279_settings_defaults['cart_checkout']['checkout_payment_warning_background'] &&
-	'#FFFFFF' === $r279_settings_defaults['cart_checkout']['payment_card_background'],
-	'R287 carrier-note defaults use the requested brand colors and editable checkout colors have safe defaults'
+	'#4100cc' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
+	'#4100cc' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#4100cc' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
+	'#eee5ff' === $r279_settings_defaults['cart_checkout']['checkout_payment_warning_background'] &&
+	'#FFFFFF' === $r279_settings_defaults['cart_checkout']['payment_card_background'] &&
+		'#eee5ff' === $r279_settings_defaults['cart_checkout']['payment_card_selected_background'],
+	'R287 carrier-note defaults use the shared Electric Indigo palette and editable checkout colors have safe defaults'
 );
 $r279_old_stored_section = array( 'version' => JLUXE_SETTINGS_VERSION, 'cart_checkout' => array( 'show_stepper' => false ) );
 $r279_merged_section = jluxe_array_merge_deep( $r279_settings_defaults, $r279_old_stored_section );
@@ -8358,10 +8450,10 @@ check(
 	true === $r279_merged_section['cart_checkout']['require_address'] &&
 	true === $r279_merged_section['cart_checkout']['require_postcode_for_post'] &&
 	10 === $r279_merged_section['cart_checkout']['shipping_card_radius'] &&
-	'#EFF6FF' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#eee5ff' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&
 	'اقتصادی' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#33936e' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#4100cc' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
 	array( 'post', 'tipax', 'chapar' ) === array_keys( $r279_merged_section['cart_checkout']['shipping_methods'] ),
 	'R279 adding cart_checkout needs no schema migration: the theme defaults deep-merge missing nested settings'
 );
@@ -8375,7 +8467,7 @@ check(
 	'#AABBCC' === $r279_post_card_settings['card_background_color'] &&
 	'#DDEEFF' === $r279_post_card_settings['selected_card_background_color'] &&
 	'#334455' === $r279_post_card_settings['selected_card_border_color'] &&
-	'#2563EB' === $r279_tipax_card_settings['selected_card_border_color'] &&
+	'#5100ff' === $r279_tipax_card_settings['selected_card_border_color'] &&
 	'#FFFFFF' === jluxe_cart_checkout_shipping_method_settings( 'unknown' )['card_background_color'],
 	'R289 shipping-card presentation reads sanitized per-carrier colors and uses safe fallbacks'
 );

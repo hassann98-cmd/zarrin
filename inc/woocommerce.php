@@ -304,13 +304,13 @@ function jluxe_cart_checkout_shipping_method_settings( string $kind ): array {
 			'description' => '',
 			'note' => '',
 			'card_background_color' => '#FFFFFF',
-			'card_border_color' => '#E2E8F0',
-			'selected_card_background_color' => '#F0FDF4',
-			'selected_card_border_color' => '#16A34A',
+			'card_border_color' => '#DCCCFF',
+			'selected_card_background_color' => '#EEE5FF',
+			'selected_card_border_color' => '#5100FF',
 			'note_background_color' => '#FFFFFF',
-			'note_text_color' => '#111827',
+			'note_text_color' => '#100033',
 			'details_background_color' => '#FFFFFF',
-			'details_text_color' => '#475569',
+			'details_text_color' => '#300099',
 		);
 	}
 

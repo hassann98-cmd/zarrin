@@ -73,8 +73,8 @@ function jluxe_pwa_manifest(): array {
 	$name        = jluxe_pwa_site_name();
 	$short       = jluxe_strlen( $name ) > 12 ? jluxe_substr( $name, 0, 12 ) : $name;
 	$description = trim( wp_strip_all_tags( (string) jluxe_get_setting( 'identity.short_description', '' ) ) );
-	$background  = sanitize_hex_color( (string) jluxe_get_setting( 'colors.background', '#F7F3EE' ) ) ?: '#F7F3EE';
-	$theme_color = sanitize_hex_color( (string) apply_filters( 'jluxe_theme_color', '#F7F3EE' ) ) ?: $background;
+	$background  = sanitize_hex_color( (string) jluxe_get_setting( 'colors.background', '#eee5ff' ) ) ?: '#eee5ff';
+	$theme_color = sanitize_hex_color( (string) apply_filters( 'jluxe_theme_color', '#eee5ff' ) ) ?: $background;
 	$scope       = jluxe_pwa_home_path();
 
 	$manifest = array(
@@ -158,13 +158,13 @@ function jluxe_pwa_service_worker_js(): string {
 
 function jluxe_pwa_offline_html(): string {
 	$name       = esc_html( jluxe_pwa_site_name() );
-	$background = sanitize_hex_color( (string) jluxe_get_setting( 'colors.background', '#F7F3EE' ) ) ?: '#F7F3EE';
-	$primary    = sanitize_hex_color( (string) jluxe_get_setting( 'colors.primary', '#B85C38' ) ) ?: '#B85C38';
+	$background = sanitize_hex_color( (string) jluxe_get_setting( 'colors.background', '#eee5ff' ) ) ?: '#eee5ff';
+	$primary    = sanitize_hex_color( (string) jluxe_get_setting( 'colors.primary', '#5100ff' ) ) ?: '#5100ff';
 	return '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
 		. '<title>اتصال برقرار نیست — ' . $name . '</title><style>'
-		. 'html,body{height:100%;margin:0}body{display:grid;place-items:center;background:' . $background . ';color:#252321;font-family:IRANYekan,Vazirmatn,Tahoma,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}'
-		. 'main{max-width:340px}svg{width:56px;height:56px;color:' . $primary . '}h1{font-size:20px;margin:16px 0 8px}p{font-size:14px;line-height:1.9;color:#5f5a55;margin:0 0 20px}'
-		. 'button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:12px 28px;background:' . $primary . ';color:#fff;cursor:pointer}button:focus-visible{outline:3px solid #252321;outline-offset:3px}'
+		. 'html,body{height:100%;margin:0}body{display:grid;place-items:center;background:' . $background . ';color:#100033;font-family:IRANYekan,Vazirmatn,Tahoma,system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}'
+		. 'main{max-width:340px}svg{width:56px;height:56px;color:' . $primary . '}h1{font-size:20px;margin:16px 0 8px}p{font-size:14px;line-height:1.9;color:#4100cc;margin:0 0 20px}'
+		. 'button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:12px 28px;background:' . $primary . ';color:#fff;cursor:pointer}button:focus-visible{outline:3px solid #300099;outline-offset:3px}'
 		. '</style></head><body><main>'
 		. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.43"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>'
 		. '<h1>اتصال اینترنت برقرار نیست</h1><p>' . $name . ' بدونِ اینترنت باز نمی‌شود تا قیمت و موجودیِ نادرست نبینید. اتصال را بررسی کنید و دوباره تلاش کنید.</p>'

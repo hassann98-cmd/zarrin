@@ -61,7 +61,7 @@ test("R328 product-description photos and gallery links have no colored frame", 
   const image = declarationBlock("body.single-product .jluxe-product-description img,");
   assert.match(image, /border:\s*0;/);
   assert.match(image, /background:\s*transparent;/);
-  assert.match(image, /box-shadow:\s*0 2px 6px rgba\(20, 16, 12, 0\.06\);/);
+  assert.match(image, /box-shadow:\s*0 2px 6px rgba\(16, 0, 51, 0\.06\);/);
 
   const galleryItem = declarationBlock("body.single-product .jluxe-product-description-content .wp-block-gallery > .wp-block-image,");
   assert.match(galleryItem, /overflow:\s*visible;/, "the image's faint shadow is not clipped");
@@ -79,7 +79,7 @@ test("R328 product-description photos and gallery links have no colored frame", 
   assert.match(galleryImage, /border:\s*0;/);
   assert.match(galleryImage, /background:\s*transparent;/);
   assert.match(galleryImage, /border-radius:\s*12px;/, "the established rounded-photo styling is retained");
-  assert.match(galleryImage, /box-shadow:\s*0 2px 6px rgba\(20, 16, 12, 0\.06\);/);
+  assert.match(galleryImage, /box-shadow:\s*0 2px 6px rgba\(16, 0, 51, 0\.06\);/);
   const mobileGalleryImage = declarationBlock(galleryImageSelector, 1);
   assert.match(mobileGalleryImage, /padding:\s*0;/, "the later mobile gallery rule does not restore an image frame");
   assert.match(

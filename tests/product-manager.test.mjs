@@ -737,18 +737,18 @@ test("quick organization editor omits specialist product fields and keeps native
   assert.ok(window.document.querySelector("#jluxe-pm-native-edit").href.includes("post=101"));
 });
 
-test("product manager follows a restrained slate-and-emerald system without the rejected plum palette", () => {
-  assert.match(styles, /--pm-primary:\s*#334155;/);
-  assert.match(styles, /--pm-accent:\s*#059669;/);
-  assert.match(styles, /--pm-row-alt:\s*#f1f5f9;/);
-  assert.match(styles, /--pm-row-hover:\s*#e2e8f0;/);
-  assert.doesNotMatch(styles, /linear-gradient|#30263a|#76539a|#eee5f3/i);
+test("product manager uses the shared Electric Indigo palette without gradients or stale brand colors", () => {
+  assert.match(styles, /--pm-primary:\s*#5100FF;/);
+  assert.match(styles, /--pm-accent:\s*#7433FF;/);
+  assert.match(styles, /--pm-row-alt:\s*#EEE5FF;/);
+  assert.match(styles, /--pm-row-hover:\s*#DCCCFF;/);
+  assert.doesNotMatch(styles, /linear-gradient|#087A68|#B85C38|#2F6B52|#C2410C/i);
   assert.match(styles, /\.jluxe-pm-toggle input:checked \+ \.jluxe-pm-toggle-track/);
   assert.match(styles, /\.jluxe-pm-sale-toggle \{/);
 });
 
-test("product and variation tables share consistent, easy-to-read slate row stripes", () => {
-  assert.match(styles, /--pm-row-alt:\s*#f1f5f9;/);
+test("product and variation tables share consistent, easy-to-read Electric Indigo row stripes", () => {
+  assert.match(styles, /--pm-row-alt:\s*#EEE5FF;/);
   assert.match(styles, /\.jluxe-pm-table tbody > tr\.jluxe-pm-product-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /tr\.jluxe-pm-product-row\.is-alt > td\.jluxe-pm-stock-cell \{\s*background: var\(--pm-row-alt\) !important;/);
   assert.match(styles, /\.jluxe-pm-accordion-row\.is-alt > td \{\s*background: var\(--pm-row-alt\) !important;/);

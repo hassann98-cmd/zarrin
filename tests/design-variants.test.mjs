@@ -22,18 +22,16 @@ function contrastRatio(a, b) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-test("R354 the warm home-and-kitchen design is opt-in and visibly distinct from the rejected dark-luxury direction", () => {
-  assert.match(css, /--jluxe-home-cream:\s*#FAF5F2/i);
-  assert.match(css, /--jluxe-home-sage:\s*#E8F0E8/i);
-  assert.match(css, /--jluxe-home-primary:\s*#2F6B52/i);
-  assert.match(css, /--jluxe-home-clay:\s*#C2410C/i);
-  assert.match(css, /background-color:\s*#FAF7F1/i);
-  assert.match(css, /background-color:\s*#2F6B52/i);
-  assert.match(css, /background-color:\s*#FFFDF9/i);
-  assert.doesNotMatch(css, /#1C1917|#1B1815|#D4AF37|#D97706/i);
+test("R354 the optional home-and-kitchen variant uses the requested Electric Indigo palette without changing the default", () => {
+  assert.match(css, /--jluxe-home-primary:\s*var\(--color-electric-indigo-500\)/i);
+  assert.match(css, /--jluxe-home-clay:\s*var\(--color-electric-indigo-400\)/i);
+  assert.match(css, /--jluxe-home-cream:\s*var\(--color-electric-indigo-50\)/i);
+  assert.match(css, /background-color:\s*var\(--color-electric-indigo-500\)/i);
+  assert.match(css, /background-color:\s*#FFFFFF/i);
+  assert.doesNotMatch(css, /#2F6B52|#C2410C|#FAF7F1|#FFFDF9/i);
 
   assert.match(settings, /<option value="current"[\s\S]*?>نسخهٔ فعلی<\/option>/);
-  assert.equal((settings.match(/بازطراحی خانه و آشپزخانه — طبیعی \(اختیاری\)/g) ?? []).length, 3);
+  assert.equal((settings.match(/خانه و آشپزخانه — نیلی الکتریکی \(اختیاری\)/g) ?? []).length, 4);
   assert.match(settings, /نسخهٔ فعلی پیش‌فرض می‌ماند/);
   assert.match(settings, /رفتار WooCommerce حفظ می‌شود/);
   assert.match(settings, /SEO/);
@@ -59,9 +57,10 @@ test("R354 footer gets distinct feature, brand, link, and trust modules without 
   assert.ok(baseFooter.includes("grid-template-columns: minmax(0, 1.15fr)"));
 });
 
-test("R354 warm primary and terracotta action colors meet WCAG AA for normal white button text", () => {
-  assert.ok(contrastRatio("#2F6B52", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#C2410C", "#FFFFFF") >= 4.5);
+test("R354 Electric Indigo primary and action colors meet WCAG AA for normal white button text", () => {
+  assert.ok(contrastRatio("#5100FF", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#7433FF", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#4100CC", "#FFFFFF") >= 4.5);
 });
 
 test("R354 optional effects stay scoped and include focus, low-power, and reduced-motion fallbacks", () => {
@@ -75,7 +74,7 @@ test("R354 optional effects stay scoped and include focus, low-power, and reduce
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
-test("R355 site-wide Canva-inspired design stays opt-in and covers the storefront without replacing content or grids", () => {
+test("R355 site-wide Electric Indigo design stays opt-in and covers the storefront without replacing content or grids", () => {
   assert.match(settingsPhp, /'visual_design'\s*=>\s*array\(\s*'variant'\s*=>\s*'current'/);
   assert.match(settingsPhp, /function jluxe_visual_design_body_classes/);
   assert.match(settingsPhp, /jluxe-design-canva-home/);
@@ -88,11 +87,11 @@ test("R355 site-wide Canva-inspired design stays opt-in and covers the storefron
   assert.match(mainJs, /\.\/styles\/sitewide-design\.css/);
 
   assert.match(sitewideCss, /body\.jluxe-design-canva-home/);
-  assert.match(sitewideCss, /--primary:\s*155 39% 30%/);
-  assert.match(sitewideCss, /--accent:\s*18 88% 40%/);
-  assert.match(sitewideCss, /#2F6B52/);
-  assert.match(sitewideCss, /#C2410C/);
-  assert.match(sitewideCss, /#FFF9F0/);
+  assert.match(sitewideCss, /--primary:\s*259\.06 100% 50%/);
+  assert.match(sitewideCss, /--accent:\s*259\.12 100% 60%/);
+  assert.match(sitewideCss, /var\(--color-electric-indigo-500\)/);
+  assert.match(sitewideCss, /var\(--color-electric-indigo-50\)/);
+  assert.doesNotMatch(sitewideCss, /#2F6B52|#C2410C|#FFF9F0/i);
   assert.match(sitewideCss, /\.jluxe-home-section/);
   assert.match(sitewideCss, /padding-inline:\s*clamp\(12px, 2vw, 24px\)/);
   assert.match(sitewideCss, /\.jluxe-home-section:nth-of-type\(4n \+ 2\)/);
@@ -104,6 +103,6 @@ test("R355 site-wide Canva-inspired design stays opt-in and covers the storefron
   assert.match(sitewideCss, /@media \(max-width: 767\.98px\)/);
   assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(sitewideCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
-  assert.ok(contrastRatio("#2F6B52", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#C2410C", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#5100FF", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#7433FF", "#FFFFFF") >= 4.5);
 });

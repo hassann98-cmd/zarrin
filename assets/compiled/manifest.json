@@ -56,7 +56,7 @@
     "src": "src/assets/fonts/IRANYekanMobileRegular.woff2"
   },
   "src/islands/AiAssistant.js": {
-    "file": "assets/AiAssistant-DReWzEaL.js",
+    "file": "assets/AiAssistant-COtrtsxA.js",
     "name": "AiAssistant",
     "src": "src/islands/AiAssistant.js",
     "isDynamicEntry": true,
@@ -97,7 +97,7 @@
     ]
   },
   "src/islands/FloatingMobileNav.js": {
-    "file": "assets/FloatingMobileNav-CDLOFVpk.js",
+    "file": "assets/FloatingMobileNav-Dk5rbrUo.js",
     "name": "FloatingMobileNav",
     "src": "src/islands/FloatingMobileNav.js",
     "isDynamicEntry": true,
@@ -169,7 +169,7 @@
     ]
   },
   "src/islands/MobileNav.js": {
-    "file": "assets/MobileNav-B9ntFF1_.js",
+    "file": "assets/MobileNav-CaGeHFDB.js",
     "name": "MobileNav",
     "src": "src/islands/MobileNav.js",
     "isDynamicEntry": true,
@@ -180,7 +180,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-C1eqmmE2.js",
+    "file": "assets/main-DeBp8U1f.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -204,7 +204,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-B-2nK6Vg.css"
+      "assets/main-4YL2yKKh.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",

@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 
 const JLUXE_STORE_CLOSURE_OPTION = 'jluxe_store_closure';
 const JLUXE_STORE_CLOSURE_DEFAULT_MESSAGE = 'ثبت سفارش موقتاً متوقف است. به‌محض فعال‌شدن دوبارهٔ فروشگاه اطلاع‌رسانی می‌کنیم. سفارش‌های قبلی همچنان قابل پیگیری هستند.';
-const JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR = '#C2410C';
+const JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR = '#5100FF';
 const JLUXE_STORE_CLOSURE_REOPEN_HOOK = 'jluxe_store_closure_auto_reopen';
 
 /** منطقهٔ زمانیِ تنظیم‌شده در وردپرس؛ زمان‌های فرم هم با همین منطقه تفسیر می‌شوند. */
@@ -39,6 +39,13 @@ function jluxe_store_closure_settings(): array {
 	$background_color = isset( $stored['background_color'] ) && is_scalar( $stored['background_color'] )
 		? sanitize_hex_color( (string) $stored['background_color'] )
 		: null;
+	// An older release may have persisted the former built-in default. Replace
+	// only that exact value; any explicitly chosen closure color remains intact.
+	if ( is_string( $background_color ) && '#C2410C' === strtoupper( $background_color ) ) {
+		$background_color           = JLUXE_STORE_CLOSURE_DEFAULT_BACKGROUND_COLOR;
+		$stored['background_color'] = $background_color;
+		update_option( JLUXE_STORE_CLOSURE_OPTION, $stored, false );
+	}
 
 	return array(
 		'closed'           => ! empty( $stored['closed'] ),

@@ -142,8 +142,8 @@ function FloatingMobileNav() {
 
   const colors = {
     background: style.background ?? "#ffffff",
-    active: style.active_color ?? "#087A68",
-    icon: style.icon_color ?? "#667085",
+    active: style.active_color ?? "#5100ff",
+    icon: style.icon_color ?? "#4100cc",
     radius: style.radius ?? "22",
   };
   const shadow =
