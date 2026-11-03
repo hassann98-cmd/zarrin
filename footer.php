@@ -11,7 +11,8 @@
 	 * portal در سه جایگاهِ data-jluxe-footer-slot می‌گذارد — هیچ جابه‌جاییِ DOM،
 	 * polling یا MutationObserver در کار نیست (پیش‌تر بود: R87 همین را پیدا کرد).
 	 */
-	if ( jluxe_should_render_site_footer() ) :
+	$jluxe_render_site_footer = jluxe_should_render_site_footer();
+	if ( $jluxe_render_site_footer ) :
 		$jluxe_footer_bg      = jluxe_footer_background_style();
 		$jluxe_footer_variant = 'premium' === jluxe_get_setting( 'footer.variant', 'current' ) ? 'premium' : 'current';
 		?>
@@ -25,9 +26,12 @@
 				</div>
 				<div data-jluxe-footer-slot="bottom"></div>
 			</div>
+			<?php jluxe_uicons_attribution(); ?>
 		</div>
 		<div data-jluxe-island="footer"></div>
 	</footer>
+	<?php else : ?>
+		<?php jluxe_uicons_attribution( true ); ?>
 	<?php endif; ?>
 
 	<?php if ( ! jluxe_is_woocommerce_account_page() && ! empty( jluxe_get_setting( 'footer.show_gradient_strip', false ) ) ) : ?>

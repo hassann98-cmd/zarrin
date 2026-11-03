@@ -13738,3 +13738,11 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
   box-shadow: none;
   transform: none;
 }
+
+/* R360: keep the legal icon credit above the fixed mobile navigation when the
+   storefront footer itself is disabled. */
+@media (max-width: 767.98px) {
+  .jluxe-uicons-attribution--standalone {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}

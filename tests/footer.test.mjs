@@ -59,6 +59,7 @@ function dom(markup, footer = {}) {
       ...footer,
     },
     social: { instagram: { enabled: true, url: "https://instagram.com/x" } },
+    iconGlyphs: { "brand-instagram": "M2 2H22V22H2Z" },
     contact: {},
     aiAssistant: {
       enabled: true,
@@ -104,6 +105,11 @@ test("R88 the island fills the server slots; the badge column stays where PHP pr
   const bottom = document.querySelector('[data-jluxe-footer-slot="bottom"]');
   assert.match(bottom.textContent, /© زرین/);
   assert.ok(bottom.querySelector('a[aria-label="اینستاگرام"]'), "icon-only social link keeps its aria-label");
+  assert.equal(
+    bottom.querySelector('a[aria-label="اینستاگرام"] svg')?.getAttribute("fill"),
+    "currentColor",
+    "Flaticon brand fallback is rendered as a CSS-colorable inline SVG",
+  );
   assert.equal(
     columns.querySelector("a.jluxe-footer-nav-link").getAttribute("href"),
     base + "order-status/",

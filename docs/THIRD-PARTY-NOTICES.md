@@ -422,3 +422,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Flaticon UIcons 3.3.1
+
+Source distribution: `@flaticon/flaticon-uicons@3.3.1` from the npm registry. The theme embeds selected outline geometry from its `regular-rounded` and `brands` fonts as normalized SVG path data in `assets/icons/flaticon-uicons.json`; no Flaticon font or remote asset is requested at runtime. This notice does not claim that the files were downloaded from the Flaticon website.
+
+The package supplies a **Flaticon License**. Its included license text describes use in commercial and personal projects, modifications/derived works, and requires attribution for free use; its full terms and restrictions remain controlling. Review the current [Flaticon terms of use](https://www.freepikcompany.com/legal?#nav-flaticon), especially before redistributing the theme or using icons in a product where they could be considered the main element. This notice is informational and is not legal advice.
+
+Required free-use credit, rendered as a visible link in `footer.php` (also when the theme footer is disabled):
+
+```html
+Uicons by <a href="https://www.flaticon.com/uicons">Flaticon</a>
+```

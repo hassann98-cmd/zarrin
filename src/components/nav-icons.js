@@ -1,4 +1,4 @@
-import { c as a } from "../lib/icons.js";
+import { c as a, r as React } from "../lib/icons.js";
 import { G as e } from "../icons/grid-2x2.js";
 import { S as t } from "../icons/shopping-cart.js";
 import { H as h } from "../icons/heart.js";
@@ -190,4 +190,49 @@ import { T as d } from "../icons/tag.js";
     grid: e,
     headphones: n,
   };
-export { s as H, L as N };
+
+function ConfigurableIcon({ name, fallback, ...props }) {
+  const glyph =
+    typeof window === "undefined"
+      ? ""
+      : window.JLuxeThemeSettings?.iconGlyphs?.[name] ?? "";
+  if (typeof glyph === "string" && glyph) {
+    return React.createElement(
+      "svg",
+      {
+        ...props,
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        stroke: "none",
+        "aria-hidden": props["aria-hidden"] ?? true,
+        focusable: "false",
+      },
+      React.createElement("path", { d: glyph, fillRule: "nonzero" }),
+    );
+  }
+  return fallback ? React.createElement(fallback, props) : null;
+}
+
+const iconWrappers = new Map();
+const configurableIcons = new Proxy(L, {
+  get(target, property, receiver) {
+    if (typeof property !== "string" || property === "") {
+      return Reflect.get(target, property, receiver);
+    }
+    if (!iconWrappers.has(property)) {
+      const fallback = Object.prototype.hasOwnProperty.call(target, property)
+        ? target[property]
+        : null;
+      const Icon = (props) =>
+        React.createElement(ConfigurableIcon, {
+          ...props,
+          name: property,
+          fallback,
+        });
+      iconWrappers.set(property, Icon);
+    }
+    return iconWrappers.get(property);
+  },
+});
+
+export { s as H, configurableIcons as N };

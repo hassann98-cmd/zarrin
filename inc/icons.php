@@ -1,37 +1,148 @@
 <?php
 /**
- * آیکون‌های حرفه‌ای زرین — مجموعهٔ SVG درون‌خطی (خطی، شبکهٔ ۲۴، ضخامت ۱.۶)
- * به سبک کتابخانه‌های روز مثل Lucide/Feather. هیچ فونت‌آیکون یا درخواست
- * خارجی‌ای در کار نیست؛ SVG مستقیم چاپ می‌شود (صفر درخواست شبکه، قابل
- * رنگ‌گیری با currentColor و مقیاس‌پذیر).
+ * کتابخانهٔ مشترک SVG زرین: UIcons گرد و برندهای Flaticon به‌صورت مسیرهای
+ * SVG درون‌خطی، همراه با fallbackهای خطیِ قدیمی. هیچ فونت یا درخواست خارجی
+ * لازم نیست؛ همهٔ آیکون‌ها با currentColor رنگ می‌گیرند.
  *
- * استفاده: jluxe_icon( 'cart', 'size-5' );  — نام نامعتبر هیچ‌چیز چاپ نمی‌کند.
+ * استفاده: jluxe_icon( 'bed', 'size-5 text-primary' ); نام نامعتبر خالی است.
+ * منبع و مجوز: assets/icons/flaticon-uicons.json و docs/THIRD-PARTY-NOTICES.md.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * چاپ یک آیکون SVG. خروجی توسط همین تابع ساخته می‌شود (نه ورودی کاربر)،
- * ولی class برای احتیاط esc می‌شود.
- */
-function jluxe_icon( string $name, string $class = 'size-5' ): void {
-	$icons = jluxe_icon_paths();
-	if ( ! isset( $icons[ $name ] ) ) {
-		return;
+/** بارگذاریِ یک‌بارهٔ مسیرهای UIcons از منبع مشترک PHP و React. */
+function jluxe_uicon_paths(): array {
+	static $paths = null;
+	if ( null !== $paths ) {
+		return $paths;
 	}
-	printf(
-		'<svg class="%1$s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">%2$s</svg>',
+
+	$paths = array();
+	$file  = dirname( __DIR__ ) . '/assets/icons/flaticon-uicons.json';
+	if ( ! is_readable( $file ) ) {
+		return $paths;
+	}
+
+	$json = file_get_contents( $file );
+	$data = is_string( $json ) ? json_decode( $json, true ) : null;
+	if ( ! is_array( $data['icons'] ?? null ) ) {
+		return $paths;
+	}
+
+	foreach ( $data['icons'] as $name => $icon ) {
+		$d = is_array( $icon ) && is_string( $icon['d'] ?? null ) ? trim( $icon['d'] ) : '';
+		if ( preg_match( '/^[a-z0-9-]+$/D', (string) $name ) && '' !== $d && preg_match( '/^[MmZzLlHhVvCcSsQqTtAaEe0-9,.+\-\s]+$/D', $d ) ) {
+			$paths[ (string) $name ] = $d;
+		}
+	}
+
+	return $paths;
+}
+
+/**
+ * فقط مسیرهایی را به React می‌فرستد که در آیلندهای عمومیِ فعلی لازم‌اند؛
+ * فایل کاملِ ۶۷ آیکون هرگز به باندل اولیهٔ JavaScript اضافه نمی‌شود.
+ */
+function jluxe_public_icon_glyphs( array $settings ): array {
+	$names = array();
+	$collect = static function ( $value ) use ( &$collect, &$names ): void {
+		if ( ! is_array( $value ) ) {
+			return;
+		}
+		if ( isset( $value['icon'] ) && is_scalar( $value['icon'] ) ) {
+			$name = sanitize_key( (string) $value['icon'] );
+			if ( '' !== $name ) {
+				$names[] = $name;
+			}
+		}
+		foreach ( $value as $child ) {
+			if ( is_array( $child ) ) {
+				$collect( $child );
+			}
+		}
+	};
+
+	foreach ( array(
+		$settings['mobile']['nav_items'] ?? array(),
+		$settings['mobile']['floating_nav_items'] ?? array(),
+		$settings['footer']['feature_cards'] ?? array(),
+		$settings['footer']['link_columns'] ?? array(),
+	) as $section ) {
+		$collect( $section );
+	}
+
+	foreach ( (array) ( $settings['social'] ?? array() ) as $network => $social ) {
+		if ( ! is_array( $social ) || empty( $social['enabled'] ) || ! empty( $social['svg'] ) ) {
+			continue;
+		}
+		$names[] = 'brand-' . sanitize_key( (string) $network );
+	}
+
+	$available = jluxe_uicon_paths();
+	$glyphs    = array();
+	foreach ( array_unique( $names ) as $name ) {
+		if ( isset( $available[ $name ] ) ) {
+			$glyphs[ $name ] = $available[ $name ];
+		}
+	}
+	return $glyphs;
+}
+
+/** ساخت SVG پُر از یک glyph معتبر؛ رنگ از color/currentColor به ارث می‌رسد. */
+function jluxe_uicon_svg_markup( string $name, string $class = 'size-5' ): string {
+	$paths = jluxe_uicon_paths();
+	if ( '' === $name || ! isset( $paths[ $name ] ) ) {
+		return '';
+	}
+
+	return sprintf(
+		'<svg class="%1$s" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" focusable="false"><path d="%2$s" fill-rule="nonzero"/></svg>',
 		esc_attr( $class ),
-		$icons[ $name ] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- مسیرهای ثابت همین فایل.
+		esc_attr( $paths[ $name ] )
 	);
+}
+
+/** ساخت SVG عمومی؛ مسیرهای موجودِ قدیمی را حفظ و بقیه را از UIcons تکمیل می‌کند. */
+function jluxe_icon_svg_markup( string $name, string $class = 'size-5', float $stroke_width = 1.6 ): string {
+	$icons = jluxe_icon_paths();
+	if ( '' !== $name && isset( $icons[ $name ] ) ) {
+		return sprintf(
+			'<svg class="%1$s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="%2$s" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">%3$s</svg>',
+			esc_attr( $class ),
+			esc_attr( rtrim( rtrim( number_format( max( 0.5, min( 4.0, $stroke_width ) ), 2, '.', '' ), '0' ), '.' ) ),
+			$icons[ $name ] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- مسیرهای ثابت همین فایل.
+		);
+	}
+
+	return jluxe_uicon_svg_markup( $name, $class );
+}
+
+/** چاپ یک آیکون UIcon فقط در صورت معتبر بودن نام. */
+function jluxe_uicon( string $name, string $class = 'size-5' ): void {
+	echo jluxe_uicon_svg_markup( $name, $class ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجی از glyphهای ثابت و escapeشده ساخته می‌شود.
+}
+
+/** پیوند انتسابِ لازم برای استفادهٔ رایگان از UIcons. */
+function jluxe_uicons_attribution( bool $standalone = false ): void {
+	$class = $standalone ? 'jluxe-uicons-attribution jluxe-uicons-attribution--standalone' : 'jluxe-uicons-attribution';
+	printf(
+		'<div class="%1$s" style="padding:0 .75rem .75rem;text-align:center;font-size:11px;line-height:1.5;color:hsl(var(--muted-foreground));"><a href="%2$s" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Uicons by Flaticon</a></div>',
+		esc_attr( $class ),
+		esc_url( 'https://www.flaticon.com/uicons' )
+	);
+}
+
+/** چاپ آیکون عمومی؛ شکل‌های قدیمی حفظ می‌شوند و نام‌های جدید از UIcons می‌آیند. */
+function jluxe_icon( string $name, string $class = 'size-5' ): void {
+	echo jluxe_icon_svg_markup( $name, $class ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجی از markup ثابت و escapeشده ساخته می‌شود.
 }
 
 /** نام آیکون‌های موجود (برای تست و پنل). */
 function jluxe_icon_names(): array {
-	return array_keys( jluxe_icon_paths() );
+	return array_values( array_unique( array_merge( array_keys( jluxe_uicon_paths() ), array_keys( jluxe_icon_paths() ) ) ) );
 }
 
-/** مسیرهای SVG — فقط همین فایل منبع است. */
+/** مسیرهای SVG خطیِ قدیمی؛ fallback برای نام‌هایی که در UIcons نیستند. */
 function jluxe_icon_paths(): array {
 	return array(
 		'home'          => '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',

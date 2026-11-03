@@ -1967,14 +1967,30 @@ check(preg_match('/\(max-width: 767\.98px\)\s*\{.*?:where\(a\.button, button, \[
 check(strpos($css,':where(a, button, input, select, textarea, [tabindex]):focus-visible')!==false, 'R36 keyboard focus ring is standardized');
 check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
 
-// R37: inline icon system — no network, escaped classes, graceful unknown names.
+// R360/R37: shared Flaticon UIcons are inline, currentColor-driven, bounded, and backward-compatible.
 ob_start(); jluxe_icon('cart','size-5 test'); $cart_icon=(string) ob_get_clean();
-check(strpos($cart_icon,'<svg')===0 && strpos($cart_icon,'class="size-5 test"')!==false && strpos($cart_icon,'viewBox="0 0 24 24"')!==false, 'R37 icon helper outputs inline SVG with the requested class');
+check(strpos($cart_icon,'<svg')===0 && strpos($cart_icon,'class="size-5 test"')!==false && strpos($cart_icon,'viewBox="0 0 24 24"')!==false, 'R360 icon helper outputs inline SVG with the requested class');
+check(strpos($cart_icon,'fill="none"')!==false && strpos($cart_icon,'stroke="currentColor"')!==false && strpos($cart_icon,'<path d=')!==false, 'R360 existing global line icons retain their currentColor appearance');
+ob_start(); jluxe_uicon('bed','size-5 text-emerald-700'); $bed_icon=(string) ob_get_clean();
+check(strpos($bed_icon,'class="size-5 text-emerald-700"')!==false && strpos($bed_icon,'fill-rule="nonzero"')!==false && strpos($bed_icon,'fill="currentColor"')!==false, 'R360 explicit UIcon helper supports CSS classes and currentColor');
+$nav_bed_icon = jluxe_nav_icon_svg('bed','size-4');
+$nav_cart_icon = jluxe_nav_icon_svg('cart','size-4');
+check(strpos($nav_bed_icon,'shrink-0')!==false && strpos($nav_bed_icon,'currentColor')!==false && strpos($nav_cart_icon,'fill="currentColor"')!==false && jluxe_nav_icon_svg('not-a-theme-icon')==='', 'R360 SSR navigation uses the shared Flaticon paths and rejects unknown keys');
 ob_start(); jluxe_icon('does-not-exist'); $empty_icon=(string) ob_get_clean();
 check(''===trim($empty_icon), 'R37 unknown icon names render nothing');
 ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_clean();
 check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
-check(in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=20, 'R37 curated icon set ships 20+ icons');
+$icon_option_names = array_filter(array_keys(jluxe_nav_icon_options()));
+$missing_icon_paths = array_diff($icon_option_names, array_merge(array_keys(jluxe_uicon_paths()), array_keys(jluxe_icon_paths())));
+check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===67 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
+$public_glyphs = jluxe_public_icon_glyphs(array(
+	'mobile' => array('nav_items' => array(array('icon' => 'bed')), 'floating_nav_items' => array(array('icon' => 'home'))),
+	'footer' => array('feature_cards' => array(array('icon' => 'sofa')), 'link_columns' => array(array('links' => array(array('icon' => 'gift'))))),
+	'social' => array('instagram' => array('enabled' => true, 'svg' => ''), 'telegram' => array('enabled' => true, 'svg' => '<svg>custom</svg>')),
+));
+check(array_keys($public_glyphs)===array('bed','home','sofa','gift','brand-instagram'), 'R360 React receives only active glyphs and preserves custom social SVGs');
+ob_start(); jluxe_uicons_attribution(); $icon_credit=(string) ob_get_clean();
+check(strpos($icon_credit,'Uicons by Flaticon')!==false && strpos($icon_credit,'https://www.flaticon.com/uicons')!==false, 'R360 required Flaticon attribution is rendered as a visible link');
 
 // R185: SEO/GEO entity links, safe JSON-LD, archive canonicals and truthful metadata.
 $r185_plain = jluxe_seo_plain_text('راهنما [vc_row]<strong>واقعی</strong>[/vc_row]');
@@ -2178,9 +2194,8 @@ check(
 );
 check(
 	isset( jluxe_mobile_nav_action_options()['assistant'], jluxe_mobile_nav_action_options()['categories'], jluxe_mobile_nav_action_options()['link'] ) &&
-	isset( jluxe_mobile_nav_icon_options()['menu'] ) &&
-	! isset( jluxe_nav_icon_options()['menu'] ) &&
-	false !== strpos( jluxe_nav_icon_svg( 'menu' ), '<line' ) &&
+	isset( jluxe_mobile_nav_icon_options()['menu'], jluxe_nav_icon_options()['menu'] ) &&
+	false !== strpos( jluxe_nav_icon_svg( 'menu' ), 'fill="currentColor"' ) &&
 	false !== strpos( (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' ), 'mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][action]' ),
 	'R182 admin exposes the alternate style, safe action picker, and hamburger icon'
 );

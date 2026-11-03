@@ -1131,35 +1131,80 @@ function jluxe_theme_settings_defaults(): array {
  */
 function jluxe_nav_icon_options(): array {
 	return array(
-		''              => 'بدون آیکون',
-		'home'          => 'خانه',
-		'shop'          => 'فروشگاه',
-		'tag'           => 'برچسب/تخفیف',
-		'truck'         => 'ارسال',
-		'credit-card'   => 'پرداخت',
-		'map-pin'       => 'آدرس/موقعیت',
-		'phone'         => 'تماس',
-		'mail'          => 'ایمیل',
-		'help-circle'   => 'راهنما/سوال',
-		'info'          => 'اطلاعات',
-		'package'       => 'بسته/سفارش',
-		'rotate-ccw'    => 'بازگشت کالا',
-		'shield-check'  => 'ضمانت',
-		'percent'       => 'درصد تخفیف',
-		'user'          => 'کاربر',
-		'heart'         => 'علاقه‌مندی',
-		'gift'          => 'هدیه',
-		'cart'          => 'سبد خرید',
-		'grid'          => 'دسته‌بندی‌ها',
-		'headphones'    => 'پشتیبانی',
+		''                 => 'بدون آیکون',
+		'home'             => 'خانه',
+		'shop'             => 'فروشگاه',
+		'tag'              => 'برچسب/تخفیف',
+		'truck'            => 'ارسال',
+		'credit-card'      => 'پرداخت',
+		'map-pin'          => 'آدرس/موقعیت',
+		'phone'            => 'تماس',
+		'mail'             => 'ایمیل',
+		'help-circle'      => 'راهنما/سوال',
+		'info'             => 'اطلاعات',
+		'package'          => 'بسته/سفارش',
+		'rotate-ccw'       => 'بازگشت کالا',
+		'shield-check'     => 'ضمانت',
+		'percent'          => 'درصد تخفیف',
+		'user'             => 'کاربر',
+		'heart'            => 'علاقه‌مندی',
+		'gift'             => 'هدیه',
+		'cart'             => 'سبد خرید',
+		'grid'             => 'دسته‌بندی‌ها',
+		'headphones'       => 'پشتیبانی',
+		'menu'             => 'فهرست',
+		'search'           => 'جستجو',
+		'star'             => 'ستاره/امتیاز',
+		'bed'              => 'تخت‌خواب',
+		'mattress'         => 'تشک و بالش',
+		'sofa'             => 'مبل',
+		'box'              => 'جعبه',
+		'wallet'           => 'کیف پول',
+		'receipt'          => 'رسید',
+		'calendar'         => 'تقویم',
+		'bell'             => 'اعلان',
+		'settings'         => 'تنظیمات',
+		'filter'           => 'فیلتر',
+		'list'             => 'فهرست خطی',
+		'camera'           => 'دوربین',
+		'edit'             => 'ویرایش',
+		'share'            => 'اشتراک‌گذاری',
+		'upload'           => 'بارگذاری',
+		'download'         => 'دانلود',
+		'external-link'    => 'پیوند خارجی',
+		'check-circle'     => 'تأیید',
+		'comment'          => 'دیدگاه',
+		'clock'            => 'زمان',
+		'eye'              => 'مشاهده',
+		'eye-off'          => 'پنهان‌سازی',
+		'lock'             => 'قفل',
+		'refresh'          => 'تازه‌سازی',
+		'arrow-left'       => 'پیکان چپ',
+		'arrow-right'      => 'پیکان راست',
+		'chevron-down'     => 'بازشدن رو به پایین',
+		'chevron-left'     => 'بازشدن رو به چپ',
+		'chevron-right'    => 'بازشدن رو به راست',
+		'close'            => 'بستن',
+		'plus'             => 'افزودن',
+		'minus'            => 'کاهش',
+		'badge-percent'    => 'نشان تخفیف',
+		'brand-instagram'  => 'برند: اینستاگرام',
+		'brand-telegram'   => 'برند: تلگرام',
+		'brand-whatsapp'   => 'برند: واتس‌اپ',
+		'brand-youtube'    => 'برند: یوتیوب',
+		'brand-facebook'   => 'برند: فیسبوک',
+		'brand-linkedin'   => 'برند: لینکدین',
+		'brand-pinterest'  => 'برند: پینترست',
+		'brand-twitter'    => 'برند: توییتر',
+		'brand-google'     => 'برند: گوگل',
+		'brand-apple'      => 'برند: اپل',
+		'brand-visa'       => 'برند: ویزا',
 	);
 }
 
-/** مجموعهٔ آیکونِ نوار شناور؛ «فهرست» فقط در همین گزینه به مجموعهٔ عمومی افزوده می‌شود. */
+/** همان کتابخانهٔ عمومی؛ برای نوار شناور هم همهٔ گزینه‌های آیکون معتبرند. */
 function jluxe_mobile_nav_icon_options(): array {
-	$icons          = jluxe_nav_icon_options();
-	$icons['menu']  = 'فهرست';
-	return $icons;
+	return jluxe_nav_icon_options();
 }
 
 /** عملکردهای امن و محدودِ قابل‌اتصال به دکمه‌های نوار شناور موبایل. */
@@ -1211,37 +1256,17 @@ function jluxe_mobile_nav_action_options(): array {
  * نباشه رشته‌ی خالی برمی‌گرده (یعنی هیچ آیکونی چاپ نشه، نه یک آیکون شکسته).
  */
 function jluxe_nav_icon_svg( string $name, string $class = 'size-4' ): string {
-	static $paths = array(
-		'home'         => '<path d="m3 9 9-7 9 7"/><path d="M9 22V12h6v10"/>',
-		'shop'         => '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
-		'tag'          => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/>',
-		'truck'        => '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
-		'credit-card'  => '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>',
-		'map-pin'      => '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
-		'phone'        => '<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.804 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
-		'mail'         => '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
-		'help-circle'  => '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
-		'info'         => '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
-		'package'      => '<path d="M12 3 4 7v10l8 4 8-4V7Z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
-		'rotate-ccw'   => '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-		'shield-check' => '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
-		'percent'      => '<line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
-		'user'         => '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-		'heart'        => '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
-		'gift'         => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/>',
-		'cart'         => '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
-		'grid'          => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
-		'menu'          => '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
-		'headphones'   => '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
-	);
-	if ( '' === $name || ! isset( $paths[ $name ] ) ) {
+	if ( '' === $name || ! array_key_exists( $name, jluxe_nav_icon_options() ) ) {
 		return '';
 	}
-	return sprintf(
-		'<svg class="%s shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>',
-		esc_attr( $class ),
-		$paths[ $name ] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static trusted markup از فهرست ثابت بالا.
-	);
+	$svg_class = trim( $class . ' shrink-0' );
+	if ( function_exists( 'jluxe_uicon_svg_markup' ) ) {
+		$uicon = jluxe_uicon_svg_markup( $name, $svg_class );
+		if ( '' !== $uicon ) {
+			return $uicon;
+		}
+	}
+	return function_exists( 'jluxe_icon_svg_markup' ) ? jluxe_icon_svg_markup( $name, $svg_class, 2.0 ) : '';
 }
 
 /**
@@ -2844,6 +2869,7 @@ function jluxe_localize_public_settings(): void {
 			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
+			'iconGlyphs'       => function_exists( 'jluxe_public_icon_glyphs' ) ? jluxe_public_icon_glyphs( $settings ) : array(),
 			'header'           => $settings['header'],
 			'footer'           => $footer,
 			'social'           => $settings['social'],

@@ -145,9 +145,9 @@ const defaultColumns = [
   },
 ];
 const socialIcons = {
-  instagram: Instagram,
-  telegram: Send,
-  whatsapp: Send,
+  instagram: navIcons["brand-instagram"],
+  telegram: navIcons["brand-telegram"],
+  whatsapp: navIcons["brand-whatsapp"],
   rubika: Send,
   bale: Send,
 };
