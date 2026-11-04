@@ -29,12 +29,7 @@ function jluxe_page_context(): string {
 	if ( function_exists( 'is_front_page' ) && is_front_page() ) {
 		return 'home';
 	}
-	if (
-		function_exists( 'jluxe_visual_builder_preview_request_mode' ) &&
-		'' !== jluxe_visual_builder_preview_request_mode() &&
-		function_exists( 'jluxe_visual_builder_get_authorized_preview_homepage' ) &&
-		null !== jluxe_visual_builder_get_authorized_preview_homepage()
-	) {
+	if ( function_exists( 'jluxe_visual_builder_preview_request_is_authorized' ) && jluxe_visual_builder_preview_request_is_authorized() ) {
 		return 'home';
 	}
 	if ( function_exists( 'is_product' ) && is_product() ) {

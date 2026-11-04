@@ -160,7 +160,7 @@ function jluxe_visual_builder_preview_request_is_authorized(): bool {
  * ممکن است برای فهرست نوشته‌های ریشه، قالبِ blog/index را انتخاب کرده باشد.
  */
 function jluxe_visual_builder_preview_template_include( $template ) {
-	if ( null === jluxe_visual_builder_get_authorized_preview_homepage() || ! function_exists( 'locate_template' ) ) {
+	if ( ! jluxe_visual_builder_preview_request_is_authorized() || ! function_exists( 'locate_template' ) ) {
 		return $template;
 	}
 
