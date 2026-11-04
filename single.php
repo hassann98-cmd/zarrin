@@ -9,13 +9,9 @@
  * توکن‌های رنگ/تایپوگرافیِ jluxe که در صفحاتِ محصول/فوتر هم استفاده
  * می‌شن) نوشته شده.
  *
- * نکته‌ی فنی: چون main-DrI8xx-i.css یک باندلِ Tailwind از پیش کامپایل‌شده
- * و قفل‌شده‌ست (نه چیزی که این‌جا بتونیم rebuild کنیم)، فقط کلاس‌هایی که
- * قبلاً واقعاً جایی توی همون CSS استفاده شدن (و پس کامپایل شدن) این‌جا
- * به‌کار رفتن. برای چیزهایی که واقعاً جدیدن (تایپوگرافیِ محتوای پست،
- * کارت‌های پستِ مرتبط، تصویرِ هیرو) یک بلوکِ <style> مجزا نوشته شده —
- * دقیقاً همون الگویی که برای jluxe-feature-grid و بخشِ نمادهای سایت هم
- * جواب داد.
+ * نکته‌ی فنی: داراییِ مشترکِ فروشگاه از src/styles/storefront.css با Vite
+ * ساخته می‌شود؛ قواعدِ مختصِ متنِ مقاله و قابِ تصویر هم به‌صورتِ scoped
+ * در همین قالب می‌آیند تا استایلِ آن‌ها به بخش‌های دیگر نشت نکند.
  */
 
 get_header();
@@ -32,10 +28,12 @@ $jluxe_reading_mins = max( 1, (int) ceil( $jluxe_word_count / 150 ) );
 
 <style>
 .jluxe-hover-primary:hover{color:hsl(var(--primary))}
-.jluxe-article-hero{aspect-ratio:16/9;background:hsl(var(--muted) / .4)}
-@media (min-width:768px){.jluxe-article-hero{aspect-ratio:21/9}}
+.jluxe-article-hero{width:min(100%,920px);max-height:420px;aspect-ratio:16/9;margin-inline:auto;overflow:hidden;border-radius:18px;background:hsl(var(--muted) / .4)}
+.jluxe-article-hero img{display:block;width:100%;height:100%;object-fit:cover}
+.jluxe-article-header,.jluxe-article-content{direction:rtl;text-align:right}
 .jluxe-article-content{color:hsl(var(--foreground))}
 .jluxe-article-content>*+*{margin-top:1.25em}
+.jluxe-article-content :is(p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption,th,td,dt,dd){direction:rtl;text-align:right!important}
 .jluxe-article-content p{line-height:1.9;font-size:.9375rem}
 .jluxe-article-content h2{font-size:1.375rem;font-weight:700;margin-top:2em}
 .jluxe-article-content h3{font-size:1.125rem;font-weight:700;margin-top:1.75em}
@@ -43,26 +41,20 @@ $jluxe_reading_mins = max( 1, (int) ceil( $jluxe_word_count / 150 ) );
 .jluxe-article-content ul,.jluxe-article-content ol{padding-inline-start:1.5em;line-height:1.9}
 .jluxe-article-content li{margin-top:.5em}
 .jluxe-article-content a{color:hsl(var(--primary));text-decoration:underline;text-underline-offset:3px}
-.jluxe-article-content table{width:100%;border-collapse:collapse;margin:1.5em 0}
-.jluxe-article-content th,.jluxe-article-content td{padding:.75em 1em;border-bottom:1px solid hsl(var(--border));text-align:start}
+.jluxe-article-content blockquote{margin-inline:0;padding-inline-start:1rem;border-inline-start:3px solid hsl(var(--primary) / .35);color:hsl(var(--text-secondary))}
+.jluxe-article-content table{width:100%;border-collapse:collapse;margin:1.5em 0;text-align:right}
+.jluxe-article-content th,.jluxe-article-content td{padding:.75em 1em;border-bottom:1px solid hsl(var(--border));text-align:right!important}
 .jluxe-article-content th{background:hsl(var(--muted) / .5);font-weight:700}
-.jluxe-article-card{box-shadow:0 12px 34px -16px rgba(0,0,0,.16)}
-/* درخواستِ کاربر: توی دسکتاپ متن‌ها وسط‌چین باشن؛ توی موبایل همون حالتِ خوانا/راست‌چینِ عادی بمونه */
-@media (min-width:768px){
-	.jluxe-article-header{text-align:center}
-	.jluxe-article-header .jluxe-article-meta{justify-content:center}
-	.jluxe-article-content{text-align:center}
-	.jluxe-article-content ul,.jluxe-article-content ol{text-align:start;display:inline-block}
-	.jluxe-article-content table{text-align:center}
-	.jluxe-article-content th,.jluxe-article-content td{text-align:center}
-}
+.jluxe-article-card{box-shadow:0 12px 34px -16px rgba(0,0,0,.16);direction:rtl}
+.jluxe-article-header .jluxe-article-meta{justify-content:flex-start}
 .jluxe-related-card{transition:box-shadow .2s ease,transform .2s ease}
 .jluxe-related-card:hover{box-shadow:0 10px 30px -12px rgba(0,0,0,.18);transform:translateY(-2px)}
 .jluxe-related-thumb{aspect-ratio:4/3;background:hsl(var(--muted) / .4)}
+@media(max-width:639px){.jluxe-article-hero{max-height:280px;border-radius:14px}}
 </style>
 
 <main id="primary" class="site-main">
-	<div class="mx-auto w-full max-w-[1296px] px-4 py-10">
+	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-10">
 
 		<?php
 		/*
@@ -73,7 +65,7 @@ $jluxe_reading_mins = max( 1, (int) ceil( $jluxe_word_count / 150 ) );
 		<nav class="mb-6 flex flex-wrap items-center gap-2 text-caption text-text-muted" aria-label="breadcrumb">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="jluxe-hover-primary transition-colors"><?php bloginfo( 'name' ); ?></a>
 			<span aria-hidden="true">/</span>
-			<a href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog' ) ); ?>" class="jluxe-hover-primary transition-colors">بلاگ</a>
+			<a href="<?php echo esc_url( function_exists( 'jluxe_blog_url' ) ? jluxe_blog_url() : home_url( '/' ) ); ?>" class="jluxe-hover-primary transition-colors">بلاگ</a>
 			<?php if ( $jluxe_cat_name ) : ?>
 				<span aria-hidden="true">/</span>
 				<a href="<?php echo esc_url( $jluxe_cat_link ); ?>" class="jluxe-hover-primary transition-colors"><?php echo esc_html( $jluxe_cat_name ); ?></a>
@@ -90,7 +82,7 @@ $jluxe_reading_mins = max( 1, (int) ceil( $jluxe_word_count / 150 ) );
 					<div class="jluxe-article-hero w-full overflow-hidden">
 						<?php
 						the_post_thumbnail(
-							'full',
+							'large',
 							array(
 								'class'   => 'size-full object-cover',
 								'alt'     => get_the_title(),

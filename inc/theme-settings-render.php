@@ -9,98 +9,180 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * پوسته‌ی مشترک همه‌ی صفحات — تب فعال منو، نوتیس ذخیره، عنوان.
+ * منوی پنل از صفحه‌های واقعی و موجودِ پوسته ساخته می‌شود؛ لینک‌ها همچنان به
+ * همان admin.php?page=... می‌روند تا nonce، مجوز و ذخیره‌سازی دست‌نخورده بماند.
+ * توضیح هر ردیف هم برای کارت‌های داشبورد و جست‌وجوی سریع استفاده می‌شود.
+ *
+ * @return array<string, array<int, array{0:string,1:string,2:string,3:string}>>
+ */
+function jluxe_settings_nav_groups(): array {
+	return array(
+		'پیشخوان' => array(
+			array( JLUXE_SETTINGS_MENU_SLUG, 'داشبورد', 'dashboard', 'نمای کلی وضعیت پوسته و دسترسی سریع به بخش‌های تنظیمات.' ),
+		),
+		'ظاهر و صفحه‌ساز' => array(
+			array( 'jluxe-identity', 'هویت سایت', 'id', 'نام فروشگاه، لوگو، فاویکون و توضیح کوتاه سایت.' ),
+			array( 'jluxe-homepage', 'صفحهٔ اصلی', 'admin-home', 'چیدمان و ترتیب بخش‌های صفحهٔ اصلی.' ),
+			array( 'jluxe-visual-builder', 'صفحه‌ساز بصری (آزمایشی)', 'layout', 'ویرایش جداگانهٔ پیش‌نویس صفحهٔ اصلی؛ انتشار فقط با تأیید صریح.' ),
+			array( 'jluxe-colors-typography', 'رنگ و تایپوگرافی', 'admin-customizer', 'رنگ‌های پوسته، تایپوگرافی و طرح‌های اختیاری.' ),
+			array( 'jluxe-header', 'هدر و منوی هدر', 'align-center', 'تنظیم اجزای هدر، منوها و رفتار دسته‌بندی‌ها.' ),
+			array( 'jluxe-announcement', 'نوار اطلاع‌رسانی', 'admin-comments', 'متن، تصویر یا پیام‌های نوار بالای هدر.' ),
+			array( 'jluxe-footer', 'فوتر', 'align-left', 'ستون‌ها، پیوندها، شبکه‌های اجتماعی و نمادهای فوتر.' ),
+			array( 'jluxe-mobile-contact', 'موبایل و تماس', 'smartphone', 'ناوبری موبایل، دکمه‌های شناور و راه‌های تماس.' ),
+		),
+		'محتوا و صفحه‌ها' => array(
+			array( 'jluxe-contact-pages', 'تماس و صفحات', 'admin-users', 'اطلاعات تماس و صفحه‌های اطلاعاتی سایت.' ),
+			array( 'jluxe-guide-pages', 'صفحات راهنما', 'welcome-learn-more', 'راهنماهای خرید، پرداخت، ارسال و پیگیری.' ),
+			array( 'jluxe-faq', 'سوالات متداول', 'editor-help', 'مدیریت پرسش‌ها و پاسخ‌های عمومی فروشگاه.' ),
+			array( 'jluxe-review-criteria', 'معیارهای دیدگاه', 'star-filled', 'تعریف معیارهای امتیازدهی در دیدگاه محصولات.' ),
+		),
+		'فروشگاه و محصولات' => array(
+			array( 'jluxe-product', 'تنظیمات محصول', 'products', 'رفتارها و نمایش‌های عمومی محصولات.' ),
+			array( 'jluxe-product-card', 'کارت محصول', 'screenoptions', 'ظاهر و اطلاعات کارت‌های محصول در فهرست‌ها.' ),
+			array( 'jluxe-product-page', 'صفحهٔ محصول', 'admin-page', 'چیدمان و اجزای صفحهٔ جزئیات محصول.' ),
+			array( 'jluxe-shop', 'فروشگاه و دسته‌بندی', 'store', 'فهرست فروشگاه، جست‌وجو و دسته‌بندی‌ها.' ),
+			array( 'jluxe-categories-page', 'صفحهٔ دسته‌بندی‌ها', 'category', 'صفحهٔ مرور دسته‌ها و زیر‌دسته‌های ووکامرس.' ),
+			array( 'jluxe-purchase-addons', 'پیشنهادهای پس از خرید', 'cart', 'خدمات و محصولات پیشنهادی در جریان افزودن به سبد.' ),
+		),
+		'سفارش و پرداخت' => array(
+			array( 'jluxe-cart-checkout', 'سبد و تسویه‌حساب', 'cart', 'تنظیمات ظاهری سبد خرید، روش‌های ارسال و تسویه‌حساب.' ),
+		),
+		'کاربران و ورود' => array(
+			array( 'jluxe-urls', 'آدرس‌های ورود و کاربر', 'admin-links', 'آدرس صفحه‌های ورود، ثبت‌نام و حساب کاربری.' ),
+			array( 'jluxe-sms', 'ورود با پیامک', 'smartphone', 'تنظیم اتصال پیامک و ورود با کد یک‌بارمصرف.' ),
+		),
+		'هوش مصنوعی و پشتیبانی' => array(
+			array( 'jluxe-ai-assistant', 'دستیار هوش مصنوعی', 'admin-site-alt3', 'دستیار خرید، پشتیبانی و اتصال به داده‌های فروشگاه.' ),
+			array( 'jluxe-ai-comments', 'دیدگاه‌ها (AI)', 'admin-comments', 'ابزارهای هوش مصنوعی برای دیدگاه‌ها و خلاصهٔ نظرها.' ),
+			array( 'jluxe-ai-tickets', 'گزارش‌های دستیار', 'feedback', 'پیگیری گزارش‌ها و درخواست‌های پشتیبانی.' ),
+		),
+		'ابزار و فنی' => array(
+			array( 'jluxe-seo', 'سئو', 'search', 'تنظیمات سئو و داده‌های قابل‌خواندن برای موتورهای جست‌وجو.' ),
+			array( 'jluxe-performance', 'عملکرد', 'performance', 'تنظیمات بهینه‌سازی و تشخیص بخش‌های سنگین.' ),
+			array( 'jluxe-custom-code', 'CSS و JavaScript سفارشی', 'editor-code', 'افزودن کدهای سفارشی با کنترل دسترسی پوسته.' ),
+			array( 'jluxe-import-export', 'درون‌ریزی و برون‌بری', 'database-export', 'پشتیبان‌گیری و انتقال تنظیمات پوسته.' ),
+			array( 'jluxe-site-diagnosis', 'تشخیص سایت', 'shield', 'بررسی صفحه‌های ضروری و وضعیت راه‌اندازی فروشگاه.' ),
+			array( 'jluxe-advanced', 'تنظیمات پیشرفته', 'admin-tools', 'تنظیمات تکمیلی و مدیریت داده‌های پوسته.' ),
+		),
+	);
+}
+
+/**
+ * پوسته‌ی مشترک همه‌ی صفحات تنظیمات — نوار ابزار و سایدبار فقط پوستهٔ بصری
+ * هستند؛ فرم‌ها و endpointهای واقعیِ هر بخش را تغییر نمی‌دهند.
  */
 function jluxe_settings_page_shell( string $title, string $current_slug, ?string $status, callable $render_form ): void {
+	$dashboard_url = admin_url( 'admin.php?page=' . JLUXE_SETTINGS_MENU_SLUG );
+	$builder_url   = admin_url( 'admin.php?page=jluxe-homepage' );
+	$theme_version = '';
+	if ( function_exists( 'wp_get_theme' ) ) {
+		$active_theme = wp_get_theme();
+		if ( is_object( $active_theme ) && method_exists( $active_theme, 'get' ) ) {
+			$theme_version = (string) $active_theme->get( 'Version' );
+		}
+	}
 	?>
-	<div class="wrap jluxe-settings" dir="rtl">
-		<h1><span class="dashicons dashicons-store"></span> <?php echo esc_html( $title ); ?></h1>
-
-		<?php if ( 'saved' === $status ) : ?>
-			<div class="notice notice-success is-dismissible"><p>✓ تنظیمات با موفقیت ذخیره شد.</p></div>
-		<?php elseif ( 'reset' === $status ) : ?>
-			<div class="notice notice-success is-dismissible"><p>✓ این بخش به حالت پیش‌فرض بازگشت.</p></div>
-		<?php elseif ( 'preset_applied' === $status ) : ?>
-			<div class="notice notice-success is-dismissible"><p>✓ پریست اعمال شد — رنگ‌ها و تایپوگرافی آپدیت شدن.</p></div>
-		<?php elseif ( 'error' === $status ) : ?>
-			<div class="notice notice-error is-dismissible"><p>✕ ذخیره انجام نشد (nonce نامعتبر — صفحه رو رفرش کن و دوباره تلاش کن).</p></div>
-		<?php endif; ?>
-
-		<div class="jluxe-settings-layout">
-			<nav class="jluxe-settings-nav">
-				<?php jluxe_render_settings_nav( $current_slug ); ?>
-			</nav>
-			<div class="jluxe-settings-content">
-				<?php $render_form(); ?>
+	<div class="wrap jluxe-settings" dir="rtl" data-jluxe-settings-app data-theme="light">
+		<header class="jluxe-settings-topbar">
+			<div class="jluxe-settings-brand-row">
+				<button type="button" class="jluxe-settings-sidebar-toggle" data-jluxe-sidebar-toggle aria-label="باز یا بسته کردن منو" aria-controls="jluxe-settings-sidebar" aria-expanded="true" title="باز یا بسته کردن منو">
+					<span class="dashicons dashicons-menu" aria-hidden="true"></span>
+				</button>
+				<a class="jluxe-settings-brand" href="<?php echo esc_url( $dashboard_url ); ?>" aria-label="زرین — پیشخوان تنظیمات">
+					<span class="jluxe-settings-brand-mark" aria-hidden="true">ز</span>
+					<span class="jluxe-settings-brand-name">زرین</span>
+					<?php if ( '' !== $theme_version ) : ?><span class="jluxe-settings-version" dir="ltr">v<?php echo esc_html( $theme_version ); ?></span><?php endif; ?>
+				</a>
 			</div>
+
+			<div class="jluxe-settings-search" role="search">
+				<label class="screen-reader-text" for="jluxe-settings-search">جست‌وجوی بخش‌های تنظیمات</label>
+				<span class="dashicons dashicons-search" aria-hidden="true"></span>
+				<input id="jluxe-settings-search" type="search" data-jluxe-settings-search autocomplete="off" placeholder="جست‌وجوی بخش‌های پنل…" aria-controls="jluxe-settings-search-results" aria-expanded="false" aria-autocomplete="list" />
+				<span class="jluxe-settings-search-shortcut" dir="ltr"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+				<div id="jluxe-settings-search-results" class="jluxe-settings-search-results" data-jluxe-search-results role="list" aria-label="نتیجه‌های جست‌وجو" hidden></div>
+			</div>
+
+			<div class="jluxe-settings-topbar-actions">
+				<a class="jluxe-settings-topbar-link jluxe-settings-builder-link" href="<?php echo esc_url( $builder_url ); ?>" title="چیدمان بخش‌های صفحهٔ اصلی">
+					<span class="dashicons dashicons-layout" aria-hidden="true"></span><span>صفحه‌ساز</span>
+				</a>
+				<a class="jluxe-settings-topbar-link jluxe-settings-view-site" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener noreferrer" title="مشاهدهٔ سایت در زبانهٔ تازه">
+					<span class="dashicons dashicons-external" aria-hidden="true"></span><span>مشاهدهٔ سایت</span>
+				</a>
+				<button type="button" class="jluxe-settings-theme-toggle" data-jluxe-theme-toggle aria-label="فعال‌کردن حالت شب" aria-pressed="false" title="حالت شب">
+					<span class="dashicons dashicons-moon" aria-hidden="true"></span><span class="jluxe-settings-theme-toggle-label">حالت شب</span>
+				</button>
+			</div>
+		</header>
+
+		<div class="jluxe-settings-app-layout">
+			<aside id="jluxe-settings-sidebar" class="jluxe-settings-sidebar" aria-label="بخش‌های پوسته">
+				<div class="jluxe-settings-sidebar-heading">
+					<strong>بخش‌های پوسته</strong>
+					<span>تنظیمات زرین</span>
+				</div>
+				<?php jluxe_render_settings_nav( $current_slug ); ?>
+			</aside>
+			<button type="button" class="jluxe-settings-sidebar-backdrop" data-jluxe-sidebar-close aria-label="بستن منو" tabindex="-1" hidden></button>
+
+			<main class="jluxe-settings-main" id="jluxe-settings-main">
+				<header class="jluxe-settings-page-heading">
+					<div>
+						<p class="jluxe-settings-eyebrow">پنل مدیریت زرین</p>
+						<h1><span class="dashicons dashicons-store" aria-hidden="true"></span><?php echo esc_html( $title ); ?></h1>
+					</div>
+					<?php if ( JLUXE_SETTINGS_MENU_SLUG !== $current_slug ) : ?>
+						<a class="jluxe-settings-back-dashboard" href="<?php echo esc_url( $dashboard_url ); ?>"><span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span>بازگشت به پیشخوان</a>
+					<?php endif; ?>
+				</header>
+
+				<?php if ( 'saved' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ تنظیمات با موفقیت ذخیره شد.</p></div>
+				<?php elseif ( 'reset' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ این بخش به حالت پیش‌فرض بازگشت.</p></div>
+				<?php elseif ( 'preset_applied' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ پریست اعمال شد — رنگ‌ها و تایپوگرافی به‌روزرسانی شدند.</p></div>
+				<?php elseif ( 'error' === $status ) : ?>
+					<div class="notice notice-error is-dismissible"><p>✕ ذخیره انجام نشد (nonce نامعتبر — صفحه را تازه کنید و دوباره تلاش کنید).</p></div>
+				<?php endif; ?>
+
+				<div class="jluxe-settings-content">
+					<?php $render_form(); ?>
+				</div>
+			</main>
 		</div>
 	</div>
 	<?php
 }
 
 /**
- * نوارِ تبِ افقیِ بالای هر صفحه‌ی تنظیمات — قبلاً یک نوار کناریِ عمودی بود که
- * کنارِ لیستِ طویلِ زیرمنوهای خودِ وردپرس تکراری به نظر می‌رسید؛ طبق درخواستِ
- * صریحِ کاربر («لیست دراز از منوی پیشخوان حذف شه، تنظیمات بصورت تب») حالا
- * تنها راهِ ناوبری بینِ بخش‌هاست — لیستِ زیرمنوهای وردپرس با
- * jluxe_hide_settings_submenus() (پایین همین فایل) از سایدبارِ پیشخوان مخفی
- * می‌شه، فقط یک آیتم («JLuxe Theme») می‌مونه. هر تب هنوز یک آدرسِ واقعیِ
- * admin.php?page=X مستقله (routeing/nonce/ذخیره‌سازیِ هر بخش دست‌نخورده)،
- * فقط الان به‌جای سایدبار به‌صورت افقی و با اسکرولِ لمسی نمایش داده می‌شه.
+ * منوی کناریِ گروه‌بندی‌شده — همهٔ پیوندها به صفحه‌های موجود در وردپرس
+ * اشاره می‌کنند و در موبایل/حالت فشرده نیز برچسب و دسترس‌پذیری حفظ می‌شود.
  */
 function jluxe_render_settings_nav( string $current_slug ): void {
-	$groups = array(
-		'شروع و هویت' => array(
-			array( JLUXE_SETTINGS_MENU_SLUG, 'داشبورد', 'dashboard' ),
-			array( 'jluxe-identity', 'هویت سایت', 'id' ),
-			array( 'jluxe-homepage', 'صفحه اصلی', 'admin-home' ),
-		),
-		'ظاهر و برند' => array(
-			array( 'jluxe-header', 'هدر و منوی هدر', 'align-center' ),
-			array( 'jluxe-footer', 'فوتر', 'align-left' ),
-			array( 'jluxe-colors-typography', 'رنگ و تایپوگرافی', 'admin-customizer' ),
-			array( 'jluxe-mobile-contact', 'موبایل و تماس', 'smartphone' ),
-		),
-		'فروشگاه' => array(
-			array( 'jluxe-product', 'محصول', 'products' ),
-			array( 'jluxe-product-card', 'کارت محصول', 'screenoptions' ),
-			array( 'jluxe-product-page', 'صفحه محصول', 'admin-page' ),
-			array( 'jluxe-shop', 'فروشگاه و دسته‌بندی', 'store' ),
-		),
-		'محتوا و ارتباط' => array(
-			array( 'jluxe-contact-pages', 'تماس و صفحات', 'admin-users' ),
-			array( 'jluxe-guide-pages', 'صفحات راهنما', 'welcome-learn-more' ),
-			array( 'jluxe-faq', 'سوالات متداول', 'editor-help' ),
-			array( 'jluxe-review-criteria', 'معیارهای دیدگاه', 'star-filled' ),
-		),
-		'ابزار و فنی' => array(
-			array( 'jluxe-sms', 'ورود با پیامک', 'smartphone' ),
-			array( 'jluxe-ai-assistant', 'دستیار هوش مصنوعی', 'admin-site-alt3' ),
-			array( 'jluxe-ai-tickets', 'گزارش‌های دستیار', 'feedback' ),
-			array( 'jluxe-seo', 'سئو', 'search' ),
-			array( 'jluxe-performance', 'عملکرد', 'performance' ),
-			array( 'jluxe-custom-code', 'CSS/JS سفارشی', 'editor-code' ),
-			array( 'jluxe-import-export', 'درون‌ریزی / برون‌بری', 'database-export' ),
-			array( 'jluxe-advanced', 'تنظیمات پیشرفته', 'admin-tools' ),
-		),
-	);
-	foreach ( $groups as $group_label => $items ) {
-		$group_active = false;
-		foreach ( $items as $item ) { if ( $item[0] === $current_slug ) { $group_active = true; break; } }
-		?>
-		<div class="jluxe-settings-nav-group<?php echo $group_active ? ' is-active' : ''; ?>">
-			<button type="button" class="jluxe-settings-nav-group-toggle" aria-expanded="<?php echo $group_active ? 'true' : 'false'; ?>">
-				<span><?php echo esc_html( $group_label ); ?></span><span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>
-			</button>
-			<div class="jluxe-settings-nav-group-items">
-				<?php foreach ( $items as $item ) : [ $slug, $label, $icon ] = $item; $url = admin_url( 'admin.php?page=' . $slug ); $active = $slug === $current_slug ? ' jluxe-settings-nav-item-active' : ''; ?>
-					<a href="<?php echo esc_url( $url ); ?>" class="jluxe-settings-nav-item<?php echo esc_attr( $active ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span><span><?php echo esc_html( $label ); ?></span></a>
-				<?php endforeach; ?>
-			</div>
-		</div>
-		<?php
-	}
+	$groups = jluxe_settings_nav_groups();
+	?>
+	<nav class="jluxe-settings-nav" aria-label="تنظیمات پوسته">
+		<?php foreach ( $groups as $group_label => $items ) : ?>
+			<section class="jluxe-settings-nav-group" data-jluxe-settings-nav-group>
+				<h2 class="jluxe-settings-nav-group-title"><?php echo esc_html( $group_label ); ?><span><?php echo esc_html( jluxe_fa_digits( (string) count( $items ) ) ); ?></span></h2>
+				<ul class="jluxe-settings-nav-list">
+					<?php foreach ( $items as $item ) : [ $slug, $label, $icon, $description ] = $item; $url = admin_url( 'admin.php?page=' . $slug ); $is_active = $slug === $current_slug; ?>
+						<li>
+							<a href="<?php echo esc_url( $url ); ?>" class="jluxe-settings-nav-item<?php echo $is_active ? ' jluxe-settings-nav-item-active' : ''; ?>" data-jluxe-settings-nav-item data-jluxe-search-label="<?php echo esc_attr( $label ); ?>" data-jluxe-search-group="<?php echo esc_attr( $group_label ); ?>" data-jluxe-search-context="<?php echo esc_attr( $description ); ?>" title="<?php echo esc_attr( $label ); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>>
+								<span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+								<span class="jluxe-settings-nav-label"><?php echo esc_html( $label ); ?></span>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endforeach; ?>
+	</nav>
+	<?php
 }
+
 function jluxe_settings_submit_button( bool $with_reset = true, string $reset_key = '' ): void {
 	?>
 	<p class="submit">
@@ -113,20 +195,22 @@ function jluxe_settings_submit_button( bool $with_reset = true, string $reset_ke
 }
 
 /** فیلد آپلود رسانه (لوگو/فاویکون/تصویر) — یک المان مینیمال، جاوااسکریپت مشترک در theme-settings-admin.js */
-function jluxe_render_media_field( string $name, int $current_id, string $empty_label ): void {
-	$field_id = 'jluxe-media-' . sanitize_key( $name );
+function jluxe_render_media_field( string $name, int $current_id, string $empty_label, string $preview_size = 'medium', string $preview_max_height = '60px', string $library_type = '' ): void {
+	$field_id    = 'jluxe-media-' . sanitize_key( $name );
+	$library_type = '' !== $library_type ? sanitize_key( $library_type ) : '';
+	$preview_url = $current_id ? wp_get_attachment_image_url( $current_id, $preview_size ) : false;
 	?>
 	<div class="jluxe-media-field">
 		<input type="hidden" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $field_id ); ?>" value="<?php echo esc_attr( $current_id ); ?>" />
 		<div class="jluxe-media-preview">
-			<?php if ( $current_id && wp_get_attachment_image_url( $current_id, 'medium' ) ) : ?>
-				<img src="<?php echo esc_url( wp_get_attachment_image_url( $current_id, 'medium' ) ); ?>" alt="" style="max-height:60px;" />
+			<?php if ( $preview_url ) : ?>
+				<img src="<?php echo esc_url( $preview_url ); ?>" alt="" style="max-height:<?php echo esc_attr( $preview_max_height ); ?>;max-width:100%;width:auto;height:auto;" />
 			<?php else : ?>
 				<span class="description"><?php echo esc_html( $empty_label ); ?></span>
 			<?php endif; ?>
 		</div>
 		<p>
-			<button type="button" class="button jluxe-media-select" data-target="<?php echo esc_attr( $field_id ); ?>" data-preview=".jluxe-media-field .jluxe-media-preview">انتخاب تصویر</button>
+			<button type="button" class="button jluxe-media-select" data-target="<?php echo esc_attr( $field_id ); ?>" data-preview=".jluxe-media-field .jluxe-media-preview" data-preview-size="<?php echo esc_attr( $preview_size ); ?>" data-preview-max-height="<?php echo esc_attr( $preview_max_height ); ?>"<?php if ( '' !== $library_type ) : ?> data-library-type="<?php echo esc_attr( $library_type ); ?>"<?php endif; ?>>انتخاب تصویر</button>
 			<button type="button" class="button jluxe-media-remove" data-target="<?php echo esc_attr( $field_id ); ?>" data-empty-label="<?php echo esc_attr( $empty_label ); ?>">حذف</button>
 		</p>
 	</div>
@@ -139,54 +223,277 @@ function jluxe_render_media_field( string $name, int $current_id, string $empty_
 function jluxe_render_dashboard_page(): void {
 	$settings = jluxe_get_theme_settings();
 	$wc_active = class_exists( 'WooCommerce' );
-	$ai_ready  = $settings['ai_assistant']['enabled'] && '' !== jluxe_get_ai_api_key();
+	$ai_ready  = ! empty( $settings['ai_assistant']['enabled'] ) && '' !== jluxe_get_ai_api_key();
+	$nav_groups = jluxe_settings_nav_groups();
 
-	jluxe_settings_page_shell( 'داشبورد زرین', JLUXE_SETTINGS_MENU_SLUG, null, function () use ( $settings, $wc_active, $ai_ready ) {
-		$statuses = array(
-			array( 'وردپرس', true, get_bloginfo( 'version' ) ),
-			array( 'ووکامرس', $wc_active, $wc_active ? WC()->version : 'غیرفعال' ),
-			array( 'لوگو', (bool) $settings['identity']['logo_id'], $settings['identity']['logo_id'] ? 'سفارشی' : 'لوگوی سایت/فقط متن' ),
-			array( 'فاویکون', (bool) $settings['identity']['favicon_id'], $settings['identity']['favicon_id'] ? 'سفارشی' : 'آیکون سایت/بدون فاویکون' ),
-			array( 'فونت IRANYekan', true, 'self-hosted، فعال' ),
-			array( 'دستیار هوش مصنوعی', $ai_ready, $ai_ready ? 'فعال' : ( $settings['ai_assistant']['enabled'] ? 'فعال ولی کلید API تنظیم نشده' : 'غیرفعال' ) ),
-			array( 'بخش‌های صفحه اصلی', count( array_filter( $settings['homepage']['sections'], fn( $s ) => $s['enabled'] ) ) > 0, count( array_filter( $settings['homepage']['sections'], fn( $s ) => $s['enabled'] ) ) . ' بخش فعال' ),
+	$wc_version = 'غیرفعال';
+	if ( $wc_active ) {
+		$wc_version = 'فعال';
+		if ( function_exists( 'WC' ) ) {
+			$woocommerce = WC();
+			if ( is_object( $woocommerce ) && isset( $woocommerce->version ) ) {
+				$wc_version = (string) $woocommerce->version;
+			}
+		}
+	}
+
+	$product_count = null;
+	if ( $wc_active && function_exists( 'wp_count_posts' ) ) {
+		$product_counts = wp_count_posts( 'product' );
+		$product_count = isset( $product_counts->publish ) ? (int) $product_counts->publish : 0;
+	}
+	$pending_comments = null;
+	if ( function_exists( 'wp_count_comments' ) ) {
+		$comment_counts = wp_count_comments();
+		$pending_comments = isset( $comment_counts->moderated ) ? (int) $comment_counts->moderated : 0;
+	}
+	$homepage_sections = isset( $settings['homepage']['sections'] ) && is_array( $settings['homepage']['sections'] )
+		? $settings['homepage']['sections']
+		: array();
+	$active_homepage_sections = count( array_filter( $homepage_sections, static fn( $section ) => ! empty( $section['enabled'] ) ) );
+
+	jluxe_settings_page_shell( 'داشبورد زرین', JLUXE_SETTINGS_MENU_SLUG, null, function () use ( $settings, $wc_active, $ai_ready, $wc_version, $product_count, $pending_comments, $active_homepage_sections, $nav_groups ) {
+		$metrics = array(
+			array( 'محصولات منتشرشده', null === $product_count ? '—' : jluxe_fa_digits( (string) $product_count ), 'products', $wc_active, null === $product_count ? 'آمار ووکامرس در دسترس نیست.' : 'محصولات منتشرشده در کاتالوگ فروشگاه.' ),
+			array( 'دیدگاه‌های در انتظار', null === $pending_comments ? '—' : jluxe_fa_digits( (string) $pending_comments ), 'admin-comments', null === $pending_comments || 0 === $pending_comments, null === $pending_comments ? 'شمارش دیدگاه‌ها در این نصب در دسترس نیست.' : 'دیدگاه‌های سایت که هنوز بررسی نشده‌اند.' ),
+			array( 'بخش‌های صفحهٔ اصلی', jluxe_fa_digits( (string) $active_homepage_sections ), 'admin-home', $active_homepage_sections > 0, 'بخش فعال از چیدمان ذخیره‌شدهٔ صفحهٔ اصلی.' ),
+			array( 'ووکامرس', $wc_active ? 'فعال' : 'غیرفعال', 'cart', $wc_active, $wc_active ? 'نسخهٔ ' . $wc_version : 'برای امکانات فروشگاهی، ووکامرس را فعال کنید.' ),
 		);
 		?>
-		<div class="jluxe-dashboard-grid">
-			<?php foreach ( $statuses as [ $label, $ok, $detail ] ) : ?>
-				<div class="jluxe-status-card <?php echo $ok ? 'is-ok' : 'is-warn'; ?>">
-					<span class="dashicons dashicons-<?php echo $ok ? 'yes-alt' : 'warning'; ?>"></span>
-					<div>
-						<strong><?php echo esc_html( $label ); ?></strong>
-						<p><?php echo esc_html( $detail ); ?></p>
-					</div>
+		<section class="jluxe-dashboard-welcome" aria-labelledby="jluxe-dashboard-welcome-title">
+			<div class="jluxe-dashboard-welcome-copy">
+				<p class="jluxe-dashboard-kicker">مدیریت فروشگاه، یک‌جا</p>
+				<h2 id="jluxe-dashboard-welcome-title">به پنل زرین خوش آمدید</h2>
+				<p>از این‌جا تنظیمات واقعی پوسته را پیدا کنید، وضعیت فروشگاه را ببینید و مستقیم به صفحه‌ساز یا مدیریت ووکامرس بروید.</p>
+				<div class="jluxe-dashboard-welcome-actions">
+					<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-homepage' ) ); ?>"><span class="dashicons dashicons-layout" aria-hidden="true"></span>تنظیم صفحهٔ اصلی</a>
+					<a class="button" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-external" aria-hidden="true"></span>مشاهدهٔ سایت</a>
+				</div>
+			</div>
+			<div class="jluxe-dashboard-welcome-mark" aria-hidden="true"><span class="dashicons dashicons-store"></span></div>
+		</section>
+
+		<section class="jluxe-dashboard-metrics" aria-label="آمار و وضعیت فعلی">
+			<?php foreach ( $metrics as [ $label, $value, $icon, $ok, $detail ] ) : ?>
+				<div class="jluxe-dashboard-metric<?php echo $ok ? ' is-ok' : ' is-warn'; ?>">
+					<span class="jluxe-dashboard-metric-icon dashicons dashicons-<?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+					<span class="jluxe-dashboard-metric-label"><?php echo esc_html( $label ); ?></span>
+					<strong><?php echo esc_html( (string) $value ); ?></strong>
+					<span class="jluxe-dashboard-metric-detail"><?php echo esc_html( $detail ); ?></span>
 				</div>
 			<?php endforeach; ?>
-		</div>
+		</section>
 
-		<?php if ( ! $settings['ai_assistant']['enabled'] ) : ?>
+		<?php if ( function_exists( 'jluxe_render_store_closure_control' ) ) { jluxe_render_store_closure_control( 'dashboard' ); } ?>
+
+		<?php if ( empty( $settings['ai_assistant']['enabled'] ) ) : ?>
 			<div class="notice notice-warning inline"><p>دستیار هوش مصنوعی غیرفعاله. از <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-ai-assistant' ) ); ?>">این‌جا</a> فعالش کن.</p></div>
+		<?php elseif ( ! $ai_ready ) : ?>
+			<div class="notice notice-warning inline"><p>دستیار فعال است، اما کلید API تنظیم نشده. <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-ai-assistant' ) ); ?>">بررسی تنظیمات دستیار</a></p></div>
 		<?php endif; ?>
-		<?php if ( ! $settings['identity']['logo_id'] ) : ?>
-			<div class="notice notice-info inline"><p>لوگوی سفارشی تنظیم نشده — از asset پیش‌فرض تم استفاده می‌شه. برای تغییر به <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-identity' ) ); ?>">هویت سایت</a> برو (فعلاً داخل صفحه‌ی هدر).</p></div>
+		<?php if ( empty( $settings['identity']['logo_id'] ) ) : ?>
+			<div class="notice notice-info inline"><p>لوگوی سفارشی تنظیم نشده — از لوگوی سایت یا حالت متنی استفاده می‌شود. <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-identity' ) ); ?>">تنظیم هویت سایت</a></p></div>
 		<?php endif; ?>
 		<?php if ( ! $wc_active ) : ?>
-			<div class="notice notice-error inline"><p>ووکامرس نصب/فعال نیست — بخش زیادی از سایت (فروشگاه، سبد، تسویه‌حساب) بدون اون کار نمی‌کنه.</p></div>
+			<div class="notice notice-error inline"><p>ووکامرس نصب/فعال نیست — بخش‌های فروشگاه، سبد و تسویه‌حساب به آن نیاز دارند.</p></div>
 		<?php endif; ?>
 
-		<h2>دسترسی سریع</h2>
-		<p>
-			<a class="button" href="<?php echo esc_url( home_url( '/' ) ); ?>" target="_blank">مشاهده‌ی سایت</a>
-			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-advanced' ) ); ?>">برون‌بری تنظیمات</a>
-			<?php if ( $wc_active ) : ?>
-				<a class="button" href="<?php echo esc_url( wc_get_cart_url() ); ?>" target="_blank">مشاهده‌ی سبد خرید</a>
-				<a class="button" href="<?php echo esc_url( wc_get_checkout_url() ); ?>" target="_blank">مشاهده‌ی تسویه‌حساب</a>
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings' ) ); ?>">تنظیمات ووکامرس</a>
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping' ) ); ?>">روش‌های ارسال</a>
-				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>">درگاه‌های پرداخت</a>
-			<?php endif; ?>
-		</p>
-		<p class="description">روش‌های ارسال، درگاه‌های پرداخت، مالیات و صفحات فروشگاه/سبد/تسویه‌حساب از تنظیمات خودِ ووکامرس خونده می‌شن — این پنل جایگزینشون نمی‌شه، فقط ظاهرشون رو استایل می‌ده.</p>
+		<section class="jluxe-dashboard-shortcuts" aria-labelledby="jluxe-dashboard-shortcuts-title">
+			<div class="jluxe-dashboard-section-heading">
+				<div><p class="jluxe-dashboard-kicker">میانبرها</p><h2 id="jluxe-dashboard-shortcuts-title">دسترسی سریع</h2></div>
+			</div>
+			<div class="jluxe-dashboard-shortcut-list">
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-advanced' ) ); ?>"><span class="dashicons dashicons-database-export" aria-hidden="true"></span><span>برون‌بری تنظیمات</span></a>
+				<?php if ( $wc_active ) : ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-store-status' ) ); ?>"><span class="dashicons dashicons-controls-play" aria-hidden="true"></span><span>وضعیت سفارش‌گیری</span></a>
+					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=shop_order' ) ); ?>"><span class="dashicons dashicons-clipboard" aria-hidden="true"></span><span>مدیریت سفارش‌ها</span></a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings' ) ); ?>"><span class="dashicons dashicons-admin-settings" aria-hidden="true"></span><span>تنظیمات ووکامرس</span></a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=shipping' ) ); ?>"><span class="dashicons dashicons-car" aria-hidden="true"></span><span>روش‌های ارسال</span></a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>"><span class="dashicons dashicons-money-alt" aria-hidden="true"></span><span>درگاه‌های پرداخت</span></a>
+					<a href="<?php echo esc_url( wc_get_cart_url() ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-cart" aria-hidden="true"></span><span>مشاهدهٔ سبد خرید</span></a>
+					<a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" target="_blank" rel="noopener noreferrer"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span><span>مشاهدهٔ تسویه‌حساب</span></a>
+				<?php endif; ?>
+			</div>
+			<p class="description">روش‌های ارسال، درگاه‌های پرداخت، مالیات و صفحات فروشگاه/سبد/تسویه‌حساب از تنظیمات خودِ ووکامرس خوانده می‌شوند؛ این پنل جایگزین آن‌ها نیست.</p>
+		</section>
+
+		<section class="jluxe-dashboard-feature-index" aria-labelledby="jluxe-dashboard-features-title">
+			<div class="jluxe-dashboard-section-heading">
+				<div><p class="jluxe-dashboard-kicker">تنظیمات موجود پوسته</p><h2 id="jluxe-dashboard-features-title">همهٔ بخش‌ها</h2></div>
+				<span class="jluxe-dashboard-section-note">برای فیلتر از جست‌وجوی بالای صفحه استفاده کنید.</span>
+			</div>
+			<?php foreach ( $nav_groups as $group_label => $items ) : if ( 'پیشخوان' === $group_label ) { continue; } ?>
+				<section class="jluxe-dashboard-feature-group" data-jluxe-settings-card-group>
+					<h3><?php echo esc_html( $group_label ); ?><span><?php echo esc_html( jluxe_fa_digits( (string) count( $items ) ) ); ?></span></h3>
+					<div class="jluxe-dashboard-feature-grid">
+						<?php foreach ( $items as [ $slug, $label, $icon, $description ] ) : ?>
+							<a class="jluxe-dashboard-feature-card" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $slug ) ); ?>" data-jluxe-settings-card data-jluxe-search-label="<?php echo esc_attr( $label ); ?>" data-jluxe-search-group="<?php echo esc_attr( $group_label ); ?>" data-jluxe-search-context="<?php echo esc_attr( $description ); ?>">
+								<span class="jluxe-dashboard-feature-icon dashicons dashicons-<?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+								<span class="jluxe-dashboard-feature-copy"><strong><?php echo esc_html( $label ); ?></strong><span><?php echo esc_html( $description ); ?></span></span>
+								<span class="dashicons dashicons-arrow-left-alt2 jluxe-dashboard-feature-arrow" aria-hidden="true"></span>
+							</a>
+						<?php endforeach; ?>
+					</div>
+				</section>
+			<?php endforeach; ?>
+		</section>
+		<?php
+	} );
+}
+
+function jluxe_render_announcement_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-announcement' );
+	$settings = jluxe_get_fresh_settings();
+	$bar      = isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] )
+		? $settings['announcement_bar']
+		: jluxe_theme_settings_defaults()['announcement_bar'];
+
+	jluxe_settings_page_shell( 'نوار اطلاع‌رسانی', 'jluxe-announcement', $status, function () use ( $bar ) {
+		$ticker_options = jluxe_announcement_ticker_options();
+		?>
+		<p class="description">این نوار بالای هدر نمایش داده می‌شود. پیش‌فرض، خود نوار هنگام اسکرول بالا نمی‌چسبد و فقط هدر ثابت می‌ماند؛ رفتار چسبندگی را از گزینهٔ زیر انتخاب کنید. تنظیمات نوار پایین موبایل تغییر نمی‌کند.</p>
+		<form method="post">
+			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row">وضعیت</th>
+					<td><label><input type="checkbox" name="announcement_bar[enabled]" value="1" <?php checked( $bar['enabled'] ); ?> /> نمایش نوار اطلاع‌رسانی در سایت</label></td>
+				</tr>
+				<tr>
+					<th scope="row">چسبندگی هنگام اسکرول</th>
+					<td>
+						<label><input type="checkbox" name="announcement_bar[sticky]" value="1" <?php checked( ! empty( $bar['sticky'] ) ); ?> /> نوار اطلاع‌رسانی هنگام اسکرول به بالای صفحه بچسبد</label>
+						<p class="description">خاموش: نوار با صفحه بالا می‌رود و فقط هدر ثابت می‌ماند. روشن: نوار زیر نوار مدیریت می‌ماند و هدر زیر آن قرار می‌گیرد.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">نوع محتوا</th>
+					<td>
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="text" <?php checked( 'text', $bar['display_mode'] ?? 'text' ); ?> /> متن ثابت</label>
+						&nbsp;&nbsp;
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="ticker" <?php checked( 'ticker', $bar['display_mode'] ?? 'text' ); ?> /> پیام‌های متحرک (جایگزین GIF)</label>
+						&nbsp;&nbsp;
+						<label><input class="jluxe-announcement-mode" type="radio" name="announcement_bar[display_mode]" value="image" <?php checked( 'image', $bar['display_mode'] ?? 'text' ); ?> /> تصویر یا GIF متحرک</label>
+						<p class="description">برای نوارِ «ارسال سریع»، حالتِ پیام‌های متحرک را انتخاب کنید تا نوشته‌ها بدون دانلودِ GIF و با حفظِ ظاهرِ بنر نمایش داده شوند.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-announcement-desktop-height">حداقل ارتفاع دسکتاپِ متن و پیام متحرک</label></th>
+					<td>
+						<input id="jluxe-announcement-desktop-height" type="number" name="announcement_bar[desktop_height_px]" min="48" max="120" step="1" value="<?php echo esc_attr( jluxe_announcement_height_px( $bar['desktop_height_px'] ?? 52, 48, 120, 52 ) ); ?>" class="small-text" /> <span>px</span>
+						<p class="description">مقدار پیش‌فرض ۵۲px است (ارتفاع قبلیِ پیام متحرک ۶۴px بود). این مقدار حداقل است؛ اگر متن چندخطی شود، نوار برای جلوگیری از بریدن محتوا بلندتر می‌شود. ارتفاع موبایل همچنان ۴۴px می‌ماند.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="text">
+					<th scope="row"><label for="jluxe-announcement-message">متن پیام</label></th>
+					<td>
+						<textarea id="jluxe-announcement-message" name="announcement_bar[message]" rows="3" maxlength="500" class="large-text" placeholder="پیام کوتاه اطلاع‌رسانی را وارد کنید"><?php echo esc_textarea( $bar['message'] ); ?></textarea>
+						<p class="description">متن به‌صورت ساده نمایش داده می‌شود؛ برای فعال‌شدن نوار، هم تیکِ نمایش را بزنید و هم متن وارد کنید.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="ticker">
+					<th scope="row">بنر پیام‌های متحرک</th>
+					<td>
+						<p>
+							<label for="jluxe-announcement-ticker-theme">رنگ‌بندی پس‌زمینه</label><br />
+							<select id="jluxe-announcement-ticker-theme" name="announcement_bar[ticker_theme]">
+								<option value="classic" <?php selected( $bar['ticker_theme'] ?? 'classic', 'classic' ); ?>>کلاسیک (فیروزه‌ای)</option>
+								<option value="info" <?php selected( $bar['ticker_theme'] ?? 'classic', 'info' ); ?>>اطلاع‌رسانی (آبی)</option>
+								<option value="warning" <?php selected( $bar['ticker_theme'] ?? 'classic', 'warning' ); ?>>هشدار (نارنجی)</option>
+								<option value="discount" <?php selected( $bar['ticker_theme'] ?? 'classic', 'discount' ); ?>>تخفیف (قرمز)</option>
+								<option value="success" <?php selected( $bar['ticker_theme'] ?? 'classic', 'success' ); ?>>موفقیت (سبز)</option>
+								<option value="custom" <?php selected( $bar['ticker_theme'] ?? 'classic', 'custom' ); ?>>سفارشی (رنگ‌های انتخاب‌شده در بخش ظاهر)</option>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-texture">بافت پس‌زمینه</label><br />
+							<select id="jluxe-announcement-ticker-texture" name="announcement_bar[ticker_texture]">
+								<?php foreach ( $ticker_options['textures'] as $texture_value => $texture_label ) : ?>
+									<option value="<?php echo esc_attr( $texture_value ); ?>" <?php selected( $bar['ticker_texture'] ?? 'waves', $texture_value ); ?>><?php echo esc_html( $texture_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p class="description">بافت به‌صورت لایه‌ای ظریف و پشت متن، جداکننده‌ها و تصویر نمایش داده می‌شود.</p>
+						<p>
+							<label for="jluxe-announcement-ticker-effect">افکت ورود و خروج پیام</label><br />
+							<select id="jluxe-announcement-ticker-effect" name="announcement_bar[ticker_effect]">
+								<?php foreach ( $ticker_options['effects'] as $effect_value => $effect_label ) : ?>
+									<option value="<?php echo esc_attr( $effect_value ); ?>" <?php selected( $bar['ticker_effect'] ?? 'vertical', $effect_value ); ?>><?php echo esc_html( $effect_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-duration">مدت نمایش کامل هر پیام</label><br />
+							<select id="jluxe-announcement-ticker-duration" name="announcement_bar[ticker_message_duration_ms]">
+								<?php foreach ( $ticker_options['display_duration_ms'] as $duration_value => $duration_label ) : ?>
+									<option value="<?php echo esc_attr( $duration_value ); ?>" <?php selected( (int) ( $bar['ticker_message_duration_ms'] ?? 2500 ), (int) $duration_value ); ?>><?php echo esc_html( $duration_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-gap">مکث بین پیام‌ها</label><br />
+							<select id="jluxe-announcement-ticker-gap" name="announcement_bar[ticker_inter_message_gap_ms]">
+								<?php foreach ( $ticker_options['inter_message_gap_ms'] as $gap_value => $gap_label ) : ?>
+									<option value="<?php echo esc_attr( $gap_value ); ?>" <?php selected( (int) ( $bar['ticker_inter_message_gap_ms'] ?? 500 ), (int) $gap_value ); ?>><?php echo esc_html( $gap_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label for="jluxe-announcement-ticker-cycle-gap">مکث پس از آخرین پیام تا شروع دور بعد</label><br />
+							<select id="jluxe-announcement-ticker-cycle-gap" name="announcement_bar[ticker_cycle_gap_ms]">
+								<?php foreach ( $ticker_options['cycle_gap_ms'] as $gap_value => $gap_label ) : ?>
+									<option value="<?php echo esc_attr( $gap_value ); ?>" <?php selected( (int) ( $bar['ticker_cycle_gap_ms'] ?? 500 ), (int) $gap_value ); ?>><?php echo esc_html( $gap_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p>
+							<label><input type="checkbox" name="announcement_bar[ticker_label_enabled]" value="1" <?php checked( ! empty( $bar['ticker_label_enabled'] ?? true ) ); ?> /> نمایش عنوان ثابت کنار پیام‌ها</label><br />
+							<label for="jluxe-announcement-ticker-label">عنوان ثابت</label><br />
+							<input id="jluxe-announcement-ticker-label" type="text" name="announcement_bar[ticker_label]" value="<?php echo esc_attr( $bar['ticker_label'] ?? 'ارسال سریع' ); ?>" class="regular-text" maxlength="80" />
+						</p>
+						<p class="description">با خاموش‌کردن عنوان ثابت، جداکنندهٔ کنار آن هم حذف می‌شود.</p>
+						<p><label for="jluxe-announcement-ticker-messages">پیام‌های چرخشی (هر پیام در یک خط)</label><br /><textarea id="jluxe-announcement-ticker-messages" name="announcement_bar[ticker_messages]" rows="4" maxlength="500" class="large-text" placeholder="هر پیام را در یک خط بنویسید"><?php echo esc_textarea( $bar['ticker_messages'] ?? "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" ); ?></textarea></p>
+						<p><label><input type="checkbox" name="announcement_bar[ticker_logo_enabled]" value="1" <?php checked( ! empty( $bar['ticker_logo_enabled'] ?? true ) ); ?> /> نمایش تصویر کنار پیام‌ها</label></p>
+						<p><strong>تصویر کنار پیام (اختیاری)</strong></p>
+						<?php jluxe_render_media_field( 'announcement_bar[ticker_logo_id]', absint( $bar['ticker_logo_id'] ?? 0 ), 'اگر انتخاب نشود، آیکون سایت استفاده می‌شود.', 'thumbnail', '56px', 'image' ); ?>
+						<p><label><input type="checkbox" name="announcement_bar[ticker_logo_frame]" value="1" <?php checked( ! empty( $bar['ticker_logo_frame'] ?? true ) ); ?> /> نمایش تصویر داخل قاب دایره‌ای</label></p>
+						<p class="description">با خاموش‌کردن قاب، تصویر بدون کادر و پس‌زمینه و با حفظ تناسب، متناسب با ارتفاع بنر کوچک می‌شود؛ می‌توانید تصویر شفافِ غیرلوگویی هم انتخاب کنید.</p>
+						<p class="description">«مدت نمایش کامل» پس از پایان ورود و پیش از شروع محوشدن محاسبه می‌شود. مکث بین پیام‌ها جدا از مکث پایان چرخه است؛ دومی فقط پس از آخرین پیام اعمال می‌شود. حرکت با CSS اجرا می‌شود و در دستگاه‌هایی که کاهش حرکت را ترجیح می‌دهند، خلاصهٔ کامل پیام‌ها ثابت نمایش داده می‌شود.</p>
+					</td>
+				</tr>
+				<tr class="jluxe-announcement-mode-panel" data-announcement-mode="image">
+					<th scope="row">تصویر / GIF</th>
+					<td>
+						<?php jluxe_render_media_field( 'announcement_bar[image_id]', absint( $bar['image_id'] ?? 0 ), 'هنوز تصویری انتخاب نشده است.', 'full', '88px', 'image' ); ?>
+						<p><label for="jluxe-announcement-image-alt">متن جایگزین (برای دسترس‌پذیری)</label><br /><input id="jluxe-announcement-image-alt" type="text" name="announcement_bar[image_alt]" value="<?php echo esc_attr( $bar['image_alt'] ?? '' ); ?>" class="regular-text" maxlength="250" /></p>
+						<p><label for="jluxe-announcement-image-desktop-height">حداکثر ارتفاع دسکتاپِ تصویر/GIF</label><br /><input id="jluxe-announcement-image-desktop-height" type="number" name="announcement_bar[image_desktop_max_height_px]" min="0" max="600" step="1" value="<?php echo esc_attr( jluxe_announcement_height_px( $bar['image_desktop_max_height_px'] ?? 0, 0, 600, 0 ) ); ?>" class="small-text" /> <span>px</span></p>
+						<p class="description">۰ یعنی اندازهٔ طبیعی فایل؛ با مقدار بزرگ‌تر، تصویر/GIF فقط متناسب کوچک می‌شود و بریده یا کشیده نمی‌شود. GIF همچنان از فایل اصلی و با همهٔ فریم‌ها نمایش داده می‌شود. قاب موبایل تغییر نمی‌کند.</p>
+						<p class="description">فقط تصویرهای کتابخانهٔ رسانه قابل انتخاب‌اند. برای حفظ انیمیشن، GIF با نشانی فایل اصلی بارگذاری می‌شود، نه thumbnail.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">پیوند اختیاری</th>
+					<td>
+						<p><label for="jluxe-announcement-link-text">متن پیوند</label><br /><input id="jluxe-announcement-link-text" type="text" name="announcement_bar[link_text]" value="<?php echo esc_attr( $bar['link_text'] ); ?>" class="regular-text" /></p>
+						<p><label for="jluxe-announcement-link-url">نشانی پیوند (مسیر داخلی یا URL با http/https)</label><br /><input id="jluxe-announcement-link-url" type="text" inputmode="url" name="announcement_bar[link_url]" value="<?php echo esc_attr( $bar['link_url'] ); ?>" class="regular-text code" dir="ltr" placeholder="/shipping/ یا https://example.com" /></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">ظاهر</th>
+					<td>
+						<label>پس‌زمینه <input type="color" name="announcement_bar[background_color]" value="<?php echo esc_attr( $bar['background_color'] ); ?>" /></label>
+						&nbsp;&nbsp;
+						<label>رنگ متن <input type="color" name="announcement_bar[text_color]" value="<?php echo esc_attr( $bar['text_color'] ); ?>" /></label>
+						<p class="description">در حالت پیام‌های متحرک، این دو رنگ با انتخاب «سفارشی» به‌کار می‌روند؛ حالت‌های آماده، رنگ متن هماهنگ و خوانا دارند.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">بستن نوار</th>
+					<td><label><input type="checkbox" name="announcement_bar[dismissible]" value="1" <?php checked( $bar['dismissible'] ); ?> /> بازدیدکننده بتواند نوار را ببندد (تا پایان نشست مرورگر)</label></td>
+				</tr>
+			</table>
+			<?php jluxe_settings_submit_button( true, 'announcement_bar' ); ?>
+		</form>
 		<?php
 	} );
 }
@@ -209,6 +516,16 @@ function jluxe_render_header_page(): void {
 			<h2>رفتار هدر</h2>
 			<table class="form-table" role="presentation">
 				<tr>
+					<th scope="row"><label for="jluxe-header-variant">طرح هدر</label></th>
+					<td>
+						<select id="jluxe-header-variant" name="header[variant]">
+							<option value="current" <?php selected( $settings['header']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+							<option value="premium" <?php selected( $settings['header']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+						</select>
+						<p class="description">ردیفِ جستجو و دکمه‌ها با نوار ناوبریِ کپسولی بازطراحی شده؛ نسخهٔ فعلی پیش‌فرض می‌ماند و لینک‌ها و تعاملات هدر حفظ می‌شوند.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">هدر چسبان</th>
 					<td><label><input type="checkbox" name="header[sticky]" value="1" <?php checked( $settings['header']['sticky'] ); ?> /> هنگام اسکرول بالای صفحه بمونه</label></td>
 				</tr>
@@ -218,6 +535,13 @@ function jluxe_render_header_page(): void {
 						<label><input type="checkbox" name="header[show_search_desktop]" value="1" <?php checked( $settings['header']['show_search_desktop'] ?? true ); ?> /> دسکتاپ</label>
 						&nbsp;&nbsp;
 						<label><input type="checkbox" name="header[show_search_mobile]" value="1" <?php checked( $settings['header']['show_search_mobile'] ?? true ); ?> /> موبایل</label>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-header-search-placeholder">متن راهنمای جستجو</label></th>
+					<td>
+						<input id="jluxe-header-search-placeholder" type="text" class="regular-text" maxlength="120" name="header[search_placeholder]" value="<?php echo esc_attr( $settings['header']['search_placeholder'] ?? 'جستجو در فروشگاه' ); ?>" />
+						<p class="description">در کادر جستجوی موبایل، دسکتاپ و پنجرهٔ جستجو نمایش داده می‌شود.</p>
 					</td>
 				</tr>
 				<tr>
@@ -256,57 +580,159 @@ function jluxe_render_header_page(): void {
  * از تبِ «هدر» (بالا) و هم مستقیم قابلِ رندر باشه.
  */
 function jluxe_render_header_nav_form_fields( array $settings ): void {
-	$items = $settings['header_nav']['items'] ?? array();
-	$icons = jluxe_nav_icon_options();
+	$items          = $settings['header_nav']['items'] ?? array();
+	$categories_menu = $settings['header_nav']['categories_mega_menu'] ?? array();
+	$icons          = jluxe_nav_icon_options();
+	$menu_choices   = jluxe_categories_mega_menu_choices();
 	?>
-	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل ویرایش نیست. آیتم‌های زیر بعد از اون، به همون ترتیب نمایش داده می‌شن. لینک رو می‌تونی مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل بدی. اگه برای یک آیتم زیرمنو تعریف کنی، خودِ آیتم هم قابل کلیکه هم روش هاور/فوکوس یک منوی کشویی باز می‌شه.</p>
-	<form method="post">
+	<p class="description">مگامنوی «دسته‌بندی‌ها» همیشه اولین آیتمه و از دسته‌های واقعی ووکامرس ساخته می‌شه — این‌جا قابل‌مرتب‌سازی یا حذف نیست. ظاهر، آیکون، مدل بازشدن و افکت‌هایش را از بخش جداگانهٔ زیر تنظیم کن. آیتم‌های قابل‌تنظیمِ بعد از آن را با دکمه‌های بالا/پایین یا کشیدن دستگیره مرتب کن؛ لینک می‌تونه مسیر داخلی (مثلاً <code>/shop/</code>) یا آدرس کامل باشه.</p>
+	<form method="post" class="jluxe-header-nav-form">
 		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
-		<?php for ( $i = 0; $i < 8; $i++ ) : $item = $items[ $i ] ?? array(); ?>
-			<div class="jluxe-hb-banner-item">
-				<strong>آیتم <?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></strong>
-				<p>
-					<label>عنوان<br />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][label]" value="<?php echo esc_attr( $item['label'] ?? '' ); ?>" class="regular-text" />
-					</label>
-				</p>
-				<p>
-					<label>لینک<br />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][url]" value="<?php echo esc_attr( $item['url'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="/shop/" />
-					</label>
-				</p>
-				<p>
-					<label>آیکون<br />
-						<select name="header_nav[items][<?php echo $i; ?>][icon]">
-							<?php foreach ( $icons as $val => $label ) : ?>
-								<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</label>
-				</p>
-				<p>
-					<label>یا کدِ SVG سفارشی (اختیاری — اگه پر بشه، به‌جای آیکونِ بالا استفاده می‌شه)<br />
-						<textarea name="header_nav[items][<?php echo $i; ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $item['svg'] ?? '' ); ?></textarea>
-					</label>
-				</p>
-				<input type="hidden" name="header_nav[items][<?php echo $i; ?>][id]" value="<?php echo esc_attr( $item['id'] ?? '' ); ?>" />
+		<p class="screen-reader-text" data-jluxe-header-nav-live aria-live="polite" aria-atomic="true"></p>
+		<h3>ظاهر و رفتار مگامنوی ثابت «دسته‌بندی‌ها»</h3>
+		<p class="description">در حالت «کلیک»، دکمهٔ فلش پنل را باز و بسته می‌کند؛ خودِ نوشته همچنان به مقصد فعلیِ دسته‌بندی‌ها می‌رود. آیکون SVG سفارشی، اگر وارد شود، جای آیکون آماده را می‌گیرد. این تنظیم‌ها به آیتم‌های مرتب‌شونده اضافه نمی‌شوند.</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-icon">آیکون نشانگر</label></th>
+				<td>
+					<select id="jluxe-categories-menu-icon" name="header_nav[categories_mega_menu][icon]">
+						<?php foreach ( $icons as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['icon'] ?? 'grid', $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">«بدون آیکون» را انتخاب کن یا SVG دلخواه را در فیلد پایین بگذار.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-icon-svg">SVG سفارشی</label></th>
+				<td><textarea id="jluxe-categories-menu-icon-svg" name="header_nav[categories_mega_menu][icon_svg]" rows="3" maxlength="20000" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot; ...&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $categories_menu['icon_svg'] ?? '' ); ?></textarea><p class="description">تگ‌ها و ویژگی‌های SVG در زمان ذخیره پاک‌سازی می‌شوند؛ اسکریپت و handlerهای رویداد پذیرفته نمی‌شوند.</p></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-open-mode">مدل بازشدن پنل</label></th>
+				<td>
+					<select id="jluxe-categories-menu-open-mode" name="header_nav[categories_mega_menu][open_mode]">
+						<?php foreach ( $menu_choices['open_mode'] as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['open_mode'] ?? 'hover', $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-trigger-effect">افکت نشانگر</label></th>
+				<td><select id="jluxe-categories-menu-trigger-effect" name="header_nav[categories_mega_menu][trigger_effect]"><?php foreach ( $menu_choices['trigger_effect'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['trigger_effect'] ?? 'lift', $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-panel-effect">افکت بازشدن پنل</label></th>
+				<td><select id="jluxe-categories-menu-panel-effect" name="header_nav[categories_mega_menu][panel_effect]"><?php foreach ( $menu_choices['panel_effect'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $categories_menu['panel_effect'] ?? 'fade', $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-categories-menu-duration">سرعت انیمیشن</label></th>
+				<td><select id="jluxe-categories-menu-duration" name="header_nav[categories_mega_menu][duration_ms]"><?php foreach ( $menu_choices['duration_ms'] as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( (int) ( $categories_menu['duration_ms'] ?? 180 ), (int) $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><p class="description">با فعال‌بودن تنظیم «کاهش حرکت» در دستگاه بازدیدکننده، انیمیشن‌ها خودکار خاموش می‌شوند.</p></td>
+			</tr>
+		</table>
+		<h4>رنگ‌های نشانگر</h4>
+		<table class="form-table" role="presentation">
+			<?php foreach ( array(
+				'text_color'             => 'متن نشانگر',
+				'background_color'       => 'پس‌زمینهٔ عادی',
+				'border_color'           => 'کادر عادی',
+				'icon_background_color'  => 'پس‌زمینهٔ آیکون',
+				'icon_color'             => 'رنگ آیکون',
+				'hover_background_color' => 'پس‌زمینه هنگام تعامل',
+				'hover_text_color'       => 'متن هنگام تعامل',
+				'accent_color'           => 'رنگ تأکیدی فلش/فوکوس',
+			) as $key => $label ) : ?>
+				<tr><th scope="row"><label for="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th><td><input id="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>" type="color" name="header_nav[categories_mega_menu][<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $categories_menu[ $key ] ?? '#FFFFFF' ); ?>" /></td></tr>
+			<?php endforeach; ?>
+		</table>
+		<h4>رنگ‌های پنل زیرمنو</h4>
+		<table class="form-table" role="presentation">
+			<?php foreach ( array(
+				'panel_background_color' => 'پس‌زمینهٔ پنل',
+				'panel_border_color'     => 'کادر پنل',
+				'panel_text_color'       => 'متنِ دستهٔ انتخاب‌شده',
+				'panel_accent_color'     => 'رنگِ انتخاب/تأکید در پنل',
+			) as $key => $label ) : ?>
+				<tr><th scope="row"><label for="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th><td><input id="jluxe-categories-menu-<?php echo esc_attr( $key ); ?>" type="color" name="header_nav[categories_mega_menu][<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $categories_menu[ $key ] ?? '#FFFFFF' ); ?>" /></td></tr>
+			<?php endforeach; ?>
+		</table>
+		<hr />
+		<h3>آیتم‌های قابل‌مرتب‌سازیِ منوی هدر</h3>
+		<div id="jluxe-header-nav-items" class="jluxe-header-nav-list" role="list" aria-label="آیتم‌های قابل‌تنظیمِ منوی هدر">
+		<?php for ( $i = 0; $i < 8; $i++ ) :
+			$item       = $items[ $i ] ?? array();
+			$item_label = isset( $item['label'] ) && is_scalar( $item['label'] ) ? trim( (string) $item['label'] ) : '';
+		?>
+			<div class="jluxe-header-nav-item" role="listitem">
+				<details class="jluxe-header-nav-item__accordion">
+					<summary class="jluxe-header-nav-item__summary">
+						<span class="jluxe-header-nav-item__summary-title">
+							<strong class="jluxe-header-nav-item__number">آیتم <?php echo esc_html( jluxe_fa_digits( $i + 1 ) ); ?></strong>
+							<span class="jluxe-header-nav-item__title" data-jluxe-header-nav-title><?php echo '' !== $item_label ? esc_html( $item_label ) : 'بدون عنوان'; ?></span>
+						</span>
+						<span class="jluxe-header-nav-item__summary-hint">برای ویرایش باز کنید</span>
+					</summary>
+					<div class="jluxe-header-nav-item__body">
+						<div class="jluxe-header-nav-item__fields">
+							<p>
+								<label>عنوان<br />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][label]" value="<?php echo esc_attr( $item['label'] ?? '' ); ?>" class="regular-text jluxe-header-nav-item__label" data-jluxe-header-nav-label />
+								</label>
+							</p>
+							<p>
+								<label>لینک<br />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][url]" value="<?php echo esc_attr( $item['url'] ?? '' ); ?>" class="regular-text" dir="ltr" placeholder="/shop/" />
+								</label>
+							</p>
+							<p>
+								<label>آیکون<br />
+									<select name="header_nav[items][<?php echo $i; ?>][icon]">
+										<?php foreach ( $icons as $val => $label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</label>
+							</p>
+							<p>
+								<label>یا کدِ SVG سفارشی (اختیاری — اگه پر بشه، به‌جای آیکونِ بالا استفاده می‌شه)<br />
+									<textarea name="header_nav[items][<?php echo $i; ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg viewBox=&quot;0 0 24 24&quot;&gt;...&lt;/svg&gt;"><?php echo esc_textarea( $item['svg'] ?? '' ); ?></textarea>
+								</label>
+							</p>
+							<input type="hidden" name="header_nav[items][<?php echo $i; ?>][id]" value="<?php echo esc_attr( $item['id'] ?? '' ); ?>" />
+						</div>
 
-				<p class="description">زیرمنو (اختیاری — هر زیرمنوی بدون عنوان نادیده گرفته می‌شه):</p>
-				<?php for ( $c = 0; $c < 5; $c++ ) : $child = $item['children'][ $c ] ?? array(); ?>
-					<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][label]" value="<?php echo esc_attr( $child['label'] ?? '' ); ?>" placeholder="عنوان زیرمنو <?php echo esc_attr( jluxe_fa_digits( $c + 1 ) ); ?>" class="regular-text" />
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][url]" value="<?php echo esc_attr( $child['url'] ?? '' ); ?>" placeholder="/لینک/" class="regular-text" dir="ltr" />
-						<select name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][icon]">
-							<?php foreach ( $icons as $val => $label ) : ?>
-								<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $child['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][svg]" value="<?php echo esc_attr( $child['svg'] ?? '' ); ?>" placeholder="کدِ SVG سفارشی (اختیاری)" class="regular-text code" dir="ltr" />
+						<p class="description">زیرمنو (اختیاری — هر زیرمنوی بدون عنوان نادیده گرفته می‌شه):</p>
+						<div class="jluxe-header-nav-item__children">
+							<?php for ( $c = 0; $c < 5; $c++ ) : $child = $item['children'][ $c ] ?? array(); ?>
+								<div class="jluxe-header-nav-child">
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][label]" value="<?php echo esc_attr( $child['label'] ?? '' ); ?>" placeholder="عنوان زیرمنو <?php echo esc_attr( jluxe_fa_digits( $c + 1 ) ); ?>" class="regular-text" />
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][url]" value="<?php echo esc_attr( $child['url'] ?? '' ); ?>" placeholder="/لینک/" class="regular-text" dir="ltr" />
+									<select name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][icon]">
+										<?php foreach ( $icons as $val => $label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $child['icon'] ?? '', $val ); ?>><?php echo esc_html( $label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<input type="text" name="header_nav[items][<?php echo $i; ?>][children][<?php echo $c; ?>][svg]" value="<?php echo esc_attr( $child['svg'] ?? '' ); ?>" placeholder="کدِ SVG سفارشی (اختیاری)" class="regular-text code" dir="ltr" />
+								</div>
+							<?php endfor; ?>
+						</div>
 					</div>
-				<?php endfor; ?>
+				</details>
+				<div class="jluxe-header-nav-item__controls" role="group" aria-label="کنترل ترتیب آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>">
+					<button type="button" class="jluxe-header-nav-item__drag" title="برای کشیدن و جابه‌جایی آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>" aria-label="دستگیرهٔ جابه‌جایی آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>">
+						<span class="dashicons dashicons-move" aria-hidden="true"></span>
+					</button>
+					<button type="button" class="jluxe-header-nav-item__move-up" title="انتقال به بالا" aria-label="انتقال آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?> به بالا"<?php echo 0 === $i ? ' disabled="disabled"' : ''; ?>>
+						<span aria-hidden="true">↑</span>
+					</button>
+					<button type="button" class="jluxe-header-nav-item__move-down" title="انتقال به پایین" aria-label="انتقال آیتم <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?> به پایین"<?php echo 7 === $i ? ' disabled="disabled"' : ''; ?>>
+						<span aria-hidden="true">↓</span>
+					</button>
+				</div>
 			</div>
 		<?php endfor; ?>
+		</div>
 
 		<?php jluxe_settings_submit_button( false ); ?>
 	</form>
@@ -362,11 +788,11 @@ function jluxe_render_urls_page(): void {
 	$urls = $settings['urls'] ?? array();
 	jluxe_settings_page_shell( 'آدرس‌های ورود و کاربر', 'jluxe-urls', $status, function () use ( $urls ) {
 		$fields = array(
-			'login' => array( 'آدرس صفحه ورود به سایت', '/sign', 'آدرس صفحه ورود به سایت (پیش‌فرض: /sign)' ),
-			'dashboard' => array( 'آدرس صفحه داشبورد پنل کاربری', '/account', 'آدرس صفحه داشبورد پنل کاربری (پیش‌فرض: /account)' ),
-			'orders' => array( 'آدرس صفحه سفارش‌های کاربر', '/account?tab=orders', 'آدرس صفحه سفارش‌های کاربر (پیش‌فرض: /account?tab=orders)' ),
+			'login' => array( 'آدرس صفحه ورود به سایت', jluxe_route_url( 'login' ), 'خالی = صفحهٔ حساب کاربری واقعی ووکامرس.' ),
+			'dashboard' => array( 'آدرس صفحه داشبورد پنل کاربری', jluxe_route_url( 'dashboard' ), 'خالی = داشبورد واقعی ووکامرس؛ مسیر نسبی از ریشهٔ همین نصب سایت محاسبه می‌شود.' ),
+			'orders' => array( 'آدرس صفحه سفارش‌های کاربر', jluxe_route_url( 'orders' ), 'خالی = مسیر سفارش‌های واقعی ووکامرس.' ),
 			'track_order' => array( 'آدرس صفحه پیگیری سفارش', '/track-order', 'آدرس صفحه پیگیری سفارش (پیش‌فرض: /track-order)' ),
-			'thankyou_orders' => array( 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید', '/account?tab=orders', 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید (پیش‌فرض: /account?tab=orders)' ),
+			'thankyou_orders' => array( 'آدرس مشاهده سفارش‌ها در صفحه تشکر از خرید', jluxe_route_url( 'thankyou_orders' ), 'خالی = سفارش‌های کاربر واردشده، یا پیگیری سفارش برای مهمان.' ),
 		); ?>
 		<form method="post"><?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?><table class="form-table" role="presentation">
 		<?php foreach ( $fields as $key => $field ) : ?><tr><th scope="row"><label for="jluxe-url-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field[0] ); ?></label></th><td><div class="custom-url-field"><input type="text" id="jluxe-url-<?php echo esc_attr( $key ); ?>" name="urls[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $urls[ $key ] ?? $field[1] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( $field[1] ); ?>" dir="ltr"><p class="description"><?php echo esc_html( $field[2] ); ?></p></div></td></tr><?php endforeach; ?>
@@ -387,7 +813,7 @@ function jluxe_render_trust_badge_item_fields( int $index, array $badge ): void 
 	if ( '' === trim( $html ) && ! empty( $badge['image_id'] ) ) {
 		$image_url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 		if ( $image_url ) {
-			$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد سایت" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+			$img = '<img src="' . esc_url( $image_url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
 			$html = ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img;
 		}
 	}
@@ -452,6 +878,16 @@ function jluxe_render_footer_page(): void {
 					<td><label><input type="checkbox" name="footer[enabled]" value="1" <?php checked( $settings['footer']['enabled'] ); ?> /> فوتر در سایت نمایش داده بشه</label></td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="jluxe-footer-variant">طرح فوتر</label></th>
+					<td>
+						<select id="jluxe-footer-variant" name="footer[variant]">
+							<option value="current" <?php selected( $settings['footer']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+							<option value="premium" <?php selected( $settings['footer']['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+						</select>
+						<p class="description">ساختار چندبخشیِ تازه با نوار مزیت، پنل معرفی و پشتیبانی، کارت‌های لینک و نمادها؛ چیدمان واکنش‌گرا حفظ می‌شود و نسخهٔ فعلی پیش‌فرض می‌ماند.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">نوار رنگیِ تزئینی زیر فوتر</th>
 					<td>
 						<label><input type="checkbox" name="footer[show_gradient_strip]" value="1" <?php checked( $settings['footer']['show_gradient_strip'] ); ?> /> یک نوار گرادیانِ نازک (بر پایه‌ی رنگ اصلی/ثانویه) زیر فوتر نشون بده</label>
@@ -462,13 +898,26 @@ function jluxe_render_footer_page(): void {
 
 			<h3>پس‌زمینه‌ی فوتر</h3>
 			<?php
-			$jluxe_bg          = $settings['footer']['background'];
-			$jluxe_bg_presets  = array( '#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3' );
-			// چند طیفِ گرادیانِ آماده — طبقِ درخواستِ کاربر («چنت طیفِ مناسب
-			// برای فوتر به‌صورتِ گرادیانت»). هرکدوم دو رنگه (ساده‌ترین و
-			// خوانا‌ترین حالتِ گرادیانِ پس‌زمینه)؛ کلیک روی هرکدوم همزمان
-			// gradient_colors[0]/[1] رو پر می‌کنه و mode رو خودکار رو
-			// «گرادیانت» می‌ذاره (assets/js/theme-settings-admin.js).
+			$jluxe_bg            = $settings['footer']['background'];
+			$jluxe_palette       = jluxe_electric_indigo_palette();
+			$jluxe_royal_palette = jluxe_royal_orchid_palette();
+			$jluxe_dodger_palette = jluxe_dodger_blue_palette();
+			// گزینه‌های قبلی و Royal Orchid دست‌نخورده‌اند؛ برای پس‌زمینهٔ فوترِ
+			// Dodger Blue فقط shadeهای 600 و تیره‌تر افزوده می‌شوند تا متن سفید
+			// پیش‌فرض حداقل کنتراست AA را حفظ کند.
+			$jluxe_bg_presets  = array(
+				'#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3',
+				$jluxe_palette['900'], $jluxe_palette['800'], $jluxe_palette['700'], $jluxe_palette['600'],
+				$jluxe_palette['500'], $jluxe_palette['400'], $jluxe_palette['300'], $jluxe_palette['50'],
+				$jluxe_royal_palette['950'], $jluxe_royal_palette['900'], $jluxe_royal_palette['800'],
+				$jluxe_royal_palette['700'], $jluxe_royal_palette['600'], $jluxe_royal_palette['500'],
+				$jluxe_royal_palette['400'], $jluxe_royal_palette['300'], $jluxe_royal_palette['200'],
+				$jluxe_royal_palette['100'], $jluxe_royal_palette['50'],
+				$jluxe_dodger_palette['950'], $jluxe_dodger_palette['900'], $jluxe_dodger_palette['800'],
+				$jluxe_dodger_palette['700'], $jluxe_dodger_palette['600'],
+			);
+			// گرادیان‌های قبلی دست‌نخورده‌اند؛ نمونهٔ Dodger Blue هم دو shade تیره
+			// دارد تا رنگ متن روشن روی تمام طولِ نوار خوانا بماند.
 			$jluxe_gradient_presets = array(
 				array( 'label' => 'آبی نیمه‌شب', 'colors' => array( '#0F172A', '#1E3A5F' ) ),
 				array( 'label' => 'بنفش رویایی', 'colors' => array( '#2D1B4E', '#6B21A8' ) ),
@@ -476,6 +925,11 @@ function jluxe_render_footer_page(): void {
 				array( 'label' => 'طلاییِ گرم', 'colors' => array( '#451A03', '#92400E' ) ),
 				array( 'label' => 'خاکستریِ شیک', 'colors' => array( '#18181B', '#3F3F46' ) ),
 				array( 'label' => 'یاقوتیِ تیره', 'colors' => array( '#4C0519', '#881337' ) ),
+				array( 'label' => 'نیلی الکتریکی', 'colors' => array( $jluxe_palette['500'], $jluxe_palette['700'] ) ),
+				array( 'label' => 'نیلی روشن', 'colors' => array( $jluxe_palette['300'], $jluxe_palette['500'] ) ),
+				array( 'label' => 'Royal Orchid', 'colors' => array( $jluxe_royal_palette['600'], $jluxe_royal_palette['800'] ) ),
+				array( 'label' => 'ارکید روشن', 'colors' => array( $jluxe_royal_palette['400'], $jluxe_royal_palette['700'] ) ),
+				array( 'label' => 'Dodger Blue تیره', 'colors' => array( $jluxe_dodger_palette['700'], $jluxe_dodger_palette['900'] ) ),
 			);
 			$jluxe_bg_dirs     = array(
 				'to top'          => 'از پایین به بالا',
@@ -546,7 +1000,7 @@ function jluxe_render_footer_page(): void {
 									type="button"
 									class="jluxe-gradient-preset-swatch"
 									data-jluxe-fill-gradient="<?php echo esc_attr( implode( ',', $jluxe_gp['colors'] ) ); ?>"
-									style="background:linear-gradient(135deg, <?php echo esc_attr( implode( ', ', $jluxe_gp['colors'] ) ); ?>);width:60px;height:34px;border-radius:8px;border:1px solid #dcdcde;cursor:pointer;"
+									style="background:linear-gradient(135deg, <?php echo esc_attr( implode( ', ', $jluxe_gp['colors'] ) ); ?>);width:60px;height:34px;border-radius:8px;border:1px solid var(--jluxe-admin-border);cursor:pointer;"
 									title="<?php echo esc_attr( $jluxe_gp['label'] ); ?>"
 								></button>
 							<?php endforeach; ?>
@@ -572,28 +1026,44 @@ function jluxe_render_footer_page(): void {
 					<th scope="row">رنگ متن فوتر</th>
 					<td>
 						<input type="text" name="footer[text_color]" value="<?php echo esc_attr( $settings['footer']['text_color'] ); ?>" class="jluxe-color-field" />
-						<p class="description">عنوان کارت‌های مزیت، توضیح کوتاه، ساعات پشتیبانی، عنوان ستون‌های لینک، کپی‌رایت.</p>
+						<p class="description">متن معرفی برند، عنوان و توضیح کارت‌های مزیت، ساعات و متن پشتیبانی، عنوان ستون‌های لینک و کپی‌رایت.</p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row">رنگ لینک‌ها</th>
-					<td><input type="text" name="footer[link_color]" value="<?php echo esc_attr( $settings['footer']['link_color'] ); ?>" class="jluxe-color-field" /></td>
+					<td>
+						<input type="text" name="footer[link_color]" value="<?php echo esc_attr( $settings['footer']['link_color'] ); ?>" class="jluxe-color-field" />
+						<p class="description">رنگ لینک‌های ستون‌ها، شماره‌های تماس و شبکه‌های اجتماعی.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row">رنگ لینک‌ها (هاور/انتخاب)</th>
-					<td><input type="text" name="footer[link_hover_color]" value="<?php echo esc_attr( $settings['footer']['link_hover_color'] ); ?>" class="jluxe-color-field" /></td>
+					<td>
+						<input type="text" name="footer[link_hover_color]" value="<?php echo esc_attr( $settings['footer']['link_hover_color'] ); ?>" class="jluxe-color-field" />
+						<p class="description">برای هاور، فوکوس صفحه‌کلید و فعال‌سازی لینک.</p>
+					</td>
 				</tr>
 			</table>
 
 			<table class="form-table" role="presentation">
 				<tr>
+					<th scope="row"><label for="jluxe-footer-brand-description">معرفی برند در فوتر</label></th>
+					<td>
+						<textarea id="jluxe-footer-brand-description" name="footer[brand_description]" rows="4" class="large-text"><?php echo esc_textarea( $settings['footer']['brand_description'] ?? '' ); ?></textarea>
+						<p class="description">این متن فقط در فوتر نمایش داده می‌شود و با توضیح کوتاه هویت سایت و متادیتای سئو یکی نیست.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-support-hours">ساعات پشتیبانی</label></th>
-					<td><input type="text" id="jluxe-support-hours" name="footer[support_hours]" value="<?php echo esc_attr( $settings['footer']['support_hours'] ); ?>" class="regular-text" /></td>
+					<td>
+						<input type="text" id="jluxe-support-hours" name="footer[support_hours]" value="<?php echo esc_attr( $settings['footer']['support_hours'] ); ?>" class="regular-text" />
+						<p class="description">این متن توضیحیِ فوتر است. برای تعیین روزها/ساعت‌هایی که شمارهٔ فوتر تماس مستقیم می‌گیرد، <a href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-ai-assistant#jluxe-phone-hours-settings' ) ); ?>">برنامهٔ پاسخگویی تلفنی</a> را در تنظیمات دستیار هوشمند فعال کنید؛ بیرون از آن زمان‌ها، کلیک روی شماره به‌جای تماس، راه‌های آنلاینِ فعال را نشان می‌دهد.</p>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="jluxe-support-text">متن پشتیبانی متنی</label></th>
 					<td>
-						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="مثلاً پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله" />
+						<input type="text" id="jluxe-support-text" name="footer[support_text]" value="<?php echo esc_attr( $settings['footer']['support_text'] ?? '' ); ?>" class="large-text" placeholder="فقط راه‌های پشتیبانیِ فعال و تأییدشده را بنویسید" />
 						<p class="description">این متن در خط «پشتیبانی متنی» فوتر نمایش داده می‌شود.</p>
 					</td>
 				</tr>
@@ -643,7 +1113,7 @@ function jluxe_render_footer_page(): void {
 					<option value="1" <?php selected( $settings['footer']['feature_cards_mobile_columns'], 1 ); ?>>۱ ستونه (هر مزیت یک ردیف کامل)</option>
 					<option value="2" <?php selected( $settings['footer']['feature_cards_mobile_columns'], 2 ); ?>>۲ ستونه</option>
 				</select>
-				— در دسکتاپ همیشه هر ۴ مزیت در یک ردیف نمایش داده می‌شن.
+				— طرح پیشنهادیِ موبایل دو ستونه است؛ در دسکتاپ هر ۴ مزیت در یک ردیف نمایش داده می‌شن.
 			</p>
 
 			<h3>ستون‌های لینک فوتر</h3>
@@ -655,7 +1125,7 @@ function jluxe_render_footer_page(): void {
 				$jluxe_col      = $jluxe_link_columns[ $jluxe_col_i ] ?? array();
 				$jluxe_col_name = "footer[link_columns][{$jluxe_col_i}]";
 				?>
-				<div style="border:1px solid #dcdcde;border-radius:6px;padding:12px;margin-bottom:12px;">
+				<div style="border:1px solid var(--jluxe-admin-border);border-radius:6px;padding:12px;margin-bottom:12px;">
 					<p>
 						<label>عنوان ستون <?php echo esc_html( jluxe_fa_digits( $jluxe_col_i + 1 ) ); ?><br />
 							<input type="text" name="<?php echo esc_attr( $jluxe_col_name ); ?>[title]" value="<?php echo esc_attr( $jluxe_col['title'] ?? '' ); ?>" class="regular-text" placeholder="مثلاً راهنما" />
@@ -677,7 +1147,7 @@ function jluxe_render_footer_page(): void {
 				<tr>
 					<th scope="row">عنوانِ بخشِ نمادها</th>
 					<td>
-						<input type="text" name="footer[trust_badges_title]" class="regular-text" value="<?php echo esc_attr( $settings['footer']['trust_badges_title'] ?? 'نمادهای سایت' ); ?>" />
+						<input type="text" name="footer[trust_badges_title]" class="regular-text" value="<?php echo esc_attr( $settings['footer']['trust_badges_title'] ?? 'نمادهای اعتماد' ); ?>" />
 						<p class="description">متنی که بالای نمادهای سایت (اینماد، ساماندهی و ...) در فوتر نشون داده می‌شه.</p>
 					</td>
 				</tr>
@@ -732,7 +1202,7 @@ function jluxe_render_colors_typography_page(): void {
 
 	jluxe_settings_page_shell( 'رنگ و تایپوگرافی', 'jluxe-colors-typography', $status, function () use ( $settings ) {
 		$color_labels = array(
-			'primary'    => array( 'رنگ اصلی', 'دکمه‌های اصلی، افزودن به سبد، ثبت سفارش.' ),
+			'primary'    => array( 'رنگ اصلی', 'همهٔ دکمه‌های عمومی، افزودن به سبد، ثبت سفارش و CTAهای storefront.' ),
 			'secondary'  => array( 'رنگ ثانویه', 'لینک‌ها و عناصر کم‌اهمیت‌تر.' ),
 			'background' => array( 'پس‌زمینه', 'پس‌زمینه‌ی کلی صفحات.' ),
 			'success'    => array( 'رنگ موفقیت', 'وضعیت موجود/تکمیل‌شده.' ),
@@ -769,6 +1239,33 @@ function jluxe_render_colors_typography_page(): void {
 			</div>
 		</details>
 
+		<details class="jluxe-hb-section-details" open>
+			<summary class="jluxe-hb-section-head">
+				<span class="dashicons dashicons-admin-customizer"></span>
+				<strong class="jluxe-hb-type-label">طراحی یکپارچهٔ کل سایت</strong>
+				<span class="dashicons dashicons-arrow-down-alt2 jluxe-hb-chevron" aria-hidden="true"></span>
+			</summary>
+			<div class="jluxe-hb-section-body">
+				<form method="post">
+					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+					<p class="description">یک ظاهر کامل و اختیاری برای صفحهٔ اصلی و فروشگاه، شامل هدر، فوتر، کارت‌های محصول، دکمه‌ها، فرم‌ها و کادرها. فقط لایهٔ بصری تغییر می‌کند؛ محتوای واقعی PHP/WooCommerce، سئو و تعامل‌ها حفظ می‌شوند. «نسخهٔ فعلی» پیش‌فرض است و انتخاب‌های جداگانهٔ هدر/فوتر/کارت محصول هم باقی می‌مانند.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="jluxe-visual-design-variant">سبک کلی فروشگاه</label></th>
+							<td>
+								<select id="jluxe-visual-design-variant" name="visual_design[variant]">
+									<option value="current" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی سایت (پیش‌فرض)</option>
+									<option value="canva_home" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'canva_home' ); ?>>خانهٔ رنگی و خانگی — الهام‌گرفته از Canva</option>
+								</select>
+								<p class="description">در طراحی خانهٔ رنگی، پالت سبز، کرم و سفالی با کارت‌های نرم و فاصله‌گذاری یکپارچه به‌کار می‌رود. تا وقتی این طرح روشن است، پالت اختصاصی آن اولویت دارد؛ رنگ‌های ذخیره‌شده حذف نمی‌شوند و با بازگشت به «نسخهٔ فعلی» دوباره اعمال می‌شوند. این طرح در Canva ساخته نشده و از فایل یا قالب اختصاصی Canva استفاده نمی‌کند.</p>
+							</td>
+						</tr>
+					</table>
+					<?php jluxe_settings_submit_button( true, 'visual_design' ); ?>
+				</form>
+			</div>
+		</details>
+
 		<details class="jluxe-hb-section-details">
 			<summary class="jluxe-hb-section-head">
 				<span class="dashicons dashicons-admin-customizer"></span>
@@ -778,7 +1275,7 @@ function jluxe_render_colors_typography_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">این ۵ رنگ کل سیستم رنگی سایت رو کنترل می‌کنن؛ حالت‌های hover/active و رنگ متن روی هرکدوم خودکار (بر اساس محاسبه‌ی واقعی کنتراست WCAG) تولید می‌شن. تغییرات روی هدر، فوتر، دکمه‌ها، صفحه‌ی محصول، سبد و تسویه‌حساب یکجا اعمال می‌شه (توکن مشترک).</p>
+					<p class="description">این ۵ رنگ کل سیستم storefront را کنترل می‌کنند؛ دکمه‌های عمومی، افزودن به سبد، ثبت سفارش، CTA، صفحهٔ محصول، کارت محصول و اجزای اصلی هدر/فوتر از توکن‌های مشترک استفاده می‌کنند. hover/active و رنگ متن به‌صورت خودکار با محاسبهٔ کنتراست WCAG ساخته می‌شود. اگر برای ناوبری موبایل، مگامنوی دسته‌بندی‌ها یا فوتر رنگ جداگانه‌ای وارد کرده باشید، همان تنظیم اختصاصی اولویت دارد. بعد از اعمال هر پریست، همهٔ پنج رنگ دستی قابل‌ویرایش‌اند.</p>
 					<table class="form-table" role="presentation">
 						<?php foreach ( $color_labels as $key => [ $label, $desc ] ) : ?>
 							<tr>
@@ -869,6 +1366,16 @@ function jluxe_render_product_page(): void {
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<table class="form-table" role="presentation">
 						<tr>
+							<th scope="row"><label for="jluxe-product-card-variant">طرح کارت محصول</label></th>
+							<td>
+								<select id="jluxe-product-card-variant" name="product_card[variant]">
+									<option value="current" <?php selected( $pc['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی</option>
+									<option value="premium" <?php selected( $pc['variant'] ?? 'current', 'premium' ); ?>>بازطراحی خانه و آشپزخانه — طبیعی (اختیاری)</option>
+								</select>
+								<p class="description">کارتِ دو‌سطحیِ تصویر و اطلاعات، رتبه‌بندیِ قیمت و CTA گرد؛ نسخهٔ فعلی پیش‌فرض می‌ماند و نام، قیمت، SEO و رفتار WooCommerce حفظ می‌شود.</p>
+							</td>
+						</tr>
+						<tr>
 							<th scope="row">نسبت تصویر</th>
 							<td>
 								<label><input type="radio" name="product_card[image_ratio]" value="square" <?php checked( $pc['image_ratio'], 'square' ); ?> /> مربع (۱:۱)</label>
@@ -913,7 +1420,7 @@ function jluxe_render_product_page(): void {
 							<th scope="row">رنگ قیمت</th>
 							<td>
 								<input type="hidden" name="product_card[price_color]" id="jluxe-price-color-value" value="<?php echo esc_attr( $pc['price_color'] ); ?>" />
-								<input type="color" id="jluxe-price-color-picker" value="<?php echo esc_attr( $pc['price_color'] ?: '#18181b' ); ?>" />
+								<input type="color" id="jluxe-price-color-picker" value="<?php echo esc_attr( $pc['price_color'] ?: '#1F2937' ); ?>" />
 								<label><input type="checkbox" id="jluxe-price-color-default" <?php checked( '' === $pc['price_color'] ); ?> /> استفاده از رنگ پیش‌فرض متن</label>
 								<p class="description">اگه «رنگ پیش‌فرض» تیک بخوره، قیمت با رنگ استاندارد متن سایت نمایش داده می‌شه؛ در غیر این صورت همیشه با رنگ انتخاب‌شده.</p>
 								<script>
@@ -936,7 +1443,7 @@ function jluxe_render_product_page(): void {
 							<th scope="row">رنگ نقطه‌ی «موجود است»</th>
 							<td>
 								<input type="text" name="product_card[in_stock_color]" value="<?php echo esc_attr( $pc['in_stock_color'] ); ?>" class="jluxe-color-field" />
-								<p class="description">نقطه‌ی کوچکِ سبز روی عکس، وقتی محصول تخفیف یا بج ناموجود نداره.</p>
+								<p class="description">خالی بگذارید تا از رنگِ semantic موفقیتِ پوسته استفاده شود؛ رنگِ انتخابی فقط همین نقطه را override می‌کند.</p>
 							</td>
 						</tr>
 					</table>
@@ -955,6 +1462,8 @@ function jluxe_render_product_page(): void {
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<p class="description">گالری، قیمت، انتخاب تنوع، افزودن به سبد و توضیحات همیشه واقعی و متصل به ووکامرسن (<code>woocommerce/content-single-product.php</code>) — این‌جا فقط چند تنظیم نمایشی کنترل می‌شه.</p>
+					<p class="description">تنظیمات پنجرهٔ محصولات پیشنهادی در تبِ <strong>فروشگاه ← پیشنهادهای پس از خرید</strong> است. پنجره پس از افزودن موفق به سبد باز می‌شود؛ در ویرایش هر محصول هم از «داده‌های محصول ← همگانی ← پاپ‌آپ محصولات پیشنهادی» می‌توانید آن را خاموش کنید.</p>
+					<p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=jluxe-purchase-addons' ) ); ?>">رفتن به تنظیمات پیشنهادهای پس از خرید</a></p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">چیدمانِ صفحه‌ی محصول</th>
@@ -962,7 +1471,9 @@ function jluxe_render_product_page(): void {
 								<label><input type="radio" name="product_page[layout]" value="default" <?php checked( $pp['layout'] ?? 'default', 'default' ); ?> /> پیش‌فرض (سه‌ستونه، گالریِ بزرگ)</label>
 								<br />
 								<label><input type="radio" name="product_page[layout]" value="classic" <?php checked( $pp['layout'] ?? 'default', 'classic' ); ?> /> کلاسیک (تصویر با ذره‌بین + جعبه‌ی خریدِ کناری)</label>
-								<p class="description">هردو چیدمان کاملاً به سبد/قیمت/تنوعِ واقعیِ ووکامرس وصلن — فقط ظاهر فرق می‌کنه.</p>
+								<br />
+								<label><input type="radio" name="product_page[layout]" value="reference" <?php checked( $pp['layout'] ?? 'default', 'reference' ); ?> /> طرح سوم (گالری، ویژگی‌ها، ارسال، توضیحات و دیدگاه‌ها)</label>
+								<p class="description">هر سه چیدمان جداگانه قابل انتخاب‌اند و قیمت، موجودی، تنوع و افزودن به سبد همچنان به ووکامرس واقعی متصل است.</p>
 							</td>
 						</tr>
 					</table>
@@ -978,6 +1489,7 @@ function jluxe_render_product_page(): void {
 					</table>
 
 					<h3>رنگ‌های صفحه‌ی محصول</h3>
+					<p class="description">خالی‌بودنِ هر فیلد یعنی استفاده از توکنِ semantic (تخفیف: خطا، سود: موفقیت، ستاره: هشدارِ پرکنتراست)؛ رنگ مقدارِ ویژگیِ انتخاب‌شده هم در حالتِ خالی از رنگ اصلی پوسته پیروی می‌کند. مقدارِ انتخاب‌شدهٔ مدیر بدونِ تغییر حفظ می‌شود.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">رنگ بج/درصد تخفیف</th>
@@ -990,6 +1502,27 @@ function jluxe_render_product_page(): void {
 						<tr>
 							<th scope="row">رنگ ستاره‌ی امتیاز</th>
 							<td><input type="text" name="product_page[star_color]" value="<?php echo esc_attr( $pp['star_color'] ); ?>" class="jluxe-color-field" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ مقدار انتخاب‌شدهٔ ویژگی (مثل رنگ یا سایز)</th>
+							<td><input type="text" name="product_page[variation_label_color]" value="<?php echo esc_attr( $pp['variation_label_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#7A0F8A" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+					</table>
+
+					<h3>پیوندهای توضیحات محصول</h3>
+					<p class="description">پیوندهای متنیِ توضیحات کوتاه و بلند به‌شکل دکمه نمایش داده می‌شوند؛ پیوندِ عکس‌های گالری تغییر نمی‌کند. خالی‌بودن رنگ‌ها، استایل هماهنگ با رنگ اصلی پوسته را نگه می‌دارد.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row">پس‌زمینهٔ دکمهٔ پیوند</th>
+							<td><input type="text" name="product_page[description_link_bg_color]" value="<?php echo esc_attr( $pp['description_link_bg_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#FAE8FD" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ متن پیوند</th>
+							<td><input type="text" name="product_page[description_link_text_color]" value="<?php echo esc_attr( $pp['description_link_text_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#7A0F8A" placeholder="خالی = رنگ اصلی پوسته" /></td>
+						</tr>
+						<tr>
+							<th scope="row">رنگ کادر پیوند</th>
+							<td><input type="text" name="product_page[description_link_border_color]" value="<?php echo esc_attr( $pp['description_link_border_color'] ?? '' ); ?>" class="jluxe-color-field" data-default-color="#A313B9" placeholder="خالی = رنگ اصلی پوسته" /></td>
 						</tr>
 					</table>
 
@@ -1020,6 +1553,205 @@ function jluxe_render_product_page(): void {
 // =====================================================================
 // فروشگاه و دسته‌بندی
 // =====================================================================
+/**
+ * «اضافه خرید» — مودالِ پیشنهادِ هنگامِ افزودن به سبد، مطابقِ قالبِ مرجع.
+ * خدمات (مثل بیمه) به‌شکلِ ردیف‌های تکرارشونده مدیریت می‌شوند؛ دکمه‌های
+ * افزودن/حذفِ ردیف فقط سمتِ مرورگر DOM را می‌سازند و ذخیره‌سازی از همان
+ * dispatcher عمومی (jluxe_handle_generic_settings_save) با sanitize
+ * سخت‌گیرِ jluxe_sanitize_purchase_addons می‌گذرد.
+ */
+function jluxe_render_purchase_addons_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-purchase-addons' );
+	$settings = jluxe_get_fresh_settings();
+	$pa       = $settings['purchase_addons'];
+
+	jluxe_settings_page_shell( 'پیشنهادهای پس از خرید', 'jluxe-purchase-addons', $status, function () use ( $pa ) {
+		?>
+		<form method="post">
+		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">فعال‌سازی آیتم‌های اضافه خرید</th>
+				<td>
+					<label>
+						<input type="checkbox" name="purchase_addons[enabled]" value="1" <?php checked( $pa['enabled'] ); ?> />
+						پس از افزودن موفق به سبد، مودال باز می‌شود. اگر محصول یا خدمت پیشنهادی نداشته باشید، پیامِ نبود پیشنهاد نمایش داده می‌شود؛ در صورت غیرفعال بودن، فرایند خرید به‌صورت عادی ادامه می‌یابد.
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">بستن خودکار پنجرهٔ پیشنهادها</th>
+				<td>
+					<label>
+						<input type="checkbox" name="purchase_addons[auto_close_enabled]" value="1" <?php checked( $pa['auto_close_enabled'] ?? false ); ?> />
+						پس از زمان تعیین‌شده، پنجرهٔ پیشنهادها بسته شود
+					</label>
+					<p class="description">در حالت خاموش، پنجره فقط با انتخابِ کاربر بسته می‌شود و رفتارِ فعلی تغییر نمی‌کند.</p>
+					<label for="jluxe-pa-auto-close-seconds">زمان بازماندن پنجره (ثانیه)</label>
+					<input type="number" id="jluxe-pa-auto-close-seconds" name="purchase_addons[auto_close_seconds]" value="<?php echo esc_attr( (string) ( $pa['auto_close_seconds'] ?? 15 ) ); ?>" min="3" max="300" step="1" class="small-text" />
+					<p class="description">مقدار مجاز: ۳ تا ۳۰۰ ثانیه. پیش‌فرض ۱۵ ثانیه است؛ تا وقتی گزینهٔ بالا روشن نشود، تایمر اجرا نمی‌شود.</p>
+				</td>
+			</tr>
+		</table>
+
+		<h2>بخش‌های مودال و متن‌ها</h2>
+		<p class="description">بخش‌های غیرضروری را خاموش کنید تا مودال خلوت بماند. خدمات را می‌توانید در جدول پایین به‌صورت ردیف‌های دلخواه اضافه یا حذف کنید؛ تعداد محصولات پیشنهادی حداکثر ۴ است.</p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">بخش‌های قابل نمایش</th>
+				<td>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_main_product]" value="1" <?php checked( $pa['show_main_product'] ?? false ); ?> /> کارت محصولی که به سبد اضافه شد</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_products]" value="1" <?php checked( $pa['show_products'] ?? true ); ?> /> محصولات پیشنهادی</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_services]" value="1" <?php checked( $pa['show_services'] ?? false ); ?> /> خدمات تعریف‌شده</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_cart_summary]" value="1" <?php checked( $pa['show_cart_summary'] ?? false ); ?> /> خلاصهٔ سبد خرید</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_total]" value="1" <?php checked( $pa['show_total'] ?? true ); ?> /> مبلغ قابل پرداخت</label>
+					<label style="display:block;margin-bottom:6px"><input type="checkbox" name="purchase_addons[show_cart_link]" value="1" <?php checked( $pa['show_cart_link'] ?? false ); ?> /> دکمهٔ مشاهدهٔ سبد خرید</label>
+					<label style="display:block"><input type="checkbox" name="purchase_addons[show_continue]" value="1" <?php checked( $pa['show_continue'] ?? false ); ?> /> دکمهٔ ادامهٔ خرید</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-pa-max-products">تعداد محصولات پیشنهادی</label></th>
+				<td><input type="number" id="jluxe-pa-max-products" name="purchase_addons[max_products]" value="<?php echo esc_attr( (string) ( $pa['max_products'] ?? 4 ) ); ?>" min="1" max="4" class="small-text" /></td>
+			</tr>
+			<tr>
+				<th scope="row">متن‌های مودال</th>
+				<td>
+					<label style="display:block;margin:8px 0">عنوان مودال<br /><input type="text" name="purchase_addons[modal_title]" value="<?php echo esc_attr( $pa['modal_title'] ?? 'افزودن به سبد خرید' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان بخش محصولات<br /><input type="text" name="purchase_addons[products_heading]" value="<?php echo esc_attr( 'این محصولات را هم اضافه کنید' === ( $pa['products_heading'] ?? '' ) ? 'ممکن است این‌ها را هم لازم داشته باشید' : ( $pa['products_heading'] ?? 'ممکن است این‌ها را هم لازم داشته باشید' ) ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان بخش خدمات<br /><input type="text" name="purchase_addons[services_heading]" value="<?php echo esc_attr( $pa['services_heading'] ?? 'این خدمات را هم اضافه کنید' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن مبلغ قابل پرداخت<br /><input type="text" name="purchase_addons[total_label]" value="<?php echo esc_attr( $pa['total_label'] ?? 'مبلغ قابل پرداخت' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">دکمه هنگام انتخاب پیشنهاد<br /><input type="text" name="purchase_addons[confirm_selected_label]" value="<?php echo esc_attr( $pa['confirm_selected_label'] ?? 'افزودن انتخاب‌ها به سبد' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">دکمه بدون انتخاب پیشنهاد<br /><input type="text" name="purchase_addons[confirm_empty_label]" value="<?php echo esc_attr( $pa['confirm_empty_label'] ?? 'ادامه بدون افزودن' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">عنوان خلاصهٔ سبد<br /><input type="text" name="purchase_addons[cart_summary_label]" value="<?php echo esc_attr( $pa['cart_summary_label'] ?? 'سبد شما' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن دکمهٔ مشاهدهٔ سبد<br /><input type="text" name="purchase_addons[view_cart_label]" value="<?php echo esc_attr( $pa['view_cart_label'] ?? 'مشاهده سبد' ); ?>" class="regular-text" maxlength="100" /></label>
+					<label style="display:block;margin:8px 0">متن دکمهٔ ادامهٔ خرید<br /><input type="text" name="purchase_addons[continue_label]" value="<?php echo esc_attr( $pa['continue_label'] ?? 'ادامه خرید' ); ?>" class="regular-text" maxlength="100" /></label>
+				</td>
+			</tr>
+		</table>
+
+		<h2>منبع محصولات پیشنهادی</h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">حالت محصولات پیشنهادی</th>
+				<td>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="fixed" <?php checked( $pa['mode'], 'fixed' ); ?> />
+						ثابت (انتخاب سراسری محصولات)
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="per_product" <?php checked( $pa['mode'], 'per_product' ); ?> />
+						انتخاب در هر محصول (صفحه ویرایش محصول)
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="per_category" <?php checked( $pa['mode'], 'per_category' ); ?> />
+						انتخاب در هر دسته‌بندی
+					</label>
+					<label style="display:block;margin-bottom:8px;">
+						<input type="radio" name="purchase_addons[mode]" value="random" <?php checked( $pa['mode'], 'random' ); ?> />
+						اتفاقی بین کالاهای موجود (R72)
+					</label>
+					<p class="description">در همهٔ حالت‌ها فقط کالای واقعاً موجود پیشنهاد می‌شود (برای محصول متغیر: حداقل یک تنوعِ موجود) و کالای مخفی/پیش‌نویس هرگز. «انتخاب در هر محصول» از فیلدِ رسمیِ Cross-sells ووکامرس (ویرایش محصول ← داده‌های محصول ← محصولات پیوسته) می‌خواند و اسلات‌های خالی را با کالای موجودِ همان دسته و بعد کلِ فروشگاه پر می‌کند. «در هر دسته‌بندی» فقط از دستهٔ خودِ محصول. «اتفاقی» بین کالاهای موجودِ کلِ فروشگاه می‌چرخد.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="jluxe-pa-fixed">محصولات پیشنهادی ثابت</label></th>
+				<td>
+					<input type="text" id="jluxe-pa-fixed" name="purchase_addons[fixed_ids_csv]" value="<?php echo esc_attr( implode( '، ', $pa['fixed_ids'] ) ); ?>" class="regular-text" dir="ltr" placeholder="1024, 1028, 1041" />
+					<p class="description">شناسهٔ محصولات را با کاما جدا کنید (فقط در حالت «ثابت» استفاده می‌شود). شناسه را از ستون ID در فهرست محصولات بردارید. محصولاتِ ناموجود یا غیرقابل‌خرید به‌طورِ خودکار نمایش داده نمی‌شوند.</p>
+				</td>
+			</tr>
+		</table>
+
+		<h2>خدمات قابل افزودن</h2>
+		<p class="description">خدماتی مثل بیمه را تعریف کنید. برای هر خدمت می‌توانید محل نمایش (مودال / سبد خرید / هردو) و انتخاب خودکار را تعیین کنید. مبلغِ خدمات در سرور از همین تنظیمات خوانده می‌شود و به‌شکلِ فِی استانداردِ ووکامرس به جمعِ سفارش اضافه می‌شود.</p>
+		<table class="widefat striped" id="jluxe-pa-services">
+			<thead><tr><th>عنوان خدمت</th><th>مبلغ (واحدِ پولِ فروشگاه)</th><th>محل نمایش</th><th>انتخاب خودکار</th><th></th></tr></thead>
+			<tbody>
+			<?php if ( empty( $pa['services'] ) ) : ?>
+				<tr class="jluxe-pa-empty-row"><td colspan="5">هنوز خدمتی اضافه نشده است. روی «افزودن خدمت» بزنید.</td></tr>
+			<?php else : ?>
+				<?php foreach ( $pa['services'] as $jluxe_pa_service ) : ?>
+					<?php jluxe_pa_service_row_fields( $jluxe_pa_service ); ?>
+				<?php endforeach; ?>
+			<?php endif; ?>
+			</tbody>
+		</table>
+		<p>
+			<button type="button" class="button" id="jluxe-pa-add-service">+ افزودن خدمت</button>
+		</p>
+		<p class="submit">
+			<button type="submit" class="button button-primary">ذخیرهٔ تغییرات</button>
+		</p>
+		</form>
+		<template id="jluxe-pa-service-template"><?php jluxe_pa_service_row_fields( null ); ?></template>
+		<script>
+		( function () {
+			var tbody = document.querySelector( '#jluxe-pa-services tbody' );
+			var tpl = document.getElementById( 'jluxe-pa-service-template' );
+			var nextIndex = tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length;
+			function refreshEmpty() {
+				var empty = tbody.querySelector( '.jluxe-pa-empty-row' );
+				if ( empty && tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length ) { empty.remove(); }
+				if ( ! empty && ! tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length ) {
+					var tr = document.createElement( 'tr' );
+					tr.className = 'jluxe-pa-empty-row';
+					tr.innerHTML = '<td colspan="5">هنوز خدمتی اضافه نشده است. روی «افزودن خدمت» بزنید.</td>';
+					tbody.appendChild( tr );
+				}
+			}
+			document.getElementById( 'jluxe-pa-add-service' ).addEventListener( 'click', function () {
+				if ( tbody.querySelectorAll( 'tr:not(.jluxe-pa-empty-row)' ).length >= 8 ) { return; }
+				var row = tpl.content.cloneNode( true );
+				row.querySelectorAll( '[name]' ).forEach( function ( field ) {
+					field.name = field.name.replace( /__i__/g, String( nextIndex ) );
+				} );
+				nextIndex += 1;
+				tbody.appendChild( row );
+				refreshEmpty();
+			} );
+			tbody.addEventListener( 'click', function ( e ) {
+				if ( e.target && e.target.classList.contains( 'jluxe-pa-remove' ) ) {
+					e.target.closest( 'tr' ).remove();
+					refreshEmpty();
+				}
+			} );
+		}() );
+		</script>
+		<?php
+	} );
+}
+
+/**
+ * یک ردیفِ خدمت در جدولِ خدمات؛ null یعنی قالبِ ردیفِ جدید (ایندکسِ
+ * __i__ که JS موقعِ افزودن به ایندکسِ واقعیِ بعدی تبدیلش می‌کند).
+ */
+function jluxe_pa_service_row_fields( ?array $service ): void {
+	static $row_index = 0;
+	$row = null === $service ? '__i__' : $row_index;
+	if ( null !== $service ) {
+		$row_index++;
+	}
+	$title   = $service['title'] ?? '';
+	$amount  = $service['amount'] ?? '';
+	$context = $service['context'] ?? 'modal';
+	$auto    = ! empty( $service['auto'] );
+	?>
+	<tr>
+		<td><input type="text" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][title]" value="<?php echo esc_attr( (string) $title ); ?>" class="regular-text" placeholder="مثلاً بیمهٔ شکست" /></td>
+		<td><input type="text" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][amount]" value="<?php echo esc_attr( (string) $amount ); ?>" class="small-text" dir="ltr" /></td>
+		<td>
+			<select name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][context]">
+				<option value="modal" <?php selected( $context, 'modal' ); ?>>مودال</option>
+				<option value="cart" <?php selected( $context, 'cart' ); ?>>سبد خرید</option>
+				<option value="both" <?php selected( $context, 'both' ); ?>>هردو</option>
+			</select>
+		</td>
+		<td><input type="checkbox" name="purchase_addons[services][<?php echo esc_attr( (string) $row ); ?>][auto]" value="1" <?php checked( $auto ); ?> /></td>
+		<td><button type="button" class="button jluxe-pa-remove" aria-label="حذف خدمت">حذف</button></td>
+	</tr>
+	<?php
+}
+
 function jluxe_render_shop_page(): void {
 	$icon_status = jluxe_handle_category_icons_save();
 	$status   = jluxe_handle_generic_settings_save( 'jluxe-shop' );
@@ -1046,6 +1778,16 @@ function jluxe_render_shop_page(): void {
 					<td><input type="number" id="jluxe-shop-per-page" name="shop[products_per_page]" value="<?php echo esc_attr( $shop['products_per_page'] ); ?>" min="4" max="48" class="small-text" /></td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="jluxe-shop-oos-last">ناموجودها در انتهای بخش‌های خودکار</label></th>
+					<td>
+						<label>
+							<input type="checkbox" id="jluxe-shop-oos-last" name="shop[out_of_stock_last]" value="1" <?php checked( ! empty( $shop['out_of_stock_last'] ) ); ?> />
+							در فهرست‌های خودکارِ فرعی، محصولات ناموجود پس از محصولات موجود بیایند.
+						</label>
+						<p class="description">آرشیو اصلی فروشگاه، برند، دسته‌بندی و ویژگی، و نیز محصولات مرتبط، همیشه ابتدا موجودها را نشان می‌دهند و در هر گروه جدیدترین محصول جلوتر است؛ این ترتیب ثابت به این گزینه وابسته نیست.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="jluxe-cols-desktop">تعداد ستون — دسکتاپ</label></th>
 					<td><input type="number" id="jluxe-cols-desktop" name="shop[columns_desktop]" value="<?php echo esc_attr( $shop['columns_desktop'] ); ?>" min="2" max="6" class="small-text" /></td>
 				</tr>
@@ -1058,7 +1800,7 @@ function jluxe_render_shop_page(): void {
 					<td><input type="number" id="jluxe-cols-mobile" name="shop[columns_mobile]" value="<?php echo esc_attr( $shop['columns_mobile'] ); ?>" min="1" max="3" class="small-text" /></td>
 				</tr>
 			</table>
-			<p class="description">سایدبار/فیلتر/مرتب‌سازی فعلاً در قالب آرشیوِ فعلی (<code>woocommerce_content()</code> پیش‌فرض) وجود ندارن — اضافه‌کردنشون نیاز به override تمپلیت جداگانه داره؛ برای جلوگیری از fake کنترل، این‌جا نمایش داده نمی‌شن.</p>
+			<p class="description">کنترل کاربر برای تغییر ترتیب/فیلتر محصولات در قالب آرشیوِ فعلی (<code>woocommerce_content()</code> پیش‌فرض) وجود ندارد؛ ترتیب ثابتِ فروشگاه، برند، دسته‌بندی و ویژگی «موجودها، سپس جدیدترین‌ها» است.</p>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">تبِ «دانلودها» در حساب کاربری</th>
@@ -1110,13 +1852,229 @@ function jluxe_render_shop_page(): void {
 	} );
 }
 
+function jluxe_render_cart_checkout_copy_row( array $copy, string $key, string $label, bool $multiline = false ): void {
+	$value = isset( $copy[ $key ] ) && is_scalar( $copy[ $key ] ) ? (string) $copy[ $key ] : '';
+	$name  = 'cart_checkout[copy][' . $key . ']';
+	?>
+	<tr>
+		<th scope="row"><label for="jluxe-copy-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td>
+			<?php if ( $multiline ) : ?>
+				<textarea id="jluxe-copy-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>" rows="3" class="large-text"><?php echo esc_textarea( $value ); ?></textarea>
+			<?php else : ?>
+				<input type="text" id="jluxe-copy-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" class="regular-text" />
+			<?php endif; ?>
+		</td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_toggle_row( array $settings, string $key, string $label ): void {
+	?>
+	<tr>
+		<th scope="row"><?php echo esc_html( $label ); ?></th>
+		<td><label><input type="checkbox" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> نمایش</label></td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_required_row( array $settings, string $key, string $label ): void {
+	$id = 'jluxe-required-' . $key;
+	?>
+	<tr>
+		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td><label><input type="checkbox" id="<?php echo esc_attr( $id ); ?>" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> این فیلد الزامی باشد</label></td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_color_field( string $name, string $id, string $label, string $value, string $description = '' ): void {
+	?>
+	<tr>
+		<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
+		<td>
+			<input type="text" id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $value ); ?>" class="jluxe-color-field" dir="ltr" />
+			<?php if ( '' !== $description ) : ?><p class="description"><?php echo esc_html( $description ); ?></p><?php endif; ?>
+		</td>
+	</tr>
+	<?php
+}
+
+function jluxe_render_cart_checkout_page(): void {
+	$status   = jluxe_handle_generic_settings_save( 'jluxe-cart-checkout' );
+	$settings = jluxe_get_fresh_settings();
+	$cart     = $settings['cart_checkout'];
+	$copy     = $cart['copy'];
+
+	jluxe_settings_page_shell( 'سبد خرید و تسویه حساب', 'jluxe-cart-checkout', $status, function () use ( $cart, $copy ) {
+		?>
+		<p class="description">متن‌های نمایشیِ پوسته و توضیحاتِ روش‌های ارسال را از این بخش ویرایش کنید. این تنظیمات فقط ظاهر/متن را کنترل می‌کنند؛ نرخ، هزینه، مالیات، انتخاب روش و محاسبهٔ حمل‌ونقل همچنان کاملاً در اختیار WooCommerce است. برای حذف یک عنوان یا متن اختیاری، مقدار آن را خالی کنید؛ متن دکمه‌های اصلی برای حفظ دسترس‌پذیری خالی بماند به برچسب پیش‌فرض برمی‌گردد.</p>
+
+		<form method="post">
+			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+			<h2>سبد خرید</h2>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_cart_coupon', 'کد تخفیف' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_message_enabled', 'پیام سفارشیِ سبد خالی' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_return_enabled', 'دکمهٔ بازگشت از سبد خالی' ); ?>
+				<tr>
+					<th scope="row">پیام اختیاریِ ارسال در سبد</th>
+					<td>
+						<label><input type="checkbox" name="cart_checkout[cart_shipping_notice_enabled]" value="1" <?php checked( ! empty( $cart['cart_shipping_notice_enabled'] ) ); ?> /> نمایش پیام سفارشی</label>
+						<br /><textarea name="cart_checkout[cart_shipping_notice_text]" rows="2" class="large-text"><?php echo esc_textarea( (string) ( $cart['cart_shipping_notice_text'] ?? '' ) ); ?></textarea>
+						<p class="description">پیام قدیمیِ نادرست دربارهٔ محاسبه/نمایش هزینه با توجه به آدرس حذف شده است. فقط اگر لازم است، متن جدید خودتان را این‌جا وارد کنید.</p>
+					</td>
+				</tr>
+			</table>
+			<table class="form-table" role="presentation">
+				<?php
+			$cart_fields = array(
+					'cart_page_title'        => array( 'عنوان صفحهٔ سبد', false ),
+					'cart_column_product'    => array( 'ستون محصول', false ),
+					'cart_column_quantity'   => array( 'ستون تعداد', false ),
+					'cart_column_total'      => array( 'ستون جمع قیمت', false ),
+					'cart_remove_item'       => array( 'برچسب دسترس‌پذیری حذف محصول', false ),
+					'cart_coupon_label'      => array( 'عنوان کد تخفیف', false ),
+					'cart_coupon_placeholder' => array( 'متن راهنمای کد تخفیف', false ),
+					'cart_coupon_apply'      => array( 'دکمهٔ اعمال تخفیف', false ),
+					'cart_update_button'     => array( 'دکمهٔ بروزرسانی سبد', false ),
+					'cart_subtotal_label'    => array( 'عنوان جمع جزء', false ),
+					'cart_total_label'       => array( 'عنوان مبلغ نهایی', false ),
+					'cart_return_to_store'   => array( 'دکمهٔ بازگشت به فروشگاه', false ),
+					'cart_checkout_button'   => array( 'دکمهٔ ادامه از سبد', false ),
+					'cart_empty_title'       => array( 'عنوان سبد خالی', false ),
+					'cart_empty_message'     => array( 'متن سفارشیِ سبد خالی', true ),
+					'cart_empty_return'      => array( 'دکمهٔ بازگشت از سبد خالی', false ),
+			);
+			foreach ( $cart_fields as $key => $field ) {
+				jluxe_render_cart_checkout_copy_row( $copy, $key, $field[0], $field[1] );
+			}
+			?>
+			</table>
+
+			<h2>تسویه‌حساب</h2>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_stepper', 'نوار مراحل خرید' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_heading_enabled', 'عنوان انتخاب روش ارسال' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_error_enabled', 'پیام خطای انتخاب روش ارسال' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_payment_warning_enabled', 'هشدار پیش از پرداخت' ); ?>
+			</table>
+			<h3>فیلدهای اجباریِ تسویه‌حساب</h3>
+			<p class="description">نام، نام خانوادگی، موبایل و آدرس برای بخش‌های صورتحساب و نشانیِ ارسال جداگانه قابل تنظیم‌اند. استان و شهر همیشه باید انتخاب شوند. اگر این گزینه روشن باشد، کد پستی با انتخاب روش «ادارهٔ پست» اجباری می‌شود و راهنما داخل کادر دیده می‌شود؛ برای تیپاکس و چاپار اختیاری است. با خاموش‌کردن گزینه، کد پستی برای همهٔ روش‌ها اختیاری می‌ماند.</p>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_first_name', 'نام' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_last_name', 'نام خانوادگی' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_phone', 'شمارهٔ موبایل' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_address', 'آدرس' ); ?>
+				<?php jluxe_render_cart_checkout_required_row( $cart, 'require_postcode_for_post', 'کد پستی برای ارسال پستی اجباری باشد' ); ?>
+			</table>
+			<table class="form-table" role="presentation">
+				<?php
+			$checkout_fields = array(
+					'checkout_step_cart'                => array( 'مرحلهٔ سبد خرید', false ),
+					'checkout_step_shipping'            => array( 'مرحلهٔ اطلاعات ارسال', false ),
+					'checkout_step_payment'             => array( 'مرحلهٔ نحوهٔ پرداخت', false ),
+					'checkout_step_done'                => array( 'مرحلهٔ پایان خرید', false ),
+					'checkout_no_js_notice'             => array( 'پیام غیرفعال‌بودن جاوااسکریپت', false ),
+					'checkout_no_js_back'               => array( 'دکمهٔ بازگشت بدون جاوااسکریپت', false ),
+					'checkout_billing_heading'          => array( 'عنوان اطلاعات ارسال', false ),
+					'checkout_first_name_label'         => array( 'برچسب نام', false ),
+					'checkout_last_name_label'          => array( 'برچسب نام خانوادگی', false ),
+					'checkout_province_label'           => array( 'برچسب استان', false ),
+					'checkout_city_label'               => array( 'برچسب شهر', false ),
+					'checkout_city_prompt'              => array( 'راهنمای انتخاب شهر', false ),
+					'checkout_city_placeholder'         => array( 'متن انتخاب شهرستان', false ),
+					'checkout_phone_label'              => array( 'برچسب موبایل', false ),
+					'checkout_email_label'              => array( 'برچسب ایمیل', false ),
+					'checkout_postcode_label'           => array( 'برچسب کد پستی', false ),
+					'checkout_address_label'            => array( 'برچسب آدرس', false ),
+					'checkout_landline_label'           => array( 'برچسب تلفن ثابت', false ),
+					'checkout_create_account_label'     => array( 'برچسب ایجاد حساب کاربری', false ),
+					'checkout_summary_heading'          => array( 'عنوان خلاصهٔ سفارش', false ),
+					'checkout_shipping_heading'         => array( 'عنوان انتخاب روش ارسال', false ),
+					'checkout_shipping_error'           => array( 'پیام خطای انتخاب روش ارسال', false ),
+					'checkout_payment_error'            => array( 'پیام خطای انتخاب روش پرداخت', false ),
+					'checkout_payment_warning'         => array( 'متن هشدار پرداخت', true ),
+					'checkout_payment_heading'      => array( 'عنوان روش پرداخت', false ),
+					'checkout_no_payment_methods'   => array( 'پیام نبود روش پرداخت', false ),
+					'checkout_payment_details_prompt' => array( 'پیام پیش از نمایش روش پرداخت', false ),
+					'checkout_next_button'              => array( 'دکمهٔ رفتن به پرداخت', false ),
+					'checkout_back_to_cart_button'      => array( 'دکمهٔ بازگشت به سبد', false ),
+					'checkout_back_button'              => array( 'دکمهٔ بازگشت به ارسال', false ),
+					'checkout_place_order_button'       => array( 'دکمهٔ پرداخت نهایی', false ),
+					'checkout_order_notes_label'        => array( 'عنوان توضیحات سفارش', false ),
+					'checkout_order_notes_placeholder'  => array( 'راهنمای توضیحات سفارش', false ),
+					'checkout_no_shipping_options'      => array( 'پیام نبود روش ارسال', true ),
+				);
+			foreach ( $checkout_fields as $key => $field ) {
+				jluxe_render_cart_checkout_copy_row( $copy, $key, $field[0], $field[1] );
+			}
+			?>
+				</table>
+
+				<h3>رنگ هشدار و کارت‌های درگاه</h3>
+				<table class="form-table" role="presentation">
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[checkout_payment_warning_background]', 'jluxe-checkout-payment-warning-background', 'پس‌زمینهٔ هشدار خاموش‌کردن VPN', (string) $cart['checkout_payment_warning_background'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[checkout_payment_warning_text_color]', 'jluxe-checkout-payment-warning-text-color', 'رنگ متن هشدار VPN', (string) $cart['checkout_payment_warning_text_color'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[payment_card_background]', 'jluxe-payment-card-background', 'پس‌زمینهٔ عادی کارت درگاه‌ها', (string) $cart['payment_card_background'] ); ?>
+					<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[payment_card_selected_background]', 'jluxe-payment-card-selected-background', 'پس‌زمینهٔ کارت درگاه انتخاب‌شده', (string) $cart['payment_card_selected_background'] ); ?>
+				</table>
+
+				<h2>کارت‌ها و توضیحات روش‌های ارسال</h2>
+			<p class="description">کارت‌ها در موبایل به چیدمان عمودی و در صفحه‌های بزرگ به چیدمان دو بخشی تبدیل می‌شوند تا نشان توضیحی از نام و نرخ جدا بماند. انتخاب روش فقط رنگ و کادر همان کارت را عوض می‌کند و علامت تیک به کارت اضافه نمی‌شود. عنوان و مبلغ همچنان از نرخ واقعی WooCommerce می‌آیند؛ این تنظیمات فقط ظاهر را تغییر می‌دهند. توضیحات هر روش زیر همان کارتِ انتخاب‌شده باز می‌شود.</p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="jluxe-shipping-card-radius">گردی گوشهٔ کارت‌ها</label></th>
+					<td>
+						<select id="jluxe-shipping-card-radius" name="cart_checkout[shipping_card_radius]">
+							<?php foreach ( array( 10, 12, 16, 18, 22, 26 ) as $radius ) : ?>
+								<option value="<?php echo esc_attr( (string) $radius ); ?>" <?php selected( (int) $cart['shipping_card_radius'], $radius ); ?>><?php echo esc_html( $radius . ' پیکسل' ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">این انتخاب برای همهٔ روش‌های ارسال یکسان است؛ رنگ‌ها را می‌توانید جداگانه برای هر روش تغییر دهید.</p>
+					</td>
+				</tr>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_shipping_accordions', 'آکاردئون توضیحات ارسال' ); ?>
+			</table>
+			<?php foreach ( array( 'post' => 'پست', 'tipax' => 'تیپاکس', 'chapar' => 'چاپار' ) as $method_key => $method_label ) : ?>
+				<h3><?php echo esc_html( $method_label ); ?></h3>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row">وضعیت</th>
+						<td><label><input type="checkbox" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][enabled]" value="1" <?php checked( ! empty( $cart['shipping_methods'][ $method_key ]['enabled'] ) ); ?> /> نمایش آکاردئون این روش</label></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>">عنوان آکاردئون</label></th>
+						<td><input type="text" id="jluxe-shipping-summary-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][summary]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['summary'] ); ?>" class="regular-text" /></td>
+					</tr>
+						<tr>
+							<th scope="row"><label for="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>">توضیحات آکاردئون</label></th>
+							<td><textarea id="jluxe-shipping-description-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][description]" rows="3" class="large-text"><?php echo esc_textarea( (string) $cart['shipping_methods'][ $method_key ]['description'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>">متن نشان کنار نام روش</label></th>
+							<td><input type="text" id="jluxe-shipping-note-<?php echo esc_attr( $method_key ); ?>" name="cart_checkout[shipping_methods][<?php echo esc_attr( $method_key ); ?>][note]" value="<?php echo esc_attr( (string) $cart['shipping_methods'][ $method_key ]['note'] ); ?>" class="regular-text" /></td>
+						</tr>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][card_background_color]', 'jluxe-shipping-card-bg-' . $method_key, 'پس‌زمینهٔ کارت عادی', (string) $cart['shipping_methods'][ $method_key ]['card_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][card_border_color]', 'jluxe-shipping-card-border-' . $method_key, 'رنگ کادر کارت عادی', (string) $cart['shipping_methods'][ $method_key ]['card_border_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][selected_card_background_color]', 'jluxe-shipping-card-selected-bg-' . $method_key, 'پس‌زمینهٔ کارت انتخاب‌شده', (string) $cart['shipping_methods'][ $method_key ]['selected_card_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][selected_card_border_color]', 'jluxe-shipping-card-selected-border-' . $method_key, 'رنگ کادر کارت انتخاب‌شده', (string) $cart['shipping_methods'][ $method_key ]['selected_card_border_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_background_color]', 'jluxe-shipping-note-bg-' . $method_key, 'رنگ کادر نشان', (string) $cart['shipping_methods'][ $method_key ]['note_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][note_text_color]', 'jluxe-shipping-note-text-' . $method_key, 'رنگ نوشتهٔ نشان', (string) $cart['shipping_methods'][ $method_key ]['note_text_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_background_color]', 'jluxe-shipping-details-bg-' . $method_key, 'پس‌زمینهٔ کادر جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_background_color'] ); ?>
+						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_text_color]', 'jluxe-shipping-details-text-' . $method_key, 'رنگ نوشتهٔ جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_text_color'] ); ?>
+					</table>
+			<?php endforeach; ?>
+			<?php jluxe_settings_submit_button( true, 'cart_checkout' ); ?>
+		</form>
+		<?php
+	} );
+}
+
 // =====================================================================
-// سبد و تسویه‌حساب — صفحه‌ی چک‌اوت/تسویه‌حساب فقط توضیح وضعیت داره، بدون
-// کنترل جعلی (چون طبق قانون صریح پروژه اجازه‌ی دست‌زدن به منطق واقعیِ
-// WC()->cart/سشن/درگاه نداریم؛ ظاهرشون کاملاً از توکن‌های رنگ سراسری میاد).
-// سبدِ کشویی (مینی‌کارت) استثناست — دو سوییچِ واقعی (فیلدِ کوپن، نوارِ
-// ارسالِ رایگان) بالاتر در همین صفحه (jluxe-shop) اضافه شدن، چون این‌ها
-// صرفاً نمایش/عدم‌نمایشِ یک بخشِ UI هستن، نه دست‌کاریِ منطقِ محاسباتیِ WC.
+// سبد و تسویه‌حساب — این تب فقط متن‌های قابل‌ویرایش و کنترلِ نمایشِ اجزای
+// ارائه را مدیریت می‌کند؛ نرخ‌ها، محاسبه و روش‌های واقعیِ WooCommerce ثابت
+// می‌مانند. تنظیمات مینی‌کارت (سبدِ کشویی) جداگانه در تبِ فروشگاه است.
 // =====================================================================
 // موبایل و تماس (موبایل + تماس و شبکه‌های اجتماعی) — طبق درخواستِ کاربر
 // یکی شدن؛ منطقِ ذخیره‌سازیِ هرکدوم دست‌نخورده مونده (جز رفعِ یک باگِ واقعی
@@ -1135,23 +2093,27 @@ function jluxe_render_contact_page(): void {
 }
 
 function jluxe_render_mobile_contact_page(): void {
-	$status   = jluxe_handle_mobile_contact_combined_save();
-	$settings = jluxe_get_fresh_settings();
-	$icons    = jluxe_nav_icon_options();
-
-	// نقش/لینکِ واقعیِ هر تب در MobileNav.tsx ثابته (بعضی‌ها رفتار خاص
-	// دارن، مثلاً «سبد»/«دسته‌بندی‌ها» دراور کشویی باز می‌کنن نه ناوبریِ
-	// معمولی) — پس id قابل تغییر نیست، فقط برای نمایشِ اسمِ واقعیِ هر ردیف
-	// این‌جا استفاده می‌شه.
-	$id_names = array(
-		'track'   => 'پیگیری سفارش (لینک به صفحه‌ی پیگیری سریع)',
-		'shop'    => 'دسته‌بندی‌ها (باز کردن دراورِ دسته‌بندی)',
+	$status         = jluxe_handle_mobile_contact_combined_save();
+	$settings       = jluxe_get_fresh_settings();
+	$icons          = jluxe_nav_icon_options();
+	$floating_icons = jluxe_mobile_nav_icon_options();
+	$nav_actions    = jluxe_mobile_nav_action_options();
+	$id_names       = array(
+		'track'   => 'پیگیری سفارش',
+		'shop'    => 'دسته‌بندی‌ها',
 		'home'    => 'خانه',
-		'account' => 'حساب کاربری (ورود/حساب بسته به وضعیتِ لاگین)',
-		'cart'    => 'سبد خرید (باز کردن دراورِ سبد)',
+		'account' => 'حساب کاربری',
+		'cart'    => 'سبد خرید',
+	);
+	$floating_names = array(
+		'support'    => 'پشتیبانی',
+		'categories' => 'دسته‌ها',
+		'home'       => 'خانه',
+		'account'    => 'اکانت',
+		'cart'       => 'سبد خرید',
 	);
 
-	jluxe_settings_page_shell( 'موبایل و تماس', 'jluxe-mobile-contact', $status, function () use ( $settings, $icons, $id_names ) {
+	jluxe_settings_page_shell( 'موبایل و تماس', 'jluxe-mobile-contact', $status, function () use ( $settings, $icons, $floating_icons, $nav_actions, $id_names, $floating_names ) {
 		$social_labels = array(
 			'instagram' => 'اینستاگرام',
 			'telegram'  => 'تلگرام',
@@ -1170,7 +2132,21 @@ function jluxe_render_mobile_contact_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">نوار پایین موبایل (<code>MobileNav.tsx</code>) — همیشه همین ۵ تبِ واقعی‌ان (چون هرکدوم رفتار واقعیِ خودشون رو دارن)، ولی می‌تونی با درگ‌کردنِ دستگیره ترتیب‌شون رو عوض کنی، برچسب/آیکون هرکدوم رو تغییر بدی، یا هرکدوم رو غیرفعال کنی.</p>
+					<h3>طرح نوار پایین</h3>
+					<p class="description">می‌توانی طرح فعلی را نگه داری یا نوار شناورِ کپسولیِ نمونه را انتخاب کنی. انتخاب طرح فقط ظاهر و مجموعهٔ آیتم‌های همان نوار را عوض می‌کند؛ طرح فعلی پیش‌فرض می‌ماند.</p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="jluxe-mobile-nav-variant">طرح فعال</label></th>
+							<td>
+								<select id="jluxe-mobile-nav-variant" name="mobile[nav_variant]">
+									<option value="classic" <?php selected( $settings['mobile']['nav_variant'] ?? 'classic', 'classic' ); ?>>نوار فعلی (تمام‌عرض)</option>
+									<option value="floating" <?php selected( $settings['mobile']['nav_variant'] ?? 'classic', 'floating' ); ?>>نوار شناورِ کپسولی (طرح نمونه)</option>
+								</select>
+							</td>
+						</tr>
+					</table>
+					<h3>آیتم‌های نوار فعلی</h3>
+					<p class="description">این طرح همان رفتار قبلی را حفظ می‌کند. ترتیب، برچسب، آیکون و نمایش هر آیتم قابل تغییر است.</p>
 					<div class="jluxe-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="nav_items">
 							<?php foreach ( $settings['mobile']['nav_items'] as $i => $item ) : ?>
@@ -1197,18 +2173,61 @@ function jluxe_render_mobile_contact_page(): void {
 							<?php endforeach; ?>
 						</div>
 					</div>
+
+					<h3>آیتم‌های نوار شناورِ نمونه</h3>
+					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ با فعال‌بودن آن در نوار شناور، دکمهٔ شناورِ جداگانهٔ دستیار در موبایل خودکار پنهان می‌شود. «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
+					<div class="jluxe-repeater jluxe-mobile-floating-nav-repeater" data-sortable="true">
+						<div class="jluxe-repeater-list" data-group="floating_nav_items">
+							<?php foreach ( $settings['mobile']['floating_nav_items'] as $i => $item ) : ?>
+								<div class="jluxe-repeater-item jluxe-mobile-floating-nav-item">
+									<div class="jluxe-repeater-item-head">
+										<span class="jluxe-repeater-handle dashicons dashicons-menu" aria-hidden="true"></span>
+										<strong><?php echo esc_html( $floating_names[ $item['id'] ] ?? $item['id'] ); ?></strong>
+									</div>
+									<input type="hidden" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][id]" value="<?php echo esc_attr( $item['id'] ); ?>" />
+									<div class="jluxe-repeater-row jluxe-mobile-floating-nav-fields">
+										<label>برچسب<br />
+											<input type="text" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][label]" value="<?php echo esc_attr( $item['label'] ); ?>" class="regular-text" />
+										</label>
+										<label>آیکون<br />
+											<select name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][icon]">
+												<?php foreach ( $floating_icons as $val => $label ) : ?>
+													<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $item['icon'], $val ); ?>><?php echo esc_html( $label ); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</label>
+										<label>عملکرد<br />
+											<select class="jluxe-mobile-nav-action" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][action]">
+												<?php foreach ( $nav_actions as $action => $action_label ) : ?>
+													<option value="<?php echo esc_attr( $action ); ?>" <?php selected( $item['action'], $action ); ?>><?php echo esc_html( $action_label ); ?></option>
+												<?php endforeach; ?>
+											</select>
+										</label>
+										<div class="jluxe-mobile-nav-link-options" data-mobile-nav-link-options>
+											<label>لینک دلخواه (مسیر نسبی یا https)<br />
+												<input type="text" dir="ltr" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][url]" value="<?php echo esc_attr( $item['url'] ); ?>" class="regular-text" placeholder="/faq/ یا https://example.com/" />
+											</label>
+											<label class="jluxe-mobile-nav-new-tab"><input type="checkbox" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][target_blank]" value="1" <?php checked( ! empty( $item['target_blank'] ) ); ?> /> بازشدن در زبانهٔ جدید</label>
+										</div>
+										<label class="jluxe-mobile-nav-enabled"><input type="checkbox" name="mobile[floating_nav_items][<?php echo esc_attr( $i ); ?>][enabled]" value="1" <?php checked( $item['enabled'] ); ?> /> نمایش</label>
+									</div>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					</div>
+
 					<h3>استایل نوار موبایل</h3>
-					<p class="description">ظاهر نوار پایین موبایل را بدون دستکاری کد تنظیم کن. رنگ آیکون‌ها، حالت فعال، سایه، گردی، ارتفاع، شفافیت و افکت ورود از همین بخش کنترل می‌شود.</p>
+					<p class="description">رنگ نوار، رنگ آیکون/حالت فعال و سایه در هر دو طرح استفاده می‌شوند. پس‌زمینهٔ جداگانهٔ آیکون‌ها، گردی و ارتفاع فقط روی طرح فعلی اثر دارند؛ طرح شناور به شکل کپسولی و دارای قاب ظریف می‌ماند.</p>
 					<?php $mstyle = $settings['mobile']['nav_style'] ?? array(); ?>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row">رنگ‌ها</th>
 							<td>
 								<label>پس‌زمینه <input type="color" name="mobile[nav_style][background]" value="<?php echo esc_attr( $mstyle['background'] ?? '#ffffff' ); ?>"></label>
-								<label style="margin-inline-start:18px;">رنگ فعال <input type="color" name="mobile[nav_style][active_color]" value="<?php echo esc_attr( $mstyle['active_color'] ?? '#087A68' ); ?>"></label>
-								<label style="margin-inline-start:18px;">رنگ آیکون <input type="color" name="mobile[nav_style][icon_color]" value="<?php echo esc_attr( $mstyle['icon_color'] ?? '#667085' ); ?>"></label>
-								<label style="margin-inline-start:18px;">پس‌زمینه آیکون <input type="color" name="mobile[nav_style][icon_bg]" value="<?php echo esc_attr( $mstyle['icon_bg'] ?? '#f5f7f8' ); ?>"></label>
-								<label style="margin-inline-start:18px;">پس‌زمینه فعال <input type="color" name="mobile[nav_style][active_bg]" value="<?php echo esc_attr( $mstyle['active_bg'] ?? '#e8f4f1' ); ?>"></label>
+								<label style="margin-inline-start:18px;">رنگ فعال <input type="color" name="mobile[nav_style][active_color]" value="<?php echo esc_attr( $mstyle['active_color'] ?? '#A313B9' ); ?>"></label>
+								<label style="margin-inline-start:18px;">رنگ آیکون <input type="color" name="mobile[nav_style][icon_color]" value="<?php echo esc_attr( $mstyle['icon_color'] ?? '#7A0F8A' ); ?>"></label>
+								<label style="margin-inline-start:18px;">پس‌زمینه آیکون <input type="color" name="mobile[nav_style][icon_bg]" value="<?php echo esc_attr( $mstyle['icon_bg'] ?? '#FAE8FD' ); ?>"></label>
+								<label style="margin-inline-start:18px;">پس‌زمینه فعال <input type="color" name="mobile[nav_style][active_bg]" value="<?php echo esc_attr( $mstyle['active_bg'] ?? '#FAE8FD' ); ?>"></label>
 							</td>
 						</tr>
 						<tr>
@@ -1244,8 +2263,8 @@ function jluxe_render_mobile_contact_page(): void {
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 
-					<h3>اطلاعات تماس</h3>
-					<p class="description">اگر فیلدی خالی بمونه، در سایت نمایش داده نمی‌شه. همینا در صفحه‌ی «تماس با ما» (contact-us) هم نشون داده می‌شن. ساعاتِ پاسخگویی رو از تبِ «فوتر» ← «ساعات پشتیبانی» تنظیم کن (همون فیلد، هم فوتر هم این صفحه رو پوشش می‌ده).</p>
+						<h3>اطلاعات تماس</h3>
+						<p class="description">شماره‌ها و ایمیلِ واردشده در صفحه‌ی «تماس با ما» هم نمایش داده می‌شوند. ساعتِ تماس تلفنی و متنِ صفحه را در بخش «متنِ صفحاتِ تماس/درباره» تنظیم کنید؛ ساعاتِ پشتیبانیِ فوتر، تنظیمی جداگانه است.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-phone">تلفن</label></th>
@@ -1369,7 +2388,7 @@ function jluxe_render_contact_pages_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">همین متن هم در فوتر سایت و هم در صفحه‌ی «تماس با ما» نشون داده می‌شه.</p>
+					<p class="description">این مقدار فقط در فوتر سایت نمایش داده می‌شود؛ ساعات تماس تلفنیِ صفحه‌ی «تماس با ما» از بخش متنِ همان صفحه تنظیم می‌شود.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-cp-hours">ساعات پاسخگویی</label></th>
@@ -1390,7 +2409,7 @@ function jluxe_render_contact_pages_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">هر شبکه‌ای که «فعال» نباشه، اصلاً در سایت (فوتر و صفحه‌ی تماس با ما) نمایش داده نمی‌شه.</p>
+					<p class="description">شبکه‌های فعال در فوتر نمایش داده می‌شوند؛ لینکِ اینستاگرامِ فعال در کارتِ شبکه‌های اجتماعیِ صفحه‌ی تماس هم می‌آید.</p>
 					<table class="form-table" role="presentation">
 						<?php foreach ( $social_labels as $key => $label ) : $row = $settings['social'][ $key ]; ?>
 							<tr>
@@ -1459,11 +2478,28 @@ function jluxe_render_contact_pages_page(): void {
 								<th scope="row"><label for="jluxe-cp-<?php echo esc_attr( $page_key ); ?>-text">متنِ توضیح</label></th>
 								<td><textarea id="jluxe-cp-<?php echo esc_attr( $page_key ); ?>-text" name="info_pages[<?php echo esc_attr( $page_key ); ?>][intro_text]" rows="3" class="large-text"><?php echo esc_textarea( $row['intro_text'] ); ?></textarea></td>
 							</tr>
-							<?php if ( 'contact' === $page_key ) : ?>
-								<tr><th>عنوان کارت تلفن</th><td><input type="text" name="info_pages[contact][phone_title]" value="<?php echo esc_attr( $row['phone_title'] ?? 'شماره‌ی تماس' ); ?>" class="regular-text" /></td></tr>
-								<tr><th>عنوان کارت ساعات</th><td><input type="text" name="info_pages[contact][hours_title]" value="<?php echo esc_attr( $row['hours_title'] ?? 'ساعات پاسخگویی' ); ?>" class="regular-text" /></td></tr>
-								<tr><th>عنوان کارت شبکه‌های اجتماعی</th><td><input type="text" name="info_pages[contact][social_title]" value="<?php echo esc_attr( $row['social_title'] ?? 'شبکه‌های اجتماعی' ); ?>" class="regular-text" /></td></tr>
-							<?php endif; ?>
+								<?php if ( 'contact' === $page_key ) : ?>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-phone-title">عنوان کارت تلفنی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-phone-title" name="info_pages[contact][phone_title]" value="<?php echo esc_attr( $row['phone_title'] ?? 'تماس تلفنی' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-phone-hours">ساعات تماس تلفنی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-phone-hours" name="info_pages[contact][phone_hours]" value="<?php echo esc_attr( $row['phone_hours'] ?? '' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-email-title">عنوان کارت ایمیل</label></th>
+										<td><input type="text" id="jluxe-cp-contact-email-title" name="info_pages[contact][email_title]" value="<?php echo esc_attr( $row['email_title'] ?? 'ایمیل' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-social-title">عنوان کارت شبکه‌های اجتماعی</label></th>
+										<td><input type="text" id="jluxe-cp-contact-social-title" name="info_pages[contact][social_title]" value="<?php echo esc_attr( $row['social_title'] ?? 'شبکه‌های اجتماعی' ); ?>" class="regular-text" /></td>
+									</tr>
+									<tr>
+										<th scope="row"><label for="jluxe-cp-contact-social-text">توضیح شبکه‌های اجتماعی</label></th>
+										<td><textarea id="jluxe-cp-contact-social-text" name="info_pages[contact][social_text]" rows="2" class="large-text"><?php echo esc_textarea( $row['social_text'] ?? '' ); ?></textarea></td>
+									</tr>
+								<?php endif; ?>
 							<tr>
 								<th scope="row">لوگو بالای صفحه</th>
 								<td><label><input type="checkbox" name="info_pages[<?php echo esc_attr( $page_key ); ?>][show_logo]" value="1" <?php checked( ! empty( $row['show_logo'] ) ); ?> /> نمایشِ لوگوی سایت بالای این صفحه</label></td>
@@ -1522,15 +2558,13 @@ function jluxe_render_contact_pages_page(): void {
 }
 
 /**
- * صفحه‌ی «صفحات راهنما» — طبقِ درخواستِ صریحِ کاربر («یه تب اضافه کن برای
- * همه‌ی این تنظیمات ... حتی رنگِ دکمه‌ها هم باید بشه تغییر داد»): عنوان/متنِ
- * مقدماتی/دکمه (و رنگِ دکمه) برای هر ۵ صفحه‌ی راهنما، به‌علاوهٔ اطلاعاتِ
- * حسابِ کارت‌به‌کارت. توجه: برخلافِ الگوی «چند فرمِ مستقل» در تماس/صفحات،
- * این‌جا همه‌ی ۵ صفحه‌ی راهنما در یک فرمِ واحد پست می‌شن — چون
- * jluxe_sanitize_guide_pages یک بخشِ (section) واحده و اگه صفحه‌ای در پست
- * نباشه، مقدارش با defaultِ کدنویسی‌شده (نه مقدارِ ذخیره‌شدهٔ فعلی) جایگزین
- * می‌شه؛ فرمِ جدا برای هر صفحه یعنی ذخیره‌ی یکی، بقیه رو ریست می‌کرد.
- * آکاردئون‌ها این‌جا فقط برای نظمِ بصریه، نه فرمِ مستقل.
+ * صفحه‌ی «صفحات راهنما»: عنوان، مقدمه و HTML هر پنج صفحه در همین فرم
+ * ویرایش می‌شوند؛ CTA خرید/پرداخت، CTA تکمیلیِ اختیاریِ ارسال، CTA بازگشتِ
+ * مرجوعی و چهار فیلد حساب نیز در دسترس‌اند.
+ * فرمِ راهنماها عمداً یکپارچه است، چون jluxe_sanitize_guide_pages کل بخش را
+ * ذخیره می‌کند و نبودنِ یک صفحه در POST مقدارش را به پیش‌فرض برمی‌گرداند؛
+ * فرم‌های جداگانه می‌توانستند ناخواسته تنظیماتِ صفحه‌های دیگر را بازنشانی کنند.
+ * آکاردئون‌ها فقط برای نظمِ بصری هستند، نه فرمِ مستقل.
  */
 function jluxe_render_guide_pages_page(): void {
 	$status   = jluxe_handle_guide_pages_combined_save();
@@ -1609,7 +2643,14 @@ function jluxe_render_guide_pages_page(): void {
 			<details class="jluxe-hb-section-details">
 				<summary class="jluxe-hb-section-head"><span class="dashicons dashicons-media-document"></span><strong class="jluxe-hb-type-label"><?php echo esc_html( $page_label ); ?></strong><span class="dashicons dashicons-arrow-down-alt2 jluxe-hb-chevron"></span></summary>
 				<div class="jluxe-hb-section-body">
-					<table class="form-table" role="presentation"><tr><th>عنوان صفحه</th><td><input class="large-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][title]" value="<?php echo esc_attr( $page_row['title'] ?? '' ); ?>"></td></tr><tr><th>مقدمه</th><td><textarea class="large-text" rows="3" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][intro]"><?php echo esc_textarea( $page_row['intro'] ?? '' ); ?></textarea></td></tr></table>
+					<table class="form-table" role="presentation"><tr><th>عنوان صفحه</th><td><input class="large-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][title]" value="<?php echo esc_attr( $page_row['title'] ?? '' ); ?>"></td></tr><tr><th>مقدمه</th><td><textarea class="large-text" rows="3" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][intro]"><?php echo esc_textarea( $page_row['intro'] ?? '' ); ?></textarea></td></tr>
+					<?php if ( in_array( $page_key, array( 'payment_guide', 'shipping_tracking', 'returns_exchanges' ), true ) ) : ?>
+					<?php $cta_label = 'shipping_tracking' === $page_key ? 'دکمهٔ پایانیِ اضافه (اختیاری)' : 'دکمهٔ بازگشت'; ?>
+					<tr><th><label>متن <?php echo esc_html( $cta_label ); ?></label></th><td><input class="regular-text" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_text]" value="<?php echo esc_attr( $page_row['button_text'] ?? '' ); ?>" /></td></tr>
+					<tr><th><label>پیوند <?php echo esc_html( $cta_label ); ?></label></th><td><input class="regular-text" dir="ltr" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_url]" value="<?php echo esc_attr( $page_row['button_url'] ?? '' ); ?>" /></td></tr>
+					<tr><th><label>رنگ <?php echo esc_html( $cta_label ); ?></label></th><td><input class="jluxe-color-field" name="guide_pages[<?php echo esc_attr( $page_key ); ?>][button_color]" value="<?php echo esc_attr( $page_row['button_color'] ?? '' ); ?>" data-default-color="" /></td></tr>
+					<?php endif; ?>
+					</table>
 					<?php wp_editor( $page_row['body_html'] ?? '', 'jluxe_gp_body_' . $page_key, array( 'textarea_name' => 'guide_pages[' . $page_key . '][body_html]', 'textarea_rows' => 18, 'media_buttons' => false, 'teeny' => false, 'tinymce' => array( 'directionality' => 'rtl' ) ) ); ?>
 					<p class="description">توکن‌های قابل استفاده: <code>{site_name}</code> و در پرداخت <code>{card_number}</code>، <code>{sheba}</code>، <code>{holder_name}</code>، <code>{bank_name}</code>. برای مرجوعی نیز توکن‌های <code>{deny_title}</code>، <code>{deny_item_1_label}</code>، <code>{deny_item_1_text}</code>، <code>{deny_item_2_label}</code>، <code>{deny_item_2_text}</code>، <code>{tip_label}</code> و <code>{tip_text}</code> فعال هستند.</p>
 				</div>
@@ -1661,7 +2702,7 @@ function jluxe_render_faq_page(): void {
 	jluxe_settings_page_shell( 'سوالات متداول', 'jluxe-faq', $status, function () use ( $settings ) {
 		$items = $settings['faq']['items'];
 		?>
-		<p class="description">این سوال‌ها دقیقاً همون‌هایی هستن که در صفحه‌ی <code><?php echo esc_html( home_url( '/faq/' ) ); ?></code> نمایش داده می‌شن. برای حذف یک مورد تیک «حذف این سوال» رو بزنید و ذخیره کنید؛ برای افزودن، ردیف‌های خالیِ پایین صفحه رو پر کنید و ذخیره کنید — بعد از ذخیره، ۳ ردیف خالیِ تازه برای افزودن بیشتر ظاهر می‌شه.</p>
+		<p class="description">پرسش‌های آغازین قابل‌ویرایش‌اند و همین‌جا می‌توانید پاسخ‌ها را با اطلاعات واقعی فروشگاه هماهنگ کنید؛ در پاسخ‌های نمونه شماره تماس یا شرایط حدسی درج نشده است. این فهرست در صفحه‌ی <code><?php echo esc_html( home_url( '/faq/' ) ); ?></code> نمایش داده می‌شود. برای حذف موردی، تیک «حذف این سوال» را بزنید و ذخیره کنید؛ برای افزودن، ردیف‌های خالیِ پایین صفحه را پر کنید — پس از ذخیره، ۳ ردیف خالیِ تازه ظاهر می‌شود.</p>
 		<form method="post">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 			<table class="form-table" role="presentation">
@@ -1811,11 +2852,19 @@ function jluxe_render_advanced_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">اگر پلاگین سئوی جدایی (مثل Rank Math/Yoast) بعداً نصب بشه، این تنظیمات به‌عنوان fallback فقط برای صفحاتی اجرا می‌شن که اون پلاگین متا تعریف نکرده.</p>
+					<p class="description">اگر Rank Math یا Yoast فعال باشد، تنظیمات اینجا و عنوان/توضیح اختصاصیِ هر محصول، مطلب یا برگه فقط وقتی fallback می‌شوند که افزونه برای همان صفحه مقداری نداده باشد. برای هر صفحه از جعبهٔ «عنوان و توضیح سئو» استفاده کن؛ توضیح دسته‌بندی را در ویرایش خودِ دسته وارد کن.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-meta-desc">توضیحات متای پیش‌فرض</label></th>
 							<td><textarea id="jluxe-meta-desc" name="seo[default_meta_description]" rows="3" class="large-text"><?php echo esc_textarea( $seo['default_meta_description'] ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="jluxe-verification-meta-tags">تگ تأیید مالکیت سایت</label></th>
+							<td>
+								<textarea id="jluxe-verification-meta-tags" name="seo[verification_meta_tags]" rows="6" class="large-text code" dir="ltr" spellcheck="false"><?php echo esc_textarea( jluxe_verification_meta_tags_text( $seo['verification_meta_tags'] ?? array() ) ); ?></textarea>
+								<p class="description">تگ کاملِ تأیید Search Console، Ahrefs یا سرویس‌های مشابه را وارد کنید؛ هر تگ در یک خط. فقط تگ‌های <code>&lt;meta name="…verification…" content="…"&gt;</code> (و نام‌های شناخته‌شدهٔ تأیید) پذیرفته می‌شوند؛ اسکریپت و HTML دیگر اجرا نمی‌شود.</p>
+								<p class="description">نمونه: <code>&lt;meta name="ahrefs-site-verification" content="توکنِ سرویس"&gt;</code></p>
+							</td>
 						</tr>
 						<tr>
 							<th scope="row">تصویر اشتراک‌گذاری (og:image)</th>
@@ -1840,15 +2889,15 @@ function jluxe_render_advanced_page(): void {
 					<tr><th scope="row">نسخه‌ی PHP</th><td><?php echo esc_html( phpversion() ); ?></td></tr>
 					<tr><th scope="row">نسخه‌ی ووکامرس</th><td><?php echo esc_html( defined( 'WC_VERSION' ) ? WC_VERSION : 'ووکامرس فعال نیست' ); ?></td></tr>
 					<tr><th scope="row">نسخه‌ی پوسته‌ی زرین</th><td><?php echo esc_html( $theme->get( 'Version' ) ?: '—' ); ?></td></tr>
-					<tr><th scope="row">حالت دیباگ (WP_DEBUG)</th><td><?php echo defined( 'WP_DEBUG' ) && WP_DEBUG ? '<span style="color:#b32d2e">روشن</span>' : '<span style="color:#008a20">خاموش</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
+					<tr><th scope="row">حالت دیباگ (WP_DEBUG)</th><td><?php echo defined( 'WP_DEBUG' ) && WP_DEBUG ? '<span style="color:#C2410C">روشن</span>' : '<span style="color:#16865A">خاموش</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">کش آبجکت خارجی (Redis/Memcached)</th><td><?php echo wp_using_ext_object_cache() ? 'فعال' : 'غیرفعال (کش پیش‌فرض وردپرس)'; ?></td></tr>
 					<tr><th scope="row">افزونه‌ی کش صفحه (LiteSpeed و مشابه)</th><td><?php echo defined( 'LSCWP_V' ) ? 'LiteSpeed Cache فعال' : 'شناسایی نشد'; ?></td></tr>
 					<tr><th scope="row">حداکثر آپلود (PHP)</th><td><?php echo esc_html( size_format( wp_max_upload_size() ) ); ?></td></tr>
 					<tr><th scope="row">memory_limit (PHP)</th><td><?php echo esc_html( ini_get( 'memory_limit' ) ); ?></td></tr>
 					<tr><th scope="row">max_execution_time (PHP)</th><td><?php echo esc_html( ini_get( 'max_execution_time' ) ); ?> ثانیه</td></tr>
-					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#b32d2e">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
+					<tr><th scope="row">WP-Cron</th><td><?php echo ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ? '<span style="color:#C2410C">غیرفعال (DISABLE_WP_CRON)</span>' : 'فعال (پیش‌فرض وردپرس)'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td></tr>
 					<tr><th scope="row">نسخه‌ی تنظیمات پوسته</th><td><?php echo esc_html( (string) JLUXE_SETTINGS_VERSION ); ?></td></tr>
-					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (dist/ واقعی)'; ?></td></tr>
+					<tr><th scope="row">حالت توسعه (JLUXE_DEV)</th><td><?php echo function_exists( 'jluxe_is_dev' ) && jluxe_is_dev() ? 'فعال (Vite dev server)' : 'غیرفعال (assets/compiled)'; ?></td></tr>
 					<tr><th scope="row">آخرین به‌روزرسانی تنظیمات</th><td><?php echo esc_html( get_option( 'jluxe_theme_settings_updated_at', '—' ) ); ?></td></tr>
 				</table>
 				<p class="description">این بخش فقط تشخیصیه — چیزی رو خودکار تغییر نمی‌ده (مثلاً تنظیمات LiteSpeed/کش دست‌نخورده می‌مونه).</p>
@@ -1870,8 +2919,19 @@ function jluxe_render_advanced_page(): void {
 							<td>
 								<label><input type="checkbox" name="performance[defer_third_party_scripts]" value="1" <?php checked( $perf['defer_third_party_scripts'] ?? false ); ?> /> اسکریپت‌های افزونه‌های دیگه (مثلِ Code Snippets) رو defer کن</label>
 								<p class="description">
-									طبقِ گزارشِ PageSpeed، jQuery و استایل‌های ووکامرس از قبل defer شدن (بالاتر توضیح داده شده)، ولی چند اسکریپتِ کوچیکِ دیگه (با اسم‌های هش‌مانند، معمولاً خروجیِ افزونه‌ی Code Snippets) هنوز مسدودکننده‌ان. این گزینه همون تکنیکِ defer رو — فقط برای اسکریپت‌هایی که از خودِ هسته‌ی وردپرس یا این پوسته نیستن — فعال می‌کنه.
-									<strong>قبل از فعال‌کردن روی سایتِ اصلی، حتماً اول امتحانش کن</strong> — اگه یکی از اون اسکریپت‌ها فرض کرده باشه بلافاصله (نه بعدِ پارسِ کاملِ صفحه) اجرا می‌شه، ممکنه اون قابلیتِ خاص از کار بیفته؛ در اون صورت همین‌جا خاموشش کن.
+									پوسته اسکریپت‌های شناخته‌شدهٔ خودش و وابستگی‌های هسته/ووکامرس را با حفظ ترتیب defer می‌کند؛ افزونهٔ بهینه‌سازی ممکن است تگ‌ها را دوباره ترکیب یا بازنویسی کند، پس بعد از تغییر، کش را پاک و خروجی نهایی را دوباره بررسی کنید. این گزینه فقط اسکریپت‌های افزونه‌های دیگر را هدف می‌گیرد.
+									<strong>قبل از فعال‌کردن روی سایتِ اصلی، حتماً اول امتحانش کن</strong> — اگر یک اسکریپت به اجرای هم‌زمان وابسته باشد، ممکن است همان قابلیت از کار بیفتد؛ در آن صورت این گزینه را خاموش کنید. فایل CSS ترکیب‌شدهٔ LiteSpeed از این گزینه پیروی نمی‌کند؛ برای بارگذاری غیرمسدودکنندهٔ CSS، Critical CSS را در تنظیمات LiteSpeed کامل و روی صفحات واقعی آزمایش کنید.
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">اپلیکیشنِ وب (PWA)</th>
+							<td>
+								<label><input type="checkbox" name="performance[pwa_enabled]" value="1" <?php checked( $perf['pwa_enabled'] ?? true ); ?> /> قابلِ نصب روی گوشی + صفحهٔ «اتصال برقرار نیست» هنگامِ قطعیِ اینترنت</label><br>
+								<label><input type="checkbox" name="performance[pwa_install_prompt]" value="1" <?php checked( $perf['pwa_install_prompt'] ?? true ); ?> /> نوارِ کوچکِ «افزودن به صفحهٔ اصلی» در موبایل (بیرون از سبد، تسویه، حساب و صفحهٔ محصول)</label>
+								<p class="description">
+									هیچ صفحه‌ای (HTML) کش نمی‌شود — قیمت، موجودی، سبد و ورود همیشه زنده از سرور می‌آیند. فقط فایل‌های هش‌دارِ خودِ پوسته (JS/CSS/فونت) و یک صفحهٔ آفلاینِ کوچک ذخیره می‌شوند. سبد، تسویه، حساب کاربری، پیگیری سفارش، wp-admin، REST و بازگشتِ درگاه اصلاً از service worker عبور نمی‌کنند.
+									با خاموش‌کردن، service workerِ نصب‌شده روی گوشیِ کاربران در بازدیدِ بعدی خودش را پاک می‌کند.
 								</p>
 							</td>
 						</tr>
@@ -1890,11 +2950,11 @@ function jluxe_render_advanced_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">این کد مستقیم روی هر صفحه‌ی سایت لود می‌شه — فقط برای ادمین‌های مطمئن (<code>manage_options</code>).</p>
+					<p class="description">این کد مستقیم روی هر صفحه‌ی سایت لود می‌شه — ویرایش آن علاوه بر مدیریت تنظیمات، به مجوز <code>unfiltered_html</code> نیاز دارد.</p>
 					<h3>CSS سفارشی</h3>
-					<textarea name="custom_code[css]" rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['css'] ); ?></textarea>
+					<textarea name="custom_code[css]" <?php echo current_user_can( 'unfiltered_html' ) ? '' : 'readonly'; ?> rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['css'] ); ?></textarea>
 					<h3>JavaScript سفارشی</h3>
-					<textarea name="custom_code[js]" rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['js'] ); ?></textarea>
+					<textarea name="custom_code[js]" <?php echo current_user_can( 'unfiltered_html' ) ? '' : 'readonly'; ?> rows="10" class="large-text code" dir="ltr"><?php echo esc_textarea( $code['js'] ); ?></textarea>
 					<?php jluxe_settings_submit_button( true, 'custom_code' ); ?>
 				</form>
 			</div>

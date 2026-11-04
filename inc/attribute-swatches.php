@@ -3,12 +3,10 @@
  * سواچ رنگ/تصویر برای ترم‌های ویژگی‌های ووکامرس (pa_*) — توی صفحه‌ی
  * ویرایشِ محصولاتِ ووکامرس (Products → Attributes → [ویژگی] → ترم‌ها)،
  * هر ترم (مثلاً «آبی» زیرِ ویژگیِ «رنگ») می‌تونه نوعِ سواچش رو انتخاب
- * کنه: بدون سواچ (متن ساده)، رنگ (رنگ‌یاب واقعی)، یا تصویر (آپلودِ
- * رسانه). این جایگزینِ حدسِ نامِ رنگ (jluxe_persian_color_to_hex در
- * inc/woocommerce.php) می‌شه — طبقِ درخواستِ کاربر، ادمین باید بتونه
- * صریحاً رنگ/تصویر رو انتخاب کنه، نه اینکه سایت از روی متنِ نامِ رنگ
- * حدس بزنه. حدسِ قبلی به‌عنوانِ fallback برای ترم‌هایی که هنوز سواچ
- * دستی ندارن باقی می‌مونه (backward-compatible، چیزی خراب نمی‌شه).
+ * کنه: خودکار (نام رنگ‌های شناخته‌شده)، بدون سواچ (متن ساده)، رنگ (رنگ‌یاب
+ * واقعی)، یا تصویر (آپلود رسانه). حالت خودکار پیش‌فرض است تا termهای
+ * تازه‌ساخته‌شده هم با resolver مشترک نمایش درستی داشته باشند؛ ادمین هنوز
+ * می‌تواند برای یک term خاص نوع/رنگ دقیق را صریحاً تنظیم کند.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -35,13 +33,17 @@ function jluxe_register_swatch_term_hooks(): void {
 add_action( 'init', 'jluxe_register_swatch_term_hooks', 20 );
 
 /**
- * مقادیرِ فعلیِ سواچِ یک ترم — پیش‌فرض برای ترمِ تازه (فرمِ افزودن) خالیه.
+ * مقادیرِ فعلیِ سواچِ یک ترم — نبودِ متا یعنی تشخیصِ خودکار.
  *
  * @return array{type: string, color: string, image_id: int}
  */
 function jluxe_get_swatch_term_meta( int $term_id ): array {
+	$type = (string) get_term_meta( $term_id, '_jluxe_swatch_type', true );
+	if ( ! in_array( $type, array( 'auto', 'none', 'color', 'image' ), true ) ) {
+		$type = 'auto';
+	}
 	return array(
-		'type'     => (string) get_term_meta( $term_id, '_jluxe_swatch_type', true ) ?: 'none',
+		'type'     => $type,
 		'color'    => (string) get_term_meta( $term_id, '_jluxe_swatch_color', true ),
 		'image_id' => (int) get_term_meta( $term_id, '_jluxe_swatch_image_id', true ),
 	);
@@ -56,10 +58,10 @@ function jluxe_render_swatch_add_fields(): void {
 	?>
 	<div class="form-field jluxe-swatch-field">
 		<label>تنظیمات سواچ</label>
-		<?php jluxe_render_swatch_type_radios( 'none', '' ); ?>
+		<?php jluxe_render_swatch_type_radios( 'auto', '' ); ?>
 		<?php jluxe_render_swatch_color_field( '' ); ?>
 		<?php jluxe_render_swatch_image_field( 0 ); ?>
-		<p class="description">نوعِ نمایشِ این گزینه در سواچ‌های انتخابِ تنوعِ صفحه‌ی محصول.</p>
+		<p class="description">حالتِ خودکار نام رنگ‌های شناخته‌شده را به سواچ تبدیل می‌کند؛ برای رنگ‌های خاص، رنگ یا تصویر را انتخاب کنید.</p>
 	</div>
 	<?php
 }
@@ -79,7 +81,7 @@ function jluxe_render_swatch_edit_fields( $term ): void {
 			<?php jluxe_render_swatch_type_radios( $meta['type'], '' ); ?>
 			<?php jluxe_render_swatch_color_field( $meta['color'] ); ?>
 			<?php jluxe_render_swatch_image_field( $meta['image_id'] ); ?>
-			<p class="description">نوعِ نمایشِ این گزینه در سواچ‌های انتخابِ تنوعِ صفحه‌ی محصول.</p>
+			<p class="description">حالتِ خودکار نام رنگ‌های شناخته‌شده را به سواچ تبدیل می‌کند؛ برای رنگ‌های خاص، رنگ یا تصویر را انتخاب کنید.</p>
 		</td>
 	</tr>
 	<?php
@@ -87,8 +89,9 @@ function jluxe_render_swatch_edit_fields( $term ): void {
 
 function jluxe_render_swatch_type_radios( string $current, string $unused ): void {
 	$options = array(
+		'auto'  => 'خودکار (تشخیص رنگ‌های شناخته‌شده)',
 		'none'  => 'بدون سواچ (متن ساده)',
-		'color' => 'رنگ',
+		'color' => 'رنگ دلخواه',
 		'image' => 'تصویر',
 	);
 	?>
@@ -136,9 +139,9 @@ function jluxe_save_swatch_term_meta( int $term_id ): void {
 		return;
 	}
 
-	$type = isset( $_POST['jluxe_swatch_type'] ) ? sanitize_key( wp_unslash( $_POST['jluxe_swatch_type'] ) ) : 'none';
-	if ( ! in_array( $type, array( 'none', 'color', 'image' ), true ) ) {
-		$type = 'none';
+	$type = isset( $_POST['jluxe_swatch_type'] ) ? sanitize_key( wp_unslash( $_POST['jluxe_swatch_type'] ) ) : 'auto';
+	if ( ! in_array( $type, array( 'auto', 'none', 'color', 'image' ), true ) ) {
+		$type = 'auto';
 	}
 	update_term_meta( $term_id, '_jluxe_swatch_type', $type );
 
@@ -150,6 +153,67 @@ function jluxe_save_swatch_term_meta( int $term_id ): void {
 }
 
 /**
+ * پیدا کردنِ ترمِ ویژگی با مقدارِ خامِ ووکامرس، نامکِ URL-encoded یا نام.
+ * نامک‌های فارسی ممکن است یک‌بار/چندبار encode شده باشند؛ lookup مستقیم
+ * در این حالت false می‌دهد و قالب به‌اشتباه خودِ نامک را به‌عنوانِ نام رنگ
+ * چاپ می‌کند. همه‌ی شکل‌های معتبرِ مقدار را روی taxonomy واقعی امتحان می‌کنیم.
+ */
+function jluxe_get_attribute_term( string $attribute_name, string $value ): ?object {
+	$taxonomies = array_values( array_unique( array( $attribute_name, rawurldecode( $attribute_name ) ) ) );
+	$decoded    = rawurldecode( $value );
+	$slug_values = array( $value, $decoded );
+	if ( function_exists( 'sanitize_title' ) ) {
+		$slug_values[] = sanitize_title( $decoded );
+	}
+	$slug_values = array_values( array_unique( array_map( 'strval', $slug_values ) ) );
+	$name_values = array_values( array_unique( array( $value, $decoded ) ) );
+
+	foreach ( $taxonomies as $taxonomy ) {
+		if ( 0 !== strpos( $taxonomy, 'pa_' ) ) {
+			continue;
+		}
+		if ( function_exists( 'taxonomy_exists' ) && ! taxonomy_exists( $taxonomy ) ) {
+			continue;
+		}
+
+		foreach ( $slug_values as $slug ) {
+			$term = get_term_by( 'slug', $slug, $taxonomy );
+			if ( is_object( $term ) && ! is_wp_error( $term ) ) {
+				return $term;
+			}
+		}
+		foreach ( $name_values as $name ) {
+			$term = get_term_by( 'name', $name, $taxonomy );
+			if ( is_object( $term ) && ! is_wp_error( $term ) ) {
+				return $term;
+			}
+		}
+	}
+
+	return null;
+}
+
+/**
+ * نامِ قابل‌خواندنِ گزینه‌ی ویژگی؛ اگر ترم پیدا نشود، مقدارِ encode‌شده و
+ * جداکننده‌هایِ مخصوصِ نامک را هم به یک متنِ طبیعی تبدیل می‌کند تا هیچ‌وقت
+ * رشته‌ی خامِ %d8... در رابط کاربر دیده نشود.
+ */
+function jluxe_attribute_option_label( string $value, string $attribute_name, $product = null ): string {
+	$taxonomy = rawurldecode( $attribute_name );
+	if ( 0 === strpos( $taxonomy, 'pa_' ) ) {
+		$term = jluxe_get_attribute_term( $attribute_name, $value );
+		if ( $term && isset( $term->name ) && '' !== (string) $term->name ) {
+			return (string) $term->name;
+		}
+	}
+
+	$label = rawurldecode( $value );
+	$label = preg_replace( '/[-_]+/u', ' ', $label );
+	$label = trim( (string) preg_replace( '/\s+/u', ' ', (string) $label ) );
+	return (string) apply_filters( 'woocommerce_variation_option_name', $label, null, $attribute_name, $product );
+}
+
+/**
  * سواچِ نهایی برای یک گزینه‌ی تنوع — اول متای واقعیِ ادمین‌انتخاب‌شده،
  * بعد (فقط برای ویژگی‌های رنگ که هنوز دستی تنظیم نشدن) حدسِ نامِ رنگِ
  * قدیمی (jluxe_persian_color_to_hex) به‌عنوانِ fallback، که چیزی برای
@@ -158,16 +222,14 @@ function jluxe_save_swatch_term_meta( int $term_id ): void {
  * @return array{type: string, value: string}|null نال یعنی سواچی نیست (پیلِ متنی نشون داده بشه).
  */
 function jluxe_resolve_variation_swatch( string $attr_name, string $option_slug, string $option_label, bool $is_color_attr ): ?array {
-	if ( 0 === strpos( $attr_name, 'pa_' ) ) {
-		$term = get_term_by( 'slug', $option_slug, $attr_name );
+	if ( 0 === strpos( rawurldecode( $attr_name ), 'pa_' ) ) {
+		$term = jluxe_get_attribute_term( $attr_name, $option_slug );
 		if ( $term ) {
 			// مقدارِ خامِ متا (نه jluxe_get_swatch_term_meta که برای رندرِ
 			// فرمِ ادمین 'none' رو پیش‌فرض می‌ذاره) — چون این‌جا باید فرقِ
-			// «ادمین صریحاً گزینه‌ی بدون‌سواچ رو زده» رو از «هنوز اصلاً به
-			// این ترم سر نزده» تشخیص بدیم؛ وگرنه هر ترمِ دست‌نخورده
-			// (یعنی همه‌ی ترم‌های موجودِ فعلی، قبل از این‌که ادمین دستی
-			// تنظیمشون کنه) بلافاصله حدسِ نامِ رنگِ قدیمی رو از دست می‌داد
-			// (باگِ واقعیِ کشف‌شده حینِ تست).
+			// «ادمین صریحاً گزینه‌ی بدون‌سواچ رو زده» را از حالتِ خودکار
+			// (متای خالی یا 'auto') جدا نگه داریم؛ وگرنه نام‌های رنگِ
+			// شناخته‌شده‌ی ترم‌هایِ قبلی/جدید دیگر به HEX تبدیل نمی‌شوند.
 			$raw_type = (string) get_term_meta( $term->term_id, '_jluxe_swatch_type', true );
 
 			if ( 'color' === $raw_type ) {
@@ -196,7 +258,15 @@ function jluxe_resolve_variation_swatch( string $attr_name, string $option_slug,
 	}
 
 	if ( $is_color_attr ) {
-		$hex = jluxe_persian_color_to_hex( $option_label );
+		$hex = function_exists( 'sanitize_hex_color' ) ? sanitize_hex_color( rawurldecode( $option_label ) ) : null;
+		if ( ! $hex ) {
+			$hex = jluxe_persian_color_to_hex( $option_label );
+		}
+		if ( ! $hex && '' !== trim( $option_slug ) && $option_slug !== $option_label ) {
+			// R65: تلاشِ دوم با نامکِ ترم («dark-grey») — برچسب‌هایی که خودشان
+			// در نقشه نیستند ولی نامکشان نامِ رنگِ انگلیسیِ معروفی است.
+			$hex = jluxe_persian_color_to_hex( $option_slug );
+		}
 		if ( $hex ) {
 			return array(
 				'type'  => 'color',

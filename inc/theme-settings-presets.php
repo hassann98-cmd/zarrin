@@ -59,6 +59,22 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.65),
 		),
+		/*
+		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
+		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
+		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
+		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
+		 */
+		'jluxe_brand_red' => array(
+			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
+			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
+			'colors' => array(
+				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
 		'emerald_modern' => array(
 			'label' => 'زمردی مدرن',
 			'description' => 'سبز زمردی، سرمه‌ای و طلایی ملایم؛ متفاوت، باوقار و مناسب برندهای خانه و جواهر.',
@@ -66,6 +82,38 @@ function jluxe_get_design_presets(): array {
 				'primary' => '#087A68', 'secondary' => '#243746', 'background' => '#F6FAF8', 'success' => '#19734C', 'accent' => '#B9974F',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'electric_indigo' => array(
+			'label' => 'نیلی الکتریکی (افزوده‌شده)',
+			'description' => 'پالت تازهٔ Electric Indigo به‌عنوان گزینه‌ای مستقل؛ هفت پریست قبلی با رنگ‌های اصلی خود باقی می‌مانند.',
+			'colors' => array(
+				'primary' => '#5100FF', 'secondary' => '#300099', 'background' => '#EEE5FF', 'success' => '#16865A', 'accent' => '#7433FF',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'legacy_default' => array(
+			'label' => 'پالت پیش‌فرض پیشین زرین',
+			'description' => 'رنگ‌های پایهٔ پوسته پیش از Electric Indigo؛ گزینه‌ای جداگانه و قابل‌اعمال، بدون تغییر خودکارِ تنظیمات ذخیره‌شده.',
+			'colors' => array(
+				'primary' => '#B85C38', 'secondary' => '#355C5A', 'background' => '#F7F3EE', 'success' => '#16865A', 'accent' => '#C89B3C',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'royal_orchid' => array(
+			'label' => 'رویال ارکید (Royal Orchid)',
+			'description' => 'طیف دقیق Royal Orchid؛ رنگ اصلی از shade 600 انتخاب شده تا متن سفیدِ دکمه‌ها کنتراست WCAG AA داشته باشد. هر ۵ رنگ پس از اعمال قابل‌ویرایش است.',
+			'colors' => array(
+				'primary' => '#A313B9', 'secondary' => '#510A5C', 'background' => '#FAE8FD', 'success' => '#16865A', 'accent' => '#7A0F8A',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'dodger_blue' => array(
+			'label' => 'آبی داجر (Dodger Blue)',
+			'description' => 'طیف دقیق Dodger Blue؛ پس‌زمینهٔ shade 50 با متن اصلیِ 13.08:1 و متن کمکیِ 6.75:1، دکمهٔ shade 600 با متن سفیدِ 4.81:1 و hover/active تیره‌تر. مرز و focus ring هم shade 600 هستند (4.28:1 روی زمینه و 4.81:1 روی کارت سفید). رنگ سبزِ موفقیت معنای مستقل خود را حفظ می‌کند.',
+			'colors' => array(
+				'primary' => '#0074CC', 'secondary' => '#003A66', 'background' => '#E5F4FF', 'success' => '#16865A', 'accent' => '#005799',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
 	);
 }

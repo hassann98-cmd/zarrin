@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between text-small text-text-secondary">
-		<span>قیمت کالاها (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_subtotal_label', 'قیمت کالاها' ) ); ?> (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
 		<span><?php wc_cart_totals_subtotal_html(); ?></span>
 	</div>
 
@@ -34,17 +34,10 @@ defined( 'ABSPATH' ) || exit;
 	<?php endforeach; ?>
 
 	<?php
-	/*
-	 * روش ارسال دیگه توی سبد خرید انتخاب نمی‌شه — طبق درخواست صریح کاربر
-	 * («تو این صفحه نباید روش ارسال رو داشته باشیم») این مرحله فقط بررسی
-	 * سبد خریده؛ انتخاب واقعیِ روش ارسال به مرحله‌ی بعد (اطلاعات ارسال در
-	 * چک‌اوت، woocommerce/checkout/review-order.php) منتقل شده. اگر سبد
-	 * نیاز به ارسال داره، فقط یک یادآوریِ متنی نشون می‌دیم؛ هیچ
-	 * calculator/رادیویی این‌جا رندر نمی‌شه.
-	 */
-	if ( WC()->cart->needs_shipping() ) :
+	$cart_shipping_notice = jluxe_cart_checkout_copy( 'cart_shipping_notice_text', '' );
+	if ( WC()->cart->needs_shipping() && jluxe_cart_checkout_option( 'cart_shipping_notice_enabled', false ) && '' !== trim( $cart_shipping_notice ) ) :
 		?>
-		<p class="border-t border-border pt-3 text-caption text-text-muted">هزینه‌ی ارسال در مرحله‌ی «اطلاعات ارسال» بر اساس آدرس شما محاسبه و نمایش داده می‌شود.</p>
+		<p class="border-t border-border pt-3 text-caption text-text-muted"><?php echo nl2br( esc_html( $cart_shipping_notice ) ); ?></p>
 	<?php endif; ?>
 
 	<?php foreach ( WC()->cart->get_fees() as $fee ) : ?>
@@ -81,26 +74,26 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between border-t border-border pt-3 text-body font-bold text-foreground">
-		<span>مبلغ قابل پرداخت:</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_total_label', 'مبلغ قابل پرداخت' ) ); ?>:</span>
 		<span><?php wc_cart_totals_order_total_html(); ?></span>
 	</div>
 
 	<?php do_action( 'woocommerce_cart_totals_after_order_total' ); ?>
 
-	<div class="jluxe-cart-actions sticky bottom-0 z-10 -mx-5 -mb-5 flex flex-col gap-2.5 border-t border-border bg-surface p-4 sm:static sm:z-auto sm:m-0 sm:border-0 sm:p-0">
-		<div class="jluxe-checkout-btn-wrap w-full">
-			<?php do_action( 'woocommerce_proceed_to_checkout' ); ?>
-		</div>
+	<div class="jluxe-cart-actions jluxe-checkout-action-row">
 		<?php
 		/*
 		 * طبق درخواست صریح کاربر («بازگشت به فروشگاه که باید بره صفحه
 		 * اصلی») این دکمه به صفحه‌ی اصلی سایت می‌ره، نه صفحه‌ی فروشگاه.
 		 */
 		?>
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="flex h-12 w-full items-center justify-center gap-1.5 rounded-lg border border-border px-5 text-button font-normal text-foreground transition-colors hover:bg-muted">
+		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary">
 			<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
-			بازگشت به فروشگاه
+			<?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_return_to_store', 'بازگشت به فروشگاه' ) ); ?>
 		</a>
+		<div class="jluxe-checkout-btn-wrap">
+			<?php do_action( 'woocommerce_proceed_to_checkout' ); ?>
+		</div>
 	</div>
 
 	<?php do_action( 'woocommerce_after_cart_totals' ); ?>

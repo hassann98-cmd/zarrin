@@ -50,7 +50,7 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between text-small text-text-secondary">
-		<span>قیمت کالاها (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_subtotal_label', 'قیمت کالاها' ) ); ?> (<?php echo esc_html( jluxe_fa_digits( WC()->cart->get_cart_contents_count() ) ); ?>):</span>
 		<span><?php wc_cart_totals_subtotal_html(); ?></span>
 	</div>
 
@@ -69,12 +69,22 @@ defined( 'ABSPATH' ) || exit;
 		 * پرداخت باید فقط پرداخت رو نشون بده، نه روش ارسال رو هم کنارش).
 		 */
 		?>
-		<div id="jluxe-shipping-section" class="border-t border-border pt-3">
-			<p class="mb-3 text-small font-medium text-foreground">روش ارسال را انتخاب کنید</p>
+		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping">
+			<?php if ( jluxe_cart_checkout_option( 'checkout_shipping_heading_enabled', true ) ) : ?>
+				<?php $shipping_heading = jluxe_cart_checkout_copy( 'checkout_shipping_heading', 'روش ارسال را انتخاب کنید!' ); ?>
+				<?php if ( '' !== trim( $shipping_heading ) ) : ?>
+					<p class="mb-3 text-small font-medium text-foreground"><?php echo esc_html( $shipping_heading ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
 			<?php do_action( 'woocommerce_review_order_before_shipping' ); ?>
 			<?php wc_cart_totals_shipping_html(); ?>
 			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>
-			<p data-jluxe-shipping-error hidden class="mt-2 text-caption text-error">روش ارسال را انتخاب کنید.</p>
+			<?php if ( jluxe_cart_checkout_option( 'checkout_shipping_error_enabled', true ) ) : ?>
+				<?php $shipping_error = jluxe_cart_checkout_copy( 'checkout_shipping_error', 'روش ارسال را انتخاب کنید.' ); ?>
+				<?php if ( '' !== trim( $shipping_error ) ) : ?>
+					<p data-jluxe-shipping-error hidden class="mt-2 text-caption text-error"><?php echo esc_html( $shipping_error ); ?></p>
+				<?php endif; ?>
+			<?php endif; ?>
 		</div>
 	<?php endif; ?>
 
@@ -112,7 +122,7 @@ defined( 'ABSPATH' ) || exit;
 	 */
 	?>
 	<div class="flex items-center justify-between border-t border-border pt-3 text-body font-bold text-foreground">
-		<span>مبلغ قابل پرداخت:</span>
+		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_total_label', 'مبلغ قابل پرداخت' ) ); ?>:</span>
 		<span><?php wc_cart_totals_order_total_html(); ?></span>
 	</div>
 

@@ -22,11 +22,12 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 jluxe_render_checkout_stepper( 'shipping' );
 ?>
 
-<div class="mx-auto w-full max-w-[1296px] px-4 py-6">
+<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
+	<noscript><p class="woocommerce-error" role="alert"><?php echo esc_html( jluxe_cart_checkout_copy( 'checkout_no_js_notice', 'برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد.' ) ); ?> <a href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php echo esc_html( jluxe_cart_checkout_required_copy( 'checkout_no_js_back', 'بازگشت به سبد خرید' ) ); ?></a></p></noscript>
 	<form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
 
-		<div class="grid gap-6 lg:grid-cols-[1fr_320px]">
-			<div>
+		<div class="jluxe-checkout-layout grid gap-6 lg:grid-cols-[1fr_320px]">
+			<div class="jluxe-checkout-panel">
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
@@ -53,15 +54,18 @@ jluxe_render_checkout_stepper( 'shipping' );
 				 * مراجعه بشه).
 				 */
 				?>
-				<div id="jluxe-payment-column" class="rounded-2xl border border-border p-5" hidden>
+				<div id="jluxe-payment-column" hidden>
 					<?php woocommerce_checkout_payment(); ?>
 				</div>
 			</div>
 
-			<div class="flex h-fit flex-col gap-3 rounded-2xl border border-border p-5 lg:sticky lg:top-24">
+			<div class="jluxe-checkout-summary flex h-fit flex-col lg:sticky lg:top-24">
 				<?php do_action( 'woocommerce_checkout_before_order_review_heading' ); ?>
 
-				<p class="text-small font-medium text-foreground">خلاصه سفارش</p>
+				<?php $summary_heading = jluxe_cart_checkout_copy( 'checkout_summary_heading', 'خلاصه سفارش' ); ?>
+				<?php if ( '' !== trim( $summary_heading ) ) : ?>
+					<p class="jluxe-checkout-summary-title"><?php echo esc_html( $summary_heading ); ?></p>
+				<?php endif; ?>
 
 				<?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
 
