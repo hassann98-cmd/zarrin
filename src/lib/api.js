@@ -128,7 +128,11 @@ export async function restRequest(
       await getSession(true);
       return restRequest(path, body, { authenticated, retryNonce: false });
     }
-    throw new Error(data.message || "خطایی پیش آمد. دوباره تلاش کنید.");
+    const error = new Error(data.message || "خطایی پیش آمد. دوباره تلاش کنید.");
+    error.code = data.code || "";
+    error.status = response.status;
+    error.partialReply = typeof data.data?.partial_reply === "string" ? data.data.partial_reply : "";
+    throw error;
   }
   return data;
 }
@@ -171,11 +175,13 @@ export async function restStreamRequest(
       await getSession(true);
       return restStreamRequest(path, body, onEvent, { authenticated, retryNonce: false });
     }
-    throw streamError(
+    const error = streamError(
       data.message || "ارتباط با سرور برقرار نشد.",
       data.code || "jluxe_ai_stream_error",
       response.status,
     );
+    error.partialReply = typeof data.data?.partial_reply === "string" ? data.data.partial_reply : "";
+    throw error;
   }
 
   const contentType = response.headers?.get?.("content-type")?.toLowerCase() || "";

@@ -96,6 +96,10 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
     ],
   };
   const calls = [];
+  const streamBodies = [];
+  let failNextStream = false;
+  let unavailableNextStream = false;
+  let failNextJsonWithPartial = false;
   const fetchMock = async (input, options = {}) => {
     const url = String(input);
     calls.push({ url, options });
@@ -104,11 +108,37 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
     }
     if (url.includes("/assistant/stream")) {
       const body = JSON.parse(options.body || "{}");
+      streamBodies.push(body);
       assert.equal(options.headers.Accept, "text/event-stream", "the chat negotiates an SSE response");
       assert.equal(body.page.productId, 44, "the current product context reaches the server");
       assert.equal(body.page.url, "https://shop.test/product/ring/", "order-key query parameters and fragments are not forwarded to the AI provider");
       assert.equal(body.page.title.length, 120, "page context title stays within the server schema limit");
-      assert.equal(body.messages.at(-1).content, "معرفی محصول", "chat requests send the bounded latest message text");
+      if (streamBodies.length === 1) {
+        assert.equal(body.messages.at(-1).content, "معرفی محصول", "chat requests send the bounded latest message text");
+      }
+      if (unavailableNextStream) {
+        unavailableNextStream = false;
+        return {
+          ok: false,
+          status: 501,
+          json: async () => ({ code: "jluxe_ai_stream_unavailable", message: "stream در این سرور در دسترس نیست." }),
+        };
+      }
+      if (failNextStream) {
+        failNextStream = false;
+        const errorFrames = [
+          "event: start\n\n",
+          ...(streamBodies.length === 2 ? [`event: delta\ndata: ${JSON.stringify({ text: "پاسخ نیمه‌کاره" })}\n\n`] : []),
+          `event: error\ndata: ${JSON.stringify({ code: "jluxe_ai_stream_error", message: "ارتباط قطع شد" })}\n\n`,
+        ];
+        const errorChunks = errorFrames.map((frame) => new TextEncoder().encode(frame));
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (name) => name.toLowerCase() === "content-type" ? "text/event-stream; charset=utf-8" : null },
+          body: new ReadableStream({ start(controller) { errorChunks.forEach((chunk) => controller.enqueue(chunk)); controller.close(); } }),
+        };
+      }
       const splitAt = responseBody.reply.indexOf("**گردنبند نقره**");
       const frames = [
         "event: start\r\n\r\n",
@@ -131,6 +161,19 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
     }
     if (url.endsWith("/assistant")) {
       const body = JSON.parse(options.body || "{}");
+      if (failNextJsonWithPartial) {
+        failNextJsonWithPartial = false;
+        assert.equal(body.messages.at(-1).content, "پاسخِ بلندِ بدونِ stream");
+        return {
+          ok: false,
+          status: 502,
+          json: async () => ({
+            code: "jluxe_ai_incomplete_reply",
+            message: "پاسخ به سقف طول مدل رسید و کامل نشد.",
+            data: { status: 502, partial_reply: "نیمهٔ پاسخ JSON" },
+          }),
+        };
+      }
       assert.equal(body.messages.at(-1).content, "معرفی محصول");
       return { ok: true, status: 200, json: async () => responseBody };
     }
@@ -365,7 +408,61 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   });
   assert.equal(calls.some((call) => call.url.endsWith("/assistant/stream")), true, "quick reply requests the streaming assistant route");
   assert.equal(calls.some((call) => call.url.endsWith("/assistant")), false, "successful stream requests do not call the legacy JSON route");
-  assert.equal(mount.querySelectorAll(".jluxe-ai-contact-row .jluxe-ai-icon-link").length, 2, "phone and WhatsApp links become icon buttons");
+
+  const chatInput = mount.querySelector(".jluxe-ai-chat-input");
+  const setChatInput = (value) => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(chatInput, value);
+    chatInput.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  };
+  failNextStream = true;
+  await act(async () => {
+    setChatInput("این پاسخ را کامل کن");
+    await Promise.resolve();
+  });
+  await act(async () => {
+    mount.querySelector(".jluxe-ai-chat-form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  });
+  assert.ok(await waitFor(() => mount.querySelector('[data-incomplete="true"]')), "a stream error preserves the visible partial text but marks it incomplete");
+  assert.match(mount.querySelector('[data-incomplete="true"]').textContent, /پاسخ نیمه‌کاره/);
+  assert.match(mount.querySelector('[data-incomplete="true"]').textContent, /در ادامهٔ گفتگو لحاظ نمی‌شود/);
+  assert.match(mount.querySelector(".jluxe-ai-error").textContent, /ارتباط قطع شد/);
+  await act(async () => {
+    setChatInput("پرسش تازه پس از خطا");
+    await Promise.resolve();
+  });
+  failNextStream = true;
+  await act(async () => {
+    mount.querySelector(".jluxe-ai-chat-form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  });
+  assert.ok(await waitFor(() => streamBodies.length === 3 && !mount.querySelector(".jluxe-ai-typing") && mount.querySelector(".jluxe-ai-error")), "the next request proceeds after a prior interrupted stream and leaves the failed request marked");
+  assert.equal(streamBodies[2].messages.some((message) => message.content === "پاسخ نیمه‌کاره"), false, "an incomplete streamed assistant response is never sent back as conversation history");
+  assert.equal(streamBodies[2].messages.at(-1).content, "پرسش تازه پس از خطا");
+  assert.equal(mount.querySelector('[data-incomplete="true"]'), null, "starting a new turn clears the stale partial assistant bubble");
+
+  unavailableNextStream = true;
+  failNextJsonWithPartial = true;
+  await act(async () => {
+    setChatInput("پاسخِ بلندِ بدونِ stream");
+    await Promise.resolve();
+  });
+  await act(async () => {
+    mount.querySelector(".jluxe-ai-chat-form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  });
+  assert.ok(await waitFor(() => mount.querySelector('[data-incomplete="true"]')?.textContent.includes("نیمهٔ پاسخ JSON")), "a token-limited non-stream response preserves its partial text as incomplete");
+  assert.match(mount.querySelector('[data-incomplete="true"]').textContent, /در ادامهٔ گفتگو لحاظ نمی‌شود/);
+
+  await act(async () => {
+    setChatInput("پرسش پس از پاسخ ناقص");
+    await Promise.resolve();
+  });
+  await act(async () => {
+    mount.querySelector(".jluxe-ai-chat-form").dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  });
+  assert.ok(await waitFor(() => streamBodies.length === 5 && !mount.querySelector(".jluxe-ai-typing") && !mount.querySelector("[data-incomplete]")), "a later request recovers normally after a truncated JSON response");
+  assert.equal(streamBodies[4].messages.some((message) => message.content.includes("نیمهٔ پاسخ JSON")), false, "a truncated JSON response is not reused as conversation history");
+  assert.equal(streamBodies[4].messages.at(-1).content, "پرسش پس از پاسخ ناقص");
+
+  assert.equal(mount.querySelector(".jluxe-ai-bubble--assistant")?.querySelectorAll(".jluxe-ai-contact-row .jluxe-ai-icon-link").length, 2, "phone and WhatsApp links become icon buttons in the first assistant reply, even when the conversation has later replies");
   assert.ok(mount.querySelector(".jluxe-ai-hours-notice"), "phone hours notice appears with contact links");
   assert.ok(mount.querySelector(".jluxe-ai-hours-meta"), "the status card displays configured response days and hours");
   assert.match(mount.querySelector(".jluxe-ai-hours-meta").textContent, /شنبه تا پنجشنبه/);

@@ -731,7 +731,7 @@ function Assistant() {
   async function sendMessage(value) {
     const prompt = String(value ?? input).trim().slice(0, 1000);
     if (!prompt || loading) return;
-    const next = [...messages, { role: "user", text: prompt }];
+    const next = [...messages.filter((message) => !message.incomplete), { role: "user", text: prompt }];
     const requestBody = {
       messages: next.slice(-12).map((message) => ({ role: message.role, content: message.text.slice(0, 1000) })),
       page: pageContext(),
@@ -814,13 +814,15 @@ function Assistant() {
     } catch (requestError) {
       clearFlushTimer();
       const remaining = pendingDelta;
+      const providerPartial = !streamedText && typeof requestError.partialReply === "string" ? requestError.partialReply : "";
       pendingDelta = "";
       setMessages((current) => {
         const last = current[current.length - 1];
         if (last?.role === "assistant" && last.streaming) {
-          return [...current.slice(0, -1), { ...last, text: last.text + remaining, streaming: false }];
+          return [...current.slice(0, -1), { ...last, text: last.text + remaining, streaming: false, incomplete: true }];
         }
-        if (remaining) return [...current, { role: "assistant", text: remaining, products: [], streaming: false }];
+        if (remaining) return [...current, { role: "assistant", text: remaining, products: [], streaming: false, incomplete: true }];
+        if (providerPartial) return [...current, { role: "assistant", text: providerPartial, products: [], streaming: false, incomplete: true }];
         return current;
       });
       setError(requestError.message || "ارتباط با سرور برقرار نشد.");
@@ -909,9 +911,13 @@ function Assistant() {
                     ] }) : null,
                     ...messages.map((message, index) => h("div", {
                       key: `${message.role}-${index}`,
-                      className: ["jluxe-ai-bubble max-w-[92%] rounded-xl p-2.5 text-small leading-6", message.role === "user" ? "jluxe-ai-bubble--user text-primary-foreground" : "jluxe-ai-bubble--assistant text-foreground"].join(" "),
+                      className: ["jluxe-ai-bubble max-w-[92%] rounded-xl p-2.5 text-small leading-6", message.role === "user" ? "jluxe-ai-bubble--user text-primary-foreground" : "jluxe-ai-bubble--assistant text-foreground", message.incomplete ? "jluxe-ai-bubble--incomplete" : ""].filter(Boolean).join(" "),
+                      "data-incomplete": message.incomplete ? "true" : undefined,
                       style: { background: message.role === "user" ? assistant.bgUserColor || assistantAccent : assistant.bgBotColor || "hsl(var(--muted))" },
-                      children: message.role === "assistant" ? renderReply(message.text, { ...assistant, products: message.products || [] }, (src, alt) => setLightbox({ src, alt })) : message.text,
+                      children: message.role === "assistant" ? [
+                        renderReply(message.text, { ...assistant, products: message.products || [] }, (src, alt) => setLightbox({ src, alt })),
+                        message.incomplete ? h("small", { key: "incomplete-note", className: "jluxe-ai-incomplete-note", role: "note", children: "پاسخ ناقص است و در ادامهٔ گفتگو لحاظ نمی‌شود." }) : null,
+                      ] : message.text,
                     })),
                     loading && !hasStreamingReply ? h("div", { key: "typing", className: "jluxe-ai-typing", role: "status", children: [
                       h("span", { key: "typing-avatar", className: "jluxe-ai-typing-avatar", "aria-hidden": true, children: h(MessageIcon, { className: "size-4" }) }),

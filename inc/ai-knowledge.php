@@ -879,10 +879,26 @@ function jluxe_ai_page_context( $page ): string {
 			}
 		}
 	}
-	$url  = esc_url_raw( (string) ( $page['url'] ?? '' ) );
-	$home = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
-	if ( '' !== $url && wp_parse_url( $url, PHP_URL_HOST ) === $home ) {
-		$title = jluxe_ai_clip( sanitize_text_field( (string) ( $page['title'] ?? '' ) ), 120 );
+	$url        = esc_url_raw( (string) ( $page['url'] ?? '' ) );
+	$page_parts = '' !== $url ? wp_parse_url( $url ) : false;
+	$home_parts = wp_parse_url( home_url( '/' ) );
+	$home_host  = is_array( $home_parts ) ? strtolower( (string) ( $home_parts['host'] ?? '' ) ) : '';
+	$page_host  = is_array( $page_parts ) ? strtolower( (string) ( $page_parts['host'] ?? '' ) ) : '';
+	if ( '' !== $url && '' !== $home_host && $page_host === $home_host ) {
+		// Treat the client URL as untrusted: credentials, query tokens, and
+		// fragments are not useful for grounding and must not reach the provider.
+		$home_scheme = strtolower( (string) ( $home_parts['scheme'] ?? '' ) );
+		$scheme      = in_array( $home_scheme, array( 'http', 'https' ), true ) ? $home_scheme : 'https';
+		$host        = trim( (string) $home_parts['host'], '[]' );
+		if ( false !== strpos( $host, ':' ) ) {
+			$host = '[' . $host . ']';
+		}
+		$port       = isset( $home_parts['port'] ) ? ':' . (int) $home_parts['port'] : '';
+		$page_path  = is_array( $page_parts ) && is_string( $page_parts['path'] ?? null ) ? $page_parts['path'] : '';
+		$path       = '' !== $page_path ? $page_path : '/';
+		$url        = $scheme . '://' . $host . $port . $path;
+		$page_title = sanitize_text_field( (string) ( $page['title'] ?? '' ) );
+		$title      = jluxe_ai_clip( jluxe_redact_public_contact_details( $page_title ), 120 );
 		return "## صفحهٔ فعلیِ کاربر\n" . $url . ( '' !== $title ? ' — ' . $title : '' );
 	}
 	return '';

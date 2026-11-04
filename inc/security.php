@@ -18,6 +18,25 @@ function jluxe_normalize_phone( string $phone ): string {
 	return $match[1];
 }
 
+/** Redact common contact details before public user text is sent to an AI provider. */
+function jluxe_redact_public_contact_details( string $text ): string {
+	$email_pattern = '/(?<![\p{L}\p{N}._%+\-])[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}(?![\p{L}\p{N}\-])/iu';
+	$redacted      = preg_replace( $email_pattern, '[ایمیل حذف شد]', $text );
+	if ( is_string( $redacted ) ) {
+		$text = $redacted;
+	}
+
+	$digit        = '[0-9۰-۹٠-٩]';
+	$zero         = '[0۰٠]';
+	$nine         = '[9۹٩]';
+	$eight        = '[8۸٨]';
+	$separator    = '[\\s().\\-]*';
+	$country_code = '(?:(?:\\+|' . $zero . $zero . ')?' . $nine . $eight . $separator . ')?';
+	$phone_pattern = '/(?<![\\p{L}\\p{N}])(?:' . $country_code . $nine . '(?:' . $separator . $digit . '){9}|' . $zero . $separator . $nine . '(?:' . $separator . $digit . '){9}|' . $nine . '(?:' . $separator . $digit . '){9})(?![\\p{L}\\p{N}])/u';
+	$redacted     = preg_replace( $phone_pattern, '[شماره تماس حذف شد]', $text );
+	return is_string( $redacted ) ? $redacted : $text;
+}
+
 function jluxe_product_is_public( $product ): bool {
 	if ( ! $product instanceof WC_Product || ! $product->exists() || 'publish' !== $product->get_status() || 'hidden' === $product->get_catalog_visibility() ) {
 		return false;
@@ -66,6 +85,96 @@ function jluxe_consume_option( string $key, array $expected ): bool {
 	) );
 	wp_cache_delete( $key, 'options' );
 	return 1 === $deleted;
+}
+
+/**
+ * Atomically checks and charges several fixed-window limits as one request.
+ *
+ * All bucket locks are acquired in a stable order, and no counter changes until
+ * every bucket has capacity. This prevents a request rejected by one quota from
+ * consuming another quota. Existing single-bucket callers keep using the
+ * simpler helper below.
+ *
+ * @param array<int,array{bucket:string,identity:string,max:int,window:int}> $limits
+ */
+function jluxe_security_rate_limits( array $limits ): bool {
+	if ( empty( $limits ) ) {
+		return true;
+	}
+
+	$pending = array();
+	foreach ( $limits as $limit ) {
+		if ( ! is_array( $limit ) ) {
+			return false;
+		}
+		$bucket   = (string) ( $limit['bucket'] ?? '' );
+		$identity = (string) ( $limit['identity'] ?? '' );
+		$max      = (int) ( $limit['max'] ?? 0 );
+		$window   = (int) ( $limit['window'] ?? 0 );
+		if ( '' === $bucket || '' === $identity || $max < 1 || $window < 1 ) {
+			return false;
+		}
+		$key = 'jluxe_rl_v2_' . hash_hmac( 'sha256', $bucket . ':' . $identity, wp_salt( 'auth' ) );
+		if ( isset( $pending[ $key ] ) ) {
+			// A duplicated bucket with conflicting limits is ambiguous; fail closed.
+			return false;
+		}
+		$pending[ $key ] = array( 'max' => $max, 'window' => $window );
+	}
+	ksort( $pending, SORT_STRING );
+
+	$locks = array();
+	try {
+		foreach ( array_keys( $pending ) as $key ) {
+			$lock = jluxe_security_lock( $key );
+			if ( ! $lock ) {
+				return false;
+			}
+			$locks[] = $lock;
+		}
+
+		$now    = time();
+		$states = array();
+		foreach ( $pending as $key => $limit ) {
+			$old   = get_transient( $key );
+			$state = $old;
+			if ( ! is_array( $state ) || ! isset( $state['count'], $state['reset'] ) || ! is_numeric( $state['count'] ) || ! is_numeric( $state['reset'] ) || (int) $state['reset'] <= $now ) {
+				$state = array( 'count' => 0, 'reset' => $now + $limit['window'] );
+			}
+			if ( (int) $state['count'] >= $limit['max'] ) {
+				return false;
+			}
+			$state['count'] = max( 0, (int) $state['count'] ) + 1;
+			$states[ $key ] = array(
+				'old' => $old,
+				'new' => $state,
+				'ttl' => max( 1, (int) $state['reset'] - $now ),
+			);
+		}
+
+		foreach ( $states as $key => $state ) {
+			if ( set_transient( $key, $state['new'], $state['ttl'] ) ) {
+				continue;
+			}
+
+			// Best-effort rollback keeps a failed multi-bucket write from charging
+			// only a subset of the request's quotas.
+			foreach ( $states as $rollback_key => $rollback ) {
+				$old = $rollback['old'];
+				if ( is_array( $old ) && isset( $old['reset'] ) && is_numeric( $old['reset'] ) && (int) $old['reset'] > $now ) {
+					set_transient( $rollback_key, $old, max( 1, (int) $old['reset'] - $now ) );
+				} else {
+					delete_transient( $rollback_key );
+				}
+			}
+			return false;
+		}
+		return true;
+	} finally {
+		foreach ( array_reverse( $locks ) as $lock ) {
+			jluxe_security_unlock( $lock );
+		}
+	}
 }
 
 /** Fixed-window limiter; fail closed on lock contention or storage failure. */

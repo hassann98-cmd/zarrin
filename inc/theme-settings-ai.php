@@ -513,22 +513,8 @@ function jluxe_prepare_ai_request_context( WP_REST_Request $request ) {
 		return new WP_Error( 'jluxe_ai_disabled', 'دستیار هوش مصنوعی پیکربندی نشده است.', array( 'status' => 503 ) );
 	}
 
-	/*
-	 * R86 — محدودیتِ سخت‌گیرانه‌تر و اتمی؛ مسیرِ معمولی و stream هر دو دقیقاً
-	 * از همین سهمیهٔ دقیقه‌ای/IP و روزانه/هویت عبور می‌کنند.
-	 */
-	$ip             = jluxe_theme_get_client_ip();
-	$minute_limit  = (int) $settings['rate_limit'];
-	$minute_limit   = $minute_limit > 0 ? $minute_limit : 10;
-	$daily_limit   = (int) ( $settings['daily_limit'] ?? 0 );
-	$daily_limit    = $daily_limit > 0 ? $daily_limit : 100;
-	$identity      = is_user_logged_in() ? 'user:' . get_current_user_id() : 'ip:' . $ip;
-	$per_minute_ok = jluxe_security_rate_limit( 'ai_assistant_minute', $ip, $minute_limit, MINUTE_IN_SECONDS );
-	$per_day_ok    = jluxe_security_rate_limit( 'ai_assistant_day', $identity, $daily_limit, DAY_IN_SECONDS );
-	if ( ! $per_minute_ok || ! $per_day_ok ) {
-		return new WP_Error( 'jluxe_ai_rate_limited', 'تعداد درخواست‌ها زیاده — کمی صبر کن.', array( 'status' => 429 ) );
-	}
-
+	// Validate the bounded conversation before any quota is charged. Bad/empty
+	// input is cheap to reject and must not exhaust a customer's valid requests.
 	$messages = jluxe_extract_ai_messages( $request );
 	if ( empty( $messages ) ) {
 		return new WP_Error( 'jluxe_ai_empty', 'پیامی ارسال نشده.', array( 'status' => 400 ) );
@@ -537,6 +523,23 @@ function jluxe_prepare_ai_request_context( WP_REST_Request $request ) {
 		if ( jluxe_strlen( $message['content'] ) > 1000 ) {
 			return new WP_Error( 'jluxe_ai_too_long', 'یکی از پیام‌ها خیلی طولانیه.', array( 'status' => 400 ) );
 		}
+	}
+
+	/*
+	 * R86 — every actual request atomically consumes the per-IP minute and
+	 * per-identity daily budgets together, for both JSON and SSE handlers.
+	 */
+	$ip           = jluxe_theme_get_client_ip();
+	$minute_limit = (int) $settings['rate_limit'];
+	$minute_limit = $minute_limit > 0 ? $minute_limit : 10;
+	$daily_limit  = (int) ( $settings['daily_limit'] ?? 0 );
+	$daily_limit  = $daily_limit > 0 ? $daily_limit : 100;
+	$identity     = is_user_logged_in() ? 'user:' . get_current_user_id() : 'ip:' . $ip;
+	if ( ! jluxe_security_rate_limits( array(
+		array( 'bucket' => 'ai_assistant_minute', 'identity' => $ip, 'max' => $minute_limit, 'window' => MINUTE_IN_SECONDS ),
+		array( 'bucket' => 'ai_assistant_day', 'identity' => $identity, 'max' => $daily_limit, 'window' => DAY_IN_SECONDS ),
+	) ) ) {
+		return new WP_Error( 'jluxe_ai_rate_limited', 'تعداد درخواست‌ها زیاده — کمی صبر کن.', array( 'status' => 429 ) );
 	}
 
 	$GLOBALS['jluxe_ai_seen_products'] = array();
@@ -550,6 +553,14 @@ function jluxe_prepare_ai_request_context( WP_REST_Request $request ) {
 		'system'    => $system,
 		'messages'  => $messages,
 		'tool_specs'=> $tool_specs,
+	);
+}
+
+function jluxe_ai_incomplete_reply_error( string $partial_reply ): WP_Error {
+	return new WP_Error(
+		'jluxe_ai_incomplete_reply',
+		'پاسخ به سقف طولِ مدل رسید و کامل نشد؛ پرسش را کوتاه‌تر کن یا دوباره بپرس.',
+		array( 'status' => 502, 'partial_reply' => $partial_reply )
 	);
 }
 
@@ -967,9 +978,15 @@ function jluxe_ai_run_tool( string $name, array $args ): array {
 
 /** از توابعِ از قبل تست‌شده‌ی inc/order-tracking.php استفاده می‌کنه — بدون منطق تکراری/جدید برای احراز هویت سفارش. */
 function jluxe_ai_tool_get_order_status( array $args ): array {
-	if ( ! class_exists( 'WooCommerce' ) || ! function_exists( 'jluxe_find_order_by_number' ) ) {
+	if ( ! class_exists( 'WooCommerce' ) || ! function_exists( 'jluxe_find_order_by_number' ) || ! function_exists( 'jluxe_track_rate_limit_ok' ) ) {
 		return array( 'found' => false, 'message' => 'سرویس سفارش در دسترس نیست.' );
 	}
+	// Share the public tracker’s IP budget so the AI tool cannot become a second
+	// unthrottled order-number oracle. Keep its throttled response non-enumerable.
+	if ( ! jluxe_track_rate_limit_ok() ) {
+		return array( 'found' => false, 'message' => 'اطلاعات سفارش صحیح نیست.' );
+	}
+
 	$order_number = jluxe_convert_digits_to_en( (string) ( $args['order_number'] ?? '' ) );
 	$order_number = trim( ltrim( trim( $order_number ), '#' ) );
 	$phone_last10 = jluxe_normalize_phone_last10( (string) ( $args['phone'] ?? '' ) );
@@ -980,12 +997,12 @@ function jluxe_ai_tool_get_order_status( array $args ): array {
 
 	$order = jluxe_find_order_by_number( $order_number );
 	if ( ! $order instanceof WC_Order ) {
-		return array( 'found' => false, 'message' => 'سفارشی با این شماره پیدا نشد.' );
+		return array( 'found' => false, 'message' => 'اطلاعات سفارش صحیح نیست.' );
 	}
 
 	$order_phone_last10 = jluxe_normalize_phone_last10( $order->get_billing_phone() );
 	if ( empty( $order_phone_last10 ) || ! hash_equals( $order_phone_last10, $phone_last10 ) ) {
-		return array( 'found' => false, 'message' => 'شماره موبایل با این سفارش مطابقت ندارد.' );
+		return array( 'found' => false, 'message' => 'اطلاعات سفارش صحیح نیست.' );
 	}
 
 	return array(
@@ -1227,11 +1244,11 @@ function jluxe_ai_tool_get_product_reviews( array $args ): array {
 	$out      = array();
 	foreach ( $comments as $c ) {
 		$rating = get_comment_meta( $c->comment_ID, 'rating', true );
-		$out[]  = array(
-			'author'  => $c->comment_author,
+		// Author names and exact dates are unnecessary for product advice and can identify a reviewer.
+		$review_text = jluxe_redact_public_contact_details( wp_strip_all_tags( (string) $c->comment_content ) );
+		$out[]       = array(
 			'rating'  => $rating ? (int) $rating : null,
-			'content' => function_exists( 'jluxe_ai_clip' ) ? jluxe_ai_clip( wp_strip_all_tags( $c->comment_content ), 500 ) : wp_strip_all_tags( $c->comment_content ),
-			'date'    => $c->comment_date,
+			'content' => function_exists( 'jluxe_ai_clip' ) ? jluxe_ai_clip( $review_text, 500 ) : $review_text,
 		);
 	}
 	return array(
@@ -1452,6 +1469,12 @@ function jluxe_call_openai_compatible( array $settings, string $api_key, string 
 			return new WP_Error( 'jluxe_ai_upstream', 'پاسخی از سرویس هوش مصنوعی دریافت نشد.', array( 'status' => 502 ) );
 		}
 
+		$finish_reason = (string) ( $parsed['choices'][0]['finish_reason'] ?? '' );
+		if ( in_array( $finish_reason, array( 'length', 'max_tokens' ), true ) ) {
+			$partial_reply = is_string( $msg['content'] ?? null ) ? $msg['content'] : '';
+			return jluxe_ai_incomplete_reply_error( $partial_reply );
+		}
+
 		$tool_calls = $msg['tool_calls'] ?? null;
 		if ( empty( $tool_calls ) ) {
 			return (string) ( $msg['content'] ?? '' );
@@ -1512,11 +1535,45 @@ function jluxe_call_anthropic( array $settings, string $api_key, string $system,
 			jluxe_ai_log_error( $settings, 'anthropic transport error: ' . $response->get_error_message() );
 			return new WP_Error( 'jluxe_ai_upstream', 'ارتباط با سرویس هوش مصنوعی برقرار نشد.', array( 'status' => 502 ) );
 		}
-		$parsed  = json_decode( wp_remote_retrieve_body( $response ), true );
-		$content = $parsed['content'] ?? null;
+		$body        = wp_remote_retrieve_body( $response );
+		$parsed      = json_decode( $body, true );
+		$http_status = (int) wp_remote_retrieve_response_code( $response );
+		$content     = is_array( $parsed ) ? ( $parsed['content'] ?? null ) : null;
+		if ( $http_status < 200 || $http_status >= 300 ) {
+			$error      = is_array( $parsed ) && is_array( $parsed['error'] ?? null ) ? $parsed['error'] : array();
+			$error_type = (string) ( $error['type'] ?? '' );
+			$detail     = wp_strip_all_tags( (string) ( $error['message'] ?? '' ) );
+			jluxe_ai_log_error( $settings, 'anthropic error (' . $http_status . '): ' . $body );
+			if ( in_array( $http_status, array( 401, 403 ), true ) ) {
+				return new WP_Error( 'jluxe_ai_upstream', 'کلید API یا دسترسی حسابِ سرویس هوش مصنوعی پذیرفته نشد؛ تنظیمات را بررسی کنید.', array( 'status' => 502 ) );
+			}
+			if ( 429 === $http_status || 'rate_limit_error' === $error_type ) {
+				return new WP_Error( 'jluxe_ai_upstream', 'سرویس هوش مصنوعی محدودیت نرخ/اعتبار دارد؛ کمی بعد دوباره تلاش کنید.', array( 'status' => 502 ) );
+			}
+			if ( 'billing_error' === $error_type || 402 === $http_status ) {
+				return new WP_Error( 'jluxe_ai_upstream', 'اعتبار یا صورت‌حساب حسابِ سرویس هوش مصنوعی نیاز به بررسی دارد.', array( 'status' => 502 ) );
+			}
+			if ( 529 === $http_status || $http_status >= 500 ) {
+				return new WP_Error( 'jluxe_ai_upstream', 'سرویس هوش مصنوعی موقتاً در دسترس نیست؛ کمی بعد دوباره تلاش کنید.', array( 'status' => 502 ) );
+			}
+			if ( '' !== $detail ) {
+				if ( jluxe_strlen( $detail ) > 200 ) {
+					$detail = jluxe_substr( $detail, 0, 200 ) . '…';
+				}
+				return new WP_Error( 'jluxe_ai_upstream', 'سرویس هوش مصنوعی درخواست را رد کرد: ' . $detail, array( 'status' => 502 ) );
+			}
+			return new WP_Error( 'jluxe_ai_upstream', 'سرویس هوش مصنوعی درخواست را نپذیرفت؛ تنظیمات مدل و درخواست را بررسی کنید.', array( 'status' => 502 ) );
+		}
 		if ( ! is_array( $content ) ) {
-			jluxe_ai_log_error( $settings, 'anthropic bad response: ' . wp_remote_retrieve_body( $response ) );
+			jluxe_ai_log_error( $settings, 'anthropic bad response: ' . $body );
 			return new WP_Error( 'jluxe_ai_upstream', 'پاسخی از سرویس هوش مصنوعی دریافت نشد.', array( 'status' => 502 ) );
+		}
+
+		$stop_reason = (string) ( $parsed['stop_reason'] ?? '' );
+		if ( 'max_tokens' === $stop_reason ) {
+			$text_blocks  = array_filter( $content, fn( $b ) => 'text' === ( $b['type'] ?? '' ) );
+			$partial_reply = implode( "\n", wp_list_pluck( $text_blocks, 'text' ) );
+			return jluxe_ai_incomplete_reply_error( $partial_reply );
 		}
 
 		$tool_uses = array_values( array_filter( $content, fn( $b ) => 'tool_use' === ( $b['type'] ?? '' ) ) );
@@ -1596,11 +1653,12 @@ function jluxe_ai_review_context( int $product_id ): ?array {
 	}
 	$reviews = array();
 	foreach ( $comments as $comment ) {
+		$text      = jluxe_redact_public_contact_details( wp_strip_all_tags( (string) $comment->comment_content ) );
 		$reviews[] = array(
-			'id' => (int) $comment->comment_ID,
+			'id'     => (int) $comment->comment_ID,
 			'rating' => (int) get_comment_meta( $comment->comment_ID, 'rating', true ),
-			// No email, IP, author identity or unapproved content is sent to the provider.
-			'text' => jluxe_substr(wp_strip_all_tags( $comment->comment_content ), 0, 600),
+			// No author metadata or common email/mobile contact details reach the provider.
+			'text'   => jluxe_substr( $text, 0, 600 ),
 		);
 	}
 	$config = array_intersect_key( $settings, array_flip( array( 'provider', 'base_url', 'model', 'temperature', 'max_tokens', 'reasoning_effort', 'review_summary_min_count' ) ) );

@@ -320,10 +320,30 @@ function wp_localize_script($handle,$name,$data){$GLOBALS['localized'][$name]=$d
 function nocache_headers(){$GLOBALS['no_cache']=true;}
 function rest_url($path){return home_url('/wp-json/'.ltrim($path,'/'));}
 function admin_url($path){return home_url('/wp-admin/'.ltrim($path,'/'));}
+function test_comment_meta_query_matches($query,$comment_id){
+ if(!is_array($query)||!$query)return true;
+ $relation=strtoupper($query['relation']??'AND');$matches=[];
+ foreach($query as $clause){
+  if(!is_array($clause))continue;
+  if(isset($clause['relation'])||!isset($clause['key'])){$matches[]=test_comment_meta_query_matches($clause,$comment_id);continue;}
+  $key=(string)$clause['key'];$meta=$GLOBALS['comment_meta'][$comment_id]??[];$exists=array_key_exists($key,$meta);$value=$exists?$meta[$key]:null;$compare=strtoupper($clause['compare']??'=');$expected=$clause['value']??'';
+  switch($compare){
+   case 'NOT EXISTS':$matches[]=!$exists;break;
+   case 'EXISTS':$matches[]=$exists;break;
+   case '=':$matches[]=$exists&&(string)$value===(string)$expected;break;
+   case '!=':$matches[]=$exists&&(string)$value!==(string)$expected;break;
+   case '<':$matches[]=$exists&&('NUMERIC'===strtoupper($clause['type']??'')?(float)$value<(float)$expected:$value<$expected);break;
+   default:$matches[]=false;break;
+  }
+ }
+ if(!$matches)return true;
+ return 'OR'===$relation?in_array(true,$matches,true):!in_array(false,$matches,true);
+}
 function get_comments($args){
  $GLOBALS['comment_queries'][]=$args;
  $comments=array_values(array_filter($GLOBALS['comments']??[],function($comment)use($args){
-  return ($comment->comment_post_ID??1)==($args['post_id']??1) && ($comment->comment_approved??'1')==='1' && ($comment->comment_type??'review')===($args['type']??'review');
+  if(($comment->comment_post_ID??1)!=($args['post_id']??1)||($comment->comment_approved??'1')!=='1'||($comment->comment_type??'review')!==($args['type']??'review'))return false;
+  return !isset($args['meta_query'])||test_comment_meta_query_matches($args['meta_query'],$comment->comment_ID??0);
  }));
  return isset($args['number']) ? array_slice($comments,$args['offset']??0,$args['number']) : $comments;
 }
@@ -613,10 +633,10 @@ function wc_reviews_enabled(){return get_option('woocommerce_enable_reviews','ye
 function is_multisite(){return $GLOBALS['multisite']??false;}
 
 /* — R32: هوش مصنوعی دیدگاه‌ها (پاسخ خودکار + خلاصهٔ قابل‌ویرایش) — */
-class WP_Comment { public $comment_ID=1; public $comment_post_ID=1; public $comment_parent=0; public $comment_approved="1"; public $comment_type="comment"; public $comment_author=""; public $comment_author_email=""; public $comment_author_url=""; public $comment_content=""; public $user_id=0; }
+class WP_Comment { public $comment_ID=1; public $comment_post_ID=1; public $comment_parent=0; public $comment_approved="1"; public $comment_type="comment"; public $comment_author=""; public $comment_author_email=""; public $comment_author_url=""; public $comment_content=""; public $comment_date=""; public $comment_date_gmt=""; public $user_id=0; }
 function get_post($id=0){ $id=(int)$id; $data=$GLOBALS['posts'][$id]??null; if(!$data){return null;} $post=new WP_Post(); foreach($data as $k=>$v){$post->$k=$v;} return $post; }
 function get_the_title($id=0){ return get_post_field('post_title',$id); }
-function get_posts($args=[]){ $GLOBALS['post_queries'][]=$args; $out=[]; foreach(($GLOBALS['sites_posts']??[]) as $p){ if(($args['post_type']??'post')!==($p['post_type']??'post')) continue; if(($args['post_status']??'publish')!==($p['post_status']??'publish')) continue; $out[]=(int)$p['ID']; } return array_slice($out,0,$args['posts_per_page']??5); }
+function get_posts($args=[]){ $GLOBALS['post_queries'][]=$args; $out=[]; foreach(($GLOBALS['sites_posts']??[]) as $p){ if(($args['post_type']??'post')!==($p['post_type']??'post')) continue; if(($args['post_status']??'publish')!==($p['post_status']??'publish')) continue; $out[]=(int)$p['ID']; } if(in_array($args['orderby']??'',array('ID','id'),true))sort($out,SORT_NUMERIC);return array_slice($out,max(0,(int)($args['offset']??0)),max(0,(int)($args['posts_per_page']??5))); }
 function wp_insert_comment($data){ static $next=5000; $id=$next++; $comment=new WP_Comment(); foreach(array('comment_ID'=>$id,'comment_parent'=>0,'comment_author'=>'','comment_author_email'=>'','comment_content'=>'','comment_approved'=>1,'comment_type'=>'comment') as $k=>$v){$comment->$k=$v;} foreach($data as $k=>$v){$comment->$k=$v;} $GLOBALS['comments'][$id]=$comment; $GLOBALS['comment_objects'][$id]=$comment; $GLOBALS['inserted_comments'][]=$comment; return $id; }
 function delete_post_meta($id,$key){ unset($GLOBALS['post_meta'][$id][$key]); return true; }
 function wp_schedule_event($time,$recurrence,$hook,$args=[]){$GLOBALS['scheduled'][$hook.'|'.json_encode($args)]=[$time,$hook,$args,$recurrence];return true;}

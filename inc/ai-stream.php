@@ -359,17 +359,21 @@ function jluxe_ai_openai_stream_round( array $settings, string $api_key, string 
 	// بعضی serverهای سازگار، stream=true را نادیده می‌گیرند و یک JSON کامل می‌دهند.
 	// در این حالت همان پاسخ را یک‌باره به‌صورت یک delta می‌فرستیم؛ قابلیت چت حفظ می‌شود.
 	if ( '' === $content && empty( $tool_calls ) && '' !== $response['body'] ) {
-		$full = json_decode( $response['body'], true );
-		$message = $full['choices'][0]['message'] ?? array();
-		if ( is_array( $message ) && is_string( $message['content'] ?? null ) ) {
-			$content = $message['content'];
-			if ( '' !== $content ) {
-				$response_started = true;
-				jluxe_ai_sse_send_event( 'delta', array( 'text' => $content ) );
+		$full        = json_decode( $response['body'], true );
+		$full_choice = is_array( $full ) ? ( $full['choices'][0] ?? null ) : null;
+		if ( is_array( $full_choice ) ) {
+			$message       = is_array( $full_choice['message'] ?? null ) ? $full_choice['message'] : array();
+			$finish_reason = (string) ( $full_choice['finish_reason'] ?? '' );
+			if ( is_string( $message['content'] ?? null ) ) {
+				$content = $message['content'];
+				if ( '' !== $content ) {
+					$response_started = true;
+					jluxe_ai_sse_send_event( 'delta', array( 'text' => $content ) );
+				}
 			}
-		}
-		if ( is_array( $message ) && ! empty( $message['tool_calls'] ) ) {
-			$tool_calls = (array) $message['tool_calls'];
+			if ( ! empty( $message['tool_calls'] ) ) {
+				$tool_calls = (array) $message['tool_calls'];
+			}
 		}
 	}
 
@@ -444,6 +448,9 @@ function jluxe_call_openai_compatible_stream( array $settings, string $api_key, 
 		}
 
 		$reply .= $round_result['content'];
+		if ( in_array( (string) ( $round_result['finish_reason'] ?? '' ), array( 'length', 'max_tokens' ), true ) ) {
+			return jluxe_ai_incomplete_reply_error( $reply );
+		}
 		$tool_calls = $round_result['tool_calls'];
 		if ( empty( $tool_calls ) ) {
 			return $reply;
