@@ -4680,11 +4680,13 @@ function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConv
 /**
  * R64/R337: stock-first ordering for product queries. The main shop and product-taxonomy
  * archives (category, brand and attribute) always use availability, then post_date DESC;
- * this is deliberately independent of the legacy toggle. The CASE reads live _stock_status
- * metadata for each query, so a restocked product moves into the in-stock group automatically.
- * Other product queries retain the prior optional stock grouping and their own order
- * (for example homepage/popular/random rows). Admin screens are excluded; missing _stock_status
- * is treated as instock for safe fallback.
+ * this is deliberately independent of the legacy toggle. Detect archives from the current
+ * WP_Query's parsed flags: global WooCommerce conditional tags can still point at the old
+ * query while posts_clauses is building the main brand/archive query.
+ * The CASE reads live _stock_status metadata for each query, so a restocked product moves
+ * into the in-stock group automatically. Other product queries retain the prior optional
+ * stock grouping and their own order (for example homepage/popular/random rows). Admin
+ * screens are excluded; missing _stock_status is treated as instock for safe fallback.
  */
 function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
 	if ( is_admin() && ! wp_doing_ajax() ) {
@@ -4692,18 +4694,21 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 	}
 
 	$post_type        = $query->get( 'post_type' );
-	$is_product_query = 'product' === $post_type || ( is_array( $post_type ) && array( 'product' ) === $post_type );
-	if ( ! $is_product_query ) {
+	$is_product_query = 'product' === $post_type || ( is_array( $post_type ) && in_array( 'product', $post_type, true ) );
+	$is_main_query    = $query->is_main_query();
+	$product_taxonomies = function_exists( 'get_object_taxonomies' ) ? get_object_taxonomies( 'product', 'names' ) : array();
+	$is_catalog_archive = $is_main_query
+		&& (
+			$query->is_post_type_archive( 'product' ) ||
+			( ! empty( $product_taxonomies ) && $query->is_tax( $product_taxonomies ) )
+		);
+
+	// Product tax archives are authoritative even if a custom WooCommerce setup has
+	// not populated post_type on the query yet. All other queries must explicitly
+	// include product so the legacy optional ordering never touches unrelated posts.
+	if ( ! $is_product_query && ! $is_catalog_archive ) {
 		return $clauses;
 	}
-
-	$is_catalog_archive = $query->is_main_query()
-		&& (
-			( function_exists( 'is_shop' ) && is_shop() ) ||
-			( function_exists( 'is_product_category' ) && is_product_category() ) ||
-			( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) ||
-			( function_exists( 'is_product_tag' ) && is_product_tag() )
-		);
 	if ( ! $is_catalog_archive && ! jluxe_get_setting( 'shop.out_of_stock_last', true ) ) {
 		return $clauses;
 	}

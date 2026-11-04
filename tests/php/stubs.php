@@ -576,6 +576,17 @@ class WP_Query {
  function get($key){return $this->args[$key]??null;}
  function set($key,$value){$this->args[$key]=$value;}
  function is_main_query(){return !empty($this->args['is_main_query']);}
+ function is_post_type_archive($post_type=''){
+  if(empty($this->args['is_post_type_archive']))return false;
+  if(''===$post_type)return true;
+  $archive_type=$this->args['archive_post_type']??$this->args['post_type']??'';
+  return is_array($archive_type)?in_array($post_type,$archive_type,true):$post_type===$archive_type;
+ }
+ function is_tax($taxonomies=''){
+  $queried=(array)($this->args['queried_taxonomies']??array());
+  if(''===$taxonomies)return !empty($queried);
+  return (bool)array_intersect($queried,(array)$taxonomies);
+ }
 }
 function wp_reset_postdata(){}
 function wp_timezone(){return new DateTimeZone('Asia/Tehran');}
@@ -586,6 +597,7 @@ function dbDelta($sql){$GLOBALS['dbdelta_calls'][]=$sql;return [];}
 class WP_Post { public $ID=1; public $post_status='publish'; public $post_password=''; public $post_type='product'; public $post_title=''; }
 function get_page_by_path($slug,...$args){return $GLOBALS['existing_pages'][$slug]??null;}
 function taxonomy_exists($taxonomy){return array_key_exists($taxonomy,$GLOBALS['taxonomies']??[]);}
+function get_object_taxonomies($object_type,$output='names'){$taxonomies=$GLOBALS['object_taxonomies'][$object_type]??('product'===$object_type?array('product_cat','product_tag','product_brand','pa_color'):array());return is_array($taxonomies)?$taxonomies:array();}
 function get_term_by($field,$value,$taxonomy){$terms=$GLOBALS['terms_by_slug'][$taxonomy]??[];if(isset($terms[$value]))return $terms[$value];foreach($terms as $slug=>$term){if(!is_object($term))continue;if('slug'===$field&&isset($term->slug)&&(string)$term->slug===(string)$value)return $term;if('name'===$field&&isset($term->name)&&(string)$term->name===(string)$value)return $term;}return false;}
 function wp_count_posts($type='post'){return (object)($GLOBALS['post_counts'][$type]??[]);}
 function wp_update_post($data,$errors=false){$GLOBALS['updated_posts'][]=$data;return $data['ID']??0;}
