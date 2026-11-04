@@ -119,6 +119,42 @@ test("Dodger Blue adds an exact independent palette and its light/dark roles mee
   assert.ok(contrastRatio("#F3F4F6", "#001424") >= 4.5, "dark FAQ copy remains readable on Dodger Blue shade 950");
 });
 
+test("Bubblegum Pink adds the exact palette and applies it across saved section colors", () => {
+  const shades = {
+    50: "#FFE5EC",
+    100: "#FFCCD9",
+    200: "#FF99B3",
+    300: "#FF668C",
+    400: "#FF3366",
+    500: "#FF0040",
+    600: "#CC0033",
+    700: "#990026",
+    800: "#660019",
+    900: "#33000D",
+    950: "#240009",
+  };
+
+  assert.match(settingsPhp, /function jluxe_bubblegum_pink_palette\(\): array/);
+  for (const [shade, hex] of Object.entries(shades)) {
+    assert.match(settingsPhp, new RegExp(`'${shade}'\\s*=>\\s*'${hex}'`, "i"));
+    assert.match(storefrontCss, new RegExp(`--color-bubblegum-pink-${shade}:\\s*${hex}`, "i"));
+  }
+
+  assert.match(presetsPhp, /'bubblegum_pink'\s*=>\s*array\([\s\S]*?'primary'\s*=>\s*'#CC0033'[\s\S]*?'secondary'\s*=>\s*'#660019'[\s\S]*?'background'\s*=>\s*'#FFE5EC'[\s\S]*?'accent'\s*=>\s*'#990026'/);
+  assert.match(settingsPhp, /\$is_bubblegum_primary\s*=\s*strtoupper\( \$colors\['primary'\] \) === strtoupper\( \$bubblegum\['600'\] \)/);
+  assert.match(settingsPhp, /--color-bubblegum-pink-\{\$shade\}/);
+  assert.match(presetsPhp, /function jluxe_remap_design_palette_values\( array \$settings, array \$target_palette \): array/);
+  assert.match(presetsPhp, /jluxe_update_settings_section\( \(string\) \$section_key, \$section_value \)/);
+  assert.match(settings, /jluxe_bubblegum_palette\['600'\]/);
+
+  assert.ok(contrastRatio("#FFE5EC", "#1F2937") >= 4.5, "body copy remains readable on Bubblegum Pink shade 50");
+  assert.ok(contrastRatio("#FFE5EC", "#475569") >= 4.5, "secondary copy remains readable on shade 50");
+  assert.ok(contrastRatio("#CC0033", "#FFFFFF") >= 4.5, "shade 600 supports white button text");
+  assert.ok(contrastRatio("#990026", "#FFFFFF") >= 4.5, "shade 700 supports white hover text");
+  assert.ok(contrastRatio("#660019", "#FFFFFF") >= 4.5, "shade 800 supports white active text");
+  assert.ok(contrastRatio("#CC0033", "#FFE5EC") >= 3, "the selected border remains visible on shade 50");
+});
+
 test("R354 optional effects stay scoped and include focus, low-power, and reduced-motion fallbacks", () => {
   assert.match(css, /#masthead\[data-jluxe-header-variant="premium"\]/);
   assert.match(css, /#jluxe-footer-root\[data-jluxe-footer-variant="premium"\]/);

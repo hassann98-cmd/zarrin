@@ -49,6 +49,18 @@ html {
   --color-dodger-blue-800: #003a66;
   --color-dodger-blue-900: #001d33;
   --color-dodger-blue-950: #001424;
+  /* Bubblegum Pink is available to the global design preset and every section token. */
+  --color-bubblegum-pink-50: #ffe5ec;
+  --color-bubblegum-pink-100: #ffccd9;
+  --color-bubblegum-pink-200: #ff99b3;
+  --color-bubblegum-pink-300: #ff668c;
+  --color-bubblegum-pink-400: #ff3366;
+  --color-bubblegum-pink-500: #ff0040;
+  --color-bubblegum-pink-600: #cc0033;
+  --color-bubblegum-pink-700: #990026;
+  --color-bubblegum-pink-800: #660019;
+  --color-bubblegum-pink-900: #33000d;
+  --color-bubblegum-pink-950: #240009;
   --jluxe-radius-sm: 8px;
   --jluxe-radius-md: 12px;
   --jluxe-radius-lg: 16px;

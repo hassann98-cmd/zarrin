@@ -266,6 +266,23 @@ function jluxe_dodger_blue_palette(): array {
 	);
 }
 
+/** The exact user-supplied Bubblegum Pink scale, independent of the default preset. */
+function jluxe_bubblegum_pink_palette(): array {
+	return array(
+		'50'  => '#ffe5ec',
+		'100' => '#ffccd9',
+		'200' => '#ff99b3',
+		'300' => '#ff668c',
+		'400' => '#ff3366',
+		'500' => '#ff0040',
+		'600' => '#cc0033',
+		'700' => '#990026',
+		'800' => '#660019',
+		'900' => '#33000d',
+		'950' => '#240009',
+	);
+}
+
 /**
  * مقادیر پیش‌فرضِ عمومی؛ محتوای راهنماهای پرداخت، ارسال/پیگیری و مرجوعی
  * مطابق متن ارسالی مدیر است؛ سایر داده‌ها و سیاست‌های وابسته به فروشگاه
@@ -2754,11 +2771,15 @@ function jluxe_generate_color_variables( array $colors ): string {
 		$vars[ "--{$key}-foreground" ] = jluxe_auto_foreground( $hex );
 	}
 
-	$electric = jluxe_electric_indigo_palette();
-	$royal    = jluxe_royal_orchid_palette();
-	$dodger   = jluxe_dodger_blue_palette();
+	$electric  = jluxe_electric_indigo_palette();
+	$royal     = jluxe_royal_orchid_palette();
+	$dodger    = jluxe_dodger_blue_palette();
+	$bubblegum = jluxe_bubblegum_pink_palette();
 	foreach ( $dodger as $shade => $hex ) {
 		$vars[ "--color-dodger-blue-{$shade}" ] = strtoupper( $hex );
+	}
+	foreach ( $bubblegum as $shade => $hex ) {
+		$vars[ "--color-bubblegum-pink-{$shade}" ] = strtoupper( $hex );
 	}
 	$primary_hsl   = jluxe_hex_to_hsl( $colors['primary'] );
 	$secondary_hsl = jluxe_hex_to_hsl( $colors['secondary'] );
@@ -2767,39 +2788,42 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$is_electric_primary   = strtoupper( $colors['primary'] ) === strtoupper( $electric['500'] );
 	$is_royal_primary      = strtoupper( $colors['primary'] ) === strtoupper( $royal['600'] );
 	$is_dodger_primary     = strtoupper( $colors['primary'] ) === strtoupper( $dodger['600'] );
+	$is_bubblegum_primary  = strtoupper( $colors['primary'] ) === strtoupper( $bubblegum['600'] );
 	$is_electric_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $electric['700'] );
 	$is_royal_secondary    = strtoupper( $colors['secondary'] ) === strtoupper( $royal['800'] );
 	$is_dodger_secondary   = strtoupper( $colors['secondary'] ) === strtoupper( $dodger['800'] );
+	$is_bubblegum_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $bubblegum['800'] );
 	$is_electric_accent    = strtoupper( $colors['accent'] ) === strtoupper( $electric['400'] );
 	$is_royal_accent       = strtoupper( $colors['accent'] ) === strtoupper( $royal['700'] );
 	$is_dodger_accent      = strtoupper( $colors['accent'] ) === strtoupper( $dodger['700'] );
+	$is_bubblegum_accent   = strtoupper( $colors['accent'] ) === strtoupper( $bubblegum['700'] );
 
 	$primary_hover_hex = $is_electric_primary
 		? $electric['600']
-		: ( $is_royal_primary ? $royal['700'] : ( $is_dodger_primary ? $dodger['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) ) );
+		: ( $is_royal_primary ? $royal['700'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) ) ) );
 	$primary_active_hex = $is_electric_primary
 		? $electric['700']
-		: ( $is_royal_primary ? $royal['800'] : ( $is_dodger_primary ? $dodger['800'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) ) );
+		: ( $is_royal_primary ? $royal['800'] : ( $is_dodger_primary ? $dodger['800'] : ( $is_bubblegum_primary ? $bubblegum['800'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) ) ) );
 	$secondary_hover_hex = $is_electric_secondary
 		? $electric['800']
-		: ( $is_royal_secondary ? $royal['900'] : ( $is_dodger_secondary ? $dodger['900'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) ) );
+		: ( $is_royal_secondary ? $royal['900'] : ( $is_dodger_secondary ? $dodger['900'] : ( $is_bubblegum_secondary ? $bubblegum['900'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) ) ) );
 	$accent_hover_hex = $is_electric_accent
 		? $electric['600']
-		: ( $is_royal_accent ? $royal['800'] : ( $is_dodger_accent ? $dodger['800'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) ) );
+		: ( $is_royal_accent ? $royal['800'] : ( $is_dodger_accent ? $dodger['800'] : ( $is_bubblegum_accent ? $bubblegum['800'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) ) ) );
 	$primary_soft_hex = $is_electric_primary
 		? $electric['50']
-		: ( $is_royal_primary ? $royal['50'] : ( $is_dodger_primary ? $dodger['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) ) );
+		: ( $is_royal_primary ? $royal['50'] : ( $is_dodger_primary ? $dodger['50'] : ( $is_bubblegum_primary ? $bubblegum['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) ) ) );
 	$border_hex = $is_electric_primary
 		? $electric['100']
-		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) ) );
+		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) ) ) );
 	$border_strong_hex = $is_electric_primary
 		? $electric['200']
-		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) ) );
+		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) ) ) );
 	$primary_dark_hsl    = $primary_hsl;
 	$primary_dark_hsl[2] = min( $primary_dark_hsl[2], 18 );
 	$primary_dark_hex = $is_electric_primary
 		? $electric['950']
-		: ( $is_royal_primary ? $royal['950'] : ( $is_dodger_primary ? $dodger['950'] : '#' . jluxe_hsl_to_hex( $primary_dark_hsl ) ) );
+		: ( $is_royal_primary ? $royal['950'] : ( $is_dodger_primary ? $dodger['950'] : ( $is_bubblegum_primary ? $bubblegum['950'] : '#' . jluxe_hsl_to_hex( $primary_dark_hsl ) ) ) );
 
 	$vars['--primary-hover']   = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_hover_hex ) );
 	$vars['--primary-active']  = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_active_hex ) );

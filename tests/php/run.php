@@ -3003,8 +3003,14 @@ $r326_expected_dodger_palette = array(
 	'400' => '#33A7FF', '500' => '#0091FF', '600' => '#0074CC', '700' => '#005799',
 	'800' => '#003A66', '900' => '#001D33', '950' => '#001424',
 );
-$r326_royal_palette  = jluxe_royal_orchid_palette();
-$r326_dodger_palette = jluxe_dodger_blue_palette();
+$r326_expected_bubblegum_palette = array(
+	'50' => '#FFE5EC', '100' => '#FFCCD9', '200' => '#FF99B3', '300' => '#FF668C',
+	'400' => '#FF3366', '500' => '#FF0040', '600' => '#CC0033', '700' => '#990026',
+	'800' => '#660019', '900' => '#33000D', '950' => '#240009',
+);
+$r326_royal_palette     = jluxe_royal_orchid_palette();
+$r326_dodger_palette    = jluxe_dodger_blue_palette();
+$r326_bubblegum_palette = jluxe_bubblegum_pink_palette();
 $r326_product_defaults = jluxe_theme_settings_defaults()['product_page'];
 $r326_theme_settings = jluxe_theme_settings_defaults();
 $r326_theme_color_vars = jluxe_generate_color_variables( $r326_theme_settings['colors'] );
@@ -3012,14 +3018,17 @@ check(
 	$r326_expected_palette === array_map( 'strtoupper', $r326_palette ) &&
 	$r326_expected_royal_palette === array_map( 'strtoupper', $r326_royal_palette ) &&
 	$r326_expected_dodger_palette === array_map( 'strtoupper', $r326_dodger_palette ) &&
+	$r326_expected_bubblegum_palette === array_map( 'strtoupper', $r326_bubblegum_palette ) &&
 	false !== strpos( $r326_theme_color_vars, '--color-dodger-blue-50:#E5F4FF' ) &&
 	false !== strpos( $r326_theme_color_vars, '--color-dodger-blue-950:#001424' ) &&
+	false !== strpos( $r326_theme_color_vars, '--color-bubblegum-pink-50:#FFE5EC' ) &&
+	false !== strpos( $r326_theme_color_vars, '--color-bubblegum-pink-950:#240009' ) &&
 	'260.77 100% 94.9%' === jluxe_hsl_css_value( jluxe_hex_to_hsl( $r326_palette['50'] ) ) &&
 	'259.06 100% 50%' === jluxe_hsl_css_value( jluxe_hex_to_hsl( $r326_palette['500'] ) ) &&
 	'#A313B9' === strtoupper( $r326_theme_settings['colors']['primary'] ) &&
 	'#FAE8FD' === strtoupper( $r326_theme_settings['colors']['background'] ) &&
 	JLUXE_SETTINGS_VERSION === $r326_theme_settings['version'],
-	'R326 preserves Royal Orchid defaults and exposes the exact Electric Indigo, Royal Orchid, and Dodger Blue palettes'
+	'R326/R370 keeps Royal Orchid as the default and exposes the exact Electric Indigo, Royal Orchid, Dodger Blue, and Bubblegum Pink scales'
 );
 check(
 	'' === $r326_product_defaults['description_link_bg_color'] &&
@@ -3090,6 +3099,9 @@ $r363_royal_orchid_colors = array(
 $r369_dodger_blue_colors = array(
 	'primary' => '#0074CC', 'secondary' => '#003A66', 'background' => '#E5F4FF', 'success' => '#16865A', 'accent' => '#005799',
 );
+$r370_bubblegum_pink_colors = array(
+	'primary' => '#CC0033', 'secondary' => '#660019', 'background' => '#FFE5EC', 'success' => '#16865A', 'accent' => '#990026',
+);
 $r363_all_presets = jluxe_get_design_presets();
 $r363_legacy_presets_preserved = true;
 foreach ( $r363_legacy_preset_colors as $r363_id => $r363_colors ) {
@@ -3098,7 +3110,7 @@ foreach ( $r363_legacy_preset_colors as $r363_id => $r363_colors ) {
 	}
 }
 check(
-	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'legacy_default', 'royal_orchid', 'dodger_blue' ) ) &&
+	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'legacy_default', 'royal_orchid', 'dodger_blue', 'bubblegum_pink' ) ) &&
 	$r363_legacy_presets_preserved &&
 	$r363_all_presets['electric_indigo']['colors'] === $r363_electric_indigo_colors &&
 	'نیلی الکتریکی (افزوده‌شده)' === $r363_all_presets['electric_indigo']['label'] &&
@@ -3107,8 +3119,11 @@ check(
 	$r363_all_presets['royal_orchid']['colors'] === $r363_royal_orchid_colors &&
 	'رویال ارکید (Royal Orchid)' === $r363_all_presets['royal_orchid']['label'] &&
 	$r363_all_presets['dodger_blue']['colors'] === $r369_dodger_blue_colors &&
-	'آبی داجر (Dodger Blue)' === $r363_all_presets['dodger_blue']['label'],
-	'R363/R369 the seven original presets stay ordered, Electric Indigo is eighth, legacy is ninth, Royal Orchid is tenth, and Dodger Blue is appended as eleventh'
+	'آبی داجر (Dodger Blue)' === $r363_all_presets['dodger_blue']['label'] &&
+	$r363_all_presets['bubblegum_pink']['colors'] === $r370_bubblegum_pink_colors &&
+	'صورتی آدامسی (Bubblegum Pink)' === $r363_all_presets['bubblegum_pink']['label'] &&
+	'bubblegum_pink' === $r363_all_presets['bubblegum_pink']['palette'],
+	'R363/R369/R370 preserves the earlier presets and appends Bubblegum Pink as the twelfth independent preset'
 );
 $r363_saved_post = $_POST;
 $r363_defaults = jluxe_theme_settings_defaults();
@@ -3169,6 +3184,60 @@ check(
 	jluxe_contrast_ratio( '#F3F4F6', '#001424' ) >= 4.5,
 	'R369 Dodger Blue applies system-wide with contrast-safe foreground, interaction, border, panel, and dark-FAQ tokens without touching other visual settings'
 );
+$r370_bubblegum_saved_post = $_POST;
+$r370_bubblegum_defaults = jluxe_theme_settings_defaults();
+$r370_bubblegum_defaults['visual_design']['variant'] = 'canva_home';
+$r370_bubblegum_defaults['announcement_bar']['background_color'] = '#7A0F8A';
+$r370_bubblegum_defaults['header_nav']['categories_mega_menu']['background_color'] = '#FAE8FD';
+$r370_bubblegum_defaults['header_nav']['categories_mega_menu']['icon_background_color'] = '#A313B9';
+$r370_bubblegum_defaults['mobile']['nav_style']['icon_color'] = '#7A0F8A';
+$r370_bubblegum_defaults['cart_checkout']['payment_card_selected_background'] = '#FAE8FD';
+$r370_bubblegum_defaults['cart_checkout']['shipping_methods']['post']['card_border_color'] = '#F5D1FA';
+$r370_bubblegum_defaults['footer']['background']['gradient_colors'][0] = '#A313B9';
+$r370_bubblegum_defaults['homepage']['sections'][0]['text_color'] = '#510A5C';
+$r370_bubblegum_defaults['ai_assistant']['primary_color'] = '#123456';
+$r370_bubblegum_defaults['cart_checkout']['checkout_payment_warning_background'] = '#FFF7ED';
+update_test_settings( $r370_bubblegum_defaults );
+$_POST = array(
+	'jluxe_apply_preset' => '1',
+	'jluxe_settings_nonce' => 'test-nonce',
+	'jluxe_preset_id' => 'bubblegum_pink',
+);
+$r370_bubblegum_apply_status = jluxe_handle_apply_preset();
+$r370_bubblegum_settings = jluxe_get_theme_settings( true );
+$r370_bubblegum_vars = jluxe_generate_color_variables( $r370_bubblegum_settings['colors'] );
+check(
+	'preset_applied' === $r370_bubblegum_apply_status &&
+	$r370_bubblegum_pink_colors === $r370_bubblegum_settings['colors'] &&
+	'canva_home' === $r370_bubblegum_settings['visual_design']['variant'] &&
+	'#990026' === $r370_bubblegum_settings['announcement_bar']['background_color'] &&
+	'#ffe5ec' === $r370_bubblegum_settings['header_nav']['categories_mega_menu']['background_color'] &&
+	'#cc0033' === $r370_bubblegum_settings['header_nav']['categories_mega_menu']['icon_background_color'] &&
+	'#990026' === $r370_bubblegum_settings['mobile']['nav_style']['icon_color'] &&
+	'#ffe5ec' === $r370_bubblegum_settings['cart_checkout']['payment_card_selected_background'] &&
+	'#ffccd9' === $r370_bubblegum_settings['cart_checkout']['shipping_methods']['post']['card_border_color'] &&
+	'#cc0033' === $r370_bubblegum_settings['footer']['background']['gradient_colors'][0] &&
+	'#660019' === $r370_bubblegum_settings['homepage']['sections'][0]['text_color'] &&
+	'#123456' === $r370_bubblegum_settings['ai_assistant']['primary_color'] &&
+	'#FFF7ED' === $r370_bubblegum_settings['cart_checkout']['checkout_payment_warning_background'] &&
+	'#16865A' === $r370_bubblegum_settings['colors']['success'] &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-primary-hover:#990026' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-primary-active:#660019' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-secondary-hover:#33000D' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-accent-hover:#660019' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-primary-soft:#FFE5EC' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-primary-dark:#240009' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-border:#CC0033' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--jluxe-border-strong:#990026' ) &&
+	false !== strpos( $r370_bubblegum_vars, '--color-bubblegum-pink-500:#FF0040' ) &&
+	jluxe_contrast_ratio( '#1F2937', '#FFE5EC' ) >= 4.5 &&
+	jluxe_contrast_ratio( '#475569', '#FFE5EC' ) >= 4.5 &&
+	jluxe_contrast_ratio( '#CC0033', '#FFFFFF' ) >= 4.5 &&
+	jluxe_contrast_ratio( '#CC0033', '#FFE5EC' ) >= 3,
+	'R370 Bubblegum Pink recolors palette-derived settings across site sections, preserves custom/semantic colors, keeps other designs intact, and exposes contrast-safe global tokens'
+);
+$_POST = $r370_bubblegum_saved_post;
+update_test_settings( jluxe_theme_settings_defaults() );
 $_POST = $r369_saved_post;
 update_test_settings( jluxe_theme_settings_defaults() );
 $r363_previous_footer_swatches = array( '#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3' );
@@ -3185,10 +3254,13 @@ check(
 	false !== strpos( $r326_settings_render_source, "jluxe_dodger_palette['950']" ) &&
 	false !== strpos( $r326_settings_render_source, "jluxe_dodger_palette['600']" ) &&
 	false !== strpos( $r326_settings_render_source, "'label' => 'Dodger Blue تیره'" ) &&
+	false !== strpos( $r326_settings_render_source, "jluxe_bubblegum_palette['950']" ) &&
+	false !== strpos( $r326_settings_render_source, "jluxe_bubblegum_palette['600']" ) &&
+	false !== strpos( $r326_settings_render_source, "'label' => 'Bubblegum Pink تیره'" ) &&
 	false !== strpos( $r326_settings_render_source, 'jluxe_electric_indigo_palette()' ),
-	'R363/R369 previous footer swatches remain, and Dodger Blue adds contrast-safe dark solids and a dark gradient'
+	'R363/R369/R370 previous footer swatches remain, and both newer palettes add contrast-safe dark solids and gradients'
 );
-check(substr_count($presets,'typography')>=11 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R369 all eleven design presets still flow through the same apply pipeline and sanitizer gates');
+check(substr_count($presets,'typography')>=12 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R369/R370 all twelve design presets still flow through the same apply pipeline and sanitizer gates');
 check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
 check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false && strpos($woo_inc,'data-jluxe-sticky-variation-price')!==false && strpos($woo_inc,'data-jluxe-price-placeholder=""')!==false, 'R136 simple sticky prices keep the toman glyph while variable products start with an empty price placeholder');
 $home_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
@@ -3731,6 +3803,43 @@ foreach($__archive_contexts as $__archive_context){
  $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],' AS jluxe_oos ') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
 }
 check($__archives_sorted, 'R337 shop, category, brand, and product-attribute main archives always sort available first and newest first within each group, even when the legacy toggle is off');
+
+// R337: stock transitions invalidate only the product/variation and related parent caches.
+$__stock_cache_original_products = $GLOBALS['products'] ?? array();
+$__stock_cache_original_cleaned = $GLOBALS['cleaned_posts'] ?? null;
+$__stock_cache_original_transients = $GLOBALS['deleted_product_transients'] ?? null;
+$__stock_cache_simple_id = 33701;
+$__stock_cache_parent_id = 33702;
+$__stock_cache_variation_id = 33703;
+$GLOBALS['products'][$__stock_cache_simple_id] = new WC_Product($__stock_cache_simple_id);
+$GLOBALS['products'][$__stock_cache_parent_id] = new WC_Product($__stock_cache_parent_id);
+$GLOBALS['products'][$__stock_cache_parent_id]->type = 'variable';
+$GLOBALS['products'][$__stock_cache_variation_id] = new WC_Product($__stock_cache_variation_id);
+$GLOBALS['products'][$__stock_cache_variation_id]->type = 'variation';
+$GLOBALS['products'][$__stock_cache_variation_id]->parent = $__stock_cache_parent_id;
+$GLOBALS['cleaned_posts'] = array();
+$GLOBALS['deleted_product_transients'] = array();
+jluxe_invalidate_catalog_stock_order_cache(1, $__stock_cache_simple_id, '_stock_status', 'outofstock');
+jluxe_invalidate_catalog_stock_order_cache(2, $__stock_cache_simple_id, '_stock_status', 'instock');
+check(array($__stock_cache_simple_id, $__stock_cache_simple_id) === $GLOBALS['cleaned_posts'] && array($__stock_cache_simple_id, $__stock_cache_simple_id) === $GLOBALS['deleted_product_transients'], 'R337 a simple product changing stock status in either direction has its post and WooCommerce product caches cleared for the next archive query');
+$GLOBALS['cleaned_posts'] = array();
+$GLOBALS['deleted_product_transients'] = array();
+jluxe_invalidate_catalog_stock_order_cache(3, $__stock_cache_variation_id, '_stock_status', 'instock');
+$__variation_stock_cache_cleared = array($__stock_cache_variation_id, $__stock_cache_parent_id) === $GLOBALS['cleaned_posts'] && array($__stock_cache_variation_id, $__stock_cache_parent_id) === $GLOBALS['deleted_product_transients'];
+$__stock_cache_counts = array(count($GLOBALS['cleaned_posts']), count($GLOBALS['deleted_product_transients']));
+jluxe_invalidate_catalog_stock_order_cache(4, $__stock_cache_variation_id, '_stock', '4');
+check($__variation_stock_cache_cleared && $__stock_cache_counts === array(count($GLOBALS['cleaned_posts']), count($GLOBALS['deleted_product_transients'])), 'R337 a variation stock-status change clears both variation and parent caches while unrelated stock metadata does not trigger invalidation');
+$__stock_meta_hooks = array();
+foreach ($GLOBALS['actions'] as $__stock_action) {
+ if (($__stock_action[1] ?? null) === 'jluxe_invalidate_catalog_stock_order_cache' && (int) ($__stock_action[3] ?? 0) === 4) {
+  $__stock_meta_hooks[] = $__stock_action[0] ?? '';
+ }
+}
+sort($__stock_meta_hooks);
+check(array('added_post_meta', 'deleted_post_meta', 'updated_post_meta') === $__stock_meta_hooks, 'R337 additions, updates, and deletions of _stock_status are wired to catalog cache invalidation');
+$GLOBALS['products'] = $__stock_cache_original_products;
+if (null === $__stock_cache_original_cleaned) { unset($GLOBALS['cleaned_posts']); } else { $GLOBALS['cleaned_posts'] = $__stock_cache_original_cleaned; }
+if (null === $__stock_cache_original_transients) { unset($GLOBALS['deleted_product_transients']); } else { $GLOBALS['deleted_product_transients'] = $__stock_cache_original_transients; }
 $GLOBALS['query_kind']='front';
 $__secondary_query=new WP_Query(array('post_type'=>'product'));
 $__secondary_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=>'wp_posts.menu_order ASC'),$__secondary_query);

@@ -1,9 +1,9 @@
 <?php
 /**
  * پریست‌های آماده‌ی طراحی — طبقِ درخواستِ کاربر («Settings Panel 2.0 →
- * پریست‌های طراحی آماده»). هر پریست فقط دو بخشِ از قبل موجود رو ست می‌کنه
- * (رنگ‌ها + تایپوگرافی) — هیچ ساختارِ داده‌ی جدیدی اضافه نمی‌شه، فقط یک
- * میان‌بر برای پرکردنِ همون دو فرمی که از قبل هم دستی قابل‌ویرایش بودن.
+ * پریست‌های طراحی آماده»). پریست‌ها رنگ‌ها و تایپوگرافی را ست می‌کنند؛
+ * Bubblegum Pink علاوه‌بر آن، shadeهای شناخته‌شدهٔ پالت را در تنظیماتِ
+ * رنگیِ بخش‌های دیگر هم هماهنگ می‌کند و رنگ‌های سفارشی/معنایی را نگه می‌دارد.
  *
  * مقادیر همیشه از این آرایه‌ی ثابتِ سمتِ سرور خونده می‌شن، نه از چیزی که
  * کلاینت می‌فرسته — یعنی درخواستِ POST فقط یک شناسه (preset_id) می‌فرسته،
@@ -115,7 +115,50 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
+		'bubblegum_pink' => array(
+			'label' => 'صورتی آدامسی (Bubblegum Pink)',
+			'description' => 'طیف دقیق Bubblegum Pink در سراسر سایت؛ دکمهٔ اصلی از shade 600 انتخاب شده تا متن سفید کنتراست 5.81:1 داشته باشد. shadeهای شناخته‌شدهٔ منو، موبایل، تسویه‌حساب، فوتر و بخش‌های دیگر هم هماهنگ می‌شوند؛ رنگ سبزِ موفقیت و رنگ‌های سفارشی حفظ می‌شوند.',
+			'colors' => array(
+				'primary' => '#CC0033', 'secondary' => '#660019', 'background' => '#FFE5EC', 'success' => '#16865A', 'accent' => '#990026',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+			'palette' => 'bubblegum_pink',
+		),
 	);
+}
+
+/** Remap exact shades from the bundled palettes without touching custom/semantic colors. */
+function jluxe_remap_design_palette_values( array $settings, array $target_palette ): array {
+	$source_palettes = array(
+		jluxe_electric_indigo_palette(),
+		jluxe_royal_orchid_palette(),
+		jluxe_dodger_blue_palette(),
+		$target_palette,
+	);
+	$color_map = array();
+	foreach ( $source_palettes as $source_palette ) {
+		foreach ( $source_palette as $shade => $source_hex ) {
+			if ( isset( $target_palette[ $shade ] ) ) {
+				$color_map[ strtoupper( $source_hex ) ] = $target_palette[ $shade ];
+			}
+		}
+	}
+
+	$walk = static function ( $value ) use ( &$walk, $color_map ) {
+		if ( is_array( $value ) ) {
+			foreach ( $value as $key => $child ) {
+				$value[ $key ] = $walk( $child );
+			}
+			return $value;
+		}
+		if ( is_string( $value ) ) {
+			$normalized = strtoupper( trim( $value ) );
+			return $color_map[ $normalized ] ?? $value;
+		}
+		return $value;
+	};
+
+	return $walk( $settings );
 }
 
 /**
@@ -149,6 +192,23 @@ function jluxe_handle_apply_preset(): ?string {
 
 	jluxe_update_settings_section( 'colors', $clean_colors );
 	jluxe_update_settings_section( 'typography', $clean_typography );
+
+	if ( 'bubblegum_pink' === ( $preset['palette'] ?? '' ) && function_exists( 'jluxe_bubblegum_pink_palette' ) ) {
+		$current_settings = jluxe_get_theme_settings( true );
+		$palette_settings = jluxe_remap_design_palette_values( $current_settings, jluxe_bubblegum_pink_palette() );
+		// The main form values were already sanitized above; retain their casing and exact submitted defaults.
+		$palette_settings['colors'] = $current_settings['colors'];
+		foreach ( $palette_settings as $section_key => $section_value ) {
+			if (
+				'version' !== $section_key &&
+				is_array( $section_value ) &&
+				isset( $current_settings[ $section_key ] ) &&
+				$section_value !== $current_settings[ $section_key ]
+			) {
+				jluxe_update_settings_section( (string) $section_key, $section_value );
+			}
+		}
+	}
 
 	return 'preset_applied';
 }

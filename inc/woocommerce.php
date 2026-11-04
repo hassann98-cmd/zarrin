@@ -4680,9 +4680,11 @@ function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConv
 /**
  * R64/R337: stock-first ordering for product queries. The main shop and product-taxonomy
  * archives (category, brand and attribute) always use availability, then post_date DESC;
- * this is deliberately independent of the legacy toggle. Other product queries retain the
- * prior optional stock grouping and their own order (for example homepage/popular/random rows).
- * Admin screens are excluded; missing _stock_status is treated as instock for safe fallback.
+ * this is deliberately independent of the legacy toggle. The CASE reads live _stock_status
+ * metadata for each query, so a restocked product moves into the in-stock group automatically.
+ * Other product queries retain the prior optional stock grouping and their own order
+ * (for example homepage/popular/random rows). Admin screens are excluded; missing _stock_status
+ * is treated as instock for safe fallback.
  */
 function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
 	if ( is_admin() && ! wp_doing_ajax() ) {
@@ -5151,6 +5153,31 @@ function jluxe_purge_product_related_caches( int $product_id ): void {
 		}
 	}
 }
+
+/**
+ * Stock status is the live sort key for product archives. Flush only the affected
+ * product and (for variations) its parent when that metadata changes, so persistent
+ * post, WooCommerce, and page caches cannot preserve the previous stock grouping.
+ */
+function jluxe_invalidate_catalog_stock_order_cache( $meta_id, $object_id, $meta_key, $meta_value = null ): void {
+	if ( '_stock_status' !== $meta_key ) {
+		return;
+	}
+
+	$product_id = absint( $object_id );
+	if ( ! $product_id ) {
+		return;
+	}
+
+	if ( function_exists( 'jluxe_purge_product_related_caches' ) && function_exists( 'wc_get_product' ) ) {
+		jluxe_purge_product_related_caches( $product_id );
+	} elseif ( function_exists( 'clean_post_cache' ) ) {
+		clean_post_cache( $product_id );
+	}
+}
+add_action( 'added_post_meta', 'jluxe_invalidate_catalog_stock_order_cache', 10, 4 );
+add_action( 'updated_post_meta', 'jluxe_invalidate_catalog_stock_order_cache', 10, 4 );
+add_action( 'deleted_post_meta', 'jluxe_invalidate_catalog_stock_order_cache', 10, 4 );
 
 /**
  * The option-panel marker distinguishes an intentional checkbox save from

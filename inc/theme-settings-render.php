@@ -899,12 +899,12 @@ function jluxe_render_footer_page(): void {
 			<h3>پس‌زمینه‌ی فوتر</h3>
 			<?php
 			$jluxe_bg            = $settings['footer']['background'];
-			$jluxe_palette       = jluxe_electric_indigo_palette();
-			$jluxe_royal_palette = jluxe_royal_orchid_palette();
-			$jluxe_dodger_palette = jluxe_dodger_blue_palette();
-			// گزینه‌های قبلی و Royal Orchid دست‌نخورده‌اند؛ برای پس‌زمینهٔ فوترِ
-			// Dodger Blue فقط shadeهای 600 و تیره‌تر افزوده می‌شوند تا متن سفید
-			// پیش‌فرض حداقل کنتراست AA را حفظ کند.
+			$jluxe_palette          = jluxe_electric_indigo_palette();
+			$jluxe_royal_palette    = jluxe_royal_orchid_palette();
+			$jluxe_dodger_palette   = jluxe_dodger_blue_palette();
+			$jluxe_bubblegum_palette = jluxe_bubblegum_pink_palette();
+			// گزینه‌های قبلی و پالت‌های انتخابی حفظ می‌شوند؛ برای پس‌زمینهٔ فوتر
+			// فقط shadeهای دارای کنتراست سفیدِ مناسب به swatchها اضافه می‌شوند.
 			$jluxe_bg_presets  = array(
 				'#1E293B', '#27272A', '#0F3D3E', '#3B0764', '#4C0519', '#334155', '#3F2A1D', '#E7DFD3',
 				$jluxe_palette['900'], $jluxe_palette['800'], $jluxe_palette['700'], $jluxe_palette['600'],
@@ -915,9 +915,11 @@ function jluxe_render_footer_page(): void {
 				$jluxe_royal_palette['100'], $jluxe_royal_palette['50'],
 				$jluxe_dodger_palette['950'], $jluxe_dodger_palette['900'], $jluxe_dodger_palette['800'],
 				$jluxe_dodger_palette['700'], $jluxe_dodger_palette['600'],
+				$jluxe_bubblegum_palette['950'], $jluxe_bubblegum_palette['900'], $jluxe_bubblegum_palette['800'],
+				$jluxe_bubblegum_palette['700'], $jluxe_bubblegum_palette['600'],
 			);
-			// گرادیان‌های قبلی دست‌نخورده‌اند؛ نمونهٔ Dodger Blue هم دو shade تیره
-			// دارد تا رنگ متن روشن روی تمام طولِ نوار خوانا بماند.
+			// گرادیان‌های قبلی دست‌نخورده‌اند؛ نمونه‌های رنگی تیره هم کنتراست سفید
+			// و خوانایی متن روی تمام طولِ نوار را حفظ می‌کنند.
 			$jluxe_gradient_presets = array(
 				array( 'label' => 'آبی نیمه‌شب', 'colors' => array( '#0F172A', '#1E3A5F' ) ),
 				array( 'label' => 'بنفش رویایی', 'colors' => array( '#2D1B4E', '#6B21A8' ) ),
@@ -930,6 +932,7 @@ function jluxe_render_footer_page(): void {
 				array( 'label' => 'Royal Orchid', 'colors' => array( $jluxe_royal_palette['600'], $jluxe_royal_palette['800'] ) ),
 				array( 'label' => 'ارکید روشن', 'colors' => array( $jluxe_royal_palette['400'], $jluxe_royal_palette['700'] ) ),
 				array( 'label' => 'Dodger Blue تیره', 'colors' => array( $jluxe_dodger_palette['700'], $jluxe_dodger_palette['900'] ) ),
+				array( 'label' => 'Bubblegum Pink تیره', 'colors' => array( $jluxe_bubblegum_palette['700'], $jluxe_bubblegum_palette['950'] ) ),
 			);
 			$jluxe_bg_dirs     = array(
 				'to top'          => 'از پایین به بالا',
