@@ -546,6 +546,7 @@ function jluxe_theme_settings_defaults(): array {
 			'ticker_logo_enabled'          => true, // رفتار پیش‌فرض فعلی را حفظ می‌کند.
 			'ticker_logo_frame'            => true, // قاب دایره‌ای پیش‌فرض قابل خاموش‌کردن است.
 			'ticker_theme'                 => 'classic', // classic | info | warning | discount | success | custom.
+			'ticker_layout'                => 'classic', // classic | cards؛ مدل کارت‌ها پیوند اختیاری را به شکل دکمه نمایش می‌دهد.
 			'ticker_texture'               => 'waves', // waves | glow | diagonal | dots | grid | none.
 			'ticker_effect'                => 'vertical', // fade | vertical | horizontal | zoom.
 			'ticker_message_duration_ms'   => 2500, // زمانِ نمایشِ کاملِ پیام، بدونِ زمانِ ورود/خروج.

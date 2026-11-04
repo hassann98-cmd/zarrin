@@ -39,6 +39,12 @@ function jluxe_announcement_content_payload( array $settings ): array {
 			$theme = 'classic';
 		}
 		$ticker_options = jluxe_announcement_ticker_options();
+		$layout = isset( $settings['ticker_layout'] ) && is_scalar( $settings['ticker_layout'] )
+			? sanitize_key( (string) $settings['ticker_layout'] )
+			: 'classic';
+		if ( ! isset( $ticker_options['layouts'][ $layout ] ) ) {
+			$layout = 'classic';
+		}
 		$texture = isset( $settings['ticker_texture'] ) && is_scalar( $settings['ticker_texture'] )
 			? sanitize_key( (string) $settings['ticker_texture'] )
 			: 'waves';
@@ -89,6 +95,7 @@ function jluxe_announcement_content_payload( array $settings ): array {
 			'ticker_logo_enabled'       => $logo_enabled,
 			'ticker_logo_frame'         => $logo_frame,
 			'ticker_theme'              => $theme,
+			'ticker_layout'             => $layout,
 			'ticker_texture'            => $texture,
 			'ticker_effect'             => $effect,
 			'ticker_message_duration_ms'   => $duration_ms,
@@ -364,7 +371,7 @@ function jluxe_render_announcement_bar(): void {
 	$ticker_logo_enabled   = $is_ticker && ! empty( $content['ticker_logo_enabled'] );
 	$ticker_logo_frame     = $is_ticker && ! empty( $content['ticker_logo_frame'] );
 	$ticker_texture        = $is_ticker ? $content['ticker_texture'] : 'waves';
-	$dismiss_key           = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $ticker_label_enabled, $ticker_logo_enabled, $ticker_logo_frame, $content['ticker_theme'] ?? '', $ticker_texture, $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
+	$dismiss_key           = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $ticker_label_enabled, $ticker_logo_enabled, $ticker_logo_frame, $content['ticker_theme'] ?? '', $content['ticker_layout'] ?? '', $ticker_texture, $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
 	$region_label          = $is_store_closure
 		? 'تعطیلی موقت فروشگاه؛ ' . $message
 		: ( $is_ticker
@@ -375,6 +382,7 @@ function jluxe_render_announcement_bar(): void {
 	$ticker_timing         = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
 	$ticker_sequence_class = $ticker_message_count > 1 ? ' has-multiple' : '';
 	$ticker_theme          = $is_ticker ? $content['ticker_theme'] : 'classic';
+	$ticker_layout         = $is_ticker ? $content['ticker_layout'] : 'classic';
 	$ticker_logo_id        = isset( $settings['ticker_logo_id'] ) && is_scalar( $settings['ticker_logo_id'] ) ? absint( $settings['ticker_logo_id'] ) : 0;
 	$ticker_logo_markup    = $ticker_logo_enabled ? jluxe_announcement_ticker_logo_markup( $ticker_logo_id, $ticker_logo_frame ) : '';
 	$ticker_logo_class     = 'jluxe-announcement-bar__ticker-logo' . ( $ticker_logo_frame ? ' jluxe-announcement-bar__ticker-logo--framed' : ' jluxe-announcement-bar__ticker-logo--plain' );
@@ -385,7 +393,7 @@ function jluxe_render_announcement_bar(): void {
 		data-store-closure="<?php echo $is_store_closure ? '1' : '0'; ?>"
 		role="region"
 		data-content-mode="<?php echo esc_attr( $content['mode'] ); ?>"
-		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>" data-ticker-texture="<?php echo esc_attr( $ticker_texture ); ?>"<?php endif; ?>
+		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-layout="<?php echo esc_attr( $ticker_layout ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>" data-ticker-texture="<?php echo esc_attr( $ticker_texture ); ?>"<?php endif; ?>
 		data-sticky="<?php echo $is_sticky ? '1' : '0'; ?>"
 		aria-label="<?php echo esc_attr( $region_label ); ?>"
 		aria-live="<?php echo $is_ticker ? 'off' : 'polite'; ?>"

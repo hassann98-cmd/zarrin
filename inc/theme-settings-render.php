@@ -395,6 +395,15 @@ function jluxe_render_announcement_page(): void {
 					<th scope="row">بنر پیام‌های متحرک</th>
 					<td>
 						<p>
+							<label for="jluxe-announcement-ticker-layout">مدل نمایش اطلاع‌رسانی</label><br />
+							<select id="jluxe-announcement-ticker-layout" name="announcement_bar[ticker_layout]">
+								<?php foreach ( $ticker_options['layouts'] as $layout_value => $layout_label ) : ?>
+									<option value="<?php echo esc_attr( $layout_value ); ?>" <?php selected( $bar['ticker_layout'] ?? 'classic', $layout_value ); ?>><?php echo esc_html( $layout_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+						<p class="description">در مدل کارت‌ها، عنوان و پیام داخل کادرهای جدا نمایش داده می‌شوند و پیوند اختیاری پایین صفحه به شکل دکمه درمی‌آید؛ برای نمایش دکمه، متن و نشانی پیوند را وارد کنید.</p>
+						<p>
 							<label for="jluxe-announcement-ticker-theme">رنگ‌بندی پس‌زمینه</label><br />
 							<select id="jluxe-announcement-ticker-theme" name="announcement_bar[ticker_theme]">
 								<option value="classic" <?php selected( $bar['ticker_theme'] ?? 'classic', 'classic' ); ?>>کلاسیک (فیروزه‌ای)</option>
@@ -405,6 +414,7 @@ function jluxe_render_announcement_page(): void {
 								<option value="custom" <?php selected( $bar['ticker_theme'] ?? 'classic', 'custom' ); ?>>سفارشی (رنگ‌های انتخاب‌شده در بخش ظاهر)</option>
 							</select>
 						</p>
+						<p class="description">رنگِ «اطلاع‌رسانی (آبی)» ثابت است و با تغییر تم یا پالت رنگی سایت عوض نمی‌شود.</p>
 						<p>
 							<label for="jluxe-announcement-ticker-texture">بافت پس‌زمینه</label><br />
 							<select id="jluxe-announcement-ticker-texture" name="announcement_bar[ticker_texture]">
