@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 22;
+const JLUXE_SETTINGS_VERSION = 23;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -280,6 +280,25 @@ function jluxe_bubblegum_pink_palette(): array {
 		'800' => '#660019',
 		'900' => '#33000d',
 		'950' => '#240009',
+	);
+}
+
+/** The homepage curation section uses WooCommerce's native featured-product flag. */
+function jluxe_default_featured_homepage_section(): array {
+	return array(
+		'id'              => 'featured-products-default',
+		'type'            => 'product_grid',
+		'enabled'         => true,
+		'title'           => 'محصولات ویژه',
+		'subtitle'        => 'برگزیده‌های فروشگاه، آمادهٔ سفارش',
+		'query'            => 'featured',
+		'category'        => '',
+		'count'           => 8,
+		'columns_desktop' => 4,
+		'columns_tablet'  => 3,
+		'columns_mobile'  => 2,
+		'layout'          => 'grid',
+		'style'           => 'plain',
 	);
 }
 
@@ -1011,6 +1030,7 @@ function jluxe_theme_settings_defaults(): array {
 					// پیش‌فرض ساختگی از قبل ست نمی‌شه، ادمین خودش عکس واقعی اضافه می‌کنه.
 					'items'         => array(),
 				),
+				jluxe_default_featured_homepage_section(),
 				array(
 					'id'              => 'products-new-default',
 					'type'            => 'product_grid',
@@ -2527,6 +2547,55 @@ function jluxe_migrate_settings_v22( array $settings ): array {
 	return $settings;
 }
 
+/** Add the curated, native-WooCommerce featured-products row to existing homepages. */
+function jluxe_migrate_settings_v23( array $settings ): array {
+	if ( ! isset( $settings['homepage'] ) || ! is_array( $settings['homepage'] ) || ! isset( $settings['homepage']['sections'] ) || ! is_array( $settings['homepage']['sections'] ) || empty( $settings['homepage']['sections'] ) ) {
+		return $settings;
+	}
+
+	foreach ( $settings['homepage']['sections'] as $section ) {
+		if ( is_array( $section ) && 'product_grid' === ( $section['type'] ?? '' ) && 'featured' === ( $section['query'] ?? '' ) ) {
+			return $settings;
+		}
+	}
+
+	$featured_section = jluxe_default_featured_homepage_section();
+	$existing_ids     = array();
+	foreach ( $settings['homepage']['sections'] as $section ) {
+		if ( is_array( $section ) && ! empty( $section['id'] ) && is_scalar( $section['id'] ) ) {
+			$existing_ids[] = (string) $section['id'];
+		}
+	}
+	$base_id = $featured_section['id'];
+	$suffix  = 2;
+	while ( in_array( $featured_section['id'], $existing_ids, true ) ) {
+		$featured_section['id'] = $base_id . '-' . $suffix;
+		++$suffix;
+	}
+
+	$insert_at         = count( $settings['homepage']['sections'] );
+	$first_product_row = null;
+	$found_hero        = false;
+	foreach ( $settings['homepage']['sections'] as $index => $section ) {
+		if ( ! is_array( $section ) ) {
+			continue;
+		}
+		if ( 'hero' === ( $section['type'] ?? '' ) ) {
+			$insert_at  = $index + 1;
+			$found_hero = true;
+			break;
+		}
+		if ( null === $first_product_row && 'product_grid' === ( $section['type'] ?? '' ) ) {
+			$first_product_row = $index;
+		}
+	}
+	if ( ! $found_hero && null !== $first_product_row ) {
+		$insert_at = $first_product_row;
+	}
+	array_splice( $settings['homepage']['sections'], $insert_at, 0, array( $featured_section ) );
+	return $settings;
+}
+
 /** Apply all versioned migrations in order and stamp the current schema version. */
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
@@ -2551,6 +2620,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		20 => 'jluxe_migrate_settings_v20',
 		21 => 'jluxe_migrate_settings_v21',
 		22 => 'jluxe_migrate_settings_v22',
+		23 => 'jluxe_migrate_settings_v23',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {

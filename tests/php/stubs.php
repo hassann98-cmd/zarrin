@@ -79,7 +79,7 @@ function esc_attr($s){return htmlspecialchars((string)$s,ENT_QUOTES);}
 function wp_http_validate_url($s){return filter_var($s,FILTER_VALIDATE_URL);}
 function wp_json_encode($v,...$a){return json_encode($v,...$a);}
 function wp_parse_url($v,$c=-1){return parse_url($v,$c);}
-function is_admin(){return false;}
+function is_admin(){return (bool)($GLOBALS['is_admin']??false);}
 
 function current_user_can(...$a){return !in_array($a[0],$GLOBALS['denied_caps']??[],true) && ($GLOBALS['can_manage']??true);}
 function get_current_screen(){return $GLOBALS['current_screen']??false;}
@@ -438,7 +438,7 @@ class WC_Product_Attribute {
  function is_taxonomy(){return $this->id>0;}
 }
 class WC_Product {
- public $id;public $type='simple';public $status='publish';public $visibility='visible';public $sold=false;public $stock=20;public $manage_stock=false;public $parent=0;public $children=[];public $variationCalls=0;public $meta=[];public $image_id=0;public $attributes=[];public $save_count=0;
+ public $id;public $type='simple';public $status='publish';public $visibility='visible';public $sold=false;public $stock=20;public $stock_status=null;public $featured=false;public $manage_stock=false;public $parent=0;public $children=[];public $variationCalls=0;public $meta=[];public $image_id=0;public $attributes=[];public $save_count=0;
  function __construct($id){$this->id=$id;}
  function exists(){return true;}
  function get_id(){return $this->id;}
@@ -451,6 +451,8 @@ class WC_Product {
  function is_type($type){return is_array($type)?in_array($this->type,$type):$this->type===$type;}
  function get_status(){return $this->status;}
  function get_catalog_visibility(){return $this->visibility;}
+ function get_featured(){return $this->featured;}
+ function get_stock_status(){return is_string($this->stock_status)?$this->stock_status:($this->stock>0?'instock':'outofstock');}
  function get_parent_id(){return $this->parent;}
  function is_sold_individually(){return $this->sold;}
  function is_purchasable(){return $this->status==='publish';}

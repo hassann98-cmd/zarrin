@@ -161,6 +161,7 @@
 			search: $("#jluxe-pm-search").value.trim(),
 			type: $("#jluxe-pm-type").value,
 			status: $("#jluxe-pm-status").value,
+			featured: $("#jluxe-pm-featured").value,
 			stock: $("#jluxe-pm-stock").value,
 			category: $("#jluxe-pm-category").value,
 			brand: $("#jluxe-pm-brand").value,
@@ -1493,7 +1494,7 @@
 			loadProducts(true);
 			return;
 		}
-		if (target.matches("#jluxe-pm-type, #jluxe-pm-status, #jluxe-pm-stock")) { loadProducts(true); return; }
+		if (target.matches("#jluxe-pm-type, #jluxe-pm-status, #jluxe-pm-featured, #jluxe-pm-stock")) { loadProducts(true); return; }
 		if (target.dataset.pmInlineField) {
 			var product = state.products.find(function (item) { return String(item.id) === String(target.dataset.productId); });
 			if (!product) return;
@@ -1625,6 +1626,7 @@
 		productSearchInput.value = "";
 		$("#jluxe-pm-type").value = "";
 		$("#jluxe-pm-status").value = "";
+		$("#jluxe-pm-featured").value = "";
 		$("#jluxe-pm-stock").value = "";
 		$("#jluxe-pm-attribute-taxonomy").value = "";
 		var attributeFilter = $("#jluxe-pm-filter-attribute-term");

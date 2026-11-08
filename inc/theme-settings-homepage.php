@@ -251,6 +251,9 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 							'featured'   => 'ویژه',
 						)
 					);
+					?>
+					<p class="description">منبعِ «ویژه» از ستارهٔ خودِ ووکامرس استفاده می‌کند؛ در صفحهٔ اصلی فقط محصولاتِ منتشرشده و موجود نمایش داده می‌شوند و محصولِ ناموجود از ردیف حذف می‌شود.</p>
+					<?php
 					jluxe_hb_field_select( $name, 'layout', 'چیدمان', $section['layout'] ?? 'grid', array( 'grid' => 'شبکه‌ای (ثابت)', 'carousel' => 'کاروسل (اسکرول افقی)' ) );
 					jluxe_hb_field_select( $name, 'category', 'فیلتر دسته (اختیاری)', $section['category'] ?? '', array( '' => 'همه دسته‌ها' ) + jluxe_hb_category_options() );
 					jluxe_hb_field_select( $name, 'style', 'استایل', $section['style'] ?? 'plain', array( 'plain' => 'ساده', 'highlight' => 'برجسته (پس‌زمینه‌ی رنگ اصلی، مثل «فروش ویژه»)' ) );
@@ -1386,14 +1389,24 @@ function jluxe_render_homepage_section_frontend( array $section ): void {
 	}
 }
 
+/** A featured homepage card is eligible only when WooCommerce reports it truly in stock. */
+function jluxe_homepage_featured_product_is_available( $product ): bool {
+	return $product instanceof WC_Product &&
+		method_exists( $product, 'get_stock_status' ) &&
+		method_exists( $product, 'is_in_stock' ) &&
+		'instock' === $product->get_stock_status() &&
+		$product->is_in_stock();
+}
+
 function jluxe_render_homepage_product_grid( array $section ): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
 	}
 
-	$args = array(
+	$count = (int) ( $section['count'] ?? 8 );
+	$args  = array(
 		'status'   => 'publish',
-		'limit'    => (int) ( $section['count'] ?? 8 ),
+		'limit'    => $count,
 		'orderby'  => 'date',
 		'order'    => 'DESC',
 	);
@@ -1411,7 +1424,15 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 			$args['order']    = 'DESC';
 			break;
 		case 'featured':
-			$args['featured'] = true;
+			$count                = max( 2, min( 16, absint( $count ) ) );
+			$args['featured']     = true;
+			$args['stock_status'] = 'instock';
+			$args['visibility']   = 'visible';
+			$args['orderby']      = 'menu_order';
+			$args['order']        = 'ASC';
+			// Fetch a small reserve so stale variable-parent stock flags can be
+			// checked below without leaving a short row when another item is available.
+			$args['limit'] = min( 48, $count * 3 );
 			break;
 	}
 
@@ -1420,6 +1441,10 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 	}
 
 	$products = wc_get_products( $args );
+	if ( 'featured' === ( $section['query'] ?? 'newest' ) ) {
+		$products = array_values( array_filter( (array) $products, 'jluxe_homepage_featured_product_is_available' ) );
+		$products = array_slice( $products, 0, $count );
+	}
 	if ( empty( $products ) ) {
 		return;
 	}

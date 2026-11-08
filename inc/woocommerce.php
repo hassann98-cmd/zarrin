@@ -5159,6 +5159,60 @@ function jluxe_purge_product_related_caches( int $product_id ): void {
 	}
 }
 
+/** Purge only the homepage URL, whose featured-product row can change with stock or starring. */
+function jluxe_purge_featured_homepage_cache( int $product_id = 0 ): void {
+	$homepage_url = home_url( '/' );
+	if ( function_exists( 'rocket_clean_files' ) ) {
+		rocket_clean_files( array( $homepage_url ) );
+	}
+	if ( function_exists( 'w3tc_flush_url' ) ) {
+		w3tc_flush_url( $homepage_url );
+	}
+	if ( defined( 'LSCWP_V' ) ) {
+		do_action( 'litespeed_purge_url', $homepage_url );
+	}
+	// Give other full-page-cache integrations a targeted, URL-only invalidation hook.
+	do_action( 'jluxe_purge_featured_homepage_cache', $homepage_url, $product_id );
+}
+
+/** Resolve a variation to its parent and purge the homepage only if that product is featured. */
+function jluxe_purge_featured_homepage_cache_for_product( int $product_id ): void {
+	if ( ! function_exists( 'wc_get_product' ) ) {
+		return;
+	}
+	$product = wc_get_product( $product_id );
+	if ( ! $product instanceof WC_Product ) {
+		return;
+	}
+	if ( $product->is_type( 'variation' ) && $product->get_parent_id() ) {
+		$parent = wc_get_product( (int) $product->get_parent_id() );
+		if ( $parent instanceof WC_Product ) {
+			$product = $parent;
+		}
+	}
+	if ( method_exists( $product, 'get_featured' ) && $product->get_featured() ) {
+		jluxe_purge_featured_homepage_cache( (int) $product->get_id() );
+	}
+}
+
+/** Purge the targeted homepage URL when WooCommerce adds or removes its native featured term. */
+function jluxe_purge_homepage_after_featured_term_change( $object_id, $terms, $term_taxonomy_ids, $taxonomy, $append, $old_term_taxonomy_ids ): void {
+	if ( 'product_visibility' !== $taxonomy || ! function_exists( 'get_term_by' ) ) {
+		return;
+	}
+	$featured_term = get_term_by( 'slug', 'featured', 'product_visibility' );
+	$featured_ttid = is_object( $featured_term ) ? absint( $featured_term->term_taxonomy_id ?? 0 ) : 0;
+	if ( $featured_ttid < 1 ) {
+		return;
+	}
+	$changed_terms = array_merge( (array) $term_taxonomy_ids, (array) $old_term_taxonomy_ids );
+	$changed_terms = array_map( 'absint', $changed_terms );
+	if ( in_array( $featured_ttid, $changed_terms, true ) ) {
+		jluxe_purge_featured_homepage_cache( absint( $object_id ) );
+	}
+}
+add_action( 'set_object_terms', 'jluxe_purge_homepage_after_featured_term_change', 10, 6 );
+
 /**
  * Stock status is the live sort key for product archives. Flush only the affected
  * product and (for variations) its parent when that metadata changes, so persistent
@@ -5176,6 +5230,7 @@ function jluxe_invalidate_catalog_stock_order_cache( $meta_id, $object_id, $meta
 
 	if ( function_exists( 'jluxe_purge_product_related_caches' ) && function_exists( 'wc_get_product' ) ) {
 		jluxe_purge_product_related_caches( $product_id );
+		jluxe_purge_featured_homepage_cache_for_product( $product_id );
 	} elseif ( function_exists( 'clean_post_cache' ) ) {
 		clean_post_cache( $product_id );
 	}

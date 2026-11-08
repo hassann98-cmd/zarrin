@@ -101,6 +101,7 @@ function jluxe_product_manager_render_page(): void {
 				<?php jluxe_product_manager_render_filter_term( 'category', 'دسته‌بندی', 'product_cat' ); ?>
 				<?php jluxe_product_manager_render_filter_term( 'brand', 'برند', $brand_taxonomy, '' !== $brand_taxonomy ); ?>
 				<label class="jluxe-pm-filter-select"><span>نوع</span><select id="jluxe-pm-type" aria-label="نوع محصول"><option value="">همهٔ انواع</option><option value="simple">ساده</option><option value="variable">متغیر</option></select></label>
+				<label class="jluxe-pm-filter-select"><span>ویژه</span><select id="jluxe-pm-featured" aria-label="وضعیت ویژه"><option value="">همه</option><option value="yes">فقط ستاره‌دار</option></select></label>
 				<label class="jluxe-pm-filter-select"><span>موجودی</span><select id="jluxe-pm-stock" aria-label="وضعیت موجودی"><option value="">همه</option><option value="instock">موجود</option><option value="outofstock">ناموجود</option><option value="onbackorder">پیش‌سفارش</option></select></label>
 				<button class="button jluxe-pm-reset-button" id="jluxe-pm-reset" type="button" aria-label="پاک‌کردن همهٔ فیلترها">پاک‌کردن</button>
 			</div>
@@ -529,6 +530,7 @@ function jluxe_product_manager_list_ajax(): void {
 	$type     = isset( $_POST['type'] ) && in_array( $_POST['type'], array( 'simple', 'variable' ), true ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
 	$status   = isset( $_POST['status'] ) && in_array( $_POST['status'], array( 'publish', 'draft', 'private', 'pending' ), true ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
 	$stock    = isset( $_POST['stock'] ) && in_array( $_POST['stock'], array( 'instock', 'outofstock', 'onbackorder' ), true ) ? sanitize_key( wp_unslash( $_POST['stock'] ) ) : '';
+	$featured = isset( $_POST['featured'] ) && is_scalar( $_POST['featured'] ) && 'yes' === sanitize_key( wp_unslash( (string) $_POST['featured'] ) ) ? 'yes' : '';
 	$category_input = isset( $_POST['category'] ) && is_scalar( $_POST['category'] ) ? trim( (string) wp_unslash( $_POST['category'] ) ) : '';
 	$category_term  = false;
 	if ( '' !== $category_input ) {
@@ -569,6 +571,9 @@ function jluxe_product_manager_list_ajax(): void {
 	}
 	if ( '' !== $stock ) {
 		$args['stock_status'] = $stock;
+	}
+	if ( '' !== $featured ) {
+		$args['featured'] = 'yes' === $featured;
 	}
 	if ( is_object( $category_term ) && ! empty( $category_term->slug ) ) {
 		$args['category'] = array( (string) $category_term->slug );

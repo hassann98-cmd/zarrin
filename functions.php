@@ -664,6 +664,7 @@ require_once JLUXE_THEME_DIR . '/inc/icons.php';
 require_once JLUXE_THEME_DIR . '/inc/urls.php';
 require_once JLUXE_THEME_DIR . '/inc/qa.php';
 require_once JLUXE_THEME_DIR . '/inc/woocommerce.php';
+require_once JLUXE_THEME_DIR . '/inc/featured-products.php';
 require_once JLUXE_THEME_DIR . '/inc/product-specifications.php';
 require_once JLUXE_THEME_DIR . '/inc/product-faq.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-tickets.php';

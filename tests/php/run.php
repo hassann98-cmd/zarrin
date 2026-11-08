@@ -6145,7 +6145,7 @@ $r192_import_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-
 check( false !== strpos( $r192_import_source, 'jluxe_migrate_settings_to_current_version( $data[\'settings\'], $version )' ), 'R192 settings import uses the same ordered migration path as reads and partial saves' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => 6, 'footer' => array( 'support_hours' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.' ) );
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v22 migrations before storing edits' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['support_hours'] && $r194_approved_brand === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['footer']['brand_description'], 'R305 saving an unrelated settings section applies through-v23 migrations before storing edits' );
 update_test_settings( jluxe_theme_settings_defaults() );
 
 $r192_info_templates = array(
@@ -6336,7 +6336,8 @@ check(
 	'#AABBCC' === $r326_v21_migrated['product_page']['description_link_text_color'] &&
 	'#1F2937' === $r326_v21_migrated['homepage']['sections'][0]['card_text_color'] &&
 	'#123456' === $r326_v21_migrated['homepage']['sections'][1]['card_text_color'] &&
-	'#100033' === $r326_v21_migrated['homepage']['sections'][2]['card_text_color'],
+	'featured' === ( $r326_v21_migrated['homepage']['sections'][2]['query'] ?? '' ) &&
+	'#100033' === $r326_v21_migrated['homepage']['sections'][3]['card_text_color'],
 	'R362 v21 migrates only recognized v20 text/status defaults and preserves merchant-selected colors'
 );
 $r233_old_contact = array(
@@ -7618,10 +7619,10 @@ $r96_migrated_settings = jluxe_migrate_settings_v3( $r96_legacy_settings );
 check( false === $r96_migrated_settings['ai_assistant']['hide_mobile_launcher'], 'R96 the v2-to-v3 migration overrides the old hidden-by-default launcher value' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 $r96_loaded_settings = jluxe_get_theme_settings( true );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v22 with legacy fixes, semantic color defaults, FAQ defaults, and approved footer copy' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $r96_loaded_settings['ai_assistant']['hide_mobile_launcher'] && '' === $r96_loaded_settings['product_card']['in_stock_color'] && '' === $r96_loaded_settings['product_page']['discount_color'] && '' === $r96_loaded_settings['product_page']['savings_color'] && '' === $r96_loaded_settings['product_page']['star_color'] && 10 === count( $r96_loaded_settings['faq']['items'] ) && $r194_approved_brand === $r96_loaded_settings['footer']['brand_description'], 'R96/R180/R197 stored v2 settings migrate through v23 with legacy fixes, semantic color defaults, FAQ defaults, and approved footer copy' );
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r96_legacy_settings;
 jluxe_update_settings_section( 'colors', jluxe_theme_settings_defaults()['colors'] );
-check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v22 and seeds defaults exactly once' );
+check( JLUXE_SETTINGS_VERSION === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['version'] && false === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['ai_assistant']['hide_mobile_launcher'] && '' === $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['product_card']['in_stock_color'] && 10 === count( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['faq']['items'] ), 'R96/R180/R197 saving another settings section applies migrations through v23 and seeds defaults exactly once' );
 update_test_settings( jluxe_theme_settings_defaults() );
 check( $r94_sanitized['phone_hours']['closed_days'] === array( 5 ) && empty( $r94_sanitized['contact_icons']['phone'] ) && ! empty( $r94_sanitized['tools']['search_site_content'] ), 'R94 hours/social-icon inputs are robust when optional settings are omitted or malformed' );
 $r94_contact = jluxe_ai_public_contact( array_merge( $r94_defaults, array( 'contact_phone' => '۰۹۱۲۰۹۰۲۳۳۶' ) ) );
@@ -10890,5 +10891,134 @@ if ( null === $r366_old_user ) { unset( $GLOBALS['authenticated_user'] ); } else
 if ( null === $r366_old_can_manage ) { unset( $GLOBALS['can_manage'] ); } else { $GLOBALS['can_manage'] = $r366_old_can_manage; }
 if ( null === $r366_old_denied_caps ) { unset( $GLOBALS['denied_caps'] ); } else { $GLOBALS['denied_caps'] = $r366_old_denied_caps; }
 if ( $r366_had_invoice_option ) { $GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ] = $r366_old_invoice_option; } else { unset( $GLOBALS['options'][ JLUXE_INVOICE_SETTINGS_OPTION ] ); }
+
+// R422 — featured homepage products use WooCommerce's native flag, live stock, and list filters.
+$r422_defaults = jluxe_theme_settings_defaults();
+$r422_default_featured = $r422_defaults['homepage']['sections'][1] ?? array();
+$r422_old_homepage_settings = array(
+	'homepage' => array(
+		'sections' => array(
+			array( 'id' => 'hero-main', 'type' => 'hero', 'enabled' => true ),
+			array( 'id' => 'products-new-default', 'type' => 'product_grid', 'query' => 'newest', 'enabled' => true ),
+		),
+	),
+);
+$r422_migrated_homepage = jluxe_migrate_settings_to_current_version( $r422_old_homepage_settings, 22 );
+$r422_migrated_sections = $r422_migrated_homepage['homepage']['sections'] ?? array();
+$r422_migrated_featured = $r422_migrated_sections[1] ?? array();
+$r422_existing_featured = jluxe_migrate_settings_v23(
+	array( 'homepage' => array( 'sections' => array( array( 'id' => 'existing-featured', 'type' => 'product_grid', 'query' => 'featured', 'enabled' => false ) ) ) )
+);
+$r422_empty_homepage = jluxe_migrate_settings_to_current_version( array( 'homepage' => array( 'sections' => array() ) ), 22 );
+$r422_query_handler = $GLOBALS['product_query_handler'] ?? null;
+$GLOBALS['product_query_handler'] = static function ( $args ) { return array(); };
+$r422_query_section = jluxe_default_featured_homepage_section();
+$r422_query_section['count'] = 5;
+ob_start();
+jluxe_render_homepage_product_grid( $r422_query_section );
+$r422_empty_featured_markup = (string) ob_get_clean();
+$r422_query_args = $GLOBALS['product_query_args'] ?? array();
+if ( null === $r422_query_handler ) { unset( $GLOBALS['product_query_handler'] ); } else { $GLOBALS['product_query_handler'] = $r422_query_handler; }
+$r422_old_post = $_POST;
+$r422_old_manager_query_handler = $GLOBALS['product_query_handler'] ?? null;
+$GLOBALS['product_query_handler'] = static function ( $args ) { return array(); };
+$_POST = array( 'nonce' => 'valid', 'featured' => 'yes', 'page' => 1 );
+$r422_manager_list_reply = json_call( 'jluxe_product_manager_list_ajax' );
+$r422_manager_query_args = $GLOBALS['product_query_args'] ?? array();
+$_POST = $r422_old_post;
+if ( null === $r422_old_manager_query_handler ) { unset( $GLOBALS['product_query_handler'] ); } else { $GLOBALS['product_query_handler'] = $r422_old_manager_query_handler; }
+$r422_in_stock = new WC_Product( 94220 );
+$r422_out_of_stock = new WC_Product( 94221 );
+$r422_out_of_stock->stock = 0;
+$r422_backorder = new WC_Product( 94222 );
+$r422_backorder->stock_status = 'onbackorder';
+$r422_variable_without_available_option = new WC_Product( 94223 );
+$r422_variable_without_available_option->type = 'variable';
+$r422_variable_without_available_option->stock_status = 'outofstock';
+$r422_featured_eligibility =
+	jluxe_homepage_featured_product_is_available( $r422_in_stock ) &&
+	! jluxe_homepage_featured_product_is_available( $r422_out_of_stock ) &&
+	! jluxe_homepage_featured_product_is_available( $r422_backorder ) &&
+	! jluxe_homepage_featured_product_is_available( $r422_variable_without_available_option );
+check(
+	23 === JLUXE_SETTINGS_VERSION &&
+	'product_grid' === ( $r422_default_featured['type'] ?? '' ) &&
+	'featured' === ( $r422_default_featured['query'] ?? '' ) &&
+	'grid' === ( $r422_default_featured['layout'] ?? '' ) &&
+	8 === ( $r422_default_featured['count'] ?? 0 ) &&
+	3 === count( $r422_defaults['homepage']['sections'] ) &&
+	3 === count( $r422_migrated_sections ) &&
+	'featured' === ( $r422_migrated_featured['query'] ?? '' ) &&
+	'hero-main' === ( $r422_migrated_sections[0]['id'] ?? '' ) &&
+	'featured' === ( $r422_existing_featured['homepage']['sections'][0]['query'] ?? '' ) &&
+	1 === count( $r422_existing_featured['homepage']['sections'] ) &&
+	array() === $r422_empty_homepage['homepage']['sections'] &&
+	true === ( $r422_query_args['featured'] ?? false ) &&
+	$r422_manager_list_reply->success &&
+	true === ( $r422_manager_query_args['featured'] ?? false ) &&
+	'instock' === ( $r422_query_args['stock_status'] ?? '' ) &&
+	'publish' === ( $r422_query_args['status'] ?? '' ) &&
+	'visible' === ( $r422_query_args['visibility'] ?? '' ) &&
+	15 === ( $r422_query_args['limit'] ?? 0 ) &&
+	'ASC' === ( $r422_query_args['order'] ?? '' ) &&
+	'' === $r422_empty_featured_markup &&
+	$r422_featured_eligibility,
+	'R422 featured homepage section defaults and migrates non-destructively, queries WooCommerce featured/in-stock/visible products, hides backorders and stale variable parents, and renders no empty row'
+);
+
+$r422_old_admin = $GLOBALS['is_admin'] ?? null;
+$r422_old_get = $_GET;
+$r422_old_visibility_terms = $GLOBALS['terms_by_slug']['product_visibility'] ?? null;
+$GLOBALS['is_admin'] = true;
+$GLOBALS['terms_by_slug']['product_visibility']['featured'] = (object) array( 'slug' => 'featured', 'term_id' => 601, 'term_taxonomy_id' => 701 );
+$_GET['jluxe_featured_filter'] = 'featured';
+$r422_product_list_query = new WP_Query(
+	array(
+		'post_type' => 'product',
+		'is_main_query' => true,
+		'tax_query' => array( array( 'taxonomy' => 'product_cat', 'terms' => array( 10 ) ) ),
+	)
+);
+jluxe_filter_admin_product_list_to_featured( $r422_product_list_query );
+$r422_admin_tax_query = $r422_product_list_query->get( 'tax_query' );
+ob_start();
+jluxe_render_featured_products_admin_filter( 'product', 'top' );
+$r422_admin_filter_markup = (string) ob_get_clean();
+$r422_wrong_post_type_query = new WP_Query( array( 'post_type' => 'post', 'is_main_query' => true ) );
+jluxe_filter_admin_product_list_to_featured( $r422_wrong_post_type_query );
+check(
+	3 === count( $r422_admin_tax_query ) &&
+	'AND' === ( $r422_admin_tax_query['relation'] ?? '' ) &&
+	'product_cat' === ( $r422_admin_tax_query[0][0]['taxonomy'] ?? '' ) &&
+	'product_visibility' === ( $r422_admin_tax_query[1]['taxonomy'] ?? '' ) &&
+	array( 601 ) === ( $r422_admin_tax_query[1]['terms'] ?? array() ) &&
+	false !== strpos( $r422_admin_filter_markup, 'فقط محصولات ستاره‌دار' ) &&
+	'product_visibility' !== ( $r422_wrong_post_type_query->get( 'tax_query' )[0]['taxonomy'] ?? '' ),
+	'R422 both native admin and Product Manager filtering use WooCommerce’s featured flag, and the native filter is limited to the Products list'
+);
+
+$r422_featured_stock_product = new WC_Product( 94224 );
+$r422_featured_stock_product->featured = true;
+$GLOBALS['products'][94224] = $r422_featured_stock_product;
+$r422_fired_before_feature_stock = count( $GLOBALS['fired'] );
+jluxe_invalidate_catalog_stock_order_cache( 1, 94224, '_stock_status', 'outofstock' );
+$r422_featured_stock_actions = array_slice( $GLOBALS['fired'], $r422_fired_before_feature_stock );
+$r422_unfeatured_stock_product = new WC_Product( 94225 );
+$GLOBALS['products'][94225] = $r422_unfeatured_stock_product;
+$r422_fired_before_unfeatured_stock = count( $GLOBALS['fired'] );
+jluxe_invalidate_catalog_stock_order_cache( 2, 94225, '_stock_status', 'outofstock' );
+$r422_unfeatured_stock_actions = array_slice( $GLOBALS['fired'], $r422_fired_before_unfeatured_stock );
+$r422_fired_before_feature_term = count( $GLOBALS['fired'] );
+jluxe_purge_homepage_after_featured_term_change( 94224, array(), array( 701 ), 'product_visibility', false, array() );
+$r422_feature_term_actions = array_slice( $GLOBALS['fired'], $r422_fired_before_feature_term );
+check(
+	in_array( 'jluxe_purge_featured_homepage_cache', $r422_featured_stock_actions, true ) &&
+	! in_array( 'jluxe_purge_featured_homepage_cache', $r422_unfeatured_stock_actions, true ) &&
+	in_array( 'jluxe_purge_featured_homepage_cache', $r422_feature_term_actions, true ),
+	'R422 stock changes purge only the targeted homepage URL for featured products, while starring/un-starring invalidates it through WooCommerce’s visibility-term hook'
+);
+if ( null === $r422_old_admin ) { unset( $GLOBALS['is_admin'] ); } else { $GLOBALS['is_admin'] = $r422_old_admin; }
+$_GET = $r422_old_get;
+if ( null === $r422_old_visibility_terms ) { unset( $GLOBALS['terms_by_slug']['product_visibility'] ); } else { $GLOBALS['terms_by_slug']['product_visibility'] = $r422_old_visibility_terms; }
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

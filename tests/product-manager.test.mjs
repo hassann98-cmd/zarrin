@@ -33,6 +33,7 @@ function adminMarkup() {
           ${filterMarkup("category", "product_cat")}
           ${filterMarkup("brand", "product_brand")}
           <label class="jluxe-pm-filter-select"><span>نوع</span><select id="jluxe-pm-type"><option value=""></option><option value="simple">ساده</option><option value="variable">متغیر</option></select></label>
+          <label class="jluxe-pm-filter-select"><span>ویژه</span><select id="jluxe-pm-featured"><option value=""></option><option value="yes">فقط ستاره‌دار</option></select></label>
           <label class="jluxe-pm-filter-select"><span>موجودی</span><select id="jluxe-pm-stock"><option value=""></option><option value="instock">موجود</option></select></label>
           <button id="jluxe-pm-reset" type="button"></button>
         </div>
@@ -227,9 +228,10 @@ function createAdmin(t, { product = simpleProduct(), products = null, quickError
     let result;
     if (action === "jluxe_product_manager_list") {
       const term = String(data.search || "").trim().toLocaleLowerCase();
-      const matchingProducts = term
+      let matchingProducts = term
         ? listedProducts.filter((item) => [item.name, item.sku, String(item.id)].some((value) => String(value || "").toLocaleLowerCase().includes(term)))
         : listedProducts;
+      if (data.featured === "yes") matchingProducts = matchingProducts.filter((item) => item.featured);
       result = { products: matchingProducts.map(summaryOf), page: Number(data.page) || 1, pages: 1, total: matchingProducts.length, perPage: 20 };
     } else if (action === "jluxe_product_manager_get_product") {
       result = structuredClone(currentProduct);
@@ -391,6 +393,36 @@ test("product rows keep product links, grouped prices, and sale controls without
   saleToggle.click();
   assert.equal(saleToggle.checked, false, "a sale cannot be enabled without a price");
   assert.equal(window.document.activeElement, sale, "the sale-price field receives focus when an empty switch is activated");
+});
+
+test("featured filter shows only WooCommerce-starred products and reset restores the full list", async (t) => {
+  const featuredProduct = simpleProduct();
+  featuredProduct.featured = true;
+  const ordinaryProduct = simpleProduct();
+  ordinaryProduct.id = 202;
+  ordinaryProduct.name = "محصول عادی";
+  ordinaryProduct.productUrl = "/product/202/";
+  ordinaryProduct.editUrl = "/wp-admin/post.php?post=202&action=edit";
+  const { window, sent } = createAdmin(t, { products: [featuredProduct, ordinaryProduct] });
+  await wait();
+
+  const filter = window.document.querySelector("#jluxe-pm-featured");
+  assert.ok(filter, "the product workspace exposes a featured-state filter");
+  filter.value = "yes";
+  filter.dispatchEvent(new window.Event("change", { bubbles: true }));
+  await wait();
+  let rows = Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"));
+  let request = sent.filter((item) => item.action === "jluxe_product_manager_list").at(-1);
+  assert.equal(request.data.featured, "yes");
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].dataset.productId, "101");
+
+  window.document.querySelector("#jluxe-pm-reset").click();
+  await wait();
+  rows = Array.from(window.document.querySelectorAll(".jluxe-pm-product-row"));
+  request = sent.filter((item) => item.action === "jluxe_product_manager_list").at(-1);
+  assert.equal(request.data.featured, "");
+  assert.equal(rows.length, 2, "clearing filters restores both featured and ordinary products");
 });
 
 test("product stripes alternate by product and expanded variations inherit their parent stripe", async (t) => {
