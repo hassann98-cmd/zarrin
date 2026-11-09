@@ -533,6 +533,11 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
   assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?style=/);
   assert.match(shippingTemplate, /jluxe-shipping-card--no-note/);
+  assert.match(shippingTemplate, /'post'\s*=>\s*'mail'/);
+  assert.match(shippingTemplate, /'tipax'\s*=>\s*'truck'/);
+  assert.match(shippingTemplate, /'chapar'\s*=>\s*'package'/);
+  assert.match(shippingTemplate, /class="jluxe-shipping-card__icon" aria-hidden="true"/);
+  assert.match(shippingTemplate, /jluxe_icon_svg_markup\( \$shipping_icon, 'size-5' \)/);
   assert.match(shippingTemplate, /jluxe_cart_checkout_shipping_method_settings\( \$kind \)/);
   assert.match(shippingTemplate, /wc_cart_totals_shipping_method_label\( \$method \)/, "WooCommerce continues to render each real rate label and amount");
   assert.match(shippingTemplate, /--jluxe-shipping-card-bg:/);
@@ -558,6 +563,7 @@ test("shipping cards are responsive and customizable without changing real WooCo
   const itemRule = storefrontStyles.match(/\.jluxe-shipping-method-item\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingCardRule = storefrontStyles.match(/\.jluxe-shipping-card\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingCardDetailsRule = storefrontStyles.match(/\.jluxe-shipping-card__details\s*\{([^}]+)\}/s)?.[1] || "";
+  const shippingIconRule = storefrontStyles.match(/\.jluxe-shipping-card__icon\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingLabelRule = storefrontStyles.match(/\.jluxe-shipping-card__label\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingAmountRule = storefrontStyles.match(/\.jluxe-shipping-card__label \.woocommerce-Price-amount\s*\{([^}]+)\}/s)?.[1] || "";
   const shippingNoteRule = storefrontStyles.match(/\.jluxe-shipping-note\s*\{([^}]+)\}/s)?.[1] || "";
@@ -576,6 +582,19 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardRule, /background-color:\s*var\(--jluxe-shipping-card-bg/);
   assert.match(shippingCardDetailsRule, /grid-area:\s*details/);
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
+  assert.match(shippingCardDetailsRule, /gap:\s*0\.75rem/);
+  assert.match(shippingIconRule, /flex:\s*0 0 2\.75rem/);
+  assert.match(shippingIconRule, /background-color:\s*var\(--jluxe-shipping-icon-background/);
+  assert.match(shippingIconRule, /color:\s*var\(--jluxe-shipping-icon-color/);
+  for (const [carrier, background, foreground] of [
+    ["post", "#FECB02", "#332900"],
+    ["tipax", "#33936E", "#FFFFFF"],
+    ["chapar", "#D71925", "#FFFFFF"],
+  ]) {
+    const paletteRule = storefrontStyles.match(new RegExp(`\\.jluxe-shipping-card--${carrier}\\s*\\{([^}]+)\\}`))?.[1] || "";
+    assert.match(paletteRule, new RegExp(`--jluxe-shipping-icon-background:\\s*${background};`));
+    assert.match(paletteRule, new RegExp(`--jluxe-shipping-icon-color:\\s*${foreground};`));
+  }
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
   assert.match(shippingNoteRule, /grid-area:\s*note/);

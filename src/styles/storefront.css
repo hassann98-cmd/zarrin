@@ -3401,6 +3401,19 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   margin: 0;
   padding: 0;
 }
+/* Carrier icon colors reuse the saved brand palette, independently of the store theme. */
+.jluxe-shipping-card--post {
+  --jluxe-shipping-icon-background: #FECB02;
+  --jluxe-shipping-icon-color: #332900;
+}
+.jluxe-shipping-card--tipax {
+  --jluxe-shipping-icon-background: #33936E;
+  --jluxe-shipping-icon-color: #FFFFFF;
+}
+.jluxe-shipping-card--chapar {
+  --jluxe-shipping-icon-background: #D71925;
+  --jluxe-shipping-icon-color: #FFFFFF;
+}
 /* Wide screens: information stays on the right; the independent badge anchors left. */
 .jluxe-shipping-card {
   box-sizing: border-box;
@@ -3439,8 +3452,28 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   width: 100%;
   min-width: 0;
   align-items: center;
+  gap: 0.75rem;
   direction: rtl;
   text-align: right;
+}
+.jluxe-shipping-card__icon {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--foreground) / 0.08);
+  border-radius: 0.9rem;
+  background-color: var(--jluxe-shipping-icon-background, hsl(var(--muted)));
+  color: var(--jluxe-shipping-icon-color, hsl(var(--foreground)));
+  box-shadow: 0 4px 10px hsl(var(--foreground) / 0.08);
+}
+.jluxe-shipping-card__icon svg {
+  display: block;
+  width: 1.3rem;
+  height: 1.3rem;
 }
 .jluxe-shipping-card__label {
   display: block;

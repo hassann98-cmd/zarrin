@@ -9447,6 +9447,11 @@ check(
 	false !== strpos( $r279_shipping_template, 'class="shipping_method sr-only" data-jluxe-shipping-kind="%4$s"' ) &&
 	false !== strpos( $r279_shipping_template, 'jluxe_shipping_method_presentation( $method )' ) &&
 	false !== strpos( $r279_shipping_template, 'jluxe_cart_checkout_shipping_method_settings( $kind )' ) &&
+	false !== strpos( $r279_shipping_template, "'post'   => 'mail'" ) &&
+	false !== strpos( $r279_shipping_template, "'tipax'  => 'truck'" ) &&
+	false !== strpos( $r279_shipping_template, "'chapar' => 'package'" ) &&
+	false !== strpos( $r279_shipping_template, 'class="jluxe-shipping-card__icon" aria-hidden="true"' ) &&
+	false !== strpos( $r279_shipping_template, 'jluxe_icon_svg_markup( $shipping_icon, \'size-5\' )' ) &&
 	false !== strpos( $r279_shipping_template, '<details class="jluxe-shipping-method-accordion' ) &&
 	false !== strpos( $r279_shipping_template, "\$jluxe_guided_shipping ? '' : ' open'" ) &&
 	false !== strpos( $r279_shipping_template, 'wp_doing_ajax()' ) &&

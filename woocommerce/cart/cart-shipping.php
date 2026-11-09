@@ -31,7 +31,13 @@ if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) 
 }
 ?>
 <div class="jluxe-shipping-methods">
-	<?php if ( ! empty( $available_methods ) && is_array( $available_methods ) ) { ?>
+	<?php if ( ! empty( $available_methods ) && is_array( $available_methods ) ) {
+		$shipping_icons = array(
+			'post'   => 'mail',
+			'tipax'  => 'truck',
+			'chapar' => 'package',
+		);
+	?>
 		<ul id="shipping_method" class="jluxe-shipping-method-list">
 			<?php foreach ( $available_methods as $method ) : ?>
 				<li class="jluxe-shipping-method-item">
@@ -41,6 +47,7 @@ if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) 
 						? jluxe_shipping_method_presentation( $method )
 						: array( 'kind' => 'other' );
 					$kind = $presentation['kind'] ?? 'other';
+					$shipping_icon = $shipping_icons[ $kind ] ?? '';
 					$method_copy = function_exists( 'jluxe_cart_checkout_shipping_method_settings' )
 						? jluxe_cart_checkout_shipping_method_settings( $kind )
 						: array( 'enabled' => false, 'summary' => '', 'description' => '' );
@@ -59,6 +66,9 @@ if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) 
 					?>
 						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#EFF6FF' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#2563EB' ); ?>">
 							<span class="jluxe-shipping-card__details">
+								<?php if ( '' !== $shipping_icon && function_exists( 'jluxe_icon_svg_markup' ) ) : ?>
+									<span class="jluxe-shipping-card__icon" aria-hidden="true"><?php echo jluxe_icon_svg_markup( $shipping_icon, 'size-5' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجی فقط از آیکون‌های ثابت و escapeشدهٔ پوسته ساخته می‌شود. ?></span>
+								<?php endif; ?>
 								<span class="jluxe-shipping-card__label"><?php echo wc_cart_totals_shipping_method_label( $method ); // phpcs:ignore ?></span>
 							</span>
 							<?php if ( $has_method_note ) : ?>
