@@ -414,7 +414,7 @@ function jluxe_render_announcement_page(): void {
 								<option value="custom" <?php selected( $bar['ticker_theme'] ?? 'classic', 'custom' ); ?>>سفارشی (رنگ‌های انتخاب‌شده در بخش ظاهر)</option>
 							</select>
 						</p>
-						<p class="description">رنگِ «اطلاع‌رسانی (آبی)» ثابت است و با تغییر تم یا پالت رنگی سایت عوض نمی‌شود.</p>
+						<p class="description">رنگ‌بندی‌های آماده مستقل از پوسته و پالت سایت هستند؛ «سفارشی» فقط از رنگ‌های همین بخش استفاده می‌کند.</p>
 						<p>
 							<label for="jluxe-announcement-ticker-texture">بافت پس‌زمینه</label><br />
 							<select id="jluxe-announcement-ticker-texture" name="announcement_bar[ticker_texture]">
@@ -494,7 +494,7 @@ function jluxe_render_announcement_page(): void {
 						<label>پس‌زمینه <input type="color" name="announcement_bar[background_color]" value="<?php echo esc_attr( $bar['background_color'] ); ?>" /></label>
 						&nbsp;&nbsp;
 						<label>رنگ متن <input type="color" name="announcement_bar[text_color]" value="<?php echo esc_attr( $bar['text_color'] ); ?>" /></label>
-						<p class="description">در حالت پیام‌های متحرک، این دو رنگ با انتخاب «سفارشی» به‌کار می‌روند؛ حالت‌های آماده، رنگ متن هماهنگ و خوانا دارند.</p>
+						<p class="description">بنرِ متن ثابت و مدلِ متحرکِ «سفارشی» از این رنگ‌ها استفاده می‌کنند؛ تغییر پوسته یا پالت سایت آن‌ها را بازنویسی نمی‌کند.</p>
 					</td>
 				</tr>
 				<tr>

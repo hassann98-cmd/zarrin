@@ -3307,6 +3307,7 @@ $r370_bubblegum_saved_post = $_POST;
 $r370_bubblegum_defaults = jluxe_theme_settings_defaults();
 $r370_bubblegum_defaults['visual_design']['variant'] = 'canva_home';
 $r370_bubblegum_defaults['announcement_bar']['background_color'] = '#7A0F8A';
+$r370_bubblegum_defaults['announcement_bar']['text_color'] = '#A313B9';
 $r370_bubblegum_defaults['header_nav']['categories_mega_menu']['background_color'] = '#FAE8FD';
 $r370_bubblegum_defaults['header_nav']['categories_mega_menu']['icon_background_color'] = '#A313B9';
 $r370_bubblegum_defaults['mobile']['nav_style']['icon_color'] = '#7A0F8A';
@@ -3329,7 +3330,8 @@ check(
 	'preset_applied' === $r370_bubblegum_apply_status &&
 	$r370_bubblegum_pink_colors === $r370_bubblegum_settings['colors'] &&
 	'canva_home' === $r370_bubblegum_settings['visual_design']['variant'] &&
-	'#990026' === $r370_bubblegum_settings['announcement_bar']['background_color'] &&
+	'#7A0F8A' === $r370_bubblegum_settings['announcement_bar']['background_color'] &&
+	'#A313B9' === $r370_bubblegum_settings['announcement_bar']['text_color'] &&
 	'#ffe5ec' === $r370_bubblegum_settings['header_nav']['categories_mega_menu']['background_color'] &&
 	'#cc0033' === $r370_bubblegum_settings['header_nav']['categories_mega_menu']['icon_background_color'] &&
 	'#990026' === $r370_bubblegum_settings['mobile']['nav_style']['icon_color'] &&
@@ -3353,7 +3355,7 @@ check(
 	jluxe_contrast_ratio( '#475569', '#FFE5EC' ) >= 4.5 &&
 	jluxe_contrast_ratio( '#CC0033', '#FFFFFF' ) >= 4.5 &&
 	jluxe_contrast_ratio( '#CC0033', '#FFE5EC' ) >= 3,
-	'R370 Bubblegum Pink recolors palette-derived settings across site sections, preserves custom/semantic colors, keeps other designs intact, and exposes contrast-safe global tokens'
+	'R370 Bubblegum Pink recolors theme-linked settings while preserving both announcement-bar colors, keeps other designs intact, and exposes contrast-safe global tokens'
 );
 $_POST = $r370_bubblegum_saved_post;
 update_test_settings( jluxe_theme_settings_defaults() );
@@ -6279,6 +6281,15 @@ check(
 	'#475569' === $r326_royal_migrated['cart_checkout']['shipping_methods']['post']['details_text_color'],
 	'R326 the full v20→v22 chain migrates only known Electric defaults to Royal while preserving semantic states and merchant overrides'
 );
+$r421_theme_migrated_announcement = jluxe_migrate_settings_to_current_version(
+	array( 'announcement_bar' => array( 'background_color' => '#355C5A', 'text_color' => '#1E3A8A' ) ),
+	19
+);
+check(
+	'#355C5A' === $r421_theme_migrated_announcement['announcement_bar']['background_color'] &&
+	'#1E3A8A' === $r421_theme_migrated_announcement['announcement_bar']['text_color'],
+	'R421 announcement colors remain unchanged through the v20-v22 theme migrations'
+);
 $r326_explicit_custom = jluxe_migrate_settings_to_current_version(
 	array( 'colors' => array( 'primary' => '#123456', 'secondary' => '#234567', 'background' => '#345678', 'accent' => '#456789' ) ),
 	19
@@ -7540,6 +7551,16 @@ $r94_defaults['system_prompt'] = 'لحن کوتاه و دوستانه داشته
 $r94_defaults['system_prompt_mode'] = 'append';
 $r94_prompt = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال به تهران چقدر است؟' ) ), array( 'url' => 'https://shop.test/product/1/', 'title' => 'محصول نمونه' ) );
 check( false !== strpos( $r94_prompt, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt, 'محتوای مرتبط از صفحات' ) && false !== strpos( $r94_prompt, 'هزینه ارسال به تهران' ) && false !== strpos( $r94_prompt, 'ارسال هدیه داخل تهران' ), 'R94 system prompt combines admin style, matched site content, and private store knowledge' );
+check(
+	false !== strpos( $r94_prompt, 'اصولِ ثابتِ معرفی محصول و همراهی با خرید' ) &&
+	false !== strpos( $r94_prompt, 'مقایسه یا راهنمای سایز را فقط وقتی کاربر صریحاً خواسته' ) &&
+	false === strpos( $r94_prompt, 'مثلاً مقایسه، دیدنِ دستهٔ مرتبط یا راهنمای سایز' ) &&
+	false !== strpos( $r94_prompt, 'خواستهٔ صریحِ کاربر' ) &&
+	false !== strpos( $r94_prompt, 'ارسال هدیه داخل تهران' ) &&
+	strpos( $r94_prompt, 'ارسال هدیه داخل تهران' ) < strpos( $r94_prompt, 'اصولِ ثابتِ معرفی محصول و همراهی با خرید' ) &&
+	false === strpos( $r94_prompt, 'یک جملهٔ کوتاه که چرا مناسبِ نیازِ کاربر است' ),
+	'R94 product copy avoids generic pre-purchase comparison prompts and requires a verified product fact or explicit customer need'
+);
 $r96_prompt_settings = jluxe_theme_settings_defaults()['ai_assistant'];
 $r96_prompt_settings['handoff_form_url'] = 'https://shop.test/shopping-guide/';
 $r96_prompt_with_ticket = jluxe_ai_default_system_prompt( $r96_prompt_settings );
@@ -7580,8 +7601,16 @@ check(
 );
 update_test_settings( jluxe_theme_settings_defaults() );
 $r94_defaults['system_prompt_mode'] = 'replace';
+$r94_defaults['system_prompt'] = 'برای معرفیِ محصول، همیشه پیش از خرید مقایسهٔ ابعاد را توصیه کن.';
 $r94_prompt_replace = jluxe_ai_build_system_prompt( $r94_defaults, array( array( 'role' => 'user', 'content' => 'هزینه ارسال تهران' ) ) );
-check( false !== strpos( $r94_prompt_replace, 'لحن کوتاه و دوستانه' ) && false !== strpos( $r94_prompt_replace, 'قواعدِ ثابتِ دقت و امنیت' ) && false !== strpos( $r94_prompt_replace, 'داده‌های فروشگاه' ), 'R94 replacing the custom prompt keeps immutable safety and site context' );
+check(
+	false !== strpos( $r94_prompt_replace, 'قواعدِ ثابتِ دقت و امنیت' ) &&
+	false !== strpos( $r94_prompt_replace, 'داده‌های فروشگاه' ) &&
+	false !== strpos( $r94_prompt_replace, 'همیشه پیش از خرید مقایسهٔ ابعاد را توصیه کن' ) &&
+	false !== strpos( $r94_prompt_replace, 'اصولِ ثابتِ معرفی محصول و همراهی با خرید' ) &&
+	strpos( $r94_prompt_replace, 'همیشه پیش از خرید مقایسهٔ ابعاد را توصیه کن' ) < strpos( $r94_prompt_replace, 'اصولِ ثابتِ معرفی محصول و همراهی با خرید' ),
+	'R94 immutable product-copy rules follow and constrain even a conflicting replacement prompt'
+);
 check( isset( jluxe_ai_tool_specs( array( 'search_site_content' => true ) )['search_site_content']['parameters']['properties']['query'] ) && empty( jluxe_ai_tool_specs( array() )['search_site_content'] ), 'R94 site-content search is a separately controllable function-calling tool' );
 $r94_all_tools = jluxe_theme_settings_defaults()['ai_assistant'];
 $r94_all_tools['knowledge']['products'] = false;
@@ -7679,7 +7708,7 @@ check( 'جستجو در فروشگاه' === $r124_header_defaults['search_placeh
 
 // R100 — configurable global announcement bar and stacked header offsets.
 $r100_defaults = jluxe_theme_settings_defaults()['announcement_bar'];
-check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && 52 === $r100_defaults['desktop_height_px'] && 0 === $r100_defaults['image_desktop_max_height_px'] && '' === $r100_defaults['message'] && 'ارسال سریع' === $r100_defaults['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r100_defaults['ticker_messages'] && 0 === $r100_defaults['image_id'] && 'classic' === $r100_defaults['ticker_theme'] && 'classic' === $r100_defaults['ticker_layout'] && 'vertical' === $r100_defaults['ticker_effect'] && 2500 === $r100_defaults['ticker_message_duration_ms'] && 500 === $r100_defaults['ticker_inter_message_gap_ms'] && 500 === $r100_defaults['ticker_cycle_gap_ms'], 'R100 the announcement bar remains off by default, preserves the 44px mobile design, and has bounded desktop-height defaults' );
+check( false === $r100_defaults['enabled'] && false === $r100_defaults['sticky'] && 'text' === $r100_defaults['display_mode'] && 52 === $r100_defaults['desktop_height_px'] && 0 === $r100_defaults['image_desktop_max_height_px'] && '' === $r100_defaults['message'] && 'ارسال سریع' === $r100_defaults['ticker_label'] && "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز" === $r100_defaults['ticker_messages'] && 0 === $r100_defaults['image_id'] && 'classic' === $r100_defaults['ticker_theme'] && 'classic' === $r100_defaults['ticker_layout'] && '#0F766E' === $r100_defaults['background_color'] && '#FFFFFF' === $r100_defaults['text_color'] && 'vertical' === $r100_defaults['ticker_effect'] && 2500 === $r100_defaults['ticker_message_duration_ms'] && 500 === $r100_defaults['ticker_inter_message_gap_ms'] && 500 === $r100_defaults['ticker_cycle_gap_ms'], 'R100 the announcement bar remains off by default, preserves the 44px mobile design, and has bounded desktop-height defaults' );
 check( true === $r100_defaults['ticker_label_enabled'] && true === $r100_defaults['ticker_logo_enabled'] && true === $r100_defaults['ticker_logo_frame'] && 'waves' === $r100_defaults['ticker_texture'], 'R327 the ticker preserves the existing title and framed logo by default while selecting refined waves' );
 $r100_clean = jluxe_sanitize_announcement_bar(
 	array(
@@ -7804,7 +7833,7 @@ $_POST = $r100_previous_post;
 check( false !== strpos( $r100_admin_markup, 'announcement_bar[enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[message]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_label]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_messages]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_theme]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_effect]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_message_duration_ms]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_inter_message_gap_ms]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_cycle_gap_ms]' ) && false !== strpos( $r100_admin_markup, 'مکث پس از آخرین پیام تا شروع دور بعد' ) && false !== strpos( $r100_admin_markup, 'value="warning"' ) && false !== strpos( $r100_admin_markup, 'value="discount"' ) && false !== strpos( $r100_admin_markup, 'data-announcement-mode="ticker"' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[link_url]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[background_color]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[display_mode]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_id]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_alt]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[sticky]' ) && false !== strpos( $r100_admin_markup, 'data-preview-size="full"' ) && false !== strpos( $r100_admin_markup, 'data-library-type="image"' ), 'R107 the admin exposes static text, animated ticker copy/logo, image/GIF settings, and the sticky/flow toggle' );
 check( false !== strpos( $r100_admin_markup, 'announcement_bar[desktop_height_px]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[image_desktop_max_height_px]' ) && false !== strpos( $r100_admin_markup, 'min="48" max="120"' ) && false !== strpos( $r100_admin_markup, 'min="0" max="600"' ) && false !== strpos( $r100_admin_markup, 'ارتفاع موبایل همچنان ۴۴px می‌ماند' ), 'R316 the announcement settings expose adjustable desktop text/ticker and proportional image/GIF heights without changing mobile' );
 check( false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_texture]' ) && false !== strpos( $r100_admin_markup, 'value="glow"' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_label_enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_enabled]' ) && false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_logo_frame]' ) && false !== strpos( $r100_admin_markup, 'متناسب با ارتفاع بنر' ), 'R327 theme settings expose selectable textures, title/logo visibility, and a borderless proportional image mode' );
-check( false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_layout]' ) && false !== strpos( $r100_admin_markup, 'value="cards"' ) && false !== strpos( $r100_admin_markup, 'پیوند اختیاری پایین صفحه به شکل دکمه درمی‌آید' ) && false !== strpos( $r100_admin_markup, 'رنگِ «اطلاع‌رسانی (آبی)» ثابت است' ), 'R420 admin settings expose the new card-and-button layout and explain that the info blue ignores theme palette changes' );
+check( false !== strpos( $r100_admin_markup, 'announcement_bar[ticker_layout]' ) && false !== strpos( $r100_admin_markup, 'value="cards"' ) && false !== strpos( $r100_admin_markup, 'پیوند اختیاری پایین صفحه به شکل دکمه درمی‌آید' ) && false !== strpos( $r100_admin_markup, 'رنگ‌بندی‌های آماده مستقل از پوسته و پالت سایت هستند' ) && false !== strpos( $r100_admin_markup, 'تغییر پوسته یا پالت سایت آن‌ها را بازنویسی نمی‌کند' ), 'R421 admin settings explain that ready-made ticker colors are independent and custom colors stay with the announcement bar' );
 ob_start();
 jluxe_render_announcement_bar();
 $r100_markup = ob_get_clean();
@@ -7924,13 +7953,34 @@ $r145_global_crop = strpos( $r100_announcement_css, '/* R145: Use one definite, 
 $r145_global_crop_css = false === $r145_global_crop ? '' : substr( $r100_announcement_css, $r145_global_crop, 2200 );
 check( false !== strpos( $r145_global_crop_css, '@media (max-width: 767.98px)' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar--image {' ) && false === strpos( $r145_global_crop_css, 'body.single-product .jluxe-announcement-bar--image' ) && false !== strpos( $r145_global_crop_css, 'width: 100vw;' ) && false !== strpos( $r145_global_crop_css, 'height: 44px;' ) && false !== strpos( $r145_global_crop_css, 'margin-inline: calc(50% - 50vw);' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__inner {' ) && false !== strpos( $r145_global_crop_css, 'position: relative;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-link {' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image-window {' ) && false !== strpos( $r145_global_crop_css, 'overflow: hidden;' ) && false !== strpos( $r145_global_crop_css, '.jluxe-announcement-bar__image {' ) && false !== strpos( $r145_global_crop_css, 'width: 100%;' ) && false !== strpos( $r145_global_crop_css, 'height: 100%;' ) && false !== strpos( $r145_global_crop_css, 'object-fit: cover;' ) && false === strpos( $r145_global_crop_css, 'clamp(96px, 30vw, 128px)' ), 'R145 homepage, product, Shop and category image notices use the same full-bleed mobile crop; text notices and desktop remain unchanged' );
 $r102_ticker_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
-check( false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker[data-ticker-theme="info"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="warning"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="discount"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="success"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="custom"]' ) && false !== strpos( $r102_ticker_css, 'min-height: var(--jluxe-announcement-desktop-height, 52px);' ) && false !== strpos( $r102_ticker_css, 'min-height: 52px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 44px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 64px;' ) && false !== strpos( $r102_ticker_css, '@keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '@-webkit-keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '-webkit-animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-duration: 11.7s;' ) && false !== strpos( $r102_ticker_css, '@media (prefers-reduced-motion: reduce)' ) && false !== strpos( $r102_ticker_css, 'ticker-static' ), 'R316 ticker presets use the configurable desktop minimum, preserve the 44px normal mobile height, and retain reduced-motion static copy' );
+check( false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker[data-ticker-theme="classic"]' ) && false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar--ticker[data-ticker-theme="info"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="warning"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="discount"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="success"]' ) && false !== strpos( $r102_ticker_css, '[data-ticker-theme="custom"]' ) && false !== strpos( $r102_ticker_css, 'min-height: var(--jluxe-announcement-desktop-height, 52px);' ) && false !== strpos( $r102_ticker_css, 'min-height: 52px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 44px;' ) && false !== strpos( $r102_ticker_css, 'min-height: 64px;' ) && false !== strpos( $r102_ticker_css, '@keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '@-webkit-keyframes jluxe-announcement-ticker-phrase {' ) && false !== strpos( $r102_ticker_css, '-webkit-animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-name: jluxe-announcement-ticker-phrase;' ) && false !== strpos( $r102_ticker_css, 'animation-duration: 11.7s;' ) && false !== strpos( $r102_ticker_css, '@media (prefers-reduced-motion: reduce)' ) && false !== strpos( $r102_ticker_css, 'ticker-static' ), 'R316 ticker presets use the configurable desktop minimum, preserve the 44px normal mobile height, and retain reduced-motion static copy' );
 check( false !== strpos( $r102_ticker_css, 'data-ticker-texture="glow"' ) && false !== strpos( $r102_ticker_css, 'data-ticker-texture="diagonal"' ) && false !== strpos( $r102_ticker_css, 'data-ticker-texture="dots"' ) && false !== strpos( $r102_ticker_css, 'data-ticker-texture="grid"' ) && false !== strpos( $r102_ticker_css, 'isolation: isolate;' ) && false !== strpos( $r102_ticker_css, 'z-index: 0;' ) && false !== strpos( $r102_ticker_css, 'z-index: 1;' ) && false !== strpos( $r102_ticker_css, 'stroke-linecap: round;' ) && false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar__ticker-logo--plain' ) && false !== strpos( $r102_ticker_css, 'max-height: calc(var(--jluxe-announcement-desktop-height, 52px) - 8px);' ), 'R327 ticker textures stay below content and borderless images scale proportionally to the available bar height' );
-$r420_info_selector = '.jluxe-announcement-bar--ticker[data-ticker-theme="info"]';
-$r420_info_start = strpos( $r102_ticker_css, $r420_info_selector );
-$r420_info_end = false === $r420_info_start ? false : strpos( $r102_ticker_css, "\n}", $r420_info_start );
-$r420_info_css = false === $r420_info_end ? '' : substr( $r102_ticker_css, $r420_info_start, $r420_info_end - $r420_info_start );
-check( false !== strpos( $r420_info_css, '--jluxe-ticker-gradient-start: #2563EB;' ) && false !== strpos( $r420_info_css, 'background-color: #2563EB;' ) && false === strpos( $r420_info_css, 'var(--info)' ), 'R420 the announcement info blue is a fixed CSS palette and never reads the site theme color token' );
+$r421_ticker_palette_hexes = array(
+	'classic'  => '#0F766E',
+	'info'     => '#2563EB',
+	'warning'  => '#C2410C',
+	'discount' => '#DC2626',
+	'success'  => '#15803D',
+);
+$r421_fixed_ticker_palettes = true;
+foreach ( $r421_ticker_palette_hexes as $r421_theme => $r421_hex ) {
+	$r421_selector = '.jluxe-announcement-bar--ticker[data-ticker-theme="' . $r421_theme . '"]';
+	$r421_start = strpos( $r102_ticker_css, $r421_selector );
+	$r421_end = false === $r421_start ? false : strpos( $r102_ticker_css, "\n}", $r421_start );
+	$r421_block = false === $r421_end ? '' : substr( $r102_ticker_css, $r421_start, $r421_end - $r421_start );
+	if ( false === $r421_start || false === strpos( $r421_block, 'background-color: ' . $r421_hex . ';' ) || false === strpos( $r421_block, '--jluxe-ticker-foreground: #fff;' ) || false !== strpos( $r421_block, 'var(--jluxe-primary' ) || false !== strpos( $r421_block, 'hsl(var(--' ) || jluxe_contrast_ratio( $r421_hex, '#FFFFFF' ) < 4.5 ) {
+		$r421_fixed_ticker_palettes = false;
+	}
+}
+$r421_custom_selector = '.jluxe-announcement-bar--ticker[data-ticker-theme="custom"]';
+$r421_custom_start = strpos( $r102_ticker_css, $r421_custom_selector );
+$r421_custom_end = false === $r421_custom_start ? false : strpos( $r102_ticker_css, "\n}", $r421_custom_start );
+$r421_custom_css = false === $r421_custom_end ? '' : substr( $r102_ticker_css, $r421_custom_start, $r421_custom_end - $r421_custom_start );
+$r421_base_selector = '.jluxe-announcement-bar--ticker {';
+$r421_base_start = strpos( $r102_ticker_css, $r421_base_selector );
+$r421_base_end = false === $r421_base_start ? false : strpos( $r102_ticker_css, "\n}", $r421_base_start );
+$r421_base_css = false === $r421_base_end ? '' : substr( $r102_ticker_css, $r421_base_start, $r421_base_end - $r421_base_start );
+check( $r421_fixed_ticker_palettes && false !== strpos( $r421_custom_css, 'var(--jluxe-announcement-background, #0F766E)' ) && false !== strpos( $r421_custom_css, 'var(--jluxe-announcement-foreground, #fff)' ) && false === strpos( $r421_custom_css, 'var(--jluxe-primary' ) && false !== strpos( $r421_base_css, '--jluxe-ticker-gradient-start: #0F766E;' ) && false !== strpos( $r421_base_css, '--jluxe-ticker-gradient-end: #115E59;' ) && false !== strpos( $r421_base_css, 'background-color: var(--jluxe-announcement-background, #0F766E);' ) && false === strpos( $r421_base_css, 'var(--jluxe-primary' ), 'R421 all ready-made ticker colors are fixed independently of the site theme; custom colors use only announcement-bar fields' );
 check( false !== strpos( $r102_ticker_css, 'data-ticker-layout="cards"' ) && false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar__ticker-link:focus-visible' ) && false !== strpos( $r102_ticker_css, 'min-height: 58px;' ) && false !== strpos( $r102_ticker_css, '.jluxe-announcement-bar__ticker-static' ), 'R420 card layout styles separate message boxes, a visible CTA, mobile sizing, and reduced-motion static copy' );
 
 // R246 — account UI changes stay presentational; payment hiding removes one navigation entry only.

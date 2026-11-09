@@ -127,7 +127,7 @@ function jluxe_get_design_presets(): array {
 	);
 }
 
-/** Remap exact shades from the bundled palettes without touching custom/semantic colors. */
+/** Remap exact bundled palette shades while keeping announcement-bar colors independent. */
 function jluxe_remap_design_palette_values( array $settings, array $target_palette ): array {
 	$source_palettes = array(
 		jluxe_electric_indigo_palette(),
@@ -144,10 +144,10 @@ function jluxe_remap_design_palette_values( array $settings, array $target_palet
 		}
 	}
 
-	$walk = static function ( $value ) use ( &$walk, $color_map ) {
+	$walk = static function ( $value, bool $is_root = false ) use ( &$walk, $color_map ) {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $child ) {
-				$value[ $key ] = $walk( $child );
+				$value[ $key ] = $is_root && 'announcement_bar' === $key ? $child : $walk( $child );
 			}
 			return $value;
 		}
@@ -158,7 +158,7 @@ function jluxe_remap_design_palette_values( array $settings, array $target_palet
 		return $value;
 	};
 
-	return $walk( $settings );
+	return $walk( $settings, true );
 }
 
 /**

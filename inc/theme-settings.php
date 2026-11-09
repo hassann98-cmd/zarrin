@@ -576,7 +576,7 @@ function jluxe_theme_settings_defaults(): array {
 			'link_text'        => '',
 			'link_url'         => '',
 			'dismissible'      => true,
-			'background_color' => $palette['700'],
+			'background_color' => '#0F766E',
 			'text_color'       => '#FFFFFF',
 		),
 		// منوی هدر (بعد از مگامنوی «دسته‌بندی‌ها» که همیشه ثابت و به‌صورت
@@ -2302,7 +2302,8 @@ function jluxe_migrate_settings_v19( array $settings ): array {
  * v19→v20: move only known, former theme defaults onto the Electric Indigo
  * scale. Any color that differs from its old default is an explicit merchant
  * choice and is preserved. This also updates settings that had previously
- * saved the old defaults as literal values.
+ * saved the old defaults as literal values. Announcement-bar colors are
+ * intentionally excluded so the section stays independent of the site theme.
  */
 function jluxe_migrate_settings_v20( array $settings ): array {
 	$palette = jluxe_electric_indigo_palette();
@@ -2325,9 +2326,6 @@ function jluxe_migrate_settings_v20( array $settings ): array {
 		}
 	}
 
-	if ( isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] ) ) {
-		$replace( $settings['announcement_bar'], 'background_color', '#355C5A', $palette['700'] );
-	}
 	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
 		$menu = &$settings['header_nav']['categories_mega_menu'];
 		foreach (	array(
@@ -2463,6 +2461,7 @@ function jluxe_migrate_settings_v21( array $settings ): array {
  * v21→v22: apply the requested Royal Orchid theme to values that still equal
  * the previous Electric Indigo defaults. Explicitly different merchant colors
  * remain untouched, and semantic success/warning/error colors stay semantic.
+ * Announcement-bar colors remain outside the site-wide palette migration.
  */
 function jluxe_migrate_settings_v22( array $settings ): array {
 	$royal = jluxe_royal_orchid_palette();
@@ -2478,10 +2477,6 @@ function jluxe_migrate_settings_v22( array $settings ): array {
 		$replace( $settings['colors'], 'secondary', '#300099', $royal['800'] );
 		$replace( $settings['colors'], 'background', '#EEE5FF', $royal['50'] );
 		$replace( $settings['colors'], 'accent', '#7433FF', $royal['700'] );
-	}
-
-	if ( isset( $settings['announcement_bar'] ) && is_array( $settings['announcement_bar'] ) ) {
-		$replace( $settings['announcement_bar'], 'background_color', '#300099', $royal['700'] );
 	}
 
 	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {

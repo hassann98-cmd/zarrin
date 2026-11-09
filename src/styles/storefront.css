@@ -10393,7 +10393,7 @@ html.jluxe-lite .jluxe-header-bar {
   position: static;
   top: auto;
   width: 100%;
-  background-color: var(--jluxe-announcement-background, var(--jluxe-primary, var(--color-royal-orchid-600)));
+  background-color: var(--jluxe-announcement-background, #0F766E);
   color: var(--jluxe-announcement-foreground, #fff);
 }
 .jluxe-announcement-bar--sticky {
@@ -10505,17 +10505,17 @@ html.jluxe-lite .jluxe-header-bar {
   padding: 0;
 }
 
-/* متن‌های بنرِ ارسال سریع به‌جای GIF، با HTML و انیمیشنِ کم‌هزینه نمایش داده می‌شوند. */
+/* متن‌های نوار با HTML/CSS نمایش داده می‌شوند؛ رنگ‌های آماده مستقل از پوسته‌اند و فقط «سفارشی» از رنگ‌های خود نوار استفاده می‌کند. */
 .jluxe-announcement-bar--ticker {
-  --jluxe-ticker-gradient-start: var(--jluxe-primary, var(--color-royal-orchid-600));
-  --jluxe-ticker-gradient-end: var(--jluxe-primary-hover, var(--color-royal-orchid-700));
-  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.14);
-  --jluxe-ticker-wave: color-mix(in srgb, var(--jluxe-primary-soft, var(--color-royal-orchid-50)) 24%, transparent);
-  --jluxe-ticker-window-background: color-mix(in srgb, var(--jluxe-primary-active, var(--color-royal-orchid-800)) 78%, transparent);
-  --jluxe-ticker-foreground: var(--jluxe-announcement-foreground, #fff);
+  --jluxe-ticker-gradient-start: #0F766E;
+  --jluxe-ticker-gradient-end: #115E59;
+  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.18);
+  --jluxe-ticker-wave: rgba(255, 255, 255, 0.2);
+  --jluxe-ticker-window-background: color-mix(in srgb, #115E59 82%, transparent);
+  --jluxe-ticker-foreground: #fff;
   --jluxe-ticker-divider: rgba(255, 255, 255, 0.76);
-  --jluxe-ticker-logo-background: var(--jluxe-primary-soft, var(--color-royal-orchid-50));
-  --jluxe-ticker-logo-foreground: var(--jluxe-primary-active, var(--color-royal-orchid-800));
+  --jluxe-ticker-logo-background: color-mix(in srgb, #0F766E 10%, white);
+  --jluxe-ticker-logo-foreground: #115E59;
   position: relative;
   isolation: isolate;
   display: block;
@@ -10523,7 +10523,7 @@ html.jluxe-lite .jluxe-header-bar {
   min-height: var(--jluxe-announcement-desktop-height, 52px);
   overflow: hidden;
   color: var(--jluxe-ticker-foreground, #fff);
-  background-color: var(--jluxe-announcement-background, var(--jluxe-primary, var(--color-royal-orchid-600)));
+  background-color: var(--jluxe-announcement-background, #0F766E);
   background-image: radial-gradient(ellipse at 25% 0%, var(--jluxe-ticker-highlight), transparent 58%), linear-gradient(110deg, var(--jluxe-ticker-gradient-start), var(--jluxe-ticker-gradient-end));
 }
 /* موج و بافت در لایهٔ ۰ می‌مانند؛ تمام نوشته‌ها، قاب‌ها، جداکننده‌ها و تصویر در لایهٔ ۱ هستند. */
@@ -10555,6 +10555,18 @@ html.jluxe-lite .jluxe-header-bar {
   background-image: linear-gradient(to right, var(--jluxe-ticker-wave) 1px, transparent 1px), linear-gradient(to bottom, var(--jluxe-ticker-wave) 1px, transparent 1px);
   background-size: 32px 32px;
 }
+.jluxe-announcement-bar--ticker[data-ticker-theme="classic"] {
+  --jluxe-ticker-gradient-start: #0F766E;
+  --jluxe-ticker-gradient-end: #115E59;
+  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.18);
+  --jluxe-ticker-wave: rgba(255, 255, 255, 0.2);
+  --jluxe-ticker-window-background: color-mix(in srgb, #115E59 82%, transparent);
+  --jluxe-ticker-foreground: #fff;
+  --jluxe-ticker-divider: rgba(255, 255, 255, 0.76);
+  --jluxe-ticker-logo-background: color-mix(in srgb, #0F766E 10%, white);
+  --jluxe-ticker-logo-foreground: #115E59;
+  background-color: #0F766E;
+}
 .jluxe-announcement-bar--ticker[data-ticker-theme="info"] {
   /* Keep announcement blue independent from theme presets and global color tokens. */
   --jluxe-ticker-gradient-start: #2563EB;
@@ -10569,48 +10581,52 @@ html.jluxe-lite .jluxe-header-bar {
   background-color: #2563EB;
 }
 .jluxe-announcement-bar--ticker[data-ticker-theme="warning"] {
-  --jluxe-ticker-gradient-start: hsl(var(--warning));
-  --jluxe-ticker-gradient-end: color-mix(in srgb, hsl(var(--warning)) 78%, #9A3412);
+  --jluxe-ticker-gradient-start: #C2410C;
+  --jluxe-ticker-gradient-end: #9A3412;
   --jluxe-ticker-highlight: rgba(255, 255, 255, 0.2);
-  --jluxe-ticker-wave: color-mix(in srgb, hsl(var(--warning)) 28%, transparent);
-  --jluxe-ticker-window-background: color-mix(in srgb, hsl(var(--warning)) 72%, transparent);
+  --jluxe-ticker-wave: color-mix(in srgb, #C2410C 28%, transparent);
+  --jluxe-ticker-window-background: color-mix(in srgb, #9A3412 82%, transparent);
   --jluxe-ticker-foreground: #fff;
   --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
-  --jluxe-ticker-logo-background: color-mix(in srgb, hsl(var(--warning)) 10%, white);
-  --jluxe-ticker-logo-foreground: hsl(var(--warning));
+  --jluxe-ticker-logo-background: color-mix(in srgb, #C2410C 10%, white);
+  --jluxe-ticker-logo-foreground: #9A3412;
+  background-color: #C2410C;
 }
 .jluxe-announcement-bar--ticker[data-ticker-theme="discount"] {
-  --jluxe-ticker-gradient-start: var(--jluxe-primary, var(--color-royal-orchid-600));
-  --jluxe-ticker-gradient-end: var(--jluxe-primary-active, var(--color-royal-orchid-800));
-  --jluxe-ticker-highlight: color-mix(in srgb, var(--jluxe-primary-soft, var(--color-royal-orchid-50)) 22%, transparent);
-  --jluxe-ticker-wave: color-mix(in srgb, var(--jluxe-primary-soft, var(--color-royal-orchid-50)) 30%, transparent);
-  --jluxe-ticker-window-background: color-mix(in srgb, var(--jluxe-primary-active, var(--color-royal-orchid-800)) 78%, transparent);
+  --jluxe-ticker-gradient-start: #DC2626;
+  --jluxe-ticker-gradient-end: #991B1B;
+  --jluxe-ticker-highlight: rgba(255, 255, 255, 0.18);
+  --jluxe-ticker-wave: color-mix(in srgb, #DC2626 28%, transparent);
+  --jluxe-ticker-window-background: color-mix(in srgb, #991B1B 82%, transparent);
   --jluxe-ticker-foreground: #fff;
   --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
-  --jluxe-ticker-logo-background: var(--jluxe-primary-soft, var(--color-royal-orchid-50));
-  --jluxe-ticker-logo-foreground: var(--jluxe-primary-active, var(--color-royal-orchid-800));
+  --jluxe-ticker-logo-background: color-mix(in srgb, #DC2626 10%, white);
+  --jluxe-ticker-logo-foreground: #991B1B;
+  background-color: #DC2626;
 }
 .jluxe-announcement-bar--ticker[data-ticker-theme="success"] {
-  --jluxe-ticker-gradient-start: hsl(var(--success));
-  --jluxe-ticker-gradient-end: color-mix(in srgb, hsl(var(--success)) 78%, #065F46);
+  --jluxe-ticker-gradient-start: #15803D;
+  --jluxe-ticker-gradient-end: #166534;
   --jluxe-ticker-highlight: rgba(255, 255, 255, 0.18);
-  --jluxe-ticker-wave: color-mix(in srgb, hsl(var(--success)) 26%, transparent);
-  --jluxe-ticker-window-background: color-mix(in srgb, hsl(var(--success)) 74%, transparent);
+  --jluxe-ticker-wave: color-mix(in srgb, #15803D 26%, transparent);
+  --jluxe-ticker-window-background: color-mix(in srgb, #166534 82%, transparent);
   --jluxe-ticker-foreground: #fff;
   --jluxe-ticker-divider: rgba(255, 255, 255, 0.78);
-  --jluxe-ticker-logo-background: color-mix(in srgb, hsl(var(--success)) 10%, white);
-  --jluxe-ticker-logo-foreground: hsl(var(--success));
+  --jluxe-ticker-logo-background: color-mix(in srgb, #15803D 10%, white);
+  --jluxe-ticker-logo-foreground: #166534;
+  background-color: #15803D;
 }
 .jluxe-announcement-bar--ticker[data-ticker-theme="custom"] {
-  --jluxe-ticker-gradient-start: var(--jluxe-announcement-background, var(--jluxe-primary, var(--color-royal-orchid-600)));
-  --jluxe-ticker-gradient-end: var(--jluxe-announcement-background, var(--jluxe-primary, var(--color-royal-orchid-600)));
+  --jluxe-ticker-gradient-start: var(--jluxe-announcement-background, #0F766E);
+  --jluxe-ticker-gradient-end: var(--jluxe-announcement-background, #0F766E);
   --jluxe-ticker-highlight: rgba(255, 255, 255, 0.16);
   --jluxe-ticker-wave: rgba(255, 255, 255, 0.26);
   --jluxe-ticker-window-background: rgba(0, 0, 0, 0.22);
   --jluxe-ticker-foreground: var(--jluxe-announcement-foreground, #fff);
   --jluxe-ticker-divider: rgba(255, 255, 255, 0.76);
   --jluxe-ticker-logo-background: var(--jluxe-announcement-foreground, #fff);
-  --jluxe-ticker-logo-foreground: var(--jluxe-announcement-background, var(--jluxe-primary, var(--color-royal-orchid-600)));
+  --jluxe-ticker-logo-foreground: var(--jluxe-announcement-background, #0F766E);
+  background-color: var(--jluxe-announcement-background, #0F766E);
 }
 /* کارت‌های مستقل برای مدلِ جدید اطلاع‌رسانی؛ پیوند اختیاری در کنارشان دکمه می‌شود. */
 .jluxe-announcement-bar--ticker[data-ticker-layout="cards"] .jluxe-announcement-bar__ticker-visual {
@@ -10715,7 +10731,7 @@ html.jluxe-lite .jluxe-header-bar {
 }
 .jluxe-announcement-bar__ticker-waves path {
   fill: none;
-  stroke: var(--jluxe-ticker-wave, color-mix(in srgb, var(--jluxe-primary-soft, var(--color-royal-orchid-50)) 24%, transparent));
+  stroke: var(--jluxe-ticker-wave, rgba(255, 255, 255, 0.2));
   stroke-width: 1.2;
   stroke-linecap: round;
 }
@@ -10773,7 +10789,7 @@ html.jluxe-lite .jluxe-header-bar {
   height: 40px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--jluxe-ticker-window-background, color-mix(in srgb, var(--jluxe-primary-active, var(--color-royal-orchid-800)) 78%, transparent));
+  background: var(--jluxe-ticker-window-background, rgba(0, 0, 0, 0.22));
   color: var(--jluxe-ticker-foreground, var(--jluxe-announcement-foreground, #fff));
   text-align: center;
 }
@@ -10823,7 +10839,7 @@ html.jluxe-lite .jluxe-header-bar {
   overflow: hidden;
   border: 2px solid rgb(255 255 255 / 62%);
   border-radius: 50%;
-  background: var(--jluxe-ticker-logo-background, var(--jluxe-primary-soft, var(--color-royal-orchid-50)));
+  background: var(--jluxe-ticker-logo-background, #E6FFFA);
   color: var(--jluxe-ticker-logo-foreground, #1F2937);
 }
 .jluxe-announcement-bar__ticker-logo-image {
