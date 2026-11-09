@@ -8895,14 +8895,17 @@ check(
 	false !== strpos( $r425_guided_form, 'jluxe_render_payment_submit()' ) &&
 	false !== strpos( $r425_guided_form, 'name="jluxe_delivery_latitude"' ) &&
 	false !== strpos( $r425_guided_form, 'data-guided-mobile-action' ) &&
-	false !== strpos( $r425_guided_form, '<span data-guided-continue-label>ادامه</span>' ) &&
+	false !== strpos( $r425_guided_form, '<span data-guided-continue-label>ادامه به پرداخت</span>' ) &&
 	false !== strpos( $r425_guided_form, "jluxe_icon_svg_markup( 'map'" ) &&
-	false === strpos( $r425_guided_form, 'data-guided-address-editor' ) &&
-	false === strpos( $r425_guided_form, 'data-guided-stepper' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-stepper' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-panel="shipping"' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-panel="payment"' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-edit-shipping' ) &&
 	false !== strpos( $r425_checkout_js, 'data-jluxe-checkout-flow="guided"' ) &&
 	false !== strpos( $r425_checkout_js, 'placeOrder.click()' ) &&
 	false !== strpos( $r425_checkout_js, 'visualViewport' ) &&
 	false !== strpos( $r425_checkout_js, '--jluxe-keyboard-inset' ) &&
+	false !== strpos( $r425_checkout_js, 'stopImmediatePropagation()' ) &&
 	false !== strpos( $r425_woocommerce_source, "'jluxe-guided-checkout'" ) &&
 	false !== strpos( $r425_guided_css, 'position: fixed;' ) &&
 	false !== strpos( $r425_guided_css, 'jluxe-guided-checkout__order' ) &&
@@ -8912,12 +8915,12 @@ check(
 	false !== strpos( $r425_map_module, 'tile.openstreetmap.org' ) &&
 	false !== strpos( $r425_map_module, 'nominatim.openstreetmap.org' ) &&
 	false !== strpos( $r425_settings_ui, 'cart_checkout[checkout_layout]' ) &&
-	false !== strpos( $r425_settings_ui, 'طرح سادهٔ یک‌صفحه‌ای' ) &&
+	false !== strpos( $r425_settings_ui, 'تسویه‌حساب مرحله‌ای (موبایل‌محور)' ) &&
 	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ) &&
 	false !== strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping"' ) &&
 	false === strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping" hidden' ) &&
 	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" ),
-	'R426 guided remains optional beside classic and presents native fields, shipping, order summary, real payment, optional map, and a short fixed mobile action in one flow'
+	'R427 guided remains optional beside classic and separates native shipping information from the live order, shipping choices, and real payment step'
 );
 check(
 	false !== strpos( $r425_review_template, "'guided' === jluxe_checkout_layout()" ) &&
@@ -8925,7 +8928,7 @@ check(
 	false !== strpos( $r425_guided_form, 'data-jluxe-map-picker' ) &&
 	false !== strpos( $r425_checkout_js, 'scrollFocusedFieldIntoView' ) &&
 	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ) &&
-	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== document.body' ),
+	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' ),
 	'R429 guided checkout keeps product thumbnails, optional map pin selection, and active fields clear above the mobile keyboard'
 );
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );

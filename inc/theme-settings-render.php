@@ -1970,12 +1970,12 @@ function jluxe_render_cart_checkout_page(): void {
 				<tr>
 					<th scope="row">چیدمان تسویه‌حساب</th>
 					<td>
-						<label><input type="radio" name="cart_checkout[checkout_layout]" value="classic" <?php checked( 'classic', (string) ( $cart['checkout_layout'] ?? 'classic' ) ); ?> /> طرح فعلی</label><br />
-						<label><input type="radio" name="cart_checkout[checkout_layout]" value="guided" <?php checked( 'guided', (string) ( $cart['checkout_layout'] ?? 'classic' ) ); ?> /> طرح سادهٔ یک‌صفحه‌ای (موبایل‌محور)</label>
-						<p class="description">طرح کلاسیک دست‌نخورده می‌ماند و پیش‌فرض است. طرح یک‌صفحه‌ای فیلدها، نرخ‌های ارسال، جمع سفارش و درگاه‌های واقعی WooCommerce را به‌ترتیب در یک صفحه نشان می‌دهد.</p>
+						<label><input type="radio" name="cart_checkout[checkout_layout]" value="classic" <?php checked( 'classic', (string) ( $cart['checkout_layout'] ?? 'classic' ) ); ?> /> طرح فعلی (کلاسیک)</label><br />
+						<label><input type="radio" name="cart_checkout[checkout_layout]" value="guided" <?php checked( 'guided', (string) ( $cart['checkout_layout'] ?? 'classic' ) ); ?> /> تسویه‌حساب مرحله‌ای (موبایل‌محور)</label>
+						<p class="description">طرح کلاسیک، پیش‌فرض و انتخاب‌پذیر باقی می‌ماند. طرح مرحله‌ای خرید را به دو بخش «اطلاعات ارسال» و «شیوهٔ پرداخت» تقسیم می‌کند و فیلدها، نرخ‌های واقعی ارسال، جمع سفارش، تخفیف‌ها و درگاه‌های WooCommerce را حفظ می‌کند.</p>
 					</td>
 				</tr>
-				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_map_enabled', 'انتخاب موقعیت روی نقشه در طرح یک‌صفحه‌ای' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_map_enabled', 'انتخاب موقعیت روی نقشه در طرح مرحله‌ای' ); ?>
 				<tr><th scope="row"></th><td><p class="description">نقشه با داده‌های OpenStreetMap و بدون کلید API بارگیری می‌شود؛ کاشی‌های نقشه فقط پس از بازکردن نقشه درخواست می‌شوند. در صورت جست‌وجوی شهر/محله، همان عبارت جست‌وجو به سرویس عمومی Nominatim فرستاده می‌شود. آدرس خیابان و پلاک برای محاسبهٔ ارسال همچنان باید در فیلد متنی ثبت شود.</p></td></tr>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_stepper', 'نوار مراحل خرید در طرح کلاسیک' ); ?>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'checkout_shipping_heading_enabled', 'عنوان انتخاب روش ارسال' ); ?>
