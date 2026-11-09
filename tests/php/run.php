@@ -9056,6 +9056,20 @@ check(
 	'R276/R309 checkout action bars stay mobile-flex/RTL; native postcode placeholder fallbacks and shipping cards keep responsive presentation'
 );
 check(
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea) {' ) &&
+	false !== strpos( $r276_checkout_css, 'border: 1px solid var(--jluxe-checkout-control-border, hsl(var(--border))) !important;' ) &&
+	false !== strpos( $r276_checkout_css, 'background-color: hsl(var(--muted, var(--background)));' ) &&
+	false !== strpos( $r276_checkout_css, '--jluxe-checkout-control-border: hsl(var(--muted-foreground, var(--foreground)) / 0.42);' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .form-row.woocommerce-invalid :is(.input-text, select, textarea),' ) &&
+	false !== strpos( $r276_checkout_css, '--jluxe-checkout-control-border: hsl(var(--error) / 0.72);' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea):focus-visible,' ) &&
+	false !== strpos( $r276_checkout_css, '--jluxe-checkout-control-border: hsl(var(--primary));' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .woocommerce-invalid .select2-selection--single {' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .select2-container .select2-selection--single {' ) &&
+	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .select2-container .select2-selection--single:focus-visible {' ),
+	'R424 checkout text, address, and country fields use a theme-aware contrasting fill while retaining invalid and keyboard-focus states'
+);
+check(
 	false !== strpos( $r276_cart_totals, 'jluxe-cart-actions jluxe-checkout-action-row' ) &&
 	strpos( $r276_cart_totals, 'jluxe-checkout-action-button--secondary' ) < strpos( $r276_cart_totals, "do_action( 'woocommerce_proceed_to_checkout' )" ) &&
 	false !== strpos( $r276_proceed_template, 'jluxe-checkout-action-button--primary' ) &&
