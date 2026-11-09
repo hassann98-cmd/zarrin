@@ -8980,6 +8980,14 @@ check(
 	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' ),
 	'R431 pre-checkout cashback/coupon notices are scoped to guided checkout and hidden accessibly during payment, then restored on return'
 );
+check(
+	false !== strpos( $r425_checkout_js, 'document.querySelectorAll(".woocommerce-form-coupon-toggle")' ) &&
+	false !== strpos( $r425_checkout_js, 'content.indexOf("بازپرداخت")' ) &&
+	false !== strpos( $r425_checkout_js, 'content.indexOf("کیف پول")' ) &&
+	false !== strpos( $r425_checkout_js, 'suppressDuplicateCheckoutNotices();' ) &&
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__suppressed-notice[hidden]' ),
+	'R432 guided checkout hides the specified cashback/default-coupon duplicate accessibly without hiding unrelated WooCommerce notices'
+);
 if ( $r430_saved_option_exists ) {
 	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r430_saved_option;
 } else {

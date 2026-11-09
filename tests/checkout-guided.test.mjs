@@ -27,8 +27,9 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
   const dom = new JSDOM(
     `<!doctype html><html><body class="woocommerce-checkout">
       <div class="jluxe-guided-checkout__before-form-notices" data-guided-before-form-notices aria-hidden="false">
-        <div class="woocommerce-info" role="status">اطلاعیهٔ بازپرداخت کیف پول</div>
-        <div class="woocommerce-info" role="status">برای واردکردن کد کوپن اینجا کلیک کنید</div>
+        <div class="woocommerce-info" role="status" data-test-cashback>با ثبت سفارش، مبلغ بازپرداخت (کش‌بک) به کیف پول شما واریز خواهد شد.</div>
+        <div class="woocommerce-form-coupon-toggle"><div class="woocommerce-info" role="status">کد تخفیف دارید؟ برای نوشتن کد اینجا کلیک کنید</div></div>
+        <div class="woocommerce-info" role="status" data-test-other-notice>اطلاعیهٔ دیگر WooCommerce</div>
       </div>
       <form id="jluxe-guided-checkout-form" class="checkout" data-jluxe-checkout-flow="guided" data-guided-current-step="shipping">
         <header><h1>تکمیل خرید</h1></header>
@@ -228,22 +229,42 @@ test("the next step shows an editable address summary, keeps form values, and as
   assert.equal(form.getAttribute("data-guided-current-step"), "payment");
 });
 
-test("pre-checkout cashback and native coupon notices appear in shipping only, not a second time in payment", (t) => {
-  const { dom, document } = bootGuidedCheckout();
+test("guided checkout suppresses the cashback announcement and default coupon toggle while preserving other notices and the payment coupon UI", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
   t.after(() => dom.window.close());
   fillRequiredAddress(document);
   const notices = document.querySelector("[data-guided-before-form-notices]");
-  assert.equal(notices.hidden, false, "WooCommerce/plugin notices are visible in the shipping step");
-  assert.equal(notices.querySelectorAll(".woocommerce-info").length, 2);
+  const cashback = document.querySelector("[data-test-cashback]");
+  const couponToggle = document.querySelector(".woocommerce-form-coupon-toggle");
+  assert.equal(notices.hidden, false, "the pre-checkout hook wrapper remains available");
+  assert.equal(cashback.hidden, true, "the wallet cashback notice is suppressed on guided checkout");
+  assert.equal(cashback.getAttribute("aria-hidden"), "true");
+  assert.equal(couponToggle.hidden, true, "WooCommerce's duplicate default coupon toggle is suppressed");
+  assert.equal(couponToggle.getAttribute("aria-hidden"), "true");
+  assert.equal(document.querySelector("[data-test-other-notice]").hidden, false, "unrelated WooCommerce notices remain visible");
+
+  const refreshedCashback = document.createElement("div");
+  refreshedCashback.className = "woocommerce-info";
+  refreshedCashback.textContent = "مبلغ بازپرداخت (کش‌بک) به کیف پول شما واریز خواهد شد.";
+  notices.append(refreshedCashback);
+  const refreshedCouponToggle = document.createElement("div");
+  refreshedCouponToggle.className = "woocommerce-form-coupon-toggle";
+  refreshedCouponToggle.textContent = "کد تخفیف دارید؟";
+  notices.append(refreshedCouponToggle);
+  $(document.body).trigger("updated_checkout");
+  assert.equal(refreshedCashback.hidden, true, "notices inserted by a WooCommerce checkout refresh are also suppressed");
+  assert.equal(refreshedCashback.getAttribute("aria-hidden"), "true");
+  assert.equal(refreshedCouponToggle.hidden, true);
+  assert.equal(refreshedCouponToggle.getAttribute("aria-hidden"), "true");
 
   document.querySelector("[data-guided-next]").click();
-  assert.equal(notices.hidden, true, "the same pre-checkout notices are hidden when payment becomes current");
-  assert.equal(notices.getAttribute("aria-hidden"), "true");
+  assert.equal(notices.hidden, true, "the pre-checkout wrapper still follows the two-step transition");
   assert.equal(document.querySelector('[data-guided-panel="payment"]').contains(document.querySelector("[data-guided-coupon]")), true, "the guided coupon UI remains in the payment step");
 
   document.querySelector('[data-guided-panel="payment"] [data-guided-back]').click();
-  assert.equal(notices.hidden, false, "returning to shipping restores its one-time notices");
-  assert.equal(notices.getAttribute("aria-hidden"), "false");
+  assert.equal(notices.hidden, false);
+  assert.equal(cashback.hidden, true, "returning to shipping does not restore the unwanted cashback notice");
+  assert.equal(couponToggle.hidden, true, "returning to shipping does not restore the duplicate coupon toggle");
 });
 
 test("a separate shipping address prefers shipping_phone in the payment-step summary", (t) => {

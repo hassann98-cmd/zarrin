@@ -1057,7 +1057,8 @@ body.woocommerce-checkout .jluxe-guided-checkout__coupon-native {
   display: none !important;
 }
 
-body.woocommerce-checkout .jluxe-guided-checkout__before-form-notices[hidden] {
+body.woocommerce-checkout .jluxe-guided-checkout__before-form-notices[hidden],
+body.woocommerce-checkout .jluxe-guided-checkout__suppressed-notice[hidden] {
   display: none !important;
 }
 
