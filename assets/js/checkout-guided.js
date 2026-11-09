@@ -16,6 +16,15 @@
   var stepStatus = form.querySelector("[data-guided-step-status]");
   var shippingErrorSummary = form.querySelector("[data-guided-shipping-error]");
   var shippingSummary = form.querySelector("[data-guided-shipping-summary]");
+  var couponWidget = form.querySelector("[data-guided-coupon]");
+  var couponInput = couponWidget && couponWidget.querySelector("[data-guided-coupon-input]");
+  var couponButton = couponWidget && couponWidget.querySelector("[data-guided-coupon-apply]");
+  var couponStatus = couponWidget && couponWidget.querySelector("[data-guided-coupon-status]");
+  var nativeCouponForm = document.querySelector("form.checkout_coupon");
+  var nativeCouponInput = nativeCouponForm && nativeCouponForm.querySelector('input[name="coupon_code"]');
+  var pendingCoupon = "";
+  var couponErrorForPending = false;
+  var couponRequestTimer = null;
   var stickyAction = form.querySelector("[data-guided-mobile-action]");
   var stickyButton = stickyAction && stickyAction.querySelector("[data-guided-continue]");
   var stickyLabel = stickyAction && stickyAction.querySelector("[data-guided-continue-label]");
@@ -377,10 +386,66 @@
       companyNode.hidden = !company;
     }
     if (phoneNode) {
-      var phone = fieldValue("billing_phone");
+      var phone = prefix === "shipping" ? (fieldValue("shipping_phone") || fieldValue("billing_phone")) : fieldValue("billing_phone");
       phoneNode.textContent = phone ? "شماره تماس: " + phone : "";
       phoneNode.hidden = !phone;
     }
+  }
+
+  function setCouponStatus(message, isError) {
+    if (!couponStatus) return;
+    couponStatus.textContent = message;
+    couponStatus.hidden = !message;
+    if (message) couponStatus.setAttribute("data-status", isError ? "error" : "success");
+    else couponStatus.removeAttribute("data-status");
+  }
+
+  function normalizedCouponCode(code) {
+    return String(code == null ? "" : code).trim().toLocaleLowerCase();
+  }
+
+  function finishCouponRequest() {
+    if (couponRequestTimer !== null) window.clearTimeout(couponRequestTimer);
+    couponRequestTimer = null;
+    pendingCoupon = "";
+    couponErrorForPending = false;
+    if (couponInput) couponInput.disabled = false;
+    if (couponButton) {
+      couponButton.disabled = false;
+      couponButton.removeAttribute("aria-busy");
+    }
+  }
+
+  function applyGuidedCoupon(event) {
+    if (event) event.preventDefault();
+    if (!couponInput) return;
+    var code = String(couponInput.value || "").trim();
+    if (!code) {
+      setCouponStatus("کد تخفیف را وارد کنید.", true);
+      if (typeof couponInput.focus === "function") couponInput.focus();
+      return;
+    }
+    if (pendingCoupon) return;
+    if (!$ || !nativeCouponForm || !nativeCouponInput) {
+      setCouponStatus("در حال حاضر امکان اعمال کد تخفیف وجود ندارد.", true);
+      return;
+    }
+
+    pendingCoupon = normalizedCouponCode(code);
+    couponErrorForPending = false;
+    nativeCouponInput.value = code;
+    couponInput.disabled = true;
+    if (couponButton) {
+      couponButton.disabled = true;
+      couponButton.setAttribute("aria-busy", "true");
+    }
+    setCouponStatus("در حال بررسی کد تخفیف…", false);
+    couponRequestTimer = window.setTimeout(function () {
+      if (!pendingCoupon) return;
+      setCouponStatus("پاسخی دریافت نشد؛ لطفاً دوباره تلاش کنید.", true);
+      finishCouponRequest();
+    }, 30000);
+    $(nativeCouponForm).trigger("submit");
   }
 
   function updateStickyTotal() {
@@ -562,6 +627,13 @@
     if (stickyBack) stickyBack.addEventListener("click", returnToShipping);
   }
 
+  if (couponButton) couponButton.addEventListener("click", applyGuidedCoupon);
+  if (couponInput) {
+    couponInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") applyGuidedCoupon(event);
+    });
+  }
+
   form.addEventListener("submit", handleFormSubmit, true);
   form.addEventListener("click", function (event) {
     var target = event.target && event.target.closest ? event.target.closest("button") : null;
@@ -624,6 +696,28 @@
       scheduleStickyActionUpdate();
     });
     $(body).on("checkout_error.jluxeGuided", handleCheckoutError);
+    if (couponWidget) {
+      $(body).on("errored_coupon_in_checkout.jluxeGuided", function (_event, code) {
+        if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;
+        couponErrorForPending = true;
+        setCouponStatus("این کد تخفیف قابل اعمال نیست؛ کد را بررسی کنید.", true);
+      });
+      $(body).on("applied_coupon_in_checkout.jluxeGuided", function (_event, code) {
+        if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;
+        if (couponErrorForPending) {
+          setCouponStatus("این کد تخفیف قابل اعمال نیست؛ کد را بررسی کنید.", true);
+        } else {
+          couponInput.value = "";
+          setCouponStatus("کد تخفیف با موفقیت اعمال شد.", false);
+        }
+        finishCouponRequest();
+      });
+      $(body).on("ajaxError.jluxeGuidedCoupon", function (_event, _xhr, settings) {
+        if (!pendingCoupon || !settings || String(settings.url || "").indexOf("apply_coupon") === -1) return;
+        setCouponStatus("خطا در ارتباط؛ لطفاً دوباره تلاش کنید.", true);
+        finishCouponRequest();
+      });
+    }
   }
 
   updateStepper();

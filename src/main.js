@@ -4,6 +4,7 @@ import {
   startSmoothScrolling,
 } from "./lib/islands.js";
 import { setupAuthNavigation } from "./lib/auth-navigation.js";
+import { deferCheckoutMapLoad } from "./lib/checkout-map-loader.js";
 markLiteDevice(window);
 setupAuthNavigation(window);
 import "./styles/storefront.css";
@@ -13,9 +14,9 @@ import "../style.css";
 import "./styles/design-variants.css";
 import "./styles/sitewide-design.css";
 import { setupPwa } from "./lib/pwa.js";
-// Load Leaflet only for the optional guided checkout; OSM requests begin after opening the map.
-if (document.querySelector("[data-jluxe-map-picker]")) {
-  import("./lib/checkout-map.js").catch(() => {});
+// The map's own JavaScript chunk is fetched only when its explicit open button is used.
+for (const picker of document.querySelectorAll("[data-jluxe-map-picker]")) {
+  deferCheckoutMapLoad(picker);
 }
 // R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
 setupPwa(window, window.JLuxeThemeSettings?.pwa);

@@ -3,8 +3,12 @@ import fs from "node:fs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import jqueryFactory from "jquery";
+import { deferCheckoutMapLoad } from "../src/lib/checkout-map-loader.js";
 
 const source = fs.readFileSync(new URL("../assets/js/checkout-guided.js", import.meta.url), "utf8");
+const mainSource = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
+const mapLoaderSource = fs.readFileSync(new URL("../src/lib/checkout-map-loader.js", import.meta.url), "utf8");
+const mapModuleSource = fs.readFileSync(new URL("../src/lib/checkout-map.js", import.meta.url), "utf8");
 const stylesheet = fs.readFileSync(new URL("../assets/css/checkout-guided.css", import.meta.url), "utf8");
 const legacyCheckoutSource = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
 const template = fs.readFileSync(new URL("../woocommerce/checkout/form-checkout-guided.php", import.meta.url), "utf8");
@@ -36,6 +40,17 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
             <h2 id="jluxe-guided-shipping-title" tabindex="-1">اطلاعات ارسال</h2>
             <p data-guided-shipping-error role="alert" hidden>فیلدهای الزامی را کامل کنید.</p>
             <div id="customer_details">
+              <input type="checkbox" name="ship_to_different_address" value="1">
+              <input name="shipping_first_name">
+              <input name="shipping_last_name">
+              <input name="shipping_company">
+              <input name="shipping_address_1">
+              <input name="shipping_address_2">
+              <input name="shipping_city">
+              <input name="shipping_state">
+              <input name="shipping_postcode">
+              <input name="shipping_country">
+              <input name="shipping_phone">
               <p class="form-row validate-required" id="billing_first_name_field"><label>نام</label><span class="woocommerce-input-wrapper"><input class="input-text" id="billing_first_name" name="billing_first_name"></span></p>
               <p class="form-row validate-required" id="billing_last_name_field"><label>نام خانوادگی</label><span class="woocommerce-input-wrapper"><input class="input-text" id="billing_last_name" name="billing_last_name"></span></p>
               <p class="form-row validate-required" id="billing_phone_field"><label>شماره موبایل</label><span class="woocommerce-input-wrapper"><input class="input-text" id="billing_phone" name="billing_phone"></span></p>
@@ -57,6 +72,13 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
               <button type="button" data-guided-edit-shipping>ویرایش</button>
             </section>
             <section class="jluxe-guided-checkout__order"><div id="order_review"><div data-jluxe-order-total-value><b>۳۰۰۰ تومان</b></div>${shippingMarkup}</div></section>
+            <section data-guided-coupon aria-labelledby="coupon-title">
+              <h3 id="coupon-title">کد تخفیف</h3>
+              <label for="coupon-code">کد تخفیف</label>
+              <input id="coupon-code" data-guided-coupon-input>
+              <button type="button" data-guided-coupon-apply>اعمال کد</button>
+              <p data-guided-coupon-status role="status" aria-live="polite" hidden></p>
+            </section>
             <section data-guided-payment-section><div id="payment">${gateways}</div></section>
             <div id="jluxe-payment-submit">
               <p data-jluxe-payment-error hidden>روش پرداخت را انتخاب کنید.</p>
@@ -71,6 +93,12 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
           <button type="button" data-guided-continue><span data-guided-continue-label>ادامه به پرداخت</span></button>
         </div>
       </form>
+      <div data-guided-coupon-transport hidden>
+        <form class="checkout_coupon">
+          <input name="coupon_code">
+          <button type="submit">Apply coupon</button>
+        </form>
+      </div>
     </body></html>`,
     { url: "https://shop.test/checkout/", runScripts: "outside-only" },
   );
@@ -102,9 +130,14 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
   const form = document.querySelector("form.checkout");
   const payment = document.getElementById("payment");
   let checkoutUpdates = 0;
+  let couponSubmissions = 0;
   $(document.body).on("update_checkout.test", () => { checkoutUpdates += 1; });
+  $(document.querySelector("form.checkout_coupon")).on("submit.testWooCoupon", (event) => {
+    event.preventDefault();
+    couponSubmissions += 1;
+  });
   window.eval(source);
-  return { dom, window, visualViewport, $, form, document, scrolls, scrollTargets, checkoutUpdates: () => checkoutUpdates };
+  return { dom, window, visualViewport, $, form, document, scrolls, scrollTargets, checkoutUpdates: () => checkoutUpdates, couponSubmissions: () => couponSubmissions };
 }
 
 function fillRequiredAddress(document) {
@@ -191,6 +224,38 @@ test("the next step shows an editable address summary, keeps form values, and as
   assert.equal(form.getAttribute("data-guided-current-step"), "payment");
 });
 
+test("a separate shipping address prefers shipping_phone in the payment-step summary", (t) => {
+  const { dom, document } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector('[name="ship_to_different_address"]').checked = true;
+  document.querySelector('[name="shipping_first_name"]').value = "آرمان";
+  document.querySelector('[name="shipping_last_name"]').value = "کریمی";
+  document.querySelector('[name="shipping_address_1"]').value = "خیابان ارسال، پلاک ۴";
+  document.querySelector('[name="shipping_city"]').value = "کرج";
+  document.querySelector('[name="shipping_phone"]').value = "09123334444";
+
+  document.querySelector("[data-guided-next]").click();
+  assert.equal(document.querySelector("[data-guided-shipping-name]").textContent, "آرمان کریمی");
+  assert.equal(document.querySelector("[data-guided-shipping-address]").textContent, "خیابان ارسال، پلاک ۴، کرج");
+  assert.equal(document.querySelector("[data-guided-shipping-phone]").textContent, "شماره تماس: 09123334444");
+});
+
+test("a separate shipping address falls back to billing_phone when shipping_phone is blank or missing", (t) => {
+  for (const phoneState of ["blank", "missing"]) {
+    const { dom, document } = bootGuidedCheckout();
+    t.after(() => dom.window.close());
+    fillRequiredAddress(document);
+    document.querySelector('[name="ship_to_different_address"]').checked = true;
+    document.querySelector('[name="shipping_first_name"]').value = "مریم";
+    document.querySelector('[name="shipping_last_name"]').value = "احمدی";
+    if (phoneState === "missing") document.querySelector('[name="shipping_phone"]').remove();
+
+    document.querySelector("[data-guided-next]").click();
+    assert.equal(document.querySelector("[data-guided-shipping-phone]").textContent, "شماره تماس: 09120000000", `${phoneState} shipping phone uses the billing fallback`);
+  }
+});
+
 test("Back and the completed stepper return to shipping without discarding entered values", (t) => {
   const { dom, document } = bootGuidedCheckout();
   t.after(() => dom.window.close());
@@ -243,6 +308,47 @@ test("payment requires real shipping and gateway selections, then delegates to W
   gateway.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
   proxy.click();
   assert.equal(submitted, true, "valid choices click WooCommerce's actual #place_order button");
+});
+
+test("the guided coupon control proxies WooCommerce's native form and announces success and failure accessibly", (t) => {
+  const { dom, document, $, form, couponSubmissions } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  const input = document.querySelector("[data-guided-coupon-input]");
+  const button = document.querySelector("[data-guided-coupon-apply]");
+  const status = document.querySelector("[data-guided-coupon-status]");
+  const nativeForm = document.querySelector("form.checkout_coupon");
+  const nativeInput = nativeForm.querySelector('[name="coupon_code"]');
+  assert.equal(form.contains(input), true, "the accessible coupon entry is part of the guided checkout form");
+  assert.equal(form.contains(nativeForm), false, "the native WooCommerce coupon form remains outside checkout so forms are never nested");
+  assert.equal(document.querySelector("[data-guided-coupon-transport]").hidden, true);
+
+  document.querySelector("[data-guided-coupon-apply]").click();
+  assert.equal(status.hidden, false);
+  assert.equal(status.getAttribute("data-status"), "error");
+  assert.equal(couponSubmissions(), 0, "an empty code does not submit");
+
+  input.value = "SAVE10";
+  button.click();
+  assert.equal(nativeInput.value, "SAVE10");
+  assert.equal(couponSubmissions(), 1, "the proxy submits the standard WooCommerce coupon form");
+  assert.equal(button.disabled, true);
+  assert.match(status.textContent, /در حال بررسی/);
+  $(document.body).trigger("errored_coupon_in_checkout", ["SAVE10", "<p>invalid coupon</p>"]);
+  $(document.body).trigger("applied_coupon_in_checkout", ["SAVE10"]);
+  assert.equal(status.getAttribute("data-status"), "error");
+  assert.match(status.textContent, /قابل اعمال نیست/);
+  assert.equal(button.disabled, false);
+
+  input.value = "SAVE10";
+  const enter = new dom.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+  input.dispatchEvent(enter);
+  assert.equal(enter.defaultPrevented, true, "Enter applies the coupon without submitting the checkout form");
+  assert.equal(couponSubmissions(), 2);
+  $(document.body).trigger("applied_coupon_in_checkout", ["SAVE10"]);
+  assert.equal(status.getAttribute("data-status"), "success");
+  assert.match(status.textContent, /با موفقیت اعمال شد/);
+  assert.equal(input.value, "");
+  assert.equal(button.disabled, false);
 });
 
 test("direct form submit from shipping cannot bypass required fields or prematurely place an order", (t) => {
@@ -310,6 +416,69 @@ test("the active field stays visible above the mobile keyboard and the stepper r
   assert.match(stylesheet, /position:\s*fixed/);
   assert.match(stylesheet, /inset-block-end:\s*var\(--jluxe-keyboard-inset/);
   assert.match(stylesheet, /prefers-reduced-motion:\s*reduce/);
+});
+
+test("the Leaflet chunk loads only on the map-open action, and its first click opens the map", async (t) => {
+  const dom = new JSDOM('<section data-jluxe-map-picker><button type="button" data-map-open aria-expanded="false">انتخاب روی نقشه</button></section>');
+  t.after(() => dom.window.close());
+  const picker = dom.window.document.querySelector("[data-jluxe-map-picker]");
+  const button = picker.querySelector("[data-map-open]");
+  let loads = 0;
+  let clicks = 0;
+  let mapOpens = 0;
+  let finishImport;
+  button.addEventListener("click", () => { clicks += 1; });
+  deferCheckoutMapLoad(picker, () => {
+    loads += 1;
+    return new Promise((resolve) => {
+      finishImport = () => {
+        button.addEventListener("click", () => { mapOpens += 1; button.setAttribute("aria-expanded", "true"); });
+        resolve();
+      };
+    });
+  });
+  assert.equal(loads, 0, "initialization alone does not fetch the map chunk");
+  button.click();
+  assert.equal(loads, 1, "the explicit open action starts the lazy import");
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+  finishImport();
+  await Promise.resolve();
+  assert.equal(clicks, 2, "the first physical click and its replay are both dispatched");
+  assert.equal(mapOpens, 1, "replaying the first click opens the map exactly once");
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+  button.click();
+  assert.equal(loads, 1, "subsequent open/close clicks reuse the imported chunk");
+  assert.equal(mapOpens, 2);
+});
+
+test("the map loader permits retry after a failed chunk request", async (t) => {
+  const dom = new JSDOM('<section data-jluxe-map-picker><button type="button" data-map-open>انتخاب روی نقشه</button></section>');
+  t.after(() => dom.window.close());
+  const picker = dom.window.document.querySelector("[data-jluxe-map-picker]");
+  const button = picker.querySelector("[data-map-open]");
+  let loads = 0;
+  deferCheckoutMapLoad(picker, () => {
+    loads += 1;
+    if (loads === 1) return Promise.reject(new Error("network"));
+    return Promise.resolve().then(() => button.addEventListener("click", () => button.setAttribute("aria-expanded", "true")));
+  });
+  button.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(loads, 1);
+  button.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(loads, 2);
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+});
+
+test("the main entry point defers the map chunk and retains the accessible, optional OSM map", () => {
+  assert.match(mainSource, /deferCheckoutMapLoad\(picker\)/);
+  assert.doesNotMatch(mainSource, /import\(["']\.\/lib\/checkout-map\.js["']\)/);
+  assert.match(mapLoaderSource, /import\("\.\/checkout-map\.js"\)/);
+  assert.match(template, /data-map-open aria-expanded="false"/);
+  assert.match(mapModuleSource, /tile\.openstreetmap\.org/);
+  assert.match(mapModuleSource, /nominatim\.openstreetmap\.org/);
+  assert.match(template, /نشانی نوشتاری را وارد کنید/);
 });
 
 test("guided checkout keeps the optional manual address and map separate and delegates all order mutations", () => {

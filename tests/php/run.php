@@ -8931,6 +8931,52 @@ check(
 	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' ),
 	'R429 guided checkout keeps product thumbnails, optional map pin selection, and active fields clear above the mobile keyboard'
 );
+$r430_coupon_position = strpos( $r425_guided_form, 'data-guided-coupon aria-labelledby' );
+$r430_order_position = strpos( $r425_guided_form, 'class="jluxe-guided-checkout__order"' );
+$r430_payment_position = strpos( $r425_guided_form, 'data-guided-payment-section' );
+$r430_checkout_close = strrpos( $r425_guided_form, '</form>' );
+$r430_coupon_transport = strpos( $r425_guided_form, 'data-guided-coupon-transport' );
+check(
+	false !== $r430_order_position && false !== $r430_coupon_position && false !== $r430_payment_position &&
+	$r430_order_position < $r430_coupon_position && $r430_coupon_position < $r430_payment_position &&
+	false !== $r430_checkout_close && false !== $r430_coupon_transport && $r430_checkout_close < $r430_coupon_transport &&
+	false !== strpos( $r425_guided_form, 'woocommerce_checkout_coupon_form()' ) &&
+	false !== strpos( $r425_checkout_js, '$(nativeCouponForm).trigger("submit")' ) &&
+	false !== strpos( $r425_checkout_js, 'applied_coupon_in_checkout.jluxeGuided' ) &&
+	false !== strpos( $r425_checkout_js, 'errored_coupon_in_checkout.jluxeGuided' ) &&
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__coupon-controls input:focus-visible' ),
+	'R430 guided coupon UI sits between order items and payment, proxies WooCommerce’s native coupon form outside checkout, and announces apply/error results'
+);
+$r430_saved_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
+$r430_saved_option = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$r430_saved_query = $GLOBALS['query_kind'] ?? null;
+$r430_classic_settings = jluxe_theme_settings_defaults();
+$r430_classic_settings['cart_checkout']['checkout_layout'] = 'classic';
+$GLOBALS['query_kind'] = 'checkout';
+update_test_settings( $r430_classic_settings );
+$r430_removed_before = count( $GLOBALS['removed_actions'] );
+jluxe_defer_guided_checkout_coupon_form();
+$r430_classic_coupon_untouched = $r430_removed_before === count( $GLOBALS['removed_actions'] );
+$r430_guided_settings = $r430_classic_settings;
+$r430_guided_settings['cart_checkout']['checkout_layout'] = 'guided';
+update_test_settings( $r430_guided_settings );
+jluxe_defer_guided_checkout_coupon_form();
+$r430_removed_coupon = end( $GLOBALS['removed_actions'] );
+check(
+	$r430_classic_coupon_untouched && is_array( $r430_removed_coupon ) &&
+	'woocommerce_before_checkout_form' === ( $r430_removed_coupon[0] ?? '' ) &&
+	'woocommerce_checkout_coupon_form' === ( $r430_removed_coupon[1] ?? '' ) && 10 === ( $r430_removed_coupon[2] ?? null ) &&
+	false !== strpos( $r425_woocommerce_source, "add_action( 'wp', 'jluxe_defer_guided_checkout_coupon_form', 20 )" ) &&
+	false !== strpos( $r425_woocommerce_source, "function_exists( 'is_checkout' ) && ! is_checkout()" ),
+	'R430 only guided checkout relocates the core coupon callback; classic preserves its standard pre-form placement'
+);
+if ( $r430_saved_option_exists ) {
+	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r430_saved_option;
+} else {
+	unset( $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] );
+}
+jluxe_get_theme_settings( true );
+if ( null === $r430_saved_query ) { unset( $GLOBALS['query_kind'] ); } else { $GLOBALS['query_kind'] = $r430_saved_query; }
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );

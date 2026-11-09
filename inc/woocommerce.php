@@ -295,6 +295,23 @@ function jluxe_checkout_layout(): string {
 	return in_array( $layout, array( 'classic', 'guided' ), true ) ? $layout : 'classic';
 }
 
+/**
+ * Keep WooCommerce's bound-to-native coupon form available for the guided
+ * payment-step proxy, but omit the default pre-checkout placement. The guided
+ * template renders that native form outside the checkout form to avoid nested
+ * forms; the classic checkout keeps WooCommerce's original placement intact.
+ */
+function jluxe_defer_guided_checkout_coupon_form(): void {
+	if ( 'guided' !== jluxe_checkout_layout() ) {
+		return;
+	}
+	if ( function_exists( 'is_checkout' ) && ! is_checkout() ) {
+		return;
+	}
+	remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
+}
+add_action( 'wp', 'jluxe_defer_guided_checkout_coupon_form', 20 );
+
 /** Validate a single decimal coordinate and normalize it to six places. */
 function jluxe_checkout_map_coordinate( $value, float $minimum, float $maximum ): ?string {
 	if ( ! is_scalar( $value ) ) {

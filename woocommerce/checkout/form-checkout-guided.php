@@ -120,6 +120,19 @@ $guided_coordinates = $guided_map_enabled ? jluxe_checkout_map_coordinates_from_
 					<?php do_action( 'woocommerce_checkout_after_order_review' ); ?>
 				</section>
 
+				<?php if ( function_exists( 'wc_coupons_enabled' ) && wc_coupons_enabled() ) : ?>
+					<section class="jluxe-guided-checkout__coupon" data-guided-coupon aria-labelledby="jluxe-guided-coupon-title">
+						<h3 id="jluxe-guided-coupon-title" class="jluxe-guided-checkout__section-title">کد تخفیف</h3>
+						<p id="jluxe-guided-coupon-help">اگر کد تخفیف دارید، آن را وارد و اعمال کنید.</p>
+						<label class="jluxe-guided-checkout__coupon-label" for="jluxe-guided-coupon-code">کد تخفیف</label>
+						<div class="jluxe-guided-checkout__coupon-controls">
+							<input id="jluxe-guided-coupon-code" type="text" inputmode="text" autocomplete="off" dir="auto" aria-describedby="jluxe-guided-coupon-help" data-guided-coupon-input />
+							<button type="button" class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary" data-guided-coupon-apply>اعمال کد</button>
+						</div>
+						<p class="jluxe-guided-checkout__coupon-status" data-guided-coupon-status role="status" aria-live="polite" aria-atomic="true" hidden></p>
+					</section>
+				<?php endif; ?>
+
 				<section class="jluxe-guided-checkout__payment" data-guided-payment-section aria-labelledby="jluxe-guided-payment-methods-title">
 					<h3 id="jluxe-guided-payment-methods-title" class="jluxe-guided-checkout__section-title">انتخاب روش پرداخت</h3>
 					<?php woocommerce_checkout_payment(); ?>
@@ -152,6 +165,12 @@ $guided_coordinates = $guided_map_enabled ? jluxe_checkout_map_coordinates_from_
 			</button>
 		</div>
 	</form>
+
+	<?php if ( function_exists( 'wc_coupons_enabled' ) && wc_coupons_enabled() ) : ?>
+		<div class="jluxe-guided-checkout__coupon-native" data-guided-coupon-transport hidden>
+			<?php woocommerce_checkout_coupon_form(); ?>
+		</div>
+	<?php endif; ?>
 </div>
 
 <?php do_action( 'woocommerce_after_checkout_form', $checkout ); ?>
