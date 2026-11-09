@@ -13,6 +13,10 @@ import "../style.css";
 import "./styles/design-variants.css";
 import "./styles/sitewide-design.css";
 import { setupPwa } from "./lib/pwa.js";
+// Load Leaflet only for the optional guided checkout; OSM requests begin after opening the map.
+if (document.querySelector("[data-jluxe-map-picker]")) {
+  import("./lib/checkout-map.js").catch(() => {});
+}
 // R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
 setupPwa(window, window.JLuxeThemeSettings?.pwa);
 // Keep the configurable categories panel and click-only controls outside the

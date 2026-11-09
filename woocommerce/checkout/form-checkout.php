@@ -19,6 +19,11 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 	return;
 }
 
+if ( function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout() ) {
+	include __DIR__ . '/form-checkout-guided.php';
+	return;
+}
+
 jluxe_render_checkout_stepper( 'shipping' );
 ?>
 

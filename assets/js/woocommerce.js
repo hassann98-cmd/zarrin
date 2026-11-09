@@ -4811,7 +4811,7 @@ function jluxeEnhanceShopSort(root) {
 	var form = document.querySelector("form.checkout");
 	var stepper = document.querySelector(".jluxe-checkout-stepper");
 	var orderReview = document.getElementById("order_review");
-	if (!form || !orderReview || !window.jQuery) {
+	if (!form || !orderReview || !window.jQuery || form.getAttribute("data-jluxe-checkout-flow") === "guided") {
 		return;
 	}
 

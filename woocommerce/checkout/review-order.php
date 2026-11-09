@@ -9,11 +9,12 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+$jluxe_guided_checkout_review = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout();
 ?>
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-3<?php echo $jluxe_guided_checkout_review ? ' jluxe-guided-checkout__order-review-content' : ''; ?>">
 	<?php do_action( 'woocommerce_review_order_before_cart_contents' ); ?>
 
-	<div class="flex flex-col gap-3 border-b border-border pb-3">
+	<div class="flex flex-col gap-3 border-b border-border pb-3<?php echo $jluxe_guided_checkout_review ? ' jluxe-guided-checkout__items' : ''; ?>">
 		<?php
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
@@ -23,7 +24,10 @@ defined( 'ABSPATH' ) || exit;
 				continue;
 			}
 			?>
-			<div class="flex items-start justify-between gap-3 text-small">
+			<div class="flex items-start justify-between gap-3 text-small<?php echo $jluxe_guided_checkout_review ? ' jluxe-guided-checkout__item' : ''; ?>">
+				<?php if ( $jluxe_guided_checkout_review ) : ?>
+					<span class="jluxe-guided-checkout__item-image"><?php echo wp_kses_post( $_product->get_image( 'woocommerce_thumbnail' ) ); ?></span>
+				<?php endif; ?>
 				<span class="min-w-0 text-text-secondary">
 					<span class="line-clamp-1 text-foreground"><?php echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key ) ); ?></span>
 					<span class="text-caption text-text-muted">
@@ -69,7 +73,7 @@ defined( 'ABSPATH' ) || exit;
 		 * پرداخت باید فقط پرداخت رو نشون بده، نه روش ارسال رو هم کنارش).
 		 */
 		?>
-		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping">
+		<div id="jluxe-shipping-section" class="jluxe-checkout-shipping"<?php echo function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout() ? ' hidden' : ''; ?>>
 			<?php if ( jluxe_cart_checkout_option( 'checkout_shipping_heading_enabled', true ) ) : ?>
 				<?php $shipping_heading = jluxe_cart_checkout_copy( 'checkout_shipping_heading', 'روش ارسال را انتخاب کنید!' ); ?>
 				<?php if ( '' !== trim( $shipping_heading ) ) : ?>
@@ -121,9 +125,9 @@ defined( 'ABSPATH' ) || exit;
 	 * شد — یعنی توی dir="rtl" برچسب سمتِ راست و مقدار سمتِ چپ می‌شینه.
 	 */
 	?>
-	<div class="flex items-center justify-between border-t border-border pt-3 text-body font-bold text-foreground">
+	<div data-jluxe-order-total class="flex items-center justify-between border-t border-border pt-3 text-body font-bold text-foreground">
 		<span><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_total_label', 'مبلغ قابل پرداخت' ) ); ?>:</span>
-		<span><?php wc_cart_totals_order_total_html(); ?></span>
+		<span data-jluxe-order-total-value><?php wc_cart_totals_order_total_html(); ?></span>
 	</div>
 
 	<?php do_action( 'woocommerce_review_order_after_order_total' ); ?>

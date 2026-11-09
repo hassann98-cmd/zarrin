@@ -1037,6 +1037,12 @@ function jluxe_sanitize_shop( array $posted, array $defaults ): array {
 
 /** تنظیماتِ قابل‌ویرایشِ متن و نمایشِ سبد خرید/تسویه‌حساب؛ هزینه‌ها را تغییر نمی‌دهد. */
 function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
+	$checkout_layout = isset( $posted['checkout_layout'] ) && is_scalar( $posted['checkout_layout'] )
+		? sanitize_key( (string) $posted['checkout_layout'] )
+		: (string) ( $defaults['checkout_layout'] ?? 'classic' );
+	if ( ! in_array( $checkout_layout, array( 'classic', 'guided' ), true ) ) {
+		$checkout_layout = (string) ( $defaults['checkout_layout'] ?? 'classic' );
+	}
 	$posted_copy = isset( $posted['copy'] ) && is_array( $posted['copy'] ) ? $posted['copy'] : array();
 	$copy        = array();
 	$textarea_keys = array( 'cart_empty_message', 'checkout_payment_warning', 'checkout_no_shipping_options' );
@@ -1094,6 +1100,8 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 	}
 
 	return array(
+		'checkout_layout'                  => $checkout_layout,
+		'checkout_map_enabled'             => ! empty( $posted['checkout_map_enabled'] ),
 		'show_stepper'                     => ! empty( $posted['show_stepper'] ),
 		'show_cart_coupon'                 => ! empty( $posted['show_cart_coupon'] ),
 		'cart_empty_message_enabled'       => ! empty( $posted['cart_empty_message_enabled'] ),

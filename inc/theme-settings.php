@@ -363,6 +363,8 @@ function jluxe_theme_settings_defaults(): array {
 		 * توضیح‌های accordion را کنترل می‌کند.
 		 */
 		'cart_checkout' => array(
+			'checkout_layout'                 => 'classic',
+			'checkout_map_enabled'            => true,
 			'show_stepper'                    => true,
 			'show_cart_coupon'                => true,
 			'cart_empty_message_enabled'      => false,

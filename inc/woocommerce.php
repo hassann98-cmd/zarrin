@@ -288,6 +288,124 @@ function jluxe_cart_checkout_option( string $key, bool $fallback = false ): bool
 	return (bool) jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
 }
 
+/** Return the allow-listed checkout layout; missing or corrupted settings preserve the released classic flow. */
+function jluxe_checkout_layout(): string {
+	$layout = jluxe_get_setting( 'cart_checkout.checkout_layout', 'classic' );
+	$layout = is_scalar( $layout ) ? sanitize_key( (string) $layout ) : 'classic';
+	return in_array( $layout, array( 'classic', 'guided' ), true ) ? $layout : 'classic';
+}
+
+/** Validate a single decimal coordinate and normalize it to six places. */
+function jluxe_checkout_map_coordinate( $value, float $minimum, float $maximum ): ?string {
+	if ( ! is_scalar( $value ) ) {
+		return null;
+	}
+	$value = trim( (string) $value );
+	if ( '' === $value || strlen( $value ) > 24 || ! preg_match( '/^-?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)$/D', $value ) ) {
+		return null;
+	}
+	$number = (float) $value;
+	if ( ! is_finite( $number ) || $number < $minimum || $number > $maximum ) {
+		return null;
+	}
+	$number = round( $number, 6 );
+	if ( 0.0 === $number ) {
+		$number = 0.0;
+	}
+	return number_format( $number, 6, '.', '' );
+}
+
+/** Coordinates are optional, separate from WooCommerce's text address, and never used in shipping calculations. */
+function jluxe_checkout_map_coordinates_from_request(): ?array {
+	if ( 'guided' !== jluxe_checkout_layout() || ! jluxe_cart_checkout_option( 'checkout_map_enabled', true ) ) {
+		return null;
+	}
+	if ( ! isset( $_POST['jluxe_delivery_latitude'], $_POST['jluxe_delivery_longitude'] ) ) {
+		return null;
+	}
+	$latitude = is_scalar( $_POST['jluxe_delivery_latitude'] ) ? wp_unslash( (string) $_POST['jluxe_delivery_latitude'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Optional map metadata is validated and stored only after WooCommerce validates its checkout nonce.
+	$longitude = is_scalar( $_POST['jluxe_delivery_longitude'] ) ? wp_unslash( (string) $_POST['jluxe_delivery_longitude'] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- See above.
+	$latitude = jluxe_checkout_map_coordinate( $latitude, -90.0, 90.0 );
+	$longitude = jluxe_checkout_map_coordinate( $longitude, -180.0, 180.0 );
+	if ( null === $latitude || null === $longitude ) {
+		return null;
+	}
+	return array( 'latitude' => $latitude, 'longitude' => $longitude );
+}
+
+/** Save only validated map coordinates as private order metadata; the address/rates remain WooCommerce-owned. */
+function jluxe_checkout_store_map_coordinates( $order, array $data = array() ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) ) {
+		return;
+	}
+	$coordinates = jluxe_checkout_map_coordinates_from_request();
+	if ( null !== $coordinates ) {
+		$order->update_meta_data(
+			'_jluxe_delivery_coordinates',
+			array(
+				'latitude'  => (float) $coordinates['latitude'],
+				'longitude' => (float) $coordinates['longitude'],
+			)
+		);
+	}
+}
+add_action( 'woocommerce_checkout_create_order', 'jluxe_checkout_store_map_coordinates', 10, 2 );
+
+/** Show the optional delivery pin to store staff in the order admin. */
+function jluxe_admin_order_delivery_map_location( $order ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) ) {
+		return;
+	}
+	$coordinates = $order->get_meta( '_jluxe_delivery_coordinates', true );
+	if ( ! is_array( $coordinates ) ) {
+		return;
+	}
+	$latitude = jluxe_checkout_map_coordinate( $coordinates['latitude'] ?? null, -90.0, 90.0 );
+	$longitude = jluxe_checkout_map_coordinate( $coordinates['longitude'] ?? null, -180.0, 180.0 );
+	if ( null === $latitude || null === $longitude ) {
+		return;
+	}
+	$url = add_query_arg(
+		array( 'mlat' => $latitude, 'mlon' => $longitude, 'zoom' => 16 ),
+		'https://www.openstreetmap.org/'
+	);
+	echo '<p class="jluxe-order-map-location"><strong>' . esc_html__( 'موقعیت انتخاب‌شده برای تحویل:', 'jluxe' ) . '</strong> <a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $latitude . ', ' . $longitude ) . '</a></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped values are assembled into fixed HTML.
+}
+add_action( 'woocommerce_admin_order_data_after_shipping_address', 'jluxe_admin_order_delivery_map_location', 10, 1 );
+
+/** Include the optional map pin in WooCommerce's personal-data export. */
+function jluxe_checkout_export_delivery_map_location( array $personal_data, $order ): array {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) ) {
+		return $personal_data;
+	}
+	$coordinates = $order->get_meta( '_jluxe_delivery_coordinates', true );
+	if ( ! is_array( $coordinates ) ) {
+		return $personal_data;
+	}
+	$latitude = jluxe_checkout_map_coordinate( $coordinates['latitude'] ?? null, -90.0, 90.0 );
+	$longitude = jluxe_checkout_map_coordinate( $coordinates['longitude'] ?? null, -180.0, 180.0 );
+	if ( null !== $latitude && null !== $longitude ) {
+		$personal_data[] = array(
+			'name'  => __( 'Delivery map coordinates', 'jluxe' ),
+			'value' => $latitude . ', ' . $longitude,
+		);
+	}
+	return $personal_data;
+}
+add_filter( 'woocommerce_privacy_export_order_personal_data', 'jluxe_checkout_export_delivery_map_location', 10, 2 );
+
+/** Remove the optional map pin when an order's personal data is erased. */
+function jluxe_checkout_erase_delivery_map_location( $order ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'delete_meta_data' ) ) {
+		return;
+	}
+	$order->delete_meta_data( '_jluxe_delivery_coordinates' );
+	if ( method_exists( $order, 'save_meta_data' ) ) {
+		$order->save_meta_data();
+	}
+}
+add_action( 'woocommerce_privacy_remove_order_personal_data', 'jluxe_checkout_erase_delivery_map_location', 10, 1 );
+
 /** Read a presentation color only after validating it as a six/three-digit hex value. */
 function jluxe_cart_checkout_color( string $key, string $fallback ): string {
 	$value = jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
@@ -3565,6 +3683,37 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_woocommerce_assets', 20 );
+
+/** Load the guided checkout state machine only when that optional template is active. */
+function jluxe_enqueue_guided_checkout_assets(): void {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) || 'guided' !== jluxe_checkout_layout() ) {
+		return;
+	}
+	if ( function_exists( 'jluxe_asset_plan' ) && empty( jluxe_asset_plan()['theme_woo_ux'] ) ) {
+		return;
+	}
+	$style_path = JLUXE_THEME_DIR . '/assets/css/checkout-guided.css';
+	if ( is_file( $style_path ) ) {
+		wp_enqueue_style(
+			'jluxe-guided-checkout',
+			JLUXE_THEME_URI . '/assets/css/checkout-guided.css',
+			array(),
+			(string) filemtime( $style_path )
+		);
+	}
+	$path = JLUXE_THEME_DIR . '/assets/js/checkout-guided.js';
+	if ( ! is_file( $path ) ) {
+		return;
+	}
+	wp_enqueue_script(
+		'jluxe-guided-checkout',
+		JLUXE_THEME_URI . '/assets/js/checkout-guided.js',
+		array( 'jquery', 'wc-checkout', 'jluxe-woocommerce' ),
+		(string) filemtime( $path ),
+		array( 'in_footer' => true, 'strategy' => 'defer' )
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_guided_checkout_assets', 21 );
 
 /**
  * صفحه‌ی محصول (woocommerce/content-single-product.php) توضیحات/مشخصات/

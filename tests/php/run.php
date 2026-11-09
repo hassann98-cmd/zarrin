@@ -2122,6 +2122,12 @@ $public_glyphs = jluxe_public_icon_glyphs(array(
 check(array_keys($public_glyphs)===array('bed','home','sofa','gift','brand-instagram'), 'R360 React receives only active glyphs and preserves custom social SVGs');
 ob_start(); jluxe_uicons_attribution(); $icon_credit=(string) ob_get_clean();
 check(strpos($icon_credit,'Uicons by Flaticon')!==false && strpos($icon_credit,'https://www.flaticon.com/uicons')!==false, 'R360 required Flaticon attribution is rendered as a visible link');
+$r429_checkout_icon_names = array( 'map-pin', 'map', 'credit-card', 'package', 'wallet', 'locate', 'edit' );
+$r429_checkout_icons = array_map( static fn( $name ) => jluxe_icon_svg_markup( $name, 'size-5' ), $r429_checkout_icon_names );
+check(
+	count( $r429_checkout_icons ) === count( array_filter( $r429_checkout_icons, static fn( $icon ) => false !== strpos( $icon, 'stroke="currentColor"' ) ) ),
+	'R429 address, map, payment, summary, and edit icons resolve to inline currentColor SVGs'
+);
 
 // R185: SEO/GEO entity links, safe JSON-LD, archive canonicals and truthful metadata.
 $r185_plain = jluxe_seo_plain_text('راهنما [vc_row]<strong>واقعی</strong>[/vc_row]');
@@ -8867,6 +8873,49 @@ if ( null === $r304_previous_user_meta ) {
 }
 $_POST = $r304_previous_post;
 
+$r425_guided_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' );
+$r425_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+$r425_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' );
+$r425_guided_css = (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' );
+$r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
+$r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
+$r425_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+check(
+	false !== strpos( $r425_checkout_form, "'guided' === jluxe_checkout_layout()" ) &&
+	false !== strpos( $r425_checkout_form, "include __DIR__ . '/form-checkout-guided.php'" ) &&
+	false !== strpos( $r425_guided_form, 'data-jluxe-checkout-flow="guided"' ) &&
+	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_billing' )" ) &&
+	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_shipping' )" ) &&
+	false !== strpos( $r425_guided_form, 'woocommerce_checkout_payment()' ) &&
+	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_order_review' )" ) &&
+	false !== strpos( $r425_guided_form, 'jluxe_render_payment_submit()' ) &&
+	false !== strpos( $r425_guided_form, 'name="jluxe_delivery_latitude"' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-address-editor' ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-address-scrim' ) &&
+	false !== strpos( $r425_guided_form, "jluxe_icon_svg_markup( 'map-pin'" ) &&
+	false !== strpos( $r425_checkout_js, 'data-jluxe-checkout-flow="guided"' ) &&
+	false !== strpos( $r425_checkout_js, 'trigger("update_checkout")' ) &&
+	false !== strpos( $r425_checkout_js, 'visualViewport' ) &&
+	false !== strpos( $r425_checkout_js, '--jluxe-keyboard-inset' ) &&
+	false !== strpos( $r425_woocommerce_source, "'jluxe-guided-checkout'" ) &&
+	false !== strpos( $r425_guided_css, 'jluxe-guided-checkout__grid' ) &&
+	false !== strpos( $r425_guided_css, '--jluxe-keyboard-inset' ) &&
+	false !== strpos( $r425_guided_css, '@media (max-width: 767.98px)' ) &&
+	false !== strpos( $r425_map_module, 'tile.openstreetmap.org' ) &&
+	false !== strpos( $r425_map_module, 'nominatim.openstreetmap.org' ) &&
+	false !== strpos( $r425_settings_ui, 'cart_checkout[checkout_layout]' ) &&
+	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ),
+	'R425 the guided template remains optional and uses real WooCommerce fields/order fragments while map assets and controls are opt-in/configurable'
+);
+check(
+	false !== strpos( $r425_review_template, "'guided' === jluxe_checkout_layout()" ) &&
+	false !== strpos( $r425_review_template, '$_product->get_image( \'woocommerce_thumbnail\' )' ) &&
+	false !== strpos( $r425_guided_form, 'id="jluxe-guided-address-editor-title"' ) &&
+	false !== strpos( $r425_checkout_js, 'setAddressEditorPresentation' ) &&
+	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ),
+	'R429 guided checkout renders real product thumbnails and the mobile address editor follows keyboard viewport changes'
+);
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
@@ -9330,6 +9379,31 @@ check(
 	true === $r279_settings_defaults['cart_checkout']['require_postcode_for_post'],
 	'R308 checkout requirement switches default to the current required behavior, including Post-only postcode enforcement'
 );
+check(
+	'classic' === $r279_settings_defaults['cart_checkout']['checkout_layout'] && true === $r279_settings_defaults['cart_checkout']['checkout_map_enabled'],
+	'R425 the legacy checkout stays the default and the guided layout has its optional OpenStreetMap picker enabled by default'
+);
+$r425_guided_settings = jluxe_sanitize_cart_checkout(
+	array_merge( $r279_settings_defaults['cart_checkout'], array( 'checkout_layout' => 'guided', 'checkout_map_enabled' => '1' ) ),
+	$r279_settings_defaults['cart_checkout']
+);
+$r425_invalid_layout = jluxe_sanitize_cart_checkout(
+	array_merge( $r279_settings_defaults['cart_checkout'], array( 'checkout_layout' => 'custom-script', 'checkout_map_enabled' => '' ) ),
+	$r279_settings_defaults['cart_checkout']
+);
+check(
+	'guided' === $r425_guided_settings['checkout_layout'] && true === $r425_guided_settings['checkout_map_enabled'] &&
+	'classic' === $r425_invalid_layout['checkout_layout'] && false === $r425_invalid_layout['checkout_map_enabled'],
+	'R425 checkout layout is allow-listed and the map toggle is safely persisted as a boolean'
+);
+check(
+	'35.689200' === jluxe_checkout_map_coordinate( '35.6892', -90.0, 90.0 ) &&
+	'-180.000000' === jluxe_checkout_map_coordinate( '-180', -180.0, 180.0 ) &&
+	null === jluxe_checkout_map_coordinate( '91', -90.0, 90.0 ) &&
+	null === jluxe_checkout_map_coordinate( '35.6<script>', -90.0, 90.0 ) &&
+	null === jluxe_checkout_map_coordinate( array( 'lat' => 1 ), -90.0, 90.0 ),
+	'R425 delivery coordinates are normalized and reject out-of-range, non-numeric, and compound values'
+);
 $r279_posted_checkout   = $r279_settings_defaults['cart_checkout'];
 $r279_posted_checkout['require_first_name'] = false;
 $r279_posted_checkout['require_last_name'] = false;
@@ -9432,6 +9506,41 @@ check(
 $r279_previous_live_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
 $r279_live_settings = $r279_settings_defaults;
 $r279_live_settings['cart_checkout'] = $r279_clean_checkout;
+update_test_settings( $r279_live_settings );
+$r425_old_post = $_POST;
+$_POST = array( 'jluxe_delivery_latitude' => '35.6892004', 'jluxe_delivery_longitude' => '51.3890002' );
+$r425_guided_live_settings = $r279_live_settings;
+$r425_guided_live_settings['cart_checkout']['checkout_layout'] = 'guided';
+$r425_guided_live_settings['cart_checkout']['checkout_map_enabled'] = true;
+update_test_settings( $r425_guided_live_settings );
+$r425_valid_map_coordinates = jluxe_checkout_map_coordinates_from_request();
+$r425_guided_live_settings['cart_checkout']['checkout_map_enabled'] = false;
+update_test_settings( $r425_guided_live_settings );
+$r425_disabled_map_coordinates = jluxe_checkout_map_coordinates_from_request();
+$r425_guided_live_settings['cart_checkout']['checkout_map_enabled'] = true;
+update_test_settings( $r425_guided_live_settings );
+$r425_order_stub = new class() {
+	public $meta = array();
+	public $saved = false;
+	public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
+	public function get_meta( $key, $single = true ) { return $this->meta[ $key ] ?? ''; }
+	public function delete_meta_data( $key ) { unset( $this->meta[ $key ] ); }
+	public function save_meta_data() { $this->saved = true; }
+};
+jluxe_checkout_store_map_coordinates( $r425_order_stub, array() );
+$r425_saved_map_meta = $r425_order_stub->meta['_jluxe_delivery_coordinates'] ?? null;
+$r425_exported_map_data = jluxe_checkout_export_delivery_map_location( array(), $r425_order_stub );
+jluxe_checkout_erase_delivery_map_location( $r425_order_stub );
+check(
+	'guided' === jluxe_checkout_layout() &&
+	array( 'latitude' => '35.689200', 'longitude' => '51.389000' ) === $r425_valid_map_coordinates &&
+	null === $r425_disabled_map_coordinates &&
+	array( 'latitude' => 35.6892, 'longitude' => 51.389 ) === $r425_saved_map_meta &&
+	'35.689200, 51.389000' === $r425_exported_map_data[0]['value'] &&
+	! isset( $r425_order_stub->meta['_jluxe_delivery_coordinates'] ) && $r425_order_stub->saved,
+	'R425 the optional map pin is accepted only when enabled, saved to the order, included in privacy export, and erased with order personal data'
+);
+$_POST = $r425_old_post;
 update_test_settings( $r279_live_settings );
 $r279_post_card_settings = jluxe_cart_checkout_shipping_method_settings( 'post' );
 $r279_tipax_card_settings = jluxe_cart_checkout_shipping_method_settings( 'tipax' );
