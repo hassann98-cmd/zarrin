@@ -7,7 +7,14 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'JLUXE_THEME_DIR', get_template_directory() );
 define( 'JLUXE_THEME_URI', get_template_directory_uri() );
-define( 'JLUXE_VITE_DEV_SERVER', 'http://localhost:5173' );
+// Use a browser-reachable HTTPS URL in wp-config.php when enabling HMR.
+if ( ! defined( 'JLUXE_VITE_DEV_SERVER' ) ) {
+	define( 'JLUXE_VITE_DEV_SERVER', '' );
+}
+define( 'JLUXE_ASSET_DIR', JLUXE_THEME_DIR . '/assets/compiled' );
+define( 'JLUXE_ASSET_URI', JLUXE_THEME_URI . '/assets/compiled' );
+
+require_once JLUXE_THEME_DIR . '/inc/responsive-images.php';
 
 /**
  * Theme supports.
@@ -17,6 +24,12 @@ function jluxe_setup() {
 	add_theme_support( 'post-thumbnails' );
 	add_theme_support( 'html5', array( 'search-form', 'gallery', 'caption', 'style', 'script' ) );
 	add_theme_support( 'woocommerce' );
+	// چیدمانِ پیش‌فرض از گالریِ رسمیِ ووکامرس استفاده می‌کند؛ این قابلیت‌ها
+	// لایت‌باکسِ تمام‌صفحه، اسلاید/سوایپ و زومِ لمسی/دابل‌تپ/drag را فعال می‌کنند.
+	// چیدمانِ classic گالریِ مستقلِ خودش را دارد و این کلاس‌ها روی آن اثر ندارند.
+	add_theme_support( 'wc-product-gallery-zoom' );
+	add_theme_support( 'wc-product-gallery-lightbox' );
+	add_theme_support( 'wc-product-gallery-slider' );
 
 	register_nav_menus(
 		array(
@@ -35,31 +48,45 @@ function jluxe_setup() {
 	 * سایزِ کوچیک‌ترِ ۱:۱ ثبت نشده بود، گزینه‌ی کوچیک‌تری برای مرورگر
 	 * وجود نداشت.
 	 *
-	 * این سایزِ جدید کاملاً افزودنیه — به woocommerce_thumbnail دست
-	 * نمی‌زنه (همونی که قبلاً یک‌بار به‌خاطرِ تغییرش رگرسیونِ واقعی پیش
-	 * اومده بود، طبقِ کامنتِ woocommerce/content-product.php)، فقط یک
-	 * گزینه‌ی کوچیک‌ترِ اضافه به srcset میده تا مرورگر خودش (بر اساسِ
-	 * sizes="...220px") انتخابِ درست‌تری داشته باشه.
+	 * سایزِ مربعِ 320px پایین‌تر از woocommerce_thumbnail ثبت می‌ماند و
+	 * به تنظیمِ ووکامرس دست نمی‌زند؛ برای کارتِ اصلی، اندازه‌های uncropped
+	 * جداگانه اضافه شده‌اند تا نسبتِ خودِ عکس حفظ شود.
 	 *
-	 * نکته‌ی مهم: این سایز فقط برای عکس‌هایی که از الان به بعد آپلود
-	 * می‌شن خودکار می‌سازه؛ برای عکس‌های محصولِ موجود، یک‌بار از پیشخوان
-	 * ← ابزارها یک regenerate thumbnails لازمه (یا پلاگینِ Regenerate
-	 * Thumbnails) تا همین سایزِ کوچیک براشون هم ساخته بشه.
+	 * نکتهٔ مهم: همهٔ این سایزها فقط برای فایل‌های تازه خودکار ساخته می‌شوند؛
+	 * برای تصاویرِ موجود، یک‌بار از ابزارِ Regenerate Thumbnails اندازه‌های
+	 * جدید را بسازید تا srcsetهای کوچک‌تر نیز در دسترس مرورگر قرار بگیرند.
 	 */
 	add_image_size( 'jluxe-product-thumb-sm', 320, 320, true );
+
+	// اندازه‌های uncropped برای srcset؛ عرض‌های کوچک‌تر دانلودِ لوگوها،
+	// تصویرهای کارت و کاندیدِ 480px برای عکس‌های محصول را کم می‌کنند.
+	// ارتفاعِ صفر و crop=false نسبتِ اصلیِ هر فایل را حفظ می‌کند.
+	foreach ( array( 96, 200, 320, 480, 640, 960, 1280 ) as $width ) {
+		add_image_size( 'jluxe-uncropped-' . $width, $width, 0, false );
+	}
+
+	// نسخهٔ مربعی برای کارت‌های دسته‌بندی؛ GIF متحرک در helper همچنان اصل می‌ماند.
+	add_image_size( 'jluxe-category-grid-ref-240', 240, 240, true );
 }
 add_action( 'after_setup_theme', 'jluxe_setup' );
 
-function jluxe_enqueue_theme_stylesheet(): void {
+/** Parent style.css is bundled by Vite; keep a separate child-theme override. */
+function jluxe_enqueue_child_theme_stylesheet(): void {
+	if ( get_stylesheet_directory() === get_template_directory() ) {
+		return;
+	}
 	$path = get_stylesheet_directory() . '/style.css';
+	if ( ! is_file( $path ) ) {
+		return;
+	}
 	wp_enqueue_style(
 		'jluxe-theme-style',
 		get_stylesheet_uri(),
 		array(),
-		file_exists( $path ) ? (string) filemtime( $path ) : null
+		(string) filemtime( $path )
 	);
 }
-add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_theme_stylesheet', 25 );
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_child_theme_stylesheet', 25 );
 
 function jluxe_enable_checkout_select2_wheel(): void {
 	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
@@ -93,16 +120,10 @@ add_action( 'wp_enqueue_scripts', 'jluxe_enable_checkout_select2_wheel', 30 );
  * هیچ لینک frontend نباید مسیرِ hardcode شده‌ی /shop/ داشته باشد.
  */
 function jluxe_shop_url(): string {
-	return home_url( '/shop/' );
+	return jluxe_route_url( 'shop' );
 }
 
-function jluxe_shop_canonical_url( $canonical ) {
-	if ( function_exists( 'is_shop' ) && is_shop() ) {
-		return jluxe_shop_url();
-	}
-	return $canonical;
-}
-add_filter( 'rank_math/frontend/canonical', 'jluxe_shop_canonical_url', 20 );
+
 
 /**
  * سازگاری با لینک‌های قدیمیِ /shop/ و /فروشگاه/ — هر دو به برگه‌ی فروشگاه
@@ -133,7 +154,10 @@ function jluxe_redirect_legacy_persian_shop_url(): void {
 	}
 	$path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
 	$path = rawurldecode( rawurldecode( $path ) );
-	if ( 'فروشگاه' !== trim( $path, '/' ) ) {
+	$home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+	$relative = trim( substr( $path, strlen( rtrim( $home_path, '/' ) ) ), '/' );
+	$canonical_path = rawurldecode( (string) wp_parse_url( jluxe_shop_url(), PHP_URL_PATH ) );
+	if ( 'فروشگاه' !== $relative || rtrim( $path, '/' ) === rtrim( $canonical_path, '/' ) ) {
 		return;
 	}
 	wp_safe_redirect( jluxe_shop_url(), 301 );
@@ -146,7 +170,7 @@ add_action( 'template_redirect', 'jluxe_redirect_legacy_persian_shop_url', 0 );
  * Toggle only by defining JLUXE_DEV=true in wp-config.php; WP_DEBUG alone never enables the Vite dev server.
  */
 function jluxe_is_dev(): bool {
-	return defined( 'JLUXE_DEV' ) && (bool) JLUXE_DEV;
+	return defined( 'JLUXE_DEV' ) && (bool) JLUXE_DEV && '' !== JLUXE_VITE_DEV_SERVER;
 }
 
 /**
@@ -159,7 +183,7 @@ function jluxe_vite_manifest(): array {
 		return $manifest;
 	}
 
-	$path = JLUXE_THEME_DIR . '/dist/.vite/manifest.json';
+	$path = JLUXE_ASSET_DIR . '/manifest.json';
 
 	if ( ! file_exists( $path ) ) {
 		$manifest = array();
@@ -175,6 +199,53 @@ function jluxe_vite_manifest(): array {
 
 	return $manifest;
 }
+
+/**
+ * Preload only the static module graph of the Vite entry. Dynamic island
+ * imports stay lazy; their own dependency graphs are fetched when mounted.
+ */
+function jluxe_preload_module_dependencies(): void {
+	if ( jluxe_is_dev() ) {
+		return;
+	}
+
+	$manifest = jluxe_vite_manifest();
+	$entry    = $manifest['src/main.js'] ?? array();
+	if ( empty( $entry['file'] ) || empty( $entry['imports'] ) ) {
+		return;
+	}
+
+	$seen_keys = array();
+	$seen_files = array();
+	$ordered_files = array();
+	$visit = function ( $key ) use ( &$visit, &$seen_keys, &$seen_files, &$ordered_files, $manifest ) {
+		if ( isset( $seen_keys[ $key ] ) || empty( $manifest[ $key ] ) ) {
+			return;
+		}
+		$seen_keys[ $key ] = true;
+		$module = $manifest[ $key ];
+		foreach ( $module['imports'] ?? array() as $dependency ) {
+			$visit( $dependency );
+		}
+		$file = $module['file'] ?? '';
+		if ( $file && empty( $seen_files[ $file ] ) ) {
+			$seen_files[ $file ] = true;
+			$ordered_files[] = $file;
+		}
+	};
+
+	foreach ( $entry['imports'] as $dependency ) {
+		$visit( $dependency );
+	}
+
+	foreach ( $ordered_files as $file ) {
+		printf(
+			'<link rel="modulepreload" crossorigin href="%s">' . "\n",
+			esc_url( JLUXE_ASSET_URI . '/' . ltrim( $file, '/' ) )
+		);
+	}
+}
+add_action( 'wp_head', 'jluxe_preload_module_dependencies', 4 );
 
 /**
  * پیش‌بارگذاریِ فونتِ متنِ اصلی — طبقِ اولویتِ کاربر («Regular/Medium فقط،
@@ -212,58 +283,11 @@ function jluxe_preload_body_fonts(): void {
 		}
 		printf(
 			'<link rel="preload" as="font" type="font/woff2" href="%s" crossorigin>' . "\n",
-			esc_url( JLUXE_THEME_URI . '/dist/' . $manifest[ $src_path ]['file'] )
+			esc_url( JLUXE_ASSET_URI . '/' . $manifest[ $src_path ]['file'] )
 		);
 	}
 }
 add_action( 'wp_head', 'jluxe_preload_body_fonts', 2 );
-
-/**
- * اخطارِ واقعیِ PageSpeed (از اولین بررسیِ این پروژه، هنوز حل‌نشده مونده
- * بود): چهار وزنِ سنگین (Bold=700, ExtraBold=800, Black=900, ExtraBlack=950)
- * توی باندلِ کامپایل‌شده/قفل‌شده فقط نسخه‌ی .ttf دارن (~59KB خام برای هرکدوم)
- * — نه woff2، برخلافِ Regular/Medium که این تبدیل رو در سطحِ خودِ سورس
- * (globals.css، قبل از build) قبلاً گرفتن. چون نمی‌تونیم اون باندلِ قفل‌شده
- * رو دوباره کامپایل کنیم، این‌جا نسخه‌ی woff2 رو (با fonttools، از همون
- * فایل‌های ttf موجود ساخته شده) به‌عنوانِ یک @font-face جدید (با همون
- * family/weight/style) دیرتر در <head> اعلام می‌کنیم — طبقِ قواعدِ استانداردِ
- * CSS، آخرین @font-face با همون family/weight/style برنده‌ست، پس مرورگرهای
- * امروزی (تقریباً همه) دیگه سراغِ ttf سنگین نمی‌رن، فقط اگه مرورگری واقعاً
- * woff2 رو نشناسه (خیلی نادر) به همون ttf اصلی برمی‌گرده.
- *
- * گزارشِ PageSpeed خودش تأیید می‌کنه این وزن‌ها واقعاً روی صفحه استفاده
- * می‌شن (Bold=700 در ۱۲ جای CSS، پرکاربردترینِ وزن‌های غیرِ ۴۰۰/۵۰۰) —
- * پس preload نمی‌کنیم (دقیقاً طبقِ همون منطقِ jluxe_preload_body_fonts:
- * این‌ها برای متنِ عمومیِ بالای صفحه نیستن)، فقط سایزِ خودِ دانلود رو کم
- * می‌کنیم، هر وقت که واقعاً لازم بشه.
- */
-function jluxe_override_heavy_font_weights_as_woff2(): void {
-	if ( jluxe_is_dev() ) {
-		return;
-	}
-	$fonts_uri = JLUXE_THEME_URI . '/assets/fonts/';
-	$weights   = array(
-		700 => array( 'woff2' => 'IRANYekanMobileBold-BBCE2d6Y.woff2', 'ttf' => 'IRANYekanMobileBold-BBCE2d6Y.ttf' ),
-		800 => array( 'woff2' => 'IRANYekanMobileExtraBold-CkTerGWQ.woff2', 'ttf' => 'IRANYekanMobileExtraBold-CkTerGWQ.ttf' ),
-		900 => array( 'woff2' => 'IRANYekanMobileBlack-CcgaB4Xg.woff2', 'ttf' => 'IRANYekanMobileBlack-CcgaB4Xg.ttf' ),
-		950 => array( 'woff2' => 'IRANYekanMobileExtraBlack-DqMfFYeF.woff2', 'ttf' => 'IRANYekanMobileExtraBlack-DqMfFYeF.ttf' ),
-	);
-	// خودِ فایلِ ttf اصلی هنوز از dist/assets میاد (تغییری نکرده) — فقط
-	// به‌عنوانِ fallback نگه داشته می‌شه، دقیقاً هم‌اسمِ همونی که globals.css
-	// خودش declare کرده بود.
-	$dist_uri = JLUXE_THEME_URI . '/dist/assets/';
-	echo "<style>\n";
-	foreach ( $weights as $weight => $files ) {
-		printf(
-			"@font-face{font-family:IRANYekan;src:url(%s) format('woff2'),url(%s) format('truetype');font-weight:%d;font-style:normal;font-display:swap}\n",
-			esc_url( $fonts_uri . $files['woff2'] ),
-			esc_url( $dist_uri . $files['ttf'] ),
-			(int) $weight
-		);
-	}
-	echo "</style>\n";
-}
-add_action( 'wp_head', 'jluxe_override_heavy_font_weights_as_woff2', 20 );
 
 /**
  * Critical CSS — طبقِ اولویتِ کاربر («Performance واقعی»)، نسخه‌ی امنِ این
@@ -291,34 +315,6 @@ add_action( 'wp_head', 'jluxe_override_heavy_font_weights_as_woff2', 20 );
  * استفاده می‌کنه صدا زده می‌شه — یعنی این‌جا هم همیشه رنگِ واقعیِ همون
  * سایته، نه پیش‌فرضِ تم.
  */
-/**
- * پیش‌بارگذاری تصویر اصلی محصول برای کاهش تأخیر LCP در صفحات محصول.
- */
-function jluxe_preload_single_product_lcp_image(): void {
-	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
-		return;
-	}
-	$product = function_exists( 'wc_get_product' ) ? wc_get_product( get_queried_object_id() ) : false;
-	if ( ! $product instanceof WC_Product ) {
-		return;
-	}
-	$image_id = (int) $product->get_image_id();
-	if ( ! $image_id ) {
-		return;
-	}
-	$image_url = wp_get_attachment_image_url( $image_id, 'woocommerce_single' );
-	$srcset    = wp_get_attachment_image_srcset( $image_id, 'woocommerce_single' );
-	if ( ! $image_url ) {
-		return;
-	}
-	$attributes = sprintf( ' href="%s"', esc_url( $image_url ) );
-	if ( $srcset ) {
-		$attributes .= sprintf( ' imagesrcset="%s"', esc_attr( $srcset ) );
-	}
-	printf( '<link rel="preload" as="image"%s fetchpriority="high">' . "\n", $attributes );
-}
-add_action( 'wp_head', 'jluxe_preload_single_product_lcp_image', 1 );
-
 function jluxe_output_critical_css(): void {
 	if ( jluxe_is_dev() ) {
 		return;
@@ -327,7 +323,7 @@ function jluxe_output_critical_css(): void {
 	echo '<style id="jluxe-critical-css">';
 	echo jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجیِ خودِ این تابع با esc_attr روی مقادیر امنه.
 	// توکن‌های ثابت (غیرِقابل‌تنظیم از پنل) — عیناً از globals.css:root کپی شده.
-	echo ':root{--foreground:225 6% 13%;--surface:0 0% 100%;--surface-foreground:225 6% 13%;--surface-elevated:270 16% 93%;--text-secondary:240 5% 43%;--text-muted:240 5% 58%;--muted:270 16% 93%;--muted-foreground:240 5% 43%;--border:264 15% 87%;--warning:38 92% 42%;--warning-foreground:225 6% 13%;--error:0 72% 45%;--error-foreground:0 0% 100%;--radius:0.5rem}';
+	echo ':root{--jluxe-radius-sm:0.5rem;--jluxe-radius-md:0.75rem;--jluxe-radius-lg:1rem;--jluxe-shadow-sm:0 1px 2px rgba(15,23,42,0.05);--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06);--radius:0.5rem}';
 	echo 'html{direction:rtl}body{font-family:"IRANYekan","Tahoma",sans-serif;text-align:right;background-color:hsl(var(--background));color:hsl(var(--foreground))}';
 	foreach ( array(
 		'400' => 'src/assets/fonts/IRANYekanMobileRegular.woff2',
@@ -338,7 +334,7 @@ function jluxe_output_critical_css(): void {
 		}
 		printf(
 			'@font-face{font-family:"IRANYekan";src:url(%s) format("woff2");font-weight:%s;font-style:normal;font-display:swap}',
-			esc_url( JLUXE_THEME_URI . '/dist/' . $manifest[ $src_path ]['file'] ),
+			esc_url( JLUXE_ASSET_URI . '/' . $manifest[ $src_path ]['file'] ),
 			esc_attr( $weight )
 		);
 	}
@@ -347,10 +343,33 @@ function jluxe_output_critical_css(): void {
 add_action( 'wp_head', 'jluxe_output_critical_css', 3 );
 
 /**
- * Enqueue the theme's JS/CSS entry, dev server in dev mode, hashed dist assets in prod.
+ * Enqueue the theme's JS/CSS entry, dev server in dev mode, hashed assets/compiled files in prod.
  */
+function jluxe_enqueue_mobile_auth_status(): void {
+	$file = '/assets/js/mobile-auth-status.js';
+	$path = JLUXE_THEME_DIR . $file;
+	wp_enqueue_script(
+		'jluxe-mobile-auth-status',
+		JLUXE_THEME_URI . $file,
+		array(),
+		file_exists( $path ) ? (string) filemtime( $path ) : null,
+		array(
+			'in_footer' => false,
+			'strategy'  => 'defer',
+		)
+	);
+	wp_localize_script(
+		'jluxe-mobile-auth-status',
+		'jluxeMobileAuthSettings',
+		array(
+			'sessionUrl' => esc_url_raw( admin_url( 'admin-ajax.php' ) ),
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_mobile_auth_status', 4 );
+
 function jluxe_enqueue_assets() {
-	$entry = 'src/main.tsx';
+	$entry = 'src/main.js';
 
 	if ( jluxe_is_dev() ) {
 		wp_enqueue_script( 'jluxe-vite-client', JLUXE_VITE_DEV_SERVER . '/@vite/client', array(), null, false );
@@ -360,7 +379,7 @@ function jluxe_enqueue_assets() {
 
 	$manifest = jluxe_vite_manifest();
 
-	if ( empty( $manifest[ $entry ] ) ) {
+	if ( empty( $manifest[ $entry ]['file'] ) || ! is_file( JLUXE_ASSET_DIR . '/' . $manifest[ $entry ]['file'] ) ) {
 		return;
 	}
 
@@ -368,13 +387,31 @@ function jluxe_enqueue_assets() {
 
 	if ( ! empty( $entry_data['css'] ) ) {
 		foreach ( $entry_data['css'] as $i => $css_file ) {
-			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_THEME_URI . '/dist/' . $css_file, array(), null );
+			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array(), null );
 		}
 	}
 
-	wp_enqueue_script( 'jluxe-main', JLUXE_THEME_URI . '/dist/' . $entry_data['file'], array(), null, true );
+	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), null, true );
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_assets' );
+
+/** Fail visibly for administrators if a deployment omitted the built assets. */
+function jluxe_assets_admin_notice(): void {
+	if ( ! current_user_can( 'edit_theme_options' ) || jluxe_is_dev() ) {
+		return;
+	}
+	$manifest = jluxe_vite_manifest();
+	$entry = $manifest['src/main.js'] ?? array();
+	$files = array_merge( array( $entry['file'] ?? '' ), $entry['css'] ?? array() );
+	foreach ( $files as $file ) {
+		if ( ! $file || ! is_file( JLUXE_ASSET_DIR . '/' . $file ) ) {
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'فایل‌های فرانت‌اند زرین ناقص است. خروجی کامل npm ci و npm run build (پوشهٔ assets/compiled همراه manifest.json) را بارگذاری کنید.', 'jluxe' ) . '</p></div>';
+			break;
+		}
+	}
+}
+add_action( 'admin_notices', 'jluxe_assets_admin_notice' );
+
 
 /**
  * اسکلتون/شیمرِ لودینگِ عکس — سراسریِ کاملِ سایت (نه فقط ووکامرس)، چون
@@ -394,6 +431,17 @@ function jluxe_enqueue_img_skeleton(): void {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_img_skeleton' );
+
+/**
+ * رنگِ رابطِ مرورگر در موبایل (theme-color) — نوارِ بالای مرورگر هم‌رنگِ
+ * پس‌زمینهٔ فروشگاه می‌شود (حسِ اپ). قابل تغییر با فیلتر.
+ */
+function jluxe_mobile_theme_color(): void {
+	$settings = jluxe_get_theme_settings();
+	$default  = sanitize_hex_color( (string) ( $settings['colors']['background'] ?? '#FAE8FD' ) ) ?: '#FAE8FD';
+	printf( '<meta name="theme-color" content="%s">' . "\n", esc_attr( (string) apply_filters( 'jluxe_theme_color', $default ) ) );
+}
+add_action( 'wp_head', 'jluxe_mobile_theme_color', 2 );
 
 /**
  * فاوآیکون — اولویت با آپلودِ ادمین/آیکونِ سایتِ خودِ وردپرس
@@ -419,11 +467,31 @@ add_action( 'wp_head', 'jluxe_favicon', 1 );
  */
 function jluxe_module_script_attrs( $tag, $handle ) {
 	if ( in_array( $handle, array( 'jluxe-vite-client', 'jluxe-main' ), true ) ) {
+		$tag = preg_replace( '/\s+type=([\'\"])[^\'\"]*\1/i', '', $tag );
 		$tag = str_replace( ' src=', ' type="module" src=', $tag );
 	}
 	return $tag;
 }
 add_filter( 'script_loader_tag', 'jluxe_module_script_attrs', 10, 2 );
+
+/** Keep only the purchase-critical script chain out of optimizer delay/combine rewrites. */
+function jluxe_protect_purchase_script_optimization( $tag, $handle ) {
+	$purchase_handles = array( 'jluxe-woocommerce', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
+	if ( ! in_array( $handle, $purchase_handles, true ) || false !== strpos( $tag, 'data-no-optimize' ) ) {
+		return $tag;
+	}
+	return preg_replace( '/<script\\b/i', '<script data-no-optimize="1"', $tag, 1 );
+}
+add_filter( 'script_loader_tag', 'jluxe_protect_purchase_script_optimization', 20, 2 );
+
+/** Mark only localized settings inline blocks; leave inline behavior scripts optimizable. */
+function jluxe_protect_inline_public_settings( array $attributes, string $data ): array {
+	if ( preg_match( '/\\b(?:JLuxeThemeSettings|jluxeWcSettings)\\b/', $data ) ) {
+		$attributes['data-no-optimize'] = '1';
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'jluxe_protect_inline_public_settings', 10, 2 );
 
 /**
  * اخطارِ واقعیِ Lighthouse («Render-blocking requests»، ~۱۶۵۰ میلی‌ثانیه فقط
@@ -458,6 +526,28 @@ function jluxe_defer_core_scripts_to_footer( $scripts ) {
 	}
 }
 add_action( 'wp_default_scripts', 'jluxe_defer_core_scripts_to_footer' );
+
+/**
+ * WooCommerce may register `jquery-blockui` as an alias without a source URL.
+ * WordPress 6.3+ rejects loading strategies on aliases, so defer only the real
+ * BlockUI script(s) with a non-empty source. Preserve dependency order/URLs.
+ */
+function jluxe_defer_woocommerce_blockui(): void {
+	if ( is_admin() ) {
+		return;
+	}
+	global $wp_scripts;
+	if ( ! is_object( $wp_scripts ) || empty( $wp_scripts->registered ) ) {
+		return;
+	}
+	foreach ( array( 'jquery-blockui', 'wc-jquery-blockui' ) as $handle ) {
+		$registered_script = $wp_scripts->registered[ $handle ] ?? null;
+		if ( is_object( $registered_script ) && ! empty( $registered_script->src ) ) {
+			$wp_scripts->add_data( $handle, 'strategy', 'defer' );
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_defer_woocommerce_blockui', 110 );
 
 /**
  * اخطارِ واقعیِ Lighthouse («Render-blocking requests»، ~۱۷۷۰ میلی‌ثانیه):
@@ -565,14 +655,32 @@ function jluxe_defer_third_party_scripts( $tag, $handle, $src ) {
 }
 add_filter( 'script_loader_tag', 'jluxe_defer_third_party_scripts', 10, 3 );
 
+require_once JLUXE_THEME_DIR . '/inc/compat.php'; // R86 — هلپرهای رشته‌ای (بدونِ وابستگیِ اجباری به mbstring)
+require_once JLUXE_THEME_DIR . '/inc/assets.php';
+require_once JLUXE_THEME_DIR . '/inc/soft-navigation.php';
+require_once JLUXE_THEME_DIR . '/inc/page-skeleton.php';
+require_once JLUXE_THEME_DIR . '/inc/security.php';
+require_once JLUXE_THEME_DIR . '/inc/icons.php';
+require_once JLUXE_THEME_DIR . '/inc/urls.php';
 require_once JLUXE_THEME_DIR . '/inc/qa.php';
 require_once JLUXE_THEME_DIR . '/inc/woocommerce.php';
+require_once JLUXE_THEME_DIR . '/inc/featured-products.php';
+require_once JLUXE_THEME_DIR . '/inc/product-specifications.php';
 require_once JLUXE_THEME_DIR . '/inc/product-faq.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-tickets.php';
 require_once JLUXE_THEME_DIR . '/inc/attribute-swatches.php';
 require_once JLUXE_THEME_DIR . '/inc/theme-settings.php';
+require_once JLUXE_THEME_DIR . '/inc/store-closure.php';
+require_once JLUXE_THEME_DIR . '/inc/storefront-personalization.php';
+require_once JLUXE_THEME_DIR . '/inc/stock-alert.php';
+require_once JLUXE_THEME_DIR . '/inc/announcement-bar.php';
+require_once JLUXE_THEME_DIR . '/inc/ai-comments.php';
 require_once JLUXE_THEME_DIR . '/inc/order-tracking.php';
+require_once JLUXE_THEME_DIR . '/inc/order-label.php';
+require_once JLUXE_THEME_DIR . '/inc/invoice.php';
+require_once JLUXE_THEME_DIR . '/inc/product-manager.php';
 require_once JLUXE_THEME_DIR . '/inc/required-pages.php';
+require_once JLUXE_THEME_DIR . '/inc/site-diagnosis.php';
 /*
  * افزونه‌ی «ویرایشگر/بهینه‌سازِ تصویر» (inc/image-optimizer.php + inc/image-optimizer/)
  * طبقِ درخواستِ صریحِ کاربر کاملاً از پوسته حذف شد — داشت تصاویرِ محصولات
@@ -596,6 +704,18 @@ require_once JLUXE_THEME_DIR . '/inc/required-pages.php';
  */
 require_once JLUXE_THEME_DIR . '/inc/search.php';
 require_once JLUXE_THEME_DIR . '/inc/cart-ux.php';
+require_once JLUXE_THEME_DIR . '/inc/reviews.php';
+require_once JLUXE_THEME_DIR . '/inc/pwa.php'; // R88 — PWAِ امن (بدونِ کشِ HTML)
+
+/** Identify the configured WooCommerce account page, independent of its slug. */
+function jluxe_is_woocommerce_account_page(): bool {
+	return function_exists( 'is_account_page' ) && is_account_page();
+}
+
+/** The account layout keeps navigation/support but omits the site-wide footer. */
+function jluxe_should_render_site_footer(): bool {
+	return ! jluxe_is_woocommerce_account_page() && ! empty( jluxe_get_setting( 'footer.enabled', true ) );
+}
 
 /**
  * تضمینِ اینکه صفحه‌ی «ورود» همیشه همون UI اختصاصیِ خودمون
@@ -617,7 +737,7 @@ require_once JLUXE_THEME_DIR . '/inc/cart-ux.php';
  * صفحه، درست تشخیص می‌ده که «این همون صفحه‌ی حساب کاربریِ واقعیه یا نه».
  */
 function jluxe_force_my_account_template( string $template ): string {
-	if ( function_exists( 'is_account_page' ) && is_account_page() && ! is_admin() ) {
+	if ( jluxe_is_woocommerce_account_page() && ! is_admin() ) {
 		$custom = JLUXE_THEME_DIR . '/page-my-account.php';
 		if ( file_exists( $custom ) ) {
 			return $custom;
@@ -626,3 +746,23 @@ function jluxe_force_my_account_template( string $template ): string {
 	return $template;
 }
 add_filter( 'template_include', 'jluxe_force_my_account_template', 99 );
+
+/**
+ * Shared by classic storefront scripts. Keep it discoverable in the head but
+ * defer execution: WordPress preserves dependencies, and every classic
+ * consumer is deferred as well, so this small helper never blocks first paint.
+ */
+function jluxe_enqueue_storefront_utils(): void {
+	$file = '/assets/js/storefront-utils.js';
+	wp_enqueue_script(
+		'jluxe-storefront-utils',
+		JLUXE_THEME_URI . $file,
+		array(),
+		(string) filemtime( JLUXE_THEME_DIR . $file ),
+		array(
+			'in_footer' => false,
+			'strategy'  => 'defer',
+		)
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_storefront_utils', 5 );
