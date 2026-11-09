@@ -26,6 +26,10 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
     .join("");
   const dom = new JSDOM(
     `<!doctype html><html><body class="woocommerce-checkout">
+      <div class="jluxe-guided-checkout__before-form-notices" data-guided-before-form-notices aria-hidden="false">
+        <div class="woocommerce-info" role="status">اطلاعیهٔ بازپرداخت کیف پول</div>
+        <div class="woocommerce-info" role="status">برای واردکردن کد کوپن اینجا کلیک کنید</div>
+      </div>
       <form id="jluxe-guided-checkout-form" class="checkout" data-jluxe-checkout-flow="guided" data-guided-current-step="shipping">
         <header><h1>تکمیل خرید</h1></header>
         <nav data-guided-stepper data-guided-current-step="shipping">
@@ -222,6 +226,24 @@ test("the next step shows an editable address summary, keeps form values, and as
   $(document.body).trigger("updated_checkout");
   assert.equal(action.querySelector("[data-guided-total]").textContent, "۴۵۰۰ تومان", "the sticky total follows WooCommerce's refreshed order-review fragment");
   assert.equal(form.getAttribute("data-guided-current-step"), "payment");
+});
+
+test("pre-checkout cashback and native coupon notices appear in shipping only, not a second time in payment", (t) => {
+  const { dom, document } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  const notices = document.querySelector("[data-guided-before-form-notices]");
+  assert.equal(notices.hidden, false, "WooCommerce/plugin notices are visible in the shipping step");
+  assert.equal(notices.querySelectorAll(".woocommerce-info").length, 2);
+
+  document.querySelector("[data-guided-next]").click();
+  assert.equal(notices.hidden, true, "the same pre-checkout notices are hidden when payment becomes current");
+  assert.equal(notices.getAttribute("aria-hidden"), "true");
+  assert.equal(document.querySelector('[data-guided-panel="payment"]').contains(document.querySelector("[data-guided-coupon]")), true, "the guided coupon UI remains in the payment step");
+
+  document.querySelector('[data-guided-panel="payment"] [data-guided-back]').click();
+  assert.equal(notices.hidden, false, "returning to shipping restores its one-time notices");
+  assert.equal(notices.getAttribute("aria-hidden"), "false");
 });
 
 test("a separate shipping address prefers shipping_phone in the payment-step summary", (t) => {

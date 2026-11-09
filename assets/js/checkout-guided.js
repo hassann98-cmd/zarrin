@@ -6,6 +6,7 @@
   var root = form && form.querySelector("[data-guided-checkout-root]");
   if (!form || !root) return;
 
+  var beforeFormNotices = document.querySelector("[data-guided-before-form-notices]");
   var $ = window.jQuery || null;
   var body = document.body;
   var customerDetails = form.querySelector("#customer_details");
@@ -528,6 +529,10 @@
     if (paymentPanel) {
       paymentPanel.hidden = step !== "payment";
       paymentPanel.setAttribute("aria-hidden", step !== "payment" ? "true" : "false");
+    }
+    if (beforeFormNotices) {
+      beforeFormNotices.hidden = step !== "shipping";
+      beforeFormNotices.setAttribute("aria-hidden", step !== "shipping" ? "true" : "false");
     }
     if (stepStatus) {
       stepStatus.textContent = step === "payment" ? "مرحلهٔ ۲ از ۲: شیوهٔ پرداخت" : "مرحلهٔ ۱ از ۲: اطلاعات ارسال";

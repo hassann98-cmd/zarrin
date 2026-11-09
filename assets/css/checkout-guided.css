@@ -1057,6 +1057,10 @@ body.woocommerce-checkout .jluxe-guided-checkout__coupon-native {
   display: none !important;
 }
 
+body.woocommerce-checkout .jluxe-guided-checkout__before-form-notices[hidden] {
+  display: none !important;
+}
+
 body.woocommerce-checkout .jluxe-guided-field-error {
   display: block;
   margin-block-start: 0.25rem;

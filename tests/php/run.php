@@ -8970,6 +8970,16 @@ check(
 	false !== strpos( $r425_woocommerce_source, "function_exists( 'is_checkout' ) && ! is_checkout()" ),
 	'R430 only guided checkout relocates the core coupon callback; classic preserves its standard pre-form placement'
 );
+$r431_notice_wrapper = strpos( $r425_checkout_form, 'data-guided-before-form-notices' );
+$r431_notice_action = strpos( $r425_checkout_form, "do_action( 'woocommerce_before_checkout_form', \$checkout )" );
+$r431_notice_close = false === $r431_notice_action ? false : strpos( $r425_checkout_form, '</div>', $r431_notice_action );
+check(
+	false !== $r431_notice_wrapper && false !== $r431_notice_action && false !== $r431_notice_close &&
+	$r431_notice_wrapper < $r431_notice_action && $r431_notice_action < $r431_notice_close &&
+	false !== strpos( $r425_checkout_js, 'beforeFormNotices.hidden = step !== "shipping"' ) &&
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' ),
+	'R431 pre-checkout cashback/coupon notices are scoped to guided checkout and hidden accessibly during payment, then restored on return'
+);
 if ( $r430_saved_option_exists ) {
 	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r430_saved_option;
 } else {

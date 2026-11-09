@@ -12,14 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-do_action( 'woocommerce_before_checkout_form', $checkout );
+$jluxe_is_guided_checkout = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout();
+if ( $jluxe_is_guided_checkout ) : ?>
+<div class="jluxe-guided-checkout__before-form-notices" data-guided-before-form-notices aria-hidden="false">
+<?php endif; ?>
+<?php do_action( 'woocommerce_before_checkout_form', $checkout ); ?>
+<?php if ( $jluxe_is_guided_checkout ) : ?>
+</div>
+<?php endif; ?>
 
-if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_required() && ! is_user_logged_in() ) {
+<?php if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_required() && ! is_user_logged_in() ) {
 	echo esc_html( apply_filters( 'woocommerce_checkout_must_be_logged_in_message', __( 'You must be logged in to checkout.', 'woocommerce' ) ) );
 	return;
 }
 
-if ( function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout() ) {
+if ( $jluxe_is_guided_checkout ) {
 	include __DIR__ . '/form-checkout-guided.php';
 	return;
 }
