@@ -16,8 +16,15 @@ defined( 'ABSPATH' ) || exit;
 $formatted_destination    = isset( $formatted_destination ) ? $formatted_destination : WC()->countries->get_formatted_address( $package['destination'], ', ' );
 $has_calculated_shipping  = ! empty( $has_calculated_shipping );
 $show_shipping_calculator = ! empty( $show_shipping_calculator );
-$calculator_text          = '';
-$shipping_card_radius     = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 10 ) : 10;
+$calculator_text = '';
+$jluxe_checkout_review_ajax = false;
+if ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() && isset( $_GET['wc-ajax'] ) && is_scalar( $_GET['wc-ajax'] ) ) {
+	$jluxe_checkout_review_ajax = 'update_order_review' === sanitize_key( wp_unslash( (string) $_GET['wc-ajax'] ) );
+}
+$jluxe_guided_shipping = ( ( function_exists( 'is_checkout' ) && is_checkout() ) || $jluxe_checkout_review_ajax )
+	&& function_exists( 'jluxe_checkout_layout' )
+	&& 'guided' === jluxe_checkout_layout();
+$shipping_card_radius = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 10 ) : 10;
 $shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 10;
 if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) ) {
 	$shipping_card_radius = 10;
@@ -59,7 +66,7 @@ if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) 
 							<?php endif; ?>
 						</label>
 						<?php if ( $show_method_details ) : ?>
-							<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>" style="--jluxe-shipping-details-bg: <?php echo esc_attr( $method_copy['details_background_color'] ); ?>; --jluxe-shipping-details-color: <?php echo esc_attr( $method_copy['details_text_color'] ); ?>;" open>
+							<details class="jluxe-shipping-method-accordion jluxe-shipping-method-accordion--<?php echo esc_attr( $kind ); ?>" style="--jluxe-shipping-details-bg: <?php echo esc_attr( $method_copy['details_background_color'] ); ?>; --jluxe-shipping-details-color: <?php echo esc_attr( $method_copy['details_text_color'] ); ?>;"<?php echo $jluxe_guided_shipping ? '' : ' open'; ?>>
 							<summary>
 								<span><?php echo esc_html( $method_copy['summary'] ); ?></span>
 								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>

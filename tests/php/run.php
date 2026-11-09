@@ -8881,40 +8881,52 @@ $r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerc
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
 $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
 $r425_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
+$r425_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 check(
 	false !== strpos( $r425_checkout_form, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_checkout_form, "include __DIR__ . '/form-checkout-guided.php'" ) &&
 	false !== strpos( $r425_guided_form, 'data-jluxe-checkout-flow="guided"' ) &&
+	false !== strpos( $r425_guided_form, 'id="customer_details"' ) &&
 	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_billing' )" ) &&
 	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_shipping' )" ) &&
+	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_before_order_review_heading' )" ) &&
 	false !== strpos( $r425_guided_form, 'woocommerce_checkout_payment()' ) &&
 	false !== strpos( $r425_guided_form, "do_action( 'woocommerce_checkout_order_review' )" ) &&
 	false !== strpos( $r425_guided_form, 'jluxe_render_payment_submit()' ) &&
 	false !== strpos( $r425_guided_form, 'name="jluxe_delivery_latitude"' ) &&
-	false !== strpos( $r425_guided_form, 'data-guided-address-editor' ) &&
-	false !== strpos( $r425_guided_form, 'data-guided-address-scrim' ) &&
-	false !== strpos( $r425_guided_form, "jluxe_icon_svg_markup( 'map-pin'" ) &&
+	false !== strpos( $r425_guided_form, 'data-guided-mobile-action' ) &&
+	false !== strpos( $r425_guided_form, '<span data-guided-continue-label>ادامه</span>' ) &&
+	false !== strpos( $r425_guided_form, "jluxe_icon_svg_markup( 'map'" ) &&
+	false === strpos( $r425_guided_form, 'data-guided-address-editor' ) &&
+	false === strpos( $r425_guided_form, 'data-guided-stepper' ) &&
 	false !== strpos( $r425_checkout_js, 'data-jluxe-checkout-flow="guided"' ) &&
-	false !== strpos( $r425_checkout_js, 'trigger("update_checkout")' ) &&
+	false !== strpos( $r425_checkout_js, 'placeOrder.click()' ) &&
 	false !== strpos( $r425_checkout_js, 'visualViewport' ) &&
 	false !== strpos( $r425_checkout_js, '--jluxe-keyboard-inset' ) &&
 	false !== strpos( $r425_woocommerce_source, "'jluxe-guided-checkout'" ) &&
-	false !== strpos( $r425_guided_css, 'jluxe-guided-checkout__grid' ) &&
+	false !== strpos( $r425_guided_css, 'position: fixed;' ) &&
+	false !== strpos( $r425_guided_css, 'jluxe-guided-checkout__order' ) &&
+	false !== strpos( $r425_guided_css, '#jluxe-shipping-section #shipping_method .jluxe-shipping-card' ) &&
 	false !== strpos( $r425_guided_css, '--jluxe-keyboard-inset' ) &&
 	false !== strpos( $r425_guided_css, '@media (max-width: 767.98px)' ) &&
 	false !== strpos( $r425_map_module, 'tile.openstreetmap.org' ) &&
 	false !== strpos( $r425_map_module, 'nominatim.openstreetmap.org' ) &&
 	false !== strpos( $r425_settings_ui, 'cart_checkout[checkout_layout]' ) &&
-	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ),
-	'R425 the guided template remains optional and uses real WooCommerce fields/order fragments while map assets and controls are opt-in/configurable'
+	false !== strpos( $r425_settings_ui, 'طرح سادهٔ یک‌صفحه‌ای' ) &&
+	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ) &&
+	false !== strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping"' ) &&
+	false === strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping" hidden' ) &&
+	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" ),
+	'R426 guided remains optional beside classic and presents native fields, shipping, order summary, real payment, optional map, and a short fixed mobile action in one flow'
 );
 check(
 	false !== strpos( $r425_review_template, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_review_template, '$_product->get_image( \'woocommerce_thumbnail\' )' ) &&
-	false !== strpos( $r425_guided_form, 'id="jluxe-guided-address-editor-title"' ) &&
-	false !== strpos( $r425_checkout_js, 'setAddressEditorPresentation' ) &&
-	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ),
-	'R429 guided checkout renders real product thumbnails and the mobile address editor follows keyboard viewport changes'
+	false !== strpos( $r425_guided_form, 'data-jluxe-map-picker' ) &&
+	false !== strpos( $r425_checkout_js, 'scrollFocusedFieldIntoView' ) &&
+	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ) &&
+	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== document.body' ),
+	'R429 guided checkout keeps product thumbnails, optional map pin selection, and active fields clear above the mobile keyboard'
 );
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
@@ -9362,7 +9374,10 @@ check(
 	false !== strpos( $r279_shipping_template, 'jluxe_shipping_method_presentation( $method )' ) &&
 	false !== strpos( $r279_shipping_template, 'jluxe_cart_checkout_shipping_method_settings( $kind )' ) &&
 	false !== strpos( $r279_shipping_template, '<details class="jluxe-shipping-method-accordion' ) &&
-	false !== strpos( $r279_shipping_template, '" open>' ) &&
+	false !== strpos( $r279_shipping_template, "\$jluxe_guided_shipping ? '' : ' open'" ) &&
+	false !== strpos( $r279_shipping_template, 'wp_doing_ajax()' ) &&
+	false !== strpos( $r279_shipping_template, 'update_order_review' ) &&
+	false !== strpos( $r279_shipping_template, 'is_checkout()' ) &&
 	false !== strpos( $r279_shipping_template, "do_action( 'woocommerce_after_shipping_rate', \$method, \$index )" ) &&
 	false === strpos( $r279_shipping_template, 'jluxe-shipping-card__hint' ) &&
 	false === strpos( $r279_review_template, 'jluxe-shipping-freight-note' ) &&

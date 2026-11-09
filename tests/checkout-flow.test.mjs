@@ -547,7 +547,7 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
   assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
-  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\bopen>/, "only a selected rate's accordion is displayed below its card");
+  assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\$jluxe_guided_shipping \? '' : ' open'/, "classic rates keep their expanded details while guided keeps them compact until requested");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
   assert.doesNotMatch(shippingTemplate, /jluxe-shipping-card__check|jluxe-shipping-check/);
   const shippingRadio = shippingTemplate.match(/<input type="radio"[\s\S]*?\/>/)?.[0] || "";

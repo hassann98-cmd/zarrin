@@ -5,13 +5,14 @@ import { JSDOM } from "jsdom";
 import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/checkout-guided.js", import.meta.url), "utf8");
+const stylesheet = fs.readFileSync(new URL("../assets/css/checkout-guided.css", import.meta.url), "utf8");
 const legacyCheckoutSource = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
 
-test("the legacy checkout stepper leaves the new guided state machine in sole control", () => {
+test("the legacy multi-step checkout leaves the one-page guided layout in sole control", () => {
   assert.match(legacyCheckoutSource, /form\.getAttribute\("data-jluxe-checkout-flow"\) === "guided"/);
 });
 
-function bootGuidedCheckout({ hasAddress = false, step = "address", shipping = true, paymentMethods = ["gateway-a"], mobile = false } = {}) {
+function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], mobile = false } = {}) {
   const shippingMarkup = shipping
     ? `<section id="jluxe-shipping-section"><input class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate:1"><p data-jluxe-shipping-error hidden>روش ارسال را انتخاب کنید.</p></section>`
     : "";
@@ -20,64 +21,46 @@ function bootGuidedCheckout({ hasAddress = false, step = "address", shipping = t
     .join("");
   const dom = new JSDOM(
     `<!doctype html><html><body>
-      <form class="checkout" data-jluxe-checkout-flow="guided">
-        <header><h1 data-guided-page-title>نشانی تحویل</h1><p data-guided-page-description></p></header>
-        <nav data-guided-stepper><ol>
-          <li data-guided-step="address" data-guided-step-state="active"><span>۱</span></li>
-          <li data-guided-step="payment" data-guided-step-state="pending"><span>۲</span></li>
-        </ol></nav>
-        <div data-guided-checkout-root data-guided-step="${step}" data-guided-has-address="${hasAddress ? "1" : "0"}">
-          <section data-guided-panel="address">
-            <h2 id="jluxe-guided-address-title">اطلاعات ارسال</h2>
-            <p data-guided-address-error hidden>فیلدهای الزامی را تکمیل کنید.</p>
-            <section data-guided-address-card ${hasAddress ? "" : "hidden"}>
-              <strong data-guided-address-recipient></strong><p data-guided-address-text></p><span data-guided-address-phone hidden></span>
-              <button type="button" data-guided-open-address>ویرایش</button>
-            </section>
-            <section data-guided-empty-address ${hasAddress ? "hidden" : ""}>
-              <button type="button" data-guided-open-address>افزودن نشانی</button>
-            </section>
-            <div data-guided-address-scrim hidden aria-hidden="true"></div>
-            <div id="customer_details" data-guided-address-editor aria-labelledby="jluxe-guided-address-editor-title" tabindex="-1" ${hasAddress ? "hidden" : ""}>
-              <header><h3 id="jluxe-guided-address-editor-title">اطلاعات گیرنده و نشانی</h3><button type="button" data-guided-close-address>بستن</button></header>
-              <p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" name="billing_first_name" value="${hasAddress ? "مهسا" : ""}"></p>
-              <p class="form-row validate-required" id="billing_last_name_field"><input class="input-text" name="billing_last_name" value="${hasAddress ? "رضایی" : ""}"></p>
-              <p class="form-row validate-required" id="billing_phone_field"><input class="input-text" name="billing_phone" value="${hasAddress ? "09120000000" : ""}"></p>
-              <p class="form-row validate-required" id="billing_state_field"><select name="billing_state"><option value="">استان</option><option value="THR" ${hasAddress ? "selected" : ""}>تهران</option></select></p>
-              <p class="form-row validate-required" id="billing_city_field"><select name="billing_city"><option value="">شهر</option><option value="تهران" ${hasAddress ? "selected" : ""}>تهران</option></select></p>
-              <p class="form-row validate-required" id="billing_address_1_field"><input class="input-text" name="billing_address_1" value="${hasAddress ? "خیابان نمونه، پلاک ۱۲" : ""}"></p>
-              <button type="button" data-guided-cancel-edit hidden>انصراف</button>
-            </div>
-            <div data-guided-address-actions ${step === "payment" ? "hidden" : ""}>
-              <button type="button" data-guided-next>ادامه</button>
+      <form id="jluxe-guided-checkout-form" class="checkout" data-jluxe-checkout-flow="guided">
+        <header><h1>تکمیل خرید</h1></header>
+        <div data-guided-checkout-root>
+          <section data-guided-address-section>
+            <h2>اطلاعات گیرنده</h2>
+            <div id="customer_details">
+              <p class="form-row validate-required" id="billing_first_name_field"><input class="input-text" name="billing_first_name"></p>
+              <p class="form-row validate-required" id="billing_last_name_field"><input class="input-text" name="billing_last_name"></p>
+              <p class="form-row validate-required" id="billing_phone_field"><input class="input-text" name="billing_phone"></p>
+              <p class="form-row validate-required" id="billing_state_field"><select name="billing_state"><option value="">استان</option><option value="THR">تهران</option></select></p>
+              <p class="form-row validate-required" id="billing_city_field"><select name="billing_city"><option value="">شهر</option><option value="تهران">تهران</option></select></p>
+              <p class="form-row validate-required" id="billing_address_1_field"><input class="input-text" name="billing_address_1"></p>
             </div>
           </section>
-          <section id="jluxe-payment-column" data-guided-panel="payment" ${step === "address" ? "hidden" : ""}>
-            <h2 id="jluxe-guided-payment-title">پرداخت</h2>
-            <button type="button" data-guided-edit-address>تغییر نشانی</button>
-            <div id="payment">${gateways}</div>
+          <section class="jluxe-guided-checkout__order">
+            <div id="order_review"><div data-jluxe-order-total-value><b>۳۰۰۰ تومان</b></div>${shippingMarkup}</div>
           </section>
-        </div>
-        <aside>
-          <div id="order_review"><div data-jluxe-order-total-value><b>۳۰۰۰ تومان</b></div>${shippingMarkup}</div>
-          <div id="jluxe-payment-submit" ${step === "address" ? "hidden" : ""}>
-            <strong data-guided-total>۳۰۰۰ تومان</strong>
+          <section data-guided-payment-section><div id="payment">${gateways}</div></section>
+          <div id="jluxe-payment-submit">
             <p data-jluxe-payment-error hidden>روش پرداخت را انتخاب کنید.</p>
-            <button type="button" data-jluxe-checkout-back hidden>بازگشت</button>
+            <div class="jluxe-checkout-place-order-row"><button id="place_order" type="submit">ثبت سفارش</button></div>
           </div>
-        </aside>
+        </div>
+        <div class="jluxe-guided-checkout__mobile-action" data-guided-mobile-action hidden>
+          <strong data-guided-total>۳۰۰۰ تومان</strong>
+          <button type="button" data-guided-continue><span data-guided-continue-label>ادامه</span></button>
+        </div>
       </form>
     </body></html>`,
     { url: "https://shop.test/checkout/", runScripts: "outside-only" },
   );
   const { window } = dom;
   window.scrollTo = () => {};
-  window.scrollBy = () => {};
+  const scrolls = [];
+  window.scrollBy = (position) => scrolls.push(position);
+  window.requestAnimationFrame = (callback) => callback();
   if (mobile) {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
   }
-  window.matchMedia = (query) => ({ matches: mobile && query.includes("767.98px"), media: query });
   const visualViewport = new window.EventTarget();
   visualViewport.height = window.innerHeight;
   visualViewport.offsetTop = 0;
@@ -91,8 +74,19 @@ function bootGuidedCheckout({ hasAddress = false, step = "address", shipping = t
     return true;
   };
   window.jQuery = $;
+  const document = window.document;
+  const form = document.querySelector("form.checkout");
+  const payment = document.getElementById("payment");
+  let paymentIsOnScreen = false;
+  payment.getBoundingClientRect = () => paymentIsOnScreen
+    ? { top: 200, bottom: 680, left: 0, right: 390, width: 390, height: 480 }
+    : { top: 1000, bottom: 1480, left: 0, right: 390, width: 390, height: 480 };
+  const scrollTargets = [];
+  for (const element of document.querySelectorAll("#order_review, #payment, .form-row")) {
+    element.scrollIntoView = () => scrollTargets.push(element);
+  }
   window.eval(source);
-  return { dom, window, visualViewport, $, form: window.document.querySelector("form.checkout"), document: window.document };
+  return { dom, window, visualViewport, $, form, document, scrolls, scrollTargets, setPaymentVisible: (value) => { paymentIsOnScreen = value; } };
 }
 
 function fillRequiredAddress(document) {
@@ -104,113 +98,113 @@ function fillRequiredAddress(document) {
   document.querySelector('[name="billing_address_1"]').value = "خیابان نمونه، پلاک ۱۲";
 }
 
-function dispatchSubmit(window, form) {
-  const event = new window.Event("submit", { bubbles: true, cancelable: true });
-  form.dispatchEvent(event);
-  return event;
-}
-
-test("guided checkout opens the address form, validates real fields, then recalculates and advances to WooCommerce rates/payment", (t) => {
-  const { dom, window, $, document, form } = bootGuidedCheckout();
+test("guided renders as one uninterrupted field-to-summary-to-payment flow with a short mobile action", (t) => {
+  const { dom, document, form } = bootGuidedCheckout();
   t.after(() => dom.window.close());
-  let checkoutUpdates = 0;
-  $(document.body).on("update_checkout.test", () => checkoutUpdates++);
 
-  document.querySelector("[data-guided-next]").click();
-  assert.equal(document.getElementById("customer_details").hidden, false, "an empty-address CTA opens the native WooCommerce fields");
-  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, true);
+  assert.equal(document.querySelector("[data-guided-stepper]"), null);
+  assert.equal(document.querySelectorAll("[data-guided-panel]").length, 0);
+  assert.equal(document.querySelector("[data-guided-address-scrim]"), null);
+  assert.equal(document.getElementById("customer_details").hidden, false, "WooCommerce fields remain continuously visible");
+  assert.ok(document.getElementById("order_review"));
+  assert.ok(document.getElementById("payment"));
+  assert.equal(form.classList.contains("jluxe-guided-checkout--enhanced"), true);
 
-  document.querySelector("[data-guided-next]").click();
-  assert.equal(document.querySelector("[data-guided-address-error]").hidden, false, "required WooCommerce rows are validated before moving on");
+  const action = document.querySelector("[data-guided-mobile-action]");
+  assert.equal(action.hidden, false);
+  assert.equal(action.parentElement, document.body, "the fixed action is moved outside transformed theme wrappers");
+  assert.equal(action.querySelector("[data-guided-continue-label]").textContent, "ادامه");
+  assert.equal(action.querySelector("[data-guided-continue-label]").textContent.includes("مرور سفارش"), false);
+  assert.equal(document.body.classList.contains("jluxe-guided-checkout-active"), true);
+});
+
+test("the mobile Continue CTA validates the real fields, keeps them visible, then scrolls to live order and shipping totals", (t) => {
+  const { dom, document, $, form, scrollTargets, setPaymentVisible } = bootGuidedCheckout({ mobile: true });
+  t.after(() => dom.window.close());
+  const action = document.querySelector("[data-guided-mobile-action]");
+  const button = action.querySelector("[data-guided-continue]");
+
+  button.click();
   assert.ok(document.getElementById("billing_first_name_field").classList.contains("woocommerce-invalid-required-field"));
-  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, true);
+  assert.equal(document.getElementById("customer_details").hidden, false);
+  assert.equal(scrollTargets.at(-1), document.getElementById("billing_first_name_field"), "invalid required fields are brought into view");
+  assert.equal(button.textContent.trim(), "ادامه");
 
   fillRequiredAddress(document);
-  document.querySelector("[data-guided-next]").click();
-  assert.equal(document.querySelector('[data-guided-panel="address"]').hidden, true);
-  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, false);
-  assert.equal(document.querySelector("#jluxe-shipping-section").hidden, false, "real shipping choices are revealed only at order review");
-  assert.equal(document.getElementById("jluxe-payment-submit").hidden, false);
-  assert.equal(document.querySelector("[data-jluxe-checkout-back]").hidden, false, "the payment stage exposes its real back-to-address action");
-  assert.equal(document.getElementById("customer_details").hidden, true, "the actual checkout field group collapses after address confirmation");
-  assert.equal(document.querySelector("[data-guided-step=address]").getAttribute("data-guided-step-state"), "done");
-  assert.equal(document.querySelector("[data-guided-step=payment]").getAttribute("aria-current"), "step");
-  assert.equal(document.querySelector("[data-guided-address-text]").textContent, "تهران، تهران، خیابان نمونه، پلاک ۱۲");
-  assert.equal(checkoutUpdates, 1, "the native WooCommerce update_checkout event recalculates shipping/totals");
+  button.click();
+  assert.equal(document.getElementById("customer_details").hidden, false, "the form never collapses into a saved-address card");
+  assert.equal(scrollTargets.at(-1), document.getElementById("order_review"), "Continue scrolls to the order summary, not an intermediate step");
+  assert.equal(button.textContent.trim(), "ادامه");
 
-  // WooCommerce replaces order-review fragments after the address/rate changes.
-  document.getElementById("order_review").innerHTML = '<div data-jluxe-order-total-value><b>۴۵۰۰ تومان</b></div><section id="jluxe-shipping-section"><input class="shipping_method" type="radio" name="shipping_method[0]" value="flat_rate:2"><p data-jluxe-shipping-error hidden>روش ارسال را انتخاب کنید.</p></section>';
+  document.querySelector("#order_review [data-jluxe-order-total-value]").innerHTML = "<b>۴۵۰۰ تومان</b>";
   $(document.body).trigger("updated_checkout");
-  assert.equal(document.getElementById("jluxe-shipping-section").hidden, false);
-  assert.equal(document.querySelector("[data-guided-total]").textContent, "۴۵۰۰ تومان", "the sticky total follows WooCommerce's live order-review fragment");
+  assert.equal(action.querySelector("[data-guided-total]").textContent, "۴۵۰۰ تومان", "the sticky total follows WooCommerce's recalculated order-review fragment");
+
+  setPaymentVisible(true);
+  document.defaultView.dispatchEvent(new document.defaultView.Event("scroll"));
+  assert.equal(button.getAttribute("aria-label"), "ثبت سفارش", "the concise CTA changes only when the payment section enters view");
 });
 
-test("the mobile address sheet tracks the visual viewport and moves the checkout above the soft keyboard", (t) => {
-  const { dom, window, visualViewport, document, form } = bootGuidedCheckout({ mobile: true });
+test("the sticky proxy validates shipping and gateway choices, then clicks WooCommerce's real place-order button", (t) => {
+  const { dom, document, form, setPaymentVisible } = bootGuidedCheckout();
   t.after(() => dom.window.close());
+  const proxy = document.querySelector("[data-guided-continue]");
+  let submitted = false;
+  form.addEventListener("submit", (event) => {
+    submitted = true;
+    event.preventDefault();
+  });
+  fillRequiredAddress(document);
+  setPaymentVisible(true);
+  document.defaultView.dispatchEvent(new document.defaultView.Event("scroll"));
 
-  document.querySelector("[data-guided-open-address]").click();
-  const editor = document.getElementById("customer_details");
-  const scrim = document.querySelector("[data-guided-address-scrim]");
-  assert.equal(editor.getAttribute("role"), "dialog");
-  assert.equal(editor.getAttribute("aria-modal"), "true");
-  assert.equal(scrim.hidden, false, "the address editor opens as a focused mobile sheet");
-  assert.equal(form.classList.contains("jluxe-guided-checkout--address-editing"), true);
-
-  visualViewport.height = 420;
-  visualViewport.dispatchEvent(new window.Event("resize"));
-  assert.equal(document.documentElement.style.getPropertyValue("--jluxe-visual-viewport-height"), "420px");
-  assert.equal(document.documentElement.style.getPropertyValue("--jluxe-keyboard-inset"), "424px");
-  assert.equal(form.classList.contains("jluxe-guided-checkout--keyboard-open"), true, "the sticky action bar is signaled to sit directly above the keyboard");
-
-  document.querySelector("[data-guided-close-address]").click();
-  assert.equal(editor.hidden, true);
-  assert.equal(editor.hasAttribute("aria-modal"), false);
-  assert.equal(scrim.hidden, true);
-  assert.equal(form.classList.contains("jluxe-guided-checkout--address-editing"), false);
-});
-
-test("guided final submission requires real shipping and gateway selections, but lets WooCommerce handle a valid submit", (t) => {
-  const { dom, window, document, form } = bootGuidedCheckout({ hasAddress: true, step: "payment" });
-  t.after(() => dom.window.close());
-  let reachedWooCommerce = false;
-  form.addEventListener("submit", () => { reachedWooCommerce = true; });
-
-  const missingShipping = dispatchSubmit(window, form);
-  assert.equal(missingShipping.defaultPrevented, true);
-  assert.equal(reachedWooCommerce, false);
+  proxy.click();
   assert.equal(document.querySelector("[data-jluxe-shipping-error]").hidden, false);
+  assert.equal(submitted, false);
 
   const shipping = document.querySelector("input.shipping_method");
   shipping.checked = true;
-  shipping.dispatchEvent(new window.Event("change", { bubbles: true }));
+  shipping.dispatchEvent(new document.defaultView.Event("change", { bubbles: true }));
   assert.equal(document.querySelector("[data-jluxe-shipping-error]").hidden, true);
 
-  const missingGateway = dispatchSubmit(window, form);
-  assert.equal(missingGateway.defaultPrevented, true);
-  assert.equal(reachedWooCommerce, false);
+  proxy.click();
   assert.equal(document.querySelector("[data-jluxe-payment-error]").hidden, false);
+  assert.equal(submitted, false);
 
-  const gateway = document.querySelector("input.payment_method");
-  gateway.checked = true;
-  gateway.dispatchEvent(new window.Event("change", { bubbles: true }));
-  const validSubmit = dispatchSubmit(window, form);
-  assert.equal(validSubmit.defaultPrevented, false);
-  assert.equal(reachedWooCommerce, true, "a valid checkout reaches WooCommerce's normal order-submit handler");
+  document.querySelector("input.payment_method").checked = true;
+  document.querySelector("input.payment_method").dispatchEvent(new document.defaultView.Event("change", { bubbles: true }));
+  proxy.click();
+  assert.equal(submitted, true, "successful validation delegates to the native WooCommerce #place_order control");
 });
 
-test("guided checkout returns to the address step and leaves text-only orders usable without map coordinates", (t) => {
-  const { dom, window, document } = bootGuidedCheckout({ hasAddress: true, step: "payment", shipping: false, paymentMethods: [] });
+test("text-only checkout works without shipping or payment radios, and keyboard viewport keeps the active field clear of the sticky bar", (t) => {
+  const { dom, window, visualViewport, document, form, scrolls } = bootGuidedCheckout({ shipping: false, paymentMethods: [], mobile: true });
   t.after(() => dom.window.close());
+  const field = document.querySelector('[name="billing_address_1"]');
+  const proxy = document.querySelector("[data-guided-continue]");
+  let submitted = false;
+  form.addEventListener("submit", (event) => {
+    submitted = true;
+    event.preventDefault();
+  });
 
-  document.querySelector("[data-jluxe-checkout-back]").click();
-  assert.equal(document.querySelector('[data-guided-panel="address"]').hidden, false);
-  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, true);
-  assert.equal(document.getElementById("jluxe-payment-submit").hidden, true);
-  assert.equal(document.querySelector("[data-guided-step=address]").getAttribute("aria-current"), "step");
+  fillRequiredAddress(document);
+  visualViewport.height = 420;
+  field.getBoundingClientRect = () => ({ top: 760, bottom: 804, left: 0, right: 320, width: 320, height: 44 });
+  field.focus();
+  assert.equal(document.documentElement.style.getPropertyValue("--jluxe-keyboard-inset"), "424px");
+  assert.equal(form.classList.contains("jluxe-guided-checkout--keyboard-open"), true);
+  assert.ok(scrolls.length > 0, "the active input is scrolled above the visual viewport's keyboard boundary");
+  assert.match(stylesheet, /position:\s*fixed/);
+  assert.match(stylesheet, /inset-block-end:\s*var\(--jluxe-keyboard-inset/);
 
-  document.querySelector("[data-guided-next]").click();
-  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, false);
-  const submit = dispatchSubmit(window, document.querySelector("form.checkout"));
-  assert.equal(submit.defaultPrevented, false, "virtual/no-payment orders are not blocked by nonexistent radio groups");
+  proxy.click();
+  assert.equal(submitted, false, "Continue first moves to the order summary when payment is not yet in view");
+  assert.equal(document.querySelector("#order_review").hidden, false);
+});
+
+test("guided code does not clear WooCommerce payment radios and still honors native one-gateway selection", () => {
+  assert.doesNotMatch(source, /clearAutomaticGatewaySelection|payment_method[^\n]+checked\s*=\s*false/);
+  assert.match(source, /placeOrder\.click\(\)/);
+  assert.match(source, /data-jluxe-checkout-flow="guided"/);
 });

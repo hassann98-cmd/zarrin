@@ -42,7 +42,7 @@ if ( ! wp_doing_ajax() ) {
 		 * یادآوریِ متنیه، به هیچ منطقِ واقعیِ ووکامرس دست نمی‌زنه.
 		 */
 		?>
-		<?php if ( jluxe_cart_checkout_option( 'checkout_payment_warning_enabled', true ) ) : ?>
+		<?php if ( jluxe_cart_checkout_option( 'checkout_payment_warning_enabled', true ) && ( ! function_exists( 'jluxe_checkout_layout' ) || 'guided' !== jluxe_checkout_layout() ) ) : ?>
 			<?php $payment_warning = jluxe_cart_checkout_copy( 'checkout_payment_warning', 'در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.' ); ?>
 			<?php if ( '' !== trim( $payment_warning ) ) : ?>
 				<?php $payment_warning_background = jluxe_cart_checkout_color( 'checkout_payment_warning_background', '#FFF8E6' ); ?>
