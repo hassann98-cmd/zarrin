@@ -67,6 +67,17 @@ jluxe_render_checkout_stepper( 'shipping' );
 				 */
 				?>
 				<div id="jluxe-payment-column" hidden>
+					<?php if ( function_exists( 'wc_coupons_enabled' ) && wc_coupons_enabled() ) : ?>
+						<section class="jluxe-checkout-coupon" data-classic-checkout-coupon aria-labelledby="jluxe-classic-checkout-coupon-title">
+							<h3 id="jluxe-classic-checkout-coupon-title" class="jluxe-checkout-coupon__title">کد تخفیف</h3>
+							<label class="jluxe-checkout-coupon__label" for="jluxe-classic-checkout-coupon-code">کد تخفیف</label>
+							<div class="jluxe-checkout-coupon__controls">
+								<input id="jluxe-classic-checkout-coupon-code" type="text" data-classic-checkout-coupon-input autocomplete="off" aria-describedby="jluxe-classic-checkout-coupon-status" />
+								<button type="button" class="jluxe-checkout-action-button jluxe-checkout-action-button--secondary" data-classic-checkout-coupon-apply>اعمال کد</button>
+							</div>
+							<p id="jluxe-classic-checkout-coupon-status" class="jluxe-checkout-coupon__status" data-classic-checkout-coupon-status role="status" aria-live="polite" hidden></p>
+						</section>
+					<?php endif; ?>
 					<?php woocommerce_checkout_payment(); ?>
 				</div>
 			</div>

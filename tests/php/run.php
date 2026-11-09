@@ -8877,6 +8877,8 @@ $r425_guided_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/
 $r425_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 $r425_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' );
 $r425_guided_css = (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' );
+$r433_checkout_notices_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' );
+$r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
 $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
@@ -8981,12 +8983,17 @@ check(
 	'R431 pre-checkout cashback/coupon notices are scoped to guided checkout and hidden accessibly during payment, then restored on return'
 );
 check(
-	false !== strpos( $r425_checkout_js, 'document.querySelectorAll(".woocommerce-form-coupon-toggle")' ) &&
-	false !== strpos( $r425_checkout_js, 'content.indexOf("بازپرداخت")' ) &&
-	false !== strpos( $r425_checkout_js, 'content.indexOf("کیف پول")' ) &&
-	false !== strpos( $r425_checkout_js, 'suppressDuplicateCheckoutNotices();' ) &&
-	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__suppressed-notice[hidden]' ),
-	'R432 guided checkout hides the specified cashback/default-coupon duplicate accessibly without hiding unrelated WooCommerce notices'
+	false !== strpos( $r433_checkout_notices_js, 'document.querySelectorAll(".woocommerce-form-coupon-toggle")' ) &&
+	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("بازپرداخت")' ) &&
+	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("کیف پول")' ) &&
+	false !== strpos( $r433_checkout_notices_js, 'updated_checkout.jluxeCheckoutNotices' ) &&
+	false !== strpos( $r433_checkout_notices_js, 'form.checkout:not([data-jluxe-checkout-flow="guided"])' ) &&
+	false !== strpos( $r425_checkout_form, 'data-classic-checkout-coupon' ) &&
+	false !== strpos( $r425_checkout_form, "function_exists( 'wc_coupons_enabled' )" ) &&
+	false !== strpos( $r425_woocommerce_source, "add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_notice_assets', 22 )" ) &&
+	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .woocommerce-form-coupon-toggle' ) &&
+	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .jluxe-checkout-suppressed-notice' ),
+	'R433 both checkout layouts suppress only the specified notices, while classic keeps its coupon via a payment-step proxy'
 );
 if ( $r430_saved_option_exists ) {
 	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $r430_saved_option;

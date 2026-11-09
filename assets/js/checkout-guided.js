@@ -38,26 +38,6 @@
   var currentStep = "shipping";
   var fieldErrorId = 0;
 
-  function hideRepeatedCheckoutNotice(element) {
-    if (!element) return;
-    element.classList.add("jluxe-guided-checkout__suppressed-notice");
-    element.hidden = true;
-    element.setAttribute("aria-hidden", "true");
-  }
-
-  function suppressDuplicateCheckoutNotices() {
-    var couponToggles = document.querySelectorAll(".woocommerce-form-coupon-toggle");
-    for (var i = 0; i < couponToggles.length; i++) hideRepeatedCheckoutNotice(couponToggles[i]);
-
-    var notices = document.querySelectorAll(".woocommerce-info");
-    for (var j = 0; j < notices.length; j++) {
-      var content = String(notices[j].textContent || "").replace(/\s+/g, " ");
-      if (content.indexOf("بازپرداخت") !== -1 && content.indexOf("کش‌بک") !== -1 && content.indexOf("کیف پول") !== -1) {
-        hideRepeatedCheckoutNotice(notices[j]);
-      }
-    }
-  }
-
   function requestFrame(callback) {
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(callback);
     else window.setTimeout(callback, 16);
@@ -715,7 +695,6 @@
 
   if ($ && body) {
     $(body).on("updated_checkout.jluxeGuided", function () {
-      suppressDuplicateCheckoutNotices();
       refreshShippingSummary();
       updateStickyTotal();
       if (hasShippingMethodSelected()) showMethodError("[data-jluxe-shipping-error]", false);
@@ -746,7 +725,6 @@
     }
   }
 
-  suppressDuplicateCheckoutNotices();
   updateStepper();
   updateStickyTotal();
   refreshShippingSummary();

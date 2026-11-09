@@ -4224,6 +4224,68 @@ body.woocommerce-checkout :is(.woocommerce-NoticeGroup-checkout, #payment, #jlux
   list-style: none;
   text-align: start;
 }
+/* Replace WooCommerce's early coupon prompt with the accessible payment-step control. */
+body.woocommerce-checkout .woocommerce-form-coupon-toggle,
+body.woocommerce-checkout .jluxe-checkout-suppressed-notice {
+  display: none;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon {
+  margin-block: 0 1rem;
+  padding: 0.85rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.9375rem;
+  background: hsl(var(--muted) / 0.55);
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__title {
+  margin: 0 0 0.25rem;
+  color: hsl(var(--foreground));
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__label {
+  display: block;
+  margin-block-end: 0.35rem;
+  color: hsl(var(--foreground));
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__controls input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font: inherit;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__controls input:focus-visible {
+  outline: 3px solid hsl(var(--primary) / 0.35);
+  outline-offset: 2px;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__controls .jluxe-checkout-action-button {
+  min-width: 6rem;
+  min-height: 3rem;
+  margin: 0;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__status {
+  margin: 0.55rem 0 0;
+  color: #285b41;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+body.woocommerce-checkout .jluxe-checkout-coupon__status[data-status="error"] {
+  color: #a52b34;
+}
 .jluxe-checkout-action-row {
   display: flex;
   min-width: 0;

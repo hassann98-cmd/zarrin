@@ -3732,6 +3732,25 @@ function jluxe_enqueue_guided_checkout_assets(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_guided_checkout_assets', 21 );
 
+/** Load notice suppression and the classic payment-step coupon proxy on checkout layouts. */
+function jluxe_enqueue_checkout_notice_assets(): void {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) ) {
+		return;
+	}
+	$path = JLUXE_THEME_DIR . '/assets/js/checkout-notices.js';
+	if ( ! is_file( $path ) ) {
+		return;
+	}
+	wp_enqueue_script(
+		'jluxe-checkout-notices',
+		JLUXE_THEME_URI . '/assets/js/checkout-notices.js',
+		array( 'jquery' ),
+		(string) filemtime( $path ),
+		array( 'in_footer' => true, 'strategy' => 'defer' )
+	);
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_notice_assets', 22 );
+
 /**
  * صفحه‌ی محصول (woocommerce/content-single-product.php) توضیحات/مشخصات/
  * دیدگاه‌ها رو خودش به‌صورت بخش‌های جدا (نه تب‌باکس) رندر می‌کنه، پس

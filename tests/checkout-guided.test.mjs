@@ -6,6 +6,7 @@ import jqueryFactory from "jquery";
 import { deferCheckoutMapLoad } from "../src/lib/checkout-map-loader.js";
 
 const source = fs.readFileSync(new URL("../assets/js/checkout-guided.js", import.meta.url), "utf8");
+const noticeSource = fs.readFileSync(new URL("../assets/js/checkout-notices.js", import.meta.url), "utf8");
 const mainSource = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const mapLoaderSource = fs.readFileSync(new URL("../src/lib/checkout-map-loader.js", import.meta.url), "utf8");
 const mapModuleSource = fs.readFileSync(new URL("../src/lib/checkout-map.js", import.meta.url), "utf8");
@@ -141,6 +142,7 @@ function bootGuidedCheckout({ shipping = true, paymentMethods = ["gateway-a"], p
     event.preventDefault();
     couponSubmissions += 1;
   });
+  window.eval(noticeSource);
   window.eval(source);
   return { dom, window, visualViewport, $, form, document, scrolls, scrollTargets, checkoutUpdates: () => checkoutUpdates, couponSubmissions: () => couponSubmissions };
 }
