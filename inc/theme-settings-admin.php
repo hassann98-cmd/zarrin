@@ -467,12 +467,23 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 		$stored_version = (int) ( $stored['version'] ?? 1 );
 		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
 	}
+	$previous_section = $stored[ $section_key ] ?? array();
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
+
+	if ( 'mobile' === $section_key && $previous_section !== $section_value ) {
+		// Mobile settings and iconGlyphs are embedded in every cacheable page.
+		// Invalidating the WP object cache alone cannot refresh that HTML.
+		do_action( 'litespeed_purge_all' );
+		if ( function_exists( 'rocket_clean_domain' ) ) { rocket_clean_domain(); }
+		if ( function_exists( 'w3tc_flush_all' ) ) { w3tc_flush_all(); }
+		if ( function_exists( 'wp_cache_clear_cache' ) ) { wp_cache_clear_cache(); }
+		do_action( 'jluxe_mobile_navigation_changed', $section_value, $previous_section );
+	}
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
 		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );

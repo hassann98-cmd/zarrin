@@ -11,6 +11,48 @@ function check($condition, $message) {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+// Mobile icon save -> persisted settings -> localized React payload, including cache invalidation.
+$mobile_save_options = $GLOBALS['options'];
+$mobile_save_post = $_POST;
+$mobile_save_fired = $GLOBALS['fired'] ?? array();
+$mobile_save_localized = $GLOBALS['localized'] ?? array();
+$mobile_save_nonce = $GLOBALS['valid_wp_nonce'] ?? true;
+foreach ( array( 'classic', 'floating' ) as $mobile_variant ) {
+	$mobile_post = jluxe_theme_settings_defaults()['mobile'];
+	$mobile_post['nav_variant'] = $mobile_variant;
+	$mobile_post['nav_items'][0]['icon'] = 'bed';
+	$mobile_post['floating_nav_items'][0]['icon'] = 'gift';
+	$_POST = array( 'jluxe_settings_nonce' => 'valid', 'mobile' => $mobile_post );
+	$before_purges = count( array_keys( $GLOBALS['fired'] ?? array(), 'litespeed_purge_all', true ) );
+	check( 'saved' === jluxe_handle_mobile_contact_combined_save(), 'mobile icon form saves via the real combined handler: ' . $mobile_variant );
+	$fresh_mobile = jluxe_get_theme_settings( true )['mobile'];
+	check( 'bed' === $fresh_mobile['nav_items'][0]['icon'] && 'gift' === $fresh_mobile['floating_nav_items'][0]['icon'] && $mobile_variant === $fresh_mobile['nav_variant'], 'saved mobile icons survive fresh reads independently for both layouts' );
+	jluxe_localize_public_settings();
+	$mobile_payload = $GLOBALS['localized']['JLuxeThemeSettings'];
+	check( $mobile_payload['mobile'] === $fresh_mobile && isset( $mobile_payload['iconGlyphs']['bed'], $mobile_payload['iconGlyphs']['gift'] ), 'React receives the actual saved mobile settings and matching SVG glyphs' );
+	check( $before_purges + 1 === count( array_keys( $GLOBALS['fired'], 'litespeed_purge_all', true ) ), 'changed mobile settings invalidate stale full-page HTML caches' );
+	$after_save_actions = count( $GLOBALS['fired'] );
+	jluxe_handle_mobile_contact_combined_save();
+	check( $after_save_actions === count( $GLOBALS['fired'] ), 'saving unchanged mobile settings does not purge caches again' );
+}
+$GLOBALS['valid_wp_nonce'] = false;
+$_POST['mobile']['nav_items'][0]['icon'] = 'heart';
+check( 'error' === jluxe_handle_mobile_contact_combined_save() && 'bed' === jluxe_get_theme_settings( true )['mobile']['nav_items'][0]['icon'], 'invalid nonce cannot change a mobile icon' );
+$GLOBALS['valid_wp_nonce'] = $mobile_save_nonce;
+$GLOBALS['options'] = $mobile_save_options;
+$GLOBALS['localized'] = $mobile_save_localized;
+$GLOBALS['fired'] = $mobile_save_fired;
+$_POST = $mobile_save_post;
+jluxe_get_theme_settings( true );
+
+$tracking_upgrade = jluxe_migrate_settings_v24( array( 'mobile' => array(
+	'nav_items' => array( array( 'id' => 'track', 'icon' => 'package' ), array( 'id' => 'cart', 'icon' => 'package' ), array( 'id' => 'track', 'icon' => 'heart' ) ),
+	'floating_nav_items' => array( array( 'action' => 'track', 'icon' => 'package' ), array( 'action' => 'shop', 'icon' => 'package' ) ),
+) ) );
+check( 'order-tracking' === $tracking_upgrade['mobile']['nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['nav_items'][1]['icon'] && 'heart' === $tracking_upgrade['mobile']['nav_items'][2]['icon'], 'tracking SVG migration replaces only the old tracking placeholder, preserving other/custom icons' );
+check( 'order-tracking' === $tracking_upgrade['mobile']['floating_nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['floating_nav_items'][1]['icon'], 'floating tracking action gets the supplied SVG without changing unrelated actions' );
+check( isset( jluxe_public_icon_glyphs( array( 'mobile' => array( 'nav_items' => array( array( 'icon' => 'order-tracking' ) ) ) ) )['order-tracking'] ) && false !== strpos( jluxe_nav_icon_svg( 'order-tracking' ), '<path' ), 'supplied tracking artwork is available to PHP markup and the React glyph payload' );
+
 // R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
 $r357_nav_defaults = jluxe_theme_settings_defaults();
 ob_start();
@@ -2113,7 +2155,7 @@ ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_cl
 check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
 $icon_option_names = array_filter(array_keys(jluxe_nav_icon_options()));
 $missing_icon_paths = array_diff($icon_option_names, array_merge(array_keys(jluxe_uicon_paths()), array_keys(jluxe_icon_paths())));
-check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===67 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
+check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===68 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
 $public_glyphs = jluxe_public_icon_glyphs(array(
 	'mobile' => array('nav_items' => array(array('icon' => 'bed')), 'floating_nav_items' => array(array('icon' => 'home'))),
 	'footer' => array('feature_cards' => array(array('icon' => 'sofa')), 'link_columns' => array(array('links' => array(array('icon' => 'gift'))))),
@@ -11208,7 +11250,7 @@ $r422_featured_eligibility =
 	! jluxe_homepage_featured_product_is_available( $r422_backorder ) &&
 	! jluxe_homepage_featured_product_is_available( $r422_variable_without_available_option );
 check(
-	23 === JLUXE_SETTINGS_VERSION &&
+	24 === JLUXE_SETTINGS_VERSION &&
 	'product_grid' === ( $r422_default_featured['type'] ?? '' ) &&
 	'featured' === ( $r422_default_featured['query'] ?? '' ) &&
 	'grid' === ( $r422_default_featured['layout'] ?? '' ) &&
