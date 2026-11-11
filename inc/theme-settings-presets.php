@@ -1,9 +1,9 @@
 <?php
 /**
  * پریست‌های آماده‌ی طراحی — طبقِ درخواستِ کاربر («Settings Panel 2.0 →
- * پریست‌های طراحی آماده»). هر پریست فقط دو بخشِ از قبل موجود رو ست می‌کنه
- * (رنگ‌ها + تایپوگرافی) — هیچ ساختارِ داده‌ی جدیدی اضافه نمی‌شه، فقط یک
- * میان‌بر برای پرکردنِ همون دو فرمی که از قبل هم دستی قابل‌ویرایش بودن.
+ * پریست‌های طراحی آماده»). پریست‌ها رنگ‌ها و تایپوگرافی را ست می‌کنند؛
+ * Bubblegum Pink علاوه‌بر آن، shadeهای شناخته‌شدهٔ پالت را در تنظیماتِ
+ * رنگیِ بخش‌های دیگر هم هماهنگ می‌کند و رنگ‌های سفارشی/معنایی را نگه می‌دارد.
  *
  * مقادیر همیشه از این آرایه‌ی ثابتِ سمتِ سرور خونده می‌شن، نه از چیزی که
  * کلاینت می‌فرسته — یعنی درخواستِ POST فقط یک شناسه (preset_id) می‌فرسته،
@@ -59,6 +59,22 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.65),
 		),
+		/*
+		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
+		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
+		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
+		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
+		 */
+		'jluxe_brand_red' => array(
+			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
+			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
+			'colors' => array(
+				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
 		'emerald_modern' => array(
 			'label' => 'زمردی مدرن',
 			'description' => 'سبز زمردی، سرمه‌ای و طلایی ملایم؛ متفاوت، باوقار و مناسب برندهای خانه و جواهر.',
@@ -67,7 +83,82 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
 		),
+		'electric_indigo' => array(
+			'label' => 'نیلی الکتریکی (افزوده‌شده)',
+			'description' => 'پالت تازهٔ Electric Indigo به‌عنوان گزینه‌ای مستقل؛ هفت پریست قبلی با رنگ‌های اصلی خود باقی می‌مانند.',
+			'colors' => array(
+				'primary' => '#5100FF', 'secondary' => '#300099', 'background' => '#EEE5FF', 'success' => '#16865A', 'accent' => '#7433FF',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'legacy_default' => array(
+			'label' => 'پالت پیش‌فرض پیشین زرین',
+			'description' => 'رنگ‌های پایهٔ پوسته پیش از Electric Indigo؛ گزینه‌ای جداگانه و قابل‌اعمال، بدون تغییر خودکارِ تنظیمات ذخیره‌شده.',
+			'colors' => array(
+				'primary' => '#B85C38', 'secondary' => '#355C5A', 'background' => '#F7F3EE', 'success' => '#16865A', 'accent' => '#C89B3C',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'royal_orchid' => array(
+			'label' => 'رویال ارکید (Royal Orchid)',
+			'description' => 'طیف دقیق Royal Orchid؛ رنگ اصلی از shade 600 انتخاب شده تا متن سفیدِ دکمه‌ها کنتراست WCAG AA داشته باشد. هر ۵ رنگ پس از اعمال قابل‌ویرایش است.',
+			'colors' => array(
+				'primary' => '#A313B9', 'secondary' => '#510A5C', 'background' => '#FAE8FD', 'success' => '#16865A', 'accent' => '#7A0F8A',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'dodger_blue' => array(
+			'label' => 'آبی داجر (Dodger Blue)',
+			'description' => 'طیف دقیق Dodger Blue؛ پس‌زمینهٔ shade 50 با متن اصلیِ 13.08:1 و متن کمکیِ 6.75:1، دکمهٔ shade 600 با متن سفیدِ 4.81:1 و hover/active تیره‌تر. مرز و focus ring هم shade 600 هستند (4.28:1 روی زمینه و 4.81:1 روی کارت سفید). رنگ سبزِ موفقیت معنای مستقل خود را حفظ می‌کند.',
+			'colors' => array(
+				'primary' => '#0074CC', 'secondary' => '#003A66', 'background' => '#E5F4FF', 'success' => '#16865A', 'accent' => '#005799',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'bubblegum_pink' => array(
+			'label' => 'صورتی آدامسی (Bubblegum Pink)',
+			'description' => 'طیف دقیق Bubblegum Pink در سراسر سایت؛ دکمهٔ اصلی از shade 600 انتخاب شده تا متن سفید کنتراست 5.81:1 داشته باشد. shadeهای شناخته‌شدهٔ منو، موبایل، تسویه‌حساب، فوتر و بخش‌های دیگر هم هماهنگ می‌شوند؛ رنگ سبزِ موفقیت و رنگ‌های سفارشی حفظ می‌شوند.',
+			'colors' => array(
+				'primary' => '#CC0033', 'secondary' => '#660019', 'background' => '#FFE5EC', 'success' => '#16865A', 'accent' => '#990026',
+			),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+			'palette' => 'bubblegum_pink',
+		),
 	);
+}
+
+/** Remap exact bundled palette shades while keeping announcement-bar colors independent. */
+function jluxe_remap_design_palette_values( array $settings, array $target_palette ): array {
+	$source_palettes = array(
+		jluxe_electric_indigo_palette(),
+		jluxe_royal_orchid_palette(),
+		jluxe_dodger_blue_palette(),
+		$target_palette,
+	);
+	$color_map = array();
+	foreach ( $source_palettes as $source_palette ) {
+		foreach ( $source_palette as $shade => $source_hex ) {
+			if ( isset( $target_palette[ $shade ] ) ) {
+				$color_map[ strtoupper( $source_hex ) ] = $target_palette[ $shade ];
+			}
+		}
+	}
+
+	$walk = static function ( $value, bool $is_root = false ) use ( &$walk, $color_map ) {
+		if ( is_array( $value ) ) {
+			foreach ( $value as $key => $child ) {
+				$value[ $key ] = $is_root && 'announcement_bar' === $key ? $child : $walk( $child );
+			}
+			return $value;
+		}
+		if ( is_string( $value ) ) {
+			$normalized = strtoupper( trim( $value ) );
+			return $color_map[ $normalized ] ?? $value;
+		}
+		return $value;
+	};
+
+	return $walk( $settings, true );
 }
 
 /**
@@ -101,6 +192,23 @@ function jluxe_handle_apply_preset(): ?string {
 
 	jluxe_update_settings_section( 'colors', $clean_colors );
 	jluxe_update_settings_section( 'typography', $clean_typography );
+
+	if ( 'bubblegum_pink' === ( $preset['palette'] ?? '' ) && function_exists( 'jluxe_bubblegum_pink_palette' ) ) {
+		$current_settings = jluxe_get_theme_settings( true );
+		$palette_settings = jluxe_remap_design_palette_values( $current_settings, jluxe_bubblegum_pink_palette() );
+		// The main form values were already sanitized above; retain their casing and exact submitted defaults.
+		$palette_settings['colors'] = $current_settings['colors'];
+		foreach ( $palette_settings as $section_key => $section_value ) {
+			if (
+				'version' !== $section_key &&
+				is_array( $section_value ) &&
+				isset( $current_settings[ $section_key ] ) &&
+				$section_value !== $current_settings[ $section_key ]
+			) {
+				jluxe_update_settings_section( (string) $section_key, $section_value );
+			}
+		}
+	}
 
 	return 'preset_applied';
 }

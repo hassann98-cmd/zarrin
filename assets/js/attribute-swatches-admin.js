@@ -73,7 +73,7 @@
 		if (!$wrap.length) {
 			return;
 		}
-		$wrap.find('input[name="jluxe_swatch_type"][value="none"]').prop("checked", true);
+		$wrap.find('input[name="jluxe_swatch_type"][value="auto"]').prop("checked", true);
 		var $picker = $wrap.find(".jluxe-swatch-color-picker");
 		if ($picker.length && $picker.wpColorPicker) {
 			$picker.wpColorPicker("color", "");

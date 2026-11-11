@@ -8,7 +8,7 @@ get_header();
 ?>
 
 <main id="primary" class="site-main">
-	<!-- H1 صفحه‌ی اصلی همچنان برای سئو لازمه؛ چون اسلایدشو جایگزین بصری‌شه، فقط از نظر بینایی مخفیه (sr-only) نه حذف. -->
+	<?php /* Keep a semantic, screen-reader-visible H1; the visual hero does not replace the page heading. */ ?>
 	<h1 class="sr-only"><?php bloginfo( 'name' ); ?></h1>
 	<p class="sr-only"><?php bloginfo( 'description' ); ?></p>
 

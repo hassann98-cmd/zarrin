@@ -1,0 +1,532 @@
+<?php
+/**
+ * Global announcement bar. Its measured height is shared with the fixed
+ * header, keeping the announcement, WordPress admin bar, and header stacked.
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/** Return the selected, displayable content without losing GIF animation. */
+function jluxe_announcement_content_payload( array $settings ): array {
+	$mode = isset( $settings['display_mode'] ) && is_scalar( $settings['display_mode'] )
+		? (string) $settings['display_mode']
+		: 'text';
+	if ( ! in_array( $mode, array( 'text', 'ticker', 'image' ), true ) ) {
+		$mode = 'text';
+	}
+
+	if ( 'text' === $mode ) {
+		$message = isset( $settings['message'] ) && is_scalar( $settings['message'] ) ? trim( (string) $settings['message'] ) : '';
+		return array(
+			'mode'    => 'text',
+			'ready'   => '' !== $message,
+			'message' => $message,
+		);
+	}
+
+	if ( 'ticker' === $mode ) {
+		$label = isset( $settings['ticker_label'] ) && is_scalar( $settings['ticker_label'] )
+			? trim( (string) $settings['ticker_label'] )
+			: 'ارسال سریع';
+		$label = '' !== $label ? $label : 'ارسال سریع';
+		$label_enabled = ! array_key_exists( 'ticker_label_enabled', $settings ) || ! empty( $settings['ticker_label_enabled'] );
+		$logo_enabled  = ! array_key_exists( 'ticker_logo_enabled', $settings ) || ! empty( $settings['ticker_logo_enabled'] );
+		$logo_frame    = ! array_key_exists( 'ticker_logo_frame', $settings ) || ! empty( $settings['ticker_logo_frame'] );
+		$theme = isset( $settings['ticker_theme'] ) && is_scalar( $settings['ticker_theme'] )
+			? sanitize_key( (string) $settings['ticker_theme'] )
+			: 'classic';
+		if ( ! in_array( $theme, array( 'classic', 'info', 'warning', 'discount', 'success', 'custom' ), true ) ) {
+			$theme = 'classic';
+		}
+		$ticker_options = jluxe_announcement_ticker_options();
+		$layout = isset( $settings['ticker_layout'] ) && is_scalar( $settings['ticker_layout'] )
+			? sanitize_key( (string) $settings['ticker_layout'] )
+			: 'classic';
+		if ( ! isset( $ticker_options['layouts'][ $layout ] ) ) {
+			$layout = 'classic';
+		}
+		$texture = isset( $settings['ticker_texture'] ) && is_scalar( $settings['ticker_texture'] )
+			? sanitize_key( (string) $settings['ticker_texture'] )
+			: 'waves';
+		if ( ! isset( $ticker_options['textures'][ $texture ] ) ) {
+			$texture = 'waves';
+		}
+		$effect = isset( $settings['ticker_effect'] ) && is_scalar( $settings['ticker_effect'] )
+			? sanitize_key( (string) $settings['ticker_effect'] )
+			: 'vertical';
+		if ( ! isset( $ticker_options['effects'][ $effect ] ) ) {
+			$effect = 'vertical';
+		}
+		$duration_ms = isset( $settings['ticker_message_duration_ms'] ) && is_scalar( $settings['ticker_message_duration_ms'] )
+			? absint( $settings['ticker_message_duration_ms'] )
+			: 2500;
+		if ( ! isset( $ticker_options['display_duration_ms'][ $duration_ms ] ) ) {
+			$duration_ms = 2500;
+		}
+		$inter_message_gap_ms = isset( $settings['ticker_inter_message_gap_ms'] ) && is_scalar( $settings['ticker_inter_message_gap_ms'] )
+			? absint( $settings['ticker_inter_message_gap_ms'] )
+			: 500;
+		if ( ! isset( $ticker_options['inter_message_gap_ms'][ $inter_message_gap_ms ] ) ) {
+			$inter_message_gap_ms = 500;
+		}
+		$cycle_gap_ms = isset( $settings['ticker_cycle_gap_ms'] ) && is_scalar( $settings['ticker_cycle_gap_ms'] )
+			? absint( $settings['ticker_cycle_gap_ms'] )
+			: 500;
+		if ( ! isset( $ticker_options['cycle_gap_ms'][ $cycle_gap_ms ] ) ) {
+			$cycle_gap_ms = 500;
+		}
+		$raw_messages = isset( $settings['ticker_messages'] ) && is_scalar( $settings['ticker_messages'] )
+			? (string) $settings['ticker_messages']
+			: '';
+		$message_lines = explode( "\n", str_replace( array( "\r\n", "\r" ), "\n", $raw_messages ) );
+		$messages = array_slice(
+			array_values( array_filter( array_map( 'trim', is_array( $message_lines ) ? $message_lines : array() ) ) ),
+			0,
+			5
+		);
+		$messages = array_values( array_filter( $messages, static fn( $message ) => '' !== $message ) );
+		$summary = implode( ' ', $messages );
+
+		return array(
+			'mode'                      => 'ticker',
+			'ready'                     => ! empty( $messages ),
+			'ticker_label'              => $label,
+			'ticker_label_enabled'      => $label_enabled,
+			'ticker_logo_enabled'       => $logo_enabled,
+			'ticker_logo_frame'         => $logo_frame,
+			'ticker_theme'              => $theme,
+			'ticker_layout'             => $layout,
+			'ticker_texture'            => $texture,
+			'ticker_effect'             => $effect,
+			'ticker_message_duration_ms'   => $duration_ms,
+			'ticker_inter_message_gap_ms'  => $inter_message_gap_ms,
+			'ticker_cycle_gap_ms'          => $cycle_gap_ms,
+			'ticker_messages'              => $messages,
+			'ticker_summary'  => $summary,
+		);
+	}
+
+	$image_id = isset( $settings['image_id'] ) && is_scalar( $settings['image_id'] ) ? absint( $settings['image_id'] ) : 0;
+	if ( 0 === $image_id ) {
+		return array( 'mode' => 'image', 'ready' => false );
+	}
+
+	$mime = function_exists( 'get_post_mime_type' ) ? (string) get_post_mime_type( $image_id ) : '';
+	if ( '' !== $mime && 0 !== strpos( $mime, 'image/' ) ) {
+		return array( 'mode' => 'image', 'ready' => false );
+	}
+
+	$is_gif    = 'image/gif' === strtolower( $mime );
+	$image_url = '';
+	if ( $is_gif && function_exists( 'wp_get_attachment_url' ) ) {
+		// WordPress-generated GIF thumbnails often contain only the first frame.
+		// Use the attachment's original URL so its animation remains intact.
+		$image_url = (string) wp_get_attachment_url( $image_id );
+	}
+	if ( '' === $image_url && function_exists( 'wp_get_attachment_image_url' ) ) {
+		$image_url = (string) wp_get_attachment_image_url( $image_id, $is_gif ? 'full' : 'large' );
+	}
+	if ( '' === $image_url ) {
+		return array( 'mode' => 'image', 'ready' => false );
+	}
+
+	$image_size = $is_gif ? 'full' : 'large';
+	$image_src  = function_exists( 'wp_get_attachment_image_src' ) ? wp_get_attachment_image_src( $image_id, $image_size ) : false;
+	$alt        = isset( $settings['image_alt'] ) && is_scalar( $settings['image_alt'] ) ? trim( (string) $settings['image_alt'] ) : '';
+
+	return array(
+		'mode'   => 'image',
+		'ready'  => true,
+		'id'     => $image_id,
+		'url'    => $image_url,
+		'mime'   => $mime,
+		'alt'    => $alt,
+		'width'  => is_array( $image_src ) && isset( $image_src[1] ) ? absint( $image_src[1] ) : 0,
+		'height' => is_array( $image_src ) && isset( $image_src[2] ) ? absint( $image_src[2] ) : 0,
+	);
+}
+
+/** Calculate one shared CSS timeline from the selected, bounded ticker timings. */
+function jluxe_announcement_ticker_timing( array $content ): array {
+	$count         = count( $content['ticker_messages'] ?? array() );
+	$fade_ms       = 450;
+	$duration_ms   = absint( $content['ticker_message_duration_ms'] ?? 2500 );
+	$gap_ms        = absint( $content['ticker_inter_message_gap_ms'] ?? 500 );
+	$cycle_gap_ms  = absint( $content['ticker_cycle_gap_ms'] ?? 500 );
+	$visible_ms    = ( 2 * $fade_ms ) + $duration_ms;
+	$slot_ms       = $visible_ms + $gap_ms;
+	$cycle_ms      = $count > 0
+		? ( $count * $visible_ms ) + ( max( 0, $count - 1 ) * $gap_ms ) + $cycle_gap_ms
+		: 0;
+
+	return array(
+		'fade_ms'       => $fade_ms,
+		'duration_ms'   => $duration_ms,
+		'gap_ms'        => $gap_ms,
+		'cycle_gap_ms'  => $cycle_gap_ms,
+		'slot_ms'       => $slot_ms,
+		'cycle_ms'      => $cycle_ms,
+	);
+}
+
+/** Keep the ticker animation active even when an optimizer purges its CSS selector. */
+function jluxe_announcement_ticker_animation_style( array $timing, int $message_index ): string {
+	$cycle_ms = absint( $timing['cycle_ms'] ?? 0 );
+	if ( 0 === $cycle_ms ) {
+		return '';
+	}
+	$delay_ms = absint( $timing['slot_ms'] ?? 0 ) * max( 0, $message_index );
+
+	return '-webkit-animation-name:jluxe-announcement-ticker-phrase;' .
+		'animation-name:jluxe-announcement-ticker-phrase;' .
+		'-webkit-animation-duration:' . $cycle_ms . 'ms;' .
+		'animation-duration:' . $cycle_ms . 'ms;' .
+		'-webkit-animation-delay:' . $delay_ms . 'ms;' .
+		'animation-delay:' . $delay_ms . 'ms;' .
+		'-webkit-animation-timing-function:ease-in-out;' .
+		'animation-timing-function:ease-in-out;' .
+		'-webkit-animation-iteration-count:infinite;' .
+		'animation-iteration-count:infinite;' .
+		'-webkit-animation-fill-mode:both;' .
+		'animation-fill-mode:both;';
+}
+
+/** Build safe, server-rendered keyframes from normalized millisecond values. */
+function jluxe_announcement_ticker_keyframes_style( array $timing, string $effect = 'vertical' ): string {
+	$cycle_ms = absint( $timing['cycle_ms'] ?? 0 );
+	if ( 0 === $cycle_ms ) {
+		return '';
+	}
+
+	$transforms = array(
+		'fade'       => array( 'enter' => 'translate(0,0)', 'exit' => 'translate(0,0)' ),
+		'vertical'   => array( 'enter' => 'translateY(7px)', 'exit' => 'translateY(-7px)' ),
+		'horizontal' => array( 'enter' => 'translateX(12px)', 'exit' => 'translateX(-12px)' ),
+		'zoom'       => array( 'enter' => 'scale(.88)', 'exit' => 'scale(.94)' ),
+	);
+	$effect = isset( $transforms[ $effect ] ) ? $effect : 'vertical';
+	$fade_ms = absint( $timing['fade_ms'] ?? 450 );
+	$hold_ms = $fade_ms + absint( $timing['duration_ms'] ?? 2500 );
+	$exit_ms = ( 2 * $fade_ms ) + absint( $timing['duration_ms'] ?? 2500 );
+	$percent = static function ( int $milliseconds ) use ( $cycle_ms ): string {
+		$number = number_format( 100 * $milliseconds / $cycle_ms, 4, '.', '' );
+		return rtrim( rtrim( $number, '0' ), '.' );
+	};
+
+	$enter_transform = $transforms[ $effect ]['enter'];
+	$exit_transform  = $transforms[ $effect ]['exit'];
+	$neutral_transform = 'translate(0,0)';
+	$frames = '0%{opacity:0;-webkit-transform:' . $enter_transform . ';transform:' . $enter_transform . ';}' .
+		$percent( $fade_ms ) . '%{opacity:1;-webkit-transform:' . $neutral_transform . ';transform:' . $neutral_transform . ';}' .
+		$percent( $hold_ms ) . '%{opacity:1;-webkit-transform:' . $neutral_transform . ';transform:' . $neutral_transform . ';}' .
+		$percent( $exit_ms ) . '%{opacity:0;-webkit-transform:' . $exit_transform . ';transform:' . $exit_transform . ';}' .
+		'100%{opacity:0;-webkit-transform:' . $exit_transform . ';transform:' . $exit_transform . ';}';
+
+	return '<style id="jluxe-announcement-ticker-keyframes">@-webkit-keyframes jluxe-announcement-ticker-phrase{' . $frames . '}@keyframes jluxe-announcement-ticker-phrase{' . $frames . '}</style>';
+}
+
+/** Add the dynamic timeline to head after the theme's static stylesheets. */
+function jluxe_announcement_ticker_print_keyframes(): void {
+	if ( ! function_exists( 'jluxe_get_theme_settings' ) ) {
+		return;
+	}
+	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
+	}
+	$content = jluxe_announcement_content_payload( $settings );
+	if ( 'ticker' !== $content['mode'] || empty( $content['ready'] ) || count( $content['ticker_messages'] ) < 2 ) {
+		return;
+	}
+	$timing = jluxe_announcement_ticker_timing( $content );
+	echo jluxe_announcement_ticker_keyframes_style( $timing, $content['ticker_effect'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- effect and transforms are allow-listed; percentages are derived from bounded integer settings.
+}
+add_action( 'wp_head', 'jluxe_announcement_ticker_print_keyframes', 99 );
+
+/**
+ * Render a small, static badge for the text ticker instead of carrying its logo
+ * inside a large animated banner. Prefer an explicitly selected logo, then the
+ * WordPress site icon, and finally an accessible text badge.
+ */
+function jluxe_announcement_ticker_logo_markup( int $logo_id = 0, bool $framed = true ): string {
+	$site_icon_id = function_exists( 'get_option' ) ? absint( get_option( 'site_icon' ) ) : 0;
+	$logo_ids     = array_values( array_unique( array_filter( array( absint( $logo_id ), $site_icon_id ) ) ) );
+	$image_size   = $framed ? array( 96, 96 ) : 'medium';
+	$image_sizes  = $framed ? '48px' : '160px';
+
+	foreach ( $logo_ids as $candidate_id ) {
+		$mime_type = function_exists( 'get_post_mime_type' ) ? strtolower( (string) get_post_mime_type( $candidate_id ) ) : '';
+		if ( ( '' !== $mime_type && 0 !== strpos( $mime_type, 'image/' ) ) || 'image/gif' === $mime_type ) {
+			continue;
+		}
+
+		if ( function_exists( 'wp_get_attachment_image' ) ) {
+			$image_attributes = array(
+				'class'       => 'jluxe-announcement-bar__ticker-logo-image',
+				'alt'         => '',
+				'aria-hidden' => 'true',
+				'loading'     => 'eager',
+				'decoding'    => 'async',
+				'sizes'       => $image_sizes,
+			);
+			if ( $framed ) {
+				$image_attributes['width']  = 96;
+				$image_attributes['height'] = 96;
+			}
+			$image = wp_get_attachment_image( $candidate_id, $image_size, false, $image_attributes );
+			if ( is_string( $image ) && '' !== $image ) {
+				return $image;
+			}
+		}
+
+		if ( function_exists( 'wp_get_attachment_image_url' ) ) {
+			$image_url = wp_get_attachment_image_url( $candidate_id, $framed ? 'thumbnail' : 'medium' );
+			if ( $image_url ) {
+				$dimensions = $framed ? ' width="96" height="96"' : '';
+				return '<img class="jluxe-announcement-bar__ticker-logo-image" src="' . esc_url( $image_url ) . '" alt="" aria-hidden="true"' . $dimensions . ' loading="eager" decoding="async" sizes="' . esc_attr( $image_sizes ) . '" />';
+			}
+		}
+	}
+
+	return '<span class="jluxe-announcement-bar__ticker-logo-fallback" aria-hidden="true"><span>جهیزیه</span><span>لوکس</span></span>';
+}
+
+/** Mark pages with a real bar so CSS can prevent overlap if JavaScript is off. */
+function jluxe_announcement_body_classes( array $classes ): array {
+	if ( function_exists( 'jluxe_is_woocommerce_account_page' ) && jluxe_is_woocommerce_account_page() ) {
+		return $classes;
+	}
+	if ( ! function_exists( 'jluxe_get_theme_settings' ) ) {
+		return $classes;
+	}
+	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
+	if ( ! is_array( $settings ) ) {
+		return $classes;
+	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
+	}
+	if ( empty( $settings['enabled'] ) ) {
+		return $classes;
+	}
+	$content = jluxe_announcement_content_payload( $settings );
+	if ( ! empty( $content['ready'] ) && ! in_array( 'jluxe-has-announcement', $classes, true ) ) {
+		$classes[] = 'jluxe-has-announcement';
+	}
+	return $classes;
+}
+add_filter( 'body_class', 'jluxe_announcement_body_classes', 10, 1 );
+
+function jluxe_render_announcement_bar(): void {
+	if ( function_exists( 'jluxe_is_woocommerce_account_page' ) && jluxe_is_woocommerce_account_page() ) {
+		return;
+	}
+	if ( ! function_exists( 'jluxe_get_theme_settings' ) ) {
+		return;
+	}
+
+	$settings = jluxe_get_theme_settings()['announcement_bar'] ?? array();
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+	if ( function_exists( 'jluxe_store_closure_announcement_override' ) ) {
+		$settings = jluxe_store_closure_announcement_override( $settings );
+	}
+	$content = jluxe_announcement_content_payload( $settings );
+	if ( empty( $settings['enabled'] ) || empty( $content['ready'] ) ) {
+		return;
+	}
+	$message    = isset( $content['message'] ) ? $content['message'] : '';
+	$is_image        = 'image' === $content['mode'];
+	$is_ticker       = 'ticker' === $content['mode'];
+	$is_sticky       = ! empty( $settings['sticky'] );
+	$is_store_closure = ! empty( $settings['_jluxe_store_closure_active'] );
+
+	$defaults         = jluxe_theme_settings_defaults()['announcement_bar'];
+	$desktop_height_px = jluxe_announcement_height_px(
+		$settings['desktop_height_px'] ?? ( $defaults['desktop_height_px'] ?? 52 ),
+		48,
+		120,
+		(int) ( $defaults['desktop_height_px'] ?? 52 )
+	);
+	$image_desktop_max_height_px = jluxe_announcement_height_px(
+		$settings['image_desktop_max_height_px'] ?? ( $defaults['image_desktop_max_height_px'] ?? 0 ),
+		0,
+		600,
+		(int) ( $defaults['image_desktop_max_height_px'] ?? 0 )
+	);
+	$image_desktop_max_height = 0 < $image_desktop_max_height_px ? $image_desktop_max_height_px . 'px' : 'none';
+	$background_color = isset( $settings['background_color'] ) && is_scalar( $settings['background_color'] ) ? sanitize_hex_color( (string) $settings['background_color'] ) : null;
+	$text_color       = isset( $settings['text_color'] ) && is_scalar( $settings['text_color'] ) ? sanitize_hex_color( (string) $settings['text_color'] ) : null;
+	$background_color = $background_color ?: $defaults['background_color'];
+	$text_color       = $text_color ?: $defaults['text_color'];
+	$link_text        = isset( $settings['link_text'] ) && is_scalar( $settings['link_text'] ) ? trim( (string) $settings['link_text'] ) : '';
+	$link_url         = isset( $settings['link_url'] ) && is_scalar( $settings['link_url'] ) ? trim( (string) $settings['link_url'] ) : '';
+	$dismissible           = ! empty( $settings['dismissible'] );
+	$image_alt             = ! empty( $content['alt'] ) ? $content['alt'] : 'اطلاعیهٔ سایت';
+	$ticker_label_enabled  = $is_ticker && ! empty( $content['ticker_label_enabled'] );
+	$ticker_logo_enabled   = $is_ticker && ! empty( $content['ticker_logo_enabled'] );
+	$ticker_logo_frame     = $is_ticker && ! empty( $content['ticker_logo_frame'] );
+	$ticker_texture        = $is_ticker ? $content['ticker_texture'] : 'waves';
+	$dismiss_key           = md5( serialize( array( $content['mode'], $message, $content['id'] ?? 0, $content['url'] ?? '', $image_alt, $content['ticker_label'] ?? '', $ticker_label_enabled, $ticker_logo_enabled, $ticker_logo_frame, $content['ticker_theme'] ?? '', $content['ticker_layout'] ?? '', $ticker_texture, $content['ticker_effect'] ?? '', $content['ticker_message_duration_ms'] ?? 0, $content['ticker_inter_message_gap_ms'] ?? 0, $content['ticker_cycle_gap_ms'] ?? 0, $content['ticker_messages'] ?? array(), $link_text, $link_url ) ) );
+	$region_label          = $is_store_closure
+		? 'تعطیلی موقت فروشگاه؛ ' . $message
+		: ( $is_ticker
+			? 'اطلاعیهٔ سایت؛ ' . ( $ticker_label_enabled ? $content['ticker_label'] . ': ' : '' ) . $content['ticker_summary']
+			: 'اطلاعیهٔ سایت' );
+	$ticker_messages       = $is_ticker ? $content['ticker_messages'] : array();
+	$ticker_message_count  = count( $ticker_messages );
+	$ticker_timing         = $is_ticker ? jluxe_announcement_ticker_timing( $content ) : array( 'slot_ms' => 0, 'cycle_ms' => 0 );
+	$ticker_sequence_class = $ticker_message_count > 1 ? ' has-multiple' : '';
+	$ticker_theme          = $is_ticker ? $content['ticker_theme'] : 'classic';
+	$ticker_layout         = $is_ticker ? $content['ticker_layout'] : 'classic';
+	$ticker_logo_id        = isset( $settings['ticker_logo_id'] ) && is_scalar( $settings['ticker_logo_id'] ) ? absint( $settings['ticker_logo_id'] ) : 0;
+	$ticker_logo_markup    = $ticker_logo_enabled ? jluxe_announcement_ticker_logo_markup( $ticker_logo_id, $ticker_logo_frame ) : '';
+	$ticker_logo_class     = 'jluxe-announcement-bar__ticker-logo' . ( $ticker_logo_frame ? ' jluxe-announcement-bar__ticker-logo--framed' : ' jluxe-announcement-bar__ticker-logo--plain' );
+	?>
+	<div
+		id="jluxe-announcement-bar"
+		class="jluxe-announcement-bar jluxe-announcement-bar--<?php echo esc_attr( $content['mode'] ); ?><?php echo $is_sticky ? ' jluxe-announcement-bar--sticky' : ''; ?><?php echo $is_store_closure ? ' jluxe-announcement-bar--store-closure' : ''; ?>"
+		data-store-closure="<?php echo $is_store_closure ? '1' : '0'; ?>"
+		role="region"
+		data-content-mode="<?php echo esc_attr( $content['mode'] ); ?>"
+		<?php if ( $is_ticker ) : ?>data-ticker-theme="<?php echo esc_attr( $ticker_theme ); ?>" data-ticker-layout="<?php echo esc_attr( $ticker_layout ); ?>" data-ticker-effect="<?php echo esc_attr( $content['ticker_effect'] ); ?>" data-ticker-texture="<?php echo esc_attr( $ticker_texture ); ?>"<?php endif; ?>
+		data-sticky="<?php echo $is_sticky ? '1' : '0'; ?>"
+		aria-label="<?php echo esc_attr( $region_label ); ?>"
+		aria-live="<?php echo $is_ticker ? 'off' : 'polite'; ?>"
+		data-dismissible="<?php echo $dismissible ? '1' : '0'; ?>"
+		data-dismiss-key="<?php echo esc_attr( $dismiss_key ); ?>"
+		style="--jluxe-announcement-background:<?php echo esc_attr( $background_color ); ?>;--jluxe-announcement-foreground:<?php echo esc_attr( $text_color ); ?>;--jluxe-announcement-desktop-height:<?php echo esc_attr( $desktop_height_px ); ?>px;--jluxe-announcement-image-desktop-max-height:<?php echo esc_attr( $image_desktop_max_height ); ?>"
+	>
+		<?php if ( $is_ticker && 'waves' === $ticker_texture ) : ?>
+			<svg class="jluxe-announcement-bar__ticker-waves" viewBox="0 0 1600 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+				<path d="M-100 58 C100 4 300 4 500 58 S900 112 1100 58 S1500 4 1700 58 S2100 112 2300 58" vector-effect="non-scaling-stroke" />
+				<path d="M-100 24 C100 62 300 62 500 24 S900 -14 1100 24 S1500 62 1700 24 S2100 -14 2300 24" vector-effect="non-scaling-stroke" />
+				<path d="M-100 86 C100 54 300 54 500 86 S900 118 1100 86 S1500 54 1700 86 S2100 118 2300 86" vector-effect="non-scaling-stroke" />
+			</svg>
+		<?php endif; ?>
+		<div class="jluxe-announcement-bar__inner">
+			<?php if ( $is_image ) : ?>
+				<?php if ( '' !== $link_url ) : ?>
+					<a class="jluxe-announcement-bar__image-link" href="<?php echo esc_url( $link_url ); ?>" aria-label="<?php echo esc_attr( '' !== $link_text ? $link_text : $image_alt ); ?>">
+				<?php endif; ?>
+				<span class="jluxe-announcement-bar__image-window">
+					<img class="jluxe-announcement-bar__image" src="<?php echo esc_url( $content['url'] ); ?>" alt="<?php echo esc_attr( $image_alt ); ?>"<?php if ( ! empty( $content['width'] ) && ! empty( $content['height'] ) ) : ?> width="<?php echo esc_attr( $content['width'] ); ?>" height="<?php echo esc_attr( $content['height'] ); ?>"<?php endif; ?> decoding="async" />
+				</span>
+				<?php if ( '' !== $link_url ) : ?>
+					</a>
+				<?php endif; ?>
+			<?php elseif ( $is_ticker ) : ?>
+				<div class="jluxe-announcement-bar__ticker-visual" dir="rtl" aria-hidden="true">
+					<?php if ( $ticker_label_enabled ) : ?>
+						<strong class="jluxe-announcement-bar__ticker-label"><?php echo esc_html( $content['ticker_label'] ); ?></strong>
+						<span class="jluxe-announcement-bar__ticker-divider" aria-hidden="true"></span>
+					<?php endif; ?>
+					<span class="jluxe-announcement-bar__ticker-window">
+						<span class="jluxe-announcement-bar__ticker-sequence<?php echo esc_attr( $ticker_sequence_class ); ?>">
+							<?php foreach ( $ticker_messages as $ticker_index => $ticker_message ) : ?>
+								<span class="jluxe-announcement-bar__ticker-phrase" style="<?php echo esc_attr( jluxe_announcement_ticker_animation_style( $ticker_timing, (int) $ticker_index ) ); ?>"><?php echo esc_html( $ticker_message ); ?></span>
+							<?php endforeach; ?>
+						</span>
+						<span class="jluxe-announcement-bar__ticker-static"><?php echo esc_html( $content['ticker_summary'] ); ?></span>
+					</span>
+					<?php if ( $ticker_logo_enabled ) : ?>
+						<span class="jluxe-announcement-bar__ticker-divider" aria-hidden="true"></span>
+						<span class="<?php echo esc_attr( $ticker_logo_class ); ?>"><?php echo $ticker_logo_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- تولیدشده توسط wp_get_attachment_image یا fallback ثابتِ خودِ تم. ?></span>
+					<?php endif; ?>
+				</div>
+				<?php if ( '' !== $link_text && '' !== $link_url ) : ?>
+					<a class="jluxe-announcement-bar__ticker-link" href="<?php echo esc_url( $link_url ); ?>"><?php echo esc_html( $link_text ); ?></a>
+				<?php endif; ?>
+			<?php else : ?>
+				<?php if ( $is_store_closure ) : ?>
+					<span class="jluxe-announcement-bar__closure-icon" aria-hidden="true">
+						<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" focusable="false">
+							<path d="M10 20v16h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M8 19 11 9h17l3 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M8 19c0 2.7 4.1 3.5 5.3.8 1.2 2.7 5.2 2.7 6.4 0 1.2 2.7 5.2 2.7 6.4 0 1.2 2.7 5.3 1.9 5.3-.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M13 26h11v10H13zM13 29.3h11M13 32.6h11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+							<circle cx="34" cy="34" r="9.5" fill="none" stroke="currentColor" stroke-width="2" />
+							<path d="M34 29.5v4.8l3.1 1.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
+					</span>
+				<?php endif; ?>
+				<p class="jluxe-announcement-bar__message"><?php echo esc_html( $message ); ?></p>
+				<?php if ( '' !== $link_text && '' !== $link_url ) : ?>
+					<a class="jluxe-announcement-bar__link" href="<?php echo esc_url( $link_url ); ?>"><?php echo esc_html( $link_text ); ?></a>
+				<?php endif; ?>
+			<?php endif; ?>
+			<?php if ( $dismissible ) : ?>
+				<button type="button" class="jluxe-announcement-bar__dismiss" data-jluxe-announcement-dismiss aria-label="بستن اطلاعیه">
+					<span aria-hidden="true">×</span>
+				</button>
+			<?php endif; ?>
+		</div>
+	</div>
+	<script>
+	(function () {
+		var bar = document.getElementById('jluxe-announcement-bar');
+		if (!bar) return;
+		var root = document.documentElement;
+		var storageKey = 'jluxe-announcement:' + (bar.getAttribute('data-dismiss-key') || '');
+		var sticky = bar.getAttribute('data-sticky') === '1';
+		var adminBar = document.getElementById('wpadminbar');
+		var scrollFramePending = false;
+		var getAdminBarHeight = function () {
+			return adminBar ? Math.max(0, adminBar.getBoundingClientRect().height) : 0;
+		};
+		var updateHeaderOffset = function () {
+			var height = bar.hidden ? 0 : Math.max(0, bar.getBoundingClientRect().height);
+			var headerOffset = 0;
+			if (!bar.hidden) {
+				headerOffset = sticky
+					? height
+					: Math.max(0, bar.getBoundingClientRect().bottom - getAdminBarHeight());
+			}
+			root.style.setProperty('--jluxe-announcement-height', height + 'px');
+			root.style.setProperty('--jluxe-announcement-sticky-height', headerOffset + 'px');
+		};
+		var scheduleHeaderOffsetUpdate = function () {
+			if (scrollFramePending) return;
+			scrollFramePending = true;
+			var applyUpdate = function () {
+				scrollFramePending = false;
+				updateHeaderOffset();
+			};
+			if (window.requestAnimationFrame) window.requestAnimationFrame(applyUpdate);
+			else applyUpdate();
+		};
+		if (bar.getAttribute('data-dismissible') === '1') {
+			try {
+				if (window.sessionStorage.getItem(storageKey) === '1') bar.hidden = true;
+			} catch (error) {}
+		}
+		updateHeaderOffset();
+		if (document.body) document.body.classList.add('jluxe-announcement-ready');
+		window.addEventListener('resize', updateHeaderOffset, { passive: true });
+		if (!sticky) window.addEventListener('scroll', scheduleHeaderOffsetUpdate, { passive: true });
+		if ('ResizeObserver' in window) {
+			var resizeObserver = new ResizeObserver(updateHeaderOffset);
+			resizeObserver.observe(bar);
+			bar._jluxeAnnouncementResizeObserver = resizeObserver;
+		}
+		bar.querySelectorAll('img').forEach(function (image) {
+			image.addEventListener('load', updateHeaderOffset);
+			image.addEventListener('error', updateHeaderOffset);
+		});
+		if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateHeaderOffset);
+		var dismissButton = bar.querySelector('[data-jluxe-announcement-dismiss]');
+		if (dismissButton) {
+			dismissButton.addEventListener('click', function () {
+				bar.hidden = true;
+				updateHeaderOffset();
+				try { window.sessionStorage.setItem(storageKey, '1'); } catch (error) {}
+			});
+		}
+	}());
+	</script>
+	<?php
+}

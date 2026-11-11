@@ -1,0 +1,337 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { JSDOM } from "jsdom";
+
+const source = fs.readFileSync(new URL("../assets/js/product-specifications-admin.js", import.meta.url), "utf8");
+
+function editorMarkup() {
+  return `<!doctype html><html><body>
+    <div id="jluxe-product-spec-groups" data-next-group-index="1">
+      <section class="jluxe-spec-group" data-jluxe-spec-group data-group-index="0" data-next-row-index="1">
+        <input type="text" name="jluxe_product_specs[0][title]" value="گروه اول">
+        <div data-jluxe-spec-rows>
+          <div class="jluxe-spec-row">
+            <input type="text" name="jluxe_product_specs[0][items][0][label]" value="ویژگی">
+            <input type="text" name="jluxe_product_specs[0][items][0][value]" value="مقدار">
+            <div class="jluxe-spec-row-actions">
+              <button type="button" data-jluxe-spec-move-row="up" aria-label="انتقال به بالا">↑</button>
+              <button type="button" data-jluxe-spec-move-row="down" aria-label="انتقال به پایین">↓</button>
+              <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+            </div>
+          </div>
+        </div>
+        <button type="button" data-jluxe-spec-add-row>افزودن ویژگی</button>
+        <button type="button" data-jluxe-spec-remove-group>حذف گروه</button>
+      </section>
+    </div>
+    <template id="jluxe-product-spec-group-template">
+      <section class="jluxe-spec-group" data-jluxe-spec-group data-group-index="__GROUP__" data-next-row-index="0">
+        <input type="text" name="jluxe_product_specs[__GROUP__][title]" value="">
+        <div data-jluxe-spec-rows></div>
+        <button type="button" data-jluxe-spec-add-row>افزودن ویژگی</button>
+        <button type="button" data-jluxe-spec-remove-group>حذف گروه</button>
+      </section>
+    </template>
+    <template id="jluxe-product-spec-row-template">
+      <div class="jluxe-spec-row">
+        <input type="text" name="jluxe_product_specs[__GROUP__][items][__ROW__][label]" value="">
+        <input type="text" name="jluxe_product_specs[__GROUP__][items][__ROW__][value]" value="">
+        <div class="jluxe-spec-row-actions">
+          <button type="button" data-jluxe-spec-move-row="up" aria-label="انتقال به بالا">↑</button>
+          <button type="button" data-jluxe-spec-move-row="down" aria-label="انتقال به پایین">↓</button>
+          <button type="button" data-jluxe-spec-remove-row>حذف ویژگی</button>
+        </div>
+      </div>
+    </template>
+    <button type="button" data-jluxe-spec-add-group>افزودن گروه</button>
+  </body></html>`;
+}
+
+test("grouped product-specification editor adds unique rows/groups and confirms destructive removals", (t) => {
+  const dom = new JSDOM(editorMarkup(), {
+    url: "https://shop.test/wp-admin/post.php",
+    runScripts: "outside-only",
+    pretendToBeVisual: true,
+  });
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  const confirmationAnswers = [];
+  window.confirm = () => confirmationAnswers.shift() ?? true;
+  window.eval(source);
+  if (window.document.readyState === "loading") {
+    window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
+  }
+
+  const root = window.document.getElementById("jluxe-product-spec-groups");
+  const addGroup = window.document.querySelector("[data-jluxe-spec-add-group]");
+  addGroup.click();
+  assert.equal(root.querySelectorAll("[data-jluxe-spec-group]").length, 2, "a new group is inserted into the form");
+  const newGroup = root.querySelectorAll("[data-jluxe-spec-group]")[1];
+  assert.equal(newGroup.getAttribute("data-group-index"), "1", "new group indexes continue after existing groups");
+  assert.equal(newGroup.querySelector('[name="jluxe_product_specs[1][title]"]').value, "");
+  assert.equal(window.document.activeElement, newGroup.querySelector('[name="jluxe_product_specs[1][title]"]'), "new groups focus the title field so a copied title and table can be pasted in one step");
+  assert.equal(newGroup.querySelector('[name="jluxe_product_specs[1][items][0][label]"]').value, "", "new group starts with a usable blank feature row");
+
+  newGroup.querySelector("[data-jluxe-spec-add-row]").click();
+  assert.equal(newGroup.querySelectorAll(".jluxe-spec-row").length, 2, "a group can add another feature row");
+  assert.ok(newGroup.querySelector('[name="jluxe_product_specs[1][items][1][label]"]'), "new feature names include unique group and row indexes");
+
+  const rowToRemove = newGroup.querySelectorAll(".jluxe-spec-row")[1];
+  rowToRemove.querySelector('input[name$="[label]"]').value = "حذف‌شدنی";
+  confirmationAnswers.push(false);
+  rowToRemove.querySelector("[data-jluxe-spec-remove-row]").click();
+  assert.equal(newGroup.querySelectorAll(".jluxe-spec-row").length, 2, "canceling the confirmation preserves a populated feature");
+  confirmationAnswers.push(true);
+  rowToRemove.querySelector("[data-jluxe-spec-remove-row]").click();
+  assert.equal(newGroup.querySelectorAll(".jluxe-spec-row").length, 1, "confirming removes only the selected feature");
+
+  newGroup.querySelector('input[name="jluxe_product_specs[1][title]"]').value = "حذف گروه";
+  confirmationAnswers.push(false);
+  newGroup.querySelector("[data-jluxe-spec-remove-group]").click();
+  assert.equal(root.querySelectorAll("[data-jluxe-spec-group]").length, 2, "canceling preserves a populated group");
+  confirmationAnswers.push(true);
+  newGroup.querySelector("[data-jluxe-spec-remove-group]").click();
+  assert.equal(root.querySelectorAll("[data-jluxe-spec-group]").length, 1, "confirming removes the selected group and its rows");
+});
+
+function bootEditor(t) {
+  const dom = new JSDOM(editorMarkup(), {
+    url: "https://shop.test/wp-admin/post.php",
+    runScripts: "outside-only",
+    pretendToBeVisual: true,
+  });
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  window.confirm = () => true;
+  window.eval(source);
+  if (window.document.readyState === "loading") {
+    window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
+  }
+  return { window, root: window.document.getElementById("jluxe-product-spec-groups") };
+}
+
+test("product specification rows move up and down, preserve field values, and submit in the displayed order", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const addRow = group.querySelector("[data-jluxe-spec-add-row]");
+  addRow.click();
+  addRow.click();
+
+  let rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  rows[0].querySelector('input[name$="[label]"]').value = "ویژگی اول";
+  rows[1].querySelector('input[name$="[label]"]').value = "ویژگی دوم";
+  rows[2].querySelector('input[name$="[label]"]').value = "ویژگی سوم";
+  rows[0].querySelector('input[name$="[value]"]').value = "مقدار اول";
+  rows[1].querySelector('input[name$="[value]"]').value = "مقدار دوم";
+  rows[2].querySelector('input[name$="[value]"]').value = "مقدار سوم";
+
+  assert.equal(rows[0].querySelector('[data-jluxe-spec-move-row="up"]').disabled, true, "the first row cannot move above the group");
+  assert.equal(rows[0].querySelector('[data-jluxe-spec-move-row="down"]').disabled, false);
+  assert.equal(rows[2].querySelector('[data-jluxe-spec-move-row="down"]').disabled, true, "the last row cannot move below the group");
+
+  const secondRow = rows[1];
+  secondRow.querySelector('[data-jluxe-spec-move-row="up"]').click();
+  rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  assert.deepEqual(rows.map((row) => row.querySelector('input[name$="[label]"]').value), ["ویژگی دوم", "ویژگی اول", "ویژگی سوم"]);
+  assert.equal(rows[0].querySelector('input[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی دوم", "the moved row receives the first submitted index");
+  assert.equal(rows[0].querySelector('input[name="jluxe_product_specs[0][items][0][value]"]').value, "مقدار دوم", "the feature value stays paired with its label");
+  assert.equal(group.getAttribute("data-next-row-index"), "3", "future rows continue after the reindexed list");
+  assert.equal(window.document.activeElement, secondRow.querySelector('[data-jluxe-spec-move-row="down"]'), "focus stays with the moved row and offers the reverse move");
+  assert.match(group.querySelector('[data-jluxe-spec-order-status]').textContent, /ردیف ۱/);
+
+  secondRow.querySelector('[data-jluxe-spec-move-row="down"]').click();
+  rows = Array.from(group.querySelectorAll(".jluxe-spec-row"));
+  assert.deepEqual(rows.map((row) => row.querySelector('input[name$="[label]"]').value), ["ویژگی اول", "ویژگی دوم", "ویژگی سوم"]);
+  assert.equal(window.document.activeElement, secondRow.querySelector('[data-jluxe-spec-move-row="up"]'));
+
+  addRow.click();
+  const newRow = group.querySelectorAll(".jluxe-spec-row")[3];
+  assert.ok(newRow.querySelector('input[name="jluxe_product_specs[0][items][3][label]"]'), "adding after a reorder does not reuse an existing field name");
+});
+
+function pasteClipboard(window, input, data) {
+  const event = new window.Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { getData: (type) => data[type] || "" },
+  });
+  input.dispatchEvent(event);
+  return event;
+}
+
+test("pasting a copied HTML specification table imports rows into the focused group and preserves existing values", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<table><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead><tbody>
+      <tr><td>برند سازنده</td><td>عروس نوین</td></tr>
+      <tr><td>مدل محصول</td><td>هرمس (۱.۵ طبقه)</td></tr>
+      <tr><td>قابلیت‌ها</td><td>جدا شدن سبد بالایی و تغییر جهت کشو</td></tr>
+    </tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true, "a recognized table is handled by the importer");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 4, "three features are added to the existing row");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی", "existing feature label is unchanged");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][value]"]').value, "مقدار", "existing feature value is unchanged");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "برند سازنده");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "عروس نوین");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][3][label]"]').value, "قابلیت‌ها");
+  assert.match(group.querySelector('[role="status"]').textContent, /۳ ویژگی/);
+});
+
+test("pasting a heading and its whole HTML table into the group title fills the title and all specification rows", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/html": `<div><h2>مشخصات فنی</h2><table><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead>
+      <tbody><tr><td>جنس</td><td><span onclick="alert(1)">چوب طبیعی</span></td></tr>
+      <tr><td>ابعاد</td><td>۱۰۰ × ۶۰ سانتی‌متر<script>window.pastedCodeRan=true</script></td></tr></tbody></table></div>`,
+    "text/plain": "مشخصات فنی\nنام ویژگی\tمقدار ویژگی\nجنس\tچوب طبیعی\nابعاد\t۱۰۰ × ۶۰ سانتی‌متر",
+  });
+
+  assert.equal(event.defaultPrevented, true, "the clipboard title and table are imported together instead of being pasted into one input");
+  assert.equal(titleInput.value, "مشخصات فنی");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "both table records are added to the current group");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][0][label]"]').value, "ویژگی", "existing rows stay untouched");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "چوب طبیعی");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ابعاد");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][value]"]').value, "۱۰۰ × ۶۰ سانتی‌متر");
+  assert.equal(window.pastedCodeRan, undefined, "HTML remains inert and only cell text enters the form");
+  assert.match(group.querySelector('[role="status"]').textContent, /عنوان گروه «مشخصات فنی»/);
+  assert.match(group.querySelector('[role="status"]').textContent, /۲ ویژگی/);
+});
+
+test("a table caption updates the group title even when the paste starts in a feature field", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<table><caption>مشخصات ساخت</caption><tbody><tr><td>جنس</td><td>استیل</td></tr></tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelector('input[name$="[title]"]').value, "مشخصات ساخت");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "استیل");
+});
+
+test("a single-cell title row in a copied HTML table becomes the group title automatically", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/html": `<table><tbody><tr><td colspan="2">مشخصات ظاهری</td></tr>
+      <tr><th>ویژگی</th><th>مقدار</th></tr><tr><td>رنگ</td><td>سفید</td></tr></tbody></table>`,
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(titleInput.value, "مشخصات ظاهری");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 2, "the title and header rows are not imported as product features");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "رنگ");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "سفید");
+});
+
+test("a plain-text heading plus a complete spreadsheet table imports as one titled group", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const titleInput = group.querySelector('input[name$="[title]"]');
+  const event = pasteClipboard(window, titleInput, {
+    "text/plain": [
+      "مشخصات فنی",
+      "ویژگی\tمقدار",
+      "جنس\tفلز آبکاری‌شده",
+      "ارتفاع\t۴۰ سانتی‌متر",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(titleInput.value, "مشخصات فنی");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3);
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "فلز آبکاری‌شده");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ارتفاع");
+  assert.match(group.querySelector('[role="status"]').textContent, /عنوان گروه «مشخصات فنی»/);
+});
+
+test("pasting a copied styled HTML table imports only safe cell text, never copied markup or scripts", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/html": `<!--StartFragment--><table style="width:100%;color:red"><thead><tr><th>نام ویژگی</th><th>مقدار ویژگی</th></tr></thead>
+      <tbody><tr style="background:#f00"><td><span onclick="alert(1)">جنس بدنه</span></td>
+      <td><a href="https://example.test/">استیل ضدزنگ</a><script>window.pastedCodeRan=true</script></td></tr></tbody></table><!--EndFragment-->`,
+  });
+
+  assert.equal(event.defaultPrevented, true, "copied website or office tables are recognized");
+  assert.equal(window.pastedCodeRan, undefined, "clipboard scripts are never executed");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 2);
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس بدنه");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "استیل ضدزنگ");
+});
+
+test("pasting a Markdown or tabular plain-text table strips formatting and reuses an empty row", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  group.querySelector("[data-jluxe-spec-add-row]").click();
+  const emptyRow = group.querySelectorAll(".jluxe-spec-row")[1];
+  const target = emptyRow.querySelector('input[name$="[value]"]');
+  const event = pasteClipboard(window, target, {
+    "text/plain": [
+      "| **نام ویژگی** | **مقدار ویژگی** |",
+      "| --- | --- |",
+      "| جنس بدنه | فلز آبکاری شده با رنگ کوره‌ای |",
+      "| ابعاد محصول (سانتی‌متر) | طول ۴۴ × عرض ۳۳ × ارتفاع ۴۰ سانتی‌متر |",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "the existing blank row is reused for the first feature");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "جنس بدنه");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "فلز آبکاری شده با رنگ کوره‌ای");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "ابعاد محصول (سانتی‌متر)");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][value]"]').value, "طول ۴۴ × عرض ۳۳ × ارتفاع ۴۰ سانتی‌متر");
+});
+
+test("plain-text spreadsheet headings such as Feature and Details are skipped during import", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const event = pasteClipboard(window, target, {
+    "text/plain": [
+      "Feature\tDetails",
+      "Material\tPowder-coated steel",
+      "Height\t40 cm",
+    ].join("\n"),
+  });
+
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 3, "the two records are added without importing the header row");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][label]"]').value, "Material");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][1][value]"]').value, "Powder-coated steel");
+  assert.equal(group.querySelector('[name="jluxe_product_specs[0][items][2][label]"]').value, "Height");
+});
+
+test("ordinary text paste is left untouched and a large table respects the 100-row server limit", (t) => {
+  const { window, root } = bootEditor(t);
+  const group = root.querySelector("[data-jluxe-spec-group]");
+  const target = group.querySelector('input[name$="[label]"]');
+  const ordinary = pasteClipboard(window, target, { "text/plain": "فقط یک متن معمولی" });
+  assert.equal(ordinary.defaultPrevented, false, "ordinary text keeps native paste behavior");
+  const spacedText = pasteClipboard(window, target, { "text/plain": "متن معمولی  با فاصلهٔ دوبل" });
+  assert.equal(spacedText.defaultPrevented, false, "one ambiguous line separated by spaces is not treated as a table");
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 1);
+
+  const lines = ["نام ویژگی\tمقدار ویژگی"];
+  for (let index = 1; index <= 105; index += 1) {
+    lines.push("ویژگی " + index + "\tمقدار " + index);
+  }
+  const largeTable = pasteClipboard(window, target, { "text/plain": lines.join("\n") });
+  assert.equal(largeTable.defaultPrevented, true);
+  assert.equal(group.querySelectorAll(".jluxe-spec-row").length, 100, "the group never exceeds the server's 100-row limit");
+  assert.match(group.querySelector('[role="status"]').textContent, /۶ ردیف/);
+});
