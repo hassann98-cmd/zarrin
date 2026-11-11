@@ -106,10 +106,7 @@
 		if ((typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { return; }
 		if (statusResolved) {
 			if (isBoolean(currentStatus)) { updateLink(link, currentStatus); }
-			var destination = isBoolean(currentStatus)
-				? accountHref(link, currentStatus)
-				: link.getAttribute("href");
-			if (destination) { window.location.assign(destination); }
+			// Let the React auth router (or native navigation) handle the updated href.
 			return;
 		}
 		if (!statusPromise) { return; }
@@ -119,7 +116,10 @@
 			var destination = isBoolean(authenticated)
 				? accountHref(link, authenticated)
 				: link.getAttribute("href");
-			if (destination) { window.location.assign(destination); }
+			if (destination) {
+				// Replay after cookie verification so the in-app router can intercept.
+				link.click();
+			}
 		});
 	}
 

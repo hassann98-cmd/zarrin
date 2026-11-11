@@ -28,6 +28,21 @@ for (const name of ['MobileNav', 'FloatingMobileNav']) {
       await act(async () => root.render(React.createElement(Nav)));
       const link = () => dom.window.document.querySelector('[data-jluxe-account-link]');
       assert.equal(link().textContent.trim(), 'ورود');
+      await act(async () => link().dispatchEvent(new dom.window.MouseEvent('pointerdown', { bubbles: true, button: 0 })));
+      assert.equal(link().dataset.navPressed, 'true', 'touch is acknowledged before navigation');
+      await act(async () => link().dispatchEvent(new dom.window.MouseEvent('pointercancel', { bubbles: true })));
+      assert.equal(link().dataset.navPressed, undefined);
+      const item = name === 'MobileNav'
+        ? dom.window.JLuxeThemeSettings.mobile.nav_items[0]
+        : dom.window.JLuxeThemeSettings.mobile.floating_nav_items[0];
+      dom.window.JLuxeThemeSettings.iconGlyphs = { menu: 'M1 2h3v4z', bed: 'M5 6h7v8z' };
+      for (const [icon, path] of [['menu', 'M1 2h3v4z'], ['bed', 'M5 6h7v8z'], ['', null]]) {
+        item.icon = icon;
+        await act(async () => root.render(React.createElement(Nav)));
+        assert.equal(link().querySelector('svg path')?.getAttribute('d') ?? null, path, 'render the selected settings glyph, including no icon');
+      }
+      item.icon = 'user';
+
       for (const authenticated of [true, false, true]) {
         await act(async () => {
           dom.window.jluxeCurrentAuthStatus = authenticated;

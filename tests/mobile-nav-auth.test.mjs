@@ -36,6 +36,12 @@ function runAuthScript(dom, fetch, extraWindow = {}) {
     location: { assign: (href) => navigations.push(href) },
     ...extraWindow,
   };
+  // Model native navigation after the capture handler updates the anchor.
+  dom.window.document.addEventListener("click", event => {
+    if (event.defaultPrevented) return;
+    const link = event.target.closest("a");
+    if (link) { navigations.push(link.getAttribute("href")); event.preventDefault(); }
+  });
   vm.runInNewContext(authScript, { window, document: dom.window.document, Promise });
   return { window, navigations };
 }
