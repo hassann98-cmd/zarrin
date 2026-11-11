@@ -11,6 +11,32 @@ function check($condition, $message) {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+// Native page motion must stay away from transactional pages and remain optional.
+$motion_old_query = $GLOBALS['query_kind'] ?? '';
+$motion_old_options = $GLOBALS['options'];
+$motion_old_scripts = $GLOBALS['scripts'];
+$motion_old_styles = $GLOBALS['styles'];
+$motion_old_localized = $GLOBALS['localized'] ?? array();
+foreach ( array( 'cart', 'checkout', 'account' ) as $motion_kind ) {
+	$GLOBALS['query_kind'] = $motion_kind;
+	check( ! jluxe_page_motion_allowed(), 'native page motion excludes ' . $motion_kind );
+}
+$GLOBALS['query_kind'] = 'product';
+check( jluxe_page_motion_allowed(), 'native page motion is available on public product pages' );
+$motion_clean = jluxe_sanitize_performance( array( 'page_transitions' => '1', 'page_prefetch' => '1' ), jluxe_theme_settings_defaults()['performance'] );
+check( $motion_clean['page_transitions'] && $motion_clean['page_prefetch'], 'page transitions and prefetch are saved as separate switches' );
+$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = array( 'version' => JLUXE_SETTINGS_VERSION, 'performance' => array( 'page_transitions' => false, 'page_prefetch' => false ) );
+jluxe_get_theme_settings( true );
+unset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] );
+jluxe_enqueue_page_motion();
+check( ! isset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] ), 'disabling both switches leaves no page motion script or stylesheet' );
+$GLOBALS['options'] = $motion_old_options;
+$GLOBALS['query_kind'] = $motion_old_query;
+$GLOBALS['scripts'] = $motion_old_scripts;
+$GLOBALS['styles'] = $motion_old_styles;
+$GLOBALS['localized'] = $motion_old_localized;
+jluxe_get_theme_settings( true );
+
 // Mobile icon save -> persisted settings -> localized React payload, including cache invalidation.
 $mobile_save_options = $GLOBALS['options'];
 $mobile_save_post = $_POST;

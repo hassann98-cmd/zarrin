@@ -1203,6 +1203,8 @@ function jluxe_theme_settings_defaults(): array {
 		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
 		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
+			'page_transitions' => true,
+			'page_prefetch' => true,
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
@@ -3374,6 +3376,7 @@ function jluxe_localize_public_settings(): void {
 			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
+			'navigation'      => array( 'prefetch' => ! empty( $settings['performance']['page_prefetch'] ) ),
 			'iconGlyphs'       => function_exists( 'jluxe_public_icon_glyphs' ) ? jluxe_public_icon_glyphs( $settings ) : array(),
 			'header'           => $settings['header'],
 			'footer'           => $footer,

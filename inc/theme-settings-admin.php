@@ -475,14 +475,14 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 
-	if ( 'mobile' === $section_key && $previous_section !== $section_value ) {
-		// Mobile settings and iconGlyphs are embedded in every cacheable page.
+	if ( in_array( $section_key, array( 'mobile', 'performance' ), true ) && $previous_section !== $section_value ) {
+		// Navigation settings/glyphs and performance switches are embedded in cached HTML.
 		// Invalidating the WP object cache alone cannot refresh that HTML.
 		do_action( 'litespeed_purge_all' );
 		if ( function_exists( 'rocket_clean_domain' ) ) { rocket_clean_domain(); }
 		if ( function_exists( 'w3tc_flush_all' ) ) { w3tc_flush_all(); }
 		if ( function_exists( 'wp_cache_clear_cache' ) ) { wp_cache_clear_cache(); }
-		do_action( 'jluxe_mobile_navigation_changed', $section_value, $previous_section );
+		do_action( 'mobile' === $section_key ? 'jluxe_mobile_navigation_changed' : 'jluxe_page_motion_changed', $section_value, $previous_section );
 	}
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {

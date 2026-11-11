@@ -2934,7 +2934,9 @@ function jluxe_render_advanced_page(): void {
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<h3>تنظیمات</h3>
 					<table class="form-table" role="presentation">
-						<tr>
+						<tr><th scope="row">نرمی جابه‌جایی صفحات</th><td><label><input type="checkbox" name="performance[page_transitions]" value="1" <?php checked( $perf['page_transitions'] ?? true ); ?> /> انتقال محوشوندهٔ کوتاه و خط انتظار بالای صفحه، در موبایل و دسکتاپ</label><p class="description">بدون تغییر HTML و مسیریابی وردپرس؛ کاهش حرکت مرورگر رعایت می‌شود. سبد، پرداخت و حساب مستثنا هستند.</p></td></tr>
+                        <tr><th scope="row">پیش‌دریافت محدود صفحات</th><td><label><input type="checkbox" name="performance[page_prefetch]" value="1" <?php checked( $perf['page_prefetch'] ?? true ); ?> /> پیش‌دریافت لینک محصول و خانه برای مهمان با قصد لمس/فوکوس (حداکثر دو صفحه)</label><p class="description">لینک‌های عملیاتی، اتصال ضعیف و حالت صرفه‌جویی داده مستثنا هستند.</p></td></tr>
+                        <tr>
 							<th scope="row">غیرفعال‌سازی اسکریپت ایموجی وردپرس</th>
 							<td><label><input type="checkbox" name="performance[disable_emojis]" value="1" <?php checked( $perf['disable_emojis'] ); ?> /> کاهش یک درخواست JS/CSS اضافه در هر صفحه</label></td>
 						</tr>

@@ -186,7 +186,7 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 	 */
 	?>
 	<div class="relative">
-		<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="jluxe-card-shine relative flex <?php echo esc_attr( $jluxe_ratio ); ?> overflow-hidden <?php echo esc_attr( $jluxe_radius['image'] ); ?>">
+		<a data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="jluxe-card-shine relative flex <?php echo esc_attr( $jluxe_ratio ); ?> overflow-hidden <?php echo esc_attr( $jluxe_radius['image'] ); ?>">
 			<div class="absolute inset-4">
 				<img
 					data-jluxe-card-main-img

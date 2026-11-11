@@ -1,12 +1,14 @@
 const MOBILE_VIEWPORT = "(max-width: 767.98px)";
 const PREFETCH_SELECTOR = 'link[data-jluxe-mobile-home-prefetch]';
-const SLOW_NETWORKS = new Set(["slow-2g", "2g"]);
+const SLOW_NETWORKS = new Set(["slow-2g", "2g", "3g"]);
 
 function canPrefetchOnMobile(win) {
   if (!win?.document || !win.location || !win.navigator) return false;
   if (typeof win.matchMedia === "function" && !win.matchMedia(MOBILE_VIEWPORT).matches) {
     return false;
   }
+  if (win.JLuxeThemeSettings?.navigation?.prefetch === false || win.jluxeCurrentAuthStatus === true || win.JLuxeThemeSettings?.auth?.isLoggedIn === true) return false;
+  if (win.document.body?.matches('.woocommerce-cart,.woocommerce-checkout,.woocommerce-account,.jluxe-auth-page')) return false;
   const connection = win.navigator.connection;
   if (connection?.saveData || SLOW_NETWORKS.has(connection?.effectiveType)) {
     return false;
