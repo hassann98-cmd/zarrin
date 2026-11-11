@@ -135,7 +135,8 @@ test("R98 post-login redirect defaults to home, preserves safe checkout, and rej
   );
 });
 
-test("R98 WebOTP/Google autofill six-digit input verifies automatically and allows a retry after rejection", async () => {
+for (const sessionAccepted of [true, false]) {
+test(`R98 OTP retry and autofill with cookie session ${sessionAccepted ? "accepted" : "rejected"}`, async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', {
     url: "https://shop.test/store/customer-zone/?redirect_to=%2Fstore%2Fcheckout%2F",
     pretendToBeVisual: true,
@@ -184,7 +185,10 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
   targetWindow.JLuxeThemeSettings = {
     sms: { enabled: true },
     auth: { registrationEnabled: false, otpOnly: false },
-    rest: { root: "https://shop.test/wp-json/jluxe/v1/" },
+    rest: {
+      root: "https://shop.test/wp-json/jluxe/v1/",
+      sessionUrl: "https://shop.test/wp-admin/admin-ajax.php",
+    },
     urls: {
       home: "https://shop.test/store/",
       dashboard: "https://shop.test/store/customer-zone/",
@@ -220,9 +224,19 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
   globalThis.Node = targetWindow.Node;
   globalThis.Event = targetWindow.Event;
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  let sessionChecks = 0;
   globalThis.fetch = async (url, init) => {
-    const body = JSON.parse(init.body);
     const path = new URL(url).pathname;
+    if (path.endsWith("/admin-ajax.php")) {
+      sessionChecks += 1;
+      assert.equal(init.body.get("action"), "jluxe_session");
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, data: { auth: { isLoggedIn: sessionChecks > 1 && sessionAccepted } } }),
+      };
+    }
+    const body = JSON.parse(init.body);
     requests.push({ path, body });
     if (path.endsWith("/auth/otp-request")) {
       return { ok: true, status: 200, json: async () => ({ sent: true }) };
@@ -247,6 +261,8 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
     input.dispatchEvent(new targetWindow.Event("input", { bubbles: true }));
   };
   try {
+    const { getSession } = await server.ssrLoadModule("/src/lib/api.js");
+    assert.equal((await getSession(true)).auth.isLoggedIn, false, "prime a cached guest session before OTP");
     await act(async () => root.render(React.createElement(AuthPage)));
     const phone = targetWindow.document.getElementById("jluxe-auth-phone");
     const form = targetWindow.document.querySelector("form");
@@ -292,9 +308,15 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
     });
     assert.equal(
       redirectedTo,
-      "https://shop.test/store/checkout/",
-      "a verified OTP still returns to the safe checkout target",
+      sessionAccepted ? "https://shop.test/store/checkout/" : "",
+      "only a confirmed cookie session returns to checkout",
     );
+    assert.equal(sessionChecks, 2, "post-login identity must bypass the cached guest response");
+    if (!sessionAccepted) {
+      assert.match(targetWindow.document.querySelector('[role="alert"]').textContent, /نشست ورود برقرار نشد/);
+      assert.ok(targetWindow.document.getElementById("jluxe-auth-phone"));
+      assert.equal(targetWindow.document.querySelector(".jluxe-auth-success"), null);
+    }
   } finally {
     await act(async () => root.unmount());
     targetWindow.close();
@@ -304,6 +326,8 @@ test("R98 WebOTP/Google autofill six-digit input verifies automatically and allo
     }
   }
 });
+
+}
 
 test("R19 actual classic WooCommerce script accepts AJAX-mode variation JSON false", () => {
   const dom = new JSDOM(

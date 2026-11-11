@@ -1446,6 +1446,8 @@ function jluxe_sanitize_review_criteria( array $posted, array $defaults ): array
 
 function jluxe_sanitize_performance( array $posted, array $defaults ): array {
 	return array(
+		'page_transitions' => ! empty( $posted['page_transitions'] ),
+		'page_prefetch' => ! empty( $posted['page_prefetch'] ),
 		'disable_emojis'   => ! empty( $posted['disable_emojis'] ),
 		'lazy_load_images' => ! empty( $posted['lazy_load_images'] ),
 		'defer_third_party_scripts' => ! empty( $posted['defer_third_party_scripts'] ),
