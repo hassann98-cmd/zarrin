@@ -252,7 +252,7 @@ test("mobile category/cart controls keep their normal icons, expose close state,
   assert.match(mobileNavSource, /بستن سبد خرید/);
   assert.match(floatingNavSource, /بستن دسته‌بندی‌ها/);
   assert.match(floatingNavSource, /بستن سبد خرید/);
-  assert.match(mobileNavSource, /children: \[\s*jsx\.jsx\(Icon,/);
+  assert.match(mobileNavSource, /children: \[\s*Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.match(floatingNavSource, /Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.doesNotMatch(mobileNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
   assert.doesNotMatch(floatingNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
