@@ -492,3 +492,70 @@ test("device widths affect the live iframe, match the reference viewports, and f
 	assert.equal(prevented, true);
 	dom.window.close();
 });
+
+test('focused inspector keeps all sibling controls in saved FormData and can show all again', async () => {
+ const dom = createDom(); const { document } = dom.window;
+ document.querySelector('[data-jvb-add-section]').click(); await wait(dom.window, 20);
+ const sections = document.getElementById('jluxe-hb-sections');
+ assert.equal(sections.classList.contains('jvb-inspector-active'), true);
+ const data = new dom.window.FormData(document.querySelector('form'));
+ assert.equal(data.has('homepage[sections][0][title]'), true);
+ assert.equal(data.has('homepage[sections][1][title]'), true);
+ document.querySelector('[data-jvb-show-all]').click();
+ assert.equal(sections.classList.contains('jvb-inspector-active'), false);
+ dom.window.close();
+});
+
+test('canvas toolbar selects native settings and inserts a widget after the selected section', async () => {
+ const dom = createDom(); const { document } = dom.window;
+ dom.window.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve({ success:true, data:{ url:'about:blank' } }) });
+ await wait(dom.window, 20);
+ const frame = document.querySelector('[data-jvb-preview-frame]');
+ const doc = frame.contentDocument;
+ doc.body.innerHTML = '<main><div data-jvb-preview-index="0" class="jvb-preview-section"><section>Title</section></div></main>';
+ Object.defineProperty(doc, 'URL', { configurable: true, value: frame.getAttribute('src') });
+ frame.dispatchEvent(new dom.window.Event('load'));
+ doc.querySelector('section').dispatchEvent(new frame.contentWindow.MouseEvent('click', { bubbles:true, cancelable:true }));
+ const tools = doc.querySelector('#jvb-canvas-toolbar');
+ assert.ok(tools); assert.equal(tools.hidden, false);
+ tools.querySelector('[data-jvb-canvas-action="add"]').click();
+ assert.equal(document.querySelector('[data-jvb-tab="components"]').getAttribute('aria-selected'), 'true');
+ document.querySelector('[data-jvb-add-section]').click(); await wait(dom.window, 20);
+ assert.equal(document.querySelectorAll('#jluxe-hb-sections > .jluxe-hb-section')[1].dataset.type, 'banner');
+ dom.window.close();
+});
+
+test('layers drag reorder renumbers form names and remains undoable', async () => {
+ const dom = createDom(); const { document } = dom.window;
+ document.querySelector('[data-jvb-add-section]').click(); await wait(dom.window, 30);
+ const rows = document.querySelectorAll('[data-jvb-layer-index]');
+ rows[1].dispatchEvent(attachDataTransfer(new dom.window.Event('dragstart', { bubbles:true }), fakeDataTransfer()));
+ rows[0].dispatchEvent(new dom.window.Event('drop', { bubbles:true, cancelable:true }));
+ await wait(dom.window, 30);
+ const first = document.querySelector('#jluxe-hb-sections > .jluxe-hb-section');
+ assert.equal(first.dataset.type, 'banner');
+ assert.ok(first.querySelector('[name="homepage[sections][0][title]"]'));
+ dom.window.close();
+});
+
+test('inline heading editing writes plaintext to the native field and Escape cancels', async () => {
+ const dom = createDom(); const { document } = dom.window;
+ dom.window.fetch = () => Promise.resolve({ ok:true, json: () => Promise.resolve({ success:true, data:{url:'about:blank'} }) });
+ await wait(dom.window, 20);
+ const frame = document.querySelector('[data-jvb-preview-frame]'), doc = frame.contentDocument;
+ doc.body.innerHTML = '<div data-jvb-preview-index="0" class="jvb-preview-section"><section><h2>متن فعلی</h2></section></div>';
+ frame.dispatchEvent(new dom.window.Event('load'));
+ const h = doc.querySelector('h2');
+ h.dispatchEvent(new frame.contentWindow.MouseEvent('dblclick', {bubbles:true,cancelable:true}));
+ assert.equal(h.getAttribute('contenteditable'), 'true');
+ h.textContent = '<script>literal text</script>';
+ h.dispatchEvent(new frame.contentWindow.Event('blur'));
+ const input = document.querySelector('[name="homepage[sections][0][title]"]');
+ assert.equal(input.value, '<script>literal text</script>');
+ assert.equal(h.querySelector('script'), null);
+ h.dispatchEvent(new frame.contentWindow.MouseEvent('dblclick', {bubbles:true,cancelable:true}));
+ h.textContent = 'discard';
+ h.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', {key:'Escape',bubbles:true}));
+ assert.equal(input.value, '<script>literal text</script>');
+ dom.window.close();
+});

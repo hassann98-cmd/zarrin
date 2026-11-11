@@ -541,12 +541,12 @@ function jluxe_render_visual_builder_page(): void {
 							<?php endforeach; ?>
 							<p class="jvb-empty-search" data-jvb-empty-search hidden>بخشی با این نام پیدا نشد.</p>
 						</div>
-						<p class="jvb-library-tip"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای افزودن، در رایانه بخش را به بوم بکشید؛ در لمس، آیکون یا + را نگه دارید و به پیش‌نمایش ببرید. لمس یا کلیک معمولی هم بخش را اضافه می‌کند.</p>
+						<p class="jvb-library-tip"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای درج در محل مشخص، بخش را انتخاب و «افزودن بعد از این» را بزنید؛ یا در رایانه بخش را به بوم بکشید؛ در لمس، آیکون یا + را نگه دارید و به پیش‌نمایش ببرید. لمس یا کلیک معمولی هم بخش را اضافه می‌کند.</p>
 					</div>
 
 					<div id="jvb-panel-settings" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-settings" data-jvb-panel="settings" hidden>
 						<div class="jvb-canvas" data-jvb-canvas aria-label="تنظیمات صفحه و بخش‌ها">
-							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong data-jvb-selection-title>تنظیمات صفحهٔ اصلی</strong><p>انتخاب یک بخش در پیش‌نمایش یا ساختار، تنظیمات بومی همان بخش را اینجا باز می‌کند.</p></div></div>
+							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong data-jvb-selection-title>تنظیمات صفحهٔ اصلی</strong><p>روی بخش در پیش‌نمایش کلیک کنید؛ ابزار ویرایش، تکثیر، ترتیب، حذف و افزودن کنار آن فعال می‌شود. تیترِ متن و تیتر مستقل با دوبار کلیک قابل ویرایش است.</p></div></div>
 							<div class="jvb-global-setting">
 								<strong>تنظیمات کلی صفحه</strong>
 								<?php jluxe_hb_field_checkbox( 'homepage', 'mobile_category_swipe_hint_enabled', 'نمایش یک‌بارهٔ راهنمای حرکت ردیف دسته‌بندی در موبایل', ! array_key_exists( 'mobile_category_swipe_hint_enabled', $homepage ) || ! empty( $homepage['mobile_category_swipe_hint_enabled'] ), true ); ?>

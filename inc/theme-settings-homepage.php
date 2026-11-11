@@ -31,6 +31,9 @@ function jluxe_homepage_section_types(): array {
 		'trust'               => 'نشان‌های اعتماد',
 		'blog'                => 'آخرین نوشته‌های وبلاگ',
 		'text'                => 'متن سفارشی',
+		'heading'             => 'تیتر مستقل',
+		'image'               => 'تصویر مستقل',
+		'button'              => 'دکمه مستقل',
 		'html'                => 'HTML سفارشی',
 		'spacer'              => 'فاصله‌گذار',
 	);
@@ -712,11 +715,40 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					<?php
 					break;
 
+				case 'heading':
+					jluxe_hb_field_text( $name, 'title', 'متن تیتر', $section['title'] ?? '' );
+					jluxe_hb_field_select( $name, 'tag', 'سطح تیتر', $section['tag'] ?? 'h2', array( 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4' ) );
+					break;
+				case 'image':
+					jluxe_render_media_field( $name . '[image_id]', (int) ( $section['image_id'] ?? 0 ), 'انتخاب تصویر از کتابخانهٔ رسانه' );
+					jluxe_hb_field_text( $name, 'alt', 'متن جایگزین تصویر', $section['alt'] ?? '' );
+					jluxe_hb_field_text( $name, 'url', 'پیوند اختیاری تصویر', $section['url'] ?? '' );
+					break;
+				case 'button':
+					jluxe_hb_field_text( $name, 'title', 'متن دکمه', $section['title'] ?? '' );
+					jluxe_hb_field_text( $name, 'url', 'آدرس مقصد', $section['url'] ?? '' );
+					break;
+
 				case 'spacer':
 					jluxe_hb_field_number( $name, 'height', 'ارتفاع (px)', $section['height'] ?? 40, 8, 200 );
 					break;
 			}
 			?>
+			<details class="jvb-design-controls">
+				<summary>ظاهر و تنظیمات واکنش‌گرا</summary>
+				<?php
+				jluxe_hb_field_text( $name, 'editor_label', 'نام دلخواه در ساختار (در سایت نمایش داده نمی‌شود)', $section['editor_label'] ?? '' );
+				jluxe_hb_field_checkbox( $name, 'design_enabled', 'اعمال ظاهر سفارشی این بخش', ! empty( $section['design_enabled'] ) );
+				$design = is_array( $section['design'] ?? null ) ? $section['design'] : array();
+				foreach ( array( 'padding' => 'فاصله داخلی دسکتاپ', 'mobile_padding' => 'فاصله داخلی موبایل', 'margin_top' => 'فاصله بالا', 'margin_bottom' => 'فاصله پایین', 'radius' => 'گردی گوشه‌ها' ) as $key => $title ) {
+					jluxe_hb_field_number( $name . '[design]', $key, $title . ' (px)', $design[ $key ] ?? 0, 0, 240 );
+				}
+				jluxe_hb_field_text( $name . '[design]', 'background', 'رنگ پس‌زمینه (#RRGGBB؛ خالی یعنی شفاف)', $design['background'] ?? '' );
+				jluxe_hb_field_select( $name . '[design]', 'align', 'تراز محتوا', $design['align'] ?? 'start', array( 'start' => 'ابتدا', 'center' => 'وسط', 'end' => 'انتها' ) );
+				jluxe_hb_field_checkbox( $name . '[design]', 'hide_mobile', 'پنهان در موبایل (کمتر از ۷۶۸)', ! empty( $design['hide_mobile'] ) );
+				jluxe_hb_field_checkbox( $name . '[design]', 'hide_desktop', 'پنهان در تبلت و دسکتاپ', ! empty( $design['hide_desktop'] ) );
+				?>
+			</details>
 		</div>
 		</details>
 	</div>
@@ -1101,6 +1133,10 @@ function jluxe_render_homepage_sections(): void {
 	?>
 	<style id="jluxe-homepage-system-style">
 	.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-left:0;padding-right:0;}
+	.jluxe-designed-section{padding:var(--jvb-pad,0);box-sizing:border-box;}
+	.jluxe-designed-section>.jluxe-home-section{margin-top:0;margin-bottom:0;}
+	@media(max-width:767.98px){.jluxe-designed-section{padding:var(--jvb-mobile-pad,0)}.jluxe-design-hide-mobile{display:none!important}}
+	@media(min-width:768px){.jluxe-design-hide-desktop{display:none!important}}
 	.jluxe-home-section h2{color:hsl(var(--foreground));}
 	.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel{transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease;}
 	.jluxe-home-section .jluxe-home-card:hover,.jluxe-home-section .jluxe-home-panel:hover{transform:translateY(-2px);}
@@ -1300,6 +1336,19 @@ function jluxe_render_homepage_cta( array $section ): void {
 }
 
 function jluxe_render_homepage_section_frontend( array $section ): void {
+	if ( empty( $section['design_enabled'] ) ) { jluxe_render_homepage_section_content( $section ); return; }
+	// Normalize again at the output boundary; never accept arbitrary CSS from storage.
+	$safe = jluxe_sanitize_homepage_section_design( $section );
+	$d = $safe['design'];
+	$classes = 'jluxe-designed-section' . ( $d['hide_mobile'] ? ' jluxe-design-hide-mobile' : '' ) . ( $d['hide_desktop'] ? ' jluxe-design-hide-desktop' : '' );
+	$style = sprintf( '--jvb-pad:%dpx;--jvb-mobile-pad:%dpx;margin-top:%dpx;margin-bottom:%dpx;border-radius:%dpx;text-align:%s;', $d['padding'], $d['mobile_padding'], $d['margin_top'], $d['margin_bottom'], $d['radius'], $d['align'] );
+	if ( $d['background'] ) { $style .= 'background-color:' . $d['background'] . ';'; }
+	echo '<div class="' . esc_attr( $classes ) . '" style="' . esc_attr( $style ) . '">';
+	jluxe_render_homepage_section_content( $section );
+	echo '</div>';
+}
+
+function jluxe_render_homepage_section_content( array $section ): void {
 	switch ( $section['type'] ?? '' ) {
 		case 'hero':
 			jluxe_render_homepage_hero( $section );
@@ -1381,6 +1430,24 @@ function jluxe_render_homepage_section_frontend( array $section ): void {
 			if ( ! empty( $section['content'] ) ) {
 				echo '<section class="jluxe-custom-html">' . $section['content'] . '</section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
+			break;
+
+		case 'heading':
+			$tag = in_array( $section['tag'] ?? '', array( 'h2', 'h3', 'h4' ), true ) ? $section['tag'] : 'h2';
+			if ( ! empty( $section['title'] ) ) { echo '<section class="jluxe-home-section"><' . $tag . '>' . esc_html( $section['title'] ) . '</' . $tag . '></section>'; }
+			break;
+		case 'image':
+			if ( empty( $section['image_id'] ) ) { break; }
+			echo '<section class="jluxe-home-section">';
+			$url = esc_url( $section['url'] ?? '' );
+			if ( $url ) { echo '<a href="' . $url . '">'; }
+			echo wp_get_attachment_image( absint( $section['image_id'] ), 'large', false, array( 'alt' => $section['alt'] ?? '', 'style' => 'max-width:100%;height:auto;display:inline-block' ) );
+			if ( $url ) { echo '</a>'; }
+			echo '</section>';
+			break;
+		case 'button':
+			$url = esc_url( $section['url'] ?? '' );
+			if ( $url && ! empty( $section['title'] ) ) { echo '<section class="jluxe-home-section"><a class="inline-flex rounded-xl bg-primary px-6 py-3 text-white" href="' . $url . '">' . esc_html( $section['title'] ) . '</a></section>'; }
 			break;
 
 		case 'spacer':

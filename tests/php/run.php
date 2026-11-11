@@ -11,6 +11,74 @@ function check($condition, $message) {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+// Native page motion must stay away from transactional pages and remain optional.
+$motion_old_query = $GLOBALS['query_kind'] ?? '';
+$motion_old_options = $GLOBALS['options'];
+$motion_old_scripts = $GLOBALS['scripts'];
+$motion_old_styles = $GLOBALS['styles'];
+$motion_old_localized = $GLOBALS['localized'] ?? array();
+foreach ( array( 'cart', 'checkout', 'account' ) as $motion_kind ) {
+	$GLOBALS['query_kind'] = $motion_kind;
+	check( ! jluxe_page_motion_allowed(), 'native page motion excludes ' . $motion_kind );
+}
+$GLOBALS['query_kind'] = 'product';
+check( jluxe_page_motion_allowed(), 'native page motion is available on public product pages' );
+$motion_clean = jluxe_sanitize_performance( array( 'page_transitions' => '1', 'page_prefetch' => '1' ), jluxe_theme_settings_defaults()['performance'] );
+check( $motion_clean['page_transitions'] && $motion_clean['page_prefetch'], 'page transitions and prefetch are saved as separate switches' );
+$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = array( 'version' => JLUXE_SETTINGS_VERSION, 'performance' => array( 'page_transitions' => false, 'page_prefetch' => false ) );
+jluxe_get_theme_settings( true );
+unset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] );
+jluxe_enqueue_page_motion();
+check( ! isset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] ), 'disabling both switches leaves no page motion script or stylesheet' );
+$GLOBALS['options'] = $motion_old_options;
+$GLOBALS['query_kind'] = $motion_old_query;
+$GLOBALS['scripts'] = $motion_old_scripts;
+$GLOBALS['styles'] = $motion_old_styles;
+$GLOBALS['localized'] = $motion_old_localized;
+jluxe_get_theme_settings( true );
+
+// Mobile icon save -> persisted settings -> localized React payload, including cache invalidation.
+$mobile_save_options = $GLOBALS['options'];
+$mobile_save_post = $_POST;
+$mobile_save_fired = $GLOBALS['fired'] ?? array();
+$mobile_save_localized = $GLOBALS['localized'] ?? array();
+$mobile_save_nonce = $GLOBALS['valid_wp_nonce'] ?? true;
+foreach ( array( 'classic', 'floating' ) as $mobile_variant ) {
+	$mobile_post = jluxe_theme_settings_defaults()['mobile'];
+	$mobile_post['nav_variant'] = $mobile_variant;
+	$mobile_post['nav_items'][0]['icon'] = 'bed';
+	$mobile_post['floating_nav_items'][0]['icon'] = 'gift';
+	$_POST = array( 'jluxe_settings_nonce' => 'valid', 'mobile' => $mobile_post );
+	$before_purges = count( array_keys( $GLOBALS['fired'] ?? array(), 'litespeed_purge_all', true ) );
+	check( 'saved' === jluxe_handle_mobile_contact_combined_save(), 'mobile icon form saves via the real combined handler: ' . $mobile_variant );
+	$fresh_mobile = jluxe_get_theme_settings( true )['mobile'];
+	check( 'bed' === $fresh_mobile['nav_items'][0]['icon'] && 'gift' === $fresh_mobile['floating_nav_items'][0]['icon'] && $mobile_variant === $fresh_mobile['nav_variant'], 'saved mobile icons survive fresh reads independently for both layouts' );
+	jluxe_localize_public_settings();
+	$mobile_payload = $GLOBALS['localized']['JLuxeThemeSettings'];
+	check( $mobile_payload['mobile'] === $fresh_mobile && isset( $mobile_payload['iconGlyphs']['bed'], $mobile_payload['iconGlyphs']['gift'] ), 'React receives the actual saved mobile settings and matching SVG glyphs' );
+	check( $before_purges + 1 === count( array_keys( $GLOBALS['fired'], 'litespeed_purge_all', true ) ), 'changed mobile settings invalidate stale full-page HTML caches' );
+	$after_save_actions = count( $GLOBALS['fired'] );
+	jluxe_handle_mobile_contact_combined_save();
+	check( $after_save_actions === count( $GLOBALS['fired'] ), 'saving unchanged mobile settings does not purge caches again' );
+}
+$GLOBALS['valid_wp_nonce'] = false;
+$_POST['mobile']['nav_items'][0]['icon'] = 'heart';
+check( 'error' === jluxe_handle_mobile_contact_combined_save() && 'bed' === jluxe_get_theme_settings( true )['mobile']['nav_items'][0]['icon'], 'invalid nonce cannot change a mobile icon' );
+$GLOBALS['valid_wp_nonce'] = $mobile_save_nonce;
+$GLOBALS['options'] = $mobile_save_options;
+$GLOBALS['localized'] = $mobile_save_localized;
+$GLOBALS['fired'] = $mobile_save_fired;
+$_POST = $mobile_save_post;
+jluxe_get_theme_settings( true );
+
+$tracking_upgrade = jluxe_migrate_settings_v24( array( 'mobile' => array(
+	'nav_items' => array( array( 'id' => 'track', 'icon' => 'package' ), array( 'id' => 'cart', 'icon' => 'package' ), array( 'id' => 'track', 'icon' => 'heart' ) ),
+	'floating_nav_items' => array( array( 'action' => 'track', 'icon' => 'package' ), array( 'action' => 'shop', 'icon' => 'package' ) ),
+) ) );
+check( 'order-tracking' === $tracking_upgrade['mobile']['nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['nav_items'][1]['icon'] && 'heart' === $tracking_upgrade['mobile']['nav_items'][2]['icon'], 'tracking SVG migration replaces only the old tracking placeholder, preserving other/custom icons' );
+check( 'order-tracking' === $tracking_upgrade['mobile']['floating_nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['floating_nav_items'][1]['icon'], 'floating tracking action gets the supplied SVG without changing unrelated actions' );
+check( isset( jluxe_public_icon_glyphs( array( 'mobile' => array( 'nav_items' => array( array( 'icon' => 'order-tracking' ) ) ) ) )['order-tracking'] ) && false !== strpos( jluxe_nav_icon_svg( 'order-tracking' ), '<path' ), 'supplied tracking artwork is available to PHP markup and the React glyph payload' );
+
 // R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
 $r357_nav_defaults = jluxe_theme_settings_defaults();
 ob_start();
@@ -2113,7 +2181,7 @@ ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_cl
 check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
 $icon_option_names = array_filter(array_keys(jluxe_nav_icon_options()));
 $missing_icon_paths = array_diff($icon_option_names, array_merge(array_keys(jluxe_uicon_paths()), array_keys(jluxe_icon_paths())));
-check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===67 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
+check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===68 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
 $public_glyphs = jluxe_public_icon_glyphs(array(
 	'mobile' => array('nav_items' => array(array('icon' => 'bed')), 'floating_nav_items' => array(array('icon' => 'home'))),
 	'footer' => array('feature_cards' => array(array('icon' => 'sofa')), 'link_columns' => array(array('links' => array(array('icon' => 'gift'))))),
@@ -3467,11 +3535,11 @@ ob_start();
 jluxe_render_visual_builder_page();
 $r360_builder_html = (string) ob_get_clean();
 check(
-	19 === count( jluxe_homepage_section_types() ) &&
-	20 === count( jluxe_visual_builder_section_types() ) &&
+	22 === count( jluxe_homepage_section_types() ) &&
+	23 === count( jluxe_visual_builder_section_types() ) &&
 	false !== strpos( $r360_builder_html, 'صفحه‌ساز بصری' ) &&
 	false !== strpos( $r360_builder_html, 'name="homepage[sections][0][type]"' ) &&
-		20 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
+		23 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
 		false !== strpos( $r360_builder_html, 'data-hb-template="cta"' ) &&
 		false !== strpos( $r360_builder_html, 'متنِ دکمه' ) &&
 		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
@@ -3769,11 +3837,11 @@ ob_start();
 jluxe_render_homepage_cta( array( 'title' => '<script>no</script>', 'content' => '<img src=x>', 'button_label' => '<b>متن</b>', 'button_url' => 'https://shop.test/' ) );
 $r362_escaped_cta_html = (string) ob_get_clean();
 check(
-	19 === count( $r362_homepage_types ) &&
-	20 === count( $r362_visual_builder_types ) &&
-	array( 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'html', 'spacer' ) === $r362_homepage_types &&
-	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 19 ) &&
-	array( 'cta' ) === array_slice( $r362_visual_builder_types, 19, 1 ) &&
+	22 === count( $r362_homepage_types ) &&
+	23 === count( $r362_visual_builder_types ) &&
+	array( 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
+	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 22 ) &&
+	array( 'cta' ) === array_slice( $r362_visual_builder_types, 22, 1 ) &&
 	! in_array( 'cta', $r362_default_home_types, true ) &&
 	'cta' === ( $r362_builder_sanitized['sections'][0]['type'] ?? '' ) &&
 	'https://shop.test/shop/' === ( $r362_builder_sanitized['sections'][0]['button_url'] ?? '' ) &&
@@ -11208,7 +11276,7 @@ $r422_featured_eligibility =
 	! jluxe_homepage_featured_product_is_available( $r422_backorder ) &&
 	! jluxe_homepage_featured_product_is_available( $r422_variable_without_available_option );
 check(
-	23 === JLUXE_SETTINGS_VERSION &&
+	24 === JLUXE_SETTINGS_VERSION &&
 	'product_grid' === ( $r422_default_featured['type'] ?? '' ) &&
 	'featured' === ( $r422_default_featured['query'] ?? '' ) &&
 	'grid' === ( $r422_default_featured['layout'] ?? '' ) &&
@@ -11287,5 +11355,14 @@ check(
 if ( null === $r422_old_admin ) { unset( $GLOBALS['is_admin'] ); } else { $GLOBALS['is_admin'] = $r422_old_admin; }
 $_GET = $r422_old_get;
 if ( null === $r422_old_visibility_terms ) { unset( $GLOBALS['terms_by_slug']['product_visibility'] ); } else { $GLOBALS['terms_by_slug']['product_visibility'] = $r422_old_visibility_terms; }
+
+
+$builder_design = jluxe_sanitize_homepage_section( array( 'id' => 'test', 'type' => 'heading', 'enabled' => 1, 'title' => 'Title', 'tag' => 'script', 'editor_label' => '<b>Layer</b>', 'design_enabled' => 1, 'design' => array( 'padding' => 9999, 'mobile_padding' => -20, 'background' => 'red;position:fixed', 'align' => 'evil', 'radius' => array( 5 ), 'hide_mobile' => 1 ) ) );
+check( 'h2' === $builder_design['tag'] && 'Layer' === $builder_design['editor_label'] && 240 === $builder_design['design']['padding'] && 0 === $builder_design['design']['mobile_padding'] && '' === $builder_design['design']['background'] && 'start' === $builder_design['design']['align'] && 0 === $builder_design['design']['radius'], 'Builder shared styles reject CSS injection, malformed inputs and unsafe heading tags' );
+check( ! isset( jluxe_sanitize_homepage_section( array( 'type' => 'text', 'id' => 'legacy' ) )['design'] ), 'Legacy sections do not acquire an active design wrapper on sanitation' );
+ob_start(); jluxe_render_homepage_section_frontend( array( 'type' => 'heading', 'title' => '<b>Title</b>', 'tag' => 'script' ) ); $builder_heading = ob_get_clean();
+check( false !== strpos( $builder_heading, '<h2>' ) && false === strpos( $builder_heading, '<script' ) && false !== strpos( $builder_heading, '&lt;b&gt;' ), 'Builder heading output uses semantic allowlisted tags and escaped text' );
+ob_start(); jluxe_render_homepage_section_frontend( $builder_design ); $builder_styled = ob_get_clean();
+check( false !== strpos( $builder_styled, 'jluxe-design-hide-mobile' ) && false === strpos( $builder_styled, 'position:fixed' ) && false !== strpos( $builder_styled, '--jvb-pad:240px' ), 'Builder frontend renders bounded responsive design controls without raw CSS' );
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
