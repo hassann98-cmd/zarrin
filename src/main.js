@@ -1,0 +1,83 @@
+import {
+  markLiteDevice,
+  mountIsland,
+  startSmoothScrolling,
+} from "./lib/islands.js";
+import { setupAuthNavigation } from "./lib/auth-navigation.js";
+import { deferCheckoutMapLoad } from "./lib/checkout-map-loader.js";
+markLiteDevice(window);
+setupAuthNavigation(window);
+import "./styles/storefront.css";
+// Bundle the WordPress theme stylesheet here too, so it shares the compiled
+// CSS request instead of creating a second render-blocking stylesheet request.
+import "../style.css";
+import "./styles/design-variants.css";
+import "./styles/sitewide-design.css";
+import { setupPwa } from "./lib/pwa.js";
+// The map's own JavaScript chunk is fetched only when its explicit open button is used.
+for (const picker of document.querySelectorAll("[data-jluxe-map-picker]")) {
+  deferCheckoutMapLoad(picker);
+}
+// R88 — PWAِ امن: ثبت بعد از load؛ هیچ HTMLی کش نمی‌شود (inc/pwa.php).
+setupPwa(window, window.JLuxeThemeSettings?.pwa);
+// Keep the configurable categories panel and click-only controls outside the
+// initial shell; MegaMenu requests these chunks only when the menu is engaged.
+window.JLuxeMegaMenuChunks = {
+  clickToggle: () => import("./islands/MegaMenuClickToggle.js"),
+  panel: () => import("./islands/MegaMenuPanel.js"),
+};
+const islands = {
+  footer: () => import("./islands/Footer.js"),
+  "header-logo": () =>
+    import("./islands/Header.js").then((m) => ({ default: m.BrandLogo })),
+  "header-mobile-search": () =>
+    import("./islands/Header.js").then((m) => ({ default: m.MobileHeaderSearch })),
+  "header-actions": () => import("./islands/Header.js"),
+  "mega-menu": () => import("./islands/MegaMenu.js"),
+  "mini-cart": () => import("./islands/MiniCart.js"),
+  "category-drawer": () => import("./islands/CategoryDrawer.js"),
+  "mobile-nav": () => import("./islands/MobileNav.js"),
+  "mobile-nav-floating": () => import("./islands/FloatingMobileNav.js"),
+  "ai-assistant": () => import("./islands/AiAssistant.js"),
+  "auth-page": () => import("./islands/AuthPage.jsx"),
+  "categories-browser": () => import("./islands/CategoriesBrowser.js"),
+};
+// R88 — Lenis فقط روی دستگاهِ دارای ماوس، به‌صورتِ chunkِ جدا و بعد از بیکار شدنِ مرورگر.
+const whenIdle = window.requestIdleCallback
+  ? (cb) => window.requestIdleCallback(cb, { timeout: 2500 })
+  : (cb) => setTimeout(cb, 200);
+whenIdle(() =>
+  startSmoothScrolling(window, () =>
+    import("lenis").then((module) => module.default),
+  ),
+);
+for (const element of document.querySelectorAll("[data-jluxe-island]")) {
+  const name = element.dataset.jluxeIsland;
+  const load = islands[name];
+  if (!load) continue;
+  if (name === "ai-assistant") {
+    // The optional floating support UI is not part of first paint. Skip its
+    // chunk entirely when disabled; when enabled, fetch/mount it after eager
+    // content (especially the LCP image) has finished loading.
+    if (!window.JLuxeThemeSettings?.aiAssistant?.enabled) continue;
+    const mountAssistant = () => mountIsland(element, load);
+    if (document.readyState === "complete") window.setTimeout(mountAssistant, 0);
+    else window.addEventListener("load", mountAssistant, { once: true });
+    continue;
+  }
+  if (name !== "footer" || !("IntersectionObserver" in window)) {
+    mountIsland(element, load);
+    continue;
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        mountIsland(element, load);
+      }
+    },
+    { rootMargin: "1200px 0px" },
+  );
+  // R88 — ریشهٔ آیلند داخلِ پوستهٔ سمتِ سرورِ فوتر خالی (بدونِ ارتفاع) است؛ خودِ فوتر مشاهده می‌شود.
+  observer.observe(element.closest("[data-jluxe-footer]") || element);
+}
