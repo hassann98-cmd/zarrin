@@ -11,6 +11,40 @@ function check($condition, $message) {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+// Mobile icon save -> persisted settings -> localized React payload, including cache invalidation.
+$mobile_save_options = $GLOBALS['options'];
+$mobile_save_post = $_POST;
+$mobile_save_fired = $GLOBALS['fired'] ?? array();
+$mobile_save_localized = $GLOBALS['localized'] ?? array();
+$mobile_save_nonce = $GLOBALS['valid_wp_nonce'] ?? true;
+foreach ( array( 'classic', 'floating' ) as $mobile_variant ) {
+	$mobile_post = jluxe_theme_settings_defaults()['mobile'];
+	$mobile_post['nav_variant'] = $mobile_variant;
+	$mobile_post['nav_items'][0]['icon'] = 'bed';
+	$mobile_post['floating_nav_items'][0]['icon'] = 'gift';
+	$_POST = array( 'jluxe_settings_nonce' => 'valid', 'mobile' => $mobile_post );
+	$before_purges = count( array_keys( $GLOBALS['fired'] ?? array(), 'litespeed_purge_all', true ) );
+	check( 'saved' === jluxe_handle_mobile_contact_combined_save(), 'mobile icon form saves via the real combined handler: ' . $mobile_variant );
+	$fresh_mobile = jluxe_get_theme_settings( true )['mobile'];
+	check( 'bed' === $fresh_mobile['nav_items'][0]['icon'] && 'gift' === $fresh_mobile['floating_nav_items'][0]['icon'] && $mobile_variant === $fresh_mobile['nav_variant'], 'saved mobile icons survive fresh reads independently for both layouts' );
+	jluxe_localize_public_settings();
+	$mobile_payload = $GLOBALS['localized']['JLuxeThemeSettings'];
+	check( $mobile_payload['mobile'] === $fresh_mobile && isset( $mobile_payload['iconGlyphs']['bed'], $mobile_payload['iconGlyphs']['gift'] ), 'React receives the actual saved mobile settings and matching SVG glyphs' );
+	check( $before_purges + 1 === count( array_keys( $GLOBALS['fired'], 'litespeed_purge_all', true ) ), 'changed mobile settings invalidate stale full-page HTML caches' );
+	$after_save_actions = count( $GLOBALS['fired'] );
+	jluxe_handle_mobile_contact_combined_save();
+	check( $after_save_actions === count( $GLOBALS['fired'] ), 'saving unchanged mobile settings does not purge caches again' );
+}
+$GLOBALS['valid_wp_nonce'] = false;
+$_POST['mobile']['nav_items'][0]['icon'] = 'heart';
+check( 'error' === jluxe_handle_mobile_contact_combined_save() && 'bed' === jluxe_get_theme_settings( true )['mobile']['nav_items'][0]['icon'], 'invalid nonce cannot change a mobile icon' );
+$GLOBALS['valid_wp_nonce'] = $mobile_save_nonce;
+$GLOBALS['options'] = $mobile_save_options;
+$GLOBALS['localized'] = $mobile_save_localized;
+$GLOBALS['fired'] = $mobile_save_fired;
+$_POST = $mobile_save_post;
+jluxe_get_theme_settings( true );
+
 // R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
 $r357_nav_defaults = jluxe_theme_settings_defaults();
 ob_start();
