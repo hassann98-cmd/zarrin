@@ -25,11 +25,17 @@ export function resolvePostAuthUrl() {
       sitePath === "/" ||
       destination.pathname === sitePath ||
       destination.pathname.startsWith(`${sitePath}/`);
+    const accountPath =
+      dashboard.origin === home.origin &&
+      dashboardPath !== sitePath &&
+      (destination.pathname === dashboardPath ||
+        destination.pathname.startsWith(`${dashboardPath}/`));
     if (
       destination.origin !== home.origin ||
       destination.username ||
       destination.password ||
-      !insideSite
+      !insideSite ||
+      accountPath
     ) {
       return fallback;
     }
@@ -74,7 +80,7 @@ export default function AuthPage() {
     // the login page; confirm the session first, otherwise reload once so the
     // browser re-attaches any cookie set by the OTP response.
     try {
-      const session = await getSession(true);
+      const session = await getSession();
       if (session?.auth?.isLoggedIn === true) {
         window.location.assign(resolvePostAuthUrl());
         return;

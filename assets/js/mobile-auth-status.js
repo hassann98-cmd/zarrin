@@ -99,10 +99,6 @@
 		if ((typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { return; }
 		if (statusResolved) {
 			if (isBoolean(currentStatus)) { updateLink(link, currentStatus); }
-			var destination = isBoolean(currentStatus)
-				? accountHref(link, currentStatus)
-				: link.getAttribute("href");
-			if (destination) { window.location.assign(destination); }
 			return;
 		}
 		if (!statusPromise) { return; }
