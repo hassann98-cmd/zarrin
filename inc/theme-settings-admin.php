@@ -12,22 +12,30 @@ const JLUXE_SETTINGS_MENU_SLUG = 'jluxe-theme-settings';
 
 /**
  * نگاشت slug صفحه → [کلید تنظیمات، تابع sanitize]. صفحاتی که این‌جا
- * نیستن (dashboard, homepage, ai-assistant, import-export, advanced)
+ * نیستن (dashboard, import-export, advanced)
  * منطق ذخیره‌ی مخصوص خودشون رو دارن (چون ساختارشون ساده‌ی «یک آرایه‌ی
  * تخت» نیست).
  */
 function jluxe_settings_sections_map(): array {
 	return array(
+		'jluxe-ai-assistant' => array( 'ai_assistant', 'jluxe_sanitize_ai_assistant' ),
+		'jluxe-ai-comments' => array( 'ai_comments', 'jluxe_sanitize_ai_comments' ),
+		'jluxe-sms' => array( 'sms', 'jluxe_sanitize_sms' ),
 		'jluxe-colors'        => array( 'colors', 'jluxe_sanitize_colors' ),
+		'jluxe-visual-design' => array( 'visual_design', 'jluxe_sanitize_visual_design' ),
 		'jluxe-identity'      => array( 'identity', 'jluxe_sanitize_identity' ),
 		'jluxe-urls'          => array( 'urls', 'jluxe_sanitize_urls' ),
 		'jluxe-typography'    => array( 'typography', 'jluxe_sanitize_typography' ),
 		'jluxe-header'        => array( 'header', 'jluxe_sanitize_header' ),
+		'jluxe-announcement'  => array( 'announcement_bar', 'jluxe_sanitize_announcement_bar' ),
 		'jluxe-header-nav'    => array( 'header_nav', 'jluxe_sanitize_header_nav' ),
 		'jluxe-footer'        => array( 'footer', 'jluxe_sanitize_footer' ),
 		'jluxe-product-card'  => array( 'product_card', 'jluxe_sanitize_product_card' ),
 		'jluxe-product-page'  => array( 'product_page', 'jluxe_sanitize_product_page' ),
 		'jluxe-shop'          => array( 'shop', 'jluxe_sanitize_shop' ),
+		'jluxe-cart-checkout'  => array( 'cart_checkout', 'jluxe_sanitize_cart_checkout' ),
+		'jluxe-categories-page' => array( 'categories_page', 'jluxe_sanitize_categories_page' ),
+		'jluxe-purchase-addons' => array( 'purchase_addons', 'jluxe_sanitize_purchase_addons' ),
 		'jluxe-mobile'        => array( 'mobile', 'jluxe_sanitize_mobile' ),
 		'jluxe-contact'       => array( 'contact', 'jluxe_sanitize_contact' ),
 		'jluxe-social'        => array( 'social', 'jluxe_sanitize_social' ),
@@ -57,9 +65,11 @@ function jluxe_register_settings_menu(): void {
 	$submenus = array(
 		JLUXE_SETTINGS_MENU_SLUG => array( 'داشبورد', 'jluxe_render_dashboard_page' ),
 		'jluxe-homepage'          => array( 'صفحه اصلی', 'jluxe_render_homepage_page' ),
+		'jluxe-visual-builder'    => array( 'صفحه‌ساز بصری (آزمایشی)', 'jluxe_render_visual_builder_page' ),
 		'jluxe-identity'          => array( 'هویت سایت', 'jluxe_render_identity_page' ),
 		'jluxe-urls'              => array( 'آدرس‌های ورود و کاربر', 'jluxe_render_urls_page' ),
 		'jluxe-header'            => array( 'هدر', 'jluxe_render_header_page' ),
+		'jluxe-announcement'      => array( 'نوار اطلاع‌رسانی', 'jluxe_render_announcement_page' ),
 		'jluxe-header-nav'        => array( 'منوی هدر', 'jluxe_render_header_nav_page' ),
 		'jluxe-footer'            => array( 'فوتر', 'jluxe_render_footer_page' ),
 		'jluxe-colors'            => array( 'رنگ و ظاهر', 'jluxe_render_colors_page' ),
@@ -69,7 +79,12 @@ function jluxe_register_settings_menu(): void {
 		'jluxe-product-page'      => array( 'صفحه محصول', 'jluxe_render_product_page_page' ),
 		'jluxe-product'           => array( 'محصول', 'jluxe_render_product_page' ),
 		'jluxe-shop'              => array( 'فروشگاه و دسته‌بندی', 'jluxe_render_shop_page' ),
+		'jluxe-cart-checkout'     => array( 'سبد خرید و تسویه حساب', 'jluxe_render_cart_checkout_page' ),
+		'jluxe-categories-page'   => array( 'صفحهٔ دسته‌بندی‌ها', 'jluxe_render_categories_page_settings' ),
+		'jluxe-purchase-addons'   => array( 'پیشنهادهای پس از خرید', 'jluxe_render_purchase_addons_page' ),
+		'jluxe-site-diagnosis'    => array( 'تشخیص سایت', 'jluxe_render_site_diagnosis_page' ),
 		'jluxe-ai-assistant'      => array( 'دستیار هوش مصنوعی', 'jluxe_render_ai_assistant_page' ),
+		'jluxe-ai-comments'       => array( 'دیدگاه‌ها (AI)', 'jluxe_render_ai_comments_page' ),
 		'jluxe-ai-tickets'        => array( 'گزارش‌های دستیار', 'jluxe_render_ai_tickets_page' ),
 		'jluxe-sms'               => array( 'ورود با پیامک (OTP)', 'jluxe_render_sms_page' ),
 		'jluxe-mobile'            => array( 'موبایل', 'jluxe_render_mobile_page' ),
@@ -111,14 +126,11 @@ add_action( 'admin_menu', 'jluxe_register_settings_menu' );
  * می‌زد — که کارش فقط «حذفِ ردیف از منو» نیست، رکوردِ صفحه رو کلاً از
  * $submenu پاک می‌کنه؛ و چون خودِ admin.php برای تشخیصِ «این کاربر اجازه‌ی
  * بازکردنِ page=X رو داره یا نه» دقیقاً همین آرایه‌ی $submenu رو می‌گرده،
- * وقتی ردیف حذف بشه ووردپرس نمی‌تونه capability لازم رو پیدا کنه و با خطای
- * واقعیِ «اجازه‌ی دسترسی ندارید» صفحه رو کلاً می‌بنده — دقیقاً همون چیزی
- * که با تست زنده در کروم روی تبِ «هدر» بازتولید شد. remove_submenu_page
- * فقط برای صفحاتی درسته که واقعاً می‌خوایم غیرقابل‌دسترس بشن، نه صفحاتی که
- * فقط نمی‌خوایم توی سایدبار لیست بشن ولی هنوز باید از تبِ بالای صفحه قابل
- * بازشدن باشن. راه‌حلِ درست: خودِ ثبتِ صفحات (add_submenu_page) دست‌نخورده
- * می‌مونه (پس $submenu/capability سالمه)، فقط ردیف‌های اضافیِ سایدبار با
- * CSS مخفی می‌شن.
+ * وقتی ردیف حذف بشه وردپرس نمی‌تونه capability لازم رو پیدا کنه و صفحه رو
+ * کلاً می‌بنده — همان خطایی که قبلاً روی صفحهٔ هدر بازتولید شد. بنابراین
+ * صفحه‌های مخفی‌شده از منوی بومی وردپرس همچنان باید در سایدبارِ داخلیِ پنل
+ * تنظیمات زرین قابل‌دسترسی باشند. خودِ ثبتِ صفحه‌ها و capability دست‌نخورده
+ * می‌مانند و فقط ردیف‌های اضافیِ منوی بومی وردپرس با CSS پنهان می‌شوند.
  */
 function jluxe_hide_settings_submenus_css(): void {
 	?>
@@ -127,13 +139,9 @@ function jluxe_hide_settings_submenus_css(): void {
 			display: none;
 		}
 		/*
-		 * طبقِ درخواستِ صریحِ بعدیِ کاربر («این ۵تا رو از تبِ تنظیمات خارج
-		 * کن و بیارشون زیرِ منوی زرین») این ۵ صفحه دیگه فقط از تبِ افقیِ
-		 * بالای صفحه (jluxe_render_settings_nav در theme-settings-render.php
-		 * — همون‌جا هم حذف شدن) در دسترس نیستن؛ توی سایدبارِ پیشخوانِ
-		 * وردپرس هم واقعاً دیده/کلیک‌پذیرن، نه فقط تبِ بالای صفحه. بقیه‌ی
-		 * صفحات (هدر، فوتر، رنگ و...) طبقِ همون تصمیمِ قبلی فقط از تب در
-		 * دسترسن، توی سایدبار مخفی می‌مونن.
+		 * این پنج صفحه علاوه بر سایدبارِ داخلیِ پنل، در زیرمنوی بومیِ وردپرس
+		 * هم قابل‌مشاهده می‌مانند. سایر صفحه‌های تنظیمات فقط از سایدبارِ داخلی
+		 * اپ زرین در دسترس‌اند؛ ردیف‌هایشان در زیرمنوی بومی پنهان است، نه حذف.
 		 */
 		#toplevel_page_jluxe-theme-settings .wp-submenu li:has(> a[href*="page=jluxe-ai-assistant"]),
 		#toplevel_page_jluxe-theme-settings .wp-submenu li:has(> a[href*="page=jluxe-sms"]),
@@ -165,8 +173,9 @@ function jluxe_settings_enqueue_admin_assets( string $hook ): void {
 	}
 	// CSS اصلی فرانت‌اند را داخل wp-admin لود نمی‌کنیم؛ Tailwind reset آن روی * و body و فرم‌ها اعمال می‌شود و Dashicons و چیدمان پیشخوان را به‌هم می‌ریزد.
 	// فونت IRANYekan به‌صورت محلی در theme-settings-admin.css تعریف شده است.
-	$js_path  = JLUXE_THEME_DIR . '/assets/js/theme-settings-admin.js';
-	$css_path = JLUXE_THEME_DIR . '/assets/css/theme-settings-admin.css';
+	$js_path      = JLUXE_THEME_DIR . '/assets/js/theme-settings-admin.js';
+	$app_js_path  = JLUXE_THEME_DIR . '/assets/js/theme-settings-app.js';
+	$css_path     = JLUXE_THEME_DIR . '/assets/css/theme-settings-admin.css';
 	wp_enqueue_script(
 		'jluxe-settings-admin',
 		JLUXE_THEME_URI . '/assets/js/theme-settings-admin.js',
@@ -174,12 +183,40 @@ function jluxe_settings_enqueue_admin_assets( string $hook ): void {
 		file_exists( $js_path ) ? (string) filemtime( $js_path ) : '2.0.0',
 		true
 	);
+	$app_page_slugs = array( JLUXE_SETTINGS_MENU_SLUG );
+	if ( function_exists( 'jluxe_settings_nav_groups' ) ) {
+		foreach ( jluxe_settings_nav_groups() as $app_page_items ) {
+			foreach ( $app_page_items as $app_page_item ) {
+				$app_page_slugs[] = $app_page_item[0];
+			}
+		}
+	}
+	$current_page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+	if ( in_array( $current_page, $app_page_slugs, true ) ) {
+		wp_enqueue_script(
+			'jluxe-settings-app',
+			JLUXE_THEME_URI . '/assets/js/theme-settings-app.js',
+			array(),
+			file_exists( $app_js_path ) ? (string) filemtime( $app_js_path ) : '1.0.0',
+			true
+		);
+	}
 	wp_enqueue_style(
 		'jluxe-settings-admin',
 		JLUXE_THEME_URI . '/assets/css/theme-settings-admin.css',
 		array(),
 		file_exists( $css_path ) ? (string) filemtime( $css_path ) : '2.0.0'
 	);
+	if ( function_exists( 'jluxe_generate_color_variables' ) && function_exists( 'jluxe_get_theme_settings' ) ) {
+		$settings   = jluxe_get_theme_settings();
+		$admin_css  = jluxe_generate_color_variables( (array) ( $settings['colors'] ?? array() ) );
+		$admin_css  = str_replace( ':root{', '.jluxe-settings{', $admin_css );
+		$admin_css  = rtrim( $admin_css, '}' );
+		$admin_css .= '--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-accent);--jluxe-admin-border:var(--jluxe-border);--jluxe-admin-bg:var(--jluxe-primary-soft);--jluxe-admin-soft:var(--jluxe-primary-soft);}';
+		$admin_css .= '.jluxe-settings[data-jluxe-settings-app]{--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-accent);--jluxe-admin-border:var(--jluxe-border);--jluxe-admin-bg:var(--jluxe-primary-soft);--jluxe-admin-soft:var(--jluxe-primary-soft);}';
+		$admin_css .= '.jluxe-settings[data-theme="dark"],.jluxe-settings[data-jluxe-settings-app][data-theme="dark"]{--jluxe-admin-primary:var(--jluxe-primary);--jluxe-admin-primary-dark:var(--jluxe-primary-hover);--jluxe-admin-accent:var(--jluxe-primary-soft);--jluxe-admin-border:var(--jluxe-primary-hover);--jluxe-admin-bg:var(--jluxe-primary-active);--jluxe-admin-soft:var(--jluxe-primary-active);}';
+		wp_add_inline_style( 'jluxe-settings-admin', $admin_css );
+	}
 	// nonce تست‌اتصالِ دستیار هوش مصنوعی (inc/theme-settings-ai.php) — فقط
 	// همین یک مقدار لازمه؛ ajaxurl خودش توسط وردپرس در همه‌ی صفحات ادمین
 	// به‌صورت گلوبال موجوده، نیازی به localize کردنش نیست.
@@ -215,6 +252,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return null;
 	}
 	[ $section_key, $sanitize_fn ] = $map[ $page_slug ];
+	if ( 'custom_code' === $section_key && ! current_user_can( 'unfiltered_html' ) ) {
+		return 'error';
+	}
 	$defaults = jluxe_theme_settings_defaults();
 
 	if ( ! empty( $_POST['jluxe_reset_section'] ) ) {
@@ -222,6 +262,9 @@ function jluxe_handle_generic_settings_save( string $page_slug ): ?string {
 		return 'reset';
 	}
 
+	if ( isset( $_POST[ $section_key ] ) && ! is_array( $_POST[ $section_key ] ) ) {
+		return 'error';
+	}
 	$posted = wp_unslash( $_POST[ $section_key ] ?? array() );
 	$clean  = call_user_func( $sanitize_fn, $posted, $defaults[ $section_key ] );
 
@@ -275,12 +318,15 @@ function jluxe_handle_advanced_combined_save(): ?string {
 }
 
 /**
- * تبِ «رنگ و تایپوگرافی» — همون الگوی dispatcher بالا برای دو فرمِ مستقلِ
- * «رنگ‌ها» و «تایپوگرافی» روی یک صفحه.
+ * تبِ «رنگ و تایپوگرافی» — dispatcher برای فرم‌های مستقلِ پالت، طراحی کلی،
+ * و تایپوگرافی روی یک صفحه.
  */
 function jluxe_handle_colors_typography_combined_save(): ?string {
 	if ( isset( $_POST['jluxe_apply_preset'] ) ) {
 		return jluxe_handle_apply_preset();
+	}
+	if ( isset( $_POST['visual_design'] ) ) {
+		return jluxe_handle_generic_settings_save( 'jluxe-visual-design' );
 	}
 	if ( isset( $_POST['colors'] ) ) {
 		return jluxe_handle_generic_settings_save( 'jluxe-colors' );
@@ -415,16 +461,29 @@ function jluxe_handle_guide_pages_combined_save(): ?string {
  * استفاده می‌کنن.
  */
 function jluxe_update_settings_section( string $section_key, array $section_value ): void {
-	$stored                  = get_option( JLUXE_SETTINGS_OPTION, array() );
-	$stored                  = is_array( $stored ) ? $stored : array();
+	$stored = get_option( JLUXE_SETTINGS_OPTION, array() );
+	$stored = is_array( $stored ) ? $stored : array();
+	if ( ! empty( $stored ) ) {
+		$stored_version = (int) ( $stored['version'] ?? 1 );
+		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
+	}
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
+	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
 		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );
+	}
+
+	// اثرهای جانبیِ سکشن‌محور بعد از ذخیرهٔ موفق اجرا می‌شن — نه داخل
+	// sanitizer، چون reset و ذخیرهٔ دستی هم باید از این مسیر رد بشن
+	// (همون الگوی sync بنرهای homepage؛ برای «AI دیدگاه‌ها» ثبت/پاک‌کردن
+	// رویداد Cron این‌جا تضمین می‌شه).
+	if ( 'ai_comments' === $section_key && function_exists( 'jluxe_ai_comments_schedule' ) ) {
+		jluxe_ai_comments_schedule();
 	}
 }
 
@@ -434,7 +493,9 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
  */
 function jluxe_get_fresh_settings(): array {
 	wp_cache_delete( 'alloptions', 'options' );
-	return jluxe_array_merge_deep( jluxe_theme_settings_defaults(), get_option( JLUXE_SETTINGS_OPTION, array() ) );
+	// مسیرِ خواندنِ معمولی هم مهاجرت‌های نسخهٔ تنظیمات را اجرا می‌کند؛
+	// admin form نباید با merge مستقیم، مقدارِ قدیمی را دوباره زنده کند.
+	return jluxe_get_theme_settings( true );
 }
 
 require_once __DIR__ . '/theme-settings-render.php';

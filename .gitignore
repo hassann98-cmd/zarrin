@@ -1,0 +1,24 @@
+node_modules/
+# Obsolete Vite output; the current runtime bundle is assets/compiled/.
+dist/
+.cache/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+artifacts/
+# Deliverable ZIPs stay in the workspace, not in Git or inside release archives.
+downloads/
+
+# بسته‌های منتشرشدهٔ پوسته (zip) هرگز داخلِ مخزن نمی‌مانند.
+zarrin-*.zip
+
+# فایل‌های محلی/خصوصیِ این checkout هرگز نباید stage یا منتشر شوند.
+/11.php
+/3.php
+/3.txt
+/3-final.zip
+
+# بستهٔ ووکامرس برای بررسیِ قرارداد (۱۸MB) — کنارِ پوسته می‌ماند، داخلِ مخزن نمی‌رود.
+woocommerce*.zip

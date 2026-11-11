@@ -80,17 +80,34 @@ jQuery(function ($) {
 		var targetInput = $("#" + button.data("target"));
 		var previewEl = button.closest(".jluxe-media-field").find(".jluxe-media-preview");
 
-		var frame = wp.media({
-			title: "انتخاب تصویر",
+		var previewSize = button.data("previewSize") || "medium";
+		var libraryType = button.data("libraryType");
+		var frameOptions = {
+			title: libraryType ? "انتخاب تصویر یا GIF" : "انتخاب رسانه",
 			button: { text: "استفاده از این تصویر" },
 			multiple: false,
-		});
+		};
+		// محدودکردن رسانه به تصویر فقط برای فیلدهایی که نیاز به آن دارند
+		// (از جمله بنر)؛ دیگر فیلدهای رسانه رفتار قبلی wp.media را نگه می‌دارند.
+		if (libraryType) frameOptions.library = { type: libraryType };
+		var frame = wp.media(frameOptions);
 
 		frame.on("select", function () {
 			var attachment = frame.state().get("selection").first().toJSON();
 			targetInput.val(attachment.id);
-			var previewUrl = attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url;
-			previewEl.html('<img src="' + previewUrl + '" alt="" style="max-height:60px;" />');
+			// برای بنر previewSize برابر full است: GIF با فایل اصلی لود می‌شود
+			// تا thumbnail ثابتِ وردپرس، انیمیشن را از بین نبرد.
+			var previewUrl = previewSize === "full" || !attachment.sizes || !attachment.sizes[previewSize]
+				? attachment.url
+				: attachment.sizes[previewSize].url;
+			var maxHeight = button.data("previewMaxHeight") || "60px";
+			var previewImage = $("<img>", { src: previewUrl, alt: "" }).css({
+				maxHeight: maxHeight,
+				maxWidth: "100%",
+				width: "auto",
+				height: "auto",
+			});
+			previewEl.empty().append(previewImage);
 		});
 
 		frame.open();
@@ -107,6 +124,33 @@ jQuery(function ($) {
 			.find(".jluxe-media-preview")
 			.html('<span class="description">' + emptyLabel + "</span>");
 	});
+
+	// نمایش یکی از فرم‌های محتوای بنر: متن ثابت، پیام‌های متحرک یا تصویر/GIF.
+	function syncAnnouncementMode() {
+		var mode = $(".jluxe-announcement-mode:checked").val() || "text";
+		$("[data-announcement-mode]").each(function () {
+			var panel = $(this);
+			var active = panel.data("announcementMode") === mode;
+			panel.toggle(active).attr("aria-hidden", active ? "false" : "true");
+		});
+	}
+	$(document).on("change", ".jluxe-announcement-mode", syncAnnouncementMode);
+	syncAnnouncementMode();
+
+	// لینکِ دستی فقط وقتی لازم است که عملکردِ آیتم روی «لینک دلخواه» باشد.
+	function syncMobileNavActionFields(scope) {
+		var $scope = scope ? $(scope) : $(document);
+		$scope.find(".jluxe-mobile-nav-action").each(function () {
+			var $action = $(this);
+			var isCustomLink = $action.val() === "link";
+			var $options = $action.closest(".jluxe-repeater-item").find("[data-mobile-nav-link-options]").first();
+			$options.toggle(isCustomLink).attr("aria-hidden", isCustomLink ? "false" : "true");
+		});
+	}
+	$(document).on("change", ".jluxe-mobile-nav-action", function () {
+		syncMobileNavActionFields($(this).closest(".jluxe-repeater-item"));
+	});
+	syncMobileNavActionFields(document);
 
 	// ===================================================================
 	// Repeater عمومی (اسلایدهای هیرو، آیتم‌های دسته‌بندی و هر لیست پویای
@@ -147,6 +191,7 @@ jQuery(function ($) {
 			$field.find(".jluxe-media-select, .jluxe-media-remove").attr("data-target", uniqueId);
 		});
 		$list.append($newItem);
+		syncCategoryShowcaseFields($newItem);
 		renumberRepeater($list);
 		// اگه این ریپیتر داخلِ یک بخشِ صفحه‌ی اصلیه که همین الان (بدون رفرش)
 		// اضافه شده، تمپلیتِ ردیفِ جدید هنوز placeholder ایندکسِ بخش رو داره
@@ -205,6 +250,110 @@ jQuery(function ($) {
 	}
 
 	// ===================================================================
+	// منوی هدر — هر کارت یک آیتم کامل (همراه با شناسه و تمام زیرمنوهاست).
+	// بعد از هر جابه‌جایی، فقط شماره‌ی [items][N] بازنویسی می‌شه تا آرایه‌ی
+	// ارسال‌شده با ترتیبِ روی صفحه یکی باشه و فیلدهای تو‌در‌تو کنار آیتم بمانند.
+	// ===================================================================
+	function headerNavPersianNumber(value) {
+		var digits = "۰۱۲۳۴۵۶۷۸۹";
+		return String(value).replace(/[0-9]/g, function (digit) {
+			return digits.charAt(parseInt(digit, 10));
+		});
+	}
+
+	function renumberHeaderNavItems($list, $movedItem, announce) {
+		var $items = $list.children(".jluxe-header-nav-item");
+		$items.each(function (index) {
+			var $item = $(this);
+			var number = headerNavPersianNumber(index + 1);
+			$item.find("[name]").each(function () {
+				var $field = $(this);
+				var name = $field.attr("name") || "";
+				var renamed = name.replace(/(\[items\])\[[^\]]*\]/, "$1[" + index + "]");
+				if (renamed !== name) {
+					$field.attr("name", renamed);
+				}
+			});
+
+			$item.find(".jluxe-header-nav-item__number").text("آیتم " + number);
+			var label = $.trim(String($item.find("[data-jluxe-header-nav-label]").first().val() || ""));
+			$item.find("[data-jluxe-header-nav-title]").text(label || "بدون عنوان");
+			$item.find(".jluxe-header-nav-item__controls").attr("aria-label", "کنترل ترتیب آیتم " + number);
+			$item.find(".jluxe-header-nav-item__drag")
+				.attr("title", "برای کشیدن و جابه‌جایی آیتم " + number)
+				.attr("aria-label", "دستگیرهٔ جابه‌جایی آیتم " + number);
+			$item.find(".jluxe-header-nav-item__move-up")
+				.prop("disabled", index === 0)
+				.attr("title", "انتقال به بالا")
+				.attr("aria-label", "انتقال آیتم " + number + " به بالا");
+			$item.find(".jluxe-header-nav-item__move-down")
+				.prop("disabled", index === $items.length - 1)
+				.attr("title", "انتقال به پایین")
+				.attr("aria-label", "انتقال آیتم " + number + " به پایین");
+		});
+
+		if (announce && $movedItem && $movedItem.length) {
+			var newIndex = $items.index($movedItem);
+			var movedLabel = $.trim(String($movedItem.find("[data-jluxe-header-nav-label]").first().val() || ""));
+			$list.closest("form").find("[data-jluxe-header-nav-live]").first().text(
+				"ترتیب منوی هدر تغییر کرد. «" + (movedLabel || "بدون عنوان") + "» اکنون آیتم " + headerNavPersianNumber(newIndex + 1) + " است."
+			);
+		}
+	}
+
+	$(".jluxe-header-nav-list").each(function () {
+		var $list = $(this);
+		renumberHeaderNavItems($list);
+		$list.sortable({
+			items: "> .jluxe-header-nav-item",
+			handle: ".jluxe-header-nav-item__drag",
+			axis: "y",
+			// jQuery UI به‌طور پیش‌فرض دکمه‌ها را از شروع drag مستثنا می‌کند؛
+			// این‌جا دستگیره خودش دکمه‌ی قابل‌دسترسی است، پس فقط فیلدهای فرم cancel شوند.
+			cancel: "input,textarea,select,option",
+			distance: 5,
+			update: function (event, ui) {
+				renumberHeaderNavItems($(this), ui.item, true);
+			},
+		});
+		$list.closest("form").on("submit", function () {
+			renumberHeaderNavItems($list);
+		});
+	});
+
+	$(document).on("click", ".jluxe-header-nav-item__move-up", function (event) {
+		event.preventDefault();
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var $previous = $item.prev(".jluxe-header-nav-item");
+		if (!$previous.length) return;
+		var $list = $item.parent();
+		$item.insertBefore($previous);
+		renumberHeaderNavItems($list, $item, true);
+		var $focusButton = $item.find(".jluxe-header-nav-item__move-up");
+		if ($focusButton.prop("disabled")) $focusButton = $item.find(".jluxe-header-nav-item__move-down");
+		$focusButton.trigger("focus");
+	});
+
+	$(document).on("click", ".jluxe-header-nav-item__move-down", function (event) {
+		event.preventDefault();
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var $next = $item.next(".jluxe-header-nav-item");
+		if (!$next.length) return;
+		var $list = $item.parent();
+		$item.insertAfter($next);
+		renumberHeaderNavItems($list, $item, true);
+		var $focusButton = $item.find(".jluxe-header-nav-item__move-down");
+		if ($focusButton.prop("disabled")) $focusButton = $item.find(".jluxe-header-nav-item__move-up");
+		$focusButton.trigger("focus");
+	});
+
+	$(document).on("input change", "[data-jluxe-header-nav-label]", function () {
+		var $item = $(this).closest(".jluxe-header-nav-item");
+		var label = $.trim(String($(this).val() || ""));
+		$item.find("[data-jluxe-header-nav-title]").text(label || "بدون عنوان");
+	});
+
+	// ===================================================================
 	// هومپیج بیلدر — drag&drop، افزودن/حذف/تکثیر بخش، renumber ایندکس‌ها
 	// قبل از هر submit تا name="homepage[sections][N][...]" با ترتیب واقعیِ
 	// نمایش‌داده‌شده یکی بمونه (وگرنه بعد از جابه‌جایی، ترتیبِ ذخیره‌شده
@@ -237,6 +386,8 @@ jQuery(function ($) {
 		$(document).on("click", ".jluxe-hb-duplicate", function () {
 			var $clone = $(this).closest(".jluxe-hb-section").clone();
 			$(this).closest(".jluxe-hb-section").after($clone);
+			assignUniqueMediaFieldIds($clone);
+			syncCategoryShowcaseFields($clone);
 			renumberHomepageSections();
 		});
 
@@ -249,7 +400,11 @@ jQuery(function ($) {
 			// <template>.content یک DocumentFragmentِ جداست، نه رشته‌ی HTML —
 			// باید clone بشه و مستقیم append بشه (نه .html()/رشته‌سازی، که
 			// معنای اون فرگمنت رو از دست می‌ده).
-			$hbList.append(templateEl.content.cloneNode(true));
+			var sectionFragment = templateEl.content.cloneNode(true);
+			var $newSection = $(sectionFragment.firstElementChild);
+			$hbList.append(sectionFragment);
+			assignUniqueMediaFieldIds($newSection);
+			syncCategoryShowcaseFields($newSection);
 			renumberHomepageSections();
 		});
 	}
@@ -322,6 +477,53 @@ jQuery(function ($) {
 	$(document).on("change", "[data-jluxe-toggle-id]", applyConditionalFields);
 	applyConditionalFields();
 
+	function assignUniqueMediaFieldIds($scope) {
+		if (!$scope || !$scope.length) return;
+		$scope.find(".jluxe-media-field").each(function () {
+			var $field = $(this);
+			var $hidden = $field.find('input[type="hidden"]').first();
+			var uniqueId = "jluxe-media-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+			$hidden.attr("id", uniqueId);
+			$field.find(".jluxe-media-select, .jluxe-media-remove").attr("data-target", uniqueId);
+		});
+	}
+
+	function syncCategoryShowcaseFields($scope) {
+		if (!$scope || !$scope.length) return;
+
+		var $items = $scope.find(".jluxe-category-showcase-item");
+		if ($scope.is(".jluxe-category-showcase-item")) $items = $items.add($scope);
+		$items.each(function () {
+			var $item = $(this);
+			var mode = $item.find('select[name$="[mode]"]').val() || "category";
+			$item.find("[data-showcase-mode]").each(function () {
+				var $field = $(this);
+				var active = $field.attr("data-showcase-mode") === mode;
+				$field.toggle(active).attr("aria-hidden", active ? "false" : "true");
+			});
+		});
+
+		var $sections = $scope.find('.jluxe-hb-section[data-type="category_showcase"]');
+		if ($scope.is('.jluxe-hb-section[data-type="category_showcase"]')) $sections = $sections.add($scope);
+		if (!$sections.length) $sections = $scope.closest('.jluxe-hb-section[data-type="category_showcase"]');
+		$sections.each(function () {
+			var $section = $(this);
+			var frameMode = $section.find('select[name$="[image_frame_mode]"]').val() || "none";
+			$section.find("[data-showcase-frame-mode]").each(function () {
+				var $field = $(this);
+				var active = $field.attr("data-showcase-frame-mode") === frameMode;
+				$field.toggle(active).attr("aria-hidden", active ? "false" : "true");
+			});
+		});
+	}
+	$(document).on("change", ".jluxe-category-showcase-item select[name$=\"[mode]\"]", function () {
+		syncCategoryShowcaseFields($(this).closest(".jluxe-category-showcase-item"));
+	});
+	$(document).on("change", '.jluxe-hb-section[data-type="category_showcase"] select[name$="[image_frame_mode]"]', function () {
+		syncCategoryShowcaseFields($(this).closest('.jluxe-hb-section[data-type="category_showcase"]'));
+	});
+	syncCategoryShowcaseFields($(document));
+
 	// ===================================================================
 	// تست اتصالِ دستیار هوش مصنوعی (inc/theme-settings-ai.php) — یک
 	// درخواستِ ساده به provider/کلیدِ همین‌الان‌ذخیره‌شده می‌فرسته. عمداً از
@@ -358,22 +560,6 @@ jQuery(function ($) {
 			.always(function () {
 				$btn.prop("disabled", false);
 			});
-	});
-
-	// ناوبری گروهی تنظیمات زرین
-	$(document).on('click', '.jluxe-settings-nav-group-toggle', function (e) {
-		e.preventDefault();
-		var $group = $(this).closest('.jluxe-settings-nav-group');
-		var expanded = $(this).attr('aria-expanded') === 'true';
-		$('.jluxe-settings-nav-group').not($group).removeClass('is-open').find('.jluxe-settings-nav-group-toggle').attr('aria-expanded', 'false');
-		$group.toggleClass('is-open', !expanded);
-		$(this).attr('aria-expanded', expanded ? 'false' : 'true');
-	});
-
-	$(document).on('click', function (e) {
-		if (!$(e.target).closest('.jluxe-settings-nav-group').length) {
-			$('.jluxe-settings-nav-group').removeClass('is-open').find('.jluxe-settings-nav-group-toggle').attr('aria-expanded', 'false');
-		}
 	});
 
 });
