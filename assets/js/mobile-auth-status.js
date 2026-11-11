@@ -5,6 +5,7 @@
 	var statusResolved = false;
 	var currentStatus = null;
 	var statusPromise = null;
+	var statusGeneration = 0;
 
 	function isBoolean(value) {
 		return value === true || value === false;
@@ -34,6 +35,7 @@
 	}
 
 	function publishStatus(authenticated) {
+		statusGeneration += 1;
 		statusResolved = true;
 		currentStatus = authenticated;
 		if (!isBoolean(authenticated)) { return null; }
@@ -49,8 +51,13 @@
 		Array.prototype.forEach.call(document.querySelectorAll("[data-jluxe-account-link]"), function (link) {
 			updateLink(link, authenticated);
 		});
+		if (typeof window.dispatchEvent === "function" && typeof window.CustomEvent === "function") {
+			window.dispatchEvent(new window.CustomEvent("jluxe:auth-status", { detail: { isLoggedIn: authenticated } }));
+		}
 		return authenticated;
 	}
+
+	window.jluxePublishAuthStatus = publishStatus;
 
 	function requestSession() {
 		var endpoint = settings.sessionUrl;
@@ -99,10 +106,7 @@
 		if ((typeof event.button === "number" && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { return; }
 		if (statusResolved) {
 			if (isBoolean(currentStatus)) { updateLink(link, currentStatus); }
-			var destination = isBoolean(currentStatus)
-				? accountHref(link, currentStatus)
-				: link.getAttribute("href");
-			if (destination) { window.location.assign(destination); }
+			// Let the React auth router (or native navigation) handle the updated href.
 			return;
 		}
 		if (!statusPromise) { return; }
@@ -112,11 +116,27 @@
 			var destination = isBoolean(authenticated)
 				? accountHref(link, authenticated)
 				: link.getAttribute("href");
-			if (destination) { window.location.assign(destination); }
+			if (destination) {
+				// Replay after cookie verification so the in-app router can intercept.
+				link.click();
+			}
 		});
 	}
 
 	document.addEventListener("click", handleAccountClick, true);
-	statusPromise = requestSession().then(publishStatus);
+	function refreshStatus() {
+		var generation = ++statusGeneration;
+		statusResolved = false;
+		statusPromise = requestSession().then(function (authenticated) {
+			return generation === statusGeneration ? publishStatus(authenticated) : currentStatus;
+		});
+		window.jluxeMobileAuthStatusPromise = statusPromise;
+	}
+	if (typeof window.addEventListener === "function") {
+		window.addEventListener("pageshow", function (event) {
+			if (event.persisted) { refreshStatus(); }
+		});
+	}
+	refreshStatus();
 	window.jluxeMobileAuthStatusPromise = statusPromise;
 })();

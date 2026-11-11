@@ -1,3 +1,4 @@
+import { CartHourglass } from "../components/cart-hourglass.js";
 import { siteUrl } from "../lib/api.js";
 import {
   closeMobileDrawer,
@@ -28,6 +29,8 @@ function J() {
     {
       snapshot: s,
       loading: d,
+      quantityPending,
+      quantityKeys,
       error: cartError,
       updateQty: f,
       removeItem: v,
@@ -146,6 +149,8 @@ function J() {
                           e.jsx("p", { children: cartError }),
                           e.jsx("a", {
                             href: s.cartUrl,
+                            "aria-disabled": d || undefined,
+                            onClick: (event) => { if (d) event.preventDefault(); },
                             className: "underline",
                             children: "مشاهدهٔ صفحهٔ سبد خرید",
                           }),
@@ -203,10 +208,7 @@ function J() {
                     className: "flex-1 overflow-y-auto p-4",
                     children:
                       d && s.items.length === 0
-                        ? e.jsx("p", {
-                            role: "status",
-                            children: "در حال به‌روزرسانی سبد خرید…",
-                          })
+                        ? e.jsx(CartHourglass, {})
                         : cartError && s.items.length === 0
                           ? null
                           : s.items.length === 0
@@ -291,7 +293,7 @@ function J() {
                                                   children: [
                                                     e.jsx("button", {
                                                       type: "button",
-                                                      disabled: d,
+                                                      disabled: d && !quantityPending,
                                                       onClick: () =>
                                                         f(t.key, t.qty - 1),
                                                       "aria-label":
@@ -322,7 +324,7 @@ function J() {
                                                     e.jsx("button", {
                                                       type: "button",
                                                       disabled:
-                                                        d || t.qty >= t.maxQty,
+                                                        (d && !quantityPending) || t.qty >= t.maxQty,
                                                       onClick: () =>
                                                         f(t.key, t.qty + 1),
                                                       "aria-label":
@@ -339,9 +341,9 @@ function J() {
                                                 e.jsx("span", {
                                                   className:
                                                     "text-caption font-bold text-foreground",
-                                                  dangerouslySetInnerHTML: {
-                                                    __html: t.lineTotalHtml,
-                                                  },
+                                                  children: quantityKeys.includes(String(t.key))
+                                                    ? e.jsx(CartHourglass, {})
+                                                    : e.jsx("span", { dangerouslySetInnerHTML: { __html: t.lineTotalHtml } }),
                                                 }),
                                               ],
                                             }),
@@ -349,7 +351,7 @@ function J() {
                                         }),
                                         e.jsx("button", {
                                           type: "button",
-                                          disabled: d,
+                                          disabled: d || quantityKeys.includes(String(t.key)),
                                           onClick: () => v(t.key),
                                           "aria-label": "حذف از سبد خرید",
                                           className:
@@ -483,13 +485,18 @@ function J() {
                               }),
                               e.jsx("span", {
                                 className: "font-bold text-foreground",
-                                children: d
-                                  ? "در حال به‌روزرسانی…"
-                                  : e.jsx("span", {
-                                      dangerouslySetInnerHTML: {
-                                        __html: s.subtotalHtml,
-                                      },
+                                "aria-busy": d,
+                                children: e.jsxs("span", {
+                                  className: "inline-flex items-center gap-2",
+                                  children: [
+                                    e.jsx("span", {
+                                      className: d ? "opacity-60" : undefined,
+                                      title: d ? "آخرین مبلغ تأییدشده؛ در حال بررسی مبلغ جدید" : undefined,
+                                      dangerouslySetInnerHTML: { __html: s.subtotalHtml },
                                     }),
+                                    d ? e.jsx(CartHourglass, {}) : null,
+                                  ],
+                                }),
                               }),
                             ],
                           }),
@@ -513,6 +520,8 @@ function J() {
                             : e.jsx("div", { className: "mb-3" }),
                           e.jsx("a", {
                             href: s.cartUrl,
+                            "aria-disabled": d || undefined,
+                            onClick: (event) => { if (d) event.preventDefault(); },
                             className:
                               "flex h-12 items-center justify-center rounded-xl bg-primary text-button font-medium text-primary-foreground transition-colors hover:bg-primary-hover",
                             children: "مشاهده سبد خرید",

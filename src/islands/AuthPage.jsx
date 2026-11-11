@@ -70,27 +70,25 @@ export default function AuthPage() {
   const webOtpController = useRef(null);
   const webOtpGeneration = useRef(0);
   const authSucceeded = useRef(false);
-  const otpReloaded = useRef(false);
   const successTimer = useRef(0);
 
   const completeAuth = useCallback(async () => {
-    // Only leave the OTP screen when the auth cookie is actually echoed back
-    // on THIS origin. On a cross-origin preview (e.g. mobile live-preview)
-    // the cookie may not be accepted, so blind navigation would loop back to
-    // the login page; confirm the session first, otherwise reload once so the
-    // browser re-attaches any cookie set by the OTP response.
     try {
-      const session = await getSession();
-      if (session?.auth?.isLoggedIn === true) {
-        window.location.assign(resolvePostAuthUrl());
-        return;
+      // Discard the guest bootstrap cached before login. Only a new cookie-backed
+      // response can confirm that this browser actually accepted the auth cookie.
+      const session = await getSession(true);
+      if (session?.auth?.isLoggedIn !== true) {
+        throw new Error("نشست ورود برقرار نشد. لطفاً کوکی‌های مرورگر را فعال کنید و دوباره وارد شوید.");
       }
-    } catch {
-      // session endpoint not reachable on this origin; fall through to reload
-    }
-    if (!otpReloaded.current) {
-      otpReloaded.current = true;
-      window.location.reload();
+      window.location.assign(resolvePostAuthUrl());
+    } catch (cause) {
+      // Reloading remounts this component and resets its refs, so a local ref
+      // cannot limit a document-level login loop. Stay here and allow a new OTP.
+      authSucceeded.current = false;
+      setAuthSuccess(false);
+      setSent(false);
+      setCode("");
+      setError(cause instanceof Error ? cause.message : "بررسی نشست ورود ناموفق بود. دوباره تلاش کنید.");
     }
   }, []);
 
@@ -141,7 +139,7 @@ export default function AuthPage() {
         setBusy(false);
       }
     },
-    [phone, cancelWebOtp],
+    [phone, cancelWebOtp, completeAuth],
   );
 
   const startWebOtp = useCallback(() => {
@@ -299,7 +297,7 @@ export default function AuthPage() {
           { authenticated: false },
         );
       }
-      window.location.assign(resolvePostAuthUrl());
+      await completeAuth();
     } catch (cause) {
       if (method === "phone" && !sent) {
         otpRequestReady.current = false;
