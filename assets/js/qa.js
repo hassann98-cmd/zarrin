@@ -14,6 +14,7 @@
 
 		var messageEl = form.querySelector("[data-jluxe-qa-message]");
 		var submitBtn = form.querySelector('button[type="submit"]');
+		if (submitBtn.disabled) return;
 		var formData = new FormData(form);
 		formData.append("action", "jluxe_qa_submit");
 
@@ -28,7 +29,7 @@
 				return res.json();
 			})
 			.then(function (data) {
-				var message = data && data.data && data.data.message ? data.data.message : "";
+				var message = data && data.data && data.data.message ? data.data.message : "درخواست انجام نشد؛ صفحه را تازه کنید.";
 				messageEl.textContent = message;
 				messageEl.classList.remove("hidden");
 				messageEl.style.color = data.success ? "hsl(var(--success))" : "hsl(var(--error))";

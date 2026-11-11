@@ -2,10 +2,10 @@
 /**
  * پنل تنظیمات JLuxe (wp-admin → JLuxe → تنظیمات ظاهری).
  *
- * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). مقادیر
- * پیش‌فرض دقیقاً همون چیزیه که همین الان در globals.css/Footer.tsx/
- * functions.php هاردکد شده — یعنی فعال‌سازی این پنل به‌تنهایی هیچ تغییر
- * بصری‌ای در سایت ایجاد نمی‌کنه، فقط وقتی ادمین واقعاً چیزی رو عوض کنه.
+ * منبع واحد حقیقت: یک آپشن ساختاریافته (jluxe_theme_settings). پیش‌فرض‌ها
+ * رفتار عمومیِ پوسته را تعریف می‌کنند؛ محتوای راهنماهای پرداخت، ارسال/پیگیری
+ * و مرجوعی که مدیر برای همین صفحات فرستاده، استثنای صریح و قابل‌ویرایش است.
+ * سایر اطلاعات تجاری و سیاست‌های وابسته به فروشگاه باید از مدیر بیایند.
  *
  * فقط بخش‌هایی که واقعاً به frontend وصل شدن پیاده‌سازی شدن (رنگ‌ها، هویت
  * سایت/لوگو/فاویکون، فوتر) — نه یک پنل نمایشی با تنظیماتی که به جایی وصل
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 2;
+const JLUXE_SETTINGS_VERSION = 23;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -41,23 +41,298 @@ function jluxe_maybe_disable_theme_options_autoload(): void {
 add_action( 'after_setup_theme', 'jluxe_maybe_disable_theme_options_autoload', 20 );
 
 /**
- * مقادیر پیش‌فرض — عیناً همون مقادیر فعلی هاردکدشده‌ی پروژه.
+ * FAQ عمومیِ شروع — پاسخ‌ها عمداً به تنظیمات/صفحات واقعی فروشگاه ارجاع
+ * می‌دهند و برای شماره تماس، مهلت مرجوعی، روش پرداخت یا زمان ارسال مقدار
+ * حدسی نمی‌سازند. مدیر می‌تواند هر ردیف را در پنل ویرایش یا حذف کند.
+ */
+function jluxe_faq_default_items(): array {
+	return array(
+		array(
+			'question' => 'آیا برای ثبت سفارش، حتماً باید در سایت ثبت‌نام کنم؟',
+			'answer'   => 'در صفحهٔ تسویه‌حساب مشخص است آیا ورود یا ساخت حساب برای سفارش لازم است؛ تنظیمات فروشگاه و قابلیت‌های فعال ممکن است این شرط را تغییر دهند.'
+		),
+		array(
+			'question' => 'آیا رنگ و ظاهر محصول دقیقاً مشابه عکس‌های سایت است؟',
+			'answer'   => 'عکس‌ها برای نمایش محصول تهیه شده‌اند؛ نور عکاسی و تنظیمات نمایشگر ممکن است رنگ را کمی متفاوت نشان دهد. توضیحات و گزینه‌های ثبت‌شده در صفحهٔ همان محصول را هم بررسی کنید.',
+		),
+		array(
+			'question' => 'آیا امکان ثبت سفارش از طریق تلگرام، واتس‌اپ، اینستاگرام، روبیکا و بله وجود دارد؟',
+			'answer'   => 'برای ثبت و پیگیری مطمئن سفارش، جزئیات خرید و نهایی‌کردن آن را از مسیر فروشگاه انجام دهید. راه‌های ارتباطی فعالی که فروشگاه معرفی کرده، در صفحهٔ «تماس با ما» آمده‌اند؛ از همان صفحه برای هماهنگی پیش از خرید استفاده کنید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم هزینه سفارش خود را پرداخت کنم؟',
+			'answer'   => 'روش‌های پرداختِ فعال برای سبد شما هنگام تسویه‌حساب نمایش داده می‌شوند. برای توضیح هر روش، راهنمای پرداخت سایت را ببینید و اگر روش کارت‌به‌کارت فعال است، فقط از اطلاعات درج‌شده در همان راهنمای رسمی استفاده کنید.',
+		),
+		array(
+			'question' => 'سفارش من چه زمانی ارسال می‌شود؟ (آیا ارسال در همان روز انجام می‌شود؟)',
+			'answer'   => 'روش‌های ارسالِ قابل انتخاب و هزینهٔ آن‌ها هنگام تسویه‌حساب مشخص می‌شوند. زمان رسیدن مرسوله به مقصد و روش حمل بستگی دارد؛ ارسال در همان روز را پیش از ثبت سفارش با پشتیبانی هماهنگ کنید و قطعی فرض نکنید.',
+		),
+		array(
+			'question' => 'شرایط و قوانین بازگشت کالا (مرجوعی) چیست؟',
+			'answer'   => 'شرایط مرجوعی فقط در صورتی روشن است که فروشگاه آن را در صفحهٔ رویهٔ مرجوعی درج کرده باشد. اگر متن کامل نیست یا پرسشی دارید، پیش از خرید از راه تماسِ فعلیِ فروشگاه راهنمایی بگیرید.'
+		),
+		array(
+			'question' => 'آیا می‌توانم به اطلاعات و سوابق خریدهای قبلی خود دسترسی داشته باشم؟',
+			'answer'   => 'اگر هنگام خرید وارد حساب کاربری بوده‌اید، سفارش‌های قبلی در بخش «سفارش‌ها»ی حساب شما قرار دارند. برای سفارش مهمان، از صفحهٔ پیگیری سفارش و با شمارهٔ سفارش و موبایل ثبت‌شده استفاده کنید.',
+		),
+		array(
+			'question' => 'آیا امکان ویرایش مشخصات کاربری (مانند شماره موبایل یا ایمیل) وجود دارد؟',
+			'answer'   => 'اطلاعات قابل‌ویرایش را از بخش «جزئیات حساب» در حساب کاربری تغییر دهید. اگر ویرایش شمارهٔ موبایل یا ایمیل به تأیید نیاز دارد یا گزینهٔ آن نمایش داده نمی‌شود، از راه‌های تماس صفحهٔ «تماس با ما» کمک بگیرید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم با پشتیبانی تماس بگیرم؟',
+			'answer'   => 'راه‌های تماس و ساعات پاسخ‌گوییِ به‌روز در صفحهٔ «تماس با ما» درج می‌شوند. لطفاً همان اطلاعات فعلیِ سایت را بررسی کنید.',
+		),
+		array(
+			'question' => 'چطور می‌توانم به سایر راهنماهای خرید، پرداخت و ارسال دسترسی داشته باشم؟',
+			'answer'   => 'از بخش «مرکز راهنمایی» یا پیوندهای راهنما در فوتر، صفحه‌های راهنمای خرید، پرداخت، ارسال و پیگیری سفارش و شرایط مرجوعی را باز کنید.',
+		),
+	);
+}
+
+/** Default HTML supplied for the returns and exchanges guide. */
+function jluxe_returns_exchanges_default_body_html(): string {
+	return <<<'JLUXE_HTML'
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۱</span>
+			<h2>شرایط انصراف از خرید <small>(مهلت ۷ روزه)</small></h2>
+		</div>
+		<p class="jrp-lead">مشتریان محترم می‌توانند ظرف مدت ۷ روز کاری از خرید خود منصرف شده و کالا را مرجوع کنند، مشروط بر اینکه:</p>
+		<p><strong>حفظ سلامت کالا:</strong> کالای خریداری‌شده کاملاً در وضعیت اولیه (پلمب) باشد، از آن استفاده نشده باشد و هیچ‌گونه تغییری در فرم، بسته‌بندی یا شکل ظاهری آن ایجاد نشده باشد.</p>
+		<p><strong>هزینهٔ ارسال:</strong> در صورت انصراف سلیقه‌ای مشتری از خرید، هزینهٔ بازپس‌فرستادن کالا برعهدهٔ خریدار خواهد بود.</p>
+		<p><strong>عیوب فنی:</strong> چنانچه کالا پس از بازشدن از بسته‌بندی اصلی دارای عیب یا نقص فنی داخلی (غیرظاهری) باشد، مشمول شرایط تعویض خواهد بود.</p>
+
+		<div class="jrp-callout jrp-callout-deny">
+			<p class="jrp-callout-title">استثنائات مرجوعی — اقلام غیرقابل تعویض به دلایل بهداشتی</p>
+			<p><strong>انواع حوله:</strong> به دلیل رعایت کامل اصول بهداشتی، امکان تعویض یا مرجوعی انواع حوله به هیچ عنوان وجود ندارد.</p>
+			<p><strong>کالای خواب (روتختی، ملحفه و پتو):</strong> به دلیل حساسیت‌های بهداشتی (احتمال انتقال باکتری یا حشرات ریز میکروسکوپی)، امکان مرجوعی روتختی و پتو وجود ندارد.</p>
+		</div>
+
+		<div class="jrp-callout jrp-callout-tip">
+			<p><strong>نکته برای خرید مطمئن:</strong> جهت اطمینان کامل شما از جنس و رنگ، قبل از ارسال کالای خواب، در صورت درخواست شما عکس‌های واقعی و باکیفیت از تمام جزئیات کالا از طریق پیام‌رسان‌ها برایتان ارسال خواهد شد.</p>
+		</div>
+	</div>
+
+	<div class="jrp-golden-rule">
+		<span class="jrp-golden-badge">قانون طلایی</span>
+		<div class="jrp-section-head">
+			<span class="jrp-num jrp-num-alert">۲</span>
+			<h2>تحویل کالاهای شکستنی و ظاهری</h2>
+		</div>
+		<p>با توجه به اینکه بخشی از محصولات {site_name} شامل کالاهای حساس و شکستنی است، قوانین تحویل به شرح زیر است:</p>
+		<p>خریدار مکلف است بلافاصله در زمان دریافت کالا و در حضور مأمور کالارسان (پست، تیپاکس یا چاپار)، بسته را باز کرده و سلامت فیزیکی کالا را بررسی کند.</p>
+		<p>چنانچه کالا دارای عیوب ظاهری ناشی از حمل‌ونقل مانند شکستگی، ترک‌خوردگی، زدگی، خط‌وخش و... باشد، خریدار باید از تحویل‌گرفتن آن خودداری کرده و بسته را به مأمور ارجاع دهد.</p>
+		<div class="jrp-golden-warning">
+			<p><strong>نکتهٔ بسیار مهم:</strong> تحویل‌گرفتن کالا از مأمور ارسال به‌منزلهٔ تایید سلامت فیزیکی آن است و فروشگاه {site_name} هیچ‌گونه مسئولیتی در قبال ادعاهای بعدی مبنی بر شکستگی یا آسیب ظاهری نخواهد داشت.</p>
+		</div>
+	</div>
+
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۳</span>
+			<h2>نحوه و زمان عودت وجه</h2>
+		</div>
+		<p>پس از برگشت کالا به انبار {site_name} و تایید اصالت و سلامت آن توسط کارشناسان بخش پشتیبانی، مبلغ پرداختی مشتری حداکثر ظرف مدت <strong>۴۸ ساعت کاری</strong> به حساب وی (شمارهٔ کارت به نام خریدار) عودت داده خواهد شد.</p>
+	</div>
+
+	<div class="jrp-section">
+		<div class="jrp-section-head">
+			<span class="jrp-num">۴</span>
+			<h2>کالاهای غیرقابل مرجوع (خاص)</h2>
+		</div>
+		<p>برخی از کالاهای خاص که به دلیل شرایط فروش یا ماهیت کالا قابل مرجوع‌شدن نیستند، به‌صورت واضح در صفحهٔ خرید همان کالا با برچسب «غیرقابل مرجوع» مشخص شده‌اند؛ لطفاً هنگام خرید به این نکته توجه فرمایید.</p>
+	</div>
+	JLUXE_HTML;
+}
+
+/** Default HTML supplied for the shipping and order-tracking guide. */
+function jluxe_shipping_tracking_default_body_html(): string {
+	return <<<'JLUXE_HTML'
+	<div class="jst-callout jst-callout-warning">
+		<p><strong>نکتهٔ بسیار مهم:</strong> لطفاً قبل از ثبت سفارش و انتخاب روش ارسال، از وجود نمایندگی و پوشش‌دهی شرکت‌های باربری (تیپاکس یا چاپار) در محدودهٔ شهر و محل سکونت خود اطمینان حاصل کنید.</p>
+	</div>
+	<p class="jst-page-intro">در فروشگاه {site_name}، تحویل به‌موقع و سالم کالاها اولویت اصلی ماست. ارسال مرسولات به ۳ روش متنوع انجام می‌شود تا بتوانید بهترین گزینه را بر اساس بودجه، ابعاد کالا و زمان خود انتخاب کنید.</p>
+	<span class="jst-part-label">بخش اول — روش‌های ارسال کالا</span>
+	<div class="jst-methods">
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۱</span><h2>روش پست پیشتاز <small>(اقتصادی و سراسری)</small></h2></div>
+			<p class="jst-method-desc">این روش برای تمامی شهرهای ایران، روستاها و مناطق دوردست فعال است.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> هزینهٔ ارسال به‌صورت آنلاین و در زمان ثبت سفارش، با توجه به وزن و سایز محصول محاسبه و پرداخت می‌شود.</p>
+			<p><strong>مدت زمان تحویل:</strong> زمان تحویل مرسوله در این روش نسبت به سایر سرویس‌ها کمی طولانی‌تر است.</p>
+			<p><strong>محدودیت ابعادی:</strong> ادارهٔ پست بسته‌های بسیار بزرگ و با طول بیش از ۱ متر را پذیرش نمی‌کند.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> پس از تحویل بسته به پست، کد رهگیری ۲۴ رقمی برای شما پیامک می‌شود. با کلیک روی دکمهٔ زیر می‌توانید بسته را لحظه‌به‌لحظه ردیابی کنید.</p>
+			<a class="jst-track-btn jst-track-btn-post" href="https://tracking.post.ir/" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ پست</span></a>
+		</div>
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۲</span><h2>روش ارسال تیپاکس <small>(سریع و مطمئن)</small></h2></div>
+			<p class="jst-method-desc">این روش برای شهرهایی که دارای نمایندگی فعال تیپاکس هستند، بسیار مناسب است.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> ارسال به‌صورت پس‌کرایه است؛ در زمان ثبت سفارش هزینه‌ای بابت ارسال پرداخت نمی‌کنید و مبلغ کرایه را هنگام تحویل کالا، درب منزل به مأمور تیپاکس پرداخت خواهید کرد.</p>
+			<p><strong>مزایا:</strong> سرعت ارسال بالا و بسیار مناسب برای کالاهای با سایز متوسط و نیمه‌سنگین.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> پس از پیامک‌شدن کد رهگیری تیپاکس، می‌توانید با کلیک روی دکمهٔ زیر وضعیت بسته را بررسی کنید.</p>
+			<a class="jst-track-btn jst-track-btn-tipax" href="https://tipaxco.com/tracking" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ تیپاکس</span></a>
+		</div>
+		<div class="jst-method">
+			<div class="jst-method-head"><span class="jst-num">۳</span><h2>روش ارسال چاپار <small>(سریع‌ترین برای کالاهای بزرگ)</small></h2></div>
+			<p class="jst-method-desc">چاپار یک سرویس هوشمند و سریع است که برای کالاهای سبک تا بسیار سنگین خدمات عالی ارائه می‌دهد.</p>
+			<p><strong>نحوهٔ پرداخت هزینه:</strong> این روش نیز به‌صورت پس‌کرایه (پرداخت هزینهٔ ارسال درب منزل) است و مبلغ نهایی به وزن، ابعاد و شهر مقصد بستگی دارد.</p>
+			<p><strong>مزایا:</strong> سریع‌ترین روش ارسال در سایت ما محسوب می‌شود و برای محصولات سایز متوسط و به‌ویژه کالاهای بزرگ، حساس و سنگین آشپزخانه فوق‌العاده مناسب است.</p>
+			<p><strong>نحوهٔ پیگیری:</strong> برای پیگیری موقعیت بستهٔ خود از طریق شرکت چاپار، روی دکمهٔ زیر کلیک کنید.</p>
+			<a class="jst-track-btn jst-track-btn-chapar" href="https://chaparnet.com/" target="_blank" rel="noopener"><span>پیگیری مرسولهٔ چاپار</span></a>
+		</div>
+	</div>
+	<span class="jst-part-label">بخش دوم — راهنمای پیگیری وضعیت سفارشات</span>
+	<div class="jst-section">
+		<h2 class="jst-question">چگونه از وضعیت سفارشی که ثبت کرده‌ام مطلع شوم؟</h2>
+		<p>پس از ثبت خرید در {site_name}، سفارش شما گام‌به‌گام پردازش می‌شود و در یکی از وضعیت‌های زیر قرار می‌گیرد. تغییر هر مرحله، فوراً از طریق پیامک به اطلاع شما خواهد رسید.</p>
+		<p class="jst-substeps-title">آشنایی با وضعیت‌های سفارش در پنل کاربری</p>
+		<div class="jst-status jst-status-pending"><span class="jst-status-pill">در انتظار تایید رسید بانکی</span><p>اگر روش «کارت‌به‌کارت» را برای پرداخت انتخاب کرده باشید، سفارش شما تا زمان تایید فیش واریزی توسط بخش حسابداری در این حالت می‌ماند و پیامک مربوطه برایتان ارسال می‌شود. پس از تایید، سفارش خودکار به مرحلهٔ بعدی می‌رود.</p></div>
+		<div class="jst-status jst-status-processing"><span class="jst-status-pill">در حال انجام</span><p>این وضعیت یعنی پرداخت شما (چه آنلاین و چه کارت‌به‌کارت) کاملاً تایید شده، سفارش آماده‌سازی شده و محصول به بخش بسته‌بندی منتقل شده است.</p></div>
+		<div class="jst-status jst-status-done"><span class="jst-status-pill">تکمیل شده</span><p>کالا بسته‌بندی و تحویل شرکت فرستنده (پست، تیپاکس یا چاپار) شده است. در این مرحله کد پیگیری مرسوله از طریق پیامک و ایمیل برای شما ارسال و در پنل کاربری نیز ثبت می‌شود تا بتوانید از طریق دکمه‌های بخش اول، بسته را ردیابی کنید.</p></div>
+		<div class="jst-status jst-status-cancelled"><span class="jst-status-pill">لغو شده</span><p>در صورت بروز مشکل در فرآیند سفارش یا انصراف، سفارش به حالت لغوشده در می‌آید. شرایط و ضوابط این بخش را می‌توانید در صفحهٔ <a href="/returns-and-exchanges/" target="_blank" rel="noopener">شرایط مرجوعی کالا</a> مطالعه بفرمایید.</p></div>
+		<p class="jst-substeps-title">روش‌های سریع پیگیری سفارش در سایت</p>
+		<p>برای راحتی شما، ثبت‌نام در {site_name} اجباری نیست؛ به همین دلیل از دو روش زیر می‌توانید وضعیت سفارش خود را ببینید:</p>
+		<div class="jst-quicktrack">
+			<p><strong>روش اول (ویژهٔ کاربران ثبت‌نام‌شده):</strong> در هر لحظه می‌توانید با ورود به حساب کاربری {site_name} و مراجعه به بخش «سفارشات»، وضعیت دقیق خرید و کد پیگیری مرسولهٔ خود را مشاهده کنید.</p>
+			<p><strong>روش دوم (خرید بدون ثبت‌نام / پیگیری سریع):</strong> اگر بدون ثبت‌نام خرید کرده‌اید، جای نگرانی نیست. با داشتن «شمارهٔ سفارش» (که بعد از خرید برایتان پیامک شده و در برگهٔ تاییدیهٔ پرداخت نیز موجود است) و «شمارهٔ موبایلی» که هنگام خرید وارد کرده‌اید، از طریق دکمهٔ زیر، بدون نیاز به ورود به حساب کاربری، وضعیت سفارش خود را فوراً مشاهده کنید.</p>
+			<a class="jst-track-order-btn" href="/track-order/">پیگیری سریع سفارش ←</a>
+		</div>
+	</div>
+	JLUXE_HTML;
+}
+
+/**
+ * طیفِ مرجعِ Electric Indigo. مقدارِ 50 در درخواست دو بار آمده بود؛ مقدارِ
+ * دوم (#eee5ff) به‌عنوان مقدارِ مؤثرِ یگانه نگه داشته می‌شود.
+ *
+ * @return array<string, string>
+ */
+function jluxe_electric_indigo_palette(): array {
+	return array(
+		'50'  => '#eee5ff',
+		'100' => '#dcccff',
+		'200' => '#b999ff',
+		'300' => '#9666ff',
+		'400' => '#7433ff',
+		'500' => '#5100ff',
+		'600' => '#4100cc',
+		'700' => '#300099',
+		'800' => '#200066',
+		'900' => '#100033',
+		'950' => '#0b0024',
+	);
+}
+
+/**
+ * طیف دقیق Royal Orchid که کاربر تعیین کرده؛ این تابع از Electric Indigo
+ * جداست تا هر دو پالتِ قابل‌انتخاب بدون تغییرِ مقدارهای قبلی در دسترس بمانند.
+ *
+ * @return array<string, string>
+ */
+function jluxe_royal_orchid_palette(): array {
+	return array(
+		'50'  => '#fae8fd',
+		'100' => '#f5d1fa',
+		'200' => '#eaa3f5',
+		'300' => '#e075f0',
+		'400' => '#d646ec',
+		'500' => '#cb18e7',
+		'600' => '#a313b9',
+		'700' => '#7a0f8a',
+		'800' => '#510a5c',
+		'900' => '#29052e',
+		'950' => '#1c0320',
+	);
+}
+
+/**
+ * طیف دقیق Dodger Blue؛ مستقل از پالت پیش‌فرض Royal Orchid باقی می‌ماند.
+ *
+ * @return array<string, string>
+ */
+function jluxe_dodger_blue_palette(): array {
+	return array(
+		'50'  => '#e5f4ff',
+		'100' => '#cce9ff',
+		'200' => '#99d3ff',
+		'300' => '#66bdff',
+		'400' => '#33a7ff',
+		'500' => '#0091ff',
+		'600' => '#0074cc',
+		'700' => '#005799',
+		'800' => '#003a66',
+		'900' => '#001d33',
+		'950' => '#001424',
+	);
+}
+
+/** The exact user-supplied Bubblegum Pink scale, independent of the default preset. */
+function jluxe_bubblegum_pink_palette(): array {
+	return array(
+		'50'  => '#ffe5ec',
+		'100' => '#ffccd9',
+		'200' => '#ff99b3',
+		'300' => '#ff668c',
+		'400' => '#ff3366',
+		'500' => '#ff0040',
+		'600' => '#cc0033',
+		'700' => '#990026',
+		'800' => '#660019',
+		'900' => '#33000d',
+		'950' => '#240009',
+	);
+}
+
+/** The homepage curation section uses WooCommerce's native featured-product flag. */
+function jluxe_default_featured_homepage_section(): array {
+	return array(
+		'id'              => 'featured-products-default',
+		'type'            => 'product_grid',
+		'enabled'         => true,
+		'title'           => 'محصولات ویژه',
+		'subtitle'        => 'برگزیده‌های فروشگاه، آمادهٔ سفارش',
+		'query'            => 'featured',
+		'category'        => '',
+		'count'           => 8,
+		'columns_desktop' => 4,
+		'columns_tablet'  => 3,
+		'columns_mobile'  => 2,
+		'layout'          => 'grid',
+		'style'           => 'plain',
+	);
+}
+
+/**
+ * مقادیر پیش‌فرضِ عمومی؛ محتوای راهنماهای پرداخت، ارسال/پیگیری و مرجوعی
+ * مطابق متن ارسالی مدیر است؛ سایر داده‌ها و سیاست‌های وابسته به فروشگاه
+ * باید از تنظیماتِ مدیر بیایند.
  */
 function jluxe_theme_settings_defaults(): array {
+	$palette = jluxe_royal_orchid_palette();
 	return array(
 		'version' => JLUXE_SETTINGS_VERSION,
 		'colors'  => array(
-			'primary'    => '#B85C38',
-			'secondary'  => '#355C5A',
-			'background' => '#F7F3EE',
+			// Shade 600 is the primary action color so white button text meets WCAG AA.
+			'primary'    => $palette['600'],
+			'secondary'  => $palette['800'],
+			'background' => $palette['50'],
 			'success'    => '#16865A',
-			'accent'     => '#C89B3C',
+			'accent'     => $palette['700'],
+		),
+		// Optional, site-wide visual system. Keep the existing storefront as
+		// the default; selecting a new design changes presentation only.
+		'visual_design' => array(
+			'variant' => 'current', // current | canva_home
 		),
 		'shop' => array(
 			'products_per_page'          => 12,
 			'columns_desktop'            => 4,
 			'columns_tablet'             => 3,
 			'columns_mobile'             => 2,
+			// R64: تنظیمِ قدیمیِ گروه‌بندیِ موجودی برای فهرست‌های خودکارِ فرعی.
+			// آرشیو اصلی فروشگاه/تاکسونومی محصول و محصولات مرتبط طبق R337
+			// همیشه موجودی و سپس post_date نزولی را رعایت می‌کنند، مستقل از این گزینه.
+			'out_of_stock_last'          => true,
 			// تبِ «دانلودها» توی سایدبارِ حساب کاربری همیشه از خودِ ووکامرس
 			// میاد، حتی وقتی سایت هیچ محصولِ دانلودی‌ای نمی‌فروشه — یعنی یک
 			// تبِ همیشه‌خالی/بی‌فایده (باگِ واقعیِ گزارش‌شده). این سوییچ
@@ -82,6 +357,164 @@ function jluxe_theme_settings_defaults(): array {
 			// روشنش کنه.
 			'auto_scroll_carousels' => false,
 		),
+		/*
+		 * متن‌ها و پیام‌های اختصاصیِ سبد/تسویه‌حساب. هزینه و عنوان پایهٔ
+		 * نرخ‌ها همچنان از WooCommerce می‌آیند؛ این بخش فقط کپیِ پوسته و
+		 * توضیح‌های accordion را کنترل می‌کند.
+		 */
+		'cart_checkout' => array(
+			'checkout_layout'                 => 'classic',
+			'checkout_map_enabled'            => true,
+			'show_stepper'                    => true,
+			'show_cart_coupon'                => true,
+			'cart_empty_message_enabled'      => false,
+			'cart_empty_return_enabled'       => true,
+			'cart_shipping_notice_enabled'    => false,
+			'cart_shipping_notice_text'       => '',
+			'checkout_shipping_heading_enabled' => true,
+			'checkout_shipping_error_enabled' => true,
+			'checkout_payment_warning_enabled' => true,
+			'require_first_name'             => true,
+			'require_last_name'              => true,
+			'require_phone'                  => true,
+			'require_address'                => true,
+			'require_postcode_for_post'      => true,
+			'checkout_payment_warning_background' => '#FFF7ED',
+			'checkout_payment_warning_text_color' => '#334155',
+			'payment_card_background'          => '#FFFFFF',
+			'payment_card_selected_background' => $palette['50'],
+			'show_shipping_accordions'        => true,
+			'shipping_card_radius'            => 10,
+			'copy' => array(
+				'cart_page_title'              => 'سبد خرید',
+				'cart_column_product'           => 'محصول',
+				'cart_column_total'             => 'جمع قیمت',
+				'cart_column_quantity'          => 'تعداد',
+				'cart_remove_item'              => 'حذف محصول از سبد خرید',
+				'cart_coupon_label'             => 'کد تخفیف',
+				'cart_coupon_placeholder'       => 'کد تخفیف',
+				'cart_coupon_apply'             => 'اعمال تخفیف',
+				'cart_update_button'            => 'بروزرسانی سبد خرید',
+				'cart_subtotal_label'           => 'قیمت کالاها',
+				'cart_total_label'              => 'مبلغ قابل پرداخت',
+				'cart_return_to_store'          => 'بازگشت به فروشگاه',
+				'cart_checkout_button'          => 'ثبت سفارش',
+				'cart_empty_title'              => 'سبد خرید شما خالی است',
+				'cart_empty_message'            => '',
+				'cart_empty_return'             => 'بازگشت به فروشگاه',
+				'checkout_step_cart'            => 'بررسی سبد خرید',
+				'checkout_step_shipping'        => 'اطلاعات ارسال',
+				'checkout_step_payment'         => 'نحوه پرداخت',
+				'checkout_step_done'            => 'پایان خرید',
+				'checkout_no_js_notice'         => 'برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد.',
+				'checkout_no_js_back'           => 'بازگشت به سبد خرید',
+				'checkout_billing_heading'      => 'اطلاعات ارسال',
+				'checkout_first_name_label'     => 'نام',
+				'checkout_last_name_label'      => 'نام خانوادگی',
+				'checkout_province_label'       => 'استان',
+				'checkout_city_label'           => 'شهر',
+				'checkout_city_prompt'          => 'ابتدا استان را انتخاب کنید',
+				'checkout_city_placeholder'     => 'انتخاب شهرستان',
+				'checkout_phone_label'          => 'موبایل',
+				'checkout_email_label'          => 'آدرس ایمیل',
+				'checkout_postcode_label'      => 'کد پستی',
+				'checkout_address_label'        => 'آدرس',
+				'checkout_landline_label'       => 'تلفن ثابت',
+				'checkout_create_account_label' => 'ایجاد حساب کاربری؟',
+				'checkout_summary_heading'      => 'خلاصه سفارش',
+				'checkout_shipping_heading'     => 'روش ارسال را انتخاب کنید!',
+				'checkout_shipping_error'       => 'روش ارسال را انتخاب کنید.',
+				'checkout_payment_error'        => 'روش پرداخت را انتخاب کنید.',
+				'checkout_payment_warning'      => 'در صورتی که از فیلترشکن (VPN) استفاده می‌کنید، قبل از ورود به درگاه پرداخت آن را خاموش کنید.',
+				'checkout_payment_heading'      => 'روش پرداخت',
+				'checkout_no_payment_methods'   => 'در حال حاضر روش پرداختی در دسترس نیست. لطفاً با پشتیبانی تماس بگیرید.',
+				'checkout_payment_details_prompt' => 'برای مشاهدهٔ روش‌های پرداخت، اطلاعات خود را تکمیل کنید.',
+				'checkout_next_button'           => 'نهایی‌سازی سفارش',
+				'checkout_back_to_cart_button'  => 'بازگشت به سبد خرید',
+				'checkout_back_button'          => 'بازگشت',
+				'checkout_place_order_button'   => 'پرداخت',
+				'checkout_order_notes_label'    => 'توضیحات سفارش',
+				'checkout_order_notes_placeholder' => 'توضیحی که نیاز است در رابطه با سفارش بیان کنید',
+				'checkout_no_shipping_options'  => 'برای این نشانی، روش ارسالی در دسترس نیست. آدرس را بررسی کنید یا با پشتیبانی تماس بگیرید.',
+			),
+			'shipping_methods' => array(
+				'post' => array(
+					'enabled'                   => true,
+					'summary'                   => 'جزئیات پست پیشتاز',
+					'description'               => 'کرایهٔ ارسال پست پیشتاز به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور پست پرداخت می‌شود.',
+					'note'                      => 'اقتصادی',
+					'card_background_color'     => '#FFFFFF',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['600'],
+					'note_background_color'     => $palette['600'],
+					'note_text_color'           => '#FFFFFF',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => '#475569',
+				),
+				'tipax' => array(
+					'enabled'                   => true,
+					'summary'                   => 'جزئیات ارسال با تیپاکس',
+					'description'               => 'کرایهٔ ارسال تیپاکس به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور تیپاکس پرداخت می‌شود.',
+					'note'                      => 'سریع‌تر، هزینه بالا',
+					'card_background_color'     => '#FFFFFF',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['600'],
+					'note_background_color'     => $palette['600'],
+					'note_text_color'           => '#FFFFFF',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => '#475569',
+				),
+				'chapar' => array(
+					'enabled'                   => true,
+					'summary'                   => 'جزئیات ارسال با چاپار',
+					'description'               => 'کرایهٔ ارسال چاپار به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور چاپار پرداخت می‌شود.',
+					'note'                      => 'مناسب مرسوله‌های حجیم',
+					'card_background_color'     => '#FFFFFF',
+					'card_border_color'         => $palette['100'],
+					'selected_card_background_color' => $palette['50'],
+					'selected_card_border_color' => $palette['600'],
+					'note_background_color'     => $palette['600'],
+					'note_text_color'           => '#FFFFFF',
+					'details_background_color'  => $palette['50'],
+					'details_text_color'        => '#475569',
+				),
+			),
+		),
+		// «آیتم‌های اضافه خرید» — مودالِ بعدِ افزودن به سبد (مطابقِ نمونهٔ
+		// قالبِ مرجع). enabled=false یعنی رفتارِ عادی: هیچ مودالی باز
+		// نمی‌شود. mode منبعِ محصولاتِ پیشنهادی را تعیین می‌کند؛ services
+		// فهرستِ خدماتِ قابل‌انتخاب (مثل بیمه) با محلِ نمایش و انتخابِ
+		// خودکار است — مبلغِ فِی در سرور از همین تنظیمات خوانده می‌شود،
+		// نه از POST کلاینت.
+		'purchase_addons' => array(
+			// R61: the modal remains opt-out; each content block can be controlled independently.
+			'enabled'                => true,
+			// رفتارِ فعلی حفظ می‌شود؛ بستنِ خودکار فقط با انتخابِ مدیر فعال است.
+			'auto_close_enabled'     => false,
+			'auto_close_seconds'     => 15,
+			'mode'                   => 'per_product',
+			'fixed_ids'              => array(),
+			'max_products'           => 4,
+			'show_main_product'      => false,
+			'show_products'          => true,
+			'show_services'          => false,
+			'show_cart_summary'      => false,
+			'show_cart_link'          => false,
+			'show_continue'           => false,
+			'show_total'              => true,
+			'modal_title'             => 'افزودن به سبد خرید',
+			'products_heading'        => 'ممکن است این‌ها را هم لازم داشته باشید',
+			'services_heading'        => 'این خدمات را هم اضافه کنید',
+			'total_label'             => 'مبلغ قابل پرداخت',
+			'confirm_selected_label'  => 'افزودن انتخاب‌ها به سبد',
+			'confirm_empty_label'     => 'ادامه بدون افزودن',
+			'cart_summary_label'      => 'سبد شما',
+			'view_cart_label'         => 'مشاهده سبد',
+			'continue_label'          => 'ادامه خرید',
+			'services'                => array(),
+		),
 		'identity' => array(
 			'logo_id'            => 0, // 0 یعنی لوگوی پیش‌فرضِ خودِ سایت (Customize → هویت سایت) یا فقط اسمِ سایت به‌صورتِ متنی — نه یک عکسِ ثابتِ داخلِ پوسته.
 			'mobile_logo_id'     => 0, // 0 یعنی از همون لوگوی اصلی استفاده کن (لوگوی جدا برای موبایل اختیاریه).
@@ -94,11 +527,11 @@ function jluxe_theme_settings_defaults(): array {
 			// مثلاً روی این سایت واقعاً «j1» بود ولی این‌جا هاردکد «جهیزیه لوکس»
 			// نشون می‌داد). اگه ادمین توی همین پنل مقدار دیگه‌ای ذخیره کنه، طبق
 			// معمول همون مقدار ذخیره‌شده (نه این پیش‌فرض) خونده می‌شه.
-			'site_name'          => get_bloginfo( 'name' ) ?: 'زرین',
-			'short_description'  => get_bloginfo( 'description' ) ?: 'فروشگاه تخصصی جهیزیه با تضمین اصالت کالا و ارسال مطمئن به سراسر ایران.',
+			'site_name'          => get_bloginfo( 'name' ) ?: '',
+			'short_description'  => get_bloginfo( 'description' ) ?: '',
 		),
 		'urls' => array(
-			'login' => '/sign', 'dashboard' => '/account', 'orders' => '/account?tab=orders', 'track_order' => '/track-order', 'thankyou_orders' => '/account?tab=orders',
+			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
 		),
 		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted، در src/assets/fonts) استفاده می‌شه؛
 		// این تنظیمات جایگزین فونت نمی‌کنن، فقط اندازه/وزن رو کنترل می‌کنن.
@@ -108,7 +541,9 @@ function jluxe_theme_settings_defaults(): array {
 			'line_height'    => 1.625,
 		),
 		'header' => array(
+			'variant'              => 'current', // current | premium — premium is an opt-in design alternative.
 			'sticky'               => true,
+			'search_placeholder'   => 'جستجو در فروشگاه',
 			'show_search_desktop'  => true,
 			'show_search_mobile'   => true,
 			'show_account_desktop' => true,
@@ -116,11 +551,62 @@ function jluxe_theme_settings_defaults(): array {
 			'show_cart_desktop'    => true,
 			'show_cart_mobile'     => true,
 		),
+		// نوارِ سراسریِ اطلاع‌رسانی — پیش‌فرض خاموش است تا ارتقا از 1.64.20
+		// هیچ محتوای ناخواسته‌ای به بالای سایت اضافه نکند.
+		'announcement_bar' => array(
+			'enabled'          => false,
+			'sticky'           => false, // هنگام اسکرول خود نوار بچسبد؛ پیش‌فرض خاموش تا فقط هدر ثابت بماند.
+			'display_mode'     => 'text', // text | ticker | image؛ ticker پیام‌های چرخشی را با HTML/CSS نمایش می‌دهد.
+			'desktop_height_px'            => 52, // حداقل ارتفاعِ متن/پیام متحرک در دسکتاپ؛ موبایل ثابت می‌ماند.
+			'image_desktop_max_height_px'  => 0, // صفر یعنی ارتفاع طبیعی؛ در صورت تنظیم، تصویر/GIF متناسب کوچک می‌شود.
+			'message'          => '',
+			'ticker_label'     => 'ارسال سریع',
+			'ticker_label_enabled'         => true, // عنوان و جداکنندهٔ مربوط به آن را می‌توان مستقل خاموش کرد.
+			'ticker_messages'  => "ارسال سفارشات ثبت شده\nقبل از ساعت 11\nدر همان روز",
+			'ticker_logo_id'               => 0, // در صورت خالی بودن، آیکون سایت استفاده می‌شود.
+			'ticker_logo_enabled'          => true, // رفتار پیش‌فرض فعلی را حفظ می‌کند.
+			'ticker_logo_frame'            => true, // قاب دایره‌ای پیش‌فرض قابل خاموش‌کردن است.
+			'ticker_theme'                 => 'classic', // classic | info | warning | discount | success | custom.
+			'ticker_layout'                => 'classic', // classic | cards؛ مدل کارت‌ها پیوند اختیاری را به شکل دکمه نمایش می‌دهد.
+			'ticker_texture'               => 'waves', // waves | glow | diagonal | dots | grid | none.
+			'ticker_effect'                => 'vertical', // fade | vertical | horizontal | zoom.
+			'ticker_message_duration_ms'   => 2500, // زمانِ نمایشِ کاملِ پیام، بدونِ زمانِ ورود/خروج.
+			'ticker_inter_message_gap_ms'  => 500, // مکث میانِ خروجِ یک پیام و ورودِ بعدی.
+			'ticker_cycle_gap_ms'          => 500, // مکث پس از آخرین پیام، پیش از شروعِ دورِ تازه.
+			'image_id'         => 0,
+			'image_alt'        => '',
+			'link_text'        => '',
+			'link_url'         => '',
+			'dismissible'      => true,
+			'background_color' => '#0F766E',
+			'text_color'       => '#FFFFFF',
+		),
 		// منوی هدر (بعد از مگامنوی «دسته‌بندی‌ها» که همیشه ثابت و به‌صورت
 		// جزیره‌ی React جداست، چون واقعاً به دسته‌های ووکامرس وصله). این آیتم‌ها
 		// دقیقاً همون ساختار فعلیِ هاردکدشده در header.php هستن — فعال‌سازی این
 		// تنظیمات به‌تنهایی هیچ تغییری در سایت ایجاد نمی‌کنه.
 		'header_nav' => array(
+			// مگامنوی ثابت دسته‌بندی‌ها؛ جدا از فهرستِ آیتم‌های قابل‌مرتب‌سازی.
+			'categories_mega_menu' => array(
+				'icon'                    => 'grid',
+				'icon_svg'                => '',
+				'open_mode'               => 'hover', // hover | click | both؛ کلیکِ عنوان همیشه مقصدِ دسته‌بندی‌هاست.
+				'trigger_effect'          => 'lift', // lift | glow | underline | none.
+				'panel_effect'            => 'fade', // fade | slide | zoom | fade-slide | none.
+				'duration_ms'             => 180,
+				'text_color'              => '#1F2937',
+				'background_color'        => $palette['50'],
+				'border_color'            => $palette['100'],
+				'icon_background_color'   => $palette['600'],
+				'icon_color'              => '#FFFFFF',
+				'hover_background_color'  => $palette['600'],
+				'hover_text_color'        => '#FFFFFF',
+				'accent_color'            => $palette['700'],
+				'panel_background_color'  => '#FFFFFF',
+				'panel_border_color'      => $palette['100'],
+				'panel_text_color'        => '#1F2937',
+				'panel_accent_color'      => $palette['600'],
+			),
 			'items' => array(
 				array(
 					'id'       => 'shop',
@@ -162,7 +648,7 @@ function jluxe_theme_settings_defaults(): array {
 				array(
 					'id'       => 'about',
 					'type'     => 'dropdown',
-					'label'    => 'درباره زرین',
+					'label'    => 'درباره ما',
 					'url'      => '/about-us/',
 					'icon'     => '',
 					'children' => array(
@@ -173,6 +659,8 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'footer' => array(
 			'enabled'             => true,
+			'variant'             => 'current', // current | premium — visual only; content and behavior stay unchanged.
+
 			'show_gradient_strip' => false,
 			// پس‌زمینه‌ی خودِ فوتر — 'default' یعنی هیچ‌چیز اضافه نشه (رنگ
 			// پیش‌فرضِ صفحه)، 'solid' یک رنگِ ثابت، 'gradient' یک گرادیانِ
@@ -193,16 +681,19 @@ function jluxe_theme_settings_defaults(): array {
 			'text_color'          => '',
 			'link_color'          => '',
 			'link_hover_color'    => '',
-			'support_hours'       => 'هر روز ۹ تا ۲۲',
-			'support_text'        => 'پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله',
+			// متن معرفی، ساعات تماس و چهار مزیت زیر، طبق درخواست کاربر برای فوتر ثبت شده‌اند؛
+			// مدیر همچنان می‌تواند متن فوتر را از همین تنظیمات ویرایش کند.
+			'brand_description'   => 'JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.',
+			'support_hours'       => 'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب',
+			'support_text'        => '',
 			'feature_cards'  => array(
-				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال سریع', 'subtitle' => 'ارسال فوری تهران و شهرستان' ),
-				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی خوب', 'subtitle' => 'همیشه آنلاینیم' ),
-				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'مطمئن باش کف قیمت بازار' ),
-				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت کامل', 'subtitle' => 'دارای درگاه ایمن و مطمئن' ),
+				array( 'enabled' => true, 'icon' => 'truck', 'title' => 'ارسال فوری به سراسر ایران', 'subtitle' => '' ),
+				array( 'enabled' => true, 'icon' => 'headphones', 'title' => 'پشتیبانی آنلاین', 'subtitle' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ),
+				array( 'enabled' => true, 'icon' => 'badge-percent', 'title' => 'بهترین قیمت', 'subtitle' => 'کف قیمت بازار' ),
+				array( 'enabled' => true, 'icon' => 'shield-check', 'title' => 'امنیت خرید', 'subtitle' => 'پرداخت از درگاه مطمئن' ),
 			),
 			// در دسکتاپ همیشه یک ردیف ۴تایی‌ان (ثابت)؛ فقط تعداد ستون در موبایل قابل تنظیمه.
-			'feature_cards_mobile_columns' => 1,
+			'feature_cards_mobile_columns' => 2,
 			// خالی = آیکون‌ها از --primary زنده پیروی می‌کنن (پیش‌فرض، طبقِ
 			// درخواستِ کاربر که این بخش هم با تغییرِ پالت عوض بشه)؛ یک هگزِ
 			// دستی یعنی ادمین می‌خواد فقط همین ۴ آیکون رنگِ اختصاصیِ خودشون
@@ -237,7 +728,7 @@ function jluxe_theme_settings_defaults(): array {
 			'trust_badges'       => array(),
 			// طبقِ درخواستِ کاربر: عنوانِ بالای نمادها («نمادهای سایت») باید
 			// از ادمین قابل تغییر باشه، نه ثابت توی کد.
-			'trust_badges_title' => 'نمادهای سایت',
+			'trust_badges_title' => 'نمادهای اعتماد',
 		),
 		/*
 		 * طبقِ درخواستِ صریحِ کاربر: قبلاً فقط اینستاگرام آیکونِ واقعی
@@ -252,94 +743,86 @@ function jluxe_theme_settings_defaults(): array {
 		 * نهایی توسطِ همون کلاسِ مشترکِ size-4 [&>svg]:size-full در
 		 * Footer.tsx انجام می‌شه، صرف‌نظر از width/height خودِ svg.
 		 * ادمین همچنان می‌تونه از تبِ «تماس و شبکه اجتماعی» این svg
-		 * پیش‌فرض رو با کدِ دلخواهِ خودش عوض کنه.
+		 * پیش‌فرض رو با کدِ دلخواهِ خودش عوض کنه. نشانی حساب‌های پنج شبکه نیز
+		 * از لینک‌هایی آمده که مدیر فرستاده؛ تنها ردیفِ enabled + URL نمایش داده می‌شود.
 		 */
 		'social' => array(
-			'instagram' => array(
-				'enabled' => false,
-				'url'     => '',
+				'instagram' => array(
+					'enabled' => true,
+					'url'     => 'https://instagram.com/jluxeir',
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 6C2 3.79086 3.79086 2 6 2H18C20.2091 2 22 3.79086 22 6V18C22 20.2091 20.2091 22 18 22H6C3.79086 22 2 20.2091 2 18V6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12.0001" r="4.44444" stroke="currentColor" stroke-width="2"/><path d="M18 6.0217V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 			),
 			'telegram'  => array(
-				'enabled' => false,
-				'url'     => '',
+				'enabled' => true,
+				'url'     => 'https://t.me/jluxeir',
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.0862 4.25C18.6325 4.25 18.1299 4.37864 17.2354 4.70558C16.3259 5.03805 14.9226 5.61129 12.6294 6.57312L12.6272 6.57403C11.025 7.25191 7.79964 8.63161 2.97696 10.7651C2.56488 10.9321 2.20693 11.1151 1.92787 11.323C1.65659 11.5251 1.37601 11.8133 1.27706 12.2126L1.26726 12.2521L1.2618 12.2925C1.21407 12.6456 1.31328 12.9692 1.52067 13.2275C1.7041 13.4559 1.9465 13.6018 2.14944 13.7011C2.45353 13.85 2.8611 13.9791 3.24378 14.1003C3.34828 14.1334 3.45093 14.1659 3.5491 14.1981C3.98292 14.344 4.49689 14.5058 4.98409 14.6321C5.45236 14.7535 5.96524 14.8611 6.36565 14.8611C7.10674 14.8611 7.8468 14.5753 8.59736 14.0518C9.71258 13.2932 10.6933 12.6271 11.5402 12.0538L11.2714 12.3058C10.8956 12.6581 10.573 12.9605 10.4666 13.0735C10.3619 13.182 10.2535 13.2873 10.1403 13.3966L10.1073 13.4284C10.0055 13.5267 9.89781 13.6306 9.7974 13.7331C9.58606 13.9488 9.33165 14.2311 9.18408 14.5694C9.01487 14.9574 8.99386 15.4015 9.22098 15.8462C9.42143 16.2386 9.78388 16.5678 10.2303 16.868L10.2356 16.8715C11.0041 17.3791 11.571 17.7683 12.1573 18.1709C12.6785 18.5287 13.2152 18.8973 13.9226 19.3688L13.9323 19.3751C14.116 19.4935 14.2914 19.6169 14.4766 19.7472L14.5767 19.8175C14.7926 19.969 15.0254 20.1298 15.266 20.2705C15.7491 20.5533 16.3343 20.7988 17.0316 20.7417L17.0452 20.7406L17.0588 20.739C18.012 20.6259 18.5943 19.7487 18.8426 18.4159C19.4114 15.4678 20.4733 9.01878 20.7353 6.35284C20.7699 6.03211 20.7372 5.67077 20.6992 5.47892C20.6657 5.30973 20.573 4.91 20.2139 4.60815L20.1992 4.59576L20.1838 4.58414C19.9608 4.41534 19.715 4.33804 19.5396 4.29977C19.3576 4.26008 19.193 4.25 19.0862 4.25ZM13.2105 7.95598C15.5095 6.99172 16.8797 6.43269 17.7504 6.11441C18.6364 5.79056 18.9207 5.75 19.0862 5.75C19.1084 5.75 19.1632 5.75294 19.2199 5.76531L19.2271 5.76693L19.2278 5.7706C19.232 5.79184 19.2418 5.85936 19.2469 5.95235C19.2519 6.04392 19.2508 6.13028 19.2438 6.19345L19.2429 6.2023C18.9883 8.79653 17.9357 15.1994 17.3693 18.134L17.3684 18.1391C17.2639 18.7011 17.1207 18.9938 17.0153 19.1344C16.9654 19.201 16.9283 19.2279 16.9118 19.2379C16.9018 19.244 16.8946 19.2468 16.8892 19.2482C16.6379 19.2635 16.3762 19.1823 16.0237 18.976C15.8417 18.8695 15.6536 18.7407 15.4382 18.5895L15.3443 18.5235C15.1612 18.3947 14.9596 18.2529 14.7499 18.1175C14.1074 17.6892 13.5651 17.3173 13.0299 16.9504C12.4131 16.5274 11.8056 16.1108 11.0649 15.6216C10.71 15.3826 10.5922 15.2293 10.5593 15.1685C10.5893 15.1 10.672 14.9838 10.8689 14.7827C10.9536 14.6963 11.0457 14.6074 11.1505 14.5063L11.1821 14.4758C11.2969 14.365 11.4236 14.2421 11.5499 14.1111L11.56 14.1006L11.5696 14.0898C11.5673 14.0924 11.5676 14.0921 11.5717 14.088C11.5781 14.0816 11.5934 14.0662 11.622 14.0383C11.6625 13.9989 11.7175 13.9463 11.786 13.8812C11.9229 13.7513 12.1069 13.5786 12.3237 13.3754L12.4658 13.2422C12.8747 12.8589 13.3734 12.3916 13.8682 11.9215C14.4209 11.3965 14.9747 10.8626 15.3972 10.4347C15.6074 10.2219 15.7929 10.0273 15.9316 9.86946C16 9.79156 16.0664 9.71211 16.1208 9.6377C16.1479 9.60075 16.1795 9.55493 16.2086 9.50405C16.2309 9.46517 16.2838 9.3695 16.3107 9.24279L16.3271 9.16574V9.09997C16.3276 9.09167 16.3285 9.07501 16.3291 9.05731C16.3305 9.01602 16.3315 8.94726 16.3221 8.86669C16.3045 8.7162 16.237 8.418 15.9522 8.20254C15.5474 7.89621 15.0889 8.01858 14.992 8.04442L14.9861 8.04601C14.9195 8.06206 14.8702 8.08279 14.8534 8.08986C14.8206 8.10365 14.7906 8.11834 14.7682 8.1298C14.7228 8.15304 14.6734 8.18099 14.6246 8.20966C14.5254 8.26797 14.3951 8.34903 14.2376 8.44966C13.9208 8.65202 13.4698 8.94916 12.8867 9.33861C11.7194 10.1183 10.0075 11.2784 7.74997 12.8141L7.74236 12.8194C7.15254 13.2313 6.70697 13.3611 6.36565 13.3611C6.1726 13.3611 5.8211 13.2995 5.36049 13.1801C4.91983 13.0658 4.44156 12.9157 4.02447 12.7754L4.01908 12.7736C3.86924 12.7245 3.73312 12.6812 3.60907 12.6418C3.3499 12.5593 3.14344 12.4937 2.97473 12.4266C3.11238 12.3448 3.30051 12.252 3.55003 12.1513L3.56149 12.1467L3.57279 12.1417C8.3929 10.0093 11.6141 8.63141 13.2105 7.95598Z" fill="currentColor"/></svg>',
 			),
 			'whatsapp'  => array(
-				'enabled' => false,
-				'url'     => '',
+				'enabled' => true,
+				'url'     => 'https://wa.me/989120902336',
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01m-7.01 15.24c-1.48 0-2.93-.4-4.2-1.15l-.3-.18l-3.12.82l.83-3.04l-.2-.31a8.26 8.26 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24c2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c.02 4.54-3.68 8.23-8.22 8.23m4.52-6.16c-.25-.12-1.47-.72-1.69-.81c-.23-.08-.39-.12-.56.12c-.17.25-.64.81-.78.97c-.14.17-.29.19-.54.06c-.25-.12-1.05-.39-1.99-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.14-.25-.02-.38.11-.51c.11-.11.25-.29.37-.43s.17-.25.25-.41c.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31c-.22.25-.86.85-.86 2.07s.89 2.4 1.01 2.56c.12.17 1.75 2.67 4.23 3.74c.59.26 1.05.41 1.41.52c.59.19 1.13.16 1.56.1c.48-.07 1.47-.6 1.67-1.18c.21-.58.21-1.07.14-1.18s-.22-.16-.47-.28" fill="currentColor"/></svg>',
 			),
 			'rubika'    => array(
-				'enabled' => false,
-				'url'     => '',
+				'enabled' => true,
+				'url'     => 'https://rubika.ir/jluxeir',
 				'svg'     => '<svg viewBox="3 3 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.2972 6.27097C10.5552 6.42581 10.8133 6.56775 11.0714 6.70968C11.3294 6.85162 11.5875 6.99355 11.8456 7.14839V6.89033V5.80646V3.32904C11.4326 3.38065 11.0197 3.53549 10.6585 3.79355L10.6584 3.79356C9.88426 4.25807 9.11006 4.72259 8.28426 5.1871C8.61973 5.36774 8.9423 5.54838 9.26487 5.72902L9.26491 5.72904L9.26494 5.72906C9.58751 5.9097 9.91008 6.09034 10.2456 6.27097H10.2972ZM13.4447 3.89677C13.0318 3.6387 12.5673 3.48386 12.1028 3.38064V5.34193V5.44516V7.19999L15.7157 5.18709C14.9931 4.72258 14.219 4.30968 13.4448 3.89678L13.4448 3.89678L13.4447 3.89677ZM15.871 9.47095L12.2581 7.35483L15.871 5.34192V7.6645V9.2645V9.47095ZM8.12902 9.41935L11.7419 7.40645L8.12902 5.29032V5.49677V7.09677V9.41935ZM18.5032 6.7871L18.5548 6.83872C18.9677 6.99355 19.2774 7.25162 19.5355 7.5613L16.129 9.47097V5.39355C16.4903 5.59998 16.8644 5.8193 17.2385 6.03862L17.2387 6.03872L17.2388 6.03878C17.613 6.25812 17.9871 6.47745 18.3484 6.68388L18.5032 6.7871ZM7.14757 5.80645C6.63144 6.11612 5.54757 6.73548 5.54757 6.73548C5.13467 6.94193 4.77338 7.25161 4.4637 7.6129C4.8766 7.85375 5.38125 8.14049 5.8859 8.42722L5.88616 8.42737L5.88637 8.42749C6.13855 8.57077 6.39072 8.71405 6.63144 8.85161C6.94686 9.00932 7.20205 9.16703 7.42 9.30173L7.42001 9.30174L7.42004 9.30176C7.48739 9.34338 7.55117 9.3828 7.61209 9.41935C7.65151 9.43906 7.68341 9.45878 7.71066 9.47562C7.75474 9.50286 7.78664 9.52257 7.81854 9.52257V5.44516C7.79273 5.44516 7.77983 5.45806 7.76692 5.47096C7.75402 5.48386 7.74112 5.49677 7.71531 5.49677C7.68951 5.52257 7.61209 5.56128 7.50887 5.61289L7.50886 5.6129L7.50886 5.6129C7.40563 5.66451 7.2766 5.72903 7.14757 5.80645ZM15.2004 9.98709C14.8391 10.2452 14.323 10.5032 14.0133 10.6581C13.652 10.8645 13.1359 11.1226 12.723 11.329L12.0004 11.7419L8.28426 9.67741L12.0004 7.50967L15.7165 9.67741L15.2004 9.98709ZM4.1557 9.47098V11.8452C4.72344 11.5355 5.23957 11.2258 5.80731 10.8645L5.91054 10.8129L7.7686 9.72905L6.58151 9.05808C6.24598 8.86635 5.87707 8.66349 5.51611 8.465L5.51608 8.46499C5.0997 8.23603 4.6939 8.01289 4.36215 7.81937C4.1557 8.3355 4.10409 8.90324 4.1557 9.47098ZM19.8972 9.16129V11.8452L16.2843 9.78064L19.6907 7.87097C19.8456 8.28387 19.9488 8.69677 19.8972 9.16129ZM11.8968 12L8.12902 9.93548V14.1677L10.5032 15.4581L10.5032 15.4581L10.5033 15.4581C10.9678 15.7161 11.4323 15.9742 11.8451 16.2323V16.0258V15.3548V12H11.8968ZM6.0645 13.0839C5.49676 12.7226 4.87741 12.3613 4.25805 12.0516C4.77417 11.7419 5.3419 11.4323 5.90964 11.1226L5.90967 11.1226L6.0645 11.0194C6.37418 10.8387 6.67096 10.6581 6.96773 10.4774L6.96775 10.4774C7.26451 10.2968 7.56128 10.1161 7.87096 9.93548V14.0645C7.81934 14.0645 7.71612 14.0129 7.6645 13.9613C7.6387 13.9355 7.59999 13.9226 7.56128 13.9097C7.52257 13.8968 7.48386 13.8839 7.45805 13.8581C7.2516 13.729 7.03225 13.6129 6.81289 13.4968C6.59354 13.3806 6.37418 13.2645 6.16773 13.1355L6.0645 13.0839ZM12.154 16.0774V16.2839L12.5669 16.0774C12.7066 15.9936 12.8615 15.9098 13.0314 15.8177L13.0315 15.8177L13.0316 15.8176L13.0317 15.8176C13.1756 15.7397 13.3304 15.6559 13.496 15.5613C14.2185 15.1484 15.2508 14.5806 15.9218 14.2194V13.2387V13.1871V12.5161V9.93548L12.2056 12C12.1161 12 12.143 14.8725 12.1518 15.8036L12.1518 15.8039C12.1531 15.9462 12.154 16.0432 12.154 16.0774ZM16.129 12.5161V9.93548L17.9355 10.9677C18.4516 11.2774 18.9677 11.5871 19.329 11.7935L19.7419 12.0516C19.4335 12.2177 19.0814 12.4165 18.7157 12.623L18.7156 12.6231L18.7154 12.6232L18.7153 12.6232C18.2857 12.8658 17.8375 13.1189 17.4193 13.3419L16.129 14.0645V13.2387V12.5161ZM7.56168 14.1677C7.52225 14.148 7.49035 14.1283 7.46311 14.1115C7.41903 14.0842 7.38713 14.0645 7.35523 14.0645C7.14878 13.9613 6.94233 13.8452 6.73588 13.729C6.52942 13.6129 6.32297 13.4968 6.11652 13.3935L6.06491 13.3419C5.75523 13.1613 5.43265 12.9806 5.11007 12.8L5.11006 12.8C4.78748 12.6194 4.4649 12.4387 4.15523 12.2581V14.5806C4.15523 14.9419 4.15523 15.3548 4.25846 15.7161C4.28426 15.7935 4.31007 15.8839 4.33588 15.9742C4.36168 16.0645 4.38749 16.1548 4.41329 16.2323L7.76813 14.271C7.7287 14.2513 7.69681 14.2391 7.66956 14.2287C7.62548 14.2118 7.59358 14.1996 7.56168 14.1677ZM17.2641 13.729C17.4706 13.6129 17.677 13.4968 17.8835 13.3935L17.9351 13.3419C18.2447 13.1613 18.5673 12.9806 18.8899 12.8C19.2125 12.6194 19.5351 12.4387 19.8447 12.2581V14.5806C19.8447 14.9419 19.7931 15.3548 19.7415 15.7161C19.7415 15.9226 19.6899 16.0774 19.5867 16.2323L16.2318 14.271L16.4383 14.1677C16.4777 14.148 16.5096 14.1358 16.5369 14.1254C16.5809 14.1086 16.6128 14.0964 16.6447 14.0645C16.8512 13.9613 17.0576 13.8452 17.2641 13.729ZM5.44515 17.2129C6.21934 17.6774 7.04515 18.1419 7.87096 18.6065V17.0065V16.8V14.529C7.30321 14.8645 6.74838 15.1871 6.19354 15.5097C5.6387 15.8323 5.08386 16.1549 4.51612 16.4903C4.77418 16.7484 5.08386 17.0065 5.44515 17.2129ZM10.6873 17.1014C10.2663 17.3527 9.8284 17.6141 9.41934 17.8323C9.13146 18.0122 8.86867 18.167 8.64846 18.2968L8.64844 18.2968L8.64805 18.297L8.64718 18.2975C8.55204 18.3536 8.46487 18.405 8.38708 18.4516L8.12902 18.6065V16.3871V16.2839V14.529L10.0387 15.5613L11.7419 16.4903C11.4255 16.6607 11.0631 16.877 10.6873 17.1014L10.6873 17.1014ZM12.9283 16.0917L12.9282 16.0917L12.9281 16.0918C12.7622 16.1807 12.6074 16.2636 12.4637 16.3355C12.4121 16.3613 12.3734 16.3871 12.3347 16.4129L12.3347 16.4129C12.296 16.4387 12.2572 16.4645 12.2056 16.4903C12.2314 16.4903 12.2443 16.5032 12.2572 16.5161C12.2701 16.529 12.2831 16.5419 12.3089 16.5419C12.3863 16.5935 12.4766 16.6451 12.5669 16.6967L12.5669 16.6968C12.6572 16.7484 12.7476 16.8 12.825 16.8516C13.3153 17.1355 13.8186 17.4323 14.3218 17.729L14.322 17.7291L14.322 17.7292L14.3221 17.7292C14.8252 18.0259 15.3283 18.3226 15.8185 18.6064V14.4774L15.649 14.5764C15.0454 14.9289 14.2535 15.3912 13.5476 15.7677C13.3264 15.8783 13.12 15.9889 12.9284 16.0916L12.9284 16.0916L12.9283 16.0917ZM16.129 14.529C16.3871 14.6323 16.9032 14.9419 17.4193 15.2516L17.729 15.4581C17.9747 15.6014 18.2286 15.7529 18.4744 15.8996C18.8483 16.1226 19.2036 16.3347 19.4839 16.4903C19.3806 16.6452 19.2258 16.8 19.071 16.9032L18.9677 16.9549C18.6581 17.1613 18.4 17.3161 18.0903 17.471L18.0387 17.5226C17.9355 17.6258 17.8322 17.6774 17.729 17.729C17.6258 17.7807 17.5355 17.8323 17.4452 17.8839C17.3548 17.9355 17.2645 17.9871 17.1613 18.0387L17.1097 18.0903C16.8892 18.1848 16.688 18.2985 16.4943 18.4079C16.3705 18.4779 16.2498 18.5461 16.129 18.6065V16.1807V14.529ZM11.0706 20.3613C11.3286 20.4645 11.5867 20.5677 11.8447 20.6193V16.6968C11.2512 17.0581 10.6447 17.4064 10.0383 17.7548C9.43184 18.1032 8.82539 18.4516 8.23184 18.8129C9.21249 19.329 10.1415 19.8451 11.0706 20.3613ZM13.3423 17.3935C13.5359 17.5097 13.7294 17.6258 13.9101 17.729L14.0133 17.7806C14.5294 18.0903 15.1487 18.4516 15.768 18.8128L15.7681 18.8129C15.2778 19.071 14.8004 19.3419 14.323 19.6129C13.8456 19.8839 13.3681 20.1548 12.8778 20.4129C12.6714 20.5161 12.4133 20.5677 12.1552 20.6193V16.6968L12.2585 16.7484C12.2883 16.7683 12.32 16.79 12.3529 16.8127C12.4909 16.9074 12.6496 17.0164 12.7746 17.0581C12.9552 17.1613 13.1488 17.2774 13.3423 17.3935Z"/></g></svg>',
 			),
 			'bale'      => array(
-				'enabled' => false,
-				'url'     => '',
+				'enabled' => true,
+				'url'     => 'https://ble.ir/jluxeir',
 				'svg'     => '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.425 23.987a12.218 12.218 0 0 1-2.95-.514 6.578 6.578 0 0 0-.336-.116C4.936 22.303 2.22 19.763.913 16.599a11.92 11.92 0 0 1-.9-4.063C.005 12.377.001 10.246 0 6.74 0 .71-.005 1.137.07.903.23.394.673.05 1.224.005c.421-.034.7.088 1.603.699.562.38 1.119.78 1.796 1.289.315.237.353.261.376.247l.35-.23c.58-.381 1.11-.677 1.7-.945A11.913 11.913 0 0 1 9.766.21a11.19 11.19 0 0 1 2.041-.2c1.14-.016 2.077.091 3.152.36 3.55.888 6.538 3.411 8.028 6.78.492 1.113.845 2.43.945 3.522.033.366.039.43.053.611.008.105.015.406.015.669 0 .783-.065 1.57-.169 2.064a5.474 5.474 0 0 0-.046.26c-.056.378-.214.987-.399 1.535-.205.613-.367.999-.684 1.633a11.95 11.95 0 0 1-2.623 3.436c-.44.396-.829.705-1.26 1.003-.647.445-1.307.812-2.039 1.134-.6.265-1.44.539-2.101.686a11.165 11.165 0 0 1-1.178.202 12.28 12.28 0 0 1-2.076.082zm-.61-5.92c.294-.06.678-.209.864-.337.144-.099.428-.376 2.064-2.013a161.8 161.8 0 0 1 1.764-1.753c.017 0 1.687-1.67 1.687-1.689 0-.02 1.64-1.648 1.661-1.648.01 0 .063-.047.118-.106.467-.495.682-.957.716-1.547.026-.433-.06-.909-.217-1.196a2.552 2.552 0 0 0-.983-1.024c-.281-.163-.512-.233-.888-.27-.306-.031-.688 0-.948.075-.243.07-.603.274-.853.481-.042.035-1.279 1.265-2.748 2.733l-2.671 2.67-1.093-1.09c-.6-.6-1.12-1.114-1.155-1.142a2.419 2.419 0 0 0-1.338-.51c-.404-.013-.91.09-1.224.25a2.89 2.89 0 0 0-.659.526c-.108.12-.287.357-.29.385-.003.03-.009.044-.065.16a2.312 2.312 0 0 0-.224.91c-.011.229-.01.265.019.491.045.353.24.781.51 1.115.05.063.97.992 2.044 2.064 1.507 1.505 1.98 1.97 2.074 2.039.327.24.683.388 1.101.456.182.03.5.016.734-.03z" fill="currentColor"/></svg>',
 			),
 		),
-		'contact' => array(
-			'phone'           => '',
-			// شماره‌ی دومِ اختیاری — طبقِ درخواستِ کاربر («بتونیم شماره تلفن رو
-			// جایگزین یا کلا غیرفعال کنیم»)، صفحه‌ی contact-us هر دو شماره رو
-			// (اگه خالی نباشن) کنارِ هم نشون می‌ده؛ خالی = فقط شماره‌ی اول.
-			'phone_secondary' => '',
-			'email'   => '',
-			'address' => '',
+			'contact' => array(
+				// مقادیر تماس زیر از اطلاعاتی آمده‌اند که مدیر برای صفحهٔ تماس
+				// فرستاده است؛ از تنظیمات قابل‌ویرایش‌اند و به‌عنوان تأیید مستقل
+				// شماره‌ها/نشانی ایمیل تلقی نمی‌شوند.
+				'phone'           => '09120902336',
+				'phone_secondary' => '09362420232',
+				'email'           => 'info@jahiziyeluxe.ir',
+				'address'         => '',
 			// اطلاعیه‌ی کوچک در داشبورد حساب کاربری (بخش «دسترسی سریع») —
 			// خالی یعنی نمایش داده نشه؛ هیچ متن نمونه‌ی از قبل ست نمی‌شه.
 			'dashboard_announcement'      => '',
 			'dashboard_announcement_link' => '',
 		),
-		// متنِ صفحاتِ «تماس با ما»/«درباره ما» (page-contact-us.php،
-		// page-about-us.php) — قبلاً این دو صفحه یک متنِ کاملاً هاردکد
-		// داشتن (باگِ واقعیِ گزارش‌شده: نصبِ این تم رو یه سایتِ دیگه یعنی
-		// دیدنِ متنِ یک برندِ کاملاً غیرمرتبط). پیش‌فرض‌ها همون متنِ فعلی‌ان
-		// تا فعال‌سازیِ این تنظیمات به‌تنهایی چیزی رو عوض نکنه.
-		'info_pages' => array(
-			'contact' => array(
-				'intro_title' => 'همیشه در دسترس شما هستیم',
-				'intro_text'  => 'به بخش پشتیبانی ما خوش آمدید! ما در تمامی مراحل خرید، پاسخگوی سوالات و راهنمای شما هستیم. اگر نیاز به مشاوره قبل از خرید، هماهنگی برای روش‌های ارسال خاص یا ارتباط با پشتیبانی دارید، از راه‌های زیر با ما در تماس باشید.',
-				'show_logo'   => false,
-				'phone_title' => 'شماره‌ی تماس',
-				'hours_title' => 'ساعات پاسخگویی',
-				'social_title' => 'شبکه‌های اجتماعی',
-			),
+			// اطلاعات تماس و متن صفحه از داده‌های ارسالی مدیر ساخته شده‌اند؛
+			// همهٔ فیلدها از پیشخوان قابل‌ویرایش‌اند و مستقل تأیید نشده‌اند.
+			'info_pages' => array(
+				'contact' => array(
+					'intro_title' => 'راه‌های ارتباط با جهیزیه لوکس',
+					'intro_text'  => 'در هر ساعت از شبانه‌روز از طریق پیام‌رسان‌ها و در ساعات کاری از طریق تلفن پاسخگوی شما هستیم.',
+					'show_logo'   => false,
+					'phone_title' => 'تماس تلفنی',
+					'phone_hours' => 'روزهای کاری، ساعت ۱۰ صبح تا ۸ شب',
+					'email_title' => 'ایمیل',
+					'hours_title' => 'ساعات پاسخگویی',
+					'social_title' => 'ارتباط آنلاین در شبکه‌های اجتماعی',
+					'social_text' => 'برای چت آنلاین با کارشناسان ما، روی آیکون شبکهٔ اجتماعی موردنظر خود کلیک کنید.',
+				),
 			'about' => array(
-				'intro_title' => 'همیشه در کنار شما',
-				'intro_text'  => 'ما تلاش می‌کنیم با انتخابِ دقیقِ محصولات و کیفیتی که بهش مطمئنیم، همراهِ لحظه‌های خاصِ زندگیِ شما باشیم.',
+				'intro_title' => 'درباره ما',
+				'intro_text'  => '',
 				'show_logo'   => true,
-				// بخشِ «داستانِ ما» + «چرا ما» + CTA — طبقِ درخواستِ صریحِ
-				// کاربر («این متن‌ها کاملاً باید توی تنظیمات قابلِ ادیت
-				// باشن») به‌جای متنِ هاردکدِ page-about-us.php، از این‌جا
-				// (یک HTMLِ آزاد، با wp_editor در پنلِ ادمین) میاد. پیش‌فرض
-				// همون متنِ فعلیِ صفحه‌ست.
-				'story_html'  => '<span class="jluxe-about-eyebrow">— داستان ما</span><h2>از یک فروشگاه حضوری، تا خانهٔ آنلاین شما</h2><p>مجموعه‌ی ما سال‌هاست به‌صورت حضوری در کنار مشتریان عزیز بوده و با عرضه‌ی زیورآلاتِ نقره و استیلِ باکیفیت و قیمتی منصفانه، افتخارِ همراهی در لحظه‌های خاصِ زندگی‌شان را داشته است.</p><p>حالا با هدفِ دسترسیِ بی‌واسطه، همان تجربه‌ی موردِ اعتماد را به‌صورتِ آنلاین ادامه می‌دهیم؛ دست‌چین‌کردنِ بهترین طرح‌ها با مخراج‌کاریِ حرفه‌ای و آبکاریِ باکیفیت، برای زیوری که واقعاً بازتابِ سلیقه‌ی شماست.</p>',
-				'cta_text'    => 'با درخششِ اصیلِ نقره، لحظه‌های خاصِ زندگی‌تان را کامل کنید',
+				// این بخش‌ها از پنل ویرایش می‌شوند و تا ثبت محتوای واقعی
+				// مدیر خالی‌اند؛ به‌خصوص داستان، مزیت‌ها و CTA تجاری.
+				'story_html'  => '',
+				'cta_text'    => '',
 				'cta_button_text'  => 'گشتی در فروشگاه بزنید ←',
 				'cta_button_url'   => '/shop/',
 				'cta_button_color' => '',
-				'why_html' => '<span class="jluxe-about-eyebrow">— چرا ما</span><h2>هر جزئیات، برای آسودگی خیال شما</h2><ul><li><strong>اصالتِ تضمین‌شده</strong></li><li><strong>قیمتی منصفانه، بدون واسطه</strong></li><li><strong>ارسال مطمئن و بسته‌بندی ایمن</strong></li><li><strong>همراهی صمیمانه</strong></li></ul>',
+				'why_html' => '',
 			),
 		),
 		/*
-		 * محتوای صفحاتِ راهنما — طبقِ درخواستِ صریحِ کاربر («این متن‌های
-		 * راهنما کاملاً باید توی تنظیمات قابلِ ادیت باشن») — این صفحات
-		 * (page-shopping-guide.php و...) قبلاً عیناً همون متنی بودن که از
-		 * jluxe.ir کپی شده بود (با «زرین» هاردکد)؛ پیش‌فرض‌های زیر همون متن
-		 * هستن (با نامِ واقعیِ سایت جایگزینِ «زرین» در همین لحظه‌ی ساختِ
-		 * پیش‌فرض)، ولی از این به بعد کاملاً از پنلِ ادمین (jluxe-guide-pages،
-		 * با wp_editor واقعی) قابلِ ویرایشن — content به‌صورتِ HTMLِ خام
-		 * (wp_kses_post) ذخیره/رندر می‌شه، پس همیشه سمتِ سرور و کاملاً
-		 * قابلِ‌خزشِ گوگل می‌مونه، نه چیزی که با جاوااسکریپت بعداً پر بشه.
+		 * محتوای راهنمای پرداخت و ارسال/پیگیری از مدیر آمده است؛ اطلاعاتِ
+		 * سیاستِ مرجوعی و سایر جزئیاتِ تجاری باید از پیکربندیِ خودِ فروشگاه
+		 * تأمین شوند. HTML از پنل sanitize می‌شود و server-rendered و قابل‌خزش است.
 		 */
 		'guide_pages' => array(
 			'shopping_guide' => array(
 				'eyebrow'       => '— راهنمای خرید',
-				'title'         => 'راهنمای گام‌به‌گام خرید از {site_name}',
+				'title'         => 'راهنمای گام‌به‌گام خرید از جهیزیه لوکس',
 				'intro'         => 'خرید از سایت ما بسیار ساده و سریع طراحی شده است. برای ثبت سفارش خود کافی است مراحل زیر را دنبال کنید:',
 				'steps'         => array(
 					array(
@@ -351,7 +834,7 @@ function jluxe_theme_settings_defaults(): array {
 					),
 					array(
 						'title' => 'بازبینی سبد خرید',
-						'content' => '<p>برای مشاهدهٔ کالاهای انتخابی خود، در حالت موبایل روی آیکون سبد خرید و در حالت دسکتاپ روی سبد خرید بالای صفحه کلیک کنید.</p><p>در این صفحه می‌توانید تعداد کالاها یا رنگ آن‌ها را بازبینی کرده و در صورت نیاز تغییر دهید یا آیتمی را حذف کنید.</p><p>پس از اطمینان از لیست کالاها، دکمهٔ «ثبت سفارش» یا «ادامه جهت تسویه‌حساب» را انتخاب کنید.</p>',
+						'content' => '<p>برای مشاهدهٔ کالاهای انتخابی خود، در حالت موبایل روی آیکون سبد خرید (گوشهٔ پایین چپ) و در حالت دسکتاپ روی سبد خرید (بالای صفحه) کلیک کنید.</p><p>در این صفحه می‌توانید تعداد کالاها یا رنگ آن‌ها را بازبینی کرده و در صورت نیاز تغییر دهید یا آیتمی را حذف کنید.</p><p>پس از اطمینان از لیست کالاها، دکمهٔ «ثبت سفارش» یا «ادامه جهت تسویه‌حساب» را انتخاب کنید.</p>',
 						'callout_type' => 'tip',
 						'callout_title' => 'نکته',
 						'callout_text' => 'برای خرید از سایت ما، نیازی به ثبت‌نام اجباری نیست؛ اما پیشنهاد می‌کنیم برای پیگیری راحت‌تر سفارش‌های بعدی و مدیریت تاریخچهٔ خرید خود، ابتدا در سایت ثبت‌نام کنید.',
@@ -375,11 +858,11 @@ function jluxe_theme_settings_defaults(): array {
 						'content' => '<p>پس از پرداخت موفقیت‌آمیز مبلغ سفارش، به سایت بازگردانده می‌شوید و وضعیت سفارش شما به حالت «در حال انجام» تغییر می‌یابد.</p>',
 						'callout_type' => 'note',
 						'callout_title' => 'توجه داشته باشید',
-						'callout_text' => 'در تمامی مراحل — از زمان ثبت و تایید تا بسته‌بندی و ارسال کد رهگیری پستی — تغییرات وضعیت سفارش از طریق پیامک به اطلاع شما خواهد رسید.',
+						'callout_text' => 'در تمامی مراحل — از زمان ثبت و تایید تا بسته‌بندی و ارسال کد رهگیری پستی — تغییرات وضعیت سفارش از طریق پیامک فوراً به اطلاع شما خواهد رسید.',
 					),
 				),
-				'button_text'   => 'مشاهده فروشگاه ←',
-				'button_url'    => '/shop/',
+				'button_text'   => 'شروع خرید ←',
+				'button_url'    => '/',
 				'button_color'  => '',
 				'button_enabled'=> true,
 			),
@@ -389,36 +872,32 @@ function jluxe_theme_settings_defaults(): array {
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<h2>پرداخت آنلاین از طریق درگاه بانکی</h2><p>شما می‌توانید در تمامی ساعات شبانه‌روز، با استفاده از همهٔ کارت‌های بانکی عضو شبکهٔ شتاب، هزینهٔ سفارش خود را به‌صورت آنلاین و آنی پرداخت کنید.</p><p><strong>درگاه مستقیم بانک پارسیان:</strong> امن و متصل به شبکهٔ شاپرک.</p><p><strong>درگاه واسط زرین‌پال:</strong> پشتیبان و تضمین‌کنندهٔ پرداخت.</p><div class="jluxe-guide-callout tip"><p><strong>مزیت پرداخت آنلاین:</strong> تایید مالی سفارش شما به‌صورت آنی و خودکار انجام می‌شود.</p></div><h2>پرداخت به‌صورت کارت‌به‌کارت یا شبا</h2><p>اگر به هر دلیلی به رمز پویا دسترسی ندارید یا تمایل به واریز مستقیم دارید، می‌توانید سفارش خود را به‌صورت کارت‌به‌کارت یا پایا/ساتنا ثبت کنید.</p><div class="jluxe-guide-callout warning"><p><strong>قانون رزرو موقت کالا:</strong> پس از انتخاب این روش، اقلام سبد خرید شما فقط تا ۳۰ دقیقه در سیستم رزرو می‌مانند.</p></div><p><strong>شماره کارت:</strong> {card_number}</p><p><strong>شماره شبا:</strong> {sheba}</p><p><strong>نام صاحب حساب:</strong> {holder_name}</p><p><strong>بانک:</strong> {bank_name}</p><h3>مراحل تکمیل و ثبت نهایی سفارش کارت‌به‌کارت</h3><p><strong>۱. واریز وجه:</strong> مبلغ کل سفارش را به شمارهٔ کارت یا شبای فوق واریز کنید.</p><p><strong>۲. ارسال رسید یا ثبت شمارهٔ پیگیری:</strong> تصویر رسید یا شمارهٔ پیگیری واریز را ثبت کنید.</p><p><strong>۳. نام واریزکننده:</strong> نام و نام‌خانوادگی صاحب حساب را وارد کنید.</p><p><strong>۴. ثبت نهایی:</strong> روی دکمهٔ «ارسال» یا «ثبت فیش واریزی» کلیک کنید.</p><div class="jluxe-guide-callout note"><p>سفارش پس از بررسی و تایید مالی توسط کارشناسان {site_name} وارد مرحلهٔ پردازش و ارسال خواهد شد.</p></div>',
+				'body_html' => '<section class="jpp-section"><header class="jpp-section-head"><span class="jpp-num">۱</span><h2>پرداخت آنلاین از طریق درگاه بانکی <small>(سریع‌ترین روش)</small></h2></header><p>شما می‌توانید در تمامی ساعات شبانه‌روز، با استفاده از همهٔ کارت‌های بانکی عضو شبکهٔ شتاب، هزینهٔ سفارش خود را به‌صورت آنلاین و آنی پرداخت کنید. درگاه‌های فعال سایت عبارت‌اند از:</p><p><strong>درگاه مستقیم بانک پارسیان:</strong> امن و متصل به شبکهٔ شاپرک.</p><p><strong>درگاه واسط زرین‌پال:</strong> پشتیبان و تضمین‌کنندهٔ پرداخت.</p><div class="jpp-callout jpp-callout-tip"><p><strong>مزیت پرداخت آنلاین:</strong> در این روش، تایید مالی سفارش شما به‌صورت آنی و خودکار انجام شده و سفارش بدون معطلی و بلافاصله وارد مرحلهٔ بسته‌بندی و ارسال می‌شود.</p></div></section><section class="jpp-section"><header class="jpp-section-head"><span class="jpp-num">۲</span><h2>پرداخت به‌صورت کارت‌به‌کارت یا شبا (نیازمند تایید)</h2></header><p>اگر به هر دلیلی به رمز پویا دسترسی ندارید یا تمایل به واریز مستقیم دارید، می‌توانید سفارش خود را به‌صورت کارت‌به‌کارت یا پایا/ساتنا ثبت کنید. لطفاً به قوانین این روش دقت فرمایید.</p><div class="jpp-callout jpp-callout-warning"><p><strong>قانون رزرو موقت کالا:</strong> پس از انتخاب این روش، اقلام سبد خرید شما فقط تا ۳۰ دقیقه در سیستم رزرو می‌مانند. لطفاً در همین بازهٔ زمانی واریز خود را انجام دهید تا سفارش شما به‌صورت خودکار توسط سیستم لغو نگردد.</p></div><div class="jpp-account-box"><p class="jpp-account-title">مشخصات حساب جهت واریز وجه</p><div class="jpp-account-row"><span class="jpp-account-label">شمارهٔ کارت</span><strong class="jpp-account-value">{card_number}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">شمارهٔ شبا</span><strong class="jpp-account-value">{sheba}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">نام صاحب حساب</span><strong class="jpp-account-value jpp-account-value-name">{holder_name}</strong></div><div class="jpp-account-row"><span class="jpp-account-label">بانک</span><strong class="jpp-account-value jpp-account-value-name">{bank_name}</strong></div></div><p class="jpp-substeps-title">مراحل تکمیل و ثبت نهایی سفارش کارت‌به‌کارت</p><p class="jpp-substep-note">نکته برای مبالغ بالا: اگر بانک شما محدودیت انتقال وجه دارد، می‌توانید مبلغ را طی ۱ تا ۳ مرحله واریز کنید.</p><p><strong>۱. واریز وجه:</strong> مبلغ کل سفارش را به شمارهٔ کارت یا شبای فوق واریز کنید.</p><p><strong>۲. ارسال رسید یا ثبت شمارهٔ پیگیری:</strong> در صورت واریز چندمرحله‌ای، تصویر هر ۳ رسید را در سایت آپلود کنید؛ یا شماره‌های پیگیری/ارجاع هر واریز را با «خط تیره» پشت‌سرهم در کادر مربوطه بنویسید (مثال: <code class="jpp-inline-code">123-456-789</code>).</p><p><strong>۳. نام واریزکننده:</strong> نام و نام‌خانوادگی صاحب حساب (شخصی که واریز را انجام داده) را در کادر مشخص‌شده وارد کنید.</p><p><strong>۴. ثبت نهایی:</strong> در پایان، روی دکمهٔ «ارسال» یا «ثبت فیش واریزی» کلیک کنید.</p><div class="jpp-callout jpp-callout-note"><p>سفارش شما پس از بررسی و تایید مالی توسط کارشناسان حسابداری {site_name}، وارد مرحلهٔ پردازش و ارسال خواهد شد. وضعیت جدید نیز از طریق پیامک به شما اطلاع داده می‌شود.</p></div></section>',
 			),
 			'shipping_tracking' => array(
 				'title'        => 'روش‌های ارسال و راهنمای پیگیری سفارشات',
-				'intro'        => 'در فروشگاه {site_name}، تحویل به‌موقع و سالم کالاها اولویت اصلی ماست. ارسال مرسولات به ۳ روش متنوع انجام می‌شود تا بتوانید بهترین گزینه را بر اساس بودجه، ابعاد کالا و زمان خود انتخاب کنید.',
-				'button_text'  => 'بازگشت به فروشگاه ←',
+				'intro'        => '',
+				'button_text'  => '',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<div class="jluxe-guide-callout warning"><p><strong>نکتهٔ بسیار مهم:</strong> لطفاً قبل از ثبت سفارش و انتخاب روش ارسال، از وجود نمایندگی و پوشش‌دهی شرکت‌های باربری در محدودهٔ شهر خود اطمینان حاصل کنید.</p></div><h2>بخش اول — روش‌های ارسال کالا</h2><h3>روش پست پیشتاز</h3><p>این روش برای تمامی شهرهای ایران، روستاها و مناطق دوردست فعال است.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> هزینهٔ ارسال به‌صورت آنلاین و در زمان ثبت سفارش، با توجه به وزن و سایز محصول محاسبه و پرداخت می‌شود.</p><p><strong>مدت زمان تحویل:</strong> زمان تحویل مرسوله در این روش نسبت به سایر سرویس‌ها کمی طولانی‌تر است.</p><p><strong>محدودیت ابعادی:</strong> ادارهٔ پست بسته‌های بسیار بزرگ و با طول بیش از ۱ متر را پذیرش نمی‌کند.</p><p><strong>نحوهٔ پیگیری:</strong> پس از تحویل بسته به پست، کد رهگیری ۲۴ رقمی برای شما پیامک می‌شود.</p><p><a href="https://tracking.post.ir/">پیگیری مرسولهٔ پست</a></p><h3>روش ارسال تیپاکس</h3><p>این روش برای شهرهایی که دارای نمایندگی فعال تیپاکس هستند، بسیار مناسب است.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> ارسال به‌صورت پس‌کرایه است و مبلغ کرایه هنگام تحویل کالا پرداخت می‌شود.</p><p><strong>مزایا:</strong> سرعت ارسال بالا و مناسب برای کالاهای با سایز متوسط و نیمه‌سنگین.</p><p><a href="https://tipaxco.com/tracking">پیگیری مرسولهٔ تیپاکس</a></p><h3>روش ارسال چاپار</h3><p>چاپار برای کالاهای سبک تا بسیار سنگین خدمات ارائه می‌دهد.</p><p><strong>نحوهٔ پرداخت هزینه:</strong> این روش نیز به‌صورت پس‌کرایه است و مبلغ نهایی به وزن، ابعاد و شهر مقصد بستگی دارد.</p><p><a href="https://chaparnet.com/">پیگیری مرسولهٔ چاپار</a></p><h2>بخش دوم — راهنمای پیگیری وضعیت سفارشات</h2><p>پس از ثبت خرید در {site_name}، سفارش شما گام‌به‌گام پردازش می‌شود و تغییر هر مرحله از طریق پیامک به اطلاع شما خواهد رسید.</p><h3>در انتظار تایید رسید بانکی</h3><p>اگر روش کارت‌به‌کارت را انتخاب کرده باشید، سفارش تا زمان تایید فیش واریزی در این حالت می‌ماند.</p><h3>در حال انجام</h3><p>پرداخت تایید شده و سفارش آماده‌سازی و بسته‌بندی است.</p><h3>تکمیل شده</h3><p>کالا بسته‌بندی و تحویل شرکت فرستنده شده و کد رهگیری برای شما ارسال می‌شود.</p><h3>لغو شده</h3><p>در صورت بروز مشکل یا انصراف، سفارش به حالت لغوشده درمی‌آید.</p><p><a href="/track-order/">پیگیری سریع سفارش ←</a></p>',
+				'body_html' => jluxe_shipping_tracking_default_body_html(),
 			),
 			'returns_exchanges' => array(
 				'title'        => 'رویهٔ شرایط مرجوعی و تعویض کالا',
-				'intro'        => 'رضایتمندی مشتریان همواره از اولویت‌های اصلی {site_name} بوده تا تمامی سفارش‌ها در شرایط مطلوب و مطابق انتظار شما ارسال شوند.',
-				// طبقِ درخواستِ صریحِ کاربر — قبلاً این‌ها هاردکد بودن؛ الان از
-				// همین آرایه خونده می‌شن (page-returns-and-exchanges.php).
-				// دو قلمِ «حوله»/«کالای خواب» عمداً دو اسلاتِ ثابتن (نه یک
-				// repeaterِ داینامیک) چون همیشه همین دو مورد بودن — دقیقاً
-				// همون الگویی که feature_cards برای این نوع لیستِ کوچیک و
-				// باثباتِ محتوا استفاده می‌کنه.
-				'deny_title'        => 'استثنائات مرجوعی — اقلام غیرقابل تعویض به دلایل بهداشتی',
-				'deny_item_1_label' => 'انواع حوله',
-				'deny_item_1_text'  => 'به دلیل رعایت کامل اصول بهداشتی، امکان تعویض یا مرجوعی انواع حوله به هیچ عنوان وجود ندارد.',
-				'deny_item_2_label' => 'کالای خواب (روتختی، ملحفه و پتو)',
-				'deny_item_2_text'  => 'به دلیل حساسیت‌های بهداشتی (احتمال انتقال باکتری یا حشرات ریز میکروسکوپی)، امکان مرجوعی روتختی و پتو وجود ندارد.',
-				'tip_label'         => 'نکته برای خرید مطمئن',
-				'tip_text'          => 'جهت اطمینان کامل شما از جنس و رنگ، قبل از ارسال کالای خواب، در صورت درخواست شما عکس‌های واقعی و باکیفیت از تمام جزئیات کالا از طریق پیام‌رسان‌ها برایتان ارسال خواهد شد.',
+				'intro'        => 'رضایتمندی مشتریان همواره از اولویت‌های اصلی {site_name} بوده تا تمامی سفارش‌ها در شرایط مطلوب و مطابق انتظار شما ارسال شوند. با این حال، چنانچه بنا به دلایلی تمایل به تعویض یا مرجوع‌کردن کالای خود دارید، مفاد زیر به‌عنوان شرایط قانونی و موردتوافق طرفین حاکم بر خرید اینترنتی خواهد بود.',
+				// این فیلدهای قدیمی برای صفحه‌های سفارشی نگه داشته می‌شوند؛ متن
+				// پیش‌فرض فعلی در body_html کامل و قابل‌ویرایش است.
+				'deny_title'        => '',
+				'deny_item_1_label' => '',
+				'deny_item_1_text'  => '',
+				'deny_item_2_label' => '',
+				'deny_item_2_text'  => '',
+				'tip_label'         => '',
+				'tip_text'          => '',
 				'button_text'  => 'بازگشت به فروشگاه ←',
 				'button_url'   => '/',
 				'button_color' => '',
-				'body_html' => '<h2>شرایط انصراف از خرید (مهلت ۷ روزه)</h2><p>مشتریان محترم می‌توانند ظرف مدت ۷ روز کاری از خرید خود منصرف شده و کالا را مرجوع کنند، مشروط بر اینکه:</p><p><strong>حفظ سلامت کالا:</strong> کالای خریداری‌شده کاملاً در وضعیت اولیه و بدون استفاده باشد.</p><p><strong>هزینهٔ ارسال:</strong> در صورت انصراف سلیقه‌ای مشتری، هزینهٔ بازپس‌فرستادن کالا برعهدهٔ خریدار خواهد بود.</p><p><strong>عیوب فنی:</strong> چنانچه کالا دارای عیب یا نقص فنی داخلی باشد، مشمول شرایط تعویض خواهد بود.</p><h3>{deny_title}</h3><p><strong>{deny_item_1_label}:</strong> {deny_item_1_text}</p><p><strong>{deny_item_2_label}:</strong> {deny_item_2_text}</p><div class="jluxe-guide-callout tip"><p><strong>{tip_label}:</strong> {tip_text}</p></div><h2>تحویل کالاهای شکستنی و ظاهری</h2><p>خریدار مکلف است بلافاصله در زمان دریافت کالا و در حضور مأمور کالارسان، بسته را باز کرده و سلامت فیزیکی کالا را بررسی کند.</p><p>چنانچه کالا دارای عیوب ظاهری ناشی از حمل‌ونقل باشد، خریدار باید از تحویل‌گرفتن آن خودداری کرده و بسته را به مأمور ارجاع دهد.</p><p><strong>نکتهٔ بسیار مهم:</strong> تحویل‌گرفتن کالا از مأمور ارسال به‌منزلهٔ تایید سلامت فیزیکی آن است.</p><h2>نحوه و زمان عودت وجه</h2><p>پس از برگشت کالا به انبار {site_name} و تایید اصالت و سلامت آن، مبلغ پرداختی حداکثر ظرف ۴۸ ساعت کاری عودت داده خواهد شد.</p><h2>کالاهای غیرقابل مرجوع (خاص)</h2><p>کالاهای خاصی که قابل مرجوع‌شدن نیستند در صفحهٔ خرید همان کالا با برچسب «غیرقابل مرجوع» مشخص می‌شوند.</p>',
+				'body_html' => jluxe_returns_exchanges_default_body_html(),
 			),
 			'track_order' => array(
 				'title'        => 'پیگیری سفارش سریع',
@@ -428,30 +907,21 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		/*
-		 * اطلاعاتِ حسابِ کارت‌به‌کارت (بخشِ ۲ صفحه‌ی راهنمای پرداخت) —
-		 * طبقِ درخواستِ صریحِ کاربر («هر چیزی از اطلاعاتِ کارت یا شماره
-		 * حساب یا نامِ دارندهٔ حساب باید در تنظیمات قابلِ تغییر باشه»).
-		 * عمداً پیش‌فرض همه خالیه — قبلاً این‌جا یک شماره‌کارت/شبا/نامِ
-		 * ثابت (متعلق به یک حسابِ نامرتبط، کپی‌شده از jluxe.ir) هاردکد
-		 * بود؛ نمایشِ خودکارِ همون اطلاعاتِ اشتباه روی یک سایتِ دیگه
-		 * می‌تونست باعثِ واریزِ مشتری به حسابِ اشتباه بشه. تا وقتی ادمین
-		 * خودش این‌ها رو پر نکنه، بخشِ کارت‌به‌کارت در صفحه اصلاً نمایش
-		 * داده نمی‌شه (نه اطلاعاتِ کهنه/اشتباه).
+		 * اطلاعاتِ حسابِ کارت‌به‌کارت (بخشِ ۲ صفحه‌ی راهنمای پرداخت).
+		 * شمارهٔ کارت، شبا، نامِ صاحب حساب و بانک مطابقِ اطلاعاتی است که
+		 * مدیر برای همین صفحه فرستاده؛ هر چهار فیلد در پنل قابل‌ویرایش‌اند
+		 * و مهاجرت فقط فیلدهای خالیِ تنظیماتِ قبلی را با همین مقادیر پر می‌کند.
 		 */
 		'payment_account' => array(
-			'card_number' => '',
-			'sheba'       => '',
-			'holder_name' => '',
-			'bank_name'   => '',
+			'card_number' => '5859-8310-5586-8573',
+			'sheba'       => 'IR93-0180-0000-0038-7575-5299-09',
+			'holder_name' => 'فاطمه زارع',
+			'bank_name'   => 'تجارت',
 		),
 		'mobile' => array(
-			// آیتم‌های نوار پایین موبایل — id ثابته (رفتار واقعی/لینک هر
-			// آیتم در MobileNav.tsx به id وصله، قابل تغییر نیست چون بعضی
-			// آیتم‌ها رفتار خاص دارن مثل باز کردن دراور سبد/دسته‌بندی به‌جای
-			// ناوبری معمولی)، ولی برچسب، آیکون، فعال/غیرفعال، و مهم‌تر از
-			// همه ترتیبِ خودِ آرایه (قابل جابه‌جایی با درگ در ادمین) واقعاً
-			// زنده‌ن. آیتمِ account برچسبش رو فقط وقتی کاربر لاگین باشه
-			// همینجا نشون می‌ده؛ حالتِ خروج همچنان «ورود» ثابت می‌مونه.
+			// طرح قدیمی همان پیش‌فرض می‌ماند؛ طرح شناور نمونه جداگانه انتخاب می‌شود.
+			'nav_variant' => 'classic', // classic | floating
+			// آیتم‌های نوار فعلی، برای حفظ رفتار قبلی بدون تغییر.
 			'nav_items' => array(
 				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'package', 'enabled' => true ),
 				array( 'id' => 'shop', 'label' => 'دسته‌بندی‌ها', 'icon' => 'grid', 'enabled' => true ),
@@ -459,12 +929,21 @@ function jluxe_theme_settings_defaults(): array {
 				array( 'id' => 'account', 'label' => 'حساب', 'icon' => 'user', 'enabled' => true ),
 				array( 'id' => 'cart', 'label' => 'سبد', 'icon' => 'cart', 'enabled' => true ),
 			),
+			// پنج جایگاهِ طرح نمونه؛ برچسب، آیکون، عملکرد، URL و ترتیب
+			// هرکدام در پنل قابل تغییر است.
+			'floating_nav_items' => array(
+				array( 'id' => 'support', 'label' => 'پشتیبانی', 'icon' => 'headphones', 'action' => 'assistant', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'categories', 'label' => 'دسته‌ها', 'icon' => 'menu', 'action' => 'categories', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'action' => 'home', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'account', 'label' => 'اکانت', 'icon' => 'user', 'action' => 'account', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+				array( 'id' => 'cart', 'label' => 'سبد خرید', 'icon' => 'cart', 'action' => 'cart', 'url' => '', 'target_blank' => false, 'enabled' => true ),
+			),
 			'nav_style' => array(
 				'background'   => '#ffffff',
-				'active_color' => '#087A68',
-				'icon_color'   => '#667085',
-				'icon_bg'      => '#f5f7f8',
-				'active_bg'    => '#e8f4f1',
+				'active_color' => $palette['600'],
+				'icon_color'   => $palette['700'],
+				'icon_bg'      => $palette['50'],
+				'active_bg'    => $palette['50'],
 				'shadow'       => 'medium',
 				'radius'       => '22',
 				'height'       => '68',
@@ -473,6 +952,7 @@ function jluxe_theme_settings_defaults(): array {
 			),
 		),
 		'product_card' => array(
+			'variant'          => 'current', // current | premium — visual only; WooCommerce markup stays server-rendered.
 			'image_ratio'      => 'square', // square (۱:۱) | classic (۳:۴) | portrait (۴:۵)
 			'radius'           => 'lg',     // sm | md | lg
 			// طبقِ درخواستِ صریحِ کاربر — گردیِ خودِ عکس مستقل از گردیِ کلیِ
@@ -483,61 +963,76 @@ function jluxe_theme_settings_defaults(): array {
 			'show_sale_badge'  => true,
 			'show_stock_badge' => true,
 			'price_color'      => '', // خالی یعنی رنگ پیش‌فرض متن (--foreground).
-			// نقطه‌ی سبزِ «موجود است» روی عکس کارت — تنها رنگِ کارت که قبلاً
-			// کاملاً ثابت بود (bg-emerald-400 خام، نه یک توکنِ مشتق‌شده از
-			// رنگ‌های سراسری)؛ مقدارِ پیش‌فرض همون هگزِ emerald-400 خودِ Tailwind.
-			'in_stock_color'   => '#34d399',
+			// خالی یعنی رنگِ semantic success؛ مقدارِ غیرخالی فقط override ادمین است.
+			'in_stock_color'   => '',
 		),
 		'product_page' => array(
-			// طبقِ درخواستِ کاربر: چیدمانِ صفحه‌ی محصول قابل‌انتخاب شد.
-			// 'default' همین چیدمانِ سه‌ستونه‌ی فعلیه (بدون تغییر رفتار)،
-			// 'classic' چیدمانِ جایگزینیه که کاربر خودش نمونه‌اش رو داد
-			// (تصویر با بزرگ‌نماییِ ذره‌بینی + جعبه‌ی خریدِ کناری).
-			'layout'        => 'default', // default | classic
+			// چیدمان‌ها مستقل‌اند: 'default' طرح Boom فعلی، 'classic' قالبِ جایگزین،
+			// و 'reference' صفحهٔ سوم با کارت خرید/مشخصات و بخش‌های کامل محصول.
+			'layout'        => 'default', // default | classic | reference
 			'show_related'  => true,
 			'related_count' => 4,
-			// رنگ‌های صفحه‌ی محصول که قبلاً فقط با CSS ثابت (--boom-*،
-			// src/styles/single-product-fallback.css) قابل تغییر بودن —
-			// مقادیرِ پیش‌فرض همون هگزهای قبلی‌ان تا فعال‌شدنِ این تنظیمات به‌تنهایی
-			// چیزی رو بصری عوض نکنه.
-			'discount_color' => '#ef4056',
-			'savings_color'  => '#00a049',
-			'star_color'     => '#f7b731',
-			// سه ردیفِ اعتماد زیرِ جعبه‌ی خرید (ضمانت بازگشت/ارسال/پرداخت
-			// امن) قبلاً کاملاً ثابت توی content-single-product.php بودن —
-			// حالا عنوان/توضیح/فعال‌بودنِ هرکدوم قابل‌ویرایشه (آیکون‌ها
-			// همچنان ثابتن، چون سیستم آیکون‌پیکرِ سمت PHP برای این بخش
-			// وجود نداره و درخواستِ کاربر صرفاً متن+روشن/خاموش بود).
-			// مقادیرِ پیش‌فرض دقیقاً همون متن‌های قبلی‌ان.
+			// خالی یعنی semantic token (error / success / warning-strong).
+			// رنگِ غیرخالی انتخابِ آگاهانهٔ ادمین است و هنگامِ رندر حفظ می‌شود.
+			'discount_color'                => '',
+			'savings_color'                 => '',
+			'star_color'                    => '',
+			// خالی یعنی رنگِ مقدار انتخاب‌شده از رنگِ اصلیِ پوسته پیروی کند.
+			'variation_label_color'         => '',
+			// رنگ‌های لینکِ توضیحات: خالی یعنی رنگ‌های هماهنگ با --primary.
+			'description_link_bg_color'     => '',
+			'description_link_text_color'   => '',
+			'description_link_border_color' => '',
+			// ردیف‌های اعتماد فقط پس از واردکردن و فعال‌کردن متنِ تأییدشده
+			// توسط مدیر نمایش داده می‌شوند؛ مهلت، شرکت حمل یا درگاه فرض نمی‌شود.
 			'trust_items'    => array(
-				array(
-					'enabled'  => true,
-					'title'    => '۷ روز ضمانت بازگشت کالا',
-					'subtitle' => 'به‌جز حوله، ملحفه، پتو',
-				),
-				array(
-					'enabled'  => true,
-					'title'    => 'ارسال با پست/تیپاکس/چاپار',
-					'subtitle' => 'با کد رهگیری پیامکی',
-				),
-				array(
-					'enabled'  => true,
-					'title'    => 'پرداخت امن',
-					'subtitle' => 'زرین‌پال یا کارت‌به‌کارت',
-				),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
+				array( 'enabled' => false, 'title' => '', 'subtitle' => '' ),
 			),
 		),
+		// بخش «AI دیدگاه‌ها»: پاسخ خودکار + خلاصهٔ قابل‌ویرایش هر محصول.
+		// پیش‌فرض همه‌چیز خاموش/خالیه تا بدون رضایت مدیر هیچ تماس یا
+		// محتوای ماشینی‌ای ساخته نشه؛ زمان‌بندی هم فقط وقتی قابلیتی فعال
+		// باشه register می‌مونه (jluxe_ai_comments_schedule).
+		'ai_comments' => array(
+			'enabled'               => false,
+			'auto_reply_enabled'    => false,
+			'cron_interval'         => 30,          // دقیقه (1|5|10|15|30|60).
+			'responder_name'        => '',          // خالی = نام سایت.
+			'responder_avatar'      => '',
+			'personality'           => '',
+			'store_description'     => '',
+			'max_replies_per_run'   => 5,
+			'max_summaries_per_run' => 3,
+		),
 		'homepage' => array(
+			'mobile_category_swipe_hint_enabled' => true,
 			'sections' => array(
 				array(
 					'id'            => 'hero-default',
 					'type'          => 'hero',
 					'enabled'       => true,
 					'duration_sec'  => 5,
+					// R89 — ابعادِ نمونهٔ صاحبِ سایت: کارتِ هم‌عرضِ کانتینر، ۳۶۰/۳۲۰px، اسلاید افقی.
+					'effect'         => 'slide',
+					'speed_ms'       => 500,
+					'autoplay'       => true,
+					'loop'           => true,
+					'zoom_enabled'   => false,
+					'width_mode'     => 'container',
+					'desktop_height' => 360,
+					'mobile_height'  => 320,
+					'radius'         => 'auto',
+					'top_spacing'    => 'reference',
+					'show_arrows'    => true,
+					'indicators'     => 'bars',
+					'border'         => true,
 					// خالی یعنی اسلایدر چیزی نمایش نمی‌ده — هیچ عکس/گرادیان
 					// پیش‌فرض ساختگی از قبل ست نمی‌شه، ادمین خودش عکس واقعی اضافه می‌کنه.
 					'items'         => array(),
 				),
+				jluxe_default_featured_homepage_section(),
 				array(
 					'id'              => 'products-new-default',
 					'type'            => 'product_grid',
@@ -555,17 +1050,18 @@ function jluxe_theme_settings_defaults(): array {
 		),
 		'ai_assistant' => array(
 			'enabled'          => false,
-			'name'             => 'دستیار زرین',
+			'name'             => 'دستیار فروشگاه',
 			'welcome_message'  => 'سلام! چطور می‌تونم کمکتون کنم؟',
 			'avatar_id'        => 0,
 			'button_id'        => 0,
 			'show_desktop'     => true,
-			'show_mobile'      => true,
+			'show_mobile'      => true, // legacy
+			'hide_mobile_launcher' => false, // R96 — launcher موبایل پیش‌فرض دیده می‌شود؛ مخفی‌سازی اختیاری است.
 			'provider'         => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی.
 			'base_url'         => '', // خالی = آدرس رسمی provider؛ برای providerهای سازگار با OpenAI (مثلاً پروکسی داخلی) قابل بازنویسیه.
 			'model'            => '',
-			'temperature'      => 0.7,
-			'max_tokens'       => 800,
+			'temperature'      => 0.4, // پاسخِ فروشگاهیِ دقیق‌تر و کم‌نوسان‌تر.
+			'max_tokens'       => 1200, // فضای کافی برای مشاوره/مقایسهٔ چند محصول.
 			'reasoning_effort' => 'low', // minimal | low | medium | high — فقط برای مدل‌های reasoning اعمال می‌شه.
 			'system_prompt'    => '', // خالی = پرامپت پیش‌فرض داخلی (jluxe_ai_default_system_prompt()).
 			// خلاصه‌ی هوشمندِ نظراتِ محصول — همون provider/کلید/مدلِ بالا رو
@@ -580,7 +1076,14 @@ function jluxe_theme_settings_defaults(): array {
 				'shipping'   => false,
 				'returns'    => false,
 				'faq'        => false,
+				// R94 — متنِ برگه‌ها/راهنماهای پوسته و نوشته‌های وبلاگ برای RAG سمتِ سرور.
+				'pages'      => true,
+				'posts'      => true,
 			),
+			// R94 — دانشِ اختصاصی (هزینهٔ ارسال، گارانتی، زمانِ تحویل و…) که همیشه به دستیار داده می‌شود.
+			'custom_knowledge'   => '',
+			// append = پرامپتِ مدیر به قوانین/دانشِ داخلی اضافه می‌شود؛ replace = جایگزینِ لحن/قوانین (دانشِ سایت همچنان ضمیمه می‌شود).
+			'system_prompt_mode' => 'append',
 			// ابزارهای دیتای واقعی که دستیار، هنگام مکالمه، می‌تونه صدا بزنه
 			// (function calling سمت provider) — هرکدوم مستقل قابل خاموش‌کردنه.
 			'tools'            => array(
@@ -590,8 +1093,9 @@ function jluxe_theme_settings_defaults(): array {
 				'get_categories'       => true,
 				'recommend_products'   => true,
 				'get_product_reviews'  => true,
-				'get_customer_context' => true,
+				'get_customer_context' => false, // R86 — حریمِ خصوص: دادهٔ سفارشِ مشتری به سرویسِ بیرونی نرود مگر مدیر آگاهانه روشن کند.
 				'get_store_info'       => true,
+				'search_site_content'  => true, // R94 — جستجو در برگه‌ها/راهنماها/FAQ سایت.
 			),
 			// ویجت‌های تصویری‌ای که دستیار مجازه در جواب رندر کنه (کارت محصول،
 			// مقایسه، وضعیت سفارش و ...) — مستقل از ابزارهای دیتا، چون یک
@@ -629,12 +1133,44 @@ function jluxe_theme_settings_defaults(): array {
 			'handoff_whatsapp' => '',
 			'handoff_telegram' => '',
 			'handoff_form_url' => '',
+			// R94 — دکمه‌های تماس داخلِ پاسخ + اعلانِ ساعتِ پاسخگوییِ تلفنی (بومیِ اسنیپت‌های قبلی).
+			'contact_phone'     => '', // خالی = شمارهٔ اصلیِ «اطلاعات تماس».
+			'phone_hours'       => array(
+				'enabled'     => false,
+				'start'       => '',
+				'end'         => '',
+				'closed_days' => array(), // روز/ساعت فقط پس از ورود اطلاعات واقعی فعال شود.
+			),
+			'phone_timezone'    => 'Asia/Tehran', // منطقهٔ زمانیِ پیش‌فرضِ فروشگاه ایران؛ برنامه همچنان تا فعال‌سازیِ صریح خاموش است.
+
+			'phone_open_text'   => '🟢 اکنون پاسخگوی تلفنی هستیم؛ {days}، {hours}.',
+			'phone_closed_text' => '🔴 اکنون خارج از ساعت پاسخگویی تلفنی هستیم. ساعات پاسخگویی: {days}، {hours}. می‌تونید همینجا با دستیار ادامه بدید یا پیام بگذارید.',
+			// آیکونِ دلخواه برای هر کانال (نشانیِ تصویر)؛ خالی = آیکونِ داخلیِ پوسته.
+			'contact_icons'     => array(
+				'phone'     => '',
+				'whatsapp'  => '',
+				'telegram'  => '',
+				'instagram' => '',
+				'rubika'    => '',
+				'bale'      => '',
+				'eitaa'     => '',
+			),
+			// زیرِ این عرض «موبایل» حساب می‌شود (نمایش/مخفی‌بودنِ دکمهٔ شناور).
+			'mobile_breakpoint' => 820,
 			'rate_limit'       => 10, // حداکثر پیام در دقیقه به ازای هر IP.
+			'daily_limit'      => 100, // R86 — سقفِ روزانه (کاربر/IP) برای مصرفِ اعتبارِ API.
 			'log_enabled'      => true, // ثبت خطاهای فراخوانی provider در error_log.
 		),
 		'sms' => array(
 			'enabled'  => false,
+			// R70/R97: ورودِ «فقط رمز پیامکی» — وقتی روشنه، تبِ نام‌کاربری/رمز از
+			// صفحهٔ ورود حذف می‌شود. پس از OTP معتبر، حسابِ موجودِ متناظر با
+			// billing_phone پیوند می‌خورد یا حسابِ کمینهٔ مشتری ساخته می‌شود؛
+			// اطلاعاتِ خرید بعداً در checkout دریافت می‌شوند. ادمین‌ها همیشه
+			// از wp-login.php وارد می‌شوند — این مسیر حذف نمی‌شود.
+			'otp_only' => false,
 			'provider' => '', // '' یعنی هنوز پیکربندی نشده — قصداً بدون مقدار پیش‌فرض ساختگی. گزینه‌ها: kavenegar | melipayamak
+			'otp_mode' => 'pattern', // ملی‌پیامک: pattern (پیش‌فرض فعلی) یا dedicated (ارسال متن آزاد از خط اختصاصی).
 			// ملی‌پیامک: نام کاربریِ پنل (سرویسِ REST کلاسیک —
 			// rest.payamak-panel.com/api/SendSMS/SendSMS — به هر دوی
 			// نام‌کاربری/رمز نیاز داره، نه فقط یکی؛ باگِ واقعیِ گزارش‌شده:
@@ -643,24 +1179,35 @@ function jluxe_theme_settings_defaults(): array {
 			// استفاده نمی‌شه.
 			'username' => '',
 			'sender'   => '', // ملی‌پیامک: شماره خط ارسال در ارسال عادی؛ برای پترن خدماتی استفاده نمی‌شود.
-			'template' => '', // کاوه‌نگار: نام الگوی Verify Lookup در پنل. ملی‌پیامک: استفاده نمی‌شود.
-			'body_id'  => '', // ملی‌پیامک: کد متن / Body ID پترن خدماتی.
+			'template' => '', // کاوه‌نگار: نام الگوی Verify Lookup برای OTP.
+			'body_id'  => '', // ملی‌پیامک: کد متن / Body ID پترن OTP.
+			// اعلانِ موجودشدن یک opt-in جدا می‌خواهد تا الگوی ورود هرگز برای پیامِ محصول مصرف نشود.
+			'stock_alert_enabled'  => false,
+			'stock_alert_mode'     => 'pattern', // pattern | free_text (free text: ملی‌پیامک و خط مجاز برای ارسال عادی).
+			'stock_alert_template' => '', // کاوه‌نگار: Verify Lookup با یک متغیرِ نامِ محصول.
+			'stock_alert_body_id'  => '', // ملی‌پیامک: پترن خدماتی با یک متغیرِ نامِ محصول.
+			'stock_alert_message'  => '', // متن آزادِ اختیاری با متغیرهایِ مجازِ محصول/سایت.
 		),
 		'seo' => array(
 			'default_meta_title'       => '',
 			'default_meta_description' => '',
 			'og_image_id'              => 0,
+			// Verification tags are stored as structured name/content pairs; only approved meta names are emitted.
+			'verification_meta_tags'   => array(),
 		),
 		'faq' => array(
-			// سؤالات واقعیِ سایت — پیش‌فرض خالی، مدیر خودش از پیشخوان پر
-			// می‌کنه؛ هیچ سوال/جواب عمومیِ کپی‌شده از قالب‌های دیگه از قبل
-			// ست نمی‌شه (طبق قانون «بدون تنظیمات جعلی» پروژه).
-			'items' => array(),
+			// ده پرسش نمونهٔ قابل‌ویرایش؛ مواردِ وابسته به شرایط فروشگاه
+			// در پاسخ‌ها به صفحه/تنظیم واقعی ارجاع می‌شوند، نه اطلاعات ساختگی.
+			'items' => jluxe_faq_default_items(),
 		),
+		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
+		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
+			'pwa_enabled'               => true, // R88 — inc/pwa.php
+			'pwa_install_prompt'        => true,
 		),
 		/*
 		 * معیارهای امتیازِ دیدگاه — پورتِ فیچرِ پوسته‌ی قبلی (طبقِ درخواستِ
@@ -691,65 +1238,142 @@ function jluxe_theme_settings_defaults(): array {
  */
 function jluxe_nav_icon_options(): array {
 	return array(
-		''              => 'بدون آیکون',
-		'home'          => 'خانه',
-		'shop'          => 'فروشگاه',
-		'tag'           => 'برچسب/تخفیف',
-		'truck'         => 'ارسال',
-		'credit-card'   => 'پرداخت',
-		'map-pin'       => 'آدرس/موقعیت',
-		'phone'         => 'تماس',
-		'mail'          => 'ایمیل',
-		'help-circle'   => 'راهنما/سوال',
-		'info'          => 'اطلاعات',
-		'package'       => 'بسته/سفارش',
-		'rotate-ccw'    => 'بازگشت کالا',
-		'shield-check'  => 'ضمانت',
-		'percent'       => 'درصد تخفیف',
-		'user'          => 'کاربر',
-		'heart'         => 'علاقه‌مندی',
-		'gift'          => 'هدیه',
-		'cart'          => 'سبد خرید',
-		'grid'          => 'دسته‌بندی‌ها',
-		'headphones'    => 'پشتیبانی',
+		''                 => 'بدون آیکون',
+		'home'             => 'خانه',
+		'shop'             => 'فروشگاه',
+		'tag'              => 'برچسب/تخفیف',
+		'truck'            => 'ارسال',
+		'credit-card'      => 'پرداخت',
+		'map-pin'          => 'آدرس/موقعیت',
+		'phone'            => 'تماس',
+		'mail'             => 'ایمیل',
+		'help-circle'      => 'راهنما/سوال',
+		'info'             => 'اطلاعات',
+		'package'          => 'بسته/سفارش',
+		'rotate-ccw'       => 'بازگشت کالا',
+		'shield-check'     => 'ضمانت',
+		'percent'          => 'درصد تخفیف',
+		'user'             => 'کاربر',
+		'heart'            => 'علاقه‌مندی',
+		'gift'             => 'هدیه',
+		'cart'             => 'سبد خرید',
+		'grid'             => 'دسته‌بندی‌ها',
+		'headphones'       => 'پشتیبانی',
+		'menu'             => 'فهرست',
+		'search'           => 'جستجو',
+		'star'             => 'ستاره/امتیاز',
+		'bed'              => 'تخت‌خواب',
+		'mattress'         => 'تشک و بالش',
+		'sofa'             => 'مبل',
+		'box'              => 'جعبه',
+		'wallet'           => 'کیف پول',
+		'receipt'          => 'رسید',
+		'calendar'         => 'تقویم',
+		'bell'             => 'اعلان',
+		'settings'         => 'تنظیمات',
+		'filter'           => 'فیلتر',
+		'list'             => 'فهرست خطی',
+		'camera'           => 'دوربین',
+		'edit'             => 'ویرایش',
+		'share'            => 'اشتراک‌گذاری',
+		'upload'           => 'بارگذاری',
+		'download'         => 'دانلود',
+		'external-link'    => 'پیوند خارجی',
+		'check-circle'     => 'تأیید',
+		'comment'          => 'دیدگاه',
+		'clock'            => 'زمان',
+		'eye'              => 'مشاهده',
+		'eye-off'          => 'پنهان‌سازی',
+		'lock'             => 'قفل',
+		'refresh'          => 'تازه‌سازی',
+		'arrow-left'       => 'پیکان چپ',
+		'arrow-right'      => 'پیکان راست',
+		'chevron-down'     => 'بازشدن رو به پایین',
+		'chevron-left'     => 'بازشدن رو به چپ',
+		'chevron-right'    => 'بازشدن رو به راست',
+		'close'            => 'بستن',
+		'plus'             => 'افزودن',
+		'minus'            => 'کاهش',
+		'badge-percent'    => 'نشان تخفیف',
+		'brand-instagram'  => 'برند: اینستاگرام',
+		'brand-telegram'   => 'برند: تلگرام',
+		'brand-whatsapp'   => 'برند: واتس‌اپ',
+		'brand-youtube'    => 'برند: یوتیوب',
+		'brand-facebook'   => 'برند: فیسبوک',
+		'brand-linkedin'   => 'برند: لینکدین',
+		'brand-pinterest'  => 'برند: پینترست',
+		'brand-twitter'    => 'برند: توییتر',
+		'brand-google'     => 'برند: گوگل',
+		'brand-apple'      => 'برند: اپل',
+		'brand-visa'       => 'برند: ویزا',
+	);
+}
+
+/** همان کتابخانهٔ عمومی؛ برای نوار شناور هم همهٔ گزینه‌های آیکون معتبرند. */
+function jluxe_mobile_nav_icon_options(): array {
+	return jluxe_nav_icon_options();
+}
+
+/** عملکردهای امن و محدودِ قابل‌اتصال به دکمه‌های نوار شناور موبایل. */
+/** گزینه‌های معتبر برای ظاهر و رفتار مگامنوی ثابت «دسته‌بندی‌ها». */
+function jluxe_categories_mega_menu_choices(): array {
+	return array(
+		'open_mode' => array(
+			'hover' => 'هاور و فوکوس (رفتار فعلی)',
+			'click'  => 'کلیک روی فلشِ جداگانه',
+			'both'   => 'هاور یا کلیک روی فلشِ جداگانه',
+		),
+		'trigger_effect' => array(
+			'lift'      => 'بالاآمدن و تغییر رنگ',
+			'glow'      => 'درخشش',
+			'underline' => 'خط زیر متن',
+			'none'      => 'بدون افکت',
+		),
+		'panel_effect' => array(
+			'fade'      => 'محو تدریجی',
+			'slide'     => 'حرکت از بالا',
+			'zoom'      => 'بزرگ‌نمایی نرم',
+			'fade-slide'=> 'محو و حرکت',
+			'none'      => 'بدون انیمیشن',
+		),
+		'duration_ms' => array(
+			120 => 'خیلی سریع — ۱۲۰ میلی‌ثانیه',
+			180 => 'سریع — ۱۸۰ میلی‌ثانیه',
+			240 => 'متعادل — ۲۴۰ میلی‌ثانیه',
+			360 => 'آرام — ۳۶۰ میلی‌ثانیه',
+		),
+	);
+}
+
+function jluxe_mobile_nav_action_options(): array {
+	return array(
+		'assistant'  => 'بازکردن دستیار پشتیبانی',
+		'categories' => 'بازکردن پنل دسته‌بندی‌ها',
+		'home'       => 'رفتن به خانه',
+		'shop'       => 'رفتن به فروشگاه',
+		'account'    => 'ورود / حساب کاربری',
+		'track'      => 'پیگیری سفارش',
+		'cart'       => 'بازکردن سبد خرید',
+		'link'       => 'رفتن به لینک دلخواه',
 	);
 }
 
 /**
- * SVG آیکون منو — از همون مجموعه‌ی جluxe_nav_icon_options. اگه نام معتبر
+ * SVG آیکون منو — از همون مجموعه‌ی jLuxe_nav_icon_options. اگه نام معتبر
  * نباشه رشته‌ی خالی برمی‌گرده (یعنی هیچ آیکونی چاپ نشه، نه یک آیکون شکسته).
  */
 function jluxe_nav_icon_svg( string $name, string $class = 'size-4' ): string {
-	static $paths = array(
-		'home'         => '<path d="m3 9 9-7 9 7"/><path d="M9 22V12h6v10"/>',
-		'shop'         => '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
-		'tag'          => '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/>',
-		'truck'        => '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
-		'credit-card'  => '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>',
-		'map-pin'      => '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
-		'phone'        => '<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.804 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
-		'mail'         => '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
-		'help-circle'  => '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
-		'info'         => '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
-		'package'      => '<path d="M12 3 4 7v10l8 4 8-4V7Z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
-		'rotate-ccw'   => '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-		'shield-check' => '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
-		'percent'      => '<line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
-		'user'         => '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-		'heart'        => '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>',
-		'gift'         => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/>',
-		'cart'         => '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
-		'grid'         => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
-		'headphones'   => '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-6a9 9 0 0 1 18 0v6a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
-	);
-	if ( '' === $name || ! isset( $paths[ $name ] ) ) {
+	if ( '' === $name || ! array_key_exists( $name, jluxe_nav_icon_options() ) ) {
 		return '';
 	}
-	return sprintf(
-		'<svg class="%s shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>',
-		esc_attr( $class ),
-		$paths[ $name ] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static trusted markup از فهرست ثابت بالا.
-	);
+	$svg_class = trim( $class . ' shrink-0' );
+	if ( function_exists( 'jluxe_uicon_svg_markup' ) ) {
+		$uicon = jluxe_uicon_svg_markup( $name, $svg_class );
+		if ( '' !== $uicon ) {
+			return $uicon;
+		}
+	}
+	return function_exists( 'jluxe_icon_svg_markup' ) ? jluxe_icon_svg_markup( $name, $svg_class, 2.0 ) : '';
 }
 
 /**
@@ -770,24 +1394,35 @@ function jluxe_array_merge_deep( array $defaults, array $overrides ): array {
 /**
  * خواندن تنظیمات — با کش داخل همون request (طبق اصل «کوئری تکراری نزن»).
  */
-function jluxe_get_theme_settings(): array {
+function jluxe_get_theme_settings( bool $refresh = false ): array {
 	static $cached = null;
+	if ( $refresh ) {
+		$cached = null;
+	}
 	if ( null !== $cached ) {
-		return $cached;
+		// The visual-builder preview is request-specific. A template, plugin or
+		// enqueue callback may warm this static cache before the main query is
+		// available, so apply the private preview overlay on every read without
+		// ever caching it into the active settings value.
+		return function_exists( 'jluxe_visual_builder_filter_frontend_settings_for_preview' )
+			? jluxe_visual_builder_filter_frontend_settings_for_preview( $cached )
+			: $cached;
 	}
 	$stored = get_option( JLUXE_SETTINGS_OPTION, array() );
 	if ( ! is_array( $stored ) ) {
 		$stored = array();
 	}
 
-	if ( ! empty( $stored ) && (int) ( $stored['version'] ?? 1 ) < 2 ) {
-		$stored             = jluxe_migrate_settings_v2( $stored );
-		$stored['version']  = 2;
+	$stored_version = (int) ( $stored['version'] ?? 1 );
+	if ( ! empty( $stored ) && $stored_version < JLUXE_SETTINGS_VERSION ) {
+		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
 		update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	}
 
 	$cached = jluxe_array_merge_deep( jluxe_theme_settings_defaults(), $stored );
-	return $cached;
+	return function_exists( 'jluxe_visual_builder_filter_frontend_settings_for_preview' )
+		? jluxe_visual_builder_filter_frontend_settings_for_preview( $cached )
+		: $cached;
 }
 
 /**
@@ -814,6 +1449,1182 @@ function jluxe_migrate_settings_v2( array $settings ): array {
 			}
 		}
 	);
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ نسخهٔ ۲→۳: launcher موبایل از این نسخه به‌طورِ پیش‌فرض
+ * قابلِ‌مشاهده است. مقدارِ true در تنظیماتِ قبلی، پیش‌فرضِ قدیمیِ پوسته بود
+ * و نباید پس از ارتقا همچنان آیکون را پنهان کند؛ امکانِ پنهان‌سازیِ دستی
+ * بعد از این مهاجرت از پنل باقی می‌ماند.
+ */
+function jluxe_migrate_settings_v3( array $settings ): array {
+	if ( isset( $settings['ai_assistant'] ) && is_array( $settings['ai_assistant'] ) ) {
+		$settings['ai_assistant']['hide_mobile_launcher'] = false;
+	}
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ نسخهٔ ۳→۴: هگزهایِ ثابتِ پیش‌فرضِ رنگِ موجودی/تخفیف/
+ * صرفه‌جویی/ستاره که نسخه‌هایِ قبل به‌صورتِ خودکار ذخیره می‌کردند، به رشتهٔ
+ * خالی تبدیل می‌شوند تا از این نسخه به بعد توکن‌هایِ semanticِ پوسته اعمال
+ * شوند. هر رنگِ دیگری انتخابِ صریحِ مدیر است و بدونِ تغییر نگه داشته می‌شود.
+ */
+function jluxe_migrate_settings_v4( array $settings ): array {
+	$legacy_defaults = array(
+		'product_card' => array(
+			'in_stock_color' => '#34d399',
+		),
+		'product_page' => array(
+			'discount_color' => '#ef4056',
+			'savings_color'  => '#00a049',
+			'star_color'     => '#f7b731',
+		),
+	);
+
+	foreach ( $legacy_defaults as $section_key => $colors ) {
+		if ( empty( $settings[ $section_key ] ) || ! is_array( $settings[ $section_key ] ) ) {
+			continue;
+		}
+		foreach ( $colors as $setting_key => $legacy_color ) {
+			$current = $settings[ $section_key ][ $setting_key ] ?? null;
+			if ( is_string( $current ) && strtolower( $current ) === $legacy_color ) {
+				$settings[ $section_key ][ $setting_key ] = '';
+			}
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ تنظیماتِ قدیمی به v5: پرسش‌های نمونهٔ FAQ را فقط وقتی
+ * فهرستِ قبلی خالی/نامعتبر است اضافه می‌کند. هر FAQ سفارشی حفظ می‌شود و پس
+ * از ذخیره یا حذفِ مدیر، این مهاجرت دوباره اجرا نخواهد شد.
+ */
+function jluxe_migrate_settings_v5( array $settings ): array {
+	if ( ! isset( $settings['faq'] ) || ! is_array( $settings['faq'] ) ) {
+		$settings['faq'] = array();
+	}
+	$items = $settings['faq']['items'] ?? array();
+	if ( ! is_array( $items ) || empty( $items ) ) {
+		$settings['faq']['items'] = jluxe_faq_default_items();
+	}
+	return $settings;
+}
+
+/**
+ * مهاجرتِ یک‌بارهٔ v5→v6: فقط متن‌هایی را که دقیقاً با پیش‌فرض‌های قدیمیِ
+ * فوتر برابرند به نسخهٔ تازهٔ درخواست‌شده تبدیل می‌کند؛ هر متن سفارشی، شماره،
+ * لینک و HTML رسمیِ نمادها دست‌نخورده می‌ماند.
+ */
+function jluxe_migrate_settings_v6( array $settings ): array {
+	if ( empty( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$footer = &$settings['footer'];
+	$legacy_text = array(
+		'support_hours' => array(
+			'هر روز ۹ تا ۲۲' => 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.',
+		),
+		'support_text' => array(
+			'پشتیبانی متنی ۲۴ ساعته: اینستاگرام، تلگرام، واتس‌اپ، روبیکا، بله' => 'پشتیبانی متنی ۲۴ ساعته از طریق شبکه‌های اجتماعی.',
+		),
+		'trust_badges_title' => array(
+			'نمادهای سایت' => 'نمادهای اعتماد',
+		),
+	);
+	foreach ( $legacy_text as $key => $replacements ) {
+		$current = $footer[ $key ] ?? null;
+		if ( is_string( $current ) && isset( $replacements[ $current ] ) ) {
+			$footer[ $key ] = $replacements[ $current ];
+		}
+	}
+
+	$legacy_features = array(
+		0 => array( 'title' => array( 'ارسال سریع' => 'ارسال سریع و مطمئن' ), 'subtitle' => array( 'ارسال فوری تهران و شهرستان' => 'به سراسر ایران' ) ),
+		1 => array( 'title' => array( 'پشتیبانی خوب' => 'پشتیبانی آنلاین' ), 'subtitle' => array( 'همیشه آنلاینیم' => '۲۴ ساعته از طریق شبکه‌های اجتماعی' ) ),
+		2 => array( 'subtitle' => array( 'مطمئن باش کف قیمت بازار' => 'کف قیمت بازار' ) ),
+		3 => array( 'title' => array( 'امنیت کامل' => 'امنیت خرید' ), 'subtitle' => array( 'دارای درگاه ایمن و مطمئن' => 'پرداخت از درگاه مطمئن' ) ),
+	);
+	if ( isset( $footer['feature_cards'] ) && is_array( $footer['feature_cards'] ) ) {
+		foreach ( $legacy_features as $index => $fields ) {
+			if ( empty( $footer['feature_cards'][ $index ] ) || ! is_array( $footer['feature_cards'][ $index ] ) ) {
+				continue;
+			}
+			foreach ( $fields as $field => $replacements ) {
+				$current = $footer['feature_cards'][ $index ][ $field ] ?? null;
+				if ( is_string( $current ) && isset( $replacements[ $current ] ) ) {
+					$footer['feature_cards'][ $index ][ $field ] = $replacements[ $current ];
+				}
+			}
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v6→v7: remove only exact, known theme defaults that made claims about
+ * this particular store. SHA-256 fingerprints keep even partially edited
+ * merchant copy untouched; long HTML is not duplicated in migration code.
+ */
+function jluxe_migrate_settings_v7( array $settings ): array {
+	$updates = array(
+		'identity.short_description' => array(
+			'1f7ddc314e18d3048fab90bb5006402d5584e20f5ce6d4695202fef7ba05c513' => '',
+		),
+		'header_nav.items.4.label' => array(
+			'c75a183aab6162b719d2d10c091cf9b1888d941acf106ed51168aea9b61ae830' => 'درباره ما',
+		),
+		'footer.brand_description' => array(
+			'0efcad7d1508c1609d2ba7f7114400b20d35029a5138537955e8aa9851d42f19' => '',
+		),
+		'footer.support_hours' => array(
+			'74237dff531d874e563d1324037aeaab4d75044e6c56c824cda6995cacb92fcc' => '',
+		),
+		'footer.support_text' => array(
+			'eedccc2730f87a0bf1db2975ba4113bc3326e08745e0042584a61155a5f67c59' => '',
+		),
+		'footer.feature_cards.0.title' => array(
+			'caecd8b3ed46f79e805c6fa883c4e008b78a807d1d1d089703b6d53b6bef465f' => '',
+		),
+		'footer.feature_cards.0.subtitle' => array(
+			'34601faf1d7a3a386d158a395a7b37f5c10a39524bd0432c60a0908c7ad3c735' => '',
+		),
+		'footer.feature_cards.1.title' => array(
+			'e64dd4de8d5b9276beff683fe4bf81c04e6da5fb54cf059e350e229746acbc4c' => '',
+		),
+		'footer.feature_cards.1.subtitle' => array(
+			'a3f95c6d096ad99d76b2a20d588a595f3e1b132662340f9e10dc781c3b8e5fec' => '',
+		),
+		'footer.feature_cards.2.title' => array(
+			'64fce78df7f5b165a9b7c40e82af9ce47b72f507b4bfafb3d37026cb769ff7f0' => '',
+		),
+		'footer.feature_cards.2.subtitle' => array(
+			'fc1dff9d011afc20e20e924238c68ed0799709b8d96812b840110b5ca451c95d' => '',
+		),
+		'footer.feature_cards.3.title' => array(
+			'aa28ad8c210f121bce21c36ea73ea04c4b5eae21e1cebb55eb27fd87c61517a2' => '',
+		),
+		'footer.feature_cards.3.subtitle' => array(
+			'26c032c1456eddebdecbda4eaa99eb418af2a76aeeb3ebf9eb97c54f6ae27d27' => '',
+		),
+		'info_pages.contact.intro_title' => array(
+			'90bf28a43f6daa1f5ba89a8f6bacfae05b500ae55e67e60d67dee9d37d1175ef' => 'راه‌های تماس',
+		),
+		'info_pages.contact.intro_text' => array(
+			'011a1fffc42067e5499593f6025673572c4d6af82baa0f2c0c1e08d65f99d542' => '',
+		),
+		'info_pages.about.intro_title' => array(
+			'50754969224dde588f7d295a53809ffaaebcb3d2fc1847137cc42ec2bfbc2568' => 'درباره ما',
+		),
+		'info_pages.about.intro_text' => array(
+			'9c7f5c5fa93a07156ea20007fe97112bb71b7c154e9ab54714d5530393ebe8f7' => '',
+		),
+		'info_pages.about.story_html' => array(
+			'9a9f0c2309dd4acd1048ae39c79dce0c81e022ccdacff1bfbb12756d2a69f281' => '',
+		),
+		'info_pages.about.cta_text' => array(
+			'bd9e8a121527dad3a91a455581342796554002dea3a7b052c57e1581f0597cb6' => '',
+		),
+		'info_pages.about.why_html' => array(
+			'a6103d99258f29a4f6c3481383a876bec77cca21e71bc83de1ccb8f10892198f' => '',
+		),
+		'guide_pages.shopping_guide.intro' => array(
+			'9dce837280c78b620f04017f13512359cd06744a8a375d54f5c26d2f86848795' => 'گزینه‌ها و مراحل در دسترس برای این سفارش را در صفحه‌های محصول، سبد و تسویه‌حساب بررسی کنید.',
+		),
+		'guide_pages.shopping_guide.steps.0.content' => array(
+			'e770786b00f9b7c3a3a26916d87e97db63ba9f99d7b047ca3f8f111e90ac4050' => '<p>در صفحهٔ محصول، توضیحات و ویژگی‌هایی را که برای همان کالا درج شده‌اند مطالعه کنید.</p><p>اگر گزینه‌ای برای محصول نمایش داده می‌شود، آن را انتخاب و کالا را به سبد اضافه کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.content' => array(
+			'd8029039a9e38e8c4775ac4b72af282338ab2eea1cbe8d3256aa3d0f39c908bf' => '<p>اقلام، تعداد و گزینه‌های انتخاب‌شده را در سبد بررسی و در صورت نیاز ویرایش کنید.</p><p>برای ادامه، دکمهٔ رفتن به تسویه‌حساب را انتخاب کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.callout_text' => array(
+			'6c487bf168c43c58d43e303848498db5ee8c183e82340b9d485db5f63d6d47b0' => '',
+		),
+		'guide_pages.shopping_guide.steps.2.content' => array(
+			'96a536ff63e302b7edc73a86225c126486d21a4d98330abc5fb1764eb5568586' => '<p>فیلدهایی را که برای سفارش در فرم تسویه‌حساب نمایش داده می‌شوند تکمیل کنید؛ موارد الزامی در همان فرم مشخص می‌شوند.</p><p>پیش از ثبت سفارش، اطلاعات واردشده را بازبینی کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.3.content' => array(
+			'f5ac21f7ccc59f047c57ac733b9c4454f126b900b844f6dc70f067f30056f494' => '<p>روش‌های ارسال و پرداختی که برای سبد و نشانیِ فعلی در دسترس‌اند، در تسویه‌حساب نمایش داده می‌شوند.</p><p>توضیحات و هزینهٔ هر گزینه را همان‌جا بررسی کنید و فقط از روش‌هایی استفاده کنید که در فرایند رسمی خرید نمایش داده می‌شوند.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.content' => array(
+			'3c0c9389999b29e6ddaf3f3a181c574539c9bdaf840452ba36b7024db69afe76' => '<p>خلاصهٔ سفارش و مبلغ نهایی را پیش از تأیید بازبینی کنید.</p><p>پس از ثبت سفارش، از حساب کاربری یا صفحهٔ پیگیری برای مشاهدهٔ اطلاعاتی که فروشگاه ثبت کرده است استفاده کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.callout_text' => array(
+			'b230b7974e6d0f640aa685b3210b31ef92dfe9bdb2f68d2c316654d4cc002cf4' => '',
+		),
+		'guide_pages.payment_guide.intro' => array(
+			'17a2a183c3c023ad3df5f63454ad5dcaa50e82002942858443979fe876154a6f' => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+		),
+		'guide_pages.payment_guide.body_html' => array(
+			'43e093ca272fd7b1d40543350ca1b37d2b16c2db0aafecb4c41f47fbee959a64' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+		),
+		'guide_pages.shipping_tracking.intro' => array(
+			'0b69796c62afa0fbc8493d80c57a23a28f5a6528689cfef87c0fbed1e7d24a51' => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
+		),
+		'guide_pages.shipping_tracking.body_html' => array(
+			'17671cc26590dc3c3ba3cbf74245435ea57465d0632ddf7086ddefe125ca9fab' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+		),
+		'guide_pages.returns_exchanges.intro' => array(
+			'2e9972729c58fbb7dad5c99f71f66b49ed7765fac12cb23081e4ccb315822efd' => '',
+		),
+		'guide_pages.returns_exchanges.deny_title' => array(
+			'ba54aa90c3253882c6c5b87a4186b0754fbc2b6aaf8cfe31cfc4943b1b4ed032' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_1_label' => array(
+			'bb9e449696ca0a06ca0f878e1b5fb6bb7681d676069f301f5073874afc2e5a66' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_1_text' => array(
+			'219a10ff16b633396559e0673f4327fbeed710d3ba0114ec691b12cec76703f9' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_2_label' => array(
+			'74753f83809dec1309c2bd1f4272fb62d67d2938fd0755d689e06095b7368202' => '',
+		),
+		'guide_pages.returns_exchanges.deny_item_2_text' => array(
+			'd024fe565624d70de680fd87ed162345fe68bc25c79d83f0251d390b66fa85e0' => '',
+		),
+		'guide_pages.returns_exchanges.tip_label' => array(
+			'851a50e88f5a630a80af9d23f632ad06ef95e4f8121a4cd4c6864bc79efb9181' => '',
+		),
+		'guide_pages.returns_exchanges.tip_text' => array(
+			'9962dcb99c3c689dd592cc19f967568f7224fb1f47561a8df3a896d6ebb1bb8d' => '',
+		),
+		'guide_pages.returns_exchanges.body_html' => array(
+			'388484698bba0a4457f7b55b9c461fec8e571491cdaccb576500871cd40cbe0d' => '',
+		),
+		'product_page.trust_items.0.title' => array(
+			'fbf3a627ed0cd0a9ee580857f86d4c4f341daafd81e2a49cc2b61e9e54ad40f9' => '',
+		),
+		'product_page.trust_items.0.subtitle' => array(
+			'c7cd2fcdd16bba45aea7571920bf9b2da4c9ffb66d1aaf580e36e0ac4e704f8c' => '',
+		),
+		'product_page.trust_items.1.title' => array(
+			'd08174fb600295fb29d2e47332aa5cb39de36d75cf937e422ea64c6537802cad' => '',
+		),
+		'product_page.trust_items.1.subtitle' => array(
+			'4bd3ca33963c6236ad1fbbb75a77ee0e7e7c47bf13a0f6d9c4ec26c8aeaaf9ad' => '',
+		),
+		'product_page.trust_items.2.title' => array(
+			'32c7f180e0a91811ba376a936509b2f7c006152ff38188e728f06d2466027026' => '',
+		),
+		'product_page.trust_items.2.subtitle' => array(
+			'af7b635cc9cf2081749468e65bebee496ae620711da88ec6a8fb4ac030af475a' => '',
+		),
+		'faq.items.0.answer' => array(
+			'68c5314a6c568b4a8f70247f09cf011a84a3e09ab5ddece79b81ea3187f6a716' => 'در صفحهٔ تسویه‌حساب مشخص است آیا ورود یا ساخت حساب برای سفارش لازم است؛ تنظیمات فروشگاه و قابلیت‌های فعال ممکن است این شرط را تغییر دهند.',
+		),
+		'faq.items.5.answer' => array(
+			'341241c5c222354568a6b61080ee72bd786c4ff0a700f85b18d1bb868e79bff7' => 'شرایط مرجوعی فقط در صورتی روشن است که فروشگاه آن را در صفحهٔ رویهٔ مرجوعی درج کرده باشد. اگر متن کامل نیست یا پرسشی دارید، پیش از خرید از راه تماسِ فعلیِ فروشگاه راهنمایی بگیرید.',
+		),
+		'ai_assistant.name' => array(
+			'18d7b487a88850a867525de608abe08c533544720baaae2ea1ae721a94a27d51' => 'دستیار فروشگاه',
+		),
+	);
+
+	$clear_or_update = static function ( array &$root, string $path, array $replacements ): void {
+		$segments = explode( '.', $path );
+		$leaf     = array_pop( $segments );
+		$cursor   = &$root;
+		$exists   = true;
+		foreach ( $segments as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				$exists = false;
+				break;
+			}
+			$cursor = &$cursor[ $segment ];
+		}
+		if ( $exists && is_array( $cursor ) && isset( $cursor[ $leaf ] ) && is_string( $cursor[ $leaf ] ) ) {
+			$signature = hash( 'sha256', $cursor[ $leaf ] );
+			if ( array_key_exists( $signature, $replacements ) ) {
+				$cursor[ $leaf ] = $replacements[ $signature ];
+			}
+		}
+		unset( $cursor );
+	};
+
+	foreach ( $updates as $path => $replacements ) {
+		$clear_or_update( $settings, $path, $replacements );
+	}
+
+	// v6's migration replaced a few older card labels with the exact v6 defaults.
+	// A v7 migration clears only those now-known default subtitles/titles.
+	foreach ( array( 0, 1, 2, 3 ) as $index ) {
+		if ( ! isset( $settings['footer']['feature_cards'][ $index ] ) || ! is_array( $settings['footer']['feature_cards'][ $index ] ) ) {
+			continue;
+		}
+		$card = &$settings['footer']['feature_cards'][ $index ];
+		if ( '' === (string) ( $card['title'] ?? '' ) && '' === (string) ( $card['subtitle'] ?? '' ) ) {
+			$card['enabled'] = false;
+		}
+		unset( $card );
+	}
+	if ( isset( $settings['product_page']['trust_items'] ) && is_array( $settings['product_page']['trust_items'] ) ) {
+		foreach ( $settings['product_page']['trust_items'] as &$item ) {
+			if ( is_array( $item ) && '' === (string) ( $item['title'] ?? '' ) && '' === (string) ( $item['subtitle'] ?? '' ) ) {
+				$item['enabled'] = false;
+			}
+		}
+		unset( $item );
+	}
+
+	// Disable only the exact legacy schedule. Preserve configured IANA zones;
+	// v19 separately repairs the UTC default persisted by older releases.
+	$hours = $settings['ai_assistant']['phone_hours'] ?? null;
+	if (
+		is_array( $hours ) && ! empty( $hours['enabled'] ) &&
+		'10:00' === ( $hours['start'] ?? null ) && '20:00' === ( $hours['end'] ?? null ) &&
+		array( 5 ) === array_values( array_map( 'intval', (array) ( $hours['closed_days'] ?? array() ) ) )
+	) {
+		$settings['ai_assistant']['phone_hours'] = array(
+			'enabled'     => false,
+			'start'       => '',
+			'end'         => '',
+			'closed_days' => array(),
+		);
+	}
+	$legacy_icons = array(
+		'phone'     => 'https://jluxe.ir/wp-content/uploads/2026/05/Phone-jlx.webp',
+		'whatsapp'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-147.png',
+		'telegram'  => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-143.png',
+		'instagram' => 'https://jluxe.ir/wp-content/uploads/2026/05/APPizo-140.png',
+		'rubika'    => 'https://jluxe.ir/wp-content/uploads/2026/05/rubika.png',
+		'bale'      => 'https://jluxe.ir/wp-content/uploads/2026/05/bale.png',
+	);
+	foreach ( $legacy_icons as $channel => $url ) {
+		if ( ( $settings['ai_assistant']['contact_icons'][ $channel ] ?? null ) === $url ) {
+			$settings['ai_assistant']['contact_icons'][ $channel ] = '';
+		}
+	}
+
+	// Header items may have been reordered, so locate the old default by ID rather than position.
+	if ( isset( $settings['header_nav']['items'] ) && is_array( $settings['header_nav']['items'] ) ) {
+		foreach ( $settings['header_nav']['items'] as &$item ) {
+			if ( is_array( $item ) && 'about' === ( $item['id'] ?? '' ) && 'درباره زرین' === ( $item['label'] ?? '' ) ) {
+				$item['label'] = 'درباره ما';
+			}
+		}
+		unset( $item );
+	}
+
+	return $settings;
+}
+
+/**
+ * v7→v8: restore only the user-approved footer description/benefits. Older v7
+ * migrations intentionally emptied their exact defaults; custom copy survives.
+ */
+function jluxe_migrate_settings_v8( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$defaults = jluxe_theme_settings_defaults()['footer'];
+	$footer   = &$settings['footer'];
+	$brand    = $footer['brand_description'] ?? null;
+	if ( ! is_string( $brand ) || '' === trim( $brand ) ) {
+		$footer['brand_description'] = $defaults['brand_description'];
+	}
+
+	$cards = $footer['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) ) {
+		$footer['feature_cards'] = $defaults['feature_cards'];
+		unset( $footer );
+		return $settings;
+	}
+
+	for ( $index = 0; $index < count( $defaults['feature_cards'] ); $index++ ) {
+		$default_card = $defaults['feature_cards'][ $index ];
+		if ( ! isset( $cards[ $index ] ) || ! is_array( $cards[ $index ] ) ) {
+			$footer['feature_cards'][ $index ] = $default_card;
+			continue;
+		}
+
+		$card_title    = is_string( $cards[ $index ]['title'] ?? null ) ? trim( $cards[ $index ]['title'] ) : '';
+		$card_subtitle = is_string( $cards[ $index ]['subtitle'] ?? null ) ? trim( $cards[ $index ]['subtitle'] ) : '';
+		if ( '' === $card_title && '' === $card_subtitle ) {
+			$footer['feature_cards'][ $index ]['enabled']  = true;
+			$footer['feature_cards'][ $index ]['title']    = $default_card['title'];
+			$footer['feature_cards'][ $index ]['subtitle'] = $default_card['subtitle'];
+			if ( ! is_string( $cards[ $index ]['icon'] ?? null ) || '' === trim( $cards[ $index ]['icon'] ) ) {
+				$footer['feature_cards'][ $index ]['icon'] = $default_card['icon'];
+			}
+		}
+	}
+
+	unset( $footer );
+	return $settings;
+}
+
+/**
+ * v8→v9: make the first default benefit follow the same short-title pattern as
+ * the other three. Only the exact untouched v8 default pair is rephrased.
+ */
+function jluxe_migrate_settings_v9( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$cards = $settings['footer']['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) || ! isset( $cards[0] ) || ! is_array( $cards[0] ) ) {
+		return $settings;
+	}
+
+	if (
+		'ارسال سریع و مطمئن' === ( $cards[0]['title'] ?? null ) &&
+		'ارسال فوری به سراسر ایران' === ( $cards[0]['subtitle'] ?? null )
+	) {
+		$settings['footer']['feature_cards'][0]['title']    = 'ارسال فوری';
+		$settings['footer']['feature_cards'][0]['subtitle'] = 'به سراسر ایران';
+	}
+
+	return $settings;
+}
+
+/**
+ * v9→v10: show the complete approved shipping slogan as the first card's bold
+ * title, matching the other benefit headings. Preserve partially edited copy.
+ */
+function jluxe_migrate_settings_v10( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$cards = $settings['footer']['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) || ! isset( $cards[0] ) || ! is_array( $cards[0] ) ) {
+		return $settings;
+	}
+
+	if (
+		'ارسال فوری' === ( $cards[0]['title'] ?? null ) &&
+		'به سراسر ایران' === ( $cards[0]['subtitle'] ?? null )
+	) {
+		$settings['footer']['feature_cards'][0]['title']    = 'ارسال فوری به سراسر ایران';
+		$settings['footer']['feature_cards'][0]['subtitle'] = '';
+	}
+
+	return $settings;
+}
+
+/**
+ * v10→v11: repair the legacy footer row where the approved shipping slogan
+ * was saved as a subtitle with an empty title, so it receives the shared
+ * bold-heading style. Only that exact orphaned copy is moved.
+ */
+function jluxe_migrate_settings_v11( array $settings ): array {
+	if ( ! isset( $settings['footer'] ) || ! is_array( $settings['footer'] ) ) {
+		return $settings;
+	}
+
+	$cards = $settings['footer']['feature_cards'] ?? null;
+	if ( ! is_array( $cards ) || ! isset( $cards[0] ) || ! is_array( $cards[0] ) ) {
+		return $settings;
+	}
+
+	$title    = $cards[0]['title'] ?? null;
+	$subtitle = $cards[0]['subtitle'] ?? null;
+	if (
+		is_string( $title ) &&
+		'' === trim( $title ) &&
+		is_string( $subtitle ) &&
+		'ارسال فوری به سراسر ایران' === trim( $subtitle )
+	) {
+		$settings['footer']['feature_cards'][0]['title']    = 'ارسال فوری به سراسر ایران';
+		$settings['footer']['feature_cards'][0]['subtitle'] = '';
+	}
+
+	return $settings;
+}
+
+/**
+ * v11→v12: replace only the exact earlier default copy on the shopping-guide
+ * page. Fingerprints preserve any text that an administrator has edited.
+ */
+function jluxe_migrate_settings_v12( array $settings ): array {
+	$updates = array(
+		'guide_pages.shopping_guide.title' => array(
+			hash( 'sha256', 'راهنمای گام‌به‌گام خرید از {site_name}' ) => 'راهنمای گام‌به‌گام خرید از جهیزیه لوکس',
+		),
+		'guide_pages.shopping_guide.intro' => array(
+			hash( 'sha256', 'گزینه‌ها و مراحل در دسترس برای این سفارش را در صفحه‌های محصول، سبد و تسویه‌حساب بررسی کنید.' ) => 'خرید از سایت ما بسیار ساده و سریع طراحی شده است. برای ثبت سفارش خود کافی است مراحل زیر را دنبال کنید:',
+		),
+		'guide_pages.shopping_guide.steps.0.content' => array(
+			hash( 'sha256', '<p>در صفحهٔ محصول، توضیحات و ویژگی‌هایی را که برای همان کالا درج شده‌اند مطالعه کنید.</p><p>اگر گزینه‌ای برای محصول نمایش داده می‌شود، آن را انتخاب و کالا را به سبد اضافه کنید.</p>' ) => '<p>با کلیک روی تصویر یا نام کالای موردنظر خود، وارد صفحهٔ محصول شوید.</p><p>پس از انتخاب مشخصات (مانند رنگ یا سایز)، روی دکمهٔ «افزودن به سبد خرید» کلیک کنید.</p><p>پس از افزودن کالا، لیستی از محصولات پیشنهادی و مرتبط نیز به شما نمایش داده می‌شود که در صورت تمایل می‌توانید آن‌ها را هم به سبد خرید خود اضافه کنید.</p><p>شما می‌توانید در هر زمان با استفاده از کادر جستجوی بالای سایت یا گشت‌وگذار در دسته‌بندی‌ها، سایر کالاهای موردنیاز خود را پیدا کرده و به سبد خرید اضافه کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.content' => array(
+			hash( 'sha256', '<p>اقلام، تعداد و گزینه‌های انتخاب‌شده را در سبد بررسی و در صورت نیاز ویرایش کنید.</p><p>برای ادامه، دکمهٔ رفتن به تسویه‌حساب را انتخاب کنید.</p>' ) => '<p>برای مشاهدهٔ کالاهای انتخابی خود، در حالت موبایل روی آیکون سبد خرید (گوشهٔ پایین چپ) و در حالت دسکتاپ روی سبد خرید (بالای صفحه) کلیک کنید.</p><p>در این صفحه می‌توانید تعداد کالاها یا رنگ آن‌ها را بازبینی کرده و در صورت نیاز تغییر دهید یا آیتمی را حذف کنید.</p><p>پس از اطمینان از لیست کالاها، دکمهٔ «ثبت سفارش» یا «ادامه جهت تسویه‌حساب» را انتخاب کنید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.1.callout_text' => array(
+			hash( 'sha256', '' ) => 'برای خرید از سایت ما، نیازی به ثبت‌نام اجباری نیست؛ اما پیشنهاد می‌کنیم برای پیگیری راحت‌تر سفارش‌های بعدی و مدیریت تاریخچهٔ خرید خود، ابتدا در سایت ثبت‌نام کنید.',
+		),
+		'guide_pages.shopping_guide.steps.2.content' => array(
+			hash( 'sha256', '<p>فیلدهایی را که برای سفارش در فرم تسویه‌حساب نمایش داده می‌شوند تکمیل کنید؛ موارد الزامی در همان فرم مشخص می‌شوند.</p><p>پیش از ثبت سفارش، اطلاعات واردشده را بازبینی کنید.</p>' ) => '<p>در این مرحله وارد صفحهٔ دریافت اطلاعات خواهید شد. مشخصات فردی، شمارهٔ تماس و آدرس دقیق خود را به‌صورت کامل وارد کنید.</p><p>اگر نکته یا توضیحات خاصی دربارهٔ زمان ارسال یا نحوهٔ بسته‌بندی سفارش خود دارید، می‌توانید آن را در کادر «یادداشت سفارش» بنویسید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.3.content' => array(
+			hash( 'sha256', '<p>روش‌های ارسال و پرداختی که برای سبد و نشانیِ فعلی در دسترس‌اند، در تسویه‌حساب نمایش داده می‌شوند.</p><p>توضیحات و هزینهٔ هر گزینه را همان‌جا بررسی کنید و فقط از روش‌هایی استفاده کنید که در فرایند رسمی خرید نمایش داده می‌شوند.</p>' ) => '<p>شیوهٔ ارسال موردنظر خود (پست، تیپاکس و...) را متناسب با شرایط خود انتخاب کنید.</p><p>روش پرداخت را تعیین کرده و روی دکمهٔ نهایی «ثبت سفارش» کلیک کنید تا به درگاه امن بانکی منتقل شوید.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.content' => array(
+			hash( 'sha256', '<p>خلاصهٔ سفارش و مبلغ نهایی را پیش از تأیید بازبینی کنید.</p><p>پس از ثبت سفارش، از حساب کاربری یا صفحهٔ پیگیری برای مشاهدهٔ اطلاعاتی که فروشگاه ثبت کرده است استفاده کنید.</p>' ) => '<p>پس از پرداخت موفقیت‌آمیز مبلغ سفارش، به سایت بازگردانده می‌شوید و وضعیت سفارش شما به حالت «در حال انجام» تغییر می‌یابد.</p>',
+		),
+		'guide_pages.shopping_guide.steps.4.callout_text' => array(
+			hash( 'sha256', '' ) => 'در تمامی مراحل — از زمان ثبت و تایید تا بسته‌بندی و ارسال کد رهگیری پستی — تغییرات وضعیت سفارش از طریق پیامک فوراً به اطلاع شما خواهد رسید.',
+		),
+		'guide_pages.shopping_guide.button_text' => array(
+			hash( 'sha256', 'مشاهده فروشگاه ←' ) => 'شروع خرید ←',
+		),
+		'guide_pages.shopping_guide.button_url' => array(
+			hash( 'sha256', '/shop/' ) => '/',
+		),
+	);
+
+	$replace_exact = static function ( array &$root, string $path, array $replacements ): void {
+		$segments = explode( '.', $path );
+		$leaf     = array_pop( $segments );
+		$cursor   = &$root;
+		foreach ( $segments as $segment ) {
+			if ( ! is_array( $cursor ) || ! array_key_exists( $segment, $cursor ) ) {
+				return;
+			}
+			$cursor = &$cursor[ $segment ];
+		}
+		if ( is_array( $cursor ) && isset( $cursor[ $leaf ] ) && is_string( $cursor[ $leaf ] ) ) {
+			$signature = hash( 'sha256', $cursor[ $leaf ] );
+			if ( array_key_exists( $signature, $replacements ) ) {
+				$cursor[ $leaf ] = $replacements[ $signature ];
+			}
+		}
+		unset( $cursor );
+	};
+
+	foreach ( $updates as $path => $replacements ) {
+		$replace_exact( $settings, $path, $replacements );
+	}
+
+	return $settings;
+}
+
+/**
+ * v12→v13: install the manager-supplied payment-guide copy and account values.
+ * Replace only the exact previous guide defaults; keep any edited copy and
+ * every non-empty account field intact. v12 stored blank account defaults, so
+ * blank/missing account fields receive the explicitly supplied new defaults.
+ */
+function jluxe_migrate_settings_v13( array $settings ): array {
+	$defaults       = jluxe_theme_settings_defaults();
+	$guide_defaults = $defaults['guide_pages']['payment_guide'] ?? array();
+	$old_guide_copy = array(
+		'intro'     => 'روش‌های پرداختِ قابل استفاده برای سفارش فعلی در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. روش انتخابی و مبلغ نهایی را پیش از پرداخت بررسی کنید.',
+		'body_html' => '<p>روش‌های پرداختِ فعال برای سفارش در تسویه‌حساب نمایش داده می‌شوند. توضیحات همان گزینه‌ها را بررسی کنید و پرداخت را فقط از مسیر رسمیِ ثبت سفارش انجام دهید.</p>',
+	);
+
+	if ( isset( $settings['guide_pages']['payment_guide'] ) && is_array( $settings['guide_pages']['payment_guide'] ) ) {
+		foreach ( $old_guide_copy as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['payment_guide'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $guide_defaults[ $field ] ) ) {
+				$settings['guide_pages']['payment_guide'][ $field ] = $guide_defaults[ $field ];
+			}
+		}
+	}
+
+	$account_defaults = $defaults['payment_account'] ?? array();
+	if ( ! isset( $settings['payment_account'] ) || ! is_array( $settings['payment_account'] ) ) {
+		$settings['payment_account'] = $account_defaults;
+		return $settings;
+	}
+
+	foreach ( $account_defaults as $field => $default_value ) {
+		$current_value = $settings['payment_account'][ $field ] ?? null;
+		if ( ! is_string( $current_value ) || '' === trim( $current_value ) ) {
+			$settings['payment_account'][ $field ] = $default_value;
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v13→v14: replace only the previous neutral shipping/tracking defaults with
+ * the manager-supplied guide. Custom copy and CTA choices remain unchanged.
+ */
+function jluxe_migrate_settings_v14( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults()['guide_pages']['shipping_tracking'] ?? array();
+	$old_values = array(
+		'intro' => 'روش‌های ارسال و هزینه‌های قابل انتخاب برای سفارش در مرحلهٔ تسویه‌حساب نمایش داده می‌شوند. گزینه‌های همان سفارش را پیش از نهایی‌کردن بررسی کنید.',
+		'body_html' => '<p>روش‌ها و هزینه‌های ارسال به پیکربندی فعلی فروشگاه، سبد و نشانی مقصد وابسته‌اند؛ گزینه‌های در دسترس را در تسویه‌حساب بررسی کنید.</p><p>صفحهٔ پیگیری، وضعیت سفارش و اطلاعات ارسالی را که در فروشگاه ثبت شده‌اند نشان می‌دهد. به‌روزرسانی این اطلاعات به ثبت آن‌ها در سفارش وابسته است.</p><p><a href="/track-order/">پیگیری سفارش ←</a></p>',
+	);
+
+	if ( isset( $settings['guide_pages']['shipping_tracking'] ) && is_array( $settings['guide_pages']['shipping_tracking'] ) ) {
+		foreach ( $old_values as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['shipping_tracking'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $defaults[ $field ] ) ) {
+				$settings['guide_pages']['shipping_tracking'][ $field ] = $defaults[ $field ];
+			}
+		}
+
+		$button_text  = $settings['guide_pages']['shipping_tracking']['button_text'] ?? null;
+		$button_url   = $settings['guide_pages']['shipping_tracking']['button_url'] ?? '/';
+		$button_color = $settings['guide_pages']['shipping_tracking']['button_color'] ?? '';
+		if (
+			'بازگشت به فروشگاه ←' === $button_text &&
+			'/' === $button_url &&
+			'' === $button_color &&
+			isset( $defaults['button_text'] )
+		) {
+			$settings['guide_pages']['shipping_tracking']['button_text'] = $defaults['button_text'];
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v14→v15: fill the previously blank returns-guide intro/body only when they
+ * still match the untouched neutral defaults; administrator content survives.
+ */
+function jluxe_migrate_settings_v15( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults()['guide_pages']['returns_exchanges'] ?? array();
+	$old_values = array(
+		'intro'     => '',
+		'body_html' => '',
+	);
+
+	if ( isset( $settings['guide_pages']['returns_exchanges'] ) && is_array( $settings['guide_pages']['returns_exchanges'] ) ) {
+		foreach ( $old_values as $field => $old_value ) {
+			$current_value = $settings['guide_pages']['returns_exchanges'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $current_value === $old_value && isset( $defaults[ $field ] ) ) {
+				$settings['guide_pages']['returns_exchanges'][ $field ] = $defaults[ $field ];
+			}
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v15→v16: seed the supplied contact-page content only where stored fields
+ * still match the previous blank/theme-default values. Custom contact details,
+ * copy and social URLs remain untouched; newly introduced fields are filled
+ * only when they did not exist in the stored option.
+ */
+function jluxe_migrate_settings_v16( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	$contact_defaults = $defaults['contact'] ?? array();
+	$old_contact_values = array(
+		'phone'           => '',
+		'phone_secondary' => '',
+		'email'           => '',
+	);
+
+	if ( isset( $settings['contact'] ) && is_array( $settings['contact'] ) ) {
+		foreach ( $old_contact_values as $field => $old_value ) {
+			$current_value = $settings['contact'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $old_value === $current_value && isset( $contact_defaults[ $field ] ) ) {
+				$settings['contact'][ $field ] = $contact_defaults[ $field ];
+			}
+		}
+	}
+
+	$contact_page_defaults = $defaults['info_pages']['contact'] ?? array();
+	$old_contact_page_values = array(
+		'intro_title' => 'راه‌های تماس',
+		'intro_text'  => '',
+		'phone_title' => 'شماره‌ی تماس',
+	);
+	if ( isset( $settings['info_pages']['contact'] ) && is_array( $settings['info_pages']['contact'] ) ) {
+		foreach ( $old_contact_page_values as $field => $old_value ) {
+			$current_value = $settings['info_pages']['contact'][ $field ] ?? null;
+			if ( is_string( $current_value ) && $old_value === $current_value && isset( $contact_page_defaults[ $field ] ) ) {
+				$settings['info_pages']['contact'][ $field ] = $contact_page_defaults[ $field ];
+			}
+		}
+
+		foreach ( array( 'phone_hours', 'email_title', 'social_text' ) as $field ) {
+			if ( ! array_key_exists( $field, $settings['info_pages']['contact'] ) && isset( $contact_page_defaults[ $field ] ) ) {
+				$settings['info_pages']['contact'][ $field ] = $contact_page_defaults[ $field ];
+			}
+		}
+	}
+
+	$instagram_defaults = $defaults['social']['instagram'] ?? array();
+	if ( isset( $settings['social']['instagram'] ) && is_array( $settings['social']['instagram'] ) ) {
+		$instagram = $settings['social']['instagram'];
+		if ( false === ( $instagram['enabled'] ?? false ) && '' === ( $instagram['url'] ?? '' ) ) {
+			$settings['social']['instagram']['enabled'] = $instagram_defaults['enabled'] ?? true;
+			$settings['social']['instagram']['url']     = $instagram_defaults['url'] ?? '';
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v16→v17: promote the manager-supplied social profiles to the contact page.
+ * Only rows still carrying the old blank, disabled defaults are filled; a
+ * custom profile URL or an intentionally disabled configured profile survives.
+ * The old contact-card copy is replaced only when it is still the v16 default.
+ */
+function jluxe_migrate_settings_v17( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	if ( ! isset( $settings['social'] ) || ! is_array( $settings['social'] ) ) {
+		$settings['social'] = array();
+	}
+
+	foreach ( array( 'telegram', 'whatsapp', 'rubika', 'bale' ) as $network ) {
+		$default_row = $defaults['social'][ $network ] ?? null;
+		if ( ! is_array( $default_row ) || empty( $default_row['url'] ) ) {
+			continue;
+		}
+		if ( ! isset( $settings['social'][ $network ] ) || ! is_array( $settings['social'][ $network ] ) ) {
+			$settings['social'][ $network ] = $default_row;
+			continue;
+		}
+
+		$current_url = isset( $settings['social'][ $network ]['url'] ) && is_string( $settings['social'][ $network ]['url'] )
+			? trim( $settings['social'][ $network ]['url'] )
+			: '';
+		if ( '' === $current_url ) {
+			$settings['social'][ $network ]['enabled'] = true;
+			$settings['social'][ $network ]['url']     = $default_row['url'];
+		}
+	}
+
+	$contact_defaults = $defaults['info_pages']['contact'] ?? array();
+	if ( ! isset( $settings['info_pages']['contact'] ) || ! is_array( $settings['info_pages']['contact'] ) ) {
+		$settings['info_pages']['contact'] = array();
+	}
+	$old_contact_copy = array(
+		'social_title' => 'شبکه‌های اجتماعی',
+		'social_text'  => 'اینستاگرام، واتس‌اپ، تلگرام، روبیکا و بله؛ پیوندهای شبکه‌های اجتماعی در فوتر سایت قرار دارند.',
+	);
+	foreach ( $old_contact_copy as $field => $old_value ) {
+		$current_value = $settings['info_pages']['contact'][ $field ] ?? null;
+		if ( ! array_key_exists( $field, $settings['info_pages']['contact'] ) || $old_value === $current_value ) {
+			if ( isset( $contact_defaults[ $field ] ) ) {
+				$settings['info_pages']['contact'][ $field ] = $contact_defaults[ $field ];
+			}
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v17→v18: apply the requested footer contact copy and the supplied blue,
+ * compact shipping-card style. Only known former defaults are updated; custom
+ * footer text, contact numbers, and per-carrier colours remain intact.
+ */
+function jluxe_migrate_settings_v18( array $settings ): array {
+	$defaults = jluxe_theme_settings_defaults();
+	if ( isset( $settings['footer'] ) && is_array( $settings['footer'] ) ) {
+		$approved_brand = 'JLUXE | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.';
+		$previous_brand = 'JLuxe | هنرِ انتخاب برای خانه‌های لوکس. مجموعه‌ای از ظریف‌ترین لوازم خانه و جهیزیه که اصالت و کیفیت را با هم ترکیب کرده است. تجربه‌ای متفاوت از خرید آنلاین.';
+		$brand = $settings['footer']['brand_description'] ?? null;
+		if ( ! is_string( $brand ) || '' === trim( $brand ) || $previous_brand === $brand ) {
+			$settings['footer']['brand_description'] = $approved_brand;
+		}
+
+		$previous_hours = 'در روزهای کاری، از ساعت ۹ صبح تا ۸ شب پاسخ‌گوی تماس شما هستیم.';
+		$hours = $settings['footer']['support_hours'] ?? null;
+		if ( ! is_string( $hours ) || '' === trim( $hours ) || $previous_hours === $hours ) {
+			$settings['footer']['support_hours'] = $defaults['footer']['support_hours'];
+		}
+	}
+
+	if ( isset( $settings['contact'] ) && is_array( $settings['contact'] ) ) {
+		$normalize_phone = static function ( $value ): string {
+			if ( ! is_scalar( $value ) ) {
+				return '';
+			}
+			$digits = strtr(
+				(string) $value,
+				array(
+					'۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+					'۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+					'٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+					'٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+				)
+			);
+			return (string) preg_replace( '/\\D+/', '', $digits );
+		};
+		if ( '09362420232' === $normalize_phone( $settings['contact']['phone'] ?? '' ) && '09120902336' === $normalize_phone( $settings['contact']['phone_secondary'] ?? '' ) ) {
+			$settings['contact']['phone'] = $defaults['contact']['phone'];
+			$settings['contact']['phone_secondary'] = $defaults['contact']['phone_secondary'];
+		}
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$cart = &$settings['cart_checkout'];
+		if ( isset( $cart['shipping_card_radius'] ) && is_scalar( $cart['shipping_card_radius'] ) && 18 === (int) $cart['shipping_card_radius'] ) {
+			$cart['shipping_card_radius'] = $defaults['cart_checkout']['shipping_card_radius'];
+		}
+
+		$previous_carrier_colors = array(
+			'post'   => array( '#FFF9E6', '#D6A900' ),
+			'tipax'  => array( '#EDF7F1', '#33936E' ),
+			'chapar' => array( '#FFF0F0', '#D71925' ),
+		);
+		foreach ( $previous_carrier_colors as $method => $colors ) {
+			if ( empty( $cart['shipping_methods'][ $method ] ) || ! is_array( $cart['shipping_methods'][ $method ] ) ) {
+				continue;
+			}
+			foreach ( array( 'selected_card_background_color', 'selected_card_border_color' ) as $index => $field ) {
+				$current = $cart['shipping_methods'][ $method ][ $field ] ?? null;
+				if ( is_string( $current ) && strtoupper( $current ) === $colors[ $index ] ) {
+					$cart['shipping_methods'][ $method ][ $field ] = $defaults['cart_checkout']['shipping_methods'][ $method ][ $field ];
+				}
+			}
+		}
+		unset( $cart );
+	}
+
+	return $settings;
+}
+
+/**
+ * v18→v19: use Tehran as the store's default phone-hours timezone. Older
+ * releases' v7 migration and admin guidance stored UTC for Tehran; replace
+ * only those legacy UTC defaults and leave any other administrator-selected
+ * IANA timezone untouched. This migration never enables phone-hours display.
+ */
+function jluxe_migrate_settings_v19( array $settings ): array {
+	if ( isset( $settings['ai_assistant'] ) && is_array( $settings['ai_assistant'] ) ) {
+		$timezone = $settings['ai_assistant']['phone_timezone'] ?? null;
+		if ( ! is_string( $timezone ) || '' === trim( $timezone ) || in_array( trim( $timezone ), array( 'UTC', 'Etc/UTC' ), true ) ) {
+			$settings['ai_assistant']['phone_timezone'] = 'Asia/Tehran';
+		}
+	}
+
+	return $settings;
+}
+
+/**
+ * v19→v20: move only known, former theme defaults onto the Electric Indigo
+ * scale. Any color that differs from its old default is an explicit merchant
+ * choice and is preserved. This also updates settings that had previously
+ * saved the old defaults as literal values. Announcement-bar colors are
+ * intentionally excluded so the section stays independent of the site theme.
+ */
+function jluxe_migrate_settings_v20( array $settings ): array {
+	$palette = jluxe_electric_indigo_palette();
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		foreach (	array(
+			'primary'    => array( '#B85C38', $palette['500'] ),
+			'secondary'  => array( '#355C5A', $palette['700'] ),
+			'background' => array( '#F7F3EE', $palette['50'] ),
+			'success'    => array( '#16865A', $palette['600'] ),
+			'accent'     => array( '#C89B3C', $palette['400'] ),
+		) as $key => $colors ) {
+			$replace( $settings['colors'], $key, $colors[0], $colors[1] );
+		}
+	}
+
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		foreach (	array(
+			'text_color'            => array( '#2F6B52', $palette['900'] ),
+			'background_color'      => array( '#F3F8F5', $palette['50'] ),
+			'border_color'          => array( '#C8DED2', $palette['100'] ),
+			'icon_background_color' => array( '#2F6B52', $palette['500'] ),
+			'hover_background_color'=> array( '#2F6B52', $palette['600'] ),
+			'accent_color'          => array( '#C2410C', $palette['400'] ),
+			'panel_border_color'    => array( '#E2E8F0', $palette['100'] ),
+			'panel_text_color'      => array( '#1F2937', $palette['900'] ),
+			'panel_accent_color'    => array( '#2F6B52', $palette['500'] ),
+		) as $key => $colors ) {
+			$replace( $menu, $key, $colors[0], $colors[1] );
+		}
+		unset( $menu );
+	}
+	if ( isset( $settings['mobile']['nav_style'] ) && is_array( $settings['mobile']['nav_style'] ) ) {
+		$nav = &$settings['mobile']['nav_style'];
+		foreach (	array(
+			'active_color' => array( '#087A68', $palette['500'] ),
+			'icon_color'   => array( '#667085', $palette['600'] ),
+			'icon_bg'      => array( '#F5F7F8', $palette['50'] ),
+			'active_bg'    => array( '#E8F4F1', $palette['50'] ),
+		) as $key => $colors ) {
+			$replace( $nav, $key, $colors[0], $colors[1] );
+		}
+		unset( $nav );
+	}
+
+	if ( isset( $settings['product_card'] ) && is_array( $settings['product_card'] ) ) {
+		$replace( $settings['product_card'], 'in_stock_color', '#34D399', $palette['600'] );
+	}
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'discount_color', '#EF4056', $palette['800'] );
+		$replace( $settings['product_page'], 'savings_color', '#00A049', $palette['600'] );
+		$replace( $settings['product_page'], 'star_color', '#F7B731', $palette['400'] );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_background', '#FFF8E6', $palette['50'] );
+		$replace( $checkout, 'checkout_payment_warning_text_color', '#334155', $palette['900'] );
+		$replace( $checkout, 'payment_card_selected_background', '#F0FDF4', $palette['50'] );
+		$shipping_defaults = array(
+			'post' => array( '#FECB02', '#332900' ),
+			'tipax' => array( '#33936E', null ),
+			'chapar' => array( '#D71925', null ),
+		);
+		foreach ( $shipping_defaults as $method => $legacy ) {
+			if ( ! isset( $checkout['shipping_methods'][ $method ] ) || ! is_array( $checkout['shipping_methods'][ $method ] ) ) {
+				continue;
+			}
+			$card = &$checkout['shipping_methods'][ $method ];
+			$replace( $card, 'card_border_color', '#E2E8F0', $palette['100'] );
+			$replace( $card, 'selected_card_background_color', '#EFF6FF', $palette['50'] );
+			$replace( $card, 'selected_card_border_color', '#2563EB', $palette['500'] );
+			$replace( $card, 'note_background_color', $legacy[0], $palette['600'] );
+			if ( null !== $legacy[1] ) {
+				$replace( $card, 'note_text_color', $legacy[1], '#FFFFFF' );
+			}
+			$replace( $card, 'details_background_color', '#F8FAFC', $palette['50'] );
+			$replace( $card, 'details_text_color', '#475569', $palette['700'] );
+			unset( $card );
+		}
+		unset( $checkout );
+	}
+
+	return $settings;
+}
+
+/**
+ * v20→v21: keep Electric Indigo on action/surface roles, while returning
+ * ordinary text and semantic status defaults to readable neutral/semantic
+ * colors. Only exact values written as v20 defaults are migrated; other
+ * administrator-selected colors are preserved.
+ */
+function jluxe_migrate_settings_v21( array $settings ): array {
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		$replace( $settings['colors'], 'success', '#4100CC', '#16865A' );
+	}
+
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		$replace( $menu, 'text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'panel_text_color', '#100033', '#1F2937' );
+		unset( $menu );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_text_color', '#100033', '#334155' );
+		if ( isset( $checkout['shipping_methods'] ) && is_array( $checkout['shipping_methods'] ) ) {
+			foreach ( $checkout['shipping_methods'] as &$method ) {
+				if ( is_array( $method ) ) {
+					$replace( $method, 'details_text_color', '#300099', '#475569' );
+				}
+			}
+			unset( $method );
+		}
+		unset( $checkout );
+	}
+
+	if ( isset( $settings['product_card'] ) && is_array( $settings['product_card'] ) ) {
+		$replace( $settings['product_card'], 'in_stock_color', '#4100CC', '' );
+	}
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'discount_color', '#200066', '' );
+		$replace( $settings['product_page'], 'savings_color', '#4100CC', '' );
+		$replace( $settings['product_page'], 'star_color', '#7433FF', '' );
+	}
+
+	if ( isset( $settings['homepage']['sections'] ) && is_array( $settings['homepage']['sections'] ) ) {
+		foreach ( $settings['homepage']['sections'] as &$section ) {
+			if ( is_array( $section ) && 'category_showcase' === ( $section['type'] ?? '' ) ) {
+				$replace( $section, 'card_text_color', '#100033', '#1F2937' );
+			}
+		}
+		unset( $section );
+	}
+
+	return $settings;
+}
+
+/**
+ * v21→v22: apply the requested Royal Orchid theme to values that still equal
+ * the previous Electric Indigo defaults. Explicitly different merchant colors
+ * remain untouched, and semantic success/warning/error colors stay semantic.
+ * Announcement-bar colors remain outside the site-wide palette migration.
+ */
+function jluxe_migrate_settings_v22( array $settings ): array {
+	$royal = jluxe_royal_orchid_palette();
+	$replace = static function ( array &$section, string $key, string $old, string $new ): void {
+		$current = $section[ $key ] ?? null;
+		if ( is_string( $current ) && strtoupper( trim( $current ) ) === strtoupper( $old ) ) {
+			$section[ $key ] = $new;
+		}
+	};
+
+	if ( isset( $settings['colors'] ) && is_array( $settings['colors'] ) ) {
+		$replace( $settings['colors'], 'primary', '#5100FF', $royal['600'] );
+		$replace( $settings['colors'], 'secondary', '#300099', $royal['800'] );
+		$replace( $settings['colors'], 'background', '#EEE5FF', $royal['50'] );
+		$replace( $settings['colors'], 'accent', '#7433FF', $royal['700'] );
+	}
+
+	if ( isset( $settings['header_nav']['categories_mega_menu'] ) && is_array( $settings['header_nav']['categories_mega_menu'] ) ) {
+		$menu = &$settings['header_nav']['categories_mega_menu'];
+		$replace( $menu, 'text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'panel_text_color', '#100033', '#1F2937' );
+		$replace( $menu, 'background_color', '#EEE5FF', $royal['50'] );
+		$replace( $menu, 'border_color', '#DCCCFF', $royal['100'] );
+		$replace( $menu, 'icon_background_color', '#5100FF', $royal['600'] );
+		$replace( $menu, 'hover_background_color', '#4100CC', $royal['600'] );
+		$replace( $menu, 'accent_color', '#7433FF', $royal['700'] );
+		$replace( $menu, 'panel_border_color', '#DCCCFF', $royal['100'] );
+		$replace( $menu, 'panel_accent_color', '#5100FF', $royal['600'] );
+		unset( $menu );
+	}
+
+	if ( isset( $settings['mobile']['nav_style'] ) && is_array( $settings['mobile']['nav_style'] ) ) {
+		$nav = &$settings['mobile']['nav_style'];
+		$replace( $nav, 'active_color', '#5100FF', $royal['600'] );
+		$replace( $nav, 'icon_color', '#4100CC', $royal['700'] );
+		$replace( $nav, 'icon_bg', '#EEE5FF', $royal['50'] );
+		$replace( $nav, 'active_bg', '#EEE5FF', $royal['50'] );
+		unset( $nav );
+	}
+
+	if ( isset( $settings['cart_checkout'] ) && is_array( $settings['cart_checkout'] ) ) {
+		$checkout = &$settings['cart_checkout'];
+		$replace( $checkout, 'checkout_payment_warning_background', '#EEE5FF', '#FFF7ED' );
+		$replace( $checkout, 'payment_card_selected_background', '#EEE5FF', $royal['50'] );
+		if ( isset( $checkout['shipping_methods'] ) && is_array( $checkout['shipping_methods'] ) ) {
+			foreach ( $checkout['shipping_methods'] as &$method ) {
+				if ( ! is_array( $method ) ) {
+					continue;
+				}
+				$replace( $method, 'card_border_color', '#DCCCFF', $royal['100'] );
+				$replace( $method, 'selected_card_background_color', '#EEE5FF', $royal['50'] );
+				$replace( $method, 'selected_card_border_color', '#5100FF', $royal['600'] );
+				$replace( $method, 'note_background_color', '#4100CC', $royal['600'] );
+				$replace( $method, 'details_background_color', '#EEE5FF', $royal['50'] );
+				$replace( $method, 'details_text_color', '#300099', '#475569' );
+			}
+			unset( $method );
+		}
+		unset( $checkout );
+	}
+
+	if ( isset( $settings['product_page'] ) && is_array( $settings['product_page'] ) ) {
+		$replace( $settings['product_page'], 'variation_label_color', '#300099', '' );
+		$replace( $settings['product_page'], 'description_link_bg_color', '#EEE5FF', '' );
+		$replace( $settings['product_page'], 'description_link_text_color', '#300099', '' );
+		$replace( $settings['product_page'], 'description_link_border_color', '#5100FF', '' );
+	}
+
+	if ( isset( $settings['homepage']['sections'] ) && is_array( $settings['homepage']['sections'] ) ) {
+		foreach ( $settings['homepage']['sections'] as &$section ) {
+			if ( is_array( $section ) ) {
+				$replace( $section, 'image_frame_color', '#DCCCFF', $royal['100'] );
+			}
+		}
+		unset( $section );
+	}
+
+	return $settings;
+}
+
+/** Add the curated, native-WooCommerce featured-products row to existing homepages. */
+function jluxe_migrate_settings_v23( array $settings ): array {
+	if ( ! isset( $settings['homepage'] ) || ! is_array( $settings['homepage'] ) || ! isset( $settings['homepage']['sections'] ) || ! is_array( $settings['homepage']['sections'] ) || empty( $settings['homepage']['sections'] ) ) {
+		return $settings;
+	}
+
+	foreach ( $settings['homepage']['sections'] as $section ) {
+		if ( is_array( $section ) && 'product_grid' === ( $section['type'] ?? '' ) && 'featured' === ( $section['query'] ?? '' ) ) {
+			return $settings;
+		}
+	}
+
+	$featured_section = jluxe_default_featured_homepage_section();
+	$existing_ids     = array();
+	foreach ( $settings['homepage']['sections'] as $section ) {
+		if ( is_array( $section ) && ! empty( $section['id'] ) && is_scalar( $section['id'] ) ) {
+			$existing_ids[] = (string) $section['id'];
+		}
+	}
+	$base_id = $featured_section['id'];
+	$suffix  = 2;
+	while ( in_array( $featured_section['id'], $existing_ids, true ) ) {
+		$featured_section['id'] = $base_id . '-' . $suffix;
+		++$suffix;
+	}
+
+	$insert_at         = count( $settings['homepage']['sections'] );
+	$first_product_row = null;
+	$found_hero        = false;
+	foreach ( $settings['homepage']['sections'] as $index => $section ) {
+		if ( ! is_array( $section ) ) {
+			continue;
+		}
+		if ( 'hero' === ( $section['type'] ?? '' ) ) {
+			$insert_at  = $index + 1;
+			$found_hero = true;
+			break;
+		}
+		if ( null === $first_product_row && 'product_grid' === ( $section['type'] ?? '' ) ) {
+			$first_product_row = $index;
+		}
+	}
+	if ( ! $found_hero && null !== $first_product_row ) {
+		$insert_at = $first_product_row;
+	}
+	array_splice( $settings['homepage']['sections'], $insert_at, 0, array( $featured_section ) );
+	return $settings;
+}
+
+/** Apply all versioned migrations in order and stamp the current schema version. */
+function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
+	$migrations = array(
+		2 => 'jluxe_migrate_settings_v2',
+		3 => 'jluxe_migrate_settings_v3',
+		4 => 'jluxe_migrate_settings_v4',
+		5 => 'jluxe_migrate_settings_v5',
+		6 => 'jluxe_migrate_settings_v6',
+		7 => 'jluxe_migrate_settings_v7',
+		8 => 'jluxe_migrate_settings_v8',
+		9  => 'jluxe_migrate_settings_v9',
+		10 => 'jluxe_migrate_settings_v10',
+		11 => 'jluxe_migrate_settings_v11',
+		12 => 'jluxe_migrate_settings_v12',
+		13 => 'jluxe_migrate_settings_v13',
+		14 => 'jluxe_migrate_settings_v14',
+		15 => 'jluxe_migrate_settings_v15',
+		16 => 'jluxe_migrate_settings_v16',
+		17 => 'jluxe_migrate_settings_v17',
+		18 => 'jluxe_migrate_settings_v18',
+		19 => 'jluxe_migrate_settings_v19',
+		20 => 'jluxe_migrate_settings_v20',
+		21 => 'jluxe_migrate_settings_v21',
+		22 => 'jluxe_migrate_settings_v22',
+		23 => 'jluxe_migrate_settings_v23',
+	);
+	foreach ( $migrations as $target_version => $migration ) {
+		if ( $stored_version < $target_version ) {
+			$settings = $migration( $settings );
+		}
+	}
+	$settings['version'] = JLUXE_SETTINGS_VERSION;
 	return $settings;
 }
 
@@ -847,6 +2658,15 @@ function jluxe_get_setting( string $path, $default = null ) {
 	}
 	return $value;
 }
+
+/** Add the opt-in storefront design class without changing markup or content. */
+function jluxe_visual_design_body_classes( array $classes ): array {
+	if ( 'canva_home' === jluxe_get_setting( 'visual_design.variant', 'current' ) && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
+		$classes[] = 'jluxe-design-canva-home';
+	}
+	return $classes;
+}
+add_filter( 'body_class', 'jluxe_visual_design_body_classes', 20, 1 );
 
 /**
  * نوشتنِ یک بخش کامل (همون چیزی که هر فرم ادمین می‌فرسته) — مستقیماً روی
@@ -914,7 +2734,9 @@ function jluxe_hex_to_hsl( string $hex ): array {
 		$h /= 6;
 	}
 
-	return array( round( $h * 360 ), round( $s * 100 ), round( $l * 100 ) );
+	// Preserve enough precision to round-trip the supplied palette hex values;
+	// integer rounding visibly shifts several Electric Indigo steps.
+	return array( round( $h * 360, 2 ), round( $s * 100, 2 ), round( $l * 100, 2 ) );
 }
 
 function jluxe_hsl_css_value( array $hsl, float $lightness_delta = 0 ): string {
@@ -991,8 +2813,8 @@ function jluxe_contrast_ratio( string $hex_a, string $hex_b ): float {
 
 function jluxe_auto_foreground( string $bg_hex ): string {
 	$white_ratio = jluxe_contrast_ratio( $bg_hex, '#FFFFFF' );
-	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#202124' );
-	return $white_ratio >= $dark_ratio ? '0 0% 100%' : '225 6% 13%';
+	$dark_ratio  = jluxe_contrast_ratio( $bg_hex, '#1F2937' );
+	return $white_ratio >= $dark_ratio ? '0 0% 100%' : jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
 }
 
 /**
@@ -1000,7 +2822,15 @@ function jluxe_auto_foreground( string $bg_hex ): string {
  * پلی بین تنظیمات ادمین و frontend است.
  */
 function jluxe_generate_color_variables( array $colors ): string {
-	$vars = array();
+	$defaults = array(
+		'primary'    => '#A313B9',
+		'secondary'  => '#510A5C',
+		'accent'     => '#7A0F8A',
+		'success'    => '#16865A',
+		'background' => '#FAE8FD',
+	);
+	$colors = array_merge( $defaults, $colors );
+	$vars   = array();
 
 	foreach ( array( 'primary', 'secondary', 'accent', 'success' ) as $key ) {
 		$hex               = $colors[ $key ];
@@ -1009,36 +2839,103 @@ function jluxe_generate_color_variables( array $colors ): string {
 		$vars[ "--{$key}-foreground" ] = jluxe_auto_foreground( $hex );
 	}
 
-	// hover/active با کاهش lightness — همون منطق دستیِ توکن‌های فعلی.
-	$primary_hsl              = jluxe_hex_to_hsl( $colors['primary'] );
-	$vars['--primary-hover']  = jluxe_hsl_css_value( $primary_hsl, -5 );
-	$vars['--primary-active'] = jluxe_hsl_css_value( $primary_hsl, -12 );
+	$electric  = jluxe_electric_indigo_palette();
+	$royal     = jluxe_royal_orchid_palette();
+	$dodger    = jluxe_dodger_blue_palette();
+	$bubblegum = jluxe_bubblegum_pink_palette();
+	foreach ( $dodger as $shade => $hex ) {
+		$vars[ "--color-dodger-blue-{$shade}" ] = strtoupper( $hex );
+	}
+	foreach ( $bubblegum as $shade => $hex ) {
+		$vars[ "--color-bubblegum-pink-{$shade}" ] = strtoupper( $hex );
+	}
+	$primary_hsl   = jluxe_hex_to_hsl( $colors['primary'] );
+	$secondary_hsl = jluxe_hex_to_hsl( $colors['secondary'] );
+	$accent_hsl    = jluxe_hex_to_hsl( $colors['accent'] );
 
-	$secondary_hsl             = jluxe_hex_to_hsl( $colors['secondary'] );
-	$vars['--secondary-hover'] = jluxe_hsl_css_value( $secondary_hsl, -6 );
+	$is_electric_primary   = strtoupper( $colors['primary'] ) === strtoupper( $electric['500'] );
+	$is_royal_primary      = strtoupper( $colors['primary'] ) === strtoupper( $royal['600'] );
+	$is_dodger_primary     = strtoupper( $colors['primary'] ) === strtoupper( $dodger['600'] );
+	$is_bubblegum_primary  = strtoupper( $colors['primary'] ) === strtoupper( $bubblegum['600'] );
+	$is_electric_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $electric['700'] );
+	$is_royal_secondary    = strtoupper( $colors['secondary'] ) === strtoupper( $royal['800'] );
+	$is_dodger_secondary   = strtoupper( $colors['secondary'] ) === strtoupper( $dodger['800'] );
+	$is_bubblegum_secondary = strtoupper( $colors['secondary'] ) === strtoupper( $bubblegum['800'] );
+	$is_electric_accent    = strtoupper( $colors['accent'] ) === strtoupper( $electric['400'] );
+	$is_royal_accent       = strtoupper( $colors['accent'] ) === strtoupper( $royal['700'] );
+	$is_dodger_accent      = strtoupper( $colors['accent'] ) === strtoupper( $dodger['700'] );
+	$is_bubblegum_accent   = strtoupper( $colors['accent'] ) === strtoupper( $bubblegum['700'] );
 
-	$accent_hsl              = jluxe_hex_to_hsl( $colors['accent'] );
-	$vars['--accent-hover']  = jluxe_hsl_css_value( $accent_hsl, -8 );
+	$primary_hover_hex = $is_electric_primary
+		? $electric['600']
+		: ( $is_royal_primary ? $royal['700'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -5 ) ) ) );
+	$primary_active_hex = $is_electric_primary
+		? $electric['700']
+		: ( $is_royal_primary ? $royal['800'] : ( $is_dodger_primary ? $dodger['800'] : ( $is_bubblegum_primary ? $bubblegum['800'] : '#' . jluxe_hsl_to_hex( $primary_hsl, -12 ) ) ) );
+	$secondary_hover_hex = $is_electric_secondary
+		? $electric['800']
+		: ( $is_royal_secondary ? $royal['900'] : ( $is_dodger_secondary ? $dodger['900'] : ( $is_bubblegum_secondary ? $bubblegum['900'] : '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 ) ) ) );
+	$accent_hover_hex = $is_electric_accent
+		? $electric['600']
+		: ( $is_royal_accent ? $royal['800'] : ( $is_dodger_accent ? $dodger['800'] : ( $is_bubblegum_accent ? $bubblegum['800'] : '#' . jluxe_hsl_to_hex( $accent_hsl, -8 ) ) ) );
+	$primary_soft_hex = $is_electric_primary
+		? $electric['50']
+		: ( $is_royal_primary ? $royal['50'] : ( $is_dodger_primary ? $dodger['50'] : ( $is_bubblegum_primary ? $bubblegum['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) ) ) );
+	$border_hex = $is_electric_primary
+		? $electric['100']
+		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) ) ) );
+	$border_strong_hex = $is_electric_primary
+		? $electric['200']
+		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) ) ) );
+	$primary_dark_hsl    = $primary_hsl;
+	$primary_dark_hsl[2] = min( $primary_dark_hsl[2], 18 );
+	$primary_dark_hex = $is_electric_primary
+		? $electric['950']
+		: ( $is_royal_primary ? $royal['950'] : ( $is_dodger_primary ? $dodger['950'] : ( $is_bubblegum_primary ? $bubblegum['950'] : '#' . jluxe_hsl_to_hex( $primary_dark_hsl ) ) ) );
 
-	$vars['--background'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
-	$vars['--info']       = $vars['--secondary'];
-	$vars['--info-foreground'] = $vars['--secondary-foreground'];
+	$vars['--primary-hover']   = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_hover_hex ) );
+	$vars['--primary-active']  = jluxe_hsl_css_value( jluxe_hex_to_hsl( $primary_active_hex ) );
+	$vars['--secondary-hover'] = jluxe_hsl_css_value( jluxe_hex_to_hsl( $secondary_hover_hex ) );
+	$vars['--accent-hover']    = jluxe_hsl_css_value( jluxe_hex_to_hsl( $accent_hover_hex ) );
 
-	// نام‌های عمومی --jluxe-* (طبق مستندسازی/برندینگ) — مقدار HEX مستقیم،
-	// برای استفاده‌ی مستقل (مثلاً background:var(--jluxe-primary)) بدون نیاز
-	// به wrap کردن با hsl(). توکن‌های --primary/--secondary/... بالا (HSL
-	// triplet) رو Tailwind (tailwind.config.ts) مصرف می‌کنه، این‌ها رو نه.
-	$vars['--jluxe-primary']         = $colors['primary'];
-	$vars['--jluxe-primary-hover']   = '#' . jluxe_hsl_to_hex( $primary_hsl, -5 );
-	$vars['--jluxe-secondary']       = $colors['secondary'];
-	$vars['--jluxe-secondary-hover'] = '#' . jluxe_hsl_to_hex( $secondary_hsl, -6 );
-	$vars['--jluxe-accent']          = $colors['accent'];
-	$vars['--jluxe-success']         = $colors['success'];
-	$vars['--jluxe-page-bg']         = $colors['background'];
+	$neutral_ink   = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#1F2937' ) );
+	$neutral_muted = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#475569' ) );
+	$background_hsl = jluxe_hsl_css_value( jluxe_hex_to_hsl( $colors['background'] ) );
+	$border_hsl = jluxe_hsl_css_value( jluxe_hex_to_hsl( $border_hex ) );
+	$vars['--foreground']        = $neutral_ink;
+	$vars['--surface']           = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#FFFFFF' ) );
+	$vars['--surface-foreground'] = $neutral_ink;
+	$vars['--surface-elevated']  = $background_hsl;
+	$vars['--text-secondary']    = $neutral_muted;
+	$vars['--text-muted']        = $neutral_muted;
+	$vars['--muted']             = $background_hsl;
+	$vars['--muted-foreground']  = $neutral_muted;
+	$vars['--border']            = $border_hsl;
+	$vars['--ring']              = jluxe_hsl_css_value( $primary_hsl );
+	$vars['--background']        = $background_hsl;
+	$vars['--panel']              = $background_hsl;
+	$vars['--panel-border']       = $border_hsl;
+	$info_hsl = jluxe_hex_to_hsl( '#2563EB' );
+	$vars['--info']              = jluxe_hsl_css_value( $info_hsl );
+	$vars['--info-foreground']   = jluxe_auto_foreground( '#2563EB' );
+
+	// Public HEX aliases keep standalone components and legacy PHP templates on the same editable theme colors.
+	$vars['--jluxe-primary']         = strtoupper( $colors['primary'] );
+	$vars['--jluxe-primary-hover']   = strtoupper( $primary_hover_hex );
+	$vars['--jluxe-primary-active']  = strtoupper( $primary_active_hex );
+	$vars['--jluxe-primary-dark']    = strtoupper( $primary_dark_hex );
+	$vars['--jluxe-primary-soft']    = strtoupper( $primary_soft_hex );
+	$vars['--jluxe-secondary']       = strtoupper( $colors['secondary'] );
+	$vars['--jluxe-secondary-hover'] = strtoupper( $secondary_hover_hex );
+	$vars['--jluxe-accent']          = strtoupper( $colors['accent'] );
+	$vars['--jluxe-accent-hover']    = strtoupper( $accent_hover_hex );
+	$vars['--jluxe-success']         = strtoupper( $colors['success'] );
+	$vars['--jluxe-page-bg']         = strtoupper( $colors['background'] );
 	$vars['--jluxe-surface']         = '#FFFFFF';
-	$vars['--jluxe-text']            = '#202124';
-	$vars['--jluxe-text-muted']      = '#90909A';
-	$vars['--jluxe-border']          = '#DDD9E3';
+	$vars['--jluxe-text']            = '#1F2937';
+	$vars['--jluxe-text-muted']      = '#475569';
+	$vars['--jluxe-border']          = strtoupper( $border_hex );
+	$vars['--jluxe-border-strong']  = strtoupper( $border_strong_hex );
 
 	$css = ':root{';
 	foreach ( $vars as $name => $value ) {
@@ -1078,23 +2975,31 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_color_variables', 20 );
  * برمی‌گرده — سمتِ React (BrandLogo در Header.tsx) این حالت رو با نمایشِ
  * فقط اسمِ سایت (بدون هیچ عکسی) پاسخ می‌ده، نه یک عکسِ هاردکدشده.
  */
-function jluxe_get_logo_url(): string {
+function jluxe_get_logo_attachment_id(): int {
 	$settings = jluxe_get_theme_settings();
-	$logo_id  = (int) $settings['identity']['logo_id'];
-	if ( $logo_id ) {
-		$url = wp_get_attachment_image_url( $logo_id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+	$logo_id  = absint( $settings['identity']['logo_id'] ?? 0 );
+	if ( $logo_id && ! empty( jluxe_get_responsive_attachment_image( $logo_id, 'full', '240px' )['src'] ) ) {
+		return $logo_id;
 	}
-	$custom_logo_id = (int) get_theme_mod( 'custom_logo' );
-	if ( $custom_logo_id ) {
-		$url = wp_get_attachment_image_url( $custom_logo_id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+
+	$custom_logo_id = function_exists( 'get_theme_mod' ) ? absint( get_theme_mod( 'custom_logo' ) ) : 0;
+	if ( $custom_logo_id && ! empty( jluxe_get_responsive_attachment_image( $custom_logo_id, 'full', '240px' )['src'] ) ) {
+		return $custom_logo_id;
 	}
-	return ''; // خالی یعنی: هیچ لوگویی ست نشده — فرانت‌اند فقط اسمِ سایت رو متنی نشون می‌ده.
+
+	return 0;
+}
+
+/** Resolve logo variants to one shared uncropped responsive payload. */
+function jluxe_get_logo_image_data(): array {
+	$logo_id = jluxe_get_logo_attachment_id();
+	return $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'jluxe-uncropped-320', '(max-width: 767px) 160px, 240px' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 767px) 160px, 240px', 'width' => 0, 'height' => 0, 'mime_type' => '' );
+}
+
+function jluxe_get_logo_url(): string {
+	$logo_id = jluxe_get_logo_attachment_id();
+	$image   = $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'full', '100vw' ) : array();
+	return ! empty( $image['src'] ) ? (string) $image['src'] : '';
 }
 
 /**
@@ -1124,16 +3029,24 @@ function jluxe_get_favicon_url(): string {
 /**
  * لوگوی موبایل — اگر جدا آپلود نشده، از همون لوگوی اصلی استفاده می‌شه.
  */
-function jluxe_get_mobile_logo_url(): string {
+function jluxe_get_mobile_logo_attachment_id(): int {
 	$settings = jluxe_get_theme_settings();
-	$id       = (int) $settings['identity']['mobile_logo_id'];
-	if ( $id ) {
-		$url = wp_get_attachment_image_url( $id, 'full' );
-		if ( $url ) {
-			return $url;
-		}
+	$id       = absint( $settings['identity']['mobile_logo_id'] ?? 0 );
+	if ( $id && ! empty( jluxe_get_responsive_attachment_image( $id, 'full', '160px' )['src'] ) ) {
+		return $id;
 	}
-	return jluxe_get_logo_url();
+	return jluxe_get_logo_attachment_id();
+}
+
+function jluxe_get_mobile_logo_image_data(): array {
+	$logo_id = jluxe_get_mobile_logo_attachment_id();
+	return $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'jluxe-uncropped-320', '(max-width: 767px) 160px, 240px' ) : array( 'src' => '', 'srcset' => '', 'sizes' => '(max-width: 767px) 160px, 240px', 'width' => 0, 'height' => 0, 'mime_type' => '' );
+}
+
+function jluxe_get_mobile_logo_url(): string {
+	$logo_id = jluxe_get_mobile_logo_attachment_id();
+	$image   = $logo_id ? jluxe_get_responsive_attachment_image( $logo_id, 'full', '100vw' ) : array();
+	return ! empty( $image['src'] ) ? (string) $image['src'] : '';
 }
 
 /**
@@ -1171,7 +3084,7 @@ function jluxe_get_site_trust_badges(): array {
 					if ( ! empty( $badge['image_id'] ) ) {
 						$url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 						if ( $url ) {
-							$img = '<img src="' . esc_url( $url ) . '" alt="نماد سایت" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+							$img = '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
 							return array( 'html' => ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img, 'link' => ! empty( $badge['link'] ) ? esc_url_raw( $badge['link'] ) : '' );
 						}
 					}
@@ -1194,103 +3107,87 @@ function jluxe_render_site_trust_badges(): void {
     if ( empty( $badges ) ) {
         return;
     }
-    $title = jluxe_get_setting( 'footer.trust_badges_title', 'نمادهای سایت' );
+    $title = jluxe_get_setting( 'footer.trust_badges_title', 'نمادهای اعتماد' );
     $count = count( $badges );
 
     /*
-     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد باید متناسب با تعدادشون تغییر
-     * کنه، و چیدمان هم فرق کنه: موبایل همیشه همه‌شون (حتی ۴ تا) توی یک
-     * خط، ولی دسکتاپ برای ۱ تا ۳ تا یک ردیف، و برای ۴ تا (یا بیشتر) دو
-     * ستونی (۲ بالا ۲ پایین) چون این بخش الان کنارِ ستونِ «شرکت» جا می‌گیره
-     * (فضای کمی داره) نه یک ردیفِ کاملاً جداگانه‌ی زیرِ فوتر.
+     * درخواستِ صریحِ کاربر: اندازه‌ی هر نماد متناسب با تعدادشون؛ موبایل همه
+     * در یک خط، دسکتاپ ۱ تا ۳ تا یک ردیف و ۴ تا (یا بیشتر) دو ستونی.
+     *
+     * R88 — این بخش دیگر «staging» مخفی + اسکریپتِ جابه‌جاکننده ندارد. قبلاً
+     * این‌جا یک div مخفی چاپ می‌شد و یک اسکریپت با setInterval (هر ۱۰۰ms تا
+     * ۱۲ ثانیه) + MutationObserver دنبالِ گریدِ React با انتخابگرِ کلاس‌های
+     * Tailwind (".grid.gap-8.p-5…") می‌گشت تا نمادها را داخلش جابه‌جا کند —
+     * با هر تغییرِ کلاس بی‌صدا می‌شکست، و اگر JS نمی‌آمد نمادها هرگز دیده
+     * نمی‌شدند. حالا footer.php خودِ گرید را سمتِ سرور می‌سازد و این تابع
+     * مستقیم همان‌جا، به‌عنوانِ آیتمِ واقعیِ گرید، صدا زده می‌شود؛ <script>
+     * رسمیِ اینماد هم چون در جریانِ پارسِ HTML دیده می‌شود عادی اجرا می‌شود.
      */
-    $mobile_cols  = min( max( $count, 1 ), 4 );
-    $desktop_cols = $count <= 3 ? $count : 2;
+    $mobile_cols   = min( max( $count, 1 ), 4 );
+    $desktop_cols  = $count <= 3 ? $count : 2;
     $size_by_count = array(
-        1 => array( 'mobile' => 4.5, 'desktop' => 5 ),
-        2 => array( 'mobile' => 4, 'desktop' => 4.5 ),
-        3 => array( 'mobile' => 3.25, 'desktop' => 4 ),
+        1 => array( 'mobile' => 6, 'desktop' => 7 ),
+        2 => array( 'mobile' => 5, 'desktop' => 5.5 ),
+        3 => array( 'mobile' => 4.5, 'desktop' => 5 ),
     );
     $sizes = $size_by_count[ $count ] ?? array(
-        'mobile'  => 3,
-        'desktop' => 3.75,
+        'mobile'  => 3.75,
+        'desktop' => 5,
     );
+    $mobile_max_width  = $sizes['mobile'] * $mobile_cols + ( 0.5 * max( 0, $mobile_cols - 1 ) );
+    $desktop_max_width = $sizes['desktop'] * $desktop_cols + ( 0.5 * max( 0, $desktop_cols - 1 ) );
     ?>
-    <div id="jluxe-site-badges-staging" hidden aria-hidden="true">
-        <div class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1">
-            <style>
-                /*
-                 * فیکسِ فاصله‌ی زیاد: قبلاً ستون‌ها minmax(0,1fr) بودن —
-                 * یعنی کلِ عرضِ ردیف بینِ ستون‌ها تقسیم می‌شد، پس هر نماد
-                 * وسطِ یه سلولِ خیلی پهن قرار می‌گرفت و فاصله‌ی واقعی خیلی
-                 * بیشتر از gap به‌نظر می‌رسید. الان عرضِ هر ستون دقیقاً
-                 * هم‌اندازه‌ی خودِ نمادهاست، پس کنارِ هم و جمع‌وجورن.
-                 */
-                .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,<?php echo esc_attr( $sizes['mobile'] ); ?>rem);justify-content:start;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;height:<?php echo esc_attr( $sizes['mobile'] ); ?>rem;}
-                @media (min-width:640px){
-                    .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,<?php echo esc_attr( $sizes['desktop'] ); ?>rem);}
-                    .jluxe-site-badges-grid .jluxe-site-badge-card{width:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;height:<?php echo esc_attr( $sizes['desktop'] ); ?>rem;}
-                }
-                /* حالتِ حرفه‌ای‌تر: خاکستری تا لحظه‌ی هاور، سایه‌ی ملایم و کمی بالا اومدن روی هاور */
-                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease; background:#fff;}
-                .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--primary) / .35);box-shadow:0 4px 14px -6px rgba(0,0,0,.18);transform:translateY(-2px);}
-                .jluxe-site-badges-grid .jluxe-site-badge-card img{transition:filter .25s ease;}
-            </style>
-            <h3 class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
-            <div class="jluxe-site-badges-grid">
-                <?php foreach ( $badges as $badge ) : ?>
-                    <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border bg-transparent p-1.5 mx-auto">
-                        <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+    <section class="jluxe-site-badges-section sm:col-span-2 lg:col-span-1" aria-labelledby="jluxe-site-badges-heading">
+        <style>
+            .jluxe-site-badges-grid{display:grid;gap:.5rem;grid-template-columns:repeat(<?php echo (int) $mobile_cols; ?>,minmax(0,1fr));justify-content:center;width:100%;max-width:<?php echo esc_attr( $mobile_max_width ); ?>rem;margin-inline:auto;}
+            .jluxe-site-badges-grid .jluxe-site-badge-card{width:100%;height:auto;aspect-ratio:1;background:hsl(var(--surface));}
+            @media (min-width:640px){
+                .jluxe-site-badges-grid{grid-template-columns:repeat(<?php echo (int) $desktop_cols; ?>,minmax(0,1fr));justify-content:start;max-width:<?php echo esc_attr( $desktop_max_width ); ?>rem;margin-inline:0;}
+            }
+            /* افکتِ ظریف فقط روی دستگاهِ دارای ماوس؛ رنگ از پالتِ جاریِ پوسته پیروی می‌کند. */
+            @media (hover:hover){
+                .jluxe-site-badges-grid .jluxe-site-badge-card{transition:border-color .18s ease;}
+                .jluxe-site-badges-grid .jluxe-site-badge-card:hover{border-color:hsl(var(--secondary) / .35);}
+            }
+        </style>
+        <h3 id="jluxe-site-badges-heading" class="mb-3 text-small font-bold text-foreground"><?php echo esc_html( $title ); ?></h3>
+        <div class="jluxe-site-badges-grid">
+            <?php foreach ( $badges as $badge ) : ?>
+                <div class="jluxe-site-badge-card flex items-center justify-center overflow-hidden rounded-xl border border-border p-1.5 mx-auto">
+                    <?php echo $badge['html']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML قبلاً در sanitize فوتر پاک‌سازی شده است. ?>
+                </div>
+            <?php endforeach; ?>
         </div>
-    </div>
-    <script>
-    (function(){
-        'use strict';
-        var staging = document.getElementById('jluxe-site-badges-staging');
-        if (!staging) return;
-        var section = staging.querySelector('.jluxe-site-badges-section');
-        if (!section) return;
-        var moved = false;
-        function mount(){
-            if (moved && document.querySelector('.jluxe-site-badges-mounted')) return;
-            var root = document.getElementById('jluxe-footer-root');
-            if (!root) return;
-            var inner = root.querySelector('.mx-auto.mt-4.mb-24');
-            if (!inner) return;
-            var card = inner.firstElementChild;
-            if (!card) return;
-            var mainGrid = card.querySelector('.grid.gap-8.p-5.sm\\:grid-cols-2.lg\\:grid-cols-4');
-            if (!mainGrid) return;
-            if (mainGrid.querySelector('.jluxe-site-badges-mounted')) { moved = true; return; }
-            /*
-             * درخواستِ کاربر: نمادها نباید یک ردیفِ جداگانه زیرِ کل فوتر
-             * باشن — باید عضوِ همون گریدِ اصلی (لوگو/راهنما/شرکت) بشن و
-             * جلوی «شرکت» بیفتن. برای همین section رو به‌عنوانِ یک آیتمِ
-             * واقعیِ گرید، مستقیم به انتهای mainGrid اضافه می‌کنیم (نه
-             * این‌که بعد از mainGrid به‌عنوان یک ردیفِ جدا درج بشه).
-             */
-            section.classList.add('jluxe-site-badges-mounted');
-            mainGrid.appendChild(section);
-            section.hidden = false;
-            staging.remove();
-            moved = true;
-        }
-        mount();
-        var tries = 0;
-        var timer = setInterval(function(){
-            mount();
-            if (moved || ++tries > 120) clearInterval(timer);
-        }, 100);
-        var observer = new MutationObserver(function(){ mount(); });
-        observer.observe(document.getElementById('jluxe-footer-root') || document.body, {childList:true,subtree:true});
-        setTimeout(function(){ observer.disconnect(); }, 15000);
-    })();
-    </script>
+    </section>
     <?php
+}
+
+/**
+ * R88 — پس‌زمینهٔ فوتر (همان منطقِ I() در src/islands/Footer.js) حالا سمتِ سرور،
+ * چون پوستهٔ فوتر در footer.php رندر می‌شود. جهت و رنگ‌ها قبلاً در sanitize
+ * لیستِ‌سفید/hex شده‌اند؛ این‌جا فقط یک رشتهٔ style ساخته می‌شود.
+ */
+function jluxe_footer_background_style( ?array $background = null ): string {
+    $background = $background ?? (array) jluxe_get_setting( 'footer.background', array() );
+    $mode       = (string) ( $background['mode'] ?? 'default' );
+    if ( 'solid' === $mode ) {
+        $color = sanitize_hex_color( (string) ( $background['solid_color'] ?? '' ) );
+        return $color ? 'background-color:' . $color . ';' : '';
+    }
+    if ( 'gradient' !== $mode ) {
+        return '';
+    }
+    $colors = array_values( array_filter( array_map( static function ( $c ) {
+        return sanitize_hex_color( (string) $c ) ?: '';
+    }, (array) ( $background['gradient_colors'] ?? array() ) ) ) );
+    if ( count( $colors ) < 2 ) {
+        return '';
+    }
+    $direction = (string) ( $background['gradient_direction'] ?? 'to bottom' );
+    if ( ! preg_match( '/^(to (top|bottom|left|right)( (left|right))?|\d{1,3}deg)$/', $direction ) ) {
+        $direction = 'to bottom';
+    }
+    return 'background-image:linear-gradient(' . $direction . ', ' . implode( ', ', $colors ) . ');';
 }
 
 /**
@@ -1298,8 +3195,125 @@ function jluxe_render_site_trust_badges(): void {
  * window.JLuxeThemeSettings، برای Footer.tsx، Header.tsx، MobileNav.tsx و
  * هر آیلند دیگه‌ای که نیاز داشته باشه. هیچ‌وقت شامل کلید API نمی‌شه.
  */
+/**
+ * تنظیماتِ امن و نهاییِ نشانگرِ ثابتِ مگامنوی دسته‌بندی‌ها برای SSR و React.
+ * مقدارهای ذخیره‌شده دوباره اعتبارسنجی می‌شن تا حتی بکاپ/دیتابیسِ دستی هم
+ * نتونه HTML یا CSS نامعتبر وارد هدر کنه.
+ */
+function jluxe_categories_mega_menu_config(): array {
+	$all_defaults = jluxe_theme_settings_defaults();
+	$defaults     = (array) ( $all_defaults['header_nav']['categories_mega_menu'] ?? array() );
+	$settings     = jluxe_get_theme_settings();
+	$stored       = (array) ( $settings['header_nav']['categories_mega_menu'] ?? array() );
+	$config       = array_merge( $defaults, $stored );
+	$choices      = jluxe_categories_mega_menu_choices();
+	$icons        = jluxe_nav_icon_options();
+
+	$icon = isset( $config['icon'] ) && is_scalar( $config['icon'] ) ? sanitize_key( (string) $config['icon'] ) : 'grid';
+	$config['icon'] = array_key_exists( $icon, $icons ) ? $icon : (string) ( $defaults['icon'] ?? 'grid' );
+	foreach ( array( 'open_mode' => 'hover', 'trigger_effect' => 'lift', 'panel_effect' => 'fade' ) as $key => $fallback ) {
+		$raw = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_key( (string) $config[ $key ] ) : $fallback;
+		$config[ $key ] = isset( $choices[ $key ][ $raw ] ) ? $raw : $fallback;
+	}
+
+	$duration = isset( $config['duration_ms'] ) && is_scalar( $config['duration_ms'] ) ? absint( $config['duration_ms'] ) : 180;
+	$config['duration_ms'] = array_key_exists( $duration, $choices['duration_ms'] ) ? $duration : 180;
+
+	foreach ( array(
+		'text_color', 'background_color', 'border_color',
+		'icon_background_color', 'icon_color',
+		'hover_background_color', 'hover_text_color', 'accent_color',
+		'panel_background_color', 'panel_border_color', 'panel_text_color', 'panel_accent_color',
+	) as $key ) {
+		$default = isset( $defaults[ $key ] ) ? (string) $defaults[ $key ] : '#FFFFFF';
+		$config[ $key ] = isset( $config[ $key ] ) && is_scalar( $config[ $key ] )
+			? ( sanitize_hex_color( (string) $config[ $key ] ) ?: $default )
+			: $default;
+	}
+
+	$svg_raw = isset( $config['icon_svg'] ) && is_scalar( $config['icon_svg'] )
+		? (string) $config['icon_svg']
+		: '';
+	$custom_svg = strlen( $svg_raw ) <= 20000 ? jluxe_sanitize_svg_markup( $svg_raw ) : '';
+	$config['icon_svg']   = $custom_svg;
+	$config['icon_markup'] = '' !== $custom_svg
+		? $custom_svg
+		: jluxe_nav_icon_svg( $config['icon'], 'jluxe-header-categories-icon-svg' );
+
+	return $config;
+}
+
+/** Build a short inline style from allowlisted hex colors and a fixed duration. */
+function jluxe_categories_mega_menu_style( array $config ): string {
+	$variables = array(
+		'--jluxe-categories-trigger-text'       => 'text_color',
+		'--jluxe-categories-trigger-bg'          => 'background_color',
+		'--jluxe-categories-trigger-border'      => 'border_color',
+		'--jluxe-categories-icon-bg'             => 'icon_background_color',
+		'--jluxe-categories-icon-color'          => 'icon_color',
+		'--jluxe-categories-hover-bg'            => 'hover_background_color',
+		'--jluxe-categories-hover-text'          => 'hover_text_color',
+		'--jluxe-categories-accent'              => 'accent_color',
+		'--jluxe-categories-panel-bg'             => 'panel_background_color',
+		'--jluxe-categories-panel-border'         => 'panel_border_color',
+		'--jluxe-categories-panel-text'           => 'panel_text_color',
+		'--jluxe-categories-panel-accent'         => 'panel_accent_color',
+	);
+	$style = array();
+	foreach ( $variables as $css_name => $key ) {
+		$color = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_hex_color( (string) $config[ $key ] ) : '';
+		if ( $color ) {
+			$style[] = $css_name . ':' . $color;
+		}
+	}
+	$duration = isset( $config['duration_ms'] ) && is_scalar( $config['duration_ms'] ) ? absint( $config['duration_ms'] ) : 180;
+	if ( ! in_array( $duration, array( 120, 180, 240, 360 ), true ) ) {
+		$duration = 180;
+	}
+	$style[] = '--jluxe-categories-motion-duration:' . $duration . 'ms';
+
+	foreach ( array(
+		'accent_color' => array( '--jluxe-categories-accent-shadow', '.22' ),
+		'hover_background_color' => array( '--jluxe-categories-hover-shadow', '.20' ),
+	) as $key => $shadow ) {
+		$color = isset( $config[ $key ] ) && is_scalar( $config[ $key ] ) ? sanitize_hex_color( (string) $config[ $key ] ) : '';
+		if ( ! $color ) {
+			continue;
+		}
+		$hex = ltrim( $color, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( 6 === strlen( $hex ) && ctype_xdigit( $hex ) ) {
+			$style[] = sprintf(
+				'%s:rgba(%d,%d,%d,%s)',
+				$shadow[0],
+				hexdec( substr( $hex, 0, 2 ) ),
+				hexdec( substr( $hex, 2, 2 ) ),
+				hexdec( substr( $hex, 4, 2 ) ),
+				$shadow[1]
+			);
+		}
+	}
+
+	return implode( ';', $style );
+}
+
 function jluxe_localize_public_settings(): void {
 	$settings = jluxe_get_theme_settings();
+	$categories_menu = jluxe_categories_mega_menu_config();
+	$include_iran_cities = function_exists( 'is_checkout' ) && is_checkout();
+	if ( $include_iran_cities && function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+		$include_iran_cities = false;
+	}
+	if (
+		! $include_iran_cities &&
+		function_exists( 'is_account_page' ) && is_account_page() &&
+		function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' )
+	) {
+		$include_iran_cities = true;
+	}
+	$iran_cities = $include_iran_cities && function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array();
 
 	/*
 	 * باگِ واقعیِ گزارش‌شده («فقط قسمت اینمادش کار نمی‌کنه»، بقیه‌ی نمادها
@@ -1328,9 +3342,21 @@ function jluxe_localize_public_settings(): void {
 		array(
 			'logoUrl'          => jluxe_get_logo_url(),
 			'mobileLogoUrl'    => jluxe_get_mobile_logo_url(),
-			'shopUrl'          => function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/shop/' ),
+			'logoImage'        => jluxe_get_logo_image_data(),
+			'mobileLogoImage'  => jluxe_get_mobile_logo_image_data(),
+			'shopUrl'          => jluxe_shop_url(),
+			'cartCheckout'     => $settings['cart_checkout'],
+			// v1.7.58 checkout contract: ship the province-scoped map only on forms that use it.
+			'iranCities'       => $iran_cities,
+			'urls' => jluxe_public_urls(),
+			'pwa'  => function_exists( 'jluxe_pwa_public_settings' ) ? jluxe_pwa_public_settings() : array( 'enabled' => false ),
+			'rest' => array(
+				'root' => esc_url_raw( rest_url( 'jluxe/v1/' ) ),
+				'sessionUrl' => admin_url( 'admin-ajax.php' ),
+			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
+			'iconGlyphs'       => function_exists( 'jluxe_public_icon_glyphs' ) ? jluxe_public_icon_glyphs( $settings ) : array(),
 			'header'           => $settings['header'],
 			'footer'           => $footer,
 			'social'           => $settings['social'],
@@ -1339,19 +3365,13 @@ function jluxe_localize_public_settings(): void {
 			'productCard'      => $settings['product_card'],
 			'aiAssistant'      => jluxe_get_ai_public_settings(),
 			'sms'              => jluxe_get_sms_public_settings(),
-			// وضعیت لاگین واقعیِ بازدیدکننده — نه یک «تنظیم»، بلکه وضعیتِ
-			// واقعیِ درخواستِ فعلی؛ چون این صفحه (header.php) کش کامل نمی‌شه
-			// (هدر همیشه سمت سرور در هر بار بارگذاری رندر می‌شه)، همیشه درسته.
-			'auth'             => array(
-				'isLoggedIn'  => is_user_logged_in(),
-				// برایِ پرکردنِ خودکارِ فرمِ «ثبت پیام برای پشتیبان» — فقط
-				// وقتی واقعاً لاگین باشه؛ برایِ مهمان همیشه رشته‌ی خالیه.
-				'displayName' => is_user_logged_in() ? wp_get_current_user()->display_name : '',
-				'email'       => is_user_logged_in() ? wp_get_current_user()->user_email : '',
+			// Public HTML contains no name/email or user REST nonce. api.js refreshes these privately.
+			'auth' => array(
+				'isLoggedIn' => is_user_logged_in(),
+				'registrationEnabled' => jluxe_registration_enabled(),
+				// R70: حالتِ «ورود فقط با رمز پیامکی» — AuthPage تبِ رمز را حذف می‌کند.
+				'otpOnly' => ! empty( $settings['sms']['otp_only'] ) && jluxe_otp_available(),
 			),
-			// شهرستان‌های هر استان (billing_city وابسته به billing_state در
-			// چک‌اوت/ویرایش آدرس — inc/woocommerce.php: jluxe_iran_cities).
-			'iranCities'       => function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array(),
 			// جستجوی زنده‌ی سربرگ/موبایل (inc/search.php) — nonce مخصوص همین
 			// اکشنه، نه nonce عمومی وردپرس.
 			'search'           => array(
@@ -1362,6 +3382,15 @@ function jluxe_localize_public_settings(): void {
 			// قبلاً دیتای هاردکدِ سایت دیگه‌ای رو نشون می‌داد (باگ واقعی).
 			'megaMenu'         => array(
 				'categories' => function_exists( 'jluxe_get_mega_menu_categories' ) ? jluxe_get_mega_menu_categories() : array(),
+				// R93b — مقصدِ کلیک روی «دسته‌بندی‌ها» (همان href سمتِ سرورِ header.php).
+				'url'        => function_exists( 'jluxe_header_categories_url' ) ? jluxe_header_categories_url() : jluxe_shop_url(),
+				'appearance' => array(
+					'iconMarkup'      => $categories_menu['icon_markup'],
+					'openMode'        => $categories_menu['open_mode'],
+					'triggerEffect'   => $categories_menu['trigger_effect'],
+					'panelEffect'     => $categories_menu['panel_effect'],
+					'durationMs'      => $categories_menu['duration_ms'],
+				),
 			),
 			// دراور سبدِ کشویی (src/islands/MiniCart.tsx) و مودال انتخاب سریعِ
 			// تنوع (inc/cart-ux.php) — یک nonce مشترک، چون هر دو تغییرِ سبدند.
@@ -1420,37 +3449,199 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 22 );
  * نگه‌داشتنِ هر دو باعثِ چاپِ دوتا <link rel="canonical"> متفاوت می‌شد
  * (بررسی‌شده زنده) — نامعتبر/گیج‌کننده برای گوگل.
  */
-remove_action( 'wp_head', 'rel_canonical' );
+if ( ! defined( 'RANK_MATH_VERSION' ) && ! defined( 'WPSEO_VERSION' ) ) {
+	remove_action( 'wp_head', 'rel_canonical' );
+}
 
 /**
  * لینکِ canonical برای وضعیتِ فعلیِ کوئری — نسخه‌ی مطمئن و صریحِ خودمون
  * برای همه‌ی حالت‌های اصلی (بالاتر توضیح داده شد چرا جایگزینِ core شد).
  */
+function jluxe_paginated_canonical_url( string $base ): string {
+	$page = max( 1, (int) get_query_var( 'paged', 1 ) );
+	if ( $page <= 1 || '' === $base ) {
+		return $base;
+	}
+	if ( ! get_option( 'permalink_structure' ) || false !== strpos( $base, '?' ) ) {
+		return add_query_arg( 'paged', $page, $base );
+	}
+	global $wp_rewrite;
+	$pagination_base = isset( $wp_rewrite->pagination_base ) ? $wp_rewrite->pagination_base : 'page';
+	return trailingslashit( $base ) . user_trailingslashit( $pagination_base . '/' . $page, 'paged' );
+}
+
 function jluxe_current_canonical_url(): string {
+	if ( is_search() || is_404() ) {
+		return '';
+	}
 	if ( function_exists( 'is_shop' ) && is_shop() ) {
-		$shop_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'shop' ) : 0;
-		if ( $shop_id > 0 ) {
-			return (string) get_permalink( $shop_id );
-		}
+		return jluxe_paginated_canonical_url( jluxe_shop_url() );
 	}
 	if ( is_front_page() ) {
-		return home_url( '/' );
+		return jluxe_paginated_canonical_url( home_url( '/' ) );
+	}
+	if ( function_exists( 'is_author' ) && is_author() ) {
+		$author_id = absint( get_queried_object_id() );
+		$url       = $author_id ? get_author_posts_url( $author_id ) : '';
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
+	}
+	if ( function_exists( 'is_date' ) && is_date() ) {
+		$year  = (int) get_query_var( 'year', 0 );
+		$month = (int) get_query_var( 'monthnum', 0 );
+		$day   = (int) get_query_var( 'day', 0 );
+		$url   = '';
+		if ( $year && $month && $day && function_exists( 'is_day' ) && is_day() ) {
+			$url = get_day_link( $year, $month, $day );
+		} elseif ( $year && $month && function_exists( 'is_month' ) && is_month() ) {
+			$url = get_month_link( $year, $month );
+		} elseif ( $year && function_exists( 'is_year' ) && is_year() ) {
+			$url = get_year_link( $year );
+		}
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
 	}
 	if ( is_singular() ) {
-		$url = get_permalink();
-		return $url ? (string) $url : '';
+		return (string) ( wp_get_canonical_url() ?: '' );
+	}
+	if ( is_home() ) {
+		$posts_page = (int) get_option( 'page_for_posts' );
+		return jluxe_paginated_canonical_url( $posts_page ? get_permalink( $posts_page ) : home_url( '/' ) );
 	}
 	if ( is_category() || is_tag() || is_tax() ) {
 		$url = get_term_link( get_queried_object() );
-		return is_wp_error( $url ) ? '' : (string) $url;
+		return is_wp_error( $url ) ? '' : jluxe_paginated_canonical_url( (string) $url );
 	}
 	if ( is_post_type_archive() ) {
-		$url = get_post_type_archive_link( get_query_var( 'post_type' ) );
-		return $url ? (string) $url : '';
+		$type = get_query_var( 'post_type' );
+		$url = get_post_type_archive_link( is_array( $type ) ? reset( $type ) : $type );
+		return $url ? jluxe_paginated_canonical_url( (string) $url ) : '';
 	}
-	$core_canonical = wp_get_canonical_url();
-	return $core_canonical ? (string) $core_canonical : '';
+	return '';
 }
+
+/** Return whether a supported SEO plugin owns page metadata and structured data. */
+function jluxe_seo_plugin_is_active(): bool {
+	return defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' );
+}
+
+/**
+ * Convert editorial HTML/shortcodes to one compact plain-text snippet.
+ * Keeping the shortcode pass explicit prevents builder tokens leaking into
+ * search snippets, social previews and the Article description.
+ */
+function jluxe_seo_plain_text( string $content ): string {
+	if ( function_exists( 'wp_strip_all_shortcodes' ) ) {
+		$content = wp_strip_all_shortcodes( $content );
+	}
+	$content = wp_strip_all_tags( $content );
+	$content = preg_replace( '/[\\s\\p{Z}]+/u', ' ', $content );
+	return trim( (string) $content );
+}
+
+/** Safely encode JSON-LD so untrusted text can never close its script element. */
+function jluxe_jsonld_encode( array $markup ): string {
+	$json = wp_json_encode(
+		$markup,
+		JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+	);
+	return is_string( $json ) ? $json : '{}';
+}
+
+/** Return a valid BCP 47 language tag for structured data and social previews. */
+function jluxe_seo_language(): string {
+	$language = function_exists( 'get_bloginfo' ) ? (string) get_bloginfo( 'language' ) : '';
+	$language = str_replace( '_', '-', trim( $language ) );
+	if ( ! preg_match( '/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i', $language ) ) {
+		return 'fa-IR';
+	}
+	return $language;
+}
+
+/** Return a sanitized per-post SEO field for a public singular page. */
+function jluxe_get_seo_post_field( string $field, int $post_id = 0 ): string {
+	$meta_keys = array(
+		'title'       => '_jluxe_seo_title',
+		'description' => '_jluxe_seo_description',
+	);
+	if ( ! isset( $meta_keys[ $field ] ) ) {
+		return '';
+	}
+	$post_id = $post_id ?: (int) get_queried_object_id();
+	$value   = get_post_meta( $post_id, $meta_keys[ $field ], true );
+	if ( ! is_scalar( $value ) ) {
+		return '';
+	}
+	return jluxe_seo_plain_text( (string) $value );
+}
+
+/** Add editable, page-specific search title and description fields in wp-admin. */
+function jluxe_add_seo_post_meta_box(): void {
+	add_meta_box(
+		'jluxe_seo_metadata',
+		'عنوان و توضیح سئو',
+		'jluxe_render_seo_post_meta_box',
+		array( 'post', 'page', 'product' ),
+		'normal',
+		'default'
+	);
+}
+add_action( 'add_meta_boxes', 'jluxe_add_seo_post_meta_box' );
+
+function jluxe_render_seo_post_meta_box( WP_Post $post ): void {
+	$title       = get_post_meta( $post->ID, '_jluxe_seo_title', true );
+	$description = get_post_meta( $post->ID, '_jluxe_seo_description', true );
+	wp_nonce_field( 'jluxe_save_seo_post_meta', 'jluxe_seo_post_meta_nonce' );
+	?>
+	<p class="description">برای همین محصول، مطلب یا برگه یک عنوان و توضیحِ مشخص بنویس. این دو مورد فقط وقتی پوسته مالکِ متادیتاست یا افزونهٔ سئو برای این صفحه مقداری نداده استفاده می‌شوند؛ موتور جستجو ممکن است متنِ دیگری را برای نتیجه انتخاب کند.</p>
+	<p>
+		<label for="jluxe-seo-title"><strong>عنوان نتیجهٔ جستجو</strong></label><br />
+		<input type="text" class="widefat" id="jluxe-seo-title" name="jluxe_seo_title" value="<?php echo esc_attr( is_scalar( $title ) ? (string) $title : '' ); ?>" />
+	</p>
+	<p>
+		<label for="jluxe-seo-description"><strong>توضیح نتیجهٔ جستجو</strong></label><br />
+		<textarea class="widefat" id="jluxe-seo-description" name="jluxe_seo_description" rows="3"><?php echo esc_textarea( is_scalar( $description ) ? (string) $description : '' ); ?></textarea>
+	</p>
+	<?php
+}
+
+function jluxe_save_seo_post_meta( int $post_id, $post ): void {
+	$nonce = isset( $_POST['jluxe_seo_post_meta_nonce'] ) && is_scalar( $_POST['jluxe_seo_post_meta_nonce'] )
+		? sanitize_text_field( wp_unslash( (string) $_POST['jluxe_seo_post_meta_nonce'] ) )
+		: '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_save_seo_post_meta' ) ) {
+		return;
+	}
+	if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ( function_exists( 'wp_is_post_revision' ) && wp_is_post_revision( $post_id ) ) || ( function_exists( 'wp_is_post_autosave' ) && wp_is_post_autosave( $post_id ) ) ) {
+		return;
+	}
+	if ( ! $post instanceof WP_Post || ! in_array( $post->post_type, array( 'post', 'page', 'product' ), true ) || ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$fields = array(
+		'jluxe_seo_title'       => array( '_jluxe_seo_title', 'sanitize_text_field' ),
+		'jluxe_seo_description' => array( '_jluxe_seo_description', 'sanitize_textarea_field' ),
+	);
+	foreach ( $fields as $input_name => $field ) {
+		$raw   = isset( $_POST[ $input_name ] ) && is_scalar( $_POST[ $input_name ] ) ? (string) wp_unslash( $_POST[ $input_name ] ) : '';
+		$value = call_user_func( $field[1], $raw );
+		if ( '' === trim( $value ) ) {
+			delete_post_meta( $post_id, $field[0] );
+		} else {
+			update_post_meta( $post_id, $field[0], $value );
+		}
+	}
+}
+add_action( 'save_post', 'jluxe_save_seo_post_meta', 10, 2 );
+
+/** Prefer the custom singular title only when no supported SEO plugin owns it. */
+function jluxe_filter_seo_document_title( string $title ): string {
+	if ( is_admin() || jluxe_seo_plugin_is_active() || ! is_singular() ) {
+		return $title;
+	}
+	$custom_title = jluxe_get_seo_post_field( 'title' );
+	return '' !== $custom_title ? $custom_title : $title;
+}
+add_filter( 'pre_get_document_title', 'jluxe_filter_seo_document_title', 20 );
 
 /**
  * سئوی پایه — عنوان/توضیحات/canonical/Open Graph/Twitter Card. طبقِ
@@ -1481,20 +3672,59 @@ function jluxe_current_canonical_url(): string {
  * همیشه اول اولویت داشته باشه.
  */
 /**
- * توضیح پیش‌فرض صفحه اصلی برای Rank Math؛ از ایجاد meta description تکراری جلوگیری می‌کند.
+ * Use theme-authored SEO fields only as plugin fallbacks; a non-empty value
+ * configured in Rank Math or Yoast remains authoritative.
  */
-function jluxe_rank_math_fallback_description( $description ) {
+function jluxe_seo_plugin_fallback_description( $description ) {
 	if ( is_admin() || '' !== trim( (string) $description ) ) {
 		return $description;
+	}
+	if ( is_singular() ) {
+		$custom = jluxe_get_seo_post_field( 'description', (int) get_queried_object_id() );
+		if ( '' !== $custom ) {
+			return $custom;
+		}
 	}
 	$settings = jluxe_get_theme_settings();
 	$fallback = $settings['identity']['short_description'] ?? '';
 	if ( is_front_page() && '' !== trim( (string) $fallback ) ) {
-		return trim( wp_strip_all_tags( (string) $fallback ) );
+		return jluxe_seo_plain_text( (string) $fallback );
 	}
-	return $description;
+	$default_description = jluxe_seo_plain_text( (string) ( $settings['seo']['default_meta_description'] ?? '' ) );
+	return '' !== $default_description ? $default_description : $description;
 }
-add_filter( 'rank_math/frontend/description', 'jluxe_rank_math_fallback_description', 20 );
+add_filter( 'rank_math/frontend/description', 'jluxe_seo_plugin_fallback_description', 20 );
+add_filter( 'wpseo_metadesc', 'jluxe_seo_plugin_fallback_description', 20 );
+
+function jluxe_seo_plugin_fallback_title( $title ) {
+	if ( is_admin() || '' !== trim( (string) $title ) || ! is_singular() ) {
+		return $title;
+	}
+	return jluxe_get_seo_post_field( 'title', (int) get_queried_object_id() ) ?: $title;
+}
+add_filter( 'rank_math/frontend/title', 'jluxe_seo_plugin_fallback_title', 20 );
+add_filter( 'wpseo_title', 'jluxe_seo_plugin_fallback_title', 20 );
+
+/**
+ * Site-ownership verification tags are independent of the theme's fallback SEO
+ * tags and must still render when Rank Math or Yoast owns titles/descriptions.
+ * The sanitizer emits only approved <meta name="…verification…" content="…"> pairs.
+ */
+function jluxe_output_verification_meta_tags(): void {
+	if ( is_admin() ) {
+		return;
+	}
+	$seo  = jluxe_get_theme_settings()['seo'] ?? array();
+	$tags = jluxe_sanitize_verification_meta_tags( $seo['verification_meta_tags'] ?? array() );
+	foreach ( $tags as $tag ) {
+		printf(
+			'<meta name="%s" content="%s">' . "\n",
+			esc_attr( $tag['name'] ),
+			esc_attr( $tag['content'] )
+		);
+	}
+}
+add_action( 'wp_head', 'jluxe_output_verification_meta_tags', 4 );
 
 function jluxe_output_seo_meta(): void {
 	if ( is_admin() ) {
@@ -1502,7 +3732,7 @@ function jluxe_output_seo_meta(): void {
 	}
 	// یه پلاگینِ سئوی واقعی (رنک‌مث/یوست) از قبل همینِ تگ‌ها رو چاپ می‌کنه —
 	// اگه فعاله، این تابع کاملاً ساکت می‌مونه تا تگِ تکراری/متناقض تولید نشه.
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
+	if ( jluxe_seo_plugin_is_active() ) {
 		return;
 	}
 	$settings  = jluxe_get_theme_settings();
@@ -1514,11 +3744,11 @@ function jluxe_output_seo_meta(): void {
 	$og_type     = 'website';
 
 	if ( function_exists( 'is_product' ) && is_product() ) {
-		$og_type   = 'product';
+		$og_type    = 'product';
 		$wc_product = function_exists( 'wc_get_product' ) ? wc_get_product( get_queried_object_id() ) : null;
 		if ( $wc_product instanceof WC_Product ) {
-			$description = wp_strip_all_tags( $wc_product->get_short_description() ?: $wc_product->get_description() );
-			$image_id     = $wc_product->get_image_id();
+			$description = $wc_product->get_short_description() ?: $wc_product->get_description();
+			$image_id    = $wc_product->get_image_id();
 			if ( $image_id ) {
 				$image_url = (string) wp_get_attachment_image_url( $image_id, 'large' );
 			}
@@ -1526,20 +3756,35 @@ function jluxe_output_seo_meta(): void {
 	} elseif ( is_front_page() ) {
 		$description = $settings['identity']['short_description'];
 	} elseif ( is_singular() ) {
-		$og_type      = 'article';
-		$description  = has_excerpt() ? get_the_excerpt() : wp_strip_all_tags( get_post_field( 'post_content', get_queried_object_id() ) );
-		if ( has_post_thumbnail() ) {
-			$image_url = (string) get_the_post_thumbnail_url( get_queried_object_id(), 'large' );
+		$post_id = get_queried_object_id();
+		$og_type = 'post' === get_post_type( $post_id ) ? 'article' : 'website';
+		$description = has_excerpt( $post_id ) ? get_the_excerpt( $post_id ) : get_post_field( 'post_content', $post_id );
+		if ( has_post_thumbnail( $post_id ) ) {
+			$image_url = (string) get_the_post_thumbnail_url( $post_id, 'large' );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$description = term_description();
+		if ( function_exists( 'get_term_meta' ) ) {
+			$term_image_id = absint( get_term_meta( get_queried_object_id(), 'thumbnail_id', true ) );
+			if ( $term_image_id ) {
+				$image_url = (string) wp_get_attachment_image_url( $term_image_id, 'large' );
+			}
+		}
+	} elseif ( function_exists( 'is_author' ) && is_author() ) {
+		$description = get_the_author_meta( 'description', get_queried_object_id() );
 	}
 
-	$description = trim( wp_strip_all_tags( (string) $description ) );
+	if ( is_singular() ) {
+		$custom_description = jluxe_get_seo_post_field( 'description', (int) get_queried_object_id() );
+		if ( '' !== $custom_description ) {
+			$description = $custom_description;
+		}
+	}
+	$description = jluxe_seo_plain_text( (string) $description );
 	if ( '' === $description ) {
 		$description = $seo['default_meta_description'] ?: $settings['identity']['short_description'];
 	}
-	$description = trim( wp_trim_words( $description, 40, '…' ) );
+	$description = trim( wp_trim_words( $description, 35, '…' ) );
 
 	if ( '' !== $description ) {
 		printf( '<meta name="description" content="%s">' . "\n", esc_attr( $description ) );
@@ -1568,7 +3813,7 @@ function jluxe_output_seo_meta(): void {
 	if ( $canonical ) {
 		printf( '<meta property="og:url" content="%s">' . "\n", esc_url( $canonical ) );
 	}
-	printf( '<meta property="og:locale" content="fa_IR">' . "\n" );
+	printf( '<meta property="og:locale" content="%s">' . "\n", esc_attr( str_replace( '-', '_', jluxe_seo_language() ) ) );
 	if ( $image_url ) {
 		printf( '<meta property="og:image" content="%s">' . "\n", esc_url( $image_url ) );
 	}
@@ -1616,59 +3861,25 @@ function jluxe_noindex_utility_pages(): void {
 add_action( 'wp_head', 'jluxe_noindex_utility_pages', 5 );
 
 /**
- * BreadcrumbList (JSON-LD) — قبل از این کاملاً غایب بود (هیچ خروجیِ
- * application/ld+json با @type:BreadcrumbList توی هیچ صفحه‌ای چاپ
- * نمی‌شد). این نوع schema همون چیزیه که به گوگل اجازه می‌ده به‌جای URL
- * خام، مسیرِ ناوبریِ صفحه (خانه › دسته‌بندی › محصول) رو توی نتایجِ جستجو
- * نشون بده، و به موتورهای پاسخ‌گوی هوش‌مصنوعی هم صریحاً ساختارِ سایت رو
- * می‌گه (نه این‌که از رویِ URL حدس بزنن). مسیر دقیقاً منطبق با همون
- * breadcrumbِ بصری‌ایه که خودِ صفحه (content-single-product.php/single.php)
- * نشون می‌ده — چیزی که کاربر نمی‌بینه رو ادعا نمی‌کنیم.
+ * BreadcrumbList JSON-LD for indexable blog, taxonomy and shop archives.
+ * Product templates print their own visible-path breadcrumb once; SEO plugins
+ * own the graph when active. Structured data describes the page but does not
+ * guarantee a rich result or ranking change.
  */
 function jluxe_output_breadcrumb_schema(): void {
-	if ( is_admin() || is_front_page() ) {
+	if ( is_admin() || is_front_page() || ( function_exists( 'is_product' ) && is_product() ) ) {
+		// صفحهٔ محصول بردکرامبِ قالب خودش را در همان‌جا چاپ می‌کند؛ این خروجیِ wp_head
+		// قبلاً با آن یک BreadcrumbList تکراری می‌ساخت.
 		return;
 	}
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
-		return; // این پلاگین‌ها معمولاً خودشون BreadcrumbList می‌سازن؛ از تکراری‌شدن جلوگیری می‌کنیم.
+	if ( jluxe_seo_plugin_is_active() ) {
+		return; // افزونهٔ سئو مالکِ دادهٔ ساختاریافته است؛ از تکرار جلوگیری می‌کنیم.
 	}
 
 	$items   = array();
 	$items[] = array( 'خانه', home_url( '/' ) );
 
-	if ( function_exists( 'is_product' ) && is_product() ) {
-		$product_id = get_queried_object_id();
-		$terms      = get_the_terms( $product_id, 'product_cat' );
-		if ( $terms && ! is_wp_error( $terms ) ) {
-			// اولین ترمِ بدونِ فرزند (یا اولین ترم اگه هیچ‌کدوم فرزند نداشتن) —
-			// نزدیک‌ترین دسته‌بندیِ واقعی به خودِ محصول.
-			$primary = $terms[0];
-			foreach ( $terms as $t ) {
-				if ( 0 !== (int) $t->parent ) {
-					$primary = $t;
-					break;
-				}
-			}
-			// مسیرِ کاملِ والدها (دسته‌ی مادر ← ... ← زیرترین دسته).
-			$chain = array( $primary );
-			$p     = $primary;
-			while ( $p->parent ) {
-				$parent = get_term( $p->parent, 'product_cat' );
-				if ( ! $parent || is_wp_error( $parent ) ) {
-					break;
-				}
-				array_unshift( $chain, $parent );
-				$p = $parent;
-			}
-			foreach ( $chain as $term ) {
-				$link = get_term_link( $term );
-				if ( ! is_wp_error( $link ) ) {
-					$items[] = array( $term->name, (string) $link );
-				}
-			}
-		}
-		$items[] = array( get_the_title( $product_id ), (string) get_permalink( $product_id ) );
-	} elseif ( is_singular( 'post' ) ) {
+	if ( is_singular( 'post' ) ) {
 		$blog_url = get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog' );
 		$items[]  = array( 'بلاگ', (string) $blog_url );
 		$cats     = get_the_category();
@@ -1721,46 +3932,73 @@ function jluxe_output_breadcrumb_schema(): void {
 		'@type'           => 'BreadcrumbList',
 		'itemListElement' => $list_items,
 	);
-	echo '<script type="application/ld+json">' . wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>' . "\n";
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( $markup ) . '</script>' . "\n";
 }
 add_action( 'wp_head', 'jluxe_output_breadcrumb_schema', 6 );
 
 /**
- * Article (JSON-LD) برای پست‌های بلاگ — از وقتی single.php ساخته شد،
- * هیچ schema ای همراهش نبود. این یکی هم دقیقاً همون شرطِ رنک‌مث/یوست رو
- * داره تا اگه اون پلاگین‌ها فعالن، تکراری چاپ نشه.
+ * Article JSON-LD for blog posts, linked to the site's Organization and the
+ * real WordPress author. Supported SEO plugins retain ownership of their graph.
  */
 function jluxe_output_article_schema(): void {
-	if ( is_admin() || ! is_singular( 'post' ) ) {
-		return;
-	}
-	if ( defined( 'RANK_MATH_VERSION' ) || defined( 'WPSEO_VERSION' ) ) {
+	if ( is_admin() || ! is_singular( 'post' ) || jluxe_seo_plugin_is_active() ) {
 		return;
 	}
 
-	$settings  = jluxe_get_theme_settings();
-	$site_name = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
-	$post_id   = get_queried_object_id();
+	$settings       = jluxe_get_theme_settings();
+	$site_name      = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
+	$post_id        = get_queried_object_id();
+	$post_url       = (string) get_permalink( $post_id );
+	$author_id      = absint( get_post_field( 'post_author', $post_id ) );
+	$author_name    = jluxe_seo_plain_text( (string) get_the_author_meta( 'display_name', $author_id ) );
+	$author_url     = $author_id ? (string) get_author_posts_url( $author_id ) : '';
+	$description    = has_excerpt( $post_id ) ? get_the_excerpt( $post_id ) : get_post_field( 'post_content', $post_id );
+	$description    = jluxe_seo_plain_text( (string) $description );
 
 	$markup = array(
 		'@context'         => 'https://schema.org',
 		'@type'            => 'Article',
-		'headline'         => get_the_title( $post_id ),
+		'@id'              => $post_url . '#article',
+		'url'              => $post_url,
+		'headline'         => jluxe_seo_plain_text( (string) get_the_title( $post_id ) ),
 		'mainEntityOfPage' => array(
 			'@type' => 'WebPage',
-			'@id'   => get_permalink( $post_id ),
+			'@id'   => $post_url,
 		),
 		'datePublished'    => get_the_date( 'c', $post_id ),
 		'dateModified'     => get_the_modified_date( 'c', $post_id ),
-		'author'           => array(
-			'@type' => 'Person',
-			'name'  => get_the_author_meta( 'display_name', get_post_field( 'post_author', $post_id ) ),
-		),
+		'inLanguage'       => jluxe_seo_language(),
 		'publisher'        => array(
 			'@type' => 'Organization',
+			'@id'   => home_url( '/#organization' ),
 			'name'  => $site_name,
 		),
 	);
+
+	if ( '' !== $description ) {
+		$markup['description'] = $description;
+	}
+	if ( '' !== $author_name ) {
+		$markup['author'] = array(
+			'@type' => 'Person',
+			'@id'   => $author_url ? $author_url . '#person' : $post_url . '#author',
+			'name'  => $author_name,
+		);
+		if ( $author_url ) {
+			$markup['author']['url'] = $author_url;
+		}
+	}
+
+	$categories = get_the_category( $post_id );
+	$sections   = array();
+	foreach ( (array) $categories as $category ) {
+		if ( isset( $category->name ) && '' !== trim( (string) $category->name ) ) {
+			$sections[] = (string) $category->name;
+		}
+	}
+	if ( ! empty( $sections ) ) {
+		$markup['articleSection'] = array_values( array_unique( $sections ) );
+	}
 
 	$logo_url = function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
 	if ( $logo_url ) {
@@ -1773,61 +4011,100 @@ function jluxe_output_article_schema(): void {
 		$markup['image'] = array( (string) get_the_post_thumbnail_url( $post_id, 'full' ) );
 	}
 
-	echo '<script type="application/ld+json">' . wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>' . "\n";
+	echo '<script type="application/ld+json">' . jluxe_jsonld_encode( $markup ) . '</script>' . "\n";
 }
 add_action( 'wp_head', 'jluxe_output_article_schema', 6 );
 
+/** Normalize Iranian mobile digits for schema while leaving other entered contact numbers intact. */
+function jluxe_schema_telephone( $telephone ): string {
+	if ( ! is_scalar( $telephone ) ) {
+		return '';
+	}
+	$telephone = (string) $telephone;
+	$normalized = function_exists( 'jluxe_normalize_phone' ) ? jluxe_normalize_phone( $telephone ) : '';
+	return '' !== $normalized ? '+98' . $normalized : sanitize_text_field( $telephone );
+}
+
 /**
- * JSON-LD سازمانی (Organization) — سراسریِ سایت، طبقِ درخواستِ صریحِ کاربر
- * («مناسبِ سئوی گوگل و هوش مصنوعی»). این نوع schema مستقل از هر پلاگین/
- * قالبِ خاصیه و به گوگل/موتورهای پاسخ‌گوی هوش‌مصنوعی (که برای شناختِ
- * «این سایت مالِ کدوم برنده» به همین JSON-LD تکیه می‌کنن، نه حدسِ متن)
- * می‌گه این سایت واقعاً مالِ کدوم برند/فروشگاهه — نام، آدرس، لوگو، شبکه‌های
- * اجتماعی (sameAs). خروجیِ ووکامرس (generate_website_data در
- * inc/woocommerce.php) این رو تکمیل می‌کنه، جایگزینش نمی‌شه.
+ * Organization identity is emitted once, from real site settings. Supported
+ * SEO plugins own their graph, so the theme yields instead of printing a
+ * second, potentially conflicting Organization entity.
  */
 function jluxe_output_organization_schema(): void {
-	if ( is_admin() ) {
+	if ( is_admin() || jluxe_seo_plugin_is_active() ) {
 		return;
 	}
-	$settings = jluxe_get_theme_settings();
+	$settings  = jluxe_get_theme_settings();
 	$site_name = $settings['identity']['site_name'] ?: get_bloginfo( 'name' );
-
-	$same_as = array();
-	foreach ( (array) ( $settings['social'] ?? array() ) as $row ) {
-		if ( ! empty( $row['enabled'] ) && ! empty( $row['url'] ) ) {
-			$same_as[] = $row['url'];
-		}
-	}
+	$site_url  = home_url( '/' );
 
 	$markup = array(
 		'@context' => 'https://schema.org',
 		'@type'    => 'Organization',
+		'@id'      => $site_url . '#organization',
 		'name'     => $site_name,
-		'url'      => home_url( '/' ),
+		'url'      => $site_url,
 	);
+
+	$description = jluxe_seo_plain_text( (string) ( $settings['identity']['short_description'] ?? '' ) );
+	if ( '' !== $description ) {
+		$markup['description'] = $description;
+	}
 
 	$logo_url = function_exists( 'jluxe_get_logo_url' ) ? jluxe_get_logo_url() : '';
 	if ( $logo_url ) {
-		$markup['logo'] = $logo_url;
-	}
-
-	$phone = $settings['contact']['phone'] ?? '';
-	if ( $phone ) {
-		$markup['contactPoint'] = array(
-			'@type'       => 'ContactPoint',
-			'telephone'   => $phone,
-			'contactType' => 'customer service',
+		$markup['logo'] = array(
+			'@type' => 'ImageObject',
+			'@id'   => $logo_url . '#logo',
+			'url'   => $logo_url,
 		);
 	}
 
+	$phones = array_filter(
+		array_unique(
+				array_map(
+					'jluxe_schema_telephone',
+					array( $settings['contact']['phone'] ?? '', $settings['contact']['phone_secondary'] ?? '' )
+				)
+		)
+	);
+	$email   = sanitize_email( (string) ( $settings['contact']['email'] ?? '' ) );
+	$contact = array( '@type' => 'ContactPoint', 'contactType' => 'customer service' );
+	if ( ! empty( $phones ) ) {
+		$contact['telephone'] = 1 === count( $phones ) ? reset( $phones ) : array_values( $phones );
+	}
+	if ( is_email( $email ) ) {
+		$contact['email'] = $email;
+	}
+	if ( count( $contact ) > 2 ) {
+		$markup['contactPoint'] = $contact;
+	}
+
+	$address = jluxe_seo_plain_text( (string) ( $settings['contact']['address'] ?? '' ) );
+	if ( '' !== $address ) {
+		// Only the entered public address is emitted; no city, region or country is inferred.
+		$markup['address'] = array(
+			'@type'        => 'PostalAddress',
+			'streetAddress' => $address,
+		);
+	}
+
+	$same_as = array();
+	foreach ( (array) ( $settings['social'] ?? array() ) as $row ) {
+		if ( ! empty( $row['enabled'] ) && ! empty( $row['url'] ) ) {
+			$url = esc_url_raw( (string) $row['url'] );
+			if ( '' !== $url ) {
+				$same_as[] = $url;
+			}
+		}
+	}
 	if ( ! empty( $same_as ) ) {
-		$markup['sameAs'] = array_values( $same_as );
+		$markup['sameAs'] = array_values( array_unique( $same_as ) );
 	}
 
 	printf(
 		'<script type="application/ld+json">%s</script>' . "\n",
-		wp_json_encode( $markup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
+		jluxe_jsonld_encode( $markup )
 	);
 }
 add_action( 'wp_head', 'jluxe_output_organization_schema', 6 );
@@ -1924,7 +4201,17 @@ function jluxe_set_ai_api_key( string $key ): void {
  * هیچ‌وقت این‌جا نیست، فقط وضعیت واقعی «آیا کلید تنظیم شده یا نه».
  */
 function jluxe_get_ai_public_settings(): array {
-	$ai = jluxe_get_theme_settings()['ai_assistant'];
+	$settings = jluxe_get_theme_settings();
+	$ai = $settings['ai_assistant'];
+	$ticket_form_enabled = ! empty( $ai['widgets']['support_ticket'] );
+	$mobile = $settings['mobile'] ?? array();
+	$floating_nav_items = is_array( $mobile['floating_nav_items'] ?? null ) ? $mobile['floating_nav_items'] : array();
+	$mobile_menu_opens_assistant = 'floating' === ( $mobile['nav_variant'] ?? 'classic' ) && (bool) array_filter(
+		$floating_nav_items,
+		static fn( $item ): bool => is_array( $item ) && ! empty( $item['enabled'] ) && 'assistant' === ( $item['action'] ?? '' )
+	);
+	// If the active floating menu already opens the assistant, suppress the duplicate mobile bubble.
+	$hide_mobile_launcher = ! empty( $ai['hide_mobile_launcher'] ) || $mobile_menu_opens_assistant;
 	return array(
 		'enabled'            => (bool) $ai['enabled'] && '' !== jluxe_get_ai_api_key(),
 		'name'               => $ai['name'],
@@ -1932,9 +4219,12 @@ function jluxe_get_ai_public_settings(): array {
 		'avatarUrl'          => $ai['avatar_id'] ? wp_get_attachment_image_url( (int) $ai['avatar_id'], 'thumbnail' ) : '',
 		'buttonUrl'          => $ai['button_id'] ? wp_get_attachment_image_url( (int) $ai['button_id'], 'thumbnail' ) : '',
 		'showDesktop'        => (bool) $ai['show_desktop'],
-		'showMobile'         => (bool) $ai['show_mobile'],
+		'showMobile'         => (bool) $ai['show_mobile'], // legacy
+		'hideMobileLauncher' => $hide_mobile_launcher,
+		// Floating launcher stays out of the cart/category UI; explicit support links can still open chat.
+		'hideLauncherOnPage' => ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_product_category' ) && is_product_category() ),
 		'quickReplies'       => array_values( $ai['quick_replies'] ),
-		'primaryColor'       => $ai['primary_color'],
+		'primaryColor'       => '' !== (string) $ai['primary_color'] ? $ai['primary_color'] : $settings['colors']['primary'],
 		'textColor'          => $ai['text_color'],
 		'bgUserColor'        => $ai['bg_user_color'],
 		'bgBotColor'         => $ai['bg_bot_color'],
@@ -1948,10 +4238,15 @@ function jluxe_get_ai_public_settings(): array {
 		'borderRadius'       => (int) $ai['border_radius'],
 		'handoffWhatsapp'    => $ai['handoff_whatsapp'],
 		'handoffTelegram'    => $ai['handoff_telegram'],
-		'handoffFormUrl'     => $ai['handoff_form_url'],
+		// وقتی فرمِ داخلی روشن است، URL بیرونی را اصلاً به مرورگر نده؛ این کار
+		// مانعِ نمایشِ اشتباهیِ صفحهٔ راهنما به‌جای فرمِ پشتیبانی می‌شود.
+		'handoffFormUrl'     => $ticket_form_enabled ? '' : $ai['handoff_form_url'],
 		'widgets'            => $ai['widgets'],
 		// «ثبت پیام برای پشتیبان» — از همون سوییچِ از قبل موجودِ widgets.support_ticket.
-		'enableTicketForm'   => ! empty( $ai['widgets']['support_ticket'] ),
+		'enableTicketForm'   => $ticket_form_enabled,
+		// R94 — دکمه‌های تماسِ داخلِ پاسخ، ساعتِ پاسخگویی و نقطهٔ شکستِ موبایل.
+		'mobileBreakpoint'   => (int) ( $ai['mobile_breakpoint'] ?? 820 ),
+		'contact'            => function_exists( 'jluxe_ai_public_contact' ) ? jluxe_ai_public_contact( $ai ) : array(),
 	);
 }
 
@@ -1979,16 +4274,18 @@ function jluxe_set_sms_api_key( string $key ): void {
  * جزئیات دیگه. تا وقتی این false باشه، تب OTP توی فرانت غیرفعال/مخفیه.
  */
 function jluxe_get_sms_public_settings(): array {
-	$sms = jluxe_get_theme_settings()['sms'];
-	return array(
-		'enabled' => (bool) $sms['enabled'] && '' !== $sms['provider'] && '' !== jluxe_get_sms_api_key(),
-	);
+	return array( 'enabled' => jluxe_otp_available() );
 }
 
 require_once __DIR__ . '/theme-settings-sanitize.php';
 require_once __DIR__ . '/theme-settings-presets.php';
+require_once __DIR__ . '/theme-settings-secrets.php';
+require_once __DIR__ . '/categories-page.php';
 require_once __DIR__ . '/theme-settings-admin.php';
 require_once __DIR__ . '/theme-settings-homepage.php';
+require_once __DIR__ . '/theme-settings-visual-builder.php';
 require_once __DIR__ . '/theme-settings-ai.php';
+require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت برای دستیار (RAG)
+require_once __DIR__ . '/ai-stream.php'; // R134 — ارسالِ تدریجیِ پاسخ‌های providerهای OpenAI-compatible
 require_once __DIR__ . '/theme-settings-sms.php';
 require_once __DIR__ . '/auth.php';
