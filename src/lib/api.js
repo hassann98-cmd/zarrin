@@ -89,6 +89,19 @@ export function getSession(refresh = false) {
         const result = await response.json();
         if (!response.ok || !result.success)
           throw new Error("نشست معتبر نیست؛ صفحه را تازه کنید.");
+        if (typeof window !== "undefined" && typeof result.data?.auth?.isLoggedIn === "boolean") {
+          const authenticated = result.data.auth.isLoggedIn;
+          if (typeof window.jluxePublishAuthStatus === "function") {
+            window.jluxePublishAuthStatus(authenticated);
+          } else {
+            window.jluxeCurrentAuthStatus = authenticated;
+            const settings = getThemeSettings();
+            settings.auth = { ...settings.auth, isLoggedIn: authenticated };
+            if (typeof window.CustomEvent === "function" && typeof window.dispatchEvent === "function") {
+              window.dispatchEvent(new window.CustomEvent("jluxe:auth-status"));
+            }
+          }
+        }
         return result.data;
       })
       .catch((error) => {

@@ -2168,7 +2168,9 @@ function jluxe_render_mobile_contact_page(): void {
 							</td>
 						</tr>
 					</table>
-					<h3>آیتم‌های نوار فعلی</h3>
+					<p class="description" role="status" aria-live="polite" data-mobile-nav-editor-status>فقط آیتم‌های طرح فعال زیر نمایش داده می‌شوند؛ تنظیمات طرح دیگر محفوظ می‌ماند.</p>
+					<div data-mobile-nav-editor="classic" <?php echo 'floating' === ( $settings['mobile']['nav_variant'] ?? 'classic' ) ? 'hidden' : ''; ?>>
+					<h3>آیتم‌های نوار فعلی — طرح تمام‌عرض</h3>
 					<p class="description">این طرح همان رفتار قبلی را حفظ می‌کند. ترتیب، برچسب، آیکون و نمایش هر آیتم قابل تغییر است.</p>
 					<div class="jluxe-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="nav_items">
@@ -2197,7 +2199,9 @@ function jluxe_render_mobile_contact_page(): void {
 						</div>
 					</div>
 
-					<h3>آیتم‌های نوار شناورِ نمونه</h3>
+					</div>
+					<div data-mobile-nav-editor="floating" <?php echo 'floating' !== ( $settings['mobile']['nav_variant'] ?? 'classic' ) ? 'hidden' : ''; ?>>
+					<h3>آیتم‌های نوار شناورِ نمونه — طرح فعال شناور</h3>
 					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ با فعال‌بودن آن در نوار شناور، دکمهٔ شناورِ جداگانهٔ دستیار در موبایل خودکار پنهان می‌شود. «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
 					<div class="jluxe-repeater jluxe-mobile-floating-nav-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="floating_nav_items">
@@ -2239,6 +2243,7 @@ function jluxe_render_mobile_contact_page(): void {
 						</div>
 					</div>
 
+					</div>
 					<h3>استایل نوار موبایل</h3>
 					<p class="description">رنگ نوار، رنگ آیکون/حالت فعال و سایه در هر دو طرح استفاده می‌شوند. پس‌زمینهٔ جداگانهٔ آیکون‌ها، گردی و ارتفاع فقط روی طرح فعلی اثر دارند؛ طرح شناور به شکل کپسولی و دارای قاب ظریف می‌ماند.</p>
 					<?php $mstyle = $settings['mobile']['nav_style'] ?? array(); ?>
@@ -2929,7 +2934,9 @@ function jluxe_render_advanced_page(): void {
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<h3>تنظیمات</h3>
 					<table class="form-table" role="presentation">
-						<tr>
+						<tr><th scope="row">نرمی جابه‌جایی صفحات</th><td><label><input type="checkbox" name="performance[page_transitions]" value="1" <?php checked( $perf['page_transitions'] ?? true ); ?> /> انتقال محوشوندهٔ کوتاه و خط انتظار بالای صفحه، در موبایل و دسکتاپ</label><p class="description">بدون تغییر HTML و مسیریابی وردپرس؛ کاهش حرکت مرورگر رعایت می‌شود. سبد، پرداخت و حساب مستثنا هستند.</p></td></tr>
+                        <tr><th scope="row">پیش‌دریافت محدود صفحات</th><td><label><input type="checkbox" name="performance[page_prefetch]" value="1" <?php checked( $perf['page_prefetch'] ?? true ); ?> /> پیش‌دریافت لینک محصول و خانه برای مهمان با قصد لمس/فوکوس (حداکثر دو صفحه)</label><p class="description">لینک‌های عملیاتی، اتصال ضعیف و حالت صرفه‌جویی داده مستثنا هستند.</p></td></tr>
+                        <tr>
 							<th scope="row">غیرفعال‌سازی اسکریپت ایموجی وردپرس</th>
 							<td><label><input type="checkbox" name="performance[disable_emojis]" value="1" <?php checked( $perf['disable_emojis'] ); ?> /> کاهش یک درخواست JS/CSS اضافه در هر صفحه</label></td>
 						</tr>
