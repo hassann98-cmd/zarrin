@@ -1446,6 +1446,8 @@ function jluxe_sanitize_review_criteria( array $posted, array $defaults ): array
 
 function jluxe_sanitize_performance( array $posted, array $defaults ): array {
 	return array(
+		'page_transitions' => ! empty( $posted['page_transitions'] ),
+		'page_prefetch' => ! empty( $posted['page_prefetch'] ),
 		'disable_emojis'   => ! empty( $posted['disable_emojis'] ),
 		'lazy_load_images' => ! empty( $posted['lazy_load_images'] ),
 		'defer_third_party_scripts' => ! empty( $posted['defer_third_party_scripts'] ),
@@ -1631,7 +1633,22 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
  * معتبرن؛ فیلدهای مشترک (id/type/enabled) همیشه sanitize می‌شن، بقیه بر
  * اساس نوع.
  */
-function jluxe_sanitize_homepage_section( array $posted ): array {
+/** Strict shared visual controls; no raw CSS, selectors or executable values. */
+function jluxe_sanitize_homepage_section_design( array $posted ): array {
+	$raw = is_array( $posted['design'] ?? null ) ? $posted['design'] : array();
+	$d = array();
+	foreach ( array( 'padding', 'mobile_padding', 'margin_top', 'margin_bottom', 'radius' ) as $key ) {
+		$d[ $key ] = is_scalar( $raw[ $key ] ?? null ) ? max( 0, min( 240, (int) $raw[ $key ] ) ) : 0;
+	}
+	$bg = is_string( $raw['background'] ?? null ) ? $raw['background'] : '';
+	$d['background'] = preg_match( '/^#[a-fA-F0-9]{6}$/D', $bg ) ? $bg : '';
+	$d['align'] = in_array( $raw['align'] ?? '', array( 'start', 'center', 'end' ), true ) ? $raw['align'] : 'start';
+	$d['hide_mobile'] = ! empty( $raw['hide_mobile'] );
+	$d['hide_desktop'] = ! empty( $raw['hide_desktop'] );
+	return array( 'editor_label' => is_scalar( $posted['editor_label'] ?? null ) ? sanitize_text_field( (string) $posted['editor_label'] ) : '', 'design_enabled' => ! empty( $posted['design_enabled'] ), 'design' => $d );
+}
+
+function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array {
 	$type = isset( $posted['type'] ) ? sanitize_key( $posted['type'] ) : 'text';
 	$id   = isset( $posted['id'] ) ? sanitize_key( $posted['id'] ) : '';
 	if ( '' === $id ) {
@@ -1643,8 +1660,21 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 		'type'    => $type,
 		'enabled' => ! empty( $posted['enabled'] ),
 	);
+	if ( isset( $posted['design'] ) || isset( $posted['editor_label'] ) || isset( $posted['design_enabled'] ) ) {
+		$section = array_merge( $section, jluxe_sanitize_homepage_section_design( $posted ) );
+	}
 
 	switch ( $type ) {
+		case 'container':
+			$section = array_merge( $section, jluxe_builder_container_options( $posted ) );
+			$section['children'] = array();
+			if ( ! isset( $posted['children'] ) && is_string( $posted['children_json'] ?? null ) && strlen( $posted['children_json'] ) <= 1048576 ) { $posted['children'] = json_decode( $posted['children_json'], true, 32 ); }
+			if ( $depth < 6 && is_array( $posted['children'] ?? null ) ) {
+				foreach ( array_slice( $posted['children'], 0, 150 ) as $child ) {
+					if ( is_array( $child ) ) { $section['children'][] = jluxe_sanitize_homepage_section( $child, $depth + 1 ); }
+				}
+			}
+			break;
 		case 'hero':
 			$section['duration_sec'] = max( 2, min( 15, absint( $posted['duration_sec'] ?? 5 ) ) );
 			$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
@@ -2016,6 +2046,16 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 
 		case 'html':
 			$section['content'] = isset( $posted['content'] ) ? $posted['content'] : ''; // manage_options only، مثل Custom CSS/JS.
+			break;
+
+		case 'heading':
+		case 'button':
+		case 'image':
+			$section['title'] = is_scalar( $posted['title'] ?? null ) ? sanitize_text_field( (string) $posted['title'] ) : '';
+			$section['url'] = is_scalar( $posted['url'] ?? null ) ? esc_url_raw( (string) $posted['url'] ) : '';
+			$section['alt'] = is_scalar( $posted['alt'] ?? null ) ? sanitize_text_field( (string) $posted['alt'] ) : '';
+			$section['image_id'] = is_scalar( $posted['image_id'] ?? null ) ? absint( $posted['image_id'] ) : 0;
+			$section['tag'] = in_array( $posted['tag'] ?? '', array( 'h2', 'h3', 'h4' ), true ) ? $posted['tag'] : 'h2';
 			break;
 
 		case 'spacer':

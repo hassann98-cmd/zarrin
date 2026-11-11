@@ -1,6 +1,6 @@
 # پوستهٔ زرین — Zarrin
 
-پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.222** است.
+پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.239** است.
 
 - [فهرست اصلاحات و نتیجهٔ تست‌ها](docs/FIXES.fa.md)
 - [آزمون یکپارچهٔ وردپرس: روش اجرا و محدودیت‌ها](docs/INTEGRATION.fa.md)
@@ -245,3 +245,10 @@ define( 'JLUXE_VITE_DEV_SERVER', 'https://5173-YOUR-SANDBOX.e2b.app' );
 - سازگاری ۲۳ override با نسخهٔ نصب‌شده، ارسال واقعی SMS/ایمیل، پرداخت، حمل/مالیات، session هم‌زمان، Woo Blocks، چندارزی و چندسایتی نیازمند محیط واقعی‌اند.
 - آزمون‌های ایزوله و آزمون WordPress/SQLite واقعی اجرا شده‌اند؛ نه Lighthouse، نه خرید WooCommerce/مرورگر واقعی و نه آزمایش provider واقعی. دامنهٔ هر مجموعه در گزارش تست جدا شده است.
 - دربارهٔ مجوز فونت IRANYekan و LICENSE کد اختصاصی، مدارک مالک باید تکمیل شوند. [یادداشت وابستگی‌های ثالث](docs/THIRD-PARTY-NOTICES.md) مجوزی برای فونت یا کل پوسته اعطا نمی‌کند.
+
+
+### آزمون بازسازی صفحه‌ساز بصری
+
+`npm run check` آزمون‌های مستقل و build را اجرا می‌کند. برای تست وردپرس واقعی با fixtureهای ایزوله، مطابق `tests/integration/package.json` از Node >=24.18 استفاده کنید؛ ابتدا `node tests/integration/download.mjs` و سپس `npm run test:integration:builder`. خروجی موفق `BUILDER_V2_WORDPRESS_INTEGRATION_PASSED` است. هیچ دیتابیس تولیدی یا سرویس پرداخت/پیامک واقعی استفاده نمی‌شود.
+
+آزمون اختیاری Chromium: وابستگی‌های `playwright-core` و `@sparticuz/chromium` را در پوشهٔ cache جدا نصب کنید، `BUILDER_CAPTURE=1 npm run test:integration:builder` را اجرا کنید، سپس با `BUILDER_BROWSER_MODULES` برابر مسیر node_modules همان پوشه، `npm run test:browser:builder` را اجرا کنید. سیستم باید کتابخانه‌های موردنیاز Chromium را داشته باشد. تصاویر آزمایش فقط در `.cache/builder-capture` ذخیره می‌شوند و منتشر نمی‌شوند.

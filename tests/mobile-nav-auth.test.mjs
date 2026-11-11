@@ -36,6 +36,12 @@ function runAuthScript(dom, fetch, extraWindow = {}) {
     location: { assign: (href) => navigations.push(href) },
     ...extraWindow,
   };
+  // Model native navigation after the capture handler updates the anchor.
+  dom.window.document.addEventListener("click", event => {
+    if (event.defaultPrevented) return;
+    const link = event.target.closest("a");
+    if (link) { navigations.push(link.getAttribute("href")); event.preventDefault(); }
+  });
   vm.runInNewContext(authScript, { window, document: dom.window.document, Promise });
   return { window, navigations };
 }
@@ -122,7 +128,7 @@ test("R352 an account tap during session verification waits and navigates to the
 
 test("R352 both mobile docks publish account routes and the theme enqueues the private-session synchronizer early", () => {
   for (const source of [mobileNavSource, floatingNavSource]) {
-    assert.match(source, /jluxeCurrentAuthStatus/);
+    assert.match(source, /useAuthStatus/);
     assert.match(source, /data-jluxe-account-login-href/);
     assert.match(source, /data-jluxe-account-dashboard-href/);
     assert.match(source, /data-jluxe-account-label/);
@@ -131,4 +137,23 @@ test("R352 both mobile docks publish account routes and the theme enqueues the p
   assert.match(phpSource, /mobile-auth-status\.js/);
   assert.match(phpSource, /wp_localize_script\([\s\S]*?jluxeMobileAuthSettings[\s\S]*?admin_url\( 'admin-ajax\.php' \)/);
   assert.match(authScript, /document\.addEventListener\("click", handleAccountClick, true\)/);
+});
+
+test("confirmed login updates an already resolved guest dock without reloading; old bootstrap cannot overwrite it", async () => {
+  const dom = new JSDOM("<!doctype html><body></body>", { url: "https://shop.test/store/" });
+  const link = accountLink(dom.window.document, "account");
+  let finish;
+  const { window, navigations } = runAuthScript(dom, () => new Promise(resolve => { finish = resolve; }));
+  window.jluxePublishAuthStatus(true);
+  finish({ ok: true, json: async () => ({ success: true, data: { auth: { isLoggedIn: false } } }) });
+  await window.jluxeMobileAuthStatusPromise;
+  assert.equal(window.jluxeCurrentAuthStatus, true);
+  assert.equal(link.getAttribute("href"), "/store/members/");
+  assert.equal(link.textContent, "حساب کاربری");
+  link.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+  assert.deepEqual(navigations, ["/store/members/"]);
+  window.jluxePublishAuthStatus(false);
+  assert.equal(link.textContent, "ورود");
+  assert.equal(link.getAttribute("href"), "/store/login/");
+  dom.window.close();
 });
