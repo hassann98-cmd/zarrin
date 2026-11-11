@@ -18,8 +18,10 @@
  *
  * برچسبِ «ثبت سفارش» طبقِ مرجعِ تصویریِ جدیدِ کاربر برای مرحله‌ی «بررسیِ
  * سبدِ خرید» (قبلاً «ادامه» بود).
+
+ * @version 7.0.1
  */
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="checkout-button button alt wc-forward">ثبت سفارش</a>
+<a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="checkout-button button alt wc-forward jluxe-checkout-action-button jluxe-checkout-action-button--primary"><?php echo esc_html( jluxe_cart_checkout_required_copy( 'cart_checkout_button', 'ثبت سفارش' ) ); ?></a>

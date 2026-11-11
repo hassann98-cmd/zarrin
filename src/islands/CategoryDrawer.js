@@ -1,0 +1,356 @@
+import { useDialog } from "../lib/use-dialog.js";
+import {
+  closeMobileDrawer,
+  MOBILE_DRAWER_Z_INDEX,
+  registerMobileDrawer,
+  setMobileDrawerScrollLock,
+} from "../lib/mobile-drawers.js";
+import { j as e } from "../lib/jsx.js";
+import { r as s } from "../lib/icons.js";
+import { r as k } from "../lib/react-dom.js";
+import { g as C } from "../lib/theme-settings.js";
+import { C as g } from "../icons/chevron-right.js";
+import { G as m } from "../icons/grid-2x2.js";
+import { X as z } from "../icons/x.js";
+import { C as f } from "../icons/chevron-left.js";
+function F() {
+  var j;
+  const [n, d] = s.useState(!1),
+    [y, h] = s.useState(!1),
+    [p, c] = s.useState(!1),
+    i = s.useRef(null),
+    dialogRef = s.useRef(null),
+    b = ((j = C().megaMenu) == null ? void 0 : j.categories) ?? [],
+    [r, u] = s.useState(null),
+    [l, x] = s.useState(null);
+  useDialog(n && y, dialogRef, () => closeMobileDrawer("categories", window));
+  (s.useEffect(
+    () =>
+      registerMobileDrawer(
+        "categories",
+        { open: () => d(!0), close: () => d(!1) },
+        window,
+      ),
+    [],
+  ),
+    s.useEffect(() => {
+      n || (u(null), x(null));
+    }, [n]));
+  function a() {
+    closeMobileDrawer("categories", window);
+  }
+  return (
+    s.useEffect(() => {
+      if (n) {
+        h(!0);
+        let o = !1;
+        const w = requestAnimationFrame(() => {
+          const v = requestAnimationFrame(() => {
+            o || ((o = !0), c(!0));
+          });
+          i.current = v;
+        });
+        i.current = w;
+        const N = window.setTimeout(() => {
+          o || ((o = !0), c(!0));
+        }, 100);
+        return () => {
+          (i.current !== null && cancelAnimationFrame(i.current),
+            window.clearTimeout(N));
+        };
+      }
+      c(!1);
+      const exitDelay = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+        ? 0
+        : 300;
+      const t = window.setTimeout(() => h(!1), exitDelay);
+      return () => window.clearTimeout(t);
+    }, [n]),
+    s.useEffect(() => {
+      setMobileDrawerScrollLock("categories", y, window);
+      return () => setMobileDrawerScrollLock("categories", !1, window);
+    }, [y]),
+    y
+      ? k.createPortal(
+          e.jsxs("div", {
+            className: `fixed inset-0 ${n ? "" : "pointer-events-none"}`,
+            style: { zIndex: MOBILE_DRAWER_Z_INDEX },
+            "aria-hidden": !n,
+            children: [
+              e.jsx("div", {
+                className: `jluxe-mobile-drawer-backdrop absolute inset-0 bg-foreground/50 transition-opacity duration-300 ease-out ${p ? "opacity-100" : "opacity-0"}`,
+                onClick: a,
+                "aria-hidden": "true",
+              }),
+              e.jsxs("div", {
+                className: `jluxe-mobile-drawer-panel absolute inset-y-0 right-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-xl transition-transform duration-300 ease-out ${p ? "translate-x-0" : "translate-x-full"}`,
+                id: "jluxe-category-drawer-dialog",
+                role: "dialog",
+                ref: dialogRef,
+                "aria-modal": n ? "true" : undefined,
+                "aria-label": "دسته‌بندی‌ها",
+                children: [
+                  e.jsxs("div", {
+                    className:
+                      "flex items-center justify-between border-b border-border p-4",
+                    children: [
+                      l
+                        ? e.jsxs("button", {
+                            type: "button",
+                            onClick: () => x(null),
+                            className:
+                              "flex min-w-0 items-center gap-2 text-body font-bold text-foreground",
+                            children: [
+                              e.jsx(g, {
+                                className: "size-5 shrink-0 text-text-muted",
+                                "aria-hidden": !0,
+                              }),
+                              e.jsx("span", {
+                                className: "truncate",
+                                children: l.title,
+                              }),
+                            ],
+                          })
+                        : r
+                          ? e.jsxs("button", {
+                              type: "button",
+                              onClick: () => u(null),
+                              className:
+                                "flex min-w-0 items-center gap-2 text-body font-bold text-foreground",
+                              children: [
+                                e.jsx(g, {
+                                  className: "size-5 shrink-0 text-text-muted",
+                                  "aria-hidden": !0,
+                                }),
+                                e.jsx("span", {
+                                  className: "truncate",
+                                  children: r.label,
+                                }),
+                              ],
+                            })
+                          : e.jsxs("h2", {
+                              className:
+                                "flex items-center gap-2 text-body font-bold text-foreground",
+                              children: [
+                                e.jsx(m, {
+                                  className: "size-5",
+                                  "aria-hidden": !0,
+                                }),
+                                "دسته‌بندی‌ها",
+                              ],
+                            }),
+                      e.jsx("button", {
+                        type: "button",
+                        onClick: a,
+                        "aria-label": "بستن دسته‌بندی‌ها",
+                        className:
+                          "grid size-9 shrink-0 place-items-center rounded-lg text-text-muted transition-all hover:bg-muted active:scale-90 active:bg-muted",
+                        children: e.jsx(z, {
+                          className: "size-5",
+                          "aria-hidden": !0,
+                        }),
+                      }),
+                    ],
+                  }),
+                  e.jsx("div", {
+                    className: "flex-1 overflow-y-auto p-2",
+                    children:
+                      b.length === 0
+                        ? e.jsx("p", {
+                            className:
+                              "p-4 text-center text-small text-text-muted",
+                            children: "دسته‌بندی‌ای ثبت نشده است.",
+                          })
+                        : l
+                          ? e.jsxs(
+                              "ul",
+                              {
+                                className:
+                                  "jluxe-drawer-panel-in flex flex-col",
+                                children: [
+                                  e.jsx("li", {
+                                    children: e.jsxs("a", {
+                                      href: l.url,
+                                      onClick: a,
+                                      className:
+                                        "flex items-center gap-2 rounded-xl px-3 py-3 text-small font-bold text-primary transition-colors hover:bg-muted",
+                                      children: ["مشاهده همه ", l.title],
+                                    }),
+                                  }),
+                                  l.items.map((t) =>
+                                    e.jsx(
+                                      "li",
+                                      {
+                                        children: e.jsx("a", {
+                                          href: t.url,
+                                          onClick: a,
+                                          className:
+                                            "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-small text-text-secondary transition-colors hover:bg-muted hover:text-foreground",
+                                          children: t.label,
+                                        }),
+                                      },
+                                      t.label,
+                                    ),
+                                  ),
+                                ],
+                              },
+                              `group-${l.title}`,
+                            )
+                          : r
+                            ? e.jsxs(
+                                "ul",
+                                {
+                                  className:
+                                    "jluxe-drawer-panel-in flex flex-col",
+                                  children: [
+                                    e.jsx("li", {
+                                      children: e.jsxs("a", {
+                                        href: r.url,
+                                        onClick: a,
+                                        className:
+                                          "flex items-center gap-2 rounded-xl px-3 py-3 text-small font-bold text-primary transition-colors hover:bg-muted",
+                                        children: ["مشاهده همه ", r.label],
+                                      }),
+                                    }),
+                                    r.groups.map((t) =>
+                                      t.items.length > 0
+                                        ? e.jsx(
+                                            "li",
+                                            {
+                                              children: e.jsxs("button", {
+                                                type: "button",
+                                                onClick: () => x(t),
+                                                className:
+                                                  "flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-small font-medium text-foreground transition-colors hover:bg-muted",
+                                                children: [
+                                                  t.title,
+                                                  e.jsx(f, {
+                                                    className:
+                                                      "size-4 shrink-0 text-text-muted",
+                                                    "aria-hidden": !0,
+                                                  }),
+                                                ],
+                                              }),
+                                            },
+                                            t.title,
+                                          )
+                                        : e.jsx(
+                                            "li",
+                                            {
+                                              children: e.jsx("a", {
+                                                href: t.url,
+                                                onClick: a,
+                                                className:
+                                                  "flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-small font-medium text-foreground transition-colors hover:bg-muted",
+                                                children: t.title,
+                                              }),
+                                            },
+                                            t.title,
+                                          ),
+                                    ),
+                                  ],
+                                },
+                                `cat-${r.id}`,
+                              )
+                            : e.jsx(
+                                "ul",
+                                {
+                                  className:
+                                    "jluxe-drawer-panel-in flex flex-col",
+                                  children: b.map((t) =>
+                                    t.groups.length > 0
+                                      ? e.jsx(
+                                          "li",
+                                          {
+                                            children: e.jsxs("button", {
+                                              type: "button",
+                                              onClick: () => u(t),
+                                              className:
+                                                "flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-small font-medium text-foreground transition-colors hover:bg-muted",
+                                              children: [
+                                                e.jsxs("span", {
+                                                  className:
+                                                    "flex items-center gap-2",
+                                                  children: [
+                                                    t.iconSvg
+                                                      ? e.jsx("span", {
+                                                          className:
+                                                            "size-4 shrink-0 text-primary [&>svg]:size-full",
+                                                          dangerouslySetInnerHTML:
+                                                            {
+                                                              __html: t.iconSvg,
+                                                            },
+                                                        })
+                                                      : e.jsx(m, {
+                                                          className:
+                                                            "size-4 shrink-0 text-primary",
+                                                          "aria-hidden": !0,
+                                                        }),
+                                                    t.label,
+                                                  ],
+                                                }),
+                                                e.jsx(f, {
+                                                  className:
+                                                    "size-4 shrink-0 text-text-muted",
+                                                  "aria-hidden": !0,
+                                                }),
+                                              ],
+                                            }),
+                                          },
+                                          t.id,
+                                        )
+                                      : e.jsx(
+                                          "li",
+                                          {
+                                            children: e.jsxs("a", {
+                                              href: t.url,
+                                              onClick: a,
+                                              className:
+                                                "flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-small font-medium text-foreground transition-colors hover:bg-muted",
+                                              children: [
+                                                e.jsxs("span", {
+                                                  className:
+                                                    "flex items-center gap-2",
+                                                  children: [
+                                                    t.iconSvg
+                                                      ? e.jsx("span", {
+                                                          className:
+                                                            "size-4 shrink-0 text-primary [&>svg]:size-full",
+                                                          dangerouslySetInnerHTML:
+                                                            {
+                                                              __html: t.iconSvg,
+                                                            },
+                                                        })
+                                                      : e.jsx(m, {
+                                                          className:
+                                                            "size-4 shrink-0 text-primary",
+                                                          "aria-hidden": !0,
+                                                        }),
+                                                    t.label,
+                                                  ],
+                                                }),
+                                                e.jsx(f, {
+                                                  className:
+                                                    "size-4 shrink-0 text-text-muted",
+                                                  "aria-hidden": !0,
+                                                }),
+                                              ],
+                                            }),
+                                          },
+                                          t.id,
+                                        ),
+                                  ),
+                                },
+                                "root",
+                              ),
+                  }),
+                ],
+              }),
+            ],
+          }),
+          document.body,
+        )
+      : null
+  );
+}
+export { F as default };

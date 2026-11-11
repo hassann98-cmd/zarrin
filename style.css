@@ -1,9 +1,9 @@
 /*
 Theme Name: زرین
-Build: JLUXE 1.49.1 — CHECKOUT SELECT2 WHEEL FIX
+Build: JLUXE 1.7.222 — MELIPAYAMAK OTP LINE MODE
 Author: زرین
-Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React (TypeScript, Tailwind, shadcn/ui).
-Version: 1.55.0
+Description: پوسته‌ی اختصاصی زرین — وردپرس/WooCommerce با جزیره‌های React.
+Version: 1.7.222
 Requires at least: 6.0
 Requires PHP: 8.0
 Text Domain: jluxe
@@ -90,43 +90,62 @@ Text Domain: jluxe
   [data-jluxe-mobile-price-bar] .jluxe-mobile-price-card {
     pointer-events: auto;
     min-height: 62px;
-    border: 1px solid rgba(16,24,40,.08);
+    border: 1px solid hsl(var(--foreground) / .08);
     border-radius: 20px;
     background: rgba(255,255,255,.96);
-    box-shadow: 0 12px 34px -14px rgba(16,24,40,.34);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 34px -14px rgba(31, 41, 55, .34);
+    /* R88 — blur(16px) پشتِ پس‌زمینهٔ ۹۶٪ مات دیده نمی‌شد و فقط هزینهٔ GPU داشت؛ حذف شد. */
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] {
     display: flex;
-    align-items: baseline;
-    gap: 7px;
-    flex-wrap: wrap;
-    line-height: 1.25;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.15;
     white-space: nowrap;
   }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] .price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+    max-width: 100%;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del {
-    order: 2;
-    text-decoration: none !important;
-    color: #98a2b3 !important;
+    display: block;
+    order: 0;
+    margin: 0;
+    text-decoration: line-through !important;
+    color: hsl(var(--text-muted)) !important;
     font-size: 11px !important;
     font-weight: 500 !important;
+    line-height: 1.05;
     opacity: .9;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del .woocommerce-Price-amount,
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] del bdi {
-    text-decoration: none !important;
+    text-decoration: line-through !important;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] ins {
+    display: block;
     order: 1;
+    margin: 0;
+    background: transparent;
     text-decoration: none !important;
-    color: var(--primary, #087a68) !important;
+    color: hsl(var(--primary, 292.05 81.37% 40%)) !important;
     font-size: 17px !important;
     font-weight: 900 !important;
+    line-height: 1.12;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .woocommerce-Price-amount:not(:has(~ ins)),
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-price] > .amount {
-    color: var(--primary, #087a68);
+    color: hsl(var(--primary, 292.05 81.37% 40%));
     font-size: 17px;
     font-weight: 900;
   }
@@ -136,22 +155,22 @@ Text Domain: jluxe
     margin-inline-start: 2px;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] {
-    min-width: 132px;
+    min-width: 0;
     height: 46px;
     border-radius: 15px;
-    box-shadow: 0 9px 22px -10px var(--primary, #087a68);
+    box-shadow: 0 9px 22px -10px hsl(var(--primary, 292.05 81.37% 40%));
     transition: transform .18s ease, box-shadow .18s ease;
   }
   [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add]:active {
     transform: translateY(1px) scale(.98);
   }
   [data-jluxe-mobile-bar-toggle] {
-    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     border-radius: 15px !important;
     opacity: .9;
   }
   .jluxe-mobile-nav {
-    border-top: 1px solid rgba(16,24,40,.06) !important;
+    border-top: 1px solid hsl(var(--foreground) / .06) !important;
   }
   .jluxe-mobile-nav-item {
     min-height: 60px;
@@ -162,16 +181,239 @@ Text Domain: jluxe
   }
 }
 
+@media (max-width: 380px) {
+  [data-jluxe-mobile-price-bar] .jluxe-mobile-price-card {
+    gap: 4px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] {
+    min-width: 0;
+    gap: 4px;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 360px) {
+  [data-jluxe-mobile-price-bar] [data-jluxe-mobile-bar-add] > svg {
+    display: none;
+  }
+}
 
-/* Homepage banners: consistent zoom + restrained light-sweep effect. */
-.jluxe-home-banner{isolation:isolate}
+/* R112 — polished, scoped skin for the supplied #bottom-navigation markup. */
+@media (max-width: 767.98px) {
+  #bottom-navigation {
+    --jluxe-bottom-nav-surface: rgba(255, 255, 255, .9);
+    --jluxe-bottom-nav-border: rgba(255, 255, 255, .82);
+    --jluxe-bottom-nav-ink: var(--jluxe-primary-hover, #7A0F8A);
+    --jluxe-bottom-nav-accent: hsl(var(--primary, 292.05 81.37% 40%));
+    --jluxe-bottom-nav-icon-bg: color-mix(in srgb, hsl(var(--primary)) 8%, transparent);
+    --jluxe-bottom-nav-active-bg: color-mix(in srgb, hsl(var(--primary)) 13%, transparent);
+    position: fixed !important;
+    inset-inline: 0 !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important;
+    width: calc(100% - 24px) !important;
+    max-width: 460px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    z-index: 50 !important;
+    pointer-events: none !important;
+    transform: translateZ(0);
+  }
+
+  #bottom-navigation #tabs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 7px !important;
+    gap: 0 !important;
+    box-sizing: border-box;
+    border: 1px solid var(--jluxe-bottom-nav-border) !important;
+    border-radius: 23px !important;
+    background: var(--jluxe-bottom-nav-surface) !important;
+    box-shadow: 0 12px 30px rgba(31, 41, 55, .16),
+      0 2px 7px hsl(var(--foreground) / .06),
+      inset 0 1px 0 rgba(255, 255, 255, .78) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(1.25);
+    backdrop-filter: blur(8px) saturate(1.25);
+    isolation: isolate;
+    pointer-events: auto;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    width: 100% !important;
+    gap: 2px !important;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a,
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div {
+    display: flex !important;
+    flex: none !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 0;
+    min-height: 60px;
+    margin: 0 !important;
+    padding: 4px 2px !important;
+    border-radius: 16px;
+    color: var(--jluxe-bottom-nav-ink) !important;
+    line-height: 1.2;
+    text-decoration: none !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: color .18s ease, background-color .18s ease, transform .18s ease;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:active {
+    transform: scale(.96);
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:focus-visible {
+    outline: 2px solid var(--jluxe-bottom-nav-accent) !important;
+    outline-offset: 1px;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:is([aria-current="page"], .is-active, .active, .current-menu-item),
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div:is(.is-active, .active) {
+    background: var(--jluxe-bottom-nav-active-bg) !important;
+    color: var(--jluxe-bottom-nav-accent) !important;
+  }
+
+  #bottom-navigation #tabs .py-1 {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    gap: 3px;
+    padding: 2px 0 !important;
+  }
+
+  #bottom-navigation #tabs .py-1 > span,
+  #bottom-navigation #tabs .py-1 > svg {
+    display: grid !important;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    border-radius: 11px;
+    background: var(--jluxe-bottom-nav-icon-bg);
+    color: inherit;
+    line-height: 0;
+    transition: background-color .18s ease, color .18s ease, transform .18s ease;
+  }
+
+  #bottom-navigation #tabs .py-1 > span svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+    margin: 0 !important;
+  }
+
+  #bottom-navigation #tabs .py-1 > svg {
+    box-sizing: border-box;
+    padding: 6px !important;
+  }
+
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:is([aria-current="page"], .is-active, .active, .current-menu-item) .py-1 > :is(span, svg),
+  #bottom-navigation #tabs > div[class~="md:hidden"] > div:is(.is-active, .active) .py-1 > :is(span, svg) {
+    background: color-mix(in srgb, hsl(var(--primary)) 14%, transparent);
+    color: var(--jluxe-bottom-nav-accent);
+    transform: translateY(-1px);
+  }
+
+  #bottom-navigation #tabs .tab {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit !important;
+    font-size: 10px !important;
+    font-weight: 600;
+    line-height: 1.35 !important;
+    white-space: nowrap;
+  }
+
+  .dark #bottom-navigation,
+  body.dark #bottom-navigation {
+    --jluxe-bottom-nav-surface: color-mix(in srgb, var(--jluxe-primary-active, var(--color-royal-orchid-800)) 90%, #000);
+    --jluxe-bottom-nav-border: rgba(255, 255, 255, .12);
+    --jluxe-bottom-nav-ink: var(--jluxe-primary-soft, var(--color-royal-orchid-100));
+    --jluxe-bottom-nav-icon-bg: rgba(255, 255, 255, .07);
+    --jluxe-bottom-nav-active-bg: color-mix(in srgb, hsl(var(--primary)) 15%, transparent);
+  }
+
+  /* Keep other floating controls clear of the 76px dock plus its 10px gap. */
+  body:has(#bottom-navigation) .jluxe-pwa-install {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* JS measures the active product dock; keep this only as its no-JS fallback. */
+  body:has(#bottom-navigation) [data-jluxe-mobile-bar-toggle] {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+}
+
+html.jluxe-lite #bottom-navigation #tabs {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #bottom-navigation #tabs {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: rgba(255, 255, 255, .97) !important;
+  }
+  .dark #bottom-navigation #tabs,
+  body.dark #bottom-navigation #tabs {
+    background-color: color-mix(in srgb, var(--jluxe-primary-active, var(--color-royal-orchid-800)) 90%, #000) !important;
+  }
+}
+
+@media (max-width: 767.98px) and (hover: hover) and (pointer: fine) {
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:hover {
+    background: color-mix(in srgb, hsl(var(--primary)) 8%, transparent) !important;
+    color: var(--jluxe-bottom-nav-accent) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a,
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a > div,
+  #bottom-navigation #tabs .py-1 > span,
+  #bottom-navigation #tabs .py-1 > svg {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+  #bottom-navigation #tabs > div[class~="md:hidden"] > a:active {
+    transform: none;
+  }
+}
+
+/* Homepage banners: responsive desktop/mobile art direction, zoom + restrained light sweep. */
+.jluxe-home-banner{isolation:isolate;aspect-ratio:var(--jluxe-home-banner-aspect,auto)}
+.jluxe-home-banner picture{display:block;width:100%;height:100%}
+@media(max-width:639px){.jluxe-home-banner{aspect-ratio:var(--jluxe-home-banner-mobile-aspect,var(--jluxe-home-banner-aspect,auto))}}
+.jluxe-home-banner-slider-frame{aspect-ratio:var(--jluxe-banner-slider-aspect-desktop,16/5)}
+@media(max-width:639px){.jluxe-home-banner-slider-frame{aspect-ratio:var(--jluxe-banner-slider-aspect-mobile,var(--jluxe-banner-slider-aspect-desktop,16/5))}}
 .jluxe-banner-shine::after{content:"";position:absolute;top:-25%;bottom:-25%;left:-40%;width:24%;pointer-events:none;z-index:3;transform:skewX(-18deg) translateX(-180%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.06) 25%,rgba(255,255,255,.46) 50%,rgba(255,255,255,.06) 75%,transparent);filter:blur(1px);opacity:0}
 .jluxe-banner-shine:hover::after,.jluxe-banner-shine:focus-visible::after{opacity:1;animation:jluxeBannerShine 1.15s cubic-bezier(.22,.61,.36,1) both}
 @keyframes jluxeBannerShine{from{transform:skewX(-18deg) translateX(-180%)}to{transform:skewX(-18deg) translateX(520%)}}
 @media (prefers-reduced-motion:reduce){.jluxe-banner-shine:hover::after,.jluxe-banner-shine:focus-visible::after{animation:none;opacity:0}.jluxe-home-banner .jluxe-home-media{transition:none!important}}
 
 /* Product cards: gentle image zoom (within its own fixed frame — no layout shift) + soft lift/shadow on hover. transform + box-shadow only, so this is compositor-only work, essentially free performance-wise. */
-.woocommerce ul.products li.product:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(16,24,40,.22)}
+.woocommerce ul.products li.product:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(31, 41, 55, .22)}
 .woocommerce ul.products li.product [data-jluxe-card-main-img]{transition:transform .5s cubic-bezier(.22,.61,.36,1)}
 .woocommerce ul.products li.product:hover [data-jluxe-card-main-img]{transform:scale(1.07)}
 @media (prefers-reduced-motion:reduce){

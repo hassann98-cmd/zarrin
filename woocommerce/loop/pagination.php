@@ -16,6 +16,8 @@
  * اینپوتِ پرشِ صفحه: مقدارش با اعدادِ فارسی نمایش داده می‌شه (jluxe_fa_digits،
  * هماهنگ با بقیه‌ی سایت) ولی خودِ رفتارِ پرش (assets/js/woocommerce.js) هم
  * اعدادِ فارسی و هم لاتین رو قبول می‌کنه — کاربر مجبور نیست کیبورد عوض کنه.
+
+ * @version 9.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,7 +26,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $total   = isset( $total ) ? $total : wc_get_loop_prop( 'total_pages' );
 $current = max( 1, isset( $current ) ? $current : wc_get_loop_prop( 'current_page' ) );
-$base    = isset( $base ) ? $base : esc_url_raw( str_replace( 999999999, '%#%', remove_query_arg( 'add-to-cart', get_pagenum_link( 999999999, false ) ) ) );
+$base    = isset( $base ) && is_scalar( $base ) ? (string) $base : esc_url_raw( str_replace( 999999999, '%#%', remove_query_arg( 'add-to-cart', get_pagenum_link( 999999999, false ) ) ) );
+$format  = isset( $format ) && is_scalar( $format ) ? (string) $format : '';
+
+/*
+ * WooCommerce passes the same base/format pair used by paginate_links():
+ * $base contains %_% while $format contains page/%#%/ (or ?paged=%#%).
+ * Expand that pair before rendering, so neither the browser link nor the
+ * editable-page base can leak WordPress's literal %_% token into the URL.
+ */
+if ( '' !== $format && false !== strpos( $base, '%_%' ) ) {
+	$base = str_replace( '%_%', $format, $base );
+}
 
 if ( $total <= 1 ) {
 	return;
@@ -34,7 +47,7 @@ $jluxe_prev_url = $current > 1 ? str_replace( '%#%', (string) ( $current - 1 ), 
 $jluxe_next_url = $current < $total ? str_replace( '%#%', (string) ( $current + 1 ), $base ) : '';
 ?>
 <nav
-	class="jluxe-shop-pagination mx-auto mt-8 flex max-w-[1296px] items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-2.5 sm:gap-3 sm:p-3"
+	class="jluxe-shop-pagination mx-auto mt-8 flex max-w-[1320px] items-center justify-between gap-2 rounded-2xl border border-border bg-surface p-2.5 sm:gap-3 sm:p-3"
 	aria-label="صفحه‌بندیِ محصولات"
 	data-jluxe-pagination-base="<?php echo esc_url( $base ); ?>"
 	data-jluxe-pagination-total="<?php echo (int) $total; ?>"
