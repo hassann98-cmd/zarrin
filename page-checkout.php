@@ -22,6 +22,14 @@ get_header( 'minimal' );
 			the_post();
 		}
 		echo do_shortcode( '[woocommerce_checkout]' );
+	} else {
+		?>
+		<section class="mx-auto max-w-xl px-4 py-16 text-center" role="status">
+			<h1 class="text-xl font-bold text-foreground">تسویه‌حساب در دسترس نیست</h1>
+			<p class="mt-3 text-sm leading-7 text-text-secondary">برای فعال‌شدنِ ثبت سفارش و پرداخت، افزونهٔ ووکامرس باید نصب و فعال باشد.</p>
+			<a class="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground" href="<?php echo esc_url( home_url( '/' ) ); ?>">بازگشت به صفحهٔ اصلی</a>
+		</section>
+		<?php
 	}
 	?>
 </main>

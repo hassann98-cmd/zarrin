@@ -1,0 +1,237 @@
+{
+  "version": "2.2.23",
+  "commit": "f3ea1a43ba525be382c7a9c17735b6b4d4b11d49",
+  "repository": "https://github.com/WordPress/sqlite-database-integration",
+  "files": [
+    {
+      "source": "packages/plugin-sqlite-database-integration/LICENSE",
+      "target": "LICENSE",
+      "sha": "d159169d1050894d3ea3b98e1c965c4058208fe1"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/activate.php",
+      "target": "activate.php",
+      "sha": "1001914a2bc90025c43b4bb757f7ef8734d0d361"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/admin-notices.php",
+      "target": "admin-notices.php",
+      "sha": "a455cc86c1aa3e2048025754541ecfc4ebb94917"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/admin-page.php",
+      "target": "admin-page.php",
+      "sha": "cd8613ccc97fa455069fb0757adf0f6f50a1b84f"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/composer.json",
+      "target": "composer.json",
+      "sha": "d77c7f478bcf6b8d5930263dde4c11c55ea17019"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/constants.php",
+      "target": "constants.php",
+      "sha": "998df4eebcc990922042050972da1873f2c2f416"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/db.copy",
+      "target": "db.copy",
+      "sha": "ef829137412102495d37f4b3a2d6a3be90865635"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/deactivate.php",
+      "target": "deactivate.php",
+      "sha": "2b79d9a33049347998979f6a54418c4a8548e74a"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/health-check.php",
+      "target": "health-check.php",
+      "sha": "cf69af3a3f8d605f27d4b627c6b736a3b2421e79"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/integrations/query-monitor/boot.php",
+      "target": "integrations/query-monitor/boot.php",
+      "sha": "c66e0db19281105c96a87f3d317f48d7d61324e7"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/integrations/query-monitor/qm3.php",
+      "target": "integrations/query-monitor/qm3.php",
+      "sha": "e9b235b2f83072b0fe33a771c40e8d0e1ac0489e"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/integrations/query-monitor/qm4.php",
+      "target": "integrations/query-monitor/qm4.php",
+      "sha": "fe1198333529e04365516601690fe65527c91aca"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/integrations/query-monitor/query-monitor-sqlite.js",
+      "target": "integrations/query-monitor/query-monitor-sqlite.js",
+      "sha": "d880697436c7ba38bff94de260d3aafa60b4961a"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/load.php",
+      "target": "load.php",
+      "sha": "43d9eed92a8311c2b43ff92b50d48f0d95d34afe"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/readme.txt",
+      "target": "readme.txt",
+      "sha": "e047881c74cf24fef7f0dcf2be5b4b1eb52564db"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/load.php",
+      "target": "wp-includes/database/load.php",
+      "sha": "41c7d80390541361f40b63bc042de2a6436b51bb"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/mysql/class-wp-mysql-lexer.php",
+      "target": "wp-includes/database/mysql/class-wp-mysql-lexer.php",
+      "sha": "b9f582c3ab42e0429d2d1ab0408ab78283f9b3db"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/mysql/class-wp-mysql-parser.php",
+      "target": "wp-includes/database/mysql/class-wp-mysql-parser.php",
+      "sha": "f291064e0a3cc10edb804de87dd3d761835d7a30"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/mysql/class-wp-mysql-token.php",
+      "target": "wp-includes/database/mysql/class-wp-mysql-token.php",
+      "sha": "1fb25ab42d426309dd3be8ffa639a3d6e7d3ea99"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/mysql/mysql-grammar.php",
+      "target": "wp-includes/database/mysql/mysql-grammar.php",
+      "sha": "e68646fbb6263c23dab145c4ef61fa459b219b0d"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/parser/class-wp-parser-grammar.php",
+      "target": "wp-includes/database/parser/class-wp-parser-grammar.php",
+      "sha": "8c17b458b0e9ade62dfe940726e7c58ff74455f4"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/parser/class-wp-parser-node.php",
+      "target": "wp-includes/database/parser/class-wp-parser-node.php",
+      "sha": "e2d67018d1b02dbdd8115fa60c1106b7b5c2dfd8"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/parser/class-wp-parser-token.php",
+      "target": "wp-includes/database/parser/class-wp-parser-token.php",
+      "sha": "b772618960301f494268cea9981ee38c3ad6f9ad"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/parser/class-wp-parser.php",
+      "target": "wp-includes/database/parser/class-wp-parser.php",
+      "sha": "4436892faf200aca65235d9c5e90569f128e6492"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/php-polyfills.php",
+      "target": "wp-includes/database/php-polyfills.php",
+      "sha": "b3ab8ed67738ec36ba0b37bc6424d8a8858e6cb4"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-pdo-mysql-on-sqlite.php",
+      "target": "wp-includes/database/sqlite/class-wp-pdo-mysql-on-sqlite.php",
+      "sha": "6ea14e5765e7c8828b89ec1e0b367a5d5edb141c"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-pdo-proxy-statement.php",
+      "target": "wp-includes/database/sqlite/class-wp-pdo-proxy-statement.php",
+      "sha": "f56340d70994611a21469c8e493a1613f014e66b"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-configurator.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-configurator.php",
+      "sha": "057ac2edacb7bf3cbe191d1faf3137f68970faf1"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-connection.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-connection.php",
+      "sha": "1509a1e64436a1efce9618fd032beab4a23ccbca"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-driver-exception.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-driver-exception.php",
+      "sha": "c43aec8ad0d6b3c0dd8af86ff9a3e94ba9d5dbb6"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-driver.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-driver.php",
+      "sha": "04ec0630c79b46057643cc1ca052ecabe49cba85"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-information-schema-builder.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-information-schema-builder.php",
+      "sha": "8e84a9f248d6229d2e54a6ad351850079862e51f"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-information-schema-exception.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-information-schema-exception.php",
+      "sha": "93a9ab88ce79b8a091036d0271c7ecfa27a0386e"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-information-schema-reconstructor.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-information-schema-reconstructor.php",
+      "sha": "103bb8c12d9691f66652acdea78efeff31b4aa90"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/sqlite/class-wp-sqlite-pdo-user-defined-functions.php",
+      "target": "wp-includes/database/sqlite/class-wp-sqlite-pdo-user-defined-functions.php",
+      "sha": "b72d787f453738bb41741c7458f88ba9a77a6200"
+    },
+    {
+      "source": "packages/mysql-on-sqlite/src/version.php",
+      "target": "wp-includes/database/version.php",
+      "sha": "9e72aa482e027d5a412b63f2dd2f082c20add180"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-crosscheck-db.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-crosscheck-db.php",
+      "sha": "7878a481345246b58ee57033b376b7561df4e227"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-db.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-db.php",
+      "sha": "465f5b5be2f063e6a131e3e9cd8c1e65dc681b8f"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-lexer.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-lexer.php",
+      "sha": "8619cb333b05e66df506fdd3f29b1dd8f96876df"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-pdo-user-defined-functions.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-pdo-user-defined-functions.php",
+      "sha": "b72d787f453738bb41741c7458f88ba9a77a6200"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-query-rewriter.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-query-rewriter.php",
+      "sha": "edb328861826bdc1f731291b0ca4227e86714f4a"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-token.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-token.php",
+      "sha": "fbafd9e908e830e1d080c2cb5eea36ca5dda4716"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/class-wp-sqlite-translator.php",
+      "target": "wp-includes/sqlite/class-wp-sqlite-translator.php",
+      "sha": "3a536d18ab40077943e23d45b150d5ff8bdbaed2"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/db.php",
+      "target": "wp-includes/sqlite/db.php",
+      "sha": "dc4d14f854f444af5a8e855a74a1a5546e776340"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/install-functions.php",
+      "target": "wp-includes/sqlite/install-functions.php",
+      "sha": "bffe1425d8c4bb6f702fdda5e7976541f7a4d6de"
+    },
+    {
+      "source": "packages/plugin-sqlite-database-integration/wp-includes/sqlite/php-polyfills.php",
+      "target": "wp-includes/sqlite/php-polyfills.php",
+      "sha": "b3ab8ed67738ec36ba0b37bc6424d8a8858e6cb4"
+    }
+  ]
+}

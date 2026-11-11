@@ -1,25 +1,5 @@
 <?php
-/**
- * ساختِ خودکارِ برگه‌های موردنیازِ تمپلیت‌های سفارشیِ پوسته — طبقِ درخواستِ
- * صریحِ کاربر («این برگه باید توی برگه‌ها روی هر سایتی بریم ساخته شه»).
- *
- * دلیلِ ریشه‌ای: هر فایلِ page-{اسلاگ}.php یک تمپلیتِ ووردپرسه که فقط وقتی
- * واقعاً استفاده می‌شه که یک «برگه» (post_type=page) با همون اسلاگِ دقیق در
- * دیتابیسِ سایت هم وجود داشته باشه (سلسله‌مراتبِ تمپلیتِ خودِ ووردپرس) — صرفِ
- * وجودِ فایلِ تمِ کافی نیست. یعنی مثلاً /track-order/ فقط وقتی واقعاً کار
- * می‌کنه که یک برگه با اسلاگِ «track-order» از قبل در پیشخوانِ همون سایتِ
- * خاص ساخته شده باشه — کاری که تا الان باید هر بار دستی روی هر سایتِ جدید
- * انجام می‌شد.
- *
- * این‌جا به‌جای تکیه بر after_switch_theme (که با آپلودِ زیپِ همون تمِ از
- * قبل‌فعال — روشِ استقرارِ همیشگیِ همین پروژه — اصلاً fire نمی‌شه، چون
- * ووردپرس این کار رو «سوییچِ تم» حساب نمی‌کنه)، از همون الگویِ نسخه‌دارِ
- * idempotent که inc/sms.php برای jsms_db_version استفاده می‌کنه پیروی
- * می‌شه: روی after_setup_theme (که هر بار واقعاً اجرا می‌شه) یک نسخه چک
- * می‌شه، پس هم روی نصبِ اول هم روی هر آپدیتِ بعدیِ تم (وقتی این آرایه
- * اضافه/تغییر کنه) واقعاً دوباره بررسی می‌شه — بدونِ اینکه هر بار برای
- * هیچی یک کوئریِ اضافه به دیتابیس بزنه.
- */
+/** Optional, administrator-triggered setup. Never publish new pages during a frontend request. */
 
 defined( 'ABSPATH' ) || exit;
 
@@ -44,40 +24,37 @@ function jluxe_required_pages_map(): array {
 	);
 }
 
-/**
- * برای هر اسلاگِ بالا، اگه برگه‌ای با همون اسلاگِ دقیق (صرف‌نظر از وضعیت —
- * پیش‌نویس/منتشرشده/زباله‌دان، تا برگه‌ی تکراری نسازه) وجود نداشته باشه،
- * یکی می‌سازه: منتشرشده، بدونِ محتوای دستی (چون محتوای واقعی رو خودِ
- * تمپلیتِ page-{اسلاگ}.php می‌سازه، نه post_content) و بدونِ نمایش در
- * منوها (خودِ ادمین اگه خواست دستی به منو اضافه می‌کنه).
- */
-function jluxe_ensure_required_pages(): void {
+
+/** Create only missing drafts; existing content and publication status remain untouched. */
+function jluxe_ensure_required_pages(): bool {
+	if ( ! current_user_can( 'manage_options' ) ) { return false; }
+	$success = true;
 	foreach ( jluxe_required_pages_map() as $slug => $title ) {
-		$existing = get_page_by_path( $slug, OBJECT, 'page' );
-		if ( $existing instanceof WP_Post ) {
-			continue;
-		}
-		wp_insert_post(
-			array(
-				'post_type'   => 'page',
-				'post_status' => 'publish',
-				'post_title'  => $title,
-				'post_name'   => $slug,
-				'post_content' => '',
-			)
-		);
+		if ( get_page_by_path( $slug, OBJECT, 'page' ) instanceof WP_Post ) { continue; }
+		$result = wp_insert_post( array(
+			'post_type' => 'page', 'post_status' => 'draft',
+			'post_title' => $title, 'post_name' => $slug, 'post_content' => '',
+		), true );
+		if ( ! $result || is_wp_error( $result ) ) { $success = false; }
 	}
+	return $success;
 }
 
-const JLUXE_REQUIRED_PAGES_VERSION = '1.0.0';
+const JLUXE_REQUIRED_PAGES_VERSION = '1.1.0';
 
-add_action(
-	'after_setup_theme',
-	function () {
-		if ( get_option( 'jluxe_required_pages_version' ) === JLUXE_REQUIRED_PAGES_VERSION ) {
-			return;
-		}
-		jluxe_ensure_required_pages();
-		update_option( 'jluxe_required_pages_version', JLUXE_REQUIRED_PAGES_VERSION, false );
-	}
-);
+function jluxe_required_pages_notice(): void {
+	if ( ! current_user_can( 'manage_options' ) || get_option( 'jluxe_required_pages_version' ) === JLUXE_REQUIRED_PAGES_VERSION ) { return; }
+	$url = wp_nonce_url( admin_url( 'admin-post.php?action=jluxe_create_required_pages' ), 'jluxe_create_required_pages' );
+	printf( '<div class="notice notice-info"><p>راه‌اندازی اختیاری زرین: برگه‌های راهنما و پیگیریِ ناموجود را به‌صورت پیش‌نویس بسازید، سپس محتوای آن‌ها را بازبینی و منتشر کنید. برگه‌های موجود تغییر نمی‌کنند. <a href="%s">ایجاد پیش‌نویس‌ها / تأیید برگه‌های موجود</a></p></div>', esc_url( $url ) );
+}
+add_action( 'admin_notices', 'jluxe_required_pages_notice' );
+
+function jluxe_create_required_pages_action(): void {
+	if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'دسترسی غیرمجاز.' ); }
+	check_admin_referer( 'jluxe_create_required_pages' );
+	$success = jluxe_ensure_required_pages();
+	if ( $success ) { update_option( 'jluxe_required_pages_version', JLUXE_REQUIRED_PAGES_VERSION, false ); }
+	wp_safe_redirect( add_query_arg( array( 'post_type' => 'page', 'jluxe_pages_setup' => $success ? 'success' : 'error' ), admin_url( 'edit.php' ) ) );
+	exit;
+}
+add_action( 'admin_post_jluxe_create_required_pages', 'jluxe_create_required_pages_action' );
