@@ -14089,3 +14089,27 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* Touch confirmation shared by classic/floating docks, without delaying navigation. */
+.jluxe-mobile-nav-item { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.jluxe-mobile-nav-icon::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 16px;
+  background: currentColor; opacity: 0; pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item:focus-visible .jluxe-mobile-nav-icon::after { opacity: .14; }
+.jluxe-mobile-nav-icon > svg { transition: scale 120ms ease; }
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1.12; }
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-mobile-nav-icon::after, .jluxe-mobile-nav-icon > svg { transition: none; }
+  .jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+  .jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1; }
+}
+
+.jluxe-cart-hourglass { display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--primary)); vertical-align: middle; }
+.jluxe-cart-hourglass svg { animation: jluxe-hourglass-turn 1.6s ease-in-out infinite; }
+@keyframes jluxe-hourglass-turn { 0%, 35% { transform: rotate(0); } 65%, 100% { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .jluxe-cart-hourglass svg { animation: none; } }
