@@ -8,6 +8,8 @@ $count=0;
 foreach($files as $file){
 	$relative=substr($file->getPathname(),strlen($root)+1);
 	if(preg_match('~^(node_modules|\.git|\.cache|dist|assets/compiled)/~',$relative)||$file->getExtension()!=='php')continue;
+	// Private MU candidates are not shipped with the theme.
+	if(in_array($relative,array('11.php','3.php'),true))continue;
 	token_get_all(file_get_contents($file->getPathname()),TOKEN_PARSE);
 	$count++;
 }
