@@ -305,6 +305,7 @@
 			applyControlState(field, entry.controls[fieldIndex]);
 		});
 		selectedSectionIndex = entry.selectedIndex >= 0 && entry.selectedIndex < getSectionCards().length ? entry.selectedIndex : -1;
+		sections.classList.toggle("jvb-inspector-active", selectedSectionIndex >= 0);
 		getSectionCards().forEach(function (card, cardIndex) {
 			card.classList.toggle("jvb-selected", cardIndex === selectedSectionIndex);
 		});

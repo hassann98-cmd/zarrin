@@ -559,3 +559,12 @@ test('inline heading editing writes plaintext to the native field and Escape can
  assert.equal(input.value, '<script>literal text</script>');
  dom.window.close();
 });
+
+test('undo to an unselected initial page does not leave a blank focused inspector', async () => {
+ const dom = createDom(); const {document} = dom.window;
+ document.querySelector('[data-jvb-add-section]').click(); await wait(dom.window, 500);
+ document.querySelector('[data-jvb-undo]').click(); await wait(dom.window, 20);
+ const sections = document.getElementById('jluxe-hb-sections');
+ if (!sections.querySelector('.jvb-selected')) assert.equal(sections.classList.contains('jvb-inspector-active'), false);
+ dom.window.close();
+});
