@@ -45,6 +45,14 @@ $GLOBALS['fired'] = $mobile_save_fired;
 $_POST = $mobile_save_post;
 jluxe_get_theme_settings( true );
 
+$tracking_upgrade = jluxe_migrate_settings_v24( array( 'mobile' => array(
+	'nav_items' => array( array( 'id' => 'track', 'icon' => 'package' ), array( 'id' => 'cart', 'icon' => 'package' ), array( 'id' => 'track', 'icon' => 'heart' ) ),
+	'floating_nav_items' => array( array( 'action' => 'track', 'icon' => 'package' ), array( 'action' => 'shop', 'icon' => 'package' ) ),
+) ) );
+check( 'order-tracking' === $tracking_upgrade['mobile']['nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['nav_items'][1]['icon'] && 'heart' === $tracking_upgrade['mobile']['nav_items'][2]['icon'], 'tracking SVG migration replaces only the old tracking placeholder, preserving other/custom icons' );
+check( 'order-tracking' === $tracking_upgrade['mobile']['floating_nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['floating_nav_items'][1]['icon'], 'floating tracking action gets the supplied SVG without changing unrelated actions' );
+check( isset( jluxe_public_icon_glyphs( array( 'mobile' => array( 'nav_items' => array( array( 'icon' => 'order-tracking' ) ) ) ) )['order-tracking'] ) && false !== strpos( jluxe_nav_icon_svg( 'order-tracking' ), '<path' ), 'supplied tracking artwork is available to PHP markup and the React glyph payload' );
+
 // R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
 $r357_nav_defaults = jluxe_theme_settings_defaults();
 ob_start();
@@ -2147,7 +2155,7 @@ ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_cl
 check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
 $icon_option_names = array_filter(array_keys(jluxe_nav_icon_options()));
 $missing_icon_paths = array_diff($icon_option_names, array_merge(array_keys(jluxe_uicon_paths()), array_keys(jluxe_icon_paths())));
-check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===67 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
+check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===68 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
 $public_glyphs = jluxe_public_icon_glyphs(array(
 	'mobile' => array('nav_items' => array(array('icon' => 'bed')), 'floating_nav_items' => array(array('icon' => 'home'))),
 	'footer' => array('feature_cards' => array(array('icon' => 'sofa')), 'link_columns' => array(array('links' => array(array('icon' => 'gift'))))),
@@ -11242,7 +11250,7 @@ $r422_featured_eligibility =
 	! jluxe_homepage_featured_product_is_available( $r422_backorder ) &&
 	! jluxe_homepage_featured_product_is_available( $r422_variable_without_available_option );
 check(
-	23 === JLUXE_SETTINGS_VERSION &&
+	24 === JLUXE_SETTINGS_VERSION &&
 	'product_grid' === ( $r422_default_featured['type'] ?? '' ) &&
 	'featured' === ( $r422_default_featured['query'] ?? '' ) &&
 	'grid' === ( $r422_default_featured['layout'] ?? '' ) &&

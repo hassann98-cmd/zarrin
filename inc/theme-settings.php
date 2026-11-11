@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 23;
+const JLUXE_SETTINGS_VERSION = 24;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -923,7 +923,7 @@ function jluxe_theme_settings_defaults(): array {
 			'nav_variant' => 'classic', // classic | floating
 			// آیتم‌های نوار فعلی، برای حفظ رفتار قبلی بدون تغییر.
 			'nav_items' => array(
-				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'package', 'enabled' => true ),
+				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'order-tracking', 'enabled' => true ),
 				array( 'id' => 'shop', 'label' => 'دسته‌بندی‌ها', 'icon' => 'grid', 'enabled' => true ),
 				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'enabled' => true ),
 				array( 'id' => 'account', 'label' => 'حساب', 'icon' => 'user', 'enabled' => true ),
@@ -1250,6 +1250,7 @@ function jluxe_nav_icon_options(): array {
 		'help-circle'      => 'راهنما/سوال',
 		'info'             => 'اطلاعات',
 		'package'          => 'بسته/سفارش',
+		'order-tracking'   => 'پیگیری سفارش (بسته و ذره‌بین)',
 		'rotate-ccw'       => 'بازگشت کالا',
 		'shield-check'     => 'ضمانت',
 		'percent'          => 'درصد تخفیف',
@@ -2594,6 +2595,22 @@ function jluxe_migrate_settings_v23( array $settings ): array {
 }
 
 /** Apply all versioned migrations in order and stamp the current schema version. */
+/** Upgrade only the old tracking placeholder, preserving other configured icons. */
+function jluxe_migrate_settings_v24( array $settings ): array {
+	foreach ( array( 'nav_items', 'floating_nav_items' ) as $group ) {
+		if ( ! is_array( $settings['mobile'][ $group ] ?? null ) ) { continue; }
+		foreach ( $settings['mobile'][ $group ] as &$item ) {
+			if ( ! is_array( $item ) ) { continue; }
+			$is_tracking = 'nav_items' === $group ? 'track' === ( $item['id'] ?? '' ) : 'track' === ( $item['action'] ?? '' );
+			if ( $is_tracking && 'package' === ( $item['icon'] ?? '' ) ) {
+				$item['icon'] = 'order-tracking';
+			}
+		}
+		unset( $item );
+	}
+	return $settings;
+}
+
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
 		2 => 'jluxe_migrate_settings_v2',
@@ -2618,6 +2635,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		21 => 'jluxe_migrate_settings_v21',
 		22 => 'jluxe_migrate_settings_v22',
 		23 => 'jluxe_migrate_settings_v23',
+		24 => 'jluxe_migrate_settings_v24',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
