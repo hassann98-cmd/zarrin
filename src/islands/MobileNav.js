@@ -1,3 +1,4 @@
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { siteUrl } from "../lib/api.js";
 import {
   getActiveMobileDrawer,
@@ -50,11 +51,7 @@ function MobileNav() {
   const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const loggedIn = useAuthStatus();
   const [activeDrawer, setActiveDrawer] = React.useState(() =>
     typeof window === "undefined" ? null : getActiveMobileDrawer(window),
   );
@@ -139,7 +136,9 @@ function MobileNav() {
         (!item.label || item.label === "حساب" || item.label === "ورود")
           ? "حساب کاربری"
           : item.label,
-      label: item.id === "account" && !loggedIn ? "ورود" : item.label,
+      label: item.id === "account"
+        ? !loggedIn ? "ورود" : (!item.label || item.label === "حساب" || item.label === "ورود") ? "حساب کاربری" : item.label
+        : item.label,
     }));
 
   return jsx.jsx("nav", {
