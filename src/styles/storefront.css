@@ -14108,3 +14108,8 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
   .jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
   .jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1; }
 }
+
+.jluxe-cart-hourglass { display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--primary)); vertical-align: middle; }
+.jluxe-cart-hourglass svg { animation: jluxe-hourglass-turn 1.6s ease-in-out infinite; }
+@keyframes jluxe-hourglass-turn { 0%, 35% { transform: rotate(0); } 65%, 100% { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .jluxe-cart-hourglass svg { animation: none; } }

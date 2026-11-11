@@ -832,8 +832,8 @@ test("R184 the optional assistant waits until after page load and stays outside 
     0,
   );
   // Includes the shared reactive auth subscription and fresh-session publication.
-  // Retain a tight 96 kB gzip ceiling (previously 95 kB before live auth sync).
-  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 96_000, `gzip closure is ${gzipBytes} bytes`);
+  // Retain a tight 97 kB gzip ceiling including optimistic quantity editing/read coalescing.
+  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 97_000, `gzip closure is ${gzipBytes} bytes`);
 
   const staticClosure = new Set();
   visit("src/main.js", staticClosure);
