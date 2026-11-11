@@ -1,3 +1,4 @@
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
 import {
@@ -81,11 +82,7 @@ function FloatingMobileNav() {
   const style = mobile.nav_style ?? {};
   const urls = settings.urls ?? {};
   const homeHref = siteLink(urls.home || "/", urls);
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const loggedIn = useAuthStatus();
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -174,8 +171,8 @@ function FloatingMobileNav() {
             ? "حساب کاربری"
             : resolved.label,
         label:
-          resolved.action === "account" && !loggedIn
-            ? "ورود"
+          resolved.action === "account"
+            ? !loggedIn ? "ورود" : (!resolved.label || resolved.label === "حساب" || resolved.label === "ورود") ? "حساب کاربری" : resolved.label
             : resolved.label,
       };
     });
