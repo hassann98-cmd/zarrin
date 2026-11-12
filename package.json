@@ -1,6 +1,6 @@
 {
   "name": "zarrin-theme",
-  "version": "1.7.222",
+  "version": "1.7.242",
   "private": true,
   "type": "module",
   "engines": {
@@ -17,7 +17,9 @@
     "test:integration": "node tests/integration/run.mjs",
     "test:integration:woo": "node tests/integration/woocommerce-run.mjs",
     "php:cli": "node scripts/php-wasm-cli.mjs",
-    "verify:woo": "node scripts/verify-woo-contract.mjs"
+    "verify:woo": "node scripts/verify-woo-contract.mjs",
+    "test:integration:builder": "node tests/integration/builder-v2-run.mjs",
+    "test:browser:builder": "node tests/integration/builder-browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.3.3",
