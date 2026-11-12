@@ -178,3 +178,23 @@ test("older localized data without url → shop, as before", async () => {
   const el = await render({ categories: cats });
   assert.equal(trigger(el).getAttribute("href"), "https://shop.test/فروشگاه/");
 });
+
+test('category rows present icon then label then a conditional submenu arrow', async()=>{
+ const el=await render({categories:[{...cats[0],iconSvg:'<svg data-custom-icon="sale"></svg>'},cats[1]]});
+ const rows=el.querySelectorAll('.jluxe-header-categories-panel__category');
+ assert.equal(rows.length,2);
+ assert.ok(rows[0].children[0].querySelector('[data-custom-icon="sale"]'));
+ assert.equal(rows[0].children[1].textContent,'فروش ویژه');
+ assert.equal(rows[0].querySelector('.jluxe-mega-category-arrow'),null);
+ assert.equal(rows[1].children[1].textContent,'حمام');
+ assert.ok(rows[1].lastElementChild.classList.contains('jluxe-mega-category-arrow'));
+ assert.equal(rows[0].href,cats[0].url);
+});
+
+test('WooCommerce category thumbnail occupies the leading icon slot without replacing the category name',async()=>{
+ const el=await render({categories:[{...cats[1],iconImage:'https://shop.test/category.jpg',iconSvg:''}]});
+ const row=el.querySelector('.jluxe-header-categories-panel__category');
+ assert.equal(row.firstElementChild.tagName,'IMG');assert.equal(row.firstElementChild.alt,'');
+ assert.equal(row.firstElementChild.getAttribute('width'),'24');
+ assert.equal(row.children[1].textContent,'حمام');assert.ok(row.lastElementChild.classList.contains('jluxe-mega-category-arrow'));
+});

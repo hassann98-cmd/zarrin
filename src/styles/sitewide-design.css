@@ -900,3 +900,7 @@ body.jluxe-design-canva-home .woocommerce-error {
   background-color: #FEF2F2;
   color: #B91C1C;
 }
+
+/* Quiet mega-menu palette, independent of the colorful trigger configuration. */
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel{--jluxe-categories-panel-accent:#475569;--jluxe-categories-panel-bg:#fff;--jluxe-categories-panel-text:#334155;--jluxe-categories-panel-border:#e5e7eb;--jluxe-categories-category-hover-bg:#f8fafc;--jluxe-categories-category-active-bg:#f1f5f9;--jluxe-categories-category-active-text:#0f172a;}
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__icon{color:inherit;}
