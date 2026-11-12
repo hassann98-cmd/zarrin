@@ -60,6 +60,8 @@
 	var ignoreHistoryMutations = false;
 	var activePanel = "components";
 	var historyLimit = 30;
+	var insertionIndex = null;
+	var outlineDragIndex = -1;
 
 	if (!form || !sections) return;
 
@@ -70,6 +72,8 @@
 	}
 
 	function getSectionLabel(card) {
+		var custom = card && card.querySelector('[name$="[editor_label]"]');
+		if (custom && custom.value.trim()) return custom.value.trim();
 		var title = card && card.querySelector(".jluxe-hb-type-label");
 		return title ? title.textContent.trim() : (card && card.getAttribute("data-type")) || "بخش";
 	}
@@ -301,6 +305,7 @@
 			applyControlState(field, entry.controls[fieldIndex]);
 		});
 		selectedSectionIndex = entry.selectedIndex >= 0 && entry.selectedIndex < getSectionCards().length ? entry.selectedIndex : -1;
+		sections.classList.toggle("jvb-inspector-active", selectedSectionIndex >= 0);
 		getSectionCards().forEach(function (card, cardIndex) {
 			card.classList.toggle("jvb-selected", cardIndex === selectedSectionIndex);
 		});
@@ -404,13 +409,33 @@
 			button.setAttribute("data-jvb-outline-target", String(index));
 			order.className = "jvb-outline-number";
 			order.textContent = String(index + 1);
-			label.textContent = title ? title.textContent.trim() : type;
+			label.textContent = getSectionLabel(card);
+			button.setAttribute("aria-current", index === selectedSectionIndex ? "true" : "false");
 			state.className = "jvb-outline-state";
 			state.textContent = enabled && enabled.checked ? "فعال" : "خاموش";
 			button.appendChild(order);
 			button.appendChild(label);
 			button.appendChild(state);
 			row.appendChild(button);
+			row.draggable = true;
+			row.setAttribute("data-jvb-layer-index", String(index));
+			row.addEventListener("dragstart", function (event) {
+				outlineDragIndex = index;
+				if (event.dataTransfer) { event.dataTransfer.setData("text/x-jvb-layer", String(index)); event.dataTransfer.effectAllowed = "move"; }
+			});
+			row.addEventListener("dragover", function (event) { if (outlineDragIndex >= 0) event.preventDefault(); });
+			row.addEventListener("drop", function (event) {
+				if (outlineDragIndex < 0 || outlineDragIndex === index) return;
+				event.preventDefault();
+				var current = getSectionCards(), moving = current[outlineDragIndex], target = current[index];
+				if (!moving || !target) return;
+				queueHistoryCapture("جابه‌جایی در ساختار");
+				sections.insertBefore(moving, outlineDragIndex < index ? target.nextSibling : target);
+				outlineDragIndex = -1;
+				renumberSectionInputs(); updateOutline(); markDirty();
+				selectSection(getSectionCards().indexOf(moving), false); schedulePreviewRefresh(120);
+			});
+			row.addEventListener("dragend", function () { outlineDragIndex = -1; });
 			outline.appendChild(row);
 		});
 
@@ -441,6 +466,7 @@
 			item.classList.remove("jvb-selected");
 		});
 		card.classList.add("jvb-selected");
+		sections.classList.add("jvb-inspector-active");
 		selectedSectionIndex = index;
 		activatePanel("settings");
 
@@ -496,6 +522,9 @@
 		if (!previewFrame) return;
 		try {
 			var doc = previewFrame.contentDocument;
+			var tools = doc && doc.getElementById("jvb-canvas-toolbar");
+			if (tools) { tools.hidden = index < 0; tools.style.display = index < 0 ? "none" : "flex"; }
+
 			if (!doc) return;
 			doc.querySelectorAll("[data-jvb-preview-index]").forEach(function (wrapper) {
 				var item = getPreviewSectionElement(wrapper);
@@ -782,6 +811,27 @@
 		}, 0);
 	}
 
+	// Inspector remains the same form: hidden sibling controls are still saved normally.
+	var showAll = document.createElement("button");
+	showAll.type = "button";
+	showAll.className = "button jvb-show-all";
+	showAll.textContent = "نمایش تنظیمات همهٔ بخش‌ها";
+	showAll.setAttribute("data-jvb-show-all", "");
+	sections.parentNode.insertBefore(showAll, sections);
+	showAll.addEventListener("click", function () { sections.classList.remove("jvb-inspector-active"); });
+
+	function runCanvasAction(action, index) {
+		var card = getSectionCards()[index];
+		if (!card) return;
+		selectSection(index, true);
+		if (action === "add") { insertionIndex = index + 1; activatePanel("components"); return; }
+		if (action === "edit") return;
+		if (action === "remove" && !window.confirm("این بخش از پیش‌نویس حذف شود؟ با واگرد قابل بازیابی است.")) return;
+		var selector = { duplicate: ".jluxe-hb-duplicate", remove: ".jluxe-hb-remove", up: '[data-jvb-section-action="up"]', down: '[data-jvb-section-action="down"]' }[action];
+		var control = selector && card.querySelector(selector);
+		if (control && !control.disabled) control.click();
+	}
+
 	// پنل کتابخانه: انتخاب تب، جست‌وجو و افزودن با کلیک.
 	root.querySelectorAll("[data-jvb-tab]").forEach(function (tab) {
 		tab.addEventListener("click", function () {
@@ -852,7 +902,8 @@
 				event.stopImmediatePropagation();
 				return;
 			}
-			addSection(button.getAttribute("data-type"));
+			addSection(button.getAttribute("data-type"), insertionIndex);
+			insertionIndex = null;
 		}, true);
 		button.addEventListener("pointerdown", function (event) { handleTouchDragPointerDown(button, event); });
 		button.addEventListener("dragstart", function (event) {
@@ -935,6 +986,22 @@
 				"#jvb-editor-drop-indicator:after{content:'';position:absolute;inset-inline-end:0;top:-7px;width:11px;height:11px;border-radius:50%;background:#A313B9}",
 			].join("");
 			doc.head.appendChild(style);
+			var toolbar = doc.createElement("div");
+			toolbar.id = "jvb-canvas-toolbar";
+			toolbar.hidden = true;
+			toolbar.setAttribute("role", "toolbar");
+			toolbar.setAttribute("aria-label", "عملیات بخش انتخاب‌شده");
+			toolbar.style.cssText = "position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483646;display:flex;gap:4px;padding:6px;background:#fff;color:#1f2937;border:1px solid #a313b9;border-radius:10px;box-shadow:0 4px 20px #0002;max-width:96vw;overflow:auto;font:12px Tahoma";
+			toolbar.style.display = "none";
+			[["edit", "ویرایش"], ["add", "افزودن بعد از این"], ["up", "بالا"], ["down", "پایین"], ["duplicate", "تکثیر"], ["remove", "حذف"]].forEach(function (item) {
+				var control = doc.createElement("button");
+				control.type = "button"; control.textContent = item[1];
+				control.setAttribute("data-jvb-canvas-action", item[0]);
+				control.style.cssText = "cursor:pointer;min-height:36px;border:0;border-radius:5px;padding:4px 8px;background:#f5f3ff;color:#1f2937;white-space:nowrap;font:inherit";
+				toolbar.appendChild(control);
+			});
+			doc.body.appendChild(toolbar);
+
 
 			var marker = doc.createElement("div");
 			marker.id = "jvb-editor-drop-indicator";
@@ -1000,7 +1067,51 @@
 				activeFrameTarget = null;
 			}
 
+			doc.addEventListener("dblclick", function (event) {
+				var target = getEventElement(event).closest("h2,h3,h4");
+				var wrapper = getWrapper(event);
+				if (!target || !wrapper) return;
+				var index = Number(wrapper.getAttribute("data-jvb-preview-index"));
+				var card = getSectionCards()[index];
+				if (!card || ["heading", "text"].indexOf(card.getAttribute("data-type")) < 0) return;
+				var field = card.querySelector('[name$="[title]"]');
+				if (!field || target.hasAttribute("contenteditable")) return;
+				event.preventDefault();
+				var before = field.value;
+				target.setAttribute("contenteditable", "true");
+				target.setAttribute("aria-label", "ویرایش مستقیم تیتر؛ Enter برای ثبت و Escape برای لغو");
+				target.focus();
+				function keys(keyEvent) {
+					if (keyEvent.key === "Escape") { target.textContent = before; target.blur(); }
+					if (keyEvent.key === "Enter") { keyEvent.preventDefault(); target.blur(); }
+				}
+				function paste(pasteEvent) {
+					pasteEvent.preventDefault();
+					var text = pasteEvent.clipboardData && pasteEvent.clipboardData.getData("text/plain");
+					if (typeof text === "string") target.textContent = text;
+				}
+				target.addEventListener("keydown", keys);
+				target.addEventListener("paste", paste);
+				target.addEventListener("blur", function () {
+					target.removeAttribute("contenteditable"); target.removeAttribute("aria-label");
+					target.removeEventListener("keydown", keys); target.removeEventListener("paste", paste);
+					var text = target.textContent.trim();
+					target.textContent = text;
+					if (text !== before) {
+						field.value = text;
+						field.dispatchEvent(new window.Event("input", { bubbles: true }));
+					}
+				}, { once: true });
+			}, true);
+
 			doc.addEventListener("click", function (event) {
+				if (getEventElement(event).closest('[contenteditable="true"]')) return;
+				var actionButton = getEventElement(event).closest("[data-jvb-canvas-action]");
+				if (actionButton) {
+					event.preventDefault(); event.stopPropagation();
+					runCanvasAction(actionButton.getAttribute("data-jvb-canvas-action"), selectedSectionIndex);
+					return;
+				}
 				var wrapper = getWrapper(event);
 				if (!wrapper) return;
 				var index = parseInt(wrapper.getAttribute("data-jvb-preview-index"), 10);
@@ -1185,6 +1296,8 @@
 			window.setTimeout(function () {
 				if (!sections.contains(card)) {
 					selectedSectionIndex = -1;
+					sections.classList.remove("jvb-inspector-active");
+					highlightFrameSection(-1);
 					updatePanelMetadata();
 				}
 			}, 0);

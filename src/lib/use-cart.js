@@ -18,6 +18,9 @@ let snapshot = {
 };
 let authoritativeSnapshot = snapshot;
 const pendingRemovals = new Set();
+const pendingQuantities = new Map();
+let readFlight;
+let writeEpoch = 0;
 let loaded = false;
 let revision = 0;
 let initialRequest;
@@ -26,15 +29,15 @@ const subscribers = new Set();
 // Each DOM event is shared by header, drawer and mobile subscribers.
 const refreshEvents = new WeakMap();
 function applyPendingRemovals(next) {
-  if (!pendingRemovals.size || !Array.isArray(next.items)) return next;
+  if ((!pendingRemovals.size && !pendingQuantities.size) || !Array.isArray(next.items)) return next;
   let removedQuantity = 0;
-  const items = next.items.filter((item) => {
-    if (!pendingRemovals.has(String(item.key))) return true;
-    const quantity = Number(item.qty);
-    if (Number.isFinite(quantity) && quantity > 0) removedQuantity += quantity;
-    return false;
+  const items = next.items.flatMap((item) => {
+    const key = String(item.key);
+    const desired = pendingQuantities.get(key)?.qty;
+    const qty = pendingRemovals.has(key) ? 0 : desired ?? Number(item.qty);
+    removedQuantity += Number(item.qty) - qty;
+    return qty > 0 ? [{ ...item, qty }] : [];
   });
-  if (items.length === next.items.length) return next;
   const count = Number(next.itemCount);
   return {
     ...next,
@@ -55,7 +58,12 @@ function publish(next) {
 
 /** Serialize drawer requests; never turn a network/server rejection into a successful mutation. */
 export function cartRequest(operation, values = {}) {
+  const plainRead = operation === "get" && Object.keys(values).length === 0;
+  if (plainRead && readFlight?.epoch === writeEpoch) return readFlight.promise;
+  if (operation !== "get") writeEpoch += 1;
+  let flight;
   const execute = async () => {
+    if (flight) flight.started = true;
     const config = getThemeSettings().cart;
     if (!config?.ajaxUrl) return { snapshot, error: "سبد خرید در دسترس نیست." };
     const startedAt = revision;
@@ -106,7 +114,48 @@ export function cartRequest(operation, values = {}) {
     }
   };
   queue = queue.then(execute, execute);
+  if (plainRead) {
+    flight = { epoch: writeEpoch, promise: queue, started: false };
+    readFlight = flight;
+    queue.finally(() => { if (readFlight === flight) readFlight = undefined; });
+  }
   return queue;
+}
+
+/** Batch a burst of +/- taps; never invent prices or replay failed mutations. */
+export function updateCartQuantity(key, qty) {
+  key = String(key);
+  qty = Number(qty);
+  const item = snapshot.items.find(item => String(item.key) === key);
+  if (!item || pendingRemovals.has(key) || !Number.isInteger(qty) || qty < 0 || qty > item.maxQty) {
+    return Promise.resolve({ snapshot, error: "تعداد درخواستی معتبر نیست." });
+  }
+  let entry = pendingQuantities.get(key);
+  if (!entry) {
+    entry = { qty, waiters: [], inFlight: false };
+    pendingQuantities.set(key, entry);
+  }
+  entry.qty = qty;
+  publish(authoritativeSnapshot);
+  const promise = new Promise(resolve => entry.waiters.push(resolve));
+  const flush = async () => {
+    entry.inFlight = true;
+    const sent = entry.qty;
+    const result = await cartRequest("update_qty", { key, qty: String(sent) });
+    entry.inFlight = false;
+    if (!result.error && entry.qty !== sent) {
+      entry.timer = setTimeout(flush, 140);
+      return;
+    }
+    pendingQuantities.delete(key);
+    publish(authoritativeSnapshot);
+    for (const resolve of entry.waiters) resolve({ snapshot, error: result.error });
+  };
+  if (!entry.inFlight) {
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(flush, 140);
+  }
+  return promise;
 }
 
 function useCart() {
@@ -143,6 +192,8 @@ function useCart() {
         } else {
           // Do not let an older read overwrite a newer external cart change.
           revision += 1;
+          // A new external change invalidates a read already in progress.
+          if (readFlight?.started !== false) readFlight = undefined;
           refreshEvents.set(event, cartRequest("get"));
         }
       }
@@ -173,7 +224,7 @@ function useCart() {
   }, []);
   const removeItem = useCallback(async (key) => {
     const itemKey = String(key);
-    if (pendingRemovals.has(itemKey)) return false;
+    if (pendingRemovals.has(itemKey) || pendingQuantities.has(itemKey)) return false;
     // Hide the row/count immediately, including across newer snapshots from
     // earlier queued mutations. The authoritative WooCommerce reply replaces
     // the optimistic view; any failure restores the latest server snapshot.
@@ -190,11 +241,18 @@ function useCart() {
   }, []);
   return {
     snapshot: current,
-    loading: loading || pendingRemovals.size > 0,
+    loading: loading || pendingRemovals.size > 0 || pendingQuantities.size > 0,
+    quantityPending: pendingQuantities.size > 0,
+    quantityKeys: [...pendingQuantities.keys()],
     error,
     couponLoading,
     couponError,
-    updateQty: (key, qty) => mutate("update_qty", { key, qty: String(qty) }),
+    updateQty: async (key, qty) => {
+      setError(null);
+      const result = await updateCartQuantity(key, qty);
+      setError(result.error ?? null);
+      return !result.error;
+    },
     removeItem,
     applyCoupon: (coupon_code) => mutate("apply_coupon", { coupon_code }, true),
     removeCoupon: (coupon_code) =>
