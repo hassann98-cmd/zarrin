@@ -1,3 +1,5 @@
+import { useNavPress } from "../lib/use-nav-press.js";
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { siteUrl } from "../lib/api.js";
 import {
   getActiveMobileDrawer,
@@ -50,11 +52,8 @@ function MobileNav() {
   const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const loggedIn = useAuthStatus();
+  const pressProps = useNavPress();
   const [activeDrawer, setActiveDrawer] = React.useState(() =>
     typeof window === "undefined" ? null : getActiveMobileDrawer(window),
   );
@@ -139,7 +138,9 @@ function MobileNav() {
         (!item.label || item.label === "حساب" || item.label === "ورود")
           ? "حساب کاربری"
           : item.label,
-      label: item.id === "account" && !loggedIn ? "ورود" : item.label,
+      label: item.id === "account"
+        ? !loggedIn ? "ورود" : (!item.label || item.label === "حساب" || item.label === "ورود") ? "حساب کاربری" : item.label
+        : item.label,
     }));
 
   return jsx.jsx("nav", {
@@ -175,10 +176,11 @@ function MobileNav() {
         );
         const routeActive = isActive(currentHref, item.href, item.id);
         const active = routeActive || drawerOpen;
-        const Icon = navIcons[item.icon] ?? fallbackIcon;
+        const Icon = item.icon ? navIcons[item.icon] ?? fallbackIcon : null;
         return jsx.jsxs(
           "a",
           {
+            ...pressProps(item.id),
             href: item.href,
             onClick: (event) => {
               if (isModifiedClick(event)) return;
@@ -254,10 +256,10 @@ function MobileNav() {
                 },
                 ...(item.id === "cart" ? { "data-jluxe-cart-icon-mobile": "" } : {}),
                 children: [
-                  jsx.jsx(Icon, {
+                  Icon ? jsx.jsx(Icon, {
                     className: "size-[21px]",
                     "aria-hidden": true,
-                  }),
+                  }) : null,
                   item.id === "cart" && snapshot.itemCount > 0
                     ? jsx.jsx("span", {
                         className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-md",
