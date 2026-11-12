@@ -3775,6 +3775,28 @@ add_action( 'init', 'jluxe_remove_default_product_tabs' );
  *
  * @return array<int, array{id: string, label: string, url: string, count: int, groups: array}>
  */
+/** Attach current term icons even when the hierarchy comes from an older cache. */
+function jluxe_mega_menu_category_icons( array $categories ): array {
+ foreach ( $categories as &$category ) {
+  if ( ! is_array( $category ) || empty( $category['id'] ) ) { continue; }
+  $id = absint( $category['id'] );
+  $custom = get_term_meta( $id, '_jluxe_category_icon_svg', true );
+  $custom = is_string( $custom ) ? jluxe_sanitize_svg_markup( $custom ) : '';
+  $preset = get_term_meta( $id, '_jluxe_category_icon', true );
+  $override = is_string( $preset ) && '' !== $preset && 'auto' !== $preset;
+  $thumbnail = absint( get_term_meta( $id, 'thumbnail_id', true ) );
+  $image = ! $custom && ! $override && $thumbnail ? wp_get_attachment_image_url( $thumbnail, 'thumbnail' ) : '';
+  // Existing uploads keep their thumbnail until this size is regenerated.
+  if ( $image && function_exists( 'image_get_intermediate_size' ) && image_get_intermediate_size( $thumbnail, 'jluxe-category-icon' ) ) {
+    $image = wp_get_attachment_image_url( $thumbnail, 'jluxe-category-icon' );
+  }
+  $category['iconImage'] = is_string( $image ) ? esc_url_raw( $image ) : '';
+  $category['iconSvg'] = $custom ?: ( $override || ! $category['iconImage'] ? jluxe_nav_icon_svg( $override ? $preset : 'grid', 'jluxe-mega-category-svg' ) : '' );
+ }
+ unset( $category );
+ return $categories;
+}
+
 function jluxe_get_mega_menu_categories(): array {
 	$cache_key = 'jluxe_mega_menu_tree_v1';
 	/* R62: دو لایهٔ کش — Object Cache (با Redis واقعی می‌ماند؛ بدونِ آن فقط
@@ -3782,12 +3804,12 @@ function jluxe_get_mega_menu_categories(): array {
 	object-cache.php). خروجی در هر دو لایه «آرایهٔ» دیتاست است، نه HTML. */
 	$cached = wp_cache_get( $cache_key, 'jluxe' );
 	if ( is_array( $cached ) ) {
-		return $cached;
+		return jluxe_mega_menu_category_icons( $cached );
 	}
 	$cached = get_transient( $cache_key );
 	if ( false !== $cached && is_array( $cached ) ) {
 		wp_cache_set( $cache_key, $cached, 'jluxe', HOUR_IN_SECONDS );
-		return $cached;
+		return jluxe_mega_menu_category_icons( $cached );
 	}
 
 	$default_cat_id = (int) get_option( 'default_product_cat' );
@@ -3866,7 +3888,7 @@ function jluxe_get_mega_menu_categories(): array {
 
 	set_transient( $cache_key, $categories, DAY_IN_SECONDS );
 	wp_cache_set( $cache_key, $categories, 'jluxe', HOUR_IN_SECONDS );
-	return $categories;
+	return jluxe_mega_menu_category_icons( $categories );
 }
 
 /**

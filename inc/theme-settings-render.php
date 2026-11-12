@@ -1774,12 +1774,12 @@ function jluxe_render_shop_page(): void {
 		$shop = $settings['shop'];
 		?>
 		<h2>آیکون دسته‌بندی‌ها</h2>
-		<p class="description">برای تمام دسته‌بندی‌های واقعی ووکامرس آیکون اختصاصی تعیین کنید. SVG سفارشی بر آیکون آماده اولویت دارد و در مگامنو دسکتاپ و دراور موبایل نمایش داده می‌شود.</p>
+		<p class="description">در مگامنوی دسکتاپ حالت خودکار از تصویر دسته در «محصولات ← دسته‌بندی‌ها» استفاده می‌کند. برای جایگزینی، آیکون آماده یا SVG تعیین کنید؛ SVG اولویت دارد. برای بازگشت به تصویر ووکامرس، حالت خودکار را انتخاب و SVG را خالی کنید.</p>
 		<?php $jluxe_cat_terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC' ) ); ?>
 		<?php if ( ! is_wp_error( $jluxe_cat_terms ) ) : ?>
 		<form method="post">
 		<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-		<table class="widefat striped"><thead><tr><th>دسته‌بندی</th><th>آیکون آماده</th><th>SVG سفارشی</th></tr></thead><tbody><?php foreach ( $jluxe_cat_terms as $term ) : $ci=get_term_meta($term->term_id,'_jluxe_category_icon',true); $csvg=get_term_meta($term->term_id,'_jluxe_category_icon_svg',true); ?><tr><td><strong><?php echo esc_html($term->name); ?></strong><br><small><?php echo esc_html($term->count); ?> محصول</small></td><td><select name="category_icons[<?php echo esc_attr($term->term_id); ?>][icon]"><?php foreach(jluxe_nav_icon_options() as $val=>$label): ?><option value="<?php echo esc_attr($val); ?>" <?php selected($ci,$val); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></td><td><textarea name="category_icons[<?php echo esc_attr($term->term_id); ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg ...&gt;...&lt;/svg&gt;"><?php echo esc_textarea($csvg); ?></textarea></td></tr><?php endforeach; ?></tbody></table><p class="submit"><button type="submit" class="button button-primary">ذخیره آیکون‌های دسته‌بندی</button></p></form>
+		<table class="widefat striped"><thead><tr><th>دسته‌بندی</th><th>آیکون آماده</th><th>SVG سفارشی</th></tr></thead><tbody><?php foreach ( $jluxe_cat_terms as $term ) : $ci=get_term_meta($term->term_id,'_jluxe_category_icon',true); $csvg=get_term_meta($term->term_id,'_jluxe_category_icon_svg',true); ?><tr><td><strong><?php echo esc_html($term->name); ?></strong><br><small><?php echo esc_html($term->count); ?> محصول</small></td><td><select name="category_icons[<?php echo esc_attr($term->term_id); ?>][icon]"><option value="" <?php selected( in_array( $ci, array( '', 'auto' ), true ) ); ?>>خودکار — تصویر دستهٔ ووکامرس</option><?php foreach(jluxe_nav_icon_options() as $val=>$label): if ( '' === $val ) { continue; } ?><option value="<?php echo esc_attr($val); ?>" <?php selected($ci,$val); ?>><?php echo esc_html($label); ?></option><?php endforeach; ?></select></td><td><textarea name="category_icons[<?php echo esc_attr($term->term_id); ?>][svg]" rows="2" class="large-text code" dir="ltr" placeholder="&lt;svg ...&gt;...&lt;/svg&gt;"><?php echo esc_textarea($csvg); ?></textarea></td></tr><?php endforeach; ?></tbody></table><p class="submit"><button type="submit" class="button button-primary">ذخیره آیکون‌های دسته‌بندی</button></p></form>
 		<?php endif; ?>
 
 		<form method="post">
@@ -2168,7 +2168,9 @@ function jluxe_render_mobile_contact_page(): void {
 							</td>
 						</tr>
 					</table>
-					<h3>آیتم‌های نوار فعلی</h3>
+					<p class="description" role="status" aria-live="polite" data-mobile-nav-editor-status>فقط آیتم‌های طرح فعال زیر نمایش داده می‌شوند؛ تنظیمات طرح دیگر محفوظ می‌ماند.</p>
+					<div data-mobile-nav-editor="classic" <?php echo 'floating' === ( $settings['mobile']['nav_variant'] ?? 'classic' ) ? 'hidden' : ''; ?>>
+					<h3>آیتم‌های نوار فعلی — طرح تمام‌عرض</h3>
 					<p class="description">این طرح همان رفتار قبلی را حفظ می‌کند. ترتیب، برچسب، آیکون و نمایش هر آیتم قابل تغییر است.</p>
 					<div class="jluxe-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="nav_items">
@@ -2197,7 +2199,9 @@ function jluxe_render_mobile_contact_page(): void {
 						</div>
 					</div>
 
-					<h3>آیتم‌های نوار شناورِ نمونه</h3>
+					</div>
+					<div data-mobile-nav-editor="floating" <?php echo 'floating' !== ( $settings['mobile']['nav_variant'] ?? 'classic' ) ? 'hidden' : ''; ?>>
+					<h3>آیتم‌های نوار شناورِ نمونه — طرح فعال شناور</h3>
 					<p class="description">۵ جایگاهِ نمونه را مستقل از نوار فعلی تنظیم کن: ترتیب را بکش‌ودراپ کن، آیکون و عنوان را عوض کن، هرکدام را پنهان کن یا عملکرد داخلی/لینک دلخواه تعیین کن. «دستیار» پنجرهٔ پشتیبانی را باز می‌کند؛ با فعال‌بودن آن در نوار شناور، دکمهٔ شناورِ جداگانهٔ دستیار در موبایل خودکار پنهان می‌شود. «دسته‌ها» و «سبد خرید» پنل‌های داخلی را باز می‌کنند.</p>
 					<div class="jluxe-repeater jluxe-mobile-floating-nav-repeater" data-sortable="true">
 						<div class="jluxe-repeater-list" data-group="floating_nav_items">
@@ -2239,6 +2243,7 @@ function jluxe_render_mobile_contact_page(): void {
 						</div>
 					</div>
 
+					</div>
 					<h3>استایل نوار موبایل</h3>
 					<p class="description">رنگ نوار، رنگ آیکون/حالت فعال و سایه در هر دو طرح استفاده می‌شوند. پس‌زمینهٔ جداگانهٔ آیکون‌ها، گردی و ارتفاع فقط روی طرح فعلی اثر دارند؛ طرح شناور به شکل کپسولی و دارای قاب ظریف می‌ماند.</p>
 					<?php $mstyle = $settings['mobile']['nav_style'] ?? array(); ?>
@@ -2929,7 +2934,9 @@ function jluxe_render_advanced_page(): void {
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
 					<h3>تنظیمات</h3>
 					<table class="form-table" role="presentation">
-						<tr>
+						<tr><th scope="row">نرمی جابه‌جایی صفحات</th><td><label><input type="checkbox" name="performance[page_transitions]" value="1" <?php checked( $perf['page_transitions'] ?? true ); ?> /> انتقال محوشوندهٔ کوتاه و خط انتظار بالای صفحه، در موبایل و دسکتاپ</label><p class="description">بدون تغییر HTML و مسیریابی وردپرس؛ کاهش حرکت مرورگر رعایت می‌شود. سبد، پرداخت و حساب مستثنا هستند.</p></td></tr>
+                        <tr><th scope="row">پیش‌دریافت محدود صفحات</th><td><label><input type="checkbox" name="performance[page_prefetch]" value="1" <?php checked( $perf['page_prefetch'] ?? true ); ?> /> پیش‌دریافت لینک محصول و خانه برای مهمان با قصد لمس/فوکوس (حداکثر دو صفحه)</label><p class="description">لینک‌های عملیاتی، اتصال ضعیف و حالت صرفه‌جویی داده مستثنا هستند.</p></td></tr>
+                        <tr>
 							<th scope="row">غیرفعال‌سازی اسکریپت ایموجی وردپرس</th>
 							<td><label><input type="checkbox" name="performance[disable_emojis]" value="1" <?php checked( $perf['disable_emojis'] ); ?> /> کاهش یک درخواست JS/CSS اضافه در هر صفحه</label></td>
 						</tr>

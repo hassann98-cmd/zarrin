@@ -1,3 +1,4 @@
+import { scheduleResponsiveIsland } from "./lib/responsive-island.js";
 import {
   markLiteDevice,
   mountIsland,
@@ -66,7 +67,7 @@ for (const element of document.querySelectorAll("[data-jluxe-island]")) {
     continue;
   }
   if (name !== "footer" || !("IntersectionObserver" in window)) {
-    mountIsland(element, load);
+    scheduleResponsiveIsland(element, () => mountIsland(element, load), window);
     continue;
   }
   const observer = new IntersectionObserver(

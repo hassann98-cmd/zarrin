@@ -12,6 +12,8 @@ if (process.env.JLUXE_DEV_ORIGIN)
 // remain dynamic and send.js stays isolated to the optional AI widget.
 const sharedShellSupportModules = new Set([
   "button.js",
+  "category-image.js",
+  "category-image-warmup.js",
   "nav-icons.js",
   "use-cart.js",
   "use-dialog.js",
