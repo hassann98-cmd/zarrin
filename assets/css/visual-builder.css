@@ -1749,3 +1749,12 @@ body.jluxe-visual-builder-screen #wpbody-content {
 		display: none;
 	}
 }
+
+/* Focused inspector: never disable controls, so hidden siblings remain in FormData. */
+#jluxe-visual-builder #jluxe-hb-sections.jvb-inspector-active > .jluxe-hb-section:not(.jvb-selected) { display:none; }
+#jluxe-visual-builder .jvb-show-all { width:100%; margin-bottom:12px; min-height:40px; }
+#jluxe-visual-builder .jvb-design-controls { margin-top:20px; padding:12px; border:1px solid var(--jvb-border); border-radius:10px; background:var(--jvb-bg); }
+#jluxe-visual-builder .jvb-design-controls > summary { cursor:pointer; font-weight:700; min-height:32px; }
+#jluxe-visual-builder .jvb-design-controls input[type=text],
+#jluxe-visual-builder .jvb-design-controls select { width:100%; max-width:100%; }
+#jluxe-visual-builder [data-jvb-outline-target][aria-current=true] { border-color:var(--jvb-primary); background:var(--jvb-primary-soft); }

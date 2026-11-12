@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function jluxe_homepage_section_types(): array {
 	return array(
+		'container'           => 'کانتینر / ستون‌ها',
 		'hero'                => 'اسلایدر هیرو',
 		'stories'             => 'نوار استوری',
 		'product_grid'        => 'گرید محصولات (جدید/تخفیف‌دار/پرفروش/ویژه)',
@@ -31,6 +32,9 @@ function jluxe_homepage_section_types(): array {
 		'trust'               => 'نشان‌های اعتماد',
 		'blog'                => 'آخرین نوشته‌های وبلاگ',
 		'text'                => 'متن سفارشی',
+		'heading'             => 'تیتر مستقل',
+		'image'               => 'تصویر مستقل',
+		'button'              => 'دکمه مستقل',
 		'html'                => 'HTML سفارشی',
 		'spacer'              => 'فاصله‌گذار',
 	);
@@ -133,6 +137,18 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 		<div class="jluxe-hb-section-body">
 			<?php
 			switch ( $type ) {
+				case 'container':
+					printf( '<input type="hidden" name="%s[children_json]" value="%s" />', esc_attr( $name ), esc_attr( wp_json_encode( $section['children'] ?? array() ) ) );
+					$layout = jluxe_builder_container_options( $section );
+					jluxe_hb_field_number( $name, 'columns', 'ستون‌های دسکتاپ', $layout['columns'], 1, 6 );
+					jluxe_hb_field_text( $name, 'column_ratios', 'نسبت ستون‌ها به ترتیب راست به چپ (با ویرگول انگلیسی؛ مثال 66.7,33.3)', $layout['column_ratios'] );
+					jluxe_hb_field_select( $name, 'vertical_align', 'تراز عمودی', $layout['vertical_align'], array( 'start' => 'بالا', 'center' => 'وسط', 'end' => 'پایین', 'stretch' => 'کشیده' ) );
+					jluxe_hb_field_select( $name, 'stack_on', 'زیر هم شدن ستون‌ها', $layout['stack_on'], array( 'mobile' => 'موبایل', 'tablet' => 'تبلت و موبایل', 'never' => 'هرگز' ) );
+					jluxe_hb_field_number( $name, 'mobile_columns', 'ستون‌های موبایل', $layout['mobile_columns'], 1, 2 );
+					jluxe_hb_field_number( $name, 'gap', 'فاصلهٔ بین المان‌ها (px)', $layout['gap'], 0, 100 );
+					jluxe_hb_field_number( $name, 'max_width', 'حداکثر عرض کانتینر (px)', $layout['max_width'], 280, 1920 );
+					jluxe_hb_field_checkbox( $name, 'reverse_mobile', 'ترتیب معکوس در موبایل (با یک ستون)', $layout['reverse_mobile'] );
+					break;
 				case 'hero':
 					$hero_opt = jluxe_hero_options( $section );
 					?>
@@ -712,11 +728,52 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					<?php
 					break;
 
+				case 'heading':
+					jluxe_hb_field_text( $name, 'title', 'متن تیتر', $section['title'] ?? '' );
+					jluxe_hb_field_select( $name, 'tag', 'سطح تیتر', $section['tag'] ?? 'h2', array( 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4' ) );
+					break;
+				case 'image':
+					jluxe_render_media_field( $name . '[image_id]', (int) ( $section['image_id'] ?? 0 ), 'انتخاب تصویر از کتابخانهٔ رسانه' );
+					jluxe_hb_field_text( $name, 'alt', 'متن جایگزین تصویر', $section['alt'] ?? '' );
+					jluxe_hb_field_text( $name, 'url', 'پیوند اختیاری تصویر', $section['url'] ?? '' );
+					break;
+				case 'button':
+					jluxe_hb_field_text( $name, 'title', 'متن دکمه', $section['title'] ?? '' );
+					jluxe_hb_field_text( $name, 'url', 'آدرس مقصد', $section['url'] ?? '' );
+					break;
+
 				case 'spacer':
 					jluxe_hb_field_number( $name, 'height', 'ارتفاع (px)', $section['height'] ?? 40, 8, 200 );
 					break;
 			}
 			?>
+			<details class="jvb-design-controls">
+				<summary>ظاهر و تنظیمات واکنش‌گرا</summary>
+				<?php
+				jluxe_hb_field_text( $name, 'editor_label', 'نام دلخواه در ساختار (در سایت نمایش داده نمی‌شود)', $section['editor_label'] ?? '' );
+				jluxe_hb_field_checkbox( $name, 'design_enabled', 'اعمال ظاهر سفارشی این بخش', ! empty( $section['design_enabled'] ) );
+				$design = is_array( $section['design'] ?? null ) ? $section['design'] : array();
+				foreach ( array( 'padding' => 'فاصله داخلی دسکتاپ', 'mobile_padding' => 'فاصله داخلی موبایل', 'margin_top' => 'فاصله بالا', 'margin_bottom' => 'فاصله پایین', 'radius' => 'گردی گوشه‌ها' ) as $key => $title ) {
+					jluxe_hb_field_number( $name . '[design]', $key, $title . ' (px)', $design[ $key ] ?? 0, 0, 240 );
+				}
+				jluxe_hb_field_text( $name . '[design]', 'background', 'رنگ پس‌زمینه (#RRGGBB؛ خالی یعنی شفاف)', $design['background'] ?? '' );
+				jluxe_hb_field_text( $name . '[design]', 'text_color', 'رنگ متن (#RRGGBB)', $design['text_color'] ?? '' );
+				jluxe_hb_field_text( $name . '[design]', 'border_color', 'رنگ خط دور (#RRGGBB؛ خالی = بدون خط)', $design['border_color'] ?? '' );
+				jluxe_hb_field_text( $name . '[design]', 'background_image', 'نشانی تصویر پس‌زمینه (https)', $design['background_image'] ?? '' );
+				jluxe_hb_field_text( $name . '[design]', 'anchor', 'شناسه لنگر بدون # (در صفحه یکتا باشد)', $design['anchor'] ?? '' );
+				jluxe_hb_field_text( $name . '[design]', 'class_name', 'کلاس‌های CSS', $design['class_name'] ?? '' );
+				jluxe_hb_field_select( $name . '[design]', 'shadow', 'سایه', $design['shadow'] ?? 'none', array( 'none' => 'بدون سایه', 'small' => 'کم', 'medium' => 'متوسط', 'large' => 'زیاد' ) );
+				jluxe_hb_field_select( $name . '[design]', 'width', 'عرض بخش', $design['width'] ?? 'default', array( 'default' => 'پیش‌فرض', 'boxed' => 'کادر', 'full' => 'تمام عرض' ) );
+				jluxe_hb_field_select( $name . '[design]', 'animation', 'حرکت هنگام دیده شدن', $design['animation'] ?? 'none', array( 'none' => 'بدون حرکت', 'fade' => 'محو', 'fade-up' => 'محو از پایین', 'fade-down' => 'محو از بالا', 'slide-right' => 'ورود از راست', 'slide-left' => 'ورود از چپ', 'zoom' => 'بزرگ‌نمایی' ) );
+				jluxe_hb_field_number( $name . '[design]', 'animation_duration', 'مدت حرکت (ms)', $design['animation_duration'] ?? 600, 200, 1500 );
+				jluxe_hb_field_number( $name . '[design]', 'animation_delay', 'تاخیر حرکت (ms)', $design['animation_delay'] ?? 0, 0, 1500 );
+				jluxe_hb_field_checkbox( $name . '[design]', 'animation_repeat', 'تکرار حرکت در هر بار دیده شدن (کاهش حرکت سیستم رعایت می‌شود)', ! empty( $design['animation_repeat'] ) );
+				jluxe_hb_field_checkbox( $name . '[design]', 'hide_tablet', 'پنهان در تبلت (۷۶۸ تا ۱۰۲۳)', ! empty( $design['hide_tablet'] ) );
+				jluxe_hb_field_select( $name . '[design]', 'align', 'تراز محتوا', $design['align'] ?? 'start', array( 'start' => 'ابتدا', 'center' => 'وسط', 'end' => 'انتها' ) );
+				jluxe_hb_field_checkbox( $name . '[design]', 'hide_mobile', 'پنهان در موبایل (کمتر از ۷۶۸)', ! empty( $design['hide_mobile'] ) );
+				jluxe_hb_field_checkbox( $name . '[design]', 'hide_desktop', 'پنهان در تبلت و دسکتاپ', ! empty( $design['hide_desktop'] ) );
+				?>
+			</details>
 		</div>
 		</details>
 	</div>
@@ -1101,6 +1158,23 @@ function jluxe_render_homepage_sections(): void {
 	?>
 	<style id="jluxe-homepage-system-style">
 	.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-left:0;padding-right:0;}
+	.jluxe-builder-container{box-sizing:border-box;display:grid;grid-template-columns:var(--jbc-tracks,repeat(var(--jbc-cols,2),minmax(0,1fr)));gap:var(--jbc-gap,20px);width:calc(100% - 32px);margin:24px auto;align-items:var(--jbc-align,start);min-height:40px}
+	.jluxe-builder-container>.jluxe-home-section,.jluxe-builder-container>.jvb-node-preview>.jluxe-home-section{width:100%;margin:0;min-width:0}
+	.jluxe-builder-container>*{min-width:0}
+	@media(max-width:767.98px){.jluxe-builder-container:not(.jluxe-stack-never){grid-template-columns:repeat(var(--jbc-mobile,1),minmax(0,1fr));width:calc(100% - 24px)}.jluxe-builder-reverse-mobile:not(.jluxe-stack-never)[style*="--jbc-mobile:1"]{display:flex;flex-direction:column-reverse}.jluxe-builder-reverse-mobile:not(.jluxe-stack-never)[style*="--jbc-mobile:1"]>*{width:100%}}
+	@media(min-width:768px) and (max-width:1023.98px){.jluxe-stack-tablet{grid-template-columns:repeat(var(--jbc-mobile,1),minmax(0,1fr))}.jluxe-design-hide-tablet{display:none!important}}
+	.jluxe-design-width-boxed{max-width:var(--jluxe-container-max,1320px);margin-inline:auto}
+	.jluxe-design-width-full>.jluxe-home-section,.jluxe-design-width-full>.jluxe-builder-container{width:100%;max-width:none!important}
+	.jluxe-design-shadow-small{box-shadow:0 2px 8px #00000012}.jluxe-design-shadow-medium{box-shadow:0 8px 24px #0000001a}.jluxe-design-shadow-large{box-shadow:0 16px 48px #00000026}
+	.jluxe-designed-section[style*="--jvb-text"] :is(h1,h2,h3,h4,p){color:var(--jvb-text)}
+	@keyframes jvb-enter{from{opacity:0;transform:translate(var(--jvb-x,0),var(--jvb-y,0)) scale(var(--jvb-scale,1))}to{opacity:1;transform:none}}
+	.jvb-entering{animation:jvb-enter var(--jvb-duration,600ms) both;animation-delay:var(--jvb-delay,0ms)}
+	[data-jvb-animation="fade-up"]{--jvb-y:24px}[data-jvb-animation="fade-down"]{--jvb-y:-24px}[data-jvb-animation="slide-right"]{--jvb-x:24px}[data-jvb-animation="slide-left"]{--jvb-x:-24px}[data-jvb-animation="zoom"]{--jvb-scale:.95}
+	@media(prefers-reduced-motion:reduce){.jvb-entering{animation:none!important}}
+	.jluxe-designed-section{padding:var(--jvb-pad,0);box-sizing:border-box;}
+	.jluxe-designed-section>.jluxe-home-section{margin-top:0;margin-bottom:0;}
+	@media(max-width:767.98px){.jluxe-designed-section{padding:var(--jvb-mobile-pad,0)}.jluxe-design-hide-mobile{display:none!important}}
+	@media(min-width:768px){.jluxe-design-hide-desktop{display:none!important}}
 	.jluxe-home-section h2{color:hsl(var(--foreground));}
 	.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel{transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease;}
 	.jluxe-home-section .jluxe-home-card:hover,.jluxe-home-section .jluxe-home-panel:hover{transform:translateY(-2px);}
@@ -1162,6 +1236,7 @@ function jluxe_enqueue_homepage_assets(): void {
 		return;
 	}
 
+	$sections = jluxe_builder_flatten( $sections );
 	$needs_homepage_script = false;
 	$needs_hero_slider     = false;
 	$needs_cta_styles      = false;
@@ -1300,7 +1375,41 @@ function jluxe_render_homepage_cta( array $section ): void {
 }
 
 function jluxe_render_homepage_section_frontend( array $section ): void {
+	$preview = function_exists( 'jluxe_visual_builder_preview_request_is_authorized' ) && jluxe_visual_builder_preview_request_is_authorized();
+	if ( $preview ) { echo '<div class="jvb-node-preview" data-jvb-node="' . esc_attr( $section['id'] ?? '' ) . '">'; }
+	jluxe_render_homepage_section_styled( $section );
+	if ( $preview ) { echo '</div>'; }
+}
+
+function jluxe_render_homepage_section_styled( array $section ): void {
+	if ( empty( $section['design_enabled'] ) ) { jluxe_render_homepage_section_content( $section ); return; }
+	// Normalize again at the output boundary; never accept arbitrary CSS from storage.
+	$safe = jluxe_sanitize_homepage_section_design( $section );
+	$d = $safe['design'];
+	$classes = 'jluxe-designed-section' . ( $d['hide_mobile'] ? ' jluxe-design-hide-mobile' : '' ) . ( $d['hide_desktop'] ? ' jluxe-design-hide-desktop' : '' );
+	$classes .= ' jluxe-design-width-' . $d['width'] . ' jluxe-design-shadow-' . $d['shadow'] . ( $d['hide_tablet'] ? ' jluxe-design-hide-tablet' : '' ) . ' ' . $d['class_name'];
+	$style = sprintf( '--jvb-pad:%dpx;--jvb-mobile-pad:%dpx;margin-top:%dpx;margin-bottom:%dpx;border-radius:%dpx;text-align:%s;', $d['padding'], $d['mobile_padding'], $d['margin_top'], $d['margin_bottom'], $d['radius'], $d['align'] );
+	if ( $d['background'] ) { $style .= 'background-color:' . $d['background'] . ';'; }
+	if ( $d['text_color'] ) { $style .= '--jvb-text:' . $d['text_color'] . ';color:' . $d['text_color'] . ';'; }
+	if ( $d['border_color'] ) { $style .= 'border:1px solid ' . $d['border_color'] . ';'; }
+	if ( $d['background_image'] ) { $style .= 'background-image:url(' . wp_json_encode( $d['background_image'], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP ) . ');background-size:cover;background-position:center;'; }
+	$style .= '--jvb-duration:' . $d['animation_duration'] . 'ms;--jvb-delay:' . $d['animation_delay'] . 'ms;';
+	echo '<div data-jvb-animation="' . esc_attr( $d['animation'] ) . '" data-jvb-repeat="' . ( $d['animation_repeat'] ? '1' : '0' ) . '"' . ( $d['anchor'] ? ' id="' . esc_attr( $d['anchor'] ) . '"' : '' ) . ' class="' . esc_attr( $classes ) . '" style="' . esc_attr( $style ) . '">';
+	jluxe_render_homepage_section_content( $section );
+	echo '</div>';
+}
+
+function jluxe_render_homepage_section_content( array $section ): void {
 	switch ( $section['type'] ?? '' ) {
+		case 'container':
+			$d = jluxe_builder_container_options( $section );
+			$tracks = implode( ' ', array_map( static function ( $ratio ) { return 'minmax(0,' . (float) $ratio . 'fr)'; }, explode( ',', $d['column_ratios'] ) ) );
+			printf( '<section class="jluxe-builder-container%s jluxe-stack-%s" style="--jbc-cols:%d;--jbc-tracks:%s;--jbc-align:%s;--jbc-mobile:%d;--jbc-gap:%dpx;max-width:%dpx">', $d['reverse_mobile'] ? ' jluxe-builder-reverse-mobile' : '', esc_attr( $d['stack_on'] ), $d['columns'], esc_attr( $tracks ), esc_attr( $d['vertical_align'] ), $d['mobile_columns'], $d['gap'], $d['max_width'] );
+			foreach ( (array) ( $section['children'] ?? array() ) as $child ) {
+				if ( is_array( $child ) && ! empty( $child['enabled'] ) ) { jluxe_render_homepage_section_frontend( $child ); }
+			}
+			echo '</section>';
+			break;
 		case 'hero':
 			jluxe_render_homepage_hero( $section );
 			break;
@@ -1381,6 +1490,24 @@ function jluxe_render_homepage_section_frontend( array $section ): void {
 			if ( ! empty( $section['content'] ) ) {
 				echo '<section class="jluxe-custom-html">' . $section['content'] . '</section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
+			break;
+
+		case 'heading':
+			$tag = in_array( $section['tag'] ?? '', array( 'h2', 'h3', 'h4' ), true ) ? $section['tag'] : 'h2';
+			if ( ! empty( $section['title'] ) ) { echo '<section class="jluxe-home-section"><' . $tag . '>' . esc_html( $section['title'] ) . '</' . $tag . '></section>'; }
+			break;
+		case 'image':
+			if ( empty( $section['image_id'] ) ) { break; }
+			echo '<section class="jluxe-home-section">';
+			$url = esc_url( $section['url'] ?? '' );
+			if ( $url ) { echo '<a href="' . $url . '">'; }
+			echo wp_get_attachment_image( absint( $section['image_id'] ), 'large', false, array( 'alt' => $section['alt'] ?? '', 'style' => 'max-width:100%;height:auto;display:inline-block' ) );
+			if ( $url ) { echo '</a>'; }
+			echo '</section>';
+			break;
+		case 'button':
+			$url = esc_url( $section['url'] ?? '' );
+			if ( $url && ! empty( $section['title'] ) ) { echo '<section class="jluxe-home-section"><a class="inline-flex rounded-xl bg-primary px-6 py-3 text-white" href="' . $url . '">' . esc_html( $section['title'] ) . '</a></section>'; }
 			break;
 
 		case 'spacer':
@@ -3395,3 +3522,11 @@ function jluxe_render_homepage_trust( array $section ): void {
 	</section>
 	<?php
 }
+
+
+/** Small public enhancement: no hidden content when JS/observer is unavailable. */
+function jluxe_enqueue_builder_animations(): void {
+ if ( ! is_front_page() ) { return; }
+ wp_enqueue_script( 'jluxe-builder-animations', JLUXE_THEME_URI . '/assets/js/builder-animations.js', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/builder-animations.js' ), true );
+}
+add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_builder_animations', 35 );

@@ -65,7 +65,7 @@ function jluxe_register_settings_menu(): void {
 	$submenus = array(
 		JLUXE_SETTINGS_MENU_SLUG => array( 'داشبورد', 'jluxe_render_dashboard_page' ),
 		'jluxe-homepage'          => array( 'صفحه اصلی', 'jluxe_render_homepage_page' ),
-		'jluxe-visual-builder'    => array( 'صفحه‌ساز بصری (آزمایشی)', 'jluxe_render_visual_builder_page' ),
+		'jluxe-visual-builder'    => array( 'صفحه‌ساز بصری', 'jluxe_render_visual_builder_page' ),
 		'jluxe-identity'          => array( 'هویت سایت', 'jluxe_render_identity_page' ),
 		'jluxe-urls'              => array( 'آدرس‌های ورود و کاربر', 'jluxe_render_urls_page' ),
 		'jluxe-header'            => array( 'هدر', 'jluxe_render_header_page' ),
@@ -467,12 +467,23 @@ function jluxe_update_settings_section( string $section_key, array $section_valu
 		$stored_version = (int) ( $stored['version'] ?? 1 );
 		$stored = jluxe_migrate_settings_to_current_version( $stored, $stored_version );
 	}
+	$previous_section = $stored[ $section_key ] ?? array();
 	$stored['version']       = JLUXE_SETTINGS_VERSION;
 	$stored[ $section_key ]  = $section_value;
 	update_option( JLUXE_SETTINGS_OPTION, $stored, false );
 	jluxe_get_theme_settings( true );
 	update_option( 'jluxe_theme_settings_updated_at', current_time( 'mysql' ), false );
 	wp_cache_delete( 'alloptions', 'options' );
+
+	if ( in_array( $section_key, array( 'mobile', 'performance' ), true ) && $previous_section !== $section_value ) {
+		// Navigation settings/glyphs and performance switches are embedded in cached HTML.
+		// Invalidating the WP object cache alone cannot refresh that HTML.
+		do_action( 'litespeed_purge_all' );
+		if ( function_exists( 'rocket_clean_domain' ) ) { rocket_clean_domain(); }
+		if ( function_exists( 'w3tc_flush_all' ) ) { w3tc_flush_all(); }
+		if ( function_exists( 'wp_cache_clear_cache' ) ) { wp_cache_clear_cache(); }
+		do_action( 'mobile' === $section_key ? 'jluxe_mobile_navigation_changed' : 'jluxe_page_motion_changed', $section_value, $previous_section );
+	}
 
 	if ( 'homepage' === $section_key && function_exists( 'jluxe_sync_homepage_banner_exclusions' ) ) {
 		jluxe_sync_homepage_banner_exclusions( $section_value['sections'] ?? array() );
