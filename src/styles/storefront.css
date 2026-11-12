@@ -14089,3 +14089,44 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* Touch confirmation shared by classic/floating docks, without delaying navigation. */
+.jluxe-mobile-nav-item { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.jluxe-mobile-nav-icon::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 16px;
+  background: currentColor; opacity: 0; pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item:focus-visible .jluxe-mobile-nav-icon::after { opacity: .14; }
+.jluxe-mobile-nav-icon > svg { transition: scale 120ms ease; }
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1.12; }
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-mobile-nav-icon::after, .jluxe-mobile-nav-icon > svg { transition: none; }
+  .jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+  .jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1; }
+}
+
+.jluxe-cart-hourglass { display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--primary)); vertical-align: middle; }
+.jluxe-cart-hourglass svg { animation: jluxe-hourglass-turn 1.6s ease-in-out infinite; }
+@keyframes jluxe-hourglass-turn { 0%, 35% { transform: rotate(0); } 65%, 100% { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .jluxe-cart-hourglass svg { animation: none; } }
+
+/* Logical RTL order: icon, readable label, directional affordance. */
+.jluxe-header-categories-panel__category{min-height:48px;text-align:start;}
+.jluxe-mega-category-icon{display:inline-flex;align-items:center;justify-content:center;}
+.jluxe-mega-category-label{line-height:1.8;overflow-wrap:anywhere;}
+.jluxe-mega-category-arrow{opacity:.45;transition:transform .15s,opacity .15s;}
+.jluxe-header-categories-panel__category:is(:hover,:focus-visible,.is-active) .jluxe-mega-category-arrow{opacity:1;transform:translateX(-2px);}
+@media(prefers-reduced-motion:reduce){.jluxe-mega-category-arrow{transition:none;}.jluxe-header-categories-panel__category:is(:hover,:focus-visible,.is-active) .jluxe-mega-category-arrow{transform:none;}}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category{display:grid;grid-template-columns:24px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:52px;}
+#masthead #jluxe-header-categories-menu .jluxe-mega-category-image{width:24px;height:24px;object-fit:contain;border-radius:4px;}
+#masthead #jluxe-header-categories-menu .jluxe-mega-category-arrow{grid-column:3;}
+
+/* Mobile category visuals follow the same WooCommerce/override data as desktop. */
+#jluxe-category-drawer-dialog .jluxe-mobile-category-image{display:block;width:24px;height:24px;flex:0 0 24px;object-fit:contain;border-radius:4px;}
+#jluxe-category-drawer-dialog .jluxe-mobile-category-svg{display:inline-flex;align-items:center;justify-content:center;}
+#jluxe-category-drawer-dialog .jluxe-mobile-category-svg>svg{display:block;width:100%;height:100%;}

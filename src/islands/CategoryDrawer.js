@@ -1,3 +1,5 @@
+import { G as m } from "../icons/grid-2x2.js";
+import { CategoryVisual } from '../components/category-visual.js';
 import { useDialog } from "../lib/use-dialog.js";
 import {
   closeMobileDrawer,
@@ -10,7 +12,6 @@ import { r as s } from "../lib/icons.js";
 import { r as k } from "../lib/react-dom.js";
 import { g as C } from "../lib/theme-settings.js";
 import { C as g } from "../icons/chevron-right.js";
-import { G as m } from "../icons/grid-2x2.js";
 import { X as z } from "../icons/x.js";
 import { C as f } from "../icons/chevron-left.js";
 function F() {
@@ -272,20 +273,7 @@ function F() {
                                                   className:
                                                     "flex items-center gap-2",
                                                   children: [
-                                                    t.iconSvg
-                                                      ? e.jsx("span", {
-                                                          className:
-                                                            "size-4 shrink-0 text-primary [&>svg]:size-full",
-                                                          dangerouslySetInnerHTML:
-                                                            {
-                                                              __html: t.iconSvg,
-                                                            },
-                                                        })
-                                                      : e.jsx(m, {
-                                                          className:
-                                                            "size-4 shrink-0 text-primary",
-                                                          "aria-hidden": !0,
-                                                        }),
+                                                    e.jsx(CategoryVisual, {category:t}),
                                                     t.label,
                                                   ],
                                                 }),
@@ -312,20 +300,7 @@ function F() {
                                                   className:
                                                     "flex items-center gap-2",
                                                   children: [
-                                                    t.iconSvg
-                                                      ? e.jsx("span", {
-                                                          className:
-                                                            "size-4 shrink-0 text-primary [&>svg]:size-full",
-                                                          dangerouslySetInnerHTML:
-                                                            {
-                                                              __html: t.iconSvg,
-                                                            },
-                                                        })
-                                                      : e.jsx(m, {
-                                                          className:
-                                                            "size-4 shrink-0 text-primary",
-                                                          "aria-hidden": !0,
-                                                        }),
+                                                    e.jsx(CategoryVisual, {category:t}),
                                                     t.label,
                                                   ],
                                                 }),
