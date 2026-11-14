@@ -46,6 +46,79 @@
 	});
 })();
 
+/** Immediate, truthful product-add feedback; confirmed cart totals stay server-owned. */
+(function () {
+	var operations = new Map();
+	var queue = Promise.resolve();
+	var sequence = 0;
+	function identity(data) {
+		return JSON.stringify(Array.from(data.entries()).filter(function (entry) {
+			return !/^(nonce|action|op|quantity|add-to-cart)$/.test(entry[0]);
+		}).sort(function (a, b) { return a[0].localeCompare(b[0]); }));
+	}
+	window.jluxeProductAddsPending = function () { return Array.from(operations.values()).some(function (entry) { return entry.state === 'pending'; }); };
+	window.jluxeBeginProductAdd = function (form, button, data) {
+		var key = identity(data);
+		if (operations.has(key)) { return null; }
+		var entry = { state: 'pending', button: button };
+		operations.set(key, entry);
+		var panel = document.querySelector('[data-jluxe-add-progress]');
+		if (!panel) {
+			panel = document.createElement('section');
+			panel.setAttribute('data-jluxe-add-progress', '');
+			panel.setAttribute('aria-label', 'وضعیت افزودن به سبد خرید');
+			panel.className = 'jluxe-add-progress';
+			form.appendChild(panel);
+		}
+		// A fresh action replaces old confirmations, never unresolved errors.
+		panel.querySelectorAll('[data-state="success"], [data-state="error"]').forEach(function (node) { node.remove(); });
+		var row = document.createElement('p');
+		row.hidden = true;
+		row.dataset.state = 'pending';
+		row.setAttribute('role', 'status');
+		row.id = 'jluxe-add-operation-' + (++sequence);
+		panel.appendChild(row);
+		panel.hidden = !panel.querySelector('p:not([hidden])');
+		if (button) { button.dataset.jluxeCompactAdd = '1'; }
+		var controls = [button].concat(Array.from(document.querySelectorAll('[data-jluxe-mobile-bar-add], [data-jluxe-sticky-add]'))).filter(Boolean);
+		controls.forEach(function (control) { control.dataset.jluxeAddOperation = row.id; control.dataset.jluxeAddState = 'pending'; control.setAttribute('aria-busy', 'true'); });
+		var oldDescription = button && button.getAttribute('aria-describedby');
+		if (button) { button.setAttribute('aria-describedby', row.id); }
+		var slow = null;
+		function finish(state, message) {
+			window.clearTimeout(slow);
+			entry.state = state;
+			if (state !== 'uncertain') { operations.delete(key); }
+			row.dataset.state = state;
+			if (state === 'success') { panel.querySelectorAll('[data-state="success"]').forEach(function (node) { if (node !== row) node.remove(); }); }
+			row.hidden = false;
+			panel.hidden = false;
+			row.textContent = state === 'success' ? 'به سبد اضافه شد' : message;
+			controls.forEach(function (control) {
+				if (control.dataset.jluxeAddOperation !== row.id) { return; }
+				control.removeAttribute('aria-busy');
+				control.dataset.jluxeAddState = state;
+				window.setTimeout(function () { if (control.dataset.jluxeAddState === state) { delete control.dataset.jluxeAddState; } }, 1600);
+			});
+			if (button) { if (oldDescription) button.setAttribute('aria-describedby', oldDescription); else button.removeAttribute('aria-describedby'); }
+			if (state === 'success') window.setTimeout(function () {
+				row.remove();
+				panel.hidden = !panel.querySelector('p:not([hidden])');
+			}, 2600);
+			if (state === 'uncertain') {
+				var link = document.createElement('a');
+				link.href = (window.JLuxeThemeSettings.cart || {}).cartUrl || '/cart/';
+				link.textContent = ' بررسی سبد خرید';
+				row.appendChild(link);
+			}
+		}
+		return {
+			run: function (send) { var result = queue.then(send, send); queue = result.catch(function () {}); return result; },
+			finish: finish
+		};
+	};
+})();
+
 /** Retry a cart request only when WordPress explicitly rejects its nonce before mutation. */
 (function () {
 	var nonceRefresh = null;
@@ -2518,7 +2591,7 @@ function jluxeEnhanceShopSort(root) {
 		} else if (hasSuggestionPayload && !fromSuggestion) {
 			discardSuggestedModal();
 		}
-		showToast("✓ به سبد اضافه شد", {
+		if (!button || button.dataset.jluxeCompactAdd !== "1") showToast("✓ به سبد اضافه شد", {
 			productName: name,
 			suggestedHtml: suggestedHtml,
 			sourceButton: button,
@@ -3308,21 +3381,11 @@ function jluxeEnhanceShopSort(root) {
 
 	form.addEventListener("submit", function (event) {
 		var button = form.querySelector('[name="add-to-cart"], .single_add_to_cart_button');
-		if (button && button.disabled) {
-			event.preventDefault();
-			return;
-		}
 		event.preventDefault();
-		if (button) {
-			button.disabled = true;
-			button.classList.add("opacity-60", "pointer-events-none");
-		}
-
-		function restoreButton() {
-			if (button) {
-				button.disabled = false;
-				button.classList.remove("opacity-60", "pointer-events-none");
-			}
+		if (button && (button.disabled || button.classList.contains('disabled') || button.classList.contains('wc-variation-selection-needed'))) { return; }
+		var variation = form.querySelector('input[name="variation_id"]');
+		if (form.classList.contains('variations_form') && (!variation || !(Number(variation.value) > 0))) {
+			showErrorToast('لطفاً گزینه‌های محصول را انتخاب کنید.'); return;
 		}
 
 		// آیدیِ والدِ محصول: تا این‌جا (داخلِ submit) حتماً یک تنوعِ معتبر
@@ -3344,20 +3407,28 @@ function jluxeEnhanceShopSort(root) {
 		formData.set("op", "add");
 		formData.set("product_id", (button && button.value) || form.dataset.product_id || "");
 
-		window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg)
+		var operation = window.jluxeBeginProductAdd(form, button, formData);
+		if (!operation) { return; }
+		operation.run(function () { return window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg); })
 			.then(function (response) {
-				restoreButton();
+				if (!response || typeof response.success !== "boolean") { throw new Error("Ambiguous cart response"); }
 				if (!response || !response.success) {
 					var message = response && response.data && response.data.message ? response.data.message : "لطفاً گزینه‌های محصول را انتخاب کنید.";
+					operation.finish('error', message);
 					showErrorToast(message);
 					return;
 				}
+				operation.finish('success', 'به سبد اضافه شد ✓');
+				if (window.jluxeProductAddsPending()) {
+					window.dispatchEvent(new CustomEvent('jluxe:cart-updated', {detail:response.data}));
+				} else {
 				window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(button), response.data]);
+				}
 				/* The shared success handler mounts and opens only the fresh, enabled server suggestions. */
 			})
 			.catch(function () {
-				restoreButton();
-				showErrorToast("خطا در افزودن به سبد خرید. دوباره تلاش کنید.");
+				operation.finish('uncertain', 'وضعیت ثبت مشخص نیست؛ پیش از تلاش مجدد سبد را بررسی کنید.');
+				showErrorToast('پاسخ سرور دریافت نشد؛ ممکن است محصول ثبت شده باشد. سبد را بررسی کنید.');
 			});
 	});
 })();

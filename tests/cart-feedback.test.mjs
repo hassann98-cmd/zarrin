@@ -322,6 +322,8 @@ test("a rejected product add restores its button and never mounts or opens recom
   const start = source.indexOf("(function () {", marker);
   const end = source.indexOf("\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع", start);
   assert.ok(marker >= 0 && start > marker && end > start, "the real product-form submit handler is isolated");
+  const progressStart = source.indexOf('/** Immediate, truthful product-add feedback;');
+  window.eval(source.slice(progressStart, source.indexOf('/** Retry a cart request', progressStart)));
   window.eval(source.slice(start, end + "\n})();".length));
 
   let requests = 0;
@@ -355,4 +357,11 @@ test("feedback CSS provides safe-area mobile sizing, 44px actions, and the share
   assert.match(css, /\.jluxe-toast\s*\{[\s\S]*?bottom: max\(12px, env\(safe-area-inset-bottom\)\)/);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /border-radius: var\(--jluxe-radius-xl, 24px\)/);
+});
+
+test('product form compact confirmation suppresses the legacy detailed success toast',async t=>{
+ const dom=boot();t.after(()=>dom.window.close());const {window}=dom;
+ const button=window.document.getElementById('add');button.dataset.jluxeCompactAdd='1';
+ window.jQuery(window.document.body).trigger('added_to_cart',[null,null,window.jQuery(button),{itemCount:1,items:[],suggested_html:''}]);
+ assert.equal(window.document.querySelector('.jluxe-toast'),null);
 });

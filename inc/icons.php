@@ -36,6 +36,13 @@ function jluxe_uicon_paths(): array {
 		}
 	}
 
+	// User-supplied tracking artwork; kept separate from the third-party catalog.
+	$tracking_file = dirname( __DIR__ ) . '/assets/icons/order-tracking.svg';
+	$tracking_svg = is_readable( $tracking_file ) ? file_get_contents( $tracking_file ) : '';
+	if ( is_string( $tracking_svg ) && preg_match( '/<path\s+d="([^"]+)"/', $tracking_svg, $tracking_match ) && preg_match( '/^[MmZzLlHhVvCcSsQqTtAaEe0-9,.+\-\s]+$/D', $tracking_match[1] ) ) {
+		$paths['order-tracking'] = $tracking_match[1];
+	}
+
 	return $paths;
 }
 
