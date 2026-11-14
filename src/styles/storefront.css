@@ -14089,3 +14089,66 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* Touch confirmation shared by classic/floating docks, without delaying navigation. */
+.jluxe-mobile-nav-item { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.jluxe-mobile-nav-icon::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 16px;
+  background: currentColor; opacity: 0; pointer-events: none;
+  transition: opacity 120ms ease;
+}
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon::after,
+.jluxe-mobile-nav-item:focus-visible .jluxe-mobile-nav-icon::after { opacity: .14; }
+.jluxe-mobile-nav-icon > svg { transition: scale 120ms ease; }
+.jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+.jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1.12; }
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-mobile-nav-icon::after, .jluxe-mobile-nav-icon > svg { transition: none; }
+  .jluxe-mobile-nav-item:active .jluxe-mobile-nav-icon > svg,
+  .jluxe-mobile-nav-item[data-nav-pressed="true"] .jluxe-mobile-nav-icon > svg { scale: 1; }
+}
+
+.jluxe-cart-hourglass { display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--primary)); vertical-align: middle; }
+.jluxe-cart-hourglass svg { animation: jluxe-hourglass-turn 1.6s ease-in-out infinite; }
+@keyframes jluxe-hourglass-turn { 0%, 35% { transform: rotate(0); } 65%, 100% { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { .jluxe-cart-hourglass svg { animation: none; } }
+
+/* Logical RTL order: icon, readable label, directional affordance. */
+.jluxe-header-categories-panel__category{min-height:48px;text-align:start;}
+.jluxe-mega-category-icon{display:inline-flex;align-items:center;justify-content:center;}
+.jluxe-mega-category-label{line-height:1.8;overflow-wrap:anywhere;}
+.jluxe-mega-category-arrow{opacity:.45;transition:transform .15s,opacity .15s;}
+.jluxe-header-categories-panel__category:is(:hover,:focus-visible,.is-active) .jluxe-mega-category-arrow{opacity:1;transform:translateX(-2px);}
+@media(prefers-reduced-motion:reduce){.jluxe-mega-category-arrow{transition:none;}.jluxe-header-categories-panel__category:is(:hover,:focus-visible,.is-active) .jluxe-mega-category-arrow{transform:none;}}
+
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__category{display:grid;grid-template-columns:24px minmax(0,1fr) 14px;gap:12px;align-items:center;min-height:52px;}
+#masthead #jluxe-header-categories-menu .jluxe-mega-category-image{width:24px;height:24px;object-fit:contain;border-radius:4px;}
+#masthead #jluxe-header-categories-menu .jluxe-mega-category-arrow{grid-column:3;}
+
+/* Mobile category visuals follow the same WooCommerce/override data as desktop. */
+#jluxe-category-drawer-dialog .jluxe-mobile-category-image{display:block;width:24px;height:24px;flex:0 0 24px;object-fit:contain;border-radius:4px;}
+#jluxe-category-drawer-dialog .jluxe-mobile-category-svg{display:inline-flex;align-items:center;justify-content:center;}
+#jluxe-category-drawer-dialog .jluxe-mobile-category-svg>svg{display:block;width:100%;height:100%;}
+
+.jluxe-category-image-slot{position:relative;display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;}
+.jluxe-category-image-slot>img{position:absolute;inset:0;object-fit:contain;opacity:0;}
+.jluxe-category-image-placeholder{width:20px;height:20px;opacity:.35;}
+.jluxe-category-image-slot[data-loaded="true"]>.jluxe-category-image-placeholder{visibility:hidden;}
+
+.jluxe-category-image-slot[data-loaded="true"]>img{opacity:1;}
+
+/* Instant acknowledgment, without announcing unconfirmed cart success. */
+.single_add_to_cart_button:active,[data-jluxe-mobile-bar-add]:active,[data-jluxe-sticky-add]:active{filter:brightness(.84);}
+[data-jluxe-add-state="pending"]{filter:brightness(.82);box-shadow:inset 0 0 0 2px currentColor;}
+[data-jluxe-add-state="success"]{filter:brightness(1.08);box-shadow:inset 0 0 0 2px currentColor;}
+.jluxe-add-progress{flex-basis:100%;width:100%;margin-block:12px;display:grid;gap:8px;font-size:13px;}
+.jluxe-add-progress p{margin:0;padding:10px 12px;border:1px solid currentColor;border-radius:10px;line-height:1.8;}
+.jluxe-add-progress [data-state="pending"]::before{content:'◌';display:inline-block;margin-inline-end:8px;}
+.jluxe-add-progress [data-state="error"],.jluxe-add-progress [data-state="uncertain"]{border-style:dashed;}
+.jluxe-add-progress a{text-decoration:underline;}
+/* Keep progress visible even when the actual form is above the mobile CTA. */
+body .jluxe-add-progress{position:fixed;inset-inline-end:16px;bottom:calc(100px + env(safe-area-inset-bottom,0px));z-index:70;width:min(380px,calc(100vw - 32px));max-height:25vh;overflow:auto;padding:8px;border-radius:12px;background:var(--color-surface,#fff);color:var(--color-foreground,#222);box-shadow:0 6px 24px #0002;}
+body .jluxe-add-progress[hidden]{display:none;}
+@media(min-width:1024px){body .jluxe-add-progress{bottom:24px;}}
+.single_add_to_cart_button[aria-busy="true"],.add_to_cart_button.loading{filter:brightness(.82);box-shadow:inset 0 0 0 2px currentColor;}
