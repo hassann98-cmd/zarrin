@@ -322,6 +322,8 @@ test("a rejected product add restores its button and never mounts or opens recom
   const start = source.indexOf("(function () {", marker);
   const end = source.indexOf("\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع", start);
   assert.ok(marker >= 0 && start > marker && end > start, "the real product-form submit handler is isolated");
+  const progressStart = source.indexOf('/** Immediate, truthful product-add feedback;');
+  window.eval(source.slice(progressStart, source.indexOf('/** Retry a cart request', progressStart)));
   window.eval(source.slice(start, end + "\n})();".length));
 
   let requests = 0;
