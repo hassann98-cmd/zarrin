@@ -118,7 +118,12 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
     "the mode switch sits on the side opposite the configured AI assistant launcher",
   );
 
+  let delegatedCartHits = 0;
+  const cartDelegate = () => { delegatedCartHits++; };
+  window.document.addEventListener('click', cartDelegate, true);
   toggle.click();
+  assert.equal(delegatedCartHits, 0, 'switch click is isolated before document cart delegation');
+  window.document.removeEventListener('click', cartDelegate, true);
   assert.equal(priceBar.classList.contains("hidden"), true);
   assert.equal(toggle.getAttribute("aria-pressed"), "false");
   assert.equal(toggle.getAttribute("aria-label"), "نمایش نوار خرید");

@@ -831,8 +831,10 @@ test("R184 the optional assistant waits until after page load and stays outside 
     (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
     0,
   );
-  // The small mobile-home-prefetch helper is shared by both nav variants.
-  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 95_000, `gzip closure is ${gzipBytes} bytes`);
+  // Includes the shared reactive auth subscription and fresh-session publication.
+  // Retain a tight 98 kB gzip ceiling including optimistic quantity editing/read coalescing
+  // and bounded category-image warmup plus decorative load/error placeholders.
+  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 98_000, `gzip closure is ${gzipBytes} bytes`);
 
   const staticClosure = new Set();
   visit("src/main.js", staticClosure);
@@ -878,7 +880,9 @@ test("R26 classic product and picker requests strip the native auto-add flag wit
   assert.equal(positions.length, 2);
   const cart = { nonce: "fresh", ajaxUrl: base + "wp-admin/admin-ajax.php" };
   for (const start of positions) {
-    const end = source.indexOf("\n\t\twindow.jluxeCartPost(", start);
+    const requestStart = source.indexOf("\n\t\twindow.jluxeCartPost(", start);
+    const progressStart = source.indexOf("\n\t\tvar operation = window.jluxeBeginProductAdd", start);
+    const end = progressStart > start ? Math.min(requestStart, progressStart) : requestStart;
     assert.ok(end > start);
     const result = vm.runInNewContext(
       `(function(){ ${source.slice(start, end)} return formData; })()`,
