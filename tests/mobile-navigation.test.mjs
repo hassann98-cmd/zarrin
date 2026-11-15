@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
-const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "utf8");
+const stickySource = (await readFile(new URL("assets/js/storefront-utils.js", root), "utf8")) + "\n" + (await readFile(new URL("assets/js/sticky-cta.js", root), "utf8"));
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
 const mainSource = await readFile(new URL("src/main.js", root), "utf8");
 const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
@@ -252,7 +252,7 @@ test("mobile category/cart controls keep their normal icons, expose close state,
   assert.match(mobileNavSource, /بستن سبد خرید/);
   assert.match(floatingNavSource, /بستن دسته‌بندی‌ها/);
   assert.match(floatingNavSource, /بستن سبد خرید/);
-  assert.match(mobileNavSource, /children: \[\s*jsx\.jsx\(Icon,/);
+  assert.match(mobileNavSource, /children: \[\s*Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.match(floatingNavSource, /Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.doesNotMatch(mobileNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
   assert.doesNotMatch(floatingNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
@@ -370,6 +370,7 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   });
   const { window } = dom;
   window.matchMedia = () => ({ matches: true });
+  window.jluxeCurrentAuthStatus = false;
 
   assert.equal(prefetchMobileHome("https://shop.test/store/", window), true);
   const hint = window.document.querySelector(
