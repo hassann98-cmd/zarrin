@@ -557,7 +557,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 }
 </style>
 
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3 jluxe-product-reference', $product ); ?> data-jluxe-layout="reference" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3 jluxe-product-reference', $product ); ?> data-jluxe-layout="reference" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-2">
 
 		<nav aria-label="مسیر صفحه" class="cp3-bc">
@@ -582,7 +582,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 		<?php endif; ?>
 
 		<div class="cp3-card">
-			<div class="cp3-grid">
+			<div class="cp3-grid" data-jluxe-layer-stage>
 
 				<!-- گالری -->
 				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal">
@@ -702,7 +702,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php if ( $jluxe_is_variable || ( $cp3_mobile_in_stock && $cp3_stock_warning_is_low ) ) : ?>
 						<div class="reference-mobile-stock-warning" data-reference-low-stock data-cp3-low-stock<?php echo $cp3_stock_warning_is_low ? '' : ' hidden="hidden"'; ?> aria-live="polite" aria-atomic="true">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 4h.01M10.3 3.86 2.9 17a2 2 0 0 0 1.74 3h14.72a2 2 0 0 0 1.74-3l-7.36-13.14a2 2 0 0 0-3.44 0Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-							<span>تنها <bdi data-cp3-stock-quantity><?php echo $cp3_stock_warning_is_low ? esc_html( jluxe_fa_digits( $cp3_stock_qty ) ) : ''; ?></bdi> عدد موجود است</span>
+							<span><bdi data-cp3-stock-quantity><?php echo $cp3_stock_warning_is_low ? esc_html( jluxe_fa_digits( $cp3_stock_qty ) ) : ''; ?></bdi> عدد موجود</span>
 						</div>
 					<?php endif; ?>
 					<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
