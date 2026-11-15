@@ -62,9 +62,13 @@ test("cart POST never retries a non-explicit nonce failure, another status, or a
     let calls = 0;
     window.fetch = async () => { calls++; return failed; };
     const body = new window.URLSearchParams({ action: "jluxe_cart", op: "add", nonce: "cached" });
-    const result = await window.jluxeCartPost("https://shop.test/admin-ajax.php", body, { nonce: "cached" });
+    if (failed.status >= 500) {
+      await assert.rejects(window.jluxeCartPost("https://shop.test/admin-ajax.php", body, { nonce: "cached" }), /Ambiguous/);
+    } else {
+      const result = await window.jluxeCartPost("https://shop.test/admin-ajax.php", body, { nonce: "cached" });
+      assert.equal(result.success, false);
+    }
     assert.equal(calls, 1, "only the exact 403/code pair is retryable");
-    assert.equal(result.success, false);
   }
 });
 
@@ -81,4 +85,12 @@ test("cart POST never performs a second replay after a refreshed nonce is reject
   assert.equal(result.success, false);
   assert.deepEqual(calls.map(({ params }) => params.action), ["jluxe_cart", "jluxe_session", "jluxe_cart"]);
   assert.equal(calls.length, 3, "one original, one nonce read, and at most one replay");
+});
+
+test('HTTP failures and malformed payloads cannot become successful cart operations',async t=>{
+ const w=boot(t);
+ for(const [status,payload] of [[500,{success:true}],[403,{success:true}],[302,{success:true}],[200,{}],[200,{success:true}],[200,null]]){
+  let calls=0;w.fetch=async()=>{calls++;return response(status,payload);};
+  await assert.rejects(w.jluxeCartPost('/ajax',new w.URLSearchParams({op:'add'}),{}),/Ambiguous/);assert.equal(calls,1);
+ }
 });
