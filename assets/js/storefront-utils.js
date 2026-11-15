@@ -1,6 +1,39 @@
 /* Shared with React and the non-module WooCommerce/tracking scripts. */
 (function (root) {
   'use strict';
+  // Shared JSON transport for React and classic account/tracking scripts.
+  // Covers response parsing too. Timeout/abort never implies server rollback.
+  function requestJson(url, options, timeoutMs) {
+    if (timeoutMs === undefined) timeoutMs = 20000;
+    var controller = typeof root.AbortController === 'function' ? new root.AbortController() : null;
+    var init = Object.assign({}, options);
+    if (controller) init.signal = controller.signal;
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = timeoutMs > 0 ? root.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        if (controller) controller.abort();
+        var error = new Error('پاسخ سرور تأیید نشد؛ پیش از تلاش دوباره وضعیت را بررسی کنید.');
+        error.code = 'jluxe_response_timeout';
+        reject(error);
+      }, timeoutMs) : null;
+      var flight;
+      try { flight = root.fetch(url, init); } catch (error) { flight = Promise.reject(error); }
+      Promise.resolve(flight).then(function (response) {
+        return response.json().then(function (data) { return { response: response, data: data }; });
+      }).then(function (result) {
+        if (settled) return;
+        settled = true; root.clearTimeout(timer); resolve(result);
+      }, function (cause) {
+        if (settled) return;
+        settled = true; root.clearTimeout(timer);
+        var error = new Error('پاسخ سرور تأیید نشد؛ پیش از تلاش دوباره وضعیت را بررسی کنید.');
+        error.code = 'jluxe_response_unknown';
+        reject(error);
+      });
+    });
+  }
   function normalizeDigits(value) {
     return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
       var code = digit.charCodeAt(0);
@@ -88,5 +121,37 @@
       condenseUpdate();
     }
   } catch (e) { /* هدرِ حاضر نبود = هیچ. */ }
-  root.JLuxeStorefrontUtils = Object.freeze({ normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
+  /** Keep a dock switch outside transformed product wrappers and own its tap,
+   * including compatibility clicks retargeted after the dock changes shape. */
+  function protectDockSwitch(button, bar) {
+    if (!button || button.dataset.jluxeSwitchProtected) return;
+    button.dataset.jluxeSwitchProtected = '1';
+    var doc = button.ownerDocument, win = doc.defaultView;
+    doc.body.appendChild(button);
+    if (bar) doc.body.appendChild(bar);
+    var gesture = null;
+    function blocked() { return doc.documentElement.hasAttribute('data-jluxe-mobile-drawer'); }
+    function stop(event) { event.preventDefault(); event.stopImmediatePropagation(); }
+    win.addEventListener('pointerdown', function (event) {
+      if (!button.contains(event.target) || event.isPrimary === false || event.button > 0) { gesture = null; return; }
+      if (blocked()) { stop(event); return; }
+      gesture = { x: event.clientX, y: event.clientY, time: Date.now(), done: false, moved: false };
+      if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (error) {} }
+      event.stopPropagation();
+    }, true);
+    win.addEventListener('pointermove', function (event) {
+      if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 16) gesture.moved = true;
+    }, true);
+    win.addEventListener('pointercancel', function () { if (gesture) gesture.moved = true; }, true);
+    win.addEventListener('click', function (event) {
+      var direct = button.contains(event.target);
+      if (direct && blocked()) { stop(event); return; }
+      var recent = gesture && Date.now() - gesture.time < 800 && event.detail > 0 && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 32;
+      if (!recent) return;
+      if (gesture.done || gesture.moved || blocked()) { stop(event); return; }
+      gesture.done = true;
+      if (!direct) { stop(event); button.click(); }
+    }, true);
+  }
+  root.JLuxeStorefrontUtils = Object.freeze({ protectDockSwitch: protectDockSwitch, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));
