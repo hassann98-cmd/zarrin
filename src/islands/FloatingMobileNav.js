@@ -1,3 +1,5 @@
+import { useNavPress } from "../lib/use-nav-press.js";
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
 import {
@@ -46,24 +48,6 @@ function isActiveRoute(currentHref, targetHref, itemId) {
   }
 }
 
-function MenuIcon({ className, ...props }) {
-  return jsx.jsxs("svg", {
-    className,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    ...props,
-    children: [
-      jsx.jsx("path", { d: "M4 6h16" }),
-      jsx.jsx("path", { d: "M4 12h16" }),
-      jsx.jsx("path", { d: "M4 18h16" }),
-    ],
-  });
-}
-
 function isModifiedClick(event) {
   return (
     event.defaultPrevented ||
@@ -81,11 +65,8 @@ function FloatingMobileNav() {
   const style = mobile.nav_style ?? {};
   const urls = settings.urls ?? {};
   const homeHref = siteLink(urls.home || "/", urls);
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const loggedIn = useAuthStatus();
+  const pressProps = useNavPress();
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -174,8 +155,8 @@ function FloatingMobileNav() {
             ? "حساب کاربری"
             : resolved.label,
         label:
-          resolved.action === "account" && !loggedIn
-            ? "ورود"
+          resolved.action === "account"
+            ? !loggedIn ? "ورود" : (!resolved.label || resolved.label === "حساب" || resolved.label === "ورود") ? "حساب کاربری" : resolved.label
             : resolved.label,
       };
     });
@@ -225,16 +206,13 @@ function FloatingMobileNav() {
         item.action === "account" ? "account" : item.id,
       );
       const active = routeActive || drawerOpen;
-      const Icon = item.icon
-        ? item.icon === "menu"
-          ? MenuIcon
-          : navIcons[item.icon] ?? fallbackIcon
-        : null;
+      const Icon = item.icon ? navIcons[item.icon] ?? fallbackIcon : null;
       const cartAction = item.action === "cart";
       const color = active ? colors.active : colors.icon;
       return jsx.jsxs(
         "a",
         {
+          ...pressProps(item.id),
           href: item.href,
           onClick: (event) => handleClick(event, item),
           onPointerEnter:

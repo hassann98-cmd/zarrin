@@ -1,0 +1,39 @@
+/* Unsupported browsers ignore this rule and keep native full-document navigation. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: jluxe-page-out 140ms ease-out both; }
+::view-transition-new(root) { animation: jluxe-page-in 140ms ease-in both; }
+@keyframes jluxe-page-out { to { opacity: 0; } }
+@keyframes jluxe-page-in { from { opacity: 0; } }
+.jluxe-page-progress {
+  position: fixed; inset: 0 0 auto; height: 3px; z-index: 2147483000;
+  overflow: hidden; pointer-events: none; background: transparent;
+}
+.jluxe-page-progress[hidden] { display: none; }
+.jluxe-page-progress::before {
+  content: ""; display: block; width: 35%; height: 100%;
+  background: hsl(var(--primary, 280 70% 45%)); border-radius: 999px;
+  animation: jluxe-page-progress 1.2s ease-in-out infinite;
+}
+@keyframes jluxe-page-progress { from { transform: translateX(-110%); } to { transform: translateX(390%); } }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .jluxe-page-progress::before { animation: none; width: 100%; opacity: .65; }
+}
+
+/* Local feedback: no transforms, layout shifts, blocking overlays or hidden content. */
+a.jluxe-navigation-pressed {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+  opacity: .86;
+}
+.jluxe-page-progress-label {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  a.jluxe-navigation-pressed { opacity: 1; }
+}
+@media (forced-colors: active) {
+  .jluxe-page-progress::before { background: Highlight; }
+}

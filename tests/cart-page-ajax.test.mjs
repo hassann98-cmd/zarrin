@@ -218,3 +218,32 @@ test("rejected removal restores the confirmed quantity when it cancels a pending
   assert.equal(row.hasAttribute("data-jluxe-cart-pending"), false);
   assert.equal(document.querySelector("[data-jluxe-cart-ajax-message]").textContent, "حذف انجام نشد.");
 });
+
+test('a later stock failure cannot hide the earlier confirmed cart total',async t=>{
+ const pending=[];const {window,calls}=bootCart({rows:[cartRow('line-a',1,'10'),cartRow('line-b',1,'10')],onRequest:()=>new Promise(resolve=>pending.push(resolve))});t.after(()=>window.close());let events=0;window.addEventListener('jluxe:cart-updated',()=>events++);
+ for(const [key,qty] of [['line-a',2],['line-b',3]]){const input=window.document.querySelector(`[data-jluxe-cart-item-key="${key}"] input.qty`);input.value=qty;input.dispatchEvent(new window.Event('change',{bubbles:true}));}
+ await wait(window);assert.equal(pending.length,1);pending[0]({success:true,data:quantitySnapshot({items:[{key:'line-a',qty:2,lineTotalHtml:'20'},{key:'line-b',qty:1,lineTotalHtml:'10'}],totalsHtml:'<div class="cart_totals"><span data-cart-total>30</span></div>'})});await wait(window,10);pending[1]({success:false,data:{message:'Stock rejected'}});await wait(window,10);
+ assert.equal(window.document.querySelector('[data-cart-total]').textContent,'30');assert.equal(window.document.querySelector('[data-jluxe-cart-item-key="line-a"] [data-jluxe-cart-item-total]').textContent,'20');assert.match(window.document.querySelector('[data-jluxe-cart-ajax-message]').textContent,/Stock rejected/);assert.equal(events,1);assert.equal(calls.length,2);
+});
+test('an early rejected removal is released and its warning survives a later success',async t=>{
+ const pending=[];const {window}=bootCart({rows:[cartRow('line-a',1,'10'),cartRow('line-b',1,'10')],onRequest:()=>new Promise(resolve=>pending.push(resolve))});t.after(()=>window.close());const row=window.document.querySelector('[data-jluxe-cart-item-key="line-a"]');row.querySelector('[data-jluxe-cart-remove]').click();const input=window.document.querySelector('[data-jluxe-cart-item-key="line-b"] input.qty');input.value=2;input.dispatchEvent(new window.Event('change',{bubbles:true}));await wait(window);
+ pending[0]({success:false,data:{message:'Removal rejected'}});await wait(window,10);pending[1]({success:true,data:quantitySnapshot({items:[{key:'line-a',qty:1,lineTotalHtml:'10'},{key:'line-b',qty:2,lineTotalHtml:'20'}]})});await wait(window,10);assert.equal(row.hasAttribute('data-jluxe-cart-removing'),false);assert.equal(row.hasAttribute('aria-busy'),false);assert.match(window.document.querySelector('[data-jluxe-cart-ajax-message]').textContent,/Removal rejected/);
+});
+
+test('cart queue warnings are cleared by a later independent successful edit',async t=>{
+ let calls=0;const {window}=bootCart({onRequest:()=>++calls===1?Promise.resolve({success:false,data:{message:'First rejected'}}):Promise.resolve({success:true,data:quantitySnapshot({items:[{key:'line-a',qty:2,lineTotalHtml:'20'}],itemCount:2})})});t.after(()=>window.close());const input=window.document.querySelector('input.qty');
+ input.value=3;input.dispatchEvent(new window.Event('change',{bubbles:true}));await wait(window);assert.match(window.document.querySelector('[data-jluxe-cart-ajax-message]').textContent,/First rejected/);
+ input.value=2;input.dispatchEvent(new window.Event('change',{bubbles:true}));await wait(window);assert.equal(window.document.querySelector('[data-jluxe-cart-ajax-message]'),null);assert.equal(input.value,'2');
+});
+
+test('malformed successful cart-page replies preserve confirmed content and expose an uncertainty warning',async t=>{
+ const broken=[{items:[null],itemCount:1,subtotalHtml:'',cartPage:{isEmpty:false,totalsHtml:'<div class="cart_totals">10</div>'}},{items:[],itemCount:0,subtotalHtml:''},{items:[{key:'line-a',qty:2}],itemCount:2,subtotalHtml:'',cartPage:{isEmpty:false,totalsHtml:''}}];
+ for(const data of broken){const {window,calls}=bootCart({onRequest:()=>Promise.resolve({success:true,data})});t.after(()=>window.close());const input=window.document.querySelector('input.qty');input.value=2;input.dispatchEvent(new window.Event('change',{bubbles:true}));await wait(window);
+ assert.ok(window.document.querySelector('[data-jluxe-cart-ajax-message]'),'a malformed success must not silently disappear');assert.match(window.document.querySelector('[data-jluxe-cart-ajax-message]').textContent,/مشخص نیست/);assert.equal(window.document.querySelector('[data-cart-total]').textContent,'10');assert.equal(window.document.querySelector('[data-jluxe-cart-item-key]').hasAttribute('aria-busy'),false);assert.equal(calls.length,1,'unknown writes must never replay');}
+});
+
+test('malformed removal fragments do not remove the row and a later valid request still works',async t=>{
+ let replies=0;const {window,calls}=bootCart({onRequest:()=>Promise.resolve({success:true,data:++replies===1?quantitySnapshot({items:[],isEmpty:true,itemCount:0,emptyHtml:'<p>missing cart wrapper</p>'}):quantitySnapshot({items:[],isEmpty:true,itemCount:0})})});t.after(()=>window.close());const row=window.document.querySelector('[data-jluxe-cart-item-key]');row.querySelector('[data-jluxe-cart-remove]').click();await wait(window);
+ assert.equal(row.isConnected,true);assert.equal(row.hasAttribute('data-jluxe-cart-removing'),false);assert.equal(row.hasAttribute('aria-busy'),false);assert.match(window.document.querySelector('[data-jluxe-cart-ajax-message]').textContent,/مشخص نیست/);
+ row.querySelector('[data-jluxe-cart-remove]').click();await wait(window);assert.equal(window.document.querySelector('form.woocommerce-cart-form'),null);assert.equal(calls.length,2);
+});
