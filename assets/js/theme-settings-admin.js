@@ -137,6 +137,20 @@ jQuery(function ($) {
 	$(document).on("change", ".jluxe-announcement-mode", syncAnnouncementMode);
 	syncAnnouncementMode();
 
+	// Active mobile-nav editor: hidden controls remain enabled and are saved too.
+	function syncMobileNavEditor() {
+		var variant = $("#jluxe-mobile-nav-variant").val() === "floating" ? "floating" : "classic";
+		$("[data-mobile-nav-editor]").each(function () {
+			var active = $(this).attr("data-mobile-nav-editor") === variant;
+			$(this).prop("hidden", !active);
+		});
+		$("[data-mobile-nav-editor-status]").text(variant === "floating"
+			? "در حال ویرایش نوار شناور هستید؛ تغییر آیکون این بخش روی نوار شناور سایت اعمال می‌شود."
+			: "در حال ویرایش نوار تمام‌عرض هستید؛ تغییر آیکون این بخش روی نوار تمام‌عرض سایت اعمال می‌شود.");
+	}
+	$(document).on("change", "#jluxe-mobile-nav-variant", syncMobileNavEditor);
+	syncMobileNavEditor();
+
 	// لینکِ دستی فقط وقتی لازم است که عملکردِ آیتم روی «لینک دلخواه» باشد.
 	function syncMobileNavActionFields(scope) {
 		var $scope = scope ? $(scope) : $(document);

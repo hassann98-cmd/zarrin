@@ -119,3 +119,20 @@ test("R150 WooCommerce comment validation errors stay visible in the review popu
   assert.equal(form.querySelector('[type="submit"]').disabled, false, "the submit button is available for a corrected retry");
   dom.window.close();
 });
+
+test('late review response cannot replace a reopened dialog or erase its new draft',async()=>{
+ const dom=setup();const w=dom.window,d=w.document;let resolve;
+ w.fetch=()=>new Promise(r=>{resolve=r;});
+ d.querySelector('[data-jluxe-review-modal]').click();
+ const form=d.querySelector('form');const field=d.createElement('textarea');field.name='comment';form.prepend(field);field.value='First';
+ form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+ d.querySelector('.jluxe-review-modal-close').click();d.querySelector('[data-jluxe-review-modal]').click();field.value='New draft';
+ resolve({type:'opaqueredirect',status:0});await new Promise(r=>setTimeout(r,5));
+ assert.equal(d.querySelector('textarea').value,'New draft');assert.equal(d.querySelector('.jluxe-review-modal-success'),null);assert.equal(form.querySelector('[type=submit]').disabled,false);dom.window.close();
+});
+
+test('previous review auto-close cannot close a reopened dialog even if its callback was already queued',async()=>{
+ const dom=setup();const w=dom.window,d=w.document,timers=[];w.setTimeout=(fn,ms)=>{timers.push({fn,ms});return timers.length;};w.clearTimeout=()=>{};
+ w.fetch=async()=>({type:'opaqueredirect',status:0});d.querySelector('[data-jluxe-review-modal]').click();d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,5));
+ d.querySelector('.jluxe-review-modal-close').click();d.querySelector('[data-jluxe-review-modal]').click();const current=d.querySelector('.jluxe-review-modal-backdrop');timers.find(x=>x.ms===3200).fn();assert.equal(d.querySelector('.jluxe-review-modal-backdrop'),current);dom.window.close();
+});

@@ -133,7 +133,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 	$jluxe_simple_stock_qty = is_numeric( $jluxe_simple_stock_qty ) ? (int) $jluxe_simple_stock_qty : null;
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
@@ -179,7 +179,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		}
 		?>
 
-		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]">
+		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]" data-jluxe-layer-stage>
 			<?php
 			// Use WooCommerce's own gallery callback (which loads product-image.php
 			// via wc_get_template) instead of treating a nested template as a loop part.
