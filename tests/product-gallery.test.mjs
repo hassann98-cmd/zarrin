@@ -245,3 +245,9 @@ test("classic gallery double-tap, pinch, touch drag, swipe, and mouse drag gestu
   assert.equal(modal.querySelector('[data-jluxe-gallery-modal-image][aria-hidden="false"]').getAttribute("src"), "/large-2.jpg");
   dom.window.close();
 });
+
+test('repeated gallery open and close preserve original scroll ownership and ignore stale reveal',()=>{
+ const dom=setup(),w=dom.window,d=w.document;
+ click(w,'#open-first');click(w,'#open-current');click(w,'[data-jluxe-gallery-modal-close]');click(w,'[data-jluxe-gallery-modal-close]');
+ assert.equal(d.body.style.overflow,'auto');assert.equal(d.querySelector('[data-jluxe-gallery-modal]').getAttribute('aria-hidden'),'true');dom.window.close();
+});
