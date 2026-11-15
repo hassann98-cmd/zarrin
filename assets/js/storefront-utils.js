@@ -1,6 +1,39 @@
 /* Shared with React and the non-module WooCommerce/tracking scripts. */
 (function (root) {
   'use strict';
+  // Shared JSON transport for React and classic account/tracking scripts.
+  // Covers response parsing too. Timeout/abort never implies server rollback.
+  function requestJson(url, options, timeoutMs) {
+    if (timeoutMs === undefined) timeoutMs = 20000;
+    var controller = typeof root.AbortController === 'function' ? new root.AbortController() : null;
+    var init = Object.assign({}, options);
+    if (controller) init.signal = controller.signal;
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = timeoutMs > 0 ? root.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        if (controller) controller.abort();
+        var error = new Error('پاسخ سرور تأیید نشد؛ پیش از تلاش دوباره وضعیت را بررسی کنید.');
+        error.code = 'jluxe_response_timeout';
+        reject(error);
+      }, timeoutMs) : null;
+      var flight;
+      try { flight = root.fetch(url, init); } catch (error) { flight = Promise.reject(error); }
+      Promise.resolve(flight).then(function (response) {
+        return response.json().then(function (data) { return { response: response, data: data }; });
+      }).then(function (result) {
+        if (settled) return;
+        settled = true; root.clearTimeout(timer); resolve(result);
+      }, function (cause) {
+        if (settled) return;
+        settled = true; root.clearTimeout(timer);
+        var error = new Error('پاسخ سرور تأیید نشد؛ پیش از تلاش دوباره وضعیت را بررسی کنید.');
+        error.code = 'jluxe_response_unknown';
+        reject(error);
+      });
+    });
+  }
   function normalizeDigits(value) {
     return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
       var code = digit.charCodeAt(0);
@@ -88,5 +121,5 @@
       condenseUpdate();
     }
   } catch (e) { /* هدرِ حاضر نبود = هیچ. */ }
-  root.JLuxeStorefrontUtils = Object.freeze({ normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
+  root.JLuxeStorefrontUtils = Object.freeze({ requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));

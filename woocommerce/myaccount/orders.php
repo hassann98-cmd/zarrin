@@ -21,6 +21,7 @@ do_action( 'woocommerce_before_account_orders', $has_orders );
 	<div class="flex flex-col gap-3">
 		<?php foreach ( $customer_orders->orders as $customer_order ) :
 			$order         = wc_get_order( $customer_order ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			if ( ! $order ) { continue; }
 			$status        = $order->get_status();
 			$status_label  = function_exists( 'jluxe_get_order_display_status_label' ) ? jluxe_get_order_display_status_label( $order ) : wc_get_order_status_name( $status );
 			$date_created  = $order->get_date_created();
@@ -31,10 +32,11 @@ do_action( 'woocommerce_before_account_orders', $has_orders );
 				? 'text-error'
 				: ( in_array( $status, array( 'completed' ), true ) ? 'text-success' : 'text-primary' );
 			?>
+			<div class="rounded-2xl border border-border bg-surface">
 			<a
 				href="<?php echo esc_url( $order->get_view_order_url() ); ?>"
 				aria-label="<?php echo esc_attr( sprintf( __( 'View order number %s', 'woocommerce' ), $order->get_order_number() ) ); ?>"
-				class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-primary/30"
+				class="flex items-center justify-between gap-3 rounded-2xl p-4 transition-colors hover:border-primary/30"
 			>
 				<div class="flex min-w-0 items-center gap-3">
 					<span class="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 <?php echo esc_attr( $status_color ); ?>">
@@ -50,6 +52,8 @@ do_action( 'woocommerce_before_account_orders', $has_orders );
 					<p class="text-caption text-text-secondary"><?php echo esc_html( $jalali_date ); ?></p>
 				</div>
 			</a>
+			<?php jluxe_render_customer_order_actions( $order ); ?>
+			</div>
 		<?php endforeach; ?>
 	</div>
 
