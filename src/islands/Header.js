@@ -335,7 +335,7 @@ function J() {
                     enterKeyHint: "search",
                     "data-dialog-initial-focus": "",
                     className:
-                      "h-14 w-full rounded-2xl border border-transparent bg-muted ps-10 pe-4 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:bg-surface focus:outline-none",
+                      "jluxe-header-search-field h-14 w-full rounded-2xl border border-transparent bg-muted ps-10 pe-4 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:bg-surface focus:outline-none",
                   }),
                   e.jsx("input", { type: "hidden", name: "post_type", value: "product" }),
                   e.jsx("button", {
@@ -458,7 +458,7 @@ function J() {
                           enterKeyHint: "search",
                           "data-dialog-initial-focus": "",
                           className:
-                            "h-12 w-full rounded-2xl border border-transparent bg-muted ps-10 pe-4 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
+                            "jluxe-header-search-field h-12 w-full rounded-2xl border border-transparent bg-muted ps-10 pe-4 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
                         }),
                         e.jsx("input", { type: "hidden", name: "post_type", value: "product" }),
                         e.jsx("button", {
@@ -542,7 +542,7 @@ function MobileSearch() {
                 "aria-label": "جستجو در فروشگاه",
                 enterKeyHint: "search",
                 className:
-                  "h-10 w-full rounded-2xl border border-border bg-surface ps-10 pe-3 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
+                  "jluxe-header-search-field h-10 w-full rounded-2xl border border-border bg-surface ps-10 pe-3 text-small text-foreground placeholder:text-text-muted focus:border-primary focus:outline-none",
               }),
               e.jsx("input", { type: "hidden", name: "post_type", value: "product" }),
               e.jsx("button", {
