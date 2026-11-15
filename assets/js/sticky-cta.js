@@ -291,12 +291,21 @@
 	} );
 
 	if ( modeToggle ) {
-		modeToggle.addEventListener( 'click', function () {
+		window.addEventListener( 'click', function ( event ) {
+			if ( ! event.target.closest || event.target.closest( '[data-jluxe-sticky-cta-mode-toggle]' ) !== modeToggle ) { return; }
+			event.preventDefault();
+			event.stopImmediatePropagation();
 			if ( ! bar.classList.contains( 'is-visible' ) || ! isMobileViewport() ) {
 				return;
 			}
 			setMode( 'purchase' === activeMode ? 'navigation' : 'purchase' );
 			layout();
+		}, true );
+		modeToggle.addEventListener( 'pointerdown', function ( event ) {
+			event.stopPropagation();
+			if ( modeToggle.setPointerCapture && event.pointerId !== undefined ) {
+				try { modeToggle.setPointerCapture( event.pointerId ); } catch ( error ) {}
+			}
 		} );
 	}
 
