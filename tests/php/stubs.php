@@ -687,3 +687,13 @@ if(!function_exists('term_exists')){function term_exists($id,$tax=''){return iss
 if(!function_exists('get_term_meta')){function get_term_meta($id,$key='',$single=false){return $GLOBALS['term_meta'][(int)$id][$key]??'';}}
 if(!function_exists('wp_dropdown_pages')){function wp_dropdown_pages($a=array()){echo '<select name="'.htmlspecialchars((string)($a['name']??''),ENT_QUOTES).'"></select>';}}
 if(!function_exists('is_page')){function is_page(...$a){return !empty($GLOBALS['is_page']);}}
+
+// The real Woo helper owns public/private item-meta filtering and formatting.
+function wc_display_item_meta( $item, $args = array() ) {
+ $GLOBALS['item_meta_calls'][] = array( $item, $args );
+ return '<ul class="wc-item-meta"><li>سایز: XL</li></ul>';
+}
+function wc_get_account_orders_actions( $order ) {
+ $GLOBALS['account_action_calls'][] = $order->get_id();
+ return $GLOBALS['account_actions_fixture'] ?? array();
+}

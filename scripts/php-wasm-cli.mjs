@@ -29,6 +29,9 @@ const [exitCode, stdout, stderr] = await Promise.all([
   response.stdoutText,
   response.stderrText,
 ]);
-if (stdout) process.stdout.write(stdout);
-if (stderr) process.stderr.write(stderr);
+// CLI output can exceed the pipe buffer; never exit before the completion marker drains.
+await Promise.all([
+  stdout ? new Promise((resolve, reject) => process.stdout.write(stdout, error => error ? reject(error) : resolve())) : undefined,
+  stderr ? new Promise((resolve, reject) => process.stderr.write(stderr, error => error ? reject(error) : resolve())) : undefined,
+]);
 process.exit(exitCode ?? 0);
