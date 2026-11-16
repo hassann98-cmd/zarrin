@@ -67,6 +67,7 @@ function jluxe_setup() {
 
 	// نسخهٔ مربعی برای کارت‌های دسته‌بندی؛ GIF متحرک در helper همچنان اصل می‌ماند.
 	add_image_size( 'jluxe-category-grid-ref-240', 240, 240, true );
+	add_image_size( 'jluxe-category-icon', 64, 64, false );
 }
 add_action( 'after_setup_theme', 'jluxe_setup' );
 
@@ -658,6 +659,7 @@ add_filter( 'script_loader_tag', 'jluxe_defer_third_party_scripts', 10, 3 );
 require_once JLUXE_THEME_DIR . '/inc/compat.php'; // R86 — هلپرهای رشته‌ای (بدونِ وابستگیِ اجباری به mbstring)
 require_once JLUXE_THEME_DIR . '/inc/assets.php';
 require_once JLUXE_THEME_DIR . '/inc/soft-navigation.php';
+require_once JLUXE_THEME_DIR . '/inc/page-motion.php';
 require_once JLUXE_THEME_DIR . '/inc/page-skeleton.php';
 require_once JLUXE_THEME_DIR . '/inc/security.php';
 require_once JLUXE_THEME_DIR . '/inc/icons.php';
