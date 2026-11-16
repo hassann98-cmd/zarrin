@@ -46,9 +46,161 @@
 	});
 })();
 
+/** Immediate, truthful product-add feedback; confirmed cart totals stay server-owned. */
+(function () {
+	var operations = new Map();
+	var queue = Promise.resolve();
+	var sequence = 0;
+	var descriptions = new WeakMap();
+	function identity(data) {
+		return JSON.stringify(Array.from(data.entries()).filter(function (entry) {
+			return !/^(nonce|action|op|quantity|add-to-cart)$/.test(entry[0]);
+		}).sort(function (a, b) { return a[0].localeCompare(b[0]); }));
+	}
+	window.jluxeProductAddsPending = function () { return Array.from(operations.values()).some(function (entry) { return entry.state === 'pending'; }); };
+	window.jluxePlaceAddConfirmation = function (modal, button) {
+		if (!modal || modal.hidden || modal.classList.contains('hidden') || modal.getAttribute('aria-hidden') === 'true' || window.getComputedStyle(modal).display === 'none') { return false; }
+		var sheet = modal.querySelector('.jluxe-pa-sheet, [role="dialog"]');
+		if (!sheet) { return false; }
+		modal.querySelectorAll('[data-jluxe-inline-confirmation]').forEach(function (old) { old.remove(); });
+		// Build from the confirmed success event, not a toast that may have expired.
+		var banner = document.createElement('p');
+		banner.setAttribute('data-jluxe-inline-confirmation', '');
+		banner.setAttribute('role', 'status');
+		banner.className = 'jluxe-suggested-confirmation';
+		banner.textContent = 'به سبد اضافه شد';
+		var header = sheet.querySelector('.jluxe-pa-head');
+		if (header) { header.insertAdjacentElement('afterend', banner); } else { sheet.prepend(banner); }
+		var row = button && document.getElementById(button.dataset.jluxeAddOperation || '');
+		if (row && row.dataset.state === 'success') {
+			var panel = row.parentElement;
+			row.remove();
+			panel.hidden = !panel.querySelector('p:not([hidden])');
+		}
+		return true;
+	};
+	window.jluxeEnsureAddConfirmation = function (button) {
+		if (!button) { return; }
+		var current = document.getElementById(button.dataset.jluxeAddOperation || '');
+		if (current && current.dataset.state === 'success') { return; }
+		var panel = document.querySelector('[data-jluxe-add-progress]');
+		if (!panel) { return; }
+		panel.querySelectorAll('[data-state="success"]').forEach(function (old) { old.remove(); });
+		var row = document.createElement('p');
+		row.id = 'jluxe-add-operation-' + (++sequence);
+		row.dataset.state = 'success'; row.setAttribute('role', 'status'); row.textContent = 'به سبد اضافه شد';
+		button.dataset.jluxeAddOperation = row.id;
+		panel.appendChild(row); panel.hidden = false;
+		window.setTimeout(function () { row.remove(); panel.hidden = !panel.querySelector('p:not([hidden])'); }, 2600);
+	};
+	window.jluxeBeginProductAdd = function (form, button, data) {
+		var key = identity(data);
+		if (operations.has(key)) { return null; }
+		var entry = { state: 'pending', button: button };
+		operations.set(key, entry);
+		var panel = document.querySelector('[data-jluxe-add-progress]');
+		if (!panel) {
+			panel = document.createElement('section');
+			panel.setAttribute('data-jluxe-add-progress', '');
+			panel.setAttribute('aria-label', 'وضعیت افزودن به سبد خرید');
+			panel.className = 'jluxe-add-progress';
+			form.appendChild(panel);
+		}
+		document.querySelectorAll('[data-jluxe-inline-confirmation]').forEach(function (old) { old.remove(); });
+		// A fresh action replaces old confirmations, never unresolved errors.
+		panel.querySelectorAll('[data-state="success"], [data-state="error"]').forEach(function (node) { node.remove(); });
+		var row = document.createElement('p');
+		row.hidden = true;
+		row.dataset.state = 'pending';
+		row.setAttribute('role', 'status');
+		row.id = 'jluxe-add-operation-' + (++sequence);
+		panel.appendChild(row);
+		panel.hidden = !panel.querySelector('p:not([hidden])');
+		if (button) { button.dataset.jluxeCompactAdd = '1'; }
+		var controls = [button].concat(Array.from(document.querySelectorAll('[data-jluxe-mobile-bar-add], [data-jluxe-sticky-add]'))).filter(Boolean);
+		controls.forEach(function (control) { control.dataset.jluxeAddOperation = row.id; control.dataset.jluxeAddState = 'pending'; control.setAttribute('aria-busy', 'true'); });
+		if (button && !descriptions.has(button)) { descriptions.set(button, button.getAttribute('aria-describedby')); }
+		if (button) { button.setAttribute('aria-describedby', row.id); }
+		row.textContent = 'در حال افزودن…';
+		var settled = false;
+		var slow = window.setTimeout(function () {
+			if (settled) { return; }
+			row.hidden = false;
+			panel.hidden = false;
+			row.textContent = 'افزودن طول کشیده؛ دوباره دکمه را نزنید.';
+			var link = document.createElement('a');
+			link.href = (window.JLuxeThemeSettings.cart || {}).cartUrl || '/cart/';
+			link.textContent = ' بررسی سبد خرید';
+			row.appendChild(link);
+		}, 8000);
+		function finish(state, message) {
+			if (settled) { return; }
+			settled = true;
+			window.clearTimeout(slow);
+			entry.state = state;
+			if (state !== 'uncertain') { operations.delete(key); }
+			row.dataset.state = state;
+			if (state === 'success') { panel.querySelectorAll('[data-state="success"]').forEach(function (node) { if (node !== row) node.remove(); }); }
+			row.hidden = false;
+			panel.hidden = false;
+			row.textContent = state === 'success' ? 'به سبد اضافه شد' : message;
+			controls.forEach(function (control) {
+				if (control.dataset.jluxeAddOperation !== row.id) { return; }
+				control.removeAttribute('aria-busy');
+				control.dataset.jluxeAddState = state;
+				window.setTimeout(function () { if (control.dataset.jluxeAddState === state) { delete control.dataset.jluxeAddState; } }, 1600);
+			});
+			if (button && button.dataset.jluxeAddOperation === row.id) {
+				var original = descriptions.get(button);
+				if (original !== null && original !== undefined) button.setAttribute('aria-describedby', original); else button.removeAttribute('aria-describedby');
+				descriptions.delete(button);
+			}
+			if (state === 'success') window.setTimeout(function () {
+				row.remove();
+				panel.hidden = !panel.querySelector('p:not([hidden])');
+			}, 2600);
+			if (state === 'uncertain') {
+				var link = document.createElement('a');
+				link.href = (window.JLuxeThemeSettings.cart || {}).cartUrl || '/cart/';
+				link.textContent = ' بررسی سبد خرید';
+				row.appendChild(link);
+			}
+		}
+		return {
+			run: function (send) { var result = queue.then(send, send); queue = result.catch(function () {}); return result; },
+			finish: finish
+		};
+	};
+})();
+
 /** Retry a cart request only when WordPress explicitly rejects its nonce before mutation. */
 (function () {
 	var nonceRefresh = null;
+
+	// The deadline covers headers AND body parsing. Abort is not proof of rollback.
+	function boundedCartJson(url, options) {
+		var controller = typeof AbortController === 'function' ? new AbortController() : null;
+		if (controller) { options.signal = controller.signal; }
+		return new Promise(function (resolve, reject) {
+			var settled = false;
+			var timer = window.setTimeout(function () {
+				if (settled) { return; }
+				settled = true;
+				if (controller) { controller.abort(); }
+				reject(new Error('Cart response deadline exceeded; result unknown'));
+			}, 20000);
+			Promise.resolve().then(function () { return fetch(url, options); }).then(function (response) {
+				return response.json().then(function (payload) { return { status: response.status, payload: payload }; });
+			}).then(function (result) {
+				if (settled) { return; }
+				settled = true; window.clearTimeout(timer); resolve(result);
+			}, function (error) {
+				if (settled) { return; }
+				settled = true; window.clearTimeout(timer); reject(error);
+			});
+		});
+	}
+
 
 	function refreshCartNonce(cartSettings) {
 		if (nonceRefresh) { return nonceRefresh; }
@@ -56,14 +208,13 @@
 		var sessionUrl = (themeSettings.rest && themeSettings.rest.sessionUrl) || (cartSettings && cartSettings.sessionUrl) || (cartSettings && cartSettings.ajaxUrl);
 		if (!sessionUrl) { return Promise.resolve(""); }
 
-		nonceRefresh = fetch(sessionUrl, {
+		nonceRefresh = boundedCartJson(sessionUrl, {
 			method: "POST",
 			credentials: "same-origin",
 			cache: "no-store",
 			body: new URLSearchParams({ action: "jluxe_session" }),
-		}).then(function (response) {
-			return response.json();
-		}).then(function (payload) {
+		}).then(function (result) {
+			var payload = result.payload;
 			return payload && payload.success && payload.data && payload.data.cartNonce
 				? String(payload.data.cartNonce)
 				: "";
@@ -80,22 +231,21 @@
 	}
 
 	window.jluxeCartPost = function (url, body, cartSettings) {
+		function checked(result) {
+			if (!result || !result.payload || typeof result.payload.success !== 'boolean' || (result.payload.success && (!result.payload.data || typeof result.payload.data !== 'object')) || result.status >= 500 || result.status < 200 || (result.status >= 300 && result.payload.success)) {
+				throw new Error('Ambiguous cart HTTP response');
+			}
+			return result.payload;
+		}
 		function send() {
-			return fetch(url, {
-				method: "POST",
-				body: body,
-				credentials: "same-origin",
-				cache: "no-store",
-			}).then(function (response) {
-				return response.json().then(function (payload) {
-					return { status: response.status, payload: payload };
-				});
+			return boundedCartJson(url, {
+				method: "POST", body: body, credentials: "same-origin", cache: "no-store"
 			});
 		}
 
 		return send().then(function (result) {
 			if (!result || result.status !== 403 || !result.payload || !result.payload.data || result.payload.data.code !== "jluxe_cart_invalid_nonce") {
-				return result && result.payload;
+				return checked(result);
 			}
 			return refreshCartNonce(cartSettings).then(function (nonce) {
 				if (!nonce || !body || typeof body.set !== "function") {
@@ -103,7 +253,7 @@
 				}
 				if (cartSettings) { cartSettings.nonce = nonce; }
 				body.set("nonce", nonce);
-				return send().then(function (retry) { return retry && retry.payload; });
+				return send().then(checked);
 			});
 		});
 	};
@@ -127,6 +277,8 @@
 	var lineStates = new Map();
 	var requestQueue = Promise.resolve();
 	var intentRevision = 0;
+	var queuedSnapshot = null;
+	var queuedMessages = [];
 
 	function lineKey(row) {
 		return row && row.getAttribute("data-jluxe-cart-item-key");
@@ -275,6 +427,24 @@
 		}
 	}
 
+	function isValidCartPageSnapshot(snapshot) {
+		if (!snapshot || !Array.isArray(snapshot.items) ||
+			!Number.isInteger(snapshot.itemCount) || snapshot.itemCount < 0 ||
+			typeof snapshot.subtotalHtml !== "string" || !snapshot.cartPage ||
+			typeof snapshot.cartPage.isEmpty !== "boolean") { return false; }
+		if (!snapshot.items.every(function (item) {
+			return item && typeof item.key === "string" && item.key.length > 0 &&
+				Number.isFinite(item.qty) && item.qty > 0;
+		})) { return false; }
+		var empty = snapshot.items.length === 0;
+		if (snapshot.cartPage.isEmpty !== empty || (empty && snapshot.itemCount !== 0)) { return false; }
+		var html = empty ? snapshot.cartPage.emptyHtml : snapshot.cartPage.totalsHtml;
+		if (typeof html !== "string" || !html.trim()) { return false; }
+		var holder = document.createElement("div");
+		holder.innerHTML = html;
+		return !!holder.querySelector(empty ? "[data-jluxe-cart-page-content]" : ".cart_totals");
+	}
+
 	function applyCartSnapshot(snapshot) {
 		if (!snapshot || !Array.isArray(snapshot.items) || !snapshot.cartPage) {
 			window.location.reload();
@@ -332,12 +502,25 @@
 		return body;
 	}
 
+	function flushCartQueue() {
+		var busy = false;
+		lineStates.forEach(function (state) { if (state.pending || state.timer) { busy = true; } });
+		if (busy) { return; }
+		var latest = queuedSnapshot;
+		var messages = queuedMessages.join(" ");
+		queuedSnapshot = null;
+		queuedMessages = [];
+		if (latest) { applyCartSnapshot(latest); }
+		if (messages) { showCartMessage(messages); }
+	}
+
 	function finishMutation(state) {
 		state.pending = Math.max(0, state.pending - 1);
 		clearBusyIfIdle(state);
 		if (state.removing && state.row && !state.row.isConnected && !state.pending && !state.timer) {
 			lineStates.delete(lineKey(state.row));
 		}
+		flushCartQueue();
 	}
 
 	function enqueueMutation(operation, key, quantity, row, state, revision) {
@@ -352,39 +535,27 @@
 			} catch (error) {
 				request = Promise.reject(error);
 			}
-			return Promise.resolve(request).then(function (payload) {
-				if (!payload || !payload.success || !payload.data) {
-					if (revision === intentRevision) {
-						if (payload && payload.success === false) {
-							if ("update_qty" === operation) { restoreConfirmedQuantity(row); }
-						if ("remove" === operation) {
-							state.removing = false;
-							row.removeAttribute("data-jluxe-cart-removing");
-							restoreConfirmedQuantity(row);
-						}
-						showCartMessage(payload && payload.data && payload.data.message ? payload.data.message : "تغییر سبد خرید انجام نشد؛ دوباره تلاش کنید.");
-						} else {
-						showCartMessage("وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.");
-						if ("remove" === operation) {
-							state.removing = false;
-						row.removeAttribute("data-jluxe-cart-removing");
-						}
-					}
-					clearBusyIfIdle(state);
+			function recordFailure(message, knownRejected) {
+				queuedMessages.push(message);
+				if ("remove" === operation) {
+					state.removing = false;
+					row.removeAttribute("data-jluxe-cart-removing");
 				}
-				return;
+				// Never erase a newer edit to this same line.
+				if (knownRejected && state.intentRevision === revision) { restoreConfirmedQuantity(row); }
+			}
+			return Promise.resolve(request).then(function (payload) {
+				if (!payload || payload.success !== true || !isValidCartPageSnapshot(payload.data)) {
+					var rejected = !!payload && payload.success === false;
+					recordFailure(rejected
+						? (payload.data && payload.data.message ? payload.data.message : "تغییر سبد خرید انجام نشد؛ دوباره تلاش کنید.")
+						: "وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.", rejected);
+					return;
 				}
 				rememberConfirmedSnapshot(payload.data);
-				if (revision === intentRevision) { applyCartSnapshot(payload.data); }
+				queuedSnapshot = payload.data;
 			}, function () {
-				if (revision === intentRevision) {
-					showCartMessage("وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.");
-					if ("remove" === operation) {
-						state.removing = false;
-						row.removeAttribute("data-jluxe-cart-removing");
-					}
-					clearBusyIfIdle(state);
-				}
+				recordFailure("وضعیت تغییر سبد مشخص نیست؛ برای اطمینان صفحه را تازه کنید.", false);
 			}).then(function (result) {
 				finishMutation(state);
 				return result;
@@ -416,6 +587,7 @@
 		if (state.removing) { return true; }
 		clearQuantityTimer(input, state);
 		var revision = ++intentRevision;
+		state.intentRevision = revision;
 		state.timer = window.setTimeout(function () {
 			state.timer = null;
 			quantityTimers.delete(input);
@@ -459,6 +631,7 @@
 		markBusy(state);
 		row.querySelectorAll("input.qty").forEach(function (input) { clearQuantityTimer(input, state); });
 		var revision = ++intentRevision;
+		state.intentRevision = revision;
 		enqueueMutation("remove", key, null, row, state, revision);
 	});
 })();
@@ -2243,14 +2416,22 @@ function jluxeEnhanceShopSort(root) {
 		window.jluxeCloseSuggestedProductsModal = null;
 	}
 
-	function mountAndOpenSuggestedModal(html, revision) {
+	function mountAndOpenSuggestedModal(html, revision, sourceButton, queueError) {
 		if (!html) { discardSuggestedModal(); return null; }
 		if (typeof window.jluxeMountSuggestedModal !== "function") { return null; }
-		var fresh = window.jluxeMountSuggestedModal(html);
+		var fresh;
+		try { fresh = window.jluxeMountSuggestedModal(html); } catch (error) { return null; }
 		if (!fresh) { return null; }
 		window.setTimeout(function () {
 			if (revision === cartFeedbackRevision && fresh.isConnected && document.querySelector("[data-jluxe-suggested-modal]") === fresh && typeof window.jluxeOpenSuggestedProductsModal === "function") {
-				window.jluxeOpenSuggestedProductsModal();
+				try {
+					window.jluxeOpenSuggestedProductsModal();
+					if (typeof window.jluxePlaceAddConfirmation === 'function') { window.jluxePlaceAddConfirmation(fresh, sourceButton); }
+					if (queueError) {
+						var sheet = fresh.querySelector('.jluxe-pa-sheet, [role="dialog"]');
+						if (sheet) { var warning = document.createElement('p'); warning.className = 'jluxe-queue-add-warning'; warning.setAttribute('role', 'alert'); warning.textContent = 'همهٔ انتخاب‌ها اضافه نشدند: ' + queueError; sheet.prepend(warning); }
+					}
+				} catch (error) { /* Keep the standalone confirmation if opening fails. */ }
 			}
 		}, 0);
 		return fresh;
@@ -2514,11 +2695,11 @@ function jluxeEnhanceShopSort(root) {
 		var hasSuggestionPayload = !!(cartSnapshot && typeof cartSnapshot.suggested_html === "string");
 		var suggestedHtml = !fromSuggestion && hasSuggestionPayload ? cartSnapshot.suggested_html : "";
 		if (suggestedHtml) {
-			mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision);
+			mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision, button, cartSnapshot.queued_add_error);
 		} else if (hasSuggestionPayload && !fromSuggestion) {
 			discardSuggestedModal();
 		}
-		showToast("✓ به سبد اضافه شد", {
+		if (!button || button.dataset.jluxeCompactAdd !== "1") showToast("✓ به سبد اضافه شد", {
 			productName: name,
 			suggestedHtml: suggestedHtml,
 			sourceButton: button,
@@ -2565,6 +2746,8 @@ function jluxeEnhanceShopSort(root) {
  */
 (function () {
 	var modalRoot = null;
+	var reviewCloseTimer = null;
+	var reviewFlights = new WeakSet();
 	var releaseDialogFocus = null;
 	var lastFocused = null;
 	var formNode = null;
@@ -2575,9 +2758,10 @@ function jluxeEnhanceShopSort(root) {
 	var reviewFormHome = null;
 
 	function closeReviewModal() {
+		if (reviewCloseTimer !== null) { window.clearTimeout(reviewCloseTimer); reviewCloseTimer = null; }
 		if (!modalRoot) { return; }
 		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
-		document.body.style.overflow = "";
+		document.body.style.overflow = modalRoot._jluxePreviousOverflow || "";
 		if (reviewWrapper && reviewFormHome && reviewFormHome.parentNode) {
 			reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild);
 		}
@@ -2597,7 +2781,8 @@ function jluxeEnhanceShopSort(root) {
 				"</div>";
 		}
 		if (formNode) { formNode.reset(); }
-		window.setTimeout(closeReviewModal, 3200);
+		var owner = modalRoot;
+		reviewCloseTimer = window.setTimeout(function () { if (modalRoot === owner) { closeReviewModal(); } }, 3200);
 	}
 
 	function showReviewError(message) {
@@ -2636,6 +2821,7 @@ function jluxeEnhanceShopSort(root) {
 		if (modalRoot) { closeReviewModal(); return; }
 		lastFocused = document.activeElement;
 		modalRoot = document.createElement("div");
+		modalRoot._jluxePreviousOverflow = document.body.style.overflow;
 		modalRoot.className = "jluxe-review-modal-backdrop";
 		modalRoot.innerHTML =
 			'<div class="jluxe-review-modal" role="dialog" aria-modal="true" aria-labelledby="jluxe-review-modal-title">' +
@@ -2685,6 +2871,9 @@ function jluxeEnhanceShopSort(root) {
 		 * login cookies through fetch. Let the browser's ordinary form POST handle it. */
 		if (actionUrl.origin !== window.location.origin) { return; }
 		event.preventDefault();
+		if (reviewFlights.has(form)) { return; }
+		reviewFlights.add(form);
+		var requestModal = modalRoot;
 		var submit = form.querySelector("[type=submit]");
 		if (submit) { submit.disabled = true; }
 		fetch(form.getAttribute("action") || window.location.href, {
@@ -2693,8 +2882,10 @@ function jluxeEnhanceShopSort(root) {
 			redirect: "manual",
 			credentials: "same-origin",
 		}).then(function (res) {
+			if (modalRoot !== requestModal) { return null; }
 			if (res.type === "opaqueredirect" || 0 === res.status) { showReviewSuccess(); return null; }
 			return res.text().then(function (html) {
+				if (modalRoot !== requestModal) { return; }
 				if (res.ok && -1 === html.indexOf("wp-die-message")) {
 					/* پاسخِ پیش‌بینی‌نشده — صفحهٔ کامل نتیجه را نشان می‌دهد. */
 					window.location.reload();
@@ -2706,8 +2897,10 @@ function jluxeEnhanceShopSort(root) {
 				showReviewError(msg ? msg.slice(0, 240) : "ثبت دیدگاه انجام نشد؛ دوباره تلاش کنید.");
 			});
 		}).catch(function () {
+			if (modalRoot !== requestModal) { return; }
 			showReviewError("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
 		}).finally(function () {
+			reviewFlights.delete(form);
 			if (submit) { submit.disabled = false; }
 		});
 	});
@@ -2735,6 +2928,8 @@ function jluxeEnhanceShopSort(root) {
 	keydown به‌صورتِ سراسری یک‌بار بسته می‌شود و همیشه «مودالِ فعلیِ DOM» را
 	می‌بندد — وگرنه بعد از جایگزینیِ مودال، Escape گره‌ی قدیمیِ حذف‌شده را
 	می‌بست و مودالِ تازه با Esc بسته نمی‌شد. */
+	// Survives recommendation remounts on this page; unknown add results are never replayed.
+	var uncertainSuggestedAdds = new Set();
 	function jluxeBindSuggestedModal(modal) {
 		if (!modal || modal.getAttribute("data-cp3-pa-bound") === "1") { return; }
 		modal.setAttribute("data-cp3-pa-bound", "1");
@@ -2895,6 +3090,17 @@ function jluxeEnhanceShopSort(root) {
 			error.textContent = String(decoder.body.textContent || "").trim();
 		}
 
+		function showUncertainSuggestedError(message) {
+			showSuggestedError(message);
+			var error = modal.querySelector('[data-pa-error]');
+			if (error) {
+				var link = document.createElement('a');
+				link.href = (window.JLuxeThemeSettings.cart || {}).cartUrl || '/cart/';
+				link.textContent = ' بررسی سبد خرید';
+				error.appendChild(link);
+			}
+		}
+
 		function restorePaConfirm() {
 			if (!paConfirm) { return; }
 			paConfirm.disabled = false;
@@ -3032,12 +3238,16 @@ function jluxeEnhanceShopSort(root) {
 			options = options || {};
 			if (isCommitting) { return Promise.resolve({ success: false, busy: true }); }
 			var productIds = selectedIds("[data-pa-product][aria-pressed='true']", "data-pa-product");
+			if (productIds.some(function (id) { return uncertainSuggestedAdds.has(String(id)); })) {
+				showUncertainSuggestedError('نتیجهٔ افزودن قبلی این پیشنهاد مشخص نیست؛ برای جلوگیری از تکرار، ابتدا سبد را بررسی کنید یا انتخاب نامشخص را بردارید.');
+				return Promise.resolve({success:false, uncertain:true});
+			}
 			var serviceKeys = selectedIds("[data-pa-service][aria-pressed='true']", "data-pa-service");
 			var hasModalServices = modal.querySelector("[data-pa-service]") !== null;
 			var removeAfterCommit = !!options.removeOnSuccess || modal.getAttribute("data-pa-variation-committed") === "1";
 			var removeIfEmpty = !!options.removeWhenEmpty || removeAfterCommit;
 
-			if (!productIds.length && !serviceKeys.length) {
+			if (!productIds.length && !serviceKeys.length && !hasModalServices) {
 				if (removeIfEmpty) { disposeSuggestedModal(); }
 				else { closeSuggestedProductsModal(); }
 				return Promise.resolve({ success: true, empty: true });
@@ -3120,11 +3330,14 @@ function jluxeEnhanceShopSort(root) {
 			}).catch(function () {
 				var uncertainty = "ارتباط با سرور برقرار نشد؛ نتیجهٔ یکی از درخواست‌ها تأیید نشد. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
 				if (activeOperation && activeOperation.type === "add") {
+					uncertainSuggestedAdds.add(String(activeOperation.productId));
 					uncertainty = "ارتباط با سرور برقرار نشد؛ وضعیتِ افزودنِ این پیشنهاد مشخص نیست و ممکن است به سبد اضافه شده باشد. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
 				} else if (activeOperation && activeOperation.type === "services") {
 					uncertainty = "ارتباط با سرور برقرار نشد؛ وضعیتِ ثبتِ خدمات مشخص نیست. پیش از تلاشِ دوباره، سبد را بررسی کنید.";
 				}
-				return finishFailure(errors.concat([uncertainty]).join(" "));
+				var failure = finishFailure(errors.concat([uncertainty]).join(" "));
+				showUncertainSuggestedError(errors.concat([uncertainty]).join(" "));
+				return failure;
 			});
 		}
 
@@ -3306,23 +3519,33 @@ function jluxeEnhanceShopSort(root) {
 		}, 4500);
 	}
 
+	var lastQueuedSuccess = null;
+	var queuedFailures = [];
+	function flushQueuedSuccess(failureMessage) {
+		if (failureMessage) { queuedFailures.push(failureMessage); }
+		if (window.jluxeProductAddsPending()) { return; }
+		if (!lastQueuedSuccess) { queuedFailures = []; return; }
+		failureMessage = queuedFailures.join(' ');
+		queuedFailures = [];
+		var confirmed = lastQueuedSuccess;
+		lastQueuedSuccess = null;
+		if (typeof window.jluxeEnsureAddConfirmation === 'function') { window.jluxeEnsureAddConfirmation(confirmed.button); }
+		var snapshot = failureMessage ? Object.assign({}, confirmed.snapshot, {queued_add_error: failureMessage}) : confirmed.snapshot;
+		try {
+			window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(confirmed.button), snapshot]);
+		} catch (error) {
+			console.warn('[jluxe] Cart confirmed; feedback listener failed.', error);
+			window.dispatchEvent(new CustomEvent('jluxe:cart-updated', {detail:confirmed.snapshot}));
+		}
+	}
+
 	form.addEventListener("submit", function (event) {
 		var button = form.querySelector('[name="add-to-cart"], .single_add_to_cart_button');
-		if (button && button.disabled) {
-			event.preventDefault();
-			return;
-		}
 		event.preventDefault();
-		if (button) {
-			button.disabled = true;
-			button.classList.add("opacity-60", "pointer-events-none");
-		}
-
-		function restoreButton() {
-			if (button) {
-				button.disabled = false;
-				button.classList.remove("opacity-60", "pointer-events-none");
-			}
+		if (button && (button.disabled || button.classList.contains('disabled') || button.classList.contains('wc-variation-selection-needed'))) { return; }
+		var variation = form.querySelector('input[name="variation_id"]');
+		if (form.classList.contains('variations_form') && (!variation || !(Number(variation.value) > 0))) {
+			showErrorToast('لطفاً گزینه‌های محصول را انتخاب کنید.'); return;
 		}
 
 		// آیدیِ والدِ محصول: تا این‌جا (داخلِ submit) حتماً یک تنوعِ معتبر
@@ -3344,20 +3567,40 @@ function jluxeEnhanceShopSort(root) {
 		formData.set("op", "add");
 		formData.set("product_id", (button && button.value) || form.dataset.product_id || "");
 
-		window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg)
+		var operation = window.jluxeBeginProductAdd(form, button, formData);
+		if (!operation) { return; }
+		var serverConfirmed = false;
+		var confirmedSnapshot;
+		operation.run(function () { return window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg); })
 			.then(function (response) {
-				restoreButton();
+				if (!response || typeof response.success !== "boolean") { throw new Error("Ambiguous cart response"); }
 				if (!response || !response.success) {
 					var message = response && response.data && response.data.message ? response.data.message : "لطفاً گزینه‌های محصول را انتخاب کنید.";
+					operation.finish('error', message);
 					showErrorToast(message);
+					flushQueuedSuccess(message);
 					return;
 				}
-				window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(button), response.data]);
+				serverConfirmed = true;
+				confirmedSnapshot = response.data;
+				operation.finish('success', 'به سبد اضافه شد ✓');
+				lastQueuedSuccess = {button:button, snapshot:response.data};
+				if (window.jluxeProductAddsPending()) {
+					window.dispatchEvent(new CustomEvent('jluxe:cart-updated', {detail:response.data}));
+				} else {
+				flushQueuedSuccess();
+				}
 				/* The shared success handler mounts and opens only the fresh, enabled server suggestions. */
 			})
-			.catch(function () {
-				restoreButton();
-				showErrorToast("خطا در افزودن به سبد خرید. دوباره تلاش کنید.");
+			.catch(function (error) {
+				if (serverConfirmed) {
+					console.warn('[jluxe] Cart confirmed; feedback listener failed.', error);
+					window.dispatchEvent(new CustomEvent('jluxe:cart-updated', {detail:confirmedSnapshot}));
+					return;
+				}
+				operation.finish('uncertain', 'وضعیت ثبت مشخص نیست؛ پیش از تلاش مجدد سبد را بررسی کنید.');
+				showErrorToast('پاسخ سرور دریافت نشد؛ ممکن است محصول ثبت شده باشد. سبد را بررسی کنید.');
+				flushQueuedSuccess('وضعیت آخرین انتخاب مشخص نیست؛ سبد را بررسی کنید.');
 			});
 	});
 })();
@@ -3374,6 +3617,7 @@ function jluxeEnhanceShopSort(root) {
  */
 (function () {
 	var modalRoot = null;
+	var pickerPreviousOverflow = "";
 	var lastFocused = null;
 	var releaseDialogFocus = null;
 	/* باز شدنِ picker از پیشنهاد، مودالِ زیرین را می‌بندد تا بک‌دراپ‌ها
@@ -3395,7 +3639,7 @@ function jluxeEnhanceShopSort(root) {
 		if (releaseDialogFocus) { releaseDialogFocus(); releaseDialogFocus = null; }
 		modalRoot.remove();
 		modalRoot = null;
-		document.body.style.overflow = "";
+		document.body.style.overflow = pickerPreviousOverflow;
 		if (!pickerFromSuggested && lastFocused && lastFocused.focus) {
 			lastFocused.focus();
 		}
@@ -3466,6 +3710,7 @@ function jluxeEnhanceShopSort(root) {
 			"</div>";
 		document.body.appendChild(modalRoot);
 		releaseDialogFocus = JLuxeStorefrontUtils.activateDialog(modalRoot.querySelector("[role=dialog]"), closeModal);
+		pickerPreviousOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 
 		modalRoot.addEventListener("click", function (event) {
@@ -3620,10 +3865,16 @@ function jluxeEnhanceShopSort(root) {
 				var addedProductId = String(form.dataset.product_id || pickerProductId || "");
 				var snapshot = response.data || null;
 				restorePickerAdd(true);
-				if (window.jQuery) {
-					window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), snapshot]);
-				} else if (snapshot) {
-					window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: snapshot }));
+				// Feedback callbacks must never turn a confirmed mutation into an
+				// ambiguous network failure or prevent the picker from completing.
+				try {
+					if (window.jQuery) {
+						window.jQuery(document.body).trigger("added_to_cart", [null, null, window.jQuery(addButton), snapshot]);
+					} else if (snapshot) {
+						window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: snapshot }));
+					}
+				} catch (feedbackError) {
+					if (snapshot) { window.dispatchEvent(new CustomEvent("jluxe:cart-updated", { detail: snapshot })); }
 				}
 				if (pickerTriggerEl) {
 					pickerTriggerEl.removeAttribute("data-jluxe-add-uncertain");
@@ -4034,6 +4285,7 @@ function jluxeEnhanceShopSort(root) {
 	if (!priceBar || !toggleBtn) {
 		return;
 	}
+	window.JLuxeStorefrontUtils.protectDockSwitch(toggleBtn, priceBar);
 	var addBtn = priceBar.querySelector("[data-jluxe-mobile-bar-add]");
 	var yieldedBottomNavigation = [];
 
@@ -4249,12 +4501,25 @@ function jluxeEnhanceShopSort(root) {
 	syncToggleState();
 	dispatchMobileBarMode();
 
-	toggleBtn.addEventListener("click", function () {
+	function switchMobileBar(event) {
+		event.preventDefault();
+		event.stopImmediatePropagation();
 		priceBar.classList.toggle("hidden");
 		syncToggleState();
 		dispatchMobileBarMode();
 		if (typeof window.requestAnimationFrame === "function") { window.requestAnimationFrame(positionToggle); }
 		window.setTimeout(positionToggle, 0);
+	}
+	// Capture before delegated cart handlers; keep the entire pointer gesture on the switch.
+	window.addEventListener('click', function (event) {
+		var target = event.target && event.target.closest ? event.target.closest('[data-jluxe-mobile-bar-toggle]') : null;
+		if (target === toggleBtn) { switchMobileBar(event); }
+	}, true);
+	toggleBtn.addEventListener('pointerdown', function (event) {
+		event.stopPropagation();
+		if (toggleBtn.setPointerCapture && event.pointerId !== undefined) {
+			try { toggleBtn.setPointerCapture(event.pointerId); } catch (error) {}
+		}
 	});
 
 	window.addEventListener("resize", schedulePositionToggle, { passive: true });
@@ -5561,6 +5826,9 @@ function jluxeEnhanceShopSort(root) {
 	 * استفاده می‌شه، نه یک setTimeout ساده.
 	 */
 	function openModal(modal, index, returnFocusElement) {
+		if (modal.getAttribute("aria-hidden") === "false") { showImage(modal, index); return; }
+		var generation = (modal._jluxeGeneration || 0) + 1;
+		modal._jluxeGeneration = generation;
 		if (modal._jluxeCloseTimer) {
 			window.clearTimeout(modal._jluxeCloseTimer);
 			modal._jluxeCloseTimer = null;
@@ -5586,7 +5854,7 @@ function jluxeEnhanceShopSort(root) {
 		 */
 		var done = false;
 		function reveal() {
-			if (done) {
+			if (done || modal._jluxeGeneration !== generation || modal.getAttribute("aria-hidden") !== "false") {
 				return;
 			}
 			done = true;
@@ -5599,6 +5867,8 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function closeModal(modal) {
+		if (modal.getAttribute("aria-hidden") !== "false") { return; }
+		modal._jluxeGeneration = (modal._jluxeGeneration || 0) + 1;
 		modal.classList.add("opacity-0");
 		modal.setAttribute("aria-hidden", "true");
 		document.body.style.overflow = modal._jluxePreviousOverflow || "";
@@ -5902,4 +6172,101 @@ function jluxeEnhanceShopSort(root) {
 			mousePan = null;
 		}
 	});
+})();
+
+/** Compact mobile variation strips; no parallel image preview or purchase state. */
+(function () {
+ var mobile = window.matchMedia ? window.matchMedia('(max-width:767.98px)') : {matches:window.innerWidth<768};
+ var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ function init() {
+  document.querySelectorAll('[data-cp3-pills], [data-jluxe-variation-swatches]').forEach(function (track) {
+   if (track.dataset.jluxeStripReady) return;
+   track.dataset.jluxeStripReady='1';
+   var wrap=document.createElement('div');wrap.className='jluxe-option-strip';
+   track.parentNode.insertBefore(wrap,track);wrap.appendChild(track);
+   var timer=null, cancelled=false, played=false;
+   function max(){return Math.max(0,track.scrollWidth-track.clientWidth);}
+   function edges(){
+    var limit=max(),position=Math.min(limit,Math.abs(track.scrollLeft));
+    var rtl=getComputedStyle(track).direction==='rtl';
+    wrap.classList.toggle('has-overflow',limit>2);
+    wrap.classList.toggle('has-more-left',mobile.matches && limit>2 && (rtl?position<limit-2:position>2));
+    wrap.classList.toggle('has-more-right',mobile.matches && limit>2 && (rtl?position>2:position<limit-2));
+   }
+   track.addEventListener('scroll',edges,{passive:true});
+   function move(value,smooth){track.scrollTo ? track.scrollTo({left:(getComputedStyle(track).direction==='rtl'?-1:1)*value,behavior:smooth?'smooth':'auto'}) : track.scrollLeft=value;}
+   function cancel(){cancelled=true;window.clearTimeout(timer);move(Math.abs(track.scrollLeft),false);}
+   function play(){
+    edges();
+    if (!mobile.matches || reduced || played || cancelled || max()<3) return;
+    played=true;timer=window.setTimeout(function(){if(cancelled)return;move(max(),true);timer=window.setTimeout(function(){if(!cancelled)move(0,true);},1100);},500);
+   }
+   ['pointerdown','touchstart','wheel','keydown','focusin'].forEach(function(name){wrap.addEventListener(name,cancel,{passive:true});});
+   [-1,1].forEach(function(dir){var button=document.createElement('button');button.type='button';button.className='jluxe-option-strip__arrow';button.textContent=dir<0?'‹':'›';button.setAttribute('aria-label',dir<0?'گزینه‌های سمت چپ':'گزینه‌های سمت راست');button.addEventListener('click',function(){cancel();var rtl=getComputedStyle(track).direction==='rtl';var delta=dir*(rtl?-1:1)*Math.max(80,track.clientWidth*.7);move(Math.max(0,Math.min(max(),Math.abs(track.scrollLeft)+delta)),!reduced);});wrap.insertBefore(button,dir<0?track:null);});
+   if(window.IntersectionObserver){var observer=new IntersectionObserver(function(entries){if(entries.some(function(e){return e.isIntersecting;})){play();if(played)observer.disconnect();}});observer.observe(track);}else{play();}
+   if(window.ResizeObserver){new ResizeObserver(function(){edges();}).observe(track);}
+   window.addEventListener('resize',function(){if(!mobile.matches)cancel();edges();});
+  });
+  var root=document.querySelector('.jluxe-product-reference');
+  if(root){
+   var sku=root.querySelector('[data-reference-product-meta] [data-reference-sku]');
+   if(sku && !sku.dataset.jluxeSkuReady){
+    sku.dataset.jluxeSkuReady='1';
+    var skuMark=document.createComment('product identity position');sku.parentNode.insertBefore(skuMark,sku);
+    var identity=root.querySelector('.reference-mobile-taxonomy');
+    if(!identity){identity=document.createElement('div');identity.className='reference-mobile-taxonomy';(root.querySelector('.cp3-info') || root).prepend(identity);}
+    function placeSku(){if(mobile.matches)identity.appendChild(sku);else skuMark.parentNode.insertBefore(sku,skuMark.nextSibling);}
+    placeSku();if(mobile.addEventListener)mobile.addEventListener('change',placeSku);
+   }
+   var options=root.querySelector('[data-reference-variation-options]');
+   if(options && !options.dataset.jluxeFactsReady){
+    options.dataset.jluxeFactsReady='1';
+    var badges=root.querySelectorAll('[data-reference-low-stock], [data-reference-product-meta] [data-reference-stock-status], [data-reference-product-meta] [data-jluxe-stock-count], [data-reference-product-meta] [data-jluxe-delivery-time-row]');
+    var bar=document.createElement('div');bar.className='jluxe-mobile-purchase-facts';bar.setAttribute('role','group');bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول');options.insertAdjacentElement('afterend',bar);
+    var saved=Array.from(badges).map(function(node){var mark=document.createComment('purchase fact position');node.parentNode.insertBefore(mark,node);return {node:node,mark:mark};});
+    var label=options.querySelector('.cp3-varlabel');
+    var heading=document.createElement('div');heading.className='jluxe-variation-heading';
+    if(label){label.parentNode.insertBefore(heading,label);heading.appendChild(label);}else{options.prepend(heading);}
+    function layout(){saved.forEach(function(item){
+     if(mobile.matches){
+      if(item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count'))heading.appendChild(item.node);
+      else bar.appendChild(item.node);
+     }else item.mark.parentNode.insertBefore(item.node,item.mark.nextSibling);
+    });}
+
+    layout();if(mobile.addEventListener)mobile.addEventListener('change',layout);
+   }
+  }
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+/* Mobile gallery: native adjacent slides, shared WooCommerce image and index. */
+(function(){
+ function init(){document.querySelectorAll('.jluxe-product-reference [data-cp3-gallery]').forEach(function(gallery){
+  var main=gallery.querySelector('[data-cp3-zoom-box]'),original=gallery.querySelector('[data-cp3-zoom-img]');
+  var dots=Array.from(gallery.querySelectorAll('[data-reference-gallery-index]'));
+  if(!main || !original || gallery.querySelector('.jluxe-mobile-gallery-track'))return;
+  var track=document.createElement('div');track.className='jluxe-mobile-gallery-track';track.setAttribute('aria-label','تصاویر محصول');
+  main.insertAdjacentElement('afterend',track);
+  var meter=document.createElement('div');meter.className='jluxe-gallery-meter';meter.setAttribute('role','img');
+  meter.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 5 5 3-3 4 4"/></svg><span></span><i class="jluxe-gallery-meter__line"></i><i class="jluxe-gallery-meter__track"><i class="jluxe-gallery-meter__thumb"></i></i>';
+  gallery.appendChild(meter);
+  var count=dots.length || 1;meter.querySelector('span').textContent=String(count).replace(/\d/g,function(n){return '۰۱۲۳۴۵۶۷۸۹'[n];});
+  function updateMeter(){var index=Math.max(0,Math.min(count-1,Number(gallery.getAttribute('data-jluxe-gallery-current')||0)));meter.setAttribute('aria-label','تصویر '+(index+1)+' از '+count);var thumb=meter.querySelector('.jluxe-gallery-meter__thumb');thumb.style.width=(100/count)+'%';thumb.style.right=(100*index/count)+'%';}
+  var slides=[],timer=null,fromScroll=false;
+  function open(){main.click();}
+  (dots.length?dots:[null]).forEach(function(dot,index){
+   var button=document.createElement('button');button.type='button';button.className='jluxe-mobile-gallery-slide';button.setAttribute('aria-label','نمایش تمام‌صفحه تصویر '+(index+1));
+   var image=document.createElement('img');image.alt=original.alt;image.src=index===0?original.src:dot.getAttribute('data-full');image.loading=index===0?'eager':'lazy';image.decoding='async';button.appendChild(image);track.appendChild(button);slides.push(button);button.addEventListener('click',function(){if(dot)dot.click();open();});
+  });
+  function step(){return slides.length>1?Math.abs(slides[1].offsetLeft-slides[0].offsetLeft):0;}
+  function edges(){var max=Math.max(0,track.scrollWidth-track.clientWidth),pos=Math.abs(track.scrollLeft);track.classList.toggle('more-left',pos<max-2);track.classList.toggle('more-right',pos>2);}
+  function sync(){updateMeter();if(!fromScroll){var index=Number(gallery.getAttribute('data-jluxe-gallery-current')||0),distance=step()*index;if(track.scrollTo)track.scrollTo({left:-distance,behavior:'auto'});}edges();}
+  track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(dots[index] && index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}},120);},{passive:true});
+  new MutationObserver(function(){sync();}).observe(gallery,{attributes:true,attributeFilter:['data-jluxe-gallery-current']});
+  new MutationObserver(function(){var image=slides[0].querySelector('img');['src','srcset','sizes','alt'].forEach(function(name){if(original.hasAttribute(name))image.setAttribute(name,original.getAttribute(name));else image.removeAttribute(name);});}).observe(original,{attributes:true,attributeFilter:['src','srcset','sizes','alt']});
+  if(window.ResizeObserver)new ResizeObserver(sync).observe(track);window.addEventListener('resize',sync);sync();
+ });}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

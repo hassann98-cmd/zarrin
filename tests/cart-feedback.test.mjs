@@ -322,6 +322,8 @@ test("a rejected product add restores its button and never mounts or opens recom
   const start = source.indexOf("(function () {", marker);
   const end = source.indexOf("\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع", start);
   assert.ok(marker >= 0 && start > marker && end > start, "the real product-form submit handler is isolated");
+  const progressStart = source.indexOf('/** Immediate, truthful product-add feedback;');
+  window.eval(source.slice(progressStart, source.indexOf('/** Retry a cart request', progressStart)));
   window.eval(source.slice(start, end + "\n})();".length));
 
   let requests = 0;
@@ -355,4 +357,38 @@ test("feedback CSS provides safe-area mobile sizing, 44px actions, and the share
   assert.match(css, /\.jluxe-toast\s*\{[\s\S]*?bottom: max\(12px, env\(safe-area-inset-bottom\)\)/);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /border-radius: var\(--jluxe-radius-xl, 24px\)/);
+});
+
+test('product form compact confirmation suppresses the legacy detailed success toast',async t=>{
+ const dom=boot();t.after(()=>dom.window.close());const {window}=dom;
+ const button=window.document.getElementById('add');button.dataset.jluxeCompactAdd='1';
+ window.jQuery(window.document.body).trigger('added_to_cart',[null,null,window.jQuery(button),{itemCount:1,items:[],suggested_html:''}]);
+ assert.equal(window.document.querySelector('.jluxe-toast'),null);
+});
+
+test('compact form confirmation follows actual recommendation opening, with fallback on open failure',async t=>{
+ const dom=boot();t.after(()=>dom.window.close());const {window:w}=dom;
+ const a=source.indexOf('/** Immediate, truthful product-add feedback;');w.eval(source.slice(a,source.indexOf('/** Retry a cart request',a)));
+ const form=w.document.querySelector('form'),button=form.querySelector('button');
+ w.jluxeMountSuggestedModal=html=>{const old=w.document.querySelector('[data-jluxe-suggested-modal]');if(old)old.remove();const wrap=w.document.createElement('div');wrap.innerHTML=html;const modal=wrap.firstElementChild;w.document.body.appendChild(modal);return modal;};
+ const html='<div data-jluxe-suggested-modal class="hidden"><div class="jluxe-pa-sheet" role="dialog"><button data-pa-product="22">Offer</button></div></div>';
+ w.jluxeOpenSuggestedProductsModal=()=>w.document.querySelector('[data-jluxe-suggested-modal]').classList.remove('hidden');
+ w.jluxeBeginProductAdd(form,button,new w.URLSearchParams({product_id:'321'})).finish('success','ok');
+ addToCart(w,button,{suggested_html:html});await new Promise(resolve=>w.setTimeout(resolve,5));
+ assert.equal(w.document.querySelector('[data-jluxe-add-progress]').hidden,true);assert.equal(w.document.querySelectorAll('[data-jluxe-inline-confirmation]').length,1);assert.equal(w.document.querySelector('.jluxe-toast'),null);
+ w.jluxeOpenSuggestedProductsModal=()=>{throw new Error('cannot open');};
+ w.jluxeBeginProductAdd(form,button,new w.URLSearchParams({product_id:'321'})).finish('success','ok');
+ addToCart(w,button,{suggested_html:html});await new Promise(resolve=>w.setTimeout(resolve,5));
+ assert.equal(w.document.querySelector('[data-jluxe-add-progress]').hidden,false);assert.equal(w.document.querySelectorAll('[data-jluxe-inline-confirmation]').length,0);
+});
+
+test('recommendations distinguish an earlier success from the final failed queued choice',async t=>{
+ const dom=boot();t.after(()=>dom.window.close());const {window:w}=dom;
+ const a=source.indexOf('/** Immediate, truthful product-add feedback;');w.eval(source.slice(a,source.indexOf('/** Retry a cart request',a)));
+ const button=w.document.getElementById('add');
+ w.jluxeMountSuggestedModal=html=>{const box=w.document.createElement('div');box.innerHTML=html;const fresh=box.firstElementChild;w.document.body.appendChild(fresh);return fresh;};
+ w.jluxeOpenSuggestedProductsModal=()=>w.document.querySelector('[data-jluxe-suggested-modal]').classList.remove('hidden');
+ addToCart(w,button,{suggested_html:'<div data-jluxe-suggested-modal class="hidden"><div class="jluxe-pa-sheet" role="dialog"><div data-pa-product="2"></div></div></div>',queued_add_error:'این رنگ ناموجود است'});
+ await new Promise(resolve=>w.setTimeout(resolve,5));
+ assert.match(w.document.querySelector('.jluxe-queue-add-warning').textContent,/همهٔ انتخاب‌ها اضافه نشدند/);assert.match(w.document.querySelector('.jluxe-queue-add-warning').textContent,/این رنگ ناموجود است/);assert.ok(w.document.querySelector('[data-jluxe-inline-confirmation]'));
 });
