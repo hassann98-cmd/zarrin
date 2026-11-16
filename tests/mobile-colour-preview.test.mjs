@@ -33,7 +33,7 @@ test('purchase facts are an independent two-column panel with no empty placehold
 
 test('SKU and stock are positioned by meaning without cloning dynamic quantities',()=>{
  assert.ok(source.includes('if(mobile.matches)identity.appendChild(trust)'));
- assert.ok(source.includes("item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count'))heading.appendChild(item.node)"));
+ assert.ok(source.includes("options && (item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count')))heading.appendChild(item.node)"));
  const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');
  assert.match(template,/<span><bdi data-cp3-stock-quantity>[\s\S]*?<\/bdi> عدد موجود<\/span>/);
 });
@@ -95,4 +95,11 @@ test('mobile notice immediately follows choices and enabled trust moves to ident
  const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div class="reference-mobile-taxonomy">Category</div><div data-jluxe-trust-badges>Authenticity</div><div data-reference-variation-options></div></div><div id="desktop"><aside data-jluxe-product-notice>Notice</aside></div></div>',{runScripts:'outside-only'});
  try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,options=d.querySelector('[data-reference-variation-options]'),notice=d.querySelector('[data-jluxe-product-notice]');assert.equal(options.nextElementSibling,notice);assert.ok(d.querySelector('.reference-mobile-taxonomy>[data-jluxe-trust-badges]'));media.matches=false;changes.forEach(fn=>fn());assert.equal(notice.parentElement.id,'desktop');assert.ok(d.querySelector('.cp3-info>[data-jluxe-trust-badges]'));media.matches=true;changes.forEach(fn=>fn());assert.equal(options.nextElementSibling,notice);assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);
  }finally{dom.window.close();}
+});
+
+test('simple products get notice, delivery and availability without inventing variation controls',()=>{
+ const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div data-reference-product-meta><span data-reference-stock-status="in-stock">Stock</span><span data-jluxe-delivery-time-row>Tomorrow</span><span data-jluxe-stock-count>3</span></div><aside data-jluxe-product-notice>Read this</aside></div></div>',{runScripts:'outside-only'});
+ try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,notice=d.querySelector('[data-jluxe-product-notice]'),facts=d.querySelector('.jluxe-mobile-purchase-facts');assert.equal(notice.nextElementSibling,facts);assert.ok(facts.querySelector('[data-reference-stock-status]'));assert.ok(facts.querySelector('[data-jluxe-stock-count]'));assert.ok(facts.querySelector('[data-jluxe-delivery-time-row]'));assert.equal(d.querySelector('.jluxe-variation-heading'),null);media.matches=false;changes.forEach(fn=>fn());assert.ok(d.querySelector('[data-reference-product-meta]>[data-reference-stock-status]'));assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);
+ }finally{dom.window.close();}
+ const php=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');assert.equal((php.match(/jluxe_render_product_notice\( \$product \)/g)||[]).length,1);assert.ok(php.indexOf('jluxe_render_product_notice( $product )')<php.indexOf('<div class="reference-mobile-rating"'));
 });

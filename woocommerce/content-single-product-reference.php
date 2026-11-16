@@ -805,6 +805,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						</div>
 					<?php endif; ?>
 
+					<?php jluxe_render_product_notice( $product ); ?>
+
 						<?php if ( $review_count > 0 ) : ?>
 							<div class="reference-mobile-rating" aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه">
 								<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
@@ -864,7 +866,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								</div>
 							</section>
 						<?php endif; ?>
-						<?php jluxe_render_product_notice( $product ); ?>
+						
 
 				</div>
 

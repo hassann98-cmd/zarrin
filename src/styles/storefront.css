@@ -14428,3 +14428,9 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
  body .jluxe-mobile-price-card [data-jluxe-mobile-bar-price] .price,body .jluxe-sticky-cta .jluxe-sticky-cta-price .price{width:100%;align-items:flex-end;text-align:left;}
  body .jluxe-mobile-price-card [data-jluxe-mobile-bar-price] :is(del,ins),body .jluxe-sticky-cta .jluxe-sticky-cta-price :is(del,ins){width:100%;margin-inline:0;text-align:left;}
 }
+
+@media(max-width:767.98px){
+ body.single-product .jluxe-product-reference .jluxe-mobile-purchase-facts>[data-jluxe-stock-count],
+ body.single-product .jluxe-product-reference .jluxe-mobile-purchase-facts>[data-reference-low-stock]{grid-row:2;grid-column:1/-1;}
+ body.single-product .jluxe-product-reference .cp3-info>[data-jluxe-product-notice]{display:flex;visibility:visible;margin-block:8px;}
+}

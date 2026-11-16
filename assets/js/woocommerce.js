@@ -6219,21 +6219,22 @@ function jluxeEnhanceShopSort(root) {
     placeTrust();if(mobile.addEventListener)mobile.addEventListener('change',placeTrust);
    }
    var options=root.querySelector('[data-reference-variation-options]');
-   if(options && !options.dataset.jluxeFactsReady){
-    options.dataset.jluxeFactsReady='1';
+   var anchor=options || root.querySelector('[data-reference-product-meta]');
+   if(anchor && !anchor.dataset.jluxeFactsReady){
+    anchor.dataset.jluxeFactsReady='1';
     var notice=root.querySelector('[data-jluxe-product-notice]'),noticeMark=null;
     if(notice){noticeMark=document.createComment('product notice desktop position');notice.parentNode.insertBefore(noticeMark,notice);}
     var badges=root.querySelectorAll('[data-reference-low-stock], [data-reference-product-meta] [data-reference-stock-status], [data-reference-product-meta] [data-jluxe-stock-count], [data-reference-product-meta] [data-jluxe-delivery-time-row]');
-    var bar=document.createElement('div');bar.className='jluxe-mobile-purchase-facts';bar.setAttribute('role','group');bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول');options.insertAdjacentElement('afterend',bar);
+    var bar=document.createElement('div');bar.className='jluxe-mobile-purchase-facts';bar.setAttribute('role','group');bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول');anchor.insertAdjacentElement('afterend',bar);
     var saved=Array.from(badges).map(function(node){var mark=document.createComment('purchase fact position');node.parentNode.insertBefore(mark,node);return {node:node,mark:mark};});
-    var label=options.querySelector('.cp3-varlabel');
+    var label=options && options.querySelector('.cp3-varlabel');
     var heading=document.createElement('div');heading.className='jluxe-variation-heading';
-    if(label){label.parentNode.insertBefore(heading,label);heading.appendChild(label);}else{options.prepend(heading);}
+    if(label){label.parentNode.insertBefore(heading,label);heading.appendChild(label);}else if(options){options.prepend(heading);}
     function layout(){
      if(notice){if(mobile.matches)bar.insertAdjacentElement('beforebegin',notice);else noticeMark.parentNode.insertBefore(notice,noticeMark.nextSibling);}
      saved.forEach(function(item){
      if(mobile.matches){
-      if(item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count'))heading.appendChild(item.node);
+      if(options && (item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count')))heading.appendChild(item.node);
       else bar.appendChild(item.node);
      }else item.mark.parentNode.insertBefore(item.node,item.mark.nextSibling);
     });}
