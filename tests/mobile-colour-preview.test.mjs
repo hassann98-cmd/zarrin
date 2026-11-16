@@ -111,3 +111,15 @@ test('single mobile image is centered without fade; simple products have server-
  assert.match(css,/grid-template-columns:minmax\(0,1fr\) max-content/);
  const php=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');assert.ok(php.includes("$jluxe_is_simple ? ' reference-simple-product-meta'"));
 });
+
+test('gallery browsing preserves slide zero while variation/reset updates still replace it',async()=>{
+ for(const count of [1,3]){
+  const dots=Array.from({length:count},(_,i)=>`<button data-reference-gallery-index="${i}" data-full="https://shop.test/${i}.jpg"></button>`).join('');
+  const dom=new JSDOM(`<div class="jluxe-product-reference"><div data-cp3-gallery data-jluxe-gallery-current="0"><button data-cp3-zoom-box><img data-cp3-zoom-img src="https://shop.test/0.jpg" srcset="https://shop.test/0-large.jpg 900w" sizes="82vw" alt="Original"></button>${dots}</div></div>`,{runScripts:'outside-only'});
+  try{const w=dom.window,d=w.document;w.eval(source.slice(source.indexOf('/* Mobile gallery: native')));d.dispatchEvent(new w.Event('DOMContentLoaded'));const gallery=d.querySelector('[data-cp3-gallery]'),main=d.querySelector('[data-cp3-zoom-img]'),slides=d.querySelectorAll('.jluxe-mobile-gallery-slide img');assert.equal(slides[0].getAttribute('srcset'),main.getAttribute('srcset'));
+   if(count>1){for(const index of [1,2,1]){gallery.setAttribute('data-jluxe-gallery-current',String(index));main.src=`https://shop.test/${index}.jpg`;main.removeAttribute('srcset');main.removeAttribute('sizes');await Promise.resolve();assert.equal(slides[0].src,'https://shop.test/0.jpg');assert.equal(slides[index].src,`https://shop.test/${index}.jpg`);}}
+   main.src='https://shop.test/variation.jpg';main.setAttribute('srcset','https://shop.test/variation-large.jpg 900w');main.setAttribute('sizes','80vw');main.alt='Selected variation';gallery.setAttribute('data-jluxe-gallery-current','0');await Promise.resolve();assert.equal(slides[0].src,main.src);assert.equal(slides[0].alt,'Selected variation');assert.equal(slides[0].getAttribute('sizes'),'80vw');
+   main.src='https://shop.test/0.jpg';main.removeAttribute('srcset');main.removeAttribute('sizes');main.alt='Original';await Promise.resolve();assert.equal(slides[0].src,'https://shop.test/0.jpg');assert.equal(slides[0].hasAttribute('srcset'),false);assert.equal(slides[0].hasAttribute('sizes'),false);if(count>1)assert.equal(slides[1].src,'https://shop.test/1.jpg');
+  }finally{dom.window.close();}
+ }
+});

@@ -6270,7 +6270,15 @@ function jluxeEnhanceShopSort(root) {
   function sync(){updateMeter();if(!fromScroll){var index=Number(gallery.getAttribute('data-jluxe-gallery-current')||0),distance=step()*index;if(track.scrollTo)track.scrollTo({left:-distance,behavior:'auto'});}edges();}
   track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(dots[index] && index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}},120);},{passive:true});
   new MutationObserver(function(){sync();}).observe(gallery,{attributes:true,attributeFilter:['data-jluxe-gallery-current']});
-  new MutationObserver(function(){var image=slides[0].querySelector('img');['src','srcset','sizes','alt'].forEach(function(name){if(original.hasAttribute(name))image.setAttribute(name,original.getAttribute(name));else image.removeAttribute(name);});}).observe(original,{attributes:true,attributeFilter:['src','srcset','sizes','alt']});
+  function syncFirstImage(){
+   // The main image also represents slides 1..N while browsing. Only index 0
+   // may update slide zero (including WooCommerce variation/reset updates).
+   if(Number(gallery.getAttribute('data-jluxe-gallery-current') || 0)!==0)return;
+   var image=slides[0].querySelector('img');
+   ['src','srcset','sizes','alt'].forEach(function(name){if(original.hasAttribute(name))image.setAttribute(name,original.getAttribute(name));else image.removeAttribute(name);});
+  }
+  syncFirstImage();
+  new MutationObserver(syncFirstImage).observe(original,{attributes:true,attributeFilter:['src','srcset','sizes','alt']});
   if(window.ResizeObserver)new ResizeObserver(sync).observe(track);window.addEventListener('resize',sync);sync();
  });}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
