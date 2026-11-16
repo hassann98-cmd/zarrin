@@ -6209,25 +6209,29 @@ function jluxeEnhanceShopSort(root) {
   });
   var root=document.querySelector('.jluxe-product-reference');
   if(root){
-   var sku=root.querySelector('[data-reference-product-meta] [data-reference-sku]');
-   if(sku && !sku.dataset.jluxeSkuReady){
-    sku.dataset.jluxeSkuReady='1';
-    var skuMark=document.createComment('product identity position');sku.parentNode.insertBefore(skuMark,sku);
+   var trust=root.querySelector('[data-jluxe-trust-badges]');
+   if(trust && !trust.dataset.jluxeIdentityReady){
+    trust.dataset.jluxeIdentityReady='1';
+    var trustMark=document.createComment('trust badge desktop position');trust.parentNode.insertBefore(trustMark,trust);
     var identity=root.querySelector('.reference-mobile-taxonomy');
     if(!identity){identity=document.createElement('div');identity.className='reference-mobile-taxonomy';(root.querySelector('.cp3-info') || root).prepend(identity);}
-    function placeSku(){if(mobile.matches)identity.appendChild(sku);else skuMark.parentNode.insertBefore(sku,skuMark.nextSibling);}
-    placeSku();if(mobile.addEventListener)mobile.addEventListener('change',placeSku);
+    function placeTrust(){if(mobile.matches)identity.appendChild(trust);else trustMark.parentNode.insertBefore(trust,trustMark.nextSibling);}
+    placeTrust();if(mobile.addEventListener)mobile.addEventListener('change',placeTrust);
    }
    var options=root.querySelector('[data-reference-variation-options]');
    if(options && !options.dataset.jluxeFactsReady){
     options.dataset.jluxeFactsReady='1';
+    var notice=root.querySelector('[data-jluxe-product-notice]'),noticeMark=null;
+    if(notice){noticeMark=document.createComment('product notice desktop position');notice.parentNode.insertBefore(noticeMark,notice);}
     var badges=root.querySelectorAll('[data-reference-low-stock], [data-reference-product-meta] [data-reference-stock-status], [data-reference-product-meta] [data-jluxe-stock-count], [data-reference-product-meta] [data-jluxe-delivery-time-row]');
     var bar=document.createElement('div');bar.className='jluxe-mobile-purchase-facts';bar.setAttribute('role','group');bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول');options.insertAdjacentElement('afterend',bar);
     var saved=Array.from(badges).map(function(node){var mark=document.createComment('purchase fact position');node.parentNode.insertBefore(mark,node);return {node:node,mark:mark};});
     var label=options.querySelector('.cp3-varlabel');
     var heading=document.createElement('div');heading.className='jluxe-variation-heading';
     if(label){label.parentNode.insertBefore(heading,label);heading.appendChild(label);}else{options.prepend(heading);}
-    function layout(){saved.forEach(function(item){
+    function layout(){
+     if(notice){if(mobile.matches)bar.insertAdjacentElement('beforebegin',notice);else noticeMark.parentNode.insertBefore(notice,noticeMark.nextSibling);}
+     saved.forEach(function(item){
      if(mobile.matches){
       if(item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count'))heading.appendChild(item.node);
       else bar.appendChild(item.node);

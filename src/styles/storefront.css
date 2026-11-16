@@ -14399,3 +14399,14 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
  body .jluxe-mobile-bar-toggle,body .jluxe-sticky-cta-mode-toggle{width:44px;height:44px;min-height:44px;border:1px solid hsl(var(--primary)/.3);border-radius:14px;background:hsl(var(--surface));color:hsl(var(--primary));box-shadow:0 4px 14px hsl(var(--foreground)/.14),inset 0 1px 0 hsl(var(--surface));}
  body .jluxe-mobile-bar-toggle[aria-pressed="true"],body .jluxe-sticky-cta-mode-toggle[aria-pressed="true"]{background:hsl(var(--primary)/.1);}
 }
+
+/* Compact identity row, optional left-aligned trust, and notice below choices. */
+@media(max-width:767.98px){
+ body.single-product .jluxe-product-reference [data-reference-sku]{display:none;}
+ body.single-product .jluxe-product-reference .reference-mobile-taxonomy{flex-wrap:nowrap;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:thin;}
+ body.single-product .jluxe-product-reference .reference-mobile-taxonomy__pill{flex:none;font-size:10px;font-weight:500;min-height:24px;padding:3px 6px;white-space:nowrap;}
+ body.single-product .jluxe-product-reference .reference-mobile-taxonomy>[data-jluxe-trust-badges]{display:flex;flex-wrap:nowrap;justify-content:flex-end;flex:none;margin:0;margin-inline-start:auto;text-align:left;gap:4px;}
+ body.single-product .jluxe-product-reference .reference-mobile-taxonomy>[data-jluxe-trust-badges]>*{font-size:9px;white-space:nowrap;padding:3px 4px;gap:3px;}
+ body.single-product .jluxe-product-reference .reference-mobile-taxonomy>[data-jluxe-trust-badges] svg{width:12px;height:12px;flex:none;}
+ body.single-product .jluxe-product-reference .reference-mobile-variation-options+[data-jluxe-product-notice]{margin-block:8px;}
+}
