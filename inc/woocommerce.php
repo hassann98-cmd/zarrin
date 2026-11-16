@@ -841,7 +841,7 @@ function jluxe_enqueue_sticky_cta(): void {
 	wp_enqueue_script(
 		'jluxe-sticky-cta',
 		JLUXE_THEME_URI . '/assets/js/sticky-cta.js',
-		array(),
+		array( 'jluxe-storefront-utils' ),
 		file_exists( $path ) ? (string) filemtime( $path ) : null,
 		true
 	);
@@ -1050,6 +1050,7 @@ function jluxe_render_sticky_add_to_cart( $product, bool $always_visible = false
 		aria-pressed="true"
 		hidden
 	>
+		<span class="jluxe-dock-choice jluxe-dock-choice--menu" aria-hidden="true">منو</span><span class="jluxe-dock-exchange" aria-hidden="true">⇄</span><span class="jluxe-dock-choice jluxe-dock-choice--purchase" aria-hidden="true">خرید</span>
 		<span data-jluxe-sticky-cta-mode-label>منو</span>
 		<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
 	</button>
@@ -3775,6 +3776,28 @@ add_action( 'init', 'jluxe_remove_default_product_tabs' );
  *
  * @return array<int, array{id: string, label: string, url: string, count: int, groups: array}>
  */
+/** Attach current term icons even when the hierarchy comes from an older cache. */
+function jluxe_mega_menu_category_icons( array $categories ): array {
+ foreach ( $categories as &$category ) {
+  if ( ! is_array( $category ) || empty( $category['id'] ) ) { continue; }
+  $id = absint( $category['id'] );
+  $custom = get_term_meta( $id, '_jluxe_category_icon_svg', true );
+  $custom = is_string( $custom ) ? jluxe_sanitize_svg_markup( $custom ) : '';
+  $preset = get_term_meta( $id, '_jluxe_category_icon', true );
+  $override = is_string( $preset ) && '' !== $preset && 'auto' !== $preset;
+  $thumbnail = absint( get_term_meta( $id, 'thumbnail_id', true ) );
+  $image = ! $custom && ! $override && $thumbnail ? wp_get_attachment_image_url( $thumbnail, 'thumbnail' ) : '';
+  // Existing uploads keep their thumbnail until this size is regenerated.
+  if ( $image && function_exists( 'image_get_intermediate_size' ) && image_get_intermediate_size( $thumbnail, 'jluxe-category-icon' ) ) {
+    $image = wp_get_attachment_image_url( $thumbnail, 'jluxe-category-icon' );
+  }
+  $category['iconImage'] = is_string( $image ) ? esc_url_raw( $image ) : '';
+  $category['iconSvg'] = $custom ?: ( $override || ! $category['iconImage'] ? jluxe_nav_icon_svg( $override ? $preset : 'grid', 'jluxe-mega-category-svg' ) : '' );
+ }
+ unset( $category );
+ return $categories;
+}
+
 function jluxe_get_mega_menu_categories(): array {
 	$cache_key = 'jluxe_mega_menu_tree_v1';
 	/* R62: دو لایهٔ کش — Object Cache (با Redis واقعی می‌ماند؛ بدونِ آن فقط
@@ -3782,12 +3805,12 @@ function jluxe_get_mega_menu_categories(): array {
 	object-cache.php). خروجی در هر دو لایه «آرایهٔ» دیتاست است، نه HTML. */
 	$cached = wp_cache_get( $cache_key, 'jluxe' );
 	if ( is_array( $cached ) ) {
-		return $cached;
+		return jluxe_mega_menu_category_icons( $cached );
 	}
 	$cached = get_transient( $cache_key );
 	if ( false !== $cached && is_array( $cached ) ) {
 		wp_cache_set( $cache_key, $cached, 'jluxe', HOUR_IN_SECONDS );
-		return $cached;
+		return jluxe_mega_menu_category_icons( $cached );
 	}
 
 	$default_cat_id = (int) get_option( 'default_product_cat' );
@@ -3866,7 +3889,7 @@ function jluxe_get_mega_menu_categories(): array {
 
 	set_transient( $cache_key, $categories, DAY_IN_SECONDS );
 	wp_cache_set( $cache_key, $categories, 'jluxe', HOUR_IN_SECONDS );
-	return $categories;
+	return jluxe_mega_menu_category_icons( $categories );
 }
 
 /**
@@ -4659,7 +4682,8 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 		$products_heading = 'ممکن است این‌ها را هم لازم داشته باشید';
 	}
 	$services_heading       = (string) jluxe_get_setting( 'purchase_addons.services_heading', 'این خدمات را هم اضافه کنید' );
-	$total_label            = (string) jluxe_get_setting( 'purchase_addons.total_label', 'مبلغ قابل پرداخت' );
+	$total_label            = (string) jluxe_get_setting( 'purchase_addons.total_label', 'برآورد مبلغ سبد' );
+	if ( 'مبلغ قابل پرداخت' === trim( $total_label ) ) { $total_label = 'برآورد مبلغ سبد'; }
 	$confirm_selected_label = (string) jluxe_get_setting( 'purchase_addons.confirm_selected_label', 'افزودن انتخاب‌ها به سبد' );
 	$confirm_empty_label    = (string) jluxe_get_setting( 'purchase_addons.confirm_empty_label', 'ادامه بدون افزودن' );
 	$cart_summary_label     = (string) jluxe_get_setting( 'purchase_addons.cart_summary_label', 'سبد شما' );
@@ -4668,9 +4692,15 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 	$auto_close_enabled     = (bool) jluxe_get_setting( 'purchase_addons.auto_close_enabled', false );
 	$auto_close_seconds     = max( 3, min( 300, absint( jluxe_get_setting( 'purchase_addons.auto_close_seconds', 15 ) ) ) );
 
+	// Null means first use; an explicitly stored empty array is a customer choice.
+	$stored_service_keys = function_exists( 'WC' ) && isset( WC()->session ) && WC()->session ? WC()->session->get( 'jluxe_pa_services' ) : null;
+	foreach ( $services as $key => &$service ) {
+		$service['selected'] = is_array( $stored_service_keys ) ? in_array( $key, $stored_service_keys, true ) : ! empty( $service['auto'] );
+	}
+	unset( $service );
 	$initial_selection_count = 0;
 	foreach ( $services as $service ) {
-		if ( ! empty( $service['auto'] ) ) {
+		if ( ! empty( $service['selected'] ) ) {
 			++$initial_selection_count;
 		}
 	}
@@ -4724,7 +4754,7 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 					</div>
 					<div class="jluxe-pa-rows">
 						<?php foreach ( $services as $jluxe_pa_key => $jluxe_pa_service ) : ?>
-							<button type="button" class="jluxe-pa-row<?php echo $jluxe_pa_service['auto'] ? ' is-selected' : ''; ?>" data-pa-service="<?php echo esc_attr( $jluxe_pa_key ); ?>" data-pa-amount="<?php echo esc_attr( (string) $jluxe_pa_service['amount'] ); ?>" aria-pressed="<?php echo $jluxe_pa_service['auto'] ? 'true' : 'false'; ?>">
+							<button type="button" class="jluxe-pa-row<?php echo $jluxe_pa_service['selected'] ? ' is-selected' : ''; ?>" data-pa-service="<?php echo esc_attr( $jluxe_pa_key ); ?>" data-pa-amount="<?php echo esc_attr( (string) $jluxe_pa_service['amount'] ); ?>" aria-pressed="<?php echo $jluxe_pa_service['selected'] ? 'true' : 'false'; ?>">
 								<span class="jluxe-pa-rowinfo">
 									<span class="jluxe-pa-name"><?php echo esc_html( $jluxe_pa_service['title'] ); ?></span>
 									<span class="jluxe-pa-price"><?php echo wp_kses_post( wc_price( $jluxe_pa_service['amount'] ) ); ?></span>
@@ -4819,6 +4849,7 @@ function jluxe_suggested_modal_html_for( WC_Product $product ): string {
 					<?php if ( $show_total ) : ?>
 						<span class="jluxe-pa-totalwrap">
 							<small><?php echo esc_html( $total_label ); ?></small>
+							<small data-pa-estimate-note>این مبلغ برآوردی است؛ مبلغ نهایی با مالیات، ارسال و تخفیف‌ها در سبد محاسبه می‌شود.</small>
 							<span class="jluxe-pa-totalrow">
 								<strong class="jluxe-pa-total" data-pa-total><?php echo esc_html( jluxe_fa_digits( number_format( $total_base, 0, '.', ',' ) ) ); ?></strong>
 								<small><?php echo esc_html( $unit ); ?></small>
@@ -5877,3 +5908,31 @@ function jluxe_filter_sale_query( $query ): void {
 	$query->set( 'post__in', $ids ?: array( 0 ) );
 }
 add_action( 'woocommerce_product_query', 'jluxe_filter_sale_query' );
+
+/** Preserve Woo's state/nonce/extension-filtered actions; never invent a pay URL. */
+function jluxe_render_customer_order_actions( $order ): void {
+	if ( ! $order instanceof WC_Order || get_current_user_id() < 1 ||
+		(int) $order->get_customer_id() !== get_current_user_id() ) { return; }
+	$actions = wc_get_account_orders_actions( $order );
+	if ( empty( $actions ) ) { return; }
+	echo '<div class="flex flex-wrap gap-2 px-4 pb-4" data-jluxe-order-actions>';
+	foreach ( $actions as $key => $action ) {
+		if ( empty( $action['url'] ) || empty( $action['name'] ) ) { continue; }
+		$action_class = preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $key );
+		$action_label = $action['aria-label'] ?? sprintf( '%s — #%s', wp_strip_all_tags( $action['name'] ), $order->get_order_number() );
+		echo '<a class="' . esc_attr( $action_class ) . ' inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-caption font-bold text-primary" href="' . esc_url( $action['url'] ) . '" aria-label="' . esc_attr( $action_label ) . '">' . esc_html( $action['name'] ) . '</a>';
+	}
+	echo '</div>';
+}
+
+/** Mobile-only variables: independent from desktop and the selected layout. */
+function jluxe_output_product_mobile_design_css(): void {
+	$settings = jluxe_get_theme_settings();
+	$values = jluxe_product_mobile_design_values( (array) ( $settings['product_page'] ?? array() ) );
+	$rules = array();
+	foreach ( $values as $key => $value ) {
+		$rules[] = '--jluxe-' . str_replace( '_', '-', $key ) . ':' . $value . ( 'mobile_title_weight' === $key ? '' : 'px' );
+	}
+	printf( '<style id="jluxe-product-mobile-design">@media(max-width:767.98px){body.single-product{%s}}</style>', esc_html( implode( ';', $rules ) ) );
+}
+add_action( 'wp_head', 'jluxe_output_product_mobile_design_css', 31 );

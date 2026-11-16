@@ -128,6 +128,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 								</span>
 								<div class="min-w-0 flex-1">
 									<p class="line-clamp-2 text-small font-medium text-foreground"><?php echo esc_html( $jluxe_ty_item->get_name() ); ?></p>
+									<div class="text-caption text-text-secondary"><?php echo wp_kses_post( wc_display_item_meta( $jluxe_ty_item, array( 'echo' => false ) ) ); ?></div>
 									<p class="mt-0.5 text-caption text-text-muted"><?php echo esc_html( jluxe_fa_digits( (string) $jluxe_ty_item->get_quantity() ) ); ?> عدد</p>
 								</div>
 								<div class="shrink-0 text-small font-bold text-foreground">
