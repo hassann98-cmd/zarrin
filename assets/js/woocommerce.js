@@ -6305,8 +6305,9 @@ function jluxeEnhanceShopSort(root) {
           var control=switches[i],style=win.getComputedStyle(control);
           if(!control.hidden && style.display!=='none' && style.visibility!=='hidden' && inRect(point,control.getBoundingClientRect()))return;
         }
+        var hitArea=item.matches('[data-jluxe-account-link],[data-jluxe-drawer-toggle="cart"]') ? item.querySelector('.jluxe-mobile-nav-icon') : item;
         var navStyle=win.getComputedStyle(nav);
-        if(nav.hidden || nav.getAttribute('aria-hidden')==='true' || navStyle.display==='none' || navStyle.visibility==='hidden' || !inRect(point,nav.getBoundingClientRect()) || !inRect(point,item.getBoundingClientRect()))stop(event);
+        if(!hitArea || nav.hidden || nav.getAttribute('aria-hidden')==='true' || navStyle.display==='none' || navStyle.visibility==='hidden' || !inRect(point,nav.getBoundingClientRect()) || !inRect(point,hitArea.getBoundingClientRect()))stop(event);
       }
       ['pointerdown','touchstart','click'].forEach(function(name){win.addEventListener(name,boundNavigation,{capture:true,passive:false});});
     }

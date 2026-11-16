@@ -55,10 +55,10 @@ test('after scrolling, taps on either half of the painted switch cannot reach un
 });
 
 for(const variant of ['standard','floating'])test(`${variant} dock rejects cart/account taps outside its bounds after scroll; inside and keyboard work`,()=>{
- const dom=new JSDOM(`<button data-jluxe-mobile-bar-toggle>Switch</button><nav class="jluxe-mobile-nav ${variant==='floating'?'jluxe-mobile-nav--floating':''}" data-jluxe-mobile-nav-dock><a class="jluxe-mobile-nav-item" data-jluxe-drawer-toggle="cart">Cart</a><a class="jluxe-mobile-nav-item" data-jluxe-account-link>Account</a></nav>`,{runScripts:'outside-only'});
+ const dom=new JSDOM(`<button data-jluxe-mobile-bar-toggle>Switch</button><nav class="jluxe-mobile-nav ${variant==='floating'?'jluxe-mobile-nav--floating':''}" data-jluxe-mobile-nav-dock><a class="jluxe-mobile-nav-item" data-jluxe-drawer-toggle="cart"><span class="jluxe-mobile-nav-icon">Cart</span></a><a class="jluxe-mobile-nav-item" data-jluxe-account-link><span class="jluxe-mobile-nav-icon">Account</span></a></nav>`,{runScripts:'outside-only'});
  try{const w=dom.window,d=w.document,nav=d.querySelector('nav'),links=nav.querySelectorAll('a'),b=d.querySelector('button');w.matchMedia=()=>({matches:true});w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);
  let calls=0;d.addEventListener('click',()=>calls++,true);
- function geometry(top){nav.getBoundingClientRect=()=>({left:0,right:360,top,bottom:top+68,width:360,height:68});links.forEach((link,i)=>link.getBoundingClientRect=()=>({left:i*180,right:(i+1)*180,top,bottom:top+68,width:180,height:68}));}
+ function geometry(top){nav.getBoundingClientRect=()=>({left:0,right:360,top,bottom:top+68,width:360,height:68});links.forEach((link,i)=>{link.getBoundingClientRect=()=>({left:i*180,right:(i+1)*180,top,bottom:top+68,width:180,height:68});link.querySelector('.jluxe-mobile-nav-icon').getBoundingClientRect=()=>({left:i*180+30,right:i*180+74,top:top+4,bottom:top+48,width:44,height:44});});}
  const click=(node,x,y,detail=1)=>node.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,detail}));
  for(const top of [700,600]){geometry(top);const before=calls;click(links[0],50,top-30);click(links[1],250,top-30);assert.equal(calls,before,'out-of-dock hits blocked before document handlers');click(links[0],50,top+20);click(links[1],250,top+20);assert.equal(calls,before+2);click(links[0],250,top+20);assert.equal(calls,before+2,'another item cannot claim this point');}
  const before=calls;click(links[1],0,0,0);assert.equal(calls,before+1,'keyboard preserved');nav.hidden=true;click(links[0],50,620);assert.equal(calls,before+1,'hidden dock cannot open cart');
@@ -67,4 +67,12 @@ for(const variant of ['standard','floating'])test(`${variant} dock rejects cart/
 
 test('dock CSS clips hit regions and disables inactive navigation without increasing z-index',()=>{
  const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split("/* Dock links own only")[1];assert.match(css,/overflow:hidden;clip-path:inset\(0 round 18px\);contain:paint/);assert.match(css,/aria-hidden="true"/);assert.match(css,/pointer-events:none;visibility:hidden/);assert.doesNotMatch(css,/z-index/);
+});
+
+test('account/cart icon only: dead cell padding and label cannot open either destination',()=>{
+ const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><nav data-jluxe-mobile-nav-dock><a class="jluxe-mobile-nav-item" data-jluxe-account-link><span class="jluxe-mobile-nav-icon">Icon</span><span>Login</span></a><a class="jluxe-mobile-nav-item" data-jluxe-drawer-toggle="cart"><span class="jluxe-mobile-nav-icon">Icon</span><span>Cart</span></a></nav>',{runScripts:'outside-only'});
+ try{const w=dom.window,d=w.document;w.matchMedia=()=>({matches:true});w.eval(source);const nav=d.querySelector('nav');nav.getBoundingClientRect=()=>({left:0,right:360,top:600,bottom:668,width:360,height:68});let calls=0;d.addEventListener('click',()=>calls++,true);
+ for(const [i,link] of [...d.querySelectorAll('a')].entries()){const x=i*180;link.getBoundingClientRect=()=>({left:x,right:x+180,top:600,bottom:668,width:180,height:68});const icon=link.querySelector('.jluxe-mobile-nav-icon');icon.getBoundingClientRect=()=>({left:x+68,right:x+112,top:604,bottom:648,width:44,height:44});const fire=(px,y,detail=1)=>link.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true,clientX:px,clientY:y,detail,button:0}));const before=calls;fire(x+10,620);fire(x+90,660);fire(x+90,580);assert.equal(calls,before,'padding, text label and area above dock are dead');fire(x+90,620);assert.equal(calls,before+1);fire(0,0,0);assert.equal(calls,before+2,'keyboard activation preserved');}
+ }finally{dom.window.close();}
+ const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Cart/account: only')[1];assert.match(css,/pointer-events:none/);assert.match(css,/pointer-events:auto;box-sizing:border-box;width:44px;height:44px/);
 });

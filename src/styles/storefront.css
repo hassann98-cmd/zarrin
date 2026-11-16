@@ -14460,3 +14460,14 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
  body[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav[data-jluxe-mobile-nav-dock],
  body:has([data-jluxe-mobile-price-bar]:not(.hidden)) .jluxe-mobile-nav[data-jluxe-mobile-nav-dock]{pointer-events:none;visibility:hidden;}
 }
+
+/* Cart/account: only the icon's touch target is active, not the whole flex cell. */
+@media(max-width:767.98px){
+ body .jluxe-mobile-nav[data-jluxe-mobile-nav-dock]>.jluxe-mobile-nav-item:is([data-jluxe-account-link],[data-jluxe-drawer-toggle="cart"]){pointer-events:none;}
+ body .jluxe-mobile-nav[data-jluxe-mobile-nav-dock]>.jluxe-mobile-nav-item:is([data-jluxe-account-link],[data-jluxe-drawer-toggle="cart"])>.jluxe-mobile-nav-icon{pointer-events:auto;box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px;}
+ body .jluxe-mobile-nav[data-jluxe-mobile-nav-dock]>.jluxe-mobile-nav-item:is([data-jluxe-account-link],[data-jluxe-drawer-toggle="cart"])>.jluxe-mobile-nav-icon>*{pointer-events:none;}
+ body .jluxe-mobile-nav[data-jluxe-mobile-nav-dock][hidden] .jluxe-mobile-nav-icon,
+ body .jluxe-mobile-nav[data-jluxe-mobile-nav-dock][aria-hidden="true"] .jluxe-mobile-nav-icon,
+ body[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav[data-jluxe-mobile-nav-dock] .jluxe-mobile-nav-icon,
+ body:has([data-jluxe-mobile-price-bar]:not(.hidden)) .jluxe-mobile-nav[data-jluxe-mobile-nav-dock] .jluxe-mobile-nav-icon{pointer-events:none;}
+}
