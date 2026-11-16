@@ -35,8 +35,10 @@ function jluxe_enqueue_page_motion(): void {
 		wp_enqueue_style( 'jluxe-page-motion', JLUXE_THEME_URI . '/assets/css/page-motion.css', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/css/page-motion.css' ) );
 	}
 	wp_enqueue_script( 'jluxe-page-motion', JLUXE_THEME_URI . '/assets/js/page-motion.js', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/page-motion.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
+	$motion_logo_id = function_exists( 'jluxe_get_logo_attachment_id' ) ? jluxe_get_logo_attachment_id() : 0;
+	$motion_logo_url = $motion_logo_id ? wp_get_attachment_image_url( $motion_logo_id, 'thumbnail' ) : '';
 	wp_localize_script( 'jluxe-page-motion', 'jluxePageMotion', array(
-		'transitions' => $transitions, 'prefetch' => $prefetch,
+		'transitions' => $transitions, 'prefetch' => $prefetch, 'logo' => $motion_logo_url ? esc_url_raw( $motion_logo_url ) : '',
 		'cacheSafe' => $cache_safe, 'categoryBase' => $category_base,
 		'home' => $urls['home'] ?? home_url( '/' ), 'excluded' => $excluded,
 	) );

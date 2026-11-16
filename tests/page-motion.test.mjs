@@ -196,3 +196,11 @@ test('soft archive navigation retains indicator despite prevented click, clears 
 test('graphic is local, nonblocking, motion-aware and does not invent a percentage',()=>{
  const css=fs.readFileSync(new URL('../assets/css/page-motion.css',import.meta.url),'utf8');assert.match(css,/pointer-events:none/);assert.match(css,/prefers-reduced-motion: reduce/);assert.match(css,/animation:none/);assert.doesNotMatch(css,/url\(|@import/);assert.doesNotMatch(script,/preventDefault\(|pushState\(|\bfetch\(/);assert.ok(script.includes("bar.setAttribute('role','status')"));
 });
+
+test('configured same-origin logo sits inside orbit, fails back to graphic, never loads external logo',t=>{
+ const {win,link}=boot(t,{logo:'https://shop.test/uploads/logo.png'});
+ link('/help/').dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0}));
+ const art=win.document.querySelector('.jluxe-page-orbit'),logo=art.querySelector('img');assert.ok(logo);assert.equal(logo.alt,'');assert.equal(art.classList.contains('has-logo'),false);logo.dispatchEvent(new win.Event('load'));assert.equal(art.classList.contains('has-logo'),true);logo.dispatchEvent(new win.Event('error'));assert.equal(art.classList.contains('has-logo'),false);
+ const other=boot(t,{logo:'https://outside.test/logo.png'});other.link('/blog/').dispatchEvent(new other.win.MouseEvent('pointerdown',{bubbles:true,button:0}));assert.equal(other.win.document.querySelector('.jluxe-page-orbit img'),null);
+ const css=fs.readFileSync(new URL('../assets/css/page-motion.css',import.meta.url),'utf8');assert.match(css,/jluxe-page-progress-label\{position:absolute;width:1px;height:1px/);assert.match(css,/jluxe-logo-shine/);assert.match(css,/translateX\(-65%\)/);assert.match(css,/translateX\(65%\)/);assert.match(css,/\.jluxe-page-logo::after\{animation:none/);
+});

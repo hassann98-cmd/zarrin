@@ -53,6 +53,16 @@
       var art=doc.createElement('span');art.className='jluxe-page-orbit';art.setAttribute('aria-hidden','true');
       var ns='http://www.w3.org/2000/svg',svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 40 40');svg.setAttribute('fill','none');
       [['circle',{cx:20,cy:20,r:16}],['path',{d:'M20 4a16 16 0 0 1 16 16'}],['path',{'class':'jluxe-page-spark',d:'m20 13 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z'}]].forEach(function(item){var node=doc.createElementNS(ns,item[0]);Object.keys(item[1]).forEach(function(key){node.setAttribute(key,item[1][key]);});svg.appendChild(node);});art.appendChild(svg);
+      try {
+        var logoUrl=new win.URL(config.logo || '',win.location.href);
+        if(config.logo && logoUrl.origin===win.location.origin && /^https?:$/.test(logoUrl.protocol)){
+          var frame=doc.createElement('span');frame.className='jluxe-page-logo';
+          var logo=doc.createElement('img');logo.alt='';logo.width=36;logo.height=36;logo.decoding='async';
+          logo.addEventListener('load',function(){art.classList.add('has-logo');});
+          logo.addEventListener('error',function(){art.classList.remove('has-logo');});
+          logo.src=logoUrl.href;frame.appendChild(logo);art.appendChild(frame);
+        }
+      }catch(_){} // Missing/unavailable logo keeps the built-in local graphic.
       var label = doc.createElement('span');label.className = 'jluxe-page-progress-label';
       bar.appendChild(art);bar.appendChild(label);
       bar.setAttribute('aria-live', 'polite');bar.setAttribute('aria-atomic', 'true');doc.body.appendChild(bar);
