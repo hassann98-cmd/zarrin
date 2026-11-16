@@ -7,10 +7,10 @@
 .jluxe-page-progress {
   position:fixed;z-index:2147483000;left:50%;top:46%;transform:translate(-50%,-50%);
   display:flex;align-items:center;justify-content:center;gap:0;direction:rtl;box-sizing:border-box;
-  width:88px;height:88px;max-width:calc(100vw - 40px);padding:12px;border-radius:26px;
-  border:1px solid hsl(var(--primary,245 65% 58%) / .16);
-  background:hsl(var(--surface,0 0% 100%) / .97);color:hsl(var(--foreground,220 20% 18%));
-  box-shadow:0 18px 60px rgb(15 23 42 / .16),0 3px 12px rgb(15 23 42 / .06);
+  width:64px;height:64px;max-width:calc(100vw - 40px);padding:0;border-radius:0;
+  border:0;
+  background:transparent;color:hsl(var(--foreground,220 20% 18%));
+  box-shadow:none;
   pointer-events:none;animation:jluxe-wait-enter 160ms ease-out both;
 }
 .jluxe-page-progress[hidden]{display:none;}
@@ -25,15 +25,13 @@
 .jluxe-page-logo img{display:block;width:36px;height:36px;object-fit:contain;}
 .jluxe-page-orbit.has-logo .jluxe-page-logo{display:grid;}
 .jluxe-page-orbit.has-logo .jluxe-page-spark{display:none;}
-.jluxe-page-logo::after{content:"";position:absolute;inset:-20% -70%;pointer-events:none;background:linear-gradient(110deg,transparent 38%,rgb(255 255 255 / .85) 50%,transparent 62%);transform:translateX(-65%);animation:jluxe-logo-shine 1800ms ease-in-out infinite;}
-@keyframes jluxe-logo-shine{0%,15%{transform:translateX(-65%);}75%,100%{transform:translateX(65%);}}
 @keyframes jluxe-page-orbit{to{transform:rotate(360deg);}}
 @keyframes jluxe-page-breathe{50%{opacity:.55;transform:scale(.85);}}
 @keyframes jluxe-wait-enter{from{opacity:0;}to{opacity:1;}}
 a.jluxe-navigation-pressed{outline:2px solid currentColor;outline-offset:-2px;opacity:.86;}
 @media(prefers-reduced-motion: reduce){
  @view-transition { navigation: none; }
- ::view-transition-old(root),::view-transition-new(root),.jluxe-page-progress,.jluxe-page-orbit path,.jluxe-page-logo::after{animation:none;}
+ ::view-transition-old(root),::view-transition-new(root),.jluxe-page-progress,.jluxe-page-orbit path{animation:none;}
  a.jluxe-navigation-pressed{opacity:1;}
 }
-@media(forced-colors:active){.jluxe-page-progress{border-color:CanvasText;background:Canvas;color:CanvasText;}.jluxe-page-orbit{color:Highlight;}}
+@media(forced-colors:active){.jluxe-page-progress{color:CanvasText;}.jluxe-page-orbit{color:Highlight;}}

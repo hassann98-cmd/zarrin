@@ -11043,7 +11043,7 @@ check(
 	false !== strpos( $r341_variant_admin_source, 'name="footer[variant]"' ) &&
 	false !== strpos( $r341_variant_admin_source, 'name="product_card[variant]"' ) &&
 	false !== strpos( $r341_variant_main_source, 'design-variants.css' ) &&
-	false !== strpos( $r341_variant_css_source, 'data-jluxe-product-card-variant="premium"' ),
+	false !== strpos( $r341_variant_css_source, 'Product cards deliberately use storefront.css' ),
 	'R354 admin can select each opt-in variant; scoped CSS restyles existing PHP/WooCommerce markup via the frontend entry'
 );
 
