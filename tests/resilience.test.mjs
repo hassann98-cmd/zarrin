@@ -157,13 +157,14 @@ test("R22 network, malformed JSON, 5xx and stock rejections are never automatica
   ]) {
     settings();
     const { cartRequest } = await freshCart();
-    let calls = 0;
-    globalThis.fetch = async () => {
-      calls++;
+    const operations = [];
+    globalThis.fetch = async (_url, options) => {
+      operations.push(options.body.get("op"));
       return failure();
     };
     assert.ok((await cartRequest("add", { product_id: "51" })).error);
-    assert.equal(calls, 1);
+    assert.equal(operations.filter(op => op === "add").length, 1);
+    assert.ok(operations.slice(1).every(op => op === "get"), "only a read-only reconciliation may follow an ambiguous write");
     globalThis.fetch = async () => json({ success: true, data: cartData(2) });
     assert.equal(
       (await cartRequest("get")).snapshot.itemCount,
@@ -260,7 +261,7 @@ test("R22 three cart consumers refresh once per event and ignore an older read a
   assert.equal(calls, 3, "complete snapshot does not need a redundant request");
 });
 
-test("R343 drawer removal updates immediately, rolls back on a network timeout, and accepts WooCommerce truth on success", async () => {
+test("R343 drawer removal updates immediately, reconciles on a network timeout, and accepts WooCommerce truth on success", async () => {
   const instance = dom();
   const { u: useCart, cartRequest } = await freshCart();
   const before = {
@@ -288,7 +289,7 @@ test("R343 drawer removal updates immediately, rolls back on a network timeout, 
   let removals = 0;
   globalThis.fetch = async (_url, options) => {
     const operation = options.body.get("op");
-    if (operation === "get") return json({ success: true, data: before });
+    if (operation === "get") return json({ success: true, data: removals ? afterQueuedUpdate : before });
     if (operation === "update_qty") {
       signalQueuedUpdate();
       return new Promise((resolve) => {
@@ -358,8 +359,8 @@ test("R343 drawer removal updates immediately, rolls back on a network timeout, 
   });
   assert.equal(
     document.querySelector("output")?.textContent,
-    "4|line-1,line-2|idle|ارتباط با سرور برقرار نشد. دوباره تلاش کنید.",
-    "an ambiguous transport failure restores the newest confirmed snapshot, reports the error and is never treated as success",
+    "4|line-1,line-2|idle|نتیجهٔ درخواست قبلی تأیید نشد؛ آخرین وضعیت سبد دریافت شد. پیش از ادامه، سبد را بررسی کنید.",
+    "an ambiguous transport failure reads the newest confirmed snapshot, reports the error and is never treated as success",
   );
 
   await act(async () => {
@@ -831,8 +832,12 @@ test("R184 the optional assistant waits until after page load and stays outside 
     (sum, file) => sum + gzipSync(fs.readFileSync(new URL(file, root))).length,
     0,
   );
-  // The small mobile-home-prefetch helper is shared by both nav variants.
-  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 95_000, `gzip closure is ${gzipBytes} bytes`);
+  // Includes the shared reactive auth subscription and fresh-session publication.
+  // Retain a tight 99 kB gzip ceiling including bounded account JSON transport,
+  // shared pointer/touch dock-switch ownership and compatibility-click suppression,
+  // optimistic quantity editing/read coalescing
+  // and bounded category-image warmup plus decorative load/error placeholders.
+  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 99_000, `gzip closure is ${gzipBytes} bytes`);
 
   const staticClosure = new Set();
   visit("src/main.js", staticClosure);
@@ -878,7 +883,9 @@ test("R26 classic product and picker requests strip the native auto-add flag wit
   assert.equal(positions.length, 2);
   const cart = { nonce: "fresh", ajaxUrl: base + "wp-admin/admin-ajax.php" };
   for (const start of positions) {
-    const end = source.indexOf("\n\t\twindow.jluxeCartPost(", start);
+    const requestStart = source.indexOf("\n\t\twindow.jluxeCartPost(", start);
+    const progressStart = source.indexOf("\n\t\tvar operation = window.jluxeBeginProductAdd", start);
+    const end = progressStart > start ? Math.min(requestStart, progressStart) : requestStart;
     assert.ok(end > start);
     const result = vm.runInNewContext(
       `(function(){ ${source.slice(start, end)} return formData; })()`,
