@@ -1099,9 +1099,55 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 		);
 	}
 
+	$mobile_button_label = isset( $posted['mobile_checkout_button_label'] ) && is_scalar( $posted['mobile_checkout_button_label'] )
+		? sanitize_text_field( (string) $posted['mobile_checkout_button_label'] )
+		: (string) ( $defaults['mobile_checkout_button_label'] ?? 'پرداخت سریع موبایلی' );
+	if ( '' === trim( $mobile_button_label ) ) {
+		$mobile_button_label = (string) ( $defaults['mobile_checkout_button_label'] ?? 'پرداخت سریع موبایلی' );
+	}
+	$mobile_title = isset( $posted['mobile_checkout_title'] ) && is_scalar( $posted['mobile_checkout_title'] )
+		? sanitize_text_field( (string) $posted['mobile_checkout_title'] )
+		: (string) ( $defaults['mobile_checkout_title'] ?? 'پرداخت سریع موبایلی' );
+	if ( '' === trim( $mobile_title ) ) {
+		$mobile_title = (string) ( $defaults['mobile_checkout_title'] ?? 'پرداخت سریع موبایلی' );
+	}
+	$mobile_map_lat = isset( $posted['mobile_checkout_map_lat'] ) && is_scalar( $posted['mobile_checkout_map_lat'] )
+		? (float) $posted['mobile_checkout_map_lat']
+		: (float) ( $defaults['mobile_checkout_map_lat'] ?? 35.6892 );
+	if ( ! is_finite( $mobile_map_lat ) || $mobile_map_lat < -90.0 || $mobile_map_lat > 90.0 ) {
+		$mobile_map_lat = (float) ( $defaults['mobile_checkout_map_lat'] ?? 35.6892 );
+	}
+	$mobile_map_lng = isset( $posted['mobile_checkout_map_lng'] ) && is_scalar( $posted['mobile_checkout_map_lng'] )
+		? (float) $posted['mobile_checkout_map_lng']
+		: (float) ( $defaults['mobile_checkout_map_lng'] ?? 51.3890 );
+	if ( ! is_finite( $mobile_map_lng ) || $mobile_map_lng < -180.0 || $mobile_map_lng > 180.0 ) {
+		$mobile_map_lng = (float) ( $defaults['mobile_checkout_map_lng'] ?? 51.3890 );
+	}
+	$mobile_map_zoom = isset( $posted['mobile_checkout_map_zoom'] ) && is_scalar( $posted['mobile_checkout_map_zoom'] )
+		? absint( $posted['mobile_checkout_map_zoom'] )
+		: absint( $defaults['mobile_checkout_map_zoom'] ?? 12 );
+	if ( $mobile_map_zoom < 3 || $mobile_map_zoom > 19 ) {
+		$mobile_map_zoom = absint( $defaults['mobile_checkout_map_zoom'] ?? 12 );
+	}
+	$mobile_map_type = isset( $posted['mobile_checkout_map_type'] ) && is_scalar( $posted['mobile_checkout_map_type'] )
+		? sanitize_key( (string) $posted['mobile_checkout_map_type'] )
+		: (string) ( $defaults['mobile_checkout_map_type'] ?? 'standard-day' );
+	if ( ! in_array( $mobile_map_type, array( 'standard-day', 'standard-night', 'neshan', 'dreamy', 'dreamy-gold', 'osm-bright' ), true ) ) {
+		$mobile_map_type = (string) ( $defaults['mobile_checkout_map_type'] ?? 'standard-day' );
+	}
+
 	return array(
 		'checkout_layout'                  => $checkout_layout,
 		'checkout_map_enabled'             => ! empty( $posted['checkout_map_enabled'] ),
+		'mobile_checkout_enabled'          => ! empty( $posted['mobile_checkout_enabled'] ),
+		'mobile_checkout_otp_enabled'      => ! empty( $posted['mobile_checkout_otp_enabled'] ),
+		'mobile_checkout_map_enabled'      => ! empty( $posted['mobile_checkout_map_enabled'] ),
+		'mobile_checkout_button_label'     => $mobile_button_label,
+		'mobile_checkout_title'            => $mobile_title,
+		'mobile_checkout_map_lat'          => $mobile_map_lat,
+		'mobile_checkout_map_lng'          => $mobile_map_lng,
+		'mobile_checkout_map_zoom'         => $mobile_map_zoom,
+		'mobile_checkout_map_type'         => $mobile_map_type,
 		'show_stepper'                     => ! empty( $posted['show_stepper'] ),
 		'show_cart_coupon'                 => ! empty( $posted['show_cart_coupon'] ),
 		'cart_empty_message_enabled'       => ! empty( $posted['cart_empty_message_enabled'] ),

@@ -672,6 +672,7 @@ require_once JLUXE_THEME_DIR . '/inc/product-faq.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-tickets.php';
 require_once JLUXE_THEME_DIR . '/inc/attribute-swatches.php';
 require_once JLUXE_THEME_DIR . '/inc/theme-settings.php';
+require_once JLUXE_THEME_DIR . '/inc/mobile-checkout.php';
 require_once JLUXE_THEME_DIR . '/inc/store-closure.php';
 require_once JLUXE_THEME_DIR . '/inc/storefront-personalization.php';
 require_once JLUXE_THEME_DIR . '/inc/stock-alert.php';

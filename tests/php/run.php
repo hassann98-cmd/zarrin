@@ -11542,4 +11542,77 @@ $GLOBALS['orders'] = $journey_saved_orders;
 $GLOBALS['authenticated_user'] = $journey_auth_before;
 unset( $GLOBALS['account_actions_fixture'] );
 
+// پرداخت سریع موبایلی: مسیر مستقل کنار تسویه‌حساب اصلی؛ OTP قابل تنظیم و fail-closed.
+$mobile_defaults = jluxe_theme_settings_defaults();
+check(
+	false === $mobile_defaults['cart_checkout']['mobile_checkout_enabled'] &&
+	false === $mobile_defaults['cart_checkout']['mobile_checkout_otp_enabled'] &&
+	true === $mobile_defaults['cart_checkout']['mobile_checkout_map_enabled'] &&
+	'پرداخت سریع موبایلی' === $mobile_defaults['cart_checkout']['mobile_checkout_button_label'] &&
+	'standard-day' === $mobile_defaults['cart_checkout']['mobile_checkout_map_type'],
+	'Mobile checkout defaults keep the independent flow off, OTP off, and the main checkout untouched'
+);
+$mobile_posted = $mobile_defaults['cart_checkout'];
+$mobile_posted['mobile_checkout_enabled'] = '1';
+$mobile_posted['mobile_checkout_otp_enabled'] = '1';
+$mobile_posted['mobile_checkout_button_label'] = 'پرداخت سریع';
+$mobile_posted['mobile_checkout_map_lat'] = '35.6892';
+$mobile_posted['mobile_checkout_map_lng'] = '51.3890';
+$mobile_posted['mobile_checkout_map_zoom'] = '99';
+$mobile_posted['mobile_checkout_map_type'] = 'evil-script';
+$mobile_clean = jluxe_sanitize_cart_checkout( $mobile_posted, $mobile_defaults['cart_checkout'] );
+check(
+	true === $mobile_clean['mobile_checkout_enabled'] &&
+	true === $mobile_clean['mobile_checkout_otp_enabled'] &&
+	'پرداخت سریع' === $mobile_clean['mobile_checkout_button_label'] &&
+	12 === $mobile_clean['mobile_checkout_map_zoom'] &&
+	'standard-day' === $mobile_clean['mobile_checkout_map_type'],
+	'Mobile checkout settings sanitize toggles, labels, zoom, and map type'
+);
+check(
+	31 === count( jluxe_mobile_checkout_provinces() ) &&
+	'تهران' === jluxe_mobile_checkout_provinces()['THR'] &&
+	'THR' === jluxe_mobile_checkout_state_code_from_name( 'استان تهران' ) &&
+	'THR' === jluxe_mobile_checkout_state_code_from_name( 'Tehran' ) &&
+	'' === jluxe_mobile_checkout_state_code_from_name( 'Nowhere' ),
+	'Mobile checkout maps Persian and English province names to WooCommerce state codes'
+);
+$mobile_previous_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
+$mobile_live_settings = $mobile_defaults;
+update_test_settings( $mobile_live_settings );
+check( false === jluxe_mobile_checkout_enabled(), 'Mobile checkout stays hidden until the admin enables it' );
+$mobile_live_settings['cart_checkout']['mobile_checkout_enabled'] = true;
+update_test_settings( $mobile_live_settings );
+check( true === jluxe_mobile_checkout_enabled(), 'Mobile checkout becomes available only after the admin enables it' );
+check( '' !== jluxe_mobile_checkout_shortcode() && false !== strpos( jluxe_mobile_checkout_shortcode(), 'data-jluxe-mobile-checkout' ), 'Mobile checkout shortcode renders the independent root when enabled' );
+$mobile_live_settings['cart_checkout']['mobile_checkout_enabled'] = false;
+update_test_settings( $mobile_live_settings );
+check( '' === jluxe_mobile_checkout_shortcode(), 'Mobile checkout shortcode stays empty when disabled' );
+update_test_settings( $mobile_previous_settings );
+$mobile_source = (string) file_get_contents( ABSPATH . 'inc/mobile-checkout.php' );
+$mobile_js = (string) file_get_contents( ABSPATH . 'assets/js/mobile-checkout.js' );
+$mobile_css = (string) file_get_contents( ABSPATH . 'assets/css/mobile-checkout.css' );
+$mobile_page = (string) file_get_contents( ABSPATH . 'page-mobile-checkout.php' );
+check(
+	false !== strpos( $mobile_source, 'get_available_payment_gateways()' ) &&
+	false !== strpos( $mobile_source, 'jluxe_otp_available()' ) &&
+	false !== strpos( $mobile_source, 'تأیید موبایل فعال است ولی پیامک تنظیم نشده' ) &&
+	false !== strpos( $mobile_source, 'created_via' ) &&
+	false === strpos( $mobile_source, 'woocommerce_payment_gateways' ) &&
+	false !== strpos( $mobile_source, "add_shortcode( 'jluxe_mobile_checkout'" ) &&
+	false !== strpos( $mobile_source, 'jluxe_mobile_checkout_cart_button' ) &&
+	false !== strpos( $mobile_js, 'ajax("gateways")' ) &&
+	false !== strpos( $mobile_js, 'ajax("pay"' ) &&
+	false !== strpos( $mobile_css, '.jluxe-mobile-checkout__sheet-ov' ) &&
+	false !== strpos( $mobile_page, '[jluxe_mobile_checkout]' ),
+	'Mobile checkout reads live WooCommerce gateways, fails closed without SMS, and never registers as a main payment gateway'
+);
+check(
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' ), 'woocommerce_checkout_payment' ) &&
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'woocommerce_checkout_payment()' ) &&
+	false === strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' ), 'jluxe_mobile_checkout' ) &&
+	false === strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'jluxe_mobile_checkout' ),
+	'Main checkout templates contain no mobile-checkout hooks'
+);
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

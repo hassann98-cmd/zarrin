@@ -1940,11 +1940,24 @@ function jluxe_render_cart_checkout_color_field( string $name, string $id, strin
 
 function jluxe_render_cart_checkout_page(): void {
 	$status   = jluxe_handle_generic_settings_save( 'jluxe-cart-checkout' );
+	$mobile_warnings = array();
+	if ( 'saved' === $status ) {
+		if ( isset( $_POST['jluxe_mobile_map_key'] ) && is_scalar( $_POST['jluxe_mobile_map_key'] ) ) {
+			jluxe_mobile_checkout_set_map_key( sanitize_text_field( wp_unslash( (string) $_POST['jluxe_mobile_map_key'] ) ) );
+		}
+		if ( function_exists( 'jluxe_apply_posted_secret' ) ) {
+			$mobile_warnings[] = jluxe_apply_posted_secret( 'jluxe_mobile_service_key', jluxe_mobile_checkout_get_service_key(), 'jluxe_mobile_checkout_set_service_key', 'کلید سرویس نشان' );
+		}
+	}
 	$settings = jluxe_get_fresh_settings();
 	$cart     = $settings['cart_checkout'];
 	$copy     = $cart['copy'];
+	$mobile_map_key = function_exists( 'jluxe_mobile_checkout_get_map_key' ) ? jluxe_mobile_checkout_get_map_key() : '';
+	$mobile_service_key = function_exists( 'jluxe_mobile_checkout_get_service_key' ) ? jluxe_mobile_checkout_get_service_key() : '';
+	$mobile_service_hint = function_exists( 'jluxe_secret_hint' ) ? jluxe_secret_hint( $mobile_service_key ) : '';
+	unset( $mobile_service_key );
 
-	jluxe_settings_page_shell( 'سبد خرید و تسویه حساب', 'jluxe-cart-checkout', $status, function () use ( $cart, $copy ) {
+	jluxe_settings_page_shell( 'سبد خرید و تسویه حساب', 'jluxe-cart-checkout', $status, function () use ( $cart, $copy, $mobile_warnings, $mobile_map_key, $mobile_service_hint ) {
 		?>
 		<p class="description">متن‌های نمایشیِ پوسته و توضیحاتِ روش‌های ارسال را از این بخش ویرایش کنید. این تنظیمات فقط ظاهر/متن را کنترل می‌کنند؛ نرخ، هزینه، مالیات، انتخاب روش و محاسبهٔ حمل‌ونقل همچنان کاملاً در اختیار WooCommerce است. برای حذف یک عنوان یا متن اختیاری، مقدار آن را خالی کنید؛ متن دکمه‌های اصلی برای حفظ دسترس‌پذیری خالی بماند به برچسب پیش‌فرض برمی‌گردد.</p>
 
@@ -2113,6 +2126,57 @@ function jluxe_render_cart_checkout_page(): void {
 						<?php jluxe_render_cart_checkout_color_field( 'cart_checkout[shipping_methods][' . $method_key . '][details_text_color]', 'jluxe-shipping-details-text-' . $method_key, 'رنگ نوشتهٔ جزئیات', (string) $cart['shipping_methods'][ $method_key ]['details_text_color'] ); ?>
 					</table>
 			<?php endforeach; ?>
+
+			<h2>پرداخت سریع موبایلی</h2>
+			<p class="description">مسیر مستقل کنار تسویه‌حساب اصلی است؛ تسویه‌حساب اصلی، درگاه‌ها و دکمهٔ پرداخت آن دست‌نخورده می‌مانند. در این مسیر آدرس با نقشه ثبت می‌شود، روش ارسال واقعی ووکامرس انتخاب می‌شود و درگاه‌ها دقیقاً از درگاه‌های فعال ووکامرس خوانده می‌شوند. اگر OTP فعال باشد ولی پیامک تنظیم نشده باشد، این مسیر سفارش نمی‌سازد.</p>
+			<?php jluxe_render_secret_warnings( $mobile_warnings ); ?>
+			<table class="form-table" role="presentation">
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'mobile_checkout_enabled', 'فعال‌سازی پرداخت سریع موبایلی' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'mobile_checkout_otp_enabled', 'تأیید موبایل با OTP در این مسیر' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'mobile_checkout_map_enabled', 'انتخاب موقعیت روی نقشه' ); ?>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-checkout-button-label">متن دکمه در سبد</label></th>
+					<td><input type="text" id="jluxe-mobile-checkout-button-label" name="cart_checkout[mobile_checkout_button_label]" value="<?php echo esc_attr( (string) ( $cart['mobile_checkout_button_label'] ?? 'پرداخت سریع موبایلی' ) ); ?>" class="regular-text" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-checkout-title">عنوان صفحه موبایلی</label></th>
+					<td><input type="text" id="jluxe-mobile-checkout-title" name="cart_checkout[mobile_checkout_title]" value="<?php echo esc_attr( (string) ( $cart['mobile_checkout_title'] ?? 'پرداخت سریع موبایلی' ) ); ?>" class="regular-text" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-map-lat">عرض جغرافیایی پیش‌فرض</label></th>
+					<td><input type="number" step="0.0001" id="jluxe-mobile-map-lat" name="cart_checkout[mobile_checkout_map_lat]" value="<?php echo esc_attr( (string) ( $cart['mobile_checkout_map_lat'] ?? 35.6892 ) ); ?>" class="small-text" dir="ltr" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-map-lng">طول جغرافیایی پیش‌فرض</label></th>
+					<td><input type="number" step="0.0001" id="jluxe-mobile-map-lng" name="cart_checkout[mobile_checkout_map_lng]" value="<?php echo esc_attr( (string) ( $cart['mobile_checkout_map_lng'] ?? 51.3890 ) ); ?>" class="small-text" dir="ltr" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-map-zoom">زوم اولیه نقشه</label></th>
+					<td><input type="number" min="3" max="19" id="jluxe-mobile-map-zoom" name="cart_checkout[mobile_checkout_map_zoom]" value="<?php echo esc_attr( (string) ( $cart['mobile_checkout_map_zoom'] ?? 12 ) ); ?>" class="small-text" dir="ltr" /></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-map-type">سبک نقشه نشان</label></th>
+					<td>
+						<select id="jluxe-mobile-map-type" name="cart_checkout[mobile_checkout_map_type]">
+							<?php foreach ( array( 'standard-day' => 'Standard Day', 'standard-night' => 'Standard Night', 'neshan' => 'Neshan', 'dreamy' => 'Dreamy', 'dreamy-gold' => 'Dreamy Gold', 'osm-bright' => 'OSM Bright' ) as $value => $label ) : ?>
+								<option value="<?php echo esc_attr( $value ); ?>" <?php selected( (string) ( $cart['mobile_checkout_map_type'] ?? 'standard-day' ), $value ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">فقط وقتی کلید نقشه نشان ثبت شده باشد استفاده می‌شود؛ در غیر این صورت OpenStreetMap فعال است.</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-map-key">کلید نقشه نشان (web.xxxx)</label></th>
+					<td><input type="text" id="jluxe-mobile-map-key" name="jluxe_mobile_map_key" value="<?php echo esc_attr( $mobile_map_key ); ?>" class="regular-text" dir="ltr" autocomplete="off" /><p class="description">از <a href="https://platform.neshan.org" target="_blank" rel="noopener">platform.neshan.org</a> بگیرید. خالی بماند یعنی نقشه OpenStreetMap.</p></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="jluxe-mobile-service-key">کلید سرویس نشان (service.xxxx)</label></th>
+					<td>
+						<?php jluxe_render_secret_field( array( 'id' => 'jluxe-mobile-service-key', 'name' => 'jluxe_mobile_service_key', 'has_key' => '' !== $mobile_service_hint, 'hint' => $mobile_service_hint, 'confirm_clear' => 'کلید سرویس نشان حذف بشه؟ تبدیل مختصات به آدرس به OpenStreetMap برمی‌گردد.', 'placeholder' => 'service.xxxx' ) ); ?>
+						<p class="description">فقط سمت سرور برای تبدیل مختصات به آدرس استفاده می‌شود و به مرورگر فرستاده نمی‌شود.</p>
+					</td>
+				</tr>
+			</table>
 			<?php jluxe_settings_submit_button( true, 'cart_checkout' ); ?>
 		</form>
 		<?php
