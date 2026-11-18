@@ -146,16 +146,18 @@
       stateSelect.addEventListener("change", function () {
         var code = String(stateSelect.value || "").trim();
         // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن ساخته شود، بعد کپی به آکاردئون.
-        // تم روی تغییر برنامه‌محور billing_state محافظ ضد-autofill دارد و آن را
-        // پاک می‌کند؛ با شلیک select2:select (همان رویداد انتخاب کاربر در Select2)
-        // تم می‌فهمد انتخاب کاربر بوده و لیست شهر را می‌سازد.
+        // دقیقاً رفتار Select2 هنگام انتخاب کاربر تکرار می‌شود (select2:select
+        // سپس change، هر دو jQuery event) تا هم محافظ ضد-autofill تم آن را
+        // انتخاب کاربر بداند و هم پلاگین شهرها لیست شهر را بسازد.
         var billingState = document.getElementById("billing_state");
         if (billingState) {
           billingState.value = code;
           if (window.jQuery) {
             jQuery(billingState).trigger("select2:select");
+            jQuery(billingState).trigger("change");
+          } else {
+            billingState.dispatchEvent(new Event("change", { bubbles: true }));
           }
-          billingState.dispatchEvent(new Event("change", { bubbles: true }));
         }
         mirrorBillingCities();
       });
@@ -253,8 +255,14 @@
       if (!form || !toggle) return;
       form.hidden = !open;
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      if (open && stateSelect) {
-        stateSelect.focus();
+      if (open) {
+        // گزینه‌های استان/شهر ممکن است بعد از لود صفحه (AJAX پلاگین) پر شده
+        // باشند؛ موقع باز شدن آکاردئون دوباره همگام می‌کنیم تا تازه باشند.
+        syncStateOptionsFromBilling();
+        mirrorBillingCities();
+        if (stateSelect) {
+          stateSelect.focus();
+        }
       }
     }
 
