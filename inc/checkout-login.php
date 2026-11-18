@@ -469,7 +469,7 @@ function jluxe_render_address_selector(): void {
 			<span>وارد کردن آدرس جدید</span>
 		</button>
 
-		<div class="jluxe-checkout-addresses__form" data-jluxe-address-form hidden>
+		<div class="jluxe-checkout-addresses__form" data-jluxe-address-form>
 			<div class="jluxe-checkout-addresses__form-header">
 				<h3 class="jluxe-checkout-addresses__form-title">افزودن آدرس جدید</h3>
 				<button type="button" class="jluxe-checkout-addresses__close" data-jluxe-address-close aria-label="بستن">
@@ -477,21 +477,18 @@ function jluxe_render_address_selector(): void {
 				</button>
 			</div>
 			<div class="jluxe-checkout-addresses__fields">
-				<div class="jluxe-checkout-addresses__field">
-					<label for="jluxe-new-state">استان</label>
-					<select id="jluxe-new-state" data-jluxe-new-field="state" autocomplete="off">
-						<option value="">استان خود را انتخاب نمایید</option>
-						<?php foreach ( jluxe_checkout_provinces() as $code => $name ) : ?>
-							<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $name ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-				<div class="jluxe-checkout-addresses__field">
-					<label for="jluxe-new-city">شهر</label>
-					<select id="jluxe-new-city" data-jluxe-new-field="city" autocomplete="off">
-						<option value="">لطفا ابتدا استان خود را انتخاب نمایید</option>
-					</select>
-				</div>
+				<?php
+				// استان/شهر همان فیلدهای واقعی ووکامرس (billing_state/billing_city)
+				// هستند تا مکانیزم لود شهر (تم/پلاگین) دقیقاً روی همان‌ها کار کند.
+				$jluxe_checkout = function_exists( 'WC' ) && WC() ? WC()->checkout : null;
+				$jluxe_billing_fields = $jluxe_checkout ? $jluxe_checkout->get_checkout_fields( 'billing' ) : array();
+				if ( isset( $jluxe_billing_fields['billing_state'] ) ) :
+					woocommerce_form_field( 'billing_state', $jluxe_billing_fields['billing_state'], $jluxe_checkout->get_value( 'billing_state' ) );
+				endif;
+				if ( isset( $jluxe_billing_fields['billing_city'] ) ) :
+					woocommerce_form_field( 'billing_city', $jluxe_billing_fields['billing_city'], $jluxe_checkout->get_value( 'billing_city' ) );
+				endif;
+				?>
 				<div class="jluxe-checkout-addresses__field jluxe-checkout-addresses__field--wide">
 					<label for="jluxe-new-address-1">آدرس دقیق</label>
 					<textarea id="jluxe-new-address-1" rows="2" data-jluxe-new-field="address_1" autocomplete="street-address"></textarea>

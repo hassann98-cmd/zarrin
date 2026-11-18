@@ -41,37 +41,36 @@ test("saved address preview first, new-address accordion below", () => {
   assert.ok(listIdx !== -1 && formIdx !== -1 && listIdx < formIdx, "saved list renders before the new-address form");
 });
 
-test("province and city use native selects like the WooCommerce fields", () => {
+test("province and city are the real WooCommerce fields inside the accordion", () => {
   const php = read("inc/checkout-login.php");
-  assert.match(php, /jluxe_checkout_provinces/);
-  assert.match(php, /jluxe_iran_cities/);
-  // <select> استاندارد با مقدار کد استان (مثل فیلدهای ووکامرس).
-  assert.match(php, /<select id="jluxe-new-state" data-jluxe-new-field="state"/);
-  assert.match(php, /<select id="jluxe-new-city" data-jluxe-new-field="city"/);
-  assert.match(php, /استان خود را انتخاب نمایید/);
-  assert.match(php, /لطفا ابتدا استان خود را انتخاب نمایید/);
-  // پیکر سفارشی حذف شده.
+  // فیلدهای واقعی ووکامرس در آکاردئون رندر می‌شوند (نه سلکت جدا).
+  assert.match(php, /woocommerce_form_field\( 'billing_state'/);
+  assert.match(php, /woocommerce_form_field\( 'billing_city'/);
+  assert.match(php, /get_checkout_fields\( 'billing' \)/);
+  // سلکت‌های جدا و پیکر سفارشی حذف شده‌اند.
+  assert.doesNotMatch(php, /jluxe-new-state/);
+  assert.doesNotMatch(php, /jluxe-new-city/);
   assert.doesNotMatch(php, /data-jluxe-picker/);
   assert.doesNotMatch(php, /jluxe-checkout-picker/);
   assert.match(php, /data-jluxe-identity-field/);
   assert.match(php, /jluxe_phone/);
+  // فرم صورتحساب استان/شهر را تکرار نمی‌کند.
+  const billing = read("woocommerce/checkout/form-billing.php");
+  assert.match(billing, /billing_state/);
+  assert.match(billing, /billing_city/);
+  assert.match(billing, /continue/);
   const js = read("assets/js/checkout-login.js");
-  // cascade استاندارد: گزینه‌های استان/شهر از فیلدهای ووکامرس کپی می‌شوند
-  // (منبع واحد حقیقت — مقادیر ممکن است آی‌دی عددی پلاگین باشند) +
-  // MutationObserver برای AJAX + select2:select برای محافظ ضد-autofill تم.
-  assert.match(js, /syncStateOptionsFromBilling/);
-  assert.match(js, /mirrorBillingCities/);
-  assert.match(js, /MutationObserver/);
-  assert.match(js, /select2:select/);
+  // دیگر نیازی به همگام‌سازی/کپی نیست؛ فیلدها واقعی‌اند و cascade را تم انجام می‌دهد.
   assert.match(js, /billing_state/);
   assert.match(js, /billing_city/);
-  assert.match(js, /select2/);
   assert.match(js, /data-jluxe-identity-field/);
-  // پیکر سفارشی حذف شده.
+  assert.doesNotMatch(js, /syncStateOptionsFromBilling/);
+  assert.doesNotMatch(js, /mirrorBillingCities/);
+  assert.doesNotMatch(js, /MutationObserver/);
   assert.doesNotMatch(js, /buildPicker/);
   assert.doesNotMatch(js, /data-jluxe-picker/);
   const css = read("assets/css/checkout-login.css");
-  assert.match(css, /jluxe-checkout-addresses__field select/);
+  assert.match(css, /jluxe-checkout-addresses__fields \.form-row/);
   assert.match(css, /select2-container/);
   assert.doesNotMatch(css, /jluxe-checkout-picker/);
 });

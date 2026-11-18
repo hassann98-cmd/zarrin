@@ -11574,14 +11574,15 @@ check(
 	false !== strpos( $login_source, 'jluxe_ajax_save_checkout_address' ) &&
 	false !== strpos( $login_source, 'jluxe_checkout_provinces' ) &&
 	false !== strpos( $login_source, 'jluxe_iran_cities' ) &&
-	false !== strpos( $login_source, 'jluxe-new-state' ) &&
-	false !== strpos( $login_source, 'jluxe-new-city' ) &&
+	false !== strpos( $login_source, "woocommerce_form_field( 'billing_state'" ) &&
+	false !== strpos( $login_source, "woocommerce_form_field( 'billing_city'" ) &&
 	false !== strpos( $login_source, 'data-jluxe-identity-field' ) &&
 	false !== strpos( $login_source, 'WC_Customer' ) &&
 	false === strpos( $login_source, 'woocommerce_payment_gateways' ) &&
 	false === strpos( $login_source, 'jluxe_render_checkout_login_card' ) &&
-	false === strpos( $login_source, 'data-jluxe-picker' ),
-	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with native province/city selects, and never registers as a gateway'
+	false === strpos( $login_source, 'data-jluxe-picker' ) &&
+	false === strpos( $login_source, 'jluxe-new-state' ),
+	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with real WooCommerce province/city fields, and never registers as a gateway'
 );
 check(
 	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'jluxe_render_address_selector()' ) &&

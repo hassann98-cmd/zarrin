@@ -60,123 +60,10 @@
       });
     });
 
-    /* ---------- استان/شهر با <select> استاندارد (همان مکانیزم ووکامرس) ----------
-       گزینه‌های استان و شهر آکاردئون از خودِ فیلدهای billing_state/billing_city
-       ووکامرس کپی می‌شوند (منبع واحد حقیقت)؛ مقادیر ممکن است آی‌دی عددی
-       پلاگین شهرها باشند نه کد ISO، پس باید عیناً همان‌ها استفاده شوند تا
-       مقدار انتخاب‌شده با گزینه‌های ووکامرس بخواند و لیست شهر ساخته شود. */
-    var stateSelect = selector.querySelector('[data-jluxe-new-field="state"]');
-    var citySelect = selector.querySelector('[data-jluxe-new-field="city"]');
-    var billingCity = document.getElementById("billing_city");
-    var syncingCity = false;
-
-    // کپی گزینه‌های استان از billing_state ووکامرس به سلکت استان آکاردئون.
-    function syncStateOptionsFromBilling() {
-      var billingState = document.getElementById("billing_state");
-      if (!stateSelect || !billingState || !billingState.options.length) return;
-      var keep = stateSelect.value;
-      stateSelect.innerHTML = "";
-      Array.prototype.forEach.call(billingState.options, function (opt) {
-        var clone = document.createElement("option");
-        clone.value = opt.value;
-        clone.textContent = opt.textContent;
-        stateSelect.appendChild(clone);
-      });
-      var stillThere = Array.prototype.some.call(stateSelect.options, function (o) {
-        return o.value === keep;
-      });
-      stateSelect.value = stillThere ? keep : "";
-    }
-
-    function refreshCitySelect2() {
-      if (window.jQuery && jQuery.fn.select2 && jQuery(citySelect).data("select2")) {
-        jQuery(citySelect).trigger("change");
-      }
-    }
-
-    // کپی گزینه‌های billing_city ووکامرس به سلکت شهر آکاردئون.
-    function mirrorBillingCities() {
-      if (!citySelect || !billingCity) return;
-      var keep = billingCity.value;
-      syncingCity = true;
-      citySelect.innerHTML = "";
-      Array.prototype.forEach.call(billingCity.options, function (opt) {
-        var clone = document.createElement("option");
-        clone.value = opt.value;
-        clone.textContent = opt.textContent;
-        citySelect.appendChild(clone);
-      });
-      var stillThere = Array.prototype.some.call(citySelect.options, function (o) {
-        return o.value === keep;
-      });
-      citySelect.value = stillThere ? keep : "";
-      syncingCity = false;
-      refreshCitySelect2();
-    }
-
-    function resetCitySelect() {
-      if (!citySelect) return;
-      syncingCity = true;
-      citySelect.innerHTML = "";
-      var placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = "لطفا ابتدا استان خود را انتخاب نمایید";
-      citySelect.appendChild(placeholder);
-      citySelect.value = "";
-      syncingCity = false;
-      refreshCitySelect2();
-    }
-
-    function initSelect2(el, placeholder) {
-      if (!el || !window.jQuery || !jQuery.fn.select2) return;
-      if (jQuery(el).data("select2")) return;
-      jQuery(el).select2({
-        dir: "rtl",
-        width: "100%",
-        placeholder: placeholder,
-        allowClear: false,
-      });
-    }
-
-    syncStateOptionsFromBilling();
-    initSelect2(stateSelect, "استان خود را انتخاب نمایید");
-    initSelect2(citySelect, "لطفا ابتدا استان خود را انتخاب نمایید");
-
-    if (stateSelect) {
-      stateSelect.addEventListener("change", function () {
-        var code = String(stateSelect.value || "").trim();
-        // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن ساخته شود، بعد کپی به آکاردئون.
-        // دقیقاً رفتار Select2 هنگام انتخاب کاربر تکرار می‌شود (select2:select
-        // سپس change، هر دو jQuery event) تا هم محافظ ضد-autofill تم آن را
-        // انتخاب کاربر بداند و هم پلاگین شهرها لیست شهر را بسازد.
-        var billingState = document.getElementById("billing_state");
-        if (billingState) {
-          billingState.value = code;
-          if (window.jQuery) {
-            jQuery(billingState).trigger("select2:select");
-            jQuery(billingState).trigger("change");
-          } else {
-            billingState.dispatchEvent(new Event("change", { bubbles: true }));
-          }
-        }
-        mirrorBillingCities();
-      });
-    }
-    if (citySelect) {
-      citySelect.addEventListener("change", function () {
-        if (syncingCity) return;
-        setField("billing_city", citySelect.value);
-      });
-    }
-
-    // اگر پلاگین شهرها را به‌صورت ناهمگام (AJAX) در billing_city بریزد،
-    // تغییرات گزینه‌ها را ببین و آکاردئون را هم به‌روز کن.
-    if (billingCity && citySelect && window.MutationObserver) {
-      var cityObserver = new MutationObserver(function () {
-        mirrorBillingCities();
-      });
-      cityObserver.observe(billingCity, { childList: true });
-    }
+    /* ---------- استان/شهر: همان فیلدهای واقعی ووکامرس (billing_state/billing_city) ----------
+       این فیلدها در آکاردئون رندر می‌شوند (نه در فرم صورتحساب) تا مکانیزم لود
+       شهر تم/پلاگین دقیقاً روی همان‌ها کار کند؛ نیازی به همگام‌سازی نیست.
+       cascade استان→شهر را خودِ JS تم (woocommerce.js) انجام می‌دهد. */
 
     /* ---------- انتخاب آدرس ذخیره‌شده ---------- */
     function cards() {
@@ -245,10 +132,11 @@
 
     function clearNewForm() {
       if (!form) return;
+      // فقط فیلدهای مخصوص آکاردئون پاک می‌شوند؛ استان/شهر (billing_state/
+      // billing_city) همان فیلدهای تسویه‌حساب‌اند و دست نمی‌خورند.
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
       });
-      resetCitySelect();
     }
 
     function setFormOpen(open) {
@@ -256,15 +144,16 @@
       form.hidden = !open;
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       if (open) {
-        // گزینه‌های استان/شهر ممکن است بعد از لود صفحه (AJAX پلاگین) پر شده
-        // باشند؛ موقع باز شدن آکاردئون دوباره همگام می‌کنیم تا تازه باشند.
-        syncStateOptionsFromBilling();
-        mirrorBillingCities();
-        if (stateSelect) {
-          stateSelect.focus();
+        var stateField = field("billing_state");
+        if (stateField) {
+          stateField.focus();
         }
       }
     }
+
+    // آکاردئون به‌صورت پیش‌فرض بسته است؛ بدون JS فرم باز می‌ماند تا
+    // فیلدهای استان/شهر در دسترس باشند (پشتیبانی پیش‌رونده).
+    setFormOpen(false);
 
     if (toggle) {
       toggle.addEventListener("click", function () {
@@ -287,7 +176,12 @@
 
     function collectNewAddress() {
       var data = {};
-      ["state", "city", "address_1", "postcode", "email"].forEach(function (name) {
+      // استان/شهر همان فیلدهای واقعی ووکامرس‌اند.
+      var stateEl = field("billing_state");
+      data.state = stateEl ? stateEl.value.trim() : "";
+      var cityEl = field("billing_city");
+      data.city = cityEl ? cityEl.value.trim() : "";
+      ["address_1", "postcode", "email"].forEach(function (name) {
         var el = newField(name);
         data[name] = el ? el.value.trim() : "";
       });

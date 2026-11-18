@@ -40,6 +40,11 @@ uasort(
 	<div class="woocommerce-billing-fields__field-wrapper jluxe-billing-grid">
 		<?php
 		foreach ( $fields as $key => $field ) {
+			// استان/شهر در بخش «آدرس تحویل» (آکاردئون آدرس جدید) رندر می‌شوند
+			// تا همان فیلدهای واقعی ووکامرس باشند؛ این‌جا تکرار نمی‌شوند.
+			if ( in_array( $key, array( 'billing_state', 'billing_city' ), true ) ) {
+				continue;
+			}
 			woocommerce_form_field( $key, $field, $checkout->get_value( $key ) );
 		}
 		?>
