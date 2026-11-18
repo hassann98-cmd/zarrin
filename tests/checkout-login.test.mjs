@@ -41,21 +41,34 @@ test("saved address preview first, new-address accordion below", () => {
   assert.ok(listIdx !== -1 && formIdx !== -1 && listIdx < formIdx, "saved list renders before the new-address form");
 });
 
-test("province and city are searchable pickers; identity is pre-filled and editable", () => {
+test("province and city use native selects like the WooCommerce fields", () => {
   const php = read("inc/checkout-login.php");
   assert.match(php, /jluxe_checkout_provinces/);
   assert.match(php, /jluxe_iran_cities/);
-  assert.match(php, /data-jluxe-picker/);
-  assert.match(php, /data-jluxe-picker-search/);
+  // <select> استاندارد با مقدار کد استان (مثل فیلدهای ووکامرس).
+  assert.match(php, /<select id="jluxe-new-state" data-jluxe-new-field="state"/);
+  assert.match(php, /<select id="jluxe-new-city" data-jluxe-new-field="city"/);
+  assert.match(php, /استان خود را انتخاب نمایید/);
+  assert.match(php, /لطفا ابتدا استان خود را انتخاب نمایید/);
+  // پیکر سفارشی حذف شده.
+  assert.doesNotMatch(php, /data-jluxe-picker/);
+  assert.doesNotMatch(php, /jluxe-checkout-picker/);
   assert.match(php, /data-jluxe-identity-field/);
   assert.match(php, /jluxe_phone/);
   const js = read("assets/js/checkout-login.js");
-  assert.match(js, /buildPicker/);
-  assert.match(js, /normalizeFa/);
+  // cascade استاندارد: تغییر استان → ساخت لیست شهرها + همگام‌سازی با ووکامرس.
+  assert.match(js, /rebuildCities/);
+  assert.match(js, /billing_state/);
+  assert.match(js, /billing_city/);
+  assert.match(js, /select2/);
   assert.match(js, /data-jluxe-identity-field/);
+  // پیکر سفارشی حذف شده.
+  assert.doesNotMatch(js, /buildPicker/);
+  assert.doesNotMatch(js, /data-jluxe-picker/);
   const css = read("assets/css/checkout-login.css");
-  assert.match(css, /jluxe-checkout-picker__panel/);
-  assert.match(css, /jluxe-checkout-picker__search/);
+  assert.match(css, /jluxe-checkout-addresses__field select/);
+  assert.match(css, /select2-container/);
+  assert.doesNotMatch(css, /jluxe-checkout-picker/);
 });
 
 test("address selector renders saved addresses and identity from OTP", () => {
@@ -96,13 +109,3 @@ test("checkout login CSS matches the theme design tokens", () => {
   assert.match(css, /jluxe-checkout-addresses__card/);
   assert.match(css, /jluxe-checkout-addresses__form/);
 });
-<<<<<<< HEAD
-
-test("picker panel respects the hidden attribute (display:flex must not override it)", () => {
-  const css = read("assets/css/checkout-login.css");
-  // پنل display:flex دارد؛ بدون قاعدهٔ [hidden]، خاصیت hidden مرورگر خنثی
-  // می‌شود و پنل همیشه باز می‌ماند (بسته نمی‌شود و دکمهٔ شهر را می‌پوشاند).
-  assert.match(css, /jluxe-checkout-picker__panel\[hidden\]\s*\{\s*display:\s*none/);
-});
-=======
->>>>>>> origin/arena/941635f7-zarrin

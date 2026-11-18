@@ -478,36 +478,19 @@ function jluxe_render_address_selector(): void {
 			</div>
 			<div class="jluxe-checkout-addresses__fields">
 				<div class="jluxe-checkout-addresses__field">
-					<label id="jluxe-new-address-state-label">استان</label>
-					<div class="jluxe-checkout-picker" data-jluxe-picker="state">
-						<button type="button" class="jluxe-checkout-picker__button" data-jluxe-picker-button aria-haspopup="listbox" aria-expanded="false" aria-labelledby="jluxe-new-address-state-label">
-							<span data-jluxe-picker-value>انتخاب استان</span>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-						</button>
-						<div class="jluxe-checkout-picker__panel" data-jluxe-picker-panel hidden>
-							<div class="jluxe-checkout-picker__search">
-								<input type="search" placeholder="جست‌وجوی استان…" autocomplete="off" data-jluxe-picker-search aria-label="جست‌وجوی استان" />
-							</div>
-							<ul class="jluxe-checkout-picker__list" role="listbox" data-jluxe-picker-list></ul>
-						</div>
-					</div>
-					<input type="hidden" data-jluxe-new-field="state" value="" />
+					<label for="jluxe-new-state">استان</label>
+					<select id="jluxe-new-state" data-jluxe-new-field="state" autocomplete="off">
+						<option value="">استان خود را انتخاب نمایید</option>
+						<?php foreach ( jluxe_checkout_provinces() as $code => $name ) : ?>
+							<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $name ); ?></option>
+						<?php endforeach; ?>
+					</select>
 				</div>
 				<div class="jluxe-checkout-addresses__field">
-					<label id="jluxe-new-address-city-label">شهر</label>
-					<div class="jluxe-checkout-picker" data-jluxe-picker="city">
-						<button type="button" class="jluxe-checkout-picker__button" data-jluxe-picker-button aria-haspopup="listbox" aria-expanded="false" aria-labelledby="jluxe-new-address-city-label" disabled>
-							<span data-jluxe-picker-value>ابتدا استان را انتخاب کنید</span>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-						</button>
-						<div class="jluxe-checkout-picker__panel" data-jluxe-picker-panel hidden>
-							<div class="jluxe-checkout-picker__search">
-								<input type="search" placeholder="جست‌وجوی شهر…" autocomplete="off" data-jluxe-picker-search aria-label="جست‌وجوی شهر" />
-							</div>
-							<ul class="jluxe-checkout-picker__list" role="listbox" data-jluxe-picker-list></ul>
-						</div>
-					</div>
-					<input type="hidden" data-jluxe-new-field="city" value="" />
+					<label for="jluxe-new-city">شهر</label>
+					<select id="jluxe-new-city" data-jluxe-new-field="city" autocomplete="off" disabled>
+						<option value="">لطفا ابتدا استان خود را انتخاب نمایید</option>
+					</select>
 				</div>
 				<div class="jluxe-checkout-addresses__field jluxe-checkout-addresses__field--wide">
 					<label for="jluxe-new-address-1">آدرس دقیق</label>

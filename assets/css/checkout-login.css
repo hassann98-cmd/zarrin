@@ -300,23 +300,10 @@ body.woocommerce-checkout .jluxe-checkout-addresses__form .jluxe-checkout-action
   width: 100%;
 }
 
-/* ---------- پیکر استان/شهر با جستجو ---------- */
+/* ---------- استان/شهر با <select> استاندارد + Select2 (همان مکانیزم ووکامرس) ---------- */
 
-body.woocommerce-checkout .jluxe-checkout-picker {
-  position: relative;
-  z-index: 1;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker:has(.jluxe-checkout-picker__panel:not([hidden])) {
-  z-index: 9998;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__button {
+body.woocommerce-checkout .jluxe-checkout-addresses__field select {
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
   width: 100%;
   min-height: 2.75rem;
   padding: 0.6rem 0.75rem;
@@ -327,112 +314,52 @@ body.woocommerce-checkout .jluxe-checkout-picker__button {
   font: inherit;
   font-size: 0.875rem;
   line-height: 1.6;
-  text-align: start;
-  cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__button:hover {
+body.woocommerce-checkout .jluxe-checkout-addresses__field select:hover {
   border-color: hsl(var(--primary) / 0.45);
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__button:focus-visible {
+body.woocommerce-checkout .jluxe-checkout-addresses__field select:focus {
   border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
   outline: none;
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__button:disabled {
+body.woocommerce-checkout .jluxe-checkout-addresses__field select:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__button svg {
-  flex: 0 0 auto;
-  width: 1rem;
-  height: 1rem;
-  color: hsl(var(--muted-foreground, 215 20% 42%));
+/* کانتینر Select2 هم‌خانواده با اینپوت‌های همین بخش */
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container {
+  width: 100% !important;
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__panel {
-  position: absolute;
-  z-index: 9999;
-  inset-inline: 0;
-  top: calc(100% + 0.375rem);
-  box-sizing: border-box;
-  max-height: 16rem;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
-  background: hsl(var(--surface));
-  box-shadow: 0 16px 40px hsl(var(--foreground) / 0.14);
-  overflow: hidden;
-}
-
-/* display:flex استایل نویسنده بر [hidden] پیش‌فرض مرورگر غلبه می‌کند؛
-   بدون این قاعده پنل همیشه visible می‌ماند و بسته/باز نمی‌شود. */
-body.woocommerce-checkout .jluxe-checkout-picker__panel[hidden] {
-  display: none;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__search {
-  padding: 0.625rem;
-  border-block-end: 1px solid hsl(var(--border));
-  background: hsl(var(--primary) / 0.03);
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__search input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
   border: 1.5px solid hsl(var(--border));
-  border-radius: 0.625rem;
+  border-radius: 0.75rem;
   background: hsl(var(--surface));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single .select2-selection__rendered {
+  padding: 0;
   color: hsl(var(--foreground));
-  font: inherit;
   font-size: 0.875rem;
   line-height: 1.6;
 }
 
-body.woocommerce-checkout .jluxe-checkout-picker__search input:focus {
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default.select2-container--focus .select2-selection--single,
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single:focus {
   border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
-  outline: none;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__list {
-  margin: 0;
-  padding: 0.375rem;
-  list-style: none;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__list li {
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.625rem;
-  color: hsl(var(--foreground));
-  font-size: 0.875rem;
-  line-height: 1.6;
-  cursor: pointer;
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__list li:hover {
-  background: hsl(var(--primary) / 0.06);
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__list li.is-selected {
-  background: hsl(var(--primary) / 0.1);
-  font-weight: 800;
-  color: hsl(var(--primary));
-}
-
-body.woocommerce-checkout .jluxe-checkout-picker__empty {
-  color: hsl(var(--muted-foreground, 215 20% 42%));
-  text-align: center;
-  cursor: default !important;
 }
 
 @media (max-width: 640px) {

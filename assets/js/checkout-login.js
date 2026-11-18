@@ -34,14 +34,6 @@
     }
   }
 
-  function normalizeFa(text) {
-    return String(text || "")
-      .replace(/[ي]/g, "ی")
-      .replace(/[ك]/g, "ک")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
   function init() {
     var selector = document.querySelector("[data-jluxe-address-selector]");
     if (!selector) return;
@@ -53,7 +45,6 @@
     var saveBtn = selector.querySelector("[data-jluxe-address-save]");
     var status = selector.querySelector("[data-jluxe-address-status]");
     var config = window.JLUXE_CHECKOUT_ADDRESS || {};
-    var provinces = config.provinces || {};
     var citiesByState = config.cities || {};
 
     /* ---------- همگام‌سازی هویت (نام/نام خانوادگی/تلفن) با فرم تسویه‌حساب ---------- */
@@ -70,125 +61,66 @@
       });
     });
 
-    /* ---------- پیکر استان/شهر با جستجو ---------- */
-    function buildPicker(kind, getItems, onSelect) {
-      var root = selector.querySelector('[data-jluxe-picker="' + kind + '"]');
-      if (!root) return null;
-      var button = root.querySelector("[data-jluxe-picker-button]");
-      var valueEl = root.querySelector("[data-jluxe-picker-value]");
-      var panel = root.querySelector("[data-jluxe-picker-panel]");
-      var search = root.querySelector("[data-jluxe-picker-search]");
-      var listEl = root.querySelector("[data-jluxe-picker-list]");
-      var hidden = selector.querySelector('[data-jluxe-new-field="' + kind + '"]');
-      var selected = "";
+    /* ---------- استان/شهر با <select> استاندارد (همان مکانیزم ووکامرس) ----------
+       مقدار استان کد است (مثل THR) تا با billing_state ووکامرس یکی باشد و
+       در user meta هم به‌صورت کد ذخیره شود. شهرها از دادهٔ لوکالایزشده
+       ساخته می‌شوند؛ انتخاب‌ها با فیلدهای billing_state/billing_city
+       ووکامرس همگام می‌شوند تا فرم تسویه‌حساب همان آدرس را بگیرد. */
+    var stateSelect = selector.querySelector('[data-jluxe-new-field="state"]');
+    var citySelect = selector.querySelector('[data-jluxe-new-field="city"]');
 
-      function render(filter) {
-        var items = getItems();
-        var q = normalizeFa(filter);
-        listEl.innerHTML = "";
-        var shown = 0;
-        items.forEach(function (item) {
-          if (q && normalizeFa(item.label).indexOf(q) === -1) return;
-          shown++;
-          var li = document.createElement("li");
-          li.setAttribute("role", "option");
-          li.setAttribute("aria-selected", item.value === selected ? "true" : "false");
-          li.textContent = item.label;
-          li.classList.toggle("is-selected", item.value === selected);
-          li.addEventListener("click", function () {
-            selected = item.value;
-            if (hidden) hidden.value = item.value;
-            valueEl.textContent = item.label;
-            close();
-            onSelect(item);
-          });
-          listEl.appendChild(li);
-        });
-        if (!shown) {
-          var empty = document.createElement("li");
-          empty.className = "jluxe-checkout-picker__empty";
-          empty.textContent = "موردی یافت نشد";
-          listEl.appendChild(empty);
-        }
+    function rebuildCities(code) {
+      if (!citySelect) return;
+      var cities = (code && citiesByState[code]) || [];
+      citySelect.innerHTML = "";
+      var placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = cities.length
+        ? "شهر خود را انتخاب نمایید"
+        : code
+          ? "فهرست شهرستان‌های این استان در دسترس نیست"
+          : "لطفا ابتدا استان خود را انتخاب نمایید";
+      citySelect.appendChild(placeholder);
+      cities.forEach(function (city) {
+        var opt = document.createElement("option");
+        opt.value = city;
+        opt.textContent = city;
+        citySelect.appendChild(opt);
+      });
+      citySelect.value = "";
+      citySelect.disabled = !code;
+      if (window.jQuery && jQuery.fn.select2 && jQuery(citySelect).data("select2")) {
+        jQuery(citySelect).trigger("change.select2");
       }
-
-      function open() {
-        if (button.disabled) return;
-        panel.hidden = false;
-        button.setAttribute("aria-expanded", "true");
-        search.value = "";
-        render("");
-        search.focus();
-      }
-
-      function close() {
-        panel.hidden = true;
-        button.setAttribute("aria-expanded", "false");
-      }
-
-      button.addEventListener("click", function () {
-        if (panel.hidden) open();
-        else close();
-      });
-      search.addEventListener("input", function () {
-        render(search.value);
-      });
-      document.addEventListener("click", function (event) {
-        if (!panel.hidden && !root.contains(event.target)) close();
-      });
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && !panel.hidden) close();
-      });
-
-      return {
-        setEnabled: function (enabled) {
-          button.disabled = !enabled;
-        },
-        setPlaceholder: function (text) {
-          valueEl.textContent = text;
-        },
-        reset: function () {
-          selected = "";
-          if (hidden) hidden.value = "";
-          close();
-        },
-        refresh: function () {
-          if (!panel.hidden) render(search.value);
-        },
-      };
     }
 
-    var statePicker = buildPicker(
-      "state",
-      function () {
-        return Object.keys(provinces).map(function (code) {
-          return { value: provinces[code], label: provinces[code] };
-        });
-      },
-      function () {
-        cityPicker.reset();
-        cityPicker.setPlaceholder("انتخاب شهر");
-        cityPicker.setEnabled(true);
-      }
-    );
+    function initSelect2(el, placeholder) {
+      if (!el || !window.jQuery || !jQuery.fn.select2) return;
+      if (jQuery(el).data("select2")) return;
+      jQuery(el).select2({
+        dir: "rtl",
+        width: "100%",
+        placeholder: placeholder,
+        allowClear: false,
+      });
+    }
 
-    var cityPicker = buildPicker(
-      "city",
-      function () {
-        var stateName = "";
-        var hidden = selector.querySelector('[data-jluxe-new-field="state"]');
-        if (hidden) stateName = hidden.value;
-        var code = "";
-        Object.keys(provinces).forEach(function (c) {
-          if (provinces[c] === stateName) code = c;
-        });
-        var cities = (code && citiesByState[code]) || [];
-        return cities.map(function (city) {
-          return { value: city, label: city };
-        });
-      },
-      function () {}
-    );
+    initSelect2(stateSelect, "استان خود را انتخاب نمایید");
+    initSelect2(citySelect, "لطفا ابتدا استان خود را انتخاب نمایید");
+
+    if (stateSelect) {
+      stateSelect.addEventListener("change", function () {
+        var code = String(stateSelect.value || "").trim().toUpperCase();
+        rebuildCities(code);
+        // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن هم ساخته شود.
+        setField("billing_state", code);
+      });
+    }
+    if (citySelect) {
+      citySelect.addEventListener("change", function () {
+        setField("billing_city", citySelect.value);
+      });
+    }
 
     /* ---------- انتخاب آدرس ذخیره‌شده ---------- */
     function cards() {
@@ -260,19 +192,15 @@
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
       });
-      statePicker.reset();
-      cityPicker.reset();
-      cityPicker.setPlaceholder("ابتدا استان را انتخاب کنید");
-      cityPicker.setEnabled(false);
+      rebuildCities("");
     }
 
     function setFormOpen(open) {
       if (!form || !toggle) return;
       form.hidden = !open;
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      if (open) {
-        var first = form.querySelector("[data-jluxe-picker-button]");
-        if (first) first.focus();
+      if (open && stateSelect) {
+        stateSelect.focus();
       }
     }
 
