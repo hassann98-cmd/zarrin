@@ -133,7 +133,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 	$jluxe_simple_stock_qty = is_numeric( $jluxe_simple_stock_qty ) ? (int) $jluxe_simple_stock_qty : null;
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
@@ -179,7 +179,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		}
 		?>
 
-		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]">
+		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]" data-jluxe-layer-stage>
 			<?php
 			// Use WooCommerce's own gallery callback (which loads product-image.php
 			// via wc_get_template) instead of treating a nested template as a loop part.
@@ -459,6 +459,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		aria-pressed="true"
 		class="jluxe-mobile-bar-toggle fixed end-3 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary shadow-md transition-transform active:scale-95 md:hidden"
 	>
+		<span class="jluxe-dock-choice jluxe-dock-choice--menu" aria-hidden="true">منو</span><span class="jluxe-dock-exchange" aria-hidden="true">⇄</span><span class="jluxe-dock-choice jluxe-dock-choice--purchase" aria-hidden="true">خرید</span>
 		<svg data-jluxe-mobile-bar-mode-icon="menu" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 		<svg data-jluxe-mobile-bar-mode-icon="purchase" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.4 12.1a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/></svg>
 	</button>

@@ -426,7 +426,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 }
 </style>
 
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3', $product ); ?> data-jluxe-layout="classic" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-2">
 
 		<nav aria-label="مسیر صفحه" class="cp3-bc">
@@ -451,7 +451,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 		<?php endif; ?>
 
 		<div class="cp3-card">
-			<div class="cp3-grid">
+			<div class="cp3-grid" data-jluxe-layer-stage>
 
 				<!-- گالری -->
 				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal">

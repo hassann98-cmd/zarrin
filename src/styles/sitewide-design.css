@@ -287,45 +287,7 @@ body.jluxe-design-canva-home [data-jluxe-story-avatar]:focus-visible {
   border-radius: 18px;
 }
 
-/* Product cards: soft lift and tactile surfaces, while image sizing/content stays unchanged. */
-body.jluxe-design-canva-home ul.products li.product {
-  border-color: #DCE6DD;
-  border-radius: 23px;
-  background-color: #FFFFFF;
-  background-image: none;
-  box-shadow: 0 4px 15px rgba(41, 78, 58, 0.07);
-  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
-}
-
-body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-title {
-  color: #1F2937;
-}
-
-body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-sale-badge {
-  background-color: #DC2626;
-  color: #FFFFFF;
-}
-
-body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-cta {
-  border: 1px solid #2F6B52;
-  border-radius: 14px;
-  background-color: #2F6B52;
-  color: #FFFFFF;
-  box-shadow: 0 4px 10px rgba(47, 107, 82, 0.16);
-}
-
-body.jluxe-design-canva-home ul.products li.product .jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added, .jluxe-btn-added) {
-  background-color: #245C46;
-  color: #FFFFFF;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  body.jluxe-design-canva-home ul.products li.product:hover {
-    border-color: #B9D0BD;
-    box-shadow: 0 10px 24px rgba(41, 78, 58, 0.12);
-    transform: translateY(-3px);
-  }
-}
+/* Product cards share the home-carousel baseline in storefront.css on every route. */
 
 /* WooCommerce detail pages, cart, checkout, and account areas share the same surface language. */
 body.jluxe-design-canva-home .single-product .woocommerce-product-gallery,
@@ -523,7 +485,6 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
   body.jluxe-design-canva-home #masthead [data-jluxe-header-grid="account"],
   body.jluxe-design-canva-home #masthead > .hidden.border-t nav > a,
   body.jluxe-design-canva-home #masthead > .hidden.border-t nav > div > a,
-  body.jluxe-design-canva-home ul.products li.product,
   body.jluxe-design-canva-home .button,
   body.jluxe-design-canva-home .wp-element-button,
   body.jluxe-design-canva-home .woocommerce a.button,
@@ -535,7 +496,6 @@ body.jluxe-design-canva-home #jluxe-footer-root .jluxe-footer-copyright {
     transition: none;
   }
 
-  body.jluxe-design-canva-home ul.products li.product:hover,
   body.jluxe-design-canva-home .button:hover,
   body.jluxe-design-canva-home .wp-element-button:hover,
   body.jluxe-design-canva-home .woocommerce a.button:hover,
@@ -900,3 +860,7 @@ body.jluxe-design-canva-home .woocommerce-error {
   background-color: #FEF2F2;
   color: #B91C1C;
 }
+
+/* Quiet mega-menu palette, independent of the colorful trigger configuration. */
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel{--jluxe-categories-panel-accent:#475569;--jluxe-categories-panel-bg:#fff;--jluxe-categories-panel-text:#334155;--jluxe-categories-panel-border:#e5e7eb;--jluxe-categories-category-hover-bg:#f8fafc;--jluxe-categories-category-active-bg:#f1f5f9;--jluxe-categories-category-active-text:#0f172a;}
+#masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__icon{color:inherit;}

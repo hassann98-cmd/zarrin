@@ -72,6 +72,7 @@ function setActive(win, active, previous) {
 export function openMobileDrawer(name, win = globalThis.window) {
   const config = DRAWERS[name];
   if (!config || !isWindowLike(win)) return false;
+  if (name === "cart" && win.JLuxeStorefrontUtils?.isDockSwitchInteraction?.()) return false;
 
   const previous = getActiveMobileDrawer(win);
   if (previous !== name) {
@@ -116,6 +117,7 @@ export function registerMobileDrawer(name, handlers = {}, win = globalThis.windo
   if (!config || !isWindowLike(win)) return () => {};
 
   const onOpen = () => {
+    if (name === "cart" && win.JLuxeStorefrontUtils?.isDockSwitchInteraction?.()) return;
     const previous = getActiveMobileDrawer(win);
     if (previous !== name) {
       setActive(win, name, previous);
