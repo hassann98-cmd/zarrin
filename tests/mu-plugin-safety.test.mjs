@@ -3,11 +3,12 @@ import fs from "node:fs";
 import test from "node:test";
 
 const pluginUrl = new URL("../11.php", import.meta.url);
-const hasLocalMuPlugin = fs.existsSync(pluginUrl);
+// The private MU plugin is a separate deliverable, not part of theme validation.
+const hasLocalMuPlugin = process.env.JLUXE_TEST_LOCAL_MU === "1" && fs.existsSync(pluginUrl);
 const plugin = hasLocalMuPlugin ? fs.readFileSync(pluginUrl, "utf8") : "";
 const localMuPluginTestOptions = hasLocalMuPlugin
   ? {}
-  : { skip: "the local-only MU plugin is intentionally excluded from the public repository" };
+  : { skip: "set JLUXE_TEST_LOCAL_MU=1 to explicitly validate the separate private MU plugin" };
 
 test("MU plugin keeps the mobile/web REST routes and does not block WooCommerce order sync", localMuPluginTestOptions, () => {
   for (const [namespace, route] of [
