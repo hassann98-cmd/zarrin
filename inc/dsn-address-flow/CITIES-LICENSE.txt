@@ -1,0 +1,1 @@
+assets/iran-cities.json is derived from https://github.com/sajaddp/list-of-cities-in-Iran (GPL-3.0).

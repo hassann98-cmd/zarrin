@@ -143,18 +143,18 @@
     var url = new URL(API_ENDPOINT, window.location.href);
 
     // Fetch a fresh nonce instead of embedding a customer's identity in cached HTML.
-    fetch(config.sessionUrl, {
+    JLuxeStorefrontUtils.requestJson(config.sessionUrl, {
       method: "POST",
       cache: "no-store",
       credentials: "same-origin",
       body: new URLSearchParams({ action: "jluxe_session" }),
     })
-      .then(function (response) {
-        if (!response.ok) throw new Error("Session unavailable");
-        return response.json();
+      .then(function (result) {
+        if (!result.response.ok) throw new Error("Session unavailable");
+        return result.data;
       })
       .then(function (session) {
-        if (version !== requestVersion || !session.success)
+        if (version !== requestVersion || !session || session.success !== true)
           throw new Error("Session unavailable");
         var headers = {
           Accept: "application/json",
@@ -162,7 +162,7 @@
         };
         if (session.data && session.data.restNonce)
           headers["X-WP-Nonce"] = session.data.restNonce;
-        return fetch(url.toString(), {
+        return JLuxeStorefrontUtils.requestJson(url.toString(), {
           method: "POST",
           cache: "no-store",
           credentials: "same-origin",
@@ -170,10 +170,8 @@
           body: JSON.stringify({ order_number: orderNumber, phone: phone }),
         });
       })
-      .then(function (response) {
-        return response.json().then(function (json) {
-          return { ok: response.ok, status: response.status, body: json };
-        });
+      .then(function (result) {
+        return { ok: result.response.ok, status: result.response.status, body: result.data };
       })
       .then(function (result) {
         if (version !== requestVersion) return;

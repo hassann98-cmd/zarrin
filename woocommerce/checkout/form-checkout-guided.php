@@ -49,6 +49,7 @@ $guided_coordinates = $guided_map_enabled ? jluxe_checkout_map_coordinates_from_
 
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
+					<?php jluxe_render_address_selector(); ?>
 					<div id="customer_details" class="jluxe-guided-checkout__customer-details">
 						<?php do_action( 'woocommerce_checkout_billing' ); ?>
 						<?php do_action( 'woocommerce_checkout_shipping' ); ?>
