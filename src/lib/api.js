@@ -1,4 +1,6 @@
 import { getThemeSettings } from "./theme-settings.js";
+import "../../assets/js/storefront-utils.js";
+const { requestJson } = globalThis.JLuxeStorefrontUtils;
 
 export function siteUrl(name) {
   const urls = getThemeSettings().urls ?? {};
@@ -79,16 +81,28 @@ export function getSession(refresh = false) {
     if (!endpoint)
       return Promise.reject(new Error("پیکربندی نشست در دسترس نیست."));
     sessionPending = true;
-    sessionPromise = fetch(endpoint, {
+    sessionPromise = requestJson(endpoint, {
       method: "POST",
       credentials: "same-origin",
       cache: "no-store",
       body: new URLSearchParams({ action: "jluxe_session" }),
     })
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok || !result.success)
+      .then(({ response, data: result }) => {
+        if (!response.ok || result?.success !== true || !result.data || typeof result.data !== "object")
           throw new Error("نشست معتبر نیست؛ صفحه را تازه کنید.");
+        if (typeof window !== "undefined" && typeof result.data?.auth?.isLoggedIn === "boolean") {
+          const authenticated = result.data.auth.isLoggedIn;
+          if (typeof window.jluxePublishAuthStatus === "function") {
+            window.jluxePublishAuthStatus(authenticated);
+          } else {
+            window.jluxeCurrentAuthStatus = authenticated;
+            const settings = getThemeSettings();
+            settings.auth = { ...settings.auth, isLoggedIn: authenticated };
+            if (typeof window.CustomEvent === "function" && typeof window.dispatchEvent === "function") {
+              window.dispatchEvent(new window.CustomEvent("jluxe:auth-status"));
+            }
+          }
+        }
         return result.data;
       })
       .catch((error) => {
@@ -107,17 +121,20 @@ export async function restRequest(
   body,
   { authenticated = true, retryNonce = true } = {},
 ) {
+  const authPath = path.replace(/^\/+|\/+$/g, "");
   const session = authenticated ? await getSession() : null;
   const headers = { "Content-Type": "application/json" };
   if (session?.restNonce) headers["X-WP-Nonce"] = session.restNonce;
-  const response = await fetch(restUrl(path), {
+  const { response, data } = await requestJson(restUrl(path), {
     method: "POST",
     headers,
     credentials: "same-origin",
     cache: "no-store",
     body: JSON.stringify(body),
-  });
-  const data = await response.json().catch(() => ({}));
+  }, authPath.startsWith("auth/") ? 20000 : 0);
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("پاسخ سرور معتبر نیست؛ نتیجهٔ درخواست تأیید نشد.");
+  }
   if (!response.ok) {
     // Invalid REST nonces fail before the callback; retrying this particular error is safe.
     if (
@@ -133,6 +150,11 @@ export async function restRequest(
     error.status = response.status;
     error.partialReply = typeof data.data?.partial_reply === "string" ? data.data.partial_reply : "";
     throw error;
+  }
+  // OTP send has a different contract from login/verify; preserve that protocol.
+  if ((authPath === "auth/otp-request" && data.sent !== true) ||
+      (["auth/login", "auth/register", "auth/otp-verify"].includes(authPath) && data.success !== true)) {
+    throw new Error("پاسخ ورود یا ارسال کد تأیید نشد.");
   }
   return data;
 }

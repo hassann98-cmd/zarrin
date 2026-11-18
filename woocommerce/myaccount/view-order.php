@@ -52,6 +52,8 @@ $jluxe_address_parts  = array_filter(
 		</div>
 	</div>
 
+	<?php jluxe_render_customer_order_actions( $order ); ?>
+
 	<div class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
 		<div class="mb-3 flex items-center justify-between gap-3">
 			<span class="text-small font-bold <?php echo esc_attr( $jluxe_status_color ); ?>"><?php echo esc_html( $jluxe_status_label ); ?></span>
@@ -151,6 +153,7 @@ $jluxe_address_parts  = array_filter(
 				?>
 				<li class="rounded-2xl border border-border bg-surface p-4">
 					<p class="mb-2 text-small font-bold text-foreground"><?php echo esc_html( $item->get_name() ); ?></p>
+					<div class="text-caption text-text-secondary"><?php echo wp_kses_post( wc_display_item_meta( $item, array( 'echo' => false ) ) ); ?></div>
 					<div class="flex items-center justify-between text-caption text-text-secondary">
 						<span>تعداد: <span class="font-medium text-foreground"><?php echo esc_html( jluxe_fa_digits( (string) $item->get_quantity() ) ); ?></span></span>
 						<span><?php echo wp_kses_post( $order->get_formatted_line_subtotal( $item ) ); ?></span>
