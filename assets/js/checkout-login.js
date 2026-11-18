@@ -61,15 +61,32 @@
     });
 
     /* ---------- استان/شهر با <select> استاندارد (همان مکانیزم ووکامرس) ----------
-       مقدار استان کد است (مثل THR) تا با billing_state ووکامرس یکی باشد و
-       در user meta هم به‌صورت کد ذخیره شود. گزینه‌های شهر آکاردئون از خودِ
-       فیلد billing_city ووکامرس کپی می‌شوند (منبع واحد حقیقت) تا هر
-       مکانیزمی که شهرها را لود می‌کند — تم یا پلاگین شهرها — همان‌ها در
-       آکاردئون هم باشند. */
+       گزینه‌های استان و شهر آکاردئون از خودِ فیلدهای billing_state/billing_city
+       ووکامرس کپی می‌شوند (منبع واحد حقیقت)؛ مقادیر ممکن است آی‌دی عددی
+       پلاگین شهرها باشند نه کد ISO، پس باید عیناً همان‌ها استفاده شوند تا
+       مقدار انتخاب‌شده با گزینه‌های ووکامرس بخواند و لیست شهر ساخته شود. */
     var stateSelect = selector.querySelector('[data-jluxe-new-field="state"]');
     var citySelect = selector.querySelector('[data-jluxe-new-field="city"]');
     var billingCity = document.getElementById("billing_city");
     var syncingCity = false;
+
+    // کپی گزینه‌های استان از billing_state ووکامرس به سلکت استان آکاردئون.
+    function syncStateOptionsFromBilling() {
+      var billingState = document.getElementById("billing_state");
+      if (!stateSelect || !billingState || !billingState.options.length) return;
+      var keep = stateSelect.value;
+      stateSelect.innerHTML = "";
+      Array.prototype.forEach.call(billingState.options, function (opt) {
+        var clone = document.createElement("option");
+        clone.value = opt.value;
+        clone.textContent = opt.textContent;
+        stateSelect.appendChild(clone);
+      });
+      var stillThere = Array.prototype.some.call(stateSelect.options, function (o) {
+        return o.value === keep;
+      });
+      stateSelect.value = stillThere ? keep : "";
+    }
 
     function refreshCitySelect2() {
       if (window.jQuery && jQuery.fn.select2 && jQuery(citySelect).data("select2")) {
@@ -121,12 +138,13 @@
       });
     }
 
+    syncStateOptionsFromBilling();
     initSelect2(stateSelect, "استان خود را انتخاب نمایید");
     initSelect2(citySelect, "لطفا ابتدا استان خود را انتخاب نمایید");
 
     if (stateSelect) {
       stateSelect.addEventListener("change", function () {
-        var code = String(stateSelect.value || "").trim().toUpperCase();
+        var code = String(stateSelect.value || "").trim();
         // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن ساخته شود، بعد کپی به آکاردئون.
         // تم روی تغییر برنامه‌محور billing_state محافظ ضد-autofill دارد و آن را
         // پاک می‌کند؛ با شلیک select2:select (همان رویداد انتخاب کاربر در Select2)
