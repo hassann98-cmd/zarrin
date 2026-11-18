@@ -967,7 +967,6 @@ function Assistant() {
               ? h("img", { src: assistant.buttonUrl, alt: "", className: "jluxe-ai-launcher-image size-8 rounded-full object-cover", "data-jluxe-no-skeleton": true })
               : h(MessageIcon, { className: "size-6", "aria-hidden": true }),
           }),
-          productLauncher ? h("span", { key: "label", className: "jluxe-ai-launcher-label", children: "راهنمای خرید" }) : null,
         ],
       });
 

@@ -8,7 +8,7 @@ import { JSDOM } from "jsdom";
 // to the variation form), and the bar stays hidden until the real form
 // scrolls out of view.
 const script = () =>
-  fs.readFileSync(new URL("../assets/js/sticky-cta.js", import.meta.url), "utf8");
+  fs.readFileSync(new URL("../assets/js/storefront-utils.js", import.meta.url), "utf8") + "\n" + fs.readFileSync(new URL("../assets/js/sticky-cta.js", import.meta.url), "utf8");
 const styles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 const referenceTemplate = fs.readFileSync(new URL("../woocommerce/content-single-product-reference.php", import.meta.url), "utf8");
 

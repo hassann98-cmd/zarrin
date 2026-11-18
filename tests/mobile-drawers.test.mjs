@@ -140,3 +140,15 @@ test("drawer scroll lock remains active through overlapping exit/entry transitio
   setMobileDrawerScrollLock("categories", false, window);
   assert.equal(body.style.overflow, "auto", "the original overflow style is restored after the final close");
 });
+
+test('switch release cannot open cart through drawer API or legacy event; fresh cart tap still works',async(t)=>{
+ const fs=await import('node:fs');
+ const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><button id="cart">Cart</button>',{runScripts:'outside-only'});t.after(()=>dom.window.close());const w=dom.window,d=w.document,b=d.querySelector('button');
+ w.eval(fs.readFileSync(new URL('../assets/js/storefront-utils.js',import.meta.url),'utf8'));
+ w.JLuxeStorefrontUtils.protectDockSwitch(b);let opened=0;registerMobileDrawer('cart',{open:()=>opened++},w);
+ const fire=(el,type)=>el.dispatchEvent(new w.MouseEvent(type,{bubbles:true,cancelable:true,button:0,detail:1,clientX:20,clientY:30}));
+ fire(b,'pointerdown');fire(b,'pointerup');
+ assert.equal(openMobileDrawer('cart',w),false);w.dispatchEvent(new w.CustomEvent('jluxe:open-cart'));assert.equal(opened,0);assert.equal(getActiveMobileDrawer(w),null);
+ fire(d.querySelector('#cart'),'pointerdown');assert.equal(openMobileDrawer('cart',w),true);assert.equal(opened,1);assert.equal(getActiveMobileDrawer(w),'cart');
+ closeMobileDrawer('cart',w);b.click();assert.equal(openMobileDrawer('cart',w),false);d.querySelector('#cart').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(openMobileDrawer('cart',w),true);
+});
