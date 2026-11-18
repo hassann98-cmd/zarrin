@@ -63,7 +63,10 @@
     /* ---------- استان/شهر: همان فیلدهای واقعی ووکامرس (billing_state/billing_city) ----------
        این فیلدها در آکاردئون رندر می‌شوند (نه در فرم صورتحساب) تا مکانیزم لود
        شهر تم/پلاگین دقیقاً روی همان‌ها کار کند؛ نیازی به همگام‌سازی نیست.
-       cascade استان→شهر را خودِ JS تم (woocommerce.js) انجام می‌دهد. */
+       cascade استان→شهر را خودِ JS تم (woocommerce.js) انجام می‌دهد.
+       استان/شهر هیچ‌وقت از کش/نشست قبلی پر نمی‌شوند؛ همیشه خالی شروع می‌شوند. */
+    setField("billing_state", "");
+    setField("billing_city", "");
 
     /* ---------- انتخاب آدرس ذخیره‌شده ---------- */
     function cards() {
@@ -242,6 +245,22 @@
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
         var data = collectNewAddress();
+        // اعتبارسنجی سمت کلاینت: نام، نام خانوادگی، استان، شهر و آدرس دقیق
+        // الزامی‌اند؛ تلفن ثابت اختیاری است.
+        if (!data.first_name || !data.last_name) {
+          showStatus("وارد کردن نام و نام خانوادگی الزامی است.", true);
+          return;
+        }
+        if (!data.state || !data.city) {
+          showStatus("انتخاب استان و شهر الزامی است.", true);
+          return;
+        }
+        if (!data.address_1) {
+          showStatus("وارد کردن آدرس الزامی است.", true);
+          var addrEl = newField("address_1");
+          if (addrEl) addrEl.focus();
+          return;
+        }
         showStatus("", false);
         saveBtn.disabled = true;
         var body = new URLSearchParams();
