@@ -324,7 +324,10 @@
         saveBtn.disabled = true;
         var body = new URLSearchParams();
         body.set("action", "jluxe_save_checkout_address");
-        body.set("nonce", config.nonce || "");
+        // nonce هم از localize و هم از data-attribute روی سکشن خوانده می‌شود.
+        var nonce =
+          selector.getAttribute("data-jluxe-address-nonce") || config.nonce || "";
+        body.set("nonce", nonce);
         Object.keys(data).forEach(function (key) {
           body.set(key, data[key]);
         });
@@ -335,9 +338,20 @@
           body: body.toString(),
         })
           .then(function (res) {
-            return res.json();
+            // اول متن پاسخ را می‌خوانیم تا پاسخ غیر-JSON (مثل خطای سرور)
+            // به‌اشتباه به‌عنوان «قطع ارتباط» گزارش نشود.
+            return res.text().then(function (text) {
+              var json = null;
+              try {
+                json = JSON.parse(text);
+              } catch (e) {
+                json = null;
+              }
+              return { ok: res.ok, status: res.status, json: json, text: text };
+            });
           })
-          .then(function (json) {
+          .then(function (result) {
+            var json = result.json;
             if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
               if (list) list.innerHTML = "";
               json.data.addresses.forEach(function (entry, idx) {
@@ -346,8 +360,12 @@
               clearNewForm();
               setFormOpen(false);
               showStatus("آدرس ذخیره شد.", false);
+            } else if (json && json.data && json.data.message) {
+              showStatus(json.data.message, true);
+            } else if (!result.ok) {
+              showStatus("خطای سرور (" + result.status + ")؛ دوباره تلاش کنید.", true);
             } else {
-              showStatus((json && json.data && json.data.message) || "ذخیرهٔ آدرس ناموفق بود.", true);
+              showStatus("ذخیرهٔ آدرس ناموفق بود؛ دوباره تلاش کنید.", true);
             }
           })
           .catch(function () {

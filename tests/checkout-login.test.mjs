@@ -119,6 +119,20 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /is-selected/);
 });
 
+test("save AJAX verifies nonce with a JSON error and JS surfaces server messages", () => {
+  const php = read("inc/checkout-login.php");
+  // به‌جای check_ajax_referer (که با «-1» می‌میرد)، خطای JSON واضح برمی‌گردد.
+  assert.match(php, /wp_verify_nonce\( \$nonce, 'jluxe_checkout_address' \)/);
+  assert.match(php, /نشست شما منقضی شده است/);
+  // nonce هم در HTML رندرشده هست تا وابستگی به localize نباشد.
+  assert.match(php, /data-jluxe-address-nonce/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /data-jluxe-address-nonce/);
+  // پاسخ غیر-JSON دیگر به‌اشتباه «قطع ارتباط» گزارش نمی‌شود.
+  assert.match(js, /res\.text\(\)/);
+  assert.match(js, /خطای سرور/);
+});
+
 test("address list container always renders so a newly saved address is added and selectable", () => {
   const php = read("inc/checkout-login.php");
   // لیست آدرس‌ها نباید پشت شرط «آدرس قبلی وجود دارد» پنهان بماند؛ وگرنه کاربر

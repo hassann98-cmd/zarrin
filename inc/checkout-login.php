@@ -292,7 +292,11 @@ function jluxe_save_customer_address( array $data ): bool {
  * AJAX: ذخیرهٔ آدرس جدید در تسویه‌حساب و برگرداندن لیست به‌روز آدرس‌ها.
  */
 function jluxe_ajax_save_checkout_address(): void {
-	check_ajax_referer( 'jluxe_checkout_address', 'nonce' );
+	// بررسی دستی nonce تا به‌جای پاسخ متنی «-1»، خطای JSON واضح برگردد.
+	$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_checkout_address' ) ) {
+		wp_send_json_error( array( 'message' => 'نشست شما منقضی شده است؛ صفحه را تازه کنید و دوباره تلاش کنید.' ) );
+	}
 	if ( ! is_user_logged_in() ) {
 		wp_send_json_error( array( 'message' => 'ابتدا وارد شوید.' ) );
 	}
@@ -426,7 +430,7 @@ function jluxe_render_address_selector(): void {
 		$last_name = $user->last_name;
 	}
 	?>
-	<section class="jluxe-checkout-addresses" data-jluxe-address-selector aria-labelledby="jluxe-checkout-addresses-title">
+	<section class="jluxe-checkout-addresses" data-jluxe-address-selector aria-labelledby="jluxe-checkout-addresses-title" data-jluxe-address-nonce="<?php echo esc_attr( wp_create_nonce( 'jluxe_checkout_address' ) ); ?>">
 		<header class="jluxe-checkout-addresses__heading">
 			<h2 class="jluxe-checkout-addresses__title" id="jluxe-checkout-addresses-title">آدرس تحویل</h2>
 		</header>
