@@ -30,7 +30,7 @@
     setField(prefix + "_country", address.country);
     if (prefix === "billing") {
       setField("billing_phone", address.phone);
-      setField("billing_email", address.email);
+      setField("billing_landline", address.landline);
     }
   }
 
@@ -181,7 +181,7 @@
       data.state = stateEl ? stateEl.value.trim() : "";
       var cityEl = field("billing_city");
       data.city = cityEl ? cityEl.value.trim() : "";
-      ["address_1", "postcode", "email"].forEach(function (name) {
+      ["address_1", "postcode", "landline"].forEach(function (name) {
         var el = newField(name);
         data[name] = el ? el.value.trim() : "";
       });

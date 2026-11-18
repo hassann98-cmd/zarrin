@@ -128,7 +128,7 @@ function jluxe_get_customer_addresses(): array {
 		'postcode'   => $meta( 'billing_postcode' ),
 		'country'    => $meta( 'billing_country' ) ?: 'IR',
 		'phone'      => $meta( 'billing_phone' ),
-		'email'      => $meta( 'billing_email' ),
+		'landline'   => $meta( 'billing_landline' ),
 	);
 	if ( jluxe_address_has_content( $billing ) ) {
 		$out[] = array(
@@ -175,7 +175,7 @@ function jluxe_get_customer_addresses(): array {
 				'postcode'   => (string) ( $dsn['postcode'] ?? '' ),
 				'country'    => 'IR',
 				'phone'      => (string) ( $dsn['phone'] ?? '' ),
-				'email'      => '',
+				'landline'   => '',
 			);
 			if ( ! jluxe_address_has_content( $converted ) ) {
 				continue;
@@ -247,7 +247,7 @@ function jluxe_format_address_line( array $address ): string {
  * ذخیرهٔ آدرس جدید در متای حساب مشتری (صورتحساب + ارسال).
  *
  * @param array $data فیلدهای آدرس: first_name, last_name, state, city,
- *                    address_1, postcode, email
+ *                    address_1, postcode, landline
  * @return bool موفقیت ذخیره
  */
 function jluxe_save_customer_address( array $data ): bool {
@@ -271,8 +271,8 @@ function jluxe_save_customer_address( array $data ): bool {
 		'shipping_postcode'   => sanitize_text_field( $data['postcode'] ?? '' ),
 		'shipping_country'    => 'IR',
 	);
-	if ( ! empty( $data['email'] ) ) {
-		$fields['billing_email'] = sanitize_email( $data['email'] );
+	if ( ! empty( $data['landline'] ) ) {
+		$fields['billing_landline'] = preg_replace( '/\D/', '', sanitize_text_field( $data['landline'] ) );
 	}
 	if ( ! empty( $data['phone'] ) ) {
 		$fields['billing_phone'] = preg_replace( '/\D/', '', sanitize_text_field( $data['phone'] ) );
@@ -304,7 +304,7 @@ function jluxe_ajax_save_checkout_address(): void {
 		'city'       => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
 		'address_1'  => isset( $_POST['address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['address_1'] ) ) : '',
 		'postcode'   => isset( $_POST['postcode'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) ) : '',
-		'email'      => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
+		'landline'   => isset( $_POST['landline'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['landline'] ) ) ) : '',
 	);
 	foreach ( array( 'first_name', 'last_name', 'state', 'city', 'address_1' ) as $required ) {
 		if ( '' === trim( (string) $data[ $required ] ) ) {
@@ -316,8 +316,8 @@ function jluxe_ajax_save_checkout_address(): void {
 	if ( '' !== (string) $data['postcode'] && ! preg_match( '/^\d{10}$/', (string) $data['postcode'] ) ) {
 		wp_send_json_error( array( 'message' => 'کدپستی باید ۱۰ رقم باشد.' ) );
 	}
-	if ( '' !== $data['email'] && ! is_email( $data['email'] ) ) {
-		wp_send_json_error( array( 'message' => 'ایمیل معتبر نیست.' ) );
+	if ( '' !== (string) $data['landline'] && ! preg_match( '/^\d{10,11}$/', (string) $data['landline'] ) ) {
+		wp_send_json_error( array( 'message' => 'تلفن ثابت معتبر نیست.' ) );
 	}
 	if ( ! jluxe_save_customer_address( $data ) ) {
 		wp_send_json_error( array( 'message' => 'ذخیرهٔ آدرس ناموفق بود.' ) );
@@ -498,8 +498,8 @@ function jluxe_render_address_selector(): void {
 					<input type="text" id="jluxe-new-address-postcode" inputmode="numeric" maxlength="10" dir="ltr" data-jluxe-new-field="postcode" autocomplete="postal-code" />
 				</div>
 				<div class="jluxe-checkout-addresses__field">
-					<label for="jluxe-new-address-email">ایمیل</label>
-					<input type="email" id="jluxe-new-address-email" dir="ltr" data-jluxe-new-field="email" autocomplete="email" />
+					<label for="jluxe-new-address-landline">تلفن ثابت</label>
+					<input type="tel" id="jluxe-new-address-landline" dir="ltr" data-jluxe-new-field="landline" autocomplete="tel" />
 				</div>
 			</div>
 			<p class="jluxe-checkout-addresses__status" data-jluxe-address-status role="status" aria-live="polite" hidden></p>

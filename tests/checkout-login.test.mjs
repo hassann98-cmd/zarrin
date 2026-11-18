@@ -75,6 +75,20 @@ test("province and city are the real WooCommerce fields inside the accordion", (
   assert.doesNotMatch(css, /jluxe-checkout-picker/);
 });
 
+test("accordion collects landline (not email) and billing section is hidden for logged-in users", () => {
+  const php = read("inc/checkout-login.php");
+  assert.match(php, /تلفن ثابت/);
+  assert.match(php, /data-jluxe-new-field="landline"/);
+  assert.match(php, /billing_landline/);
+  assert.doesNotMatch(php, /jluxe-new-address-email/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /"landline"/);
+  assert.match(js, /billing_landline/);
+  const css = read("assets/css/checkout-login.css");
+  assert.match(css, /woocommerce-billing-fields/);
+  assert.match(css, /logged-in/);
+});
+
 test("address selector renders saved addresses and identity from OTP", () => {
   const php = read("inc/checkout-login.php");
   assert.match(php, /jluxe_render_address_selector/);

@@ -300,6 +300,13 @@ body.woocommerce-checkout .jluxe-checkout-addresses__form .jluxe-checkout-action
   width: 100%;
 }
 
+/* ---------- بخش صورتحساب ووکامرس برای کاربر واردشده پنهان است ----------
+   همهٔ فیلدها در بخش «آدرس تحویل» (هویت + آکاردئون) هستند؛ فیلدهای
+   صورتحساب فقط برای ثبت سفارش در DOM می‌مانند و دیده نمی‌شوند. */
+body.woocommerce-checkout.logged-in .woocommerce-billing-fields {
+  display: none;
+}
+
 /* ---------- استان/شهر: فیلدهای واقعی ووکامرس داخل آکاردئون ---------- */
 
 /* form-rowهای ووکامرس آیتم گرید آکاردئون‌اند؛ مارجین/پدینگ پیش‌فرضشان را
