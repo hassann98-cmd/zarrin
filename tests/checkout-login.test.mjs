@@ -56,8 +56,10 @@ test("province and city use native selects like the WooCommerce fields", () => {
   assert.match(php, /data-jluxe-identity-field/);
   assert.match(php, /jluxe_phone/);
   const js = read("assets/js/checkout-login.js");
-  // cascade استاندارد: تغییر استان → ساخت لیست شهرها + همگام‌سازی با ووکامرس.
-  assert.match(js, /rebuildCities/);
+  // cascade استاندارد: تغییر استان → همگام‌سازی با ووکامرس + کپی گزینه‌های
+  // شهر از billing_city (منبع واحد حقیقت) + MutationObserver برای AJAX.
+  assert.match(js, /mirrorBillingCities/);
+  assert.match(js, /MutationObserver/);
   assert.match(js, /billing_state/);
   assert.match(js, /billing_city/);
   assert.match(js, /select2/);

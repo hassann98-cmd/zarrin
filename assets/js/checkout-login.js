@@ -45,7 +45,6 @@
     var saveBtn = selector.querySelector("[data-jluxe-address-save]");
     var status = selector.querySelector("[data-jluxe-address-status]");
     var config = window.JLUXE_CHECKOUT_ADDRESS || {};
-    var citiesByState = config.cities || {};
 
     /* ---------- همگام‌سازی هویت (نام/نام خانوادگی/تلفن) با فرم تسویه‌حساب ---------- */
     selector.querySelectorAll("[data-jluxe-identity-field]").forEach(function (input) {
@@ -63,36 +62,52 @@
 
     /* ---------- استان/شهر با <select> استاندارد (همان مکانیزم ووکامرس) ----------
        مقدار استان کد است (مثل THR) تا با billing_state ووکامرس یکی باشد و
-       در user meta هم به‌صورت کد ذخیره شود. شهرها از دادهٔ لوکالایزشده
-       ساخته می‌شوند؛ انتخاب‌ها با فیلدهای billing_state/billing_city
-       ووکامرس همگام می‌شوند تا فرم تسویه‌حساب همان آدرس را بگیرد. */
+       در user meta هم به‌صورت کد ذخیره شود. گزینه‌های شهر آکاردئون از خودِ
+       فیلد billing_city ووکامرس کپی می‌شوند (منبع واحد حقیقت) تا هر
+       مکانیزمی که شهرها را لود می‌کند — تم یا پلاگین شهرها — همان‌ها در
+       آکاردئون هم باشند. */
     var stateSelect = selector.querySelector('[data-jluxe-new-field="state"]');
     var citySelect = selector.querySelector('[data-jluxe-new-field="city"]');
+    var billingCity = document.getElementById("billing_city");
+    var syncingCity = false;
 
-    function rebuildCities(code) {
-      if (!citySelect) return;
-      var cities = (code && citiesByState[code]) || [];
-      citySelect.innerHTML = "";
-      var placeholder = document.createElement("option");
-      placeholder.value = "";
-      placeholder.textContent = cities.length
-        ? "شهر خود را انتخاب نمایید"
-        : code
-          ? "فهرست شهرستان‌های این استان در دسترس نیست"
-          : "لطفا ابتدا استان خود را انتخاب نمایید";
-      citySelect.appendChild(placeholder);
-      cities.forEach(function (city) {
-        var opt = document.createElement("option");
-        opt.value = city;
-        opt.textContent = city;
-        citySelect.appendChild(opt);
-      });
-      citySelect.value = "";
-      // سلکت شهر عمداً disabled نمی‌شود (مثل billing_city ووکامرس): قبل از
-      // انتخاب استان فقط placeholder دارد و Select2 هم همیشه قابل باز شدن است.
+    function refreshCitySelect2() {
       if (window.jQuery && jQuery.fn.select2 && jQuery(citySelect).data("select2")) {
         jQuery(citySelect).trigger("change");
       }
+    }
+
+    // کپی گزینه‌های billing_city ووکامرس به سلکت شهر آکاردئون.
+    function mirrorBillingCities() {
+      if (!citySelect || !billingCity) return;
+      var keep = billingCity.value;
+      syncingCity = true;
+      citySelect.innerHTML = "";
+      Array.prototype.forEach.call(billingCity.options, function (opt) {
+        var clone = document.createElement("option");
+        clone.value = opt.value;
+        clone.textContent = opt.textContent;
+        citySelect.appendChild(clone);
+      });
+      var stillThere = Array.prototype.some.call(citySelect.options, function (o) {
+        return o.value === keep;
+      });
+      citySelect.value = stillThere ? keep : "";
+      syncingCity = false;
+      refreshCitySelect2();
+    }
+
+    function resetCitySelect() {
+      if (!citySelect) return;
+      syncingCity = true;
+      citySelect.innerHTML = "";
+      var placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "لطفا ابتدا استان خود را انتخاب نمایید";
+      citySelect.appendChild(placeholder);
+      citySelect.value = "";
+      syncingCity = false;
+      refreshCitySelect2();
     }
 
     function initSelect2(el, placeholder) {
@@ -112,15 +127,25 @@
     if (stateSelect) {
       stateSelect.addEventListener("change", function () {
         var code = String(stateSelect.value || "").trim().toUpperCase();
-        rebuildCities(code);
-        // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن هم ساخته شود.
+        // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن ساخته شود، بعد کپی به آکاردئون.
         setField("billing_state", code);
+        mirrorBillingCities();
       });
     }
     if (citySelect) {
       citySelect.addEventListener("change", function () {
+        if (syncingCity) return;
         setField("billing_city", citySelect.value);
       });
+    }
+
+    // اگر پلاگین شهرها را به‌صورت ناهمگام (AJAX) در billing_city بریزد،
+    // تغییرات گزینه‌ها را ببین و آکاردئون را هم به‌روز کن.
+    if (billingCity && citySelect && window.MutationObserver) {
+      var cityObserver = new MutationObserver(function () {
+        mirrorBillingCities();
+      });
+      cityObserver.observe(billingCity, { childList: true });
     }
 
     /* ---------- انتخاب آدرس ذخیره‌شده ---------- */
@@ -193,7 +218,7 @@
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
       });
-      rebuildCities("");
+      resetCitySelect();
     }
 
     function setFormOpen(open) {
