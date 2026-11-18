@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/builder-tree.php';
+require_once __DIR__ . '/visual-builder-v2.php';
+
 const JLUXE_VISUAL_BUILDER_PAGE = 'jluxe-visual-builder';
 const JLUXE_VISUAL_BUILDER_DRAFT_OPTION = 'jluxe_visual_builder_draft';
 
@@ -37,40 +40,7 @@ function jluxe_visual_builder_enqueue_assets( string $hook ): void {
 		return;
 	}
 
-	wp_enqueue_media();
-	wp_enqueue_script( 'jquery-ui-sortable' );
-
-	$script_path = JLUXE_THEME_DIR . '/assets/js/visual-builder.js';
-	$style_path  = JLUXE_THEME_DIR . '/assets/css/visual-builder.css';
-	wp_enqueue_script(
-		'jluxe-visual-builder',
-		JLUXE_THEME_URI . '/assets/js/visual-builder.js',
-		array( 'jquery', 'jquery-ui-sortable', 'jluxe-settings-admin' ),
-		file_exists( $script_path ) ? (string) filemtime( $script_path ) : '1.0.0',
-		true
-	);
-	wp_localize_script(
-		'jluxe-visual-builder',
-		'jluxeVisualBuilder',
-		array(
-			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-			'previewNonce' => wp_create_nonce( 'jluxe_visual_builder_live_preview' ),
-			'previewAction'=> 'jluxe_visual_builder_preview',
-		)
-	);
-	wp_enqueue_style(
-		'jluxe-visual-builder',
-		JLUXE_THEME_URI . '/assets/css/visual-builder.css',
-		array( 'jluxe-settings-admin' ),
-		file_exists( $style_path ) ? (string) filemtime( $style_path ) : '1.0.0'
-	);
-
-	if ( function_exists( 'jluxe_generate_color_variables' ) && function_exists( 'jluxe_get_theme_settings' ) ) {
-		$settings = jluxe_get_theme_settings();
-		$css      = jluxe_generate_color_variables( (array) ( $settings['colors'] ?? array() ) );
-		$css      = str_replace( ':root{', '#jluxe-visual-builder{', $css );
-		wp_add_inline_style( 'jluxe-visual-builder', $css );
-	}
+	jluxe_builder2_enqueue();
 }
 add_action( 'admin_enqueue_scripts', 'jluxe_visual_builder_enqueue_assets', 20 );
 
@@ -431,7 +401,7 @@ function jluxe_visual_builder_handle_publish(): void {
 add_action( 'admin_post_jluxe_visual_builder_publish', 'jluxe_visual_builder_handle_publish' );
 
 /** رندر صفحهٔ کامل؛ فیلدهای ویرایش از رندررِ بومیِ هر ۲۰ نوع بخش می‌آیند. */
-function jluxe_render_visual_builder_page(): void {
+function jluxe_render_visual_builder_legacy_page(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'شما اجازهٔ مشاهدهٔ این صفحه را ندارید.', 'jluxe' ), '', array( 'response' => 403 ) );
 	}
@@ -541,12 +511,12 @@ function jluxe_render_visual_builder_page(): void {
 							<?php endforeach; ?>
 							<p class="jvb-empty-search" data-jvb-empty-search hidden>بخشی با این نام پیدا نشد.</p>
 						</div>
-						<p class="jvb-library-tip"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای افزودن، در رایانه بخش را به بوم بکشید؛ در لمس، آیکون یا + را نگه دارید و به پیش‌نمایش ببرید. لمس یا کلیک معمولی هم بخش را اضافه می‌کند.</p>
+						<p class="jvb-library-tip"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span>برای درج در محل مشخص، بخش را انتخاب و «افزودن بعد از این» را بزنید؛ یا در رایانه بخش را به بوم بکشید؛ در لمس، آیکون یا + را نگه دارید و به پیش‌نمایش ببرید. لمس یا کلیک معمولی هم بخش را اضافه می‌کند.</p>
 					</div>
 
 					<div id="jvb-panel-settings" class="jvb-tab-panel" role="tabpanel" aria-labelledby="jvb-tab-settings" data-jvb-panel="settings" hidden>
 						<div class="jvb-canvas" data-jvb-canvas aria-label="تنظیمات صفحه و بخش‌ها">
-							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong data-jvb-selection-title>تنظیمات صفحهٔ اصلی</strong><p>انتخاب یک بخش در پیش‌نمایش یا ساختار، تنظیمات بومی همان بخش را اینجا باز می‌کند.</p></div></div>
+							<div class="jvb-canvas-intro"><span class="dashicons dashicons-edit-page" aria-hidden="true"></span><div><strong data-jvb-selection-title>تنظیمات صفحهٔ اصلی</strong><p>روی بخش در پیش‌نمایش کلیک کنید؛ ابزار ویرایش، تکثیر، ترتیب، حذف و افزودن کنار آن فعال می‌شود. تیترِ متن و تیتر مستقل با دوبار کلیک قابل ویرایش است.</p></div></div>
 							<div class="jvb-global-setting">
 								<strong>تنظیمات کلی صفحه</strong>
 								<?php jluxe_hb_field_checkbox( 'homepage', 'mobile_category_swipe_hint_enabled', 'نمایش یک‌بارهٔ راهنمای حرکت ردیف دسته‌بندی در موبایل', ! array_key_exists( 'mobile_category_swipe_hint_enabled', $homepage ) || ! empty( $homepage['mobile_category_swipe_hint_enabled'] ), true ); ?>

@@ -1,6 +1,9 @@
+import { CategoryImage } from '../components/category-image.js';
 import { j as jsx } from "../lib/jsx.js";
 import { G as Grid2x2 } from "../icons/grid-2x2.js";
 import { C as ChevronLeft } from "../icons/chevron-left.js";
+
+function groupsFor(category) { return Array.isArray(category.groups) && category.groups.length > 0; }
 
 function MegaMenuPanel({ categories, activeCategoryId, setActiveCategoryId }) {
   const activeCategory =
@@ -29,16 +32,18 @@ function MegaMenuPanel({ categories, activeCategoryId, setActiveCategoryId }) {
               className: `flex items-center justify-between gap-2 border-e-2 px-4 py-2.5 text-small transition-colors jluxe-header-categories-panel__category${isActive ? " is-active" : ""}`,
               "aria-current": isActive ? "true" : undefined,
               children: [
-                category.label,
-                category.iconSvg
+                category.iconImage ? jsx.jsx(CategoryImage, {src:category.iconImage,className:"jluxe-mega-category-image"}) : category.iconSvg
                   ? jsx.jsx("span", {
-                      className: "size-4 shrink-0 [&>svg]:size-full",
+                      className: "size-4 shrink-0 [&>svg]:size-full jluxe-mega-category-icon",
+                      "aria-hidden": true,
                       dangerouslySetInnerHTML: { __html: category.iconSvg },
                     })
                   : jsx.jsx(Grid2x2, {
                       className: "size-4 shrink-0",
                       "aria-hidden": true,
                     }),
+                jsx.jsx("span", { className: "min-w-0 flex-1 jluxe-mega-category-label", children: category.label }),
+                groupsFor(category) ? jsx.jsx(ChevronLeft, { className: "size-3.5 shrink-0 jluxe-mega-category-arrow", "aria-hidden": true }) : null,
               ],
             },
             category.id,
@@ -85,7 +90,7 @@ function MegaMenuPanel({ categories, activeCategoryId, setActiveCategoryId }) {
                           }),
                         ],
                       }),
-                      activeCategory.iconSvg
+                      activeCategory.iconImage ? jsx.jsx(CategoryImage, {src:activeCategory.iconImage,size:28,className:"jluxe-mega-category-image"}) : activeCategory.iconSvg
                         ? jsx.jsx("span", {
                             className:
                               "size-6 [&>svg]:size-full text-primary jluxe-header-categories-panel__icon",

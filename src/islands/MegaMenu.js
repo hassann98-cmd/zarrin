@@ -1,3 +1,4 @@
+import { useCategoryImageWarmup, warmCategoryImages } from '../lib/category-image-warmup.js';
 import { lazy, Suspense, useState } from "react";
 import { siteUrl } from "../lib/api.js";
 import { j as jsx } from "../lib/jsx.js";
@@ -11,6 +12,7 @@ function MegaMenu() {
   const settings = getThemeSettings();
   const megaMenu = settings.megaMenu ?? {};
   const categories = megaMenu.categories ?? [];
+  useCategoryImageWarmup(categories);
   const appearance = megaMenu.appearance ?? {};
   const clickToggleEnabled =
     appearance.openMode === "click" || appearance.openMode === "both";
@@ -39,7 +41,7 @@ function MegaMenu() {
     "aria-hidden": true,
     children: chevronIcon,
   });
-  const requestPanel = () => setPanelRequested(true);
+  const requestPanel = () => { warmCategoryImages(categories, 16); setPanelRequested(true); };
 
   if (categories.length === 0) {
     return jsx.jsx("a", {

@@ -249,7 +249,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.equal(mount.querySelector(".jluxe-ai-launcher").style.background, "rgb(163, 19, 185)", "without a selected image, the launcher keeps its configured accent-colored surface");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.getPropertyValue("--aia-primary"), "#a313b9", "the assistant uses the shared Royal Orchid default when no admin color is configured");
   assert.equal(mount.querySelector(".jluxe-ai-root").style.zIndex, "90", "the closed launcher keeps its established base layer");
-  assert.equal(mount.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید");
+  assert.equal(mount.querySelector(".jluxe-ai-launcher-label"), null);
   assert.equal(mount.querySelector(".jluxe-ai-root").style.bottom, "122px", "the product launcher clears the measured price-and-add bar with a 12px gap");
 
   const priceBar = document.getElementById("mobile-price-bar");
@@ -542,7 +542,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.ok(mobileProductLauncher.classList.contains("jluxe-ai-launcher--product"), "the product guide retains its chip layout when an image is configured");
   assert.equal(mobileProductLauncher.classList.contains("jluxe-ai-launcher--custom-image"), false, "the circular image treatment is limited to ordinary launchers");
   assert.equal(mobileProductLauncher.style.background, "rgb(163, 19, 185)", "the product guide retains its Royal Orchid accent surface");
-  assert.equal(mobileProductLauncher.querySelector(".jluxe-ai-launcher-label")?.textContent, "راهنمای خرید", "the product guide label remains alongside its compact image");
+  assert.equal(mobileProductLauncher.querySelector(".jluxe-ai-launcher-label"), null, "the compact launcher has no visible label");
 
   await act(async () => root.unmount());
 });
