@@ -96,6 +96,7 @@ test("checkout login CSS matches the theme design tokens", () => {
   assert.match(css, /jluxe-checkout-addresses__card/);
   assert.match(css, /jluxe-checkout-addresses__form/);
 });
+<<<<<<< HEAD
 
 test("picker panel respects the hidden attribute (display:flex must not override it)", () => {
   const css = read("assets/css/checkout-login.css");
@@ -103,3 +104,5 @@ test("picker panel respects the hidden attribute (display:flex must not override
   // می‌شود و پنل همیشه باز می‌ماند (بسته نمی‌شود و دکمهٔ شهر را می‌پوشاند).
   assert.match(css, /jluxe-checkout-picker__panel\[hidden\]\s*\{\s*display:\s*none/);
 });
+=======
+>>>>>>> origin/arena/941635f7-zarrin
