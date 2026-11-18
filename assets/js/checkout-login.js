@@ -128,7 +128,17 @@
       stateSelect.addEventListener("change", function () {
         var code = String(stateSelect.value || "").trim().toUpperCase();
         // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن ساخته شود، بعد کپی به آکاردئون.
-        setField("billing_state", code);
+        // تم روی تغییر برنامه‌محور billing_state محافظ ضد-autofill دارد و آن را
+        // پاک می‌کند؛ با شلیک select2:select (همان رویداد انتخاب کاربر در Select2)
+        // تم می‌فهمد انتخاب کاربر بوده و لیست شهر را می‌سازد.
+        var billingState = document.getElementById("billing_state");
+        if (billingState) {
+          billingState.value = code;
+          if (window.jQuery) {
+            jQuery(billingState).trigger("select2:select");
+          }
+          billingState.dispatchEvent(new Event("change", { bubbles: true }));
+        }
         mirrorBillingCities();
       });
     }
