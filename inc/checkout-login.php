@@ -445,7 +445,8 @@ function jluxe_render_address_selector(): void {
 			</div>
 		</div>
 
-		<?php if ( ! empty( $addresses ) ) : ?>
+		<?php // لیست همیشه رندر می‌شود (حتی خالی) تا بعد از ذخیرهٔ آدرس جدید،
+			// آدرس بلافاصله به لیست اضافه و قابل انتخاب شود. ?>
 			<div class="jluxe-checkout-addresses__list" role="radiogroup" aria-label="انتخاب آدرس تحویل" data-jluxe-address-list>
 				<?php foreach ( $addresses as $index => $entry ) : ?>
 					<label class="jluxe-checkout-addresses__card<?php echo 0 === $index ? ' is-selected' : ''; ?>" data-jluxe-address-card>
@@ -462,7 +463,6 @@ function jluxe_render_address_selector(): void {
 					</label>
 				<?php endforeach; ?>
 			</div>
-		<?php endif; ?>
 
 		<button type="button" class="jluxe-checkout-addresses__add jluxe-checkout-action-button jluxe-checkout-action-button--secondary" data-jluxe-address-toggle aria-expanded="false">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>

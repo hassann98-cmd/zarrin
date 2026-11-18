@@ -17,6 +17,44 @@
     el.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  /* اعمال استان/شهر آدرس ذخیره‌شده روی فیلدهای واقعی ووکامرس.
+     تغییر برنامه‌نویسی‌شده، cascade استان→شهر (تم/پلاگین) را طوری فعال
+     می‌کند که لیست شهر پاک می‌شود؛ پس مثل انتخاب واقعی کاربر رفتار می‌کنیم:
+     select2:select + change روی استان، بعد شهر وقتی گزینه‌اش ساخته شد. */
+  function applyStateCity(state, city) {
+    var stateEl = field("billing_state");
+    var cityEl = field("billing_city");
+    if (!stateEl) return;
+    var stateValue = state == null ? "" : String(state);
+    var cityValue = city == null ? "" : String(city);
+    stateEl.value = stateValue;
+    if (window.jQuery) {
+      window.jQuery(stateEl).trigger("select2:select");
+      window.jQuery(stateEl).trigger("change");
+    } else {
+      stateEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    if (!cityEl) return;
+    var attempts = 0;
+    function setCity() {
+      attempts += 1;
+      var hasOption = Array.prototype.some.call(cityEl.options, function (opt) {
+        return opt.value === cityValue;
+      });
+      if (hasOption || attempts > 40) {
+        cityEl.value = cityValue;
+        if (window.jQuery) {
+          window.jQuery(cityEl).trigger("change");
+        } else {
+          cityEl.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        return;
+      }
+      window.setTimeout(setCity, 50);
+    }
+    window.setTimeout(setCity, 0);
+  }
+
   function applyAddress(address, prefix) {
     if (!address) return;
     setField(prefix + "_first_name", address.first_name);
@@ -24,8 +62,13 @@
     setField(prefix + "_company", address.company);
     setField(prefix + "_address_1", address.address_1);
     setField(prefix + "_address_2", address.address_2);
-    setField(prefix + "_city", address.city);
-    setField(prefix + "_state", address.state);
+    if (prefix === "billing") {
+      // استان/شهر همان فیلدهای آکاردئون‌اند و cascade مخصوص خودشان را دارند.
+      applyStateCity(address.state, address.city);
+    } else {
+      setField(prefix + "_city", address.city);
+      setField(prefix + "_state", address.state);
+    }
     setField(prefix + "_postcode", address.postcode);
     setField(prefix + "_country", address.country);
     if (prefix === "billing") {
@@ -197,8 +240,24 @@
       return data;
     }
 
+    function ensureList() {
+      if (list && document.contains(list)) return list;
+      // اگر لیست در DOM نیست (HTML قدیمی/کش)، آن را قبل از دکمهٔ آدرس جدید بساز.
+      list = document.createElement("div");
+      list.className = "jluxe-checkout-addresses__list";
+      list.setAttribute("role", "radiogroup");
+      list.setAttribute("aria-label", "انتخاب آدرس تحویل");
+      list.setAttribute("data-jluxe-address-list", "");
+      if (toggle && toggle.parentNode) {
+        toggle.parentNode.insertBefore(list, toggle);
+      } else {
+        selector.appendChild(list);
+      }
+      return list;
+    }
+
     function appendAddress(entry, selectIt) {
-      if (!list) return;
+      var targetList = ensureList();
       var card = document.createElement("label");
       card.className = "jluxe-checkout-addresses__card" + (selectIt ? " is-selected" : "");
       card.setAttribute("data-jluxe-address-card", "");
@@ -237,7 +296,7 @@
       card.appendChild(radio);
       card.appendChild(body);
       card.appendChild(data);
-      list.appendChild(card);
+      targetList.appendChild(card);
       bindCards();
       if (selectIt) select(card);
     }

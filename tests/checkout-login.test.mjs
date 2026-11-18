@@ -119,6 +119,22 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /is-selected/);
 });
 
+test("address list container always renders so a newly saved address is added and selectable", () => {
+  const php = read("inc/checkout-login.php");
+  // لیست آدرس‌ها نباید پشت شرط «آدرس قبلی وجود دارد» پنهان بماند؛ وگرنه کاربر
+  // بار اول بعد از ذخیره، آدرس جدید را در لیست نمی‌بیند.
+  assert.doesNotMatch(php, /if \( ! empty\( \$addresses \) \) :\s*\n\s*<div class="jluxe-checkout-addresses__list"/);
+  assert.match(php, /data-jluxe-address-list/);
+  const css = read("assets/css/checkout-login.css");
+  assert.match(css, /jluxe-checkout-addresses__list:empty/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /ensureList/);
+  assert.match(js, /appendAddress/);
+  // انتخاب آدرس ذخیره‌شده استان/شهر را مثل انتخاب واقعی کاربر اعمال می‌کند.
+  assert.match(js, /applyStateCity/);
+  assert.match(js, /select2:select/);
+});
+
 test("checkout login CSS matches the theme design tokens", () => {
   const css = read("assets/css/checkout-login.css");
   assert.match(css, /hsl\(var\(--primary\)\)/);
