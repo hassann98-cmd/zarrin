@@ -95,6 +95,7 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
   window.addEventListener("jluxe:toggle-mobile-bar", (event) => { switches += 1; modeEvents.push(event.detail); });
   window.MutationObserver = undefined;
 
+  window.eval(await readFile(new URL("../assets/js/storefront-utils.js", import.meta.url), "utf8"));
   window.eval(toggleScript);
   assert.equal(priceBar.classList.contains("hidden"), false, "the price bar remains the initial mode");
   assert.equal(priceBar.getAttribute("data-jluxe-mobile-bar-ready"), "true", "the DOM records when mode state becomes authoritative");
@@ -118,7 +119,12 @@ test("Boom's existing mobile toggle switches between the price bar and mobile na
     "the mode switch sits on the side opposite the configured AI assistant launcher",
   );
 
+  let delegatedCartHits = 0;
+  const cartDelegate = () => { delegatedCartHits++; };
+  window.document.addEventListener('click', cartDelegate, true);
   toggle.click();
+  assert.equal(delegatedCartHits, 0, 'switch click is isolated before document cart delegation');
+  window.document.removeEventListener('click', cartDelegate, true);
   assert.equal(priceBar.classList.contains("hidden"), true);
   assert.equal(toggle.getAttribute("aria-pressed"), "false");
   assert.equal(toggle.getAttribute("aria-label"), "نمایش نوار خرید");
