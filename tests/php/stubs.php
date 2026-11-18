@@ -304,6 +304,7 @@ function wc_price($amount,$args=array()){return '<span>'.(isset($args['currency'
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
 function get_attachment_link($id){return $GLOBALS['attachment_links'][$id]??home_url('/attachment/'.$id.'/');}
 function wp_get_attachment_image_url(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$images=$GLOBALS['attachment_image_urls']??[];if(array_key_exists($id,$images)){$value=$images[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return home_url('/image.jpg');}
+function attachment_url_to_postid($url){return $GLOBALS['attachment_id_by_url'][$url] ?? 0;}
 function wp_get_attachment_image_srcset(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$sets=$GLOBALS['attachment_srcsets']??[];if(array_key_exists($id,$sets)){$value=$sets[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w';}
 function wp_get_attachment_url($id){if(array_key_exists($id,$GLOBALS['attachment_urls']??[]))return $GLOBALS['attachment_urls'][$id];return home_url('/uploads/'.$id.'.gif');}
 function get_post_mime_type($id){return $GLOBALS['attachment_mimes'][$id]??'';}
@@ -320,6 +321,8 @@ function wp_localize_script($handle,$name,$data){$GLOBALS['localized'][$name]=$d
 function nocache_headers(){$GLOBALS['no_cache']=true;}
 function rest_url($path){return home_url('/wp-json/'.ltrim($path,'/'));}
 function admin_url($path){return home_url('/wp-admin/'.ltrim($path,'/'));}
+function plugin_basename($file){return basename(dirname($file)).'/'.basename($file);}
+function plugin_dir_url($file){return home_url('/wp-content/themes/zarrin/'.basename(dirname($file)).'/');}
 function test_comment_meta_query_matches($query,$comment_id){
  if(!is_array($query)||!$query)return true;
  $relation=strtoupper($query['relation']??'AND');$matches=[];
@@ -687,3 +690,13 @@ if(!function_exists('term_exists')){function term_exists($id,$tax=''){return iss
 if(!function_exists('get_term_meta')){function get_term_meta($id,$key='',$single=false){return $GLOBALS['term_meta'][(int)$id][$key]??'';}}
 if(!function_exists('wp_dropdown_pages')){function wp_dropdown_pages($a=array()){echo '<select name="'.htmlspecialchars((string)($a['name']??''),ENT_QUOTES).'"></select>';}}
 if(!function_exists('is_page')){function is_page(...$a){return !empty($GLOBALS['is_page']);}}
+
+// The real Woo helper owns public/private item-meta filtering and formatting.
+function wc_display_item_meta( $item, $args = array() ) {
+ $GLOBALS['item_meta_calls'][] = array( $item, $args );
+ return '<ul class="wc-item-meta"><li>سایز: XL</li></ul>';
+}
+function wc_get_account_orders_actions( $order ) {
+ $GLOBALS['account_action_calls'][] = $order->get_id();
+ return $GLOBALS['account_actions_fixture'] ?? array();
+}

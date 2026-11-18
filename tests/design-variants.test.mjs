@@ -31,7 +31,7 @@ test("R354 the optional home-and-kitchen variant retains its original green/clay
   assert.match(css, /--jluxe-home-primary-hover:\s*#245C46/i);
   assert.match(css, /--jluxe-home-clay:\s*#C2410C/i);
   assert.match(css, /--jluxe-home-cream:\s*#FAF5F2/i);
-  assert.match(css, /background-color:\s*#2F6B52/i);
+  assert.match(css, /background-color:\s*var\(--jluxe-home-primary\)/i);
   assert.match(css, /background-color:\s*#FFFFFF/i);
   assert.doesNotMatch(css, /var\(--color-electric-indigo-/i);
 
@@ -44,7 +44,7 @@ test("R354 the optional home-and-kitchen variant retains its original green/clay
 
 test("R354 footer gets distinct feature, brand, link, and trust modules without overriding responsive grid placement", () => {
   const footerStart = css.indexOf("/* Footer:");
-  const footerEnd = css.indexOf("/* Product cards:", footerStart);
+  const footerEnd = css.indexOf("/* Product cards deliberately", footerStart);
   assert.ok(footerStart >= 0 && footerEnd > footerStart, "footer variant block exists");
   const footer = css.slice(footerStart, footerEnd);
   assert.match(footer, /\.jluxe-footer-feature-card/);
@@ -158,9 +158,9 @@ test("Bubblegum Pink adds the exact palette and applies it across saved section 
 test("R354 optional effects stay scoped and include focus, low-power, and reduced-motion fallbacks", () => {
   assert.match(css, /#masthead\[data-jluxe-header-variant="premium"\]/);
   assert.match(css, /#jluxe-footer-root\[data-jluxe-footer-variant="premium"\]/);
-  assert.match(css, /ul\.products li\.product\[data-jluxe-product-card-variant="premium"\]/);
+  assert.doesNotMatch(css, /ul\.products li\.product/);
   assert.match(css, /#masthead\[data-jluxe-header-variant="premium"\] \.jluxe-header-bar[\s\S]*?backdrop-filter:\s*none/);
-  assert.match(css, /html\.jluxe-lite ul\.products li\.product\[data-jluxe-product-card-variant="premium"\]/);
+  assert.match(css, /Product cards deliberately use storefront\.css/);
   assert.doesNotMatch(css, /backdrop-filter:\s*blur/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
@@ -193,7 +193,7 @@ test("R355 site-wide green/clay home design stays opt-in and covers the storefro
   assert.match(sitewideCss, /\.jluxe-home-section > div\.mb-3\.flex\.items-center\.justify-between > a/);
   assert.match(sitewideCss, /#masthead/);
   assert.match(sitewideCss, /#jluxe-footer-root/);
-  assert.match(sitewideCss, /ul\.products li\.product/);
+  assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
   assert.match(sitewideCss, /\.woocommerce-checkout/);
   assert.match(sitewideCss, /@media \(max-width: 767\.98px\)/);
   assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
@@ -217,15 +217,15 @@ test("R362 ordinary text is neutral while action, hover, and semantic status col
   assert.match(storefrontCss, /\.dark \.jluxe-site-faq__empty \{ color: #D1D5DB; \}/);
   assert.match(sitewideCss, /--jluxe-home-ink:\s*#1F2937/);
   assert.match(sitewideCss, /\.jluxe-home-section h2:not\(\.text-white\) \{\s*color: #1F2937;/);
-  assert.match(sitewideCss, /\.jluxe-product-card-title \{\s*color: #1F2937;/);
-  assert.match(css, /\.jluxe-product-card-title \{\s*color: #1F2937;/);
-  assert.match(css, /\.jluxe-product-card-current-price \{\s*color: #1F2937;/);
+  assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
+  assert.match(storefrontCss, /\.jluxe-product-card-title/);
+  assert.match(storefrontCss, /\.jluxe-product-card-current-price/);
   assert.match(storefrontCss, /\.jluxe-blog-listing__eyebrow \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
   assert.match(storefrontCss, /\.jluxe-pa-price \{[\s\S]*?color: hsl\(var\(--foreground\)\)/);
   assert.match(storefrontCss, /\.jluxe-recent-products__count \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
   assert.match(storefrontCss, /\.jluxe-recent-products__eyebrow \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
   assert.match(storefrontCss, /\.jluxe-recent-card__price\[data-on-sale="true"\] \.jluxe-recent-card__price-current \{ color: hsl\(var\(--error\)\)/);
-  assert.match(css, /\.jluxe-product-card-sale-badge \{[\s\S]*?background-color: #DC2626/);
+  assert.doesNotMatch(css, /jluxe-product-card-sale-badge/);
   assert.match(sitewideCss, /\.woocommerce-message \{[\s\S]*?color: #166534/);
   assert.match(sitewideCss, /\.woocommerce-info \{[\s\S]*?color: #1D4ED8/);
   assert.match(sitewideCss, /\.woocommerce-error \{[\s\S]*?color: #B91C1C/);
@@ -233,4 +233,14 @@ test("R362 ordinary text is neutral while action, hover, and semantic status col
   assert.equal((aboutPage.match(/\[&_\.jluxe-about-eyebrow\]:text-text-secondary/g) ?? []).length, 2);
   assert.doesNotMatch(aboutPage, /\[&_\.jluxe-about-eyebrow\]:text-primary/);
   assert.doesNotMatch(sitewideCss, /color:\s*var\(--color-electric-indigo-(?:700|800|900)\)/);
+});
+
+test('home product cards remain canonical across WooCommerce lists and home div carousels',()=>{
+ for(const sheet of [css,sitewideCss]){
+  assert.doesNotMatch(sheet,/ul\.products li\.product/,'archive-only card overrides would diverge from home again');
+ }
+ const template=readFileSync(new URL('../woocommerce/content-product.php',import.meta.url),'utf8');
+ const home=readFileSync(new URL('../inc/theme-settings-homepage.php',import.meta.url),'utf8');
+ assert.match(home,/wc_get_template_part\( 'content', 'product' \)/);assert.match(template,/jluxe-product-card-cta/);
+ assert.match(storefrontCss,/\.jluxe-product-card-cta\s*\{[\s\S]*?background-color: hsl\(var\(--foreground\)\)/);
 });
