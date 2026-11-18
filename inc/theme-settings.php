@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 23;
+const JLUXE_SETTINGS_VERSION = 24;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -923,7 +923,7 @@ function jluxe_theme_settings_defaults(): array {
 			'nav_variant' => 'classic', // classic | floating
 			// آیتم‌های نوار فعلی، برای حفظ رفتار قبلی بدون تغییر.
 			'nav_items' => array(
-				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'package', 'enabled' => true ),
+				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'order-tracking', 'enabled' => true ),
 				array( 'id' => 'shop', 'label' => 'دسته‌بندی‌ها', 'icon' => 'grid', 'enabled' => true ),
 				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'enabled' => true ),
 				array( 'id' => 'account', 'label' => 'حساب', 'icon' => 'user', 'enabled' => true ),
@@ -970,6 +970,12 @@ function jluxe_theme_settings_defaults(): array {
 			// چیدمان‌ها مستقل‌اند: 'default' طرح Boom فعلی، 'classic' قالبِ جایگزین،
 			// و 'reference' صفحهٔ سوم با کارت خرید/مشخصات و بخش‌های کامل محصول.
 			'layout'        => 'default', // default | classic | reference
+			'mobile_layout' => 'standard', // standard | layered
+			'mobile_title_size' => 18,
+			'mobile_title_weight' => 600,
+			'mobile_option_height' => 36,
+			'mobile_option_font' => 13,
+			'mobile_option_padding' => 10,
 			'show_related'  => true,
 			'related_count' => 4,
 			// خالی یعنی semantic token (error / success / warning-strong).
@@ -1203,6 +1209,8 @@ function jluxe_theme_settings_defaults(): array {
 		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
 		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
+			'page_transitions' => true,
+			'page_prefetch' => true,
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
@@ -1250,6 +1258,7 @@ function jluxe_nav_icon_options(): array {
 		'help-circle'      => 'راهنما/سوال',
 		'info'             => 'اطلاعات',
 		'package'          => 'بسته/سفارش',
+		'order-tracking'   => 'پیگیری سفارش (بسته و ذره‌بین)',
 		'rotate-ccw'       => 'بازگشت کالا',
 		'shield-check'     => 'ضمانت',
 		'percent'          => 'درصد تخفیف',
@@ -2594,6 +2603,22 @@ function jluxe_migrate_settings_v23( array $settings ): array {
 }
 
 /** Apply all versioned migrations in order and stamp the current schema version. */
+/** Upgrade only the old tracking placeholder, preserving other configured icons. */
+function jluxe_migrate_settings_v24( array $settings ): array {
+	foreach ( array( 'nav_items', 'floating_nav_items' ) as $group ) {
+		if ( ! is_array( $settings['mobile'][ $group ] ?? null ) ) { continue; }
+		foreach ( $settings['mobile'][ $group ] as &$item ) {
+			if ( ! is_array( $item ) ) { continue; }
+			$is_tracking = 'nav_items' === $group ? 'track' === ( $item['id'] ?? '' ) : 'track' === ( $item['action'] ?? '' );
+			if ( $is_tracking && 'package' === ( $item['icon'] ?? '' ) ) {
+				$item['icon'] = 'order-tracking';
+			}
+		}
+		unset( $item );
+	}
+	return $settings;
+}
+
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
 		2 => 'jluxe_migrate_settings_v2',
@@ -2618,6 +2643,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		21 => 'jluxe_migrate_settings_v21',
 		22 => 'jluxe_migrate_settings_v22',
 		23 => 'jluxe_migrate_settings_v23',
+		24 => 'jluxe_migrate_settings_v24',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -3050,6 +3076,48 @@ function jluxe_get_mobile_logo_url(): string {
 }
 
 /**
+ * قدیمی‌ترین/عمومی‌ترین HTML گواهی‌نامه‌ها اغلب بدون width/height ذخیره شده‌اند.
+ * وقتی تصویر از کتابخانهٔ رسانهٔ وردپرس باشد، ابعاد ذاتی فایل را به <img> اضافه
+ * می‌کنیم تا مرورگر پیش از دانلود هم فضای لازم را رزرو کند. کدهای خارجی یا
+ * فایل‌هایی که attachment lookup نشوند عمداً دست‌نخورده می‌مانند.
+ */
+function jluxe_add_site_trust_badge_image_dimensions( string $html ): string {
+	if ( false === stripos( $html, '<img' ) || ! function_exists( 'attachment_url_to_postid' ) || ! function_exists( 'wp_get_attachment_metadata' ) ) {
+		return $html;
+	}
+
+	return (string) preg_replace_callback(
+		'#<img\\b[^>]*>#i',
+		static function ( array $matches ): string {
+			$tag = $matches[0];
+			if ( preg_match( '/\\b(?:width|height)\\s*=/i', $tag )
+				|| ! preg_match( '/\\bsrc\\s*=\\s*(?:"([^"]+)"|\'([^\']+)\'|([^\\s>]+))/i', $tag, $src_match ) ) {
+				return $tag;
+			}
+
+			$src = html_entity_decode( $src_match[1] ?: ( $src_match[2] ?: $src_match[3] ), ENT_QUOTES, 'UTF-8' );
+			$attachment_id = absint( attachment_url_to_postid( $src ) );
+			if ( ! $attachment_id ) {
+				return $tag;
+			}
+
+			$metadata = wp_get_attachment_metadata( $attachment_id );
+			$width    = (int) ( $metadata['width'] ?? 0 );
+			$height   = (int) ( $metadata['height'] ?? 0 );
+			if ( $width < 1 || $height < 1 ) {
+				return $tag;
+			}
+
+			$clean = rtrim( $tag );
+			$self_closing = 2 <= strlen( $clean ) && '/>' === substr( $clean, -2 );
+			$clean = substr( $clean, 0, $self_closing ? -2 : -1 );
+			return $clean . ' width="' . $width . '" height="' . $height . '"' . ( $self_closing ? ' />' : '>' );
+		},
+		$html
+	);
+}
+
+/**
  * نرمال‌سازیِ «نمادهای سایت» (اینماد/ساماندهی/ترب/زرین‌پال و ...) برای چاپِ
  * مستقیم روی صفحه — هر آیتم یا 'html' کاملِ ذخیره‌شده رو داره، یا فقط
  * 'link' (که این‌جا به یک لینکِ متنیِ ساده تبدیل می‌شه)، یا (داده‌ی خیلی
@@ -3072,6 +3140,7 @@ function jluxe_get_site_trust_badges(): array {
 			array_map(
 				static function ( $badge ) {
 					$html = isset( $badge['html'] ) ? (string) $badge['html'] : '';
+					$html = jluxe_add_site_trust_badge_image_dimensions( $html );
 					$link = isset( $badge['link'] ) ? (string) $badge['link'] : '';
 					if ( '' !== trim( $html ) ) {
 						return array( 'html' => $html, 'link' => $link );
@@ -3084,7 +3153,7 @@ function jluxe_get_site_trust_badges(): array {
 					if ( ! empty( $badge['image_id'] ) ) {
 						$url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 						if ( $url ) {
-							$img = '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+							$img = jluxe_add_site_trust_badge_image_dimensions( '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />' );
 							return array( 'html' => ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img, 'link' => ! empty( $badge['link'] ) ? esc_url_raw( $badge['link'] ) : '' );
 						}
 					}
@@ -3356,6 +3425,7 @@ function jluxe_localize_public_settings(): void {
 			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
+			'navigation'      => array( 'prefetch' => ! empty( $settings['performance']['page_prefetch'] ) ),
 			'iconGlyphs'       => function_exists( 'jluxe_public_icon_glyphs' ) ? jluxe_public_icon_glyphs( $settings ) : array(),
 			'header'           => $settings['header'],
 			'footer'           => $footer,
@@ -3397,6 +3467,7 @@ function jluxe_localize_public_settings(): void {
 			'cart'             => array(
 				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 				'nonce'        => wp_create_nonce( 'jluxe_cart' ),
+				'cartUrl'      => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url( '/cart/' ),
 				'initialCount' => function_exists( 'WC' ) && WC()->cart ? WC()->cart->get_cart_contents_count() : 0,
 				'showCoupon'   => ! empty( $settings['shop']['mini_cart_show_coupon'] ),
 			),
@@ -4289,3 +4360,20 @@ require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت بر�
 require_once __DIR__ . '/ai-stream.php'; // R134 — ارسالِ تدریجیِ پاسخ‌های providerهای OpenAI-compatible
 require_once __DIR__ . '/theme-settings-sms.php';
 require_once __DIR__ . '/auth.php';
+
+/** Bounded mobile product design controls; shared by persistence and CSS output. */
+function jluxe_product_mobile_design_values( array $input ): array {
+	$result = array();
+	foreach ( array(
+		'mobile_title_size' => array( 18, 16, 24 ),
+		'mobile_option_height' => array( 36, 32, 48 ),
+		'mobile_option_font' => array( 13, 12, 16 ),
+		'mobile_option_padding' => array( 10, 6, 16 ),
+	) as $key => $range ) {
+		$value = $input[ $key ] ?? null;
+		$result[ $key ] = is_scalar( $value ) && is_numeric( $value ) ? max( $range[1], min( $range[2], (int) round( (float) $value ) ) ) : $range[0];
+	}
+	$weight = $input['mobile_title_weight'] ?? 600;
+	$result['mobile_title_weight'] = is_scalar( $weight ) && in_array( (string) $weight, array( '400', '500', '600', '700', '800' ), true ) ? (int) $weight : 600;
+	return $result;
+}
