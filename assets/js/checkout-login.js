@@ -1,0 +1,337 @@
+/* تسویه‌حساب اصلی: انتخاب آدرس ذخیره‌شده + آکاردئون آدرس جدید با ذخیره در همان صفحه.
+   استان و شهر به‌صورت لیست انتخابی با جستجو (سبک iPhone) هستند؛ شهر بعد از
+   انتخاب استان لود می‌شود. مشخصات (نام/نام خانوادگی/تلفن) از حساب خوانده شده
+   و در صورت نیاز قابل ویرایش است؛ اولویت با شمارهٔ واردشده در OTP است.
+   بدون جاوااسکریپت، فرم تسویه‌حساب از قبل با آدرس ذخیره‌شده پر است. */
+(function () {
+  "use strict";
+
+  function field(id) {
+    return document.getElementById(id);
+  }
+
+  function setField(id, value) {
+    var el = field(id);
+    if (!el) return;
+    el.value = value == null ? "" : String(value);
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function applyAddress(address, prefix) {
+    if (!address) return;
+    setField(prefix + "_first_name", address.first_name);
+    setField(prefix + "_last_name", address.last_name);
+    setField(prefix + "_company", address.company);
+    setField(prefix + "_address_1", address.address_1);
+    setField(prefix + "_address_2", address.address_2);
+    setField(prefix + "_city", address.city);
+    setField(prefix + "_state", address.state);
+    setField(prefix + "_postcode", address.postcode);
+    setField(prefix + "_country", address.country);
+    if (prefix === "billing") {
+      setField("billing_phone", address.phone);
+      setField("billing_email", address.email);
+    }
+  }
+
+  function init() {
+    var selector = document.querySelector("[data-jluxe-address-selector]");
+    if (!selector) return;
+
+    var list = selector.querySelector("[data-jluxe-address-list]");
+    var toggle = selector.querySelector("[data-jluxe-address-toggle]");
+    var form = selector.querySelector("[data-jluxe-address-form]");
+    var closeBtn = selector.querySelector("[data-jluxe-address-close]");
+    var saveBtn = selector.querySelector("[data-jluxe-address-save]");
+    var status = selector.querySelector("[data-jluxe-address-status]");
+    var config = window.JLUXE_CHECKOUT_ADDRESS || {};
+    var citiesByState = config.cities || {};
+
+    /* ---------- همگام‌سازی هویت (نام/نام خانوادگی/تلفن) با فرم تسویه‌حساب ---------- */
+    selector.querySelectorAll("[data-jluxe-identity-field]").forEach(function (input) {
+      var name = input.getAttribute("data-jluxe-identity-field");
+      var targetId =
+        name === "first_name"
+          ? "billing_first_name"
+          : name === "last_name"
+            ? "billing_last_name"
+            : "billing_phone";
+      input.addEventListener("input", function () {
+        setField(targetId, input.value);
+      });
+    });
+
+    /* ---------- استان/شهر با <select> استاندارد (همان مکانیزم ووکامرس) ----------
+       مقدار استان کد است (مثل THR) تا با billing_state ووکامرس یکی باشد و
+       در user meta هم به‌صورت کد ذخیره شود. شهرها از دادهٔ لوکالایزشده
+       ساخته می‌شوند؛ انتخاب‌ها با فیلدهای billing_state/billing_city
+       ووکامرس همگام می‌شوند تا فرم تسویه‌حساب همان آدرس را بگیرد. */
+    var stateSelect = selector.querySelector('[data-jluxe-new-field="state"]');
+    var citySelect = selector.querySelector('[data-jluxe-new-field="city"]');
+
+    function rebuildCities(code) {
+      if (!citySelect) return;
+      var cities = (code && citiesByState[code]) || [];
+      citySelect.innerHTML = "";
+      var placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = cities.length
+        ? "شهر خود را انتخاب نمایید"
+        : code
+          ? "فهرست شهرستان‌های این استان در دسترس نیست"
+          : "لطفا ابتدا استان خود را انتخاب نمایید";
+      citySelect.appendChild(placeholder);
+      cities.forEach(function (city) {
+        var opt = document.createElement("option");
+        opt.value = city;
+        opt.textContent = city;
+        citySelect.appendChild(opt);
+      });
+      citySelect.value = "";
+      // سلکت شهر عمداً disabled نمی‌شود (مثل billing_city ووکامرس): قبل از
+      // انتخاب استان فقط placeholder دارد و Select2 هم همیشه قابل باز شدن است.
+      if (window.jQuery && jQuery.fn.select2 && jQuery(citySelect).data("select2")) {
+        jQuery(citySelect).trigger("change");
+      }
+    }
+
+    function initSelect2(el, placeholder) {
+      if (!el || !window.jQuery || !jQuery.fn.select2) return;
+      if (jQuery(el).data("select2")) return;
+      jQuery(el).select2({
+        dir: "rtl",
+        width: "100%",
+        placeholder: placeholder,
+        allowClear: false,
+      });
+    }
+
+    initSelect2(stateSelect, "استان خود را انتخاب نمایید");
+    initSelect2(citySelect, "لطفا ابتدا استان خود را انتخاب نمایید");
+
+    if (stateSelect) {
+      stateSelect.addEventListener("change", function () {
+        var code = String(stateSelect.value || "").trim().toUpperCase();
+        rebuildCities(code);
+        // همگام‌سازی با فیلد ووکامرس تا لیست شهر آن هم ساخته شود.
+        setField("billing_state", code);
+      });
+    }
+    if (citySelect) {
+      citySelect.addEventListener("change", function () {
+        setField("billing_city", citySelect.value);
+      });
+    }
+
+    /* ---------- انتخاب آدرس ذخیره‌شده ---------- */
+    function cards() {
+      return Array.prototype.slice.call(selector.querySelectorAll("[data-jluxe-address-card]"));
+    }
+
+    function select(card) {
+      cards().forEach(function (c) {
+        c.classList.toggle("is-selected", c === card);
+      });
+      var input = card.querySelector("[data-jluxe-address-option]");
+      var value = input ? input.value : "";
+      var dataEl = card.querySelector("[data-jluxe-address-data]");
+      if (!dataEl) return;
+      var address;
+      try {
+        address = JSON.parse(dataEl.textContent || "{}");
+      } catch (e) {
+        return;
+      }
+      if (value === "billing") {
+        applyAddress(address, "billing");
+        var shipDifferent = field("ship-to-different-address-checkbox");
+        if (!shipDifferent || !shipDifferent.checked) {
+          applyAddress(address, "shipping");
+        }
+      } else if (value === "shipping") {
+        applyAddress(address, "shipping");
+        var shipCheckbox = field("ship-to-different-address-checkbox");
+        if (shipCheckbox && !shipCheckbox.checked) {
+          shipCheckbox.checked = true;
+          shipCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+    }
+
+    function bindCards() {
+      cards().forEach(function (card) {
+        var input = card.querySelector("[data-jluxe-address-option]");
+        if (input && !input.dataset.jluxeBound) {
+          input.dataset.jluxeBound = "1";
+          input.addEventListener("change", function () {
+            select(card);
+          });
+        }
+        if (!card.dataset.jluxeBound) {
+          card.dataset.jluxeBound = "1";
+          card.addEventListener("click", function (event) {
+            if (event.target.closest("input")) return;
+            var opt = card.querySelector("[data-jluxe-address-option]");
+            if (opt && !opt.checked) {
+              opt.checked = true;
+              opt.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        }
+      });
+    }
+
+    function showStatus(message, isError) {
+      if (!status) return;
+      status.textContent = message;
+      status.hidden = !message;
+      status.classList.toggle("is-error", !!isError);
+    }
+
+    function clearNewForm() {
+      if (!form) return;
+      form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
+        el.value = "";
+      });
+      rebuildCities("");
+    }
+
+    function setFormOpen(open) {
+      if (!form || !toggle) return;
+      form.hidden = !open;
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open && stateSelect) {
+        stateSelect.focus();
+      }
+    }
+
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        setFormOpen(form.hidden);
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        setFormOpen(false);
+      });
+    }
+
+    function newField(name) {
+      return selector.querySelector('[data-jluxe-new-field="' + name + '"]');
+    }
+
+    function identityField(name) {
+      return selector.querySelector('[data-jluxe-identity-field="' + name + '"]');
+    }
+
+    function collectNewAddress() {
+      var data = {};
+      ["state", "city", "address_1", "postcode", "email"].forEach(function (name) {
+        var el = newField(name);
+        data[name] = el ? el.value.trim() : "";
+      });
+      var fn = identityField("first_name");
+      data.first_name = fn ? fn.value.trim() : "";
+      var ln = identityField("last_name");
+      data.last_name = ln ? ln.value.trim() : "";
+      var ph = identityField("phone");
+      data.phone = ph ? ph.value.trim() : "";
+      return data;
+    }
+
+    function appendAddress(entry, selectIt) {
+      if (!list) return;
+      var card = document.createElement("label");
+      card.className = "jluxe-checkout-addresses__card" + (selectIt ? " is-selected" : "");
+      card.setAttribute("data-jluxe-address-card", "");
+      var input = document.createElement("input");
+      input.type = "radio";
+      input.name = "jluxe_saved_address";
+      input.value = entry.type;
+      input.setAttribute("data-jluxe-address-option", "");
+      if (selectIt) input.checked = true;
+      var radio = document.createElement("span");
+      radio.className = "jluxe-checkout-addresses__radio";
+      radio.setAttribute("aria-hidden", "true");
+      var body = document.createElement("span");
+      body.className = "jluxe-checkout-addresses__card-body";
+      var label = document.createElement("span");
+      label.className = "jluxe-checkout-addresses__card-label";
+      label.textContent = entry.label;
+      var line = document.createElement("span");
+      line.className = "jluxe-checkout-addresses__card-line";
+      line.textContent = entry.line;
+      body.appendChild(label);
+      body.appendChild(line);
+      if (entry.phone) {
+        var phone = document.createElement("span");
+        phone.className = "jluxe-checkout-addresses__card-phone";
+        phone.setAttribute("dir", "ltr");
+        phone.textContent = entry.phone;
+        body.appendChild(phone);
+      }
+      var data = document.createElement("span");
+      data.className = "jluxe-checkout-addresses__data";
+      data.setAttribute("data-jluxe-address-data", "");
+      data.hidden = true;
+      data.textContent = JSON.stringify(entry.address);
+      card.appendChild(input);
+      card.appendChild(radio);
+      card.appendChild(body);
+      card.appendChild(data);
+      list.appendChild(card);
+      bindCards();
+      if (selectIt) select(card);
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", function () {
+        var data = collectNewAddress();
+        showStatus("", false);
+        saveBtn.disabled = true;
+        var body = new URLSearchParams();
+        body.set("action", "jluxe_save_checkout_address");
+        body.set("nonce", config.nonce || "");
+        Object.keys(data).forEach(function (key) {
+          body.set(key, data[key]);
+        });
+        fetch(config.ajaxUrl || "/wp-admin/admin-ajax.php", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+        })
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (json) {
+            if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
+              if (list) list.innerHTML = "";
+              json.data.addresses.forEach(function (entry, idx) {
+                appendAddress(entry, idx === json.data.addresses.length - 1);
+              });
+              clearNewForm();
+              setFormOpen(false);
+              showStatus("آدرس ذخیره شد.", false);
+            } else {
+              showStatus((json && json.data && json.data.message) || "ذخیرهٔ آدرس ناموفق بود.", true);
+            }
+          })
+          .catch(function () {
+            showStatus("ارتباط با سرور ناموفق بود؛ دوباره تلاش کنید.", true);
+          })
+          .finally(function () {
+            saveBtn.disabled = false;
+          });
+      });
+    }
+
+    bindCards();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
