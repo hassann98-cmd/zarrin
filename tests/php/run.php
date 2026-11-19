@@ -6340,10 +6340,10 @@ check(
 	'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $r305_migrated_settings['footer']['support_hours'] &&
 	'09120902336' === $r305_migrated_settings['contact']['phone'] && '09362420232' === $r305_migrated_settings['contact']['phone_secondary'] &&
 	10 === $r305_migrated_settings['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#a313b9' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#fae8fd' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#a313b9' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#F0FDF4' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#16A34A' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#ECFDF5' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#DC2626' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
 	'#fae8fd' === $r305_migrated_settings['cart_checkout']['payment_card_selected_background'],
 	'R305/R326 migrations move recognized legacy shipping and payment defaults to Royal Orchid while preserving unrelated settings'
 );
@@ -9671,7 +9671,7 @@ check(
 	'#112233' === $r279_clean_checkout['shipping_methods']['post']['card_border_color'] &&
 	'#DDEEFF' === $r279_clean_checkout['shipping_methods']['post']['selected_card_background_color'] &&
 	'#334455' === $r279_clean_checkout['shipping_methods']['post']['selected_card_border_color'] &&
-	'#a313b9' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#059669' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
 	'ارسال فوری' === $r279_clean_checkout['shipping_methods']['post']['note'] &&
 	'#123ABC' === $r279_clean_checkout['shipping_methods']['post']['note_background_color'] &&
 	'#FFFFFF' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
@@ -9693,16 +9693,16 @@ check(
 );
 check(
 	10 === $r279_settings_defaults['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#F0FDF4' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#16A34A' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#ECFDF5' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#059669' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#FEF2F2' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
+	'#DC2626' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
 	'اقتصادی' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
+	'#1E293B' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
+	'#D1FAE5' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#FEE2E2' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
 	'#FFF7ED' === $r279_settings_defaults['cart_checkout']['checkout_payment_warning_background'] &&
 	'#FFFFFF' === $r279_settings_defaults['cart_checkout']['payment_card_background'] &&
 	'#fae8fd' === $r279_settings_defaults['cart_checkout']['payment_card_selected_background'],
@@ -9718,10 +9718,10 @@ check(
 	true === $r279_merged_section['cart_checkout']['require_address'] &&
 	true === $r279_merged_section['cart_checkout']['require_postcode_for_post'] &&
 	10 === $r279_merged_section['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#F0FDF4' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&
 	'اقتصادی' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#a313b9' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#D1FAE5' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
 	array( 'post', 'tipax', 'chapar' ) === array_keys( $r279_merged_section['cart_checkout']['shipping_methods'] ),
 	'R279 adding cart_checkout needs no schema migration: the theme defaults deep-merge missing nested settings'
 );
@@ -9770,7 +9770,7 @@ check(
 	'#AABBCC' === $r279_post_card_settings['card_background_color'] &&
 	'#DDEEFF' === $r279_post_card_settings['selected_card_background_color'] &&
 	'#334455' === $r279_post_card_settings['selected_card_border_color'] &&
-	'#a313b9' === $r279_tipax_card_settings['selected_card_border_color'] &&
+	'#059669' === $r279_tipax_card_settings['selected_card_border_color'] &&
 	'#FFFFFF' === jluxe_cart_checkout_shipping_method_settings( 'unknown' )['card_background_color'],
 	'R289 shipping-card presentation reads sanitized per-carrier colors and uses safe fallbacks'
 );

@@ -644,12 +644,10 @@ test("all carrier explanations are editable and state postpaid delivery without 
     tipax: "سریع‌تر، هزینه بالا",
     chapar: "مناسب مرسوله‌های حجیم",
   };
-  const expectedPaletteKeys = {
-    card_border_color: "100",
-    selected_card_background_color: "50",
-    selected_card_border_color: "600",
-    note_background_color: "600",
-    details_background_color: "50",
+  const expectedHexValues = {
+    post: { card_border_color: '#E2E8F0', selected_card_background_color: '#F0FDF4', selected_card_border_color: '#16A34A', note_background_color: '#1E293B', details_background_color: '#FEFCE8', details_text_color: '#713F12', icon_background_color: '#FACC15', icon_text_color: '#1E293B' },
+    tipax: { card_border_color: '#E2E8F0', selected_card_background_color: '#ECFDF5', selected_card_border_color: '#059669', note_background_color: '#D1FAE5', details_background_color: '#ECFDF5', details_text_color: '#064E3B', icon_background_color: '#059669', icon_text_color: '#FFFFFF' },
+    chapar: { card_border_color: '#E2E8F0', selected_card_background_color: '#FEF2F2', selected_card_border_color: '#DC2626', note_background_color: '#FEE2E2', details_background_color: '#FFF1F2', details_text_color: '#881337', icon_background_color: '#DC2626', icon_text_color: '#FFFFFF' },
   };
   for (const carrier of ["post", "tipax", "chapar"]) {
     const block = shippingDefaults.match(new RegExp(`'${carrier}'\\s*=>\\s*array\\(([\\s\\S]*?)\\n\\s*\\),`))?.[1] || "";
@@ -660,12 +658,10 @@ test("all carrier explanations are editable and state postpaid delivery without 
     assert.match(description, /هنگام تحویل/);
     assert.doesNotMatch(description, /پیش.?پرداخت|پرداخت هنگام ثبت سفارش|همراه مبلغ سفارش/);
     assert.match(block, new RegExp(`'note'\\s*=>\\s*'${expectedCarrierNotes[carrier]}'`));
-    assert.match(block, /'note_background_color'\s*=>\s*\$palette\['600'\]/);
     assert.match(block, /'card_background_color'\s*=>\s*'#FFFFFF'/);
-    for (const [field, paletteKey] of Object.entries(expectedPaletteKeys)) {
-      assert.match(block, new RegExp(`'${field}'\\s*=>\\s*\\$palette\\['${paletteKey}'\\]`));
+    for (const [field, hex] of Object.entries(expectedHexValues[carrier])) {
+      assert.match(block, new RegExp(`'${field}'\\s*=>\\s*'${hex}'`));
     }
-    assert.match(block, /'details_text_color'\s*=>\s*'#475569'/);
     assert.match(block, /'note_text_color'\s*=>/);
     assert.match(block, /'details_background_color'\s*=>/);
     assert.match(block, /'details_text_color'\s*=>/);
