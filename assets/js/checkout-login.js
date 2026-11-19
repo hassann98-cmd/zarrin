@@ -146,6 +146,41 @@
       }
     }
 
+    // شناسهٔ آدرسی که در حال ویرایش است (null = آدرس جدید).
+    var editingAddressId = null;
+
+    function getCardAddress(card) {
+      var dataEl = card.querySelector("[data-jluxe-address-data]");
+      if (!dataEl) return null;
+      try {
+        return JSON.parse(dataEl.textContent || "{}");
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function fillFormForEdit(address) {
+      if (!address) return;
+      var fn = identityField("first_name");
+      if (fn) fn.value = address.first_name || "";
+      var ln = identityField("last_name");
+      if (ln) ln.value = address.last_name || "";
+      var ph = identityField("phone");
+      if (ph) ph.value = address.phone || "";
+      var a1 = newField("address_1");
+      if (a1) a1.value = address.address_1 || "";
+      var pc = newField("postcode");
+      if (pc) pc.value = address.postcode || "";
+      var ll = newField("landline");
+      if (ll) ll.value = address.landline || "";
+      // استان/شهر از طریق applyStateCity تا cascade درست کار کند.
+      applyStateCity(address.state, address.city);
+      // همگام‌سازی هویت با فرم تسویه‌حساب.
+      setField("billing_first_name", address.first_name);
+      setField("billing_last_name", address.last_name);
+      setField("billing_phone", address.phone);
+    }
+
     function bindCards() {
       cards().forEach(function (card) {
         var input = card.querySelector("[data-jluxe-address-option]");
@@ -159,11 +194,39 @@
           card.dataset.jluxeBound = "1";
           card.addEventListener("click", function (event) {
             if (event.target.closest("input")) return;
+            if (event.target.closest("[data-jluxe-address-edit], [data-jluxe-address-delete]")) return;
             var opt = card.querySelector("[data-jluxe-address-option]");
             if (opt && !opt.checked) {
               opt.checked = true;
               opt.dispatchEvent(new Event("change", { bubbles: true }));
             }
+          });
+        }
+        var editBtn = card.querySelector("[data-jluxe-address-edit]");
+        if (editBtn && !editBtn.dataset.jluxeBound) {
+          editBtn.dataset.jluxeBound = "1";
+          editBtn.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            var address = getCardAddress(card);
+            if (!address) return;
+            editingAddressId = address.id || null;
+            fillFormForEdit(address);
+            if (saveBtn) saveBtn.textContent = "ذخیره تغییرات";
+            setFormOpen(true);
+            showStatus("", false);
+          });
+        }
+        var deleteBtn = card.querySelector("[data-jluxe-address-delete]");
+        if (deleteBtn && !deleteBtn.dataset.jluxeBound) {
+          deleteBtn.dataset.jluxeBound = "1";
+          deleteBtn.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            var address = getCardAddress(card);
+            if (!address || !address.id) return;
+            if (!window.confirm("این آدرس حذف شود؟")) return;
+            deleteAddress(address.id);
           });
         }
       });
@@ -203,11 +266,19 @@
 
     if (toggle) {
       toggle.addEventListener("click", function () {
+        // باز کردن برای آدرس جدید: حالت ویرایش ریست و فرم خالی می‌شود.
+        if (form.hidden) {
+          editingAddressId = null;
+          if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
+          clearNewForm();
+        }
         setFormOpen(form.hidden);
       });
     }
     if (closeBtn) {
       closeBtn.addEventListener("click", function () {
+        editingAddressId = null;
+        if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
         setFormOpen(false);
       });
     }
@@ -287,6 +358,23 @@
         phone.textContent = entry.phone;
         body.appendChild(phone);
       }
+      var actions = document.createElement("span");
+      actions.className = "jluxe-checkout-addresses__actions";
+      var editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "jluxe-checkout-addresses__action";
+      editBtn.setAttribute("data-jluxe-address-edit", "");
+      editBtn.setAttribute("aria-label", "ویرایش آدرس");
+      editBtn.textContent = "ویرایش";
+      var deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className =
+        "jluxe-checkout-addresses__action jluxe-checkout-addresses__action--danger";
+      deleteBtn.setAttribute("data-jluxe-address-delete", "");
+      deleteBtn.setAttribute("aria-label", "حذف آدرس");
+      deleteBtn.textContent = "حذف";
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
       var data = document.createElement("span");
       data.className = "jluxe-checkout-addresses__data";
       data.setAttribute("data-jluxe-address-data", "");
@@ -295,10 +383,95 @@
       card.appendChild(input);
       card.appendChild(radio);
       card.appendChild(body);
+      card.appendChild(actions);
       card.appendChild(data);
       targetList.appendChild(card);
       bindCards();
       if (selectIt) select(card);
+    }
+
+    function resolveAjaxUrl() {
+      var ajaxUrl = config.ajaxUrl || "/wp-admin/admin-ajax.php";
+      try {
+        var parsed = new URL(ajaxUrl, window.location.href);
+        if (parsed.protocol !== window.location.protocol) {
+          parsed.protocol = window.location.protocol;
+          ajaxUrl = parsed.toString();
+        }
+      } catch (e) {
+        ajaxUrl = "/wp-admin/admin-ajax.php";
+      }
+      return ajaxUrl;
+    }
+
+    function resolveNonce() {
+      return selector.getAttribute("data-jluxe-address-nonce") || config.nonce || "";
+    }
+
+    function deleteAddress(addressId) {
+      var body = new URLSearchParams();
+      body.set("action", "jluxe_delete_checkout_address");
+      body.set("nonce", resolveNonce());
+      body.set("address_id", addressId);
+      var payload = body.toString();
+      var ajaxUrl = resolveAjaxUrl();
+
+      function onResult(result) {
+        var json = result.json;
+        if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
+          if (list) list.innerHTML = "";
+          json.data.addresses.forEach(function (entry, idx) {
+            appendAddress(entry, idx === 0);
+          });
+          showStatus("آدرس حذف شد.", false);
+        } else if (json && json.data && json.data.message) {
+          showStatus(json.data.message, true);
+        } else {
+          showStatus("حذف آدرس ناموفق بود؛ دوباره تلاش کنید.", true);
+        }
+      }
+
+      function parseResponse(ok, status, text) {
+        var json = null;
+        try {
+          json = JSON.parse(text);
+        } catch (e) {
+          json = null;
+        }
+        return { ok: ok, status: status, json: json, text: text };
+      }
+
+      function tryXhr() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", ajaxUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.onload = function () {
+          onResult(parseResponse(xhr.status >= 200 && xhr.status < 300, xhr.status, xhr.responseText || ""));
+        };
+        xhr.onerror = function () {
+          showStatus("ارتباط با سرور ناموفق بود؛ دوباره تلاش کنید.", true);
+        };
+        xhr.send(payload);
+      }
+
+      if (window.fetch) {
+        fetch(ajaxUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: payload,
+        })
+          .then(function (res) {
+            return res.text().then(function (text) {
+              onResult(parseResponse(res.ok, res.status, text));
+            });
+          })
+          .catch(function () {
+            tryXhr();
+          });
+      } else {
+        tryXhr();
+      }
     }
 
     if (saveBtn) {
@@ -324,25 +497,14 @@
         saveBtn.disabled = true;
         var body = new URLSearchParams();
         body.set("action", "jluxe_save_checkout_address");
-        // nonce هم از localize و هم از data-attribute روی سکشن خوانده می‌شود.
-        var nonce =
-          selector.getAttribute("data-jluxe-address-nonce") || config.nonce || "";
-        body.set("nonce", nonce);
+        body.set("nonce", resolveNonce());
+        if (editingAddressId) {
+          body.set("address_id", editingAddressId);
+        }
         Object.keys(data).forEach(function (key) {
           body.set(key, data[key]);
         });
-        // ajaxUrl مستقیم از کانفیگ استفاده می‌شود (URL کامل). فقط اگر پروتکلش
-        // با پروتکل صفحه نمی‌خواند (mixed-content)، پروتکل اصلاح می‌شود.
-        var ajaxUrl = config.ajaxUrl || "/wp-admin/admin-ajax.php";
-        try {
-          var parsed = new URL(ajaxUrl, window.location.href);
-          if (parsed.protocol !== window.location.protocol) {
-            parsed.protocol = window.location.protocol;
-            ajaxUrl = parsed.toString();
-          }
-        } catch (e) {
-          ajaxUrl = "/wp-admin/admin-ajax.php";
-        }
+        var ajaxUrl = resolveAjaxUrl();
         var payload = body.toString();
 
         function handleResult(result) {
@@ -354,6 +516,8 @@
             });
             clearNewForm();
             setFormOpen(false);
+            editingAddressId = null;
+            if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
             showStatus("آدرس ذخیره شد.", false);
           } else if (json && json.data && json.data.message) {
             showStatus(json.data.message, true);

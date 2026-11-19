@@ -120,15 +120,25 @@ function jluxe_get_customer_addresses(): array {
 	// آدرس‌های ذخیره‌شده در لیست اختصاصی (چند آدرس برای یک شماره).
 	$saved_addresses = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
 	if ( is_array( $saved_addresses ) ) {
-		foreach ( $saved_addresses as $saved ) {
+		$needs_id_save = false;
+		foreach ( $saved_addresses as $idx => $saved ) {
 			if ( ! is_array( $saved ) || ! jluxe_address_has_content( $saved ) ) {
 				continue;
+			}
+			// آدرس‌های قدیمی بدون شناسه، شناسه می‌گیرند تا قابل ویرایش/حذف باشند.
+			if ( empty( $saved['id'] ) ) {
+				$saved['id'] = 'a' . substr( md5( uniqid( '', true ) . $idx ), 0, 12 );
+				$saved_addresses[ $idx ] = $saved;
+				$needs_id_save = true;
 			}
 			$out[] = array(
 				'type'    => 'billing',
 				'label'   => 'آدرس ذخیره‌شده',
 				'address' => $saved,
 			);
+		}
+		if ( $needs_id_save ) {
+			update_user_meta( $user_id, 'jluxe_saved_addresses', $saved_addresses );
 		}
 	}
 
@@ -307,17 +317,33 @@ function jluxe_save_customer_address( array $data ): bool {
 		'phone'      => ! empty( $data['phone'] ) ? preg_replace( '/\D/', '', sanitize_text_field( $data['phone'] ) ) : '',
 		'landline'   => ! empty( $data['landline'] ) ? preg_replace( '/\D/', '', sanitize_text_field( $data['landline'] ) ) : '',
 	);
-	$exists = false;
-	foreach ( $saved as $existing ) {
-		if ( is_array( $existing ) && jluxe_addresses_equal( $existing, $new_address ) ) {
-			$exists = true;
-			break;
+	// شناسهٔ پایدار برای ویرایش/حذف.
+	$address_id = isset( $data['address_id'] ) ? sanitize_text_field( $data['address_id'] ) : '';
+	$updated = false;
+	if ( '' !== $address_id ) {
+		foreach ( $saved as $idx => $existing ) {
+			if ( is_array( $existing ) && ( $existing['id'] ?? '' ) === $address_id ) {
+				$new_address['id'] = $address_id;
+				$saved[ $idx ] = $new_address;
+				$updated = true;
+				break;
+			}
 		}
 	}
-	if ( ! $exists ) {
-		$saved[] = $new_address;
-		update_user_meta( $user_id, 'jluxe_saved_addresses', $saved );
+	if ( ! $updated ) {
+		$exists = false;
+		foreach ( $saved as $existing ) {
+			if ( is_array( $existing ) && jluxe_addresses_equal( $existing, $new_address ) ) {
+				$exists = true;
+				break;
+			}
+		}
+		if ( ! $exists ) {
+			$new_address['id'] = 'a' . substr( md5( uniqid( '', true ) ), 0, 12 );
+			$saved[] = $new_address;
+		}
 	}
+	update_user_meta( $user_id, 'jluxe_saved_addresses', $saved );
 
 	$fields = array(
 		'billing_first_name'  => sanitize_text_field( $data['first_name'] ?? '' ),
@@ -404,6 +430,45 @@ function jluxe_ajax_save_checkout_address(): void {
 	wp_send_json_success( array( 'addresses' => $formatted ) );
 }
 add_action( 'wp_ajax_jluxe_save_checkout_address', 'jluxe_ajax_save_checkout_address' );
+
+/**
+ * AJAX: حذف یک آدرس ذخیره‌شده و برگرداندن لیست به‌روز آدرس‌ها.
+ */
+function jluxe_ajax_delete_checkout_address(): void {
+	$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'jluxe_checkout_address' ) ) {
+		wp_send_json_error( array( 'message' => 'نشست شما منقضی شده است؛ صفحه را تازه کنید و دوباره تلاش کنید.' ) );
+	}
+	if ( ! is_user_logged_in() ) {
+		wp_send_json_error( array( 'message' => 'ابتدا وارد شوید.' ) );
+	}
+	$address_id = isset( $_POST['address_id'] ) ? sanitize_text_field( wp_unslash( $_POST['address_id'] ) ) : '';
+	$user_id = get_current_user_id();
+	$saved = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
+	if ( is_array( $saved ) && '' !== $address_id ) {
+		$remaining = array();
+		foreach ( $saved as $existing ) {
+			if ( is_array( $existing ) && ( $existing['id'] ?? '' ) === $address_id ) {
+				continue;
+			}
+			$remaining[] = $existing;
+		}
+		update_user_meta( $user_id, 'jluxe_saved_addresses', $remaining );
+	}
+	$addresses = jluxe_get_customer_addresses();
+	$formatted = array();
+	foreach ( $addresses as $entry ) {
+		$formatted[] = array(
+			'type'    => $entry['type'],
+			'label'   => $entry['label'],
+			'line'    => jluxe_format_address_line( $entry['address'] ),
+			'phone'   => $entry['address']['phone'] ?? '',
+			'address' => $entry['address'],
+		);
+	}
+	wp_send_json_success( array( 'addresses' => $formatted ) );
+}
+add_action( 'wp_ajax_jluxe_delete_checkout_address', 'jluxe_ajax_delete_checkout_address' );
 
 /**
  * نام استان‌های ایران (کد → نام) برای لیست انتخاب استان.
@@ -526,6 +591,16 @@ function jluxe_render_address_selector(): void {
 							<?php if ( ! empty( $entry['address']['phone'] ) ) : ?>
 								<span class="jluxe-checkout-addresses__card-phone" dir="ltr"><?php echo esc_html( $entry['address']['phone'] ); ?></span>
 							<?php endif; ?>
+						</span>
+						<span class="jluxe-checkout-addresses__actions">
+							<button type="button" class="jluxe-checkout-addresses__action" data-jluxe-address-edit aria-label="ویرایش آدرس">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+								<span>ویرایش</span>
+							</button>
+							<button type="button" class="jluxe-checkout-addresses__action jluxe-checkout-addresses__action--danger" data-jluxe-address-delete aria-label="حذف آدرس">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+								<span>حذف</span>
+							</button>
 						</span>
 						<span class="jluxe-checkout-addresses__data" data-jluxe-address-data hidden><?php echo esc_attr( wp_json_encode( $entry['address'] ) ); ?></span>
 					</label>

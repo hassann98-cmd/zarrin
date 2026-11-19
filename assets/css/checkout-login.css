@@ -165,6 +165,46 @@ body.woocommerce-checkout .jluxe-checkout-addresses__card-phone {
   line-height: 1.6;
 }
 
+body.woocommerce-checkout .jluxe-checkout-addresses__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.375rem;
+  align-self: center;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.625rem;
+  background: hsl(var(--surface));
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  color: hsl(var(--primary));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action--danger:hover {
+  border-color: #b91c1c;
+  color: #b91c1c;
+  background: rgb(185 28 28 / 0.05);
+}
+
 body.woocommerce-checkout .jluxe-checkout-addresses__add {
   width: 100%;
   border-style: dashed;

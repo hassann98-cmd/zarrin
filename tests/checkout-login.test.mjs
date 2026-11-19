@@ -119,6 +119,26 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /is-selected/);
 });
 
+test("saved addresses can be edited and deleted", () => {
+  const php = read("inc/checkout-login.php");
+  // هر آدرس ذخیره‌شده شناسهٔ پایدار دارد تا قابل ویرایش/حذف باشد.
+  assert.match(php, /jluxe_ajax_delete_checkout_address/);
+  assert.match(php, /wp_ajax_jluxe_delete_checkout_address/);
+  assert.match(php, /data-jluxe-address-edit/);
+  assert.match(php, /data-jluxe-address-delete/);
+  assert.match(php, /address_id/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /data-jluxe-address-edit/);
+  assert.match(js, /data-jluxe-address-delete/);
+  assert.match(js, /deleteAddress/);
+  assert.match(js, /editingAddressId/);
+  assert.match(js, /fillFormForEdit/);
+  assert.match(js, /ذخیره تغییرات/);
+  const css = read("assets/css/checkout-login.css");
+  assert.match(css, /jluxe-checkout-addresses__action/);
+  assert.match(css, /jluxe-checkout-addresses__action--danger/);
+});
+
 test("multiple addresses are stored per customer in a dedicated meta", () => {
   const php = read("inc/checkout-login.php");
   // ووکامرس فقط یک صورتحساب/ارسال نگه می‌دارد؛ لیست چند آدرس در متای اختصاصی است.
