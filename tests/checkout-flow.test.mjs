@@ -610,6 +610,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
   assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
+  // 1.7.352: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیحات زیر اسم.
+  assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the description below");
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
   assert.doesNotMatch(checkoutSummaryNoteRule, /width:\s*fit-content/, "the note is plain text, not a pill");
   assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);
@@ -618,7 +620,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
   assert.match(storefrontStyles, /@media \(min-width: 640px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*row/, "desktop shipping cards lay the icon and the rate group on one row");
   assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*column/);
-  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card__details\s*\{[\s\S]*?flex-direction:\s*column/);
+  // 1.7.352: آیکون اول، اسم جلوش، توضیحات زیر اسم — در موبایل هم row می‌ماند.
+  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card__details\s*\{[\s\S]*?flex-direction:\s*row/, "mobile shipping cards keep icon and name on one row with the description below");
   assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-note\s*\{/);
   assert.match(storefrontStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.jluxe-shipping-card/);
   assert.match(storefrontStyles, /input\.shipping_method:checked ~ \.jluxe-shipping-method-accordion/);

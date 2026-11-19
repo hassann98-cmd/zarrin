@@ -3599,11 +3599,13 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
     min-height: 0;
     padding: 0.9rem 1rem;
   }
+  /* چیدمان: آیکون اول، اسم روش جلوش (کنارش)، توضیحات زیر اسم — در همهٔ
+     اندازه‌ها یکسان تا خوانایی حفظ شود. */
   .jluxe-shipping-card__details {
-    flex-direction: column;
-    align-items: start;
-    gap: 0.45rem;
-    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
   }
   .jluxe-shipping-card__text {
     width: 100%;
@@ -4028,11 +4030,12 @@ body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card:not(.jlux
   align-items: start;
   gap: 0.65rem;
 }
+/* چیدمان: آیکون اول، اسم روش جلوش، توضیحات زیر اسم — مثل بقیهٔ جاها. */
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card__details {
-  flex-direction: column;
-  align-items: start;
-  gap: 0.4rem;
-  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
 }
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card__text {
   width: 100%;
