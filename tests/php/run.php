@@ -11621,4 +11621,12 @@ check(
 	'Address helpers detect content, equality, and one-line formatting'
 );
 
+// R365: legacy numeric IDs (e.g. state 1966, city 1973) must not print
+// verbatim — unresolvable numeric IDs are omitted from the display line.
+check(
+	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
+	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ),
+	'R365 legacy numeric state/city IDs are omitted from the address line instead of printing raw'
+);
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

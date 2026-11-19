@@ -585,9 +585,9 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
   const shippingTextRule = storefrontStyles.match(/\.jluxe-shipping-card__text\s*\{([^}]+)\}/s)?.[1] || "";
   assert.match(shippingTextRule, /display:\s*flex/);
-  // 1.7.354: توضیح روش کنار نام روش روی یک خط قرار می‌گیرد تا ارتفاع کادر کمتر شود.
-  assert.match(shippingTextRule, /flex-direction:\s*row/, "the note sits beside the method name on one row so the card stays short");
-  assert.match(shippingTextRule, /align-items:\s*center/);
+  // 1.7.5: توضیح زیر نام روش قرار می‌گیرد (column) تا داخل کادر بماند.
+  assert.match(shippingTextRule, /flex-direction:\s*column/, "the note sits below the method name inside the card");
+  assert.match(shippingTextRule, /align-items:\s*flex-start/);
   assert.match(shippingTextRule, /min-width:\s*0/);
   assert.match(shippingCardDetailsRule, /gap:\s*0\.75rem/);
   assert.match(shippingIconRule, /flex:\s*0 0 2\.75rem/);
@@ -604,21 +604,21 @@ test("shipping cards are responsive and customizable without changing real WooCo
   }
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
-  // 1.7.348: the note is plain description text beside the method name
-  // (logo, name, note on one row) — no longer a pill badge.
-  assert.match(shippingNoteRule, /text-align:\s*right/, "the note is plain description text beside the method name");
+  // 1.7.5: the note is plain description text below the method name,
+  // left-aligned inside the card — no longer a pill badge.
+  assert.match(shippingNoteRule, /text-align:\s*left/, "the note is left-aligned description text below the method name");
   assert.doesNotMatch(shippingNoteRule, /border-radius:\s*9999px/, "the note is no longer a pill badge");
   assert.doesNotMatch(shippingNoteRule, /min-width:/, "the note has no pill minimum width");
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
-  // 1.7.354: جداکنندهٔ نقطه بین نام روش و توضیح آن روی همان یک خط.
-  assert.match(storefrontStyles, /\.jluxe-shipping-note::before\s*\{[^}]*content:\s*"•"/, "the note is separated from the method name by a dot on the same row");
+  // 1.7.5: no bullet separator — the note is stacked below the name.
+  assert.doesNotMatch(storefrontStyles, /\.jluxe-shipping-note::before/, "no bullet separator; the note stacks below the name");
   // 1.7.356: سازگاری با قالب قدیمی که توضیح را فرزند مستقیم کارت رندر می‌کند.
-  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\)\s*\{[^}]*flex-direction:\s*row/, "old template note as direct child still lays out inline beside the name");
+  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\)\s*\{[^}]*flex-direction:\s*column/, "old template note as direct child stacks below the name");
   assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\) > \.jluxe-shipping-card__details\s*\{[^}]*width:\s*auto/, "old template details shrink to content so the note sits beside the name");
   assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
-  // 1.7.352/1.7.354: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیح روش کنار اسم.
-  assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the note beside the name");
+  // 1.7.5: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیح زیر اسم.
+  assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the note below");
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
   assert.doesNotMatch(checkoutSummaryNoteRule, /width:\s*fit-content/, "the note is plain text, not a pill");
   assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);

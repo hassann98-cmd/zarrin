@@ -405,6 +405,10 @@
     }
 
     // ساخت خط نمایشی آدرس با اسم استان/شهر (نه ID عددی).
+    function isNumericId(value) {
+      return /^\d+$/.test(String(value || "").trim());
+    }
+
     function buildAddressLine(address) {
       if (!address) return "";
       var stateName = (address.state_name || "").trim();
@@ -416,10 +420,14 @@
         cityName = optionTextByValue(field("billing_city"), address.city);
       }
       var parts = [];
+      // Legacy addresses (saved before city_name storage) may carry numeric
+      // IDs like "1973". Showing the raw ID is worse than omitting it — the
+      // name resolves once the user selects/edits the address and the city
+      // select loads the right province's options.
       if (stateName) parts.push(stateName);
-      else if (address.state) parts.push(String(address.state));
+      else if (address.state && !isNumericId(address.state)) parts.push(String(address.state));
       if (cityName) parts.push(cityName);
-      else if (address.city) parts.push(String(address.city));
+      else if (address.city && !isNumericId(address.city)) parts.push(String(address.city));
       if (address.address_1) parts.push(String(address.address_1));
       if (address.address_2) parts.push(String(address.address_2));
       var line = parts.join("، ");

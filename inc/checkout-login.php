@@ -315,19 +315,24 @@ function jluxe_get_state_name_from_code( string $code ): string {
 function jluxe_format_address_line( array $address ): string {
 	$parts = array();
 	// استان/شهر با اسم نمایش داده می‌شوند (مقدارها ممکن است ID عددی یا کد ISO
-	// باشند)؛ اولویت با اسم ذخیره‌شده، بعد نگاشت استاندارد ووکامرس، بعد مقدار خام.
+	// باشند)؛ اولویت با اسم ذخیره‌شده، بعد نگاشت استاندارد ووکامرس.
+	// ID عددیِ حل‌نشده (آدرس قدیمی) نمایش داده نمی‌شود — «ایلام» بهتر از
+	// «ایلام، 1973» است؛ اسم شهر پس از انتخاب/ویرایش آدرس حل می‌شود.
+	$is_numeric_id = static function ( $value ): bool {
+		return 1 === preg_match( '/^\d+$/', trim( (string) $value ) );
+	};
 	$state_display = trim( (string) ( $address['state_name'] ?? '' ) );
 	if ( '' === $state_display ) {
 		$state_display = jluxe_get_state_name_from_code( (string) ( $address['state'] ?? '' ) );
 	}
-	if ( '' === $state_display ) {
+	if ( '' === $state_display && ! $is_numeric_id( $address['state'] ?? '' ) ) {
 		$state_display = trim( (string) ( $address['state'] ?? '' ) );
 	}
 	if ( '' !== $state_display ) {
 		$parts[] = $state_display;
 	}
 	$city_display = trim( (string) ( $address['city_name'] ?? '' ) );
-	if ( '' === $city_display ) {
+	if ( '' === $city_display && ! $is_numeric_id( $address['city'] ?? '' ) ) {
 		$city_display = trim( (string) ( $address['city'] ?? '' ) );
 	}
 	if ( '' !== $city_display ) {

@@ -371,3 +371,14 @@ test("address edit/delete buttons are icon-only and delete resets an open edit f
   // دکمه‌ها مربعی/آیکونی‌اند.
   assert.match(css, /jluxe-checkout-addresses__action \{[\s\S]*?width: 2\.25rem/);
 });
+
+test("legacy numeric state/city IDs are omitted from the address line instead of printing raw", () => {
+  const js = read("assets/js/checkout-login.js");
+  // isNumericId helper exists and is used for both state and city fallbacks.
+  assert.match(js, /function isNumericId\(value\)/);
+  assert.match(js, /else if \(address\.state && !isNumericId\(address\.state\)\)/);
+  assert.match(js, /else if \(address\.city && !isNumericId\(address\.city\)\)/);
+  // Raw numeric IDs must never be pushed into the display parts.
+  assert.doesNotMatch(js, /else if \(address\.state\) parts\.push\(String\(address\.state\)\)/);
+  assert.doesNotMatch(js, /else if \(address\.city\) parts\.push\(String\(address\.city\)\)/);
+});
