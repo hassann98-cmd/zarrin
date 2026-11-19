@@ -222,12 +222,17 @@ test("the next step shows an editable address summary, keeps form values, and as
 
   const action = document.querySelector("[data-guided-mobile-action]");
   assert.equal(action.getAttribute("data-guided-mobile-step"), "payment");
-  assert.equal(action.querySelector("[data-guided-continue-label]").textContent, "ثبت سفارش");
+  // UI audit (optimistic feedback): advancing to payment triggers
+  // update_checkout, so the flow enters `calculating` and the sticky
+  // label immediately shows the in-progress state instead of waiting
+  // for the AJAX response.
+  assert.equal(action.querySelector("[data-guided-continue-label]").textContent, "در حال محاسبه…");
   assert.equal(action.querySelector("[data-guided-back]").hidden, false);
 
   document.querySelector("#order_review [data-jluxe-order-total-value]").innerHTML = "<b>۴۵۰۰ تومان</b>";
   $(document.body).trigger("updated_checkout");
   assert.equal(action.querySelector("[data-guided-total]").textContent, "۴۵۰۰ تومان", "the sticky total follows WooCommerce's refreshed order-review fragment");
+  assert.equal(action.querySelector("[data-guided-continue-label]").textContent, "ثبت سفارش", "the label returns to the action text once totals settle");
   assert.equal(form.getAttribute("data-guided-current-step"), "payment");
 });
 
@@ -819,4 +824,64 @@ test("audit Bug 3: cross-code stale response is ignored while a new request is p
   $(document.body).trigger("applied_coupon_in_checkout", ["NEWCODE"]);
   assert.equal(couponInput.disabled, false);
   assert.match(couponStatus.textContent, /با موفقیت/);
+});
+
+test("UI audit: pay button shows optimistic in-progress feedback while submitting", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout({ mobile: true, preselectedPayment: true });
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  // Select the shipping method so validatePaymentChoices passes.
+  document.querySelector("input.shipping_method").checked = true;
+  document.querySelector("[data-guided-next]").click();
+  $(document.body).trigger("updated_checkout");
+
+  const placeOrder = document.querySelector("#place_order");
+  const stickyLabel = document.querySelector("[data-guided-continue-label]");
+  const originalText = placeOrder.textContent;
+  assert.ok(originalText.length > 0, "place order button has its original text");
+
+  // Customer taps pay — the button must immediately show the action
+  // is registered (optimistic), before any background work completes.
+  document.querySelector("[data-guided-continue]").click();
+  assert.equal(placeOrder.textContent, "در حال ثبت سفارش…", "place order shows in-progress text immediately");
+  assert.equal(placeOrder.getAttribute("aria-busy"), "true", "spinner is active while submitting");
+  assert.equal(placeOrder.disabled, true, "button is locked against double-submit");
+  assert.equal(stickyLabel.textContent, "در حال ثبت سفارش…", "sticky label mirrors the in-progress state");
+
+  // Submission fails — the original text must come back so the
+  // customer can retry.
+  $(document.body).trigger("checkout_error");
+  assert.equal(placeOrder.textContent, originalText, "original text restored after error");
+  assert.equal(placeOrder.hasAttribute("aria-busy"), false, "spinner cleared after error");
+  assert.equal(placeOrder.disabled, false, "button unlocked after error");
+  assert.equal(stickyLabel.textContent, "ثبت سفارش", "sticky label restored after error");
+});
+
+test("UI audit: payment section uses a uniform gray palette with visible borders", () => {
+  // Payment gateway cards must be bordered boxes, not borderless rows.
+  const cardRule = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout #payment ul\.payment_methods > li > label\.jluxe-payment-card\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(cardRule, /border:\s*1px solid #8a878d/, "gateway cards have a visible gray border");
+  assert.match(cardRule, /background:\s*#fff/, "gateway cards are white");
+  assert.match(cardRule, /border-radius:\s*0\.75rem/, "gateway cards are rounded boxes");
+
+  // Selected gateway: dark gray border + light gray fill (no green/purple).
+  const selectedRule = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout input\.payment_method:checked \+ label\.jluxe-payment-card\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(selectedRule, /border-color:\s*#4a4750/, "selected gateway uses dark gray border");
+  assert.match(selectedRule, /background:\s*#f4f3f5/, "selected gateway uses light gray fill");
+  assert.doesNotMatch(selectedRule, /success|primary/, "no colorful tints in selected state");
+
+  // Input fields: white background with a clearly visible gray border.
+  const inputRule = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout :is\(input\.input-text, select, textarea\.input-text\)\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(inputRule, /border:\s*1px solid #8a878d/, "inputs have a visible gray border");
+  assert.match(inputRule, /background:\s*#fff/, "inputs are white for maximum contrast");
+
+  // Coupon box: same gray border as every other box.
+  const couponRule = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout__coupon\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(couponRule, /border:\s*1px solid #8a878d/, "coupon box uses the same gray border");
+
+  // Pay button: instant press feedback (60ms transition, scale on active).
+  const placeOrderRule = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout__submit #place_order\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(placeOrderRule, /transition:[^;]*transform 60ms/, "pay button press animation is fast");
+  const placeOrderActive = stylesheet.match(/body\.woocommerce-checkout \.jluxe-guided-checkout__submit #place_order:active:not\(:disabled\)\s*\{([^}]+)\}/s)?.[1] || "";
+  assert.match(placeOrderActive, /transform:\s*scale\(0\.97\)/, "pay button visibly compresses on press");
 });

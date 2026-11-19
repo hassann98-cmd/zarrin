@@ -106,10 +106,13 @@ body.woocommerce-checkout .jluxe-guided-checkout :is(input.input-text, select, t
   min-height: 2.55rem;
   margin: 0;
   padding: 0.55rem 0.75rem !important;
-  border: 1px solid #a9a6aa !important;
+  /* UI audit: white field with a clearly visible gray border — the
+     container is white, so the box must define itself by its border,
+     not by a faint gray fill. */
+  border: 1px solid #8a878d !important;
   border-radius: 0.78rem !important;
   outline: 0;
-  background: var(--jluxe-guided-field);
+  background: #fff;
   color: var(--jluxe-guided-ink);
   font: inherit;
   font-size: 0.9rem;
@@ -124,9 +127,9 @@ body.woocommerce-checkout .jluxe-guided-checkout textarea.input-text {
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout :is(input.input-text, select, textarea.input-text):focus {
-  border-color: #666268 !important;
+  border-color: #4a4750 !important;
   background: #fff;
-  box-shadow: 0 0 0 2px rgb(65 61 68 / 9%);
+  box-shadow: 0 0 0 2px rgb(65 61 68 / 12%);
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout .select2-container {
@@ -136,9 +139,9 @@ body.woocommerce-checkout .jluxe-guided-checkout .select2-container {
 body.woocommerce-checkout .jluxe-guided-checkout .select2-container--default .select2-selection--single {
   box-sizing: border-box;
   height: 2.55rem;
-  border: 1px solid #a9a6aa;
+  border: 1px solid #8a878d;
   border-radius: 0.78rem;
-  background: var(--jluxe-guided-field);
+  background: #fff;
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -262,10 +265,12 @@ body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shippi
   min-height: 0;
   gap: 0.45rem;
   padding: 0.6rem 0.75rem;
-  border: 1px solid hsl(var(--border));
+  /* UI audit: uniform gray palette — a visible gray border on white,
+     no pink/purple tints. Selected state is a darker gray border. */
+  border: 1px solid #8a878d;
   border-radius: 0.75rem;
-  background: hsl(var(--surface));
-  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.04);
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(40 39 42 / 5%);
   transform: none;
 }
 body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shipping_method .jluxe-shipping-card__details {
@@ -281,16 +286,17 @@ body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shippi
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shipping_method .jluxe-shipping-card:hover {
-  border-color: hsl(var(--primary) / 0.35);
-  background: hsl(var(--surface));
-  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.06);
+  border-color: #4a4750;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(40 39 42 / 8%);
   transform: none;
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shipping_method input.shipping_method:checked + .jluxe-shipping-card {
-  border-color: hsl(var(--primary));
-  background: hsl(var(--primary) / 0.05);
-  box-shadow: 0 2px 8px hsl(var(--primary) / 0.12);
+  border-color: #4a4750;
+  border-width: 2px;
+  background: #f4f3f5;
+  box-shadow: 0 2px 8px rgb(40 39 42 / 10%);
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section .jluxe-shipping-method-accordion {
@@ -356,6 +362,7 @@ body.woocommerce-checkout .jluxe-guided-checkout #payment > p {
 body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods {
   display: flex;
   flex-direction: column;
+  gap: 0.55rem;
   margin: 0;
   padding: 0;
   border: 0;
@@ -364,7 +371,7 @@ body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods {
 body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods > li {
   margin: 0;
   padding: 0;
-  border-block-end: 1px solid #e4e2e5;
+  border: 0;
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods > li > label.jluxe-payment-card {
@@ -374,13 +381,33 @@ body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods > l
   align-items: center;
   gap: 0.7rem;
   margin: 0;
-  padding: 0.55rem 2.65rem 0.55rem 0.4rem;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: 0.55rem 2.65rem 0.55rem 0.75rem;
+  /* UI audit: payment gateways were borderless rows that disappeared
+     on the white container. Now each gateway is a clearly bordered
+     gray card — uniform palette, no colorful tints. */
+  border: 1px solid #8a878d;
+  border-radius: 0.75rem;
+  background: #fff;
   color: var(--jluxe-guided-ink);
-  box-shadow: none;
+  box-shadow: 0 1px 4px rgb(40 39 42 / 5%);
   font-size: 0.86rem;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods > li > label.jluxe-payment-card:hover {
+  border-color: #4a4750;
+  box-shadow: 0 2px 8px rgb(40 39 42 / 8%);
+}
+
+body.woocommerce-checkout .jluxe-guided-checkout #payment ul.payment_methods > li > label.jluxe-payment-card:active {
+  transform: scale(0.99);
+}
+
+body.woocommerce-checkout .jluxe-guided-checkout input.payment_method:checked + label.jluxe-payment-card {
+  border-color: #4a4750;
+  border-width: 2px;
+  background: #f4f3f5;
+  box-shadow: 0 2px 8px rgb(40 39 42 / 10%);
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout .jluxe-payment-card-icon {
@@ -406,7 +433,7 @@ body.woocommerce-checkout .jluxe-guided-checkout .jluxe-check-on {
   display: block;
   width: 1.1rem;
   height: 1.1rem;
-  border: 1px solid #aaa7ac;
+  border: 1px solid #8a878d;
   border-radius: 50%;
   background: #fff;
   color: #fff;
@@ -416,8 +443,8 @@ body.woocommerce-checkout .jluxe-guided-checkout .jluxe-check-on {
 body.woocommerce-checkout .jluxe-guided-checkout .jluxe-check-on {
   display: none;
   padding: 0.12rem;
-  border-color: #555258;
-  background: #555258;
+  border-color: #4a4750;
+  background: #4a4750;
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout input.payment_method:checked + label .jluxe-check-off {
@@ -429,8 +456,9 @@ body.woocommerce-checkout .jluxe-guided-checkout input.payment_method:checked + 
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout #payment .payment_box {
-  margin: 0 0 0.55rem;
+  margin: 0.55rem 0 0;
   padding: 0.65rem 0.75rem;
+  border: 1px solid #d8d6d9;
   border-radius: 0.65rem;
   background: #f4f3f5;
   color: var(--jluxe-guided-muted);
@@ -456,6 +484,14 @@ body.woocommerce-checkout .jluxe-guided-checkout__submit #place_order {
   background: #5b595d;
   color: #fff;
   box-shadow: none;
+  /* UI audit: the press must feel instant — a 60ms transition on
+     transform, not the 160ms of the generic action button. */
+  transition: background-color 60ms ease, transform 60ms ease, box-shadow 60ms ease, opacity 60ms ease;
+}
+
+body.woocommerce-checkout .jluxe-guided-checkout__submit #place_order:active:not(:disabled) {
+  transform: scale(0.97);
+  background: #4a4750;
 }
 
 /* State machine: while totals recalculate (calculating) or the order is
@@ -737,6 +773,14 @@ body.woocommerce-checkout .jluxe-guided-checkout__mobile-action {
     font-size: 0.87rem;
     font-weight: 700;
     box-shadow: none;
+    /* UI audit: instant press feedback on the sticky mobile button —
+       the customer must feel the tap before any background work runs. */
+    transition: background-color 60ms ease, transform 60ms ease, opacity 60ms ease;
+  }
+
+  body.woocommerce-checkout .jluxe-guided-checkout__mobile-action .jluxe-checkout-action-button:active:not(:disabled) {
+    transform: scale(0.97);
+    background: #4a4750;
   }
 
   body.woocommerce-checkout .jluxe-guided-checkout__mobile-action .jluxe-checkout-action-button svg {
@@ -1024,9 +1068,11 @@ body.woocommerce-checkout .jluxe-guided-checkout__payment > .jluxe-guided-checko
 body.woocommerce-checkout .jluxe-guided-checkout__coupon {
   margin-block: 0 0.9rem;
   padding: 0.8rem 0.9rem;
-  border: 1px solid #e4e1e7;
+  /* UI audit: the coupon box border was nearly invisible on white.
+     Same gray as every other box on the page. */
+  border: 1px solid #8a878d;
   border-radius: 0.85rem;
-  background: #f8f7f9;
+  background: #f4f3f5;
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout__coupon .jluxe-guided-checkout__section-title {
@@ -1061,7 +1107,7 @@ body.woocommerce-checkout .jluxe-guided-checkout__coupon-controls input {
   min-width: 0;
   min-height: 2.75rem;
   padding: 0.55rem 0.7rem;
-  border: 1px solid #a9a6aa;
+  border: 1px solid #8a878d;
   border-radius: 0.68rem;
   background: #fff;
   color: var(--jluxe-guided-ink);
@@ -1070,6 +1116,7 @@ body.woocommerce-checkout .jluxe-guided-checkout__coupon-controls input {
 }
 
 body.woocommerce-checkout .jluxe-guided-checkout__coupon-controls input:focus-visible {
+  border-color: #4a4750;
   outline: 2px solid #4a4750;
   outline-offset: 2px;
 }

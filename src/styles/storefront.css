@@ -3693,8 +3693,10 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
   padding-block: 0.875rem;
   padding-inline-start: 1rem;
   padding-inline-end: 3.25rem;
-  border: 1px solid hsl(var(--border));
-  background-color: var(--jluxe-payment-card-background, hsl(var(--surface)));
+  /* UI audit: --border is a near-invisible pink tint on white.
+     Use the same visible gray as the guided checkout. */
+  border: 1px solid #8a878d;
+  background-color: var(--jluxe-payment-card-background, #fff);
   text-align: start;
 }
 .jluxe-payment-card-icon {
@@ -3850,8 +3852,11 @@ body.woocommerce-cart [data-jluxe-cart-pending] {
 }
 #payment ul.payment_methods li input.payment_method:checked + label.jluxe-payment-card {
   border-width: 2px;
-  border-color: hsl(var(--success));
-  background-color: var(--jluxe-payment-card-selected-background, hsl(var(--success) / 0.05));
+  /* UI audit: selected state was green — the customer asked for a
+     uniform gray palette, no colorful boxes. Dark gray border +
+     light gray fill, same as the guided checkout. */
+  border-color: #4a4750;
+  background-color: var(--jluxe-payment-card-selected-background, #f4f3f5);
 }
 /* افکتِ فشردگیِ ملایم روی کارت‌های پرداخت/ارسال هنگام لمس — حسِ لمسیِ
    انتخاب بدون تغییرِ منطقِ ووکامرس. */
@@ -4401,7 +4406,11 @@ body.woocommerce-checkout .jluxe-checkout-coupon__status[data-status="error"] {
   text-decoration: none;
   overflow-wrap: anywhere;
   cursor: pointer;
-  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  /* UI audit: touch feedback must feel instant. The press animation
+     runs at 60ms; the slower background work (AJAX totals, order
+     submission) happens behind the already-pressed button. */
+  transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
 }
 .jluxe-checkout-action-button--primary {
   border-color: transparent;
@@ -4458,7 +4467,7 @@ body.woocommerce-checkout #place_order:focus-visible {
 }
 .jluxe-checkout-action-button:active:not(:disabled),
 body.woocommerce-checkout #place_order:active:not(:disabled) {
-  transform: translateY(1px) scale(0.99);
+  transform: translateY(1px) scale(0.97);
   box-shadow: 0 2px 8px hsl(var(--primary) / 0.16);
 }
 /* اسپینرِ بارگذاری برای دکمه‌های AJAX (ذخیرهٔ آدرس، اعمال کوپن): وقتی

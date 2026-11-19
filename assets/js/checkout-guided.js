@@ -82,16 +82,44 @@
     return flowState === "calculating" || flowState === "submitting";
   }
 
+  // UI audit (optimistic feedback): the original pay-button text is
+  // cached once so it can be restored when the lock releases, even if
+  // the button has no data-value attribute.
+  var cachedPlaceOrderText = null;
+
   function syncFlowUI() {
     var locked = isFlowLocked();
     var placeOrder = form.querySelector("#place_order");
     if (placeOrder) {
       placeOrder.disabled = locked;
       placeOrder.setAttribute("aria-disabled", locked ? "true" : "false");
+      if (cachedPlaceOrderText === null) {
+        cachedPlaceOrderText = placeOrder.getAttribute("data-value") || placeOrder.textContent;
+      }
+      if (flowState === "submitting") {
+        placeOrder.textContent = "در حال ثبت سفارش…";
+        placeOrder.setAttribute("aria-busy", "true");
+      } else if (flowState === "calculating") {
+        placeOrder.textContent = "در حال محاسبه…";
+        placeOrder.setAttribute("aria-busy", "true");
+      } else {
+        placeOrder.textContent = cachedPlaceOrderText;
+        placeOrder.removeAttribute("aria-busy");
+      }
     }
     if (stickyButton) {
       stickyButton.disabled = locked;
       stickyButton.setAttribute("aria-disabled", locked ? "true" : "false");
+      if (stickyLabel) {
+        if (flowState === "submitting") stickyLabel.textContent = "در حال ثبت سفارش…";
+        else if (flowState === "calculating") stickyLabel.textContent = "در حال محاسبه…";
+        else stickyLabel.textContent = currentStep === "payment" ? "ثبت سفارش" : "ادامه به پرداخت";
+      }
+      if (flowState === "submitting" || flowState === "calculating") {
+        stickyButton.setAttribute("aria-busy", "true");
+      } else {
+        stickyButton.removeAttribute("aria-busy");
+      }
     }
     form.classList.toggle("jluxe-guided-checkout--totals-updating", flowState === "calculating");
     form.classList.toggle("jluxe-guided-checkout--submitting", flowState === "submitting");
@@ -574,7 +602,11 @@
     actionUpdatePending = false;
     if (!stickyButton) return;
     var isPaymentStep = currentStep === "payment";
-    if (stickyLabel) stickyLabel.textContent = isPaymentStep ? "ثبت سفارش" : "ادامه به پرداخت";
+    // While the flow is locked (calculating/submitting), syncFlowUI owns
+    // the label so the "in progress" text is not overwritten here.
+    if (stickyLabel && !isFlowLocked()) {
+      stickyLabel.textContent = isPaymentStep ? "ثبت سفارش" : "ادامه به پرداخت";
+    }
     stickyButton.setAttribute("aria-label", isPaymentStep ? "ثبت سفارش" : "ادامه به شیوهٔ پرداخت");
     if (stickyBack) stickyBack.hidden = !isPaymentStep;
     if (stickyAction) stickyAction.setAttribute("data-guided-mobile-step", currentStep);
