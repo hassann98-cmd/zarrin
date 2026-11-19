@@ -42,10 +42,67 @@
   // template renders radios without `checked`, so without this the customer's
   // choice is silently lost. We remember it and restore it after the refresh.
   var selectedGatewayId = "";
-  // P1 (audit): while totals are being recalculated the pay button must be
-  // locked so the customer cannot submit with stale amounts.
-  var totalsUpdating = false;
-  var orderSubmitting = false;
+
+  /*
+   * Checkout flow state machine (audit §21).
+   *
+   * Instead of scattered boolean flags (totalsUpdating / orderSubmitting),
+   * the guided checkout has one explicit state. Every action checks the
+   * state; every async boundary transitions it. Impossible states (e.g.
+   * submitting while calculating) are structurally prevented.
+   *
+   *   shipping ──advance──→ calculating ──updated_checkout──→ payment
+   *      ↑                      │                                │
+   *      └─────back─────────────┘                                │
+   *                                                              │
+   *   payment ──pay──→ submitting ──checkout_error──→ error ──→ payment/shipping
+   *      │                                                        │
+   *      └──shipping change──→ calculating ──updated_checkout──→ payment
+   *
+   * `currentStep` (shipping/payment) tracks which panel is visible;
+   * `flowState` tracks where the flow is. They are synced at every
+   * transition boundary.
+   */
+  var flowState = "shipping";
+  var FLOW_TRANSITIONS = {
+    shipping:    ["calculating", "payment"],
+    calculating: ["shipping", "payment", "error"],
+    payment:     ["shipping", "calculating", "submitting"],
+    submitting:  ["error", "payment"],
+    error:       ["shipping", "payment"],
+  };
+
+  function isFlowLocked() {
+    return flowState === "calculating" || flowState === "submitting";
+  }
+
+  function syncFlowUI() {
+    var locked = isFlowLocked();
+    var placeOrder = form.querySelector("#place_order");
+    if (placeOrder) {
+      placeOrder.disabled = locked;
+      placeOrder.setAttribute("aria-disabled", locked ? "true" : "false");
+    }
+    if (stickyButton) {
+      stickyButton.disabled = locked;
+      stickyButton.setAttribute("aria-disabled", locked ? "true" : "false");
+    }
+    form.classList.toggle("jluxe-guided-checkout--totals-updating", flowState === "calculating");
+    form.classList.toggle("jluxe-guided-checkout--submitting", flowState === "submitting");
+  }
+
+  function setFlowState(nextState) {
+    if (flowState === nextState) return true;
+    var allowed = FLOW_TRANSITIONS[flowState] || [];
+    if (allowed.indexOf(nextState) === -1) {
+      // Invalid transition — ignore rather than enter an impossible state.
+      // This is the core safety property of the state machine.
+      return false;
+    }
+    flowState = nextState;
+    syncFlowUI();
+    return true;
+  }
 
   function requestFrame(callback) {
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(callback);
@@ -575,26 +632,13 @@
     showMethodError("[data-jluxe-payment-error]", false);
   }
 
-  function setTotalsUpdating(updating) {
-    totalsUpdating = updating;
-    var placeOrder = form.querySelector("#place_order");
-    if (placeOrder) {
-      placeOrder.disabled = updating || orderSubmitting;
-      placeOrder.setAttribute("aria-disabled", placeOrder.disabled ? "true" : "false");
-    }
-    if (stickyButton) {
-      stickyButton.disabled = updating || orderSubmitting;
-      stickyButton.setAttribute("aria-disabled", stickyButton.disabled ? "true" : "false");
-    }
-    form.classList.toggle("jluxe-guided-checkout--totals-updating", updating);
-  }
-
   function refreshCheckoutTotals() {
     if (!$ || !body) return;
     // Refresh address-dependent shipping/tax totals before the customer chooses
     // a rate or gateway. WooCommerce owns the request and replaces its fragments.
+    // The update_checkout listener below transitions to `calculating`;
+    // updated_checkout transitions back. No manual flag juggling here.
     rememberSelectedGateway();
-    setTotalsUpdating(true);
     $(body).trigger("update_checkout");
   }
 
@@ -626,7 +670,12 @@
     updateKeyboardViewport();
 
     if (options.focus) focusStepHeading(step);
+    // State machine: sync flowState with the visible step. When advancing
+    // to payment with a refresh, the update_checkout listener will move
+    // us to `calculating` next; otherwise settle on the step directly.
+    if (step === "shipping") setFlowState("shipping");
     if (step === "payment" && changed && options.refresh !== false) refreshCheckoutTotals();
+    else if (step === "payment" && flowState === "error") setFlowState("payment");
   }
 
   function advanceToPayment() {
@@ -650,23 +699,19 @@
       advanceToPayment();
       return;
     }
-    // P1 (audit): never submit twice. WooCommerce's own processing guard
-    // covers the native button, but the sticky mobile button bypasses it,
-    // so we lock here and release on checkout_error / page unload.
-    if (orderSubmitting || totalsUpdating) return;
+    // State machine: only `payment` (unlocked) may submit. `calculating`
+    // and `submitting` are locked — this single check replaces the old
+    // orderSubmitting/totalsUpdating flag pair.
+    if (isFlowLocked() || flowState !== "payment") return;
     if (!validatePaymentChoices()) return;
     var placeOrder = form.querySelector("#place_order");
     if (!placeOrder || placeOrder.disabled) return;
-    // Lock first (flag), click, THEN disable — a disabled button's .click()
-    // fires no event, so disabling before the click would swallow the submit.
-    orderSubmitting = true;
+    // Transition to `submitting` (locks UI via syncFlowUI), then click.
+    // The click must happen on an enabled button — a disabled button's
+    // .click() fires no event — so we click before syncFlowUI disables it.
+    // syncFlowUI runs inside setFlowState, so click first, then transition.
     placeOrder.click();
-    placeOrder.disabled = true;
-    placeOrder.setAttribute("aria-disabled", "true");
-    if (stickyButton) {
-      stickyButton.disabled = true;
-      stickyButton.setAttribute("aria-disabled", "true");
-    }
+    setFlowState("submitting");
   }
 
   function handleFormSubmit(event) {
@@ -813,21 +858,28 @@
   window.addEventListener("orientationchange", updateKeyboardViewport);
 
   if ($ && body) {
+    // State machine: ANY update_checkout trigger (ours or WooCommerce's own,
+    // e.g. shipping change) enters `calculating`. updated_checkout exits it
+    // back to whichever step is visible. This replaces manual flag toggling.
+    $(body).on("update_checkout.jluxeGuidedState", function () {
+      if (flowState !== "submitting") setFlowState("calculating");
+    });
     $(body).on("updated_checkout.jluxeGuided", function () {
       refreshShippingSummary();
       updateStickyTotal();
-      // P1 (audit): totals are fresh now — unlock the pay button and restore
-      // the gateway selection that the fragment rebuild just wiped.
-      setTotalsUpdating(false);
+      // Totals are fresh — exit `calculating` back to the visible step and
+      // restore the gateway selection the fragment rebuild just wiped.
+      setFlowState(currentStep);
       restoreSelectedGateway();
       if (hasShippingMethodSelected()) showMethodError("[data-jluxe-shipping-error]", false);
       scheduleStickyActionUpdate();
     });
     $(body).on("checkout_error.jluxeGuided", function () {
-      // Submission failed or was rejected: release the duplicate-submit lock
-      // so the customer can retry. WooCommerce keeps the form data intact.
-      orderSubmitting = false;
-      setTotalsUpdating(false);
+      // Submission failed or was rejected: transition through `error` so
+      // the lock is released and the customer can retry. WooCommerce keeps
+      // the form data intact. handleCheckoutError() then routes to the
+      // correct step and syncs flowState via setCurrentStep.
+      setFlowState("error");
       handleCheckoutError();
     });
     if (couponWidget) {

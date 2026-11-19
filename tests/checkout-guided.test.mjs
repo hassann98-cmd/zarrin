@@ -672,3 +672,86 @@ test("P2 audit: sticky total falls back to WooCommerce's .order-total when the t
   $(document.body).trigger("updated_checkout");
   assert.equal(document.querySelector("[data-guided-total]").textContent, "۹۹۹۹ تومان", "sticky bar follows the fallback selector");
 });
+
+test("state machine: flow follows shipping → calculating → payment → submitting", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+
+  const form = document.querySelector("form.checkout");
+  const placeOrder = document.getElementById("place_order");
+  const stickyButton = document.querySelector("[data-guided-continue]");
+
+  // Initial state: shipping, unlocked.
+  assert.equal(form.getAttribute("data-guided-current-step"), "shipping");
+  assert.equal(placeOrder.disabled, false, "buttons start unlocked on shipping");
+
+  // Advance to payment → update_checkout fires → calculating (locked).
+  document.querySelector("[data-guided-next]").click();
+  assert.equal(placeOrder.disabled, true, "locked during calculating");
+  assert.equal(stickyButton.disabled, true, "sticky locked during calculating");
+  assert.equal(form.classList.contains("jluxe-guided-checkout--totals-updating"), true);
+
+  // updated_checkout → payment (unlocked).
+  $(document.body).trigger("updated_checkout");
+  assert.equal(placeOrder.disabled, false, "unlocked on payment");
+  assert.equal(form.classList.contains("jluxe-guided-checkout--totals-updating"), false);
+
+  // Select shipping + gateway, submit → submitting (locked).
+  const shipping = document.querySelector("input.shipping_method");
+  shipping.checked = true;
+  shipping.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  const gateway = document.querySelector("input.payment_method");
+  gateway.checked = true;
+  gateway.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+
+  let submitted = false;
+  form.addEventListener("submit", (event) => { submitted = true; event.preventDefault(); });
+  stickyButton.click();
+  assert.equal(submitted, true, "submit reaches WooCommerce");
+  assert.equal(placeOrder.disabled, true, "locked during submitting");
+  assert.equal(form.classList.contains("jluxe-guided-checkout--submitting"), true);
+
+  // checkout_error → error → unlocked for retry.
+  $(document.body).trigger("checkout_error");
+  assert.equal(placeOrder.disabled, false, "unlocked after error for retry");
+  assert.equal(form.classList.contains("jluxe-guided-checkout--submitting"), false);
+});
+
+test("state machine: invalid transitions are rejected (cannot submit while calculating)", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+
+  // Advance to payment → calculating state.
+  document.querySelector("[data-guided-next]").click();
+  const placeOrder = document.getElementById("place_order");
+  assert.equal(placeOrder.disabled, true, "locked in calculating");
+
+  // Even if something tries to click place_order directly, the disabled
+  // button fires no event — the state machine's lock is structural.
+  let clicks = 0;
+  placeOrder.addEventListener("click", () => { clicks += 1; });
+  placeOrder.click();
+  assert.equal(clicks, 0, "disabled button in calculating state fires no click");
+
+  // After updated_checkout, payment state allows submission.
+  $(document.body).trigger("updated_checkout");
+  assert.equal(placeOrder.disabled, false);
+  placeOrder.click();
+  assert.equal(clicks, 1, "enabled button in payment state fires click");
+});
+
+test("state machine: back navigation returns to shipping state", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+  $(document.body).trigger("updated_checkout");
+  assert.equal(document.querySelector("form.checkout").getAttribute("data-guided-current-step"), "payment");
+
+  document.querySelector("[data-guided-back]").click();
+  assert.equal(document.querySelector("form.checkout").getAttribute("data-guided-current-step"), "shipping");
+  assert.equal(document.querySelector('[data-guided-panel="shipping"]').hidden, false);
+  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, true);
+});
