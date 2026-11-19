@@ -3597,8 +3597,8 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
 }
 @media (max-width: 639.98px) {
   .jluxe-shipping-card {
-    flex-direction: column;
-    align-items: start;
+    flex-direction: row;
+    align-items: center;
     gap: 0.55rem;
     min-height: 0;
     padding: 0.9rem 1rem;
