@@ -3128,14 +3128,8 @@ function jluxe_billing_fields( array $fields ): array {
 		$fields['billing']['billing_last_name']['priority'] = 6;
 	}
 
-	if ( isset( $fields['billing']['billing_email'] ) ) {
-		// طبقِ مرجعِ تصویریِ جدیدِ کاربر ایمیل «اختیاری»ه؛ افزونه‌ی «ووکامرس
-		// فارسی» به‌صورتِ پیش‌فرض این فیلد رو الزامی می‌کرد (باگِ واقعیِ
-		// پیداشده با تستِ زنده: برچسبِ «آدرس ایمیل» بدونِ برچسبِ «(اختیاری)»
-		// و ستاره‌ی الزامی نشون داده می‌شد).
-		$fields['billing']['billing_email']['priority'] = 16;
-		$fields['billing']['billing_email']['required'] = false;
-	}
+	// ایمیل از checkout حذف شده (درخواست کاربر) — کد پستی جای آن قرار می‌گیرد.
+	unset( $fields['billing']['billing_email'] );
 
 	// استان/شهر/کدپستی — یک ردیفِ ۳ستونه در دسکتاپ (طبق طراحی تأییدشده).
 	// چون assets/js/frontend/address-i18n.js ووکامرس همه‌ی .form-row رو
@@ -3185,9 +3179,11 @@ function jluxe_billing_fields( array $fields ): array {
 		}
 	}
 	if ( isset( $fields['billing']['billing_postcode'] ) ) {
-		$fields['billing']['billing_postcode']['priority']    = 27;
+		// کد پستی جای ایمیل (priority 16) و تمام‌عرض قرار می‌گیرد.
+		$fields['billing']['billing_postcode']['priority']    = 16;
 		$fields['billing']['billing_postcode']['required']    = false;
 		$fields['billing']['billing_postcode']['placeholder'] = '';
+		$fields['billing']['billing_postcode']['class']       = array( 'form-row-wide' );
 	}
 
 	if ( isset( $fields['billing']['billing_phone'] ) ) {
