@@ -37,6 +37,15 @@
   var actionUpdatePending = false;
   var currentStep = "shipping";
   var fieldErrorId = 0;
+  // P1 (audit): gateway selection must survive AJAX refreshes of the payment
+  // section. WooCommerce rebuilds the payment DOM on update_checkout and the
+  // template renders radios without `checked`, so without this the customer's
+  // choice is silently lost. We remember it and restore it after the refresh.
+  var selectedGatewayId = "";
+  // P1 (audit): while totals are being recalculated the pay button must be
+  // locked so the customer cannot submit with stale amounts.
+  var totalsUpdating = false;
+  var orderSubmitting = false;
 
   function requestFrame(callback) {
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(callback);
@@ -540,10 +549,46 @@
     window.setTimeout(updateKeyboardViewport, 80);
   }
 
+  function rememberSelectedGateway() {
+    var payment = form.querySelector("#payment");
+    var checked = payment && payment.querySelector('input.payment_method:checked, input[name="payment_method"]:checked');
+    if (checked && checked.value) selectedGatewayId = String(checked.value);
+  }
+
+  function restoreSelectedGateway() {
+    if (!selectedGatewayId) return;
+    var payment = form.querySelector("#payment");
+    if (!payment) return;
+    var radio = payment.querySelector('input.payment_method[value="' + selectedGatewayId + '"], input[name="payment_method"][value="' + selectedGatewayId + '"]');
+    if (!radio || radio.disabled) return;
+    if (radio.checked) return;
+    radio.checked = true;
+    // Notify WooCommerce so the gateway's payment_box renders for the
+    // restored selection, exactly as if the customer had clicked it.
+    if ($ && typeof $(radio).trigger === "function") $(radio).trigger("click");
+    showMethodError("[data-jluxe-payment-error]", false);
+  }
+
+  function setTotalsUpdating(updating) {
+    totalsUpdating = updating;
+    var placeOrder = form.querySelector("#place_order");
+    if (placeOrder) {
+      placeOrder.disabled = updating || orderSubmitting;
+      placeOrder.setAttribute("aria-disabled", placeOrder.disabled ? "true" : "false");
+    }
+    if (stickyButton) {
+      stickyButton.disabled = updating || orderSubmitting;
+      stickyButton.setAttribute("aria-disabled", stickyButton.disabled ? "true" : "false");
+    }
+    form.classList.toggle("jluxe-guided-checkout--totals-updating", updating);
+  }
+
   function refreshCheckoutTotals() {
     if (!$ || !body) return;
     // Refresh address-dependent shipping/tax totals before the customer chooses
     // a rate or gateway. WooCommerce owns the request and replaces its fragments.
+    rememberSelectedGateway();
+    setTotalsUpdating(true);
     $(body).trigger("update_checkout");
   }
 
@@ -599,9 +644,23 @@
       advanceToPayment();
       return;
     }
+    // P1 (audit): never submit twice. WooCommerce's own processing guard
+    // covers the native button, but the sticky mobile button bypasses it,
+    // so we lock here and release on checkout_error / page unload.
+    if (orderSubmitting || totalsUpdating) return;
     if (!validatePaymentChoices()) return;
     var placeOrder = form.querySelector("#place_order");
-    if (placeOrder && !placeOrder.disabled) placeOrder.click();
+    if (!placeOrder || placeOrder.disabled) return;
+    // Lock first (flag), click, THEN disable — a disabled button's .click()
+    // fires no event, so disabling before the click would swallow the submit.
+    orderSubmitting = true;
+    placeOrder.click();
+    placeOrder.disabled = true;
+    placeOrder.setAttribute("aria-disabled", "true");
+    if (stickyButton) {
+      stickyButton.disabled = true;
+      stickyButton.setAttribute("aria-disabled", "true");
+    }
   }
 
   function handleFormSubmit(event) {
@@ -621,12 +680,32 @@
     window.setTimeout(function () {
       var invalidRows = customerDetails ? customerDetails.querySelectorAll(".woocommerce-invalid") : [];
       var firstInvalid = invalidRows.length ? invalidRows[0] : null;
-      if (firstInvalid) {
+      // P1 (audit): identity fields and province/city live outside
+      // .form-row / #customer_details, so WooCommerce marks them invalid
+      // without a .woocommerce-invalid row. Those errors belong to the
+      // shipping step — check them explicitly before staying on payment.
+      var shippingFieldError = null;
+      if (!firstInvalid) {
+        var identityFields = form.querySelectorAll("[data-jluxe-identity-field]");
+        for (var i = 0; i < identityFields.length; i++) {
+          if (identityFields[i].getAttribute("aria-invalid") === "true" || identityFields[i].classList.contains("jluxe-identity-invalid")) {
+            shippingFieldError = identityFields[i];
+            break;
+          }
+        }
+      }
+      if (!firstInvalid && !shippingFieldError) {
+        var stateField = document.getElementById("billing_state");
+        var cityField = document.getElementById("billing_city");
+        if (stateField && (stateField.getAttribute("aria-invalid") === "true" || stateField.closest(".woocommerce-invalid"))) shippingFieldError = stateField;
+        else if (cityField && (cityField.getAttribute("aria-invalid") === "true" || cityField.closest(".woocommerce-invalid"))) shippingFieldError = cityField;
+      }
+      if (firstInvalid || shippingFieldError) {
         setCurrentStep("shipping", { focus: false, refresh: false });
-        var field = firstInvalid.querySelector("input:not([type=hidden]), select, textarea");
+        var field = firstInvalid ? firstInvalid.querySelector("input:not([type=hidden]), select, textarea") : shippingFieldError;
         if (field) {
           setShippingErrorSummary(true);
-          scrollToElement(firstInvalid);
+          scrollToElement(firstInvalid || field.closest(".jluxe-checkout-addresses__field") || field);
           focusField(field);
         }
         return;
@@ -647,7 +726,10 @@
       refreshShippingSummary();
     }
     if (target.matches && target.matches("input.shipping_method")) showMethodError("[data-jluxe-shipping-error]", false);
-    if (target.matches && target.matches('input.payment_method, input[name="payment_method"]')) showMethodError("[data-jluxe-payment-error]", false);
+    if (target.matches && target.matches('input.payment_method, input[name="payment_method"]')) {
+      showMethodError("[data-jluxe-payment-error]", false);
+      if (target.value) selectedGatewayId = String(target.value);
+    }
     if (target.name === "ship_to_different_address") refreshShippingSummary();
     scheduleStickyActionUpdate();
   }
@@ -728,10 +810,20 @@
     $(body).on("updated_checkout.jluxeGuided", function () {
       refreshShippingSummary();
       updateStickyTotal();
+      // P1 (audit): totals are fresh now — unlock the pay button and restore
+      // the gateway selection that the fragment rebuild just wiped.
+      setTotalsUpdating(false);
+      restoreSelectedGateway();
       if (hasShippingMethodSelected()) showMethodError("[data-jluxe-shipping-error]", false);
       scheduleStickyActionUpdate();
     });
-    $(body).on("checkout_error.jluxeGuided", handleCheckoutError);
+    $(body).on("checkout_error.jluxeGuided", function () {
+      // Submission failed or was rejected: release the duplicate-submit lock
+      // so the customer can retry. WooCommerce keeps the form data intact.
+      orderSubmitting = false;
+      setTotalsUpdating(false);
+      handleCheckoutError();
+    });
     if (couponWidget) {
       $(body).on("errored_coupon_in_checkout.jluxeGuided", function (_event, code) {
         if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;

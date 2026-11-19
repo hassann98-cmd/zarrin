@@ -322,10 +322,13 @@ test("Back and the completed stepper return to shipping without discarding enter
 });
 
 test("payment requires real shipping and gateway selections, then delegates to WooCommerce's real place-order control", (t) => {
-  const { dom, document, form } = bootGuidedCheckout();
+  const { dom, document, form, $ } = bootGuidedCheckout();
   t.after(() => dom.window.close());
   fillRequiredAddress(document);
   document.querySelector("[data-guided-next]").click();
+  // P1 audit: advancing to payment locks the pay button while totals
+  // recalculate; updated_checkout releases it.
+  $(document.body).trigger("updated_checkout");
   let submitted = false;
   form.addEventListener("submit", (event) => {
     submitted = true;
@@ -535,3 +538,72 @@ test("guided checkout keeps the optional manual address and map separate and del
   assert.match(source, /placeOrder\.click\(\)/);
   assert.match(source, /checkout_error\.jluxeGuided/);
 });
+
+test("P1 audit: gateway selection survives an AJAX refresh of the payment section", (t) => {
+  const { dom, window, document, $ } = bootGuidedCheckout({ paymentMethods: ["gateway-a", "gateway-b"] });
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+  assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, false);
+
+  // Customer selects gateway-b.
+  const radioB = document.querySelector('input.payment_method[value="gateway-b"]');
+  radioB.checked = true;
+  radioB.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(radioB.checked, true);
+
+  // WooCommerce rebuilds the payment DOM on update_checkout: fresh radios,
+  // none checked (payment-method.php renders without `checked`).
+  const payment = document.getElementById("payment");
+  payment.innerHTML = '<label><input class="payment_method" type="radio" name="payment_method" value="gateway-a"></label><label><input class="payment_method" type="radio" name="payment_method" value="gateway-b"></label>';
+  assert.equal(payment.querySelector('input.payment_method:checked'), null, "the rebuild wiped the selection");
+
+  $(document.body).trigger("updated_checkout");
+  const restored = payment.querySelector('input.payment_method[value="gateway-b"]');
+  assert.equal(restored.checked, true, "the customer's gateway choice is restored after the refresh");
+});
+
+test("P1 audit: pay button is locked while totals update and released after updated_checkout", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+
+  // Advancing to payment triggers update_checkout → totals updating → locked.
+  document.querySelector("[data-guided-next]").click();
+  const placeOrder = document.getElementById("place_order");
+  const stickyButton = document.querySelector("[data-guided-continue]");
+  assert.equal(placeOrder.disabled, true, "place_order is disabled while totals recalculate");
+  assert.equal(stickyButton.disabled, true, "sticky button is disabled while totals recalculate");
+  assert.equal(document.querySelector("form.checkout").classList.contains("jluxe-guided-checkout--totals-updating"), true);
+
+  $(document.body).trigger("updated_checkout");
+  assert.equal(placeOrder.disabled, false, "place_order is released after updated_checkout");
+  assert.equal(stickyButton.disabled, false, "sticky button is released after updated_checkout");
+  assert.equal(document.querySelector("form.checkout").classList.contains("jluxe-guided-checkout--totals-updating"), false);
+});
+
+test("P1 audit: sticky pay button cannot submit the order twice", (t) => {
+  const { dom, window, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  // Totals update finishes; shipping + gateway selected.
+  $(document.body).trigger("updated_checkout");
+  const shipping = document.querySelector("input.shipping_method");
+  shipping.checked = true;
+  shipping.dispatchEvent(new window.Event("change", { bubbles: true }));
+  const radio = document.querySelector('input.payment_method[value="gateway-a"]');
+  radio.checked = true;
+  radio.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+  let placeOrderClicks = 0;
+  document.getElementById("place_order").addEventListener("click", () => { placeOrderClicks += 1; });
+
+  const stickyButton = document.querySelector("[data-guided-continue]");
+  stickyButton.click();
+  stickyButton.click();
+  stickyButton.click();
+  assert.equal(placeOrderClicks, 1, "only the first click reaches place_order; the rest are locked out");
+});
+

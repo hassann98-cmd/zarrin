@@ -458,6 +458,30 @@ body.woocommerce-checkout .jluxe-guided-checkout__submit #place_order {
   box-shadow: none;
 }
 
+/* P1 (audit): while totals recalculate or the order is submitting, the pay
+   button is locked — make that state visible instead of a silent dead click. */
+body.woocommerce-checkout .jluxe-guided-checkout--totals-updating .jluxe-guided-checkout__submit #place_order,
+body.woocommerce-checkout .jluxe-guided-checkout__submit #place_order:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+body.woocommerce-checkout .jluxe-guided-checkout--totals-updating [data-guided-continue]:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body.woocommerce-checkout .jluxe-guided-checkout--totals-updating .jluxe-guided-checkout__submit #place_order:disabled {
+    animation: jluxe-totals-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes jluxe-totals-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.8; }
+}
+
 body.woocommerce-checkout .jluxe-guided-checkout__text-button {
   border: 0;
   padding: 0.35rem 0;
