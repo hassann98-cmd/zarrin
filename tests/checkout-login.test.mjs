@@ -77,7 +77,9 @@ test("province and city are the real WooCommerce fields inside the accordion", (
 
 test("accordion collects landline (not email) and billing section is hidden for logged-in users", () => {
   const php = read("inc/checkout-login.php");
-  assert.match(php, /تلفن ثابت/);
+  // 1.7.359: برچسب فیلد «تلفن» است (نه «تلفن ثابت») ولی نام فیلد landline می‌ماند.
+  assert.match(php, /<label for="jluxe-new-address-landline">تلفن<\/label>/);
+  assert.doesNotMatch(php, /<label for="jluxe-new-address-landline">تلفن ثابت<\/label>/);
   assert.match(php, /data-jluxe-new-field="landline"/);
   assert.match(php, /billing_landline/);
   assert.doesNotMatch(php, /jluxe-new-address-email/);
@@ -149,9 +151,21 @@ test("saved addresses can be edited and deleted", () => {
   assert.match(js, /editingAddressId/);
   assert.match(js, /fillFormForEdit/);
   assert.match(js, /ذخیره تغییرات/);
+  // 1.7.359: وقتی فقط یک آدرس وجود دارد، حذف نیازمند دو کلیک است.
+  assert.match(js, /cards\(\)\.length <= 1/, "single-address delete requires two clicks");
+  assert.match(js, /jluxeConfirming/, "first click arms the delete button");
+  assert.match(js, /is-confirming/, "confirming state is styled");
   const css = read("assets/css/checkout-login.css");
   assert.match(css, /jluxe-checkout-addresses__action/);
   assert.match(css, /jluxe-checkout-addresses__action--danger/);
+  assert.match(css, /is-confirming/, "confirming delete button has a distinct style");
+});
+
+test("new-address accordion always starts with empty province and city", () => {
+  const js = read("assets/js/checkout-login.js");
+  // 1.7.359: clearNewForm استان/شهر را هم خالی می‌کند تا کاربر مجبور باشد
+  // اول استان را انتخاب کند و شهر بعد از آن لود شود (هیچ‌وقت کش نیست).
+  assert.match(js, /function clearNewForm\(\) \{[\s\S]*?applyStateCity\("", ""\)/, "clearNewForm clears province and city");
 });
 
 test("multiple addresses are stored per customer in a dedicated meta", () => {

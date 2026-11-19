@@ -229,6 +229,26 @@ body.woocommerce-checkout .jluxe-checkout-addresses__action--danger:hover {
   background: rgb(185 28 28 / 0.05);
 }
 
+/* حالت تأیید حذف دوکلیکی (وقتی فقط یک آدرس وجود دارد): دکمه قرمز پر می‌شود
+   تا کاربر بفهمد کلیک بعدی حذف می‌کند. */
+body.woocommerce-checkout .jluxe-checkout-addresses__action.is-confirming {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+  animation: jluxe-delete-confirm-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes jluxe-delete-confirm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(185 28 28 / 0.35); }
+  50% { box-shadow: 0 0 0 5px rgb(185 28 28 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.woocommerce-checkout .jluxe-checkout-addresses__action.is-confirming {
+    animation: none;
+  }
+}
+
 body.woocommerce-checkout .jluxe-checkout-addresses__add {
   width: 100%;
   border-style: dashed;

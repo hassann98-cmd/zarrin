@@ -247,7 +247,29 @@
             event.stopPropagation();
             var address = getCardAddress(card);
             if (!address || !address.id) return;
-            if (!window.confirm("این آدرس حذف شود؟")) return;
+            // وقتی فقط یک آدرس وجود دارد، حذف نیازمند دو کلیک است (کلیک اول
+            // دکمه را مسلح می‌کند، کلیک دوم حذف می‌کند) تا آخرین آدرس به‌اشتباه
+            // حذف نشود. در حالت چند آدرس، دیالوگ تأیید کافی است.
+            var isOnlyAddress = cards().length <= 1;
+            if (isOnlyAddress) {
+              if (!deleteBtn.dataset.jluxeConfirming) {
+                deleteBtn.dataset.jluxeConfirming = "1";
+                deleteBtn.classList.add("is-confirming");
+                deleteBtn.setAttribute("aria-label", "برای تأیید حذف، دوباره کلیک کنید");
+                deleteBtn.setAttribute("title", "برای تأیید حذف، دوباره کلیک کنید");
+                window.setTimeout(function () {
+                  delete deleteBtn.dataset.jluxeConfirming;
+                  deleteBtn.classList.remove("is-confirming");
+                  deleteBtn.setAttribute("aria-label", "حذف آدرس");
+                  deleteBtn.setAttribute("title", "حذف آدرس");
+                }, 4000);
+                return;
+              }
+              delete deleteBtn.dataset.jluxeConfirming;
+              deleteBtn.classList.remove("is-confirming");
+            } else if (!window.confirm("این آدرس حذف شود؟")) {
+              return;
+            }
             // اگر ویرایشِ آدرس دیگری باز است، اول آن را ببند تا حذف در حالتِ
             // تمیز انجام شود (لیست بازسازی می‌شود و فرمِ ویرایش کهنه می‌ماند).
             if (editingAddressId) {
@@ -270,11 +292,13 @@
 
     function clearNewForm() {
       if (!form) return;
-      // فقط فیلدهای مخصوص آکاردئون پاک می‌شوند؛ استان/شهر (billing_state/
-      // billing_city) همان فیلدهای تسویه‌حساب‌اند و دست نمی‌خورند.
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
       });
+      // استان/شهر همیشه خالی شروع می‌شوند تا کاربر مجبور باشد اول استان
+      // را انتخاب کند و شهر بعد از آن لود شود؛ هیچ‌وقت از انتخاب قبلی
+      // (آدرس ذخیره‌شده یا نشست) کش نمی‌شوند.
+      applyStateCity("", "");
     }
 
     function setFormOpen(open) {
@@ -296,13 +320,12 @@
     if (toggle) {
       toggle.addEventListener("click", function () {
         // باز کردن برای آدرس جدید: حالت ویرایش ریست و فرم خالی می‌شود.
+        // clearNewForm استان/شهر را هم خالی می‌کند تا کاربر مجبور باشد
+        // اول استان را انتخاب کند و شهر بعد از آن لود شود.
         if (form.hidden) {
           editingAddressId = null;
           if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
           clearNewForm();
-          // استان/شهر برای آدرس جدید همیشه خالی شروع می‌شوند (هیچ‌وقت کش
-          // نیستند)؛ مقدار آدرس انتخاب‌شدهٔ قبلی نباید به آدرس جدید نشت کند.
-          applyStateCity("", "");
         }
         setFormOpen(form.hidden);
       });
@@ -577,7 +600,7 @@
       saveBtn.addEventListener("click", function () {
         var data = collectNewAddress();
         // اعتبارسنجی سمت کلاینت: نام، نام خانوادگی، استان، شهر و آدرس دقیق
-        // الزامی‌اند؛ تلفن ثابت اختیاری است.
+        // الزامی‌اند؛ تلفن اختیاری است.
         if (!data.first_name || !data.last_name) {
           showStatus("وارد کردن نام و نام خانوادگی الزامی است.", true);
           return;

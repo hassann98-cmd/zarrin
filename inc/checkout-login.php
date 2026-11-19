@@ -503,7 +503,7 @@ function jluxe_ajax_save_checkout_address(): void {
 		wp_send_json_error( array( 'message' => 'کدپستی باید ۱۰ رقم باشد.' ) );
 	}
 	if ( '' !== (string) $data['landline'] && ! preg_match( '/^\d{10,11}$/', (string) $data['landline'] ) ) {
-		wp_send_json_error( array( 'message' => 'تلفن ثابت معتبر نیست.' ) );
+		wp_send_json_error( array( 'message' => 'تلفن معتبر نیست.' ) );
 	}
 	$saved_id = jluxe_save_customer_address( $data );
 	if ( '' === $saved_id ) {
@@ -777,7 +777,7 @@ function jluxe_render_address_selector(): void {
 					<input type="text" id="jluxe-new-address-postcode" inputmode="numeric" maxlength="10" dir="ltr" data-jluxe-new-field="postcode" autocomplete="postal-code" />
 				</div>
 				<div class="jluxe-checkout-addresses__field">
-					<label for="jluxe-new-address-landline">تلفن ثابت</label>
+					<label for="jluxe-new-address-landline">تلفن</label>
 					<input type="tel" id="jluxe-new-address-landline" dir="ltr" data-jluxe-new-field="landline" autocomplete="tel" />
 				</div>
 			</div>
