@@ -5332,6 +5332,17 @@ function jluxeEnhanceShopSort(root) {
 			field.removeAttribute("aria-invalid");
 			field.classList.remove("jluxe-identity-invalid");
 		}
+		// استان/شهر (billing_state/billing_city) در آکاردئونِ آدرس‌اند و ممکن
+		// است مخفی باشند؛ اگر خالی باشند، ثبت سفارش می‌خورد. پس صراحتاً
+		// بررسی می‌شوند تا کاربر قبل از مرحلهٔ پرداخت بفهمد.
+		var stateField = document.getElementById("billing_state");
+		var cityField = document.getElementById("billing_city");
+		if (stateField && String(stateField.value || "").trim() === "") {
+			return stateField.closest(".form-row") || stateField;
+		}
+		if (cityField && String(cityField.value || "").trim() === "") {
+			return cityField.closest(".form-row") || cityField;
+		}
 		return null;
 	}
 

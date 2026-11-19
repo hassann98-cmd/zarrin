@@ -312,6 +312,29 @@ test("checkout buttons have press, hover-lift, disabled and loading-spinner effe
   assert.match(loginCss, /jluxe-checkout-addresses__action:focus-visible/);
 });
 
+test("first-time users with no saved address get the new-address accordion auto-opened", () => {
+  const js = read("assets/js/checkout-login.js");
+  // اگر کارتی انتخاب نشده (لیست خالی)، آکاردئون باز می‌شود تا استان/شهر
+  // همان‌جا پر شود و در submit خالی نماند.
+  assert.match(js, /کاربر بار اول \(هیچ آدرس ذخیره‌شده‌ای نیست\)/);
+  assert.match(js, /setFormOpen\(true\)/);
+});
+
+test("province and city are validated before proceeding to payment in both layouts", () => {
+  const classic = read("assets/js/woocommerce.js");
+  assert.match(classic, /استان\/شهر \(billing_state\/billing_city\) در آکاردئونِ آدرس‌اند/);
+  assert.match(classic, /getElementById\("billing_state"\)/);
+  assert.match(classic, /getElementById\("billing_city"\)/);
+  const guided = read("assets/js/checkout-guided.js");
+  assert.match(guided, /استان\/شهر در آکاردئونِ آدرس‌اند/);
+  assert.match(guided, /getElementById\("billing_state"\)/);
+});
+
+test("OTP login redirect is skipped when the cart is empty", () => {
+  const php = read("inc/checkout-login.php");
+  assert.match(php, /WC\(\)->cart && WC\(\)->cart->is_empty\(\)/);
+});
+
 test("address edit/delete buttons are icon-only and delete resets an open edit first", () => {
   const php = read("inc/checkout-login.php");
   // متن «ویرایش»/«حذف» حذف شده؛ فقط آیکون + aria-label/title می‌ماند.

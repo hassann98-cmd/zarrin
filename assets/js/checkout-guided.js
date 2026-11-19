@@ -302,6 +302,17 @@
         field.classList.remove("jluxe-identity-invalid");
       }
     }
+    // استان/شهر در آکاردئونِ آدرس‌اند و ممکن است مخفی باشند؛ اگر خالی
+    // باشند، ثبت سفارش می‌خورد. پس صراحتاً بررسی می‌شوند.
+    if (!firstInvalid) {
+      var stateField = document.getElementById("billing_state");
+      var cityField = document.getElementById("billing_city");
+      if (stateField && String(stateField.value || "").trim() === "") {
+        firstInvalid = { row: stateField.closest(".form-row") || stateField, field: stateField };
+      } else if (cityField && String(cityField.value || "").trim() === "") {
+        firstInvalid = { row: cityField.closest(".form-row") || cityField, field: cityField };
+      }
+    }
     return firstInvalid;
   }
 

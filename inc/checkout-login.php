@@ -48,6 +48,10 @@ function jluxe_checkout_login_redirect_needed(): bool {
 	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->checkout ) {
 		return false;
 	}
+	// سبد خالی: ووکامرس خودش به سبد برمی‌گرداند؛ ورودِ بیهوده لازم نیست.
+	if ( WC()->cart && WC()->cart->is_empty() ) {
+		return false;
+	}
 	if ( ! WC()->checkout->is_registration_required() ) {
 		return false;
 	}

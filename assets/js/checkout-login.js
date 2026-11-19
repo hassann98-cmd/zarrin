@@ -708,6 +708,11 @@
     if (checkedInput) {
       var checkedCard = checkedInput.closest("[data-jluxe-address-card]");
       if (checkedCard) select(checkedCard);
+    } else {
+      // کاربر بار اول (هیچ آدرس ذخیره‌شده‌ای نیست): آکاردئونِ آدرس جدید را
+      // خودکار باز کن تا استان/شهر را همان‌جا پر کند؛ وگرنه فیلدها خالی
+      // می‌مانند و ثبت سفارش در اعتبارسنجی ووکامرس می‌خورد.
+      setFormOpen(true);
     }
   }
 
