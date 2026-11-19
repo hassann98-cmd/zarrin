@@ -43,11 +43,7 @@ jluxe_render_checkout_stepper( 'shipping' );
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
-<<<<<<< HEAD
-					<?php jluxe_render_address_selector(); ?>
-=======
 					<?php if ( function_exists( 'jluxe_render_address_selector' ) ) { jluxe_render_address_selector(); } ?>
->>>>>>> 68652af (1.7.319 fix: guard jluxe_render_address_selector with function_exists)
 
 					<div id="customer_details">
 						<?php do_action( 'woocommerce_checkout_billing' ); ?>
