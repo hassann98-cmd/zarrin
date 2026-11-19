@@ -3529,6 +3529,25 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   color: hsl(var(--text-secondary) / 0.55);
   font-weight: 700;
 }
+/* سازگاری با قالب قدیمی: توضیح به‌عنوان فرزند مستقیم کارت رندر می‌شود
+   (بیرون از __text). در این حالت کارت را به ردیف تبدیل می‌کنیم تا توضیح
+   کنار نام روش روی یک خط بنشیند، مثل ساختار جدید. */
+.jluxe-shipping-card:has(> .jluxe-shipping-note) {
+  direction: rtl;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.35rem;
+}
+.jluxe-shipping-card:has(> .jluxe-shipping-note) > .jluxe-shipping-card__details {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+}
+.jluxe-shipping-card > .jluxe-shipping-note {
+  flex: 0 1 auto;
+  align-self: center;
+}
 .jluxe-shipping-card:hover {
   border-color: hsl(var(--primary) / 0.42);
   box-shadow: 0 5px 15px hsl(var(--foreground) / 0.07);

@@ -613,6 +613,9 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
   // 1.7.354: جداکنندهٔ نقطه بین نام روش و توضیح آن روی همان یک خط.
   assert.match(storefrontStyles, /\.jluxe-shipping-note::before\s*\{[^}]*content:\s*"•"/, "the note is separated from the method name by a dot on the same row");
+  // 1.7.356: سازگاری با قالب قدیمی که توضیح را فرزند مستقیم کارت رندر می‌کند.
+  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\)\s*\{[^}]*flex-direction:\s*row/, "old template note as direct child still lays out inline beside the name");
+  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\) > \.jluxe-shipping-card__details\s*\{[^}]*width:\s*auto/, "old template details shrink to content so the note sits beside the name");
   assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
   // 1.7.352/1.7.354: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیح روش کنار اسم.
   assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the note beside the name");
