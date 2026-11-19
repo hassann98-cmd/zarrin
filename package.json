@@ -1,10 +1,7 @@
 {
   "name": "zarrin-theme",
-<<<<<<< HEAD
   "version": "1.7.325",
-=======
   "version": "1.7.325",
->>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
   "private": true,
   "type": "module",
   "engines": {
