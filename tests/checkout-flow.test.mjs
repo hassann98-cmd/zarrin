@@ -602,14 +602,16 @@ test("shipping cards are responsive and customizable without changing real WooCo
   }
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
-  assert.match(shippingNoteRule, /min-width:\s*min\(9\.25rem, 100%\)/, "the note pill has a larger intrinsic minimum width");
-  assert.match(shippingNoteRule, /width:\s*fit-content/, "the note pill only takes the space its content needs");
-  assert.match(shippingNoteRule, /text-align:\s*center/);
+  // 1.7.348: the note is plain description text under the method name
+  // (logo, name, description) — no longer a pill badge.
+  assert.match(shippingNoteRule, /text-align:\s*right/, "the note is plain description text under the method name");
+  assert.doesNotMatch(shippingNoteRule, /border-radius:\s*9999px/, "the note is no longer a pill badge");
+  assert.doesNotMatch(shippingNoteRule, /min-width:/, "the note has no pill minimum width");
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
   assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
-  assert.match(checkoutSummaryNoteRule, /width:\s*fit-content/);
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
+  assert.doesNotMatch(checkoutSummaryNoteRule, /width:\s*fit-content/, "the note is plain text, not a pill");
   assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);
   assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, var\(--jluxe-primary-soft, var\(--color-royal-orchid-50\)\)\)/);
   assert.match(selectedRule, /box-shadow:/);

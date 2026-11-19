@@ -5149,9 +5149,17 @@ function jluxeEnhanceShopSort(root) {
 		// دکمه‌ی «پرداخت» + شرایط — حالا توی سایدبار، کنارِ «بازگشت»
 		// (inc/woocommerce.php: jluxe_render_payment_submit).
 		var paymentSubmit = document.getElementById("jluxe-payment-submit");
+		// بخش «آدرس تحویل» (inc/checkout-login.php) بیرونِ #customer_details
+		// رندر می‌شه، پس با مخفی‌شدنِ #customer_details به‌تنهایی مخفی نمی‌شه
+		// و در مرحله‌ی پرداخت بالای ستونِ پرداخت دیده می‌موند — مثلِ
+		// guided که کل پنلِ ارسال مخفی می‌شه، این‌جا هم باید مخفی بشه.
+		var addressSelector = document.querySelector("[data-jluxe-address-selector]");
 		var showShipping = "shipping" === currentStep;
 		if (customerDetails) {
 			customerDetails.style.display = showShipping ? "" : "none";
+		}
+		if (addressSelector) {
+			addressSelector.style.display = showShipping ? "" : "none";
 		}
 		if (shippingSection) {
 			shippingSection.style.display = showShipping ? "" : "none";

@@ -204,3 +204,60 @@ test("checkout login CSS matches the theme design tokens", () => {
   assert.match(css, /jluxe-checkout-addresses__card/);
   assert.match(css, /jluxe-checkout-addresses__form/);
 });
+
+test("save AJAX handler forwards address_id so edits update in place instead of duplicating", () => {
+  const php = read("inc/checkout-login.php");
+  // هندلر باید address_id را از POST بخواند و به تابع ذخیره بدهد؛ وگرنه
+  // ویرایش همیشه آدرس جدید می‌ساخت و تکراری می‌شد.
+  assert.match(php, /'address_id' => isset\( \$_POST\['address_id'\] \)/);
+  // تابع ذخیره شناسهٔ آدرس ذخیره‌شده را برمی‌گرداند تا کلاینت همان کارت را
+  // انتخاب کند (نه آخرین آیتم لیست).
+  assert.match(php, /function jluxe_save_customer_address\( array \$data \): string/);
+  assert.match(php, /return \(string\) \( \$new_address\['id'\] \?\? \$address_id \);/);
+  assert.match(php, /'saved_id' => \$saved_id/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /json\.data\.saved_id/);
+  assert.match(js, /findIndex/);
+});
+
+test("guest checkout keeps province and city fields in the billing form", () => {
+  const billing = read("woocommerce/checkout/form-billing.php");
+  // فقط کاربر واردشده استان/شهر را در آکاردئون می‌بیند؛ مهمان باید آن‌ها را
+  // در فرم صورتحساب ببیند، وگرنه چک‌اوت مهمان همیشه در اعتبارسنجی می‌خورد.
+  assert.match(billing, /is_user_logged_in\(\) && in_array\( \$key, array\( 'billing_state', 'billing_city' \), true \)/);
+});
+
+test("initially selected address card is applied to the checkout form on load", () => {
+  const js = read("assets/js/checkout-login.js");
+  // کارتِ از قبل checked باید روی فرم اعمال شود؛ وگرنه استان/شهر خالی
+  // می‌مانند و ثبت سفارش در اعتبارسنجی ووکامرس می‌خورد.
+  assert.match(js, /data-jluxe-address-option\]:checked/);
+  assert.match(js, /select\(checkedCard\)/);
+});
+
+test("opening the new-address accordion clears province and city; closing re-applies the selected card", () => {
+  const js = read("assets/js/checkout-login.js");
+  // استان/شهر برای آدرس جدید همیشه خالی شروع می‌شوند (هیچ‌وقت کش نیستند).
+  assert.match(js, /applyStateCity\("", ""\)/);
+  // بستن بدون ذخیره، فرم را به آدرس انتخاب‌شده برمی‌گرداند.
+  assert.match(js, /اگر آکاردئون بدون ذخیره بسته شد/);
+});
+
+test("Persian and Arabic digits are converted before the address is saved", () => {
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /toLatinDigits/);
+  assert.match(js, /۰۱۲۳۴۵۶۷۸۹/);
+  assert.match(js, /٠١٢٣٤٥٦٧٨٩/);
+});
+
+test("classic checkout hides the address selector on the payment step", () => {
+  const js = read("assets/js/woocommerce.js");
+  // بخش «آدرس تحویل» بیرونِ #customer_details است؛ باید صراحتاً toggle شود.
+  assert.match(js, /data-jluxe-address-selector/);
+  assert.match(js, /addressSelector\.style\.display = showShipping \? "" : "none"/);
+});
+
+test("order-pay endpoint is excluded from the OTP login redirect", () => {
+  const php = read("inc/checkout-login.php");
+  assert.match(php, /is_wc_endpoint_url\( 'order-pay' \)/);
+});

@@ -281,6 +281,9 @@
           editingAddressId = null;
           if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
           clearNewForm();
+          // استان/شهر برای آدرس جدید همیشه خالی شروع می‌شوند (هیچ‌وقت کش
+          // نیستند)؛ مقدار آدرس انتخاب‌شدهٔ قبلی نباید به آدرس جدید نشت کند.
+          applyStateCity("", "");
         }
         setFormOpen(form.hidden);
       });
@@ -290,6 +293,13 @@
         editingAddressId = null;
         if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
         setFormOpen(false);
+        // اگر آکاردئون بدون ذخیره بسته شد، فرم تسویه‌حساب به آدرس
+        // انتخاب‌شده برمی‌گردد تا استان/شهر خالی نمانند.
+        var checkedInput = selector.querySelector("[data-jluxe-address-option]:checked");
+        if (checkedInput) {
+          var checkedCard = checkedInput.closest("[data-jluxe-address-card]");
+          if (checkedCard) select(checkedCard);
+        }
       });
     }
 
@@ -318,6 +328,18 @@
       return "";
     }
 
+    // ارقام فارسی/عربی به لاتین تبدیل می‌شوند؛ وگرنه سرور آن‌ها را به‌عنوان
+    // کاراکتر غیرعددی حذف می‌کند و کدپستی/تلفن خالی یا نامعتبر می‌شود.
+    function toLatinDigits(value) {
+      return String(value == null ? "" : value)
+        .replace(/[۰-۹]/g, function (ch) {
+          return String("۰۱۲۳۴۵۶۷۸۹".indexOf(ch));
+        })
+        .replace(/[٠-٩]/g, function (ch) {
+          return String("٠١٢٣٤٥٦٧٨٩".indexOf(ch));
+        });
+    }
+
     function collectNewAddress() {
       var data = {};
       // استان/شهر همان فیلدهای واقعی ووکامرس‌اند.
@@ -329,14 +351,14 @@
       data.city_name = selectedOptionText(cityEl);
       ["address_1", "postcode", "landline"].forEach(function (name) {
         var el = newField(name);
-        data[name] = el ? el.value.trim() : "";
+        data[name] = el ? toLatinDigits(el.value.trim()) : "";
       });
       var fn = identityField("first_name");
       data.first_name = fn ? fn.value.trim() : "";
       var ln = identityField("last_name");
       data.last_name = ln ? ln.value.trim() : "";
       var ph = identityField("phone");
-      data.phone = ph ? ph.value.trim() : "";
+      data.phone = ph ? toLatinDigits(ph.value.trim()) : "";
       return data;
     }
 
@@ -565,8 +587,18 @@
           var json = result.json;
           if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
             if (list) list.innerHTML = "";
+            // دقیقاً همان آدرسی که ذخیره شد انتخاب می‌شود (سرور شناسه‌اش را
+            // برمی‌گرداند)؛ نه لزوماً آخرین آیتم لیست.
+            var savedId = json.data.saved_id || "";
+            var savedIdx = -1;
+            if (savedId) {
+              savedIdx = json.data.addresses.findIndex(function (entry) {
+                return entry.address && entry.address.id === savedId;
+              });
+            }
+            if (savedIdx === -1) savedIdx = json.data.addresses.length - 1;
             json.data.addresses.forEach(function (entry, idx) {
-              appendAddress(entry, idx === json.data.addresses.length - 1);
+              appendAddress(entry, idx === savedIdx);
             });
             clearNewForm();
             setFormOpen(false);
@@ -643,6 +675,15 @@
     });
 
     bindCards();
+
+    // آدرسِ از قبل انتخاب‌شده (اولین کارت) باید روی فرم تسویه‌حساب اعمال شود؛
+    // وگرنه فیلدهای استان/شهر خالی می‌مانند و ثبت سفارش در اعتبارسنجی
+    // ووکامرس می‌خورد، در حالی که کاربر یک آدرس را انتخاب‌شده می‌بیند.
+    var checkedInput = selector.querySelector("[data-jluxe-address-option]:checked");
+    if (checkedInput) {
+      var checkedCard = checkedInput.closest("[data-jluxe-address-card]");
+      if (checkedCard) select(checkedCard);
+    }
   }
 
   if (document.readyState === "loading") {

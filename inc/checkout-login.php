@@ -40,6 +40,11 @@ function jluxe_checkout_login_redirect_needed(): bool {
 	if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
 		return false;
 	}
+	// پرداخت سفارش موجود (order-pay) نباید مهمان را به ورود بفرستد؛
+	// مشتری در حال پرداخت سفارشِ خودش است، نه شروع خرید جدید.
+	if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-pay' ) ) {
+		return false;
+	}
 	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->checkout ) {
 		return false;
 	}
@@ -342,12 +347,13 @@ function jluxe_format_address_line( array $address ): string {
  * ذخیرهٔ آدرس جدید در متای حساب مشتری (صورتحساب + ارسال).
  *
  * @param array $data فیلدهای آدرس: first_name, last_name, state, city,
- *                    address_1, postcode, landline
- * @return bool موفقیت ذخیره
+ *                    address_1, postcode, landline, address_id (اختیاری)
+ * @return string شناسهٔ آدرس ذخیره‌شده ('billing'/'shipping' برای متای
+ *                ووکامرس، شناسهٔ واقعی برای لیست اختصاصی) یا '' در صورت خطا
  */
-function jluxe_save_customer_address( array $data ): bool {
+function jluxe_save_customer_address( array $data ): string {
 	if ( ! is_user_logged_in() ) {
-		return false;
+		return '';
 	}
 	$user_id = get_current_user_id();
 
@@ -446,7 +452,9 @@ function jluxe_save_customer_address( array $data ): bool {
 		$customer = new WC_Customer( $user_id, true );
 		$customer->save();
 	}
-	return true;
+	// شناسهٔ آدرس ذخیره‌شده برگردانده می‌شود تا کلاینت دقیقاً همان کارت را
+	// انتخاب کند (نه آخرین آیتم لیست که ممکن است آدرس دیگری باشد).
+	return (string) ( $new_address['id'] ?? $address_id );
 }
 
 /**
@@ -472,6 +480,9 @@ function jluxe_ajax_save_checkout_address(): void {
 		'address_1'  => isset( $_POST['address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['address_1'] ) ) : '',
 		'postcode'   => isset( $_POST['postcode'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) ) : '',
 		'landline'   => isset( $_POST['landline'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['landline'] ) ) ) : '',
+		// شناسهٔ آدرس در حال ویرایش (خالی = آدرس جدید). بدون این، ویرایش
+		// همیشه به‌عنوان آدرس جدید اضافه می‌شد و تکراری می‌ساخت.
+		'address_id' => isset( $_POST['address_id'] ) ? sanitize_text_field( wp_unslash( $_POST['address_id'] ) ) : '',
 	);
 	foreach ( array( 'first_name', 'last_name', 'state', 'city', 'address_1' ) as $required ) {
 		if ( '' === trim( (string) $data[ $required ] ) ) {
@@ -486,7 +497,8 @@ function jluxe_ajax_save_checkout_address(): void {
 	if ( '' !== (string) $data['landline'] && ! preg_match( '/^\d{10,11}$/', (string) $data['landline'] ) ) {
 		wp_send_json_error( array( 'message' => 'تلفن ثابت معتبر نیست.' ) );
 	}
-	if ( ! jluxe_save_customer_address( $data ) ) {
+	$saved_id = jluxe_save_customer_address( $data );
+	if ( '' === $saved_id ) {
 		wp_send_json_error( array( 'message' => 'ذخیرهٔ آدرس ناموفق بود.' ) );
 	}
 	$addresses = jluxe_get_customer_addresses();
@@ -500,7 +512,7 @@ function jluxe_ajax_save_checkout_address(): void {
 			'address' => $entry['address'],
 		);
 	}
-	wp_send_json_success( array( 'addresses' => $formatted ) );
+	wp_send_json_success( array( 'addresses' => $formatted, 'saved_id' => $saved_id ) );
 }
 add_action( 'wp_ajax_jluxe_save_checkout_address', 'jluxe_ajax_save_checkout_address' );
 
