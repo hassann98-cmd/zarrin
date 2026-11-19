@@ -77,6 +77,12 @@ body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-ad
   outline: none;
 }
 
+/* فیلد هویت خالی هنگام ادامهٔ خرید: قرمز تا کاربر بفهمد کجاست. */
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field input.jluxe-identity-invalid {
+  border-color: hsl(var(--error));
+  box-shadow: 0 0 0 3px hsl(var(--error) / 0.12);
+}
+
 body.woocommerce-checkout .jluxe-checkout-addresses__list {
   display: grid;
   gap: 0.625rem;
@@ -203,6 +209,16 @@ body.woocommerce-checkout .jluxe-checkout-addresses__action svg {
 body.woocommerce-checkout .jluxe-checkout-addresses__action:hover {
   border-color: hsl(var(--primary) / 0.5);
   color: hsl(var(--primary));
+  transform: translateY(-1px);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.4);
+  outline-offset: 2px;
 }
 
 body.woocommerce-checkout .jluxe-checkout-addresses__action--danger:hover {

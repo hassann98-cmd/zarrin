@@ -11572,8 +11572,6 @@ check(
 	false !== strpos( $login_source, 'woocommerce_checkout_login_form' ) &&
 	false !== strpos( $login_source, 'jluxe_render_address_selector' ) &&
 	false !== strpos( $login_source, 'jluxe_ajax_save_checkout_address' ) &&
-	false !== strpos( $login_source, 'jluxe_checkout_provinces' ) &&
-	false !== strpos( $login_source, 'jluxe_iran_cities' ) &&
 	false !== strpos( $login_source, "woocommerce_form_field( 'billing_state'" ) &&
 	false !== strpos( $login_source, "woocommerce_form_field( 'billing_city'" ) &&
 	false !== strpos( $login_source, 'data-jluxe-identity-field' ) &&

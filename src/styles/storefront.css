@@ -3832,6 +3832,12 @@ body.woocommerce-cart [data-jluxe-cart-pending] {
   border-color: hsl(var(--success));
   background-color: var(--jluxe-payment-card-selected-background, hsl(var(--success) / 0.05));
 }
+/* افکتِ فشردگیِ ملایم روی کارت‌های پرداخت/ارسال هنگام لمس — حسِ لمسیِ
+   انتخاب بدون تغییرِ منطقِ ووکامرس. */
+#payment ul.payment_methods li label.jluxe-payment-card:active,
+#shipping_method input.shipping_method + .jluxe-shipping-card:active {
+  transform: scale(0.99);
+}
 input.shipping_method:focus-visible + .jluxe-shipping-card,
 input.payment_method:focus-visible + label.jluxe-payment-card {
   outline: 2px solid hsl(var(--primary));
@@ -4404,21 +4410,71 @@ body.woocommerce-checkout #place_order {
   color: hsl(var(--primary-foreground));
 }
 body.woocommerce-checkout #place_order:disabled { opacity: 0.62; cursor: wait; }
+.jluxe-checkout-action-button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
 .jluxe-checkout-action-button:focus-visible,
 body.woocommerce-checkout #place_order:focus-visible {
   outline: 3px solid hsl(var(--primary) / 0.3);
   outline-offset: 3px;
 }
+/* افکت‌های لمسی/ماوسی دکمه‌های چک‌اوت: لیفتِ ملایم روی hover و فشردگیِ
+   واقعی روی active — حسِ «قابل کلیک بودن» بدون تغییرِ رنگِ برند. */
 @media (hover: hover) {
-  .jluxe-checkout-action-button--primary:hover,
+  .jluxe-checkout-action-button--primary:hover:not(:disabled),
   body.woocommerce-checkout #place_order:hover:not(:disabled) {
     background: hsl(var(--primary-hover));
     box-shadow: 0 8px 20px hsl(var(--primary) / 0.22);
+    transform: translateY(-1px);
   }
-  .jluxe-checkout-action-button--secondary:hover {
+  .jluxe-checkout-action-button--secondary:hover:not(:disabled) {
     border-color: hsl(var(--primary) / 0.28);
     background: hsl(var(--muted));
+    transform: translateY(-1px);
   }
+}
+.jluxe-checkout-action-button:active:not(:disabled),
+body.woocommerce-checkout #place_order:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.16);
+}
+/* اسپینرِ بارگذاری برای دکمه‌های AJAX (ذخیرهٔ آدرس، اعمال کوپن): وقتی
+   aria-busy=true یا کلاس is-loading دارند، اسپینر می‌چرخد و متن کم‌رنگ
+   می‌شود تا کاربر بفهمد درخواست در جریان است. */
+.jluxe-checkout-action-button[aria-busy="true"],
+.jluxe-checkout-action-button.is-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+.jluxe-checkout-action-button[aria-busy="true"]::after,
+.jluxe-checkout-action-button.is-loading::after {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-block-start: -0.55rem;
+  margin-inline-start: -0.55rem;
+  border: 2px solid currentColor;
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  content: "";
+  animation: jluxe-button-spin 0.7s linear infinite;
+}
+.jluxe-checkout-action-button--primary[aria-busy="true"]::after,
+.jluxe-checkout-action-button--primary.is-loading::after {
+  border-color: hsl(var(--primary-foreground));
+  border-block-start-color: transparent;
+}
+.jluxe-checkout-action-button--secondary[aria-busy="true"]::after,
+.jluxe-checkout-action-button--secondary.is-loading::after {
+  border-color: hsl(var(--primary));
+  border-block-start-color: transparent;
+}
+@keyframes jluxe-button-spin {
+  to { transform: rotate(360deg); }
 }
 @media (min-width: 1024px) {
   body.woocommerce-checkout .jluxe-checkout-layout {

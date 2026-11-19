@@ -282,6 +282,26 @@
       var invalid = validateFieldRow(rows[i]);
       if (invalid && !firstInvalid) firstInvalid = invalid;
     }
+    // فیلدهای هویت (نام/نام خانوادگی/تلفن) در بخش «آدرس تحویل» هستند و
+    // form-row نیستند؛ اگر خالی باشند، ثبت سفارش در فیلد مخفی ووکامرس
+    // می‌خورد و کاربر نمی‌فهمد کجاست. پس این‌جا هم بررسی می‌شوند.
+    if (!firstInvalid) {
+      var identityFields = form.querySelectorAll("[data-jluxe-identity-field]");
+      for (var j = 0; j < identityFields.length; j++) {
+        var field = identityFields[j];
+        if (String(field.value || "").trim() === "") {
+          field.setAttribute("aria-invalid", "true");
+          field.classList.add("jluxe-identity-invalid");
+          firstInvalid = {
+            row: field.closest(".jluxe-checkout-addresses__field") || field,
+            field: field,
+          };
+          break;
+        }
+        field.removeAttribute("aria-invalid");
+        field.classList.remove("jluxe-identity-invalid");
+      }
+    }
     return firstInvalid;
   }
 

@@ -420,7 +420,11 @@ function jluxe_save_customer_address( array $data ): string {
 			$saved[] = $new_address;
 		}
 	}
-	update_user_meta( $user_id, 'jluxe_saved_addresses', $saved );
+	// ویرایش آدرس صورتحساب/ارسال فقط متای ووکامرس را تغییر می‌دهد؛ لیست
+	// اختصاصی دست نمی‌خورد و write اضافی روی دیتابیس انجام نمی‌شود.
+	if ( ! $is_meta_address ) {
+		update_user_meta( $user_id, 'jluxe_saved_addresses', $saved );
+	}
 
 	$fields = array(
 		'billing_first_name'  => sanitize_text_field( $data['first_name'] ?? '' ),
@@ -654,12 +658,12 @@ function jluxe_enqueue_checkout_login_assets(): void {
 			array( 'in_footer' => true, 'strategy' => 'defer' )
 		);
 	}
-	$cities = function_exists( 'jluxe_iran_cities' ) ? jluxe_iran_cities() : array();
+	// فقط ajaxUrl و nonce لازم است؛ استان/شهر همان فیلدهای واقعی ووکامرس‌اند
+	// و دادهٔ آن‌ها (jluxe_iran_cities) از مسیر دیگری (JLuxeThemeSettings)
+	// به JS تم می‌رسد. localize کردن دوبارهٔ آن‌ها فقط payload مرده بود.
 	wp_localize_script( 'jluxe-checkout-login', 'JLUXE_CHECKOUT_ADDRESS', array(
-		'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
-		'nonce'      => wp_create_nonce( 'jluxe_checkout_address' ),
-		'provinces'  => jluxe_checkout_provinces(),
-		'cities'     => $cities,
+		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+		'nonce'   => wp_create_nonce( 'jluxe_checkout_address' ),
 	) );
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_login_assets', 23 );

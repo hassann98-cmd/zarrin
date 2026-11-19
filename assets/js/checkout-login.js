@@ -571,6 +571,8 @@
         }
         showStatus("", false);
         saveBtn.disabled = true;
+        saveBtn.setAttribute("aria-busy", "true");
+        saveBtn.classList.add("is-loading");
         var body = new URLSearchParams();
         body.set("action", "jluxe_save_checkout_address");
         body.set("nonce", resolveNonce());
@@ -613,6 +615,8 @@
             showStatus("ذخیرهٔ آدرس ناموفق بود؛ دوباره تلاش کنید.", true);
           }
           saveBtn.disabled = false;
+          saveBtn.removeAttribute("aria-busy");
+          saveBtn.classList.remove("is-loading");
         }
 
         function parseResponse(ok, status, text) {
@@ -637,6 +641,8 @@
           xhr.onerror = function () {
             showStatus("ارتباط با سرور ناموفق بود؛ دوباره تلاش کنید.", true);
             saveBtn.disabled = false;
+            saveBtn.removeAttribute("aria-busy");
+            saveBtn.classList.remove("is-loading");
           };
           xhr.send(payload);
         }

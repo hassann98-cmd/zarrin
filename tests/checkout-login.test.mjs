@@ -261,3 +261,53 @@ test("order-pay endpoint is excluded from the OTP login redirect", () => {
   const php = read("inc/checkout-login.php");
   assert.match(php, /is_wc_endpoint_url\( 'order-pay' \)/);
 });
+
+test("checkout address localize carries no dead provinces/cities payload", () => {
+  const php = read("inc/checkout-login.php");
+  // استان/شهر همان فیلدهای واقعی ووکامرس‌اند؛ localize کردن دوبارهٔ دادهٔ
+  // شهرها فقط payload مرده در هر بارگذاری چک‌اوت بود.
+  assert.match(php, /JLUXE_CHECKOUT_ADDRESS/);
+  assert.doesNotMatch(php, /'provinces'\s*=>/);
+  assert.doesNotMatch(php, /'cities'\s*=>/);
+  const js = read("assets/js/checkout-login.js");
+  assert.doesNotMatch(js, /config\.provinces/);
+  assert.doesNotMatch(js, /config\.cities/);
+});
+
+test("editing a billing/shipping meta address skips the saved-list write", () => {
+  const php = read("inc/checkout-login.php");
+  assert.match(php, /if \( ! \$is_meta_address \) \{\s*\n\s*update_user_meta\( \$user_id, 'jluxe_saved_addresses', \$saved \);\s*\n\s*\}/);
+});
+
+test("identity fields are validated before proceeding in both layouts", () => {
+  const guided = read("assets/js/checkout-guided.js");
+  assert.match(guided, /data-jluxe-identity-field/);
+  assert.match(guided, /jluxe-identity-invalid/);
+  const classic = read("assets/js/woocommerce.js");
+  assert.match(classic, /data-jluxe-identity-field/);
+  assert.match(classic, /jluxe-identity-invalid/);
+  const css = read("assets/css/checkout-login.css");
+  assert.match(css, /jluxe-identity-invalid/);
+});
+
+test("checkout buttons have press, hover-lift, disabled and loading-spinner effects", () => {
+  const css = read("src/styles/storefront.css");
+  // فشردگی روی active و لیفت روی hover.
+  assert.match(css, /\.jluxe-checkout-action-button:active:not\(:disabled\)/);
+  assert.match(css, /translateY\(-1px\)/);
+  // حالت disabled.
+  assert.match(css, /\.jluxe-checkout-action-button:disabled/);
+  // اسپینرِ بارگذاری برای دکمه‌های AJAX.
+  assert.match(css, /\.jluxe-checkout-action-button\[aria-busy="true"\]::after/);
+  assert.match(css, /jluxe-button-spin/);
+  // افکتِ فشردگی روی کارت‌های پرداخت/ارسال.
+  assert.match(css, /label\.jluxe-payment-card:active/);
+  // دکمهٔ ذخیرهٔ آدرس هنگام AJAX اسپینر می‌گیرد.
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /aria-busy/);
+  assert.match(js, /is-loading/);
+  // دکمه‌های ویرایش/حذف کارت آدرس هم افکت دارند.
+  const loginCss = read("assets/css/checkout-login.css");
+  assert.match(loginCss, /jluxe-checkout-addresses__action:active/);
+  assert.match(loginCss, /jluxe-checkout-addresses__action:focus-visible/);
+});
