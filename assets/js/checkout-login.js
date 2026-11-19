@@ -331,14 +331,12 @@
         Object.keys(data).forEach(function (key) {
           body.set(key, data[key]);
         });
-        // ajaxUrl را هم‌مبدأ با صفحه می‌کنیم تا mixed-content (HTTP در صفحهٔ
-        // HTTPS) باعث بلاک شدن درخواست نشود.
+        // ajaxUrl مستقیم از کانفیگ استفاده می‌شود (URL کامل). فقط اگر پروتکلش
+        // با پروتکل صفحه نمی‌خواند (mixed-content)، پروتکل اصلاح می‌شود.
         var ajaxUrl = config.ajaxUrl || "/wp-admin/admin-ajax.php";
         try {
           var parsed = new URL(ajaxUrl, window.location.href);
-          if (parsed.origin === window.location.origin) {
-            ajaxUrl = parsed.pathname + parsed.search;
-          } else {
+          if (parsed.protocol !== window.location.protocol) {
             parsed.protocol = window.location.protocol;
             ajaxUrl = parsed.toString();
           }

@@ -126,8 +126,8 @@ test("multiple addresses are stored per customer in a dedicated meta", () => {
   assert.match(php, /update_user_meta\( \$user_id, 'jluxe_saved_addresses', \$saved \)/);
   assert.match(php, /get_user_meta\( \$user_id, 'jluxe_saved_addresses', true \)/);
   const js = read("assets/js/checkout-login.js");
-  // ajaxUrl هم‌مبدأ با صفحه می‌شود تا mixed-content باعث بلاک fetch نشود.
-  assert.match(js, /window\.location\.origin/);
+  // ajaxUrl مستقیم از کانفیگ استفاده می‌شود؛ فقط پروتکل در صورت ناهمخوانی اصلاح می‌شود.
+  assert.match(js, /parsed\.protocol !== window\.location\.protocol/);
   assert.match(js, /parsed\.protocol = window\.location\.protocol/);
   // اگر fetch در سطح شبکه رد شد، XMLHttpRequest به‌عنوان fallback تلاش می‌کند.
   assert.match(js, /XMLHttpRequest/);
