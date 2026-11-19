@@ -531,7 +531,7 @@ test("WooCommerce pagination expands base/format pairs and the page-jump input u
 test("shipping cards are responsive and customizable without changing real WooCommerce rates", () => {
   assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
-  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?style=/);
+  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?">/);
   assert.match(shippingTemplate, /jluxe-shipping-card--no-note/);
   assert.match(shippingTemplate, /'post'\s*=>\s*'mail'/);
   assert.match(shippingTemplate, /'tipax'\s*=>\s*'truck'/);
@@ -540,11 +540,6 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /jluxe_icon_svg_markup\( \$shipping_icon, 'size-5' \)/);
   assert.match(shippingTemplate, /jluxe_cart_checkout_shipping_method_settings\( \$kind \)/);
   assert.match(shippingTemplate, /wc_cart_totals_shipping_method_label\( \$method \)/, "WooCommerce continues to render each real rate label and amount");
-  assert.match(shippingTemplate, /--jluxe-shipping-card-bg:/);
-  assert.match(shippingTemplate, /--jluxe-shipping-card-border:/);
-  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-bg:/);
-  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-border:/);
-  assert.match(shippingTemplate, /--jluxe-shipping-note-bg/);
   assert.ok(
     shippingTemplate.indexOf("wc_cart_totals_shipping_method_label( $method )") < shippingTemplate.indexOf("if ( $has_method_note )"),
     "the configurable badge is rendered separately after the WooCommerce rate name and amount",
@@ -552,7 +547,6 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
   assert.match(shippingTemplate, /class="jluxe-shipping-card__details"[\s\S]*?class="jluxe-shipping-card__text"/, "the note is grouped inside the card details next to the method name and price");
   assert.match(shippingTemplate, /class="jluxe-shipping-card__text"[\s\S]*?class="jluxe-shipping-note jluxe-shipping-note--/, "the note sits beside the WooCommerce rate label inside the same text group");
-  assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
   assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\$jluxe_guided_shipping \? '' : ' open'/, "classic rates keep their expanded details while guided keeps them compact until requested");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
@@ -576,11 +570,11 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(listRule, /display:\s*grid/);
   assert.match(itemRule, /display:\s*grid/);
   assert.match(shippingCardRule, /display:\s*flex/);
-  assert.match(shippingCardRule, /flex-direction:\s*column/);
-  assert.match(shippingCardRule, /direction:\s*ltr/);
-  assert.match(shippingCardRule, /border:\s*2px solid var\(--jluxe-shipping-card-border/);
-  assert.match(shippingCardRule, /border-radius:\s*var\(--jluxe-shipping-card-radius, 10px\)/);
-  assert.match(shippingCardRule, /background-color:\s*var\(--jluxe-shipping-card-bg/);
+  assert.match(shippingCardRule, /flex-direction:\s*row/);
+  assert.match(shippingCardRule, /direction:\s*rtl/);
+  assert.match(shippingCardRule, /border:\s*1px solid hsl\(var\(--foreground\) \/ 0\.25\)/);
+  assert.match(shippingCardRule, /border-radius:\s*0\.75rem/);
+  assert.match(shippingCardRule, /background-color:\s*hsl\(var\(--surface\)\)/);
   assert.match(shippingCardDetailsRule, /display:\s*flex/);
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
   const shippingTextRule = storefrontStyles.match(/\.jluxe-shipping-card__text\s*\{([^}]+)\}/s)?.[1] || "";
@@ -591,17 +585,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTextRule, /min-width:\s*0/);
   assert.match(shippingCardDetailsRule, /gap:\s*0\.75rem/);
   assert.match(shippingIconRule, /flex:\s*0 0 2\.75rem/);
-  assert.match(shippingIconRule, /background-color:\s*var\(--jluxe-shipping-icon-background/);
-  assert.match(shippingIconRule, /color:\s*var\(--jluxe-shipping-icon-color/);
-  for (const [carrier, background, foreground] of [
-    ["post", "#FECB02", "#332900"],
-    ["tipax", "#33936E", "#FFFFFF"],
-    ["chapar", "#D71925", "#FFFFFF"],
-  ]) {
-    const paletteRule = storefrontStyles.match(new RegExp(`\\.jluxe-shipping-card--${carrier}\\s*\\{([^}]+)\\}`))?.[1] || "";
-    assert.match(paletteRule, new RegExp(`--jluxe-shipping-icon-background:\\s*${background};`));
-    assert.match(paletteRule, new RegExp(`--jluxe-shipping-icon-color:\\s*${foreground};`));
-  }
+  assert.match(shippingIconRule, /background-color:\s*var\(--jluxe-shipping-icon-background, hsl\(var\(--muted\)\)\)/);
+  assert.doesNotMatch(storefrontStyles, /\.jluxe-shipping-card--(?:post|tipax|chapar)\s*\{[^}]*--jluxe-shipping-icon-background/, "no colorful carrier icon backgrounds; icons use theme muted");
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
   // 1.7.5: the note is plain description text below the method name,
@@ -609,31 +594,30 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingNoteRule, /text-align:\s*left/, "the note is left-aligned description text below the method name");
   assert.doesNotMatch(shippingNoteRule, /border-radius:\s*9999px/, "the note is no longer a pill badge");
   assert.doesNotMatch(shippingNoteRule, /min-width:/, "the note has no pill minimum width");
+  assert.doesNotMatch(shippingNoteRule, /border:/, "the note is plain text without border");
+  assert.doesNotMatch(shippingNoteRule, /background/, "the note is plain text without background");
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
   // 1.7.5: no bullet separator — the note is stacked below the name.
   assert.doesNotMatch(storefrontStyles, /\.jluxe-shipping-note::before/, "no bullet separator; the note stacks below the name");
   // 1.7.356: سازگاری با قالب قدیمی که توضیح را فرزند مستقیم کارت رندر می‌کند.
-  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\)\s*\{[^}]*flex-direction:\s*column/, "old template note as direct child stacks below the name");
+  assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\)\s*\{[^}]*flex-direction:\s*row/, "old template note as direct child stays on one row");
   assert.match(storefrontStyles, /\.jluxe-shipping-card:has\(> \.jluxe-shipping-note\) > \.jluxe-shipping-card__details\s*\{[^}]*width:\s*auto/, "old template details shrink to content so the note sits beside the name");
-  assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
+  assert.match(checkoutSummaryShippingRule, /flex-direction:\s*row/, "checkout summary keeps row layout");
   // 1.7.5: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیح زیر اسم.
   assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the note below");
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
   assert.doesNotMatch(checkoutSummaryNoteRule, /width:\s*fit-content/, "the note is plain text, not a pill");
-  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);
-  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, var\(--jluxe-primary-soft, var\(--color-royal-orchid-50\)\)\)/);
+  assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, hsl\(var\(--primary\)\)\)/);
+  assert.match(selectedRule, /background-color:\s*var\(--jluxe-shipping-card-selected-bg, hsl\(var\(--primary\) \/ 0\.05\)\)/);
   assert.match(selectedRule, /box-shadow:/);
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
-  assert.match(storefrontStyles, /@media \(min-width: 640px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*row/, "desktop shipping cards lay the icon and the rate group on one row");
-  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*column/);
   // 1.7.352/1.7.354: آیکون اول، اسم جلوش، توضیح روش کنار اسم روی یک خط — در موبایل هم row می‌ماند.
-  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card__details\s*\{[\s\S]*?flex-direction:\s*row/, "mobile shipping cards keep icon and name on one row with the note beside the name");
   assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-note\s*\{/);
   assert.match(storefrontStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.jluxe-shipping-card/);
   assert.match(storefrontStyles, /input\.shipping_method:checked ~ \.jluxe-shipping-method-accordion/);
-  assert.match(shippingDetailsRule, /background:\s*var\(--jluxe-shipping-details-bg/);
-  assert.match(shippingDetailsRule, /color:\s*var\(--jluxe-shipping-details-color/);
+  assert.match(shippingDetailsRule, /background:\s*var\(--jluxe-shipping-details-bg, hsl\(var\(--muted\)\)\)/);
+  assert.match(shippingDetailsRule, /color:\s*var\(--jluxe-shipping-details-color, hsl\(var\(--text-secondary\)\)\)/);
 
   assert.match(paymentSource, /function jluxe_shipping_method_presentation\( \$method \): array/);
   assert.doesNotMatch(reviewOrderTemplate, /jluxe-shipping-freight-note|data-jluxe-shipping-note/);

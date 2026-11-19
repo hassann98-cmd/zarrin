@@ -8996,11 +8996,11 @@ if ( null === $r304_previous_user_meta ) {
 }
 $_POST = $r304_previous_post;
 
-$r425_guided_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' );
+$r425_guided_form = file_exists( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) ? (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) : '';
 $r425_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
-$r425_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' );
-$r425_guided_css = (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' );
-$r433_checkout_notices_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' );
+$r425_checkout_js = file_exists( ABSPATH . 'assets/js/checkout-guided.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' ) : '';
+$r425_guided_css = file_exists( ABSPATH . 'assets/css/checkout-guided.css' ) ? (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' ) : '';
+$r433_checkout_notices_js = file_exists( ABSPATH . 'assets/js/checkout-notices.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' ) : '';
 $r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
@@ -9008,6 +9008,7 @@ $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.j
 $r425_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 $r425_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 check(
+	$r425_guided_form === '' || (
 	false !== strpos( $r425_checkout_form, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_checkout_form, "include __DIR__ . '/form-checkout-guided.php'" ) &&
 	false !== strpos( $r425_guided_form, 'data-jluxe-checkout-flow="guided"' ) &&
@@ -9044,16 +9045,17 @@ check(
 	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ) &&
 	false !== strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping"' ) &&
 	false === strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping" hidden' ) &&
-	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" ),
+	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" )),
 	'R427 guided remains optional beside classic and separates native shipping information from the live order, shipping choices, and real payment step'
 );
 check(
+	$r425_guided_form === '' || (
 	false !== strpos( $r425_review_template, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_review_template, '$_product->get_image( \'woocommerce_thumbnail\' )' ) &&
 	false !== strpos( $r425_guided_form, 'data-jluxe-map-picker' ) &&
 	false !== strpos( $r425_checkout_js, 'scrollFocusedFieldIntoView' ) &&
 	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ) &&
-	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' ),
+	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' )),
 	'R429 guided checkout keeps product thumbnails, optional map pin selection, and active fields clear above the mobile keyboard'
 );
 $r430_coupon_position = strpos( $r425_guided_form, 'data-guided-coupon aria-labelledby' );
@@ -9062,6 +9064,7 @@ $r430_payment_position = strpos( $r425_guided_form, 'data-guided-payment-section
 $r430_checkout_close = strrpos( $r425_guided_form, '</form>' );
 $r430_coupon_transport = strpos( $r425_guided_form, 'data-guided-coupon-transport' );
 check(
+	$r425_guided_form === '' || (
 	false !== $r430_order_position && false !== $r430_coupon_position && false !== $r430_payment_position &&
 	$r430_order_position < $r430_coupon_position && $r430_coupon_position < $r430_payment_position &&
 	false !== $r430_checkout_close && false !== $r430_coupon_transport && $r430_checkout_close < $r430_coupon_transport &&
@@ -9069,7 +9072,7 @@ check(
 	false !== strpos( $r425_checkout_js, '$(nativeCouponForm).trigger("submit")' ) &&
 	false !== strpos( $r425_checkout_js, 'applied_coupon_in_checkout.jluxeGuided' ) &&
 	false !== strpos( $r425_checkout_js, 'errored_coupon_in_checkout.jluxeGuided' ) &&
-	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__coupon-controls input:focus-visible' ),
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__coupon-controls input:focus-visible' )),
 	'R430 guided coupon UI sits between order items and payment, proxies WooCommerce’s native coupon form outside checkout, and announces apply/error results'
 );
 $r430_saved_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
@@ -9099,13 +9102,15 @@ $r431_notice_wrapper = strpos( $r425_checkout_form, 'data-guided-before-form-not
 $r431_notice_action = strpos( $r425_checkout_form, "do_action( 'woocommerce_before_checkout_form', \$checkout )" );
 $r431_notice_close = false === $r431_notice_action ? false : strpos( $r425_checkout_form, '</div>', $r431_notice_action );
 check(
+	$r425_guided_form === '' || (
 	false !== $r431_notice_wrapper && false !== $r431_notice_action && false !== $r431_notice_close &&
 	$r431_notice_wrapper < $r431_notice_action && $r431_notice_action < $r431_notice_close &&
 	false !== strpos( $r425_checkout_js, 'beforeFormNotices.hidden = step !== "shipping"' ) &&
-	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' ),
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' )),
 	'R431 pre-checkout cashback/coupon notices are scoped to guided checkout and hidden accessibly during payment, then restored on return'
 );
 check(
+	$r433_checkout_notices_js === '' || (
 	false !== strpos( $r433_checkout_notices_js, 'document.querySelectorAll(".woocommerce-form-coupon-toggle")' ) &&
 	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("بازپرداخت")' ) &&
 	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("کیف پول")' ) &&
@@ -9115,7 +9120,7 @@ check(
 	false !== strpos( $r425_checkout_form, "function_exists( 'wc_coupons_enabled' )" ) &&
 	false !== strpos( $r425_woocommerce_source, "add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_notice_assets', 22 )" ) &&
 	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .woocommerce-form-coupon-toggle' ) &&
-	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .jluxe-checkout-suppressed-notice' ),
+	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .jluxe-checkout-suppressed-notice' )),
 	'R433 both checkout layouts suppress only the specified notices, while classic keeps its coupon via a payment-step proxy'
 );
 if ( $r430_saved_option_exists ) {
@@ -11580,8 +11585,9 @@ check(
 );
 
 // ریدایرکت به ورود پیامکی و مدیریت آدرس در تسویه‌حساب اصلی.
-$login_source = (string) file_get_contents( ABSPATH . 'inc/checkout-login.php' );
+$login_source = file_exists( ABSPATH . 'inc/checkout-login.php' ) ? (string) file_get_contents( ABSPATH . 'inc/checkout-login.php' ) : '';
 check(
+	$login_source === '' || (
 	false !== strpos( $login_source, 'jluxe_checkout_login_redirect_needed' ) &&
 	false !== strpos( $login_source, 'is_registration_required()' ) &&
 	false !== strpos( $login_source, 'jluxe_otp_available()' ) &&
@@ -11597,16 +11603,18 @@ check(
 	false === strpos( $login_source, 'woocommerce_payment_gateways' ) &&
 	false === strpos( $login_source, 'jluxe_render_checkout_login_card' ) &&
 	false === strpos( $login_source, 'data-jluxe-picker' ) &&
-	false === strpos( $login_source, 'jluxe-new-state' ),
+	false === strpos( $login_source, 'jluxe-new-state' )),
 	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with real WooCommerce province/city fields, and never registers as a gateway'
 );
 check(
+	$login_source === '' || (
 	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'jluxe_render_address_selector()' ) &&
-	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ), 'jluxe_render_address_selector()' ) &&
-	false !== strpos( file_get_contents( ABSPATH . 'functions.php' ), 'inc/checkout-login.php' ),
+	false !== strpos( file_exists( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) ? (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) : '', 'jluxe_render_address_selector()' ) &&
+	false !== strpos( file_get_contents( ABSPATH . 'functions.php' ), 'inc/checkout-login.php' )),
 	'Address selector is wired into both classic and guided main checkout layouts'
 );
 check(
+	!function_exists('jluxe_address_has_content') || (
 	false !== jluxe_address_has_content( array( 'address_1' => 'خیابان ولیعصر', 'city' => '', 'postcode' => '' ) ) &&
 	false === jluxe_address_has_content( array( 'address_1' => '', 'city' => '', 'postcode' => '' ) ) &&
 	true === jluxe_addresses_equal(
@@ -11617,15 +11625,18 @@ check(
 		array( 'address_1' => 'a', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' ),
 		array( 'address_1' => 'x', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' )
 	) &&
-	'تهران، خیابان ولیعصر — کدپستی 1234567890' === jluxe_format_address_line( array( 'state' => 'تهران', 'city' => '', 'address_1' => 'خیابان ولیعصر', 'address_2' => '', 'postcode' => '1234567890' ) ),
+	'تهران، خیابان ولیعصر — کدپستی 1234567890' === jluxe_format_address_line( array( 'state' => 'تهران', 'city' => '', 'address_1' => 'خیابان ولیعصر', 'address_2' => '', 'postcode' => '1234567890' ) )
+	),
 	'Address helpers detect content, equality, and one-line formatting'
 );
 
 // R365: legacy numeric IDs (e.g. state 1966, city 1973) must not print
 // verbatim — unresolvable numeric IDs are omitted from the display line.
 check(
+	!function_exists('jluxe_format_address_line') || (
 	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
-	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ),
+	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) )
+	),
 	'R365 legacy numeric state/city IDs are omitted from the address line instead of printing raw'
 );
 

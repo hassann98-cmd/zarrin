@@ -3406,53 +3406,35 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   padding: 0;
 }
 /* Carrier icon colors reuse the saved brand palette, independently of the store theme. */
-.jluxe-shipping-card--post {
-  --jluxe-shipping-icon-background: #FECB02;
-  --jluxe-shipping-icon-color: #332900;
-}
-.jluxe-shipping-card--tipax {
-  --jluxe-shipping-icon-background: #33936E;
-  --jluxe-shipping-icon-color: #FFFFFF;
-}
-.jluxe-shipping-card--chapar {
-  --jluxe-shipping-icon-background: #D71925;
-  --jluxe-shipping-icon-color: #FFFFFF;
-}
-/* Wide screens: name and price stay together and the note pill sits under them
-   inside the same text column, so short and long Persian notes never break the
-   card row or push the WooCommerce rate out of the card. */
+/* کارت روش ارسال — طراحی هماهنگ با تم (متغیرهای CSS تم).
+   چیدمان ردیف RTL: آیکون راست، نام روش + قیمت، توضیح زیر نام. */
 .jluxe-shipping-card {
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   width: 100%;
   min-width: 0;
-  min-height: 3.5rem;
-  gap: 0.5rem;
+  min-height: 3.75rem;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--jluxe-shipping-card-border, hsl(var(--border)));
-  border-radius: var(--jluxe-shipping-card-radius, 10px);
-  background-color: var(--jluxe-shipping-card-bg, hsl(var(--surface)));
+  border: 1px solid hsl(var(--foreground) / 0.25);
+  border-radius: 0.75rem;
+  background-color: hsl(var(--surface));
   color: hsl(var(--foreground));
-  box-shadow: 0 2px 7px hsl(var(--foreground) / 0.035);
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.05);
   text-align: start;
-  direction: ltr;
+  direction: rtl;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
 }
 
-@media (min-width: 640px) {
-  .jluxe-shipping-card {
-    flex-direction: row;
-    align-items: center;
-  }
-}
 #shipping_method input.shipping_method + .jluxe-shipping-card {
   display: flex;
   width: 100%;
   min-width: 0;
-  direction: ltr;
+  direction: rtl;
 }
 .jluxe-shipping-card__details {
   display: flex;
@@ -3479,11 +3461,11 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   height: 2.75rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid hsl(var(--foreground) / 0.08);
-  border-radius: 0.9rem;
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  border-radius: 0.75rem;
   background-color: var(--jluxe-shipping-icon-background, hsl(var(--muted)));
   color: var(--jluxe-shipping-icon-color, hsl(var(--foreground)));
-  box-shadow: 0 4px 10px hsl(var(--foreground) / 0.08);
+  box-shadow: 0 2px 6px hsl(var(--foreground) / 0.06);
 }
 .jluxe-shipping-card__icon svg {
   display: block;
@@ -3525,8 +3507,8 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
    مثل ساختار جدید دیده شود. */
 .jluxe-shipping-card:has(> .jluxe-shipping-note) {
   direction: rtl;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
 }
 .jluxe-shipping-card:has(> .jluxe-shipping-note) > .jluxe-shipping-card__details {
   flex: 0 1 auto;
@@ -3540,14 +3522,17 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 }
 .jluxe-shipping-card:hover {
   border-color: hsl(var(--primary) / 0.42);
-  box-shadow: 0 5px 15px hsl(var(--foreground) / 0.07);
+  box-shadow: 0 3px 10px hsl(var(--foreground) / 0.07);
   transform: translateY(-1px);
+}
+.jluxe-shipping-card:active {
+  transform: scale(0.99);
 }
 input.shipping_method:checked + .jluxe-shipping-card,
 .jluxe-shipping-card--selected {
-  border-color: var(--jluxe-shipping-card-selected-border, var(--jluxe-primary, var(--color-royal-orchid-600)));
-  background-color: var(--jluxe-shipping-card-selected-bg, var(--jluxe-primary-soft, var(--color-royal-orchid-50)));
-  box-shadow: 0 6px 18px hsl(var(--primary) / 0.1);
+  border-color: var(--jluxe-shipping-card-selected-border, hsl(var(--primary)));
+  background-color: var(--jluxe-shipping-card-selected-bg, hsl(var(--primary) / 0.05));
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.1);
   transform: none;
 }
 input.shipping_method:focus-visible + .jluxe-shipping-card {
@@ -3565,11 +3550,11 @@ input.shipping_method:focus-visible + .jluxe-shipping-card {
   min-width: 0;
   margin-inline: 0.25rem;
   overflow: hidden;
-  border: 1px solid hsl(var(--border) / 0.78);
-  border-radius: 1rem;
-  background: var(--jluxe-shipping-details-bg, hsl(var(--surface)));
+  border: 1px solid hsl(var(--foreground) / 0.15);
+  border-radius: 0.75rem;
+  background: var(--jluxe-shipping-details-bg, hsl(var(--muted)));
   color: var(--jluxe-shipping-details-color, hsl(var(--text-secondary)));
-  box-shadow: 0 8px 20px hsl(var(--foreground) / 0.04);
+  box-shadow: none;
   font-size: 0.8rem;
   line-height: 1.8;
 }
@@ -4050,9 +4035,9 @@ body.woocommerce-checkout .jluxe-checkout-shipping {
   background: hsl(var(--surface) / 0.65);
 }
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card:not(.jluxe-shipping-card--no-note) {
-  flex-direction: column;
-  align-items: start;
-  gap: 0.65rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
 }
 /* چیدمان: آیکون اول، اسم روش جلوش، توضیح روش کنار اسم روی یک خط — مثل بقیهٔ جاها. */
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card__details {
