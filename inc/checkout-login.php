@@ -121,6 +121,8 @@ function jluxe_get_customer_addresses(): array {
 	$saved_addresses = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
 	if ( is_array( $saved_addresses ) ) {
 		$needs_id_save = false;
+		$seen_keys = array();
+		$cleaned = array();
 		foreach ( $saved_addresses as $idx => $saved ) {
 			if ( ! is_array( $saved ) || ! jluxe_address_has_content( $saved ) ) {
 				continue;
@@ -128,9 +130,20 @@ function jluxe_get_customer_addresses(): array {
 			// آدرس‌های قدیمی بدون شناسه، شناسه می‌گیرند تا قابل ویرایش/حذف باشند.
 			if ( empty( $saved['id'] ) ) {
 				$saved['id'] = 'a' . substr( md5( uniqid( '', true ) . $idx ), 0, 12 );
-				$saved_addresses[ $idx ] = $saved;
 				$needs_id_save = true;
 			}
+			// dedupe: آدرس تکراری (آدرس دقیق + کدپستی + شهر + استان) فقط یک‌بار نمایش داده می‌شود.
+			$key_parts = array();
+			foreach ( array( 'address_1', 'postcode', 'city', 'state' ) as $k ) {
+				$key_parts[] = strtolower( trim( preg_replace( '/\s+/u', ' ', (string) ( $saved[ $k ] ?? '' ) ) ) );
+			}
+			$dedupe_key = implode( '|', $key_parts );
+			if ( isset( $seen_keys[ $dedupe_key ] ) ) {
+				$needs_id_save = true; // تکراری هست؛ ذخیره‌سازی پاک می‌شود.
+				continue;
+			}
+			$seen_keys[ $dedupe_key ] = true;
+			$cleaned[] = $saved;
 			$out[] = array(
 				'type'    => 'billing',
 				'label'   => 'آدرس ذخیره‌شده',
@@ -138,7 +151,7 @@ function jluxe_get_customer_addresses(): array {
 			);
 		}
 		if ( $needs_id_save ) {
-			update_user_meta( $user_id, 'jluxe_saved_addresses', $saved_addresses );
+			update_user_meta( $user_id, 'jluxe_saved_addresses', $cleaned );
 		}
 	}
 
@@ -331,9 +344,22 @@ function jluxe_save_customer_address( array $data ): bool {
 		}
 	}
 	if ( ! $updated ) {
+		// dedupe با کلید نرمال‌شده (آدرس دقیق + کدپستی + شهر + استان) تا آدرس
+		// تکراری اضافه نشود؛ اگر تکراری بود، همان آدرس قبلی به‌روز می‌شود.
+		$norm = function ( $addr ) {
+			$parts = array();
+			foreach ( array( 'address_1', 'postcode', 'city', 'state' ) as $k ) {
+				$parts[] = strtolower( trim( preg_replace( '/\s+/u', ' ', (string) ( $addr[ $k ] ?? '' ) ) ) );
+			}
+			return implode( '|', $parts );
+		};
+		$new_key = $norm( $new_address );
 		$exists = false;
-		foreach ( $saved as $existing ) {
-			if ( is_array( $existing ) && jluxe_addresses_equal( $existing, $new_address ) ) {
+		foreach ( $saved as $idx => $existing ) {
+			if ( is_array( $existing ) && $norm( $existing ) === $new_key ) {
+				// آدرس تکراری: همان رکورد قبلی به‌روز می‌شود (شناسه حفظ می‌شود).
+				$new_address['id'] = $existing['id'] ?? ( 'a' . substr( md5( uniqid( '', true ) ), 0, 12 ) );
+				$saved[ $idx ] = $new_address;
 				$exists = true;
 				break;
 			}

@@ -28,11 +28,17 @@
     var stateValue = state == null ? "" : String(state);
     var cityValue = city == null ? "" : String(city);
     stateEl.value = stateValue;
-    if (window.jQuery) {
-      window.jQuery(stateEl).trigger("select2:select");
-      window.jQuery(stateEl).trigger("change");
-    } else {
-      stateEl.dispatchEvent(new Event("change", { bubbles: true }));
+    // شلیک ایونت برای cascade استان→شهر. پلاگین شهرها ممکن است هنگام شلیک
+    // برنامه‌نویسی‌شده خطا بدهد؛ آن خطا نباید جریان ما (ویرایش/انتخاب) را بشکند.
+    try {
+      if (window.jQuery) {
+        window.jQuery(stateEl).trigger("select2:select");
+        window.jQuery(stateEl).trigger("change");
+      } else {
+        stateEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    } catch (e) {
+      /* پلاگین شهرها خطا داد؛ مقدار استان ست شده و ادامه می‌دهیم. */
     }
     if (!cityEl) return;
     var attempts = 0;
@@ -43,10 +49,14 @@
       });
       if (hasOption || attempts > 40) {
         cityEl.value = cityValue;
-        if (window.jQuery) {
-          window.jQuery(cityEl).trigger("change");
-        } else {
-          cityEl.dispatchEvent(new Event("change", { bubbles: true }));
+        try {
+          if (window.jQuery) {
+            window.jQuery(cityEl).trigger("change");
+          } else {
+            cityEl.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        } catch (e) {
+          /* نادیده گرفتن خطای پلاگین */
         }
         return;
       }
