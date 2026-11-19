@@ -869,7 +869,9 @@
       updateStickyTotal();
       // Totals are fresh — exit `calculating` back to the visible step and
       // restore the gateway selection the fragment rebuild just wiped.
-      setFlowState(currentStep);
+      // Guard: never unlock during `submitting` — a stray updated_checkout
+      // must not release the duplicate-submit lock.
+      if (flowState !== "submitting") setFlowState(currentStep);
       restoreSelectedGateway();
       if (hasShippingMethodSelected()) showMethodError("[data-jluxe-shipping-error]", false);
       scheduleStickyActionUpdate();
