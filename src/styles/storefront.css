@@ -3418,9 +3418,9 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   min-height: 3.75rem;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid hsl(var(--foreground) / 0.25);
-  border-radius: 0.75rem;
-  background-color: hsl(var(--surface));
+  border: 1px solid var(--jluxe-shipping-card-border, hsl(var(--foreground) / 0.25));
+  border-radius: var(--jluxe-shipping-card-radius, 0.75rem);
+  background-color: var(--jluxe-shipping-card-bg, hsl(var(--surface)));
   color: hsl(var(--foreground));
   box-shadow: 0 1px 4px hsl(var(--foreground) / 0.05);
   text-align: start;
@@ -3493,6 +3493,9 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   box-sizing: border-box;
   display: block;
   max-width: 100%;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--jluxe-shipping-note-radius, 0.375rem);
+  background-color: var(--jluxe-shipping-note-bg, transparent);
   color: var(--jluxe-shipping-note-color, hsl(var(--text-secondary)));
   font-size: 0.78rem;
   font-weight: 500;

@@ -531,8 +531,13 @@ test("WooCommerce pagination expands base/format pairs and the page-jump input u
 test("shipping cards are responsive and customizable without changing real WooCommerce rates", () => {
   assert.match(shippingTemplate, /<ul id="shipping_method" class="jluxe-shipping-method-list">/);
   assert.match(shippingTemplate, /<input type="radio" name="shipping_method\[%1\$d\]" data-index="%1\$d" id="%2\$s" value="%3\$s" class="shipping_method sr-only" data-jluxe-shipping-kind="%4\$s" \/>/);
-  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?">/);
+  assert.match(shippingTemplate, /<label for="<\?php echo esc_attr\( \$input_id \); \?>" class="jluxe-shipping-card jluxe-shipping-card--<\?php echo esc_attr\( \$kind \); \?>[\s\S]*?style=/);
   assert.match(shippingTemplate, /jluxe-shipping-card--no-note/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-bg:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-border:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-bg:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-card-selected-border:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-note-bg/);
   assert.match(shippingTemplate, /'post'\s*=>\s*'mail'/);
   assert.match(shippingTemplate, /'tipax'\s*=>\s*'truck'/);
   assert.match(shippingTemplate, /'chapar'\s*=>\s*'package'/);
@@ -547,6 +552,7 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
   assert.match(shippingTemplate, /class="jluxe-shipping-card__details"[\s\S]*?class="jluxe-shipping-card__text"/, "the note is grouped inside the card details next to the method name and price");
   assert.match(shippingTemplate, /class="jluxe-shipping-card__text"[\s\S]*?class="jluxe-shipping-note jluxe-shipping-note--/, "the note sits beside the WooCommerce rate label inside the same text group");
+  assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
   assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\$jluxe_guided_shipping \? '' : ' open'/, "classic rates keep their expanded details while guided keeps them compact until requested");
   assert.match(shippingTemplate, /do_action\( 'woocommerce_after_shipping_rate', \$method, \$index \)/);
@@ -572,9 +578,9 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardRule, /display:\s*flex/);
   assert.match(shippingCardRule, /flex-direction:\s*row/);
   assert.match(shippingCardRule, /direction:\s*rtl/);
-  assert.match(shippingCardRule, /border:\s*1px solid hsl\(var\(--foreground\) \/ 0\.25\)/);
-  assert.match(shippingCardRule, /border-radius:\s*0\.75rem/);
-  assert.match(shippingCardRule, /background-color:\s*hsl\(var\(--surface\)\)/);
+  assert.match(shippingCardRule, /border:\s*1px solid var\(--jluxe-shipping-card-border, hsl\(var\(--foreground\) \/ 0\.25\)\)/);
+  assert.match(shippingCardRule, /border-radius:\s*var\(--jluxe-shipping-card-radius, 0\.75rem\)/);
+  assert.match(shippingCardRule, /background-color:\s*var\(--jluxe-shipping-card-bg, hsl\(var\(--surface\)\)\)/);
   assert.match(shippingCardDetailsRule, /display:\s*flex/);
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
   const shippingTextRule = storefrontStyles.match(/\.jluxe-shipping-card__text\s*\{([^}]+)\}/s)?.[1] || "";
@@ -595,7 +601,7 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.doesNotMatch(shippingNoteRule, /border-radius:\s*9999px/, "the note is no longer a pill badge");
   assert.doesNotMatch(shippingNoteRule, /min-width:/, "the note has no pill minimum width");
   assert.doesNotMatch(shippingNoteRule, /border:/, "the note is plain text without border");
-  assert.doesNotMatch(shippingNoteRule, /background/, "the note is plain text without background");
+  assert.match(shippingNoteRule, /background-color:\s*var\(--jluxe-shipping-note-bg, transparent\)/, "note background comes from settings with transparent fallback");
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
   // 1.7.5: no bullet separator — the note is stacked below the name.
