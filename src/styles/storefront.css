@@ -3509,21 +3509,14 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 .jluxe-shipping-note {
   box-sizing: border-box;
   display: block;
-  width: fit-content;
-  min-width: min(9.25rem, 100%);
   max-width: 100%;
-  min-height: 2.15rem;
-  padding: 0.35rem 0.85rem;
-  border: 1px solid hsl(var(--foreground) / 0.08);
-  border-radius: 9999px;
-  background: var(--jluxe-shipping-note-bg, hsl(var(--muted)));
   color: var(--jluxe-shipping-note-color, hsl(var(--text-secondary)));
-  font-size: 0.74rem;
-  font-weight: 750;
-  line-height: 1.4;
-  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.7;
+  text-align: right;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   direction: rtl;
 }
 .jluxe-shipping-card:hover {
@@ -3620,7 +3613,6 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
     line-height: 1.65;
   }
   .jluxe-shipping-note {
-    width: fit-content;
     max-width: 100%;
   }
 }
@@ -3633,9 +3625,7 @@ input.shipping_method:checked ~ .jluxe-shipping-method-accordion {
     font-size: 0.84rem;
   }
   .jluxe-shipping-note {
-    min-width: min(8.5rem, 100%);
-    padding-inline: 0.65rem;
-    font-size: 0.7rem;
+    font-size: 0.74rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4042,7 +4032,6 @@ body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card__text {
   width: 100%;
 }
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-note {
-  width: fit-content;
   max-width: 100%;
 }
 body.woocommerce-checkout .jluxe-checkout-summary #jluxe-shipping-section > p:first-child {

@@ -277,7 +277,6 @@ body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shippi
   min-width: 0;
 }
 body.woocommerce-checkout .jluxe-guided-checkout #jluxe-shipping-section #shipping_method .jluxe-shipping-note {
-  width: fit-content;
   max-width: 100%;
 }
 
