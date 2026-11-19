@@ -538,6 +538,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingTemplate, /--jluxe-shipping-card-selected-bg:/);
   assert.match(shippingTemplate, /--jluxe-shipping-card-selected-border:/);
   assert.match(shippingTemplate, /--jluxe-shipping-note-bg/);
+  assert.match(shippingTemplate, /--jluxe-shipping-icon-background:/);
+  assert.match(shippingTemplate, /--jluxe-shipping-icon-color:/);
   assert.match(shippingTemplate, /'post'\s*=>\s*'mail'/);
   assert.match(shippingTemplate, /'tipax'\s*=>\s*'truck'/);
   assert.match(shippingTemplate, /'chapar'\s*=>\s*'package'/);
@@ -592,7 +594,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardDetailsRule, /gap:\s*0\.75rem/);
   assert.match(shippingIconRule, /flex:\s*0 0 2\.75rem/);
   assert.match(shippingIconRule, /background-color:\s*var\(--jluxe-shipping-icon-background, hsl\(var\(--muted\)\)\)/);
-  assert.doesNotMatch(storefrontStyles, /\.jluxe-shipping-card--(?:post|tipax|chapar)\s*\{[^}]*--jluxe-shipping-icon-background/, "no colorful carrier icon backgrounds; icons use theme muted");
+  assert.match(shippingIconRule, /background-color:\s*var\(--jluxe-shipping-icon-background, hsl\(var\(--muted\)\)\)/);
+  assert.match(shippingIconRule, /color:\s*var\(--jluxe-shipping-icon-color, hsl\(var\(--foreground\)\)\)/);
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
   // 1.7.5: the note is plain description text below the method name,
