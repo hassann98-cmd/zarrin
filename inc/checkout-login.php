@@ -282,11 +282,31 @@ function jluxe_addresses_equal( array $a, array $b ): bool {
 /**
  * متن یک‌خطی آدرس برای نمایش در کارت.
  */
+/**
+ * نام استان از روی کد (روش استاندارد ووکامرس: WC_Countries).
+ * برای کدهای ISO کار می‌کند؛ برای ID های عددی، None برمی‌گرداند.
+ */
+function jluxe_get_state_name_from_code( string $code ): string {
+	$code = trim( $code );
+	if ( '' === $code || ! function_exists( 'WC_Countries' ) ) {
+		return '';
+	}
+	$countries = new WC_Countries();
+	$states = $countries->get_states( 'IR' );
+	if ( is_array( $states ) && isset( $states[ $code ] ) ) {
+		return (string) $states[ $code ];
+	}
+	return '';
+}
+
 function jluxe_format_address_line( array $address ): string {
 	$parts = array();
-	// استان/شهر با اسم نمایش داده می‌شوند (مقدارها ID عددی‌اند)؛ اگر اسم
-	// ذخیره نشده بود، همان مقدار خام نمایش داده می‌شود.
+	// استان/شهر با اسم نمایش داده می‌شوند (مقدارها ممکن است ID عددی یا کد ISO
+	// باشند)؛ اولویت با اسم ذخیره‌شده، بعد نگاشت استاندارد ووکامرس، بعد مقدار خام.
 	$state_display = trim( (string) ( $address['state_name'] ?? '' ) );
+	if ( '' === $state_display ) {
+		$state_display = jluxe_get_state_name_from_code( (string) ( $address['state'] ?? '' ) );
+	}
 	if ( '' === $state_display ) {
 		$state_display = trim( (string) ( $address['state'] ?? '' ) );
 	}
