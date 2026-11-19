@@ -727,13 +727,11 @@ function jluxe_render_address_selector(): void {
 							<?php endif; ?>
 						</span>
 						<span class="jluxe-checkout-addresses__actions">
-							<button type="button" class="jluxe-checkout-addresses__action" data-jluxe-address-edit aria-label="ویرایش آدرس">
+							<button type="button" class="jluxe-checkout-addresses__action" data-jluxe-address-edit aria-label="ویرایش آدرس" title="ویرایش آدرس">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-								<span>ویرایش</span>
 							</button>
-							<button type="button" class="jluxe-checkout-addresses__action jluxe-checkout-addresses__action--danger" data-jluxe-address-delete aria-label="حذف آدرس">
+							<button type="button" class="jluxe-checkout-addresses__action jluxe-checkout-addresses__action--danger" data-jluxe-address-delete aria-label="حذف آدرس" title="حذف آدرس">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-								<span>حذف</span>
 							</button>
 						</span>
 						<span class="jluxe-checkout-addresses__data" data-jluxe-address-data hidden><?php echo esc_attr( wp_json_encode( $entry['address'] ) ); ?></span>

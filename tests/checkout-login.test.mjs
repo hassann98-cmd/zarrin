@@ -311,3 +311,23 @@ test("checkout buttons have press, hover-lift, disabled and loading-spinner effe
   assert.match(loginCss, /jluxe-checkout-addresses__action:active/);
   assert.match(loginCss, /jluxe-checkout-addresses__action:focus-visible/);
 });
+
+test("address edit/delete buttons are icon-only and delete resets an open edit first", () => {
+  const php = read("inc/checkout-login.php");
+  // متن «ویرایش»/«حذف» حذف شده؛ فقط آیکون + aria-label/title می‌ماند.
+  assert.doesNotMatch(php, /<span>ویرایش<\/span>/);
+  assert.doesNotMatch(php, /<span>حذف<\/span>/);
+  assert.match(php, /title="ویرایش آدرس"/);
+  assert.match(php, /title="حذف آدرس"/);
+  const js = read("assets/js/checkout-login.js");
+  assert.doesNotMatch(js, /editBtn\.textContent = "ویرایش"/);
+  assert.doesNotMatch(js, /deleteBtn\.textContent = "حذف"/);
+  // حذف هنگام باز بودن ویرایش: اول state ویرایش ریست می‌شود تا حذف تمیز انجام شود.
+  assert.match(js, /اگر ویرایشِ آدرس دیگری باز است/);
+  assert.match(js, /editingAddressId = null;/);
+  // جلوگیری از فعال‌شدنِ label هنگام کلیک روی دکمه‌ها.
+  assert.match(js, /addEventListener\("mousedown"/);
+  const css = read("assets/css/checkout-login.css");
+  // دکمه‌ها مربعی/آیکونی‌اند.
+  assert.match(css, /jluxe-checkout-addresses__action \{[\s\S]*?width: 2\.25rem/);
+});

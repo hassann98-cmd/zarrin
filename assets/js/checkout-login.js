@@ -215,6 +215,9 @@
         var editBtn = card.querySelector("[data-jluxe-address-edit]");
         if (editBtn && !editBtn.dataset.jluxeBound) {
           editBtn.dataset.jluxeBound = "1";
+          editBtn.addEventListener("mousedown", function (event) {
+            event.preventDefault();
+          });
           editBtn.addEventListener("click", function (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -230,12 +233,24 @@
         var deleteBtn = card.querySelector("[data-jluxe-address-delete]");
         if (deleteBtn && !deleteBtn.dataset.jluxeBound) {
           deleteBtn.dataset.jluxeBound = "1";
+          // جلوگیری از فعال‌شدنِ label (کارت یک <label> است) هنگام کلیک روی
+          // دکمه؛ وگرنه انتخابِ کارت/آکاردئونِ ویرایش با حذف تداخل می‌کند.
+          deleteBtn.addEventListener("mousedown", function (event) {
+            event.preventDefault();
+          });
           deleteBtn.addEventListener("click", function (event) {
             event.preventDefault();
             event.stopPropagation();
             var address = getCardAddress(card);
             if (!address || !address.id) return;
             if (!window.confirm("این آدرس حذف شود؟")) return;
+            // اگر ویرایشِ آدرس دیگری باز است، اول آن را ببند تا حذف در حالتِ
+            // تمیز انجام شود (لیست بازسازی می‌شود و فرمِ ویرایش کهنه می‌ماند).
+            if (editingAddressId) {
+              editingAddressId = null;
+              if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
+              setFormOpen(false);
+            }
             deleteAddress(address.id);
           });
         }
@@ -441,14 +456,18 @@
       editBtn.className = "jluxe-checkout-addresses__action";
       editBtn.setAttribute("data-jluxe-address-edit", "");
       editBtn.setAttribute("aria-label", "ویرایش آدرس");
-      editBtn.textContent = "ویرایش";
+      editBtn.title = "ویرایش آدرس";
+      editBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
       var deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
       deleteBtn.className =
         "jluxe-checkout-addresses__action jluxe-checkout-addresses__action--danger";
       deleteBtn.setAttribute("data-jluxe-address-delete", "");
       deleteBtn.setAttribute("aria-label", "حذف آدرس");
-      deleteBtn.textContent = "حذف";
+      deleteBtn.title = "حذف آدرس";
+      deleteBtn.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
       actions.appendChild(editBtn);
       actions.appendChild(deleteBtn);
       var data = document.createElement("span");

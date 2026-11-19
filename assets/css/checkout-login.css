@@ -188,8 +188,10 @@ body.woocommerce-checkout .jluxe-checkout-addresses__actions {
 body.woocommerce-checkout .jluxe-checkout-addresses__action {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.625rem;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   border: 1px solid hsl(var(--border));
   border-radius: 0.625rem;
   background: hsl(var(--surface));
@@ -198,12 +200,12 @@ body.woocommerce-checkout .jluxe-checkout-addresses__action {
   font-weight: 700;
   line-height: 1.4;
   cursor: pointer;
-  transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+  transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
 }
 
 body.woocommerce-checkout .jluxe-checkout-addresses__action svg {
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 body.woocommerce-checkout .jluxe-checkout-addresses__action:hover {
