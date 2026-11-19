@@ -1107,3 +1107,55 @@ test("WooCommerce checkout notices are not removed or replaced by the restored s
   assert.equal(form.querySelector('[name="woocommerce-process-checkout-nonce"]').value, "test-nonce");
   assert.ok(form.querySelector('[name="woocommerce_checkout_place_order"]'));
 });
+
+test("1.7.355 the order-pay form is left untouched by the two-step checkout script", (t) => {
+  // WooCommerce's default form-pay.php renders <form id="pay_for_order"
+  // class="checkout woocommerce-checkout"> with #order_review and #payment.
+  // The classic step script must not inject step buttons or hide #payment
+  // there (returning from the gateway / retrying payment).
+  const dom = new JSDOM(
+    `<!doctype html><html><body>
+      <form id="pay_for_order" class="checkout woocommerce-checkout">
+        <div id="order_review">
+          <div id="payment">
+            <input class="payment_method" type="radio" name="payment_method" value="bacs">
+            <p data-jluxe-payment-error hidden>روش پرداخت را انتخاب کنید.</p>
+          </div>
+        </div>
+        <button id="place_order" type="submit">پرداخت</button>
+      </form>
+    </body></html>`,
+    { url: "https://shop.test/checkout/order-pay/123/", runScripts: "outside-only", pretendToBeVisual: true },
+  );
+  const { window } = dom;
+  t.after(() => window.close());
+  const $ = jqueryFactory(window);
+  window.jQuery = $;
+  window.jluxeWcSettings = { cartUrl: "/basket/" };
+  window.JLuxeThemeSettings = { cartCheckout: { copy: {} } };
+  window.HTMLElement.prototype.scrollIntoView = function () {};
+  window.scrollTo = () => {};
+  window.setTimeout = () => 1;
+  window.eval(checkoutScript);
+  const { document } = window;
+  assert.equal(document.querySelector("[data-jluxe-checkout-next]"), null, "no step buttons are injected on the pay form");
+  assert.equal(document.querySelector("[data-jluxe-checkout-to-cart]"), null);
+  assert.notEqual(document.getElementById("payment").style.display, "none", "payment methods stay visible on the pay form");
+  assert.equal(document.querySelector(".jluxe-checkout-step-actions"), null);
+});
+
+test("1.7.355 pressing Enter in the classic shipping step advances to payment instead of placing the order", (t) => {
+  const { window } = bootCheckout({ shippingRates: ["flat_rate:1"], shippingChecked: true, paymentMethods: ["bacs"] });
+  t.after(() => window.close());
+  const { document } = window;
+  assert.equal(activeStep(document), "shipping");
+  const blocked = dispatchSubmit(window);
+  assert.equal(blocked.event.defaultPrevented, true, "the native submit is stopped in the shipping step");
+  assert.equal(blocked.reachedForm, false, "WooCommerce never receives the submit in the shipping step");
+  assert.equal(activeStep(document), "payment", "the Enter submit runs the same validation and advance as the next button");
+});
+
+test("1.7.355 guided checkout assets are not loaded on the order-pay endpoint", () => {
+  const guidedEnqueue = paymentSource.match(/function jluxe_enqueue_guided_checkout_assets\(\): void \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(guidedEnqueue, /is_wc_endpoint_url\( 'order-pay' \)/, "guided assets skip the pay form, which renders WooCommerce's default form-pay.php");
+});

@@ -3704,7 +3704,11 @@ add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_woocommerce_assets', 20 );
 
 /** Load the guided checkout state machine only when that optional template is active. */
 function jluxe_enqueue_guided_checkout_assets(): void {
-	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) || 'guided' !== jluxe_checkout_layout() ) {
+	// order-pay (پرداختِ سفارشِ موجود/بازگشت از درگاه) فرمِ پیش‌فرضِ ووکامرس
+	// (pay_for_order) را رندر می‌کند، نه قالبِ guided؛ assetهای guided این‌جا
+	// بی‌اثر و فقط سربارند. is_checkout() روی order-pay هم true است، پس صراحتاً
+	// مستثنی می‌شود (مثلِ order-received).
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) || ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-pay' ) ) || 'guided' !== jluxe_checkout_layout() ) {
 		return;
 	}
 	if ( function_exists( 'jluxe_asset_plan' ) && empty( jluxe_asset_plan()['theme_woo_ux'] ) ) {

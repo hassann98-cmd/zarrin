@@ -5076,7 +5076,12 @@ function jluxeEnhanceShopSort(root) {
 	var form = document.querySelector("form.checkout");
 	var stepper = document.querySelector(".jluxe-checkout-stepper");
 	var orderReview = document.getElementById("order_review");
-	if (!form || !orderReview || !window.jQuery || form.getAttribute("data-jluxe-checkout-flow") === "guided") {
+	// صفحهٔ پرداختِ سفارشِ موجود (order-pay — بازگشت از درگاه/تلاش مجدد):
+	// فرمِ پیش‌فرضِ ووکامرس (pay_for_order) هم form.checkout و هم
+	// #order_review دارد، ولی مرحله‌بندیِ دوگامیِ چک‌اوتِ جدید این‌جا
+	// معنی ندارد؛ اگر اجرا شود، #payment را مخفی و دکمه‌های اشتباهِ
+	// «بازگشت به سبد خرید»/«نهایی‌سازی سفارش» تزریق می‌کند.
+	if (!form || !orderReview || !window.jQuery || form.getAttribute("data-jluxe-checkout-flow") === "guided" || form.id === "pay_for_order") {
 		return;
 	}
 
@@ -5381,6 +5386,25 @@ function jluxeEnhanceShopSort(root) {
 			toggleError('[data-jluxe-payment-error]', false);
 		}
 	});
+	/*
+	 * در مرحلهٔ ارسال، زدنِ Enter داخلِ هر فیلدِ متنی فرم را submit می‌کند
+	 * و ووکامرس مستقیم سفارش را می‌سازد — یعنی مرحلهٔ پرداخت (انتخابِ
+	 * درگاه) کاملاً دور زده می‌شود. مثلِ حالتِ guided، این‌جا هم submitِ
+	 * مرحلهٔ ارسال متوقف و همان منطقِ دکمهٔ «نهایی‌سازی سفارش» (اعتبارسنجی
+	 * + انتقال به پرداخت) اجرا می‌شود.
+	 */
+	document.addEventListener(
+		"submit",
+		function (event) {
+			if (event.target !== form || "shipping" !== currentStep) {
+				return;
+			}
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			nextBtn.click();
+		},
+		true
+	);
 	/*
 	 * روشِ پرداخت هم دیگه از پیش انتخاب نیست، پس قبلِ اجازه‌دادنِ submitِ
 	 * واقعیِ فرم (که خودِ اسکریپتِ چک‌اوتِ ووکامرس روی همین رویداد گوش
