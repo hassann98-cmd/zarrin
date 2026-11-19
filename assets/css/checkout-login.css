@@ -1,0 +1,486 @@
+/* تسویه‌حساب اصلی: مدیریت آدرس (لیست ذخیره‌شده + آکاردئون آدرس جدید).
+   هماهنگ با توکن‌های پوسته (سبز اصلی، سطح سفید، حاشیهٔ نرم، گردی ۱٫۳۷۵rem). */
+
+body.woocommerce-checkout .jluxe-checkout-addresses {
+  box-sizing: border-box;
+  margin-block-end: 1.25rem;
+  padding: clamp(1rem, 2.4vw, 1.375rem);
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.375rem;
+  background: hsl(var(--surface));
+  box-shadow: 0 10px 30px hsl(var(--foreground) / 0.045);
+  direction: rtl;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__heading {
+  margin-block-end: 0.875rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__title {
+  margin: 0 0 0.25rem;
+  color: hsl(var(--foreground));
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__hint {
+  margin: 0;
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block-end: 0.875rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field label {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--primary) / 0.04);
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field input:hover {
+  border-color: hsl(var(--primary) / 0.4);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field input:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  outline: none;
+}
+
+/* فیلد هویت خالی هنگام ادامهٔ خرید: قرمز تا کاربر بفهمد کجاست. */
+body.woocommerce-checkout .jluxe-checkout-addresses__identity .jluxe-checkout-addresses__field input.jluxe-identity-invalid {
+  border-color: hsl(var(--error));
+  box-shadow: 0 0 0 3px hsl(var(--error) / 0.12);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__list {
+  display: grid;
+  gap: 0.625rem;
+  margin-block-end: 0.75rem;
+}
+
+/* لیست خالی (کاربر بار اول) فضایی نمی‌گیرد. */
+body.woocommerce-checkout .jluxe-checkout-addresses__list:empty {
+  display: none;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: hsl(var(--surface));
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card:hover {
+  border-color: hsl(var(--primary) / 0.45);
+  background: hsl(var(--primary) / 0.03);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card.is-selected,
+body.woocommerce-checkout .jluxe-checkout-addresses__card:has(input:checked) {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.05);
+  box-shadow: 0 4px 14px hsl(var(--primary) / 0.12);
+}
+
+/* فوکوس کیبورد روی رادیوی مخفیِ کارت باید روی خودِ کارت دیده شود. */
+body.woocommerce-checkout .jluxe-checkout-addresses__card:has(input[type="radio"]:focus-visible) {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__radio {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-block-start: 0.125rem;
+  border: 2px solid hsl(var(--border));
+  border-radius: 50%;
+  background: hsl(var(--surface));
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card.is-selected .jluxe-checkout-addresses__radio,
+body.woocommerce-checkout .jluxe-checkout-addresses__card:has(input:checked) .jluxe-checkout-addresses__radio {
+  border-color: hsl(var(--primary));
+  background: radial-gradient(circle, hsl(var(--primary)) 0 0.375rem, hsl(var(--surface)) 0.4375rem);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card-label {
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card-line {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__card-phone {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.375rem;
+  align-self: center;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.625rem;
+  background: hsl(var(--surface));
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  color: hsl(var(--primary));
+  transform: translateY(-1px);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.4);
+  outline-offset: 2px;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__action--danger:hover {
+  border-color: #b91c1c;
+  color: #b91c1c;
+  background: rgb(185 28 28 / 0.05);
+}
+
+/* حالت تأیید حذف دوکلیکی (وقتی فقط یک آدرس وجود دارد): دکمه قرمز پر می‌شود
+   تا کاربر بفهمد کلیک بعدی حذف می‌کند. */
+body.woocommerce-checkout .jluxe-checkout-addresses__action.is-confirming {
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+  animation: jluxe-delete-confirm-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes jluxe-delete-confirm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(185 28 28 / 0.35); }
+  50% { box-shadow: 0 0 0 5px rgb(185 28 28 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.woocommerce-checkout .jluxe-checkout-addresses__action.is-confirming {
+    animation: none;
+  }
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__add {
+  width: 100%;
+  border-style: dashed;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__add svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__form {
+  margin-block-start: 0.875rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: hsl(var(--primary) / 0.03);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block-end: 0.875rem;
+  padding-block-end: 0.75rem;
+  border-block-end: 1px solid hsl(var(--border));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__form-title {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__close {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 50%;
+  background: hsl(var(--surface));
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__close:hover {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block-end: 0.875rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field--wide {
+  grid-column: 1 / -1;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field label {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__optional {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field input,
+body.woocommerce-checkout .jluxe-checkout-addresses__field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--primary) / 0.04);
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field input:hover,
+body.woocommerce-checkout .jluxe-checkout-addresses__field textarea:hover {
+  border-color: hsl(var(--primary) / 0.4);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field textarea {
+  resize: vertical;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field input:focus,
+body.woocommerce-checkout .jluxe-checkout-addresses__field textarea:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  outline: none;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__status {
+  margin: 0 0 0.75rem;
+  color: hsl(var(--primary));
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__status.is-error {
+  color: #b91c1c;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__form .jluxe-checkout-action-button {
+  width: 100%;
+}
+
+/* ---------- بخش صورتحساب ووکامرس برای کاربر واردشده پنهان است ----------
+   همهٔ فیلدها در بخش «آدرس تحویل» (هویت + آکاردئون) هستند؛ فیلدهای
+   صورتحساب فقط برای ثبت سفارش در DOM می‌مانند و دیده نمی‌شوند. */
+body.woocommerce-checkout.logged-in .woocommerce-billing-fields {
+  display: none;
+}
+
+/* ---------- استان/شهر: فیلدهای واقعی ووکامرس داخل آکاردئون ---------- */
+
+/* form-rowهای ووکامرس آیتم گرید آکاردئون‌اند؛ مارجین/پدینگ پیش‌فرضشان را
+   خنثی می‌کنیم تا با بقیهٔ فیلدهای بخش هم‌تراز شوند. */
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row {
+  margin: 0;
+  padding: 0;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row label {
+  display: block;
+  margin-block-end: 0.375rem;
+  color: hsl(var(--foreground));
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row select:hover {
+  border-color: hsl(var(--primary) / 0.45);
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row select:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  outline: none;
+}
+
+/* کانتینر Select2 هم‌خانواده با اینپوت‌های همین بخش */
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row .select2-container {
+  width: 100% !important;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row .select2-container--default .select2-selection--single {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--surface));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row .select2-container--default .select2-selection--single .select2-selection__rendered {
+  padding: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: hsl(var(--muted-foreground, 215 20% 42%));
+}
+
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default.select2-container--focus .select2-selection--single,
+body.woocommerce-checkout .jluxe-checkout-addresses__field .select2-container--default .select2-selection--single:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+}
+
+@media (max-width: 640px) {
+  body.woocommerce-checkout .jluxe-checkout-addresses__fields,
+  body.woocommerce-checkout .jluxe-checkout-addresses__identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.woocommerce-checkout .jluxe-checkout-addresses__card,
+  body.woocommerce-checkout .jluxe-checkout-addresses__radio,
+  body.woocommerce-checkout .jluxe-checkout-addresses__field input,
+  body.woocommerce-checkout .jluxe-checkout-addresses__field textarea {
+    transition: none;
+  }
+}

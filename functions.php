@@ -681,6 +681,10 @@ require_once JLUXE_THEME_DIR . '/inc/product-faq.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-tickets.php';
 require_once JLUXE_THEME_DIR . '/inc/attribute-swatches.php';
 require_once JLUXE_THEME_DIR . '/inc/theme-settings.php';
+<<<<<<< HEAD
+=======
+require_once JLUXE_THEME_DIR . '/inc/checkout-login.php';
+>>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
 require_once JLUXE_THEME_DIR . '/inc/dsn-address-flow/dsn-address-flow.php';
 require_once JLUXE_THEME_DIR . '/inc/store-closure.php';
 require_once JLUXE_THEME_DIR . '/inc/storefront-personalization.php';

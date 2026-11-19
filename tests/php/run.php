@@ -11587,7 +11587,10 @@ check(
 // ریدایرکت به ورود پیامکی و مدیریت آدرس در تسویه‌حساب اصلی.
 $login_source = file_exists( ABSPATH . 'inc/checkout-login.php' ) ? (string) file_get_contents( ABSPATH . 'inc/checkout-login.php' ) : '';
 check(
+<<<<<<< HEAD
 	$login_source === '' || (
+=======
+>>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
 	false !== strpos( $login_source, 'jluxe_checkout_login_redirect_needed' ) &&
 	false !== strpos( $login_source, 'is_registration_required()' ) &&
 	false !== strpos( $login_source, 'jluxe_otp_available()' ) &&
@@ -11603,6 +11606,7 @@ check(
 	false === strpos( $login_source, 'woocommerce_payment_gateways' ) &&
 	false === strpos( $login_source, 'jluxe_render_checkout_login_card' ) &&
 	false === strpos( $login_source, 'data-jluxe-picker' ) &&
+<<<<<<< HEAD
 	false === strpos( $login_source, 'jluxe-new-state' )),
 	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with real WooCommerce province/city fields, and never registers as a gateway'
 );
@@ -11615,6 +11619,18 @@ check(
 );
 check(
 	!function_exists('jluxe_address_has_content') || (
+=======
+	false === strpos( $login_source, 'jluxe-new-state' ),
+	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with real WooCommerce province/city fields, and never registers as a gateway'
+);
+check(
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'jluxe_render_address_selector()' ) &&
+	( !file_exists( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) || false !== strpos( (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ), 'jluxe_render_address_selector()' ) ) &&
+	false !== strpos( file_get_contents( ABSPATH . 'functions.php' ), 'inc/checkout-login.php' ),
+	'Address selector is wired into both classic and guided main checkout layouts'
+);
+check(
+>>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
 	false !== jluxe_address_has_content( array( 'address_1' => 'خیابان ولیعصر', 'city' => '', 'postcode' => '' ) ) &&
 	false === jluxe_address_has_content( array( 'address_1' => '', 'city' => '', 'postcode' => '' ) ) &&
 	true === jluxe_addresses_equal(
@@ -11625,18 +11641,27 @@ check(
 		array( 'address_1' => 'a', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' ),
 		array( 'address_1' => 'x', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' )
 	) &&
+<<<<<<< HEAD
 	'تهران، خیابان ولیعصر — کدپستی 1234567890' === jluxe_format_address_line( array( 'state' => 'تهران', 'city' => '', 'address_1' => 'خیابان ولیعصر', 'address_2' => '', 'postcode' => '1234567890' ) )
 	),
+=======
+	'تهران، خیابان ولیعصر — کدپستی 1234567890' === jluxe_format_address_line( array( 'state' => 'تهران', 'city' => '', 'address_1' => 'خیابان ولیعصر', 'address_2' => '', 'postcode' => '1234567890' ) ),
+>>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
 	'Address helpers detect content, equality, and one-line formatting'
 );
 
 // R365: legacy numeric IDs (e.g. state 1966, city 1973) must not print
 // verbatim — unresolvable numeric IDs are omitted from the display line.
 check(
+<<<<<<< HEAD
 	!function_exists('jluxe_format_address_line') || (
 	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
 	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) )
 	),
+=======
+	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
+	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ),
+>>>>>>> 0271c54 (1.7.325: restore OTP login flow for forced-login checkout)
 	'R365 legacy numeric state/city IDs are omitted from the address line instead of printing raw'
 );
 
