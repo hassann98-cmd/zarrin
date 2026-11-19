@@ -551,7 +551,7 @@ test("shipping cards are responsive and customizable without changing real WooCo
   );
   assert.match(shippingTemplate, /class="jluxe-shipping-note jluxe-shipping-note--/);
   assert.match(shippingTemplate, /class="jluxe-shipping-card__details"[\s\S]*?class="jluxe-shipping-card__text"/, "the note is grouped inside the card details next to the method name and price");
-  assert.match(shippingTemplate, /class="jluxe-shipping-card__text"[\s\S]*?class="jluxe-shipping-note jluxe-shipping-note--/, "the note sits under the WooCommerce rate label inside the same text group");
+  assert.match(shippingTemplate, /class="jluxe-shipping-card__text"[\s\S]*?class="jluxe-shipping-note jluxe-shipping-note--/, "the note sits beside the WooCommerce rate label inside the same text group");
   assert.match(shippingTemplate, /jluxe-shipping-details-bg/);
   assert.match(shippingTemplate, /show_shipping_accordions/);
   assert.match(shippingTemplate, /<details class="jluxe-shipping-method-accordion[^"]*"[\s\S]*?\$jluxe_guided_shipping \? '' : ' open'/, "classic rates keep their expanded details while guided keeps them compact until requested");
@@ -585,7 +585,9 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.match(shippingCardDetailsRule, /direction:\s*rtl/);
   const shippingTextRule = storefrontStyles.match(/\.jluxe-shipping-card__text\s*\{([^}]+)\}/s)?.[1] || "";
   assert.match(shippingTextRule, /display:\s*flex/);
-  assert.match(shippingTextRule, /flex-direction:\s*column/);
+  // 1.7.354: توضیح روش کنار نام روش روی یک خط قرار می‌گیرد تا ارتفاع کادر کمتر شود.
+  assert.match(shippingTextRule, /flex-direction:\s*row/, "the note sits beside the method name on one row so the card stays short");
+  assert.match(shippingTextRule, /align-items:\s*center/);
   assert.match(shippingTextRule, /min-width:\s*0/);
   assert.match(shippingCardDetailsRule, /gap:\s*0\.75rem/);
   assert.match(shippingIconRule, /flex:\s*0 0 2\.75rem/);
@@ -602,16 +604,18 @@ test("shipping cards are responsive and customizable without changing real WooCo
   }
   assert.match(shippingLabelRule, /overflow-wrap:\s*anywhere/);
   assert.match(shippingAmountRule, /white-space:\s*nowrap/);
-  // 1.7.348: the note is plain description text under the method name
-  // (logo, name, description) — no longer a pill badge.
-  assert.match(shippingNoteRule, /text-align:\s*right/, "the note is plain description text under the method name");
+  // 1.7.348: the note is plain description text beside the method name
+  // (logo, name, note on one row) — no longer a pill badge.
+  assert.match(shippingNoteRule, /text-align:\s*right/, "the note is plain description text beside the method name");
   assert.doesNotMatch(shippingNoteRule, /border-radius:\s*9999px/, "the note is no longer a pill badge");
   assert.doesNotMatch(shippingNoteRule, /min-width:/, "the note has no pill minimum width");
   assert.match(shippingNoteRule, /white-space:\s*normal/, "long shipping notes wrap instead of being clipped with an ellipsis");
   assert.doesNotMatch(shippingNoteRule, /text-overflow:\s*ellipsis/);
+  // 1.7.354: جداکنندهٔ نقطه بین نام روش و توضیح آن روی همان یک خط.
+  assert.match(storefrontStyles, /\.jluxe-shipping-note::before\s*\{[^}]*content:\s*"•"/, "the note is separated from the method name by a dot on the same row");
   assert.match(checkoutSummaryShippingRule, /flex-direction:\s*column/, "the narrow checkout summary stacks the card as one column so notes stay inside the card");
-  // 1.7.352: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیحات زیر اسم.
-  assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the description below");
+  // 1.7.352/1.7.354: در خلاصهٔ چک‌اوت هم آیکون و اسم کنار هم‌اند (row)، توضیح روش کنار اسم.
+  assert.match(storefrontStyles, /body\.woocommerce-checkout \.jluxe-checkout-summary \.jluxe-shipping-card__details\s*\{[^}]*flex-direction:\s*row/, "checkout summary keeps icon and name on one row with the note beside the name");
   assert.match(checkoutSummaryNoteRule, /max-width:\s*100%/);
   assert.doesNotMatch(checkoutSummaryNoteRule, /width:\s*fit-content/, "the note is plain text, not a pill");
   assert.match(selectedRule, /border-color:\s*var\(--jluxe-shipping-card-selected-border, var\(--jluxe-primary, var\(--color-royal-orchid-600\)\)\)/);
@@ -620,8 +624,8 @@ test("shipping cards are responsive and customizable without changing real WooCo
   assert.doesNotMatch(storefrontStyles, /input\.shipping_method:checked \+ \.jluxe-shipping-card--(?:post|tipax|chapar)/, "carrier selection colors come from the saved settings, not fixed CSS");
   assert.match(storefrontStyles, /@media \(min-width: 640px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*row/, "desktop shipping cards lay the icon and the rate group on one row");
   assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card\s*\{[\s\S]*?flex-direction:\s*column/);
-  // 1.7.352: آیکون اول، اسم جلوش، توضیحات زیر اسم — در موبایل هم row می‌ماند.
-  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card__details\s*\{[\s\S]*?flex-direction:\s*row/, "mobile shipping cards keep icon and name on one row with the description below");
+  // 1.7.352/1.7.354: آیکون اول، اسم جلوش، توضیح روش کنار اسم روی یک خط — در موبایل هم row می‌ماند.
+  assert.match(storefrontStyles, /@media \(max-width: 639\.98px\)[\s\S]*?\.jluxe-shipping-card__details\s*\{[\s\S]*?flex-direction:\s*row/, "mobile shipping cards keep icon and name on one row with the note beside the name");
   assert.match(storefrontStyles, /@media \(max-width: 359\.98px\)[\s\S]*?\.jluxe-shipping-note\s*\{/);
   assert.match(storefrontStyles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.jluxe-shipping-card/);
   assert.match(storefrontStyles, /input\.shipping_method:checked ~ \.jluxe-shipping-method-accordion/);

@@ -3465,10 +3465,12 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 }
 .jluxe-shipping-card__text {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1 1 auto;
   min-width: 0;
-  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
 }
 .jluxe-shipping-card__icon {
   box-sizing: border-box;
@@ -3508,8 +3510,9 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
 }
 .jluxe-shipping-note {
   box-sizing: border-box;
-  display: block;
+  display: inline-flex;
   max-width: 100%;
+  align-items: center;
   color: var(--jluxe-shipping-note-color, hsl(var(--text-secondary)));
   font-size: 0.78rem;
   font-weight: 500;
@@ -3518,6 +3521,13 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   white-space: normal;
   overflow-wrap: anywhere;
   direction: rtl;
+}
+/* جداکنندهٔ نقطه بین نام روش و توضیح آن، روی همان یک خط. */
+.jluxe-shipping-note::before {
+  content: "•";
+  margin-inline-end: 0.55rem;
+  color: hsl(var(--text-secondary) / 0.55);
+  font-weight: 700;
 }
 .jluxe-shipping-card:hover {
   border-color: hsl(var(--primary) / 0.42);
@@ -4030,7 +4040,7 @@ body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card:not(.jlux
   align-items: start;
   gap: 0.65rem;
 }
-/* چیدمان: آیکون اول، اسم روش جلوش، توضیحات زیر اسم — مثل بقیهٔ جاها. */
+/* چیدمان: آیکون اول، اسم روش جلوش، توضیح روش کنار اسم روی یک خط — مثل بقیهٔ جاها. */
 body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-card__details {
   flex-direction: row;
   align-items: center;
