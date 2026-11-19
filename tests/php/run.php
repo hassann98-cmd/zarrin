@@ -336,6 +336,15 @@ if ( $r338_had_fired ) { $GLOBALS['fired'] = $r338_old_fired; } else { unset( $G
 jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
+// R361: main CSS/JS must carry a filemtime version (not null) so browsers
+// re-fetch when file content changes even if the hashed name stays the same.
+$r361_css_ver = $GLOBALS['styles']['jluxe-main-0'][2] ?? null;
+$r361_js_ver = $GLOBALS['scripts']['jluxe-main'][2] ?? null;
+check(
+	is_string( $r361_css_ver ) && ctype_digit( $r361_css_ver ) && (int) $r361_css_ver > 0 &&
+	is_string( $r361_js_ver ) && ctype_digit( $r361_js_ver ) && (int) $r361_js_ver > 0,
+	'R361 main CSS and JS enqueue with filemtime cache-busting version'
+);
 $r314_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
 $r314_bootstrap_source = (string) file_get_contents( ABSPATH . 'functions.php' );
 $r314_manifest = jluxe_vite_manifest();

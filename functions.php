@@ -386,13 +386,22 @@ function jluxe_enqueue_assets() {
 
 	$entry_data = $manifest[ $entry ];
 
+	/*
+	 * Version = filemtime (نه null) — حتی اگه نامِ هش‌دارِ فایل ثابت بمونه
+	 * (مثلاً بازنویسیِ FTP روی همون نام)، تغییرِ محتوا mtime رو عوض می‌کنه و
+	 * مرورگر/کشِ سرور فایلِ تازه رو می‌گیره. این همون الگوی بقیهٔ CSSهای
+	 * پوسته‌ست (checkout-login، checkout-guided و…) و لایهٔ دومِ
+	 * cache-busting روی هشِ Viteـه.
+	 */
 	if ( ! empty( $entry_data['css'] ) ) {
 		foreach ( $entry_data['css'] as $i => $css_file ) {
-			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array(), null );
+			$css_path = JLUXE_ASSET_DIR . '/' . $css_file;
+			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array(), is_file( $css_path ) ? (string) filemtime( $css_path ) : null );
 		}
 	}
 
-	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), null, true );
+	$js_path = JLUXE_ASSET_DIR . '/' . $entry_data['file'];
+	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), is_file( $js_path ) ? (string) filemtime( $js_path ) : null, true );
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_assets' );
 
