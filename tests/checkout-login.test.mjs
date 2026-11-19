@@ -119,6 +119,18 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /is-selected/);
 });
 
+test("province and city display names instead of numeric IDs", () => {
+  const php = read("inc/checkout-login.php");
+  // اسم استان/شهر هنگام ذخیره نگه داشته و در خط آدرس نمایش داده می‌شود.
+  assert.match(php, /state_name/);
+  assert.match(php, /city_name/);
+  const js = read("assets/js/checkout-login.js");
+  assert.match(js, /buildAddressLine/);
+  assert.match(js, /optionTextByValue/);
+  assert.match(js, /state_name/);
+  assert.match(js, /city_name/);
+});
+
 test("saved addresses can be edited and deleted", () => {
   const php = read("inc/checkout-login.php");
   // هر آدرس ذخیره‌شده شناسهٔ پایدار دارد تا قابل ویرایش/حذف باشد.

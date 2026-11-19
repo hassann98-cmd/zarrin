@@ -301,13 +301,32 @@
       return selector.querySelector('[data-jluxe-identity-field="' + name + '"]');
     }
 
+    // نام نمایشی استان/شهر از روی گزینهٔ انتخاب‌شده (مقدارها ID عددی‌اند).
+    function selectedOptionText(selectEl) {
+      if (!selectEl || selectEl.selectedIndex < 0) return "";
+      var opt = selectEl.options[selectEl.selectedIndex];
+      return opt ? (opt.text || "").trim() : "";
+    }
+
+    function optionTextByValue(selectEl, value) {
+      if (!selectEl || value == null || value === "") return "";
+      for (var i = 0; i < selectEl.options.length; i++) {
+        if (selectEl.options[i].value === String(value)) {
+          return (selectEl.options[i].text || "").trim();
+        }
+      }
+      return "";
+    }
+
     function collectNewAddress() {
       var data = {};
       // استان/شهر همان فیلدهای واقعی ووکامرس‌اند.
       var stateEl = field("billing_state");
       data.state = stateEl ? stateEl.value.trim() : "";
+      data.state_name = selectedOptionText(stateEl);
       var cityEl = field("billing_city");
       data.city = cityEl ? cityEl.value.trim() : "";
+      data.city_name = selectedOptionText(cityEl);
       ["address_1", "postcode", "landline"].forEach(function (name) {
         var el = newField(name);
         data[name] = el ? el.value.trim() : "";
@@ -319,6 +338,31 @@
       var ph = identityField("phone");
       data.phone = ph ? ph.value.trim() : "";
       return data;
+    }
+
+    // ساخت خط نمایشی آدرس با اسم استان/شهر (نه ID عددی).
+    function buildAddressLine(address) {
+      if (!address) return "";
+      var stateName = (address.state_name || "").trim();
+      if (!stateName) {
+        stateName = optionTextByValue(field("billing_state"), address.state);
+      }
+      var cityName = (address.city_name || "").trim();
+      if (!cityName) {
+        cityName = optionTextByValue(field("billing_city"), address.city);
+      }
+      var parts = [];
+      if (stateName) parts.push(stateName);
+      else if (address.state) parts.push(String(address.state));
+      if (cityName) parts.push(cityName);
+      else if (address.city) parts.push(String(address.city));
+      if (address.address_1) parts.push(String(address.address_1));
+      if (address.address_2) parts.push(String(address.address_2));
+      var line = parts.join("، ");
+      if (address.postcode) {
+        line += (line ? " — کدپستی " : "کدپستی ") + String(address.postcode);
+      }
+      return line;
     }
 
     function ensureList() {
@@ -358,7 +402,7 @@
       label.textContent = entry.label;
       var line = document.createElement("span");
       line.className = "jluxe-checkout-addresses__card-line";
-      line.textContent = entry.line;
+      line.textContent = buildAddressLine(entry.address) || entry.line;
       body.appendChild(label);
       body.appendChild(line);
       if (entry.phone) {
@@ -587,6 +631,16 @@
         }
       });
     }
+
+    // اصلاح خط کارت‌های رندرشده با PHP تا استان/شهر با اسم نمایش داده شوند (نه ID).
+    cards().forEach(function (card) {
+      var address = getCardAddress(card);
+      var lineEl = card.querySelector(".jluxe-checkout-addresses__card-line");
+      if (address && lineEl) {
+        var fixed = buildAddressLine(address);
+        if (fixed) lineEl.textContent = fixed;
+      }
+    });
 
     bindCards();
   }

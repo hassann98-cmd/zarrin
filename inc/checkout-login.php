@@ -284,7 +284,23 @@ function jluxe_addresses_equal( array $a, array $b ): bool {
  */
 function jluxe_format_address_line( array $address ): string {
 	$parts = array();
-	foreach ( array( 'state', 'city', 'address_1', 'address_2' ) as $key ) {
+	// استان/شهر با اسم نمایش داده می‌شوند (مقدارها ID عددی‌اند)؛ اگر اسم
+	// ذخیره نشده بود، همان مقدار خام نمایش داده می‌شود.
+	$state_display = trim( (string) ( $address['state_name'] ?? '' ) );
+	if ( '' === $state_display ) {
+		$state_display = trim( (string) ( $address['state'] ?? '' ) );
+	}
+	if ( '' !== $state_display ) {
+		$parts[] = $state_display;
+	}
+	$city_display = trim( (string) ( $address['city_name'] ?? '' ) );
+	if ( '' === $city_display ) {
+		$city_display = trim( (string) ( $address['city'] ?? '' ) );
+	}
+	if ( '' !== $city_display ) {
+		$parts[] = $city_display;
+	}
+	foreach ( array( 'address_1', 'address_2' ) as $key ) {
 		$value = trim( (string) ( $address[ $key ] ?? '' ) );
 		if ( '' !== $value ) {
 			$parts[] = $value;
@@ -325,6 +341,8 @@ function jluxe_save_customer_address( array $data ): bool {
 		'address_2'  => '',
 		'city'       => sanitize_text_field( $data['city'] ?? '' ),
 		'state'      => sanitize_text_field( $data['state'] ?? '' ),
+		'state_name' => sanitize_text_field( $data['state_name'] ?? '' ),
+		'city_name'  => sanitize_text_field( $data['city_name'] ?? '' ),
 		'postcode'   => sanitize_text_field( $data['postcode'] ?? '' ),
 		'country'    => 'IR',
 		'phone'      => ! empty( $data['phone'] ) ? preg_replace( '/\D/', '', sanitize_text_field( $data['phone'] ) ) : '',
@@ -422,6 +440,8 @@ function jluxe_ajax_save_checkout_address(): void {
 		'phone'      => isset( $_POST['phone'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['phone'] ) ) ) : '',
 		'state'      => isset( $_POST['state'] ) ? sanitize_text_field( wp_unslash( $_POST['state'] ) ) : '',
 		'city'       => isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '',
+		'state_name' => isset( $_POST['state_name'] ) ? sanitize_text_field( wp_unslash( $_POST['state_name'] ) ) : '',
+		'city_name'  => isset( $_POST['city_name'] ) ? sanitize_text_field( wp_unslash( $_POST['city_name'] ) ) : '',
 		'address_1'  => isset( $_POST['address_1'] ) ? sanitize_text_field( wp_unslash( $_POST['address_1'] ) ) : '',
 		'postcode'   => isset( $_POST['postcode'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) ) : '',
 		'landline'   => isset( $_POST['landline'] ) ? preg_replace( '/\D/', '', sanitize_text_field( wp_unslash( $_POST['landline'] ) ) ) : '',
