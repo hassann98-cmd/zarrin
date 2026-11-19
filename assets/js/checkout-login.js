@@ -331,7 +331,21 @@
         Object.keys(data).forEach(function (key) {
           body.set(key, data[key]);
         });
-        fetch(config.ajaxUrl || "/wp-admin/admin-ajax.php", {
+        // ajaxUrl را هم‌مبدأ با صفحه می‌کنیم تا mixed-content (HTTP در صفحهٔ
+        // HTTPS) باعث بلاک شدن fetch نشود.
+        var ajaxUrl = config.ajaxUrl || "/wp-admin/admin-ajax.php";
+        try {
+          var parsed = new URL(ajaxUrl, window.location.href);
+          if (parsed.origin === window.location.origin) {
+            ajaxUrl = parsed.pathname + parsed.search;
+          } else {
+            parsed.protocol = window.location.protocol;
+            ajaxUrl = parsed.toString();
+          }
+        } catch (e) {
+          ajaxUrl = "/wp-admin/admin-ajax.php";
+        }
+        fetch(ajaxUrl, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

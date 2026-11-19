@@ -119,6 +119,18 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /is-selected/);
 });
 
+test("multiple addresses are stored per customer in a dedicated meta", () => {
+  const php = read("inc/checkout-login.php");
+  // ووکامرس فقط یک صورتحساب/ارسال نگه می‌دارد؛ لیست چند آدرس در متای اختصاصی است.
+  assert.match(php, /jluxe_saved_addresses/);
+  assert.match(php, /update_user_meta\( \$user_id, 'jluxe_saved_addresses', \$saved \)/);
+  assert.match(php, /get_user_meta\( \$user_id, 'jluxe_saved_addresses', true \)/);
+  const js = read("assets/js/checkout-login.js");
+  // ajaxUrl هم‌مبدأ با صفحه می‌شود تا mixed-content باعث بلاک fetch نشود.
+  assert.match(js, /window\.location\.origin/);
+  assert.match(js, /parsed\.protocol = window\.location\.protocol/);
+});
+
 test("save AJAX verifies nonce with a JSON error and JS surfaces server messages", () => {
   const php = read("inc/checkout-login.php");
   // به‌جای check_ajax_referer (که با «-1» می‌میرد)، خطای JSON واضح برمی‌گردد.

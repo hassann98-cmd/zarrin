@@ -117,6 +117,21 @@ function jluxe_get_customer_addresses(): array {
 		return (string) get_user_meta( $user_id, $key, true );
 	};
 
+	// آدرس‌های ذخیره‌شده در لیست اختصاصی (چند آدرس برای یک شماره).
+	$saved_addresses = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
+	if ( is_array( $saved_addresses ) ) {
+		foreach ( $saved_addresses as $saved ) {
+			if ( ! is_array( $saved ) || ! jluxe_address_has_content( $saved ) ) {
+				continue;
+			}
+			$out[] = array(
+				'type'    => 'billing',
+				'label'   => 'آدرس ذخیره‌شده',
+				'address' => $saved,
+			);
+		}
+	}
+
 	$billing = array(
 		'first_name' => $meta( 'billing_first_name' ),
 		'last_name'  => $meta( 'billing_last_name' ),
@@ -130,7 +145,15 @@ function jluxe_get_customer_addresses(): array {
 		'phone'      => $meta( 'billing_phone' ),
 		'landline'   => $meta( 'billing_landline' ),
 	);
-	if ( jluxe_address_has_content( $billing ) ) {
+	// آدرس صورتحساب فقط اگر در لیست اختصاصی نباشد اضافه می‌شود.
+	$billing_is_duplicate = false;
+	foreach ( $out as $existing ) {
+		if ( jluxe_addresses_equal( $existing['address'], $billing ) ) {
+			$billing_is_duplicate = true;
+			break;
+		}
+	}
+	if ( jluxe_address_has_content( $billing ) && ! $billing_is_duplicate ) {
 		$out[] = array(
 			'type'    => 'billing',
 			'label'   => 'آدرس صورتحساب',
@@ -149,7 +172,16 @@ function jluxe_get_customer_addresses(): array {
 		'postcode'   => $meta( 'shipping_postcode' ),
 		'country'    => $meta( 'shipping_country' ) ?: 'IR',
 	);
-	if ( jluxe_address_has_content( $shipping ) && ! jluxe_addresses_equal( $billing, $shipping ) ) {
+	$shipping_is_duplicate = jluxe_addresses_equal( $billing, $shipping );
+	if ( ! $shipping_is_duplicate ) {
+		foreach ( $out as $existing ) {
+			if ( jluxe_addresses_equal( $existing['address'], $shipping ) ) {
+				$shipping_is_duplicate = true;
+				break;
+			}
+		}
+	}
+	if ( jluxe_address_has_content( $shipping ) && ! $shipping_is_duplicate ) {
 		$out[] = array(
 			'type'    => 'shipping',
 			'label'   => 'آدرس ارسال',
@@ -255,6 +287,38 @@ function jluxe_save_customer_address( array $data ): bool {
 		return false;
 	}
 	$user_id = get_current_user_id();
+
+	// ووکامرس فقط یک آدرس صورتحساب و یک آدرس ارسال نگه می‌دارد؛ برای اینکه
+	// کاربر بتواند چند آدرس ذخیره کند، لیست آدرس‌ها در متای اختصاصی هم نگه داشته می‌شود.
+	$saved = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
+	if ( ! is_array( $saved ) ) {
+		$saved = array();
+	}
+	$new_address = array(
+		'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+		'last_name'  => sanitize_text_field( $data['last_name'] ?? '' ),
+		'company'    => '',
+		'address_1'  => sanitize_text_field( $data['address_1'] ?? '' ),
+		'address_2'  => '',
+		'city'       => sanitize_text_field( $data['city'] ?? '' ),
+		'state'      => sanitize_text_field( $data['state'] ?? '' ),
+		'postcode'   => sanitize_text_field( $data['postcode'] ?? '' ),
+		'country'    => 'IR',
+		'phone'      => ! empty( $data['phone'] ) ? preg_replace( '/\D/', '', sanitize_text_field( $data['phone'] ) ) : '',
+		'landline'   => ! empty( $data['landline'] ) ? preg_replace( '/\D/', '', sanitize_text_field( $data['landline'] ) ) : '',
+	);
+	$exists = false;
+	foreach ( $saved as $existing ) {
+		if ( is_array( $existing ) && jluxe_addresses_equal( $existing, $new_address ) ) {
+			$exists = true;
+			break;
+		}
+	}
+	if ( ! $exists ) {
+		$saved[] = $new_address;
+		update_user_meta( $user_id, 'jluxe_saved_addresses', $saved );
+	}
+
 	$fields = array(
 		'billing_first_name'  => sanitize_text_field( $data['first_name'] ?? '' ),
 		'billing_last_name'   => sanitize_text_field( $data['last_name'] ?? '' ),
