@@ -129,6 +129,9 @@ test("multiple addresses are stored per customer in a dedicated meta", () => {
   // ajaxUrl هم‌مبدأ با صفحه می‌شود تا mixed-content باعث بلاک fetch نشود.
   assert.match(js, /window\.location\.origin/);
   assert.match(js, /parsed\.protocol = window\.location\.protocol/);
+  // اگر fetch در سطح شبکه رد شد، XMLHttpRequest به‌عنوان fallback تلاش می‌کند.
+  assert.match(js, /XMLHttpRequest/);
+  assert.match(js, /tryXhr/);
 });
 
 test("save AJAX verifies nonce with a JSON error and JS surfaces server messages", () => {

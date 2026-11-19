@@ -332,7 +332,7 @@
           body.set(key, data[key]);
         });
         // ajaxUrl را هم‌مبدأ با صفحه می‌کنیم تا mixed-content (HTTP در صفحهٔ
-        // HTTPS) باعث بلاک شدن fetch نشود.
+        // HTTPS) باعث بلاک شدن درخواست نشود.
         var ajaxUrl = config.ajaxUrl || "/wp-admin/admin-ajax.php";
         try {
           var parsed = new URL(ajaxUrl, window.location.href);
@@ -345,49 +345,74 @@
         } catch (e) {
           ajaxUrl = "/wp-admin/admin-ajax.php";
         }
-        fetch(ajaxUrl, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: body.toString(),
-        })
-          .then(function (res) {
-            // اول متن پاسخ را می‌خوانیم تا پاسخ غیر-JSON (مثل خطای سرور)
-            // به‌اشتباه به‌عنوان «قطع ارتباط» گزارش نشود.
-            return res.text().then(function (text) {
-              var json = null;
-              try {
-                json = JSON.parse(text);
-              } catch (e) {
-                json = null;
-              }
-              return { ok: res.ok, status: res.status, json: json, text: text };
+        var payload = body.toString();
+
+        function handleResult(result) {
+          var json = result.json;
+          if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
+            if (list) list.innerHTML = "";
+            json.data.addresses.forEach(function (entry, idx) {
+              appendAddress(entry, idx === json.data.addresses.length - 1);
             });
-          })
-          .then(function (result) {
-            var json = result.json;
-            if (json && json.success && json.data && Array.isArray(json.data.addresses)) {
-              if (list) list.innerHTML = "";
-              json.data.addresses.forEach(function (entry, idx) {
-                appendAddress(entry, idx === json.data.addresses.length - 1);
-              });
-              clearNewForm();
-              setFormOpen(false);
-              showStatus("آدرس ذخیره شد.", false);
-            } else if (json && json.data && json.data.message) {
-              showStatus(json.data.message, true);
-            } else if (!result.ok) {
-              showStatus("خطای سرور (" + result.status + ")؛ دوباره تلاش کنید.", true);
-            } else {
-              showStatus("ذخیرهٔ آدرس ناموفق بود؛ دوباره تلاش کنید.", true);
-            }
-          })
-          .catch(function () {
+            clearNewForm();
+            setFormOpen(false);
+            showStatus("آدرس ذخیره شد.", false);
+          } else if (json && json.data && json.data.message) {
+            showStatus(json.data.message, true);
+          } else if (!result.ok) {
+            showStatus("خطای سرور (" + result.status + ")؛ دوباره تلاش کنید.", true);
+          } else {
+            showStatus("ذخیرهٔ آدرس ناموفق بود؛ دوباره تلاش کنید.", true);
+          }
+          saveBtn.disabled = false;
+        }
+
+        function parseResponse(ok, status, text) {
+          var json = null;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            json = null;
+          }
+          return { ok: ok, status: status, json: json, text: text };
+        }
+
+        // اول fetch؛ اگر در سطح شبکه رد شد، با XMLHttpRequest دوباره تلاش می‌کنیم.
+        var usedFetch = false;
+        function tryXhr() {
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", ajaxUrl, true);
+          xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+          xhr.onload = function () {
+            handleResult(parseResponse(xhr.status >= 200 && xhr.status < 300, xhr.status, xhr.responseText || ""));
+          };
+          xhr.onerror = function () {
             showStatus("ارتباط با سرور ناموفق بود؛ دوباره تلاش کنید.", true);
-          })
-          .finally(function () {
             saveBtn.disabled = false;
-          });
+          };
+          xhr.send(payload);
+        }
+
+        if (window.fetch) {
+          usedFetch = true;
+          fetch(ajaxUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: payload,
+          })
+            .then(function (res) {
+              return res.text().then(function (text) {
+                handleResult(parseResponse(res.ok, res.status, text));
+              });
+            })
+            .catch(function () {
+              tryXhr();
+            });
+        }
+        if (!usedFetch) {
+          tryXhr();
+        }
       });
     }
 
