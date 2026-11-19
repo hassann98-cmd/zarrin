@@ -490,9 +490,15 @@
   }
 
   function updateStickyTotal() {
-    var source = form.querySelector("#order_review [data-jluxe-order-total-value]");
     var target = stickyAction && stickyAction.querySelector("[data-guided-total]");
-    if (source && target) target.innerHTML = source.innerHTML;
+    if (!target) return;
+    // P2 (audit): primary source is the theme's own total marker; if a
+    // plugin replaces the totals markup, fall back to WooCommerce's
+    // standard .order-total .amount so the sticky bar never goes stale.
+    var source = form.querySelector("#order_review [data-jluxe-order-total-value]")
+      || form.querySelector("#order_review .order-total .amount")
+      || form.querySelector("#order_review .order-total");
+    if (source) target.innerHTML = source.innerHTML;
   }
 
   function updateStickyAction() {
@@ -829,6 +835,9 @@
         if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;
         couponErrorForPending = true;
         setCouponStatus("این کد تخفیف قابل اعمال نیست؛ کد را بررسی کنید.", true);
+        // P1 (audit): an invalid coupon must release the input immediately —
+        // without this the customer waits for the 30s timeout with a dead form.
+        finishCouponRequest();
       });
       $(body).on("applied_coupon_in_checkout.jluxeGuided", function (_event, code) {
         if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;

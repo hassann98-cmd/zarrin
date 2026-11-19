@@ -607,3 +607,68 @@ test("P1 audit: sticky pay button cannot submit the order twice", (t) => {
   assert.equal(placeOrderClicks, 1, "only the first click reaches place_order; the rest are locked out");
 });
 
+
+test("P1 audit: an invalid coupon releases the input immediately instead of waiting for the timeout", (t) => {
+  const { dom, window, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  const couponInput = document.querySelector("[data-guided-coupon-input]");
+  const couponButton = document.querySelector("[data-guided-coupon-apply]");
+  const couponStatus = document.querySelector("[data-guided-coupon-status]");
+  couponInput.value = "INVALID-CODE";
+  couponButton.click();
+  assert.equal(couponInput.disabled, true, "input is locked while the request is pending");
+  assert.equal(couponButton.disabled, true);
+
+  // WooCommerce rejects the coupon.
+  $(document.body).trigger("errored_coupon_in_checkout", ["INVALID-CODE"]);
+  assert.equal(couponInput.disabled, false, "input is released immediately after the error");
+  assert.equal(couponButton.disabled, false, "button is released immediately after the error");
+  assert.equal(couponButton.hasAttribute("aria-busy"), false);
+  assert.match(couponStatus.textContent, /قابل اعمال نیست/);
+  assert.equal(couponStatus.getAttribute("data-status"), "error");
+});
+
+test("P1 audit: a late coupon response after timeout cannot overwrite a newer request", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  const couponInput = document.querySelector("[data-guided-coupon-input]");
+  const couponButton = document.querySelector("[data-guided-coupon-apply]");
+  const couponStatus = document.querySelector("[data-guided-coupon-status]");
+
+  couponInput.value = "FIRST";
+  couponButton.click();
+  // First request errors out and releases.
+  $(document.body).trigger("errored_coupon_in_checkout", ["FIRST"]);
+  assert.equal(couponInput.disabled, false);
+
+  // Second request starts; a stale success for FIRST must not clear it.
+  couponInput.value = "SECOND";
+  couponButton.click();
+  assert.equal(couponInput.disabled, true, "second request is pending");
+  $(document.body).trigger("applied_coupon_in_checkout", ["FIRST"]);
+  assert.equal(couponInput.disabled, true, "stale response does not release the pending request");
+  assert.match(couponStatus.textContent, /در حال بررسی/, "stale response does not overwrite the pending status");
+
+  $(document.body).trigger("applied_coupon_in_checkout", ["SECOND"]);
+  assert.equal(couponInput.disabled, false, "matching response releases the request");
+  assert.match(couponStatus.textContent, /با موفقیت/);
+});
+
+test("P2 audit: sticky total falls back to WooCommerce's .order-total when the theme marker is replaced", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  // A plugin replaces the totals markup: theme marker gone, standard WooCommerce total remains.
+  const review = document.getElementById("order_review");
+  review.innerHTML = '<div class="order-total"><span class="amount">۹۹۹۹ تومان</span></div>';
+  $(document.body).trigger("updated_checkout");
+  assert.equal(document.querySelector("[data-guided-total]").textContent, "۹۹۹۹ تومان", "sticky bar follows the fallback selector");
+});

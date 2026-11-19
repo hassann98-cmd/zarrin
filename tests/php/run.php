@@ -9777,6 +9777,15 @@ check(
 	'R210 thank-you item prices use WooCommerce order currency and do not promise unverified tracking SMS'
 );
 
+// R363 (audit P1 #12): pending/on-hold orders must not show the success
+// celebration — they get a neutral "awaiting confirmation" state.
+check(
+	false !== strpos( $r210_thankyou_source, "\$jluxe_ty_awaiting = \$order->has_status( array( 'pending', 'on-hold' ) )" ) &&
+	false !== strpos( $r210_thankyou_source, 'در انتظار تأیید' ) &&
+	false !== strpos( $r210_thankyou_source, 'پرداخت یا تأیید نهایی سفارش هنوز انجام نشده است' ),
+	'R363 thank-you shows an awaiting-confirmation state for pending/on-hold orders instead of the success celebration'
+);
+
 // R216 — private A6 shipping labels use only configured store/order data and customer checkout notes.
 $r216_settings = jluxe_theme_settings_defaults();
 $r216_settings['contact']['phone'] = '02112345678';

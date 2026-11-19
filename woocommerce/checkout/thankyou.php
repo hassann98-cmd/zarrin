@@ -25,6 +25,10 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 	$jluxe_ty_items   = $order->get_items();
 	$jluxe_ty_has_shipping_address = (bool) array_filter( $order->get_address( 'shipping' ) );
 	$jluxe_ty_address = $jluxe_ty_has_shipping_address ? $order->get_formatted_shipping_address() : $order->get_formatted_billing_address();
+	// P1 (audit): a pending/on-hold order is NOT a confirmed payment — the
+	// celebration hero would mislead the customer. Those orders get a
+	// neutral "awaiting confirmation" state instead.
+	$jluxe_ty_awaiting = $order->has_status( array( 'pending', 'on-hold' ) );
 
 	// کارت‌های اعتمادِ همون بخشِ فوتر (footer.feature_cards) — طبقِ اصلِ
 	// «تکرار نکن»، به‌جایِ تعریفِ دوباره‌ی متنِ ارسال/پشتیبانی/امنیت اینجا.
@@ -67,12 +71,22 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			 * کاملاً خاموشش می‌کنه (globals.css).
 			 */
 			?>
+			<?php if ( $jluxe_ty_awaiting ) : ?>
+				<div class="jluxe-ty-hero relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-10 text-center sm:py-14">
+					<div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-muted text-foreground sm:size-24">
+						<svg class="size-10 sm:size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+					</div>
+					<h1 class="text-h1 font-extrabold text-foreground">سفارش شما ثبت شد — در انتظار تأیید</h1>
+					<p class="mx-auto mt-3 max-w-md text-body text-text-secondary">پرداخت یا تأیید نهایی سفارش هنوز انجام نشده است. پس از تأیید، وضعیت سفارش به‌روزرسانی می‌شود. برای پیگیری، از دکمهٔ «پیگیری سفارش» استفاده کنید.</p>
+				</div>
+			<?php else : ?>
 			<div class="jluxe-ty-hero relative overflow-hidden rounded-3xl border border-success/20 bg-gradient-to-br from-success/10 via-surface to-accent/10 px-6 py-10 text-center sm:py-14">
 				<div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-success text-white shadow-lg shadow-success/25 sm:size-24">
 					<svg class="jluxe-ty-check-path size-10 sm:size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
 				</div>
 				<h1 class="text-h1 font-extrabold text-foreground">سفارش شما با موفقیت ثبت شد 🎉</h1>
 				<p class="mx-auto mt-3 max-w-md text-body text-text-secondary">جزئیات واقعی سفارش در همین صفحه قرار دارد. برای پیگیری، از دکمهٔ «پیگیری سفارش» استفاده کنید.</p>
+			<?php endif; ?>
 				<div class="mt-6 inline-flex items-center gap-2 rounded-full bg-surface px-5 py-2 text-small font-bold text-foreground shadow-sm">
 					شماره سفارش
 					<span class="text-primary" dir="ltr">#<?php echo esc_html( jluxe_fa_digits( $order->get_order_number() ) ); ?></span>
