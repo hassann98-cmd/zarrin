@@ -236,11 +236,10 @@ test("guided checkout suppresses the cashback announcement and default coupon to
   t.after(() => dom.window.close());
   fillRequiredAddress(document);
   const notices = document.querySelector("[data-guided-before-form-notices]");
-  const cashback = document.querySelector("[data-test-cashback]");
   const couponToggle = document.querySelector(".woocommerce-form-coupon-toggle");
   assert.equal(notices.hidden, false, "the pre-checkout hook wrapper remains available");
-  assert.equal(cashback.hidden, true, "the wallet cashback notice is suppressed on guided checkout");
-  assert.equal(cashback.getAttribute("aria-hidden"), "true");
+  // 1.7.357: اعلان کش‌بک کاملاً از DOM حذف می‌شود.
+  assert.equal(document.querySelector("[data-test-cashback]"), null, "the wallet cashback notice is removed from the DOM on guided checkout");
   assert.equal(couponToggle.hidden, true, "WooCommerce's duplicate default coupon toggle is suppressed");
   assert.equal(couponToggle.getAttribute("aria-hidden"), "true");
   assert.equal(document.querySelector("[data-test-other-notice]").hidden, false, "unrelated WooCommerce notices remain visible");
@@ -254,8 +253,7 @@ test("guided checkout suppresses the cashback announcement and default coupon to
   refreshedCouponToggle.textContent = "کد تخفیف دارید؟";
   notices.append(refreshedCouponToggle);
   $(document.body).trigger("updated_checkout");
-  assert.equal(refreshedCashback.hidden, true, "notices inserted by a WooCommerce checkout refresh are also suppressed");
-  assert.equal(refreshedCashback.getAttribute("aria-hidden"), "true");
+  assert.equal(refreshedCashback.isConnected, false, "notices inserted by a WooCommerce checkout refresh are also removed");
   assert.equal(refreshedCouponToggle.hidden, true);
   assert.equal(refreshedCouponToggle.getAttribute("aria-hidden"), "true");
 
@@ -265,7 +263,7 @@ test("guided checkout suppresses the cashback announcement and default coupon to
 
   document.querySelector('[data-guided-panel="payment"] [data-guided-back]').click();
   assert.equal(notices.hidden, false);
-  assert.equal(cashback.hidden, true, "returning to shipping does not restore the unwanted cashback notice");
+  assert.equal(document.querySelector("[data-test-cashback]"), null, "returning to shipping does not restore the removed cashback notice");
   assert.equal(couponToggle.hidden, true, "returning to shipping does not restore the duplicate coupon toggle");
 });
 

@@ -62,15 +62,14 @@ function bootClassicCheckout() {
   return { dom, window, document, $, nativeSubmissions: () => nativeSubmissions };
 }
 
-test("classic checkout hides only the cashback notice and default coupon prompt, including after WooCommerce refreshes", (t) => {
+test("classic checkout removes the cashback notice from the DOM and hides only the default coupon prompt, including after WooCommerce refreshes", (t) => {
   const { dom, document, $ } = bootClassicCheckout();
   t.after(() => dom.window.close());
 
-  const cashback = document.querySelector("[data-test-cashback]");
+  // 1.7.357: اعلان کش‌بک کاملاً از DOM حذف می‌شود (نه فقط مخفی).
+  assert.equal(document.querySelector("[data-test-cashback]"), null, "the cashback notice is removed from the DOM entirely");
   const toggle = document.querySelector(".woocommerce-form-coupon-toggle");
   const unrelated = document.querySelector("[data-test-other-notice]");
-  assert.equal(cashback.hidden, true);
-  assert.equal(cashback.getAttribute("aria-hidden"), "true");
   assert.equal(toggle.hidden, true);
   assert.equal(toggle.getAttribute("aria-hidden"), "true");
   assert.equal(unrelated.hidden, false, "unrelated notices stay visible");
@@ -86,8 +85,7 @@ test("classic checkout hides only the cashback notice and default coupon prompt,
   refreshedToggle.textContent = "کد تخفیف دارید؟";
   document.querySelector(".woocommerce").append(refreshedToggle);
   $(document.body).trigger("updated_checkout");
-  assert.equal(refreshedCashback.hidden, true);
-  assert.equal(refreshedCashback.getAttribute("aria-hidden"), "true");
+  assert.equal(refreshedCashback.isConnected, false, "a refreshed cashback notice is removed again on update");
   assert.equal(refreshedToggle.hidden, true);
   assert.equal(refreshedToggle.getAttribute("aria-hidden"), "true");
 });
