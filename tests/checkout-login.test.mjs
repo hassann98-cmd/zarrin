@@ -117,6 +117,9 @@ test("checkout login JS fills the form, toggles the accordion, and saves via AJA
   assert.match(js, /ship-to-different-address-checkbox/);
   assert.match(js, /JSON\.parse/);
   assert.match(js, /is-selected/);
+  // 1.7.358: ship-to-different همیشه غیرفعال است، پس انتخاب آدرس «shipping»
+  // هم باید روی billing اعمال شود تا روی سفارش اثر بگذارد.
+  assert.match(js, /value === "shipping"\) \{[\s\S]*?applyAddress\(address, "shipping"\);\s*applyAddress\(address, "billing"\)/, "shipping address selection also applies to billing since ship-to-different is disabled");
 });
 
 test("province and city display names instead of numeric IDs", () => {

@@ -147,7 +147,11 @@
           applyAddress(address, "shipping");
         }
       } else if (value === "shipping") {
+        // ship-to-different همیشه غیرفعال است (فیلتر woocommerce_ship_to_different_address_checkbox_enabled)،
+        // پس ووکامرس برای ارسال از آدرس صورتحساب استفاده می‌کند. برای اینکه آدرس
+        // انتخاب‌شده واقعاً روی سفارش اثر بگذارد، باید روی billing هم اعمال شود.
         applyAddress(address, "shipping");
+        applyAddress(address, "billing");
         var shipCheckbox = field("ship-to-different-address-checkbox");
         if (shipCheckbox && !shipCheckbox.checked) {
           shipCheckbox.checked = true;
