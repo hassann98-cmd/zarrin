@@ -177,6 +177,7 @@ function jluxe_get_customer_addresses(): array {
 		}
 	}
 	if ( jluxe_address_has_content( $billing ) && ! $billing_is_duplicate ) {
+		$billing['id'] = 'billing';
 		$out[] = array(
 			'type'    => 'billing',
 			'label'   => 'آدرس صورتحساب',
@@ -205,6 +206,7 @@ function jluxe_get_customer_addresses(): array {
 		}
 	}
 	if ( jluxe_address_has_content( $shipping ) && ! $shipping_is_duplicate ) {
+		$shipping['id'] = 'shipping';
 		$out[] = array(
 			'type'    => 'shipping',
 			'label'   => 'آدرس ارسال',
@@ -243,6 +245,8 @@ function jluxe_get_customer_addresses(): array {
 				}
 			}
 			if ( ! $duplicate ) {
+				// شناسهٔ پایدار بر اساس محتوای آدرس (برای ویرایش/حذف).
+				$converted['id'] = 'dsn-' . substr( md5( json_encode( $converted ) ), 0, 12 );
 				$out[] = array(
 					'type'    => 'billing',
 					'label'   => 'آدرس ذخیره‌شده',
@@ -370,8 +374,11 @@ function jluxe_save_customer_address( array $data ): bool {
 	);
 	// شناسهٔ پایدار برای ویرایش/حذف.
 	$address_id = isset( $data['address_id'] ) ? sanitize_text_field( $data['address_id'] ) : '';
-	$updated = false;
-	if ( '' !== $address_id ) {
+	// ویرایش آدرس صورتحساب/ارسال: فقط متای مربوطه به‌روز می‌شود (بخش پایین‌تر)،
+	// لیست اختصاصی دست نمی‌خورد.
+	$is_meta_address = in_array( $address_id, array( 'billing', 'shipping' ), true );
+	$updated = $is_meta_address;
+	if ( '' !== $address_id && ! $is_meta_address ) {
 		foreach ( $saved as $idx => $existing ) {
 			if ( is_array( $existing ) && ( $existing['id'] ?? '' ) === $address_id ) {
 				$new_address['id'] = $address_id;
@@ -510,16 +517,61 @@ function jluxe_ajax_delete_checkout_address(): void {
 	}
 	$address_id = isset( $_POST['address_id'] ) ? sanitize_text_field( wp_unslash( $_POST['address_id'] ) ) : '';
 	$user_id = get_current_user_id();
-	$saved = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
-	if ( is_array( $saved ) && '' !== $address_id ) {
-		$remaining = array();
-		foreach ( $saved as $existing ) {
-			if ( is_array( $existing ) && ( $existing['id'] ?? '' ) === $address_id ) {
-				continue;
-			}
-			$remaining[] = $existing;
+
+	if ( 'billing' === $address_id ) {
+		// حذف آدرس صورتحساب: پاک شدن فیلدهای صورتحساب از متای کاربر.
+		foreach ( array( 'billing_first_name', 'billing_last_name', 'billing_company', 'billing_address_1', 'billing_address_2', 'billing_city', 'billing_state', 'billing_postcode', 'billing_country', 'billing_phone', 'billing_landline' ) as $key ) {
+			delete_user_meta( $user_id, $key );
 		}
-		update_user_meta( $user_id, 'jluxe_saved_addresses', $remaining );
+	} elseif ( 'shipping' === $address_id ) {
+		// حذف آدرس ارسال: پاک شدن فیلدهای ارسال از متای کاربر.
+		foreach ( array( 'shipping_first_name', 'shipping_last_name', 'shipping_company', 'shipping_address_1', 'shipping_address_2', 'shipping_city', 'shipping_state', 'shipping_postcode', 'shipping_country' ) as $key ) {
+			delete_user_meta( $user_id, $key );
+		}
+	} elseif ( 0 === strpos( $address_id, 'dsn-' ) ) {
+		// حذف آدرس DSN: حذف از متای dsn_addresses بر اساس شناسهٔ محتوایی.
+		$dsn_addresses = get_user_meta( $user_id, 'dsn_addresses', true );
+		if ( is_array( $dsn_addresses ) ) {
+			$remaining = array();
+			foreach ( $dsn_addresses as $dsn ) {
+				if ( ! is_array( $dsn ) ) {
+					$remaining[] = $dsn;
+					continue;
+				}
+				$converted = array(
+					'first_name' => (string) ( $dsn['first_name'] ?? '' ),
+					'last_name'  => (string) ( $dsn['last_name'] ?? '' ),
+					'company'    => '',
+					'address_1'  => (string) ( $dsn['address'] ?? '' ),
+					'address_2'  => '',
+					'city'       => (string) ( $dsn['city'] ?? '' ),
+					'state'      => (string) ( $dsn['province'] ?? '' ),
+					'postcode'   => (string) ( $dsn['postcode'] ?? '' ),
+					'country'    => 'IR',
+					'phone'      => (string) ( $dsn['phone'] ?? '' ),
+					'landline'   => '',
+				);
+				$dsn_id = 'dsn-' . substr( md5( json_encode( $converted ) ), 0, 12 );
+				if ( $dsn_id === $address_id ) {
+					continue;
+				}
+				$remaining[] = $dsn;
+			}
+			update_user_meta( $user_id, 'dsn_addresses', $remaining );
+		}
+	} else {
+		// حذف آدرس ذخیره‌شده از لیست اختصاصی.
+		$saved = get_user_meta( $user_id, 'jluxe_saved_addresses', true );
+		if ( is_array( $saved ) && '' !== $address_id ) {
+			$remaining = array();
+			foreach ( $saved as $existing ) {
+				if ( is_array( $existing ) && ( $existing['id'] ?? '' ) === $address_id ) {
+					continue;
+				}
+				$remaining[] = $existing;
+			}
+			update_user_meta( $user_id, 'jluxe_saved_addresses', $remaining );
+		}
 	}
 	$addresses = jluxe_get_customer_addresses();
 	$formatted = array();
