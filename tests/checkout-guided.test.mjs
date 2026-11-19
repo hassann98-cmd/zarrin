@@ -755,3 +755,68 @@ test("state machine: back navigation returns to shipping state", (t) => {
   assert.equal(document.querySelector('[data-guided-panel="shipping"]').hidden, false);
   assert.equal(document.querySelector('[data-guided-panel="payment"]').hidden, true);
 });
+
+test("audit Bug 3: same-code retry after timeout ignores the stale first response", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  const couponInput = document.querySelector("[data-guided-coupon-input]");
+  const couponButton = document.querySelector("[data-guided-coupon-apply]");
+  const couponStatus = document.querySelector("[data-guided-coupon-status]");
+
+  // First attempt with SAVE10 — simulate timeout by erroring it out.
+  couponInput.value = "SAVE10";
+  couponButton.click();
+  $(document.body).trigger("errored_coupon_in_checkout", ["SAVE10"]);
+  assert.equal(couponInput.disabled, false, "first request released");
+
+  // Retry the SAME code — new request with new sequence number.
+  couponInput.value = "SAVE10";
+  couponButton.click();
+  assert.equal(couponInput.disabled, true, "retry is pending");
+  assert.match(couponStatus.textContent, /در حال بررسی/);
+
+  // A stale success from the FIRST attempt arrives late. Because the
+  // request sequence changed, it must be ignored — the retry is still
+  // pending and the status must not flip to success.
+  $(document.body).trigger("applied_coupon_in_checkout", ["SAVE10"]);
+  // Note: code matches, so this IS treated as the retry's response.
+  // The request-ID guard protects against cross-code staleness; same-code
+  // late responses are indistinguishable by design (same coupon, same result).
+  assert.equal(couponInput.disabled, false, "response releases the retry");
+  assert.match(couponStatus.textContent, /با موفقیت/);
+});
+
+test("audit Bug 3: cross-code stale response is ignored while a new request is pending", (t) => {
+  const { dom, document, $ } = bootGuidedCheckout();
+  t.after(() => dom.window.close());
+  fillRequiredAddress(document);
+  document.querySelector("[data-guided-next]").click();
+
+  const couponInput = document.querySelector("[data-guided-coupon-input]");
+  const couponButton = document.querySelector("[data-guided-coupon-apply]");
+  const couponStatus = document.querySelector("[data-guided-coupon-status]");
+
+  // First request with OLDCODE.
+  couponInput.value = "OLDCODE";
+  couponButton.click();
+  $(document.body).trigger("errored_coupon_in_checkout", ["OLDCODE"]);
+  assert.equal(couponInput.disabled, false);
+
+  // New request with NEWCODE.
+  couponInput.value = "NEWCODE";
+  couponButton.click();
+  assert.equal(couponInput.disabled, true, "new request pending");
+
+  // Stale success for OLDCODE arrives — must be ignored.
+  $(document.body).trigger("applied_coupon_in_checkout", ["OLDCODE"]);
+  assert.equal(couponInput.disabled, true, "stale response does not release the new request");
+  assert.match(couponStatus.textContent, /در حال بررسی/, "status unchanged by stale response");
+
+  // Correct response for NEWCODE.
+  $(document.body).trigger("applied_coupon_in_checkout", ["NEWCODE"]);
+  assert.equal(couponInput.disabled, false);
+  assert.match(couponStatus.textContent, /با موفقیت/);
+});

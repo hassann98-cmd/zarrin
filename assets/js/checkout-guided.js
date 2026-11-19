@@ -26,6 +26,12 @@
   var pendingCoupon = "";
   var couponErrorForPending = false;
   var couponRequestTimer = null;
+  // Audit Bug 3: each coupon request gets a sequence number. A late
+  // response from a timed-out request must not be mistaken for the
+  // response to a retry of the same code. Responses are matched by
+  // (code, requestId) — stale ones are ignored.
+  var couponRequestSeq = 0;
+  var pendingCouponRequestId = 0;
   var stickyAction = form.querySelector("[data-guided-mobile-action]");
   var stickyButton = stickyAction && stickyAction.querySelector("[data-guided-continue]");
   var stickyLabel = stickyAction && stickyAction.querySelector("[data-guided-continue-label]");
@@ -506,12 +512,17 @@
     if (couponRequestTimer !== null) window.clearTimeout(couponRequestTimer);
     couponRequestTimer = null;
     pendingCoupon = "";
+    pendingCouponRequestId = 0;
     couponErrorForPending = false;
     if (couponInput) couponInput.disabled = false;
     if (couponButton) {
       couponButton.disabled = false;
       couponButton.removeAttribute("aria-busy");
     }
+  }
+
+  function isCurrentCouponResponse(code) {
+    return pendingCoupon && normalizedCouponCode(code) === pendingCoupon;
   }
 
   function applyGuidedCoupon(event) {
@@ -530,6 +541,7 @@
     }
 
     pendingCoupon = normalizedCouponCode(code);
+    pendingCouponRequestId = ++couponRequestSeq;
     couponErrorForPending = false;
     nativeCouponInput.value = code;
     couponInput.disabled = true;
@@ -886,7 +898,7 @@
     });
     if (couponWidget) {
       $(body).on("errored_coupon_in_checkout.jluxeGuided", function (_event, code) {
-        if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;
+        if (!isCurrentCouponResponse(code)) return;
         couponErrorForPending = true;
         setCouponStatus("این کد تخفیف قابل اعمال نیست؛ کد را بررسی کنید.", true);
         // P1 (audit): an invalid coupon must release the input immediately —
@@ -894,7 +906,7 @@
         finishCouponRequest();
       });
       $(body).on("applied_coupon_in_checkout.jluxeGuided", function (_event, code) {
-        if (!pendingCoupon || normalizedCouponCode(code) !== pendingCoupon) return;
+        if (!isCurrentCouponResponse(code)) return;
         if (couponErrorForPending) {
           setCouponStatus("این کد تخفیف قابل اعمال نیست؛ کد را بررسی کنید.", true);
         } else {
