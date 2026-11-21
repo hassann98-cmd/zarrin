@@ -4,38 +4,33 @@ import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 const source=fs.readFileSync(new URL('../assets/js/woocommerce.js',import.meta.url),'utf8');
 const script=source.slice(source.indexOf('/** Compact mobile variation strips;'));
-test('no extra photo preview, native choices stay in a single strip and facts move below options only on mobile',()=>{
+test('no extra photo preview; mobile facts remain server-rendered while choices stay in a single strip',()=>{
  const dom=new JSDOM('<body class="single-product"><div class="jluxe-product-reference"><div data-reference-product-meta><span data-reference-stock-status="in-stock">In stock</span><span data-reference-sku><bdi dir="ltr">SKU-123</bdi></span><span data-jluxe-delivery-time-row>Tomorrow</span></div><div data-reference-low-stock hidden>2 left</div><div data-reference-variation-options><div data-cp3-pills="pa_color"><button data-value="red">Red</button><button data-value="blue">Blue</button></div></div></div>',{runScripts:'outside-only'});
- try{const w=dom.window;const changes=[];const change=()=>changes.forEach(fn=>fn());const media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document;
+ try{const w=dom.window;const changes=[];const media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document;
  assert.equal(d.querySelectorAll('.jluxe-option-strip').length,1);assert.equal(d.querySelectorAll('.jluxe-option-strip__arrow').length,2);assert.equal(d.querySelectorAll('[data-value]').length,2);assert.equal(d.querySelector('.jluxe-colour-preview'),null);
- const facts=d.querySelector('.jluxe-mobile-purchase-facts');assert.ok(facts.querySelector('[data-reference-stock-status]'));assert.equal(d.querySelector('[data-reference-product-meta] [data-reference-sku] bdi').textContent,'SKU-123');assert.ok(d.querySelector('.jluxe-variation-heading [data-reference-low-stock]').hidden);assert.equal(facts.querySelector('[data-reference-sku]'),null);assert.ok(facts.querySelector('[data-jluxe-delivery-time-row]'));assert.equal(d.querySelector('[data-reference-variation-options]').nextElementSibling,facts);
- media.matches=false;change();assert.ok(d.querySelector('[data-reference-product-meta] [data-jluxe-delivery-time-row]'));assert.equal(facts.children.length,0);assert.ok(d.querySelector('[data-reference-product-meta] [data-reference-stock-status]'));assert.ok(d.querySelector('[data-reference-product-meta] [data-reference-sku]'));media.matches=true;change();assert.equal(d.querySelectorAll('[data-reference-product-meta] [data-reference-sku]').length,1);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(d.querySelectorAll('.jluxe-mobile-purchase-facts').length,1);
+ const meta=d.querySelector('[data-reference-product-meta]');assert.ok(meta.querySelector('[data-reference-stock-status]'));assert.equal(meta.querySelector('[data-reference-sku] bdi').textContent,'SKU-123');assert.ok(meta.querySelector('[data-jluxe-delivery-time-row]'));assert.ok(meta.compareDocumentPosition(d.querySelector('[data-reference-variation-options]')) & w.Node.DOCUMENT_POSITION_FOLLOWING);assert.equal(d.querySelector('.jluxe-mobile-purchase-facts'),null);assert.equal(d.querySelector('.jluxe-variation-heading'),null);
+ media.matches=false;changes.forEach(fn=>fn());assert.ok(d.querySelector('[data-reference-product-meta]').isSameNode(meta));assert.equal(meta.querySelectorAll('[data-reference-stock-status]').length,1);assert.equal(meta.querySelectorAll('[data-jluxe-delivery-time-row]').length,1);media.matches=true;changes.forEach(fn=>fn());assert.equal(meta.querySelectorAll('[data-reference-sku]').length,1);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(d.querySelectorAll('.jluxe-mobile-purchase-facts').length,0);
  }finally{dom.window.close();}
 });
 
-test('mobile facts and choices share a neutral design while selection remains explicit',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Quiet mobile selection system:')[1];
- assert.match(css,/@media\(max-width:767\.98px\)/);assert.match(css,/font-weight:500/);assert.match(css,/background:hsl\(var\(--muted\)\)/);assert.match(css,/data-jluxe-delivery-time-row\]\{order:-1;margin-inline-end:auto;text-align:right/);assert.match(css,/cp3-pill\.is-active\{border-color:hsl\(var\(--primary\)\)/);assert.match(css,/out-of-stock/);
-});
-
-test('purchase facts are an independent two-column panel with no empty placeholder cards',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Four related facts form')[1];
- assert.match(css,/@media\(max-width:767\.98px\)/);
- assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
- assert.match(css,/not\(:has\(>:not\(\[hidden\]\)\)\)\{display:none/);
- assert.match(css,/data-reference-stock-status\]\{order:0;grid-row:1;grid-column:1/);
- assert.match(css,/data-reference-sku\]\{order:2;grid-row:2;grid-column:1/);
- assert.match(css,/data-jluxe-delivery-time-row\]\{order:3;grid-row:2;grid-column:2/);
- assert.match(css,/data-jluxe-stock-count\]\{order:1;grid-row:1;grid-column:2/);
- assert.ok(source.includes("bar.setAttribute('role','group')"));
- assert.ok(source.includes("bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول')"));
-});
-
-test('SKU and stock are positioned by meaning without cloning dynamic quantities',()=>{
- assert.ok(source.includes('if(mobile.matches)identity.appendChild(trust)'));
- assert.ok(source.includes("options && (item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count')))heading.appendChild(item.node)"));
+test('mobile product metadata is visible in its original row; option selection remains explicit',()=>{
+ const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');
  const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');
+ assert.match(template,/reference-mobile-product-meta\{display:flex;flex-wrap:wrap/);assert.match(css,/cp3-pill\.is-active\{border-color:hsl\(var\(--primary\)\)/);assert.match(template,/reference-mobile-stock\.is-in-stock\{color:hsl\(var\(--success\)\)/);assert.match(template,/reference-mobile-stock\.is-out-of-stock\{color:hsl\(var\(--error\)\)/);
+});
+
+test('product facts use the server-rendered layout without injected placeholders',()=>{
+ assert.doesNotMatch(script,/jluxe-mobile-purchase-facts|jluxe-variation-heading|trust badge desktop position|purchase fact position/);
+ const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');
+ assert.ok(template.indexOf('data-reference-product-meta')<template.indexOf('data-reference-variation-options'));
  assert.match(template,/<span><bdi data-cp3-stock-quantity>[\s\S]*?<\/bdi> عدد موجود<\/span>/);
+});
+
+test('dynamic stock quantities are rendered once and are not relocated after load',()=>{
+ assert.doesNotMatch(script,/appendChild\(trust\)|appendChild\(item\.node\)|insertAdjacentElement\('beforebegin',notice\)/);
+ const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');
+ assert.match(template,/data-reference-low-stock data-cp3-low-stock/);
+ assert.match(template,/data-jluxe-stock-quantity/);
 });
 
 test('delivery shares one row with compact green stock without line wrapping',()=>{
@@ -66,11 +61,12 @@ test('overflow fades follow scroll boundaries in RTL and LTR without masking sho
  assert.match(css,/mask-image:linear-gradient/);assert.match(css,/data-jluxe-variation-value\]\{background:#fff;/);
 });
 
-test('compact mobile gallery contains actual adjacent images and preserves original fullscreen control',()=>{
- const dom=new JSDOM('<div class="jluxe-product-reference"><div data-cp3-gallery data-jluxe-gallery-current="0"><button data-cp3-zoom-box><img data-cp3-zoom-img src="one.jpg" alt="product"></button><button data-reference-gallery-index="0" data-full="one.jpg"></button><button data-reference-gallery-index="1" data-full="two.jpg"></button></div></div>',{runScripts:'outside-only'});
- try{const w=dom.window;w.eval(source.slice(source.indexOf('/* Mobile gallery: native')));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const track=w.document.querySelector('.jluxe-mobile-gallery-track');assert.equal(track.children.length,2);assert.match(track.children[1].querySelector('img').src,/two.jpg$/);let opened=0;w.document.querySelector('[data-cp3-zoom-box]').onclick=()=>opened++;track.children[1].click();assert.equal(opened,1);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(w.document.querySelectorAll('.jluxe-mobile-gallery-track').length,1);
+test('mobile gallery reserves its first-paint frame and uses responsive preview files',()=>{
+ const dom=new JSDOM('<div class="jluxe-product-reference"><div data-cp3-gallery data-jluxe-gallery-current="0"><button data-cp3-zoom-box><img data-cp3-zoom-img src="one.jpg" width="900" height="700" alt="product"></button><button data-reference-gallery-index="0" data-full="one-full.jpg"></button><button data-reference-gallery-index="1" data-full="two-full.jpg" data-preview-src="two-large.jpg" data-preview-srcset="two-small.jpg 320w, two-large.jpg 768w" data-preview-sizes="(max-width: 390px) 82vw, 320px" data-preview-width="640" data-preview-height="480"></button></div></div>',{runScripts:'outside-only'});
+ try{const w=dom.window;w.eval(source.slice(source.indexOf('/* Mobile gallery: native')));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const track=w.document.querySelector('.jluxe-mobile-gallery-track'),first=track.children[0].querySelector('img'),second=track.children[1].querySelector('img');assert.equal(track.children.length,2);assert.match(first.src,/one\.jpg$/);assert.equal(first.getAttribute('width'),'900');assert.equal(second.getAttribute('src'),'two-large.jpg');assert.equal(second.getAttribute('srcset'),'two-small.jpg 320w, two-large.jpg 768w');assert.equal(second.getAttribute('sizes'),'(max-width: 390px) 82vw, 320px');assert.equal(second.getAttribute('width'),'640');assert.equal(second.getAttribute('height'),'480');let opened=0;w.document.querySelector('[data-cp3-zoom-box]').onclick=()=>opened++;track.children[1].click();assert.equal(opened,1);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(w.document.querySelectorAll('.jluxe-mobile-gallery-track').length,1);
  }finally{dom.window.close();}
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Compact native mobile gallery:')[1];assert.match(css,/gap:6px;width:100%;height:auto/);assert.match(css,/flex:0 0 min\(82%,320px\);[\s\S]*?aspect-ratio:1\/1/);assert.match(css,/object-fit:cover;object-position:center/);assert.doesNotMatch(css,/object-fit:contain/);assert.match(css,/overflow-x:auto/);assert.match(css,/scroll-snap-type:x mandatory/);assert.match(css,/justify-content:flex-end;text-align:left/);
+ const styles=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');const css=styles.split('/* Compact native mobile gallery:')[1];assert.match(styles,/\[data-cp3-gallery\]::before\{content:"";display:block;width:min\(82%,320px\);aspect-ratio:1\/1/);assert.match(styles,/\[data-cp3-gallery\]:has\(>\.jluxe-mobile-gallery-track\)::before\{display:none/);assert.match(css,/gap:6px;width:100%;height:auto/);assert.match(css,/flex:0 0 min\(82%,320px\);[\s\S]*?aspect-ratio:1\/1/);assert.match(css,/object-fit:cover;object-position:center/);assert.match(css,/overflow-x:auto/);assert.match(css,/scroll-snap-type:x mandatory/);
+ const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');assert.match(template,/data-preview-srcset=/);assert.match(template,/width="<\?php echo absint\( \$cp3_main_image\['width'\] \); \?>" height="<\?php echo absint\( \$cp3_main_image\['height'\] \); \?>"/);
 });
 
 test('mobile facts place delivery right and compact availability left in the same RTL row',()=>{
@@ -91,15 +87,16 @@ test('mobile header pins natively without scroll transforms; gallery has compact
  assert.ok(source.includes("function sync(){updateMeter();"));
 });
 
-test('mobile notice immediately follows choices and enabled trust moves to identity; desktop restores both',()=>{
- const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div class="reference-mobile-taxonomy">Category</div><div data-jluxe-trust-badges>Authenticity</div><div data-reference-variation-options></div></div><div id="desktop"><aside data-jluxe-product-notice>Notice</aside></div></div>',{runScripts:'outside-only'});
- try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,options=d.querySelector('[data-reference-variation-options]'),notice=d.querySelector('[data-jluxe-product-notice]');assert.equal(options.nextElementSibling,notice);assert.ok(d.querySelector('.reference-mobile-taxonomy>[data-jluxe-trust-badges]'));media.matches=false;changes.forEach(fn=>fn());assert.equal(notice.parentElement.id,'desktop');assert.ok(d.querySelector('.cp3-info>[data-jluxe-trust-badges]'));media.matches=true;changes.forEach(fn=>fn());assert.equal(options.nextElementSibling,notice);assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);
+test('product trust, options, and notice keep their server-rendered order across breakpoints',()=>{
+ const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div class="reference-mobile-taxonomy">Category</div><h1>Product</h1><div data-jluxe-trust-badges>Authenticity</div><div data-reference-product-meta><span data-reference-stock-status="in-stock">Stock</span></div><div data-reference-variation-options></div><aside data-jluxe-product-notice>Notice</aside></div></div>',{runScripts:'outside-only'});
+ try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,options=d.querySelector('[data-reference-variation-options]'),notice=d.querySelector('[data-jluxe-product-notice]'),trust=d.querySelector('[data-jluxe-trust-badges]'),meta=d.querySelector('[data-reference-product-meta]');assert.equal(options.nextElementSibling,notice);assert.equal(trust.previousElementSibling.tagName,'H1');assert.equal(meta.parentElement,d.querySelector('.cp3-info'));assert.equal(d.querySelector('.jluxe-mobile-purchase-facts'),null);
+ media.matches=false;changes.forEach(fn=>fn());assert.equal(notice.previousElementSibling,options);assert.equal(trust.previousElementSibling.tagName,'H1');media.matches=true;changes.forEach(fn=>fn());assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);assert.equal(d.querySelectorAll('[data-jluxe-trust-badges]').length,1);
  }finally{dom.window.close();}
 });
 
-test('simple products get notice, delivery and availability without inventing variation controls',()=>{
- const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div data-reference-product-meta><span data-reference-stock-status="in-stock">Stock</span><span data-jluxe-delivery-time-row>Tomorrow</span><span data-jluxe-stock-count>3</span></div><aside data-jluxe-product-notice>Read this</aside></div></div>',{runScripts:'outside-only'});
- try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,notice=d.querySelector('[data-jluxe-product-notice]'),facts=d.querySelector('.jluxe-mobile-purchase-facts');assert.equal(notice.nextElementSibling,facts);assert.ok(facts.querySelector('[data-reference-stock-status]'));assert.ok(facts.querySelector('[data-jluxe-stock-count]'));assert.ok(facts.querySelector('[data-jluxe-delivery-time-row]'));assert.equal(d.querySelector('.jluxe-variation-heading'),null);media.matches=false;changes.forEach(fn=>fn());assert.ok(d.querySelector('[data-reference-product-meta]>[data-reference-stock-status]'));assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);
+test('simple-product facts and notice remain in the original markup without synthetic controls',()=>{
+ const dom=new JSDOM('<div class="jluxe-product-reference"><div class="cp3-info"><div class="reference-simple-product-meta" data-reference-product-meta><span data-reference-stock-status="in-stock">Stock</span><span data-jluxe-delivery-time-row>Tomorrow</span><span data-jluxe-stock-count>3</span></div><aside data-jluxe-product-notice>Read this</aside></div></div>',{runScripts:'outside-only'});
+ try{const w=dom.window,changes=[],media={matches:true,addEventListener(_e,fn){changes.push(fn);}};w.matchMedia=q=>q.includes('reduced')?{matches:true}:media;w.eval(script);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const d=w.document,meta=d.querySelector('[data-reference-product-meta]'),notice=d.querySelector('[data-jluxe-product-notice]');assert.ok(meta.querySelector('[data-reference-stock-status]'));assert.ok(meta.querySelector('[data-jluxe-stock-count]'));assert.ok(meta.querySelector('[data-jluxe-delivery-time-row]'));assert.equal(meta.nextElementSibling,notice);assert.equal(d.querySelector('.jluxe-mobile-purchase-facts'),null);assert.equal(d.querySelector('.jluxe-variation-heading'),null);assert.equal(meta.hasAttribute('data-jluxe-facts-ready'),false);media.matches=false;changes.forEach(fn=>fn());assert.equal(meta.querySelectorAll('[data-reference-stock-status]').length,1);assert.equal(d.querySelectorAll('[data-jluxe-product-notice]').length,1);
  }finally{dom.window.close();}
  const php=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');assert.equal((php.match(/jluxe_render_product_notice\( \$product \)/g)||[]).length,1);assert.ok(php.indexOf('jluxe_render_product_notice( $product )')<php.indexOf('<div class="reference-mobile-rating"'));
 });

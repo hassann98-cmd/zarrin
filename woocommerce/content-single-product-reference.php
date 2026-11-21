@@ -593,7 +593,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						$cp3_main_image  = jluxe_get_responsive_attachment_image( (int) $jluxe_gallery_ids[0], $cp3_main_size, $cp3_main_sizes );
 						$cp3_main_url    = $cp3_main_image['src'];
 						?>
-						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
+						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?><?php if ( ! empty( $cp3_main_image['width'] ) && ! empty( $cp3_main_image['height'] ) ) : ?> width="<?php echo absint( $cp3_main_image['width'] ); ?>" height="<?php echo absint( $cp3_main_image['height'] ); ?>"<?php endif; ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
 					</button>
 					<div class="reference-mobile-gallery-actions" role="group" aria-label="اقدام‌های محصول">
 						<a class="reference-mobile-gallery-button" href="<?php echo esc_url( $cp3_mobile_back_url ); ?>" aria-label="بازگشت به فروشگاه">
@@ -625,8 +625,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
 						<div class="reference-mobile-gallery-dots" role="group" aria-label="انتخاب تصویر محصول">
 							<?php foreach ( $jluxe_gallery_ids as $cp3_dot_i => $cp3_dot_att ) : ?>
-								<?php $cp3_dot_full = $cp3_dot_att ? wp_get_attachment_image_url( $cp3_dot_att, 'full' ) : wc_placeholder_img_src( 'full' ); ?>
-								<button type="button" class="reference-mobile-gallery-dot<?php echo 0 === $cp3_dot_i ? ' is-active' : ''; ?>" data-cp3-thumb data-reference-gallery-index="<?php echo esc_attr( (string) $cp3_dot_i ); ?>" data-full="<?php echo esc_url( $cp3_dot_full ?: wc_placeholder_img_src( 'full' ) ); ?>" aria-label="نمایش تصویر <?php echo esc_attr( jluxe_fa_digits( (string) ( $cp3_dot_i + 1 ) ) ); ?>" aria-pressed="<?php echo 0 === $cp3_dot_i ? 'true' : 'false'; ?>"></button>
+								<?php
+								$cp3_dot_full    = $cp3_dot_att ? wp_get_attachment_image_url( $cp3_dot_att, 'full' ) : wc_placeholder_img_src( 'full' );
+								$cp3_dot_preview = $cp3_dot_att ? jluxe_get_responsive_attachment_image( (int) $cp3_dot_att, 'large', '(max-width: 390px) 82vw, 320px' ) : array();
+								?>
+								<button type="button" class="reference-mobile-gallery-dot<?php echo 0 === $cp3_dot_i ? ' is-active' : ''; ?>" data-cp3-thumb data-reference-gallery-index="<?php echo esc_attr( (string) $cp3_dot_i ); ?>" data-full="<?php echo esc_url( $cp3_dot_full ?: wc_placeholder_img_src( 'full' ) ); ?>"<?php if ( ! empty( $cp3_dot_preview['src'] ) && ! empty( $cp3_dot_preview['width'] ) && ! empty( $cp3_dot_preview['height'] ) ) : ?> data-preview-src="<?php echo esc_url( $cp3_dot_preview['src'] ); ?>" data-preview-srcset="<?php echo esc_attr( $cp3_dot_preview['srcset'] ); ?>" data-preview-sizes="<?php echo esc_attr( $cp3_dot_preview['sizes'] ); ?>" data-preview-width="<?php echo absint( $cp3_dot_preview['width'] ); ?>" data-preview-height="<?php echo absint( $cp3_dot_preview['height'] ); ?>"<?php endif; ?> aria-label="نمایش تصویر <?php echo esc_attr( jluxe_fa_digits( (string) ( $cp3_dot_i + 1 ) ) ); ?>" aria-pressed="<?php echo 0 === $cp3_dot_i ? 'true' : 'false'; ?>"></button>
 							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>

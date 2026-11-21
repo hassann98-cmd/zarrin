@@ -6267,41 +6267,11 @@ function jluxeEnhanceShopSort(root) {
    if(window.ResizeObserver){new ResizeObserver(function(){edges();}).observe(track);}
    window.addEventListener('resize',function(){if(!mobile.matches)cancel();edges();});
   });
-  var root=document.querySelector('.jluxe-product-reference');
-  if(root){
-   var trust=root.querySelector('[data-jluxe-trust-badges]');
-   if(trust && !trust.dataset.jluxeIdentityReady){
-    trust.dataset.jluxeIdentityReady='1';
-    var trustMark=document.createComment('trust badge desktop position');trust.parentNode.insertBefore(trustMark,trust);
-    var identity=root.querySelector('.reference-mobile-taxonomy');
-    if(!identity){identity=document.createElement('div');identity.className='reference-mobile-taxonomy';(root.querySelector('.cp3-info') || root).prepend(identity);}
-    function placeTrust(){if(mobile.matches)identity.appendChild(trust);else trustMark.parentNode.insertBefore(trust,trustMark.nextSibling);}
-    placeTrust();if(mobile.addEventListener)mobile.addEventListener('change',placeTrust);
-   }
-   var options=root.querySelector('[data-reference-variation-options]');
-   var anchor=options || root.querySelector('[data-reference-product-meta]');
-   if(anchor && !anchor.dataset.jluxeFactsReady){
-    anchor.dataset.jluxeFactsReady='1';
-    var notice=root.querySelector('[data-jluxe-product-notice]'),noticeMark=null;
-    if(notice){noticeMark=document.createComment('product notice desktop position');notice.parentNode.insertBefore(noticeMark,notice);}
-    var badges=root.querySelectorAll('[data-reference-low-stock], [data-reference-product-meta] [data-reference-stock-status], [data-reference-product-meta] [data-jluxe-stock-count], [data-reference-product-meta] [data-jluxe-delivery-time-row]');
-    var bar=document.createElement('div');bar.className='jluxe-mobile-purchase-facts';bar.setAttribute('role','group');bar.setAttribute('aria-label','اطلاعات موجودی و ارسال محصول');anchor.insertAdjacentElement('afterend',bar);
-    var saved=Array.from(badges).map(function(node){var mark=document.createComment('purchase fact position');node.parentNode.insertBefore(mark,node);return {node:node,mark:mark};});
-    var label=options && options.querySelector('.cp3-varlabel');
-    var heading=document.createElement('div');heading.className='jluxe-variation-heading';
-    if(label){label.parentNode.insertBefore(heading,label);heading.appendChild(label);}else if(options){options.prepend(heading);}
-    function layout(){
-     if(notice){if(mobile.matches)bar.insertAdjacentElement('beforebegin',notice);else noticeMark.parentNode.insertBefore(notice,noticeMark.nextSibling);}
-     saved.forEach(function(item){
-     if(mobile.matches){
-      if(options && (item.node.hasAttribute('data-reference-low-stock') || item.node.hasAttribute('data-jluxe-stock-count')))heading.appendChild(item.node);
-      else bar.appendChild(item.node);
-     }else item.mark.parentNode.insertBefore(item.node,item.mark.nextSibling);
-    });}
-
-    layout();if(mobile.addEventListener)mobile.addEventListener('change',layout);
-   }
-  }
+  // Keep product facts, trust badges, and notices in their server-rendered
+  // positions. Moving these blocks after first paint changes the product panel's
+  // height and can shift the title, options, and content below it on mobile.
+  // The template and responsive CSS provide the mobile presentation without
+  // changing document flow after the page has been rendered.
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -6323,7 +6293,9 @@ function jluxeEnhanceShopSort(root) {
   function open(){main.click();}
   (dots.length?dots:[null]).forEach(function(dot,index){
    var button=document.createElement('button');button.type='button';button.className='jluxe-mobile-gallery-slide';button.setAttribute('aria-label','نمایش تمام‌صفحه تصویر '+(index+1));
-   var image=document.createElement('img');image.alt=original.alt;image.src=index===0?original.src:dot.getAttribute('data-full');image.loading=index===0?'eager':'lazy';image.decoding='async';button.appendChild(image);track.appendChild(button);slides.push(button);button.addEventListener('click',function(){if(dot)dot.click();open();});
+   var image=document.createElement('img');image.alt=original.alt;image.src=index===0?original.src:(dot.getAttribute('data-preview-src')||dot.getAttribute('data-full'));image.loading=index===0?'eager':'lazy';image.decoding='async';
+   if(dot){[['srcset','data-preview-srcset'],['sizes','data-preview-sizes'],['width','data-preview-width'],['height','data-preview-height']].forEach(function(pair){var value=dot.getAttribute(pair[1]);if(value)image.setAttribute(pair[0],value);});}
+   button.appendChild(image);track.appendChild(button);slides.push(button);button.addEventListener('click',function(){if(dot)dot.click();open();});
   });
   function step(){return slides.length>1?Math.abs(slides[1].offsetLeft-slides[0].offsetLeft):0;}
   function edges(){var max=Math.max(0,track.scrollWidth-track.clientWidth),pos=Math.abs(track.scrollLeft);track.classList.toggle('more-left',pos<max-2);track.classList.toggle('more-right',pos>2);}
@@ -6335,7 +6307,7 @@ function jluxeEnhanceShopSort(root) {
    // may update slide zero (including WooCommerce variation/reset updates).
    if(Number(gallery.getAttribute('data-jluxe-gallery-current') || 0)!==0)return;
    var image=slides[0].querySelector('img');
-   ['src','srcset','sizes','alt'].forEach(function(name){if(original.hasAttribute(name))image.setAttribute(name,original.getAttribute(name));else image.removeAttribute(name);});
+   ['src','srcset','sizes','width','height','alt'].forEach(function(name){if(original.hasAttribute(name))image.setAttribute(name,original.getAttribute(name));else image.removeAttribute(name);});
   }
   syncFirstImage();
   new MutationObserver(syncFirstImage).observe(original,{attributes:true,attributeFilter:['src','srcset','sizes','alt']});

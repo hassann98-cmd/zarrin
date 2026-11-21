@@ -14403,6 +14403,12 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
  body.single-product .jluxe-option-strip [data-jluxe-variation-value]{background:#fff;}
 }
 
+/* Reserve the exact mobile gallery height before JS creates its scroll track. */
+@media(max-width:767.98px){
+ body.single-product .jluxe-product-reference [data-cp3-gallery]::before{content:"";display:block;width:min(82%,320px);aspect-ratio:1/1;margin-inline:auto;background:hsl(var(--surface-elevated));}
+ body.single-product .jluxe-product-reference [data-cp3-gallery]:has(>.jluxe-mobile-gallery-track)::before{display:none;}
+}
+
 /* Compact native mobile gallery: reduced entire stage, not only the bitmap. */
 .jluxe-mobile-gallery-track{display:none;}
 @media(max-width:767.98px){
