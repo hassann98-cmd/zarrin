@@ -871,34 +871,34 @@ body.jluxe-design-canva-home .woocommerce-error {
  * Soft paired shadows create the raised/recessed effect without lowering text contrast.
  */
 body.jluxe-design-neumorphism {
-  --neu-bg: #E9EDF4;
-  --neu-surface: #E9EDF4;
-  --neu-raised: 9px 9px 20px #C7CCD5, -9px -9px 20px #FFFFFF;
-  --neu-raised-small: 4px 4px 10px #C7CCD5, -4px -4px 10px #FFFFFF;
-  --neu-inset: inset 5px 5px 11px #C7CCD5, inset -5px -5px 11px #FFFFFF;
-  --neu-accent: #5146A5;
-  --neu-accent-dark: #403681;
-  --neu-ink: #20263A;
-  --neu-muted-ink: #4B556B;
-  --background: 220 26% 94%;
-  --foreground: 228 29% 18%;
-  --primary: 247 40% 46%;
+  --neu-bg: #EAF5EE;
+  --neu-surface: #EAF5EE;
+  --neu-raised: 10px 10px 24px #C4D6CA, -10px -10px 24px #FFFFFF;
+  --neu-raised-small: 5px 5px 12px #C4D6CA, -5px -5px 12px #FFFFFF;
+  --neu-inset: inset 5px 5px 12px #C4D6CA, inset -5px -5px 12px #FFFFFF;
+  --neu-accent: #087F75;
+  --neu-accent-dark: #075E56;
+  --neu-ink: #23352E;
+  --neu-muted-ink: #4D6258;
+  --background: 135 30% 94%;
+  --foreground: 150 21% 17%;
+  --primary: 175 88% 27%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 247 41% 36%;
-  --primary-active: 247 41% 29%;
-  --secondary: 224 18% 39%;
+  --primary-hover: 175 86% 20%;
+  --primary-active: 175 85% 16%;
+  --secondary: 158 15% 38%;
   --secondary-foreground: 0 0% 100%;
-  --accent: 247 40% 46%;
+  --accent: 175 88% 27%;
   --accent-foreground: 0 0% 100%;
-  --surface: 220 26% 94%;
-  --surface-foreground: 228 29% 18%;
-  --surface-elevated: 220 25% 96%;
-  --text-secondary: 224 18% 34%;
-  --text-muted: 224 14% 42%;
-  --muted: 220 20% 91%;
-  --muted-foreground: 224 18% 34%;
-  --border: 220 17% 84%;
-  --ring: 247 40% 46%;
+  --surface: 135 30% 94%;
+  --surface-foreground: 150 21% 17%;
+  --surface-elevated: 135 33% 97%;
+  --text-secondary: 155 15% 31%;
+  --text-muted: 155 10% 40%;
+  --muted: 135 20% 90%;
+  --muted-foreground: 155 15% 31%;
+  --border: 140 15% 82%;
+  --ring: 175 88% 27%;
   background: var(--neu-bg);
   color: var(--neu-ink);
   color-scheme: light;
@@ -911,22 +911,22 @@ body.jluxe-design-neumorphism :focus-visible {
 
 body.jluxe-design-neumorphism #masthead,
 body.jluxe-design-neumorphism #jluxe-footer-root {
-  --background: 220 26% 94%;
-  --foreground: 228 29% 18%;
-  --primary: 247 40% 46%;
+  --background: 135 30% 94%;
+  --foreground: 150 21% 17%;
+  --primary: 175 88% 27%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 247 41% 36%;
-  --accent: 247 40% 46%;
+  --primary-hover: 175 86% 20%;
+  --accent: 175 88% 27%;
   --accent-foreground: 0 0% 100%;
-  --surface: 220 26% 94%;
-  --surface-foreground: 228 29% 18%;
-  --surface-elevated: 220 25% 96%;
-  --muted: 220 20% 91%;
-  --muted-foreground: 224 18% 34%;
-  --text-secondary: 224 18% 34%;
-  --text-muted: 224 14% 42%;
-  --border: 220 17% 84%;
-  --ring: 247 40% 46%;
+  --surface: 135 30% 94%;
+  --surface-foreground: 150 21% 17%;
+  --surface-elevated: 135 33% 97%;
+  --muted: 135 20% 90%;
+  --muted-foreground: 155 15% 31%;
+  --text-secondary: 155 15% 31%;
+  --text-muted: 155 10% 40%;
+  --border: 140 15% 82%;
+  --ring: 175 88% 27%;
 }
 
 /* Header and navigation: a quiet raised shell, with inset search and tactile controls. */
@@ -976,8 +976,8 @@ body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[
   color: var(--neu-ink);
 }
 body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[type="search"]:focus {
-  border-color: rgba(81,70,165,.42);
-  box-shadow: inset 3px 3px 7px rgba(151,157,172,.35), inset -3px -3px 7px #fff, 0 0 0 3px rgba(81,70,165,.12);
+  border-color: rgba(8,127,117,.42);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.35), inset -3px -3px 7px #fff, 0 0 0 3px rgba(8,127,117,.12);
 }
 body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"],
 body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"] {
@@ -1030,14 +1030,14 @@ body.jluxe-design-neumorphism .woocommerce span.onsale {
   border-radius: 999px;
   background: var(--neu-accent);
   color: #fff;
-  box-shadow: 3px 3px 8px rgba(44,38,96,.22), -2px -2px 6px rgba(255,255,255,.35);
+  box-shadow: 3px 3px 8px rgba(8,70,61,.22), -2px -2px 6px rgba(255,255,255,.35);
 }
 body.jluxe-design-neumorphism .jluxe-product-card-cta {
   border: 1px solid rgba(255,255,255,.48);
   border-radius: 14px;
   background: var(--neu-accent);
   color: #fff;
-  box-shadow: 4px 4px 9px rgba(80,70,130,.22), -3px -3px 8px rgba(255,255,255,.78);
+  box-shadow: 4px 4px 9px rgba(8,85,76,.22), -3px -3px 8px rgba(255,255,255,.78);
 }
 body.jluxe-design-neumorphism .jluxe-product-card-cta.is-available:is(:hover,:focus-visible,:active,.loading,.added,.jluxe-btn-added) {
   background: var(--neu-accent-dark);
@@ -1089,7 +1089,7 @@ body.jluxe-design-neumorphism .checkout-button {
   border-radius: 14px;
   background: var(--neu-accent);
   color: #fff;
-  box-shadow: 5px 5px 11px rgba(74,65,125,.2), -4px -4px 10px rgba(255,255,255,.82);
+  box-shadow: 5px 5px 11px rgba(8,75,68,.2), -4px -4px 10px rgba(255,255,255,.82);
   transition: box-shadow .18s ease, transform .18s ease, background-color .18s ease;
 }
 body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
@@ -1104,8 +1104,8 @@ body.jluxe-design-neumorphism select {
 body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):focus,
 body.jluxe-design-neumorphism textarea:focus,
 body.jluxe-design-neumorphism select:focus {
-  border-color: rgba(81,70,165,.48);
-  box-shadow: inset 3px 3px 7px rgba(151,157,172,.32), inset -3px -3px 7px #fff, 0 0 0 3px rgba(81,70,165,.13);
+  border-color: rgba(8,127,117,.48);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.32), inset -3px -3px 7px #fff, 0 0 0 3px rgba(8,127,117,.13);
 }
 body.jluxe-design-neumorphism :is(button,input[type="checkbox"],input[type="radio"],.variable-item,.reset_variations) { accent-color: var(--neu-accent); }
 body.jluxe-design-neumorphism .cp3-pill,
@@ -1120,7 +1120,7 @@ body.jluxe-design-neumorphism .jluxe-pa-row {
 body.jluxe-design-neumorphism .cp3-pill.is-active,
 body.jluxe-design-neumorphism .jluxe-pa-row.is-selected,
 body.jluxe-design-neumorphism [data-jluxe-variation-value][aria-pressed="true"] {
-  border-color: rgba(81,70,165,.32);
+  border-color: rgba(8,127,117,.32);
   background: var(--neu-surface);
   color: var(--neu-accent-dark);
   box-shadow: var(--neu-inset);
@@ -1144,7 +1144,7 @@ body.jluxe-design-neumorphism .cp3-pill.is-disabled { opacity: .48; box-shadow: 
   }
   body.jluxe-design-neumorphism [data-jluxe-product-card-variant]:hover,
   body.jluxe-design-neumorphism .jluxe-home-section li.product:hover {
-    box-shadow: 5px 5px 12px #C7CCD5, -5px -5px 12px #fff;
+    box-shadow: 5px 5px 12px #C4D6CA, -5px -5px 12px #fff;
     transform: translateY(-2px);
   }
 }

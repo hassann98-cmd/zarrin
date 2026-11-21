@@ -14,6 +14,7 @@ import "./styles/storefront.css";
 import "../style.css";
 import "./styles/design-variants.css";
 import "./styles/sitewide-design.css";
+import "./styles/neumorphism-refinements.css";
 import { setupPwa } from "./lib/pwa.js";
 // The map's own JavaScript chunk is fetched only when its explicit open button is used.
 for (const picker of document.querySelectorAll("[data-jluxe-map-picker]")) {

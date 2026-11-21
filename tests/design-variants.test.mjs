@@ -6,6 +6,7 @@ const css = readFileSync(new URL("../src/styles/design-variants.css", import.met
 const settings = readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
 const storefrontCss = readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
 const sitewideCss = readFileSync(new URL("../src/styles/sitewide-design.css", import.meta.url), "utf8");
+const neumorphismCss = readFileSync(new URL("../src/styles/neumorphism-refinements.css", import.meta.url), "utf8");
 const settingsPhp = readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const presetsPhp = readFileSync(new URL("../inc/theme-settings-presets.php", import.meta.url), "utf8");
 const sanitizePhp = readFileSync(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
@@ -179,6 +180,7 @@ test("R355 site-wide green/clay home design stays opt-in and covers the storefro
   assert.match(adminPhp, /'jluxe-visual-design'\s*=>\s*array\(\s*'visual_design', 'jluxe_sanitize_visual_design'\s*\)/);
   assert.match(adminPhp, /isset\( \$_POST\['visual_design'\] \)/);
   assert.match(mainJs, /\.\/styles\/sitewide-design\.css/);
+  assert.match(mainJs, /\.\/styles\/neumorphism-refinements\.css/);
 
   assert.match(sitewideCss, /body\.jluxe-design-canva-home/);
   assert.match(sitewideCss, /--primary:\s*155 39% 30%/);
@@ -213,10 +215,23 @@ test("R367 neumorphism is an opt-in, fully scoped site skin with a saved one-ste
     assert.ok(sitewideCss.includes(`body.jluxe-design-neumorphism ${selector}`), `neumorphism styling covers ${selector}`);
   }
   assert.match(sitewideCss, /body\.jluxe-design-neumorphism :focus-visible/);
+  assert.match(sitewideCss, /--neu-accent:\s*#087F75/i);
+  assert.match(sitewideCss, /--neu-bg:\s*#EAF5EE/i);
   assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
   assert.match(sitewideCss, /\.jluxe-design-canva-home/);
-  assert.ok(contrastRatio("#5146A5", "#FFFFFF") >= 4.5, "accent controls keep accessible white labels");
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism \.jluxe-blog-card/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism \.jluxe-article-card/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism\.woocommerce-cart/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism\.woocommerce-checkout/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism\.woocommerce-account/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism #jluxe-footer-root/);
+  assert.match(neumorphismCss, /@media \(forced-colors: active\)/);
+  assert.match(neumorphismCss, /one raised surface per hierarchy/);
+  assert.doesNotMatch(sitewideCss.slice(sitewideCss.indexOf('body.jluxe-design-neumorphism {')), /#5146A5|#403681|247 40% 46/);
+  assert.ok(contrastRatio("#087F75", "#FFFFFF") >= 4.5, "teal action labels meet WCAG AA");
+  assert.ok(contrastRatio("#075E56", "#FFFFFF") >= 4.5, "dark teal hover labels meet WCAG AA");
+  assert.ok(contrastRatio("#C04F31", "#FFFFFF") >= 4.5, "coral sale labels meet WCAG AA");
 });
 
 test("R362 ordinary text is neutral while action, hover, and semantic status colors remain distinct", () => {
