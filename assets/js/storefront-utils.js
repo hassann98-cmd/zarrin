@@ -123,8 +123,6 @@
   } catch (e) { /* هدرِ حاضر نبود = هیچ. */ }
   /** Keep a dock switch outside transformed product wrappers and own its tap,
    * including compatibility clicks retargeted after the dock changes shape. */
-  var dockSwitchUntil = 0;
-  function isDockSwitchInteraction() { return Date.now() < dockSwitchUntil; }
   function protectDockSwitch(button, bar) {
     if (!button || button.dataset.jluxeSwitchProtected) return;
     button.dataset.jluxeSwitchProtected = '1';
@@ -141,20 +139,15 @@
     layer.appendChild(button);
     if (bar) doc.body.appendChild(bar);
     var gesture = null;
-    win.addEventListener('keydown', function(event){if(!button.contains(event.target))dockSwitchUntil=0;}, true);
-    button.addEventListener('click', function(){dockSwitchUntil=Date.now()+1500;}, true);
+    win.addEventListener('keydown', function(event){if(!button.contains(event.target))gesture=null;}, true);
     function blocked() { return doc.documentElement.hasAttribute('data-jluxe-mobile-drawer'); }
-    function ownsPoint(event) {
-      if (blocked() || button.hidden || (win.matchMedia && !win.matchMedia('(max-width:767.98px)').matches)) return false;
-      var rect=button.getBoundingClientRect(),style=win.getComputedStyle(button);
-      return rect.width>0 && rect.height>0 && style.display!=='none' && style.visibility!=='hidden' && event.clientX>=rect.left && event.clientX<=rect.right && event.clientY>=rect.top && event.clientY<=rect.bottom;
-    }
 
     function stop(event) { event.preventDefault(); event.stopImmediatePropagation(); }
     win.addEventListener('pointerdown', function (event) {
-      if ((!button.contains(event.target) && !ownsPoint(event)) || event.isPrimary === false || event.button > 0) { gesture = null; if (!event.target.closest || !event.target.closest('[data-jluxe-mobile-bar-toggle], [data-jluxe-sticky-cta-mode-toggle]')) dockSwitchUntil = 0; return; }
+      // Own only events actually hit-tested onto this control. Bounding-box
+      // fallbacks can steal neighboring cart/account taps after a dock reflows.
+      if (!button.contains(event.target) || event.isPrimary === false || event.button > 0) { gesture = null; return; }
       if (blocked()) { stop(event); return; }
-      dockSwitchUntil = Date.now() + 1500;
       gesture = { pointerId:event.pointerId, x: event.clientX, y: event.clientY, time: Date.now(), done: false, moved: false };
       if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (error) {} }
       stop(event);
@@ -174,9 +167,8 @@
     // Older touch-only browsers need the same ownership, including delegated touch handlers.
     if (!win.PointerEvent) {
       win.addEventListener('touchstart', function (event) {
-        if (!button.contains(event.target) && !(event.touches[0] && ownsPoint(event.touches[0]))) { gesture = null; if (!event.target.closest || !event.target.closest('[data-jluxe-mobile-bar-toggle], [data-jluxe-sticky-cta-mode-toggle]')) dockSwitchUntil=0; return; }
+        if (!button.contains(event.target)) { gesture = null; return; }
         if (blocked()) { stop(event); return; }
-        dockSwitchUntil=Date.now()+1500;
         var touch = event.touches[0];
         gesture = { x: touch.clientX, y: touch.clientY, time: Date.now(), done: false, moved: false };
         event.stopImmediatePropagation();
@@ -191,9 +183,11 @@
     }
     win.addEventListener('click', function (event) {
       var direct = button.contains(event.target);
-      if (!direct && event.detail>0 && ownsPoint(event) && !(gesture && gesture.done)) { stop(event); dockSwitchUntil=Date.now()+1500; button.click(); return; }
       if (direct && blocked()) { stop(event); return; }
-      var recent = gesture && Date.now() - gesture.time < 1200 && event.detail > 0 && (gesture.done || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 32);
+      // Suppress only the compatibility click belonging to the switch's own
+      // pointer sequence. Never infer switch intent from coordinates alone.
+      var recent = gesture && Date.now() - gesture.time < 1200 && event.detail > 0 &&
+        (gesture.done || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 32);
       if (!recent) return;
       if (gesture.done || gesture.moved || blocked()) { stop(event); return; }
       gesture.done = true;
@@ -201,5 +195,5 @@
     }, true);
 
   }
-  root.JLuxeStorefrontUtils = Object.freeze({ isDockSwitchInteraction: isDockSwitchInteraction, protectDockSwitch: protectDockSwitch, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
+  root.JLuxeStorefrontUtils = Object.freeze({ protectDockSwitch: protectDockSwitch, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));

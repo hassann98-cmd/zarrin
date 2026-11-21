@@ -43,14 +43,19 @@ test('both dock switches expose named modes, selected state, and compact purchas
  assert.match(css,/width:26px;min-width:26px;height:34px/);assert.match(css,/align-items:flex-end;text-align:left/);assert.match(css,/:is\(del,ins\)\{width:100%;margin-inline:0;text-align:left/);
 });
 
-test('after scrolling, taps on either half of the painted switch cannot reach underlying cart or account',()=>{
+test('cart and account hit targets are never stolen by the switch bounding-box fallback',()=>{
  const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><a id="cart">Cart</a><a id="account">Account</a>',{runScripts:'outside-only'});
- try{const w=dom.window,d=w.document,b=d.querySelector('button');w.matchMedia=()=>({matches:true});b.getBoundingClientRect=()=>({left:20,right:138,top:500,bottom:544,width:118,height:44});w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);let switches=0,underlying=0;b.onclick=()=>switches++;for(const id of ['cart','account'])d.getElementById(id).onclick=()=>underlying++;
+ try{const w=dom.window,d=w.document,b=d.querySelector('button');w.matchMedia=()=>({matches:true});b.getBoundingClientRect=()=>({left:20,right:138,top:500,bottom:544,width:118,height:44});w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);let switches=0,cartOpens=0,accountNavigations=0;b.onclick=()=>switches++;d.getElementById('cart').onclick=()=>cartOpens++;d.getElementById('account').onclick=()=>accountNavigations++;
  function fire(el,type,x,id=1){const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:520,button:0,detail:1});Object.defineProperty(e,'pointerId',{value:id});el.dispatchEvent(e);}
+ // Even if stale geometry overlaps one of the links, the browser's actual
+ // event target is authoritative and both actions must remain usable.
  for(const [id,x] of [['cart',30],['account',125]]){const a=d.getElementById(id);fire(a,'pointerdown',x);fire(a,'pointerup',x);fire(a,'click',x);}
- assert.equal(switches,2);assert.equal(underlying,0);
- fire(b,'pointerdown',30,3);fire(b,'pointerup',30,4);assert.equal(switches,2,'unrelated pointer cannot complete the switch');fire(b,'pointerup',30,3);assert.equal(switches,3);
- fire(d.getElementById('cart'),'pointerdown',200);fire(d.getElementById('cart'),'click',200);assert.equal(underlying,1,'fresh real navigation tap outside switch works');
+ assert.equal(switches,0);assert.equal(cartOpens,1);assert.equal(accountNavigations,1);
+ fire(b,'pointerdown',30,3);fire(b,'pointerup',30,4);assert.equal(switches,0,'unrelated pointer cannot complete the switch');fire(b,'pointerup',30,3);assert.equal(switches,1);
+ // A compatibility click retargeted from that same switch gesture is ignored,
+ // while the subsequent real cart gesture remains available.
+ fire(d.getElementById('cart'),'click',30,3);assert.equal(cartOpens,1);
+ fire(d.getElementById('cart'),'pointerdown',200);fire(d.getElementById('cart'),'click',200);assert.equal(cartOpens,2);
  }finally{dom.window.close();}
 });
 
