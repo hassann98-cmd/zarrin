@@ -170,7 +170,7 @@ test("R355 site-wide green/clay home design stays opt-in and covers the storefro
   assert.match(settingsPhp, /'visual_design'\s*=>\s*array\(\s*'variant'\s*=>\s*'current'/);
   assert.match(settingsPhp, /function jluxe_visual_design_body_classes/);
   assert.match(settingsPhp, /jluxe-design-canva-home/);
-  assert.match(sanitizePhp, /function jluxe_sanitize_visual_design[\s\S]*?'current', 'canva_home'/);
+  assert.match(sanitizePhp, /function jluxe_sanitize_visual_design[\s\S]*?'current', 'canva_home', 'neumorphism'/);
   assert.match(settings, /name="visual_design\[variant\]"/);
   assert.match(settings, /value="canva_home"/);
   assert.match(settings, /خانهٔ رنگی و خانگی — الهام‌گرفته از Canva/);
@@ -200,6 +200,23 @@ test("R355 site-wide green/clay home design stays opt-in and covers the storefro
   assert.doesNotMatch(sitewideCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
   assert.ok(contrastRatio("#2F6B52", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#C2410C", "#FFFFFF") >= 4.5);
+});
+
+test("R367 neumorphism is an opt-in, fully scoped site skin with a saved one-step rollback", () => {
+  assert.match(settings, /option value="neumorphism"/);
+  assert.match(settings, /برای بازگشت فوری، «نسخهٔ فعلی سایت» را انتخاب و ذخیره کنید/);
+  assert.match(settingsPhp, /'variant'\s*=>\s*'current'/);
+  assert.match(settingsPhp, /jluxe-design-neumorphism/);
+  assert.match(sanitizePhp, /'current', 'canva_home', 'neumorphism'/);
+  assert.match(sitewideCss, /body\.jluxe-design-neumorphism\s*\{[\s\S]*?--neu-raised:[\s\S]*?--neu-inset:/);
+  for (const selector of ["#masthead", ".jluxe-home-section", "[data-jluxe-product-card-variant]", ".single-product .summary", ".jluxe-product-card-current-price", ".jluxe-product-card-sale-badge", ".jluxe-product-card-cta", "#jluxe-footer-root .jluxe-footer-shell"]) {
+    assert.ok(sitewideCss.includes(`body.jluxe-design-neumorphism ${selector}`), `neumorphism styling covers ${selector}`);
+  }
+  assert.match(sitewideCss, /body\.jluxe-design-neumorphism :focus-visible/);
+  assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
+  assert.match(sitewideCss, /\.jluxe-design-canva-home/);
+  assert.ok(contrastRatio("#5146A5", "#FFFFFF") >= 4.5, "accent controls keep accessible white labels");
 });
 
 test("R362 ordinary text is neutral while action, hover, and semantic status colors remain distinct", () => {

@@ -116,7 +116,7 @@ function jluxe_sanitize_colors( array $posted, array $defaults ): array {
 
 /** Validate the opt-in site-wide visual system independently of color presets. */
 function jluxe_sanitize_visual_design( array $posted, array $defaults ): array {
-	$allowed = array( 'current', 'canva_home' );
+	$allowed = array( 'current', 'canva_home', 'neumorphism' );
 	$default = isset( $defaults['variant'] ) && in_array( $defaults['variant'], $allowed, true )
 		? $defaults['variant']
 		: 'current';

@@ -864,3 +864,324 @@ body.jluxe-design-canva-home .woocommerce-error {
 /* Quiet mega-menu palette, independent of the colorful trigger configuration. */
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel{--jluxe-categories-panel-accent:#475569;--jluxe-categories-panel-bg:#fff;--jluxe-categories-panel-text:#334155;--jluxe-categories-panel-border:#e5e7eb;--jluxe-categories-category-hover-bg:#f8fafc;--jluxe-categories-category-active-bg:#f1f5f9;--jluxe-categories-category-active-text:#0f172a;}
 #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel__icon{color:inherit;}
+
+/*
+ * Optional, reversible neumorphic storefront skin.
+ * Every rule is scoped to the body variant; the saved current theme remains untouched.
+ * Soft paired shadows create the raised/recessed effect without lowering text contrast.
+ */
+body.jluxe-design-neumorphism {
+  --neu-bg: #E9EDF4;
+  --neu-surface: #E9EDF4;
+  --neu-raised: 9px 9px 20px #C7CCD5, -9px -9px 20px #FFFFFF;
+  --neu-raised-small: 4px 4px 10px #C7CCD5, -4px -4px 10px #FFFFFF;
+  --neu-inset: inset 5px 5px 11px #C7CCD5, inset -5px -5px 11px #FFFFFF;
+  --neu-accent: #5146A5;
+  --neu-accent-dark: #403681;
+  --neu-ink: #20263A;
+  --neu-muted-ink: #4B556B;
+  --background: 220 26% 94%;
+  --foreground: 228 29% 18%;
+  --primary: 247 40% 46%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 247 41% 36%;
+  --primary-active: 247 41% 29%;
+  --secondary: 224 18% 39%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 247 40% 46%;
+  --accent-foreground: 0 0% 100%;
+  --surface: 220 26% 94%;
+  --surface-foreground: 228 29% 18%;
+  --surface-elevated: 220 25% 96%;
+  --text-secondary: 224 18% 34%;
+  --text-muted: 224 14% 42%;
+  --muted: 220 20% 91%;
+  --muted-foreground: 224 18% 34%;
+  --border: 220 17% 84%;
+  --ring: 247 40% 46%;
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+  color-scheme: light;
+}
+
+body.jluxe-design-neumorphism :focus-visible {
+  outline: 3px solid var(--neu-accent) !important;
+  outline-offset: 3px !important;
+}
+
+body.jluxe-design-neumorphism #masthead,
+body.jluxe-design-neumorphism #jluxe-footer-root {
+  --background: 220 26% 94%;
+  --foreground: 228 29% 18%;
+  --primary: 247 40% 46%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 247 41% 36%;
+  --accent: 247 40% 46%;
+  --accent-foreground: 0 0% 100%;
+  --surface: 220 26% 94%;
+  --surface-foreground: 228 29% 18%;
+  --surface-elevated: 220 25% 96%;
+  --muted: 220 20% 91%;
+  --muted-foreground: 224 18% 34%;
+  --text-secondary: 224 18% 34%;
+  --text-muted: 224 14% 42%;
+  --border: 220 17% 84%;
+  --ring: 247 40% 46%;
+}
+
+/* Header and navigation: a quiet raised shell, with inset search and tactile controls. */
+body.jluxe-design-neumorphism #masthead .jluxe-header-bar {
+  border-color: transparent;
+  background: var(--neu-surface);
+  box-shadow: 0 5px 16px rgba(62, 70, 91, .055);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t { border-color: transparent; background: transparent; }
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav {
+  border: 1px solid rgba(255,255,255,.62);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > a,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div > a,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div.group > a {
+  border-radius: 12px;
+  color: var(--neu-ink);
+  transition: color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > a:hover,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div > a:hover,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div.group > a:hover {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-accent);
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav .group > div,
+body.jluxe-design-neumorphism #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel {
+  border: 1px solid rgba(255,255,255,.74);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: 12px 12px 26px rgba(93,101,120,.18), -8px -8px 20px rgba(255,255,255,.9);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[type="search"] {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 999px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[type="search"]:focus {
+  border-color: rgba(81,70,165,.42);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.35), inset -3px -3px 7px #fff, 0 0 0 3px rgba(81,70,165,.12);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"],
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"] {
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 15px;
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-raised-small);
+  transition: box-shadow .18s ease, transform .18s ease, color .18s ease;
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"] { font-weight: 700; }
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"]:active,
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"]:active { box-shadow: var(--neu-inset); transform: translateY(1px); }
+
+/* Homepage sections and product tiles: lifted from the same soft canvas. */
+body.jluxe-design-neumorphism .jluxe-home-section {
+  margin-block: clamp(20px, 2.8vw, 34px);
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid rgba(255,255,255,.76);
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism .jluxe-home-section h2:not(.text-white) { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-home-section > div.mb-3.flex.items-center.justify-between > a,
+body.jluxe-design-neumorphism .jluxe-home-card:not(.jluxe-home-banner),
+body.jluxe-design-neumorphism .jluxe-home-panel {
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 20px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism [data-jluxe-product-card-variant],
+body.jluxe-design-neumorphism .jluxe-home-section li.product {
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 20px;
+  background: var(--neu-surface) !important;
+  box-shadow: var(--neu-raised-small);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+body.jluxe-design-neumorphism .jluxe-product-card-title { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-product-card-current-price,
+body.jluxe-design-neumorphism .single-product .summary .price,
+body.jluxe-design-neumorphism .single-product .summary .price .amount { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .jluxe-product-card-old-price,
+body.jluxe-design-neumorphism .single-product .summary .price del { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .jluxe-product-card-sale-badge,
+body.jluxe-design-neumorphism .woocommerce span.onsale {
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 999px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 3px 3px 8px rgba(44,38,96,.22), -2px -2px 6px rgba(255,255,255,.35);
+}
+body.jluxe-design-neumorphism .jluxe-product-card-cta {
+  border: 1px solid rgba(255,255,255,.48);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 4px 4px 9px rgba(80,70,130,.22), -3px -3px 8px rgba(255,255,255,.78);
+}
+body.jluxe-design-neumorphism .jluxe-product-card-cta.is-available:is(:hover,:focus-visible,:active,.loading,.added,.jluxe-btn-added) {
+  background: var(--neu-accent-dark);
+  color: #fff;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.18), inset -2px -2px 5px rgba(255,255,255,.12);
+}
+
+/* Product details, tabs, forms and commerce panels use coherent raised/inset surfaces. */
+body.jluxe-design-neumorphism .single-product .woocommerce-product-gallery,
+body.jluxe-design-neumorphism .single-product .summary,
+body.jluxe-design-neumorphism .woocommerce-tabs,
+body.jluxe-design-neumorphism .woocommerce-cart .shop_table,
+body.jluxe-design-neumorphism .woocommerce-checkout #order_review,
+body.jluxe-design-neumorphism .woocommerce-checkout .woocommerce-checkout-payment,
+body.jluxe-design-neumorphism .woocommerce-MyAccount-content,
+body.jluxe-design-neumorphism .woocommerce-MyAccount-navigation,
+body.jluxe-design-neumorphism .jluxe-checkout-panel,
+body.jluxe-design-neumorphism .jluxe-checkout-summary,
+body.jluxe-design-neumorphism .jluxe-checkout-shipping,
+body.jluxe-design-neumorphism .jluxe-payment-card,
+body.jluxe-design-neumorphism .jluxe-checkout-card,
+body.jluxe-design-neumorphism .jluxe-account-card,
+body.jluxe-design-neumorphism .jluxe-product-buybox {
+  border: 1px solid rgba(255,255,255,.78);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .woocommerce table.shop_table th,
+body.jluxe-design-neumorphism .woocommerce table.shop_table td { border-color: rgba(128,137,158,.2); }
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li,
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li a { border-radius: 12px; }
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li.active {
+  border-color: rgba(255,255,255,.8);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+}
+
+/* Buttons keep strong indigo contrast; quiet controls and option chips are recessed. */
+body.jluxe-design-neumorphism .button,
+body.jluxe-design-neumorphism .wp-element-button,
+body.jluxe-design-neumorphism .woocommerce a.button:not(.jluxe-product-card-cta),
+body.jluxe-design-neumorphism .woocommerce button.button,
+body.jluxe-design-neumorphism .woocommerce input.button,
+body.jluxe-design-neumorphism .woocommerce #respond input#submit,
+body.jluxe-design-neumorphism .single_add_to_cart_button,
+body.jluxe-design-neumorphism .checkout-button {
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 5px 5px 11px rgba(74,65,125,.2), -4px -4px 10px rgba(255,255,255,.82);
+  transition: box-shadow .18s ease, transform .18s ease, background-color .18s ease;
+}
+body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
+body.jluxe-design-neumorphism textarea,
+body.jluxe-design-neumorphism select {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 12px;
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):focus,
+body.jluxe-design-neumorphism textarea:focus,
+body.jluxe-design-neumorphism select:focus {
+  border-color: rgba(81,70,165,.48);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.32), inset -3px -3px 7px #fff, 0 0 0 3px rgba(81,70,165,.13);
+}
+body.jluxe-design-neumorphism :is(button,input[type="checkbox"],input[type="radio"],.variable-item,.reset_variations) { accent-color: var(--neu-accent); }
+body.jluxe-design-neumorphism .cp3-pill,
+body.jluxe-design-neumorphism [data-jluxe-variation-value],
+body.jluxe-design-neumorphism .jluxe-pa-row {
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 999px;
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .cp3-pill.is-active,
+body.jluxe-design-neumorphism .jluxe-pa-row.is-selected,
+body.jluxe-design-neumorphism [data-jluxe-variation-value][aria-pressed="true"] {
+  border-color: rgba(81,70,165,.32);
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .cp3-pill:disabled,
+body.jluxe-design-neumorphism .cp3-pill.is-disabled { opacity: .48; box-shadow: none; }
+@media (hover:hover) and (pointer:fine) {
+  body.jluxe-design-neumorphism .button:hover,
+  body.jluxe-design-neumorphism .wp-element-button:hover,
+  body.jluxe-design-neumorphism .woocommerce a.button:not(.jluxe-product-card-cta):hover,
+  body.jluxe-design-neumorphism .woocommerce button.button:hover,
+  body.jluxe-design-neumorphism .woocommerce input.button:hover,
+  body.jluxe-design-neumorphism .woocommerce #respond input#submit:hover,
+  body.jluxe-design-neumorphism .single_add_to_cart_button:hover,
+  body.jluxe-design-neumorphism .checkout-button:hover {
+    border-color: rgba(255,255,255,.42);
+    background: var(--neu-accent-dark);
+    color: #fff;
+    box-shadow: inset 3px 3px 7px rgba(0,0,0,.15), inset -3px -3px 7px rgba(255,255,255,.12);
+    transform: translateY(1px);
+  }
+  body.jluxe-design-neumorphism [data-jluxe-product-card-variant]:hover,
+  body.jluxe-design-neumorphism .jluxe-home-section li.product:hover {
+    box-shadow: 5px 5px 12px #C7CCD5, -5px -5px 12px #fff;
+    transform: translateY(-2px);
+  }
+}
+
+/* Footer: soft landing with individually raised service, trust and link surfaces. */
+body.jluxe-design-neumorphism #jluxe-footer-root {
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-shell {
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-grid,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-card,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-link-column,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-site-badges-section {
+  border-color: rgba(255,255,255,.68);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root a { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism #jluxe-footer-root a:hover { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .woocommerce-message,
+body.jluxe-design-neumorphism .woocommerce-info {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 14px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism .woocommerce-error { border-radius: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  body.jluxe-design-neumorphism *,
+  body.jluxe-design-neumorphism *::before,
+  body.jluxe-design-neumorphism *::after { transition-duration: .01ms !important; }
+}

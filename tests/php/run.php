@@ -11107,6 +11107,18 @@ check(
 	1 === count( array_keys( $r355_classes, 'jluxe-design-canva-home', true ) ),
 	'R355 selecting the site-wide visual system adds one scoped body class'
 );
+$r367_neumorphic = jluxe_sanitize_visual_design( array( 'variant' => 'neumorphism' ), $r355_visual_defaults['visual_design'] );
+$r367_settings = $r355_visual_defaults;
+$r367_settings['visual_design'] = $r367_neumorphic;
+update_test_settings( $r367_settings );
+$r367_classes = jluxe_visual_design_body_classes( array( 'site' ) );
+check(
+	'neumorphism' === $r367_neumorphic['variant'] &&
+	in_array( 'jluxe-design-neumorphism', $r367_classes, true ) &&
+	! in_array( 'jluxe-design-canva-home', $r367_classes, true ),
+	'R367 selecting neumorphism adds only its separate body scope while preserving a whitelisted reversible variant'
+);
+update_test_settings( $r355_active_settings );
 $r355_old_post = $_POST;
 $_POST = array(
 	'jluxe_settings_nonce' => 'test-nonce',

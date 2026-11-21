@@ -25,7 +25,7 @@ function boot(t, options = {}) {
   };
 }
 
-test('native document navigation is never canceled or replaced, and progress is immediate/reset for bfcache', async t => {
+test('native document navigation is never canceled or replaced, and delayed progress resets for bfcache', async t => {
   const { win, link, run } = boot(t);
   const a = link('/product/two/');
   // Dispatch on document to inspect defaultPrevented without JSDOM native navigation.
@@ -34,6 +34,8 @@ test('native document navigation is never canceled or replaced, and progress is 
   win.document.dispatchEvent(event);
   await Promise.resolve();
   assert.equal(event.defaultPrevented, false);
+  assert.equal(win.document.querySelector('.jluxe-page-progress'), null, 'quick clicks do not flash the spinner');
+  run(300);
   const bar = win.document.querySelector('.jluxe-page-progress');
   assert.equal(bar.hidden, false);
   assert.equal(bar.getAttribute('role'), 'status');
@@ -93,6 +95,7 @@ test('page CSS uses native opt-in, no reduced-motion animations, and no fake pro
   assert.match(css, /@view-transition\s*\{ navigation: auto/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(css, /navigation: none/);
+  assert.match(css, /outline-color:color-mix\(in srgb,currentColor 28%,transparent\)/);
   assert.doesNotMatch(script, /preventDefault\(|pushState\(|innerHTML|\bfetch\(/);
 });
 
@@ -136,14 +139,14 @@ test('quick navigation, Escape, timeout and disabled motion never leave waiting 
   const { win, link, run } = boot(t);
   win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start'));
   win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-end'));
-  assert.equal(win.document.querySelector('.jluxe-page-progress').hidden, true);
+  assert.equal(win.document.querySelector('.jluxe-page-progress'), null, 'a canceled quick transition never creates the spinner');
   win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start'));
-  run(180);
+  run(300);
   const bar = win.document.querySelector('.jluxe-page-progress');
   assert.equal(bar.textContent, 'در حال بازکردن صفحه…');
   win.document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape' }));
   assert.equal(bar.hidden, true);
-  win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start')); run(180); run(15000);
+  win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start')); run(300); run(10000);
   assert.equal(bar.hidden, true);
   win.jluxePageMotion.transitions = false;
   const a = link('/product/two/');
@@ -171,26 +174,31 @@ test('supported browsers get bounded speculation prefetch, never prerender or du
   assert.equal(win.document.querySelectorAll('link[data-jluxe-page-prefetch]').length, 1);
 });
 
-test('public home/product/blog/help/search links show immediate feedback on touch intent and click',async t=>{
+test('touching links gives subtle press feedback; only a real, slow navigation shows the delayed spinner',async t=>{
  for(const href of ['/', '/product/simple/', '/product/variable/', '/blog/', '/blog/article/', '/help/shipping/', '/guide/', '/?s=lamp', '/shop/?orderby=price']){
   const {win,link,run}=boot(t),a=link(href);
   a.dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:10,clientY:10}));
-  const loader=win.document.querySelector('.jluxe-page-progress');assert.ok(loader,href);assert.equal(loader.hidden,false);assert.ok(loader.querySelector('svg'));
-  const click=new win.MouseEvent('click',{bubbles:true,cancelable:true,button:0});Object.defineProperty(click,'target',{value:a});win.document.dispatchEvent(click);await Promise.resolve();assert.equal(click.defaultPrevented,false);assert.equal(loader.hidden,false);run(1200);assert.equal(loader.hidden,false,'committed navigation survives preview timeout');run(5000);assert.match(loader.textContent,/بیشتر/);win.dispatchEvent(new win.Event('pagereveal'));assert.equal(loader.hidden,true);
+  assert.equal(a.classList.contains('jluxe-navigation-pressed'),true);
+  assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'pointerdown alone never flashes the spinner');
+  const click=new win.MouseEvent('click',{bubbles:true,cancelable:true,button:0});Object.defineProperty(click,'target',{value:a});win.document.dispatchEvent(click);await Promise.resolve();assert.equal(click.defaultPrevented,false);
+  assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'fast navigation stays spinner-free during the delay');
+  run(300);const loader=win.document.querySelector('.jluxe-page-progress');assert.ok(loader,href);assert.equal(loader.hidden,false);assert.ok(loader.querySelector('svg'));
+  run(5000);assert.match(loader.textContent,/بیشتر/);win.dispatchEvent(new win.Event('pagereveal'));assert.equal(loader.hidden,true);
  }
 });
 
-test('scrolling away, canceled links and abandoned touch previews clear the graphic',async t=>{
+test('scroll gestures and canceled clicks never create a spinner; real navigation gets a delay',async t=>{
  const {win,link,run}=boot(t),a=link('/help/');
- const down=()=>a.dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:10,clientY:10}));down();const loader=win.document.querySelector('.jluxe-page-progress');
- win.document.dispatchEvent(new win.MouseEvent('pointermove',{bubbles:true,clientX:10,clientY:40}));assert.equal(loader.hidden,true);
- down();run(1200);assert.equal(loader.hidden,true);
- down();const e=new win.MouseEvent('click',{bubbles:true,cancelable:true});Object.defineProperty(e,'target',{value:a});win.document.addEventListener('click',event=>event.preventDefault(),{once:true});win.document.dispatchEvent(e);await Promise.resolve();assert.equal(loader.hidden,true);
+ const down=()=>a.dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:10,clientY:10}));
+ down();assert.equal(win.document.querySelector('.jluxe-page-progress'),null);
+ win.document.dispatchEvent(new win.MouseEvent('pointermove',{bubbles:true,clientX:10,clientY:40}));assert.equal(win.document.querySelector('.jluxe-page-progress'),null);
+ down();run(300);assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'a touch without click does not show progress');
+ down();const e=new win.MouseEvent('click',{bubbles:true,cancelable:true});Object.defineProperty(e,'target',{value:a});win.document.addEventListener('click',event=>event.preventDefault(),{once:true});win.document.dispatchEvent(e);await Promise.resolve();run(300);assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'canceled navigation stays hidden');
 });
 
 test('soft archive navigation retains indicator despite prevented click, clears at completion',async t=>{
- const {win,link}=boot(t),a=link('/blog/page/2/');const e=new win.MouseEvent('click',{bubbles:true,cancelable:true});Object.defineProperty(e,'target',{value:a});
- win.document.addEventListener('click',event=>{event.preventDefault();win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start'));},{once:true});win.document.dispatchEvent(e);await Promise.resolve();const loader=win.document.querySelector('.jluxe-page-progress');assert.equal(loader.hidden,false);win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-end'));assert.equal(loader.hidden,true);
+ const {win,link,run}=boot(t),a=link('/blog/page/2/');const e=new win.MouseEvent('click',{bubbles:true,cancelable:true});Object.defineProperty(e,'target',{value:a});
+ win.document.addEventListener('click',event=>{event.preventDefault();win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start'));},{once:true});win.document.dispatchEvent(e);await Promise.resolve();assert.equal(win.document.querySelector('.jluxe-page-progress'),null);win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-end'));run(300);assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'completed quick soft navigation never flashes');
 });
 
 test('graphic is local, nonblocking, motion-aware and does not invent a percentage',()=>{
@@ -198,9 +206,11 @@ test('graphic is local, nonblocking, motion-aware and does not invent a percenta
 });
 
 test('configured same-origin logo sits inside orbit, fails back to graphic, never loads external logo',t=>{
- const {win,link}=boot(t,{logo:'https://shop.test/uploads/logo.png'});
+ const {win,link,run}=boot(t,{logo:'https://shop.test/uploads/logo.png'});
  link('/help/').dispatchEvent(new win.MouseEvent('pointerdown',{bubbles:true,button:0}));
+ assert.equal(win.document.querySelector('.jluxe-page-progress'),null,'pointerdown alone never renders the indicator');
+ win.document.dispatchEvent(new win.Event('jluxe:soft-navigation-start'));run(300);
  const art=win.document.querySelector('.jluxe-page-orbit'),logo=art.querySelector('img');assert.ok(logo);assert.equal(logo.alt,'');assert.equal(art.classList.contains('has-logo'),false);logo.dispatchEvent(new win.Event('load'));assert.equal(art.classList.contains('has-logo'),true);logo.dispatchEvent(new win.Event('error'));assert.equal(art.classList.contains('has-logo'),false);
- const other=boot(t,{logo:'https://outside.test/logo.png'});other.link('/blog/').dispatchEvent(new other.win.MouseEvent('pointerdown',{bubbles:true,button:0}));assert.equal(other.win.document.querySelector('.jluxe-page-orbit img'),null);
+ const other=boot(t,{logo:'https://outside.test/logo.png'});other.win.document.dispatchEvent(new other.win.Event('jluxe:soft-navigation-start'));other.run(300);assert.equal(other.win.document.querySelector('.jluxe-page-orbit img'),null);
  const css=fs.readFileSync(new URL('../assets/css/page-motion.css',import.meta.url),'utf8');assert.match(css,/jluxe-page-progress-label\{position:absolute;width:1px;height:1px/);assert.doesNotMatch(css,/jluxe-logo-shine|jluxe-page-logo::after/);assert.match(css,/background:transparent/);assert.match(css,/box-shadow:none/);
 });

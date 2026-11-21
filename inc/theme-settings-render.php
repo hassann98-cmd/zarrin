@@ -1269,8 +1269,9 @@ function jluxe_render_colors_typography_page(): void {
 								<select id="jluxe-visual-design-variant" name="visual_design[variant]">
 									<option value="current" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'current' ); ?>>نسخهٔ فعلی سایت (پیش‌فرض)</option>
 									<option value="canva_home" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'canva_home' ); ?>>خانهٔ رنگی و خانگی — الهام‌گرفته از Canva</option>
+									<option value="neumorphism" <?php selected( $settings['visual_design']['variant'] ?? 'current', 'neumorphism' ); ?>>نئومورفیسم — سطح‌های نرم و برجسته (اختیاری)</option>
 								</select>
-								<p class="description">در طراحی خانهٔ رنگی، پالت سبز، کرم و سفالی با کارت‌های نرم و فاصله‌گذاری یکپارچه به‌کار می‌رود. تا وقتی این طرح روشن است، پالت اختصاصی آن اولویت دارد؛ رنگ‌های ذخیره‌شده حذف نمی‌شوند و با بازگشت به «نسخهٔ فعلی» دوباره اعمال می‌شوند. این طرح در Canva ساخته نشده و از فایل یا قالب اختصاصی Canva استفاده نمی‌کند.</p>
+								<p class="description">طرح نئومورفیسم، سطح‌های برجسته و فرورفتهٔ لطیف را با پس‌زمینهٔ روشن، رنگ تأکیدی بنفش و کنتراست خوانا روی هدر، صفحهٔ اصلی، فروشگاه، محصول و فوتر اعمال می‌کند. این لایه فقط ظاهر را عوض می‌کند و محتوا، چیدمان واکنش‌گرا و رفتارها را دست‌نخورده می‌گذارد. برای بازگشت فوری، «نسخهٔ فعلی سایت» را انتخاب و ذخیره کنید؛ هیچ تنظیم رنگ یا داده‌ای حذف نمی‌شود. در طرح خانهٔ رنگی، پالت سبز، کرم و سفالی اولویت دارد و با بازگشت به نسخهٔ فعلی رنگ‌های ذخیره‌شده دوباره اعمال می‌شوند. این طرح الهام‌گرفته از Canva است، اما در Canva ساخته نشده و از فایل یا قالب اختصاصی آن استفاده نمی‌کند.</p>
 							</td>
 						</tr>
 					</table>

@@ -28,7 +28,7 @@
 @keyframes jluxe-page-orbit{to{transform:rotate(360deg);}}
 @keyframes jluxe-page-breathe{50%{opacity:.55;transform:scale(.85);}}
 @keyframes jluxe-wait-enter{from{opacity:0;}to{opacity:1;}}
-a.jluxe-navigation-pressed{outline:2px solid currentColor;outline-offset:-2px;opacity:.86;}
+a.jluxe-navigation-pressed{outline:2px solid rgba(0,0,0,.22);outline-color:color-mix(in srgb,currentColor 28%,transparent);outline-offset:-2px;opacity:.93;}
 @media(prefers-reduced-motion: reduce){
  @view-transition { navigation: none; }
  ::view-transition-old(root),::view-transition-new(root),.jluxe-page-progress,.jluxe-page-orbit path{animation:none;}

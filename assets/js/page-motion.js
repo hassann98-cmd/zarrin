@@ -2,7 +2,7 @@
 (function (win, doc) {
   'use strict';
   var config = win.jluxePageMotion || {};
-  var showTimer, resetTimer, intentTimer, bar, pressed, pressTimer, previewTimer, slowTimer, softBusy=false, originPoint=null;
+  var showTimer, resetTimer, intentTimer, bar, pressed, pressTimer, slowTimer, softBusy=false, originPoint=null;
   function clearPress() {
     win.clearTimeout(pressTimer);
     if (pressed) pressed.classList.remove('jluxe-navigation-pressed');
@@ -41,13 +41,11 @@
   }
   function reset() {
     clearPress();
-    win.clearTimeout(showTimer); win.clearTimeout(resetTimer); win.clearTimeout(previewTimer); win.clearTimeout(slowTimer);
+    win.clearTimeout(showTimer); win.clearTimeout(resetTimer); win.clearTimeout(slowTimer);
     originPoint=null;
     if (bar) { bar.hidden = true; bar.removeAttribute('role'); bar.removeAttribute('aria-label'); }
   }
-  function start(preview) {
-    if (!config.transitions) return;
-    reset();
+  function showProgress() {
     if (!bar) {
       bar = doc.createElement('div'); bar.className = 'jluxe-page-progress';
       var art=doc.createElement('span');art.className='jluxe-page-orbit';art.setAttribute('aria-hidden','true');
@@ -69,9 +67,14 @@
     }
     bar.querySelector('.jluxe-page-progress-label').textContent='در حال بازکردن صفحه…';
     bar.hidden=false;bar.setAttribute('role','status');bar.setAttribute('aria-label','در حال بازکردن صفحه');
-    if(preview===true){previewTimer=win.setTimeout(reset,1200);return;}
-    slowTimer=win.setTimeout(function(){bar.querySelector('.jluxe-page-progress-label').textContent='کمی بیشتر طول کشید؛ لطفاً صبر کنید…';},5000);
-    resetTimer = win.setTimeout(reset, 15000); // Fail open: canceled navigation never locks the page.
+  }
+  function start() {
+    if (!config.transitions) return;
+    reset();
+    // A brief touch, scroll gesture or fast navigation should not flash a loader.
+    showTimer=win.setTimeout(showProgress,300);
+    slowTimer=win.setTimeout(function(){if(bar && !bar.hidden)bar.querySelector('.jluxe-page-progress-label').textContent='کمی بیشتر طول کشید؛ لطفاً صبر کنید…';},5000);
+    resetTimer=win.setTimeout(reset,10000); // Fail open if navigation never reports completion.
   }
   function prefetch(link) {
     var connection = win.navigator.connection || {};
@@ -133,7 +136,7 @@
   doc.addEventListener('pointerdown', function (event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     var link=event.target.closest?.('a[href]');
-    if(target(link,true) && config.transitions){start(true);originPoint={x:event.clientX,y:event.clientY};press(link);}
+    if(target(link,true) && config.transitions){originPoint={x:event.clientX,y:event.clientY};press(link);}
   });
   doc.addEventListener('pointermove',function(event){if(originPoint && Math.hypot(event.clientX-originPoint.x,event.clientY-originPoint.y)>12)reset();},{passive:true});
   doc.addEventListener('pointercancel', reset);

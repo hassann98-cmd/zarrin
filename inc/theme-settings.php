@@ -322,7 +322,7 @@ function jluxe_theme_settings_defaults(): array {
 		// Optional, site-wide visual system. Keep the existing storefront as
 		// the default; selecting a new design changes presentation only.
 		'visual_design' => array(
-			'variant' => 'current', // current | canva_home
+			'variant' => 'current', // current | canva_home | neumorphism
 		),
 		'shop' => array(
 			'products_per_page'          => 12,
@@ -2693,8 +2693,12 @@ function jluxe_get_setting( string $path, $default = null ) {
 
 /** Add the opt-in storefront design class without changing markup or content. */
 function jluxe_visual_design_body_classes( array $classes ): array {
-	if ( 'canva_home' === jluxe_get_setting( 'visual_design.variant', 'current' ) && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
+	$variant = jluxe_get_setting( 'visual_design.variant', 'current' );
+	if ( 'canva_home' === $variant && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
 		$classes[] = 'jluxe-design-canva-home';
+	}
+	if ( 'neumorphism' === $variant && ! in_array( 'jluxe-design-neumorphism', $classes, true ) ) {
+		$classes[] = 'jluxe-design-neumorphism';
 	}
 	return $classes;
 }
