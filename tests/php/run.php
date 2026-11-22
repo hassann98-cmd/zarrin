@@ -4059,7 +4059,7 @@ check(strpos($settings_inc,"'out_of_stock_last'          => true")!==false && st
 $__oos_settings=$__oos_original_settings;
 $__oos_settings['shop']['out_of_stock_last']=false;
 update_test_settings($__oos_settings);
-$__archive_sort_expected="CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC, wp_posts.ID DESC";
+$__archive_sort_expected="CASE WHEN COALESCE( jluxe_oos.stock_status, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC, wp_posts.ID DESC";
 $__archive_contexts=array(
  'shop'=>array('post_type'=>'product','is_post_type_archive'=>true),
  'product_category'=>array('post_type'=>'product','queried_taxonomies'=>array('product_cat')),
@@ -4072,13 +4072,14 @@ foreach($__archive_contexts as $__archive_context=>$__archive_query_args){
  $__archive_query_args['is_main_query']=true;
  $__archive_query=new WP_Query($__archive_query_args);
  $__archive_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.menu_order ASC'),$__archive_query);
- $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],' AS jluxe_oos ') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
+ $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],'wp_wc_product_meta_lookup AS jluxe_oos') && false===strpos($__archive_clauses['join'],'wp_postmeta') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
 }
 check($__archives_sorted, 'R337 shop, category, brand, and product-attribute main archives use current WP_Query flags to sort available first and newest first even when global conditionals disagree and the legacy toggle is off');
 
 $__brand_query_without_post_type=new WP_Query(array('is_main_query'=>true,'queried_taxonomies'=>array('product_brand')));
 $__brand_query_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.menu_order ASC'),$__brand_query_without_post_type);
-check(false!==strpos($__brand_query_clauses['join'],' AS jluxe_oos ') && strpos($__brand_query_clauses['orderby'],$__archive_sort_expected)===0, 'R372 a product-brand main archive remains stock-sorted when WooCommerce has not populated post_type yet');
+check(false!==strpos($__brand_query_clauses['join'],'wp_wc_product_meta_lookup AS jluxe_oos') && strpos($__brand_query_clauses['orderby'],$__archive_sort_expected)===0, 'R372 a product-brand main archive uses the WooCommerce lookup stock index even when WooCommerce has not populated post_type yet');
+$GLOBALS['wpdb']->wc_product_meta_lookup=''; // Exercise compatibility fallback in the legacy secondary-query assertions below.
 
 // R337: stock transitions invalidate only the product/variation and related parent caches.
 $__stock_cache_original_products = $GLOBALS['products'] ?? array();

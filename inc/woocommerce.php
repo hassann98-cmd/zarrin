@@ -4945,11 +4945,11 @@ function jluxe_meta_query_requires_in_stock( array $meta_query ): bool {
  * this is deliberately independent of the legacy toggle. Detect archives from the current
  * WP_Query's parsed flags: global WooCommerce conditional tags can still point at the old
  * query while posts_clauses is building the main brand/archive query.
- * The CASE reads live _stock_status metadata for each query, so a restocked product moves
- * into the in-stock group automatically. Other product queries retain the prior optional
- * stock grouping and their own order (for example homepage/popular/random rows). If a query
- * already requires in-stock products, its stock CASE is constant and the extra postmeta
- * join is skipped. Admin screens are excluded; missing status remains an in-stock fallback.
+ * The CASE reads WooCommerce's product-meta lookup stock status (with a postmeta fallback
+ * for older/custom stores), so a restocked product moves into the in-stock group automatically.
+ * Other product queries retain the prior optional stock grouping and their own order (for
+ * example homepage/popular/random rows). If a query already requires in-stock products, its
+ * stock CASE is constant and the extra join is skipped. Missing status remains in-stock.
  */
 function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
 	if ( is_admin() && ! wp_doing_ajax() ) {
@@ -4984,8 +4984,16 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 	}
 
 	global $wpdb;
+	$stock_lookup_table  = isset( $wpdb->wc_product_meta_lookup ) ? (string) $wpdb->wc_product_meta_lookup : '';
+	$stock_status_column = '' !== $stock_lookup_table ? 'jluxe_oos.stock_status' : 'jluxe_oos.meta_value';
 	if ( ! $meta_query_requires_in_stock && false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
-		$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
+		if ( '' !== $stock_lookup_table ) {
+			// WooCommerce maintains this one-row-per-product lookup table; prefer it
+			// to scanning postmeta for the stock sort, with a legacy fallback below.
+			$clauses['join'] .= " LEFT JOIN {$stock_lookup_table} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.product_id)";
+		} else {
+			$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
+		}
 	}
 
 	if ( $is_catalog_archive ) {
@@ -5002,7 +5010,7 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 
 	$clauses['orderby'] = $meta_query_requires_in_stock
 		? $base
-		: "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
+		: "CASE WHEN COALESCE( {$stock_status_column}, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
 	return $clauses;
 }
 add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 );
