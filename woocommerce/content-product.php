@@ -32,6 +32,7 @@ $has_discount  = ! $is_variable && $product->is_on_sale() && $sale_price > 0 && 
 $discount_pct  = $has_discount ? (int) round( 100 - ( $sale_price / $regular_price ) * 100 ) : 0;
 $rating        = (float) $product->get_average_rating();
 $review_count  = (int) $product->get_review_count();
+$product_name  = $product->get_name();
 $image_id      = $product->get_image_id();
 /*
  * src اصلیِ کارت همچنان از سایزِ uncropped «large» می‌آید: woocommerce_thumbnail
@@ -41,7 +42,18 @@ $image_id      = $product->get_image_id();
  * به انتخابِ فایلِ ۶۰۰px نشود؛ همهٔ کاندیدها نسبتِ ذاتی را حفظ می‌کنند و
  * نسبتِ قابِ کارت همچنان از تنظیمِ square / classic / portrait می‌آید.
  */
-$image_url     = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
+$image_data = $image_id ? wp_get_attachment_image_src( $image_id, 'large' ) : false;
+if ( $image_id && ! $image_data ) {
+	$image_data = wp_get_attachment_image_src( $image_id, 'full' );
+}
+$image_url    = $image_data ? $image_data[0] : wc_placeholder_img_src( 'woocommerce_thumbnail' );
+$image_width  = $image_data ? absint( $image_data[1] ) : 0;
+$image_height = $image_data ? absint( $image_data[2] ) : 0;
+if ( ! $image_id && function_exists( 'wc_get_image_size' ) ) {
+	$placeholder_dimensions = wc_get_image_size( 'woocommerce_thumbnail' );
+	$image_width             = absint( $placeholder_dimensions['width'] ?? 0 );
+	$image_height            = absint( $placeholder_dimensions['height'] ?? 0 );
+}
 $image_srcset  = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-480' ) : '';
 if ( $image_id && ! $image_srcset ) {
 	// برای رسانه‌های قدیمی تا قبل از ساخت سایز جدید، srcset پیشین را حفظ کن.
@@ -58,12 +70,12 @@ if ( $image_id && ! $image_srcset ) {
  * در آرشیو، از ستون‌های واقعیِ تنظیم‌شدهٔ فروشگاه استفاده می‌کنیم؛ در
  * سایرِ loopها هم برآورد بر پایهٔ همان تنظیماتِ ستون‌بندی انجام می‌شود.
  */
+$jluxe_is_catalog_context = ( function_exists( 'is_shop' ) && is_shop() )
+	|| ( function_exists( 'is_product_category' ) && is_product_category() )
+	|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
+	|| ( function_exists( 'is_search' ) && is_search() );
 $jluxe_card_sizes_override = $GLOBALS['jluxe_product_card_image_sizes'] ?? '';
 if ( ! is_string( $jluxe_card_sizes_override ) || '' === trim( $jluxe_card_sizes_override ) ) {
-	$jluxe_is_catalog_context = ( function_exists( 'is_shop' ) && is_shop() )
-		|| ( function_exists( 'is_product_category' ) && is_product_category() )
-		|| ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
-		|| ( function_exists( 'is_search' ) && is_search() );
 	$jluxe_shop_columns_mobile  = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_mobile', 2 ) : 2;
 	$jluxe_shop_columns_tablet  = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_tablet', 3 ) : 3;
 	$jluxe_shop_columns_desktop = function_exists( 'jluxe_get_setting' ) ? (int) jluxe_get_setting( 'shop.columns_desktop', 4 ) : 4;
@@ -98,8 +110,12 @@ $image_sizes = $image_id ? $jluxe_card_sizes_override : '';
  * منتقل شد — static داخلِ تابع، برخلافِ static در فایل، بینِ فراخوانی‌های
  * مختلفِ همون تابع در طولِ یک درخواست واقعاً پایدار می‌مونه.
  */
-$jluxe_card_render_count = function_exists( 'jluxe_next_product_card_index' ) ? jluxe_next_product_card_index() : 999;
-$jluxe_card_is_eager     = $jluxe_card_render_count <= 4;
+$jluxe_card_render_count      = function_exists( 'jluxe_next_product_card_index' ) ? jluxe_next_product_card_index() : 999;
+$jluxe_card_is_eager          = $jluxe_card_render_count <= 4;
+$jluxe_card_is_lcp_candidate  = $jluxe_is_catalog_context && 1 === $jluxe_card_render_count;
+$jluxe_card_item_class        = isset( $GLOBALS['jluxe_product_card_item_class'] ) && is_string( $GLOBALS['jluxe_product_card_item_class'] )
+	? trim( $GLOBALS['jluxe_product_card_item_class'] )
+	: '';
 
 // JLuxe Theme → کارت محصول (نسبت تصویر/نمایش امتیاز و بج‌ها). قبلاً فقط
 // دو حالت بود (مربع/عمودیِ ۴:۵) — طبقِ درخواستِ کاربر «فقط نباید مربع
@@ -145,7 +161,7 @@ $jluxe_radius   = $jluxe_radius_map[ $jluxe_pc['radius'] ?? 'lg' ] ?? $jluxe_rad
 $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounded' ) ) ? '' : $jluxe_radius['image_inner'];
 
 ?>
-<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30', $product ); ?> data-jluxe-product-card-variant="<?php echo esc_attr( $jluxe_card_variant ); ?>">
+<li <?php wc_product_class( 'group relative flex flex-col ' . esc_attr( $jluxe_radius['card'] ) . ' border border-border bg-gradient-to-b from-surface to-muted/40 transition-all duration-300 hover:border-primary/30 ' . $jluxe_card_item_class, $product ); ?> data-jluxe-product-card-variant="<?php echo esc_attr( $jluxe_card_variant ); ?>">
 	<?php
 	// گالری محصول (عکس‌های دیگه، غیر از تصویر شاخص) — با هاور (دسکتاپ) یا
 	// لمس طولانی (موبایل) به‌صورت ردیف تامبنیل کوچیک پایین باکس تصویر
@@ -191,11 +207,12 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 				<img
 					data-jluxe-card-main-img
 					src="<?php echo esc_url( $image_url ); ?>"
+					<?php if ( $image_width > 0 && $image_height > 0 ) : ?>width="<?php echo esc_attr( (string) $image_width ); ?>" height="<?php echo esc_attr( (string) $image_height ); ?>"<?php endif; ?>
 					<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="<?php echo esc_attr( $image_sizes ); ?>"<?php endif; ?>
 					alt="<?php echo esc_attr( $product->get_name() ); ?>"
 					<?php echo jluxe_lazy_attr( $jluxe_card_is_eager ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<?php // fetchpriority=high فقط برای اولین کارت (تنها کاندیدِ واقعیِ LCP) — دادنش به چند عکس هم‌زمان خودِ سیگنال رو کم‌اثر می‌کنه. ?>
-					<?php echo 1 === $jluxe_card_render_count ? ' fetchpriority="high"' : ''; ?>
+					<?php // اولویت بالا فقط برای کارت اولِ آرشیو کاتالوگ است؛ صفحه اصلی/محصول تصویر LCP جداگانه دارد. ?>
+					<?php echo $jluxe_card_is_lcp_candidate ? ' fetchpriority="high"' : ''; ?>
 					<?php
 					/*
 					 * قابِ aspect-* نسبتِ تنظیم‌شده را نگه می‌دارد؛ خودِ منبع uncropped
@@ -230,7 +247,7 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 						}
 						?>
 						<span data-jluxe-card-thumb data-full="<?php echo esc_url( $jluxe_full_url ); ?>"<?php if ( $jluxe_full_srcset ) : ?> data-srcset="<?php echo esc_attr( $jluxe_full_srcset ); ?>" data-sizes="<?php echo esc_attr( $image_sizes ); ?>"<?php endif; ?> class="size-8 shrink-0 overflow-hidden rounded-md border-2 border-white/90 bg-white/90 shadow-sm">
-							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_thumb_image ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> alt="" class="size-full object-contain" loading="lazy" />
+							<img src="<?php echo esc_url( $jluxe_thumb_url ); ?>"<?php echo jluxe_responsive_image_attributes( $jluxe_thumb_image ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php if ( ! empty( $jluxe_thumb_image['width'] ) && ! empty( $jluxe_thumb_image['height'] ) ) : ?> width="<?php echo absint( $jluxe_thumb_image['width'] ); ?>" height="<?php echo absint( $jluxe_thumb_image['height'] ); ?>"<?php endif; ?> alt="" class="size-full object-contain" loading="lazy" />
 						</span>
 					<?php endforeach; ?>
 					<?php if ( $jluxe_gallery_overflow > 0 ) : ?>
@@ -275,7 +292,7 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 			?>
 			<a
 				href="<?php echo esc_url( $out_of_stock || $is_variable ? get_permalink( $product->get_id() ) : $product->add_to_cart_url() ); ?>"
-				aria-label="<?php echo esc_attr( $out_of_stock ? 'ناموجود' : ( $is_variable ? 'انتخاب گزینه‌ها' : 'افزودن به سبد خرید' ) ); ?>"
+				aria-label="<?php echo esc_attr( $out_of_stock ? sprintf( 'مشاهدهٔ %s (ناموجود)', $product_name ) : ( $is_variable ? sprintf( 'انتخاب گزینه‌های %s', $product_name ) : sprintf( 'افزودن %s به سبد خرید', $product_name ) ) ); ?>"
 				data-product_id="<?php echo esc_attr( $product->get_id() ); ?>"
 				<?php echo ( $is_variable && ! $out_of_stock ) ? '' : 'data-quantity="1"'; ?>
 				<?php echo ( $is_variable && ! $out_of_stock ) ? 'data-jluxe-quick-variant="' . esc_attr( $product->get_id() ) . '"' : ''; ?>

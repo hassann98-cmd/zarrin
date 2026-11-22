@@ -206,14 +206,22 @@ export function updateCartQuantity(key, qty) {
 
 function useCart() {
   const [current, setCurrent] = useState(snapshot);
-  const [loading, setLoading] = useState(!loaded);
+  const [loading, setLoading] = useState(!loaded && snapshot.itemCount > 0);
   const [couponLoading, setCouponLoading] = useState(false);
   const [error, setError] = useState(null);
   const [couponError, setCouponError] = useState(null);
+  const refresh = useCallback(() => {
+    setLoading(true);
+    return cartRequest("get").then((result) => {
+      setLoading(false);
+      setError(result.error ?? null);
+      return result;
+    });
+  }, []);
   useEffect(() => {
     let active = true;
     subscribers.add(setCurrent);
-    if (!loaded) {
+    if (!loaded && snapshot.itemCount > 0) {
       initialRequest ||= cartRequest("get").finally(() => {
         initialRequest = null;
       });
@@ -223,6 +231,8 @@ function useCart() {
           setError(result.error ?? null);
         }
       });
+    } else if (!loaded) {
+      setLoading(false);
     }
     function refresh(event) {
       if (!refreshEvents.has(event)) {
@@ -284,6 +294,7 @@ function useCart() {
   }, []);
   return {
     snapshot: current,
+    refresh,
     loading: loading || pendingRemovals.size > 0 || pendingQuantities.size > 0,
     quantityPending: pendingQuantities.size > 0,
     quantityKeys: [...pendingQuantities.keys()],

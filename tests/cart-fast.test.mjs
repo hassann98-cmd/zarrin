@@ -15,7 +15,7 @@ async function boot(t) {
   for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
-  dom.window.JLuxeThemeSettings = { cart: { ajaxUrl: '/cart-ajax', nonce: 'test' } };
+  dom.window.JLuxeThemeSettings = { cart: { ajaxUrl: '/cart-ajax', nonce: 'test', initialCount: 1 } };
   const api = await import(`../src/lib/use-cart.js?fast=${Math.random()}`);
   let root;
   t.after(async () => {

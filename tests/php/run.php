@@ -4732,9 +4732,11 @@ check(
 	false !== strpos( $r84_html, 'sizes="' . esc_attr( $r84_expected_sizes ) . '"' ),
 	'R84 rendered product cards send the browser a sizes hint matching the configured archive columns and image inset'
 );
+check( false !== strpos( $r84_html, 'width="1200" height="300"' ), 'R452 rendered catalog product images declare intrinsic dimensions to reserve layout space' );
+check( false !== strpos( $r84_html, 'aria-label="افزودن Public product به سبد خرید"' ), 'R452 each product-card CTA name includes its product title' );
 $r152_card_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-product.php' );
 check(
-	strpos( $r152_card_template, "wp_get_attachment_image_url( \$image_id, 'large' )" ) !== false &&
+	strpos( $r152_card_template, "wp_get_attachment_image_src( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_card_template, "'square'  => 'aspect-square'" ) !== false &&
@@ -4757,20 +4759,27 @@ check(
 );
 $r152_had_card_sizes = array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
 $r152_previous_card_sizes = $r152_had_card_sizes ? $GLOBALS['jluxe_product_card_image_sizes'] : null;
+$r152_original_had_item_class = array_key_exists( 'jluxe_product_card_item_class', $GLOBALS );
+$r152_original_item_class = $r152_original_had_item_class ? $GLOBALS['jluxe_product_card_item_class'] : null;
+$GLOBALS['jluxe_product_card_item_class'] = 'outer-card-class';
 $r152_seen_card_sizes = '';
+$r152_seen_item_class = '';
 jluxe_with_product_card_image_sizes(
 	'inner-test-size',
-	static function () use ( &$r152_seen_card_sizes ): void {
+	static function () use ( &$r152_seen_card_sizes, &$r152_seen_item_class ): void {
 		$r152_seen_card_sizes = $GLOBALS['jluxe_product_card_image_sizes'] ?? '';
-	}
+		$r152_seen_item_class = $GLOBALS['jluxe_product_card_item_class'] ?? '';
+	},
+	'inner-card-class'
 );
-$r152_context_restored = $r152_had_card_sizes
+$r152_sizes_restored = $r152_had_card_sizes
 	? ( $GLOBALS['jluxe_product_card_image_sizes'] ?? null ) === $r152_previous_card_sizes
 	: ! array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
-check(
-	'inner-test-size' === $r152_seen_card_sizes && $r152_context_restored,
-	'Product-card image sizes are scoped to their render loop and cannot leak into following cards/sections'
-);
+$r152_class_restored = ( $GLOBALS['jluxe_product_card_item_class'] ?? null ) === 'outer-card-class';
+check( 'inner-test-size' === $r152_seen_card_sizes, 'Product-card responsive image sizes are visible only in their scoped rendering callback' );
+check( 'inner-card-class' === $r152_seen_item_class, 'Carousel list-item classes are passed to the product-card rendering callback' );
+check( $r152_sizes_restored && $r152_class_restored, 'Product-card image sizes and list-item classes restore their outer render context without leaking' );
+if ( $r152_original_had_item_class ) { $GLOBALS['jluxe_product_card_item_class'] = $r152_original_item_class; } else { unset( $GLOBALS['jluxe_product_card_item_class'] ); }
 $r152_home_cards = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
@@ -4788,6 +4797,23 @@ check(
 	strpos( $r152_home_cards, 'jluxe_with_product_card_image_sizes' ) !== false &&
 	2 === substr_count( $r152_home_cards, "'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px'" ),
 	'Homepage product grids derive srcset sizes from configured columns and carousel cards use their exact 126/156/266px image slots'
+);
+check(
+	strpos( $r152_home_cards, '<ul class="jluxe-pg-' ) !== false &&
+	2 === substr_count( $r152_home_cards, '<ul data-jluxe-scroller' ) &&
+	strpos( $r152_home_cards, "echo '<div class=\"w-[160px]" ) === false &&
+	strpos( $r152_card_template, '$jluxe_is_catalog_context && 1 === $jluxe_card_render_count' ) !== false &&
+	strpos( $r152_card_template, 'width="<?php echo esc_attr( (string) $image_width ); ?>" height=' ) !== false &&
+	strpos( $r152_card_template, 'sprintf( \'افزودن %s به سبد خرید\', $product_name )' ) !== false,
+	'R452 homepage product-card lists use semantic ul/li structure, product images reserve dimensions, catalog-only LCP priority avoids product-page competition, and CTA names identify the product'
+);
+$r452_header = (string) file_get_contents( ABSPATH . 'header.php' );
+$r452_minimal_header = (string) file_get_contents( ABSPATH . 'header-minimal.php' );
+check(
+	false === strpos( $r452_header, '<html <?php language_attributes(); ?> dir=' ) &&
+	false === strpos( $r452_minimal_header, '<html <?php language_attributes(); ?> dir=' ) &&
+	false !== strpos( $r152_home_cards, '<h3 class="line-clamp-2' ),
+	'R452 document direction is emitted only by language_attributes and compact bestseller headings follow their section h2 with h3'
 );
 check(
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$jluxe_gid, 'jluxe-uncropped-480' )" ) !== false &&
@@ -4881,7 +4907,7 @@ $r137_card_css   = (string) file_get_contents( ABSPATH . 'src/styles/storefront.
 check( false !== $r137_title_pos && false !== $r137_rating_pos && $r137_title_pos < $r137_rating_pos && false !== strpos( $r84_html, esc_html( jluxe_fa_digits( number_format( 4.5, 1, '.', '' ) ) ) ) && false !== strpos( $r84_html, 'role="img" aria-label="امتیاز' ), 'R137 the product title still precedes an accessibly labeled star/score/review-count row' );
 $r137_global_cta_pos = strpos( $r137_card_css, '.woocommerce a.button.product_type_simple:not(.jluxe-product-card-cta)' );
 $r137_card_override_pos = strrpos( $r137_card_css, '/* R137 — compact card controls take precedence over WooCommerce loop-button styles. */' );
-check( false !== strpos( $r84_html, 'aria-label="افزودن به سبد خرید"' ) && false !== strpos( $r84_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r84_html, 'jluxe-product-card-cta-label' ) && false !== strpos( $r137_card_css, 'flex-direction: row;' ) && false !== strpos( $r137_card_css, 'width: 44px;' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--foreground));' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--primary));' ) && false !== strpos( $r137_card_css, 'transform: rotate(90deg);' ) && false !== $r137_global_cta_pos && false !== $r137_card_override_pos && $r137_card_override_pos > $r137_global_cta_pos && false !== strpos( $r137_card_css, 'min-height: 44px;' ) && false !== strpos( $r137_card_css, 'background: hsl(var(--foreground));' ), 'R137 the icon-only plus shares a row with prices, overrides WooCommerce sizing, stays dark at rest, and rotates into the add color on interaction' );
+check( false !== strpos( $r84_html, 'aria-label="افزودن Public product به سبد خرید"' ) && false !== strpos( $r84_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r84_html, 'jluxe-product-card-cta-label' ) && false !== strpos( $r137_card_css, 'flex-direction: row;' ) && false !== strpos( $r137_card_css, 'width: 44px;' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--foreground));' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--primary));' ) && false !== strpos( $r137_card_css, 'transform: rotate(90deg);' ) && false !== $r137_global_cta_pos && false !== $r137_card_override_pos && $r137_card_override_pos > $r137_global_cta_pos && false !== strpos( $r137_card_css, 'min-height: 44px;' ) && false !== strpos( $r137_card_css, 'background: hsl(var(--foreground));' ), 'R137 the icon-only plus shares a row with prices, overrides WooCommerce sizing, stays dark at rest, and rotates into the add color on interaction' );
 $r137_current_price_pos = strpos( $r84_html, 'class="jluxe-product-card-current-price' );
 $r137_old_price_pos     = strpos( $r84_html, '<del class="jluxe-product-card-old-price' );
 check( false !== $r137_current_price_pos && false !== $r137_old_price_pos && $r137_current_price_pos < $r137_old_price_pos && false !== strpos( $r137_card_css, 'text-decoration: line-through;' ) && false !== strpos( $r137_card_css, '.jluxe-product-card-price {' ), 'R137 the sale card renders the current price before a semantic, explicitly struck-through regular price in a shared footer row' );
@@ -4906,7 +4932,7 @@ try {
 	$r137_variable_error = get_class( $r137_error ) . ': ' . $r137_error->getMessage();
 }
 $GLOBALS['product'] = $r137_original_product;
-check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌ها"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract when a variation is purchasable' );
+check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌های Public product"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract when a variation is purchasable' );
 
 /**
  * استاتیک: «ویژگیِ HTML داخلِ کدِ PHP». این همان الگوی خطای نسخهٔ 1.65.0 است؛

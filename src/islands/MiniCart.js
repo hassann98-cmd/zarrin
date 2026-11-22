@@ -32,6 +32,7 @@ function J() {
       quantityPending,
       quantityKeys,
       error: cartError,
+      refresh,
       updateQty: f,
       removeItem: v,
       applyCoupon: N,
@@ -50,10 +51,16 @@ function J() {
       () =>
         registerMobileDrawer(
           "cart",
-          { open: () => l(!0), close: () => l(!1) },
+          {
+            open: () => {
+              l(!0);
+              refresh();
+            },
+            close: () => l(!1),
+          },
           window,
         ),
-      [],
+      [refresh],
     ),
     r.useEffect(() => {
       if (n) {

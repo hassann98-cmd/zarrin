@@ -3660,6 +3660,12 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	// صفحه‌ی تکی محصول/سبد/چک‌اوت — پس این اسکریپت سراسری لود می‌شه (فایل
 	// کوچیکه و با .closest() امن نوشته شده، جایی که چیزی نباشه کاری نمی‌کنه).
 	$jluxe_wc_js_path = JLUXE_THEME_DIR . '/assets/js/woocommerce.js';
+	$jluxe_wc_js_url  = JLUXE_THEME_URI . '/assets/js/woocommerce.js';
+	$jluxe_wc_min_path = JLUXE_ASSET_DIR . '/woocommerce.min.js';
+	if ( ! jluxe_is_dev() && is_file( $jluxe_wc_min_path ) ) {
+		$jluxe_wc_js_path = $jluxe_wc_min_path;
+		$jluxe_wc_js_url  = JLUXE_ASSET_URI . '/woocommerce.min.js';
+	}
 	$jluxe_wc_dependencies = array( 'jquery', 'jluxe-storefront-utils' );
 	if ( function_exists( 'jluxe_soft_navigation_kind' ) && 'catalog' === jluxe_soft_navigation_kind() ) {
 		// The archive helper must execute before filter/sort listeners bind.
@@ -3667,7 +3673,7 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	}
 	wp_enqueue_script(
 		'jluxe-woocommerce',
-		JLUXE_THEME_URI . '/assets/js/woocommerce.js',
+		$jluxe_wc_js_url,
 		$jluxe_wc_dependencies,
 		file_exists( $jluxe_wc_js_path ) ? (string) filemtime( $jluxe_wc_js_path ) : '1.0.0',
 		/*

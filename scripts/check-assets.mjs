@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { parseSync } from "rolldown/utils";
 const root = path.resolve("assets/compiled");
 const manifest = JSON.parse(
   fs.readFileSync(path.join(root, "manifest.json"), "utf8"),
@@ -26,6 +27,18 @@ for (const [name, entry] of Object.entries(manifest)) {
 console.log(
   `Asset manifest verified (${Object.keys(manifest).length} entries).`,
 );
+
+const wooSourcePath = path.resolve("assets/js/woocommerce.js");
+const wooMinifiedPath = path.resolve(root, "woocommerce.min.js");
+if (!fs.existsSync(wooMinifiedPath))
+  throw Error("Missing compiled WooCommerce production script");
+const wooSource = fs.readFileSync(wooSourcePath, "utf8");
+const wooMinified = fs.readFileSync(wooMinifiedPath, "utf8");
+if (!wooMinified || wooMinified.length >= wooSource.length * 0.8)
+  throw Error("Compiled WooCommerce script is not sufficiently minified");
+const wooParse = parseSync("woocommerce.min.js", wooMinified);
+if (wooParse.errors.length)
+  throw Error(`Invalid compiled WooCommerce script: ${wooParse.errors.map((error) => error.message).join("; ")}`);
 
 const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 const stylesheet = fs.readFileSync("style.css", "utf8");

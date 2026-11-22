@@ -67,6 +67,38 @@ const cartData = (itemCount) => ({
 });
 const freshCart = () => import(`../src/lib/use-cart.js?case=${++moduleId}`);
 
+test("R452 an empty guest cart skips the startup AJAX read and refreshes when the drawer is opened", async () => {
+  const instance = dom();
+  const { u: useCart } = await freshCart();
+  let calls = 0;
+  globalThis.fetch = async (_url, options) => {
+    calls++;
+    assert.equal(options.body.get("op"), "get");
+    return json({ success: true, data: cartData(2) });
+  };
+  let current;
+  function Consumer() {
+    current = useCart();
+    return React.createElement(
+      "output",
+      null,
+      `${current.snapshot.itemCount}|${current.loading ? "busy" : "idle"}`,
+    );
+  }
+  const root = createRoot(document.getElementById("root"));
+  disposers.push(() => act(() => root.unmount()));
+  await act(async () => {
+    root.render(React.createElement(Consumer));
+  });
+  assert.equal(calls, 0, "an empty guest cart does not call admin-ajax during island hydration");
+  assert.equal(document.querySelector("output")?.textContent, "0|idle");
+  await act(async () => {
+    await current.refresh();
+  });
+  assert.equal(calls, 1, "the drawer can still explicitly reconcile the cart on open");
+  assert.equal(document.querySelector("output")?.textContent, "2|idle");
+});
+
 test("R22 expired cart nonce refreshes once, then replays only the pre-mutation rejection", async () => {
   settings();
   const { cartRequest } = await freshCart();
@@ -199,6 +231,7 @@ test("R22 simultaneous forced session refreshes share one in-flight request", as
 
 test("R22 three cart consumers refresh once per event and ignore an older read after a newer snapshot", async () => {
   const instance = dom();
+  instance.window.JLuxeThemeSettings.cart.initialCount = 3;
   const { u: useCart } = await freshCart();
   let calls = 0,
     release;
@@ -263,6 +296,7 @@ test("R22 three cart consumers refresh once per event and ignore an older read a
 
 test("R343 drawer removal updates immediately, reconciles on a network timeout, and accepts WooCommerce truth on success", async () => {
   const instance = dom();
+  instance.window.JLuxeThemeSettings.cart.initialCount = 3;
   const { u: useCart, cartRequest } = await freshCart();
   const before = {
     ...cartData(3),

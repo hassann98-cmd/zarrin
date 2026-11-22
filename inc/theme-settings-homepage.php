@@ -1615,7 +1615,7 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 
 			<?php if ( $is_carousel ) : ?>
 				<div class="relative">
-					<div data-jluxe-scroller<?php echo jluxe_carousel_autoscroll_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
+					<ul data-jluxe-scroller<?php echo jluxe_carousel_autoscroll_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> class="jluxe-scroll-x jluxe-hide-scrollbar m-0 flex list-none gap-4 overflow-x-auto p-0 scroll-smooth pb-2" aria-label="<?php echo esc_attr( $section['title'] ?: 'محصولات' ); ?>">
 						<?php
 						jluxe_with_product_card_image_sizes(
 							'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px',
@@ -1630,23 +1630,22 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 								 */
 								foreach ( $products as $product ) {
 									$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-									echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
 									wc_get_template_part( 'content', 'product' );
-									echo '</div>';
 								}
 								wp_reset_postdata();
-							}
+							},
+							'w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]'
 						);
 						?>
-					</div>
+					</ul>
 					<?php jluxe_scroll_arrows(); ?>
 				</div>
 			<?php else : ?>
-				<div class="jluxe-pg-<?php echo esc_attr( $section['id'] ); ?> grid gap-4" style="grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_m ); ?>,1fr)">
-					<style>
-						@media(min-width:640px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_t ); ?>,1fr)!important}}
-						@media(min-width:1024px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_d ); ?>,1fr)!important}}
-					</style>
+				<style>
+					@media(min-width:640px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_t ); ?>,1fr)!important}}
+					@media(min-width:1024px){.jluxe-pg-<?php echo esc_attr( $section['id'] ); ?>{grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_d ); ?>,1fr)!important}}
+				</style>
+				<ul class="jluxe-pg-<?php echo esc_attr( $section['id'] ); ?> m-0 grid list-none gap-4 p-0" style="grid-template-columns:repeat(<?php echo esc_attr( (string) $cols_m ); ?>,1fr)" aria-label="<?php echo esc_attr( $section['title'] ?: 'محصولات' ); ?>">
 					<?php
 					jluxe_with_product_card_image_sizes(
 						jluxe_product_card_grid_image_sizes( $cols_m, $cols_t, $cols_d, $highlight, 640 ),
@@ -1659,7 +1658,7 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 						}
 					);
 					?>
-				</div>
+				</ul>
 			<?php endif; ?>
 		</div>
 	</section>
@@ -1835,7 +1834,7 @@ function jluxe_render_homepage_special_products( array $section ): void {
 			<a href="<?php echo esc_url( $view_all_link ); ?>" class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-caption font-medium text-foreground">مشاهده همه</a>
 		</div>
 		<div class="relative">
-			<div data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-2">
+			<ul data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar m-0 flex list-none gap-4 overflow-x-auto p-0 scroll-smooth pb-2" aria-label="<?php echo esc_attr( $section['title'] ?? 'فروش ویژه' ); ?>">
 				<?php
 				jluxe_with_product_card_image_sizes(
 					'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px',
@@ -1850,15 +1849,14 @@ function jluxe_render_homepage_special_products( array $section ): void {
 						 */
 						foreach ( $products as $product ) {
 							$GLOBALS['product'] = $product; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-							echo '<div class="w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]">';
 							wc_get_template_part( 'content', 'product' );
-							echo '</div>';
 						}
 						wp_reset_postdata();
-					}
+					},
+					'w-[160px] shrink-0 sm:w-[190px] lg:w-[300px]'
 				);
 				?>
-			</div>
+			</ul>
 			<?php jluxe_scroll_arrows(); ?>
 		</div>
 	</section>
@@ -3302,9 +3300,17 @@ function jluxe_render_homepage_brick_products( array $section ): void {
  * این کارت برایِ نمایشِ فشرده و پرشمار طراحی شده، نه ویترینِ کاملِ محصول.
  */
 function jluxe_render_homepage_brick_card( WC_Product $product ): void {
-	$image_id     = $product->get_image_id();
-	$image_url    = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-200' ) : '';
+	$image_id         = $product->get_image_id();
+	$image_dimensions = $image_id ? wp_get_attachment_image_src( $image_id, 'large' ) : false;
+	$image_url        = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
+	$image_srcset     = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-200' ) : '';
+	$image_width      = $image_dimensions ? absint( $image_dimensions[1] ) : 0;
+	$image_height     = $image_dimensions ? absint( $image_dimensions[2] ) : 0;
+	if ( ! $image_id && function_exists( 'wc_get_image_size' ) ) {
+		$placeholder_dimensions = wc_get_image_size( 'woocommerce_thumbnail' );
+		$image_width             = absint( $placeholder_dimensions['width'] ?? 0 );
+		$image_height            = absint( $placeholder_dimensions['height'] ?? 0 );
+	}
 	if ( $image_id && ! $image_srcset ) {
 		$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
 	}
@@ -3321,6 +3327,7 @@ function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 				<img
 					data-jluxe-card-main-img
 					src="<?php echo esc_url( $image_url ); ?>"
+					<?php if ( $image_width > 0 && $image_height > 0 ) : ?>width="<?php echo esc_attr( (string) $image_width ); ?>" height="<?php echo esc_attr( (string) $image_height ); ?>"<?php endif; ?>
 					<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="65px"<?php endif; ?>
 					alt="<?php echo esc_attr( $product->get_name() ); ?>"
 					loading="lazy"
@@ -3328,7 +3335,7 @@ function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 					class="size-full object-contain transition-transform duration-300 group-hover:scale-105"
 				/>
 			</div>
-			<h4 class="line-clamp-2 min-w-0 flex-1 pt-1 text-[12.5px] leading-5 text-text-secondary sm:text-[13px]"><?php echo esc_html( $product->get_name() ); ?></h4>
+			<h3 class="line-clamp-2 min-w-0 flex-1 pt-1 text-[12.5px] leading-5 text-text-secondary sm:text-[13px]"><?php echo esc_html( $product->get_name() ); ?></h3>
 		</div>
 		<div class="mt-2 flex items-center justify-end gap-1 text-foreground">
 			<span class="text-[13px] font-bold"><?php echo esc_html( jluxe_fa_digits( number_format( (float) $price, 0 ) ) ); ?></span>
@@ -3482,9 +3489,17 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
  * عنوانِ تک‌خط، و ردیفِ امتیاز/قیمت.
  */
 function jluxe_render_homepage_recommended_card( WC_Product $product, bool $border_end, bool $border_bottom ): void {
-	$image_id     = $product->get_image_id();
-	$image_url    = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
-	$image_srcset = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-480' ) : '';
+	$image_id         = $product->get_image_id();
+	$image_dimensions = $image_id ? wp_get_attachment_image_src( $image_id, 'large' ) : false;
+	$image_url        = $image_id ? ( wp_get_attachment_image_url( $image_id, 'large' ) ?: wp_get_attachment_image_url( $image_id, 'full' ) ) : wc_placeholder_img_src( 'woocommerce_thumbnail' );
+	$image_srcset     = $image_id ? wp_get_attachment_image_srcset( $image_id, 'jluxe-uncropped-480' ) : '';
+	$image_width      = $image_dimensions ? absint( $image_dimensions[1] ) : 0;
+	$image_height     = $image_dimensions ? absint( $image_dimensions[2] ) : 0;
+	if ( ! $image_id && function_exists( 'wc_get_image_size' ) ) {
+		$placeholder_dimensions = wc_get_image_size( 'woocommerce_thumbnail' );
+		$image_width             = absint( $placeholder_dimensions['width'] ?? 0 );
+		$image_height            = absint( $placeholder_dimensions['height'] ?? 0 );
+	}
 	if ( $image_id && ! $image_srcset ) {
 		$image_srcset = wp_get_attachment_image_srcset( $image_id, 'large' );
 	}
@@ -3535,6 +3550,7 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 		<div class="my-2 flex h-24 items-center justify-center sm:h-28">
 			<img
 				src="<?php echo esc_url( $image_url ); ?>"
+				<?php if ( $image_width > 0 && $image_height > 0 ) : ?>width="<?php echo esc_attr( (string) $image_width ); ?>" height="<?php echo esc_attr( (string) $image_height ); ?>"<?php endif; ?>
 				<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="(max-width:639px) 42vw, (max-width:1023px) 28vw, 240px"<?php endif; ?>
 				alt="<?php echo esc_attr( $product->get_name() ); ?>"
 				loading="lazy"
