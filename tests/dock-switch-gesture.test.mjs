@@ -32,6 +32,19 @@ test('pointerup switches once before a displaced compatibility click; fresh cart
  }finally{dom.window.close();}
 });
 
+test('scroll-mode pointer capture is explicitly released before cart and account navigation',()=>{
+ const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><a id="cart" href="/cart/">Cart</a><a id="account" href="/login/">Account</a>',{runScripts:'outside-only'});
+ try{const w=dom.window,d=w.document,b=d.querySelector('button');let captured=null,releases=0,switches=0,carts=0,accounts=0;w.scrollY=640;
+  b.setPointerCapture=id=>{captured=id;};b.hasPointerCapture=id=>captured===id;b.releasePointerCapture=id=>{if(captured===id){captured=null;releases++;}};
+  w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);b.onclick=()=>switches++;d.querySelector('#cart').onclick=()=>carts++;d.querySelector('#account').onclick=()=>accounts++;
+  function fire(el,type,id,x=24){const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:700,button:0,detail:type==='click'?1:0});Object.defineProperty(e,'pointerId',{value:id});el.dispatchEvent(e);}
+  fire(b,'pointerdown',7);assert.equal(captured,7);fire(b,'pointerup',7);assert.equal(captured,null,'switch releases pointer capture on pointerup');assert.equal(releases,1);assert.equal(switches,1);
+  fire(b,'click',7);assert.equal(switches,1,'the compatibility click from the switch is still suppressed');
+  for(const [id,x] of [['cart',32],['account',110]]){const link=d.getElementById(id);fire(link,'pointerdown',id==='cart'?8:9,x);fire(link,'pointerup',id==='cart'?8:9,x);fire(link,'click',id==='cart'?8:9,x);}
+  assert.equal(carts,1);assert.equal(accounts,1,'following taps reach their real navigation targets after scroll');
+ }finally{dom.window.close();}
+});
+
 test('both dock switches expose named modes, selected state, and compact purchase details',()=>{
  for(const file of ['woocommerce/content-single-product.php','inc/woocommerce.php']){
   const php=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');

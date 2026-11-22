@@ -152,17 +152,33 @@
       if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (error) {} }
       stop(event);
     }, true);
+    function releasePointerCapture(event) {
+      if (event.pointerId === undefined || !button.releasePointerCapture) return;
+      try {
+        if (!button.hasPointerCapture || button.hasPointerCapture(event.pointerId)) {
+          button.releasePointerCapture(event.pointerId);
+        }
+      } catch (_) { /* The browser may already have implicitly released it. */ }
+    }
     win.addEventListener('pointermove', function (event) {
       if (gesture && gesture.pointerId===event.pointerId && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 16) gesture.moved = true;
     }, true);
-    win.addEventListener('pointercancel', function (event) { if (gesture && gesture.pointerId===event.pointerId) gesture.moved = true; }, true);
+    win.addEventListener('pointercancel', function (event) {
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      gesture.moved = true;
+      releasePointerCapture(event);
+      gesture = null;
+    }, true);
     // Complete on pointerup before layout changes can retarget the compatibility click.
     win.addEventListener('pointerup', function (event) {
       if (!gesture || gesture.done || gesture.pointerId!==event.pointerId) return;
-      if (gesture.moved || blocked()) { gesture.done = true; stop(event); return; }
+      var shouldActivate = !gesture.moved && !blocked();
       gesture.done = true;
       stop(event);
-      button.click();
+      // Do not leave implicit capture latched on this floating switch; that can
+      // retarget subsequent cart/account taps to the switch on mobile browsers.
+      releasePointerCapture(event);
+      if (shouldActivate) button.click();
     }, true);
     // Older touch-only browsers need the same ownership, including delegated touch handlers.
     if (!win.PointerEvent) {
