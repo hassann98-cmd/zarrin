@@ -29,10 +29,14 @@ function accountLink(document, id) {
 
 function runAuthScript(dom, fetch, extraWindow = {}) {
   const navigations = [];
+  const timers = new Map();
+  let timerId = 0;
   const window = {
     jluxeMobileAuthSettings: { sessionUrl: "https://shop.test/wp-admin/admin-ajax.php" },
     JLuxeThemeSettings: { auth: { isLoggedIn: false } },
     fetch,
+    setTimeout: (callback, delay) => { const id = ++timerId; timers.set(id, { callback, delay }); return id; },
+    clearTimeout: (id) => timers.delete(id),
     location: { assign: (href) => navigations.push(href) },
     ...extraWindow,
   };
@@ -43,20 +47,34 @@ function runAuthScript(dom, fetch, extraWindow = {}) {
     if (link) { navigations.push(link.getAttribute("href")); event.preventDefault(); }
   });
   vm.runInNewContext(authScript, { window, document: dom.window.document, Promise });
-  return { window, navigations };
+  return {
+    window,
+    navigations,
+    runInitialStatus() {
+      const entry = [...timers.entries()].find(([, timer]) => timer.delay === 250);
+      if (!entry) return false;
+      timers.delete(entry[0]);
+      entry[1].callback();
+      return true;
+    },
+    pendingTimers: () => timers.size,
+  };
 }
 
 test("R352 fresh private session replaces cached guest auth in both mobile account links", async () => {
   const dom = new JSDOM("<!doctype html><body></body>", { url: "https://shop.test/store/" });
   const links = [accountLink(dom.window.document, "classic"), accountLink(dom.window.document, "floating")];
   const requests = [];
-  const { window } = runAuthScript(dom, async (url, options) => {
+  const auth = runAuthScript(dom, async (url, options) => {
     requests.push({ url, options });
     return {
       ok: true,
       json: async () => ({ success: true, data: { auth: { isLoggedIn: true, userId: 42 } } }),
     };
   });
+  const { window } = auth;
+  assert.equal(requests.length, 0, "the initial private-session request is deferred beyond script evaluation");
+  assert.equal(auth.runInitialStatus(), true);
 
   assert.equal(await window.jluxeMobileAuthStatusPromise, true);
   assert.equal(window.jluxeCurrentAuthStatus, true);
@@ -88,7 +106,9 @@ test("R352 older WebViews without fetch retain the same-origin XMLHttpRequest fa
       this.onreadystatechange();
     }
   }
-  const { window } = runAuthScript(dom, undefined, { XMLHttpRequest: LegacyRequest });
+  const auth = runAuthScript(dom, undefined, { XMLHttpRequest: LegacyRequest });
+  assert.equal(auth.runInitialStatus(), true);
+  const { window } = auth;
   assert.equal(await window.jluxeMobileAuthStatusPromise, true);
   assert.equal(request.method, "POST");
   assert.equal(request.url, "https://shop.test/wp-admin/admin-ajax.php");
@@ -103,16 +123,18 @@ test("R352 an account tap during session verification waits and navigates to the
   const dom = new JSDOM("<!doctype html><body></body>", { url: "https://shop.test/store/" });
   const link = accountLink(dom.window.document, "classic");
   let finishRequest;
-  const { window, navigations } = runAuthScript(
+  const auth = runAuthScript(
     dom,
     () => new Promise((resolve) => { finishRequest = resolve; }),
   );
+  const { window, navigations } = auth;
   const click = new dom.window.MouseEvent("click", {
     bubbles: true,
     cancelable: true,
     button: 0,
   });
   link.dispatchEvent(click);
+  assert.equal(auth.pendingTimers(), 0, "an account tap cancels the deferred bootstrap and prioritizes session verification");
   assert.equal(click.defaultPrevented, true, "do not follow cached guest href while checking the cookie session");
 
   finishRequest({
@@ -143,7 +165,10 @@ test("confirmed login updates an already resolved guest dock without reloading; 
   const dom = new JSDOM("<!doctype html><body></body>", { url: "https://shop.test/store/" });
   const link = accountLink(dom.window.document, "account");
   let finish;
-  const { window, navigations } = runAuthScript(dom, () => new Promise(resolve => { finish = resolve; }));
+  const auth = runAuthScript(dom, () => new Promise(resolve => { finish = resolve; }));
+  assert.equal(auth.pendingTimers(), 1);
+  assert.equal(auth.runInitialStatus(), true);
+  const { window, navigations } = auth;
   window.jluxePublishAuthStatus(true);
   finish({ ok: true, json: async () => ({ success: true, data: { auth: { isLoggedIn: false } } }) });
   await window.jluxeMobileAuthStatusPromise;

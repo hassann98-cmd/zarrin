@@ -1,7 +1,7 @@
 /* Native multi-document navigation; no routing, remote imagery or font dependency. */
 @view-transition { navigation: auto; }
-::view-transition-old(root) { animation: jluxe-page-out 160ms ease-out both; }
-::view-transition-new(root) { animation: jluxe-page-in 200ms ease-out both; }
+::view-transition-old(root) { animation: jluxe-page-out 80ms ease-out both; }
+::view-transition-new(root) { animation: jluxe-page-in 100ms ease-out both; }
 @keyframes jluxe-page-out { to { opacity: 0; } }
 @keyframes jluxe-page-in { from { opacity: 0; } }
 .jluxe-page-progress {

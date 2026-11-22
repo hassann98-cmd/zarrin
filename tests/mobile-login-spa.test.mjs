@@ -18,7 +18,7 @@ for (const pending of [false, true]) {
     const dispose = setupAuthNavigation(win, { renderAuth: (_node, open) => renders.push(open) });
     win.eval(fs.readFileSync(new URL('../assets/js/mobile-auth-status.js', import.meta.url), 'utf8'));
     try {
-      if (!pending) { finish(); await win.jluxeMobileAuthStatusPromise; }
+      if (!pending) { win.jluxeRefreshMobileAuthStatus(); finish(); await win.jluxeMobileAuthStatusPromise; }
       win.document.getElementById("account").click();
       if (pending) { finish(); await win.jluxeMobileAuthStatusPromise; }
       await new Promise(resolve => setTimeout(resolve, 0));

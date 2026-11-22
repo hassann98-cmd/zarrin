@@ -241,18 +241,16 @@
 			}
 
 			function update() {
+				// Read all layout/scroll state before touching classes or visibility.
 				var max = scroller.scrollWidth - scroller.clientWidth;
 				var overflowing = max >= 20;
+				var scrolled = Math.abs(scroller.scrollLeft);
+				var showPrev = overflowing && scrolled < max - 4;
+				var showNext = overflowing && scrolled > 4;
 				scroller.classList.toggle("is-overflowing", overflowing);
 				scroller.classList.toggle("is-centered", !overflowing);
-				if (max < 20) {
-					setVisible(prevBtn, false);
-					setVisible(nextBtn, false);
-					return;
-				}
-				var scrolled = Math.abs(scroller.scrollLeft);
-				setVisible(prevBtn, scrolled < max - 4);
-				setVisible(nextBtn, scrolled > 4);
+				setVisible(prevBtn, showPrev);
+				setVisible(nextBtn, showNext);
 			}
 
 			scroller.addEventListener("scroll", update, { passive: true });

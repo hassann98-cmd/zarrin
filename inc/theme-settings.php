@@ -2983,14 +2983,10 @@ function jluxe_generate_color_variables( array $colors ): string {
 }
 
 /**
- * چاپ متغیرهای رنگ روی frontend — بعد از استایل اصلی تم لود می‌شه تا
- * override واقعی انجام بشه؛ چون مقادیر پیش‌فرض دقیقاً با globals.css یکیه،
- * تا وقتی ادمین چیزی تغییر نداده هیچ افکت بصری‌ای نداره.
+ * Print editable color tokens once after the main stylesheet. The critical CSS
+ * contains only fixed tokens, avoiding an early duplicate :root declaration.
  */
 function jluxe_output_color_variables(): void {
-	// در حالت dev سرور Vite خودش CSS رو تزریق می‌کنه، هیچ handle استایلی به
-	// نام jluxe-main-0 وجود نداره — اون‌جا override رنگ صرفاً skip می‌شه (فقط
-	// تست لوکال، تأثیری روی build واقعی نداره).
 	if ( ! wp_style_is( 'jluxe-main-0', 'registered' ) ) {
 		return;
 	}

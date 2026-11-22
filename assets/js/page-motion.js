@@ -17,6 +17,8 @@
   var warmed = new Set();
   var activeHint = false;
   var speculation;
+  var speculationHints = new Map();
+  var speculationLimit = 6;
   var supportsRules = typeof win.HTMLScriptElement?.supports === 'function' && win.HTMLScriptElement.supports('speculationrules');
   function privateSession() {
     return /(?:^|;\s*)(?:woocommerce_items_in_cart|woocommerce_cart_hash|wp_woocommerce_session_[^=;]*|wordpress_logged_in_[^=;]*)=/.test(doc.cookie);
@@ -76,9 +78,17 @@
     slowTimer=win.setTimeout(function(){if(bar && !bar.hidden)bar.querySelector('.jluxe-page-progress-label').textContent='کمی بیشتر طول کشید؛ لطفاً صبر کنید…';},5000);
     resetTimer=win.setTimeout(reset,10000); // Fail open if navigation never reports completion.
   }
+  function publishSpeculationRules() {
+    if (speculation) speculation.remove();
+    speculation = doc.createElement('script');
+    speculation.type = 'speculationrules';
+    speculation.setAttribute('data-jluxe-speculation', '');
+    speculation.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: Array.from(warmed), eagerness: 'moderate' }] });
+    doc.head.appendChild(speculation);
+  }
   function prefetch(link) {
     var connection = win.navigator.connection || {};
-    if (!config.prefetch || config.cacheSafe === false || activeHint || privateSession() || doc.visibilityState === 'hidden' || connection.saveData ||
+    if (!config.prefetch || config.cacheSafe === false || (!supportsRules && activeHint) || privateSession() || doc.visibilityState === 'hidden' || connection.saveData ||
         /^(slow-2g|2g|3g)$/.test(connection.effectiveType || '') ||
         win.jluxeCurrentAuthStatus !== false || win.JLuxeThemeSettings?.auth?.isLoggedIn === true) return;
     var url = target(link);
@@ -91,31 +101,34 @@
       category = !!config.categoryBase && base.origin === url.origin &&
         url.pathname.indexOf(base.pathname.replace(/\/+$/, '') + '/') === 0;
     } catch (_) {}
-    if (url.href !== home && !category && !link.matches('[data-jluxe-product-link],.woocommerce-LoopProduct-link,.woocommerce-loop-product__link,.jluxe-product-card-title')) return;
+    if (url.href !== home && !category && !(link && link.matches('[data-jluxe-product-link],.woocommerce-LoopProduct-link,.woocommerce-loop-product__link,.jluxe-product-card-title'))) return;
     var hints = doc.querySelectorAll('link[data-jluxe-page-prefetch],link[data-jluxe-mobile-home-prefetch]');
-    if (hints.length >= 2 || Array.from(hints).some(function (hint) { return hint.href === url.href; })) return;
+    var duplicate = Array.from(hints).some(function (hint) { return hint.href === url.href; });
+    if (duplicate || (!supportsRules && hints.length >= 2)) return;
     var hint = doc.createElement('link');
-    hint.rel = 'prefetch'; hint.as = 'document'; hint.href = url.href;
+    hint.href = url.href;
     hint.setAttribute('data-jluxe-page-prefetch', '');
-    activeHint = true;
-    var unlockTimer;
-    function unlock() { activeHint = false; win.clearTimeout(unlockTimer); }
-    hint.addEventListener('load', unlock, { once: true });
-    hint.addEventListener('error', unlock, { once: true });
-    unlockTimer = win.setTimeout(unlock, 5000);
     warmed.add(url.href);
     if (supportsRules) {
-      // One cumulative list, no broad document rule and no JavaScript execution ahead of navigation.
-      if (speculation) speculation.remove();
-      speculation = doc.createElement('script');
-      speculation.type = 'speculationrules';
-      speculation.setAttribute('data-jluxe-speculation', '');
-      speculation.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: Array.from(warmed) }] });
-      // Keep budget markers separate: do not also issue rel=prefetch for the same URL.
-      hint.removeAttribute('rel');
+      // Speculation rules are low-eagerness and capped to a rolling list of six documents.
+      speculationHints.set(url.href, hint);
+      while (speculationHints.size > speculationLimit) {
+        var oldest = speculationHints.keys().next().value;
+        speculationHints.get(oldest).remove();
+        speculationHints.delete(oldest);
+        warmed.delete(oldest);
+      }
       doc.head.appendChild(hint);
-      doc.head.appendChild(speculation);
+      publishSpeculationRules();
     } else {
+      hint.rel = 'prefetch';
+      hint.as = 'document';
+      activeHint = true;
+      var unlockTimer;
+      function unlock() { activeHint = false; win.clearTimeout(unlockTimer); }
+      hint.addEventListener('load', unlock, { once: true });
+      hint.addEventListener('error', unlock, { once: true });
+      unlockTimer = win.setTimeout(unlock, 5000);
       doc.head.appendChild(hint);
     }
   }

@@ -6,6 +6,17 @@
 	var currentStatus = null;
 	var statusPromise = null;
 	var statusGeneration = 0;
+	var initialStatusTask = null;
+
+	function cancelInitialStatus() {
+		if (!initialStatusTask) { return; }
+		if (initialStatusTask.kind === "idle" && typeof window.cancelIdleCallback === "function") {
+			window.cancelIdleCallback(initialStatusTask.id);
+		} else if (typeof window.clearTimeout === "function") {
+			window.clearTimeout(initialStatusTask.id);
+		}
+		initialStatusTask = null;
+	}
 
 	function isBoolean(value) {
 		return value === true || value === false;
@@ -35,6 +46,7 @@
 	}
 
 	function publishStatus(authenticated) {
+		cancelInitialStatus();
 		statusGeneration += 1;
 		statusResolved = true;
 		currentStatus = authenticated;
@@ -109,6 +121,8 @@
 			// Let the React auth router (or native navigation) handle the updated href.
 			return;
 		}
+		// A real account tap outranks the delayed bootstrap and verifies the session immediately.
+		if (!statusPromise) { refreshStatus(); }
 		if (!statusPromise) { return; }
 		event.preventDefault();
 		statusPromise.then(function (authenticated) {
@@ -125,6 +139,7 @@
 
 	document.addEventListener("click", handleAccountClick, true);
 	function refreshStatus() {
+		cancelInitialStatus();
 		var generation = ++statusGeneration;
 		statusResolved = false;
 		statusPromise = requestSession().then(function (authenticated) {
@@ -137,6 +152,26 @@
 			if (event.persisted) { refreshStatus(); }
 		});
 	}
-	refreshStatus();
+	function scheduleInitialStatus() {
+		if (typeof window.requestIdleCallback === "function") {
+			initialStatusTask = {
+				kind: "idle",
+				id: window.requestIdleCallback(function () {
+					initialStatusTask = null;
+					refreshStatus();
+				}, { timeout: 1200 }),
+			};
+		} else if (typeof window.setTimeout === "function") {
+			initialStatusTask = {
+				kind: "timeout",
+				id: window.setTimeout(function () {
+					initialStatusTask = null;
+					refreshStatus();
+				}, 250),
+			};
+		}
+	}
+	window.jluxeRefreshMobileAuthStatus = refreshStatus;
+	scheduleInitialStatus();
 	window.jluxeMobileAuthStatusPromise = statusPromise;
 })();

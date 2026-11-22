@@ -93,6 +93,8 @@ test('disabled prefetch, private identity and constrained connections do not iss
 test('page CSS uses native opt-in, no reduced-motion animations, and no fake progress percentage', () => {
   const css = fs.readFileSync(new URL('../assets/css/page-motion.css', import.meta.url), 'utf8');
   assert.match(css, /@view-transition\s*\{ navigation: auto/);
+  assert.match(css, /jluxe-page-out 80ms/);
+  assert.match(css, /jluxe-page-in 100ms/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(css, /navigation: none/);
   assert.match(css, /outline-color:color-mix\(in srgb,currentColor 28%,transparent\)/);
@@ -154,7 +156,7 @@ test('quick navigation, Escape, timeout and disabled motion never leave waiting 
   assert.equal(a.classList.contains('jluxe-navigation-pressed'), false);
 });
 
-test('supported browsers get bounded speculation prefetch, never prerender or duplicate native hints', t => {
+test('supported browsers keep a rolling moderate-eagerness speculation list without locking subsequent hints', t => {
   // Install support before the module is evaluated.
   const dom = new JSDOM('<!doctype html><head></head><body></body>', { url: 'https://shop.test/', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
@@ -163,15 +165,18 @@ test('supported browsers get bounded speculation prefetch, never prerender or du
   win.jluxePageMotion = { prefetch: true, home: 'https://shop.test/' };
   win.jluxeCurrentAuthStatus = false;
   win.eval(script);
-  const a = win.document.createElement('a');
-  a.href = '/product/two/'; a.setAttribute('data-jluxe-product-link', '');
-  win.document.body.appendChild(a);
-  a.dispatchEvent(new win.FocusEvent('focusin', { bubbles: true }));
+  for (let index = 2; index <= 8; index++) {
+    const a = win.document.createElement('a');
+    a.href = `/product/${index}/`; a.setAttribute('data-jluxe-product-link', '');
+    win.document.body.appendChild(a);
+    a.dispatchEvent(new win.FocusEvent('focusin', { bubbles: true }));
+  }
   const rule = JSON.parse(win.document.querySelector('script[type="speculationrules"]').textContent);
-  assert.deepEqual(rule.prefetch[0].urls, ['https://shop.test/product/two/']);
+  assert.deepEqual(rule.prefetch[0].urls, Array.from({ length: 6 }, (_, index) => `https://shop.test/product/${index + 3}/`));
+  assert.equal(rule.prefetch[0].eagerness, 'moderate');
   assert.equal(rule.prerender, undefined);
   assert.equal(win.document.querySelector('link[rel="prefetch"]'), null);
-  assert.equal(win.document.querySelectorAll('link[data-jluxe-page-prefetch]').length, 1);
+  assert.equal(win.document.querySelectorAll('link[data-jluxe-page-prefetch]').length, 6);
 });
 
 test('touching links gives subtle press feedback; only a real, slow navigation shows the delayed spinner',async t=>{

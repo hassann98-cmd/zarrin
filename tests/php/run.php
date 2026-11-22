@@ -1430,7 +1430,7 @@ $sale_original = '<del><span class="woocommerce-Price-amount amount"><span class
 $sale_out = jluxe_amount_first_wc_price($sale_original);
 check(strpos($sale_out,'amount amount">۵,۵۵۵')!==false && strpos($sale_out,'amount amount">۳,۳۳۳')!==false && substr_count($sale_out,'currencySymbol')===2, 'R28 sale del/ins pairs are both amount-first');
 $GLOBALS['no_cache']=false;
-$icon_price = jluxe_amount_first_wc_price('<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">'.jluxe_toman_icon_svg().'</span>&nbsp;۱٬۲۰۰</span>');
+$icon_price = jluxe_amount_first_wc_price('<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">'.jluxe_toman_display_icon_svg().'</span>&nbsp;۱٬۲۰۰</span>');
 $digitized = jluxe_fa_digits_wc_price($icon_price);
 check($digitized === $icon_price && strpos($digitized,'۱٬۲۰۰') < strpos($digitized,'</svg>'), 'R28 digit conversion keeps the toman SVG intact after reordering');
 
@@ -3337,7 +3337,7 @@ check(strpos($inc_woo,'\\s*<bdi>\\s*')!==false && strpos($inc_woo,'woocommerce-P
 check(strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R54 the classic price box re-numbers-first at the render point, so no later plugin filter can flip it back');
 check(strpos($inc_woo,'jluxe_reference_price_html( $product->get_price_html() )')!==false, 'R54 the sticky CTA price is re-numbers-first at its render point too');
 check(strpos($r53_variation_js,'function jluxeBindCp3VariationPrice(form)')!==false && strpos($r53_variation_js,'found_variation.jluxeCp3Price')!==false && strpos($r53_variation_js,'jluxeBindCp3VariationPrice(form);')!==false && strpos($cp3,'function jluxeBindJqParts')===false, 'R55 the shared WooCommerce asset binds CP3 price events after its jQuery dependency instead of racing deferred jQuery in template inline scripts');
-check(strpos($inc_woo,'function jluxe_reference_price_html')!==false && strpos($inc_woo,'function jluxe_toman_glyph_svg')!==false && strpos($inc_woo,'jluxe-toman-clip')!==false, 'R55 the reference price formatter strips the symbol inside del and swaps the rest with the verbatim toman glyph from the reference DOM');
+check(strpos($inc_woo,'function jluxe_reference_price_html')!==false && strpos($inc_woo,'function jluxe_toman_glyph_svg')!==false && strpos($inc_woo,'return jluxe_toman_display_icon_svg();')!==false, 'R520 reference price formatter reuses the shared toman display icon and still strips currency symbols from del prices');
 check(strpos($inc_woo,"\$data['price_html'] = jluxe_reference_price_html")!==false && strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R55 both the variation price_html (found_variation swap) and the server-rendered price box use the reference format with svg-safe kses');
 check(strpos($inc_woo,"\$allowed['svg']")!==false && strpos($inc_woo,"\$allowed['clippath']")!==false && strpos($cp3,'.jluxe-toman-glyph,')!==false, 'R55 the kses allowlist keeps the glyph svg and the glyph has explicit styles in the price box and sticky CTA');
 check(strpos($urls,'preg_match( \'/^(shop|فروشگاه)$/u\', $slug )')!==false && strpos($urls,'preg_match( \'/^(blog|وبلاگ)$/u\', $slug )')!==false && strpos($urls,'get_option( \'page_for_posts\' )')!==false, 'R56 the nav link resolver maps shop/blog header links to their real destinations (Woo shop permalink, posts page, published blog page, home fallback) instead of raw slugs that 404');
@@ -4004,11 +4004,12 @@ $GLOBALS['query_kind']='product';ob_start();jluxe_render_page_skeleton();$produc
 $GLOBALS['query_kind']='blog';ob_start();jluxe_render_page_skeleton();$blog_skeleton=ob_get_clean();
 $GLOBALS['query_kind']='single';ob_start();jluxe_render_page_skeleton();$article_skeleton=ob_get_clean();
 $GLOBALS['query_kind']='cart';ob_start();jluxe_render_page_skeleton();$cart_skeleton=ob_get_clean();
-check(strpos($home_skeleton,'jluxe-page-skeleton--home')!==false && strpos($home_skeleton,'jluxe-page-skeleton__hero')!==false && strpos($home_skeleton,'aria-hidden="true" hidden')!==false, 'R127 homepage skeleton is a hidden, aria-hidden, no-layout-shift hero/card overlay');
+check(''===$home_skeleton, 'R520 server-rendered homepage omits the overlay skeleton to avoid duplicating already-present content');
 check(strpos($product_skeleton,'jluxe-page-skeleton--product')!==false && strpos($product_skeleton,'jluxe-page-skeleton__product-gallery')!==false && strpos($product_skeleton,'jluxe-page-skeleton__button')!==false, 'R127 product skeleton matches gallery/details without replacing the server-rendered product');
 check(strpos($blog_skeleton,'jluxe-page-skeleton--listing')!==false && strpos($article_skeleton,'jluxe-page-skeleton--article')!==false && strpos($cart_skeleton,'jluxe-page-skeleton')===false, 'R127 blog listings and article pages get matching skeletons while cart/checkout flows stay unobscured');
-$GLOBALS['query_kind']='front';ob_start();jluxe_page_skeleton_bootstrap();$skeleton_bootstrap=ob_get_clean();
-check(strpos($skeleton_bootstrap,'setTimeout')!==false && strpos($skeleton_bootstrap,'180')!==false && strpos($skeleton_bootstrap,'readystatechange')!==false && strpos($skeleton_bootstrap,'classList.remove')!==false, 'R127 skeleton appears only after a slow parse and is cleared when HTML parsing completes');
+$GLOBALS['query_kind']='front';ob_start();jluxe_page_skeleton_bootstrap();$home_skeleton_bootstrap=ob_get_clean();
+$GLOBALS['query_kind']='product';ob_start();jluxe_page_skeleton_bootstrap();$skeleton_bootstrap=ob_get_clean();
+check(''===$home_skeleton_bootstrap && strpos($skeleton_bootstrap,'setTimeout')!==false && strpos($skeleton_bootstrap,'180')!==false && strpos($skeleton_bootstrap,'readystatechange')!==false && strpos($skeleton_bootstrap,'classList.remove')!==false, 'R520 homepage also skips skeleton bootstrap while eligible interior skeletons remain delayed until HTML is parsed');
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['dequeued_styles']=array();
 $GLOBALS['query_kind']='404';
@@ -4048,7 +4049,8 @@ check(strpos($woo_inc,'jluxe-pa-cartinfo')!==false && strpos($woo_inc,'$cart_sum
 check(strpos($woo_js,'jluxe-btn-added')!==false && strpos($woo_js,'به سبد اضافه شد')!==false && strpos($woo_js,'button.classList.contains("add_to_cart_button")')!==false, 'R63 the card quick-add button flips to a checkmark with an added-to-cart label and reverts after ~2s');
 check(strpos($woo_js,'window.JLuxeStorefrontUtils.activateDialog')!==false && strpos($woo_js,'releaseDialogFocus')!==false, 'R63 the suggested modal traps focus via the shared activateDialog helper and restores focus on close');
 check(strpos((string) file_get_contents(ABSPATH.'src/lib/api.js'),'export function dedupeGet')!==false && strpos($utils_js,'jluxe-header-condensed')!==false, 'R63 the JS data registry (dedupeGet single-flight + ttl cache) exists and the header condenses on scroll via storefront-utils');
-check(strpos($functions_php,"jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] )")!==false && strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06)')!==false, 'R63 editable color tokens come from the shared settings generator while fixed radii/shadows stay in critical CSS');
+$theme_settings_php=(string) file_get_contents(ABSPATH.'inc/theme-settings.php');
+check(strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06)')!==false && strpos($functions_php,'jluxe_generate_color_variables( jluxe_get_theme_settings()[\'colors\'] )')===false && strpos($theme_settings_php,"wp_add_inline_style( 'jluxe-main-0', \$css )")!==false, 'R520 fixed critical tokens and editable color tokens print once, with configurable variables after the main stylesheet');
 check(strpos($store_css,'@media (hover: hover)')!==false && strpos($store_css,'.jluxe-card-shine:hover')!==false && strpos($store_css,'.jluxe-btn-added { background: hsl(var(--primary))')!==false && strpos($store_css,'.jluxe-pa-viewcart')!==false, 'R63 the card shine hover is guarded by (hover: hover) and the new footer/quick-add styles exist in storefront.css');
 check(strpos($header_tpl,'jluxe-skip-link')!==false && strpos($header_tpl,'href="#primary"')!==false && strpos($store_css,'.jluxe-skip-link:focus-visible')!==false, 'R63 a real skip-to-content link targets the main landmark and only appears on keyboard focus');
 // R64/R337: fixed stock/date ordering on main catalog archives, plus the legacy toggle for secondary product lists.
@@ -4787,7 +4789,7 @@ check(
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_home_cards, 'sizes="65px"' ) !== false &&
-	strpos( $r152_home_cards, 'sizes="(max-width:639px) 42vw, (max-width:1023px) 28vw, 240px"' ) !== false &&
+	strpos( $r152_home_cards, 'sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"' ) !== false &&
 	strpos( $r152_home_cards, 'size-full object-contain transition-transform' ) !== false &&
 	strpos( $r152_home_cards, 'mix-blend-multiply' ) === false,
 	'R152 homepage product cards also use uncropped responsive images, contain the full item, and preserve its colors'
@@ -4802,10 +4804,41 @@ check(
 	strpos( $r152_home_cards, '<ul class="jluxe-pg-' ) !== false &&
 	2 === substr_count( $r152_home_cards, '<ul data-jluxe-scroller' ) &&
 	strpos( $r152_home_cards, "echo '<div class=\"w-[160px]" ) === false &&
+	strpos( $r152_home_cards, 'data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>"' ) !== false &&
+	strpos( $r152_home_cards, 'aria-label="<?php echo esc_attr( sprintf( \'مشاهده همهٔ %s\'' ) !== false &&
 	strpos( $r152_card_template, '$jluxe_is_catalog_context && 1 === $jluxe_card_render_count' ) !== false &&
 	strpos( $r152_card_template, 'width="<?php echo esc_attr( (string) $image_width ); ?>" height=' ) !== false &&
 	strpos( $r152_card_template, 'sprintf( \'افزودن %s به سبد خرید\', $product_name )' ) !== false,
-	'R452 homepage product-card lists use semantic ul/li structure, product images reserve dimensions, catalog-only LCP priority avoids product-page competition, and CTA names identify the product'
+	'R520 homepage product-card lists expose semantic structure and product-link prefetch targets, unique view-all names, reserved image dimensions, and catalog-only LCP priority'
+);
+check(
+	strpos( $r152_card_template, 'if ( $jluxe_show_rating_row ) :' ) !== false &&
+	strpos( $r152_card_template, '<div class="mb-3 mt-1 min-h-[16px]" aria-hidden="true"></div>' ) !== false &&
+	strpos( $r152_card_template, "' invisible'" ) === false &&
+	strpos( $r152_home_cards, 'sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"' ) !== false,
+	'R520 unrated product cards reserve the rating row without hidden star SVGs and recommended images use their rendered slot sizes'
+);
+$r520_woo_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+check(
+	strpos( $r520_woo_source, 'function jluxe_output_toman_icon_sprite' ) !== false &&
+	strpos( $r520_woo_source, 'add_action( \'wp_body_open\', \'jluxe_output_toman_icon_sprite\', 1 )' ) !== false &&
+	strpos( $r520_woo_source, '<use href="#jlx-toman-icon">' ) !== false &&
+	strpos( $r520_woo_source, "\$tags['use'] = array(" ) !== false &&
+	strpos( $r520_woo_source, "return jluxe_toman_icon_svg();" ) !== false,
+	'R520 frontend prices reuse a shared accessible currency symbol while AJAX/REST retain self-contained SVG markup'
+);
+ob_start();
+jluxe_output_toman_icon_sprite();
+$r520_sprite = ob_get_clean();
+ob_start();
+jluxe_output_toman_icon_sprite();
+$r520_second_sprite = ob_get_clean();
+check(
+	strpos( $r520_sprite, '<symbol id="jlx-toman-icon"' ) !== false &&
+	strpos( $r520_sprite, '<path d=' ) !== false &&
+	strpos( $r520_sprite, '</symbol></svg>' ) !== false &&
+	'' === $r520_second_sprite,
+	'R520 the frontend sprite contains valid shared paths and is emitted only once'
 );
 $r452_header = (string) file_get_contents( ABSPATH . 'header.php' );
 $r452_minimal_header = (string) file_get_contents( ABSPATH . 'header-minimal.php' );

@@ -214,6 +214,10 @@ test("R169 header/footer brand logo uses one responsive picture and keeps LiteSp
   assert.match(brandLogo, /media: "\(min-width: 768px\)"/);
   assert.match(brandLogo, /srcSet: a\.srcset \|\| n \|\| o/);
   assert.match(brandLogo, /srcSet: m\.srcset,/);
+  assert.match(brandLogo, /width: m\.width \|\| a\.width/);
+  assert.match(brandLogo, /height: m\.height \|\| a\.height/);
+  assert.match(brandLogo, /width: a\.width/);
+  assert.match(brandLogo, /height: a\.height/);
   assert.match(brandLogo, /"data-no-lazy": "1"/);
   assert.equal((brandLogo.match(/e\.jsx\("img"/g) ?? []).length, 1);
 });

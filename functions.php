@@ -309,12 +309,9 @@ add_action( 'wp_head', 'jluxe_preload_body_fonts', 2 );
  * کپی نشده، فقط CSSِ دستی‌نوشته‌ی خودِ globals.css (که ثابته، نه از کلاسِ
  * پویا استخراج‌شده).
  *
- * نکته‌ی مهم: primary/secondary/accent/success/background توسطِ ادمین
- * قابل‌تغییرن (رنگ و تایپوگرافی → رنگ‌ها) — به‌جایِ هاردکدکردنِ مقادیرِ
- * پیش‌فرض (که برای سایتی با رنگِ سفارشی یک فلشِ کوتاهِ رنگِ اشتباه می‌ساخت)،
- * از همون jluxe_generate_color_variables() که خودِ override واقعی هم ازش
- * استفاده می‌کنه صدا زده می‌شه — یعنی این‌جا هم همیشه رنگِ واقعیِ همون
- * سایته، نه پیش‌فرضِ تم.
+ * رنگ‌های قابل‌ویرایش پس از stylesheet اصلی به‌صورت inline متصل می‌شوند؛
+ * این critical block فقط توکن‌های ثابت و پوستهٔ پایه را نگه می‌دارد تا متغیرهای
+ * :root یک‌بار و در cascade صحیح چاپ شوند.
  */
 function jluxe_output_critical_css(): void {
 	if ( jluxe_is_dev() ) {
@@ -322,7 +319,6 @@ function jluxe_output_critical_css(): void {
 	}
 	$manifest = jluxe_vite_manifest();
 	echo '<style id="jluxe-critical-css">';
-	echo jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجیِ خودِ این تابع با esc_attr روی مقادیر امنه.
 	// توکن‌های ثابت (غیرِقابل‌تنظیم از پنل) — عیناً از globals.css:root کپی شده.
 	echo ':root{--jluxe-radius-sm:0.5rem;--jluxe-radius-md:0.75rem;--jluxe-radius-lg:1rem;--jluxe-shadow-sm:0 1px 2px rgba(15,23,42,0.05);--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06);--radius:0.5rem}';
 	echo 'html{direction:rtl}body{font-family:"IRANYekan","Tahoma",sans-serif;text-align:right;background-color:hsl(var(--background));color:hsl(var(--foreground))}';

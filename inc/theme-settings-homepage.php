@@ -1609,7 +1609,7 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 							<p class="mt-1 text-small <?php echo $highlight ? 'text-white/80' : 'text-text-muted'; ?>"><?php echo esc_html( $section['subtitle'] ); ?></p>
 						<?php endif; ?>
 					</div>
-					<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" class="shrink-0 rounded-lg <?php echo $highlight ? 'bg-white text-primary' : 'border border-border text-foreground'; ?> px-3 py-1.5 text-caption font-medium">مشاهده همه</a>
+					<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $section['title'] ?: 'محصولات' ) ); ?>" class="shrink-0 rounded-lg <?php echo $highlight ? 'bg-white text-primary' : 'border border-border text-foreground'; ?> px-3 py-1.5 text-caption font-medium">مشاهده همه</a>
 				</div>
 			<?php endif; ?>
 
@@ -1831,7 +1831,7 @@ function jluxe_render_homepage_special_products( array $section ): void {
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<div class="mb-3 flex items-center justify-between gap-2">
 			<h2 class="text-h2 text-foreground"><?php echo esc_html( $section['title'] ?? 'فروش ویژه' ); ?></h2>
-			<a href="<?php echo esc_url( $view_all_link ); ?>" class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-caption font-medium text-foreground">مشاهده همه</a>
+			<a href="<?php echo esc_url( $view_all_link ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $section['title'] ?? 'فروش ویژه' ) ); ?>" class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-caption font-medium text-foreground">مشاهده همه</a>
 		</div>
 		<div class="relative">
 			<ul data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar m-0 flex list-none gap-4 overflow-x-auto p-0 scroll-smooth pb-2" aria-label="<?php echo esc_attr( $section['title'] ?? 'فروش ویژه' ); ?>">
@@ -3321,7 +3321,7 @@ function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 	$has_discount  = ! $is_variable && $product->is_on_sale() && $sale_price > 0 && $sale_price < $regular_price;
 	$price         = $is_variable ? $product->get_variation_price( 'min' ) : ( $has_discount ? $sale_price : $regular_price );
 	?>
-	<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="group flex flex-col justify-between p-4 transition-colors hover:bg-muted/40">
+	<a data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="group flex flex-col justify-between p-4 transition-colors hover:bg-muted/40">
 		<div class="flex items-center gap-3">
 			<div class="flex size-[65px] shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted/40">
 				<img
@@ -3339,7 +3339,7 @@ function jluxe_render_homepage_brick_card( WC_Product $product ): void {
 		</div>
 		<div class="mt-2 flex items-center justify-end gap-1 text-foreground">
 			<span class="text-[13px] font-bold"><?php echo esc_html( jluxe_fa_digits( number_format( (float) $price, 0 ) ) ); ?></span>
-			<svg class="shrink-0 text-text-muted" width="16" height="13" viewBox="0 0 22 18" fill="none" aria-hidden="true"><path fill="currentColor" d="M16.898.75h-2.376a.688.688 0 0 0 0 1.376h2.376a.688.688 0 0 0 0-1.376ZM21.247 3.814c-.021-.375-.083-.868-.187-1.477a26 26 0 0 0-.187-1.005.658.658 0 0 0-.762-.465.663.663 0 0 0-.487.72c.064.32.125.639.186.98.099.552.159.98.18 1.282.02.375-.092.667-.337.876-.245.208-.67.312-1.274.312H6.673V3.47c0-.667-.12-1.258-.36-1.774a2.63 2.63 0 0 0-1.032-1.211A2.71 2.71 0 0 0 3.718.047c-.563 0-1.066.151-1.508.453S1.423.802 1.178 1.323c-.245.522-.367 1.1-.367 1.737 0 .938.268 1.667.805 2.188.537.521 1.243.782 2.118.782h1.688v.094c0 .25-.099.448-.297.594-.198.146-.49.271-.876.375-.386.104-1.032.25-1.938.438l-.021.004a.688.688 0 1 0 .28.76c.148-.03.295-.06.443-.089.98-.198 1.722-.396 2.228-.594.505-.198.873-.456 1.102-.774.229-.318.344-.748.344-1.29v-.094h11.745c.636 0 1.17-.125 1.602-.375.433-.25.75-.576.954-.977a2.05 2.05 0 0 0 .275-1.008ZM5.453 5.033H3.734c-.594 0-1.026-.117-1.297-.352-.271-.234-.407-.638-.407-1.211 0-.615.149-1.107.446-1.477.297-.37.711-.555 1.243-.555.573 0 1.005.18 1.297.539.292.36.437.857.437 1.494v2.562Z"/><path fill="currentColor" d="M6.235 12.841a.781.781 0 1 0-1.563 0 .781.781 0 0 0 1.563 0ZM20.772 12.35c-.229-.537-.552-.963-.969-1.282a2.36 2.36 0 0 0-1.437-.477c-.678 0-1.256.233-1.735.696-.48.463-.834 1.102-1.063 1.914l-.5 1.797a.63.63 0 0 1-.198.293.62.62 0 0 1-.402.146c-.469 0-.805-.049-1.008-.148-.203-.099-.339-.274-.407-.524a4.5 4.5 0 0 1-.104-.72l-.016-4.017c0-.396-.068-.744-.203-1.048a1.62 1.62 0 0 0-.66-.71 1.98 1.98 0 0 0-.95-.26h-.516c-.458 0-.836.089-1.133.261a1.62 1.62 0 0 0-.664.703 2.4 2.4 0 0 0-.203.997l.016 4.36c0 .605-.084 1.082-.25 1.43a1.42 1.42 0 0 1-.936.766c-.396.163-.948.242-1.655.242h-.227c-.646 0-1.178-.134-1.594-.406a2.35 2.35 0 0 1-.923-1.117 4.1 4.1 0 0 1-.293-1.535c0-.218.034-.514.076-.796a.71.71 0 0 0-.62-.73.71.71 0 0 0-.796.53 6.5 6.5 0 0 0-.075.83c0 .792.154 1.538.461 2.235a3.5 3.5 0 0 0 1.396 1.688c.604.428 1.339.641 2.203.641h.227c.928 0 1.686-.156 2.275-.469a2.72 2.72 0 0 0 1.302-1.328 4.6 4.6 0 0 0 .396-2.047l-.015-4.362c0-.239.049-.4.148-.484.099-.084.3-.126.602-.126h.516c.281 0 .474.047.578.14.104.094.156.25.156.469l.016 4.017c0 .71.08 1.304.242 1.782a2.16 2.16 0 0 0 .84 1.117c.397.266.949.399 1.657.399.303 0 .594-.068.876-.203.281-.135.526-.322.734-.563l.063.032c.812.416 1.417.702 1.813.852a2.9 2.9 0 0 0 1.187.226c.396 0 .753-.111 1.102-.336.35-.224.634-.583.853-1.078.219-.495.328-1.128.328-1.9 0-.626-.115-1.206-.344-1.743Zm-1.14 3.25c-.178.267-.443.4-.798.4-.27 0-.557-.06-.86-.18-.302-.12-.807-.357-1.516-.712l-.11-.062.407-1.47c.146-.531.357-.927.633-1.187.276-.26.601-.39.977-.39.5 0 .88.185 1.14.554.261.37.392.883.392 1.54 0 .74-.089 1.242-.266 1.507Z"/></svg>
+			<?php echo jluxe_toman_display_icon_svg( 'shrink-0 text-text-muted', '16px', '13px' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 	</a>
 	<?php
@@ -3527,7 +3527,7 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 		$border_classes[] = 'border-b';
 	}
 	?>
-	<a href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="group relative flex flex-col p-3 sm:p-4 <?php echo esc_attr( implode( ' ', $border_classes ) ); ?>">
+	<a data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="group relative flex flex-col p-3 sm:p-4 <?php echo esc_attr( implode( ' ', $border_classes ) ); ?>">
 		<div class="relative h-6">
 			<?php if ( $has_discount ) : ?>
 				<span dir="ltr" class="absolute end-0 top-0 inline-flex w-fit items-center gap-0.5 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
@@ -3551,7 +3551,7 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 			<img
 				src="<?php echo esc_url( $image_url ); ?>"
 				<?php if ( $image_width > 0 && $image_height > 0 ) : ?>width="<?php echo esc_attr( (string) $image_width ); ?>" height="<?php echo esc_attr( (string) $image_height ); ?>"<?php endif; ?>
-				<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="(max-width:639px) 42vw, (max-width:1023px) 28vw, 240px"<?php endif; ?>
+				<?php if ( $image_srcset ) : ?>srcset="<?php echo esc_attr( $image_srcset ); ?>" sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"<?php endif; ?>
 				alt="<?php echo esc_attr( $product->get_name() ); ?>"
 				loading="lazy"
 				data-jluxe-no-skeleton
@@ -3568,7 +3568,7 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 			</div>
 			<div class="flex items-center gap-1 text-foreground">
 				<span class="text-[14px] font-bold sm:text-[15px]"><?php echo esc_html( jluxe_fa_digits( number_format( (float) $price, 0 ) ) ); ?></span>
-				<svg class="shrink-0 text-text-muted" width="18" height="15" viewBox="0 0 22 18" fill="none" aria-hidden="true"><path fill="currentColor" d="M16.898.75h-2.376a.688.688 0 0 0 0 1.376h2.376a.688.688 0 0 0 0-1.376ZM21.247 3.814c-.021-.375-.083-.868-.187-1.477a26 26 0 0 0-.187-1.005.658.658 0 0 0-.762-.465.663.663 0 0 0-.487.72c.064.32.125.639.186.98.099.552.159.98.18 1.282.02.375-.092.667-.337.876-.245.208-.67.312-1.274.312H6.673V3.47c0-.667-.12-1.258-.36-1.774a2.63 2.63 0 0 0-1.032-1.211A2.71 2.71 0 0 0 3.718.047c-.563 0-1.066.151-1.508.453S1.423.802 1.178 1.323c-.245.522-.367 1.1-.367 1.737 0 .938.268 1.667.805 2.188.537.521 1.243.782 2.118.782h1.688v.094c0 .25-.099.448-.297.594-.198.146-.49.271-.876.375-.386.104-1.032.25-1.938.438l-.021.004a.688.688 0 1 0 .28.76c.148-.03.295-.06.443-.089.98-.198 1.722-.396 2.228-.594.505-.198.873-.456 1.102-.774.229-.318.344-.748.344-1.29v-.094h11.745c.636 0 1.17-.125 1.602-.375.433-.25.75-.576.954-.977a2.05 2.05 0 0 0 .275-1.008ZM5.453 5.033H3.734c-.594 0-1.026-.117-1.297-.352-.271-.234-.407-.638-.407-1.211 0-.615.149-1.107.446-1.477.297-.37.711-.555 1.243-.555.573 0 1.005.18 1.297.539.292.36.437.857.437 1.494v2.562Z"/><path fill="currentColor" d="M6.235 12.841a.781.781 0 1 0-1.563 0 .781.781 0 0 0 1.563 0ZM20.772 12.35c-.229-.537-.552-.963-.969-1.282a2.36 2.36 0 0 0-1.437-.477c-.678 0-1.256.233-1.735.696-.48.463-.834 1.102-1.063 1.914l-.5 1.797a.63.63 0 0 1-.198.293.62.62 0 0 1-.402.146c-.469 0-.805-.049-1.008-.148-.203-.099-.339-.274-.407-.524a4.5 4.5 0 0 1-.104-.72l-.016-4.017c0-.396-.068-.744-.203-1.048a1.62 1.62 0 0 0-.66-.71 1.98 1.98 0 0 0-.95-.26h-.516c-.458 0-.836.089-1.133.261a1.62 1.62 0 0 0-.664.703 2.4 2.4 0 0 0-.203.997l.016 4.36c0 .605-.084 1.082-.25 1.43a1.42 1.42 0 0 1-.936.766c-.396.163-.948.242-1.655.242h-.227c-.646 0-1.178-.134-1.594-.406a2.35 2.35 0 0 1-.923-1.117 4.1 4.1 0 0 1-.293-1.535c0-.218.034-.514.076-.796a.71.71 0 0 0-.62-.73.71.71 0 0 0-.796.53 6.5 6.5 0 0 0-.075.83c0 .792.154 1.538.461 2.235a3.5 3.5 0 0 0 1.396 1.688c.604.428 1.339.641 2.203.641h.227c.928 0 1.686-.156 2.275-.469a2.72 2.72 0 0 0 1.302-1.328 4.6 4.6 0 0 0 .396-2.047l-.015-4.362c0-.239.049-.4.148-.484.099-.084.3-.126.602-.126h.516c.281 0 .474.047.578.14.104.094.156.25.156.469l.016 4.017c0 .71.08 1.304.242 1.782a2.16 2.16 0 0 0 .84 1.117c.397.266.949.399 1.657.399.303 0 .594-.068.876-.203.281-.135.526-.322.734-.563l.063.032c.812.416 1.417.702 1.813.852a2.9 2.9 0 0 0 1.187.226c.396 0 .753-.111 1.102-.336.35-.224.634-.583.853-1.078.219-.495.328-1.128.328-1.9 0-.626-.115-1.206-.344-1.743Zm-1.14 3.25c-.178.267-.443.4-.798.4-.27 0-.557-.06-.86-.18-.302-.12-.807-.357-1.516-.712l-.11-.062.407-1.47c.146-.531.357-.927.633-1.187.276-.26.601-.39.977-.39.5 0 .88.185 1.14.554.261.37.392.883.392 1.54 0 .74-.089 1.242-.266 1.507Z"/></svg>
+				<?php echo jluxe_toman_display_icon_svg( 'shrink-0 text-text-muted', '18px', '15px' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
 		</div>
 	</a>

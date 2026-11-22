@@ -269,11 +269,15 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 		// هم‌تراز بمانند؛ اگر امتیازی نیست فقط از دید مخفی می‌شود.
 		$jluxe_show_rating_row = $jluxe_show_rating && $review_count > 0;
 		?>
-		<div class="mb-3 mt-1 flex min-h-[16px] items-center gap-1<?php echo $jluxe_show_rating_row ? '' : ' invisible'; ?>" role="img" aria-label="<?php echo esc_attr( sprintf( 'امتیاز %s از ۵ بر اساس %s دیدگاه', jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ), jluxe_fa_digits( $review_count ) ) ); ?>">
-			<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<span aria-hidden="true" class="text-[10px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ) ); ?></span>
-			<span aria-hidden="true" class="text-[10px] text-text-muted">(<?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?>)</span>
-		</div>
+		<?php if ( $jluxe_show_rating_row ) : ?>
+			<div class="mb-3 mt-1 flex min-h-[16px] items-center gap-1" role="img" aria-label="<?php echo esc_attr( sprintf( 'امتیاز %s از ۵ بر اساس %s دیدگاه', jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ), jluxe_fa_digits( $review_count ) ) ); ?>">
+				<?php echo jluxe_boom_star_row( $rating, 'size-3' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<span aria-hidden="true" class="text-[10px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( number_format( $rating, 1, '.', '' ) ) ); ?></span>
+				<span aria-hidden="true" class="text-[10px] text-text-muted">(<?php echo esc_html( jluxe_fa_digits( $review_count ) ); ?>)</span>
+			</div>
+		<?php else : ?>
+			<div class="mb-3 mt-1 min-h-[16px]" aria-hidden="true"></div>
+		<?php endif; ?>
 
 		<div class="jluxe-product-card-footer">
 			<div class="jluxe-product-card-price">
