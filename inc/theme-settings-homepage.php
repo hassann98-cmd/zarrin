@@ -1761,7 +1761,54 @@ function jluxe_render_homepage_special_products( array $section ): void {
 			$args['order']    = 'DESC';
 			break;
 		case 'rand':
-			$args['orderby'] = 'rand';
+			// Randomize sale IDs in PHP, then query small ordered batches. This
+			// preserves a random eligible sequence without asking MySQL to RAND()
+			// across the entire (potentially very large) on-sale ID list.
+			$random_sale_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $sale_ids ) ) ) );
+			shuffle( $random_sale_ids );
+			$batch_size = max( 12, min( 90, $count * 3 ) );
+			$products   = array();
+
+			foreach ( array_chunk( $random_sale_ids, $batch_size ) as $random_batch ) {
+				$remaining_ids = $random_batch;
+				while ( ! empty( $remaining_ids ) && count( $products ) < $count ) {
+					$batch_args             = $args;
+					$batch_args['include']  = $remaining_ids;
+					$batch_args['limit']    = min( count( $remaining_ids ), $count - count( $products ) );
+					$batch_args['orderby']  = 'include';
+					$batch_products         = wc_get_products( $batch_args );
+					$returned_ids           = array();
+
+					foreach ( (array) $batch_products as $product ) {
+						if ( ! $product instanceof WC_Product ) {
+							continue;
+						}
+						$product_id = (int) $product->get_id();
+						if ( ! in_array( $product_id, $remaining_ids, true ) ) {
+							continue;
+					}
+						$returned_ids[] = $product_id;
+						if ( jluxe_product_is_public( $product ) ) {
+							$products[] = $product;
+							if ( count( $products ) >= $count ) {
+								break;
+							}
+						}
+					}
+
+					// If an extension or a stale visibility record makes a returned
+					// product unsuitable, retry the rest of this small batch before
+					// moving on; never return a short row just because of sampling.
+					if ( empty( $returned_ids ) ) {
+						break;
+					}
+					$remaining_ids = array_values( array_diff( $remaining_ids, $returned_ids ) );
+				}
+				if ( count( $products ) >= $count ) {
+					break;
+				}
+			}
+			$products = array_slice( $products, 0, $count );
 			break;
 		case 'discount':
 		default:
@@ -1771,7 +1818,9 @@ function jluxe_render_homepage_special_products( array $section ): void {
 	}
 
 	// The database sorts BEFORE LIMIT; never instantiate every sale product just to slice it.
-	$products = array_values( array_filter( wc_get_products( $args ), 'jluxe_product_is_public' ) );
+	if ( 'rand' !== $sort ) {
+		$products = array_values( array_filter( wc_get_products( $args ), 'jluxe_product_is_public' ) );
+	}
 	if ( empty( $products ) ) {
 		return;
 	}
@@ -3153,9 +3202,12 @@ function jluxe_render_homepage_brick_products( array $section ): void {
 			$args['meta_value']   = 0;
 			$args['meta_compare'] = '>';
 			$args['meta_type']    = 'NUMERIC';
-			$args['orderby']      = 'popularity';
-			$args['order']     = 'DESC';
-			$products          = wc_get_products( $args );
+			// wc_get_products() forwards orderby to WP_Query; 'popularity' is
+			// not a WP_Query orderby token here and silently falls back to date.
+			// The active meta_key makes meta_value_num the explicit sales sort.
+			$args['orderby']      = 'meta_value_num';
+			$args['order']        = 'DESC';
+			$products             = wc_get_products( $args );
 	}
 
 	if ( empty( $products ) ) {

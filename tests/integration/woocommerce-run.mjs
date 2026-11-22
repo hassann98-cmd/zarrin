@@ -359,6 +359,15 @@ try {
       $sold_product->set_total_sales(3);
       $sold_product_id=$sold_product->save();
 
+      $top_seller=new WC_Product_Simple();
+      $top_seller->set_name('Integration top seller');
+      $top_seller->set_status('publish');
+      $top_seller->set_catalog_visibility('visible');
+      $top_seller->set_virtual(true);
+      $top_seller->set_regular_price('14.00');
+      $top_seller->set_total_sales(9);
+      $top_seller_id=$top_seller->save();
+
       $coupon=new WC_Coupon();
       $coupon->set_code('integration-fixed');
       $coupon->set_discount_type('fixed_cart');
@@ -421,11 +430,13 @@ try {
       ob_start();
       jluxe_render_homepage_brick_products($section);
       $html=(string)ob_get_clean();
-      return array('soldVisible'=>false!==strpos($html,'Integration bestseller with sales'),'zeroSalesVisible'=>false!==strpos($html,'Integration simple product'));
+      $top=strpos($html,'Integration top seller');
+      $sold=strpos($html,'Integration bestseller with sales');
+      return array('soldVisible'=>false!==$sold,'zeroSalesVisible'=>false!==strpos($html,'Integration simple product'),'salesOrderCorrect'=>false!==$top&&false!==$sold&&$top<$sold);
     `);
     check(
-      bestsellerRender.soldVisible && !bestsellerRender.zeroSalesVisible,
-      "Homepage bestseller bricks include WooCommerce products with sales and exclude a published product with zero sales",
+      bestsellerRender.soldVisible && !bestsellerRender.zeroSalesVisible && bestsellerRender.salesOrderCorrect,
+      "Homepage bestseller bricks sort by real WooCommerce sales descending and exclude a published product with zero sales",
     );
 
     const home = await request(root, { method: "GET" });

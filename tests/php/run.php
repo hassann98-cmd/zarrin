@@ -965,6 +965,29 @@ $GLOBALS['sale_ids']=array(1,2);$GLOBALS['product_query_results']=array();
 ob_start();jluxe_render_homepage_special_products(array('count'=>999,'sort'=>'discount'));ob_end_clean();
 check($GLOBALS['product_query_args']['limit']===30 && $GLOBALS['product_query_args']['jluxe_discount_order']===true, 'R19 sale grid uses a capped SQL query instead of loading all products');
 check(jluxe_sale_grid_query_args(array(),array('jluxe_sale_grid'=>true))['has_password']===false, 'R19 sale grid also excludes protected products at query time');
+$r518_saved_sale_ids=$GLOBALS['sale_ids']??null;
+$r518_saved_product_handler=$GLOBALS['product_query_handler']??null;
+$r518_saved_product_args=$GLOBALS['product_query_args']??null;
+$r518_saved_post_fields=$GLOBALS['post_fields']??null;
+$GLOBALS['sale_ids']=range(51800,51839);
+$GLOBALS['r518_random_queries']=array();
+$GLOBALS['product_query_handler']=static function($query){
+ $GLOBALS['r518_random_queries'][]=$query;
+ $ids=array_slice((array)($query['include']??array()),0,(int)($query['limit']??0));
+ if(1===count($GLOBALS['r518_random_queries'])&&!empty($ids))$GLOBALS['post_fields'][$ids[0]]['post_password']='protected';
+ return array_map(static function($id){return new WC_Product((int)$id);},$ids);
+};
+ob_start();jluxe_render_homepage_special_products(array('count'=>4,'sort'=>'rand','hide_out_of_stock'=>true));ob_end_clean();
+$r518_queries=$GLOBALS['r518_random_queries'];
+$r518_random_queries_bounded=2===count($r518_queries);
+foreach($r518_queries as $r518_query){
+ $r518_random_queries_bounded=$r518_random_queries_bounded&&'include'===($r518_query['orderby']??'')&&'instock'===($r518_query['stock_status']??'')&&count((array)($r518_query['include']??array()))<=12;
+}
+check($r518_random_queries_bounded,'R518 random sale products use bounded shuffled include batches, retain stock/visibility filters, and retry after a private product instead of SQL RAND()');
+$GLOBALS['sale_ids']=$r518_saved_sale_ids;
+if(null===$r518_saved_product_handler)unset($GLOBALS['product_query_handler']);else$GLOBALS['product_query_handler']=$r518_saved_product_handler;
+if(null===$r518_saved_product_args)unset($GLOBALS['product_query_args']);else$GLOBALS['product_query_args']=$r518_saved_product_args;
+if(null===$r518_saved_post_fields)unset($GLOBALS['post_fields']);else$GLOBALS['post_fields']=$r518_saved_post_fields;
 
 // Recovery is delegated to WooCommerce rather than hidden by the guest React island.
 $GLOBALS['authenticated_user']=0;$GLOBALS['endpoint']='lost-password';
@@ -10951,14 +10974,14 @@ check(
 	6 === ( $r329_bestseller_args['limit'] ?? 0 ) &&
 	'publish' === ( $r329_bestseller_args['status'] ?? '' ) &&
 	'instock' === ( $r329_bestseller_args['stock_status'] ?? '' ) &&
-	'popularity' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
+	'meta_value_num' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
 	'DESC' === ( $r329_bestseller_args['order'] ?? '' ) &&
 	'total_sales' === ( $r329_bestseller_args['meta_key'] ?? '' ) &&
 	0 === ( $r329_bestseller_args['meta_value'] ?? null ) &&
 	'>' === ( $r329_bestseller_args['meta_compare'] ?? '' ) &&
 	'NUMERIC' === ( $r329_bestseller_args['meta_type'] ?? '' ) &&
 	! isset( $r329_bestseller_args['meta_query'] ),
-	'R329 bestseller source sends a WooCommerce-supported numeric sales threshold while preserving popularity order'
+	'R329 bestseller source uses an explicit numeric total_sales order rather than the unsupported popularity token'
 );
 
 $GLOBALS['terms_by_id'][32901] = (object) array( 'slug' => 'r329-brick-category' );
