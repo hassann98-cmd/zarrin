@@ -53,6 +53,8 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" class="text-error" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
 				<h1 class="text-h2 text-foreground">پرداخت ناموفق بود</h1>
 				<p class="max-w-md text-body text-text-secondary">متأسفانه سفارش شما توسط بانک/درگاه پرداخت رد شد. لطفاً دوباره تلاش کنید.</p>
+				<?php do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() ); ?>
+				<?php do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
 				<div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
 					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground sm:w-auto">تلاش مجدد برای پرداخت</a>
 					<?php if ( is_user_logged_in() ) : ?>
@@ -78,7 +80,6 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 					</div>
 					<h1 class="text-h1 font-extrabold text-foreground">سفارش شما ثبت شد — در انتظار تأیید</h1>
 					<p class="mx-auto mt-3 max-w-md text-body text-text-secondary">پرداخت یا تأیید نهایی سفارش هنوز انجام نشده است. پس از تأیید، وضعیت سفارش به‌روزرسانی می‌شود. برای پیگیری، از دکمهٔ «پیگیری سفارش» استفاده کنید.</p>
-				</div>
 			<?php else : ?>
 			<div class="jluxe-ty-hero relative overflow-hidden rounded-3xl border border-success/20 bg-gradient-to-br from-success/10 via-surface to-accent/10 px-6 py-10 text-center sm:py-14">
 				<div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-success text-white shadow-lg shadow-success/25 sm:size-24">
@@ -90,6 +91,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<div class="mt-6 inline-flex items-center gap-2 rounded-full bg-surface px-5 py-2 text-small font-bold text-foreground shadow-sm">
 					شماره سفارش
 					<span class="text-primary" dir="ltr">#<?php echo esc_html( jluxe_fa_digits( $order->get_order_number() ) ); ?></span>
+					<button type="button" data-order-number-copy="<?php echo esc_attr( $order->get_order_number() ); ?>" class="rounded-full border border-border px-2.5 py-1 text-caption font-medium text-text-secondary transition-colors hover:bg-muted">کپی</button>
 				</div>
 			</div>
 
@@ -179,6 +181,9 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			<?php endif; ?>
 
 			<?php
+			// Payment integrations (including gateway tracking) render before final actions.
+			do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() );
+			do_action( 'woocommerce_thankyou', $order->get_id() );
 			// مشتریِ لاگین‌کرده حسابِ واقعی داره، پس مستقیم به بخش سفارش‌های
 			// همون حساب می‌ره (نیازی به وارد کردن دوباره‌ی شماره سفارش/موبایل
 			// نیست)؛ فقط خریدِ مهمان (بدون حساب) به صفحه‌ی پیگیریِ عمومی می‌ره.
@@ -199,8 +204,6 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 
 		<?php endif; ?>
 
-		<?php do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() ); ?>
-		<?php do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
 	<?php else : ?>
 		<p class="text-body text-text-secondary">سفارشی یافت نشد.</p>
 	<?php endif; ?>

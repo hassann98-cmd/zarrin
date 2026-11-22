@@ -4,6 +4,7 @@ import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
 import {
   getActiveMobileDrawer,
+  hasMobileDrawerRegistration,
   openMobileDrawer,
   subscribeMobileDrawerState,
   toggleMobileDrawer,
@@ -164,6 +165,8 @@ function FloatingMobileNav() {
   const handleClick = (event, item) => {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
+      // If the lazy drawer island is absent, preserve the link's native href.
+      if (!hasMobileDrawerRegistration(item.opensDrawer, window)) return;
       event.preventDefault();
       const closedSuggestions =
         typeof window.jluxeCloseSuggestedProductsModal === "function" &&
@@ -171,7 +174,7 @@ function FloatingMobileNav() {
       // A just-dismissed modal should reveal the chosen drawer even if the
       // prior drawer state is stale or its close animation is still running.
       if (closedSuggestions) openMobileDrawer(item.opensDrawer, window);
-      else toggleMobileDrawer(item.opensDrawer, window);
+      else toggleMobileDrawer(item.opensDrawer, window, activeDrawer);
       return;
     }
     if (

@@ -14526,7 +14526,8 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
 }
 
 /* Independent switch surface: normal dock links and icon spacing stay untouched. */
-.jluxe-dock-switch-layer{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;box-sizing:border-box;margin:0;padding:0;border:0;background:transparent;overflow:visible;pointer-events:none;z-index:167;}
+.jluxe-dock-switch-layer{position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;box-sizing:border-box;margin:0;padding:0;border:0;background:transparent;overflow:visible;pointer-events:none;z-index:167;}
+@supports(height:100dvh){.jluxe-dock-switch-layer{inset-block:0 auto;height:100dvh;}}
 .jluxe-dock-switch-layer::backdrop{background:transparent;pointer-events:none;}
 .jluxe-dock-switch-layer>.jluxe-mobile-bar-toggle,.jluxe-dock-switch-layer>.jluxe-sticky-cta-mode-toggle{pointer-events:auto;}
 html[data-jluxe-mobile-drawer] .jluxe-dock-switch-layer{visibility:hidden;pointer-events:none;}

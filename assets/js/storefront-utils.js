@@ -199,14 +199,21 @@
     }
     win.addEventListener('click', function (event) {
       var direct = button.contains(event.target);
-      if (direct && blocked()) { stop(event); return; }
-      // Suppress only the compatibility click belonging to the switch's own
-      // pointer sequence. Never infer switch intent from coordinates alone.
-      var recent = gesture && Date.now() - gesture.time < 1200 && event.detail > 0 &&
-        (gesture.done || Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 32);
-      if (!recent) return;
-      if (gesture.done || gesture.moved || blocked()) { stop(event); return; }
-      gesture.done = true;
+      if (direct && blocked()) { stop(event); gesture = null; return; }
+      // Match only the compatibility click belonging to this recent pointer
+      // sequence. In particular, a completed switch never blankets nearby
+      // navigation: a retargeted click more than 28px away is a real tap.
+      var age = gesture ? Date.now() - gesture.time : Infinity;
+      var distance = gesture ? Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) : Infinity;
+      var recent = gesture && age >= 0 && age <= 450 && event.detail > 0 && (direct || distance <= 28);
+      if (!recent) {
+        if (gesture && (age > 450 || (!direct && distance > 28))) gesture = null;
+        return;
+      }
+      var completed = gesture.done;
+      var moved = gesture.moved;
+      gesture = null; // Consume ownership immediately; never poison the next tap.
+      if (completed || moved || blocked()) { stop(event); return; }
       if (!direct) { stop(event); button.click(); }
     }, true);
 

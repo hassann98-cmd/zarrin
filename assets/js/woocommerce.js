@@ -4515,12 +4515,6 @@ function jluxeEnhanceShopSort(root) {
 		var target = event.target && event.target.closest ? event.target.closest('[data-jluxe-mobile-bar-toggle]') : null;
 		if (target === toggleBtn) { switchMobileBar(event); }
 	}, true);
-	toggleBtn.addEventListener('pointerdown', function (event) {
-		event.stopPropagation();
-		if (toggleBtn.setPointerCapture && event.pointerId !== undefined) {
-			try { toggleBtn.setPointerCapture(event.pointerId); } catch (error) {}
-		}
-	});
 
 	window.addEventListener("resize", schedulePositionToggle, { passive: true });
 	window.addEventListener("orientationchange", schedulePositionToggle, { passive: true });
@@ -6314,4 +6308,28 @@ function jluxeEnhanceShopSort(root) {
   if(window.ResizeObserver)new ResizeObserver(sync).observe(track);window.addEventListener('resize',sync);sync();
  });}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+/* Order-number copy control on WooCommerce's order-received screen. */
+(function () {
+	'use strict';
+	document.addEventListener('click', function (event) {
+		var button = event.target.closest && event.target.closest('[data-order-number-copy]');
+		if (!button) return;
+		var value = button.getAttribute('data-order-number-copy') || '';
+		var original = button.textContent;
+		function copied() {
+			button.textContent = 'کپی شد';
+			window.setTimeout(function () { button.textContent = original; }, 1600);
+		}
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(value).then(copied).catch(function () {});
+			return;
+		}
+		var field = document.createElement('textarea');
+		field.value = value; field.setAttribute('readonly', ''); field.style.position = 'fixed'; field.style.opacity = '0';
+		document.body.appendChild(field); field.select();
+		try { if (document.execCommand('copy')) copied(); } catch (_) {}
+		document.body.removeChild(field);
+	});
 })();

@@ -240,10 +240,10 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
 test("mobile category/cart controls keep their normal icons, expose close state, and retain real-page fallbacks", () => {
   assert.match(mobileNavSource, /shop: \{ href: siteUrl\("shop"\), opensDrawer: "categories" \}/);
   assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
-  assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(mobileNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(floatingNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
+  assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(mobileNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(floatingNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
   assert.match(mobileNavSource, /aria-expanded": drawerOpen/);
   assert.match(floatingNavSource, /aria-expanded": drawerOpen/);
   assert.match(mobileNavSource, /"aria-current": routeActive \? "page"/);
@@ -438,4 +438,36 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   dom.window.close();
   noPrefetch.window.close();
   cacheUnsafe.window.close();
+});
+
+test("explicit navigation mode remains selected as scrolling hides and reveals the sticky purchase bar", () => {
+  const dom = new JSDOM('<form class="cart"></form><nav class="jluxe-mobile-nav"><a href="/">Home</a></nav><div data-jluxe-sticky-cta><button data-jluxe-sticky-cta-mode-toggle aria-pressed="false"><span data-jluxe-sticky-cta-mode-label></span></button></div>', {
+    url: "https://shop.test/product/demo/", runScripts: "outside-only",
+  });
+  const { window } = dom;
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  const form = window.document.querySelector("form.cart");
+  let bottom = 100;
+  form.getBoundingClientRect = () => ({ bottom, top: bottom - 300, height: 300, left: 0, right: 390, width: 390 });
+  const button = window.document.querySelector("[data-jluxe-sticky-cta-mode-toggle]");
+  window.eval(stickySource);
+  assert.equal(button.getAttribute("aria-pressed"), "true", "initial visible CTA starts in purchase mode");
+  button.click();
+  assert.equal(button.getAttribute("aria-pressed"), "false", "the user selects navigation");
+  bottom = 900;
+  window.dispatchEvent(new window.Event("scroll"));
+  bottom = 100;
+  window.dispatchEvent(new window.Event("scroll"));
+  assert.equal(button.getAttribute("aria-pressed"), "false", "scroll visibility changes do not reset the selected mode");
+  assert.equal(window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  dom.window.close();
+});
+
+test("drawer navigation falls back to native href when its category or cart island is not registered", () => {
+  for (const source of [mobileNavSource, floatingNavSource]) {
+    assert.match(source, /hasMobileDrawerRegistration\(item\.opensDrawer, window\)/);
+    assert.match(source, /if \(!hasMobileDrawerRegistration\(item\.opensDrawer, window\)\) return;/);
+    assert.match(source, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  }
 });

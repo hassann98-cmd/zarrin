@@ -11764,4 +11764,47 @@ check(
 	'R365 legacy numeric state/city IDs are omitted from the address line instead of printing raw'
 );
 
+// R377: thank-you branches stay balanced and the optional guided template falls back safely.
+if ( ! function_exists( 'wc_format_datetime' ) ) {
+ function wc_format_datetime( $date ) { return $date ? '2026-10-08' : ''; }
+}
+class ThankyouRenderFixture extends WC_Order {
+ function has_status( $statuses ) { return in_array( $this->status, (array) $statuses, true ); }
+ function get_address( $type = 'billing' ) { return array(); }
+ function get_formatted_shipping_address() { return ''; }
+ function get_formatted_billing_address() { return ''; }
+ function get_checkout_payment_url() { return 'https://shop.test/pay/51/'; }
+ function get_formatted_order_total() { return '450000'; }
+}
+$ty_template = ABSPATH . 'woocommerce/checkout/thankyou.php';
+$ty_previous_order = $order ?? null;
+foreach ( array( 'failed', 'on-hold', 'processing' ) as $ty_status ) {
+ $order = new ThankyouRenderFixture();
+ $order->status = $ty_status;
+ $GLOBALS['fired'] = array();
+ ob_start(); include $ty_template; $ty_html = ob_get_clean();
+ preg_match_all( '/<div\b/i', $ty_html, $ty_open_divs );
+ preg_match_all( '/<\/div\s*>/i', $ty_html, $ty_close_divs );
+ check( count( $ty_open_divs[0] ) === count( $ty_close_divs[0] ), 'Thank-you markup has balanced divs for ' . $ty_status );
+ if ( 'failed' !== $ty_status ) {
+  $ty_hero_at = strpos( $ty_html, 'class="jluxe-ty-hero' );
+  $ty_badge_at = strpos( $ty_html, 'class="mt-6 inline-flex', $ty_hero_at );
+  $ty_copy_at = strpos( $ty_html, 'data-order-number-copy="51"', $ty_badge_at );
+  $ty_badge_close = strpos( $ty_html, '</div>', $ty_copy_at );
+  $ty_hero_close = strpos( $ty_html, '</div>', $ty_badge_close + 6 );
+  check( false !== $ty_hero_at && false !== $ty_badge_at && false !== $ty_copy_at && $ty_hero_at < $ty_badge_at && $ty_badge_at < $ty_copy_at && $ty_copy_at < $ty_badge_close && $ty_badge_close < $ty_hero_close, 'Thank-you order badge and copy action are nested inside the hero for ' . $ty_status );
+ }
+ check( in_array( 'woocommerce_thankyou_test_gateway', $GLOBALS['fired'], true ) && in_array( 'woocommerce_thankyou', $GLOBALS['fired'], true ), 'Thank-you invokes gateway and general hooks for ' . $ty_status );
+}
+$order = $ty_previous_order;
+$thankyou_source = (string) file_get_contents( $ty_template );
+check(
+ strpos( $thankyou_source, "do_action( 'woocommerce_thankyou_' . \$order->get_payment_method()" ) < strpos( $thankyou_source, '$jluxe_ty_track_url' ) &&
+ strpos( $thankyou_source, "do_action( 'woocommerce_thankyou', \$order->get_id() )" ) < strpos( $thankyou_source, 'class="mt-6 flex flex-col gap-3 sm:flex-row"' ),
+ 'Gateway and general thank-you hooks run before final customer action buttons'
+);
+$guided_checkout = ABSPATH . 'woocommerce/checkout/form-checkout-guided.php';
+$checkout_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+check( ! is_file( $guided_checkout ) && false !== strpos( $checkout_source, "is_file( __DIR__ . '/form-checkout-guided.php' )" ), 'Missing guided checkout template selects the standard checkout instead of including a nonexistent file' );
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

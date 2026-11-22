@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$jluxe_is_guided_checkout = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout();
+$jluxe_is_guided_checkout = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout() && is_file( __DIR__ . '/form-checkout-guided.php' );
 if ( $jluxe_is_guided_checkout ) : ?>
 <div class="jluxe-guided-checkout__before-form-notices" data-guided-before-form-notices aria-hidden="false">
 <?php endif; ?>

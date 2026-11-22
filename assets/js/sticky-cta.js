@@ -7,17 +7,19 @@
  */
 ( function () {
 	'use strict';
-	var bar = document.querySelector( '[data-jluxe-sticky-cta]' );
+	var doc = document;
+	var bar = doc.querySelector( '[data-jluxe-sticky-cta]' );
 	if ( ! bar ) {
 		return;
 	}
-	var form = document.querySelector( 'form.cart' );
-	var realButton = document.querySelector( 'form.cart .single_add_to_cart_button' );
-	var body = document.body;
-	var modeToggle = document.querySelector( '[data-jluxe-sticky-cta-mode-toggle]' );
+	var form = doc.querySelector( 'form.cart' );
+	var realButton = doc.querySelector( 'form.cart .single_add_to_cart_button' );
+	var body = doc.body;
+	var modeToggle = doc.querySelector( '[data-jluxe-sticky-cta-mode-toggle]' );
 	window.JLuxeStorefrontUtils.protectDockSwitch( modeToggle, bar );
 	var modeToggleLabel = modeToggle && modeToggle.querySelector( '[data-jluxe-sticky-cta-mode-label]' );
 	var activeMode = 'navigation';
+	var modeManuallySelected = false;
 	var alwaysVisible = bar.hasAttribute( 'data-jluxe-sticky-cta-always' );
 
 	var navSelector = '#bottom-navigation, .jluxe-mobile-nav';
@@ -29,14 +31,14 @@
 	function isMobileViewport() {
 		return window.matchMedia
 			? window.matchMedia( '(max-width: 767.98px)' ).matches
-			: ( window.innerWidth || document.documentElement.clientWidth || 0 ) < 768;
+			: ( window.innerWidth || doc.documentElement.clientWidth || 0 ) < 768;
 	}
 
 	function viewportHeight() {
 		/* Fixed docks and getBoundingClientRect share layout-viewport coordinates.
 		 * visualViewport.height can shrink for the keyboard/browser chrome and
 		 * mixing the two coordinate systems makes the switch jump. */
-		return window.innerHeight || document.documentElement.clientHeight || 0;
+		return window.innerHeight || doc.documentElement.clientHeight || 0;
 	}
 
 	function positionToggleAwayFromAssistant() {
@@ -46,7 +48,7 @@
 		var assistant = window.JLuxeThemeSettings && window.JLuxeThemeSettings.aiAssistant;
 		var assistantSide = assistant && 'start' === assistant.position ? 'start' : 'end';
 		var toggleSide = 'start' === assistantSide ? 'end' : 'start';
-		var direction = window.getComputedStyle( document.documentElement ).direction || document.documentElement.dir || 'ltr';
+		var direction = window.getComputedStyle( doc.documentElement ).direction || doc.documentElement.dir || 'ltr';
 		var rtl = 'rtl' === direction;
 		var safeStartSide = rtl ? 'right' : 'left';
 		var safeEndSide = rtl ? 'left' : 'right';
@@ -62,7 +64,7 @@
 
 	function syncNavigationVisibility() {
 		var shouldHideNavigation = 'purchase' === activeMode && bar.classList.contains( 'is-visible' ) && isMobileViewport();
-		var candidates = document.querySelectorAll( navSelector );
+		var candidates = body.ownerDocument.querySelectorAll( navSelector );
 		for ( var index = 0; index < candidates.length; index++ ) {
 			var candidate = candidates[ index ];
 			if ( shouldHideNavigation ) {
@@ -107,7 +109,7 @@
 	}
 
 	function focusAfterToggleHides( navCandidates ) {
-		if ( ! modeToggle || document.activeElement !== modeToggle ) {
+		if ( ! modeToggle || doc.activeElement !== modeToggle ) {
 			return;
 		}
 		var target = realButton && ! realButton.disabled ? realButton : null;
@@ -169,7 +171,7 @@
 			resizeObserver.observe( bar );
 			observedElements.add( bar );
 		}
-		var candidates = document.querySelectorAll( navSelector );
+		var candidates = body.ownerDocument.querySelectorAll( navSelector );
 		for ( var index = 0; index < candidates.length; index++ ) {
 			if ( ! observedElements.has( candidates[ index ] ) ) {
 				resizeObserver.observe( candidates[ index ] );
@@ -186,7 +188,7 @@
 	function layout() {
 		var viewportH = viewportHeight();
 		syncNavigationVisibility();
-		var navCandidates = document.querySelectorAll( navSelector );
+		var navCandidates = body.ownerDocument.querySelectorAll( navSelector );
 		var dockTop = null;
 		for ( var navIndex = 0; navIndex < navCandidates.length; navIndex++ ) {
 			var candidate = navCandidates[ navIndex ];
@@ -263,7 +265,7 @@
 			? ! body.hasAttribute( 'data-jluxe-sticky-cta-mode' )
 			: body.hasAttribute( 'data-jluxe-sticky-cta-mode' );
 		if ( wasVisible !== visible || modeNeedsSync ) {
-			setMode( visible ? 'purchase' : 'navigation' );
+			setMode( modeManuallySelected ? activeMode : ( visible ? 'purchase' : 'navigation' ) );
 			layout();
 		}
 	}
@@ -299,15 +301,10 @@
 			if ( ! bar.classList.contains( 'is-visible' ) || ! isMobileViewport() ) {
 				return;
 			}
+			modeManuallySelected = true;
 			setMode( 'purchase' === activeMode ? 'navigation' : 'purchase' );
 			layout();
 		}, true );
-		modeToggle.addEventListener( 'pointerdown', function ( event ) {
-			event.stopPropagation();
-			if ( modeToggle.setPointerCapture && event.pointerId !== undefined ) {
-				try { modeToggle.setPointerCapture( event.pointerId ); } catch ( error ) {}
-			}
-		} );
 	}
 
 	window.addEventListener( 'scroll', onScroll, { passive: true } );
@@ -349,7 +346,7 @@
 	onScroll();
 
 	function productVariationForm() {
-		return document.querySelector( 'form.variations_form.cart' ) || ( form && form.matches( 'form.variations_form' ) ? form : null );
+		return doc.querySelector( 'form.variations_form.cart' ) || ( form && form.matches( 'form.variations_form' ) ? form : null );
 	}
 
 	function firstVariationChoice( variationForm ) {

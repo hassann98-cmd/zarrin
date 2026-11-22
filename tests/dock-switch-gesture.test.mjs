@@ -11,10 +11,10 @@ for (const kind of ['mobile-bar-toggle','sticky-cta-mode-toggle']) {
   let switches=0,carts=0;button.addEventListener('click',()=>switches++);cart.addEventListener('click',()=>carts++);
   const fire=(target,name,detail=1,x=20)=>target.dispatchEvent(new w.MouseEvent(name,{bubbles:true,cancelable:true,clientX:x,clientY:30,detail,button:0}));
   fire(button,'pointerdown');fire(cart,'click');assert.equal(switches,1);assert.equal(carts,0);
-  fire(cart,'click');assert.equal(switches,1);assert.equal(carts,0);
+  fire(cart,'click');assert.equal(switches,1);assert.equal(carts,1,'ownership was consumed by the first compatibility click');
   button.click();assert.equal(switches,2,'keyboard activation still works');
-  fire(cart,'pointerdown');fire(cart,'click');assert.equal(carts,1,'a fresh cart tap is not blocked');
-  fire(button,'pointerdown');fire(button,'pointermove',1,80);fire(cart,'click');assert.equal(switches,2,'scroll gesture is not a switch');assert.equal(carts,1);
+  fire(cart,'pointerdown');fire(cart,'click');assert.equal(carts,2,'a fresh cart tap is not blocked');
+  fire(button,'pointerdown');fire(button,'pointermove',1,80);fire(cart,'click');assert.equal(switches,2,'scroll gesture is not a switch');assert.equal(carts,2);
   d.documentElement.setAttribute('data-jluxe-mobile-drawer','cart');button.click();assert.equal(switches,2,'switch cannot activate behind an open drawer');
   d.documentElement.removeAttribute('data-jluxe-mobile-drawer');button.click();assert.equal(switches,3);
  });
@@ -24,11 +24,15 @@ test('drawer state hides both switchers without raising their layer above the dr
  assert.match(css,/html\[data-jluxe-mobile-drawer\] body \.jluxe-mobile-bar-toggle,[\s\S]*?\.jluxe-sticky-cta-mode-toggle\{visibility:hidden;pointer-events:none;/);
 });
 
-test('pointerup switches once before a displaced compatibility click; fresh cart gesture remains usable',()=>{
+test('switch ghost clicks are consumed once and clicks over 28px away are never swallowed',()=>{
  const dom=new JSDOM('<button id="switch">Switch</button><button id="cart">Cart</button>',{runScripts:'outside-only'});
  try{const w=dom.window,d=w.document,b=d.querySelector('#switch'),cart=d.querySelector('#cart');w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);let switched=0,opened=0;b.onclick=()=>switched++;cart.onclick=()=>opened++;
  const fire=(node,type,x=20)=>node.dispatchEvent(new w.MouseEvent(type,{bubbles:true,cancelable:true,detail:1,clientX:x,clientY:30,button:0}));
- fire(b,'pointerdown');fire(b,'pointerup');assert.equal(switched,1);fire(cart,'click',100);assert.equal(opened,0);assert.equal(switched,1);fire(cart,'pointerdown');fire(cart,'pointerup');fire(cart,'click');assert.equal(opened,1);
+ fire(b,'pointerdown');fire(b,'pointerup');assert.equal(switched,1);
+ fire(cart,'click',25);assert.equal(opened,0,'compatibility click within 28px is suppressed');
+ fire(cart,'click',70);assert.equal(opened,1,'a subsequent click at a different coordinate is allowed');
+ fire(b,'pointerdown');fire(b,'pointerup');fire(cart,'click',20);assert.equal(opened,1,'the switch compatibility click is consumed');
+ fire(cart,'pointerdown');fire(cart,'pointerup');fire(cart,'click',20);assert.equal(opened,2,'a new cart tap immediately after the switch is usable');
  }finally{dom.window.close();}
 });
 
@@ -60,18 +64,13 @@ test('cart and account hit targets are never stolen by the switch bounding-box f
  const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><a id="cart">Cart</a><a id="account">Account</a>',{runScripts:'outside-only'});
  try{const w=dom.window,d=w.document,b=d.querySelector('button');w.matchMedia=()=>({matches:true});b.getBoundingClientRect=()=>({left:20,right:138,top:500,bottom:544,width:118,height:44});w.eval(source);w.JLuxeStorefrontUtils.protectDockSwitch(b);let switches=0,cartOpens=0,accountNavigations=0;b.onclick=()=>switches++;d.getElementById('cart').onclick=()=>cartOpens++;d.getElementById('account').onclick=()=>accountNavigations++;
  function fire(el,type,x,id=1){const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:520,button:0,detail:1});Object.defineProperty(e,'pointerId',{value:id});el.dispatchEvent(e);}
- // Even if stale geometry overlaps one of the links, the browser's actual
- // event target is authoritative and both actions must remain usable.
  for(const [id,x] of [['cart',30],['account',125]]){const a=d.getElementById(id);fire(a,'pointerdown',x);fire(a,'pointerup',x);fire(a,'click',x);}
  assert.equal(switches,0);assert.equal(cartOpens,1);assert.equal(accountNavigations,1);
  fire(b,'pointerdown',30,3);fire(b,'pointerup',30,4);assert.equal(switches,0,'unrelated pointer cannot complete the switch');fire(b,'pointerup',30,3);assert.equal(switches,1);
- // A compatibility click retargeted from that same switch gesture is ignored,
- // while the subsequent real cart gesture remains available.
  fire(d.getElementById('cart'),'click',30,3);assert.equal(cartOpens,1);
  fire(d.getElementById('cart'),'pointerdown',200);fire(d.getElementById('cart'),'click',200);assert.equal(cartOpens,2);
  }finally{dom.window.close();}
 });
-
 
 for(const popover of [false,true])test(`switch layer isolates controls without filtering navigation; top layer support=${popover}`,()=>{
  const dom=new JSDOM('<div style="transform:translateY(0)"><button data-jluxe-mobile-bar-toggle>Switch</button><button data-jluxe-sticky-cta-mode-toggle>Switch2</button></div><nav><a>Home</a><a>Tracking</a><a>Categories</a><a>Account</a><a>Cart</a></nav>',{runScripts:'outside-only'});
@@ -82,7 +81,28 @@ for(const popover of [false,true])test(`switch layer isolates controls without f
  assert.equal(opened,25,'all destinations remain usable after repeated switching');
  }finally{dom.window.close();}
 });
+test('shared gesture layer and owner replace the duplicate component pointer captures',()=>{
+ const sticky=fs.readFileSync(new URL('../assets/js/sticky-cta.js',import.meta.url),'utf8');
+ const woo=fs.readFileSync(new URL('../assets/js/woocommerce.js',import.meta.url),'utf8');
+ assert.doesNotMatch(sticky,/modeToggle\.addEventListener\(\s*['"]pointerdown/);
+ assert.doesNotMatch(woo,/toggleBtn\.addEventListener\(\s*['"]pointerdown/);
+ assert.match(woo,/data-order-number-copy/);
+ assert.match(source,/age <= 450/);assert.match(source,/distance <= 28/);
+ assert.match(fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8'),/height:100dvh/);
+});
+
 test('no blanket navigation hit-test or icon sizing overrides remain',()=>{
  const js=fs.readFileSync(new URL('../assets/js/woocommerce.js',import.meta.url),'utf8');assert.doesNotMatch(js,/function boundNavigation|jluxeNavBounds/);
  const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');assert.doesNotMatch(css,/Cart\/account: only|Dock links own only/);const layer=css.split('/* Independent switch surface:')[1];assert.match(layer,/pointer-events:none/);assert.match(layer,/pointer-events:auto/);assert.doesNotMatch(layer,/mobile-nav-item|mobile-nav-icon/);
+});
+
+test('thank-you order number copy control copies the raw order number and confirms success', async () => {
+ const dom=new JSDOM('<button data-order-number-copy="5102">کپی</button>',{url:'https://shop.test/order-received/',runScripts:'outside-only'});
+ try {
+  const w=dom.window;let copied='';Object.defineProperty(w.navigator,'clipboard',{configurable:true,value:{writeText(value){copied=value;return Promise.resolve();}}});
+  const woo=fs.readFileSync(new URL('../assets/js/woocommerce.js',import.meta.url),'utf8');
+  w.eval(woo.slice(woo.indexOf('/* Order-number copy control')));
+  w.document.querySelector('button').click();await Promise.resolve();
+  assert.equal(copied,'5102');assert.equal(w.document.querySelector('button').textContent,'کپی شد');
+ } finally { dom.window.close(); }
 });
