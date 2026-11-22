@@ -407,6 +407,8 @@ jQuery(function ($) {
 			$(this).closest(".jluxe-hb-section").after($clone);
 			assignUniqueMediaFieldIds($clone);
 			syncCategoryShowcaseFields($clone);
+			syncBrandCampaignEditors($clone);
+			$(document.body).trigger("wc-enhanced-select-init");
 			renumberHomepageSections();
 		});
 
@@ -424,6 +426,8 @@ jQuery(function ($) {
 			$hbList.append(sectionFragment);
 			assignUniqueMediaFieldIds($newSection);
 			syncCategoryShowcaseFields($newSection);
+			syncBrandCampaignEditors($newSection);
+			$(document.body).trigger("wc-enhanced-select-init");
 			renumberHomepageSections();
 		});
 	}
@@ -498,26 +502,38 @@ jQuery(function ($) {
 
 	function syncBrandCampaignEditors($scope) {
 		var $root = $scope && $scope.length ? $scope : $(document);
-		$root.find("[data-jluxe-bvc-target-select]").addBack("[data-jluxe-bvc-target-select]").each(function () {
-			var select = this;
-			var value = $(select).val();
-			var toggleId = $(select).attr("data-jluxe-bvc-target-select");
-			$('[data-jluxe-bvc-for="' + toggleId + '"]').each(function () {
-				$(this).prop("hidden", $(this).attr("data-jluxe-bvc-target") !== value);
+		$root.find(".jluxe-brand-video-campaign-admin").addBack(".jluxe-brand-video-campaign-admin").each(function () {
+			var $card = $(this);
+			$card.find("[data-jluxe-bvc-target-select]").each(function () {
+				var select = this;
+				var value = $(select).val();
+				var toggleId = $(select).attr("data-jluxe-bvc-target-select");
+				$card.find('[data-jluxe-bvc-for="' + toggleId + '"]').each(function () {
+					$(this).prop("hidden", $(this).attr("data-jluxe-bvc-target") !== value);
+				});
 			});
-		});
-		$root.find("[data-jluxe-bvc-media-select]").addBack("[data-jluxe-bvc-media-select]").each(function () {
-			var select = this;
-			var value = $(select).val();
-			var toggleId = $(select).attr("data-jluxe-bvc-media-select");
-			var $field = $('[data-jluxe-bvc-media-for="' + toggleId + '"]');
-			$field.find(".jluxe-media-select").attr("data-library-type", value).data("libraryType", value);
-			$field.find(".jluxe-media-select").text("video" === value ? "انتخاب ویدیو" : "انتخاب تصویر یا GIF");
-			$('[data-jluxe-bvc-media-poster="' + toggleId + '"]').prop("hidden", "video" !== value);
+			$card.find("[data-jluxe-bvc-media-select]").each(function () {
+				var select = this;
+				var value = $(select).val();
+				var toggleId = $(select).attr("data-jluxe-bvc-media-select");
+				var $field = $card.find('[data-jluxe-bvc-media-for="' + toggleId + '"]');
+				$field.find(".jluxe-media-select").attr("data-library-type", value).data("libraryType", value);
+				$field.find(".jluxe-media-select").text("video" === value ? "انتخاب ویدیو" : "انتخاب تصویر یا GIF");
+				$card.find('[data-jluxe-bvc-media-poster="' + toggleId + '"]').prop("hidden", "video" !== value);
+			});
 		});
 	}
 	$(document).on("change", "[data-jluxe-bvc-target-select], [data-jluxe-bvc-media-select]", function () {
 		syncBrandCampaignEditors($(this).closest(".jluxe-brand-video-campaign-admin"));
+	});
+	$(document).on("input change", "[data-jluxe-bvc-bg-picker]", function () {
+		$(this).closest(".jluxe-brand-video-campaign-admin").find("[data-jluxe-bvc-bg-value]").val($(this).val());
+	});
+	$(document).on("click", "[data-jluxe-bvc-bg-reset]", function () {
+		var $card = $(this).closest(".jluxe-brand-video-campaign-admin");
+		var sectionColor = $card.closest(".jluxe-hb-section").find('input[name$="[background_color]"]').first().val();
+		$card.find("[data-jluxe-bvc-bg-value]").val("");
+		$card.find("[data-jluxe-bvc-bg-picker]").val(sectionColor || $(this).attr("data-section-color") || "#7E0820");
 	});
 	syncBrandCampaignEditors($(document));
 

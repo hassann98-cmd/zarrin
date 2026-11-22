@@ -3972,8 +3972,8 @@ $GLOBALS['attachment_mimes'][597] = 'image/jpeg';
 $bvc_sanitized = jluxe_sanitize_homepage_section( array(
 	'id' => 'campaign-test', 'type' => 'brand_video_campaigns', 'enabled' => '1', 'background_color' => '#ED1944',
 	'campaigns' => array(
-		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'mobile_media_id' => 595, 'product_ids' => array( 593 ) ),
-		array( 'target_type' => 'product', 'product_id' => 593, 'media_type' => 'video', 'media_id' => 596 ),
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'mobile_media_id' => 595, 'product_ids' => array( 593 ), 'bg_color' => '#123ABC' ),
+		array( 'target_type' => 'product', 'product_id' => 593, 'media_type' => 'video', 'media_id' => 596, 'bg_color' => 'not-a-color' ),
 		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 597 ),
 	),
 ) );
@@ -3981,10 +3981,48 @@ check(
 	'#ED1944' === $bvc_sanitized['background_color'] &&
 	2 === count( $bvc_sanitized['campaigns'] ) &&
 	'category' === $bvc_sanitized['campaigns'][0]['target_type'] && 591 === $bvc_sanitized['campaigns'][0]['term_id'] &&
-	'image' === $bvc_sanitized['campaigns'][0]['media_type'] && 594 === $bvc_sanitized['campaigns'][0]['media_id'] && 595 === $bvc_sanitized['campaigns'][0]['mobile_media_id'] &&
-	'product' === $bvc_sanitized['campaigns'][1]['target_type'] && 593 === $bvc_sanitized['campaigns'][1]['product_id'] && 596 === $bvc_sanitized['campaigns'][1]['media_id'],
+	'image' === $bvc_sanitized['campaigns'][0]['media_type'] && 594 === $bvc_sanitized['campaigns'][0]['media_id'] && 595 === $bvc_sanitized['campaigns'][0]['mobile_media_id'] && '#123ABC' === $bvc_sanitized['campaigns'][0]['bg_color'] &&
+	'product' === $bvc_sanitized['campaigns'][1]['target_type'] && 593 === $bvc_sanitized['campaigns'][1]['product_id'] && 596 === $bvc_sanitized['campaigns'][1]['media_id'] && '' === $bvc_sanitized['campaigns'][1]['bg_color'],
 	'homepage brand campaign sanitizer accepts product/category targets, GIF and mobile media, bounded color, and removes duplicate targets'
 );
+$bvc_old_product_query_handler = $GLOBALS['product_query_handler'] ?? null;
+$bvc_old_product_query_results = $GLOBALS['product_query_results'] ?? null;
+$bvc_old_variation_prices = $GLOBALS['variation_prices'] ?? array();
+$GLOBALS['products'][598] = new WC_Product( 598 );
+$GLOBALS['products'][599] = new WC_Product( 599 );
+$GLOBALS['products'][599]->type = 'variable';
+$GLOBALS['variation_prices'][599] = array(
+	'regular_price' => array( 5991 => '100', 5992 => '200' ),
+	'sale_price' => array( 5991 => '50', 5992 => '120' ),
+	'price' => array( 5991 => '50', 5992 => '120' ),
+);
+$GLOBALS['product_query_results'] = array( $GLOBALS['products'][598], $GLOBALS['products'][599] );
+$GLOBALS['bvc_auto_queries'] = array();
+$GLOBALS['product_query_handler'] = static function ( $args ) {
+	$GLOBALS['bvc_auto_queries'][] = $args;
+	return $GLOBALS['product_query_results'];
+};
+ob_start();
+jluxe_render_homepage_brand_video_campaigns( array(
+	'id' => 'bvc-auto-fill', 'title' => 'کمپین نمونه', 'background_color' => '#123456',
+	'campaigns' => array(
+		array( 'target_type' => 'brand', 'brand_id' => 592, 'media_type' => 'image', 'media_id' => 594, 'bg_color' => '#7E0820' ),
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'bg_color' => '#FFFFFF' ),
+	),
+) );
+$bvc_rendered = (string) ob_get_clean();
+check(
+	2 === count( $GLOBALS['bvc_auto_queries'] ) &&
+	8 === $GLOBALS['bvc_auto_queries'][0]['limit'] &&
+	'instock' === $GLOBALS['bvc_auto_queries'][0]['stock_status'] && 'product_brand' === $GLOBALS['bvc_auto_queries'][0]['tax_query'][0]['taxonomy'] &&
+	'product_cat' === $GLOBALS['bvc_auto_queries'][1]['tax_query'][0]['taxonomy'] &&
+	false !== strpos( $bvc_rendered, 'data-fg-color="#ECEDEF"' ) && false !== strpos( $bvc_rendered, 'data-fg-color="#1F1F1F"' ) &&
+	false !== strpos( $bvc_rendered, 'data-jluxe-product-link' ) && false !== strpos( $bvc_rendered, '۵۰٪' ) && 1 === substr_count( $bvc_rendered, '<style>' ),
+	'homepage brand campaigns auto-fill in-stock brand/category products, calculate variable discounts, adapt text contrast, and emit component CSS once'
+);
+$GLOBALS['product_query_handler'] = $bvc_old_product_query_handler;
+$GLOBALS['product_query_results'] = $bvc_old_product_query_results;
+$GLOBALS['variation_prices'] = $bvc_old_variation_prices;
 $GLOBALS['taxonomies'] = $bvc_old_taxonomies;
 $GLOBALS['terms_by_id'] = $bvc_old_terms;
 $GLOBALS['products'] = $bvc_old_products;

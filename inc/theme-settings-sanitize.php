@@ -1990,7 +1990,7 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 		case 'brand_video_campaigns':
 			$section['title'] = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'تبلیغات ویدیویی برندها';
 			$section['view_all_text'] = isset( $posted['view_all_text'] ) ? sanitize_text_field( $posted['view_all_text'] ) : 'مشاهده همه';
-			$section['background_color'] = sanitize_hex_color( $posted['background_color'] ?? '' ) ?: '#FFFFFF';
+			$section['background_color'] = sanitize_hex_color( $posted['background_color'] ?? '' ) ?: '#7E0820';
 			$section['campaigns'] = array();
 			$seen_targets = array();
 			foreach ( array_slice( (array) ( $posted['campaigns'] ?? array() ), 0, 6 ) as $campaign ) {
@@ -2029,8 +2029,10 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 				if ( $poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $poster_id ) ) { $poster_id = 0; }
 				$mobile_poster_id = absint( $campaign['mobile_poster_id'] ?? 0 );
 				if ( $mobile_poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $mobile_poster_id ) ) { $mobile_poster_id = 0; }
+				$campaign_bg = sanitize_hex_color( (string) ( $campaign['bg_color'] ?? '' ) );
 				$clean_campaign = array(
 					'target_type' => $target_type,
+					'bg_color' => $campaign_bg ?: '',
 					'term_id' => 'product' === $target_type ? 0 : $target_id,
 					'product_id' => 'product' === $target_type ? $target_id : 0,
 					'logo_id' => $logo_id,

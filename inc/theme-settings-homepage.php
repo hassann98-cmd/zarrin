@@ -371,7 +371,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 				case 'brand_video_campaigns':
 					jluxe_hb_field_text( $name, 'title', 'عنوان بخش', $section['title'] ?? 'تبلیغات ویدیویی برندها' );
 					jluxe_hb_field_text( $name, 'view_all_text', 'متن لینک مشاهده همه', $section['view_all_text'] ?? 'مشاهده همه' );
-					jluxe_hb_field_color( $name, 'background_color', 'رنگ پس‌زمینهٔ بخش', (string) ( $section['background_color'] ?? '#FFFFFF' ) );
+					jluxe_hb_field_color( $name, 'background_color', 'رنگ پس‌زمینهٔ بخش', (string) ( $section['background_color'] ?? '#7E0820' ) );
 					$brand_options = jluxe_hb_brand_options();
 					$category_options = jluxe_hb_category_options();
 					echo '<p class="description">هر کمپین می‌تواند برای یک برند یا دسته‌بندی باشد. رسانهٔ تصویر می‌تواند عکس معمولی یا GIF باشد؛ برای ویدیو، پوستر اختیاری است. فایل موبایل جداگانه اختیاری است تا در صفحه‌های کوچک نسخهٔ سبک‌تر نمایش داده شود.</p>';
@@ -380,6 +380,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						$target_type = in_array( $campaign['target_type'] ?? '', array( 'brand', 'category', 'product' ), true ) ? $campaign['target_type'] : 'brand';
 						$media_type = 'image' === ( $campaign['media_type'] ?? '' ) ? 'image' : 'video';
 						$media_id = (int) ( $campaign['media_id'] ?? ( $campaign['video_id'] ?? 0 ) );
+						$campaign_bg = sanitize_hex_color( (string) ( $campaign['bg_color'] ?? '' ) ) ?: ( sanitize_hex_color( (string) ( $section['background_color'] ?? '' ) ) ?: '#7E0820' );
 						$target_toggle_id = 'bvc-target-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
 						$media_toggle_id = 'bvc-media-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
 						?>
@@ -405,6 +406,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 								<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][mobile_poster_id]", (int) ( $campaign['mobile_poster_id'] ?? 0 ), 'پوستر موبایل انتخاب نشده', 'medium', '60px', 'image' ); ?>
 							</div>
 							<?php jluxe_hb_field_text( "{$name}[campaigns][{$ci}]", 'link', 'لینک مقصد (اختیاری)', $campaign['link'] ?? '' ); ?>
+							<div class="jluxe-bvc-bg-control"><label>رنگ پس‌زمینهٔ کمپین (اختیاری)<br /><input type="color" value="<?php echo esc_attr( $campaign_bg ); ?>" data-jluxe-bvc-bg-picker aria-label="رنگ پس‌زمینهٔ کمپین" /></label><input type="hidden" name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][bg_color]" value="<?php echo esc_attr( (string) ( $campaign['bg_color'] ?? '' ) ); ?>" data-jluxe-bvc-bg-value /><button type="button" class="button-link" data-jluxe-bvc-bg-reset data-section-color="<?php echo esc_attr( sanitize_hex_color( (string) ( $section['background_color'] ?? '' ) ) ?: '#7E0820' ); ?>">استفاده از رنگ پس‌زمینهٔ بخش</button></div>
 							<p><label>محصولات این کمپین<br />
 							<select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][product_ids][]" multiple="multiple" class="wc-product-search" style="width:100%" data-placeholder="جستجو و انتخاب محصولات…" data-action="woocommerce_json_search_products">
 							<?php foreach ( (array) ( $campaign['product_ids'] ?? array() ) as $product_id ) : $product_obj = function_exists( 'wc_get_product' ) ? wc_get_product( (int) $product_id ) : false; if ( $product_obj ) : ?>
@@ -2401,11 +2403,26 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 }
 
 function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
+	static $printed = false;
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
 	}
+	$section_background = sanitize_hex_color( (string) ( $section['background_color'] ?? '' ) ) ?: '#7E0820';
+	$auto_foreground = static function ( string $hex ): string {
+		$hex = ltrim( $hex, '#' );
+		if ( 3 === strlen( $hex ) ) { $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2]; }
+		$rgb = array_map( static fn( $channel ) => hexdec( $channel ) / 255, str_split( $hex, 2 ) );
+		$linear = array_map( static fn( $channel ) => $channel <= .04045 ? $channel / 12.92 : pow( ( $channel + .055 ) / 1.055, 2.4 ), $rgb );
+		$luminance = .2126 * $linear[0] + .7152 * $linear[1] + .0722 * $linear[2];
+		$light_luminance = .85499; // #ECEDEF
+		$dark_luminance = .01444; // #1F1F1F
+		$light_contrast = ( max( $luminance, $light_luminance ) + .05 ) / ( min( $luminance, $light_luminance ) + .05 );
+		$dark_contrast = ( max( $luminance, $dark_luminance ) + .05 ) / ( min( $luminance, $dark_luminance ) + .05 );
+		return $light_contrast >= $dark_contrast ? '#ECEDEF' : '#1F1F1F';
+	};
 	$campaigns = array();
 	foreach ( (array) ( $section['campaigns'] ?? array() ) as $campaign ) {
+		if ( ! is_array( $campaign ) ) { continue; }
 		$target_type = in_array( $campaign['target_type'] ?? '', array( 'brand', 'category', 'product' ), true ) ? $campaign['target_type'] : 'brand';
 		$term = null;
 		$primary_product = null;
@@ -2420,13 +2437,30 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 			if ( ! $term || is_wp_error( $term ) ) { continue; }
 			$target_name = $term->name;
 		}
+
+		$product_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $campaign['product_ids'] ?? array() ) ) ) ) );
 		$products = array();
 		if ( $primary_product ) { $products[] = $primary_product; }
-		foreach ( array_slice( array_map( 'absint', (array) ( $campaign['product_ids'] ?? array() ) ), 0, $primary_product ? 11 : 12 ) as $product_id ) {
-			if ( $primary_product && $product_id === $primary_product->get_id() ) { continue; }
-			$product = wc_get_product( $product_id );
-			if ( $product && $product->is_visible() ) {
-				$products[] = $product;
+		if ( empty( $product_ids ) && $term && in_array( $target_type, array( 'brand', 'category' ), true ) ) {
+			$automatic_products = wc_get_products( array(
+				'status'       => 'publish',
+				'stock_status' => 'instock',
+				'limit'        => 8,
+				'return'       => 'objects',
+				'tax_query'    => array( array(
+					'taxonomy' => 'category' === $target_type ? 'product_cat' : 'product_brand',
+					'field'    => 'term_id',
+					'terms'    => array( (int) $term->term_id ),
+				) ),
+			) );
+			foreach ( array_slice( (array) $automatic_products, 0, 8 ) as $product ) {
+				if ( $product && $product->is_visible() ) { $products[] = $product; }
+			}
+		} else {
+			foreach ( array_slice( $product_ids, 0, $primary_product ? 11 : 12 ) as $product_id ) {
+				if ( $primary_product && (int) $product_id === $primary_product->get_id() ) { continue; }
+				$product = wc_get_product( $product_id );
+				if ( $product && $product->is_visible() ) { $products[] = $product; }
 			}
 		}
 		$logo = ! empty( $campaign['logo_id'] ) ? wp_get_attachment_image_url( (int) $campaign['logo_id'], 'thumbnail' ) : '';
@@ -2442,10 +2476,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 		$mobile_media_id = (int) ( $campaign['mobile_media_id'] ?? 0 );
 		if ( ! $media_id ) {
 			$fallback_media_id = $term ? (int) get_term_meta( $term->term_id, 'thumbnail_id', true ) : ( $primary_product ? (int) $primary_product->get_image_id() : 0 );
-			if ( $fallback_media_id ) {
-				$media_id = $fallback_media_id;
-				$media_type = 'image';
-			}
+			if ( $fallback_media_id ) { $media_id = $fallback_media_id; $media_type = 'image'; }
 		}
 		$desktop_media_url = '';
 		$mobile_media_url = '';
@@ -2460,338 +2491,148 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 		$poster = ! empty( $campaign['poster_id'] ) ? wp_get_attachment_image_url( (int) $campaign['poster_id'], 'large' ) : '';
 		$mobile_poster = ! empty( $campaign['mobile_poster_id'] ) ? wp_get_attachment_image_url( (int) $campaign['mobile_poster_id'], 'large' ) : '';
 		$target_url = ! empty( $campaign['link'] ) ? $campaign['link'] : ( $primary_product ? $primary_product->get_permalink() : get_term_link( $term ) );
-		if ( is_wp_error( $target_url ) ) {
-			$target_url = '';
-		}
-		$campaigns[] = array( 'term' => $term, 'title' => $target_name, 'target_type' => $target_type, 'products' => $products, 'logo' => $logo, 'media_type' => $media_type, 'media' => $desktop_media_url, 'mobile_media' => $mobile_media_url, 'poster' => $poster, 'mobile_poster' => $mobile_poster, 'link' => $target_url );
+		if ( is_wp_error( $target_url ) ) { $target_url = ''; }
+		$bg_color = sanitize_hex_color( (string) ( $campaign['bg_color'] ?? '' ) ) ?: $section_background;
+		$campaigns[] = array(
+			'title' => $target_name,
+			'target_type' => $target_type,
+			'products' => $products,
+			'logo' => $logo,
+			'media_type' => $media_type,
+			'media' => $desktop_media_url,
+			'mobile_media' => $mobile_media_url,
+			'poster' => $poster,
+			'mobile_poster' => $mobile_poster,
+			'link' => $target_url,
+			'bg_color' => $bg_color,
+			'fg_color' => $auto_foreground( $bg_color ),
+		);
 	}
-	if ( empty( $campaigns ) ) {
-		return;
-	}
+	if ( empty( $campaigns ) ) { return; }
 	$id = 'jluxe-brand-campaign-' . sanitize_key( (string) ( $section['id'] ?? wp_unique_id() ) );
+	$first_campaign = $campaigns[0];
+	$initial_style = '--bvc-background:' . $section_background . ';--bvc-active-bg:' . $first_campaign['bg_color'] . ';--bvc-fg:' . $first_campaign['fg_color'] . ';';
 	?>
-	<section id="<?php echo esc_attr( $id ); ?>" class="jluxe-home-section jluxe-brand-campaigns" dir="rtl" data-jluxe-brand-campaigns style="<?php echo esc_attr( ! empty( $section['background_color'] ) ? '--bvc-background:' . $section['background_color'] . ';' : '' ); ?>" aria-label="<?php echo esc_attr( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?>">
-		<header class="jluxe-bvc-header"><div class="jluxe-bvc-heading"><span class="jluxe-bvc-eyebrow">سفارشی</span><h2><?php echo esc_html( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?></h2></div><?php if ( ! empty( $section['view_all_text'] ) ) : ?><a class="jluxe-bvc-view-all" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>"><?php echo esc_html( $section['view_all_text'] ); ?><span aria-hidden="true">←</span></a><?php endif; ?></header>
-		<div class="jluxe-bvc-tabs" role="tablist" aria-label="برندها">
-			<?php foreach ( $campaigns as $index => $campaign ) : $term_name = $campaign['title']; ?>
-			<button type="button" class="jluxe-bvc-tab<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tab" id="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" aria-selected="<?php echo 0 === $index ? 'true' : 'false'; ?>" aria-controls="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" tabindex="<?php echo 0 === $index ? '0' : '-1'; ?>">
-				<?php if ( $campaign['logo'] ) : ?><img src="<?php echo esc_url( $campaign['logo'] ); ?>" alt="" loading="lazy" /><?php endif; ?><span><?php echo esc_html( $term_name ); ?></span>
-			</button>
-			<?php endforeach; ?>
-		</div>
-		<div class="jluxe-bvc-panels">
-			<?php foreach ( $campaigns as $index => $campaign ) : $term_name = $campaign['title']; ?>
-			<div class="jluxe-bvc-panel<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tabpanel" id="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" aria-labelledby="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" <?php echo 0 === $index ? '' : 'hidden'; ?>>
-				<div class="jluxe-bvc-media" aria-label="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>">
-					<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><video class="jluxe-bvc-video" data-desktop-src="<?php echo esc_url( $campaign['media'] ); ?>"<?php echo $campaign['mobile_media'] ? ' data-mobile-src="' . esc_url( $campaign['mobile_media'] ) . '"' : ''; ?><?php echo $campaign['poster'] ? ' poster="' . esc_url( $campaign['poster'] ) . '" data-desktop-poster="' . esc_url( $campaign['poster'] ) . '"' : ''; ?><?php echo $campaign['mobile_poster'] ? ' data-mobile-poster="' . esc_url( $campaign['mobile_poster'] ) . '"' : ''; ?> muted loop playsinline preload="none" aria-label="<?php echo esc_attr( 'ویدیوی تبلیغاتی ' . $term_name ); ?>"></video>
-					<?php elseif ( 'image' === $campaign['media_type'] && $campaign['media'] ) : ?><picture class="jluxe-bvc-picture"><?php if ( $campaign['mobile_media'] ) : ?><source media="(max-width: 767px)" srcset="<?php echo esc_url( $campaign['mobile_media'] ); ?>" /><?php endif; ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['media'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>" loading="lazy" decoding="async" /></picture>
-					<?php elseif ( $campaign['poster'] ) : ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['poster'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>" loading="lazy" decoding="async" />
-					<?php else : ?><div class="jluxe-bvc-empty-media" aria-hidden="true"><span><?php echo esc_html( $term_name ); ?></span></div><?php endif; ?>
-					<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><button type="button" class="jluxe-bvc-mute" data-jluxe-bvc-mute aria-label="فعال‌کردن صدا" aria-pressed="false"><span aria-hidden="true">♪</span><span data-jluxe-bvc-mute-label>بی‌صدا</span></button><?php endif; ?>
-					<?php if ( $campaign['link'] ) : ?><a class="jluxe-bvc-media-link" href="<?php echo esc_url( $campaign['link'] ); ?>">مشاهدهٔ کمپین <span aria-hidden="true">←</span></a><?php endif; ?>
+	<section id="<?php echo esc_attr( $id ); ?>" class="jluxe-home-section jluxe-brand-campaigns" dir="rtl" data-jluxe-brand-campaigns style="<?php echo esc_attr( $initial_style ); ?>" aria-label="<?php echo esc_attr( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?>">
+		<header class="jluxe-bvc-header">
+			<div class="jluxe-bvc-heading"><span class="jluxe-bvc-eyebrow">سفارشی <span aria-hidden="true">•</span></span><h2><?php echo esc_html( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?></h2></div>
+			<div class="jluxe-bvc-tabs" role="tablist" aria-label="کمپین‌ها">
+				<?php foreach ( $campaigns as $index => $campaign ) : ?>
+				<div class="jluxe-bvc-tab-item">
+					<button type="button" class="jluxe-bvc-tab<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tab" id="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" aria-selected="<?php echo 0 === $index ? 'true' : 'false'; ?>" aria-controls="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" tabindex="<?php echo 0 === $index ? '0' : '-1'; ?>" data-bg-color="<?php echo esc_attr( $campaign['bg_color'] ); ?>" data-fg-color="<?php echo esc_attr( $campaign['fg_color'] ); ?>">
+						<?php if ( $campaign['logo'] ) : ?><img src="<?php echo esc_url( $campaign['logo'] ); ?>" alt="" width="32" height="32" loading="lazy" decoding="async" /><?php endif; ?><span><?php echo esc_html( $campaign['title'] ); ?></span><span class="jluxe-bvc-tab-arrow" aria-hidden="true">‹</span>
+					</button>
+					<?php if ( $campaign['link'] ) : ?><a class="jluxe-bvc-tab-link" href="<?php echo esc_url( $campaign['link'] ); ?>" aria-label="رفتن به صفحهٔ <?php echo esc_attr( $campaign['title'] ); ?>"><span aria-hidden="true">↗</span></a><?php endif; ?>
 				</div>
-				<div class="jluxe-bvc-products-wrap">
-					<div class="jluxe-bvc-products-heading"><strong><?php echo esc_html( 'محصولات ' . $term_name ); ?></strong><?php if ( $campaign['link'] ) : ?><a href="<?php echo esc_url( $campaign['link'] ); ?>"><?php echo 'product' === $campaign['target_type'] ? 'مشاهده محصول' : 'مشاهده همه'; ?> <span aria-hidden="true">←</span></a><?php endif; ?></div>
-					<?php if ( $campaign['products'] ) : ?><div class="jluxe-bvc-products-rail">
-						<ul class="jluxe-bvc-products" data-jluxe-scroller aria-label="<?php echo esc_attr( 'محصولات ' . $term_name ); ?>">
-							<?php foreach ( $campaign['products'] as $product ) :
+				<?php endforeach; ?>
+			</div>
+		</header>
+		<div class="jluxe-bvc-panels">
+			<?php foreach ( $campaigns as $index => $campaign ) : ?>
+			<div class="jluxe-bvc-panel<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tabpanel" id="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" aria-labelledby="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" <?php echo 0 === $index ? '' : 'hidden'; ?>>
+				<div class="jluxe-bvc-products-rail relative">
+					<ul class="jluxe-bvc-products" data-jluxe-scroller aria-label="محصولات و رسانهٔ <?php echo esc_attr( $campaign['title'] ); ?>">
+						<li class="jluxe-bvc-item jluxe-bvc-media-item" data-bvc-media-slide>
+							<?php if ( $campaign['link'] ) : ?><a class="jluxe-bvc-media-content" href="<?php echo esc_url( $campaign['link'] ); ?>" aria-label="مشاهدهٔ کمپین <?php echo esc_attr( $campaign['title'] ); ?>"><?php else : ?><div class="jluxe-bvc-media-content"><?php endif; ?>
+							<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><video class="jluxe-bvc-video" data-desktop-src="<?php echo esc_url( $campaign['media'] ); ?>"<?php echo $campaign['mobile_media'] ? ' data-mobile-src="' . esc_url( $campaign['mobile_media'] ) . '"' : ''; ?><?php echo $campaign['poster'] ? ' data-desktop-poster="' . esc_url( $campaign['poster'] ) . '"' : ''; ?><?php echo $campaign['mobile_poster'] ? ' data-mobile-poster="' . esc_url( $campaign['mobile_poster'] ) . '"' : ''; ?> muted loop playsinline preload="none" aria-label="<?php echo esc_attr( 'ویدیوی تبلیغاتی ' . $campaign['title'] ); ?>"></video>
+							<?php elseif ( 'image' === $campaign['media_type'] && $campaign['media'] ) : ?><picture class="jluxe-bvc-picture"><?php if ( $campaign['mobile_media'] ) : ?><source media="(max-width: 767px)" srcset="<?php echo esc_url( $campaign['mobile_media'] ); ?>" /><?php endif; ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['media'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $campaign['title'] ); ?>" loading="lazy" decoding="async" /></picture>
+							<?php elseif ( $campaign['poster'] ) : ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['poster'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $campaign['title'] ); ?>" loading="lazy" decoding="async" />
+							<?php else : ?><div class="jluxe-bvc-empty-media" aria-hidden="true"><span><?php echo esc_html( $campaign['title'] ); ?></span></div><?php endif; ?>
+							<?php if ( $campaign['link'] ) : ?></a><?php else : ?></div><?php endif; ?>
+							<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><button type="button" class="jluxe-bvc-mute" data-jluxe-bvc-mute aria-label="فعال‌کردن صدا" aria-pressed="false"><span aria-hidden="true">♪</span></button><?php endif; ?>
+						</li>
+						<?php foreach ( $campaign['products'] as $product_index => $product ) :
+							$discount_percent = 0;
+							if ( $product->is_type( 'variable' ) ) {
+								$variation_prices = $product->get_variation_prices( true );
+								foreach ( (array) ( $variation_prices['regular_price'] ?? array() ) as $variation_id => $regular_price ) {
+									$sale_price = (float) ( $variation_prices['sale_price'][ $variation_id ] ?? 0 );
+									$regular_price = (float) $regular_price;
+									if ( $regular_price > 0 && $sale_price > 0 && $sale_price < $regular_price ) {
+										$discount_percent = max( $discount_percent, (int) round( 100 - ( $sale_price / $regular_price * 100 ) ) );
+									}
+								}
+							} else {
 								$regular_price = (float) $product->get_regular_price();
 								$sale_price = (float) $product->get_sale_price();
-								$discount_percent = $product->is_on_sale() && $regular_price > 0 && $sale_price > 0 && $sale_price < $regular_price ? (int) round( 100 - ( $sale_price / $regular_price * 100 ) ) : 0;
-							?>
-							<li><a class="jluxe-bvc-product" href="<?php echo esc_url( $product->get_permalink() ); ?>">
+								if ( $product->is_on_sale() && $regular_price > 0 && $sale_price > 0 && $sale_price < $regular_price ) {
+									$discount_percent = (int) round( 100 - ( $sale_price / $regular_price * 100 ) );
+								}
+							}
+						?>
+						<li class="jluxe-bvc-item jluxe-bvc-product-item" style="--bvc-index:<?php echo esc_attr( (string) ( $product_index + 1 ) ); ?>">
+							<a class="jluxe-bvc-product" data-jluxe-product-link href="<?php echo esc_url( $product->get_permalink() ); ?>">
 								<span class="jluxe-bvc-product-visual"><?php if ( $discount_percent > 0 ) : ?><span class="jluxe-bvc-sale-badge"><?php echo esc_html( jluxe_fa_digits( $discount_percent ) ); ?>٪</span><?php endif; ?><span class="jluxe-bvc-product-image"><?php echo wp_kses_post( $product->get_image( 'woocommerce_thumbnail', array( 'loading' => 'lazy', 'decoding' => 'async' ) ) ); ?></span></span>
 								<span class="jluxe-bvc-product-name"><?php echo esc_html( $product->get_name() ); ?></span>
-								<span class="jluxe-bvc-product-meta"><?php if ( $product->get_average_rating() ) : ?><span class="jluxe-bvc-rating" aria-label="<?php echo esc_attr( 'امتیاز ' . $product->get_average_rating() . ' از ۵' ); ?>"><span aria-hidden="true">★</span> <?php echo esc_html( number_format_i18n( (float) $product->get_average_rating(), 1 ) ); ?></span><?php endif; ?><span class="jluxe-bvc-price"><?php echo wp_kses_post( $product->get_price_html() ); ?></span></span>
-							</a></li>
-							<?php endforeach; ?>
-						</ul>
-						<?php jluxe_scroll_arrows(); ?>
-					</div><?php else : ?><p class="jluxe-bvc-no-products">محصولی برای این کمپین انتخاب نشده است.</p><?php endif; ?>
+								<?php if ( $product->get_average_rating() ) : ?><span class="jluxe-bvc-rating" aria-label="<?php echo esc_attr( 'امتیاز ' . $product->get_average_rating() . ' از ۵' ); ?>"><span aria-hidden="true">★</span> <?php echo esc_html( number_format_i18n( (float) $product->get_average_rating(), 1 ) ); ?></span><?php endif; ?>
+								<span class="jluxe-bvc-price"><?php echo wp_kses_post( $product->get_price_html() ); ?><?php if ( function_exists( 'jluxe_toman_display_icon_svg' ) ) : ?><span class="jluxe-bvc-toman" aria-label="تومان"><?php echo jluxe_toman_display_icon_svg( '', '16px', '13px' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><?php endif; ?></span>
+							</a>
+						</li>
+						<?php endforeach; ?>
+						<?php if ( $campaign['link'] ) : ?><li class="jluxe-bvc-item jluxe-bvc-see-all-item" style="--bvc-index:<?php echo esc_attr( (string) ( count( $campaign['products'] ) + 1 ) ); ?>"><a class="jluxe-bvc-see-all" href="<?php echo esc_url( $campaign['link'] ); ?>"><span class="jluxe-bvc-see-all-icon" aria-hidden="true">‹</span><span><?php echo esc_html( $section['view_all_text'] ?? 'مشاهده همه' ); ?></span></a></li><?php endif; ?>
+					</ul>
+					<?php jluxe_scroll_arrows(); ?>
 				</div>
 			</div>
 			<?php endforeach; ?>
 		</div>
 	</section>
+	<?php if ( ! $printed ) : $printed = true; ?>
 	<style>
-	/* Reference-led layout: compact title/chip rail, one campaign stage, and a clean horizontal WooCommerce shelf. */
-	.jluxe-brand-campaigns {
-		--bvc-primary: #ed1944;
-		--bvc-muted: #81858b;
-		--bvc-foreground: #ECEDEF;
-		box-sizing: border-box;
-		display: flex;
-		flex-direction: column;
-		width: min(calc(100% - 32px), 1320px);
-		min-width: 0;
-		margin: 20px auto 24px;
-		padding-block: 0 10px;
-		padding-inline: 8px;
-		border: 0;
-		border-radius: 0;
-		background: var(--bvc-background, #7e0820);
-		box-shadow: none;
-		color: var(--bvc-foreground);
-		font-family: inherit;
-		overflow: hidden;
-	}
-	@media (min-width: 1024px) {
-		.jluxe-brand-campaigns {
-			margin-top: 0;
-			padding-block-end: 12px;
-			padding-inline: 12px 0;
-			border: 1px solid #dedfe0;
-			border-radius: 16px;
-			box-shadow: 0 2px 8px -2px #0000001f, 0 1px 2px -1px #0000001f;
-		}
-	}
-
-	.jluxe-bvc-header,
-	.jluxe-bvc-heading,
-	.jluxe-bvc-view-all,
-	.jluxe-bvc-products-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-	.jluxe-bvc-heading { justify-content: flex-start; }
-	.jluxe-bvc-header h2 {
-		margin: 0;
-		color: var(--bvc-foreground);
-		font-size: 18px;
-		line-height: 1.6;
-		font-weight: 800;
-		letter-spacing: -.02em;
-	}
-	.jluxe-bvc-eyebrow {
-		flex: 0 0 auto;
-		padding: 3px 8px;
-		border-radius: 4px;
-		background: #fff0f3;
-		color: var(--bvc-primary);
-		font-size: 11px;
-		font-weight: 700;
-	}
-	.jluxe-bvc-view-all,
-	.jluxe-bvc-products-heading a {
-		flex: 0 0 auto;
-		color: var(--bvc-primary);
-		text-decoration: none;
-		font-size: 12px;
-		font-weight: 700;
-		white-space: nowrap;
-	}
-	.jluxe-bvc-tabs {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		max-width: 100%;
-		margin: 12px 0 16px;
-		padding: 2px 0 6px;
-		overflow-x: auto;
-		overscroll-behavior-inline: contain;
-		scrollbar-width: none;
-	}
-	.jluxe-bvc-tabs::-webkit-scrollbar { display: none; }
-	.jluxe-bvc-tab {
-		box-sizing: border-box;
-		display: inline-flex;
-		flex: 0 0 auto;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		min-height: 42px;
-		padding: 5px 12px;
-		border: 1px solid #e5e5e8;
-		border-radius: 8px;
-		background: #fff;
-		color: #424247;
-		cursor: pointer;
-		font: inherit;
-		font-size: 12px;
-		transition: border-color .18s ease, color .18s ease, background-color .18s ease;
-	}
-	.jluxe-bvc-tab img { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; }
-	.jluxe-bvc-tab.is-active {
-		border-color: var(--bvc-primary);
-		background: #fff7f8;
-		color: var(--bvc-primary);
-		font-weight: 700;
-	}
-	.jluxe-bvc-panels { min-width: 0; }
-	.jluxe-bvc-panel {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
-		align-items: stretch;
-		gap: 18px;
-	}
-	.jluxe-bvc-panel[hidden] { display: none !important; }
-	.jluxe-bvc-media {
-		position: relative;
-		align-self: start;
-		min-width: 0;
-		overflow: hidden;
-		aspect-ratio: 16 / 9;
-		border-radius: 12px;
-		background: #f2f2f4;
-		isolation: isolate;
-	}
-	.jluxe-bvc-picture { display: block; width: 100%; height: 100%; }
-	.jluxe-bvc-video,
-	.jluxe-bvc-poster {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-	.jluxe-bvc-empty-media {
-		display: grid;
-		place-items: center;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(135deg, #fff1f3, #f3f3f5);
-		color: var(--bvc-primary);
-		font-size: 22px;
-		font-weight: 800;
-	}
-	.jluxe-bvc-mute {
-		position: absolute;
-		z-index: 3;
-		bottom: 10px;
-		left: 10px;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 7px 10px;
-		border: 0;
-		border-radius: 6px;
-		background: rgba(20, 20, 24, .72);
-		color: #fff;
-		cursor: pointer;
-		font: inherit;
-		font-size: 11px;
-	}
-	.jluxe-bvc-media-link {
-		position: absolute;
-		z-index: 2;
-		top: 10px;
-		left: 10px;
-		padding: 6px 9px;
-		border-radius: 6px;
-		background: rgba(255, 255, 255, .94);
-		color: #333;
-		text-decoration: none;
-		font-size: 11px;
-		font-weight: 700;
-	}
-	.jluxe-bvc-products-wrap { min-width: 0; align-self: stretch; }
-	.jluxe-bvc-products-heading {
-		min-height: 30px;
-		margin: 0 0 8px;
-		padding: 0 0 7px;
-		border-bottom: 1px solid #ededf0;
-	}
-	.jluxe-bvc-products-heading strong { font-size: 13px; font-weight: 700; }
-	.jluxe-bvc-products-rail { position: relative; min-width: 0; }
-	.jluxe-bvc-products {
-		display: flex;
-		align-items: stretch;
-		gap: 0;
-		width: 100%;
-		max-width: 100%;
-		min-width: 0;
-		margin: 0;
-		padding: 0 0 6px;
-		list-style: none;
-		overflow-x: auto;
-		overscroll-behavior-inline: contain;
-		scrollbar-width: none;
-		-webkit-overflow-scrolling: touch;
-	}
-	.jluxe-bvc-products::-webkit-scrollbar { display: none; }
-	.jluxe-bvc-products > li {
-		box-sizing: border-box;
-		flex: 0 0 156px;
-		min-width: 0;
-		border-inline-start: 1px solid #ededf0;
-	}
-	.jluxe-bvc-products > li:first-child { border-inline-start: 0; }
-	.jluxe-bvc-product {
-		box-sizing: border-box;
-		display: flex;
-		height: 100%;
-		min-height: 236px;
-		flex-direction: column;
-		gap: 7px;
-		padding: 6px 10px 8px;
-		color: inherit;
-		text-decoration: none;
-	}
-	.jluxe-bvc-product-visual { position: relative; display: block; }
-	.jluxe-bvc-product-image {
-		display: grid;
-		place-items: center;
-		width: 100%;
-		height: 112px;
-		margin-bottom: 4px;
-	}
-	.jluxe-bvc-product-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
-	.jluxe-bvc-sale-badge {
-		position: absolute;
-		z-index: 1;
-		top: 1px;
-		 right: 0;
-		min-width: 34px;
-		padding: 3px 5px;
-		border-radius: 4px;
-		background: var(--bvc-primary);
-		color: #fff;
-		text-align: center;
-		font-size: 10px;
-		font-weight: 700;
-		line-height: 1.3;
-	}
-	.jluxe-bvc-product-name {
-		display: -webkit-box;
-		min-height: 36px;
-		max-height: 36px;
-		overflow: hidden;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		font-size: 11px;
-		line-height: 1.65;
-		font-weight: 500;
-	}
-	.jluxe-bvc-product-meta { display: flex; flex: 1; flex-direction: column; justify-content: flex-end; gap: 5px; }
-	.jluxe-bvc-rating { color: var(--bvc-foreground); font-size: 10px; direction: ltr; text-align: right; }
-	.jluxe-bvc-rating span { color: #f0a500; }
-	.jluxe-bvc-price { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; gap: 3px 6px; font-size: 12px; font-weight: 700; }
-	.jluxe-bvc-price del { color: #a4a5aa; font-size: 10px; font-weight: 400; }
-	.jluxe-bvc-price ins { color: var(--bvc-foreground); text-decoration: none; }
-	.jluxe-bvc-no-products { margin: 14px 0; color: var(--bvc-muted); font-size: 12px; }
-	.jluxe-bvc-panel.is-entering .jluxe-bvc-media { animation: jluxe-bvc-reveal .45s cubic-bezier(.2,.75,.2,1) both; }
-	@keyframes jluxe-bvc-reveal {
-		from { clip-path: inset(0 0 0 100% round 12px); transform: scale(1.015); }
-		to { clip-path: inset(0 0 0 0 round 12px); transform: scale(1); }
-	}
-	@media (max-width: 767px) {
-		.jluxe-brand-campaigns { width: 100%; margin: 20px 0 24px; padding: 0 8px 10px; border: 0; border-radius: 0; box-shadow: none; }
-		.jluxe-bvc-header h2 { font-size: 16px; }
-		.jluxe-bvc-tab { min-height: 38px; padding: 4px 10px; }
-		.jluxe-bvc-tab img { width: 24px; height: 24px; flex-basis: 24px; }
-		.jluxe-bvc-panel { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-		.jluxe-bvc-media { width: 100%; aspect-ratio: 16 / 9; }
-		.jluxe-bvc-products > li { flex-basis: 140px; }
-		.jluxe-bvc-product { min-height: 222px; padding-inline: 9px; }
-		.jluxe-bvc-product-image { height: 104px; }
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.jluxe-bvc-tab { transition: none; }
-		.jluxe-bvc-panel.is-entering .jluxe-bvc-media { animation: none !important; }
-	}
+	.jluxe-brand-campaigns{--bvc-primary:hsl(var(--primary));box-sizing:border-box;display:flex;flex-direction:column;width:min(calc(100% - 32px),1320px);min-width:0;margin:20px auto 24px;padding:0 0 24px;border:1px solid hsl(var(--border));border-radius:16px;background-color:var(--bvc-active-bg,var(--bvc-background,#7E0820));color:var(--bvc-fg,#ECEDEF);box-shadow:0 2px 8px -2px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);overflow:hidden;transition:background-color .5s cubic-bezier(.61,1,.88,1),color .5s cubic-bezier(.61,1,.88,1)}
+	.jluxe-bvc-header{display:flex;align-items:center;gap:16px;min-width:0;padding:12px 16px 0}
+	.jluxe-bvc-heading{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
+	.jluxe-bvc-header h2{margin:0;overflow:hidden;color:var(--bvc-fg,#ECEDEF);font-size:14px;font-weight:700;line-height:1.5;text-overflow:ellipsis;white-space:nowrap}
+	.jluxe-bvc-eyebrow{flex:0 0 auto;color:var(--bvc-fg,#ECEDEF);font-size:11px;font-weight:700;white-space:nowrap}
+	.jluxe-bvc-tabs{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:none}
+	.jluxe-bvc-tabs::-webkit-scrollbar{display:none}
+	.jluxe-bvc-tab-item{display:flex;flex:0 0 auto;align-items:center;gap:4px}
+	.jluxe-bvc-tab{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;height:40px;padding:4px 12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:rgba(255,255,255,.14);color:var(--bvc-fg,#ECEDEF);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;transition:background-color .2s ease,color .2s ease,border-color .2s ease}
+	.jluxe-bvc-tab img{display:block;width:32px;height:32px;flex:0 0 32px;border-radius:50%;object-fit:contain;background:#fff}
+	.jluxe-bvc-tab.is-active{border-color:#fff;background:#fff;color:#1F1F1F;font-weight:700}
+	.jluxe-bvc-tab-arrow{display:none;font-size:18px;line-height:1}
+	.jluxe-bvc-tab.is-active .jluxe-bvc-tab-arrow{display:inline-block}
+	.jluxe-bvc-tab-link{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(255,255,255,.35);border-radius:50%;color:var(--bvc-fg,#ECEDEF);text-decoration:none;font-size:13px}
+	.jluxe-bvc-tab-item:has(.jluxe-bvc-tab.is-active) .jluxe-bvc-tab-link{border-color:#fff;background:#fff;color:#1F1F1F}
+	.jluxe-bvc-panels,.jluxe-bvc-panel{min-width:0}
+	.jluxe-bvc-panel[hidden]{display:none!important}
+	.jluxe-bvc-products-rail{position:relative;min-width:0;margin-top:12px}
+	.jluxe-bvc-products{display:flex;align-items:stretch;gap:12px;width:100%;max-width:100%;min-width:0;margin:0;padding:0 0 4px;overflow-x:auto;overscroll-behavior-inline:contain;list-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+	.jluxe-bvc-products::-webkit-scrollbar{display:none}
+	.jluxe-bvc-item{display:flex;flex:0 0 auto;align-items:stretch;height:316px;min-width:0;scroll-snap-align:start}
+	.jluxe-bvc-item:first-child{margin-inline-start:24px}
+	.jluxe-bvc-item:last-child{margin-inline-end:24px}
+	.jluxe-bvc-media-item{position:relative;width:clamp(280px,28vw,340px);overflow:hidden;border-radius:12px;background:#eee}
+	.jluxe-bvc-media-content{display:block;width:100%;height:100%;overflow:hidden;border-radius:12px;color:inherit;text-decoration:none}
+	.jluxe-bvc-picture,.jluxe-bvc-video,.jluxe-bvc-poster,.jluxe-bvc-empty-media{display:block;width:100%;height:100%}
+	.jluxe-bvc-video,.jluxe-bvc-poster{object-fit:cover}
+	.jluxe-bvc-empty-media{display:grid;place-items:center;background:linear-gradient(135deg,#fff1f3,#f3f3f5);color:var(--bvc-primary);font-size:22px;font-weight:800}
+	.jluxe-bvc-mute{position:absolute;z-index:2;inset-inline-start:12px;bottom:12px;display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(255,255,255,.72);border-radius:50%;background:rgba(31,31,31,.72);color:#fff;cursor:pointer;font-size:18px;backdrop-filter:blur(8px)}
+	.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:168px}
+	.jluxe-bvc-product,.jluxe-bvc-see-all{box-sizing:border-box;display:flex;width:100%;height:100%;flex-direction:column;align-items:stretch;gap:8px;padding:12px;border:1px solid rgba(31,31,31,.06);border-radius:12px;background:#fff;color:#1F1F1F;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+	.jluxe-bvc-product-visual{position:relative;display:block;flex:0 0 auto}
+	.jluxe-bvc-product-image{display:grid;place-items:center;width:100%;aspect-ratio:1/1;overflow:hidden;border-radius:8px;background:#fff}
+	.jluxe-bvc-product-image img{display:block;width:100%;height:100%;object-fit:contain}
+	.jluxe-bvc-sale-badge{position:absolute;z-index:1;top:6px;inset-inline-end:6px;padding:3px 7px;border-radius:999px;background:var(--bvc-primary);color:#fff;font-size:10px;font-weight:700;line-height:1.4}
+	.jluxe-bvc-product-name{display:-webkit-box;min-height:36px;max-height:36px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:#1F1F1F;font-size:11px;line-height:1.65;font-weight:500}
+	.jluxe-bvc-rating{color:#5c5c5c;font-size:10px;direction:ltr;text-align:right}
+	.jluxe-bvc-rating span{color:#f0a500}
+	.jluxe-bvc-price{display:flex;flex:1;align-items:flex-end;justify-content:space-between;gap:3px;color:#1F1F1F;font-size:12px;font-weight:700}
+	.jluxe-bvc-price del{color:#848484;font-size:10px;font-weight:400}
+	.jluxe-bvc-price ins{color:#1F1F1F;text-decoration:none}
+	.jluxe-bvc-price .woocommerce-Price-currencySymbol{font-size:10px}
+	.jluxe-bvc-toman{display:inline-flex;flex:0 0 auto;align-items:center;color:#5c5c5c}
+	.jluxe-bvc-see-all{align-items:center;justify-content:center;gap:14px;font-size:13px;font-weight:700}
+	.jluxe-bvc-see-all-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#f2f3f5;color:var(--bvc-primary);font-size:28px;line-height:1}
+	.jluxe-bvc-products-rail>[data-jluxe-scroll-prev],.jluxe-bvc-products-rail>[data-jluxe-scroll-next]{border-color:#dedfe0;background:rgba(255,255,255,.92);color:#1F1F1F}
+	.jluxe-bvc-panel.is-entering .jluxe-bvc-media-content{animation:jluxe-bvc-media-in 380ms cubic-bezier(.61,1,.88,1) both}
+	.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{animation:jluxe-bvc-card-in 380ms cubic-bezier(.61,1,.88,1) both;animation-delay:calc(var(--bvc-index,0)*18ms)}
+	@keyframes jluxe-bvc-media-in{from{opacity:0;transform:scale(.975)}to{opacity:1;transform:scale(1)}}
+	@keyframes jluxe-bvc-card-in{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+	@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px 0 24px;padding:0 0 16px;border:0;border-radius:0;box-shadow:none}.jluxe-bvc-header{align-items:center;flex-direction:row;gap:8px;padding:12px 12px 0}.jluxe-bvc-heading{flex:0 0 auto;justify-content:flex-start}.jluxe-bvc-header h2{display:none}.jluxe-bvc-tabs{width:auto;gap:6px}.jluxe-bvc-tab{height:40px;padding:4px 10px;font-size:11px}.jluxe-bvc-products-rail{margin-top:8px}.jluxe-bvc-item{height:292px}.jluxe-bvc-item:first-child{margin-inline-start:16px}.jluxe-bvc-item:last-child{margin-inline-end:16px}.jluxe-bvc-media-item{width:clamp(220px,68vw,260px)}.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:148px}.jluxe-bvc-product,.jluxe-bvc-see-all{padding:10px}.jluxe-bvc-products{gap:12px}}
+	@media(prefers-reduced-motion:reduce){.jluxe-brand-campaigns,.jluxe-bvc-tab,.jluxe-bvc-panel.is-entering .jluxe-bvc-media-content,.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{scroll-behavior:auto!important;transition:none!important;animation:none!important;transform:none!important}}
 	</style>
-	<?php
+	<?php endif;
 }
 
 function jluxe_render_homepage_brand_marquee( array $section ): void {

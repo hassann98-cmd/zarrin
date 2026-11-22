@@ -468,6 +468,8 @@ class WC_Product {
  function get_children(){return $this->children;}
  function get_available_variations(){$this->variationCalls++;return ['test-variation'];}
  function get_image_id(){return $this->image_id;}
+ function get_image($size='woocommerce_thumbnail',$attr=array()){return '<img src="'.esc_url(home_url('/product-image-'.$this->id.'.jpg')).'" width="300" height="300" alt="" />';}
+ function get_variation_prices($for_display=false){return $GLOBALS['variation_prices'][$this->id]??array('regular_price'=>array(),'sale_price'=>array(),'price'=>array());}
  function get_name(){return 'Public product';}
  function get_attributes(){return $GLOBALS['product_attributes'][$this->id]??[];}
  function get_price_html(){return $GLOBALS['product_price_html'][$this->id]??'100';}
