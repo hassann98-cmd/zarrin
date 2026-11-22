@@ -46,6 +46,19 @@ test("brand video campaign section is registered, editable, sanitized, and rende
   assert.match(sanitize, /array_slice\( \(array\) \( \$posted\['campaigns'\].*0, 6/s);
 });
 
+test("brand campaign styling follows the supplied Digikala section tokens and desktop/mobile spacing", () => {
+  assert.match(homepage, /--bvc-foreground:\s*#ECEDEF/i);
+  assert.match(homepage, /background:\s*var\(--bvc-background, #7e0820\)/i);
+  assert.match(homepage, /color:\s*var\(--bvc-foreground\)/i);
+  assert.match(homepage, /padding-inline:\s*12px 0/);
+  assert.match(homepage, /padding-block-end:\s*12px/);
+  assert.match(homepage, /border:\s*1px solid #dedfe0/);
+  assert.match(homepage, /border-radius:\s*16px/);
+  assert.match(homepage, /box-shadow:\s*0 2px 8px -2px #0000001f, 0 1px 2px -1px #0000001f/);
+  assert.match(homepage, /@media \(min-width: 1024px\)[\s\S]*?\.jluxe-brand-campaigns\s*\{[\s\S]*?margin-top:\s*0/);
+  assert.match(homepage, /\.jluxe-brand-campaigns \{ width: 100%; margin: 20px 0 24px; padding: 0 8px 10px/);
+});
+
 test("brand campaign tabs switch panels and pause inactive video; keyboard and mute control work", () => {
   const dom = new JSDOM(`<!doctype html><html><body>
     <section data-jluxe-brand-campaigns>
