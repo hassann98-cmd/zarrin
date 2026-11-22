@@ -38,6 +38,10 @@ test("brand video campaign section is registered, editable, sanitized, and rende
   assert.match(adminSource, /انتخاب تصویر یا GIF/);
   assert.match(homepage, /jluxe-bvc-empty-media/);
   assert.match(homepage, /data-jluxe-bvc-mute/);
+  assert.match(homepage, /class="jluxe-bvc-products" data-jluxe-scroller/);
+  assert.match(homepage, /jluxe-bvc-sale-badge/);
+  assert.match(homepage, /border-inline-start: 1px solid #ededf0/);
+  assert.match(homepage, /jluxe-bvc-product-meta/);
   assert.match(sanitize, /case 'brand_video_campaigns'/);
   assert.match(sanitize, /array_slice\( \(array\) \( \$posted\['campaigns'\].*0, 6/s);
 });
