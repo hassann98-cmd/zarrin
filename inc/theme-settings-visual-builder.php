@@ -215,7 +215,7 @@ function jluxe_visual_builder_section_types(): array {
 
 /** گروه‌بندیِ سادهٔ کتابخانه بر اساس انواع واقعیِ صفحه‌سازِ موجود. */
 function jluxe_visual_builder_section_group( string $type ): string {
-	if ( in_array( $type, array( 'hero', 'stories', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'banner_collage', 'brand_marquee' ), true ) ) {
+	if ( in_array( $type, array( 'hero', 'stories', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'banner_collage', 'brand_marquee', 'brand_video_campaigns' ), true ) ) {
 		return 'بنر و رسانه';
 	}
 	if ( in_array( $type, array( 'product_grid', 'category_grid', 'category_showcase', 'brick_products', 'special_products', 'recommended_panels', 'trust', 'blog' ), true ) ) {
@@ -232,6 +232,7 @@ function jluxe_visual_builder_section_icon( string $type ): string {
 		'category_grid'      => 'category',
 		'category_showcase'  => 'images-alt2',
 		'brand_marquee'      => 'slides',
+		'brand_video_campaigns' => 'video-alt3',
 		'banner'             => 'cover-image',
 		'banner_two'         => 'columns',
 		'banner_three'       => 'columns',

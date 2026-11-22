@@ -21,6 +21,7 @@ function jluxe_homepage_section_types(): array {
 		'category_grid'       => 'دسته‌بندی‌های محصول',
 		'category_showcase'  => 'دسته‌بندی‌های ویژه (جدید)',
 		'brand_marquee'      => 'نوار متحرک برندها',
+		'brand_video_campaigns' => 'کمپین ویدیویی برندها',
 		'banner'              => 'بنر تک',
 		'banner_two'          => 'دو بنر',
 		'banner_three'        => 'سه بنر',
@@ -365,6 +366,53 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					<script type="text/template" class="jluxe-repeater-template"><div class="jluxe-repeater-item"><div class="jluxe-repeater-item-head"><span class="jluxe-repeater-handle dashicons dashicons-menu"></span><span>برند</span><a href="#" class="jluxe-repeater-remove">✕</a></div><div><label>تصویر برند</label><?php jluxe_render_media_field( "{$name}[items][0][image_id]", 0, 'لوگو انتخاب نشده' ); ?></div><?php jluxe_hb_field_text( "{$name}[items][0]", 'title', 'نام برند', '' ); ?><?php jluxe_hb_field_text( "{$name}[items][0]", 'link', 'لینک برند', '' ); ?></div></script>
 					<button type="button" class="button jluxe-repeater-add">+ افزودن برند</button></div>
 					<?php
+					break;
+
+				case 'brand_video_campaigns':
+					jluxe_hb_field_text( $name, 'title', 'عنوان بخش', $section['title'] ?? 'تبلیغات ویدیویی برندها' );
+					jluxe_hb_field_text( $name, 'view_all_text', 'متن لینک مشاهده همه', $section['view_all_text'] ?? 'مشاهده همه' );
+					jluxe_hb_field_color( $name, 'background_color', 'رنگ پس‌زمینهٔ بخش', (string) ( $section['background_color'] ?? '#FFFFFF' ) );
+					$brand_options = jluxe_hb_brand_options();
+					$category_options = jluxe_hb_category_options();
+					echo '<p class="description">هر کمپین می‌تواند برای یک برند یا دسته‌بندی باشد. رسانهٔ تصویر می‌تواند عکس معمولی یا GIF باشد؛ برای ویدیو، پوستر اختیاری است. فایل موبایل جداگانه اختیاری است تا در صفحه‌های کوچک نسخهٔ سبک‌تر نمایش داده شود.</p>';
+					for ( $ci = 0; $ci < 6; $ci++ ) :
+						$campaign = $section['campaigns'][ $ci ] ?? array();
+						$target_type = in_array( $campaign['target_type'] ?? '', array( 'brand', 'category', 'product' ), true ) ? $campaign['target_type'] : 'brand';
+						$media_type = 'image' === ( $campaign['media_type'] ?? '' ) ? 'image' : 'video';
+						$media_id = (int) ( $campaign['media_id'] ?? ( $campaign['video_id'] ?? 0 ) );
+						$target_toggle_id = 'bvc-target-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
+						$media_toggle_id = 'bvc-media-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
+						?>
+						<fieldset class="jluxe-hero-admin jluxe-brand-video-campaign-admin">
+							<legend><strong>کمپین <?php echo esc_html( jluxe_fa_digits( $ci + 1 ) ); ?></strong></legend>
+							<p><label>نوع تبلیغ<br /><select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][target_type]" data-jluxe-bvc-target-select="<?php echo esc_attr( $target_toggle_id ); ?>"><option value="brand" <?php selected( $target_type, 'brand' ); ?>>برند</option><option value="category" <?php selected( $target_type, 'category' ); ?>>دسته‌بندی</option><option value="product" <?php selected( $target_type, 'product' ); ?>>محصول</option></select></label></p>
+							<div data-jluxe-bvc-target="brand" data-jluxe-bvc-for="<?php echo esc_attr( $target_toggle_id ); ?>"><?php jluxe_hb_field_select( "{$name}[campaigns][{$ci}]", 'brand_id', 'انتخاب برند', (string) ( $campaign['brand_id'] ?? ( 'brand' === $target_type ? ( $campaign['term_id'] ?? 0 ) : 0 ) ), $brand_options ); ?></div>
+							<div data-jluxe-bvc-target="category" data-jluxe-bvc-for="<?php echo esc_attr( $target_toggle_id ); ?>"><?php jluxe_hb_field_select( "{$name}[campaigns][{$ci}]", 'category_id', 'انتخاب دسته‌بندی', (string) ( $campaign['category_id'] ?? ( 'category' === $target_type ? ( $campaign['term_id'] ?? 0 ) : 0 ) ), $category_options ); ?></div>
+							<div data-jluxe-bvc-target="product" data-jluxe-bvc-for="<?php echo esc_attr( $target_toggle_id ); ?>"><p><label>محصول اصلی کمپین<br /><select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][product_id]" class="wc-product-search" style="width:100%" data-placeholder="جستجوی محصول…" data-action="woocommerce_json_search_products"><?php $primary_product = function_exists( 'wc_get_product' ) ? wc_get_product( (int) ( $campaign['product_id'] ?? 0 ) ) : false; if ( $primary_product ) : ?><option value="<?php echo esc_attr( (string) $primary_product->get_id() ); ?>" selected><?php echo esc_html( $primary_product->get_name() ); ?></option><?php endif; ?></select></label></p></div>
+							<label>لوگوی کمپین (اختیاری)</label>
+							<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][logo_id]", (int) ( $campaign['logo_id'] ?? 0 ), 'لوگو انتخاب نشده', 'thumbnail', '48px', 'image' ); ?>
+							<p><label>نوع رسانه<br /><select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][media_type]" data-jluxe-bvc-media-select="<?php echo esc_attr( $media_toggle_id ); ?>"><option value="video" <?php selected( $media_type, 'video' ); ?>>ویدیو</option><option value="image" <?php selected( $media_type, 'image' ); ?>>عکس یا GIF</option></select></label></p>
+							<div data-jluxe-bvc-media-for="<?php echo esc_attr( $media_toggle_id ); ?>">
+								<label>رسانهٔ دسکتاپ</label>
+								<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][media_id]", $media_id, 'رسانه‌ای انتخاب نشده', 'full', '90px', $media_type ); ?>
+								<label>نسخهٔ موبایل (اختیاری)</label>
+								<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][mobile_media_id]", (int) ( $campaign['mobile_media_id'] ?? 0 ), 'از رسانهٔ دسکتاپ استفاده می‌شود', 'full', '70px', $media_type ); ?>
+							</div>
+							<div data-jluxe-bvc-media-poster="<?php echo esc_attr( $media_toggle_id ); ?>" <?php echo 'video' === $media_type ? '' : 'hidden'; ?>>
+								<label>پوستر دسکتاپ ویدیو (اختیاری)</label>
+								<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][poster_id]", (int) ( $campaign['poster_id'] ?? 0 ), 'پوستری انتخاب نشده', 'medium', '60px', 'image' ); ?>
+								<label>پوستر موبایل ویدیو (اختیاری)</label>
+								<?php jluxe_render_media_field( "{$name}[campaigns][{$ci}][mobile_poster_id]", (int) ( $campaign['mobile_poster_id'] ?? 0 ), 'پوستر موبایل انتخاب نشده', 'medium', '60px', 'image' ); ?>
+							</div>
+							<?php jluxe_hb_field_text( "{$name}[campaigns][{$ci}]", 'link', 'لینک مقصد (اختیاری)', $campaign['link'] ?? '' ); ?>
+							<p><label>محصولات این کمپین<br />
+							<select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][product_ids][]" multiple="multiple" class="wc-product-search" style="width:100%" data-placeholder="جستجو و انتخاب محصولات…" data-action="woocommerce_json_search_products">
+							<?php foreach ( (array) ( $campaign['product_ids'] ?? array() ) as $product_id ) : $product_obj = function_exists( 'wc_get_product' ) ? wc_get_product( (int) $product_id ) : false; if ( $product_obj ) : ?>
+							<option value="<?php echo esc_attr( (string) $product_id ); ?>" selected><?php echo esc_html( $product_obj->get_name() ); ?></option>
+							<?php endif; endforeach; ?>
+							</select></label></p>
+						</fieldset>
+					<?php endfor;
 					break;
 
 				case 'blog':
@@ -1285,6 +1333,10 @@ function jluxe_enqueue_homepage_assets(): void {
 				$needs_homepage_script = true;
 				break;
 
+			case 'brand_video_campaigns':
+				$needs_homepage_script = ! empty( $section['campaigns'] );
+				break;
+
 			case 'category_grid':
 			case 'category_showcase':
 				$needs_homepage_script = ! empty( $section['items'] );
@@ -1465,6 +1517,10 @@ function jluxe_render_homepage_section_content( array $section ): void {
 
 		case 'brand_marquee':
 			jluxe_render_homepage_brand_marquee( $section );
+			break;
+
+		case 'brand_video_campaigns':
+			jluxe_render_homepage_brand_video_campaigns( $section );
 			break;
 
 		case 'trust':
@@ -2340,6 +2396,113 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	.jluxe-category-grid-ref-arrow{display:flex;position:absolute;top:50%;z-index:10;width:38px;height:76px;align-items:center;justify-content:center;transform:translateY(-50%);padding:0 8px;border:0;border-radius:12px;background:rgba(255,255,255,.88);color:hsl(var(--foreground));box-shadow:0 5px 18px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:background .2s ease,opacity .2s ease}.jluxe-category-grid-ref-arrow:hover{background:#fff}.jluxe-category-grid-ref-arrow.is-prev{left:-24px}.jluxe-category-grid-ref-arrow.is-next{right:-24px}.jluxe-category-grid-ref-arrow .is-rotated{transform:rotate(180deg)}
 	@media(max-width:767px){.jluxe-category-grid-ref{max-width:none;margin:20px 0;width:100%;border-left:0;border-right:0;border-radius:0;padding-top:32px}.jluxe-category-grid-ref-head{padding:0 12px}.jluxe-category-grid-ref-heading{gap:12px}.jluxe-category-grid-ref-title-wrap h2{font-size:18px;margin-left:0;letter-spacing:-.04em}.jluxe-category-grid-ref-all{font-size:11px}.jluxe-category-grid-ref-scroll{gap:8px;padding:32px 40px}.jluxe-category-grid-ref-item{flex-basis:120px;width:120px}.jluxe-category-grid-ref-card{width:120px;height:116px;gap:10px;border-radius:var(--jluxe-cat-card-radius,20px)}.jluxe-category-grid-ref-image{width:min(var(--jluxe-cat-image-size),60px);height:min(var(--jluxe-cat-image-size),60px);flex-basis:min(var(--jluxe-cat-image-size),60px)}.jluxe-category-grid-ref-name{font-size:12px;width:calc(100% - 10px)}.jluxe-category-grid-ref-arrow{top:50%;width:34px;height:48px;border-radius:12px}.jluxe-category-grid-ref-arrow.is-prev{left:4px}.jluxe-category-grid-ref-arrow.is-next{right:4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll{display:flex!important;flex-wrap:wrap;justify-content:var(--jluxe-cat-cards-justify);gap:8px;overflow:visible;padding:12px 6px 20px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-item,.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{flex:0 0 var(--jluxe-cat-mobile-card-width);width:var(--jluxe-cat-mobile-card-width);min-width:0}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-card{width:100%;height:auto;min-height:100px;gap:8px;padding:8px 4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-image{width:var(--jluxe-cat-mobile-image-size);height:var(--jluxe-cat-mobile-image-size);min-width:0;flex-basis:var(--jluxe-cat-mobile-image-size)}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-name{width:100%;font-size:clamp(10px,3vw,12px);line-height:1.45}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-arrow{display:none}}
 	@media(prefers-reduced-motion:reduce){.jluxe-category-grid-ref-card,.jluxe-category-grid-ref-image img{transition:none!important}}
+	</style>
+	<?php
+}
+
+function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		return;
+	}
+	$campaigns = array();
+	foreach ( (array) ( $section['campaigns'] ?? array() ) as $campaign ) {
+		$target_type = in_array( $campaign['target_type'] ?? '', array( 'brand', 'category', 'product' ), true ) ? $campaign['target_type'] : 'brand';
+		$term = null;
+		$primary_product = null;
+		if ( 'product' === $target_type ) {
+			$primary_product = wc_get_product( (int) ( $campaign['product_id'] ?? 0 ) );
+			if ( ! $primary_product || ! $primary_product->is_visible() ) { continue; }
+			$target_name = $primary_product->get_name();
+		} else {
+			$taxonomy = 'category' === $target_type ? 'product_cat' : 'product_brand';
+			$term_id = (int) ( $campaign['term_id'] ?? ( $campaign['brand_id'] ?? ( $campaign['category_id'] ?? 0 ) ) );
+			$term = get_term( $term_id, $taxonomy );
+			if ( ! $term || is_wp_error( $term ) ) { continue; }
+			$target_name = $term->name;
+		}
+		$products = array();
+		if ( $primary_product ) { $products[] = $primary_product; }
+		foreach ( array_slice( array_map( 'absint', (array) ( $campaign['product_ids'] ?? array() ) ), 0, $primary_product ? 11 : 12 ) as $product_id ) {
+			if ( $primary_product && $product_id === $primary_product->get_id() ) { continue; }
+			$product = wc_get_product( $product_id );
+			if ( $product && $product->is_visible() ) {
+				$products[] = $product;
+			}
+		}
+		$logo = ! empty( $campaign['logo_id'] ) ? wp_get_attachment_image_url( (int) $campaign['logo_id'], 'thumbnail' ) : '';
+		if ( ! $logo && $term ) {
+			$term_image_id = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
+			$logo = $term_image_id ? wp_get_attachment_image_url( $term_image_id, 'thumbnail' ) : '';
+		}
+		if ( ! $logo && $primary_product && $primary_product->get_image_id() ) {
+			$logo = wp_get_attachment_image_url( $primary_product->get_image_id(), 'thumbnail' );
+		}
+		$media_type = 'image' === ( $campaign['media_type'] ?? '' ) ? 'image' : 'video';
+		$media_id = (int) ( $campaign['media_id'] ?? ( $campaign['video_id'] ?? 0 ) );
+		$mobile_media_id = (int) ( $campaign['mobile_media_id'] ?? 0 );
+		if ( ! $media_id ) {
+			$fallback_media_id = $term ? (int) get_term_meta( $term->term_id, 'thumbnail_id', true ) : ( $primary_product ? (int) $primary_product->get_image_id() : 0 );
+			if ( $fallback_media_id ) {
+				$media_id = $fallback_media_id;
+				$media_type = 'image';
+			}
+		}
+		$desktop_media_url = '';
+		$mobile_media_url = '';
+		if ( $media_id ) {
+			$mime = (string) get_post_mime_type( $media_id );
+			$desktop_media_url = 'image' === $media_type && 0 !== strpos( $mime, 'image/gif' ) ? ( wp_get_attachment_image_url( $media_id, 'large' ) ?: wp_get_attachment_url( $media_id ) ) : wp_get_attachment_url( $media_id );
+		}
+		if ( $mobile_media_id ) {
+			$mobile_mime = (string) get_post_mime_type( $mobile_media_id );
+			$mobile_media_url = 'image' === $media_type && 0 !== strpos( $mobile_mime, 'image/gif' ) ? ( wp_get_attachment_image_url( $mobile_media_id, 'large' ) ?: wp_get_attachment_url( $mobile_media_id ) ) : wp_get_attachment_url( $mobile_media_id );
+		}
+		$poster = ! empty( $campaign['poster_id'] ) ? wp_get_attachment_image_url( (int) $campaign['poster_id'], 'large' ) : '';
+		$mobile_poster = ! empty( $campaign['mobile_poster_id'] ) ? wp_get_attachment_image_url( (int) $campaign['mobile_poster_id'], 'large' ) : '';
+		$target_url = ! empty( $campaign['link'] ) ? $campaign['link'] : ( $primary_product ? $primary_product->get_permalink() : get_term_link( $term ) );
+		if ( is_wp_error( $target_url ) ) {
+			$target_url = '';
+		}
+		$campaigns[] = array( 'term' => $term, 'title' => $target_name, 'target_type' => $target_type, 'products' => $products, 'logo' => $logo, 'media_type' => $media_type, 'media' => $desktop_media_url, 'mobile_media' => $mobile_media_url, 'poster' => $poster, 'mobile_poster' => $mobile_poster, 'link' => $target_url );
+	}
+	if ( empty( $campaigns ) ) {
+		return;
+	}
+	$id = 'jluxe-brand-campaign-' . sanitize_key( (string) ( $section['id'] ?? wp_unique_id() ) );
+	?>
+	<section id="<?php echo esc_attr( $id ); ?>" class="jluxe-home-section jluxe-brand-campaigns" dir="rtl" data-jluxe-brand-campaigns style="<?php echo esc_attr( ! empty( $section['background_color'] ) ? '--bvc-background:' . $section['background_color'] . ';' : '' ); ?>" aria-label="<?php echo esc_attr( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?>">
+		<header class="jluxe-bvc-header"><div class="jluxe-bvc-heading"><span class="jluxe-bvc-eyebrow">سفارشی</span><h2><?php echo esc_html( $section['title'] ?? 'تبلیغات ویدیویی برندها' ); ?></h2></div><?php if ( ! empty( $section['view_all_text'] ) ) : ?><a class="jluxe-bvc-view-all" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>"><?php echo esc_html( $section['view_all_text'] ); ?><span aria-hidden="true">←</span></a><?php endif; ?></header>
+		<div class="jluxe-bvc-tabs" role="tablist" aria-label="برندها">
+			<?php foreach ( $campaigns as $index => $campaign ) : $term_name = $campaign['title']; ?>
+			<button type="button" class="jluxe-bvc-tab<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tab" id="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" aria-selected="<?php echo 0 === $index ? 'true' : 'false'; ?>" aria-controls="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" tabindex="<?php echo 0 === $index ? '0' : '-1'; ?>">
+				<?php if ( $campaign['logo'] ) : ?><img src="<?php echo esc_url( $campaign['logo'] ); ?>" alt="" loading="lazy" /><?php endif; ?><span><?php echo esc_html( $term_name ); ?></span>
+			</button>
+			<?php endforeach; ?>
+		</div>
+		<div class="jluxe-bvc-panels">
+			<?php foreach ( $campaigns as $index => $campaign ) : $term_name = $campaign['title']; ?>
+			<div class="jluxe-bvc-panel<?php echo 0 === $index ? ' is-active' : ''; ?>" role="tabpanel" id="<?php echo esc_attr( $id . '-panel-' . $index ); ?>" aria-labelledby="<?php echo esc_attr( $id . '-tab-' . $index ); ?>" <?php echo 0 === $index ? '' : 'hidden'; ?>>
+				<div class="jluxe-bvc-media" aria-label="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>">
+					<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><video class="jluxe-bvc-video" data-desktop-src="<?php echo esc_url( $campaign['media'] ); ?>"<?php echo $campaign['mobile_media'] ? ' data-mobile-src="' . esc_url( $campaign['mobile_media'] ) . '"' : ''; ?><?php echo $campaign['poster'] ? ' poster="' . esc_url( $campaign['poster'] ) . '" data-desktop-poster="' . esc_url( $campaign['poster'] ) . '"' : ''; ?><?php echo $campaign['mobile_poster'] ? ' data-mobile-poster="' . esc_url( $campaign['mobile_poster'] ) . '"' : ''; ?> muted loop playsinline preload="none" aria-label="<?php echo esc_attr( 'ویدیوی تبلیغاتی ' . $term_name ); ?>"></video>
+					<?php elseif ( 'image' === $campaign['media_type'] && $campaign['media'] ) : ?><picture class="jluxe-bvc-picture"><?php if ( $campaign['mobile_media'] ) : ?><source media="(max-width: 767px)" srcset="<?php echo esc_url( $campaign['mobile_media'] ); ?>" /><?php endif; ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['media'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>" loading="lazy" decoding="async" /></picture>
+					<?php elseif ( $campaign['poster'] ) : ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['poster'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $term_name ); ?>" loading="lazy" decoding="async" />
+					<?php else : ?><div class="jluxe-bvc-empty-media" aria-hidden="true"><span><?php echo esc_html( $term_name ); ?></span></div><?php endif; ?>
+					<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><button type="button" class="jluxe-bvc-mute" data-jluxe-bvc-mute aria-label="فعال‌کردن صدا" aria-pressed="false"><span aria-hidden="true">♪</span><span data-jluxe-bvc-mute-label>بی‌صدا</span></button><?php endif; ?>
+					<?php if ( $campaign['link'] ) : ?><a class="jluxe-bvc-media-link" href="<?php echo esc_url( $campaign['link'] ); ?>">مشاهدهٔ کمپین <span aria-hidden="true">←</span></a><?php endif; ?>
+				</div>
+				<div class="jluxe-bvc-products-wrap">
+					<div class="jluxe-bvc-products-heading"><strong><?php echo esc_html( 'محصولات ' . $term_name ); ?></strong><?php if ( $campaign['link'] ) : ?><a href="<?php echo esc_url( $campaign['link'] ); ?>">مشاهده همه <span aria-hidden="true">←</span></a><?php endif; ?></div>
+					<?php if ( $campaign['products'] ) : ?><ul class="jluxe-bvc-products" aria-label="<?php echo esc_attr( 'محصولات ' . $term_name ); ?>">
+						<?php foreach ( $campaign['products'] as $product ) : ?><li><a class="jluxe-bvc-product" href="<?php echo esc_url( $product->get_permalink() ); ?>"><span class="jluxe-bvc-product-image"><?php echo wp_kses_post( $product->get_image( 'woocommerce_thumbnail', array( 'loading' => 'lazy' ) ) ); ?></span><span class="jluxe-bvc-product-name"><?php echo esc_html( $product->get_name() ); ?></span><?php if ( $product->get_average_rating() ) : ?><span class="jluxe-bvc-rating" aria-label="<?php echo esc_attr( 'امتیاز ' . $product->get_average_rating() . ' از ۵' ); ?>">★ <?php echo esc_html( number_format_i18n( (float) $product->get_average_rating(), 1 ) ); ?></span><?php endif; ?><span class="jluxe-bvc-price"><?php echo wp_kses_post( $product->get_price_html() ); ?></span></a></li><?php endforeach; ?>
+					</ul><?php else : ?><p class="jluxe-bvc-no-products">محصولی برای این کمپین انتخاب نشده است.</p><?php endif; ?>
+				</div>
+			</div>
+			<?php endforeach; ?>
+		</div>
+	</section>
+	<style>
+	.jluxe-brand-campaigns{box-sizing:border-box;width:calc(100% - 32px);max-width:1320px;margin:28px auto;padding:20px;border:1px solid #e8e8ec;border-radius:20px;background:var(--bvc-background,#fff);color:#1f2937;font-family:inherit;--bvc-primary:#ed1944;--bvc-muted:#737783}.jluxe-bvc-header,.jluxe-bvc-heading,.jluxe-bvc-view-all,.jluxe-bvc-products-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.jluxe-bvc-heading{justify-content:flex-start}.jluxe-bvc-header h2{margin:0;font-size:20px;line-height:1.5;font-weight:800}.jluxe-bvc-eyebrow{padding:4px 9px;border-radius:6px;background:#fff0f3;color:var(--bvc-primary);font-size:11px;font-weight:700}.jluxe-bvc-view-all,.jluxe-bvc-products-heading a{color:var(--bvc-primary);text-decoration:none;font-size:13px;font-weight:700}.jluxe-bvc-tabs{display:flex;gap:8px;overflow-x:auto;margin:16px 0;padding:2px 0 8px;scrollbar-width:thin}.jluxe-bvc-tab{display:flex;flex:0 0 auto;align-items:center;gap:8px;min-height:44px;padding:6px 14px;border:1px solid #e9e9ed;border-radius:999px;background:#fff;color:#333;cursor:pointer;font:inherit;font-size:13px;transition:background .25s,color .25s,border-color .25s}.jluxe-bvc-tab img{width:26px;height:26px;object-fit:contain}.jluxe-bvc-tab.is-active{border-color:var(--bvc-primary);background:#fff4f6;color:var(--bvc-primary)}.jluxe-bvc-panel{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(0,1.5fr);gap:16px}.jluxe-bvc-panel[hidden]{display:none!important}.jluxe-bvc-media{position:relative;min-height:280px;aspect-ratio:16/10;overflow:hidden;border-radius:16px;background:#f5f5f7}.jluxe-bvc-picture{display:block;width:100%;height:100%;min-height:280px}.jluxe-bvc-video,.jluxe-bvc-poster{display:block;width:100%;height:100%;min-height:280px;object-fit:cover}.jluxe-bvc-empty-media{display:grid;place-items:center;width:100%;height:100%;min-height:280px;background:linear-gradient(135deg,#fff0f3,#f5f5f7);color:var(--bvc-primary);font-size:24px;font-weight:800}.jluxe-bvc-mute{position:absolute;z-index:2;bottom:12px;right:12px;display:flex;align-items:center;gap:6px;padding:7px 11px;border:0;border-radius:999px;background:rgba(20,20,24,.72);color:white;font:inherit;font-size:12px}.jluxe-bvc-media-link{position:absolute;top:12px;left:12px;z-index:3;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.94);color:#333;text-decoration:none;font-size:12px;font-weight:700}.jluxe-bvc-products-wrap{min-width:0}.jluxe-bvc-products-heading{min-height:34px;margin-bottom:8px}.jluxe-bvc-products-heading strong{font-size:14px}.jluxe-bvc-products{display:flex;gap:10px;overflow-x:auto;list-style:none;margin:0;padding:0 0 8px;scrollbar-width:thin}.jluxe-bvc-products>li{flex:0 0 164px;min-width:0}.jluxe-bvc-product{display:flex;height:100%;min-height:230px;flex-direction:column;gap:7px;padding:10px;border:1px solid #ededf0;border-radius:12px;color:inherit;text-decoration:none;transition:transform .2s,border-color .2s}.jluxe-bvc-product:hover{transform:translateY(-2px);border-color:#f5a8b8}.jluxe-bvc-product-image{display:grid;place-items:center;height:112px}.jluxe-bvc-product-image img{width:100%;height:100%;object-fit:contain}.jluxe-bvc-product-name{display:-webkit-box;min-height:38px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:12px;line-height:1.6}.jluxe-bvc-rating{color:#9a6b00;font-size:11px}.jluxe-bvc-price{margin-top:auto;font-size:13px;font-weight:800}.jluxe-bvc-price del{margin-inline-end:5px;color:#92949a;font-size:11px;font-weight:400}.jluxe-bvc-price ins{text-decoration:none;color:var(--bvc-primary)}.jluxe-bvc-no-products{color:var(--bvc-muted);font-size:13px}.jluxe-bvc-panel.is-entering .jluxe-bvc-media{animation:jluxe-bvc-reveal .55s cubic-bezier(.2,.75,.2,1) both}@keyframes jluxe-bvc-reveal{from{clip-path:inset(0 0 0 100% round 16px);transform:scale(1.025)}to{clip-path:inset(0 0 0 0 round 16px);transform:scale(1)}}@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px 0;padding:14px 12px;border-radius:0;border-inline:0}.jluxe-bvc-header h2{font-size:17px}.jluxe-bvc-panel{grid-template-columns:1fr;gap:12px}.jluxe-bvc-media,.jluxe-bvc-picture,.jluxe-bvc-video,.jluxe-bvc-poster,.jluxe-bvc-empty-media{min-height:200px}.jluxe-bvc-products>li{flex-basis:148px}.jluxe-bvc-product{min-height:214px}.jluxe-bvc-tab{min-height:40px;padding:5px 11px}}
+	@media(prefers-reduced-motion:reduce){.jluxe-bvc-tab,.jluxe-bvc-product{transition:none}.jluxe-bvc-panel.is-entering .jluxe-bvc-media{animation:none!important}}
 	</style>
 	<?php
 }

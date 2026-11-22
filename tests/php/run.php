@@ -3630,11 +3630,11 @@ ob_start();
 jluxe_render_visual_builder_legacy_page();
 $r360_builder_html = (string) ob_get_clean();
 check(
-	23 === count( jluxe_homepage_section_types() ) &&
-	24 === count( jluxe_visual_builder_section_types() ) &&
+	24 === count( jluxe_homepage_section_types() ) &&
+	25 === count( jluxe_visual_builder_section_types() ) &&
 	false !== strpos( $r360_builder_html, 'صفحه‌ساز بصری' ) &&
 	false !== strpos( $r360_builder_html, 'name="homepage[sections][0][type]"' ) &&
-		24 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
+		25 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
 		false !== strpos( $r360_builder_html, 'data-hb-template="cta"' ) &&
 		false !== strpos( $r360_builder_html, 'متنِ دکمه' ) &&
 		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
@@ -3932,11 +3932,11 @@ ob_start();
 jluxe_render_homepage_cta( array( 'title' => '<script>no</script>', 'content' => '<img src=x>', 'button_label' => '<b>متن</b>', 'button_url' => 'https://shop.test/' ) );
 $r362_escaped_cta_html = (string) ob_get_clean();
 check(
-	23 === count( $r362_homepage_types ) &&
-	24 === count( $r362_visual_builder_types ) &&
-	array( 'container', 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
-	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 23 ) &&
-	array( 'cta' ) === array_slice( $r362_visual_builder_types, 23, 1 ) &&
+	24 === count( $r362_homepage_types ) &&
+	25 === count( $r362_visual_builder_types ) &&
+	array( 'container', 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'brand_video_campaigns', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
+	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 24 ) &&
+	array( 'cta' ) === array_slice( $r362_visual_builder_types, 24, 1 ) &&
 	! in_array( 'cta', $r362_default_home_types, true ) &&
 	'cta' === ( $r362_builder_sanitized['sections'][0]['type'] ?? '' ) &&
 	'https://shop.test/shop/' === ( $r362_builder_sanitized['sections'][0]['button_url'] ?? '' ) &&
@@ -3954,6 +3954,42 @@ check(
 	false === strpos( $r362_escaped_cta_html, '<script>' ),
 	'R362 the CTA section sanitizes fields, allow-lists visual variants, renders semantic token-driven markup, and escapes output'
 );
+
+// Brand campaign section may target a real brand, product, or product category and uses validated responsive media.
+$bvc_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$bvc_old_terms = $GLOBALS['terms_by_id'] ?? array();
+$bvc_old_products = $GLOBALS['products'] ?? array();
+$bvc_old_mimes = $GLOBALS['attachment_mimes'] ?? array();
+$GLOBALS['taxonomies']['product_cat'] = true;
+$GLOBALS['taxonomies']['product_brand'] = true;
+$GLOBALS['terms_by_id'][591] = (object) array( 'term_id' => 591, 'name' => 'دستهٔ نمونه' );
+$GLOBALS['terms_by_id'][592] = (object) array( 'term_id' => 592, 'name' => 'برند نمونه' );
+$GLOBALS['products'][593] = new WC_Product( 593 );
+$GLOBALS['attachment_mimes'][594] = 'image/gif';
+$GLOBALS['attachment_mimes'][595] = 'image/webp';
+$GLOBALS['attachment_mimes'][596] = 'video/mp4';
+$GLOBALS['attachment_mimes'][597] = 'image/jpeg';
+$bvc_sanitized = jluxe_sanitize_homepage_section( array(
+	'id' => 'campaign-test', 'type' => 'brand_video_campaigns', 'enabled' => '1', 'background_color' => '#ED1944',
+	'campaigns' => array(
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'mobile_media_id' => 595, 'product_ids' => array( 593 ) ),
+		array( 'target_type' => 'product', 'product_id' => 593, 'media_type' => 'video', 'media_id' => 596 ),
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 597 ),
+	),
+) );
+check(
+	'#ED1944' === $bvc_sanitized['background_color'] &&
+	2 === count( $bvc_sanitized['campaigns'] ) &&
+	'category' === $bvc_sanitized['campaigns'][0]['target_type'] && 591 === $bvc_sanitized['campaigns'][0]['term_id'] &&
+	'image' === $bvc_sanitized['campaigns'][0]['media_type'] && 594 === $bvc_sanitized['campaigns'][0]['media_id'] && 595 === $bvc_sanitized['campaigns'][0]['mobile_media_id'] &&
+	'product' === $bvc_sanitized['campaigns'][1]['target_type'] && 593 === $bvc_sanitized['campaigns'][1]['product_id'] && 596 === $bvc_sanitized['campaigns'][1]['media_id'],
+	'homepage brand campaign sanitizer accepts product/category targets, GIF and mobile media, bounded color, and removes duplicate targets'
+);
+$GLOBALS['taxonomies'] = $bvc_old_taxonomies;
+$GLOBALS['terms_by_id'] = $bvc_old_terms;
+$GLOBALS['products'] = $bvc_old_products;
+$GLOBALS['attachment_mimes'] = $bvc_old_mimes;
+
 $r362_home_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
 $r362_home_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
 $r362_old_query_kind = $GLOBALS['query_kind'] ?? null;

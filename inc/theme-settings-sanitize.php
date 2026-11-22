@@ -1987,6 +1987,67 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 			}
 			break;
 
+		case 'brand_video_campaigns':
+			$section['title'] = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'تبلیغات ویدیویی برندها';
+			$section['view_all_text'] = isset( $posted['view_all_text'] ) ? sanitize_text_field( $posted['view_all_text'] ) : 'مشاهده همه';
+			$section['background_color'] = sanitize_hex_color( $posted['background_color'] ?? '' ) ?: '#FFFFFF';
+			$section['campaigns'] = array();
+			$seen_targets = array();
+			foreach ( array_slice( (array) ( $posted['campaigns'] ?? array() ), 0, 6 ) as $campaign ) {
+				if ( ! is_array( $campaign ) ) { continue; }
+				$target_type = sanitize_key( $campaign['target_type'] ?? 'brand' );
+				if ( ! in_array( $target_type, array( 'brand', 'category', 'product' ), true ) ) { $target_type = 'brand'; }
+				$target_id = 0;
+				if ( 'product' === $target_type ) {
+					$target_id = absint( $campaign['product_id'] ?? 0 );
+					$target_product = function_exists( 'wc_get_product' ) && $target_id ? wc_get_product( $target_id ) : false;
+					if ( ! $target_product || ! $target_product->is_visible() ) { continue; }
+					$target_key = 'product:' . $target_id;
+				} else {
+					$taxonomy = 'category' === $target_type ? 'product_cat' : 'product_brand';
+					$target_id = 'category' === $target_type ? absint( $campaign['category_id'] ?? ( $campaign['term_id'] ?? 0 ) ) : absint( $campaign['brand_id'] ?? ( $campaign['term_id'] ?? 0 ) );
+					if ( ! $target_id || ! taxonomy_exists( $taxonomy ) || ! term_exists( $target_id, $taxonomy ) ) { continue; }
+					$target_key = $taxonomy . ':' . $target_id;
+				}
+				if ( in_array( $target_key, $seen_targets, true ) ) { continue; }
+				$seen_targets[] = $target_key;
+				$product_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $campaign['product_ids'] ?? array() ) ) ) ) );
+				$product_ids = array_slice( $product_ids, 0, 12 );
+				$logo_id = absint( $campaign['logo_id'] ?? 0 );
+				if ( $logo_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $logo_id ) ) { $logo_id = 0; }
+				$media_type = 'image' === sanitize_key( $campaign['media_type'] ?? '' ) ? 'image' : 'video';
+				$media_id = absint( $campaign['media_id'] ?? ( $campaign['video_id'] ?? 0 ) );
+				$mobile_media_id = absint( $campaign['mobile_media_id'] ?? 0 );
+				$valid_media = static function ( int $attachment_id ) use ( $media_type ): bool {
+					if ( ! $attachment_id || ! function_exists( 'get_post_mime_type' ) ) { return false; }
+					$mime = (string) get_post_mime_type( $attachment_id );
+					return 'video' === $media_type ? 0 === strpos( $mime, 'video/' ) : 0 === strpos( $mime, 'image/' );
+				};
+				if ( $media_id && ! $valid_media( $media_id ) ) { $media_id = 0; }
+				if ( $mobile_media_id && ! $valid_media( $mobile_media_id ) ) { $mobile_media_id = 0; }
+				$poster_id = absint( $campaign['poster_id'] ?? 0 );
+				if ( $poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $poster_id ) ) { $poster_id = 0; }
+				$mobile_poster_id = absint( $campaign['mobile_poster_id'] ?? 0 );
+				if ( $mobile_poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $mobile_poster_id ) ) { $mobile_poster_id = 0; }
+				$clean_campaign = array(
+					'target_type' => $target_type,
+					'term_id' => 'product' === $target_type ? 0 : $target_id,
+					'product_id' => 'product' === $target_type ? $target_id : 0,
+					'logo_id' => $logo_id,
+					'media_type' => $media_type,
+					'media_id' => $media_id,
+					'mobile_media_id' => $mobile_media_id,
+					'poster_id' => $poster_id,
+					'mobile_poster_id' => $mobile_poster_id,
+					'link' => isset( $campaign['link'] ) ? esc_url_raw( trim( (string) $campaign['link'] ) ) : '',
+					'product_ids' => $product_ids,
+				);
+				if ( 'category' === $target_type ) { $clean_campaign['category_id'] = $target_id; }
+				if ( 'brand' === $target_type ) { $clean_campaign['brand_id'] = $target_id; }
+				$section['campaigns'][] = $clean_campaign;
+			}
+			break;
+
 		case 'brand_marquee':
 			$section['title'] = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'برندهای منتخب';
 			$section['speed_sec'] = max( 15, min( 120, absint( $posted['speed_sec'] ?? 36 ) ) );

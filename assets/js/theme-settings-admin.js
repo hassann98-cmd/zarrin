@@ -82,9 +82,10 @@ jQuery(function ($) {
 
 		var previewSize = button.data("previewSize") || "medium";
 		var libraryType = button.data("libraryType");
+		var isVideo = libraryType === "video";
 		var frameOptions = {
-			title: libraryType ? "انتخاب تصویر یا GIF" : "انتخاب رسانه",
-			button: { text: "استفاده از این تصویر" },
+			title: isVideo ? "انتخاب ویدیو" : (libraryType ? "انتخاب تصویر یا GIF" : "انتخاب رسانه"),
+			button: { text: isVideo ? "استفاده از این ویدیو" : "استفاده از این تصویر" },
 			multiple: false,
 		};
 		// محدودکردن رسانه به تصویر فقط برای فیلدهایی که نیاز به آن دارند
@@ -101,6 +102,10 @@ jQuery(function ($) {
 				? attachment.url
 				: attachment.sizes[previewSize].url;
 			var maxHeight = button.data("previewMaxHeight") || "60px";
+			if (attachment.type === "video") {
+				previewEl.empty().append($("<span>").text(attachment.filename || "ویدیو انتخاب شد"));
+				return;
+			}
 			var previewImage = $("<img>", { src: previewUrl, alt: "" }).css({
 				maxHeight: maxHeight,
 				maxWidth: "100%",
@@ -490,6 +495,31 @@ jQuery(function ($) {
 	}
 	$(document).on("change", "[data-jluxe-toggle-id]", applyConditionalFields);
 	applyConditionalFields();
+
+	function syncBrandCampaignEditors($scope) {
+		var $root = $scope && $scope.length ? $scope : $(document);
+		$root.find("[data-jluxe-bvc-target-select]").addBack("[data-jluxe-bvc-target-select]").each(function () {
+			var select = this;
+			var value = $(select).val();
+			var toggleId = $(select).attr("data-jluxe-bvc-target-select");
+			$('[data-jluxe-bvc-for="' + toggleId + '"]').each(function () {
+				$(this).prop("hidden", $(this).attr("data-jluxe-bvc-target") !== value);
+			});
+		});
+		$root.find("[data-jluxe-bvc-media-select]").addBack("[data-jluxe-bvc-media-select]").each(function () {
+			var select = this;
+			var value = $(select).val();
+			var toggleId = $(select).attr("data-jluxe-bvc-media-select");
+			var $field = $('[data-jluxe-bvc-media-for="' + toggleId + '"]');
+			$field.find(".jluxe-media-select").attr("data-library-type", value).data("libraryType", value);
+			$field.find(".jluxe-media-select").text("video" === value ? "انتخاب ویدیو" : "انتخاب تصویر یا GIF");
+			$('[data-jluxe-bvc-media-poster="' + toggleId + '"]').prop("hidden", "video" !== value);
+		});
+	}
+	$(document).on("change", "[data-jluxe-bvc-target-select], [data-jluxe-bvc-media-select]", function () {
+		syncBrandCampaignEditors($(this).closest(".jluxe-brand-video-campaign-admin"));
+	});
+	syncBrandCampaignEditors($(document));
 
 	function assignUniqueMediaFieldIds($scope) {
 		if (!$scope || !$scope.length) return;
