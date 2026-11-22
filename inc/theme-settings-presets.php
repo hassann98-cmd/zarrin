@@ -63,15 +63,15 @@ function jluxe_get_design_presets(): array {
 		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
 		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
 		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
-		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
-		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبزِ موفقیتِ خوانا و کهرباییِ
+		 * ستاره (#15803D و #F5A623) هویتِ معناییِ خود را حفظ می‌کنند.
 		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
 		 */
 		'jluxe_brand_red' => array(
 			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
-			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
+			'description' => 'قرمز برندِ #D9143C با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA، با کنتراست خوانای متن روی دکمه‌ها.',
 			'colors' => array(
-				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
+				'primary' => '#D9143C', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#15803D', 'accent' => '#F5A623',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),

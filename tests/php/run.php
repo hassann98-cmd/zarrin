@@ -3312,6 +3312,30 @@ check(
 	false !== strpos( $r51_css, 'var(--jluxe-variation-label-color, hsl(var(--primary)))' ),
 	'R326/R333 settings expose editable product colors while selected variation labels default to the live theme-primary color'
 );
+$r376_border_css = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#E2E8F0' ) );
+$r376_custom_borders_pass = true;
+foreach ( array( '#ED1A45', '#D9143C' ) as $r376_primary ) {
+	$r376_colors = $r326_theme_settings['colors'];
+	$r376_colors['primary'] = $r376_primary;
+	$r376_variables = jluxe_generate_color_variables( $r376_colors );
+	if (
+		false === strpos( $r376_variables, '--border:' . $r376_border_css ) ||
+		false === strpos( $r376_variables, '--panel-border:' . $r376_border_css ) ||
+		false === strpos( $r376_variables, '--jluxe-border:#E2E8F0' ) ||
+		false === strpos( $r376_variables, '--jluxe-border-strong:#CBD5E1' )
+	) {
+		$r376_custom_borders_pass = false;
+	}
+}
+$r376_brand_preset = jluxe_get_design_presets()['jluxe_brand_red']['colors'];
+check(
+	$r376_custom_borders_pass &&
+	$r376_brand_preset['primary'] === '#D9143C' &&
+	$r376_brand_preset['success'] === '#15803D' &&
+	jluxe_contrast_ratio( '#D9143C', '#FFFFFF' ) >= 4.5 &&
+	jluxe_contrast_ratio( '#15803D', '#FFFFFF' ) >= 4.5,
+	'R521 custom #ED1A45/#D9143C borders stay neutral and visible, while the updated brand primary/success preset meets WCAG AA for white text'
+);
 check(strpos($cp3,'shortBody.scrollHeight <= shortBody.clientHeight + 2')!==false && strpos($cp3,'shortBtn.hidden = true;')!==false, 'R51 the short-description toggle hides itself when the text is not clamped');
 // R52: final parity pass against the user's full reference DOM (buttonsAddToCard row).
 check(preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*border-radius:16px !important;/',$cp3)===1 && preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*999px/',$cp3)!==1, 'R52 the buy button uses the reference rounded-16, never the 999px pill that collapsed into a circle');
@@ -3348,7 +3372,7 @@ $r363_legacy_preset_colors = array(
 	'digikala_clean' => array( 'primary' => '#D92D3F', 'secondary' => '#155E9B', 'background' => '#FFFFFF', 'success' => '#16834A', 'accent' => '#F59E0B' ),
 	'minimal_black_gold' => array( 'primary' => '#222222', 'secondary' => '#4B5563', 'background' => '#FAFAF8', 'success' => '#287A52', 'accent' => '#B58A3A' ),
 	'joyful_coral_teal' => array( 'primary' => '#E23B45', 'secondary' => '#087F7A', 'background' => '#F7FCFB', 'success' => '#168A50', 'accent' => '#F2A93B' ),
-	'jluxe_brand_red' => array( 'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623' ),
+	'jluxe_brand_red' => array( 'primary' => '#D9143C', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#15803D', 'accent' => '#F5A623' ),
 	'emerald_modern' => array( 'primary' => '#087A68', 'secondary' => '#243746', 'background' => '#F6FAF8', 'success' => '#19734C', 'accent' => '#B9974F' ),
 );
 $r363_electric_indigo_colors = array(
@@ -6849,7 +6873,7 @@ check( 0 === strpos( $pwa_js, '/* JLUXE service worker' ) && false !== strpos( $
 $pwa_sw_src = (string) file_get_contents( ABSPATH . 'assets/pwa/sw.js' );
 check( false === strpos( $pwa_sw_src, 'cache.put(request' ) || ( 1 === substr_count( $pwa_sw_src, 'cache.put(' ) && false !== strpos( $pwa_sw_src, 'async function cacheFirst' ) ), 'R88 exactly one cache.put — inside the hashed-asset cacheFirst' );
 check( false !== strpos( $pwa_sw_src, 'request.method !== "GET"' ) && false !== strpos( $pwa_sw_src, 'url.origin !== self.location.origin' ), 'R88 SW ignores non-GET and cross-origin requests' );
-check( (bool) preg_match( '/networkWithOfflineFallback[\s\S]*?fetch\(event\.request\)[\s\S]*?catch/', $pwa_sw_src ) && false === strpos( substr( $pwa_sw_src, (int) strpos( $pwa_sw_src, 'async function networkWithOfflineFallback' ), 400 ), 'put(' ), 'R88 navigations are network-first with only an offline fallback (no stale HTML)' );
+check( (bool) preg_match( '/networkWithOfflineFallback[\s\S]*?fetch\(event\.request\)[\s\S]*?catch/', $pwa_sw_src ) && false === strpos( substr( $pwa_sw_src, (int) strpos( $pwa_sw_src, 'async function networkWithOfflineFallback' ), 500 ), 'put(' ) && false !== strpos( $pwa_sw_src, 'navigationPreload.enable()' ) && false !== strpos( $pwa_sw_src, 'await event.preloadResponse' ), 'R521 navigations use Navigation Preload/network with only an offline fallback (no stale HTML cache)' );
 check( jluxe_pwa_version() === jluxe_pwa_version() && 12 === strlen( jluxe_pwa_version() ), 'R88 SW version is deterministic' );
 
 $GLOBALS['jluxe_pwa_headers'] = array();

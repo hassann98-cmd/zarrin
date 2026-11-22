@@ -17,6 +17,10 @@
   var warmed = new Set();
   var activeHint = false;
   var speculation;
+  var homePrerenderSpeculation;
+  var homePrerenderHref = null;
+  var homeWarmupScheduled = false;
+  var homeWarmupTask = null;
   var speculationHints = new Map();
   var speculationLimit = 6;
   var supportsRules = typeof win.HTMLScriptElement?.supports === 'function' && win.HTMLScriptElement.supports('speculationrules');
@@ -83,16 +87,20 @@
     speculation = doc.createElement('script');
     speculation.type = 'speculationrules';
     speculation.setAttribute('data-jluxe-speculation', '');
-    speculation.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: Array.from(warmed), eagerness: 'moderate' }] });
+    speculation.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: Array.from(warmed), eagerness: 'immediate' }] });
     doc.head.appendChild(speculation);
   }
-  function prefetch(link) {
+  function canSpeculate() {
     var connection = win.navigator.connection || {};
-    if (!config.prefetch || config.cacheSafe === false || (!supportsRules && activeHint) || privateSession() || doc.visibilityState === 'hidden' || connection.saveData ||
-        /^(slow-2g|2g|3g)$/.test(connection.effectiveType || '') ||
-        win.jluxeCurrentAuthStatus !== false || win.JLuxeThemeSettings?.auth?.isLoggedIn === true) return;
+    return !!config.prefetch && config.cacheSafe !== false && !privateSession() &&
+      doc.visibilityState !== 'hidden' && !connection.saveData &&
+      !/^(slow-2g|2g|3g)$/.test(connection.effectiveType || '') &&
+      win.jluxeCurrentAuthStatus !== true && win.JLuxeThemeSettings?.auth?.isLoggedIn !== true;
+  }
+  function prefetch(link) {
+    if (!canSpeculate() || (!supportsRules && activeHint)) return;
     var url = target(link);
-    if (!url || warmed.has(url.href)) return;
+    if (!url || url.href === homePrerenderHref || warmed.has(url.href)) return;
     var home;
     try { home = new win.URL(config.home, win.location.href).href; } catch (_) { return; }
     var category = false;
@@ -132,10 +140,64 @@
       doc.head.appendChild(hint);
     }
   }
-  // Shared entry point prevents the legacy mobile home warmer bypassing this budget.
+  // Shared entry points keep all home/product warming behind the same privacy and network gates.
   win.jluxePrefetchPublicPage = function (href) {
     var link = doc.createElement('a'); link.href = href; prefetch(link);
   };
+  function scheduleHomeSpeculation(href) {
+    if (homeWarmupScheduled || !canSpeculate()) return function () {};
+    var home;
+    var current;
+    try {
+      home = new win.URL(href || config.home, win.location.href);
+      current = new win.URL(win.location.href);
+    } catch (_) { return function () {}; }
+    if (!/^https?:$/.test(home.protocol) || home.origin !== current.origin || home.username || home.password ||
+        home.pathname === current.pathname || blocked.test(decodeURIComponent(current.pathname))) return function () {};
+    if ((config.excluded || []).some(function (value) {
+      var excluded = new win.URL(value, current);
+      var path = excluded.pathname.replace(/\/+$/, '') || '/';
+      return home.origin === excluded.origin && (home.pathname.replace(/\/+$/, '') === path || home.pathname.indexOf(path + '/') === 0);
+    })) return function () {};
+
+    homeWarmupScheduled = true;
+    function warmHome() {
+      homeWarmupTask = null;
+      if (!canSpeculate()) return;
+      if (!supportsRules) {
+        var link = doc.createElement('a');
+        link.href = home.href;
+        prefetch(link);
+        return;
+      }
+      homePrerenderHref = home.href;
+      if (homePrerenderSpeculation) homePrerenderSpeculation.remove();
+      homePrerenderSpeculation = doc.createElement('script');
+      homePrerenderSpeculation.type = 'speculationrules';
+      homePrerenderSpeculation.setAttribute('data-jluxe-home-prerender', '');
+      homePrerenderSpeculation.textContent = JSON.stringify({
+        prerender: [{ source: 'list', urls: [home.href], eagerness: 'eager' }],
+      });
+      doc.head.appendChild(homePrerenderSpeculation);
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      homeWarmupTask = { kind: 'idle', id: win.requestIdleCallback(warmHome, { timeout: 800 }) };
+    } else {
+      homeWarmupTask = { kind: 'timeout', id: win.setTimeout(warmHome, 800) };
+    }
+    return function cancelHomeWarmup() {
+      if (!homeWarmupTask) return;
+      if (homeWarmupTask.kind === 'idle' && typeof win.cancelIdleCallback === 'function') {
+        win.cancelIdleCallback(homeWarmupTask.id);
+      } else {
+        win.clearTimeout(homeWarmupTask.id);
+      }
+      homeWarmupTask = null;
+      homeWarmupScheduled = false;
+    };
+  }
+  win.jluxeScheduleHomeSpeculation = scheduleHomeSpeculation;
+  scheduleHomeSpeculation(config.home);
   doc.addEventListener('click', function (event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     var link = event.target.closest?.('a[href]');

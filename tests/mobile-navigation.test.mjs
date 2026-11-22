@@ -364,13 +364,22 @@ test("R121 the failed-checkout recovery actions stack at phone width", () => {
 });
 
 
+test("sticky old-price text keeps full contrast instead of opacity-dimming the muted color", () => {
+  const start = storefrontStyles.indexOf('.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] del,');
+  const end = storefrontStyles.indexOf('}', start);
+  const rule = storefrontStyles.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(rule, /opacity:\s*1;/);
+  assert.doesNotMatch(rule, /opacity:\s*0\.78/);
+});
+
 test("mobile home navigation is quietly prefetched on idle and on intent without intercepting the native link", () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "https://shop.test/store/catalog/",
   });
   const { window } = dom;
-  window.matchMedia = () => ({ matches: true });
-  window.jluxeCurrentAuthStatus = false;
+  window.matchMedia = () => ({ matches: false });
+  delete window.jluxeCurrentAuthStatus;
 
   assert.equal(prefetchMobileHome("https://shop.test/store/", window), true);
   const hint = window.document.querySelector(
@@ -395,11 +404,18 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   });
   assert.equal(prefetchMobileHome("https://shop.test/store/", noPrefetch.window), false);
   assert.equal(noPrefetch.window.document.querySelector("link[rel=prefetch]"), null);
+  const cacheUnsafe = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
+    url: "https://shop.test/store/catalog/",
+  });
+  cacheUnsafe.window.jluxePageMotion = { cacheSafe: false };
+  assert.equal(prefetchMobileHome("https://shop.test/store/", cacheUnsafe.window), false);
 
   let runIdle;
+  let idleOptions;
   let cancelledIdle = false;
-  window.requestIdleCallback = (callback) => {
+  window.requestIdleCallback = (callback, options) => {
     runIdle = callback;
+    idleOptions = options;
     return 17;
   };
   window.cancelIdleCallback = (id) => {
@@ -407,6 +423,7 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   };
   const cancel = scheduleMobileHomePrefetch("https://shop.test/store/", window);
   assert.equal(typeof runIdle, "function");
+  assert.equal(idleOptions.timeout, 800);
   runIdle();
   assert.equal(window.document.querySelectorAll("link[rel=prefetch]").length, 1);
   cancel();
@@ -420,4 +437,5 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   assert.match(floatingNavSource, /item\.action !== "home"/);
   dom.window.close();
   noPrefetch.window.close();
+  cacheUnsafe.window.close();
 });

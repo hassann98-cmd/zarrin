@@ -27,18 +27,20 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key.indexOf(PREFIX) === 0 && key !== STATIC_CACHE && key !== OFFLINE_CACHE)
-            .map((key) => caches.delete(key))
-        )
+  const navigationPreload = self.registration && self.registration.navigationPreload;
+  const enableNavigationPreload = navigationPreload && typeof navigationPreload.enable === "function"
+    ? navigationPreload.enable().catch(() => {})
+    : Promise.resolve();
+  const removeOldCaches = caches
+    .keys()
+    .then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.indexOf(PREFIX) === 0 && key !== STATIC_CACHE && key !== OFFLINE_CACHE)
+          .map((key) => caches.delete(key))
       )
-      .then(() => self.clients.claim())
-  );
+    );
+  event.waitUntil(Promise.all([removeOldCaches, enableNavigationPreload]).then(() => self.clients.claim()));
 });
 
 function isBypassed(url) {
@@ -78,6 +80,14 @@ async function cacheFirst(request) {
 }
 
 async function networkWithOfflineFallback(event) {
+  let preloadError;
+  try {
+    const preloaded = await event.preloadResponse;
+    if (preloaded) return preloaded;
+  } catch (error) {
+    preloadError = error;
+  }
+
   try {
     return await fetch(event.request);
   } catch (error) {
@@ -86,7 +96,7 @@ async function networkWithOfflineFallback(event) {
     if (offline) {
       return offline;
     }
-    throw error;
+    throw error || preloadError;
   }
 }
 

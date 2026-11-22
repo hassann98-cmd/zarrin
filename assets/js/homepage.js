@@ -227,36 +227,47 @@
 	 * راست («بعدی») ظاهر می‌شه.
 	 * ------------------------------------------------------------- */
 	function initScrollArrowVisibility() {
+		var rows = [];
 		document.querySelectorAll("[data-jluxe-scroller]").forEach(function (scroller) {
 			var wrapper = scroller.closest(".relative");
 			if (!wrapper) return;
 			var prevBtn = wrapper.querySelector("[data-jluxe-scroll-prev]");
 			var nextBtn = wrapper.querySelector("[data-jluxe-scroll-next]");
-			if (!prevBtn && !nextBtn) return;
-
-			function setVisible(btn, visible) {
-				if (!btn) return;
-				btn.classList.toggle("opacity-0", !visible);
-				btn.classList.toggle("pointer-events-none", !visible);
-			}
-
-			function update() {
-				// Read all layout/scroll state before touching classes or visibility.
-				var max = scroller.scrollWidth - scroller.clientWidth;
-				var overflowing = max >= 20;
-				var scrolled = Math.abs(scroller.scrollLeft);
-				var showPrev = overflowing && scrolled < max - 4;
-				var showNext = overflowing && scrolled > 4;
-				scroller.classList.toggle("is-overflowing", overflowing);
-				scroller.classList.toggle("is-centered", !overflowing);
-				setVisible(prevBtn, showPrev);
-				setVisible(nextBtn, showNext);
-			}
-
-			scroller.addEventListener("scroll", update, { passive: true });
-			window.addEventListener("resize", update);
-			update();
+			if (prevBtn || nextBtn) rows.push({ scroller: scroller, prevBtn: prevBtn, nextBtn: nextBtn });
 		});
+
+		function setVisible(btn, visible) {
+			if (!btn) return;
+			btn.classList.toggle("opacity-0", !visible);
+			btn.classList.toggle("pointer-events-none", !visible);
+		}
+
+		function updateAll() {
+			// Complete every layout read across every carousel before the first class write.
+			var states = rows.map(function (row) {
+				var max = row.scroller.scrollWidth - row.scroller.clientWidth;
+				var overflowing = max >= 20;
+				var scrolled = Math.abs(row.scroller.scrollLeft);
+				return {
+					row: row,
+					overflowing: overflowing,
+					showPrev: overflowing && scrolled < max - 4,
+					showNext: overflowing && scrolled > 4,
+				};
+			});
+			states.forEach(function (state) {
+				state.row.scroller.classList.toggle("is-overflowing", state.overflowing);
+				state.row.scroller.classList.toggle("is-centered", !state.overflowing);
+				setVisible(state.row.prevBtn, state.showPrev);
+				setVisible(state.row.nextBtn, state.showNext);
+			});
+		}
+
+		rows.forEach(function (row) {
+			row.scroller.addEventListener("scroll", updateAll, { passive: true });
+		});
+		window.addEventListener("resize", updateAll);
+		updateAll();
 	}
 
 	/* ---------------------------------------------------------------

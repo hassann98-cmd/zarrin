@@ -59,3 +59,36 @@ test("R178 category carousel arrows bind through the relative wrapper and center
 
   window.close();
 });
+
+test("initial and resize carousel state reads every scroller before the first DOM class write", () => {
+  const dom = new JSDOM(`<!doctype html><html><body>
+    ${[1, 2, 3].map(id => `<div class="relative"><button data-jluxe-scroll-prev></button><div data-jluxe-scroller data-row="${id}"></div><button data-jluxe-scroll-next></button></div>`).join("")}
+  </body></html>`, { url: "https://shop.test/", pretendToBeVisual: true, runScripts: "outside-only" });
+  const { window } = dom;
+  const operations = [];
+  window.document.querySelectorAll("[data-jluxe-scroller]").forEach(scroller => {
+    const id = scroller.getAttribute("data-row");
+    Object.defineProperty(scroller, "scrollWidth", { get() { operations.push(`read-${id}-scrollWidth`); return 400; } });
+    Object.defineProperty(scroller, "clientWidth", { get() { operations.push(`read-${id}-clientWidth`); return 200; } });
+    Object.defineProperty(scroller, "scrollLeft", { get() { operations.push(`read-${id}-scrollLeft`); return 0; } });
+    const toggle = scroller.classList.toggle.bind(scroller.classList);
+    scroller.classList.toggle = (name, force) => {
+      if (name === "is-overflowing" || name === "is-centered") operations.push(`write-${id}-${name}`);
+      return toggle(name, force);
+    };
+  });
+  window.eval(source);
+  const assertReadThenWrite = phase => {
+    const firstWrite = operations.findIndex(operation => operation.startsWith("write-"));
+    assert.ok(firstWrite >= 0, `${phase} should update carousel state`);
+    assert.equal(operations.slice(0, firstWrite).filter(operation => operation.startsWith("read-")).length, 9,
+      `${phase} reads scrollWidth, clientWidth, and scrollLeft for all three carousels before writing`);
+    assert.ok(operations.slice(0, firstWrite).every(operation => operation.startsWith("read-")));
+    operations.length = 0;
+  };
+  window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
+  assertReadThenWrite("initialization");
+  window.dispatchEvent(new window.Event("resize"));
+  assertReadThenWrite("resize");
+  window.close();
+});

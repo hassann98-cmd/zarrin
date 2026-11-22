@@ -2917,12 +2917,13 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$primary_soft_hex = $is_electric_primary
 		? $electric['50']
 		: ( $is_royal_primary ? $royal['50'] : ( $is_dodger_primary ? $dodger['50'] : ( $is_bubblegum_primary ? $bubblegum['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) ) ) );
+	// Custom high-lightness primaries must not wash borders to white; use neutral accessible edges unless a built-in palette defines its own scale.
 	$border_hex = $is_electric_primary
 		? $electric['100']
-		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) ) ) );
+		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#E2E8F0' ) ) );
 	$border_strong_hex = $is_electric_primary
 		? $electric['200']
-		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) ) ) );
+		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#CBD5E1' ) ) );
 	$primary_dark_hsl    = $primary_hsl;
 	$primary_dark_hsl[2] = min( $primary_dark_hsl[2], 18 );
 	$primary_dark_hex = $is_electric_primary

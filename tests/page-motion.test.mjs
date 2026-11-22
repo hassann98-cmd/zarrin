@@ -156,7 +156,7 @@ test('quick navigation, Escape, timeout and disabled motion never leave waiting 
   assert.equal(a.classList.contains('jluxe-navigation-pressed'), false);
 });
 
-test('supported browsers keep a rolling moderate-eagerness speculation list without locking subsequent hints', t => {
+test('supported browsers keep a rolling immediate-eagerness speculation list without locking subsequent hints', t => {
   // Install support before the module is evaluated.
   const dom = new JSDOM('<!doctype html><head></head><body></body>', { url: 'https://shop.test/', runScripts: 'outside-only' });
   t.after(() => dom.window.close());
@@ -173,10 +173,50 @@ test('supported browsers keep a rolling moderate-eagerness speculation list with
   }
   const rule = JSON.parse(win.document.querySelector('script[type="speculationrules"]').textContent);
   assert.deepEqual(rule.prefetch[0].urls, Array.from({ length: 6 }, (_, index) => `https://shop.test/product/${index + 3}/`));
-  assert.equal(rule.prefetch[0].eagerness, 'moderate');
+  assert.equal(rule.prefetch[0].eagerness, 'immediate');
   assert.equal(rule.prerender, undefined);
   assert.equal(win.document.querySelector('link[rel="prefetch"]'), null);
   assert.equal(win.document.querySelectorAll('link[data-jluxe-page-prefetch]').length, 6);
+});
+
+test('guest prefetch does not wait for the deferred private-session request', t => {
+  const { win, link, hints } = boot(t);
+  delete win.jluxeCurrentAuthStatus;
+  const product = link('/product/guest-warmup/', { 'data-jluxe-product-link': '' });
+  product.dispatchEvent(new win.FocusEvent('focusin', { bubbles: true }));
+  assert.equal(hints().length, 1, 'an empty private-cookie set and no authenticated setting permit immediate guest speculation');
+
+  win.JLuxeThemeSettings = { auth: { isLoggedIn: true } };
+  const another = link('/product/private/', { 'data-jluxe-product-link': '' });
+  another.dispatchEvent(new win.FocusEvent('focusin', { bubbles: true }));
+  assert.equal(hints().length, 1, 'an authenticated setting still blocks speculation');
+});
+
+test('idle homepage warmup prerenders on supported browsers and falls back to the bounded prefetch path', t => {
+  const dom = new JSDOM('<!doctype html><head></head><body></body>', { url: 'https://shop.test/product/one/', runScripts: 'outside-only' });
+  t.after(() => dom.window.close());
+  const win = dom.window;
+  let idleCallback;
+  let idleOptions;
+  win.HTMLScriptElement.supports = type => type === 'speculationrules';
+  win.requestIdleCallback = (callback, options) => { idleCallback = callback; idleOptions = options; return 11; };
+  win.jluxePageMotion = { prefetch: true, home: 'https://shop.test/' };
+  win.JLuxeThemeSettings = { auth: { isLoggedIn: false } };
+  win.eval(script);
+  assert.equal(idleOptions.timeout, 800);
+  idleCallback();
+  const prerenderNode = win.document.querySelector('script[data-jluxe-home-prerender]');
+  assert.ok(prerenderNode);
+  const prerender = JSON.parse(prerenderNode.textContent);
+  assert.deepEqual(prerender.prerender[0].urls, ['https://shop.test/']);
+  assert.equal(prerender.prerender[0].eagerness, 'eager');
+  assert.equal(win.document.querySelector('script[data-jluxe-speculation]'), null);
+
+  const legacy = boot(t);
+  delete legacy.win.jluxeCurrentAuthStatus;
+  legacy.run(800);
+  assert.equal(legacy.hints().length, 1, 'unsupported prerender uses the normal safe prefetch budget');
+  assert.equal(legacy.hints()[0].rel, 'prefetch');
 });
 
 test('touching links gives subtle press feedback; only a real, slow navigation shows the delayed spinner',async t=>{
