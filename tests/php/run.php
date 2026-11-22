@@ -4099,6 +4099,13 @@ $__secondary_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=
 check($__secondary_clauses===array('join'=>'','orderby'=>'wp_posts.menu_order ASC'), 'R337 a secondary product query respects the disabled legacy toggle and keeps its custom order');
 $__oos_settings['shop']['out_of_stock_last']=true;
 update_test_settings($__oos_settings);
+$__in_stock_meta_query=array('relation'=>'AND',array('key'=>'total_sales','value'=>0,'compare'=>'>','type'=>'NUMERIC'),array('key'=>'_stock_status','value'=>'instock','compare'=>'='));
+$__in_stock_query=new WP_Query(array('post_type'=>'product','meta_query'=>$__in_stock_meta_query));
+$__in_stock_clauses=array('join'=>'','where'=>'1=1','orderby'=>'RAND()');
+check($__in_stock_clauses===jluxe_out_of_stock_last_clauses($__in_stock_clauses,$__in_stock_query), 'R517 in-stock-only secondary lists keep their custom/random order and avoid the redundant stock join and CASE');
+$__or_stock_query=new WP_Query(array('post_type'=>'product','meta_query'=>array('relation'=>'OR',array('key'=>'_stock_status','value'=>'instock'),array('key'=>'total_sales','value'=>0,'compare'=>'>'))));
+$__or_stock_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.post_date DESC'),$__or_stock_query);
+check(false!==strpos($__or_stock_clauses['join'],' AS jluxe_oos ') && strpos($__or_stock_clauses['orderby'],'CASE WHEN COALESCE')===0, 'R517 mixed OR filters still apply stock ordering because they can include out-of-stock products');
 $__q=new WP_Query(array('post_type'=>'product'));
 $__c=jluxe_out_of_stock_last_clauses(array('join'=>' INNER JOIN wp_term_relationships ON x ','where'=>'1=1','orderby'=>'wp_posts.post_date DESC'),$__q);
 check(false!==strpos($__c['join'],' AS jluxe_oos ') && strpos($__c['join'],'jluxe_oos.meta_key = ')!==false && strpos($__c['orderby'],"CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC")===0, 'R64 the enabled legacy toggle places out-of-stock products last while preserving a secondary query\'s original order');

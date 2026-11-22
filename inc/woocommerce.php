@@ -4898,6 +4898,48 @@ function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConv
 }
 
 /**
+ * Return true when an AND/OR meta_query can only match products with _stock_status=instock.
+ * This lets the stock ordering filter avoid an extra postmeta join and a constant CASE for
+ * product lists that already exclude every out-of-stock product.
+ */
+function jluxe_meta_query_requires_in_stock( array $meta_query ): bool {
+	if ( isset( $meta_query['key'] ) ) {
+		$key     = (string) $meta_query['key'];
+		$compare = strtoupper( (string) ( $meta_query['compare'] ?? '=' ) );
+		$value   = $meta_query['value'] ?? null;
+		return '_stock_status' === $key
+			&& ( '=' === $compare && 'instock' === $value || 'IN' === $compare && array( 'instock' ) === (array) $value );
+	}
+
+	$relation = strtoupper( (string) ( $meta_query['relation'] ?? 'AND' ) );
+	$children = array();
+	foreach ( $meta_query as $key => $clause ) {
+		if ( 'relation' !== $key && is_array( $clause ) ) {
+			$children[] = $clause;
+		}
+	}
+	if ( empty( $children ) ) {
+		return false;
+	}
+
+	if ( 'OR' === $relation ) {
+		foreach ( $children as $child ) {
+			if ( ! jluxe_meta_query_requires_in_stock( $child ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	foreach ( $children as $child ) {
+		if ( jluxe_meta_query_requires_in_stock( $child ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * R64/R337: stock-first ordering for product queries. The main shop and product-taxonomy
  * archives (category, brand and attribute) always use availability, then post_date DESC;
  * this is deliberately independent of the legacy toggle. Detect archives from the current
@@ -4905,8 +4947,9 @@ function jluxe_shop_per_page( $per_page ) { // phpcs:ignore WordPress.NamingConv
  * query while posts_clauses is building the main brand/archive query.
  * The CASE reads live _stock_status metadata for each query, so a restocked product moves
  * into the in-stock group automatically. Other product queries retain the prior optional
- * stock grouping and their own order (for example homepage/popular/random rows). Admin
- * screens are excluded; missing _stock_status is treated as instock for safe fallback.
+ * stock grouping and their own order (for example homepage/popular/random rows). If a query
+ * already requires in-stock products, its stock CASE is constant and the extra postmeta
+ * join is skipped. Admin screens are excluded; missing status remains an in-stock fallback.
  */
 function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): array {
 	if ( is_admin() && ! wp_doing_ajax() ) {
@@ -4933,8 +4976,15 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 		return $clauses;
 	}
 
+	$meta_query_requires_in_stock = jluxe_meta_query_requires_in_stock( (array) $query->get( 'meta_query' ) );
+	// A secondary list restricted to in-stock products is already correctly grouped;
+	// preserve its requested order (including RAND()) without another postmeta join.
+	if ( ! $is_catalog_archive && $meta_query_requires_in_stock ) {
+		return $clauses;
+	}
+
 	global $wpdb;
-	if ( false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
+	if ( ! $meta_query_requires_in_stock && false === strpos( (string) $clauses['join'], ' jluxe_oos ' ) ) {
 		$clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS jluxe_oos ON ({$wpdb->posts}.ID = jluxe_oos.post_id AND jluxe_oos.meta_key = '_stock_status')";
 	}
 
@@ -4950,7 +5000,9 @@ function jluxe_out_of_stock_last_clauses( array $clauses, WP_Query $query ): arr
 		}
 	}
 
-	$clauses['orderby'] = "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
+	$clauses['orderby'] = $meta_query_requires_in_stock
+		? $base
+		: "CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, " . $base;
 	return $clauses;
 }
 add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 );
