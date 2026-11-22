@@ -99,6 +99,29 @@ test("R452 an empty guest cart skips the startup AJAX read and refreshes when th
   assert.equal(document.querySelector("output")?.textContent, "2|idle");
 });
 
+test("a non-empty WooCommerce cart cookie hydrates a cached zero-count cart on mount", async () => {
+  const instance = dom();
+  instance.window.document.cookie = "session_hint=active; path=/";
+  instance.window.document.cookie = "woocommerce_items_in_cart=2; path=/";
+  assert.equal(instance.window.document.cookie, "session_hint=active; woocommerce_items_in_cart=2");
+  const { u: useCart } = await freshCart();
+  let calls = 0;
+  globalThis.fetch = async (_url, options) => {
+    calls++;
+    assert.equal(options.body.get("op"), "get");
+    return json({ success: true, data: cartData(2) });
+  };
+  function Consumer() {
+    const { snapshot, loading } = useCart();
+    return React.createElement("output", null, `${snapshot.itemCount}|${loading ? "busy" : "idle"}`);
+  }
+  const root = createRoot(document.getElementById("root"));
+  disposers.push(() => act(() => root.unmount()));
+  await act(async () => root.render(React.createElement(Consumer)));
+  assert.equal(calls, 1, "the WooCommerce items cookie bypasses a stale cached initialCount=0");
+  assert.equal(document.querySelector("output")?.textContent, "2|idle");
+});
+
 test("R22 expired cart nonce refreshes once, then replays only the pre-mutation rejection", async () => {
   settings();
   const { cartRequest } = await freshCart();

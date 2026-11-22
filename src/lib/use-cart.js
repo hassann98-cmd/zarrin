@@ -26,6 +26,11 @@ let revision = 0;
 let initialRequest;
 let queue = Promise.resolve();
 const subscribers = new Set();
+function hasWooCommerceItemsCookie() {
+  if (typeof document === "undefined") return false;
+  const match = document.cookie.match(/(?:^|;\s*)woocommerce_items_in_cart=(\d+)(?:;|$)/);
+  return !!match && Number(match[1]) > 0;
+}
 // Each DOM event is shared by header, drawer and mobile subscribers.
 const refreshEvents = new WeakMap();
 function applyPendingRemovals(next) {
@@ -205,8 +210,9 @@ export function updateCartQuantity(key, qty) {
 }
 
 function useCart() {
+  const shouldHydrateOnMount = snapshot.itemCount > 0 || hasWooCommerceItemsCookie();
   const [current, setCurrent] = useState(snapshot);
-  const [loading, setLoading] = useState(!loaded && snapshot.itemCount > 0);
+  const [loading, setLoading] = useState(!loaded && shouldHydrateOnMount);
   const [couponLoading, setCouponLoading] = useState(false);
   const [error, setError] = useState(null);
   const [couponError, setCouponError] = useState(null);
@@ -221,7 +227,7 @@ function useCart() {
   useEffect(() => {
     let active = true;
     subscribers.add(setCurrent);
-    if (!loaded && snapshot.itemCount > 0) {
+    if (!loaded && shouldHydrateOnMount) {
       initialRequest ||= cartRequest("get").finally(() => {
         initialRequest = null;
       });
