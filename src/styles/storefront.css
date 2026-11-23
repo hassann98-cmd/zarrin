@@ -8983,7 +8983,7 @@ html {
 .jluxe-sticky-cta-mode-toggle {
   position: fixed;
   inset-inline-end: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 166;
   display: inline-flex;
   min-height: 44px;
@@ -9010,12 +9010,23 @@ html {
 .jluxe-mobile-bar-toggle:hover { border-color: hsl(var(--primary) / 0.42); color: hsl(var(--primary)); box-shadow: 0 10px 26px hsl(var(--foreground) / 0.2); }
 .jluxe-sticky-cta-mode-toggle:focus-visible,
 .jluxe-mobile-bar-toggle:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
-.jluxe-mobile-price-bar { z-index: 165; }
+.jluxe-mobile-price-bar {
+  z-index: 165;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.18s ease;
+}
+.jluxe-mobile-price-bar[data-jluxe-mobile-bar-mode="inactive"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 .jluxe-mobile-bar-toggle {
   box-sizing: border-box;
   position: fixed;
   inset-inline-end: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 166;
   width: 48px;
   height: 48px;
@@ -9208,6 +9219,8 @@ html {
 }
 body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 @media (max-width: 767.98px) {
+  body.jluxe-has-sticky-cta { padding-bottom: calc(10rem + env(safe-area-inset-bottom, 0px)); }
+  body.single-product:has([data-jluxe-mobile-price-bar]) { padding-bottom: calc(10rem + env(safe-area-inset-bottom, 0px)); }
   .jluxe-sticky-cta {
     display: flex;
     box-sizing: border-box;
@@ -9222,10 +9235,43 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
     left: max(8px, env(safe-area-inset-left, 0px));
     border: 1px solid hsl(var(--border));
   }
-  #bottom-navigation[data-jluxe-mobile-bar-yielded] { display: none !important; }
+  #bottom-navigation[data-jluxe-mobile-bar-yielded],
+  .jluxe-mobile-nav[data-jluxe-mobile-bar-yielded] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
   body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] #bottom-navigation,
-  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav { display: none; }
-  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-sticky-cta { display: none; }
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-sticky-cta {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="navigation"] .jluxe-mobile-nav {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  body.single-product .jluxe-mobile-nav {
+    background: hsl(var(--surface));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  body.single-product #bottom-navigation #tabs {
+    --jluxe-bottom-nav-surface: hsl(var(--surface));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .jluxe-mobile-price-bar[data-jluxe-mobile-bar-mode="inactive"] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
   /* اهداف لمسیِ همهٔ کنترل‌ها در موبایل ≥ 44px ( specificity صفر — قوانین
      موجود اولویت دارند و چیزی نمی‌شکند). */
   :where(a.button, button, [type="submit"], [role="button"]) { min-height: 44px; }
@@ -14580,10 +14626,3 @@ html[data-jluxe-mobile-drawer] body .jluxe-sticky-cta-mode-toggle{visibility:hid
 @media(max-width:767.98px){
  body .jluxe-mobile-bar-toggle,body .jluxe-sticky-cta-mode-toggle{backdrop-filter:none;-webkit-backdrop-filter:none;transform:none;will-change:auto;pointer-events:auto;isolation:isolate;background:hsl(var(--surface));}
 }
-
-/* Independent switch surface: normal dock links and icon spacing stay untouched. */
-.jluxe-dock-switch-layer{position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;box-sizing:border-box;margin:0;padding:0;border:0;background:transparent;overflow:visible;pointer-events:none;z-index:167;}
-@supports(height:100dvh){.jluxe-dock-switch-layer{inset-block:0 auto;height:100dvh;}}
-.jluxe-dock-switch-layer::backdrop{background:transparent;pointer-events:none;}
-.jluxe-dock-switch-layer>.jluxe-mobile-bar-toggle,.jluxe-dock-switch-layer>.jluxe-sticky-cta-mode-toggle{pointer-events:auto;}
-html[data-jluxe-mobile-drawer] .jluxe-dock-switch-layer{visibility:hidden;pointer-events:none;}

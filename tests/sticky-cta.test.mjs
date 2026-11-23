@@ -53,12 +53,12 @@ test("R38 sticky CTA stays hidden until the real form leaves the viewport", () =
   assert.equal(window.document.body.classList.contains("jluxe-has-sticky-cta"), true);
 });
 
-test("classic product CTA and mobile navigation switch modes without losing the persistent control", () => {
+test("classic product CTA and mobile navigation switch modes without losing the persistent control", async () => {
   const dom = new JSDOM(
     `<!doctype html><html><head><style>
-      [data-jluxe-sticky-cta] { display: none; }
-      body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] [data-jluxe-sticky-cta] { display: flex; }
-      body[data-jluxe-sticky-cta-mode="navigation"] [data-jluxe-sticky-cta] { display: none; }
+      [data-jluxe-sticky-cta] { display: flex; opacity: 1; visibility: visible; pointer-events: auto; }
+      body.jluxe-has-sticky-cta[data-jluxe-sticky-cta-mode="purchase"] .jluxe-mobile-nav { opacity: 0; visibility: hidden; pointer-events: none; }
+      body[data-jluxe-sticky-cta-mode="navigation"] [data-jluxe-sticky-cta] { opacity: 0; visibility: hidden; pointer-events: none; }
     </style></head><body>
       <form class="cart"><button class="single_add_to_cart_button">افزودن</button></form>
       <nav class="jluxe-mobile-nav" data-jluxe-mobile-nav-dock><a href="/">خانه</a></nav>
@@ -106,27 +106,36 @@ test("classic product CTA and mobile navigation switch modes without losing the 
   window.dispatchEvent(new window.Event("scroll"));
   assert.equal(window.document.body.dataset.jluxeStickyCtaMode, "purchase");
   assert.equal(window.getComputedStyle(bar).display, "flex", "purchase mode keeps the WooCommerce CTA visible");
-  assert.equal(nav.hidden, true, "purchase mode temporarily hides the bottom dock without replacing it");
-  assert.equal(window.getComputedStyle(nav).display, "none", "purchase mode yields the bottom dock");
+  assert.equal(nav.hidden, false, "purchase mode keeps the bottom dock in the render tree");
+  assert.equal(nav.hasAttribute("inert"), true, "purchase mode disables navigation hit-testing through inert");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
+  assert.notEqual(window.getComputedStyle(nav).display, "none", "purchase mode does not remove navigation with display:none");
+  assert.equal(window.getComputedStyle(nav).visibility, "hidden");
   assert.equal(toggle.hidden, false);
   assert.equal(toggle.getAttribute("aria-label"), "نمایش منوی موبایل");
   assert.equal(toggle.getAttribute("aria-pressed"), "true");
   assert.equal(toggle.querySelector("[data-jluxe-sticky-cta-mode-label]").textContent, "منو");
-  assert.equal(toggle.style.bottom, "64px", "the persistent switch sits just above the active CTA");
-  assert.equal(window.document.body.style.paddingBottom, "120px", "scroll clearance includes the CTA and its switch control");
+  assert.equal(toggle.style.bottom, "", "the toggle uses CSS positioning instead of scroll-time inline coordinates");
+  const originalPaddingBottom = window.document.body.style.paddingBottom;
 
   toggle.click();
   assert.equal(window.document.body.dataset.jluxeStickyCtaMode, "navigation");
   assert.equal(toggle.getAttribute("aria-label"), "نمایش نوار خرید");
   assert.equal(toggle.getAttribute("aria-pressed"), "false");
   assert.equal(toggle.querySelector("[data-jluxe-sticky-cta-mode-label]").textContent, "خرید");
-  assert.equal(toggle.style.bottom, "76px", "the switch follows the mobile dock when navigation is active");
-  assert.equal(window.getComputedStyle(bar).display, "none", "navigation mode yields the purchase bar");
-  assert.equal(nav.hidden, false, "navigation mode restores the dock's original hidden state");
-  assert.equal(originallyHiddenNav.hidden, true, "switching modes preserves another dock's preexisting hidden state");
+  assert.equal(toggle.style.bottom, "", "the switch stays on the CSS dock-height formula");
+  assert.equal(window.getComputedStyle(bar).display, "flex", "navigation mode keeps the CTA rendered but non-interactive");
+  assert.equal(window.getComputedStyle(bar).visibility, "hidden");
+  assert.equal(nav.hidden, false, "navigation mode restores the dock");
+  assert.equal(nav.hasAttribute("inert"), false);
+  assert.equal(nav.hasAttribute("aria-hidden"), false);
+  assert.equal(originallyHiddenNav.hidden, true, "navigation mode restores the dock's original hidden state");
+  assert.equal(originallyHiddenNav.hasAttribute("inert"), false);
+  assert.equal(originallyHiddenNav.getAttribute("aria-hidden"), "true", "navigation mode restores the dock's original aria-hidden value");
   assert.equal(window.getComputedStyle(nav).display, "block", "navigation mode restores the bottom dock");
-  assert.equal(window.document.body.style.paddingBottom, "132px", "scroll clearance includes only the active dock and its switch control");
+  assert.equal(window.document.body.style.paddingBottom, originalPaddingBottom, "switching does not change body padding");
 
+  await new Promise((resolve) => window.setTimeout(resolve, 90));
   toggle.click();
   assert.equal(window.document.body.dataset.jluxeStickyCtaMode, "purchase");
   assert.equal(toggle.getAttribute("aria-pressed"), "true");
@@ -243,23 +252,29 @@ test("sticky switch stays above the CTA's resting edge and scroll hysteresis pre
   page.scroll();
   assert.equal(page.bar.classList.contains("is-visible"), true);
   assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "purchase");
-  assert.equal(page.nav.hidden, true);
+  assert.equal(page.nav.hidden, false);
+  assert.equal(page.nav.hasAttribute("inert"), true);
+  assert.equal(page.nav.getAttribute("aria-hidden"), "true");
   assert.equal(page.toggle.hidden, false);
-  assert.equal(page.toggle.style.bottom, "88px", "the switch follows the CTA's resting position in layout-viewport coordinates rather than its slide-in transform");
+  assert.equal(page.toggle.style.bottom, "", "the switch uses the stable CSS formula rather than scroll-time coordinates");
+  assert.equal(page.window.document.body.style.getPropertyValue("--jluxe-active-dock-height"), "80px");
   assert.equal(
     page.toggle.style.getPropertyValue("inset-inline-start"),
     "max(12px, env(safe-area-inset-right, 0px))",
     "the switch occupies the opposite logical corner from the AI assistant",
   );
-  assert.equal(page.window.document.body.style.paddingBottom, "144px", "only the active dock and switch reserve page clearance");
+  assert.equal(page.window.document.body.style.paddingBottom, "", "clearance is authored as a fixed CSS value, not changed during scroll");
 
   page.formBottom = 610;
   page.scroll();
   assert.equal(page.bar.classList.contains("is-visible"), true, "small scroll reversals inside the hysteresis band do not flicker");
   page.toggle.click();
   assert.equal(page.nav.hidden, false);
+  assert.equal(page.nav.hasAttribute("inert"), false);
+  assert.equal(page.nav.hasAttribute("aria-hidden"), false);
   assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "navigation");
-  assert.equal(page.toggle.style.bottom, "78px", "the switch moves above the measured nav dock");
+  assert.equal(page.toggle.style.bottom, "", "the switch bottom remains CSS-controlled");
+  assert.equal(page.window.document.body.style.getPropertyValue("--jluxe-active-dock-height"), "76px");
 
   page.formBottom = 650;
   page.scroll();
@@ -279,7 +294,8 @@ test("reference sticky CTA can remain available from initial mobile page load", 
   assert.equal(page.bar.classList.contains("is-visible"), true);
   assert.equal(page.window.document.body.classList.contains("jluxe-has-sticky-cta"), true);
   assert.equal(page.window.document.body.getAttribute("data-jluxe-sticky-cta-mode"), "purchase");
-  assert.equal(page.nav.hidden, true);
+  assert.equal(page.nav.hidden, false);
+  assert.equal(page.nav.hasAttribute("inert"), true);
   assert.equal(page.toggle.hidden, false);
   page.dom.window.close();
 });

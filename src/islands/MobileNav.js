@@ -53,6 +53,9 @@ function MobileNav() {
   const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
+  const isSingleProduct =
+    typeof document !== "undefined" &&
+    document.body?.classList.contains("single-product");
   const loggedIn = useAuthStatus();
   const pressProps = useNavPress();
   const [activeDrawer, setActiveDrawer] = React.useState(() =>
@@ -147,12 +150,12 @@ function MobileNav() {
   return jsx.jsx("nav", {
     className: "jluxe-mobile-nav fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
     style: {
-      backgroundColor: colors.background,
+      backgroundColor: isSingleProduct ? "hsl(var(--surface))" : colors.background,
       borderRadius: `${colors.radius}px`,
       boxShadow: shadow,
       color: colors.icon,
-      backdropFilter: style.blur === false ? "none" : "blur(14px)",
-      WebkitBackdropFilter: style.blur === false ? "none" : "blur(14px)",
+      backdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
+      WebkitBackdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
       ...mobileNavContainerStyle(colors.height),
     },
     "aria-label": "ناوبری موبایل",

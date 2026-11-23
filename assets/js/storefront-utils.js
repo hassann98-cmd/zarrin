@@ -1,6 +1,7 @@
 /* Shared with React and the non-module WooCommerce/tracking scripts. */
 (function (root) {
   'use strict';
+  if (root.JLuxeStorefrontUtils) return;
   // Shared JSON transport for React and classic account/tracking scripts.
   // Covers response parsing too. Timeout/abort never implies server rollback.
   function requestJson(url, options, timeoutMs) {
@@ -121,102 +122,14 @@
       condenseUpdate();
     }
   } catch (e) { /* هدرِ حاضر نبود = هیچ. */ }
-  /** Keep a dock switch outside transformed product wrappers and own its tap,
-   * including compatibility clicks retargeted after the dock changes shape. */
+  /** Keep fixed dock controls outside transformed product wrappers without
+   * intercepting native pointer, touch, or click events. */
   function protectDockSwitch(button, bar) {
     if (!button || button.dataset.jluxeSwitchProtected) return;
     button.dataset.jluxeSwitchProtected = '1';
-    var doc = button.ownerDocument, win = doc.defaultView;
-    var layer=doc.querySelector('[data-jluxe-switch-layer]');
-    if(!layer){
-      layer=doc.createElement('div');layer.className='jluxe-dock-switch-layer';layer.setAttribute('data-jluxe-switch-layer','');doc.body.appendChild(layer);
-      if(typeof layer.showPopover==='function'){
-        layer.setAttribute('popover','manual');
-        function revealLayer(){try{if(!layer.matches(':popover-open'))layer.showPopover();}catch(_){layer.removeAttribute('popover');}}
-        revealLayer();win.addEventListener('pageshow',revealLayer);
-      }
-    }
-    layer.appendChild(button);
+    var doc = button.ownerDocument;
     if (bar) doc.body.appendChild(bar);
-    var gesture = null;
-    win.addEventListener('keydown', function(event){if(!button.contains(event.target))gesture=null;}, true);
-    function blocked() { return doc.documentElement.hasAttribute('data-jluxe-mobile-drawer'); }
-
-    function stop(event) { event.preventDefault(); event.stopImmediatePropagation(); }
-    win.addEventListener('pointerdown', function (event) {
-      // Own only events actually hit-tested onto this control. Bounding-box
-      // fallbacks can steal neighboring cart/account taps after a dock reflows.
-      if (!button.contains(event.target) || event.isPrimary === false || event.button > 0) { gesture = null; return; }
-      if (blocked()) { stop(event); return; }
-      gesture = { pointerId:event.pointerId, x: event.clientX, y: event.clientY, time: Date.now(), done: false, moved: false };
-      if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (error) {} }
-      stop(event);
-    }, true);
-    function releasePointerCapture(event) {
-      if (event.pointerId === undefined || !button.releasePointerCapture) return;
-      try {
-        if (!button.hasPointerCapture || button.hasPointerCapture(event.pointerId)) {
-          button.releasePointerCapture(event.pointerId);
-        }
-      } catch (_) { /* The browser may already have implicitly released it. */ }
-    }
-    win.addEventListener('pointermove', function (event) {
-      if (gesture && gesture.pointerId===event.pointerId && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 16) gesture.moved = true;
-    }, true);
-    win.addEventListener('pointercancel', function (event) {
-      if (!gesture || gesture.pointerId !== event.pointerId) return;
-      gesture.moved = true;
-      releasePointerCapture(event);
-      gesture = null;
-    }, true);
-    // Complete on pointerup before layout changes can retarget the compatibility click.
-    win.addEventListener('pointerup', function (event) {
-      if (!gesture || gesture.done || gesture.pointerId!==event.pointerId) return;
-      var shouldActivate = !gesture.moved && !blocked();
-      gesture.done = true;
-      stop(event);
-      // Do not leave implicit capture latched on this floating switch; that can
-      // retarget subsequent cart/account taps to the switch on mobile browsers.
-      releasePointerCapture(event);
-      if (shouldActivate) button.click();
-    }, true);
-    // Older touch-only browsers need the same ownership, including delegated touch handlers.
-    if (!win.PointerEvent) {
-      win.addEventListener('touchstart', function (event) {
-        if (!button.contains(event.target)) { gesture = null; return; }
-        if (blocked()) { stop(event); return; }
-        var touch = event.touches[0];
-        gesture = { x: touch.clientX, y: touch.clientY, time: Date.now(), done: false, moved: false };
-        event.stopImmediatePropagation();
-      }, { capture: true, passive: false });
-      win.addEventListener('touchmove', function () { if (gesture) gesture.moved = true; }, { capture: true, passive: true });
-      win.addEventListener('touchend', function (event) {
-        if (!gesture) return;
-        stop(event);
-        if (!gesture.done && !gesture.moved && !blocked()) { gesture.done = true; button.click(); }
-      }, { capture: true, passive: false });
-      win.addEventListener('touchcancel', function () { if (gesture) gesture.moved = true; }, true);
-    }
-    win.addEventListener('click', function (event) {
-      var direct = button.contains(event.target);
-      if (direct && blocked()) { stop(event); gesture = null; return; }
-      // Match only the compatibility click belonging to this recent pointer
-      // sequence. In particular, a completed switch never blankets nearby
-      // navigation: a retargeted click more than 28px away is a real tap.
-      var age = gesture ? Date.now() - gesture.time : Infinity;
-      var distance = gesture ? Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) : Infinity;
-      var recent = gesture && age >= 0 && age <= 450 && event.detail > 0 && (direct || distance <= 28);
-      if (!recent) {
-        if (gesture && (age > 450 || (!direct && distance > 28))) gesture = null;
-        return;
-      }
-      var completed = gesture.done;
-      var moved = gesture.moved;
-      gesture = null; // Consume ownership immediately; never poison the next tap.
-      if (completed || moved || blocked()) { stop(event); return; }
-      if (!direct) { stop(event); button.click(); }
-    }, true);
-
+    doc.body.appendChild(button);
   }
   root.JLuxeStorefrontUtils = Object.freeze({ protectDockSwitch: protectDockSwitch, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));

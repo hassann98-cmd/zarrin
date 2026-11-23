@@ -24,7 +24,6 @@
 
 	var navSelector = '#bottom-navigation, .jluxe-mobile-nav';
 	var navHiddenStates = new WeakMap();
-	var navGap = 10;
 	var resizeObserver = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver( layout ) : null;
 	var observedElements = new WeakSet();
 
@@ -69,11 +68,21 @@
 			var candidate = candidates[ index ];
 			if ( shouldHideNavigation ) {
 				if ( ! navHiddenStates.has( candidate ) ) {
-					navHiddenStates.set( candidate, candidate.hidden );
+					navHiddenStates.set( candidate, {
+						hidden: candidate.hidden,
+						inert: candidate.hasAttribute( 'inert' ),
+						ariaHidden: candidate.getAttribute( 'aria-hidden' )
+					} );
 				}
-				candidate.hidden = true;
+				candidate.inert = true;
+				candidate.setAttribute( 'inert', '' );
+				candidate.setAttribute( 'aria-hidden', 'true' );
 			} else if ( navHiddenStates.has( candidate ) ) {
-				candidate.hidden = navHiddenStates.get( candidate );
+				var original = navHiddenStates.get( candidate );
+				candidate.inert = original.inert;
+				if ( original.inert ) { candidate.setAttribute( 'inert', '' ); } else { candidate.removeAttribute( 'inert' ); }
+				if ( null === original.ariaHidden ) { candidate.removeAttribute( 'aria-hidden' ); } else { candidate.setAttribute( 'aria-hidden', original.ariaHidden ); }
+				candidate.hidden = original.hidden;
 				navHiddenStates.delete( candidate );
 			}
 		}
@@ -82,8 +91,11 @@
 	function hasUsableNavigation( candidates ) {
 		for ( var index = 0; index < candidates.length; index++ ) {
 			var candidate = candidates[ index ];
-			var originallyHidden = navHiddenStates.has( candidate ) ? navHiddenStates.get( candidate ) : candidate.hidden;
-			if ( ! originallyHidden ) {
+			var original = navHiddenStates.get( candidate );
+			var originallyHidden = original ? original.hidden : candidate.hidden;
+			var originallyInert = original ? original.inert : candidate.hasAttribute( 'inert' );
+			var originalAriaHidden = original ? original.ariaHidden : candidate.getAttribute( 'aria-hidden' );
+			if ( ! originallyHidden && ! originallyInert && 'true' !== originalAriaHidden ) {
 				return true;
 			}
 		}
@@ -115,8 +127,9 @@
 		var target = realButton && ! realButton.disabled ? realButton : null;
 		for ( var index = 0; ! target && index < navCandidates.length; index++ ) {
 			var navigation = navCandidates[ index ];
-			var navigationWasHidden = navHiddenStates.has( navigation ) ? navHiddenStates.get( navigation ) : navigation.hidden;
-			if ( ! navigationWasHidden ) {
+			var original = navHiddenStates.get( navigation );
+			var wasHidden = original ? original.hidden : navigation.hidden;
+			if ( ! wasHidden ) {
 				target = navigation.querySelector( 'a, button, [tabindex]:not([tabindex="-1"])' );
 			}
 		}
@@ -125,7 +138,7 @@
 		}
 	}
 
-	function syncModeToggle( viewportH, dockTop, navCandidates ) {
+	function syncModeToggle( navCandidates ) {
 		if ( ! modeToggle ) {
 			return;
 		}
@@ -135,30 +148,6 @@
 			focusAfterToggleHides( navCandidates );
 			modeToggle.hidden = true;
 			return;
-		}
-
-		var anchorTop = null;
-		if ( 'purchase' === activeMode ) {
-			/* getBoundingClientRect().top follows the CTA's slide-in transform; derive
-			 * its resting edge from the fixed bottom inset and intrinsic height instead. */
-			var barRect = bar.getBoundingClientRect();
-			var barHeight = bar.offsetHeight || barRect.height;
-			var barBottom = parseFloat( bar.style.bottom );
-			if ( ! isFinite( barBottom ) ) {
-				barBottom = 0;
-			}
-			if ( barHeight > 0 ) {
-				anchorTop = viewportH - barBottom - barHeight;
-			}
-		}
-		if ( null === anchorTop && null !== dockTop ) {
-			anchorTop = dockTop;
-		}
-		if ( null !== anchorTop ) {
-			var toggleBottom = Math.max( 0, Math.ceil( viewportH - anchorTop + 8 ) ) + 'px';
-			if ( modeToggle.style.bottom !== toggleBottom ) {
-				modeToggle.style.bottom = toggleBottom;
-			}
 		}
 		modeToggle.hidden = false;
 	}
@@ -180,62 +169,31 @@
 		}
 	}
 
-	/*
-	 * وقتی نوار خرید فعال است، dock به‌طور موقت پنهان می‌شود؛ در حالتِ منو
-	 * نوار خرید کنار می‌رود. جابه‌جاییِ سوئیچر همیشه از لبهٔ واقعیِ نوارِ فعال
-	 * اندازه‌گیری می‌شود، نه از ارتفاع‌هایِ فرضیِ منوهای مختلف.
-	 */
+	/* A single stable page clearance prevents mode switches from changing document height. */
+	function updateActiveDockHeight( navCandidates ) {
+		var activeHeight = 76;
+		if ( 'purchase' === activeMode && bar.classList.contains( 'is-visible' ) ) {
+			activeHeight = bar.offsetHeight || bar.getBoundingClientRect().height || activeHeight;
+		} else {
+			for ( var index = 0; index < navCandidates.length; index++ ) {
+				var candidate = navCandidates[ index ];
+				var style = window.getComputedStyle( candidate );
+				if ( ! candidate.hidden && ! candidate.hasAttribute( 'inert' ) && style.display !== 'none' && style.visibility !== 'hidden' ) {
+					activeHeight = Math.max( activeHeight, candidate.offsetHeight || candidate.getBoundingClientRect().height || 0 );
+				}
+			}
+		}
+		var heightValue = Math.ceil( activeHeight ) + 'px';
+		if ( body.style.getPropertyValue( '--jluxe-active-dock-height' ) !== heightValue ) {
+			body.style.setProperty( '--jluxe-active-dock-height', heightValue );
+		}
+	}
+
 	function layout() {
-		var viewportH = viewportHeight();
 		syncNavigationVisibility();
 		var navCandidates = body.ownerDocument.querySelectorAll( navSelector );
-		var dockTop = null;
-		for ( var navIndex = 0; navIndex < navCandidates.length; navIndex++ ) {
-			var candidate = navCandidates[ navIndex ];
-			var candidateRect = candidate.getBoundingClientRect();
-			var candidateStyle = window.getComputedStyle( candidate );
-			if (
-				candidateRect.height > 0 &&
-				candidateRect.bottom > 0 &&
-				candidateRect.top < viewportH &&
-				candidateStyle.display !== 'none' &&
-				candidateStyle.visibility !== 'hidden'
-			) {
-				dockTop = null === dockTop ? candidateRect.top : Math.min( dockTop, candidateRect.top );
-			}
-		}
-
-		var hasDock = null !== dockTop;
-		var navSpace = hasDock ? Math.max( 0, viewportH - dockTop ) : 0;
-		var gap = hasDock ? navGap : 0;
-		var bottom = navSpace + gap;
-		if ( hasDock ) {
-			bar.setAttribute( 'data-jluxe-bottom-dock', '' );
-		} else {
-			bar.removeAttribute( 'data-jluxe-bottom-dock' );
-		}
-		if ( bar.style.bottom !== bottom + 'px' ) {
-			bar.style.bottom = bottom + 'px';
-		}
-
-		syncModeToggle( viewportH, dockTop, navCandidates );
-		if ( bar.classList.contains( 'is-visible' ) ) {
-			var toggleClearance = modeToggle && ! modeToggle.hidden ? Math.max( modeToggle.offsetHeight || 0, 44 ) + 8 : 0;
-			var activeDockSpace = navSpace;
-			if ( 'purchase' === activeMode ) {
-				var purchaseBottom = parseFloat( bar.style.bottom );
-				if ( ! isFinite( purchaseBottom ) ) {
-					purchaseBottom = 0;
-				}
-				activeDockSpace = ( bar.offsetHeight || bar.getBoundingClientRect().height || 0 ) + purchaseBottom;
-			}
-			var pageClearance = Math.ceil( activeDockSpace + toggleClearance + 12 ) + 'px';
-			if ( body.style.paddingBottom !== pageClearance ) {
-				body.style.paddingBottom = pageClearance;
-			}
-		} else if ( '' !== body.style.paddingBottom ) {
-			body.style.paddingBottom = '';
-		}
+		syncModeToggle( navCandidates );
+		updateActiveDockHeight( navCandidates );
 		observeDockGeometry();
 	}
 
@@ -244,7 +202,6 @@
 		if ( ! isMobileViewport() ) {
 			bar.classList.remove( 'is-visible' );
 			body.classList.remove( 'jluxe-has-sticky-cta' );
-			body.style.paddingBottom = '';
 			setMode( 'navigation' );
 			layout();
 			return;
@@ -294,21 +251,21 @@
 	} );
 
 	if ( modeToggle ) {
-		window.addEventListener( 'click', function ( event ) {
-			if ( ! event.target.closest || event.target.closest( '[data-jluxe-sticky-cta-mode-toggle]' ) !== modeToggle ) { return; }
-			event.preventDefault();
-			event.stopImmediatePropagation();
+		var lastModeToggleClick = 0;
+		modeToggle.addEventListener( 'click', function () {
+			var now = Date.now();
+			if ( now - lastModeToggleClick < 80 ) { return; }
+			lastModeToggleClick = now;
 			if ( ! bar.classList.contains( 'is-visible' ) || ! isMobileViewport() ) {
 				return;
 			}
 			modeManuallySelected = true;
 			setMode( 'purchase' === activeMode ? 'navigation' : 'purchase' );
 			layout();
-		}, true );
+		} );
 	}
 
 	window.addEventListener( 'scroll', onScroll, { passive: true } );
-	window.addEventListener( 'scroll', scheduleLayout, { passive: true } );
 	window.addEventListener( 'resize', onScroll, { passive: true } );
 	window.addEventListener( 'resize', scheduleLayout, { passive: true } );
 	window.addEventListener( 'orientationchange', scheduleLayout, { passive: true } );
@@ -316,7 +273,6 @@
 	if ( window.visualViewport ) {
 		window.visualViewport.addEventListener( 'resize', onScroll, { passive: true } );
 		window.visualViewport.addEventListener( 'resize', scheduleLayout, { passive: true } );
-		window.visualViewport.addEventListener( 'scroll', scheduleLayout, { passive: true } );
 	}
 
 	/* React/افزونه ممکن است dock را بعد از اجرای اسکریپت به DOM اضافه کند. */

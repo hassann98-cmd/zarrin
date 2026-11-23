@@ -64,6 +64,9 @@ function FloatingMobileNav() {
   const settings = getThemeSettings();
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
+  const isSingleProduct =
+    typeof document !== "undefined" &&
+    document.body?.classList.contains("single-product");
   const urls = settings.urls ?? {};
   const homeHref = siteLink(urls.home || "/", urls);
   const loggedIn = useAuthStatus();
@@ -189,12 +192,12 @@ function FloatingMobileNav() {
   return jsx.jsx("nav", {
     className: "jluxe-mobile-nav jluxe-mobile-nav--floating fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
     style: {
-      backgroundColor: colors.background,
+      backgroundColor: isSingleProduct ? "hsl(var(--surface))" : colors.background,
       borderRadius: `${radius}px`,
       boxShadow: shadow,
       color: colors.icon,
-      backdropFilter: style.blur === false ? "none" : "blur(14px)",
-      WebkitBackdropFilter: style.blur === false ? "none" : "blur(14px)",
+      backdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
+      WebkitBackdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
     },
     "aria-label": "ناوبری پایین موبایل",
     "data-jluxe-mobile-nav-dock": "",

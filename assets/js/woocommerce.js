@@ -4289,6 +4289,30 @@ function jluxeEnhanceShopSort(root) {
 	var addBtn = priceBar.querySelector("[data-jluxe-mobile-bar-add]");
 	var yieldedBottomNavigation = [];
 
+	function isPriceBarActive() {
+		return priceBar.getAttribute("data-jluxe-mobile-bar-mode") === "purchase";
+	}
+
+	var originalPriceBarState = {
+		inert: priceBar.hasAttribute("inert"),
+		ariaHidden: priceBar.getAttribute("aria-hidden"),
+	};
+
+	function setPriceBarActive(active) {
+		priceBar.setAttribute("data-jluxe-mobile-bar-mode", active ? "purchase" : "inactive");
+		if (active) {
+			if (originalPriceBarState.inert) { priceBar.setAttribute("inert", ""); }
+			else { priceBar.removeAttribute("inert"); }
+			priceBar.inert = originalPriceBarState.inert;
+			if (null === originalPriceBarState.ariaHidden) { priceBar.removeAttribute("aria-hidden"); }
+			else { priceBar.setAttribute("aria-hidden", originalPriceBarState.ariaHidden); }
+		} else {
+			priceBar.inert = true;
+			priceBar.setAttribute("inert", "");
+			priceBar.setAttribute("aria-hidden", "true");
+		}
+	}
+
 	function bottomNavigationStateIndex(dock) {
 		for (var stateIndex = 0; stateIndex < yieldedBottomNavigation.length; stateIndex++) {
 			if (yieldedBottomNavigation[stateIndex].dock === dock) { return stateIndex; }
@@ -4297,7 +4321,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function setBottomNavigationYielded(yielded) {
-		var docks = document.querySelectorAll("#bottom-navigation");
+		var docks = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
 		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
 			var dock = docks[dockIndex];
 			var dockStateIndex = bottomNavigationStateIndex(dock);
@@ -4305,30 +4329,32 @@ function jluxeEnhanceShopSort(root) {
 				if (-1 === dockStateIndex) {
 					var dockStyle = window.getComputedStyle(dock);
 					var mobileViewport = window.innerWidth < 768;
-					var available = !dock.hidden && !dock.classList.contains("hidden") && dock.style.display !== "none" && dock.getAttribute("aria-hidden") !== "true" && !dock.hasAttribute("inert") && !!dock.querySelector("a[href], button, [role='link'], [role='button']") && (!mobileViewport || (dockStyle.display !== "none" && dockStyle.visibility !== "hidden"));
+					var available = !dock.hidden && dock.getAttribute("aria-hidden") !== "true" && !dock.hasAttribute("inert") && !!dock.querySelector("a[href], button, [role='link'], [role='button']") && (!mobileViewport || (dockStyle.display !== "none" && dockStyle.visibility !== "hidden"));
 					yieldedBottomNavigation.push({
 						dock: dock,
 						hidden: dock.hidden,
-						ariaHidden: dock.getAttribute("aria-hidden"),
 						inert: dock.hasAttribute("inert"),
+						ariaHidden: dock.getAttribute("aria-hidden"),
 						available: available,
 						availabilityAttribute: dock.getAttribute("data-jluxe-mobile-bar-available"),
 					});
 					dock.setAttribute("data-jluxe-mobile-bar-available", available ? "true" : "false");
 				}
-				dock.setAttribute("data-jluxe-mobile-bar-yielded", "");
-				dock.hidden = true;
-				dock.setAttribute("aria-hidden", "true");
-				dock.setAttribute("inert", "");
+			dock.setAttribute("data-jluxe-mobile-bar-yielded", "");
+			dock.inert = true;
+			dock.setAttribute("inert", "");
+			dock.setAttribute("aria-hidden", "true");
 				continue;
 			}
 			if (-1 === dockStateIndex) { continue; }
 			var original = yieldedBottomNavigation[dockStateIndex];
 			dock.removeAttribute("data-jluxe-mobile-bar-yielded");
 			dock.hidden = original.hidden;
+			dock.inert = original.inert;
+			if (original.inert) { dock.setAttribute("inert", ""); }
+			else { dock.removeAttribute("inert"); }
 			if (null === original.ariaHidden) { dock.removeAttribute("aria-hidden"); }
 			else { dock.setAttribute("aria-hidden", original.ariaHidden); }
-			if (!original.inert) { dock.removeAttribute("inert"); }
 			if (null === original.availabilityAttribute) { dock.removeAttribute("data-jluxe-mobile-bar-available"); }
 			else { dock.setAttribute("data-jluxe-mobile-bar-available", original.availabilityAttribute); }
 			yieldedBottomNavigation.splice(dockStateIndex, 1);
@@ -4336,7 +4362,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function hasAvailableBottomNavigation() {
-		var docks = document.querySelectorAll("#bottom-navigation");
+		var docks = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
 		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
 			var dock = docks[dockIndex];
 			var stateIndex = bottomNavigationStateIndex(dock);
@@ -4355,7 +4381,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function dispatchMobileBarMode() {
-		var priceBarVisible = !priceBar.classList.contains("hidden");
+		var priceBarVisible = isPriceBarActive();
 		priceBar.setAttribute("data-jluxe-mobile-bar-ready", "true");
 		window.dispatchEvent(new CustomEvent("jluxe:toggle-mobile-bar", {
 			detail: {
@@ -4420,73 +4446,39 @@ function jluxeEnhanceShopSort(root) {
 		}
 	});
 
-	function viewportHeight() {
-		/* Keep position:fixed offsets in the same layout-viewport coordinate
-		 * space as getBoundingClientRect(), even when the keyboard resizes the
-		 * visual viewport. */
-		return window.innerHeight || document.documentElement.clientHeight || 0;
-	}
-
-	function positionToggleAwayFromAssistant() {
-		var assistant = window.JLuxeThemeSettings && window.JLuxeThemeSettings.aiAssistant;
-		var assistantSide = assistant && assistant.position === "start" ? "start" : "end";
-		var toggleSide = assistantSide === "start" ? "end" : "start";
-		var direction = window.getComputedStyle(document.documentElement).direction || document.documentElement.dir || "ltr";
-		var rtl = direction === "rtl";
-		var safeStartSide = rtl ? "right" : "left";
-		var safeEndSide = rtl ? "left" : "right";
-		toggleBtn.style.setProperty(
-			"inset-inline-start",
-			toggleSide === "start" ? `max(12px, env(safe-area-inset-${safeStartSide}, 0px))` : "auto",
-		);
-		toggleBtn.style.setProperty(
-			"inset-inline-end",
-			toggleSide === "end" ? `max(12px, env(safe-area-inset-${safeEndSide}, 0px))` : "auto",
-		);
-	}
-
-	function positionToggle() {
-		positionToggleAwayFromAssistant();
-		var viewportH = viewportHeight();
-		var activeTop = null;
-		if (!priceBar.classList.contains("hidden")) {
-			var priceRect = priceBar.getBoundingClientRect();
-			if (priceRect.height > 0) { activeTop = priceRect.top; }
-		} else {
+	function updateActiveDockHeight() {
+		var activeDock = isPriceBarActive() ? priceBar : null;
+		if (!activeDock) {
 			var navCandidates = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
 			for (var navIndex = 0; navIndex < navCandidates.length; navIndex++) {
-				var nav = navCandidates[navIndex];
-				var navRect = nav.getBoundingClientRect();
-				var navStyle = window.getComputedStyle(nav);
-				if (!nav.hidden && navRect.height > 0 && navRect.bottom > 0 && navRect.top < viewportH && navStyle.display !== "none" && navStyle.visibility !== "hidden") {
-					activeTop = null === activeTop ? navRect.top : Math.min(activeTop, navRect.top);
+				var candidate = navCandidates[navIndex];
+				var style = window.getComputedStyle(candidate);
+				if (!candidate.hidden && !candidate.hasAttribute("inert") && style.display !== "none" && style.visibility !== "hidden") {
+					activeDock = candidate;
+					break;
 				}
 			}
 		}
-		if (null !== activeTop) {
-			var bottom = Math.max(0, Math.ceil(viewportH - activeTop + 8)) + "px";
-			if (toggleBtn.style.bottom !== bottom) { toggleBtn.style.bottom = bottom; }
+		var height = activeDock ? (activeDock.offsetHeight || activeDock.getBoundingClientRect().height || 76) : 76;
+		var value = Math.ceil(height) + "px";
+		if (document.body.style.getPropertyValue("--jluxe-active-dock-height") !== value) {
+			document.body.style.setProperty("--jluxe-active-dock-height", value);
 		}
 	}
 
-	var positionFramePending = false;
 	function schedulePositionToggle() {
-		if (positionFramePending) { return; }
-		positionFramePending = true;
-		var update = function () {
-			positionFramePending = false;
-			positionToggle();
-		};
-		if (typeof window.requestAnimationFrame === "function") {
-			window.requestAnimationFrame(update);
-		} else {
-			window.setTimeout(update, 0);
-		}
+		updateActiveDockHeight();
 	}
-	priceBar.addEventListener("transitionend", schedulePositionToggle);
+
+	var dockResizeObserver = typeof window.ResizeObserver === "function" ? new window.ResizeObserver(schedulePositionToggle) : null;
+	if (dockResizeObserver) {
+		dockResizeObserver.observe(priceBar);
+		var observedNav = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
+		for (var observedIndex = 0; observedIndex < observedNav.length; observedIndex++) { dockResizeObserver.observe(observedNav[observedIndex]); }
+	}
 
 	function syncToggleState() {
-		var priceMode = !priceBar.classList.contains("hidden");
+		var priceMode = isPriceBarActive();
 		toggleBtn.setAttribute("aria-pressed", priceMode ? "true" : "false");
 		toggleBtn.setAttribute("aria-label", priceMode ? "نمایش منوی موبایل" : "نمایش نوار خرید");
 		var icons = toggleBtn.querySelectorAll("[data-jluxe-mobile-bar-mode-icon]");
@@ -4494,48 +4486,40 @@ function jluxeEnhanceShopSort(root) {
 			icons[iconIndex].hidden = icons[iconIndex].getAttribute("data-jluxe-mobile-bar-mode-icon") !== (priceMode ? "menu" : "purchase");
 		}
 		setBottomNavigationYielded(priceMode);
-		positionToggle();
+		schedulePositionToggle();
 	}
 
-	priceBar.classList.remove("hidden");
+	setPriceBarActive(true);
 	syncToggleState();
 	dispatchMobileBarMode();
 
-	function switchMobileBar(event) {
-		event.preventDefault();
-		event.stopImmediatePropagation();
-		priceBar.classList.toggle("hidden");
+	var lastModeClick = 0;
+	toggleBtn.addEventListener("click", function () {
+		var now = Date.now();
+		if (now - lastModeClick < 80) { return; }
+		lastModeClick = now;
+		setPriceBarActive(!isPriceBarActive());
 		syncToggleState();
 		dispatchMobileBarMode();
-		if (typeof window.requestAnimationFrame === "function") { window.requestAnimationFrame(positionToggle); }
-		window.setTimeout(positionToggle, 0);
-	}
-	// Capture before delegated cart handlers; keep the entire pointer gesture on the switch.
-	window.addEventListener('click', function (event) {
-		var target = event.target && event.target.closest ? event.target.closest('[data-jluxe-mobile-bar-toggle]') : null;
-		if (target === toggleBtn) { switchMobileBar(event); }
-	}, true);
+	});
 
 	window.addEventListener("resize", schedulePositionToggle, { passive: true });
 	window.addEventListener("orientationchange", schedulePositionToggle, { passive: true });
 	window.addEventListener("pageshow", schedulePositionToggle, { passive: true });
-	window.addEventListener("scroll", schedulePositionToggle, { passive: true });
 	if (window.visualViewport) {
 		window.visualViewport.addEventListener("resize", schedulePositionToggle, { passive: true });
-		window.visualViewport.addEventListener("scroll", schedulePositionToggle, { passive: true });
 	}
 	if (typeof window.MutationObserver === "function" && document.body) {
 		var navObserver = new window.MutationObserver(function (mutations) {
 			for (var mutationIndex = 0; mutationIndex < mutations.length; mutationIndex++) {
-				var changedNodes = Array.prototype.slice.call(mutations[mutationIndex].addedNodes).concat(
-					Array.prototype.slice.call(mutations[mutationIndex].removedNodes)
-				);
+				var changedNodes = Array.prototype.slice.call(mutations[mutationIndex].addedNodes).concat(Array.prototype.slice.call(mutations[mutationIndex].removedNodes));
 				for (var nodeIndex = 0; nodeIndex < changedNodes.length; nodeIndex++) {
 					var node = changedNodes[nodeIndex];
 					if (1 === node.nodeType && (node.matches("#bottom-navigation, .jluxe-mobile-nav") || node.querySelector("#bottom-navigation, .jluxe-mobile-nav"))) {
-						setBottomNavigationYielded(!priceBar.classList.contains("hidden"));
+						if (dockResizeObserver) { dockResizeObserver.observe(node.matches("#bottom-navigation, .jluxe-mobile-nav") ? node : node.querySelector("#bottom-navigation, .jluxe-mobile-nav")); }
+						setBottomNavigationYielded(isPriceBarActive());
 						dispatchMobileBarMode();
-						positionToggle();
+						schedulePositionToggle();
 						return;
 					}
 				}
@@ -4543,6 +4527,8 @@ function jluxeEnhanceShopSort(root) {
 		});
 		navObserver.observe(document.body, { childList: true, subtree: true });
 	}
+
+
 })();
 
 /**

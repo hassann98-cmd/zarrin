@@ -1,8 +1,8 @@
 /**
  * Read the mobile product-page dock from its authoritative DOM state.
  * The server-rendered bar is the initial purchase mode until its controller
- * marks the bar ready; after that, its `hidden` class reflects the last mode
- * even when React hydration missed the change event.
+ * marks the bar ready; after that, its explicit mode attribute remains
+ * authoritative even when React hydration missed the change event.
  */
 function getDocumentReference(documentRef) {
   if (documentRef) return documentRef;
@@ -14,6 +14,9 @@ export function getMobilePriceBarVisible(documentRef) {
   if (!documentRef || typeof documentRef.querySelector !== "function") return false;
   const priceBar = documentRef.querySelector("[data-jluxe-mobile-price-bar]");
   if (!priceBar) return false;
+  const mode = priceBar.getAttribute("data-jluxe-mobile-bar-mode");
+  if (mode === "purchase") return true;
+  if (mode === "inactive") return false;
   if (priceBar.getAttribute("data-jluxe-mobile-bar-ready") !== "true") return true;
   return !priceBar.classList.contains("hidden");
 }

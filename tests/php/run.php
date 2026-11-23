@@ -2413,8 +2413,8 @@ $smooth=strpos($css,'html { scroll-behavior: smooth; }');
 $guard=strpos($css,'prefers-reduced-motion: no-preference');
 check($smooth!==false && $guard!==false && $smooth>$guard, 'R43 smooth scrolling is motion-guarded');
 $sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
-check(strpos($sticky_js,'.jluxe-mobile-nav')!==false && strpos($sticky_js,'style.bottom')!==false, 'R40 the sticky bar measures the bottom nav and docks above it, never on top');
-check(strpos($sticky_js,"'#bottom-navigation, .jluxe-mobile-nav'")!==false && strpos($sticky_js,'Math.min( dockTop, candidateRect.top )')!==false && strpos($sticky_js,'var navGap = 10;')!==false && strpos($sticky_js,'data-jluxe-bottom-dock')!==false && strpos($sticky_js,'MutationObserver')!==false, 'R115 the sticky CTA measures the topmost visible dock, keeps a 10px gap, reflows when React mounts the nav, and respects dock safe-area ownership');
+check(strpos($sticky_js,'.jluxe-mobile-nav')!==false && strpos($sticky_js,"bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px)")===false && strpos($sticky_js,'style.bottom')===false, 'R40 sticky navigation/purchase mode uses a stable CSS dock offset, never scroll-time inline positioning');
+check(strpos($sticky_js,"var navSelector = '#bottom-navigation, .jluxe-mobile-nav'")!==false && strpos($sticky_js,'candidate.setAttribute( \'inert\', \'\' )')!==false && strpos($sticky_js,'ResizeObserver')!==false && strpos($sticky_js,'window.addEventListener( \'orientationchange\', scheduleLayout')!==false && strpos($sticky_js,'data-jluxe-bottom-dock')===false, 'R115 the sticky CTA yields navigation accessibly and only remeasures on dock resize or orientation changes');
 check(strpos($css,'.jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }')!==false && strpos($css,'padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px))')!==false, 'R115 the CTA only consumes the device safe area when no bottom dock is present, avoiding a duplicated inset');
 $r112_nav_css = (string) file_get_contents( ABSPATH . 'style.css' );
 check(

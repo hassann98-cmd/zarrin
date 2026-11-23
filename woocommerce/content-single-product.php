@@ -463,7 +463,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		<svg data-jluxe-mobile-bar-mode-icon="menu" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 		<svg data-jluxe-mobile-bar-mode-icon="purchase" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.4 12.1a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/></svg>
 	</button>
-	<div id="jluxe-mobile-price-bar" class="jluxe-mobile-price-bar fixed inset-x-0 bottom-0 hidden md:hidden" data-jluxe-mobile-price-bar>
+	<div id="jluxe-mobile-price-bar" class="jluxe-mobile-price-bar fixed inset-x-0 bottom-0 md:hidden" data-jluxe-mobile-price-bar data-jluxe-mobile-bar-mode="purchase">
 		<div class="m-2" style="margin-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
 			<div class="jluxe-mobile-price-card flex items-center gap-1.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl">
 				<div class="min-w-0 flex-1">

@@ -64,11 +64,15 @@ test("R115 purchase mode yields both supplied and native bottom docks instead of
     { ".jluxe-mobile-nav": { top: 732, height: 68 }, "#bottom-navigation": { top: 714, height: 76 } },
   );
 
-  assert.equal(bar.style.bottom, "0px", "the purchase CTA occupies the viewport edge after both docks yield");
+  assert.equal(bar.style.bottom, "", "purchase CTA bottom is CSS-fixed at zero");
   assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
-  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
-  assert.equal(dom.window.document.querySelector("#bottom-navigation").hidden, true);
-  assert.equal(body.style.paddingBottom, "68px", "page clearance follows the single active CTA");
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hasAttribute("inert"), true);
+  assert.equal(dom.window.document.querySelector("#bottom-navigation").hidden, false);
+  assert.equal(dom.window.document.querySelector("#bottom-navigation").hasAttribute("inert"), true);
+  assert.equal(body.style.paddingBottom, "", "page clearance remains a stable CSS value");
+  assert.match(storefrontStyles, /\.jluxe-sticky-cta\s*\{[\s\S]*?bottom:\s*0;/);
+  assert.match(storefrontStyles, /body\.jluxe-has-sticky-cta\s*\{\s*padding-bottom:\s*calc\(10rem \+ env\(safe-area-inset-bottom, 0px\)\)/);
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
@@ -79,10 +83,11 @@ test("R115 purchase mode hides the native mobile dock and removes its safe-area 
     { ".jluxe-mobile-nav": { top: 732, height: 68 } },
   );
 
-  assert.equal(bar.style.bottom, "0px");
+  assert.equal(bar.style.bottom, "");
   assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
-  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
-  assert.equal(body.style.paddingBottom, "68px");
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hasAttribute("inert"), true);
+  assert.equal(body.style.paddingBottom, "");
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
@@ -97,7 +102,7 @@ test("R115 a mobile menu mounted after startup yields immediately to an active p
   const bar = window.document.querySelector("[data-jluxe-sticky-cta]");
   Object.defineProperty(bar, "offsetHeight", { configurable: true, value: 56 });
   window.eval(stickySource);
-  assert.equal(bar.style.bottom, "0px");
+  assert.equal(bar.style.bottom, "");
 
   const nav = window.document.createElement("nav");
   nav.className = "jluxe-mobile-nav";
@@ -108,9 +113,11 @@ test("R115 a mobile menu mounted after startup yields immediately to an active p
   window.document.body.append(nav);
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 
-  assert.equal(nav.hidden, true, "the newly mounted dock follows the already active purchase mode");
-  assert.equal(bar.style.bottom, "0px");
-  assert.equal(window.document.body.style.paddingBottom, "68px");
+  assert.equal(nav.hidden, false, "the newly mounted dock remains in the render tree");
+  assert.equal(nav.hasAttribute("inert"), true, "a newly mounted dock follows the active purchase mode");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
+  assert.equal(bar.style.bottom, "");
+  assert.equal(window.document.body.style.paddingBottom, "");
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 });
 
