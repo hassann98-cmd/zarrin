@@ -90,8 +90,8 @@ test("brand campaign styles implement per-campaign contrast, responsive Digikala
   assert.match(homepage, /transition:background-color \.5s cubic-bezier\(\.61,1,\.88,1\),color \.5s cubic-bezier\(\.61,1,\.88,1\)/);
   assert.match(homepage, /border:1px solid hsl\(var\(--border\)\)/);
   assert.match(homepage, /border-radius:16px/);
-  assert.match(homepage, /padding:0 16px 24px/);
-  assert.match(homepage, /padding:0 12px 16px/);
+  assert.match(homepage, /width:min\(calc\(100% - 32px\),1288px\);max-width:none;min-width:0;margin:20px auto 24px;padding:0 0 24px/);
+  assert.match(homepage, /\.jluxe-brand-campaigns\{width:100%;margin:20px auto 24px;padding:0 0 16px/);
   assert.match(homepage, /height:40px;padding:4px 12px/);
   assert.match(homepage, /width:32px;height:32px;flex:0 0 32px;border-radius:50%/);
   assert.match(homepage, /gap:12px/);

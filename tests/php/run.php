@@ -810,9 +810,9 @@ $blog_renderer_source = (string) file_get_contents( ABSPATH . 'inc/theme-setting
 $blog_styles_source = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
 	false !== strpos( $blog_renderer_source, 'class="jluxe-home-blog-viewport" role="region"' ) &&
-	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible' ) &&
-	false !== strpos( $blog_renderer_source, 'w-[80vw] shrink-0 flex-col' ) &&
-	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-card' ) &&
+		false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' ) &&
+		false !== strpos( $blog_renderer_source, 'jluxe-home-blog-card group flex flex-col' ) &&
+		false !== strpos( $blog_renderer_source, 'class="block aspect-video overflow-hidden bg-muted"' ) &&
 	false !== strpos( $blog_styles_source, '@media (max-width: 639px)' ) &&
 	false !== strpos( $blog_styles_source, 'overflow-x: auto;' ) &&
 	false !== strpos( $blog_styles_source, 'flex: 0 0 calc(100% - 52px);' ) &&

@@ -27,7 +27,7 @@ test("category, brand, collage, and recommendation surfaces use neutral tokens a
   }
   assert.match(php, /rgba\(15,23,42/);
   assert.doesNotMatch(php, /rgba\(16,0,51/);
-  assert.match(php, /jluxe-category-grid-ref\{box-sizing:border-box;width:100%;max-width:var\(--jluxe-container-max,1320px\)/);
+  assert.match(php, /jluxe-category-grid-ref\{box-sizing:border-box;width:min\(calc\(100% - 32px\),1288px\);max-width:none/);
   assert.match(php, /border-radius:var\(--jluxe-cat-section-radius,20px\)/);
   assert.match(php, /font-size:22px;line-height:1\.25/);
   assert.match(php, /jluxe-category-grid-ref-arrow\.is-prev\{left:8px\}/);
@@ -51,11 +51,11 @@ test("recommended cards show the average rating and variable-product sale discou
 test("product-grid links, banner slider controls, trust icons, blog cards, and admin details are complete", () => {
   assert.match(php, /'sale' === \( \$section\['query'\] \?\? '' \)[\s\S]{0,150}add_query_arg\( 'on_sale', '1'/);
   assert.match(php, /get_term_by\( 'slug', sanitize_title\( \(string\) \$section\['category'\] \), 'product_cat' \)/);
-  assert.match(php, /bg-gradient-to-l from-black\/60 via-black\/25 to-transparent/);
+  assert.match(php, /bg-gradient-to-l from-black\/60 via-black\/10 to-transparent/);
   assert.match(php, /<button type="button" data-jluxe-bs-dot[\s\S]+aria-label="رفتن به اسلاید/);
   assert.match(php, /\$trust_icon = ! empty\( \$card\['svg'\] \)/);
   assert.match(php, /data-jluxe-story-cta/);
-  assert.match(php, /jluxe-home-blog-scroller jluxe-scroll-x/);
+  assert.match(php, /jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3/);
   assert.match(php, /<details class="jluxe-hb-campaign-details"[\s\S]+0 === \$ci \? 'open'/);
   assert.match(php, /<details class="jluxe-hb-collage-slot-details"[\s\S]+0 === \$bc \? 'open'/);
 });

@@ -1239,7 +1239,7 @@ function jluxe_render_homepage_sections(): void {
 	.jluxe-home-section .jluxe-home-card:hover,.jluxe-home-section .jluxe-home-panel:hover{transform:translateY(-2px);}
 	.jluxe-home-section .jluxe-home-media{transition:transform .42s cubic-bezier(.2,.7,.2,1),filter .25s ease;}
 	.jluxe-home-section .jluxe-home-card:hover .jluxe-home-media{transform:scale(1.03);}
-	@media(max-width:639px){.jluxe-home-section{width:calc(100% - 24px);margin:20px auto;}}
+	@media(max-width:639px){.jluxe-home-section{margin:20px auto;}}
 	@media(prefers-reduced-motion:reduce){.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel,.jluxe-home-section .jluxe-home-media{transition:none!important;transform:none!important;}}
 	</style>
 	<?php
@@ -1605,7 +1605,7 @@ function jluxe_render_homepage_section_header( string $title, string $url, strin
 		return;
 	}
 	$heading_color = $inverse ? 'text-white' : 'text-foreground';
-	$action_style  = $inverse ? 'border-white/50 text-white' : 'border-border text-foreground';
+	$action_style  = $inverse ? 'border-white/40 text-white' : 'border-border text-foreground';
 	?>
 	<div class="jluxe-home-section-heading mb-4 flex items-center justify-between gap-3">
 		<div class="min-w-0">
@@ -2281,7 +2281,7 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	.jluxe-category-showcase-row{display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:12px;overflow-x:auto;overflow-y:hidden;padding:2px 42px 8px;scroll-behavior:smooth;scrollbar-width:none}
 	.jluxe-category-showcase-row::-webkit-scrollbar{display:none}.jluxe-category-showcase-row.is-centered{justify-content:center}.jluxe-category-showcase-row.is-overflowing{justify-content:flex-start}
 	.jluxe-category-showcase-card{box-sizing:border-box;display:flex!important;flex:0 0 152px;flex-direction:column;align-items:center;justify-content:flex-start;width:152px;min-width:0;padding:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;text-align:center!important;text-decoration:none!important;overflow:visible}
-	.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 120px;align-items:center;justify-content:center;width:120px!important;height:120px!important;overflow:hidden;border:var(--jluxe-showcase-image-frame-width,0px) solid var(--jluxe-showcase-image-frame-color,transparent);border-radius:var(--jluxe-showcase-image-radius,0px)!important;background:hsl(var(--surface))!important;padding:0!important}
+	.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 120px;align-items:center;justify-content:center;width:120px!important;height:120px!important;overflow:hidden;border:var(--jluxe-showcase-image-frame-width,0px) solid var(--jluxe-showcase-image-frame-color,transparent);border-radius:var(--jluxe-showcase-image-radius,0px)!important;background:transparent!important;padding:0!important}
 	.jluxe-category-showcase-image img{display:block!important;flex:0 0 auto;width:100%!important;height:100%!important;max-width:100%;max-height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:inherit!important;object-fit:contain!important;box-shadow:none!important}
 	.jluxe-category-showcase-name{display:block!important;width:100%;margin-top:8px;padding:0 3px;font-size:13px!important;line-height:1.65!important;font-weight:600!important;color:var(--jluxe-showcase-card-text,#1F2937)!important;white-space:normal;overflow-wrap:anywhere}
 	.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-next]{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:inherit!important}
@@ -2420,11 +2420,11 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	</section>
 	<?php if ( ! $printed ) : $printed = true; ?><style>
 	/* Keep the category group centered when it fits; JS switches overflow rows back to a safe scroll start. */
-	.jluxe-category-grid-ref{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;background:transparent;border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-section-radius,20px);color:hsl(var(--foreground));padding:40px 16px 0;display:flex;flex-direction:column;justify-content:center;overflow:visible}
+	.jluxe-category-grid-ref{box-sizing:border-box;width:min(calc(100% - 32px),1288px);max-width:none;margin:24px auto;background:transparent;border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-section-radius,20px);color:hsl(var(--foreground));padding:40px 16px 0;display:flex;flex-direction:column;justify-content:center;overflow:visible}
 	.jluxe-category-grid-ref-head{padding:0 16px}.jluxe-category-grid-ref-heading{display:flex;align-items:center;justify-content:flex-start;gap:16px;color:hsl(var(--foreground))}.jluxe-category-grid-ref-icon{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;background:hsl(var(--surface));border:1px solid hsl(var(--border));border-radius:12px;color:hsl(var(--primary));font-size:22px;line-height:1}.jluxe-category-grid-ref-title-wrap{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}.jluxe-category-grid-ref-title-wrap h2{margin:0 0 0 32px;font-size:22px;line-height:1.25;letter-spacing:-.065em;font-weight:800;color:hsl(var(--foreground))}.jluxe-category-grid-ref-all{font-size:12px;line-height:1.5;color:hsl(var(--text-muted));text-decoration:none;letter-spacing:-.02em}
 	.jluxe-category-grid-ref-carousel{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;width:100%;overflow:visible}.jluxe-category-grid-ref-scroll{display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:visible;scrollbar-width:none;scroll-behavior:smooth;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-scroll.is-centered{justify-content:var(--jluxe-cat-cards-justify)}.jluxe-category-grid-ref-scroll.is-overflowing{justify-content:flex-start}.jluxe-category-grid-ref-scroll::-webkit-scrollbar{display:none}.jluxe-category-grid-ref-scroll.is-grid{display:flex!important;flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-item{display:block;flex:0 0 var(--jluxe-cat-card-width);width:var(--jluxe-cat-card-width);text-decoration:none;color:inherit;cursor:pointer}.jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{width:var(--jluxe-cat-card-width);min-width:var(--jluxe-cat-card-width);flex:0 0 var(--jluxe-cat-card-width)}.jluxe-category-grid-ref-card{box-sizing:border-box;display:flex;flex-direction:column;gap:14px;align-items:var(--jluxe-cat-align);justify-content:center;width:var(--jluxe-cat-card-width);height:var(--jluxe-cat-card-height);background:hsl(var(--surface));border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-card-radius);overflow:visible;box-shadow:var(--jluxe-cat-shadow);transition:transform .24s cubic-bezier(.2,.7,.2,1),border-color .2s ease,box-shadow .24s ease}.jluxe-category-grid-ref-item.is-lift:hover .jluxe-category-grid-ref-card{transform:translateY(-3px);border-color:hsl(var(--primary) / .28)}.jluxe-category-grid-ref-image{display:flex;align-items:center;justify-content:center;width:var(--jluxe-cat-image-size);height:var(--jluxe-cat-image-size);flex:0 0 var(--jluxe-cat-image-size);overflow:hidden;background:var(--jluxe-cat-image-bg);border-radius:var(--jluxe-cat-image-radius)}.jluxe-category-grid-ref-image img{display:block;width:100%;height:100%;object-fit:contain;border:0!important;outline:0!important;box-shadow:none!important;border-radius:inherit;transition:transform .42s cubic-bezier(.2,.7,.2,1);transform-origin:center}.jluxe-category-grid-ref-image img.is-zoom{transform:scale(1)}.jluxe-category-grid-ref-item:hover .jluxe-category-grid-ref-image img.is-zoom{transform:scale(1.045)}.jluxe-category-grid-ref-name{display:block;width:calc(100% - 16px);font-size:13px;line-height:1.55;text-align:var(--jluxe-cat-text-align);color:hsl(var(--foreground));white-space:normal;overflow-wrap:anywhere}
 	.jluxe-category-grid-ref-arrow{display:flex;position:absolute;top:50%;z-index:10;width:38px;height:76px;align-items:center;justify-content:center;transform:translateY(-50%);padding:0 8px;border:0;border-radius:12px;background:rgba(255,255,255,.88);color:hsl(var(--foreground));box-shadow:0 5px 18px rgba(15,23,42,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:background .2s ease,opacity .2s ease}.jluxe-category-grid-ref-arrow:hover{background:#fff}.jluxe-category-grid-ref-arrow.is-prev{left:8px}.jluxe-category-grid-ref-arrow.is-next{right:8px}.jluxe-category-grid-ref-arrow .is-rotated{transform:rotate(180deg)}
-	@media(max-width:767px){.jluxe-category-grid-ref{max-width:none;margin:20px auto;width:100%;padding-inline:12px;border-left:0;border-right:0;border-radius:0;padding-top:32px;padding-bottom:0}.jluxe-category-grid-ref-head{padding:0}.jluxe-category-grid-ref-heading{gap:12px}.jluxe-category-grid-ref-title-wrap h2{font-size:18px;margin-left:0;letter-spacing:-.04em}.jluxe-category-grid-ref-all{font-size:11px}.jluxe-category-grid-ref-scroll{gap:8px;padding:32px 40px}.jluxe-category-grid-ref-item{flex-basis:120px;width:120px}.jluxe-category-grid-ref-card{width:120px;height:116px;gap:10px;border-radius:var(--jluxe-cat-card-radius,20px)}.jluxe-category-grid-ref-image{width:min(var(--jluxe-cat-image-size),60px);height:min(var(--jluxe-cat-image-size),60px);flex-basis:min(var(--jluxe-cat-image-size),60px)}.jluxe-category-grid-ref-name{font-size:12px;width:calc(100% - 10px)}.jluxe-category-grid-ref-arrow{top:50%;width:34px;height:48px;border-radius:12px}.jluxe-category-grid-ref-arrow.is-prev{left:4px}.jluxe-category-grid-ref-arrow.is-next{right:4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll{display:flex!important;flex-wrap:wrap;justify-content:var(--jluxe-cat-cards-justify);gap:8px;overflow:visible;padding:12px 6px 20px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-item,.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{flex:0 0 var(--jluxe-cat-mobile-card-width);width:var(--jluxe-cat-mobile-card-width);min-width:0}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-card{width:100%;height:auto;min-height:100px;gap:8px;padding:8px 4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-image{width:var(--jluxe-cat-mobile-image-size);height:var(--jluxe-cat-mobile-image-size);min-width:0;flex-basis:var(--jluxe-cat-mobile-image-size)}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-name{width:100%;font-size:clamp(10px,3vw,12px);line-height:1.45}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-arrow{display:none}}
+	@media(max-width:767px){.jluxe-category-grid-ref{max-width:none;margin:20px auto;width:100%;padding-inline:0;border-left:0;border-right:0;border-radius:0;padding-top:32px;padding-bottom:0}.jluxe-category-grid-ref-head{padding:0}.jluxe-category-grid-ref-heading{gap:12px}.jluxe-category-grid-ref-title-wrap h2{font-size:18px;margin-left:0;letter-spacing:-.04em}.jluxe-category-grid-ref-all{font-size:11px}.jluxe-category-grid-ref-scroll{gap:8px;padding:32px 40px}.jluxe-category-grid-ref-item{flex-basis:120px;width:120px}.jluxe-category-grid-ref-card{width:120px;height:116px;gap:10px;border-radius:var(--jluxe-cat-card-radius,20px)}.jluxe-category-grid-ref-image{width:min(var(--jluxe-cat-image-size),60px);height:min(var(--jluxe-cat-image-size),60px);flex-basis:min(var(--jluxe-cat-image-size),60px)}.jluxe-category-grid-ref-name{font-size:12px;width:calc(100% - 10px)}.jluxe-category-grid-ref-arrow{top:50%;width:34px;height:48px;border-radius:12px}.jluxe-category-grid-ref-arrow.is-prev{left:4px}.jluxe-category-grid-ref-arrow.is-next{right:4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll{display:flex!important;flex-wrap:wrap;justify-content:var(--jluxe-cat-cards-justify);gap:8px;overflow:visible;padding:12px 6px 20px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-item,.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{flex:0 0 var(--jluxe-cat-mobile-card-width);width:var(--jluxe-cat-mobile-card-width);min-width:0}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-card{width:100%;height:auto;min-height:100px;gap:8px;padding:8px 4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-image{width:var(--jluxe-cat-mobile-image-size);height:var(--jluxe-cat-mobile-image-size);min-width:0;flex-basis:var(--jluxe-cat-mobile-image-size)}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-name{width:100%;font-size:clamp(10px,3vw,12px);line-height:1.45}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-arrow{display:none}}
 	@media(prefers-reduced-motion:reduce){.jluxe-category-grid-ref-card,.jluxe-category-grid-ref-image img{transition:none!important}}
 	</style><?php endif; ?>
 	<?php
@@ -2607,7 +2607,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	</section>
 	<?php if ( ! $printed ) : $printed = true; ?>
 	<style>
-	.jluxe-brand-campaigns{--bvc-primary:hsl(var(--primary));box-sizing:border-box;display:flex;flex-direction:column;width:100%;max-width:1320px;min-width:0;margin:20px auto 24px;padding:0 16px 24px;border:1px solid hsl(var(--border));border-radius:16px;background-color:var(--bvc-active-bg,var(--bvc-background,#7E0820));color:var(--bvc-fg,#ECEDEF);box-shadow:0 2px 8px -2px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);overflow:hidden;transition:background-color .5s cubic-bezier(.61,1,.88,1),color .5s cubic-bezier(.61,1,.88,1)}
+	.jluxe-brand-campaigns{--bvc-primary:hsl(var(--primary));box-sizing:border-box;display:flex;flex-direction:column;width:min(calc(100% - 32px),1288px);max-width:none;min-width:0;margin:20px auto 24px;padding:0 0 24px;border:1px solid hsl(var(--border));border-radius:16px;background-color:var(--bvc-active-bg,var(--bvc-background,#7E0820));color:var(--bvc-fg,#ECEDEF);box-shadow:0 2px 8px -2px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);overflow:hidden;transition:background-color .5s cubic-bezier(.61,1,.88,1),color .5s cubic-bezier(.61,1,.88,1)}
 	.jluxe-bvc-header{display:flex;align-items:center;gap:16px;min-width:0;padding:12px 16px 0}
 	.jluxe-bvc-heading{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
 	.jluxe-bvc-header h2{margin:0;overflow:hidden;color:var(--bvc-fg,#ECEDEF);font-size:14px;font-weight:700;line-height:1.5;text-overflow:ellipsis;white-space:nowrap}
@@ -2657,7 +2657,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{animation:jluxe-bvc-card-in 380ms cubic-bezier(.61,1,.88,1) both;animation-delay:calc(var(--bvc-index,0)*18ms)}
 	@keyframes jluxe-bvc-media-in{from{opacity:0;transform:scale(.975)}to{opacity:1;transform:scale(1)}}
 	@keyframes jluxe-bvc-card-in{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
-	@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px auto 24px;padding:0 12px 16px;border:0;border-radius:0;box-shadow:none}.jluxe-bvc-header{align-items:center;flex-direction:row;gap:8px;padding:12px 0 0}.jluxe-bvc-heading{flex:0 0 auto;justify-content:flex-start}.jluxe-bvc-header h2{display:none}.jluxe-bvc-tabs{width:auto;gap:6px}.jluxe-bvc-tab{height:40px;padding:4px 10px;font-size:11px}.jluxe-bvc-tab-link{width:44px;height:44px;min-width:44px;min-height:44px}.jluxe-bvc-products-rail{margin-top:8px}.jluxe-bvc-item{height:292px}.jluxe-bvc-item:first-child{margin-inline-start:16px}.jluxe-bvc-item:last-child{margin-inline-end:16px}.jluxe-bvc-media-item{width:clamp(220px,68vw,260px)}.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:148px}.jluxe-bvc-product,.jluxe-bvc-see-all{padding:10px}.jluxe-bvc-products{gap:12px}}
+	@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px auto 24px;padding:0 0 16px;border:0;border-radius:0;box-shadow:none}.jluxe-bvc-header{align-items:center;flex-direction:row;gap:8px;padding:12px 0 0}.jluxe-bvc-heading{flex:0 0 auto;justify-content:flex-start}.jluxe-bvc-header h2{display:none}.jluxe-bvc-tabs{width:auto;gap:6px}.jluxe-bvc-tab{height:40px;padding:4px 10px;font-size:11px}.jluxe-bvc-tab-link{width:44px;height:44px;min-width:44px;min-height:44px}.jluxe-bvc-products-rail{margin-top:8px}.jluxe-bvc-item{height:292px}.jluxe-bvc-item:first-child{margin-inline-start:16px}.jluxe-bvc-item:last-child{margin-inline-end:16px}.jluxe-bvc-media-item{width:clamp(220px,68vw,260px)}.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:148px}.jluxe-bvc-product,.jluxe-bvc-see-all{padding:10px}.jluxe-bvc-products{gap:12px}}
 	@media(prefers-reduced-motion:reduce){.jluxe-brand-campaigns,.jluxe-bvc-tab,.jluxe-bvc-panel.is-entering .jluxe-bvc-media-content,.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{scroll-behavior:auto!important;transition:none!important;animation:none!important;transform:none!important}}
 	</style>
 	<?php endif;
@@ -2695,7 +2695,7 @@ function jluxe_render_homepage_brand_marquee( array $section ): void {
 		</div>
 	</section>
 	<?php if ( ! $printed ) : $printed = true; ?><style>
-	.jluxe-brand-strip{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding:0 16px;border:1px solid hsl(var(--border));border-radius:16px;background:hsl(var(--surface));overflow:hidden}.jluxe-brand-strip-inner{box-sizing:border-box;width:100%;height:64px;min-height:64px;display:flex;align-items:center;gap:16px;padding:5px 16px}.jluxe-brand-strip-title{flex:0 0 auto;max-width:120px;font-size:11px;font-weight:800;color:#1F2937;white-space:nowrap}.jluxe-brand-strip-viewport{min-width:0;flex:1;overflow:hidden}.jluxe-brand-marquee-track{display:flex;align-items:center;width:max-content;height:54px;animation:jluxe-brand-marquee var(--jluxe-brand-speed) linear infinite}.jluxe-brand-marquee-pause:hover{animation-play-state:paused}.jluxe-brand-strip-item{box-sizing:border-box;width:126px;min-width:126px;height:54px;display:flex;align-items:center;justify-content:center;padding:0 7px}.jluxe-brand-strip-link{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.jluxe-brand-strip-logo{width:96px;height:40px;display:flex;align-items:center;justify-content:center}.jluxe-brand-strip-logo img{display:block;width:auto!important;height:auto!important;max-width:96px!important;max-height:40px!important;object-fit:contain!important;object-position:50% 50%!important;transition:filter .25s ease,opacity .25s ease}.jluxe-brand-strip-logo img.is-gray{filter:grayscale(1);opacity:.62}.jluxe-brand-strip-link:hover img.is-gray{filter:grayscale(0);opacity:1}@keyframes jluxe-brand-marquee{from{transform:translateX(0)}to{transform:translateX(50%)}}@media(prefers-reduced-motion:reduce){.jluxe-brand-marquee-track{animation:none!important}.jluxe-brand-strip-logo img{transition:none!important}}@media(max-width:767px){.jluxe-brand-strip{width:100%;padding-inline:12px;margin:14px auto;border-radius:12px}.jluxe-brand-strip-inner{height:56px;min-height:56px;padding:4px 9px;gap:9px}.jluxe-brand-strip-title{max-width:76px;font-size:9px}.jluxe-brand-marquee-track{height:48px}.jluxe-brand-strip-item{width:102px;min-width:102px;height:48px;padding:0 5px}.jluxe-brand-strip-logo{width:78px;height:32px}.jluxe-brand-strip-logo img{max-width:78px!important;max-height:32px!important}}
+	.jluxe-brand-strip{box-sizing:border-box;width:min(calc(100% - 32px),1288px);max-width:none;margin:24px auto;padding:0 16px;border:1px solid hsl(var(--border));border-radius:16px;background:hsl(var(--surface));overflow:hidden}.jluxe-brand-strip-inner{box-sizing:border-box;width:100%;height:64px;min-height:64px;display:flex;align-items:center;gap:16px;padding:5px 16px}.jluxe-brand-strip-title{flex:0 0 auto;max-width:120px;font-size:11px;font-weight:800;color:#1F2937;white-space:nowrap}.jluxe-brand-strip-viewport{min-width:0;flex:1;overflow:hidden}.jluxe-brand-marquee-track{display:flex;align-items:center;width:max-content;height:54px;animation:jluxe-brand-marquee var(--jluxe-brand-speed) linear infinite}.jluxe-brand-marquee-pause:hover{animation-play-state:paused}.jluxe-brand-strip-item{box-sizing:border-box;width:126px;min-width:126px;height:54px;display:flex;align-items:center;justify-content:center;padding:0 7px}.jluxe-brand-strip-link{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.jluxe-brand-strip-logo{width:96px;height:40px;display:flex;align-items:center;justify-content:center}.jluxe-brand-strip-logo img{display:block;width:auto!important;height:auto!important;max-width:96px!important;max-height:40px!important;object-fit:contain!important;object-position:50% 50%!important;transition:filter .25s ease,opacity .25s ease}.jluxe-brand-strip-logo img.is-gray{filter:grayscale(1);opacity:.62}.jluxe-brand-strip-link:hover img.is-gray{filter:grayscale(0);opacity:1}@keyframes jluxe-brand-marquee{from{transform:translateX(0)}to{transform:translateX(50%)}}@media(prefers-reduced-motion:reduce){.jluxe-brand-marquee-track{animation:none!important}.jluxe-brand-strip-logo img{transition:none!important}}@media(max-width:767px){.jluxe-brand-strip{width:calc(100% - 24px);padding-inline:12px;margin:14px auto;border-radius:12px}.jluxe-brand-strip-inner{height:56px;min-height:56px;padding:4px 9px;gap:9px}.jluxe-brand-strip-title{max-width:76px;font-size:9px}.jluxe-brand-marquee-track{height:48px}.jluxe-brand-strip-item{width:102px;min-width:102px;height:48px;padding:0 5px}.jluxe-brand-strip-logo{width:78px;height:32px}.jluxe-brand-strip-logo img{max-width:78px!important;max-height:32px!important}}
 	</style><?php endif; ?>
 	<?php
 }
@@ -2717,9 +2717,9 @@ function jluxe_render_homepage_blog( array $section ): void {
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-8">
 		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? 'از وبلاگ' ), (string) $blog_url, (string) ( $section['title'] ?? 'وبلاگ' ) ); ?>
 		<div class="jluxe-home-blog-viewport" role="region" aria-label="نوشته‌های وبلاگ">
-			<div class="jluxe-home-blog-scroller jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible">
+			<div class="jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<?php foreach ( $posts as $p ) : ?>
-				<a href="<?php echo esc_url( get_permalink( $p ) ); ?>" class="jluxe-home-card jluxe-home-blog-card group flex w-[80vw] shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md sm:w-[46vw] lg:w-auto lg:shrink">
+				<a href="<?php echo esc_url( get_permalink( $p ) ); ?>" class="jluxe-home-card jluxe-home-blog-card group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md">
 					<span class="block aspect-video overflow-hidden bg-muted">
 						<?php if ( has_post_thumbnail( $p ) ) : ?>
 							<?php echo get_the_post_thumbnail( $p, 'medium_large', array( 'class' => 'size-full object-cover transition-transform duration-300 group-hover:scale-105', 'loading' => 'lazy' ) ); ?>
@@ -2915,7 +2915,19 @@ function jluxe_render_homepage_stories( array $section ): void {
 		return;
 	}
 	$uid = 'stories-' . esc_attr( $section['id'] );
-	?>
+	static $viewer_style_printed = false;
+	if ( ! $viewer_style_printed ) :
+		$viewer_style_printed = true;
+		?>
+		<style>
+		.jluxe-story-viewer{background:rgba(0,0,0,.9)}
+		.jluxe-story-progress{top:16px;background:rgba(255,255,255,.3)}
+		.jluxe-story-close{top:32px;background:rgba(255,255,255,.1)}
+		.jluxe-story-nav{background:rgba(255,255,255,.16);font-size:24px}
+		.jluxe-story-content{padding-top:20px}
+		.jluxe-story-cta{bottom:28px}
+		</style>
+	<?php endif; ?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-5">
 		<div class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto scroll-smooth pb-1" data-jluxe-stories id="<?php echo esc_attr( $uid ); ?>">
 			<?php foreach ( $items as $item ) :
@@ -2961,17 +2973,17 @@ function jluxe_render_homepage_stories( array $section ): void {
 			 * homepage.js) اضافه می‌شن، نه از اول.
 			 */
 			?>
-			<div data-jluxe-story-viewer hidden class="fixed inset-0 z-[999] bg-black/90 p-4">
-				<div class="absolute inset-x-4 top-4 h-1 overflow-hidden rounded-full bg-white/30" role="progressbar" aria-label="پیشرفت استوری" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-jluxe-story-progress><span class="block h-full w-0 bg-white transition-[width] duration-300" data-jluxe-story-progress-fill></span></div>
-				<button type="button" data-jluxe-story-close aria-label="بستن" class="absolute end-4 top-8 grid size-10 place-items-center rounded-full bg-white/10 text-white">
+			<div data-jluxe-story-viewer hidden class="jluxe-story-viewer fixed inset-0 z-[999] p-4">
+				<div class="jluxe-story-progress absolute inset-x-4 h-1 overflow-hidden rounded-full" role="progressbar" aria-label="پیشرفت استوری" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-jluxe-story-progress><span class="block h-full w-0 bg-white transition-[width] duration-300" data-jluxe-story-progress-fill></span></div>
+				<button type="button" data-jluxe-story-close aria-label="بستن" class="jluxe-story-close absolute end-4 grid size-10 place-items-center rounded-full text-white">
 					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
 				</button>
-				<button type="button" data-jluxe-story-prev aria-label="استوری قبلی" class="absolute start-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white">‹</button>
-				<button type="button" data-jluxe-story-next aria-label="استوری بعدی" class="absolute end-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white">›</button>
-				<div class="flex max-w-full flex-col items-center gap-3 pt-5">
+				<button type="button" data-jluxe-story-prev aria-label="استوری قبلی" class="jluxe-story-nav absolute start-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-white">›</button>
+				<button type="button" data-jluxe-story-next aria-label="استوری بعدی" class="jluxe-story-nav absolute end-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-white">‹</button>
+				<div class="jluxe-story-content flex max-w-full flex-col items-center gap-3">
 					<div data-jluxe-story-media></div>
 					<span data-jluxe-story-title class="text-small text-white"></span>
-					<a data-jluxe-story-cta hidden class="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-white px-5 py-2 text-small font-bold text-foreground shadow-lg" href="#"></a>
+					<a data-jluxe-story-cta hidden class="jluxe-story-cta absolute left-1/2 -translate-x-1/2 rounded-full bg-white px-5 py-2 text-small font-bold text-foreground shadow-lg" href="#"></a>
 				</div>
 			</div>
 		</div>
@@ -3421,7 +3433,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 								<img src="<?php echo esc_url( $desktop_image['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $desktop_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"<?php echo 0 === $i ? ' data-no-lazy="1"' : ''; ?> />
 							</picture>
 						<?php if ( ! empty( $item['title'] ) || ! empty( $item['category'] ) || ! empty( $item['description'] ) ) : ?>
-							<span aria-hidden="true" class="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-transparent"></span>
+							<span aria-hidden="true" class="absolute inset-0 bg-gradient-to-l from-black/60 via-black/10 to-transparent"></span>
 							<div class="absolute inset-y-0 start-6 z-10 flex flex-col justify-center gap-1.5 sm:start-10">
 								<?php if ( ! empty( $item['category'] ) ) : ?><span class="text-caption font-medium text-white/80"><?php echo esc_html( $item['category'] ); ?></span><?php endif; ?>
 								<?php if ( ! empty( $item['title'] ) ) : ?><span class="text-h2 font-extrabold text-white"><?php echo esc_html( $item['title'] ); ?></span><?php endif; ?>
@@ -3440,7 +3452,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 				</button>
 				<div class="absolute bottom-3 start-1/2 flex -translate-x-1/2 gap-1.5">
 					<?php foreach ( $slides as $i => $slide ) : ?>
-						<button type="button" data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" aria-label="رفتن به اسلاید <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>" aria-current="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-3 min-w-5 rounded-full bg-white/50 transition-colors data-[active=true]:bg-white"></button>
+						<button type="button" data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" aria-label="رفتن به اسلاید <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>" aria-current="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-3 w-5 rounded-full bg-white/50 transition-colors data-[active=true]:bg-white"></button>
 					<?php endforeach; ?>
 				</div>
 			<?php endif; ?>
@@ -3751,7 +3763,7 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 				$button_link = ! empty( $panel['button_link'] ) ? $panel['button_link'] : ( is_wp_error( $term_link ) ? '' : $term_link );
 				$arrow_style = ! empty( $panel['button_color'] ) ? ' style="background-color:' . esc_attr( $panel['button_color'] ) . '"' : '';
 				?>
-				<div class="jluxe-home-panel snap-start shrink-0 basis-full rounded-3xl bg-surface p-4 shadow-[0_2px_18px_rgba(15,23,42,0.05)] lg:basis-0 lg:flex-1">
+				<div class="jluxe-home-panel snap-start shrink-0 basis-full rounded-3xl bg-surface p-4 shadow-sm lg:basis-0 lg:flex-1" style="box-shadow:0 2px 18px rgba(15,23,42,.05)">
 					<div class="mb-3">
 						<div class="min-w-0 text-right">
 							<h3 class="min-w-0 text-base font-extrabold text-foreground sm:text-lg">
@@ -3924,7 +3936,9 @@ function jluxe_render_homepage_trust( array $section ): void {
 		<?php endif; ?>
 		<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 			<?php foreach ( $cards as $card ) :
-				$trust_icon = ! empty( $card['svg'] ) ? jluxe_sanitize_svg_markup( (string) $card['svg'] ) : jluxe_nav_icon_svg( (string) ( $card['icon'] ?? '' ), 'size-5' );
+				$icon_alias = array( 'badge-percent' => 'percent' );
+				$icon_name = (string) ( $card['icon'] ?? '' );
+				$trust_icon = ! empty( $card['svg'] ) ? jluxe_sanitize_svg_markup( (string) $card['svg'] ) : jluxe_nav_icon_svg( $icon_alias[ $icon_name ] ?? $icon_name, 'size-5' );
 				?>
 				<div class="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4 text-center">
 					<span class="grid size-11 place-items-center rounded-xl border border-border bg-muted/40 text-primary" aria-hidden="true"><?php echo $trust_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized via helper. ?></span>
