@@ -830,8 +830,9 @@ $recommended_panels_end = false !== $recommended_panels_start ? strpos( $recomme
 $recommended_panels_renderer = ( false !== $recommended_panels_start && false !== $recommended_panels_end ) ? substr( $recommended_panels_source, $recommended_panels_start, $recommended_panels_end - $recommended_panels_start ) : '';
 check(
 	'' !== $recommended_panels_renderer &&
-	false !== strpos( $recommended_panels_renderer, 'count( $panels ) > 1 ?' ) &&
+	false !== strpos( $recommended_panels_renderer, '$has_multiple_panels = count( $panels ) > 1;' ) &&
 	false !== strpos( $recommended_panels_renderer, 'jluxe-recommended-panels-scroller' ) &&
+	false !== strpos( $recommended_panels_renderer, 'jluxe-recommended-panels-frame--multiple' ) &&
 	false === strpos( $recommended_panels_renderer, 'data-jluxe-peek-hint' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_html( $panel' ) &&
 	false === strpos( $recommended_panels_renderer, 'button_text' ) &&
@@ -844,8 +845,21 @@ check(
 	false !== strpos( $recommended_panels_css, 'justify-content: space-between;' ) &&
 	false !== strpos( $recommended_panels_css, '@media (max-width: 639px)' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-scroller > .jluxe-home-panel' ) &&
+	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-frame--multiple::before' ) &&
+	false !== strpos( $recommended_panels_css, 'linear-gradient(90deg, rgba(15, 23, 42, .16)' ) &&
 	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 40px);' ),
 	'R187 the category heading itself is a descriptive link with a decorative arrow, replacing generic long CTA text and preserving the mobile panel preview'
+);
+$recommended_card_start = strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_card(' );
+$recommended_card_end = false !== $recommended_card_start ? strpos( $recommended_panels_source, 'function jluxe_render_homepage_trust(', $recommended_card_start ) : false;
+$recommended_card_renderer = ( false !== $recommended_card_start && false !== $recommended_card_end ) ? substr( $recommended_panels_source, $recommended_card_start, $recommended_card_end - $recommended_card_start ) : '';
+check(
+	false !== strpos( $recommended_card_renderer, 'jluxe-recommended-card-discount-badge absolute top-0' ) &&
+	false === strpos( $recommended_card_renderer, 'end-0 inline-flex w-fit items-center gap-0.5 rounded-lg bg-primary' ) &&
+	false !== strpos( $recommended_panels_css, '.jluxe-recommended-card-discount-badge' ) &&
+	false !== strpos( $recommended_panels_css, 'inset-inline-start: 0;' ) &&
+	false !== strpos( $recommended_panels_css, 'inset-inline-end: auto;' ),
+	'Recommended-panel discount badge sits at the left opposite the RTL color swatches'
 );
 $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settings-admin.css' );
 check(

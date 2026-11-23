@@ -11492,10 +11492,27 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
   }
 }
 
+/* Keep the sale badge opposite the RTL color swatches (which sit at inline-start/right). */
+.jluxe-recommended-card-discount-badge {
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+}
+
 /* R111: leave a stable slice of the following recommended category panel visible on phones. */
 @media (max-width: 639px) {
   .jluxe-recommended-panels-scroller > .jluxe-home-panel {
     flex-basis: calc(100% - 40px);
+  }
+  .jluxe-recommended-panels-frame--multiple::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 8px;
+    left: 0;
+    width: 18px;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(15, 23, 42, .16), rgba(15, 23, 42, .06) 45%, transparent);
   }
   .jluxe-recommended-card-meta {
     flex-wrap: wrap;

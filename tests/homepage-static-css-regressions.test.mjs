@@ -106,6 +106,11 @@ test("mobile homepage controls resist the global 44px button minimum without los
 test("mobile search, recommendations and product cards get narrow-screen-safe dimensions", () => {
   assert.match(storefrontCss, /\.jluxe-header-search-results--mobile\s*\{[^}]*position:\s*fixed;[^}]*inset-inline:\s*12px;[^}]*top:\s*calc\(var\(--jluxe-product-header-row-height, 72px\) \+ var\(--jluxe-mobile-banner-offset, 0px\) \+ 6px\);[^}]*width:\s*auto;[^}]*max-width:\s*none;[^}]*left:\s*12px;[^}]*right:\s*12px;[^}]*transform:\s*none;/s);
   assert.match(storefrontCss, /\.jluxe-recommended-panels-scroller > \.jluxe-home-panel\s*\{\s*flex-basis:\s*calc\(100% - 40px\);/);
+  assert.match(php, /\$panel_frame_class\s*=\s*\$has_multiple_panels \? ' jluxe-recommended-panels-frame--multiple'/);
+  assert.match(storefrontCss, /\.jluxe-recommended-panels-frame--multiple::before\s*\{[^}]*left:\s*0;[^}]*width:\s*18px;[^}]*pointer-events:\s*none;[^}]*linear-gradient\(90deg/s);
+  assert.ok(mainCss.includes(".jluxe-recommended-panels-frame--multiple:before") || mainCss.includes(".jluxe-recommended-panels-frame--multiple::before"));
+  assert.match(storefrontCss, /\.jluxe-recommended-card-discount-badge\s*\{\s*inset-inline-start:\s*0;\s*inset-inline-end:\s*auto;/);
+  assert.match(mainCss, /\.jluxe-recommended-card-discount-badge\{inset-inline:0 auto\}/);
   assert.match(storefrontCss, /\.jluxe-recommended-card-meta\s*\{\s*flex-wrap:\s*wrap;\s*gap:\s*4px;/);
   assert.match(storefrontCss, /\.jluxe-recommended-card-price\s*\{\s*font-size:\s*13px/);
   assert.match(storefrontCss, /\.jluxe-recommended-card-currency\s*\{\s*width:\s*15px;\s*height:\s*12px/);

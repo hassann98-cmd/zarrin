@@ -3742,7 +3742,9 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 	if ( empty( $panels ) ) {
 		return;
 	}
-	$panel_scroller_class = count( $panels ) > 1 ? ' jluxe-recommended-panels-scroller' : '';
+	$has_multiple_panels = count( $panels ) > 1;
+	$panel_scroller_class = $has_multiple_panels ? ' jluxe-recommended-panels-scroller' : '';
+	$panel_frame_class    = $has_multiple_panels ? ' jluxe-recommended-panels-frame--multiple' : '';
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<?php if ( ! empty( $section['title'] ) ) : ?>
@@ -3757,7 +3759,7 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 		 * پنل‌ها مثل قبل هم‌عرض و بدونِ کاروسل‌اند.
 		 */
 		?>
-		<div class="relative">
+		<div class="jluxe-recommended-panels-frame relative<?php echo esc_attr( $panel_frame_class ); ?>">
 			<div data-jluxe-scroller class="jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 lg:overflow-visible lg:snap-none<?php echo esc_attr( $panel_scroller_class ); ?>">
 				<?php foreach ( $panels as $panel ) :
 				$term_link   = get_term_link( $panel['term'] );
@@ -3879,7 +3881,7 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 	<a data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>" class="group relative flex flex-col p-3 sm:p-4 <?php echo esc_attr( implode( ' ', $border_classes ) ); ?>">
 		<div class="relative h-6">
 			<?php if ( $has_discount ) : ?>
-				<span dir="ltr" class="absolute end-0 top-0 inline-flex w-fit items-center gap-0.5 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
+				<span dir="ltr" class="jluxe-recommended-card-discount-badge absolute top-0 inline-flex w-fit items-center gap-0.5 rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">
 					<span><?php echo esc_html( jluxe_fa_digits( $discount_pct ) ); ?></span><span>٪</span>
 				</span>
 			<?php endif; ?>
