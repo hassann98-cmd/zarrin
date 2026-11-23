@@ -15,6 +15,7 @@ define( 'JLUXE_ASSET_DIR', JLUXE_THEME_DIR . '/assets/compiled' );
 define( 'JLUXE_ASSET_URI', JLUXE_THEME_URI . '/assets/compiled' );
 
 require_once JLUXE_THEME_DIR . '/inc/responsive-images.php';
+require_once JLUXE_THEME_DIR . '/inc/theme-upload-overwrite-guard.php';
 
 /**
  * Theme supports.

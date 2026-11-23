@@ -11895,4 +11895,56 @@ $guided_checkout = ABSPATH . 'woocommerce/checkout/form-checkout-guided.php';
 $checkout_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 check( ! is_file( $guided_checkout ) && false !== strpos( $checkout_source, "is_file( __DIR__ . '/form-checkout-guided.php' )" ), 'Missing guided checkout template selects the standard checkout instead of including a nonexistent file' );
 
+// R531: WordPress deletes an uploaded ZIP after a folder_exists result, before its Replace link can reuse the package attachment.
+$upload_guard_old_get = $_GET;
+$upload_guard_old_files = $_FILES;
+$upload_guard_old_globals = array(
+	'jluxe_uploaded_theme_package_id' => $GLOBALS['jluxe_uploaded_theme_package_id'] ?? null,
+	'jluxe_preserve_theme_package_for_overwrite' => $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] ?? null,
+);
+$_GET = array( 'action' => 'upload-theme' );
+$_FILES = array( 'themezip' => array( 'name' => 'zarrin.zip' ) );
+unset( $GLOBALS['jluxe_uploaded_theme_package_id'], $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] );
+jluxe_track_uploaded_theme_package( 731 );
+$upload_guard_folder_error = new WP_Error( 'folder_exists', 'Destination folder already exists.' );
+$upload_guard_hook_extra = array( 'type' => 'theme', 'action' => 'install' );
+check(
+	$upload_guard_folder_error === jluxe_keep_theme_package_for_overwrite( $upload_guard_folder_error, $upload_guard_hook_extra ) &&
+	731 === $GLOBALS['jluxe_uploaded_theme_package_id'] &&
+	! empty( $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] ),
+	'R531 recognizes only the uploaded theme folder-conflict flow and retains its package attachment for the Replace link'
+);
+$upload_guard_attachment = (object) array( 'ID' => 731, 'post_type' => 'attachment', 'post_status' => 'private' );
+check(
+	$upload_guard_attachment === jluxe_preserve_theme_package_attachment( null, $upload_guard_attachment, false ),
+	'R531 short-circuits core deletion for the exact ZIP attachment used by the theme overwrite prompt'
+);
+$upload_guard_other_attachment = (object) array( 'ID' => 732, 'post_type' => 'attachment', 'post_status' => 'private' );
+check(
+	null === jluxe_preserve_theme_package_attachment( null, $upload_guard_other_attachment, false ),
+	'R531 does not interfere with deletion of any unrelated attachment'
+);
+check(
+	$upload_guard_folder_error === jluxe_keep_theme_package_for_overwrite( $upload_guard_folder_error, array( 'type' => 'plugin', 'action' => 'install' ) ),
+	'R531 leaves WordPress plugin uploads and their overwrite flow untouched'
+);
+check(
+	array( 'source' => '/tmp/theme' ) === jluxe_keep_theme_package_for_overwrite( array( 'source' => '/tmp/theme' ), $upload_guard_hook_extra ),
+	'R531 leaves successful theme installs and ordinary cleanup unchanged'
+);
+$_GET['overwrite'] = 'update-theme';
+check(
+	null === jluxe_preserve_theme_package_attachment( null, $upload_guard_attachment, false ),
+	'R531 allows WordPress cleanup to proceed normally on the subsequent Replace request'
+);
+$_GET = $upload_guard_old_get;
+$_FILES = $upload_guard_old_files;
+foreach ( $upload_guard_old_globals as $upload_guard_key => $upload_guard_value ) {
+	if ( null === $upload_guard_value ) {
+		unset( $GLOBALS[ $upload_guard_key ] );
+	} else {
+		$GLOBALS[ $upload_guard_key ] = $upload_guard_value;
+	}
+}
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";
