@@ -102,6 +102,15 @@ test("R212 shared desktop containers never grow past 1462px, including product-w
   assert.match(classicProductTemplate, /class="mx-auto w-full max-w-\[1320px\] px-3 md:px-4 py-2"/);
 });
 
+test("desktop header content stays aligned to the storefront shell rather than stretching full bleed", () => {
+  assert.match(
+    storefrontStyles,
+    /@media \(min-width: 768px\)\s*\{\s*\/\* Keep header content aligned to the 1320px storefront shell; the bar background remains full-bleed\. \*\/\s*#masthead \.jluxe-header-row,\s*#masthead > \.hidden > nav\s*\{\s*box-sizing: border-box;\s*width: 100%;\s*max-width: min\(1320px, 100%\);/,
+  );
+  assert.match(headerTemplate, /mx-auto grid h-\[72px\] max-w-\[1320px\]/);
+  assert.match(headerTemplate, /<nav class="mx-auto flex h-16 max-w-\[1320px\]/);
+});
+
 test("R126 places the logo, editable mobile search, and enabled action controls in order", () => {
   assert.match(headerIsland, /function MobileSearch\(\)/);
   assert.match(headerIsland, /className:\s*"jluxe-header-search-field h-10 w-full rounded-2xl border border-border bg-surface/);

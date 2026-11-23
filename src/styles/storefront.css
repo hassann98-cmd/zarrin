@@ -11805,6 +11805,15 @@ body.jluxe-announcement-ready:has(#masthead .jluxe-header-bar-sticky) {
     grid-template-columns: max-content minmax(0, clamp(460px, 34vw, 500px)) minmax(0, 1fr) max-content max-content;
   }
 }
+@media (min-width: 768px) {
+  /* Keep header content aligned to the 1320px storefront shell; the bar background remains full-bleed. */
+  #masthead .jluxe-header-row,
+  #masthead > .hidden > nav {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: min(1320px, 100%);
+  }
+}
 @media (min-width: 1200px) and (max-width: 1279.98px) {
   #masthead [data-jluxe-header-grid="logo"] {
     max-width: 160px;
