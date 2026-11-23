@@ -78,7 +78,7 @@ test("story viewer positions and translucent surfaces use authored CSS", () => {
     ".jluxe-story-progress{top:16px;background:rgba(255,255,255,.3)}",
     ".jluxe-story-close{top:32px;background:rgba(255,255,255,.1)}",
     ".jluxe-story-nav{background:rgba(255,255,255,.16);font-size:24px}",
-    ".jluxe-story-cta{bottom:28px}",
+    ".jluxe-story-cta{bottom:28px;left:50%}",
   ]) {
     assert.ok(stories.includes(rule), `Missing authored story CSS: ${rule}`);
   }
@@ -98,6 +98,8 @@ test("homepage frame widths, transparent showcase images and trust icon alias st
   assert.match(php, /\.jluxe-category-grid-ref\{[^}]*width:min\(calc\(100% - 32px\),1288px\)/);
   assert.match(php, /\.jluxe-brand-campaigns\{width:100%;[^}]*padding:0 0 16px/);
   assert.match(php, /\.jluxe-brand-strip\{width:calc\(100% - 24px\)/);
+  assert.match(php, /\.jluxe-bvc-header\{align-items:center;flex-direction:row;gap:8px;padding:12px 12px 0\}/);
+  assert.match(php, /\.jluxe-category-grid-ref-head\{padding:0 12px\}/);
   assert.match(php, /\.jluxe-category-grid-ref\{[^}]*width:100%;padding-inline:0/);
   assert.match(php, /\.jluxe-category-showcase-image\{[^}]*background:transparent!important/);
   assert.match(php, /\$icon_alias = array\( 'badge-percent' => 'percent' \)/);
