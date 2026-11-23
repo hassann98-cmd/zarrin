@@ -19,6 +19,10 @@ on:
         description: Existing published release tag to package and backfill (for example v1.7.31)
         required: true
         type: string
+      source_ref:
+        description: Optional branch or commit to package instead of the tag's original source
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -36,7 +40,7 @@ jobs:
       - name: Check out the event's exact source revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
+          ref: ${{ inputs.source_ref || github.event.release.tag_name || inputs.tag || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
