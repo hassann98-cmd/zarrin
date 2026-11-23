@@ -472,3 +472,56 @@ test("unknown-postcode shortcut hides and restores the field while its native ch
   await new Promise((resolve) => window.setTimeout(resolve, 300));
   assert.deepEqual(delivered, ["1111111111", ""]);
 });
+
+test("saved-address selection/editing syncs postcode opt-out, and clearing a new address restores its field", async (t) => {
+  const js = read("assets/js/checkout-login.js");
+  const dom = new JSDOM(
+    '<form class="checkout" data-jluxe-postcode-shortcuts>' +
+      '<select id="billing_state" name="billing_state"><option value="">استان</option><option value="THR">تهران</option></select>' +
+      '<select id="billing_city" name="billing_city"><option value="">شهر</option><option value="1">تهران</option></select>' +
+      '<input id="billing_postcode" name="billing_postcode"><label for="billing_postcode">کد پستی</label>' +
+      '<input type="checkbox" class="jluxe-unknown-postcode-checkbox" id="jluxe-unknown-postcode-billing_postcode" data-jluxe-postcode-target="billing_postcode">' +
+      '<section data-jluxe-address-selector><div data-jluxe-address-list><article data-jluxe-address-card>' +
+        '<input type="radio" checked value="billing" data-jluxe-address-option>' +
+        '<span hidden data-jluxe-address-data></span><button type="button" data-jluxe-address-edit>ویرایش</button>' +
+      '</article></div><button type="button" data-jluxe-address-toggle>آدرس جدید</button>' +
+      '<div data-jluxe-address-form><input data-jluxe-new-field="postcode" id="jluxe-new-address-postcode">' +
+        '<label for="jluxe-new-address-postcode">کد پستی جدید</label>' +
+        '<input type="checkbox" class="jluxe-unknown-postcode-checkbox" id="jluxe-unknown-postcode-jluxe-new-address-postcode" data-jluxe-postcode-target="jluxe-new-address-postcode">' +
+        '<input data-jluxe-new-field="address_1"><input data-jluxe-new-field="landline">' +
+        '<button type="button" data-jluxe-address-close>بستن</button><button type="button" data-jluxe-address-save>ذخیره</button>' +
+        '<p data-jluxe-address-status hidden></p></div></section></form>',
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  const { document } = window;
+  const postcode = "1111111111";
+  document.querySelector("[data-jluxe-address-data]").textContent = JSON.stringify({
+    id: "saved-1", first_name: "الف", last_name: "ب", address_1: "خیابان", postcode,
+    state: "THR", city: "1", country: "IR", phone: "09120000000",
+  });
+  window.eval(js);
+  document.dispatchEvent(new window.Event("DOMContentLoaded"));
+
+  const billingPostcode = document.getElementById("billing_postcode");
+  const billingCheckbox = document.getElementById("jluxe-unknown-postcode-billing_postcode");
+  assert.equal(billingPostcode.value, postcode);
+  assert.equal(billingCheckbox.checked, true, "applying a saved address checks the matching postcode shortcut");
+  assert.equal(billingPostcode.hidden, true);
+
+  const newPostcode = document.getElementById("jluxe-new-address-postcode");
+  const newCheckbox = document.getElementById("jluxe-unknown-postcode-jluxe-new-address-postcode");
+  document.querySelector("[data-jluxe-address-edit]").click();
+  assert.equal(newPostcode.value, postcode);
+  assert.equal(newCheckbox.checked, true, "editing a saved address synchronizes its postcode checkbox");
+  assert.equal(newPostcode.hidden, true);
+  assert.equal(newPostcode.labels[0].hidden, true);
+
+  document.querySelector("[data-jluxe-address-close]").click();
+  document.querySelector("[data-jluxe-address-toggle]").click();
+  assert.equal(newPostcode.value, "");
+  assert.equal(newCheckbox.checked, false, "clearing the new-address form resets its opt-out checkbox");
+  assert.equal(newPostcode.hidden, false, "clearing the new-address form makes postcode visible again");
+  assert.equal(newPostcode.labels[0].hidden, false);
+});

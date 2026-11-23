@@ -100,6 +100,8 @@ test("classic product CTA and mobile navigation switch modes without losing the 
     return originalRemoveAttribute(name);
   };
 
+  const hapticCalls = [];
+  Object.defineProperty(window.navigator, "vibrate", { configurable: true, value: (duration) => hapticCalls.push(duration) });
   window.eval(script());
   assert.equal(toggle.hidden, true, "the switch stays out of the way until the sticky purchase bar is needed");
   formBottom = 100;
@@ -119,6 +121,7 @@ test("classic product CTA and mobile navigation switch modes without losing the 
   const originalPaddingBottom = window.document.body.style.paddingBottom;
 
   toggle.click();
+  assert.deepEqual(hapticCalls, [12], "the visible sticky mode switch invokes the shared haptic helper");
   assert.equal(window.document.body.dataset.jluxeStickyCtaMode, "navigation");
   assert.equal(toggle.getAttribute("aria-label"), "نمایش نوار خرید");
   assert.equal(toggle.getAttribute("aria-pressed"), "false");

@@ -11953,4 +11953,28 @@ foreach ( $upload_guard_old_globals as $upload_guard_key => $upload_guard_value 
 	}
 }
 
+$postcode_guard_query_kind = $GLOBALS['query_kind'] ?? null;
+$GLOBALS['query_kind'] = 'account';
+$postcode_guard_original = '<p id="billing_postcode_field">postcode</p>';
+check(
+	$postcode_guard_original === jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' ),
+	'R533 postcode opt-out is not rendered outside the checkout page, including account address editing'
+);
+$GLOBALS['query_kind'] = 'order_received';
+check(
+	$postcode_guard_original === jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' ),
+	'R533 postcode opt-out is not rendered on the order-received page'
+);
+$GLOBALS['query_kind'] = 'checkout';
+$postcode_guard_checkout_html = jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' );
+check(
+	$postcode_guard_original !== $postcode_guard_checkout_html && false !== strpos( $postcode_guard_checkout_html, 'jluxe-unknown-postcode-checkbox' ),
+	'R533 postcode opt-out is rendered for checkout billing fields'
+);
+if ( null === $postcode_guard_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $postcode_guard_query_kind;
+}
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

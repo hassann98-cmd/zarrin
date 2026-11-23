@@ -61,6 +61,36 @@
     window.setTimeout(setCity, 0);
   }
 
+  function syncUnknownPostcodeFor(input) {
+    if (!input) return;
+    var scope = input.form || document;
+    var checkbox = document.getElementById("jluxe-unknown-postcode-" + input.id);
+    if (!checkbox || !scope.contains(checkbox)) {
+      checkbox = Array.prototype.find.call(scope.querySelectorAll(".jluxe-unknown-postcode-checkbox"), function (candidate) {
+        return candidate.getAttribute("data-jluxe-postcode-target") === input.id;
+      });
+    }
+    if (!checkbox) return;
+    var unknown = String(input.value || "") === "1111111111";
+    checkbox.checked = unknown;
+
+    function setHidden(element, hide) {
+      if (!element) return;
+      if (!element.hasAttribute("data-jluxe-postcode-original-hidden")) {
+        element.setAttribute("data-jluxe-postcode-original-hidden", element.hidden ? "1" : "0");
+      }
+      element.hidden = hide || element.getAttribute("data-jluxe-postcode-original-hidden") === "1";
+    }
+    setHidden(input, unknown);
+
+    var label = input.id && Array.prototype.find.call(scope.querySelectorAll("label[for]"), function (candidate) {
+      return candidate.htmlFor === input.id;
+    });
+    var wrapper = input.closest(".woocommerce-input-wrapper");
+    setHidden(label, unknown);
+    setHidden(wrapper, unknown);
+  }
+
   function applyAddress(address, prefix) {
     if (!address) return;
     setField(prefix + "_first_name", address.first_name);
@@ -75,7 +105,9 @@
       setField(prefix + "_city", address.city);
       setField(prefix + "_state", address.state);
     }
+    var postcodeInput = field(prefix + "_postcode");
     setField(prefix + "_postcode", address.postcode);
+    syncUnknownPostcodeFor(postcodeInput);
     setField(prefix + "_country", address.country);
     if (prefix === "billing") {
       setField("billing_phone", address.phone);
@@ -88,26 +120,11 @@
     if (!form || form.dataset.jluxeUnknownPostcodeBound === "1") return;
     form.dataset.jluxeUnknownPostcodeBound = "1";
 
-    function setHidden(element, hide) {
-      if (!element) return;
-      if (!element.hasAttribute("data-jluxe-postcode-original-hidden")) {
-        element.setAttribute("data-jluxe-postcode-original-hidden", element.hidden ? "1" : "0");
-      }
-      element.hidden = hide || element.getAttribute("data-jluxe-postcode-original-hidden") === "1";
-    }
-
     function applyShortcut(checkbox) {
       var input = field(checkbox.getAttribute("data-jluxe-postcode-target"));
       if (!input || !form.contains(input)) return;
       input.value = checkbox.checked ? "1111111111" : "";
-      setHidden(input, checkbox.checked);
-
-      var label = input.id && Array.prototype.find.call(form.querySelectorAll("label[for]"), function (candidate) {
-        return candidate.htmlFor === input.id;
-      });
-      var wrapper = input.closest(".woocommerce-input-wrapper");
-      setHidden(label, checkbox.checked);
-      setHidden(wrapper, checkbox.checked);
+      syncUnknownPostcodeFor(input);
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
@@ -281,7 +298,10 @@
       var a1 = newField("address_1");
       if (a1) a1.value = address.address_1 || "";
       var pc = newField("postcode");
-      if (pc) pc.value = address.postcode || "";
+      if (pc) {
+        pc.value = address.postcode || "";
+        syncUnknownPostcodeFor(pc);
+      }
       var ll = newField("landline");
       if (ll) ll.value = address.landline || "";
       // استان/شهر از طریق applyStateCity تا cascade درست کار کند.
@@ -392,6 +412,9 @@
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
       });
+      var postcodeCheckbox = field("jluxe-unknown-postcode-jluxe-new-address-postcode");
+      if (postcodeCheckbox) postcodeCheckbox.checked = false;
+      syncUnknownPostcodeFor(newField("postcode"));
       // استان/شهر همیشه خالی شروع می‌شوند تا کاربر مجبور باشد اول استان
       // را انتخاب کند و شهر بعد از آن لود شود؛ هیچ‌وقت از انتخاب قبلی
       // (آدرس ذخیره‌شده یا نشست) کش نمی‌شوند.

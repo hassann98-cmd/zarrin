@@ -29,8 +29,9 @@ test("mobile purchase switch, quantity stepper, gallery long-press and nav chips
   const floatingNav = read("src/islands/FloatingMobileNav.js");
   assert.match(utils, /function jluxeHaptic\(\)[\s\S]*navigator\.vibrate\(12\)/);
   assert.match(utils, /haptic:\s*jluxeHaptic/);
-  assert.match(woo, /function jluxeHaptic\(\)[\s\S]*navigator\.vibrate\(12\)/);
+  assert.match(woo, /function jluxeHaptic\(\)[\s\S]*window\.JLuxeStorefrontUtils\.haptic\(\)/);
   assert.match(woo, /var button = event\.target\.closest\("\[data-jluxe-qty-step\]"\);[\s\S]*?jluxeHaptic\(\);/);
+  assert.match(woo, /var button = event\.target\.closest\("\[data-jluxe-mobile-qty-step\]"\);[\s\S]*?jluxeHaptic\(\);/);
   assert.match(woo, /toggleBtn\.addEventListener\("click", function \(\) \{[\s\S]*?jluxeHaptic\(\);/);
   assert.match(woo, /pressTimer = window\.setTimeout\(function \(\) \{[\s\S]*?jluxeHaptic\(\);[\s\S]*?\}, 480\)/);
   assert.match(navPress, /function jluxeHaptic\(\)[\s\S]*navigator\.vibrate\(12\)/);

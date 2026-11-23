@@ -259,6 +259,7 @@
 			if ( ! bar.classList.contains( 'is-visible' ) || ! isMobileViewport() ) {
 				return;
 			}
+			window.JLuxeStorefrontUtils && window.JLuxeStorefrontUtils.haptic && window.JLuxeStorefrontUtils.haptic();
 			modeManuallySelected = true;
 			setMode( 'purchase' === activeMode ? 'navigation' : 'purchase' );
 			layout();

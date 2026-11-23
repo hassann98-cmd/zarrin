@@ -689,6 +689,9 @@ function jluxe_render_unknown_postcode_checkbox( string $target_id ): string {
 
 /** Append the opt-out directly after either the billing or shipping postcode field. */
 function jluxe_add_unknown_postcode_checkbox( string $field_html, string $key ): string {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) ) {
+		return $field_html;
+	}
 	if ( ! in_array( $key, array( 'billing_postcode', 'shipping_postcode' ), true ) ) {
 		return $field_html;
 	}

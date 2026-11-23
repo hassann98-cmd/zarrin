@@ -19,3 +19,9 @@ test("MiniCart free-shipping progress is calculated from the matching WooCommerc
   assert.match(miniCart, /s\.freeShipping\.achieved \? "text-success"/);
   assert.match(miniCart, /s\.freeShipping\.achieved \? "bg-success"/);
 });
+
+test("MiniCart keeps the free-shipping meter mounted during an in-flight quantity mutation and haptics both steppers", () => {
+  const miniCart = read("../src/islands/MiniCart.js");
+  assert.match(miniCart, /s\.items\.length > 0 && s\.freeShipping && \(!d \|\| quantityPending\)/);
+  assert.equal((miniCart.match(/window\.JLuxeStorefrontUtils\?\.haptic\?\.\(\)/g) || []).length, 2);
+});

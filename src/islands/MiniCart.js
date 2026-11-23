@@ -164,7 +164,7 @@ function J() {
                         ],
                       })
                     : null,
-                  s.items.length > 0 && s.freeShipping && !d
+                  s.items.length > 0 && s.freeShipping && (!d || quantityPending)
                     ? e.jsxs("div", {
                         className:
                           "border-b border-border bg-muted/40 px-4 py-3",
@@ -301,8 +301,10 @@ function J() {
                                                     e.jsx("button", {
                                                       type: "button",
                                                       disabled: d && !quantityPending,
-                                                      onClick: () =>
-                                                        f(t.key, t.qty - 1),
+                                                      onClick: () => {
+                                                        window.JLuxeStorefrontUtils?.haptic?.();
+                                                        f(t.key, t.qty - 1);
+                                                      },
                                                       "aria-label":
                                                         "کاهش تعداد",
                                                       className:
@@ -332,8 +334,10 @@ function J() {
                                                       type: "button",
                                                       disabled:
                                                         (d && !quantityPending) || t.qty >= t.maxQty,
-                                                      onClick: () =>
-                                                        f(t.key, t.qty + 1),
+                                                      onClick: () => {
+                                                        window.JLuxeStorefrontUtils?.haptic?.();
+                                                        f(t.key, t.qty + 1);
+                                                      },
                                                       "aria-label":
                                                         "افزایش تعداد",
                                                       className:

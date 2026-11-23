@@ -378,7 +378,9 @@ function is_product_taxonomy(){return in_array($GLOBALS['query_kind']??'',array(
 function wc_review_ratings_enabled(){return $GLOBALS['ratings_enabled']??true;}
 function wc_review_ratings_required(){return $GLOBALS['ratings_required']??true;}
 function is_cart(){return $GLOBALS['query_kind']==='cart';}
-function is_checkout(){return $GLOBALS['query_kind']==='checkout';}
+function sanitize_html_class($class){return preg_replace('/[^A-Za-z0-9_-]/','',$class);}
+function is_checkout(){return in_array($GLOBALS['query_kind'],array('checkout','order_received'),true);}
+function is_order_received_page(){return $GLOBALS['query_kind']==='order_received';}
 function is_account_page(){return $GLOBALS['query_kind']==='account';}
 function is_author(){return $GLOBALS['query_kind']==='author';}
 function is_date(){return in_array($GLOBALS['query_kind']??'',array('date_year','date_month','date_day'),true);}

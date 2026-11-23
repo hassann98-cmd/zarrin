@@ -1,6 +1,8 @@
 function jluxeHaptic() {
 	try {
-		if (navigator && typeof navigator.vibrate === "function") { navigator.vibrate(12); }
+		if (window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.haptic === "function") {
+			window.JLuxeStorefrontUtils.haptic();
+		}
 	} catch (e) { /* Haptics are optional and must never block the interaction. */ }
 }
 
@@ -4218,6 +4220,7 @@ function jluxeEnhanceShopSort(root) {
 			if (!button || !event.currentTarget.contains(button) || button.disabled) {
 				return;
 			}
+			if (typeof jluxeHaptic === "function") { jluxeHaptic(); }
 			event.preventDefault();
 			var input = quantityInput();
 			if (!isReady(input)) {
@@ -4331,7 +4334,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function setBottomNavigationYielded(yielded) {
-		var docks = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
+		var docks = document.querySelectorAll("#bottom-navigation");
 		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
 			var dock = docks[dockIndex];
 			var dockStateIndex = bottomNavigationStateIndex(dock);
@@ -4372,7 +4375,7 @@ function jluxeEnhanceShopSort(root) {
 	}
 
 	function hasAvailableBottomNavigation() {
-		var docks = document.querySelectorAll("#bottom-navigation, .jluxe-mobile-nav");
+		var docks = document.querySelectorAll("#bottom-navigation");
 		for (var dockIndex = 0; dockIndex < docks.length; dockIndex++) {
 			var dock = docks[dockIndex];
 			var stateIndex = bottomNavigationStateIndex(dock);
