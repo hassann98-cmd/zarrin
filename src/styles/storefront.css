@@ -3289,6 +3289,21 @@ html {
     border-radius: 0.875rem;
   }
 }
+@media (max-width: 639px) {
+  .jluxe-product-card-price {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+  .jluxe-product-card-current-price { font-size: 13px; }
+  .jluxe-product-card-cta {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    flex-basis: 40px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .jluxe-product-card-cta,
   .jluxe-product-card-cta-icon { transition: none; }
@@ -9221,12 +9236,15 @@ body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
   overscroll-behavior-y: auto;
 }
 .jluxe-header-search-results--mobile {
+  position: fixed;
+  inset-inline: 12px;
+  top: calc(var(--jluxe-product-header-row-height, 72px) + var(--jluxe-mobile-banner-offset, 0px) + 6px);
+  width: auto;
+  max-width: none;
+  left: 12px;
+  right: 12px;
+  transform: none;
   max-height: 60vh;
-  width: 360px;
-  max-width: calc(100vw - 48px);
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -11477,7 +11495,16 @@ body.jluxe-has-announcement:not(.jluxe-announcement-ready) .jluxe-announcement-b
 /* R111: leave a stable slice of the following recommended category panel visible on phones. */
 @media (max-width: 639px) {
   .jluxe-recommended-panels-scroller > .jluxe-home-panel {
-    flex-basis: calc(100% - 68px);
+    flex-basis: calc(100% - 40px);
+  }
+  .jluxe-recommended-card-meta {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .jluxe-recommended-card-price { font-size: 13px; }
+  .jluxe-recommended-card-currency {
+    width: 15px;
+    height: 12px;
   }
 }
 
@@ -11944,6 +11971,18 @@ ul.products li.product a.jluxe-product-card-cta:focus-visible {
     max-height: 40px;
     flex-basis: 40px;
     border-radius: 0.875rem;
+  }
+}
+@media (max-width: 639px) {
+  .woocommerce ul.products li.product a.jluxe-product-card-cta,
+  ul.products li.product a.jluxe-product-card-cta {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    flex-basis: 40px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

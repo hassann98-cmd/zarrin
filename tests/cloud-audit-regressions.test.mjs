@@ -49,7 +49,7 @@ test("R-AUDIT mobile and desktop header search results both have explicit viewpo
   );
   assert.match(
     css,
-    /\.jluxe-header-search-results--mobile\s*\{\s*max-height:\s*60vh\s*;/,
+    /\.jluxe-header-search-results--mobile\s*\{[^}]*max-height:\s*60vh\s*;/s,
   );
 });
 

@@ -844,7 +844,7 @@ check(
 	false !== strpos( $recommended_panels_css, 'justify-content: space-between;' ) &&
 	false !== strpos( $recommended_panels_css, '@media (max-width: 639px)' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-scroller > .jluxe-home-panel' ) &&
-	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 68px);' ),
+	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 40px);' ),
 	'R187 the category heading itself is a descriptive link with a decorative arrow, replacing generic long CTA text and preserving the mobile panel preview'
 );
 $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settings-admin.css' );

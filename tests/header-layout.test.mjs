@@ -164,10 +164,10 @@ test("R342 desktop search results use native wheel scrolling and release it at t
   );
 });
 
-test("R342 mobile live-search results are wider, centered, and capped inside the viewport", () => {
+test("mobile live-search results are fixed to viewport gutters below the sticky header", () => {
   assert.match(
     storefrontStyles,
-    /\.jluxe-header-search-results--mobile\s*\{[^}]*width:\s*360px;[^}]*max-width:\s*calc\(100vw - 48px\);[^}]*left:\s*50%;[^}]*right:\s*auto;[^}]*transform:\s*translateX\(-50%\);[^}]*-webkit-overflow-scrolling:\s*touch;/s,
+    /\.jluxe-header-search-results--mobile\s*\{[^}]*position:\s*fixed;[^}]*inset-inline:\s*12px;[^}]*top:\s*calc\(var\(--jluxe-product-header-row-height,\s*72px\)\s*\+\s*var\(--jluxe-mobile-banner-offset,\s*0px\)\s*\+\s*6px\);[^}]*width:\s*auto;[^}]*max-width:\s*none;[^}]*left:\s*12px;[^}]*right:\s*12px;[^}]*transform:\s*none;[^}]*-webkit-overflow-scrolling:\s*touch;/s,
   );
 });
 
