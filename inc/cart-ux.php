@@ -366,19 +366,26 @@ function jluxe_ajax_cart(): void {
 				}
 			}
 			$previous_quantity = isset( $item['quantity'] ) ? $item['quantity'] : null;
-			if ( false === $cart->set_quantity( $key, $qty, true ) ) {
+			// Defer tax/shipping/fee work until the shared response path below.
+			// WooCommerce's set_quantity(..., false) safely supports this; a zero
+			// quantity removes the line and is also followed by one final totals pass.
+			if ( false === $cart->set_quantity( $key, $qty, false ) ) {
 				jluxe_cart_error( 'تغییر تعداد انجام نشد.' );
 			}
-			// set_quantity(..., true) has already recalculated all WooCommerce
-			// totals for positive quantities. Avoid repeating shipping/tax/fee work.
-			$cart_totals_are_current = $qty > 0;
-			$stock = jluxe_cart_stock_check();
-			if ( true !== $stock ) {
-				// Roll back only this request's write; the pre-update quantity was validated above.
-				if ( null !== $previous_quantity ) {
-					$cart->set_quantity( $key, $previous_quantity, true );
+			$cart_totals_are_current = false;
+			// Removing a line cannot create an out-of-stock cart. For increases or
+			// positive quantity changes retain the full WooCommerce post-mutation
+			// check (including shared stock owners and reserved stock), exactly once.
+			if ( $qty > 0 ) {
+				$stock = jluxe_cart_stock_check();
+				if ( true !== $stock ) {
+					// Roll back only this request's write and persist matching totals.
+					if ( null !== $previous_quantity ) {
+						$cart->set_quantity( $key, $previous_quantity, false );
+						$cart->calculate_totals();
+					}
+					jluxe_cart_error( $stock, 409 );
 				}
-				jluxe_cart_error( $stock, 409 );
 			}
 		}
 	} elseif ( 'apply_coupon' === $op ) {

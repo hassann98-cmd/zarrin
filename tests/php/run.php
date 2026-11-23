@@ -638,7 +638,7 @@ $_POST['qty']='3';
 $r05_quantity_reply=json_call('jluxe_ajax_cart');
 check(
 	$r05_quantity_reply->success && WC()->cart->items['existing']['quantity']===3 &&
-	WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(true) &&
+	WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(false) &&
 	$r05_quantity_reply->data['items'][0]['lineTotalHtml']==='100<em>filtered subtotal</em>',
 	'R05 valid quantity update keeps Woo hooks and line-total filters while calculating totals once'
 );
@@ -1429,8 +1429,14 @@ reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'4');
 $GLOBALS['wc']->cart->stockFail=true;
 $reply=json_call('jluxe_ajax_cart');
 check(!$reply->success && $reply->status===409 && WC()->cart->items['existing']['quantity']===1, 'R27 failed post-update stock check restores the previous quantity');
+check(WC()->cart->stockCheckCalls===1 && WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(false,false), 'R27 a failed quantity update checks stock once, defers intermediate totals, then recalculates once after rollback');
 $GLOBALS['wc']->cart->stockFail=false;
-check(json_call('jluxe_ajax_cart')->success, 'R27 passing stock check keeps the quantity update');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'4');
+$reply=json_call('jluxe_ajax_cart');
+check($reply->success && WC()->cart->totalsCalls===1 && WC()->cart->stockCheckCalls===1 && WC()->cart->quantityRefreshArgs===array(false), 'R27 successful quantity updates perform one post-change stock check and one shared totals calculation');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'0');
+$reply=json_call('jluxe_ajax_cart');
+check($reply->success && empty(WC()->cart->items) && WC()->cart->totalsCalls===1 && WC()->cart->stockCheckCalls===0, 'R27 setting quantity to zero removes the line and recalculates totals once without a needless stock query');
 $reply=json_call(function(){jluxe_cart_error('test',409);});
 check($reply->status===409 && $reply->success===false, 'R27 cart failures remain explicit JSON errors, never success responses');
 

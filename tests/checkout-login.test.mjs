@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { JSDOM } from "jsdom";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
@@ -380,4 +381,45 @@ test("legacy numeric state/city IDs are omitted from the address line instead of
   // Raw numeric IDs must never be pushed into the display parts.
   assert.doesNotMatch(js, /else if \(address\.state\) parts\.push\(String\(address\.state\)\)/);
   assert.doesNotMatch(js, /else if \(address\.city\) parts\.push\(String\(address\.city\)\)/);
+});
+
+test("checkout address changes are replayed once after the user pauses, including the province-to-city cascade", async (t) => {
+  const js = read("assets/js/checkout-login.js");
+  const dom = new JSDOM(
+    '<form class="checkout"><input name="billing_address_1"><select name="billing_state"><option value="">—</option><option value="THR">تهران</option></select><select name="billing_city"><option value="">—</option><option value="city">شهر</option></select></form>',
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  const { document } = window;
+  window.eval(js);
+  document.dispatchEvent(new window.Event("DOMContentLoaded"));
+
+  const form = document.querySelector("form.checkout");
+  const address = form.querySelector('[name="billing_address_1"]');
+  const state = form.querySelector('[name="billing_state"]');
+  const city = form.querySelector('[name="billing_city"]');
+  const changes = [];
+  form.addEventListener("change", event => changes.push(event.target.name));
+  state.addEventListener("change", () => {
+    if (state.value === "THR" && !city.value) {
+      city.value = "city";
+      city.dispatchEvent(new window.Event("change", { bubbles: true }));
+    }
+  });
+
+  address.value = "خیابان اول";
+  address.dispatchEvent(new window.Event("input", { bubbles: true }));
+  address.value = "خیابان دوم";
+  address.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await new Promise(resolve => window.setTimeout(resolve, 100));
+  assert.deepEqual(changes, [], "typing does not start checkout refreshes before the quiet period");
+  await new Promise(resolve => window.setTimeout(resolve, 200));
+  assert.deepEqual(changes, ["billing_address_1"], "the latest address value is delivered in one trailing change");
+
+  state.value = "THR";
+  state.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.deepEqual(changes, ["billing_address_1"], "province and city changes are deferred together");
+  await new Promise(resolve => window.setTimeout(resolve, 280));
+  assert.deepEqual(changes, ["billing_address_1", "billing_city", "billing_state"], "the delayed province event lets the city cascade complete in the same replay turn without losing either field change");
 });

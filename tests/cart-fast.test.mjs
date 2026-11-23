@@ -75,7 +75,7 @@ test('rapid quantity taps update the count immediately and send only the final q
   assert.equal(cart.current.snapshot.itemCount, 4);
   assert.equal(cart.current.snapshot.subtotalHtml, 'total-1');
   assert.equal(cart.current.loading, true);
-  await act(async () => new Promise(resolve => setTimeout(resolve, 180)));
+  await act(async () => new Promise(resolve => setTimeout(resolve, 80)));
   assert.deepEqual(writes, ['4']);
   await act(async () => { finish(json(4)); await Promise.all(promises); });
   assert.equal(cart.current.snapshot.subtotalHtml, 'total-4');
@@ -94,12 +94,12 @@ test('new taps during a quantity write survive its older reply; a rejected next 
   await cart.mount();
   let first, second;
   await act(async () => { first = cart.current.updateQty('one', 2); });
-  await act(async () => new Promise(resolve => setTimeout(resolve, 180)));
+  await act(async () => new Promise(resolve => setTimeout(resolve, 80)));
   await act(async () => { second = cart.current.updateQty('one', 3); });
   await act(async () => { finish(json(2)); await Promise.resolve(); });
   assert.equal(cart.current.snapshot.items[0].qty, 3);
   assert.equal(cart.current.loading, true);
-  await act(async () => new Promise(resolve => setTimeout(resolve, 180)));
+  await act(async () => new Promise(resolve => setTimeout(resolve, 80)));
   await act(async () => {
     finish({ ok: false, json: async () => ({ success: false, data: { message: 'موجودی کافی نیست' } }) });
     await Promise.all([first, second]);

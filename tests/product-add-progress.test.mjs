@@ -40,7 +40,8 @@ test('real product submit snapshots variation, prevents duplicate clicks and ser
  f.classList.add('variations_form');f.dataset.product_id='1';b.value='1';
  const input=w.document.createElement('input');input.name='variation_id';input.value='10';f.appendChild(input);
  w.JLuxeThemeSettings.cart.ajaxUrl='/ajax';w.JLuxeThemeSettings.cart.nonce='ok';
- const events=[];function jq(){return {trigger:(name,args)=>events.push([name,args])};}w.jQuery=jq;
+ const events=[];let successAtAddedEvent=false;function jq(){return {trigger:(name,args)=>{events.push([name,args]);if(name==='added_to_cart')successAtAddedEvent=b.dataset.jluxeAddState==='success'&&b.getAttribute('aria-busy')===null;}};}w.jQuery=jq;
+ let nativeSubmits=0;w.document.addEventListener('submit',()=>nativeSubmits++);
  const calls=[];let release;w.jluxeCartPost=(url,body)=>{calls.push(Object.fromEntries(body));return new Promise(resolve=>{release=resolve;});};
  const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول');const a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);
  assert.ok(a>0&&z>a);w.eval(source.slice(a,z+'\n})();'.length));
@@ -48,7 +49,8 @@ test('real product submit snapshots variation, prevents duplicate clicks and ser
  submit();submit();await Promise.resolve();assert.equal(calls.length,1);assert.equal(calls[0].variation_id,'10');
  input.value='11';f.querySelector('select').value='white';submit();await Promise.resolve();assert.equal(calls.length,1);
  release({success:true,data:{itemCount:1}});await new Promise(resolve=>setTimeout(resolve,5));assert.equal(calls.length,2);assert.equal(calls[1].variation_id,'11');assert.equal(calls[1].attribute_color,'white');assert.equal(events.length,0);
- release({success:true,data:{itemCount:2}});await new Promise(resolve=>setTimeout(resolve,5));assert.equal(events.length,1);assert.equal(events[0][0],'added_to_cart');assert.equal(b.getAttribute('aria-busy'),null);
+ assert.equal(b.dataset.jluxeAddState,'pending','the next distinct add remains busy while its serialized request is still running');assert.equal(nativeSubmits,0,'the native WooCommerce submit path is stopped so it cannot send a parallel add request');
+ release({success:true,data:{itemCount:2}});await new Promise(resolve=>setTimeout(resolve,5));assert.equal(events.length,1);assert.equal(events[0][0],'added_to_cart');assert.equal(successAtAddedEvent,true,'the button has already reached success and loading is cleared before cart feedback dispatch');assert.equal(nativeSubmits,0);
 });
 
 test('confirmation replaces history and old timers cannot dismiss a newer success',t=>{
@@ -130,4 +132,9 @@ test('earlier queue failures survive final success and do not leak into the next
  calls[0]({success:false,data:{message:'First unavailable'}});await new Promise(r=>setTimeout(r,5));calls[1]({success:false,data:{message:'Second unavailable'}});await new Promise(r=>setTimeout(r,5));calls[2]({success:true,data:{items:[],itemCount:1,suggested_html:'offers'}});await new Promise(r=>setTimeout(r,5));
  assert.equal(events.length,1);assert.match(events[0].args[3].queued_add_error,/First unavailable/);assert.match(events[0].args[3].queued_add_error,/Second unavailable/);
  id.value='13';submit();await Promise.resolve();calls[3]({success:true,data:{items:[],itemCount:2}});await new Promise(r=>setTimeout(r,5));assert.equal(events.length,2);assert.equal(events[1].args[3].queued_add_error,undefined);
+});
+
+test('server-confirmed add state uses the green success token instead of waiting for WooCommerce feedback styling', () => {
+ const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');
+ assert.match(css,/body \[data-jluxe-add-state="success"\]\{[^}]*background-color:hsl\(var\(--success\)\);[^}]*color:hsl\(var\(--success-foreground\)\);/);
 });

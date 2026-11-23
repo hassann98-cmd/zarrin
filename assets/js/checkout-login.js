@@ -33,10 +33,10 @@
     try {
       if (window.jQuery) {
         window.jQuery(stateEl).trigger("select2:select");
-        window.jQuery(stateEl).trigger("change");
-      } else {
-        stateEl.dispatchEvent(new Event("change", { bubbles: true }));
       }
+      // Use a bubbling native change so the checkout throttle can coalesce
+      // address restoration with the rest of its state/city cascade.
+      stateEl.dispatchEvent(new Event("change", { bubbles: true }));
     } catch (e) {
       /* پلاگین شهرها خطا داد؛ مقدار استان ست شده و ادامه می‌دهیم. */
     }
@@ -50,11 +50,7 @@
       if (hasOption || attempts > 40) {
         cityEl.value = cityValue;
         try {
-          if (window.jQuery) {
-            window.jQuery(cityEl).trigger("change");
-          } else {
-            cityEl.dispatchEvent(new Event("change", { bubbles: true }));
-          }
+          cityEl.dispatchEvent(new Event("change", { bubbles: true }));
         } catch (e) {
           /* نادیده گرفتن خطای پلاگین */
         }
@@ -87,7 +83,72 @@
     }
   }
 
+  function installCheckoutAddressThrottle() {
+    var form = document.querySelector("form.checkout");
+    if (!form || form.dataset.jluxeAddressThrottle === "1") return;
+    form.dataset.jluxeAddressThrottle = "1";
+
+    // WooCommerce refreshes order review/payment on change. Coalesce rapid
+    // address edits and province→city cascades into one trailing change after
+    // the customer pauses, while leaving input editing and unrelated controls
+    // (shipping/payment methods, coupons, etc.) untouched.
+    var selector = [
+      'form.checkout input[name^="billing_"]',
+      'form.checkout select[name^="billing_"]',
+      'form.checkout textarea[name^="billing_"]',
+      'form.checkout input[name^="shipping_"]',
+      'form.checkout select[name^="shipping_"]',
+      'form.checkout textarea[name^="shipping_"]',
+    ].join(", ");
+    var delay = 250;
+    var pending = new Map();
+    var lastSent = new WeakMap();
+    var timer = null;
+    var replaying = false;
+
+    function queueChange(target) {
+      pending.set(target, true);
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(flushChanges, delay);
+    }
+
+    function flushChanges() {
+      timer = null;
+      var targets = Array.from(pending.keys());
+      pending.clear();
+      replaying = true;
+      targets.forEach(function (target) {
+        if (!target.isConnected || !form.contains(target)) return;
+        lastSent.set(target, String(target.value || ""));
+        target.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      replaying = false;
+    }
+
+    document.addEventListener("input", function (event) {
+      if (!event.target || !event.target.matches || !event.target.matches(selector)) return;
+      queueChange(event.target);
+    }, true);
+
+    document.addEventListener("change", function (event) {
+      var target = event.target;
+      if (replaying || !target || !target.matches || !target.matches(selector)) return;
+      var value = String(target.value || "");
+      if (!pending.has(target) && lastSent.has(target) && lastSent.get(target) === value) {
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        return;
+      }
+      // Let the user/plugin update the control immediately, but defer all
+      // change listeners (including WooCommerce's update_checkout handler).
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+      queueChange(target);
+    }, true);
+  }
+
   function init() {
+    installCheckoutAddressThrottle();
     var selector = document.querySelector("[data-jluxe-address-selector]");
     if (!selector) return;
 

@@ -90,17 +90,17 @@ test("rapid quantity taps coalesce into one secure cart request and render WooCo
 
   const row = document.querySelector('[data-jluxe-cart-item-key="line-a"]');
   row.querySelector('[data-jluxe-qty-step="increase"]').click();
-  await wait(window, 35);
+  await wait(window, 25);
   row.querySelector('[data-jluxe-qty-step="increase"]').click();
   assert.equal(row.querySelector("input.qty").value, "3", "the number responds immediately while the request is coalesced");
-  assert.equal(calls.length, 0, "the debounce window avoids a request for each tap");
+  assert.equal(calls.length, 0, "rapid taps stay within the shorter debounce window");
   assert.equal(updateButtonClicks(), 0, "the hidden full-cart form submit is no longer used when the endpoint is available");
 
   snapshot = quantitySnapshot({
     items: [{ key: "line-a", qty: 3, lineTotalHtml: "<strong>30</strong>" }],
     itemCount: 3,
   });
-  await wait(window, 220);
+  await wait(window, 90);
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "https://shop.test/wp-admin/admin-ajax.php");

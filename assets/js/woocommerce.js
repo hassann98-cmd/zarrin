@@ -272,7 +272,7 @@
 		return;
 	}
 
-	var quantityDebounceMs = 160;
+	var quantityDebounceMs = 50;
 	var quantityTimers = new WeakMap();
 	var lineStates = new Map();
 	var requestQueue = Promise.resolve();
@@ -3541,7 +3541,10 @@ function jluxeEnhanceShopSort(root) {
 
 	form.addEventListener("submit", function (event) {
 		var button = form.querySelector('[name="add-to-cart"], .single_add_to_cart_button');
+		// This custom AJAX protocol owns this submit. Stop delegated WooCommerce
+		// submit handlers so a second native/legacy add request cannot race it.
 		event.preventDefault();
+		event.stopPropagation();
 		if (button && (button.disabled || button.classList.contains('disabled') || button.classList.contains('wc-variation-selection-needed'))) { return; }
 		var variation = form.querySelector('input[name="variation_id"]');
 		if (form.classList.contains('variations_form') && (!variation || !(Number(variation.value) > 0))) {

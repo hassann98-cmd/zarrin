@@ -195,7 +195,7 @@ export function updateCartQuantity(key, qty) {
     const result = await cartRequest("update_qty", { key, qty: String(sent) });
     entry.inFlight = false;
     if (!result.error && entry.qty !== sent) {
-      entry.timer = setTimeout(flush, 140);
+      entry.timer = setTimeout(flush, 50);
       return;
     }
     pendingQuantities.delete(key);
@@ -204,7 +204,7 @@ export function updateCartQuantity(key, qty) {
   };
   if (!entry.inFlight) {
     clearTimeout(entry.timer);
-    entry.timer = setTimeout(flush, 140);
+    entry.timer = setTimeout(flush, 50);
   }
   return promise;
 }

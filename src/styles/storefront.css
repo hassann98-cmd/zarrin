@@ -14320,7 +14320,7 @@ body.single-product .jluxe-cp3 .cp3-short-body .wp-block-image > a[href]:hover {
 /* Instant acknowledgment, without announcing unconfirmed cart success. */
 .single_add_to_cart_button:active,[data-jluxe-mobile-bar-add]:active,[data-jluxe-sticky-add]:active{filter:brightness(.84);}
 [data-jluxe-add-state="pending"]{filter:brightness(.82);box-shadow:inset 0 0 0 2px currentColor;}
-[data-jluxe-add-state="success"]{filter:brightness(1.08);box-shadow:inset 0 0 0 2px currentColor;}
+body [data-jluxe-add-state="success"]{background-color:hsl(var(--success));color:hsl(var(--success-foreground));filter:none;box-shadow:inset 0 0 0 2px hsl(var(--success) / .72);}
 .jluxe-add-progress{flex-basis:100%;width:100%;margin-block:12px;display:grid;gap:8px;font-size:13px;}
 .jluxe-add-progress p{margin:0;padding:10px 12px;border:1px solid currentColor;border-radius:10px;line-height:1.8;}
 .jluxe-add-progress [data-state="pending"]::before{content:'◌';display:inline-block;margin-inline-end:8px;}

@@ -501,7 +501,7 @@ class FakeSession { public $data=[];
  function set($key,$value){$this->data[$key]=$value;}
 }
 class FakeCart {
- public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $totalsCalls=0;public $quantityRefreshArgs=[];
+ public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $totalsCalls=0;public $quantityRefreshArgs=[];public $stockCheckCalls=0;
  function get_cart(){return $this->items;}
  function is_empty(){return empty($this->items);}
  function add_fee($name,$amount,$taxed=true){$this->fees[]=[$name,$amount];return true;}
@@ -510,7 +510,7 @@ class FakeCart {
  function set_quantity($key,$quantity,$refresh=true){$this->changed++;$this->quantityRefreshArgs[]=$refresh;if(!$quantity)return $this->remove_cart_item($key);$this->items[$key]['quantity']=$quantity;if($refresh)$this->calculate_totals();return true;}
  function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
  public $stockFail=false;
- function check_cart_item_stock(){return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
+ function check_cart_item_stock(){$this->stockCheckCalls++;return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
  function get_cart_item_quantities(){$out=[];foreach($this->items as $item){$id=$item['data']->get_stock_managed_by_id();$out[$id]=($out[$id]??0)+$item['quantity'];}return $out;}
  function calculate_totals(){$this->totalsCalls++;}
  function get_product_subtotal($product,$qty){return '100';}
