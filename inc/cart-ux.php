@@ -246,6 +246,8 @@ function jluxe_get_free_shipping_progress(): ?array {
 
 	return array(
 		'achieved'        => $achieved,
+		'remaining'       => $remaining,
+		'threshold'       => $threshold,
 		'remainingHtml'   => wc_price( $remaining ),
 		'progressPercent' => min( 100, (int) round( ( $current / $threshold ) * 100 ) ),
 	);

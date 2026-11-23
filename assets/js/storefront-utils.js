@@ -35,6 +35,11 @@
       });
     });
   }
+  function jluxeHaptic() {
+    try {
+      if (root.navigator && typeof root.navigator.vibrate === 'function') root.navigator.vibrate(12);
+    } catch (e) { /* Haptics are optional and must never block the interaction. */ }
+  }
   function normalizeDigits(value) {
     return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
       var code = digit.charCodeAt(0);
@@ -131,5 +136,5 @@
     if (bar) doc.body.appendChild(bar);
     doc.body.appendChild(button);
   }
-  root.JLuxeStorefrontUtils = Object.freeze({ protectDockSwitch: protectDockSwitch, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
+  root.JLuxeStorefrontUtils = Object.freeze({ protectDockSwitch: protectDockSwitch, haptic: jluxeHaptic, requestJson: requestJson, normalizeDigits: normalizeDigits, normalizePhone: normalizePhone, buildFilterUrl: buildFilterUrl, activateDialog: activateDialog });
 }(globalThis));

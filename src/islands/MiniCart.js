@@ -185,6 +185,7 @@ function J() {
                                 : e.jsxs("span", {
                                     className: "text-text-secondary",
                                     children: [
+                                      "فقط ",
                                       e.jsx("bdi", {
                                         dir: "ltr",
                                         className: "font-bold text-foreground",
@@ -192,8 +193,7 @@ function J() {
                                           __html: s.freeShipping.remainingHtml,
                                         },
                                       }),
-                                      " ",
-                                      "تا ارسال رایگان",
+                                      " تا ارسال رایگان!",
                                     ],
                                   }),
                             ],

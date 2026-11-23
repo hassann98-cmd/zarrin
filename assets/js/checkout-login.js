@@ -83,6 +83,41 @@
     }
   }
 
+  function installUnknownPostcodeShortcuts() {
+    var form = document.querySelector("form.checkout[data-jluxe-postcode-shortcuts]");
+    if (!form || form.dataset.jluxeUnknownPostcodeBound === "1") return;
+    form.dataset.jluxeUnknownPostcodeBound = "1";
+
+    function setHidden(element, hide) {
+      if (!element) return;
+      if (!element.hasAttribute("data-jluxe-postcode-original-hidden")) {
+        element.setAttribute("data-jluxe-postcode-original-hidden", element.hidden ? "1" : "0");
+      }
+      element.hidden = hide || element.getAttribute("data-jluxe-postcode-original-hidden") === "1";
+    }
+
+    function applyShortcut(checkbox) {
+      var input = field(checkbox.getAttribute("data-jluxe-postcode-target"));
+      if (!input || !form.contains(input)) return;
+      input.value = checkbox.checked ? "1111111111" : "";
+      setHidden(input, checkbox.checked);
+
+      var label = input.id && Array.prototype.find.call(form.querySelectorAll("label[for]"), function (candidate) {
+        return candidate.htmlFor === input.id;
+      });
+      var wrapper = input.closest(".woocommerce-input-wrapper");
+      setHidden(label, checkbox.checked);
+      setHidden(wrapper, checkbox.checked);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    form.addEventListener("change", function (event) {
+      var checkbox = event.target && event.target.closest && event.target.closest(".jluxe-unknown-postcode-checkbox");
+      if (checkbox && form.contains(checkbox)) applyShortcut(checkbox);
+    });
+    form.querySelectorAll(".jluxe-unknown-postcode-checkbox:checked").forEach(applyShortcut);
+  }
+
   function installCheckoutAddressThrottle() {
     var form = document.querySelector("form.checkout");
     if (!form || form.dataset.jluxeAddressThrottle === "1") return;
@@ -149,6 +184,7 @@
 
   function init() {
     installCheckoutAddressThrottle();
+    installUnknownPostcodeShortcuts();
     var selector = document.querySelector("[data-jluxe-address-selector]");
     if (!selector) return;
 

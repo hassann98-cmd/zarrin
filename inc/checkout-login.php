@@ -677,6 +677,26 @@ function jluxe_enqueue_checkout_login_assets(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_login_assets', 23 );
 
+/** Render the postcode opt-out shortcut directly after a WooCommerce postcode field. */
+function jluxe_render_unknown_postcode_checkbox( string $target_id ): string {
+	$target_id = sanitize_html_class( $target_id );
+	if ( '' === $target_id ) {
+		return '';
+	}
+
+	return '<label class="jluxe-unknown-postcode" for="jluxe-unknown-postcode-' . esc_attr( $target_id ) . '"><input id="jluxe-unknown-postcode-' . esc_attr( $target_id ) . '" type="checkbox" class="jluxe-unknown-postcode-checkbox" data-jluxe-postcode-target="' . esc_attr( $target_id ) . '"><span>کد پستی خود را نمی‌دانم</span></label>';
+}
+
+/** Append the opt-out directly after either the billing or shipping postcode field. */
+function jluxe_add_unknown_postcode_checkbox( string $field_html, string $key ): string {
+	if ( ! in_array( $key, array( 'billing_postcode', 'shipping_postcode' ), true ) ) {
+		return $field_html;
+	}
+
+	return $field_html . jluxe_render_unknown_postcode_checkbox( $key );
+}
+add_filter( 'woocommerce_form_field', 'jluxe_add_unknown_postcode_checkbox', 20, 2 );
+
 /**
  * رندر بخش آدرس در تسویه‌حساب اصلی: نام/نام خانوادگی + تلفن (از OTP) +
  * لیست آدرس‌های ذخیره‌شده + آکاردئون آدرس جدید.
@@ -780,6 +800,7 @@ function jluxe_render_address_selector(): void {
 				<div class="jluxe-checkout-addresses__field">
 					<label for="jluxe-new-address-postcode">کدپستی <span class="jluxe-checkout-addresses__optional">(برای ارسال پستی الزامی)</span></label>
 					<input type="text" id="jluxe-new-address-postcode" inputmode="numeric" maxlength="10" dir="ltr" data-jluxe-new-field="postcode" autocomplete="postal-code" />
+					<?php echo jluxe_render_unknown_postcode_checkbox( 'jluxe-new-address-postcode' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				</div>
 				<div class="jluxe-checkout-addresses__field">
 					<label for="jluxe-new-address-landline">تلفن</label>

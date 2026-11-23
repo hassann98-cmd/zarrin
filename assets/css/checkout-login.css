@@ -439,6 +439,32 @@ body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row select:foc
   outline: none;
 }
 
+/* Optional postcode shortcut stays beside its own field and remains keyboard-accessible. */
+body.woocommerce-checkout .jluxe-unknown-postcode {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: hsl(var(--text-secondary));
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+body.woocommerce-checkout .jluxe-unknown-postcode-checkbox {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  accent-color: hsl(var(--primary));
+}
+
+body.woocommerce-checkout .jluxe-unknown-postcode:focus-within {
+  outline: 2px solid hsl(var(--primary) / 0.35);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 /* کانتینر Select2 هم‌خانواده با اینپوت‌های همین بخش */
 body.woocommerce-checkout .jluxe-checkout-addresses__fields .form-row .select2-container {
   width: 100% !important;

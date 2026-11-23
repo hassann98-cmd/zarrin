@@ -423,3 +423,52 @@ test("checkout address changes are replayed once after the user pauses, includin
   await new Promise(resolve => window.setTimeout(resolve, 280));
   assert.deepEqual(changes, ["billing_address_1", "billing_city", "billing_state"], "the delayed province event lets the city cascade complete in the same replay turn without losing either field change");
 });
+
+test("unknown-postcode shortcut hides and restores the field while its native change is coalesced by checkout throttling", async (t) => {
+  const php = read("inc/checkout-login.php");
+  const checkoutTemplate = read("woocommerce/checkout/form-checkout.php");
+  assert.match(php, /jluxe_render_unknown_postcode_checkbox/);
+  assert.match(php, /billing_postcode', 'shipping_postcode/);
+  assert.match(php, /class="jluxe-unknown-postcode-checkbox"/);
+  assert.match(php, /data-jluxe-postcode-target/);
+  assert.match(php, /jluxe-new-address-postcode/);
+  assert.match(checkoutTemplate, /data-jluxe-postcode-shortcuts/);
+
+  const dom = new JSDOM(
+    '<form class="checkout" data-jluxe-postcode-shortcuts><p id="billing_postcode_field"><label for="billing_postcode">کد پستی</label><span class="woocommerce-input-wrapper"><input id="billing_postcode" name="billing_postcode"></span></p><label class="jluxe-unknown-postcode"><input type="checkbox" class="jluxe-unknown-postcode-checkbox" data-jluxe-postcode-target="billing_postcode">کد پستی خود را نمی‌دانم</label></form>',
+    { url: "https://shop.test/checkout/", runScripts: "outside-only" },
+  );
+  t.after(() => dom.window.close());
+  const { window } = dom;
+  const { document } = window;
+  window.eval(read("assets/js/checkout-login.js"));
+  document.dispatchEvent(new window.Event("DOMContentLoaded"));
+  const form = document.querySelector("form.checkout");
+  const checkbox = form.querySelector(".jluxe-unknown-postcode-checkbox");
+  const postcode = form.querySelector("#billing_postcode");
+  const label = form.querySelector('label[for="billing_postcode"]');
+  const wrapper = form.querySelector(".woocommerce-input-wrapper");
+  const delivered = [];
+  form.addEventListener("change", (event) => {
+    if (event.target === postcode) delivered.push(postcode.value);
+  });
+
+  checkbox.checked = true;
+  checkbox.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(postcode.value, "1111111111");
+  assert.equal(postcode.hidden, true);
+  assert.equal(label.hidden, true);
+  assert.equal(wrapper.hidden, true);
+  assert.deepEqual(delivered, [], "the native change is held by the existing checkout throttle");
+  await new Promise((resolve) => window.setTimeout(resolve, 300));
+  assert.deepEqual(delivered, ["1111111111"]);
+
+  checkbox.checked = false;
+  checkbox.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.equal(postcode.value, "");
+  assert.equal(postcode.hidden, false);
+  assert.equal(label.hidden, false);
+  assert.equal(wrapper.hidden, false);
+  await new Promise((resolve) => window.setTimeout(resolve, 300));
+  assert.deepEqual(delivered, ["1111111111", ""]);
+});

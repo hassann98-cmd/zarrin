@@ -1,3 +1,9 @@
+function jluxeHaptic() {
+	try {
+		if (navigator && typeof navigator.vibrate === "function") { navigator.vibrate(12); }
+	} catch (e) { /* Haptics are optional and must never block the interaction. */ }
+}
+
 /**
  * دکمه‌های +/- تعداد در صفحهٔ محصول و سبد خرید. در سبدِ صفحهٔ کامل، رویدادِ
  * change به مسیرِ AJAX سبکِ jluxe_cart می‌رسد؛ اگر endpoint در دسترس نبود،
@@ -17,6 +23,7 @@
 		if (!input || (cartRow && cartRow.hasAttribute("data-jluxe-cart-removing"))) {
 			return;
 		}
+		if (typeof jluxeHaptic === "function") { jluxeHaptic(); }
 
 		var step = parseFloat(input.step) || 1;
 		var min = input.min !== "" ? parseFloat(input.min) : 0;
@@ -4501,6 +4508,7 @@ function jluxeEnhanceShopSort(root) {
 		var now = Date.now();
 		if (now - lastModeClick < 80) { return; }
 		lastModeClick = now;
+		if (typeof jluxeHaptic === "function") { jluxeHaptic(); }
 		setPriceBarActive(!isPriceBarActive());
 		syncToggleState();
 		dispatchMobileBarMode();
@@ -6257,6 +6265,44 @@ function jluxeEnhanceShopSort(root) {
   // changing document flow after the page has been rendered.
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+/* A deliberate press on a product image gets a short haptic cue before preview opens. */
+(function () {
+	var pressTimer = null;
+	var pressPointer = null;
+	var startX = 0;
+	var startY = 0;
+
+	function cancelPress() {
+		if (pressTimer !== null) { window.clearTimeout(pressTimer); }
+		pressTimer = null;
+		pressPointer = null;
+	}
+
+	document.addEventListener("pointerdown", function (event) {
+		if (event.pointerType !== "touch" && event.pointerType !== "pen") { return; }
+		var image = event.target.closest && event.target.closest(".jluxe-cp3 [data-cp3-zoom-box], .jluxe-product-reference .jluxe-mobile-gallery-slide");
+		if (!image) { return; }
+		cancelPress();
+		pressPointer = event.pointerId;
+		startX = event.clientX;
+		startY = event.clientY;
+		pressTimer = window.setTimeout(function () {
+			pressTimer = null;
+			if (typeof jluxeHaptic === "function") { jluxeHaptic(); }
+		}, 480);
+	}, true);
+
+	document.addEventListener("pointermove", function (event) {
+		if (pressTimer === null || event.pointerId !== pressPointer) { return; }
+		if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) { cancelPress(); }
+	}, { passive: true, capture: true });
+	["pointerup", "pointercancel", "pointerleave"].forEach(function (name) {
+		document.addEventListener(name, function (event) {
+			if (pressPointer === null || event.pointerId === pressPointer) { cancelPress(); }
+		}, true);
+	});
 })();
 
 /* Mobile gallery: native adjacent slides, shared WooCommerce image and index. */

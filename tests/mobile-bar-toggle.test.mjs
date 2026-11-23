@@ -92,6 +92,8 @@ test("Boom's existing mobile toggle switches docks using inert and native click 
   window.MutationObserver = undefined;
 
   window.eval(await readFile(new URL("../assets/js/storefront-utils.js", import.meta.url), "utf8"));
+  let hapticCount = 0;
+  window.jluxeHaptic = () => { hapticCount += 1; };
   window.eval(toggleScript);
   assert.equal(priceBar.getAttribute("data-jluxe-mobile-bar-mode"), "purchase");
   assert.equal(priceBar.hasAttribute("inert"), false);
@@ -114,6 +116,7 @@ test("Boom's existing mobile toggle switches docks using inert and native click 
   let bubbledClicks = 0;
   window.addEventListener("click", () => { bubbledClicks++; });
   toggle.click();
+  assert.equal(hapticCount, 1, "an accepted dock mode switch emits one haptic cue");
   assert.equal(bubbledClicks, 1, "the native switch click bubbles instead of being stopped in capture");
   assert.equal(priceBar.getAttribute("data-jluxe-mobile-bar-mode"), "inactive");
   assert.equal(priceBar.hasAttribute("inert"), true);
