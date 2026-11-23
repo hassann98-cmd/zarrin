@@ -1,10 +1,11 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const css = readFileSync(new URL("../src/styles/design-variants.css", import.meta.url), "utf8");
 const settings = readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
-const storefrontCss = readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const storefrontCss = readStorefrontCss();
 const sitewideCss = readFileSync(new URL("../src/styles/sitewide-design.css", import.meta.url), "utf8");
 const neumorphismCss = readFileSync(new URL("../src/styles/neumorphism-refinements.css", import.meta.url), "utf8");
 const settingsPhp = readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");

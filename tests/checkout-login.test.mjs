@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -309,7 +310,7 @@ test("identity fields are validated before proceeding in both layouts", () => {
 });
 
 test("checkout buttons have press, hover-lift, disabled and loading-spinner effects", () => {
-  const css = read("src/styles/storefront.css");
+  const css = readStorefrontCss();
   // فشردگی روی active و لیفت روی hover.
   assert.match(css, /\.jluxe-checkout-action-button:active:not\(:disabled\)/);
   assert.match(css, /translateY\(-1px\)/);

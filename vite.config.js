@@ -46,7 +46,14 @@ export default defineConfig({
     manifest: "manifest.json",
     assetsInlineLimit: 0,
     rollupOptions: {
-      input: "src/main.js",
+      input: {
+        "src/main.js": "src/main.js",
+        "src/styles/design-variants.css": "src/styles/design-variants.css",
+        "src/styles/neumorphism-refinements.css": "src/styles/neumorphism-refinements.css",
+        "src/styles/route-product.css": "src/styles/route-product.css",
+        "src/styles/route-cart-checkout.css": "src/styles/route-cart-checkout.css",
+        "src/styles/route-account-auth.css": "src/styles/route-account-auth.css",
+      },
       output: { codeSplitting: { groups: sharedShellGroups } },
     },
   },

@@ -1,8 +1,9 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const header=fs.readFileSync(new URL('../src/islands/Header.js',import.meta.url),'utf8');
-const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');
+const css=readStorefrontCss();
 test('desktop, inline mobile and modal searches share the scoped contrast treatment',()=>{
  assert.equal((header.match(/jluxe-header-search-field /g)||[]).length,3);
  assert.equal((header.match(/type: "search"/g)||[]).length,3);

@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ test('no extra photo preview; mobile facts remain server-rendered while choices 
 });
 
 test('mobile product metadata is visible in its original row; option selection remains explicit',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');
+ const css=readStorefrontCss();
  const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');
  assert.match(template,/reference-mobile-product-meta\{display:flex;flex-wrap:wrap/);assert.match(css,/cp3-pill\.is-active\{border-color:hsl\(var\(--primary\)\)/);assert.match(template,/reference-mobile-stock\.is-in-stock\{color:hsl\(var\(--success\)\)/);assert.match(template,/reference-mobile-stock\.is-out-of-stock\{color:hsl\(var\(--error\)\)/);
 });
@@ -34,7 +35,7 @@ test('dynamic stock quantities are rendered once and are not relocated after loa
 });
 
 test('delivery shares one row with compact green stock without line wrapping',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Delivery and compact availability')[1];
+ const css=readStorefrontCss().split('/* Delivery and compact availability')[1];
  assert.match(css,/grid-template-columns:max-content minmax\(0,1fr\)/);
  assert.match(css,/data-reference-stock-status\]\{width:auto;min-width:0;padding-inline:6px;white-space:nowrap;flex-wrap:nowrap/);
  assert.match(css,/@media\(max-width:767\.98px\)/);
@@ -57,7 +58,7 @@ test('overflow fades follow scroll boundaries in RTL and LTR without masking sho
    width=200;w.dispatchEvent(new w.Event('resize'));check(false,false);assert.equal(wrap.classList.contains('has-overflow'),false);
   }finally{dom.window.close();}
  }
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* A soft clipped edge')[1];
+ const css=readStorefrontCss().split('/* A soft clipped edge')[1];
  assert.match(css,/mask-image:linear-gradient/);assert.match(css,/data-jluxe-variation-value\]\{background:#fff;/);
 });
 
@@ -65,12 +66,12 @@ test('mobile gallery reserves its first-paint frame and uses responsive preview 
  const dom=new JSDOM('<div class="jluxe-product-reference"><div data-cp3-gallery data-jluxe-gallery-current="0"><button data-cp3-zoom-box><img data-cp3-zoom-img src="one.jpg" width="900" height="700" alt="product"></button><button data-reference-gallery-index="0" data-full="one-full.jpg"></button><button data-reference-gallery-index="1" data-full="two-full.jpg" data-preview-src="two-large.jpg" data-preview-srcset="two-small.jpg 320w, two-large.jpg 768w" data-preview-sizes="(max-width: 390px) 82vw, 320px" data-preview-width="640" data-preview-height="480"></button></div></div>',{runScripts:'outside-only'});
  try{const w=dom.window;w.eval(source.slice(source.indexOf('/* Mobile gallery: native')));w.document.dispatchEvent(new w.Event('DOMContentLoaded'));const track=w.document.querySelector('.jluxe-mobile-gallery-track'),first=track.children[0].querySelector('img'),second=track.children[1].querySelector('img');assert.equal(track.children.length,2);assert.match(first.src,/one\.jpg$/);assert.equal(first.getAttribute('width'),'900');assert.equal(second.getAttribute('src'),'two-large.jpg');assert.equal(second.getAttribute('srcset'),'two-small.jpg 320w, two-large.jpg 768w');assert.equal(second.getAttribute('sizes'),'(max-width: 390px) 82vw, 320px');assert.equal(second.getAttribute('width'),'640');assert.equal(second.getAttribute('height'),'480');let opened=0;w.document.querySelector('[data-cp3-zoom-box]').onclick=()=>opened++;track.children[1].click();assert.equal(opened,1);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));assert.equal(w.document.querySelectorAll('.jluxe-mobile-gallery-track').length,1);
  }finally{dom.window.close();}
- const styles=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');const css=styles.split('/* Compact native mobile gallery:')[1];assert.match(styles,/\[data-cp3-gallery\]::before\{content:"";display:block;width:min\(82%,320px\);aspect-ratio:1\/1/);assert.match(styles,/\[data-cp3-gallery\]:has\(>\.jluxe-mobile-gallery-track\)::before\{display:none/);assert.match(css,/gap:6px;width:100%;height:auto/);assert.match(css,/flex:0 0 min\(82%,320px\);[\s\S]*?aspect-ratio:1\/1/);assert.match(css,/object-fit:cover;object-position:center/);assert.match(css,/overflow-x:auto/);assert.match(css,/scroll-snap-type:x mandatory/);
+ const styles=readStorefrontCss();const css=styles.split('/* Compact native mobile gallery:')[1];assert.match(styles,/\[data-cp3-gallery\]::before\{content:"";display:block;width:min\(82%,320px\);aspect-ratio:1\/1/);assert.match(styles,/\[data-cp3-gallery\]:has\(>\.jluxe-mobile-gallery-track\)::before\{display:none/);assert.match(css,/gap:6px;width:100%;height:auto/);assert.match(css,/flex:0 0 min\(82%,320px\);[\s\S]*?aspect-ratio:1\/1/);assert.match(css,/object-fit:cover;object-position:center/);assert.match(css,/overflow-x:auto/);assert.match(css,/scroll-snap-type:x mandatory/);
  const template=fs.readFileSync(new URL('../woocommerce/content-single-product-reference.php',import.meta.url),'utf8');assert.match(template,/data-preview-srcset=/);assert.match(template,/width="<\?php echo absint\( \$cp3_main_image\['width'\] \); \?>" height="<\?php echo absint\( \$cp3_main_image\['height'\] \); \?>"/);
 });
 
 test('mobile facts place delivery right and compact availability left in the same RTL row',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Delivery on the right, compact availability')[1];
+ const css=readStorefrontCss().split('/* Delivery on the right, compact availability')[1];
  assert.match(css,/@media\(max-width:767\.98px\)/);
  assert.match(css,/grid-template-columns:minmax\(0,1fr\) max-content/);
  assert.match(css,/data-jluxe-delivery-time-row\]\{grid-row:1;grid-column:1;/);
@@ -78,7 +79,7 @@ test('mobile facts place delivery right and compact availability left in the sam
 });
 
 test('mobile header pins natively without scroll transforms; gallery has compact left meter',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* Let the compositor pin')[1];
+ const css=readStorefrontCss().split('/* Let the compositor pin')[1];
  assert.match(css,/position:sticky;top:var\(--wp-admin--admin-bar--height/);
  assert.match(css,/position:relative;inset:auto;transform:none;will-change:auto/);
  assert.match(css,/jluxe-header-spacer\{display:none/);
@@ -102,7 +103,7 @@ test('simple-product facts and notice remain in the original markup without synt
 });
 
 test('single mobile image is centered without fade; simple products have server-side frame fallback',()=>{
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8').split('/* A single image is centered;')[1];
+ const css=readStorefrontCss().split('/* A single image is centered;')[1];
  assert.match(css,/:only-child\)\{justify-content:center;overflow-x:hidden;mask-image:none/);
  assert.match(css,/reference-simple-product-meta:not\(\[data-jluxe-facts-ready\]\)/);
  assert.match(css,/grid-template-columns:minmax\(0,1fr\) max-content/);

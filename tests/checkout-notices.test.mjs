@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
@@ -6,7 +7,7 @@ import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/checkout-notices.js", import.meta.url), "utf8");
 const classicTemplate = fs.readFileSync(new URL("../woocommerce/checkout/form-checkout.php", import.meta.url), "utf8");
-const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const storefrontStyles = readStorefrontCss();
 
 test("the classic checkout offers a replacement coupon control inside its payment step and keeps the native form outside", () => {
   const paymentColumn = classicTemplate.indexOf('<div id="jluxe-payment-column" hidden>');

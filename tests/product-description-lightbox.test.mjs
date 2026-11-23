@@ -1,10 +1,11 @@
+import { readProductCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
-const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const css = readProductCss();
 const classicTemplate = fs.readFileSync(new URL("../woocommerce/content-single-product-classic.php", import.meta.url), "utf8");
 const referenceTemplate = fs.readFileSync(new URL("../woocommerce/content-single-product-reference.php", import.meta.url), "utf8");
 const marker = source.indexOf("/* R321 — Product-description gallery links");
@@ -174,10 +175,7 @@ test("R321 classic/reference main galleries keep their own modal target alongsid
 });
 
 test("R321 description lightbox has mobile-sized controls, an old-browser viewport fallback, and reduced-motion styling", () => {
-  const start = css.indexOf("/* R321 — lightbox گالری‌های پیوندشده");
-  const end = css.indexOf("/* ── R66:", start);
-  assert.ok(start >= 0 && end > start, "the R321 modal styles are present");
-  const rules = css.slice(start, end);
+  const rules = css;
   assert.match(rules, /body\.single-product \.jluxe-description-gallery-modal\s*\{[^}]*position:\s*fixed;/);
   assert.match(rules, /width:\s*44px;[\s\S]*?height:\s*44px;/, "close and navigation targets meet mobile touch-size guidance");
   assert.match(rules, /height:\s*82vh;[\s\S]*?@media \(max-width:\s*767px\)[\s\S]*?height:\s*78vh;/, "the viewport sizing has a vh fallback for older mobile Safari");

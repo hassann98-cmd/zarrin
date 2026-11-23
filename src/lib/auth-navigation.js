@@ -93,7 +93,11 @@ export function setupAuthNavigation(
     homeUrl,
     isLoggedIn,
     renderAuth,
-    loadAuthPage = () => import("../islands/AuthPage.jsx"),
+    loadAuthPage = () =>
+      Promise.all([
+        import("../styles/route-account-auth.css"),
+        import("../islands/AuthPage.jsx"),
+      ]).then(([, module]) => module),
   } = {},
 ) {
   const doc = win?.document;

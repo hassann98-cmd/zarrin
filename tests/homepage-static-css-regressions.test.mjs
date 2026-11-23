@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -6,7 +7,7 @@ import test from "node:test";
 const root = process.cwd();
 const [php, storefrontCss] = await Promise.all([
   fs.readFile(path.join(root, "inc/theme-settings-homepage.php"), "utf8"),
-  fs.readFile(path.join(root, "src/styles/storefront.css"), "utf8"),
+  Promise.resolve(readStorefrontCss()),
 ]);
 const manifest = JSON.parse(
   await fs.readFile(path.join(root, "assets/compiled/manifest.json"), "utf8"),

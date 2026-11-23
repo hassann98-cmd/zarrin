@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
@@ -15,7 +16,7 @@ const mobileNav = await readFile(new URL("../src/islands/MobileNav.js", import.m
 const floatingNav = await readFile(new URL("../src/islands/FloatingMobileNav.js", import.meta.url), "utf8");
 const dockModeSource = await readFile(new URL("../src/lib/mobile-dock-mode.js", import.meta.url), "utf8");
 const classicMarkup = await readFile(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
-const styles = await readFile(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const styles = readStorefrontCss();
 const themeStyles = await readFile(new URL("../style.css", import.meta.url), "utf8");
 const startMarker = '(function () {\n\tvar priceBar = document.querySelector("[data-jluxe-mobile-price-bar]");';
 const endMarker = "\n/**\n * سینکِ قیمتِ نوارِ چسبانِ موبایل";

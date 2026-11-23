@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -6,7 +7,7 @@ import { JSDOM } from 'jsdom';
 const source = fs.readFileSync(new URL('../assets/js/storefront-utils.js', import.meta.url), 'utf8');
 const sticky = fs.readFileSync(new URL('../assets/js/sticky-cta.js', import.meta.url), 'utf8');
 const woo = fs.readFileSync(new URL('../assets/js/woocommerce.js', import.meta.url), 'utf8');
-const css = fs.readFileSync(new URL('../src/styles/storefront.css', import.meta.url), 'utf8');
+const css = readStorefrontCss();
 
 test('dock switches and purchase bars move to body and clicks remain native/bubbling', () => {
   const dom = new JSDOM(`<!doctype html><body>
@@ -67,7 +68,8 @@ test('both mode switches handle only their own native click with a local debounc
 });
 
 test('drawer state hides only the two switches and the switcher layer is gone', () => {
-  assert.match(css, /html\[data-jluxe-mobile-drawer\] body \.jluxe-mobile-bar-toggle,[\s\S]*?\.jluxe-sticky-cta-mode-toggle\{visibility:hidden;pointer-events:none;/);
+  assert.match(css, /html\[data-jluxe-mobile-drawer\] body \.jluxe-mobile-bar-toggle\s*\{[^}]*visibility:hidden;pointer-events:none;/);
+  assert.match(css, /html\[data-jluxe-mobile-drawer\] body \.jluxe-sticky-cta-mode-toggle\s*\{visibility:hidden;pointer-events:none;/);
   assert.doesNotMatch(css, /jluxe-dock-switch-layer/);
 });
 

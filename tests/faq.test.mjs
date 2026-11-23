@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -5,7 +6,7 @@ import { JSDOM } from "jsdom";
 
 const js = fs.readFileSync(new URL("../assets/js/site-faq.js", import.meta.url), "utf8");
 const php = fs.readFileSync(new URL("../page-faq.php", import.meta.url), "utf8");
-const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const css = readStorefrontCss();
 
 function createFaqDom({ reducedMotion = false } = {}) {
   const dom = new JSDOM(

@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -5,7 +6,7 @@ import jquery from "jquery";
 import { JSDOM } from "jsdom";
 
 const source = fs.readFileSync(new URL("../assets/js/woocommerce.js", import.meta.url), "utf8");
-const styles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const styles = readStorefrontCss();
 const marker = source.indexOf("فیدبکِ افزودن به سبد جایگزینِ نوتیس استاندارد ووکامرس است.");
 const start = source.indexOf("(function () {", marker);
 const endMarker = source.indexOf("\n})();\n\n/*\n * R73:", start);
@@ -347,7 +348,7 @@ test("a rejected product add restores its button and never mounts or opens recom
 });
 
 test("feedback CSS provides safe-area mobile sizing, 44px actions, and the shared radius tokens", () => {
-  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const css = readStorefrontCss();
   const root = css.slice(0, css.indexOf(".text-boom-star"));
   assert.match(root, /--jluxe-container-max:\s*1320px/);
   assert.match(root, /--jluxe-radius-sm:\s*8px/);

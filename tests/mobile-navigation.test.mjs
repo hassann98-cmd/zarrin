@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
@@ -15,7 +16,7 @@ const drawerStateSource = await readFile(new URL("src/lib/mobile-drawers.js", ro
 const assistantSource = await readFile(new URL("src/islands/AiAssistant.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
-const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
+const storefrontStyles = readStorefrontCss();
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const headerTemplate = await readFile(new URL("header.php", root), "utf8");
 const headerIslandSource = await readFile(new URL("src/islands/Header.js", root), "utf8");

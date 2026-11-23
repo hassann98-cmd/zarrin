@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -17,7 +18,7 @@ function walk(directory) {
 
 test("R-AUDIT 404 actions, search, and recommended products stay separated and compact on mobile", () => {
   const template = read("404.php");
-  const css = read("src/styles/storefront.css");
+  const css = readStorefrontCss();
 
   assert.match(template, /class="jluxe-404-copy\b/);
   assert.match(template, /class="jluxe-404-actions"/);
@@ -38,7 +39,7 @@ test("R-AUDIT 404 actions, search, and recommended products stay separated and c
 });
 test("R-AUDIT mobile and desktop header search results both have explicit viewport caps", () => {
   const header = read("src/islands/Header.js");
-  const css = read("src/styles/storefront.css");
+  const css = readStorefrontCss();
 
   assert.match(header, /jluxe-header-search-results--desktop/);
   assert.match(header, /jluxe-header-search-results--mobile/);

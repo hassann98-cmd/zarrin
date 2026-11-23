@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -5,7 +6,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 const [homepageSource, storefrontStyles, classicProductSource] = await Promise.all([
   readFile(new URL("inc/theme-settings-homepage.php", root), "utf8"),
-  readFile(new URL("src/styles/storefront.css", root), "utf8"),
+  Promise.resolve(readStorefrontCss()),
   readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8"),
 ]);
 

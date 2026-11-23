@@ -7,6 +7,18 @@ const manifest = JSON.parse(
 );
 if (!manifest["src/main.js"]?.isEntry || !manifest["src/main.js"]?.css?.length)
   throw Error("Missing storefront entry or stylesheet");
+for (const entry of [
+  "src/styles/design-variants.css",
+  "src/styles/neumorphism-refinements.css",
+  "src/styles/route-product.css",
+  "src/styles/route-cart-checkout.css",
+  "src/styles/route-account-auth.css",
+]) {
+  if (!manifest[entry]?.isEntry || !manifest[entry]?.file)
+    throw Error(`Missing standalone CSS entry: ${entry}`);
+}
+if (!manifest["src/islands/AiAssistant.js"]?.css?.length)
+  throw Error("Missing lazy AI assistant stylesheet from its island chunk");
 for (const [name, entry] of Object.entries(manifest)) {
   for (const file of [
     entry.file,

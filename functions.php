@@ -366,12 +366,30 @@ function jluxe_enqueue_mobile_auth_status(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_mobile_auth_status', 4 );
 
+/** Enqueue one standalone Vite CSS entry after the shared main stylesheet. */
+function jluxe_enqueue_manifest_stylesheet( string $entry, string $handle ): void {
+	$manifest = jluxe_vite_manifest();
+	$file = $manifest[ $entry ]['file'] ?? '';
+	$path = $file ? JLUXE_ASSET_DIR . '/' . $file : '';
+	if ( ! $file || ! is_file( $path ) ) {
+		return;
+	}
+	wp_enqueue_style( $handle, JLUXE_ASSET_URI . '/' . $file, array( 'jluxe-main-0' ), (string) filemtime( $path ) );
+}
+
 function jluxe_enqueue_assets() {
 	$entry = 'src/main.js';
+	$context = function_exists( 'jluxe_page_context' ) ? jluxe_page_context() : 'generic';
+	$variant = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'visual_design.variant', 'current' ) : 'current';
 
 	if ( jluxe_is_dev() ) {
 		wp_enqueue_script( 'jluxe-vite-client', JLUXE_VITE_DEV_SERVER . '/@vite/client', array(), null, false );
 		wp_enqueue_script( 'jluxe-main', JLUXE_VITE_DEV_SERVER . '/' . $entry, array(), null, true );
+		wp_add_inline_script(
+			'jluxe-main',
+			'window.JLUXEAssetConfig = ' . wp_json_encode( array( 'context' => $context, 'visualVariant' => $variant ) ) . ';',
+			'before'
+		);
 		return;
 	}
 
@@ -397,6 +415,21 @@ function jluxe_enqueue_assets() {
 		}
 	}
 
+	$route_styles = array(
+		'product'  => array( 'src/styles/route-product.css', 'jluxe-route-product' ),
+		'cart'     => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
+		'checkout' => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
+		'account'  => array( 'src/styles/route-account-auth.css', 'jluxe-route-account-auth' ),
+	);
+	if ( isset( $route_styles[ $context ] ) ) {
+		jluxe_enqueue_manifest_stylesheet( $route_styles[ $context ][0], $route_styles[ $context ][1] );
+	}
+	if ( 'canva_home' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/design-variants.css', 'jluxe-design-variants' );
+	} elseif ( 'neumorphism' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/neumorphism-refinements.css', 'jluxe-neumorphism-refinements' );
+	}
+
 	$js_path = JLUXE_ASSET_DIR . '/' . $entry_data['file'];
 	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), is_file( $js_path ) ? (string) filemtime( $js_path ) : null, true );
 }
@@ -409,7 +442,22 @@ function jluxe_assets_admin_notice(): void {
 	}
 	$manifest = jluxe_vite_manifest();
 	$entry = $manifest['src/main.js'] ?? array();
+	$required_css_entries = array(
+		'src/styles/design-variants.css',
+		'src/styles/neumorphism-refinements.css',
+		'src/styles/route-product.css',
+		'src/styles/route-cart-checkout.css',
+		'src/styles/route-account-auth.css',
+	);
 	$files = array_merge( array( $entry['file'] ?? '' ), $entry['css'] ?? array() );
+	foreach ( $required_css_entries as $css_entry ) {
+		$files[] = $manifest[ $css_entry ]['file'] ?? '';
+	}
+	$assistant_css = $manifest['src/islands/AiAssistant.js']['css'] ?? array();
+	if ( ! $assistant_css ) {
+		$files[] = '';
+	}
+	$files = array_merge( $files, $assistant_css );
 	foreach ( $files as $file ) {
 		if ( ! $file || ! is_file( JLUXE_ASSET_DIR . '/' . $file ) ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'فایل‌های فرانت‌اند زرین ناقص است. خروجی کامل npm ci و npm run build (پوشهٔ assets/compiled همراه manifest.json) را بارگذاری کنید.', 'jluxe' ) . '</p></div>';

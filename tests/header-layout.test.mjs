@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -15,7 +16,7 @@ const [
 ] = await Promise.all([
   readFile(new URL("header.php", root), "utf8"),
   readFile(new URL("src/islands/Header.js", root), "utf8"),
-  readFile(new URL("src/styles/storefront.css", root), "utf8"),
+  Promise.resolve(readStorefrontCss()),
   readFile(new URL("inc/theme-settings.php", root), "utf8"),
   readFile(new URL("inc/theme-settings-render.php", root), "utf8"),
   readFile(new URL("inc/theme-settings-sanitize.php", root), "utf8"),

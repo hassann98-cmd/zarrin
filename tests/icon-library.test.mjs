@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
@@ -32,7 +33,7 @@ test("R360 keeps required public attribution on the About page, outside the glob
   assert.match(about, /jluxe_uicons_attribution\(\s*true\s*\)/);
   const navSource = fs.readFileSync(new URL("../src/components/nav-icons.js", import.meta.url), "utf8");
   assert.doesNotMatch(navSource, /flaticon-uicons\.json/);
-  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-uicons-attribution--standalone[\s\S]*?safe-area-inset-bottom/);
 });
 

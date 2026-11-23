@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -102,7 +103,7 @@ test("recently viewed history renders separate mobile-friendly product and homep
 });
 
 test("recent-product history uses a polished responsive rail and clear stock styling", () => {
-  const styles = read("../src/styles/storefront.css");
+  const styles = readStorefrontCss();
   assert.match(styles, /\.jluxe-recent-products__heading\s*\{/);
   assert.match(styles, /\.jluxe-recent-products__intro\s*\{[^}]*display:\s*flex/);
   assert.match(styles, /\.jluxe-recent-products__subtitle\s*\{/);
@@ -198,7 +199,7 @@ test("a single recent product uses compact markup and search results layer above
   assert.equal(panel.querySelector("[data-jluxe-recent-count]").textContent, "۱ محصول");
   assert.equal(panel.querySelectorAll(".jluxe-recent-card").length, 1);
 
-  const styles = read("../src/styles/storefront.css");
+  const styles = readStorefrontCss();
   const header = read("../header.php");
   const classicProduct = read("../woocommerce/content-single-product-classic.php");
   assert.match(styles, /data-jluxe-recent-item-count="1"[\s\S]*?grid-template-columns: 128px minmax\(0, 1fr\)/);

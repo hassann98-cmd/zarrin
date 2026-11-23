@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import "../styles/ai-assistant.css";
 import { restRequest, restStreamRequest, getSession } from "../lib/api.js";
 import { g as getThemeSettings } from "../lib/theme-settings.js";
 import { c as createIcon } from "../lib/icons.js";

@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
@@ -19,7 +20,7 @@ const themeSettingsSource = fs.readFileSync(new URL("../inc/theme-settings.php",
 const settingsAdminSource = fs.readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
 const settingsRenderSource = fs.readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
 const settingsSanitizeSource = fs.readFileSync(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
-const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const storefrontStyles = readStorefrontCss();
 
 function extractDocumentedIife(markerText, endMarker) {
   const marker = source.indexOf(markerText);

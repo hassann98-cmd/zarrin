@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -358,7 +359,7 @@ test("R345 the variable-product picker returns to suggestions without restoring 
 });
 
 test("R345 the countdown is a minimal black circle beside the confirm button", () => {
-  const css = read("../src/styles/storefront.css");
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-pa-action-row\s*\{[^}]*display:\s*flex/);
   assert.match(css, /\.jluxe-pa-countdown\s*\{[^}]*width:\s*44px[^}]*height:\s*44px[^}]*border:\s*1px solid #000[^}]*border-radius:\s*50%/);
   assert.match(css, /\.jluxe-pa-countdown-value\s*\{[^}]*font-size:\s*12px/);

@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -6,7 +7,7 @@ import { JSDOM } from "jsdom";
 const root = new URL("../", import.meta.url);
 const [script, styles, classicTemplate, defaultTemplate] = await Promise.all([
   readFile(new URL("assets/js/sticky-cta.js", root), "utf8"),
-  readFile(new URL("src/styles/storefront.css", root), "utf8"),
+  Promise.resolve(readStorefrontCss()),
   readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8"),
   readFile(new URL("woocommerce/content-single-product.php", root), "utf8"),
 ]);

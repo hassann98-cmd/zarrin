@@ -1,9 +1,10 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { MOBILE_DRAWER_Z_INDEX, openMobileDrawer, closeMobileDrawer } from '../src/lib/mobile-drawers.js';
-const css = fs.readFileSync(new URL('../src/styles/storefront.css', import.meta.url), 'utf8');
+const css = readStorefrontCss();
 // Include the late body overrides as well as the base rules: checking only
 // the original 166 declaration missed the regression caused by a later 180.
 const layerRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]

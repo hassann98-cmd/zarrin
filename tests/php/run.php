@@ -345,6 +345,48 @@ check(
 	is_string( $r361_js_ver ) && ctype_digit( $r361_js_ver ) && (int) $r361_js_ver > 0,
 	'R361 main CSS and JS enqueue with filemtime cache-busting version'
 );
+
+// Route CSS and optional design variants remain off the shared homepage request.
+$css_split_old_query = $GLOBALS['query_kind'] ?? null;
+$css_split_old_options = $GLOBALS['options'];
+$css_split_old_styles = $GLOBALS['styles'];
+$css_split_settings = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ) );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $css_split_settings;
+$GLOBALS['query_kind'] = 'front';
+$GLOBALS['styles'] = array();
+jluxe_get_theme_settings( true );
+jluxe_enqueue_assets();
+check(
+	! isset( $GLOBALS['styles']['jluxe-design-variants'], $GLOBALS['styles']['jluxe-neumorphism-refinements'], $GLOBALS['styles']['jluxe-route-product'], $GLOBALS['styles']['jluxe-route-cart-checkout'] ),
+	'R534 home/current does not enqueue design-variant, neumorphism, product-route, or cart/checkout CSS'
+);
+$css_split_routes = array(
+	'product'  => 'jluxe-route-product',
+	'cart'     => 'jluxe-route-cart-checkout',
+	'checkout' => 'jluxe-route-cart-checkout',
+	'account'  => 'jluxe-route-account-auth',
+);
+foreach ( $css_split_routes as $css_split_context => $css_split_handle ) {
+	$GLOBALS['query_kind'] = $css_split_context;
+	$GLOBALS['styles'] = array();
+	jluxe_enqueue_assets();
+	check(
+		isset( $GLOBALS['styles'][ $css_split_handle ] ) && in_array( 'jluxe-main-0', $GLOBALS['styles'][ $css_split_handle ][1] ?? array(), true ),
+		'R534 ' . $css_split_context . ' enqueues its route stylesheet after jluxe-main-0'
+	);
+}
+foreach ( array( 'canva_home' => 'jluxe-design-variants', 'neumorphism' => 'jluxe-neumorphism-refinements' ) as $css_split_variant => $css_split_handle ) {
+	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => $css_split_variant ) );
+	$GLOBALS['query_kind'] = 'front';
+	$GLOBALS['styles'] = array();
+	jluxe_get_theme_settings( true );
+	jluxe_enqueue_assets();
+	check( isset( $GLOBALS['styles'][ $css_split_handle ] ), 'R534 active ' . $css_split_variant . ' design enqueues its stylesheet' );
+}
+$GLOBALS['options'] = $css_split_old_options;
+$GLOBALS['styles'] = $css_split_old_styles;
+if ( null === $css_split_old_query ) { unset( $GLOBALS['query_kind'] ); } else { $GLOBALS['query_kind'] = $css_split_old_query; }
+jluxe_get_theme_settings( true );
 $r314_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
 $r314_bootstrap_source = (string) file_get_contents( ABSPATH . 'functions.php' );
 $r314_manifest = jluxe_vite_manifest();
@@ -1682,6 +1724,7 @@ check(
 // R244: make AI review text use the full card width and refine product rating/badge/price presentation.
 $r244_ai_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-ai.php' );
 $r244_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r244_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
 $r244_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 check(
 	false !== strpos( $r244_ai_source, '.jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
@@ -1691,7 +1734,7 @@ check(
 );
 check(
 	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: #F7B731;' ) &&
-	false !== strpos( $r244_storefront_css, '.jluxe-reviews .star-rating span:before {
+	false !== strpos( $r244_product_css, '.jluxe-reviews .star-rating span:before {
   content: "★★★★★";
   color: var(--jluxe-rating-color);' ) &&
 	false !== strpos( $classic_tpl, '?> دیدگاه</div>' ) && false === strpos( $classic_tpl, '?> امتیاز</div>' ) &&
@@ -1783,6 +1826,7 @@ check(
 	'R237 Boom renders the feature-card section immediately after its short-description markup'
 );
 $r240_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r240_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
 check(
 	false !== strpos( $r240_storefront_css, '.jluxe-key-feature {' ) &&
 	false !== strpos( $r240_storefront_css, 'border-radius: 12px;' ) &&
@@ -1976,11 +2020,11 @@ check(
 	'R336 Boom, Classic, and Reference feature summaries have two columns with flex fallbacks'
 );
 check(
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ) &&
-	false !== strpos( $r240_storefront_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
-	false !== strpos( $r240_storefront_css, '@media (max-width: 480px)' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
+	false !== strpos( $r240_product_css, '.jluxe-product-notice--warning' ) &&
+	false !== strpos( $r240_product_css, '.jluxe-product-notice--info' ) &&
+	false !== strpos( $r240_product_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
+	false !== strpos( $r240_product_css, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r240_product_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
 	'R335 shared notice styles remain readable and responsive'
 );
 $_POST = $r246_old_request;
@@ -2198,6 +2242,7 @@ check(strpos($searchform,'min-height')===false && strpos($searchform,'jluxe-sear
 
 // R35: neutral text and semantic status contrast are measured on the live tokens.
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 preg_match_all('/:root\s*\{([^}]*)\}/u',$css,$roots);
 $tokens=array();
 foreach ($roots[1] as $root_block) {
@@ -2231,7 +2276,7 @@ check(strpos($css,'font-family: IRANYekan, Vazirmatn')!==false, 'R35 the storefr
 check(strpos($css,'.jluxe-btn')!==false && preg_match('/\.jluxe-btn\s*\{[^}]*min-height:\s*2\.75rem/s',$css)===1, 'R36 button system enforces >=44px targets');
 check(preg_match('/\(max-width: 767\.98px\)\s*\{.*?:where\(a\.button, button, \[type="submit"\], \[role="button"\]\)\s*\{\s*min-height: 44px;/s',$css)===1, 'R36 mobile touch-target floor is scoped and override-friendly');
 check(strpos($css,':where(a, button, input, select, textarea, [tabindex]):focus-visible')!==false, 'R36 keyboard focus ring is standardized');
-check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
+check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($product_css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
 
 // R360/R37: shared Flaticon UIcons are inline, currentColor-driven, bounded, and backward-compatible.
 ob_start(); jluxe_icon('cart','size-5 test'); $cart_icon=(string) ob_get_clean();
@@ -2362,7 +2407,7 @@ check(strpos($sticky_always,'data-jluxe-sticky-cta-always')!==false && strpos($s
 ob_start(); jluxe_render_sticky_quantity_control(); $sticky_qty=(string) ob_get_clean();
 check(strpos($sticky_qty,'data-jluxe-mobile-qty-step="decrease"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-step="increase"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-value')!==false && strpos($sticky_qty,'<form')===false && strpos($sticky_qty,'name="quantity"')===false, 'R146 the shared sticky quantity control has accessible +/- buttons and display-only output, never a parallel Woo form or input');
 check(strpos($sticky_def,'jluxe_render_sticky_quantity_control();')!==false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false, 'R146 both the default and classic mobile bars render the same sticky quantity proxy');
-check(strpos($css,'.jluxe-mobile-quantity[hidden] { display: none; }')!==false && strpos($css,'.jluxe-mobile-price-stock[data-jluxe-stock-state="in-stock"] { display: none; }')!==false, 'R146 controls stay hidden until a purchasable quantity exists and ordinary in-stock text is suppressed');
+check(strpos($product_css,'.jluxe-mobile-quantity[hidden] { display: none; }')!==false && strpos($product_css,'.jluxe-mobile-price-stock[data-jluxe-stock-state="in-stock"] { display: none; }')!==false, 'R146 controls stay hidden until a purchasable quantity exists and ordinary in-stock text is suppressed');
 $r148_classic_markup = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($css,'.jluxe-sticky-cta-heart')===false && strpos($css,'.jluxe-sticky-cta-name')===false && strpos($css,'.jluxe-sticky-cta .jluxe-btn[data-jluxe-sticky-mode="add"] [data-jluxe-sticky-label] { display: none; }')===false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false && strpos($r148_classic_markup,'class="cp3-fab cp3-heart"')!==false && strpos($r148_classic_markup,'class="cp3-wishline"')!==false, 'R148 the mobile sticky bar omits the heart and product name while wishlist controls remain in the product page and the CTA keeps its label');
 $variable_sticky_product = new WC_Product(999);
@@ -2421,7 +2466,7 @@ check($smooth!==false && $guard!==false && $smooth>$guard, 'R43 smooth scrolling
 $sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
 check(strpos($sticky_js,'.jluxe-mobile-nav')!==false && strpos($sticky_js,"bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px)")===false && strpos($sticky_js,'style.bottom')===false, 'R40 sticky navigation/purchase mode uses a stable CSS dock offset, never scroll-time inline positioning');
 check(strpos($sticky_js,"var navSelector = '#bottom-navigation, .jluxe-mobile-nav'")!==false && strpos($sticky_js,'candidate.setAttribute( \'inert\', \'\' )')!==false && strpos($sticky_js,'ResizeObserver')!==false && strpos($sticky_js,'window.addEventListener( \'orientationchange\', scheduleLayout')!==false && strpos($sticky_js,'data-jluxe-bottom-dock')===false, 'R115 the sticky CTA yields navigation accessibly and only remeasures on dock resize or orientation changes');
-check(strpos($css,'.jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }')!==false && strpos($css,'padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px))')!==false, 'R115 the CTA only consumes the device safe area when no bottom dock is present, avoiding a duplicated inset');
+check(strpos($product_css,'.jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }')!==false && strpos($product_css,'padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px))')!==false, 'R115 the CTA only consumes the device safe area when no bottom dock is present, avoiding a duplicated inset');
 $r112_nav_css = (string) file_get_contents( ABSPATH . 'style.css' );
 check(
 	false !== strpos( $r112_nav_css, '#bottom-navigation #tabs' ) &&
@@ -2515,12 +2560,13 @@ $tpl_cls=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-
 check(strpos($tpl_def,'jluxe-reviews jluxe-panel')!==false, 'R44 the default layout wraps reviews in the new panel');
 check(strpos($tpl_cls,'class="jluxe-reviews jluxe-panel mt-6"')!==false && strpos($tpl_cls,'<div id="reviews" class="jluxe-panel mt-6">')===false, 'R44/R140 the classic layout wraps WooCommerce reviews with their shared styles without duplicating the reviews anchor ID');
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 check(strpos($css,'--panel: 291.43 84% 95.1%')!==false && strpos($css,'--panel-border: 292.68 80.39% 90%')!==false, 'R44 panel tokens ship with the Royal Orchid palette');
 check(preg_match('/\.jluxe-panel\s*\{[^}]*border-radius: 22px;[^}]*box-shadow: 0 2px 14px rgba\(0, 0, 0, 0\.04\);/s',$css)===1, 'R44 the panel card matches the reference radius and soft shadow');
 check(preg_match('/@media \(min-width: 768px\)\s*\{\s*\.jluxe-panel \{ padding: 1\.75rem;/s',$css)===1, 'R44 panel padding scales 20px to 28px at md');
-check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$css)===1, 'R44 each review is a recessed card instead of a divider list');
-check(strpos($css,'.jluxe-reviews .woocommerce-review__verified')!==false, 'R44 verified-owner badge is styled');
-check(preg_match('/\.jluxe-reviews \.form-submit input\[type="submit"\]\s*\{[^}]*min-height: 48px;/s',$css)===1, 'R44 the review submit button meets the 48px touch target');
+check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$product_css)===1, 'R44 each review is a recessed card instead of a divider list');
+check(strpos($product_css,'.jluxe-reviews .woocommerce-review__verified')!==false, 'R44 verified-owner badge is styled');
+check(preg_match('/\.jluxe-reviews \.form-submit input\[type="submit"\]\s*\{[^}]*min-height: 48px;/s',$product_css)===1, 'R44 the review submit button meets the 48px touch target');
 $ai_css=(string) file_get_contents(ABSPATH.'inc/theme-settings-ai.php');
 check(strpos($ai_css,'border:1px solid hsl(var(--panel-border));border-radius:1rem;background:hsl(var(--primary) / .05)')!==false, 'R44 the AI summary card follows the same panel language');
 
@@ -2761,7 +2807,7 @@ check(
 );
 $r152_default_product_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r152_theme_setup = (string) file_get_contents( ABSPATH . 'functions.php' );
-$r152_product_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r152_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
 check(
 	strpos( $r152_default_product_tpl, 'woocommerce_show_product_images();' ) !== false &&
 	strpos( $r152_default_product_tpl, "wc_get_template_part( 'single-product/product-image' )" ) === false &&
@@ -3591,13 +3637,13 @@ $cp3_faq_icon=strpos($cp3,'class="ic" aria-hidden="true">',$cp3_faq_row===false?
 $cp3_faq_title=strpos($cp3,'<h3 id="cp3-faq-title">',$cp3_faq_row===false?0:$cp3_faq_row);
 check(strpos($index_tpl,'class="jluxe-blog-grid"')!==false && strpos($index_tpl,'the_posts_pagination')!==false && strpos($index_tpl,"! in_array( 'product', \$jluxe_search_types, true )")!==false && strpos($css,'grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;')!==false, 'R141 blog and post archives use a paginated responsive three-column card grid without replacing WooCommerce product searches');
 check(strpos($single,'direction:rtl;text-align:right')!==false && strpos($single,'text-align:right!important')!==false && strpos($single,'max-height:420px')!==false && strpos($single,"\n\t\t\t\t\t\t\t'large',")!==false, 'R141 blog single content is consistently right-aligned and its featured image is bounded and smaller');
-check($product_faq_icon!==false && $product_faq_title!==false && $product_faq_icon<$product_faq_title && strpos($product_faq_tpl,'aria-controls=')!==false && strpos($product_faq_tpl,'class="jluxe-product-faq-list')!==false && strpos($css,'.jluxe-product-faq-heading__icon {')!==false, 'R141 product-editor FAQs render in a styled accordion with an accessible question icon before the heading');
+check($product_faq_icon!==false && $product_faq_title!==false && $product_faq_icon<$product_faq_title && strpos($product_faq_tpl,'aria-controls=')!==false && strpos($product_faq_tpl,'class="jluxe-product-faq-list')!==false && strpos($product_css,'.jluxe-product-faq-heading__icon {')!==false, 'R141 product-editor FAQs render in a styled accordion with an accessible question icon before the heading');
 check($cp3_faq_row!==false && $cp3_faq_icon!==false && $cp3_faq_title!==false && $cp3_faq_icon<$cp3_faq_title && strpos($cp3,'<details class="cp3-faq-item">')!==false, 'R141 the classic WooCommerce layout also presents managed FAQs as an accordion with the question icon preceding its title');
 check(strpos($product_faq_js,'panel.setAttribute("aria-hidden", isOpen ? "true" : "false");')!==false && strpos($product_faq_tpl,'aria-hidden="true"')!==false, 'R141 product FAQ accordion keeps its expanded state synchronized for assistive technology');
 check(strpos($sticky_js,'function guideToVariationChoice()')!==false && strpos($sticky_js,'[data-cp3-pills], [data-jluxe-variation-group]')!==false && strpos($sticky_js,'choice.focus( { preventScroll: true } )')!==false && strpos($sticky_js,'form.submit()')===false, 'R121 sticky select-and-buy scrolls to and focuses a visible variation choice without bypassing WooCommerce validation');
 check(strpos($woo_js,'data-jluxe-sticky-variation-price')!==false && strpos($woo_js,'found_variation')!==false && strpos($woo_js,'resetPrices()')!==false && strpos($woo_js,'setAddState(true)')!==false, 'R136 both sticky layouts fill the empty price slot after variation selection, clear it when the selection becomes invalid, and enable add only for a purchasable variation');
 check(strpos($woo_js,'function updateStockStatus(variation)')!==false && strpos($woo_js,'function resetStockStatus()')!==false && strpos($woo_js,'data-jluxe-stock-placeholder-state')!==false && strpos($inc_woo,'function jluxe_sticky_stock_presentation')!==false, 'R133 variation stock status follows found/reset events while initial simple-product status comes from WooCommerce stock data');
-check(strpos($css,'.jluxe-sticky-cta-stock::before')!==false && strpos($css,'data-jluxe-stock-state="low-stock"')!==false && strpos($css,'text-overflow: ellipsis;')!==false, 'R133 stock states have a compact colored marker and safely truncate long mobile status text');
+check(strpos($product_css,'.jluxe-sticky-cta-stock::before')!==false && strpos($product_css,'data-jluxe-stock-state="low-stock"')!==false && strpos($product_css,'text-overflow: ellipsis;')!==false, 'R133 stock states have a compact colored marker and safely truncate long mobile status text');
 check(strpos($woo_js,'guideToVariationChoice()')!==false && strpos($woo_js,'data-jluxe-mobile-bar-mode')!==false, 'R121 the default mobile price-bar CTA also scrolls to variation options before selection and clicks the real WooCommerce add button afterward');
 check(strpos($cp3,'data-cp3-pillfor')===false && strpos($cp3,"hash( 'crc32'")===false, 'R58 the vestigial pillfor attribute and its crc32 computation are gone from the classic template');
 check(strpos($urls,'function jluxe_blog_url')!==false && strpos($urls,'return jluxe_blog_url();')!==false && strpos($single,'jluxe_blog_url()')!==false, 'R59 the blog destination is one shared mapping (posts page -> published blog page -> home) used by the nav resolver and the single.php breadcrumb, never the raw /blog/ that 404s');
@@ -4261,7 +4307,8 @@ check(strpos($__c3['orderby'],'CASE')===false && strpos($__c3['join'],'jluxe_oos
 update_test_settings($__oos_original_settings);
 check(strpos($woo_inc,"add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 )")!==false && strpos($store_css,'flex-direction: row-reverse')!==false && strpos($store_css,'.woocommerce-Price-amount bdi')!==false, 'R64 the central posts_clauses filter is registered and the toman glyph is pinned to the LEFT of the price via row-reverse flex on the amount bdi');
 check(strpos($store_css,'[data-jluxe-variation-group] > p { font-size: 11.5px')!==false && strpos($store_css,'.jluxe-variant-modal .woocommerce-variation-price')!==false && strpos($store_css,'.jluxe-pa-price { color: hsl(var(--foreground))')!==false, 'R64 size/color labels and variation prices are smaller and the price color is black (foreground) in the picker, product page and suggestion rows');
-check(strpos($store_css,'.single_add_to_cart_button.button')!==false && strpos($store_css,'.jluxe-btn-primary[data-jluxe-sticky-add]')!==false && substr_count($store_css,'min-height: 48px')>=2 && strpos($store_css,'.single_add_to_cart_button.disabled')!==false, 'R64 every textual add-to-cart button (single form, variant modal, sticky CTA, modal confirm) shares one 48px/16px-radius primary style with a real disabled state');
+$route_product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
+check(strpos($store_css,'.single_add_to_cart_button.button')!==false && strpos($route_product_css,'.jluxe-btn-primary[data-jluxe-sticky-add]')!==false && substr_count($store_css . $route_product_css,'min-height: 48px')>=2 && strpos($store_css,'.single_add_to_cart_button.disabled')!==false, 'R64 every textual add-to-cart button (single form, variant modal, sticky CTA, modal confirm) shares one 48px/16px-radius primary style with a real disabled state');
 check(strpos($woo_js,'"۰۱۲۳۴۵۶۷۸۹".charAt(+d)')!==false && strpos($woo_js,'pickerFromSuggested')!==false && strpos($woo_js,'triggerEl.closest("[data-jluxe-suggested-modal]")')!==false, 'R64 the modal total always renders Persian digits after JS recalculation');
 check(strpos($woo_js,'pickerAdded = true')!==false && strpos($woo_js,'data-pa-variation-committed')!==false && strpos($woo_js,'window.jluxeCommitSuggestedSelection(suggestedModal')!==false && strpos($woo_js,'formData.set("pa_context_id", pickerSuggestedContext)')!==false && strpos($store_css,'.jluxe-pa-foot-top')!==false && strpos($store_css,'.jluxe-pa-foot-main .jluxe-pa-action-row .jluxe-pa-confirm { flex: 1 1 auto;')!==false, 'R127/R345 cancellation/error restores recommendations, and the confirm action retains its responsive row layout while variable adds commit pending choices');
 check(strpos($store_css,'.jluxe-pa { z-index: 190; }')!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AiAssistant.js'),'zIndex: isMobile && open ? 180 : 90')!==false, 'R64 the suggestions sheet stays above the idle launcher and open mobile assistant while clearing sticky chrome');
@@ -4271,9 +4318,10 @@ $r126_classic_product_tpl = (string) file_get_contents(ABSPATH.'woocommerce/cont
 $r126_ai_js = (string) file_get_contents(ABSPATH.'src/islands/AiAssistant.js');
 $r126_woo_js = (string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 $r126_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$r126_product_css = (string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 check(strpos($r126_default_product_tpl,'data-jluxe-product-buybox')!==false && strpos($r126_classic_product_tpl,'class="cp3-side" data-jluxe-product-buybox')!==false, 'R127 both product templates retain their purchase-box context without using it to reposition the help launcher');
 check(strpos($r126_ai_js,'const launcherBottom = Math.max(Number(bottom) || 0, dockClearance)')!==false && strpos($r126_ai_js,'productClearance')===false && strpos($r126_ai_js,'productSideOverride')===false && strpos($r126_ai_js,'[data-jluxe-sticky-cta]"')!==false && strpos($r126_ai_js,'data-jluxe-mobile-bar-toggle')===false && strpos($r126_ai_js,'data-jluxe-sticky-cta-mode-toggle')===false, 'R127 the product help launcher stays fixed at its configured corner and clears only measured docks while the switches occupy the opposite corner');
-check(preg_match('/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index: 200;/s',$r126_css)===1 && preg_match('/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index: 210;/s',$r126_css)===1 && strpos($r126_css,'.jluxe-pa { z-index: 190; }')!==false && strpos($r126_ai_js,'zIndex: isMobile && open ? 180 : 90')!==false, 'R126 suggestions/review/variation dialogs retain ordered layers above sticky mobile chrome and the open assistant');
+check(preg_match('/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index: 200;/s',$r126_product_css)===1 && preg_match('/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index: 210;/s',$r126_css)===1 && strpos($r126_css,'.jluxe-pa { z-index: 190; }')!==false && strpos($r126_ai_js,'zIndex: isMobile && open ? 180 : 90')!==false, 'R126 suggestions/review/variation dialogs retain ordered layers above sticky mobile chrome and the open assistant');
 check(strpos($r126_woo_js,'function showSuggestedError')!==false && strpos($r126_woo_js,'function releaseAddedProducts')!==false && strpos($r126_woo_js,'function finishFailure')!==false && strpos($r126_woo_js,'activeOperation.type === "add"')!==false && strpos($r126_woo_js,'window.jluxeShowSuggestedAddWarning')!==false && strpos($r126_woo_js,'pickerUncertaintyMessage')!==false && strpos($r126_css,'.jluxe-pa-error')!==false, 'R126 failed add-on requests stay retryable, confirmed successes are deselected, and ambiguous add warnings persist when returning to the picker');
 // R65: extended color map (slug fallback + normalization) and unselectable out-of-stock variations.
 check(jluxe_persian_color_to_hex('طوسی تیره')==='#4B5563' && jluxe_persian_color_to_hex('طوسی  تیره')==='#4B5563' && jluxe_persian_color_to_hex('dark-grey')==='#4B5563' && jluxe_persian_color_to_hex('قهوه‌ای')==='#78350F' && jluxe_persian_color_to_hex('دکمه‌ای')===null, 'R65 the color map resolves Persian variants (ZWNJ/extra spaces normalized), English slugs like dark-grey, and still returns null for unknown names (no guessing)');
@@ -4292,8 +4340,8 @@ $form66b=jluxe_review_form_criteria(array('comment_field'=>''));
 check(strpos($form66b['comment_field'],'name="rating"')===false && strpos($form66b['comment_field'],'<textarea id="comment"')!==false, 'R66 with product ratings disabled the star widget is omitted but the textarea and criteria remain');
 $GLOBALS['ratings_enabled']=true;
 $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($store_css,'#review_form textarea')!==false && strpos($store_css,'border-radius: 14px')!==false && strpos($store_css,'#review_form .submit input[type="submit"]')!==false && strpos($store_css,'.jluxe-rating-stars label:hover')!==false && strpos($store_css,'transform: scale(1.15)')!==false, 'R66 the review form styles give the textarea/inputs soft 14px corners with a primary focus ring, a unified primary submit, and interactive hover-scaling stars');
-check(strpos($store_css,'.jluxe-reviews .commentlist li.comment')!==false && strpos($store_css,'border-radius: 16px')!==false && strpos($store_css,'img.avatar')!==false && strpos($store_css,'width: 40px')!==false && strpos($store_css,'.comment-text .meta')!==false, 'R66 the comment list renders compact 16px cards with a 40px round avatar, one-line meta row and restrained typography');
+check(strpos($route_product_css,'#review_form textarea')!==false && strpos($route_product_css,'border-radius: 14px')!==false && strpos($route_product_css,'#review_form .submit input[type="submit"]')!==false && strpos($route_product_css,'.jluxe-rating-stars label:hover')!==false && strpos($route_product_css,'transform: scale(1.15)')!==false, 'R66 the review form styles give the textarea/inputs soft 14px corners with a primary focus ring, a unified primary submit, and interactive hover-scaling stars');
+check(strpos($route_product_css,'.jluxe-reviews .commentlist li.comment')!==false && strpos($route_product_css,'border-radius: 16px')!==false && strpos($route_product_css,'img.avatar')!==false && strpos($route_product_css,'width: 40px')!==false && strpos($route_product_css,'.comment-text .meta')!==false, 'R66 the comment list renders compact 16px cards with a 40px round avatar, one-line meta row and restrained typography');
 $classic66=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($classic66,'کارت‌های جمع‌وجورِ ۱۶px')!==false && strpos($classic66,'.commentlist .comment{border-radius:24px')===false, 'R66 the classic layout no longer overrides the compact cards with the old oversized 24px/20px style');
 // R67: prices are always black — the Woo-default green on p.price/ins is overridden theme-wide.
@@ -4317,8 +4365,9 @@ check(strpos($settings_inc,"'otp_only' => false")!==false && strpos($sms_php,'na
 check(strpos($settings_inc,"'otpOnly' => ! empty( \$settings['sms']['otp_only'] ) && jluxe_otp_available()")!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'const otpOnly = Boolean(settings.auth?.otpOnly) && smsEnabled;')!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'smsEnabled && !otpOnly')!==false, 'R70 otpOnly is only exposed when the SMS gateway is truly configured and the auth page then removes the username/password tab');
 $acct=(string) file_get_contents(ABSPATH.'page-my-account.php');
 $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($store_css,'.jluxe-recover-card')!==false && strpos($store_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
-check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
+$account_css=(string) file_get_contents(ABSPATH.'src/styles/route-account-auth.css');
+check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($account_css,'.jluxe-recover-card')!==false && strpos($account_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
+check(strpos($acct,'data-otp-only="1"')!==false && strpos($account_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
 check(strpos($auth_jsx,'jluxe-auth-hint')===false && strpos($auth_jsx,'با کد درست')===false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'maxLength={6}')===false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R98 the redundant auth hint is removed and the unrestricted one-time-code field supports SMS autofill plus automatic six-digit verification');
 // R71: variation-picker swatches selectable again (R68 regression) + round modal add button.
@@ -4371,11 +4420,11 @@ $rev_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 check(strpos($cp3_tpl,'data-jluxe-review-modal')!==false && strpos($cp3_tpl,'href="#review_form_wrapper"')!==false && strpos($cp3_tpl,'$cp3_review_form_open')!==false, 'R73/R140 the review action opens the modal with JavaScript, falls back to the inline form without it, and respects WooCommerce review settings');
 check(strpos($reviews_php,'دیدگاه شما پس از بررسی و تأیید مدیر منتشر می‌شود')!==false && strpos($reviews_php,"comment_notes_before")!==false, 'R73 the review form itself carries the moderation notice (published only after admin approval)');
 check(strpos($rev_js,'redirect: "manual"')!==false && strpos($rev_js,'jluxe-review-modal-backdrop')!==false && strpos($rev_js,'wp-die-message')!==false, 'R73 the popup submits the real WooCommerce form via fetch (opaque redirect = success, core wp-die messages surfaced inside the modal)');
-check(strpos($store_css,'.jluxe-review-modal-backdrop')!==false && strpos($store_css,'.jluxe-review-modal-check')!==false && strpos($store_css,'.jluxe-review-moderation-note')!==false, 'R73 the review popup is styled in the shared modal language (card, success state, moderation note)');
-check(strpos($store_css,'.jluxe-cp3.jluxe-review-modal-ready #review_form_wrapper { display: none; }')!==false && strpos($store_css,'.jluxe-cp3 .woocommerce-noreviews {')!==false && strpos($store_css,'.jluxe-review-modal #review_form_wrapper { display: block;')!==false && strpos($rev_js,'productRoot.classList.add("jluxe-review-modal-ready")')!==false, 'R73.1/R140 the form hides only after the modal handler is ready; without JS the inline form and no-reviews message remain visible');
+check(strpos($route_product_css,'.jluxe-review-modal-backdrop')!==false && strpos($route_product_css,'.jluxe-review-modal-check')!==false && strpos($route_product_css,'.jluxe-review-moderation-note')!==false, 'R73 the review popup is styled in the shared modal language (card, success state, moderation note)');
+check(strpos($route_product_css,'.jluxe-cp3.jluxe-review-modal-ready #review_form_wrapper { display: none; }')!==false && strpos($store_css,'.jluxe-cp3 .woocommerce-noreviews {')!==false && strpos($route_product_css,'.jluxe-review-modal #review_form_wrapper { display: block;')!==false && strpos($rev_js,'productRoot.classList.add("jluxe-review-modal-ready")')!==false, 'R73.1/R140 the form hides only after the modal handler is ready; without JS the inline form and no-reviews message remain visible');
 check(strpos($rev_js,'reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild)')!==false, 'R73.1 closing the popup returns the borrowed WooCommerce form to its DOM home so the popup can be reopened');
 check(strpos($rev_js,'showReviewUnavailable(trigger)')!==false && strpos($rev_js,'window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.activateDialog')!==false, 'R140 missing review markup reports an actionable message and the modal still opens without the optional focus helper');
-check(strpos($store_css,'.jluxe-review-criteria-fields')!==false && strpos($store_css,'repeat(auto-fit, minmax(225px, 1fr))')!==false && strpos($store_css,'.jluxe-review-criteria-row:has(input:checked)')!==false, 'R73.2 the criteria rating rows form a responsive auto-fit grid (two columns on desktop, one on mobile) instead of stacking, and the chosen card is highlighted with :has without any JS');
+check(strpos($route_product_css,'.jluxe-review-criteria-fields')!==false && strpos($route_product_css,'repeat(auto-fit, minmax(225px, 1fr))')!==false && strpos($route_product_css,'.jluxe-review-criteria-row:has(input:checked)')!==false, 'R73.2 the criteria rating rows form a responsive auto-fit grid (two columns on desktop, one on mobile) instead of stacking, and the chosen card is highlighted with :has without any JS');
 // R138: auto-select and persist the first purchasable/in-stock WooCommerce variation when defaults are blank or stale.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {
@@ -8339,7 +8388,7 @@ $r246_account_nav_filter = array_filter(
 	static fn( $filter ) => 'woocommerce_account_menu_items' === ( $filter[0] ?? '' ) && 'jluxe_hide_account_payment_methods_menu_item' === ( $filter[1] ?? '' ) && 20 === ( $filter[2] ?? 10 )
 );
 check( ! empty( $r246_account_nav_filter ), 'R246 saved payment methods are hidden through WooCommerce account navigation, not checkout gateway configuration' );
-$r246_account_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
+$r246_account_css = file_get_contents( __DIR__ . '/../../src/styles/route-account-auth.css' );
 check(
 	false !== strpos( $r246_account_css, '.woocommerce-Addresses {' ) &&
 	false !== strpos( $r246_account_css, 'grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr))' ) &&
@@ -8925,7 +8974,7 @@ $r267_posted_city = $r267_posted_fields['billing']['billing_city'];
 $r267_city_map    = jluxe_iran_cities();
 $r267_php_source  = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r267_js_source   = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
-$r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r267_checkout_value_filter_registered = false;
 foreach ( $GLOBALS['filters'] as $r267_filter ) {
 	if ( 'woocommerce_checkout_get_value' === ( $r267_filter[0] ?? '' ) && 'jluxe_checkout_clear_cached_location_values' === ( $r267_filter[1] ?? '' ) ) {
@@ -9164,10 +9213,9 @@ check(
 	'R304 account address field and country-value changes are limited to the edit-address endpoint'
 );
 
-$r304_account_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r304_account_css = (string) file_get_contents( ABSPATH . 'src/styles/route-account-auth.css' );
 $r304_auth_source = (string) file_get_contents( ABSPATH . 'inc/auth.php' );
 $r304_phone_action_css = array();
-preg_match( '/\\.jluxe-phone-link \\.jluxe-phone-link__action\\s*\\{([^}]+)\\}/', $r304_account_css, $r304_phone_action_css );
 check(
 	false !== strpos( $r304_account_css, '.jluxe-account-address-field-hidden' ) &&
 	false !== strpos( $r304_account_css, 'p:has(> button[name="save_address"])' ) &&
@@ -9175,8 +9223,9 @@ check(
 	false !== strpos( $r304_account_css, 'background-color: hsl(var(--primary));' ) &&
 	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__send" data-send-code' ) &&
 	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__confirm"' ) &&
-	false !== strpos( $r304_phone_action_css[1] ?? '', 'width: 100%;' ) &&
-	false === strpos( $r304_phone_action_css[1] ?? '', 'background:' ) &&
+	false !== strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__action {' ) &&
+	false !== strpos( $r304_account_css, 'width: 100%;' ) &&
+	false === strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__confirm {' ) &&
 	false === strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__confirm {' ),
 	'R304 the address save CTA is left-aligned with the primary theme style and both secure OTP buttons share the same primary button system'
 );
@@ -9209,7 +9258,7 @@ $r425_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkou
 $r425_checkout_js = file_exists( ABSPATH . 'assets/js/checkout-guided.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' ) : '';
 $r425_guided_css = file_exists( ABSPATH . 'assets/css/checkout-guided.css' ) ? (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' ) : '';
 $r433_checkout_notices_js = file_exists( ABSPATH . 'assets/js/checkout-notices.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' ) : '';
-$r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
 $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
@@ -9505,7 +9554,7 @@ check(
 	'user١٢٣@example.test' === $r289_normalized_checkout_data['billing_email'],
 	'R289 WooCommerce posted checkout data normalizes Persian/Arabic postal and phone digits to ASCII while leaving other fields untouched'
 );
-$r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r276_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 $r276_cart_totals = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-totals.php' );
 $r276_checkout_submit = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
@@ -9528,7 +9577,7 @@ check(
 );
 check(
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea) {' ) &&
-	false !== strpos( $r276_checkout_css, 'border: 1px solid var(--jluxe-checkout-control-border, hsl(var(--border))) !important;' ) &&
+	false !== strpos( (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' ), 'border: 1px solid var(--jluxe-checkout-control-border, hsl(var(--border))) !important;' ) &&
 	false !== strpos( $r276_checkout_css, 'background-color: hsl(var(--muted, var(--background)));' ) &&
 	false !== strpos( $r276_checkout_css, '--jluxe-checkout-control-border: hsl(var(--muted-foreground, var(--foreground)) / 0.42);' ) &&
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .form-row.woocommerce-invalid :is(.input-text, select, textarea),' ) &&

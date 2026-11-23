@@ -1,7 +1,9 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
+import { importAssistantForTest } from "./helpers/import-ai-assistant.mjs";
 
 async function waitFor(predicate, timeout = 1500) {
   const deadline = Date.now() + timeout;
@@ -234,7 +236,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   const React = await import("react");
   const { act } = React;
   const { createRoot } = await import("react-dom/client");
-  const { default: Assistant } = await import("../src/islands/AiAssistant.js");
+  const { default: Assistant } = await importAssistantForTest();
   const mount = document.getElementById("app");
   const root = createRoot(mount);
 
@@ -527,7 +529,7 @@ test("R96 mobile launcher stays visible and the in-chat support form wins over a
   assert.equal(customImageLauncher.style.background, "transparent", "the accent-color bubble is removed behind the selected launcher image");
   assert.equal(customImageLauncher.querySelector("img")?.getAttribute("src"), selectedLauncherImage, "the selected image remains the launcher content");
 
-  const launcherStyles = readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const launcherStyles = readStorefrontCss();
   assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image\s*\{[^}]*overflow:\s*hidden;[^}]*border:\s*0;[^}]*box-shadow:\s*none;/s, "custom image mode removes the bubble border and shadow");
   assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image \.jluxe-ai-launcher-mark\s*\{\s*width:\s*100%;\s*height:\s*100%;/s, "the image wrapper expands to the circular launcher bounds");
   assert.match(launcherStyles, /\.jluxe-ai-launcher--custom-image \.jluxe-ai-launcher-image\s*\{\s*display:\s*block;\s*width:\s*100%;\s*height:\s*100%;/s, "the selected image fills the launcher instead of staying at 24 pixels");

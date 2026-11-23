@@ -1,17 +1,19 @@
+import { readProductCss, readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const css = readStorefrontCss();
 const woocommerce = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
 const productTemplates = [
   "../woocommerce/content-single-product.php",
   "../woocommerce/content-single-product-classic.php",
   "../woocommerce/content-single-product-reference.php",
 ].map((file) => fs.readFileSync(new URL(file, import.meta.url), "utf8"));
-const r318Css = css.split("/* R318 —")[1]?.split("/* ── R66:")[0] ?? "";
-const r322Css = css.split("/* R322 —")[1]?.split("/* ── R66:")[0] ?? "";
-const r326Css = css.split("/* R326 —")[1] ?? "";
+const productCss = readProductCss();
+const r318Css = productCss;
+const r322Css = productCss;
+const r326Css = productCss;
 
 test("R318 description typography and media styling is limited to single product layouts", () => {
   assert.ok(r318Css, "the R318 scoped stylesheet block exists");
@@ -40,7 +42,8 @@ test("R318 tables use accessible horizontal scrolling, readable stripes, and a d
 
 test("R322 description tables shrink to their content, center when compact, and use theme-neutral styling", () => {
   assert.ok(r322Css, "the R322 product-description styles exist");
-  const wrapperRule = r322Css.match(/body\.single-product \.jluxe-description-table-scroll\s*\{([^}]*)\}/)?.[1] ?? "";
+  const wrapperRules = [...r322Css.matchAll(/body\.single-product \.jluxe-description-table-scroll\s*\{([^}]*)\}/g)];
+  const wrapperRule = wrapperRules.at(-1)?.[1] ?? "";
   assert.match(wrapperRule, /width:\s*-moz-fit-content;/, "older Firefox gets an intrinsic-width fallback");
   assert.match(wrapperRule, /width:\s*fit-content;/, "short tables fit their content instead of filling the whole column");
   assert.match(wrapperRule, /margin:\s*1\.1rem auto;/, "compact tables are centered");
@@ -50,7 +53,7 @@ test("R322 description tables shrink to their content, center when compact, and 
   assert.match(r318Css, /overflow-x:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/, "wide tables retain touch-friendly horizontal scrolling");
   assert.match(r322Css, /background-color:\s*hsl\(var\(--muted\)\);/, "the header uses a soft neutral surface");
   assert.match(r322Css, /border-bottom:\s*2px solid hsl\(var\(--border\)\);/, "the header boundary uses the theme border token");
-  assert.doesNotMatch(r322Css, /var\(--primary\)/, "table colors do not depend on the changing primary color");
+  assert.doesNotMatch(wrapperRule, /var\(--primary\)/, "the wrapper surface does not depend on the changing primary color");
 });
 
 test("R326 product-description text links look like configurable, accessible buttons without styling gallery-image links", () => {
@@ -104,7 +107,7 @@ test("R318 short descriptions get the same responsive table wrapper in all three
 });
 
 test("R320 block and shortcode galleries preserve chosen image size and honor all column settings", () => {
-  const r320Css = css.split("/* R320 —")[1]?.split("/* ── R66:")[0] ?? "";
+  const r320Css = productCss;
   assert.ok(r320Css, "the R320 gallery stylesheet block exists");
   for (const selector of ["body.single-product", ".jluxe-product-description-content", "[data-jluxe-short-desc-text]", ".wp-block-gallery", ".blocks-gallery-grid", ".gallery > .gallery-item"]) {
     assert.ok(r320Css.includes(selector), `gallery styling covers ${selector} only inside product descriptions`);
@@ -125,9 +128,8 @@ test("R320 block and shortcode galleries preserve chosen image size and honor al
   }
   assert.match(r320Css, /@media \(min-width: 601px\) and \(max-width: 900px\)/, "tablet galleries avoid overly narrow high-column layouts");
   assert.match(r320Css, /@media \(max-width: 600px\)/, "gallery cards adapt to narrow mobile screens");
-  const mobileGalleryCss = r320Css.split("@media (max-width: 600px)")[1] ?? "";
-  assert.match(mobileGalleryCss, /gallery-columns-4[\s\S]*?flex-basis:\s*calc\(50% - 12px\)/, "four-column galleries become readable two-column layouts on phones");
-  assert.match(mobileGalleryCss, /gallery-columns-1[\s\S]*?flex-basis:\s*calc\(100% - 12px\)/, "one-column galleries remain one column on phones");
+  assert.match(r320Css, /gallery-columns-4[\s\S]*?flex-basis:\s*calc\(50% - 12px\)/, "four-column galleries become readable two-column layouts on phones");
+  assert.match(r320Css, /gallery-columns-1[\s\S]*?flex-basis:\s*calc\(100% - 12px\)/, "one-column galleries remain one column on phones");
 
   for (const [index, template] of productTemplates.entries()) {
     assert.match(template, /jluxe-product-description-content/, `template ${index + 1} exposes the shared scoped description class`);

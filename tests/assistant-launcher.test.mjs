@@ -1,9 +1,10 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const source = await readFile(new URL("../src/islands/AiAssistant.js", import.meta.url), "utf8");
-const styles = await readFile(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const styles = readStorefrontCss();
 
 test("R127 product help launcher remains fixed at its configured corner while clearing only real bottom docks", () => {
   assert.match(source, /position: "fixed"/);

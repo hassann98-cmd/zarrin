@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -12,10 +13,7 @@ const authSource = fs.readFileSync(
   new URL("../src/islands/AuthPage.jsx", import.meta.url),
   "utf8",
 );
-const storefrontCss = fs.readFileSync(
-  new URL("../src/styles/storefront.css", import.meta.url),
-  "utf8",
-);
+const storefrontCss = readStorefrontCss();
 
 test("R353 starts Chrome WebOTP before requesting the SMS and keeps native OTP autofill fallback", () => {
   const listenPosition = authSource.indexOf("startWebOtp();");

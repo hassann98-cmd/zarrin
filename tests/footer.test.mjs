@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -144,10 +145,7 @@ test("R196 shipping slogan is a full bold heading in the shared footer hierarchy
     document.querySelector("footer")?.textContent ?? "",
     /ساعات تماس|آدرس|تضمینِ مرجوعی|نمادِ جدید/,
   );
-  const css = fs.readFileSync(
-    new URL("../src/styles/storefront.css", import.meta.url),
-    "utf8",
-  );
+  const css = readStorefrontCss();
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-grid\s*\{[^}]*font-family:\s*IRANYekan,/s);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-title\s*\{[^}]*font-size:\s*\.9rem;[^}]*font-weight:\s*700;/s);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-feature-subtitle\s*\{[^}]*font-size:\s*\.77rem;[^}]*min-height:\s*1\.2em;/s);
@@ -175,7 +173,7 @@ test("R305 footer displays the requested brand, phone hours, and ordered support
     [["09120902336", "tel:09120902336"], ["09362420232", "tel:09362420232"]],
   );
 
-  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const css = readStorefrontCss();
   assert.match(css, /@media \(max-width: 639\.98px\)[\s\S]*?#jluxe-footer-root \.jluxe-footer-support-card \{\s*display: block;/);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-support-icon \{\s*display: none;/);
   assert.match(css, /#jluxe-footer-root \.jluxe-footer-phone-links \{[^}]*flex-wrap: wrap;[^}]*justify-content: flex-start;/);
@@ -307,10 +305,7 @@ test("R192 configured footer copy, optional features, phone links, and touch/foc
   assert.equal(columns.querySelector('a[href="tel:02112345678"]')?.dir, "ltr");
   assert.equal(columns.querySelector('a[href="tel:09121234567"]')?.dir, "ltr");
 
-  const css = fs.readFileSync(
-    new URL("../src/styles/storefront.css", import.meta.url),
-    "utf8",
-  );
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-footer-social-link\s*\{[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;/s);
   assert.match(css, /\.jluxe-footer-nav-link:focus-visible/);
   assert.match(css, /\.jluxe-site-badge-card:focus-within/);
@@ -359,10 +354,7 @@ test("R191 footer is compact, keeps phone numbers together, and merges configure
   assert.match(socialRow.textContent, /ما را دنبال کنید/);
   assert.equal(socialRow.querySelectorAll(".jluxe-footer-social-link").length, 1);
 
-  const css = fs.readFileSync(
-    new URL("../src/styles/storefront.css", import.meta.url),
-    "utf8",
-  );
+  const css = readStorefrontCss();
   const r191Start = css.indexOf("/* R191 —");
   const r326Start = css.indexOf("/* R326 —", r191Start);
   const r191 = css.slice(r191Start, r326Start === -1 ? undefined : r326Start);
@@ -493,10 +485,7 @@ test("R108 the footer logo portal has a scoped compact-image rule", async () => 
   assert.equal(logo.querySelector("picture source")?.getAttribute("media"), "(min-width: 768px)");
   assert.equal(logo.querySelector("picture img")?.getAttribute("data-no-lazy"), "1");
 
-  const css = fs.readFileSync(
-    new URL("../src/styles/storefront.css", import.meta.url),
-    "utf8",
-  );
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-footer-logo img\s*\{[^}]*height:\s*3rem\s*!important/s);
 });
 

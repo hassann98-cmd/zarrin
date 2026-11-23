@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,7 +10,7 @@ import { JSDOM } from "jsdom";
 // scrolls out of view.
 const script = () =>
   fs.readFileSync(new URL("../assets/js/storefront-utils.js", import.meta.url), "utf8") + "\n" + fs.readFileSync(new URL("../assets/js/sticky-cta.js", import.meta.url), "utf8");
-const styles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const styles = readStorefrontCss();
 const referenceTemplate = fs.readFileSync(new URL("../woocommerce/content-single-product-reference.php", import.meta.url), "utf8");
 
 function buildDom(mode, withVariation = false) {

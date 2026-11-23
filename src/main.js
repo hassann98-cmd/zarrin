@@ -12,9 +12,27 @@ import "./styles/storefront.css";
 // Bundle the WordPress theme stylesheet here too, so it shares the compiled
 // CSS request instead of creating a second render-blocking stylesheet request.
 import "../style.css";
-import "./styles/design-variants.css";
 import "./styles/sitewide-design.css";
-import "./styles/neumorphism-refinements.css";
+
+// In development the route/variant CSS is loaded after the shared stylesheet,
+// matching production's conditional stylesheet dependencies and cascade order.
+if (import.meta.env.DEV) {
+  const assetConfig = window.JLUXEAssetConfig || {};
+  const devStyles = [];
+  if (assetConfig.context === "product") {
+    devStyles.push(import("./styles/route-product.css"));
+  } else if (assetConfig.context === "cart" || assetConfig.context === "checkout") {
+    devStyles.push(import("./styles/route-cart-checkout.css"));
+  } else if (assetConfig.context === "account") {
+    devStyles.push(import("./styles/route-account-auth.css"));
+  }
+  if (assetConfig.visualVariant === "canva_home") {
+    devStyles.push(import("./styles/design-variants.css"));
+  } else if (assetConfig.visualVariant === "neumorphism") {
+    devStyles.push(import("./styles/neumorphism-refinements.css"));
+  }
+  if (devStyles.length) Promise.all(devStyles).catch((error) => console.error("[jluxe] route CSS failed to load", error));
+}
 import { setupPwa } from "./lib/pwa.js";
 // The map's own JavaScript chunk is fetched only when its explicit open button is used.
 for (const picker of document.querySelectorAll("[data-jluxe-map-picker]")) {

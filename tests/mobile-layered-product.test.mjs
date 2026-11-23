@@ -1,11 +1,14 @@
+import { readProductCss, readStorefrontCss } from "./helpers/storefront-css.mjs";
+import postcss from "postcss";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
-const css=read('../src/styles/storefront.css');
-const block=css.slice(css.indexOf('/* Optional mobile-only composition.'), css.indexOf('/* Administrator-controlled compact mobile typography'));
+const css=readProductCss();
+const productRoot=postcss.parse(css);
+const block=[...(()=>{const rules=[];productRoot.walkRules(rule=>{if(rule.selector.includes('[data-jluxe-mobile-layout="layered"]'))rules.push(rule.toString())});return rules})()].join("\n");
 test('layered composition is isolated to explicit setting and mobile media query',()=>{
- assert.match(block,/@media \(max-width:767\.98px\)/);
+ assert.match(css,/@media\s*\(max-width:767\.98px\)/);
  const selectors=[...block.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m=>m[1].trim()).filter(s=>!s.startsWith('@'));
  assert.ok(selectors.length>5);
  for(const selector of selectors) for(const part of selector.split(',')) assert.ok(part.includes('[data-jluxe-mobile-layout="layered"]'),part);
@@ -31,7 +34,7 @@ test('layered text starts below the image without initial overlap, while gallery
 });
 
 test('mobile gallery sticky offset no longer follows scrolling announcement geometry',()=>{
- const fix=css.split('/* Stable native-sticky geometry')[1];
+ const fix=readStorefrontCss().split('/* Stable native-sticky geometry')[1] || '';
  assert.ok(fix);
  assert.doesNotMatch(fix,/announcement-sticky-height/);
  assert.match(fix,/jluxe-product-header-row-height,72px/);

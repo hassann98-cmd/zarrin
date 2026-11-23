@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -135,6 +136,6 @@ test('earlier queue failures survive final success and do not leak into the next
 });
 
 test('server-confirmed add state uses the green success token instead of waiting for WooCommerce feedback styling', () => {
- const css=fs.readFileSync(new URL('../src/styles/storefront.css',import.meta.url),'utf8');
+ const css=readStorefrontCss();
  assert.match(css,/body \[data-jluxe-add-state="success"\]\{[^}]*background-color:hsl\(var\(--success\)\);[^}]*color:hsl\(var\(--success-foreground\)\);/);
 });
