@@ -7,6 +7,7 @@ const css = readFileSync(new URL("../src/styles/design-variants.css", import.met
 const settings = readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");
 const storefrontCss = readStorefrontCss();
 const sitewideCss = readFileSync(new URL("../src/styles/sitewide-design.css", import.meta.url), "utf8");
+const canvaCss = readFileSync(new URL("../src/styles/variant-canva-home.css", import.meta.url), "utf8");
 const neumorphismCss = readFileSync(new URL("../src/styles/neumorphism-refinements.css", import.meta.url), "utf8");
 const settingsPhp = readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const presetsPhp = readFileSync(new URL("../inc/theme-settings-presets.php", import.meta.url), "utf8");
@@ -183,24 +184,25 @@ test("R355 site-wide green/clay home design stays opt-in and covers the storefro
   assert.match(mainJs, /\.\/styles\/sitewide-design\.css/);
   assert.match(mainJs, /\.\/styles\/neumorphism-refinements\.css/);
 
-  assert.match(sitewideCss, /body\.jluxe-design-canva-home/);
-  assert.match(sitewideCss, /--primary:\s*155 39% 30%/);
-  assert.match(sitewideCss, /--accent:\s*18 88% 40%/);
-  assert.match(sitewideCss, /--jluxe-home-green:\s*#2F6B52/i);
-  assert.match(sitewideCss, /--jluxe-home-clay:\s*#C2410C/i);
-  assert.match(sitewideCss, /#FFF9F0/i);
+  assert.match(canvaCss, /body\.jluxe-design-canva-home/);
+  assert.match(canvaCss, /--primary:\s*155 39% 30%/);
+  assert.match(canvaCss, /--accent:\s*18 88% 40%/);
+  assert.match(canvaCss, /--jluxe-home-green:\s*#2F6B52/i);
+  assert.match(canvaCss, /--jluxe-home-clay:\s*#C2410C/i);
+  assert.match(canvaCss, /#FFF9F0/i);
+  assert.doesNotMatch(sitewideCss, /body\.jluxe-design-canva-home/);
   assert.doesNotMatch(sitewideCss, /var\(--color-electric-indigo-/i);
-  assert.match(sitewideCss, /\.jluxe-home-section/);
-  assert.match(sitewideCss, /padding-inline:\s*clamp\(12px, 2vw, 24px\)/);
-  assert.match(sitewideCss, /\.jluxe-home-section:nth-of-type\(4n \+ 2\)/);
-  assert.match(sitewideCss, /\.jluxe-home-section > div\.mb-3\.flex\.items-center\.justify-between > a/);
-  assert.match(sitewideCss, /#masthead/);
-  assert.match(sitewideCss, /#jluxe-footer-root/);
+  assert.match(canvaCss, /\.jluxe-home-section/);
+  assert.match(canvaCss, /padding-inline:\s*clamp\(12px, 2vw, 24px\)/);
+  assert.match(canvaCss, /\.jluxe-home-section:nth-of-type\(4n \+ 2\)/);
+  assert.match(canvaCss, /\.jluxe-home-section > div\.mb-3\.flex\.items-center\.justify-between > a/);
+  assert.match(canvaCss, /#masthead/);
+  assert.match(canvaCss, /#jluxe-footer-root/);
   assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
-  assert.match(sitewideCss, /\.woocommerce-checkout/);
-  assert.match(sitewideCss, /@media \(max-width: 767\.98px\)/);
-  assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.doesNotMatch(sitewideCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
+  assert.match(canvaCss, /\.woocommerce-checkout/);
+  assert.match(canvaCss, /@media \(max-width: 767\.98px\)/);
+  assert.match(canvaCss, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(canvaCss, /grid-template-columns\s*:|grid-column\s*:|display\s*:\s*contents/i);
   assert.ok(contrastRatio("#2F6B52", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#C2410C", "#FFFFFF") >= 4.5);
 });
@@ -211,16 +213,16 @@ test("R367 neumorphism is an opt-in, fully scoped site skin with a saved one-ste
   assert.match(settingsPhp, /'variant'\s*=>\s*'current'/);
   assert.match(settingsPhp, /jluxe-design-neumorphism/);
   assert.match(sanitizePhp, /'current', 'canva_home', 'neumorphism'/);
-  assert.match(sitewideCss, /body\.jluxe-design-neumorphism\s*\{[\s\S]*?--neu-raised:[\s\S]*?--neu-inset:/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism\s*\{[\s\S]*?--neu-raised:[\s\S]*?--neu-inset:/);
   for (const selector of ["#masthead", ".jluxe-home-section", "[data-jluxe-product-card-variant]", ".single-product .summary", ".jluxe-product-card-current-price", ".jluxe-product-card-sale-badge", ".jluxe-product-card-cta", "#jluxe-footer-root .jluxe-footer-shell"]) {
-    assert.ok(sitewideCss.includes(`body.jluxe-design-neumorphism ${selector}`), `neumorphism styling covers ${selector}`);
+    assert.ok(neumorphismCss.includes(`body.jluxe-design-neumorphism ${selector}`), `neumorphism styling covers ${selector}`);
   }
-  assert.match(sitewideCss, /body\.jluxe-design-neumorphism :focus-visible/);
-  assert.match(sitewideCss, /--neu-accent:\s*#087F75/i);
-  assert.match(sitewideCss, /--neu-bg:\s*#EAF5EE/i);
-  assert.match(sitewideCss, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
-  assert.match(sitewideCss, /\.jluxe-design-canva-home/);
+  assert.match(neumorphismCss, /body\.jluxe-design-neumorphism :focus-visible/);
+  assert.match(neumorphismCss, /--neu-accent:\s*#087F75/i);
+  assert.match(neumorphismCss, /--neu-bg:\s*#EAF5EE/i);
+  assert.match(neumorphismCss, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.doesNotMatch(neumorphismCss, /ul\.products li\.product/);
+  assert.match(canvaCss, /\.jluxe-design-canva-home/);
   assert.match(neumorphismCss, /body\.jluxe-design-neumorphism \.jluxe-blog-card/);
   assert.match(neumorphismCss, /body\.jluxe-design-neumorphism \.jluxe-article-card/);
   assert.match(neumorphismCss, /body\.jluxe-design-neumorphism\.woocommerce-cart/);
@@ -229,7 +231,7 @@ test("R367 neumorphism is an opt-in, fully scoped site skin with a saved one-ste
   assert.match(neumorphismCss, /body\.jluxe-design-neumorphism #jluxe-footer-root/);
   assert.match(neumorphismCss, /@media \(forced-colors: active\)/);
   assert.match(neumorphismCss, /one raised surface per hierarchy/);
-  assert.doesNotMatch(sitewideCss.slice(sitewideCss.indexOf('body.jluxe-design-neumorphism {')), /#5146A5|#403681|247 40% 46/);
+  assert.doesNotMatch(neumorphismCss, /#5146A5|#403681|247 40% 46/);
   assert.ok(contrastRatio("#087F75", "#FFFFFF") >= 4.5, "teal action labels meet WCAG AA");
   assert.ok(contrastRatio("#075E56", "#FFFFFF") >= 4.5, "dark teal hover labels meet WCAG AA");
   assert.ok(contrastRatio("#C04F31", "#FFFFFF") >= 4.5, "coral sale labels meet WCAG AA");
@@ -248,8 +250,8 @@ test("R362 ordinary text is neutral while action, hover, and semantic status col
   assert.match(storefrontCss, /\.dark\\:text-gray-300:is\(\.dark \*\) \{\s*--tw-text-opacity: 1;\s*color: rgb\(209 213 219/);
   assert.match(storefrontCss, /\.dark \.jluxe-site-faq__heading h1,[\s\S]*?color: #F3F4F6/);
   assert.match(storefrontCss, /\.dark \.jluxe-site-faq__empty \{ color: #D1D5DB; \}/);
-  assert.match(sitewideCss, /--jluxe-home-ink:\s*#1F2937/);
-  assert.match(sitewideCss, /\.jluxe-home-section h2:not\(\.text-white\) \{\s*color: #1F2937;/);
+  assert.match(canvaCss, /--jluxe-home-ink:\s*#1F2937/);
+  assert.match(canvaCss, /\.jluxe-home-section h2:not\(\.text-white\) \{\s*color: #1F2937;/);
   assert.doesNotMatch(sitewideCss, /ul\.products li\.product/);
   assert.match(storefrontCss, /\.jluxe-product-card-title/);
   assert.match(storefrontCss, /\.jluxe-product-card-current-price/);
@@ -259,13 +261,13 @@ test("R362 ordinary text is neutral while action, hover, and semantic status col
   assert.match(storefrontCss, /\.jluxe-recent-products__eyebrow \{[\s\S]*?color: hsl\(var\(--text-secondary\)\)/);
   assert.match(storefrontCss, /\.jluxe-recent-card__price\[data-on-sale="true"\] \.jluxe-recent-card__price-current \{ color: hsl\(var\(--error\)\)/);
   assert.doesNotMatch(css, /jluxe-product-card-sale-badge/);
-  assert.match(sitewideCss, /\.woocommerce-message \{[\s\S]*?color: #166534/);
-  assert.match(sitewideCss, /\.woocommerce-info \{[\s\S]*?color: #1D4ED8/);
-  assert.match(sitewideCss, /\.woocommerce-error \{[\s\S]*?color: #B91C1C/);
-  assert.match(sitewideCss, /nav > a:hover,[\s\S]*?color: #C2410C/, "interactive hover retains the original clay accent");
+  assert.match(canvaCss, /\.woocommerce-message \{[\s\S]*?color: #166534/);
+  assert.match(canvaCss, /\.woocommerce-info \{[\s\S]*?color: #1D4ED8/);
+  assert.match(canvaCss, /\.woocommerce-error \{[\s\S]*?color: #B91C1C/);
+  assert.match(canvaCss, /nav > a:hover,[\s\S]*?color: #C2410C/, "interactive hover retains the original clay accent");
   assert.equal((aboutPage.match(/\[&_\.jluxe-about-eyebrow\]:text-text-secondary/g) ?? []).length, 2);
   assert.doesNotMatch(aboutPage, /\[&_\.jluxe-about-eyebrow\]:text-primary/);
-  assert.doesNotMatch(sitewideCss, /color:\s*var\(--color-electric-indigo-(?:700|800|900)\)/);
+  assert.doesNotMatch(canvaCss, /color:\s*var\(--color-electric-indigo-(?:700|800|900)\)/);
 });
 
 test('home product cards remain canonical across WooCommerce lists and home div carousels',()=>{

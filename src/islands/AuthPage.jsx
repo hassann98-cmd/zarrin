@@ -1,3 +1,4 @@
+import "../styles/auth-page.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { UserRound, ChevronRight, CheckCircle2, Smartphone } from "lucide-react";
 import { getThemeSettings } from "../lib/theme-settings.js";

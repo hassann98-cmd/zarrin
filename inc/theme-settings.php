@@ -3503,6 +3503,25 @@ function jluxe_output_typography_variables(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_output_typography_variables', 20 );
 
+/** Return the last enqueued Zarrin stylesheet so admin CSS follows route/variant CSS. */
+function jluxe_last_theme_style_handle(): string {
+	$queue = array();
+	if ( function_exists( 'wp_styles' ) ) {
+		$wp_styles = wp_styles();
+		if ( is_object( $wp_styles ) && ! empty( $wp_styles->queue ) && is_array( $wp_styles->queue ) ) {
+			$queue = $wp_styles->queue;
+		}
+	} elseif ( ! empty( $GLOBALS['styles'] ) && is_array( $GLOBALS['styles'] ) ) {
+		$queue = array_keys( $GLOBALS['styles'] );
+	}
+	foreach ( array_reverse( $queue ) as $handle ) {
+		if ( is_string( $handle ) && 0 === strpos( $handle, 'jluxe-' ) ) {
+			return $handle;
+		}
+	}
+	return 'jluxe-main-0';
+}
+
 /**
  * CSS/JS سفارشی ادمین — فقط خروجی خامِ چیزی که خودِ ادمین (manage_options)
  * نوشته؛ ورودی در inc/theme-settings-sanitize.php با wp_strip_all_tags روی
@@ -3511,7 +3530,7 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_typography_variables', 20 );
 function jluxe_output_custom_code(): void {
 	$code = jluxe_get_theme_settings()['custom_code'];
 	if ( ! empty( $code['css'] ) ) {
-		wp_add_inline_style( 'jluxe-main-0', $code['css'] );
+		wp_add_inline_style( jluxe_last_theme_style_handle(), $code['css'] );
 	}
 	if ( ! empty( $code['js'] ) ) {
 		wp_add_inline_script( 'jluxe-main', $code['js'] );

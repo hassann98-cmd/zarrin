@@ -86,13 +86,16 @@
     ]
   },
   "src/islands/AuthPage.jsx": {
-    "file": "assets/AuthPage-CADB6z_v.js",
+    "file": "assets/AuthPage-BVyDIrFZ.js",
     "name": "AuthPage",
     "src": "src/islands/AuthPage.jsx",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-WkwZ5CU-.js",
       "_shared-shell-ui-CpdfCG3m.js"
+    ],
+    "css": [
+      "assets/AuthPage-DaKhZl0I.css"
     ]
   },
   "src/islands/CategoriesBrowser.js": {
@@ -217,8 +220,8 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/src/main.js-DS1Z1P_I.js",
-    "name": "src/main.js",
+    "file": "assets/main-COvFZUsg.js",
+    "name": "main",
     "src": "src/main.js",
     "isEntry": true,
     "imports": [
@@ -242,7 +245,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-CbnX4VgE.css"
+      "assets/main-cTRK1YX2.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",
@@ -254,48 +257,57 @@
     ]
   },
   "src/styles/design-variants.css": {
-    "file": "assets/src/styles/design-variants-CEjNmtEO.css",
-    "name": "src/styles/design-variants.css",
+    "file": "assets/design-variants-CEjNmtEO.css",
+    "name": "design-variants",
     "names": [
-      "src/styles/design-variants.css"
+      "design-variants.css"
     ],
     "src": "src/styles/design-variants.css",
     "isEntry": true
   },
   "src/styles/neumorphism-refinements.css": {
-    "file": "assets/src/styles/neumorphism-refinements-BUtRbdyl.css",
-    "name": "src/styles/neumorphism-refinements.css",
+    "file": "assets/neumorphism-refinements-C3PBmxqT.css",
+    "name": "neumorphism-refinements",
     "names": [
-      "src/styles/neumorphism-refinements.css"
+      "neumorphism-refinements.css"
     ],
     "src": "src/styles/neumorphism-refinements.css",
     "isEntry": true
   },
   "src/styles/route-account-auth.css": {
-    "file": "assets/src/styles/route-account-auth-Bz2KVga_.css",
-    "name": "src/styles/route-account-auth.css",
+    "file": "assets/route-account-auth-BVuRmVRc.css",
+    "name": "route-account-auth",
     "names": [
-      "src/styles/route-account-auth.css"
+      "route-account-auth.css"
     ],
     "src": "src/styles/route-account-auth.css",
     "isEntry": true
   },
   "src/styles/route-cart-checkout.css": {
-    "file": "assets/src/styles/route-cart-checkout-C3FAL2LI.css",
-    "name": "src/styles/route-cart-checkout.css",
+    "file": "assets/route-cart-checkout-C3FAL2LI.css",
+    "name": "route-cart-checkout",
     "names": [
-      "src/styles/route-cart-checkout.css"
+      "route-cart-checkout.css"
     ],
     "src": "src/styles/route-cart-checkout.css",
     "isEntry": true
   },
   "src/styles/route-product.css": {
-    "file": "assets/src/styles/route-product-Dk0E2QX3.css",
-    "name": "src/styles/route-product.css",
+    "file": "assets/route-product-WjSEXQ6I.css",
+    "name": "route-product",
     "names": [
-      "src/styles/route-product.css"
+      "route-product.css"
     ],
     "src": "src/styles/route-product.css",
+    "isEntry": true
+  },
+  "src/styles/variant-canva-home.css": {
+    "file": "assets/variant-canva-home-HS6DqGxw.css",
+    "name": "variant-canva-home",
+    "names": [
+      "variant-canva-home.css"
+    ],
+    "src": "src/styles/variant-canva-home.css",
     "isEntry": true
   }
 }

@@ -385,9 +385,10 @@ function jluxe_enqueue_assets() {
 	if ( jluxe_is_dev() ) {
 		wp_enqueue_script( 'jluxe-vite-client', JLUXE_VITE_DEV_SERVER . '/@vite/client', array(), null, false );
 		wp_enqueue_script( 'jluxe-main', JLUXE_VITE_DEV_SERVER . '/' . $entry, array(), null, true );
+		$premium_chrome = 'premium' === jluxe_get_setting( 'header.variant', 'current' ) || 'premium' === jluxe_get_setting( 'footer.variant', 'current' );
 		wp_add_inline_script(
 			'jluxe-main',
-			'window.JLUXEAssetConfig = ' . wp_json_encode( array( 'context' => $context, 'visualVariant' => $variant ) ) . ';',
+			'window.JLUXEAssetConfig = ' . wp_json_encode( array( 'context' => $context, 'visualVariant' => $variant, 'premiumChrome' => $premium_chrome ) ) . ';',
 			'before'
 		);
 		return;
@@ -424,8 +425,21 @@ function jluxe_enqueue_assets() {
 	if ( isset( $route_styles[ $context ] ) ) {
 		jluxe_enqueue_manifest_stylesheet( $route_styles[ $context ][0], $route_styles[ $context ][1] );
 	}
-	if ( 'canva_home' === $variant ) {
+	if ( 'account' === $context ) {
+		$auth_entry = $manifest['src/islands/AuthPage.jsx'] ?? array();
+		foreach ( $auth_entry['css'] ?? array() as $i => $css_file ) {
+			$css_path = JLUXE_ASSET_DIR . '/' . $css_file;
+			if ( is_file( $css_path ) ) {
+				wp_enqueue_style( 'jluxe-auth-page-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array( 'jluxe-route-account-auth' ), (string) filemtime( $css_path ) );
+			}
+		}
+	}
+	$premium_chrome = 'premium' === jluxe_get_setting( 'header.variant', 'current' ) || 'premium' === jluxe_get_setting( 'footer.variant', 'current' );
+	if ( $premium_chrome || 'canva_home' === $variant ) {
 		jluxe_enqueue_manifest_stylesheet( 'src/styles/design-variants.css', 'jluxe-design-variants' );
+	}
+	if ( 'canva_home' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/variant-canva-home.css', 'jluxe-variant-canva-home' );
 	} elseif ( 'neumorphism' === $variant ) {
 		jluxe_enqueue_manifest_stylesheet( 'src/styles/neumorphism-refinements.css', 'jluxe-neumorphism-refinements' );
 	}
@@ -444,6 +458,7 @@ function jluxe_assets_admin_notice(): void {
 	$entry = $manifest['src/main.js'] ?? array();
 	$required_css_entries = array(
 		'src/styles/design-variants.css',
+		'src/styles/variant-canva-home.css',
 		'src/styles/neumorphism-refinements.css',
 		'src/styles/route-product.css',
 		'src/styles/route-cart-checkout.css',
@@ -453,6 +468,11 @@ function jluxe_assets_admin_notice(): void {
 	foreach ( $required_css_entries as $css_entry ) {
 		$files[] = $manifest[ $css_entry ]['file'] ?? '';
 	}
+	$auth_css = $manifest['src/islands/AuthPage.jsx']['css'] ?? array();
+	if ( ! $auth_css ) {
+		$files[] = '';
+	}
+	$files = array_merge( $files, $auth_css );
 	$assistant_css = $manifest['src/islands/AiAssistant.js']['css'] ?? array();
 	if ( ! $assistant_css ) {
 		$files[] = '';

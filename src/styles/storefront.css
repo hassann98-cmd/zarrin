@@ -5799,26 +5799,6 @@ html {
    نوار چسبانِ افزودن به سبد — فقط موبایل و فقط صفحهٔ محصول؛ وقتی
    dock پایین ندارد از safe-area پیروی می‌کند و بالای dock اندازه‌گیری می‌شود.
    ======================================================================= */
-.jluxe-mobile-bar-toggle:active { transform: scale(0.96); }
-.jluxe-mobile-bar-toggle:hover { border-color: hsl(var(--primary) / 0.42); color: hsl(var(--primary)); box-shadow: 0 10px 26px hsl(var(--foreground) / 0.2); }
-.jluxe-mobile-bar-toggle:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
-.jluxe-mobile-bar-toggle {
-  box-sizing: border-box;
-  position: fixed;
-  inset-inline-end: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px);
-  z-index: 166;
-  width: 48px;
-  height: 48px;
-  border: 1px solid hsl(var(--primary) / 0.22);
-  background: linear-gradient(180deg, hsl(var(--surface) / 0.98), hsl(var(--surface) / 0.9));
-  color: hsl(var(--primary));
-  box-shadow: 0 8px 22px hsl(var(--foreground) / 0.16), 0 1px 0 hsl(var(--surface) / 0.95) inset;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  transition: bottom 0.18s ease, transform 0.16s ease, box-shadow 0.16s ease;
-}
-.jluxe-mobile-bar-toggle svg[hidden] { display: none; }
 /* With a bottom dock, the CTA is measured above it; don't add the same safe-area inset twice. */
 body.jluxe-has-sticky-cta { padding-bottom: 4.75rem; }
 @media (max-width: 767.98px) {
@@ -9335,9 +9315,6 @@ body .jluxe-add-progress [data-state="success"]::before{content:'✓';display:in
 
 /* Keep the switch above both docks, below dialogs; never animate into a cart hit target. */
 /* Mode switchers stay above product bars (165), below drawer backdrops (170). */
-body .jluxe-mobile-bar-toggle{z-index:166;touch-action:manipulation;transition:box-shadow .16s ease;}
-body .jluxe-mobile-bar-toggle:active{transform:none;}
-body .jluxe-mobile-bar-toggle svg{pointer-events:none;}
 .jluxe-pa-sheet>.jluxe-suggested-confirmation{flex:0 0 auto;}
 .jluxe-pa-sheet>.jluxe-queue-add-warning{flex:0 0 auto;margin:10px 16px 0;padding:10px 12px;border:1px dashed hsl(var(--border));border-radius:12px;background:hsl(var(--muted));color:hsl(var(--foreground));font-size:13px;line-height:1.8;}
 
@@ -9349,7 +9326,6 @@ body .jluxe-mobile-bar-toggle svg{pointer-events:none;}
 /* Administrator-controlled compact mobile typography and variation chips. */
 
 /* Open drawers own the screen: switchers must neither cover nor receive taps. */
-html[data-jluxe-mobile-drawer] body .jluxe-mobile-bar-toggle{visibility:hidden;pointer-events:none;}
 
 /* Simplified selection: one row per attribute, never a wall of chips. */
 .jluxe-option-strip__arrow{display:none;}
@@ -9398,25 +9374,15 @@ html[data-jluxe-mobile-drawer] body .jluxe-mobile-bar-toggle{visibility:hidden;p
 @media(max-width:600px){body.admin-bar{--jluxe-mobile-admin-offset:0px;}}
 
 /* Clear purchase hierarchy: action right, framed quantity, price left. */
-@media(max-width:767.98px){
- body .jluxe-mobile-bar-toggle{width:44px;height:44px;min-height:44px;border:1px solid hsl(var(--primary)/.3);border-radius:14px;background:hsl(var(--surface));color:hsl(var(--primary));box-shadow:0 4px 14px hsl(var(--foreground)/.14),inset 0 1px 0 hsl(var(--surface));}
- body .jluxe-mobile-bar-toggle[aria-pressed="true"]{background:hsl(var(--primary)/.1);}
-}
 
 /* Compact identity row, optional left-aligned trust, and notice below choices. */
 
 /* Explicit two-mode switch and compact, aligned purchase details. */
 @media(max-width:767.98px){
- body .jluxe-mobile-bar-toggle{display:flex;align-items:center;justify-content:center;direction:rtl;box-sizing:border-box;width:118px;height:44px;min-height:44px;padding:4px;gap:3px;border-radius:999px;font:inherit;}
- body .jluxe-mobile-bar-toggle>svg{display:none;}
  body .jluxe-dock-choice{display:grid;place-items:center;min-width:36px;height:32px;padding:0 4px;border-radius:999px;font-size:12px;font-weight:500;color:hsl(var(--text-secondary));}
  body .jluxe-dock-exchange{font-size:16px;line-height:1;color:hsl(var(--text-muted));}
- body .jluxe-mobile-bar-toggle>span{pointer-events:none;}
 }
 
 /* A single image is centered; simple-product facts also have a no-JS frame. */
 
 /* Keep the switch's painted and interactive surfaces identical after mobile scrolling. */
-@media(max-width:767.98px){
- body .jluxe-mobile-bar-toggle{backdrop-filter:none;-webkit-backdrop-filter:none;transform:none;will-change:auto;pointer-events:auto;isolation:isolate;background:hsl(var(--surface));}
-}

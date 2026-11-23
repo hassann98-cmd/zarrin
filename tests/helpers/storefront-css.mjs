@@ -8,6 +8,7 @@ const sourceFiles = [
   "src/styles/route-product.css",
   "src/styles/route-cart-checkout.css",
   "src/styles/route-account-auth.css",
+  "src/styles/auth-page.css",
   "src/styles/ai-assistant.css",
 ];
 

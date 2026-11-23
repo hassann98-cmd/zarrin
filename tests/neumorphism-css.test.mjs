@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import postcss from "postcss";
 
-const theme = readFileSync(new URL("../src/styles/sitewide-design.css", import.meta.url), "utf8");
+const theme = readFileSync(new URL("../src/styles/neumorphism-refinements.css", import.meta.url), "utf8");
 const refinements = readFileSync(new URL("../src/styles/neumorphism-refinements.css", import.meta.url), "utf8");
 const css = `${theme}\n${refinements}`;
 const prefix = "body.jluxe-design-neumorphism";

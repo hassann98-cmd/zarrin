@@ -27,6 +27,7 @@ async function mainCss() {
 test("route and design styles are standalone manifest CSS entries; AI CSS stays on the lazy island", async () => {
   for (const entry of [
     "src/styles/design-variants.css",
+    "src/styles/variant-canva-home.css",
     "src/styles/neumorphism-refinements.css",
     "src/styles/route-product.css",
     "src/styles/route-cart-checkout.css",
@@ -72,15 +73,44 @@ test("route styles are kept out of the shared stylesheet while the homepage and 
 });
 
 test("source only loads visual variants and route CSS in context, and preserves the Vite development path", async () => {
-  const [main, authNavigation, aiIsland] = await Promise.all([
+  const [main, authNavigation, aiIsland, authIsland] = await Promise.all([
     fs.readFile(path.join(root, "src/main.js"), "utf8"),
     fs.readFile(path.join(root, "src/lib/auth-navigation.js"), "utf8"),
     fs.readFile(path.join(root, "src/islands/AiAssistant.js"), "utf8"),
+    fs.readFile(path.join(root, "src/islands/AuthPage.jsx"), "utf8"),
   ]);
   assert.doesNotMatch(main, /import\s+["']\.\/styles\/(?:design-variants|neumorphism-refinements)\.css["']/);
   assert.match(main, /import\.meta\.env\.DEV/);
   assert.match(main, /assetConfig\.context === "product"/);
   assert.match(main, /assetConfig\.context === "cart" \|\| assetConfig\.context === "checkout"/);
-  assert.match(authNavigation, /import\("\.\.\/styles\/route-account-auth\.css"\)/);
+  assert.match(authNavigation, /import\("\.\.\/islands\/AuthPage\.jsx"\)/);
+  assert.doesNotMatch(authNavigation, /import\("\.\.\/styles\/route-account-auth\.css"\)/);
+  assert.match(authIsland, /^import\s+.*auth-page\.css/);
   assert.match(aiIsland, /import\s+["']\.\.\/styles\/ai-assistant\.css["']/);
+});
+
+
+test("AuthPage CSS is emitted as a dynamic-import dependency and enqueued from its manifest entry", async () => {
+  const auth = manifest["src/islands/AuthPage.jsx"];
+  assert.ok(auth?.css?.length, "AuthPage must own non-empty CSS in the manifest");
+  const cssFile = auth.css[0];
+  const mainFile = manifest["src/main.js"]?.file;
+  assert.ok(mainFile, "main bundle must be present");
+  const bundle = await fs.readFile(path.join(root, "assets/compiled", mainFile), "utf8");
+  assert.match(bundle, /__vite__mapDeps/);
+  assert.ok(bundle.includes(path.basename(cssFile)), "main bundle dependency map must contain AuthPage CSS");
+  assert.match(bundle, /import\(`(?:\.\.\/|\.\/)?AuthPage-[^`]+\.js`\),__vite__mapDeps\(\[[^\]]+\]\)/);
+  const authCss = await fs.readFile(path.join(root, "assets/compiled", cssFile), "utf8");
+  assert.match(authCss, /\.jluxe-auth-screen/);
+});
+
+test("mobile price bar leaves the page clickable and only its active card accepts pointer input", async () => {
+  const [product, storefront] = await Promise.all([
+    fs.readFile(path.join(root, "src/styles/route-product.css"), "utf8"),
+    fs.readFile(path.join(root, "src/styles/storefront.css"), "utf8"),
+  ]);
+  assert.match(product, /\.jluxe-mobile-price-bar\s*\{\s*pointer-events:\s*none/);
+  assert.match(product, /\.jluxe-mobile-price-card\s*\{\s*pointer-events:\s*auto/);
+  assert.match(product, /data-jluxe-mobile-bar-mode="inactive"\] \.jluxe-mobile-price-card\s*\{\s*pointer-events:\s*none/);
+  assert.doesNotMatch(storefront, /\.jluxe-mobile-bar-toggle/);
 });

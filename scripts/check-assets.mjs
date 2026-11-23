@@ -9,6 +9,7 @@ if (!manifest["src/main.js"]?.isEntry || !manifest["src/main.js"]?.css?.length)
   throw Error("Missing storefront entry or stylesheet");
 for (const entry of [
   "src/styles/design-variants.css",
+  "src/styles/variant-canva-home.css",
   "src/styles/neumorphism-refinements.css",
   "src/styles/route-product.css",
   "src/styles/route-cart-checkout.css",
@@ -17,6 +18,8 @@ for (const entry of [
   if (!manifest[entry]?.isEntry || !manifest[entry]?.file)
     throw Error(`Missing standalone CSS entry: ${entry}`);
 }
+if (!manifest["src/islands/AuthPage.jsx"]?.css?.length)
+  throw Error("Missing AuthPage island stylesheet dependency");
 if (!manifest["src/islands/AiAssistant.js"]?.css?.length)
   throw Error("Missing lazy AI assistant stylesheet from its island chunk");
 for (const [name, entry] of Object.entries(manifest)) {

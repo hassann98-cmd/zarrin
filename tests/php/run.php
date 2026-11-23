@@ -374,7 +374,26 @@ foreach ( $css_split_routes as $css_split_context => $css_split_handle ) {
 		isset( $GLOBALS['styles'][ $css_split_handle ] ) && in_array( 'jluxe-main-0', $GLOBALS['styles'][ $css_split_handle ][1] ?? array(), true ),
 		'R534 ' . $css_split_context . ' enqueues its route stylesheet after jluxe-main-0'
 	);
+	if ( 'account' === $css_split_context ) {
+		check( isset( $GLOBALS['styles']['jluxe-auth-page-0'] ) && in_array( 'jluxe-route-account-auth', $GLOBALS['styles']['jluxe-auth-page-0'][1] ?? array(), true ), 'AuthPage manifest CSS is enqueued after the account route stylesheet' );
+	}
 }
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ), 'header' => array( 'variant' => 'premium' ) );
+$GLOBALS['query_kind'] = 'front';
+$GLOBALS['styles'] = array();
+jluxe_get_theme_settings( true );
+jluxe_enqueue_assets();
+check( isset( $GLOBALS['styles']['jluxe-design-variants'] ) && ! isset( $GLOBALS['styles']['jluxe-variant-canva-home'] ), 'premium header with current visual design loads premium variants only' );
+
+$css_custom_old_inline = $GLOBALS['inline_styles'] ?? array();
+$GLOBALS['styles'] = array( 'jluxe-main-0' => array(), 'jluxe-route-product' => array() );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = jluxe_theme_settings_defaults();
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['custom_code']['css'] = '.admin-custom-regression{color:red}';
+jluxe_get_theme_settings( true );
+jluxe_output_custom_code();
+check( jluxe_last_theme_style_handle() === 'jluxe-route-product' && in_array( '.admin-custom-regression{color:red}', $GLOBALS['inline_styles']['jluxe-route-product'] ?? array(), true ), 'admin custom CSS attaches to the last enqueued route stylesheet, not main CSS' );
+$GLOBALS['inline_styles'] = $css_custom_old_inline;
+
 foreach ( array( 'canva_home' => 'jluxe-design-variants', 'neumorphism' => 'jluxe-neumorphism-refinements' ) as $css_split_variant => $css_split_handle ) {
 	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => $css_split_variant ) );
 	$GLOBALS['query_kind'] = 'front';
@@ -4366,8 +4385,9 @@ check(strpos($settings_inc,"'otpOnly' => ! empty( \$settings['sms']['otp_only'] 
 $acct=(string) file_get_contents(ABSPATH.'page-my-account.php');
 $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
 $account_css=(string) file_get_contents(ABSPATH.'src/styles/route-account-auth.css');
+$auth_page_css=(string) file_get_contents(ABSPATH.'src/styles/auth-page.css');
 check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($account_css,'.jluxe-recover-card')!==false && strpos($account_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
-check(strpos($acct,'data-otp-only="1"')!==false && strpos($account_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
+check(strpos($acct,'data-otp-only="1"')!==false && strpos($auth_page_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
 check(strpos($auth_jsx,'jluxe-auth-hint')===false && strpos($auth_jsx,'با کد درست')===false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'maxLength={6}')===false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R98 the redundant auth hint is removed and the unrestricted one-time-code field supports SMS autofill plus automatic six-digit verification');
 // R71: variation-picker swatches selectable again (R68 regression) + round modal add button.

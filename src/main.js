@@ -26,8 +26,11 @@ if (import.meta.env.DEV) {
   } else if (assetConfig.context === "account") {
     devStyles.push(import("./styles/route-account-auth.css"));
   }
-  if (assetConfig.visualVariant === "canva_home") {
+  if (assetConfig.premiumChrome || assetConfig.visualVariant === "canva_home") {
     devStyles.push(import("./styles/design-variants.css"));
+  }
+  if (assetConfig.visualVariant === "canva_home") {
+    devStyles.push(import("./styles/variant-canva-home.css"));
   } else if (assetConfig.visualVariant === "neumorphism") {
     devStyles.push(import("./styles/neumorphism-refinements.css"));
   }
