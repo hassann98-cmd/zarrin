@@ -810,7 +810,8 @@ $blog_renderer_source = (string) file_get_contents( ABSPATH . 'inc/theme-setting
 $blog_styles_source = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
 	false !== strpos( $blog_renderer_source, 'class="jluxe-home-blog-viewport" role="region"' ) &&
-	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' ) &&
+	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible' ) &&
+	false !== strpos( $blog_renderer_source, 'w-[80vw] shrink-0 flex-col' ) &&
 	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-card' ) &&
 	false !== strpos( $blog_styles_source, '@media (max-width: 639px)' ) &&
 	false !== strpos( $blog_styles_source, 'overflow-x: auto;' ) &&
@@ -3630,7 +3631,7 @@ ob_start();
 jluxe_render_visual_builder_legacy_page();
 $r360_builder_html = (string) ob_get_clean();
 check(
-	24 === count( jluxe_homepage_section_types() ) &&
+	25 === count( jluxe_homepage_section_types() ) &&
 	25 === count( jluxe_visual_builder_section_types() ) &&
 	false !== strpos( $r360_builder_html, 'صفحه‌ساز بصری' ) &&
 	false !== strpos( $r360_builder_html, 'name="homepage[sections][0][type]"' ) &&
@@ -3932,11 +3933,10 @@ ob_start();
 jluxe_render_homepage_cta( array( 'title' => '<script>no</script>', 'content' => '<img src=x>', 'button_label' => '<b>متن</b>', 'button_url' => 'https://shop.test/' ) );
 $r362_escaped_cta_html = (string) ob_get_clean();
 check(
-	24 === count( $r362_homepage_types ) &&
+	25 === count( $r362_homepage_types ) &&
 	25 === count( $r362_visual_builder_types ) &&
-	array( 'container', 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'brand_video_campaigns', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
-	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 24 ) &&
-	array( 'cta' ) === array_slice( $r362_visual_builder_types, 24, 1 ) &&
+	array( 'container', 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'brand_video_campaigns', 'cta', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
+	$r362_homepage_types === $r362_visual_builder_types &&
 	! in_array( 'cta', $r362_default_home_types, true ) &&
 	'cta' === ( $r362_builder_sanitized['sections'][0]['type'] ?? '' ) &&
 	'https://shop.test/shop/' === ( $r362_builder_sanitized['sections'][0]['button_url'] ?? '' ) &&
@@ -7011,8 +7011,8 @@ check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1
 check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
 $h108home_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
 check(
-	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px)' ) &&
-	false !== strpos( $h108home_source, '@media(max-width:639px){.jluxe-home-section{width:calc(100% - 24px);margin:20px auto;}}' ) &&
+	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-inline:16px' ) &&
+	false !== strpos( $h108home_source, '@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}' ) &&
 	false !== strpos( $h108home_source, 'max-w-[1320px] px-3 md:px-4' ),
 	'R108 homepage sections use the fluid desktop container, retain the 12px mobile gutter, and align «مشاهده همه» content'
 );
@@ -7465,7 +7465,7 @@ check(
 	false !== strpos( $r178_grid_html, 'data-mobile-layout="grid"' ) &&
 	false !== strpos( $r178_grid_html, '--jluxe-cat-cards-justify:flex-end' ) &&
 	false !== strpos( $r178_grid_html, '--jluxe-cat-mobile-card-width:calc((100% - 40px) / 6)' ) &&
-	false !== strpos( $r178_grid_html, '.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll' ) &&
+	false !== strpos( $h108home_source, '.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll' ) &&
 	false === strpos( $r178_grid_html, 'data-jluxe-category-swipe-hint' ),
 	'R178 legacy category renderer aligns cards rather than image content and emits the selected six-column mobile grid without an unnecessary swipe hint'
 );
@@ -7596,7 +7596,7 @@ check(
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-width:1px' ) &&
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-color:#123ABC' ) &&
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-card-text:#778899' ) &&
-	false !== strpos( $r179_showcase_html, 'background:transparent' ) &&
+	false !== strpos( $h108home_source, 'background:transparent!important' ) &&
 	false === strpos( $r179_showcase_html, '#AABBCC' ) && false === strpos( $r179_showcase_html, '#CCDDEE' ) &&
 	false === strpos( $r179_showcase_html, 'jluxe-category-showcase-head' ),
 	'R179 frontend links custom artwork to its destination, keeps category destinations automatic, and renders the optional frame/text without backgrounds'

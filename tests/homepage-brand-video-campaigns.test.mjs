@@ -67,6 +67,12 @@ test("brand video campaign section is registered, editable, sanitized, and rende
   assert.match(homepage, /static \$printed = false/);
   assert.match(homepage, /class="jluxe-bvc-item jluxe-bvc-media-item"/);
   assert.match(homepage, /class="jluxe-bvc-see-all"/);
+  const campaignRenderer = homepage.slice(
+    homepage.indexOf("function jluxe_render_homepage_brand_video_campaigns"),
+    homepage.indexOf("function jluxe_render_homepage_brand_marquee"),
+  );
+  assert.match(campaignRenderer, /poster=\"' \. esc_url\( \$campaign\['poster'\] \) \. '\" data-desktop-poster=/);
+  assert.doesNotMatch(campaignRenderer, /jluxe_toman_display_icon_svg/);
   assert.match(sanitize, /case 'brand_video_campaigns'/);
   assert.match(sanitize, /array_slice\( \(array\) \( \$posted\['campaigns'\].*0, 6/s);
   assert.match(sanitize, /sanitize_hex_color\( \(string\) \( \$campaign\['bg_color'\] \?\? '' \) \)/);
@@ -84,8 +90,8 @@ test("brand campaign styles implement per-campaign contrast, responsive Digikala
   assert.match(homepage, /transition:background-color \.5s cubic-bezier\(\.61,1,\.88,1\),color \.5s cubic-bezier\(\.61,1,\.88,1\)/);
   assert.match(homepage, /border:1px solid hsl\(var\(--border\)\)/);
   assert.match(homepage, /border-radius:16px/);
-  assert.match(homepage, /padding:0 0 24px/);
-  assert.match(homepage, /padding:0 0 16px/);
+  assert.match(homepage, /padding:0 16px 24px/);
+  assert.match(homepage, /padding:0 12px 16px/);
   assert.match(homepage, /height:40px;padding:4px 12px/);
   assert.match(homepage, /width:32px;height:32px;flex:0 0 32px;border-radius:50%/);
   assert.match(homepage, /gap:12px/);
@@ -98,6 +104,12 @@ test("brand campaign styles implement per-campaign contrast, responsive Digikala
   assert.match(homepage, /jluxe-bvc-media-in 380ms cubic-bezier\(\.61,1,\.88,1\)/);
   assert.match(homepage, /translateX\(-12px\)/);
   assert.match(homepage, /prefers-reduced-motion:reduce/);
+  assert.match(homepage, /color:#5C5C5C;font-size:10px;font-weight:400/);
+  assert.match(homepage, /border:1px solid color-mix\(in srgb,var\(--bvc-fg,#ECEDEF\) 28%,transparent\)/);
+  assert.match(homepage, /\.jluxe-bvc-tab\.is-active\{border-color:rgba\(31,31,31,\.14\)/);
+  assert.match(homepage, /\.jluxe-bvc-tab-link\{display:none;place-items:center;width:40px;height:40px/);
+  assert.match(homepage, /\.jluxe-bvc-tab-item:has\(\.jluxe-bvc-tab\.is-active\) \.jluxe-bvc-tab-link\{display:grid/);
+  assert.match(homepage, /\.jluxe-bvc-tab-link\{width:44px;height:44px;min-width:44px;min-height:44px\}/);
 });
 
 test("brand campaigns defer video loading to IntersectionObserver and update panels, colors, scroll, and controls", async () => {
@@ -196,6 +208,26 @@ test("brand campaign videos switch to an optional mobile asset when the viewport
   mobileQuery.matches = true;
   changes[0]();
   assert.equal(video.getAttribute("src"), "https://shop.test/mobile.mp4");
+  dom.window.close();
+});
+
+test("brand campaign videos still start for legacy browsers without IntersectionObserver", () => {
+  const dom = new JSDOM(`<!doctype html><html><body>
+    <section data-jluxe-brand-campaigns>
+      <button role="tab" aria-selected="true" tabindex="0"></button>
+      <div role="tabpanel"><video data-desktop-src="https://shop.test/legacy.mp4"></video></div>
+    </section>
+  </body></html>`, { runScripts: "outside-only", pretendToBeVisual: true });
+  const { window } = dom;
+  const video = window.document.querySelector("video");
+  let playCalls = 0;
+  video.load = () => {};
+  video.play = () => { playCalls++; return Promise.resolve(); };
+  video.pause = () => {};
+  window.eval(source);
+  window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
+  assert.equal(video.getAttribute("src"), "https://shop.test/legacy.mp4");
+  assert.equal(playCalls, 1);
   dom.window.close();
 });
 

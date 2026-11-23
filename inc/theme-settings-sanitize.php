@@ -1743,8 +1743,10 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 				$section['items'][] = array(
 					'thumb_id'   => isset( $item['thumb_id'] ) ? absint( $item['thumb_id'] ) : 0,
 					'media_id'   => isset( $item['media_id'] ) ? absint( $item['media_id'] ) : 0,
-					'title'      => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
-					'media_type' => in_array( $media_type, array( 'image', 'video' ), true ) ? $media_type : 'image',
+					'title'       => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
+					'link'        => isset( $item['link'] ) ? esc_url_raw( $item['link'] ) : '',
+					'button_text' => isset( $item['button_text'] ) ? sanitize_text_field( $item['button_text'] ) : '',
+					'media_type'  => in_array( $media_type, array( 'image', 'video' ), true ) ? $media_type : 'image',
 				);
 			}
 			break;
@@ -1929,7 +1931,7 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 			$section['mobile_layout'] = in_array( $mobile_layout, array( 'row', 'grid' ), true ) ? $mobile_layout : $mobile_layout_default;
 			$section['mobile_columns'] = max( 2, min( 6, absint( $posted['mobile_columns'] ?? 3 ) ) );
 			if ( 'category_grid' === $type ) {
-				$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 40 ) ) );
+				$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 20 ) ) );
 				$section['card_radius'] = max( 0, min( 40, absint( $posted['card_radius'] ?? 20 ) ) );
 				$section['image_size'] = max( 48, min( 140, absint( $posted['image_size'] ?? 80 ) ) );
 				$image_bg_mode = sanitize_key( $posted['image_bg_mode'] ?? 'color' );
@@ -1942,7 +1944,7 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 			} else {
 				$frame_mode = sanitize_key( $posted['image_frame_mode'] ?? 'none' );
 				$section['image_frame_mode'] = in_array( $frame_mode, array( 'none', 'transparent', 'color' ), true ) ? $frame_mode : 'none';
-				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#F5D1FA';
+				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#E5E7EB';
 				$section['show_category_names'] = ! array_key_exists( 'show_category_names', $posted ) || '1' === (string) $posted['show_category_names'];
 				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#1F2937';
 			}

@@ -22,6 +22,7 @@ function jluxe_homepage_section_types(): array {
 		'category_showcase'  => 'دسته‌بندی‌های ویژه (جدید)',
 		'brand_marquee'      => 'نوار متحرک برندها',
 		'brand_video_campaigns' => 'کمپین ویدیویی برندها',
+		'cta'                  => 'دعوت به اقدام',
 		'banner'              => 'بنر تک',
 		'banner_two'          => 'دو بنر',
 		'banner_three'        => 'سه بنر',
@@ -246,6 +247,8 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 							<strong>استوری <?php echo esc_html( jluxe_fa_digits( $s + 1 ) ); ?></strong>
 							<?php jluxe_render_media_field( "{$name}[items][{$s}][thumb_id]", (int) ( $item['thumb_id'] ?? 0 ), 'بندانگشتی انتخاب نشده' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'title', 'عنوان', $item['title'] ?? '' ); ?>
+							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'link', 'لینک دکمهٔ استوری (اختیاری)', $item['link'] ?? '' ); ?>
+							<?php jluxe_hb_field_text( "{$name}[items][{$s}]", 'button_text', 'متن دکمه (خالی = مشاهده محصول)', $item['button_text'] ?? '' ); ?>
 							<?php jluxe_hb_field_select( "{$name}[items][{$s}]", 'media_type', 'نوع محتوا', $item['media_type'] ?? 'image', array( 'image' => 'عکس', 'video' => 'ویدیو' ) ); ?>
 							<?php jluxe_render_media_field( "{$name}[items][{$s}][media_id]", (int) ( $item['media_id'] ?? 0 ), 'فایل کامل (عکس/ویدیو) انتخاب نشده' ); ?>
 						</div>
@@ -296,7 +299,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					<?php
 					jluxe_hb_field_select( $name, 'image_shape', 'شکل تصویر', $section['image_shape'] ?? 'circle', array( 'circle' => 'دایره‌ای', 'square' => 'مربع با گوشه گرد', 'none' => 'بدون کادر' ) );
 					jluxe_hb_field_select( $name, 'alignment', 'تراز تصویر و نام داخل هر کارت', $section['alignment'] ?? 'center', array( 'start' => 'راست', 'center' => 'وسط', 'end' => 'چپ' ) );
-					jluxe_hb_field_number( $name, 'section_radius', 'گردی کادر اصلی (px)', $section['section_radius'] ?? 40, 12, 56 );
+					jluxe_hb_field_number( $name, 'section_radius', 'گردی کادر اصلی (px)', $section['section_radius'] ?? 20, 12, 56 );
 					jluxe_hb_field_number( $name, 'card_radius', 'گردی کارت دسته (px)', $section['card_radius'] ?? 20, 0, 40 );
 					jluxe_hb_field_number( $name, 'image_size', 'اندازه تصویر (px)', $section['image_size'] ?? 80, 64, 140 );
 					jluxe_hb_field_select( $name, 'image_bg_mode', 'پس‌زمینه‌ی قاب تصویر', $section['image_bg_mode'] ?? 'transparent', array( 'color' => 'رنگ دلخواه', 'transparent' => 'شفاف' ) );
@@ -331,7 +334,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					jluxe_hb_field_select( $name, 'image_frame_mode', 'کادر دور تصویر', $section['image_frame_mode'] ?? 'none', array( 'none' => 'بدون کادر', 'transparent' => 'کادر شفاف', 'color' => 'کادر رنگی' ) );
 					?>
 					<div class="jluxe-showcase-frame-color" data-showcase-frame-mode="color"<?php echo 'color' === ( $section['image_frame_mode'] ?? 'none' ) ? '' : ' style="display:none" aria-hidden="true"'; ?>>
-						<?php jluxe_hb_field_color( $name, 'image_frame_color', 'رنگ کادر تصویر', $section['image_frame_color'] ?? '#F5D1FA' ); ?>
+						<?php jluxe_hb_field_color( $name, 'image_frame_color', 'رنگ کادر تصویر', $section['image_frame_color'] ?? '#E5E7EB' ); ?>
 					</div>
 					<p class="description">هر آیتم یا یک دستهٔ ووکامرس با پیوند خودکار است، یا یک تصویر دلخواه با لینک مقصد. عنوان تصویر دلخواه اختیاری است. پس‌زمینهٔ سکشن و کارت‌ها همیشه شفاف می‌ماند.</p>
 					<div class="jluxe-repeater" data-max="16">
@@ -384,8 +387,10 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 						$target_toggle_id = 'bvc-target-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
 						$media_toggle_id = 'bvc-media-' . sanitize_key( (string) ( $section['id'] ?? 'new' ) ) . '-' . $ci;
 						?>
+						<details class="jluxe-hb-campaign-details" <?php echo 0 === $ci ? 'open' : ''; ?>>
+							<summary><strong>کمپین <?php echo esc_html( jluxe_fa_digits( $ci + 1 ) ); ?></strong></summary>
 						<fieldset class="jluxe-hero-admin jluxe-brand-video-campaign-admin">
-							<legend><strong>کمپین <?php echo esc_html( jluxe_fa_digits( $ci + 1 ) ); ?></strong></legend>
+							<legend><strong>تنظیمات کمپین</strong></legend>
 							<p><label>نوع تبلیغ<br /><select name="<?php echo esc_attr( $name ); ?>[campaigns][<?php echo esc_attr( (string) $ci ); ?>][target_type]" data-jluxe-bvc-target-select="<?php echo esc_attr( $target_toggle_id ); ?>"><option value="brand" <?php selected( $target_type, 'brand' ); ?>>برند</option><option value="category" <?php selected( $target_type, 'category' ); ?>>دسته‌بندی</option><option value="product" <?php selected( $target_type, 'product' ); ?>>محصول</option></select></label></p>
 							<div data-jluxe-bvc-target="brand" data-jluxe-bvc-for="<?php echo esc_attr( $target_toggle_id ); ?>"><?php jluxe_hb_field_select( "{$name}[campaigns][{$ci}]", 'brand_id', 'انتخاب برند', (string) ( $campaign['brand_id'] ?? ( 'brand' === $target_type ? ( $campaign['term_id'] ?? 0 ) : 0 ) ), $brand_options ); ?></div>
 							<div data-jluxe-bvc-target="category" data-jluxe-bvc-for="<?php echo esc_attr( $target_toggle_id ); ?>"><?php jluxe_hb_field_select( "{$name}[campaigns][{$ci}]", 'category_id', 'انتخاب دسته‌بندی', (string) ( $campaign['category_id'] ?? ( 'category' === $target_type ? ( $campaign['term_id'] ?? 0 ) : 0 ) ), $category_options ); ?></div>
@@ -414,6 +419,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 							<?php endif; endforeach; ?>
 							</select></label></p>
 						</fieldset>
+						</details>
 					<?php endfor;
 					break;
 
@@ -671,8 +677,9 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 					for ( $bc = 0; $bc < 5; $bc++ ) :
 						$slot = $section['slots'][ $bc ] ?? array();
 						?>
+						<details class="jluxe-hb-collage-slot-details" <?php echo 0 === $bc ? 'open' : ''; ?>>
+							<summary><strong><?php echo esc_html( jluxe_hb_collage_slot_label( $bc ) ); ?></strong></summary>
 						<div class="jluxe-hb-banner-item">
-							<strong><?php echo esc_html( jluxe_hb_collage_slot_label( $bc ) ); ?></strong>
 							<label>تصویر موبایل (اختیاری — فقط در موبایل دانلود می‌شود)</label>
 							<?php jluxe_render_media_field( "{$name}[slots][{$bc}][mobile_image_id]", (int) ( $slot['mobile_image_id'] ?? 0 ), 'تصویر موبایل انتخاب نشده' ); ?>
 							<?php jluxe_hb_field_text( "{$name}[slots][{$bc}]", 'link', 'لینک مقصد بنر (پس‌زمینه)', $slot['link'] ?? '' ); ?>
@@ -693,6 +700,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 								<button type="button" class="button jluxe-repeater-add">+ افزودن نوشته</button>
 							</div>
 						</div>
+						</details>
 						<?php
 					endfor;
 					break;
@@ -1207,7 +1215,8 @@ function jluxe_render_homepage_sections(): void {
 	$settings = jluxe_get_theme_settings();
 	?>
 	<style id="jluxe-homepage-system-style">
-	.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-left:0;padding-right:0;}
+	.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-inline:16px;}
+	@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}
 	.jluxe-builder-container{box-sizing:border-box;display:grid;grid-template-columns:var(--jbc-tracks,repeat(var(--jbc-cols,2),minmax(0,1fr)));gap:var(--jbc-gap,20px);width:calc(100% - 32px);margin:24px auto;align-items:var(--jbc-align,start);min-height:40px}
 	.jluxe-builder-container>.jluxe-home-section,.jluxe-builder-container>.jvb-node-preview>.jluxe-home-section{width:100%;margin:0;min-width:0}
 	.jluxe-builder-container>*{min-width:0}
@@ -1590,6 +1599,24 @@ function jluxe_homepage_featured_product_is_available( $product ): bool {
 		$product->is_in_stock();
 }
 
+/** Shared heading/action row for homepage product and editorial sections. */
+function jluxe_render_homepage_section_header( string $title, string $url, string $label, string $subtitle = '', bool $inverse = false ): void {
+	if ( '' === trim( $title ) ) {
+		return;
+	}
+	$heading_color = $inverse ? 'text-white' : 'text-foreground';
+	$action_style  = $inverse ? 'border-white/50 text-white' : 'border-border text-foreground';
+	?>
+	<div class="jluxe-home-section-heading mb-4 flex items-center justify-between gap-3">
+		<div class="min-w-0">
+			<h2 class="text-h2 <?php echo esc_attr( $heading_color ); ?>"><?php echo esc_html( $title ); ?></h2>
+			<?php if ( '' !== trim( $subtitle ) ) : ?><p class="mt-1 text-small <?php echo $inverse ? 'text-white/80' : 'text-text-muted'; ?>"><?php echo esc_html( $subtitle ); ?></p><?php endif; ?>
+		</div>
+		<?php if ( '' !== $url ) : ?><a href="<?php echo esc_url( $url ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $label ) ); ?>" class="jluxe-home-section-view-all shrink-0 rounded-lg border px-3 py-1.5 text-caption font-medium <?php echo esc_attr( $action_style ); ?>">مشاهده همه <span aria-hidden="true">←</span></a><?php endif; ?>
+	</div>
+	<?php
+}
+
 function jluxe_render_homepage_product_grid( array $section ): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
@@ -1647,6 +1674,16 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 	$layout    = $section['layout'] ?? 'grid';
 	$highlight = 'highlight' === ( $section['style'] ?? 'plain' );
 	$is_carousel = 'carousel' === $layout;
+	$grid_view_all = wc_get_page_permalink( 'shop' );
+	if ( 'sale' === ( $section['query'] ?? '' ) ) {
+		$grid_view_all = add_query_arg( 'on_sale', '1', $grid_view_all );
+	} elseif ( ! empty( $section['category'] ) ) {
+		$grid_term = get_term_by( 'slug', sanitize_title( (string) $section['category'] ), 'product_cat' );
+		if ( $grid_term && ! is_wp_error( $grid_term ) ) {
+			$grid_term_link = get_term_link( $grid_term );
+			if ( ! is_wp_error( $grid_term_link ) ) { $grid_view_all = $grid_term_link; }
+		}
+	}
 
 	// عمداً تعداد ستون رو به تعداد واقعیِ محصولات محدود نمی‌کنیم: با
 	// repeat(N,1fr) وقتی محصولات کمتر از N تا باشن، همون N تراک ساخته می‌شه
@@ -1659,17 +1696,7 @@ function jluxe_render_homepage_product_grid( array $section ): void {
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
 		<div class="<?php echo $highlight ? 'rounded-2xl p-3 sm:p-4' : ''; ?>" <?php echo $highlight ? 'style="background:linear-gradient(hsl(var(--primary)) 0%, hsl(var(--primary-hover)) 45%, hsl(var(--primary-active)) 100%)"' : ''; ?>>
-			<?php if ( ! empty( $section['title'] ) ) : ?>
-				<div class="mb-3 flex items-center justify-between gap-2">
-					<div>
-						<h2 class="text-h2 <?php echo $highlight ? 'text-white' : 'text-foreground'; ?>"><?php echo esc_html( $section['title'] ); ?></h2>
-						<?php if ( ! empty( $section['subtitle'] ) ) : ?>
-							<p class="mt-1 text-small <?php echo $highlight ? 'text-white/80' : 'text-text-muted'; ?>"><?php echo esc_html( $section['subtitle'] ); ?></p>
-						<?php endif; ?>
-					</div>
-					<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $section['title'] ?: 'محصولات' ) ); ?>" class="shrink-0 rounded-lg <?php echo $highlight ? 'bg-white text-primary' : 'border border-border text-foreground'; ?> px-3 py-1.5 text-caption font-medium">مشاهده همه</a>
-				</div>
-			<?php endif; ?>
+			<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? '' ), $grid_view_all, (string) ( $section['title'] ?? 'محصولات' ), (string) ( $section['subtitle'] ?? '' ), $highlight ); ?>
 
 			<?php if ( $is_carousel ) : ?>
 				<div class="relative">
@@ -1887,10 +1914,7 @@ function jluxe_render_homepage_special_products( array $section ): void {
 		: add_query_arg( 'on_sale', '1', wc_get_page_permalink( 'shop' ) );
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
-		<div class="mb-3 flex items-center justify-between gap-2">
-			<h2 class="text-h2 text-foreground"><?php echo esc_html( $section['title'] ?? 'فروش ویژه' ); ?></h2>
-			<a href="<?php echo esc_url( $view_all_link ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $section['title'] ?? 'فروش ویژه' ) ); ?>" class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-caption font-medium text-foreground">مشاهده همه</a>
-		</div>
+		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? 'فروش ویژه' ), $view_all_link, (string) ( $section['title'] ?? 'فروش ویژه' ) ); ?>
 		<div class="relative">
 			<ul data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar m-0 flex list-none gap-4 overflow-x-auto p-0 scroll-smooth pb-2" aria-label="<?php echo esc_attr( $section['title'] ?? 'فروش ویژه' ); ?>">
 				<?php
@@ -2088,7 +2112,7 @@ function jluxe_render_collage_slot( array $slot, string $id, int $slot_index, st
 	$img_url  = $image['src'];
 	$fit      = 'contain' === ( $slot['image_fit'] ?? 'cover' ) ? 'contain' : 'cover';
 	$bg       = ! empty( $slot['bg'] ) ? $slot['bg'] : 'hsl(var(--muted))';
-	$shadow   = ! empty( $slot['shadow'] ) ? 'box-shadow:0 8px 24px rgba(16,0,51,.15);' : '';
+	$shadow   = ! empty( $slot['shadow'] ) ? 'box-shadow:0 8px 24px rgba(15,23,42,.15);' : '';
 	$link     = ! empty( $slot['link'] ) ? esc_url( jluxe_resolve_site_link( (string) $slot['link'] ) ) : '';
 	?>
 	<div style="position:relative;width:100%;height:100%;background:<?php echo esc_attr( $bg ); ?>;overflow:hidden;<?php echo esc_attr( $shadow ); ?>">
@@ -2146,6 +2170,7 @@ function jluxe_homepage_section_choice( array $section, string $key, array $allo
 }
 
 function jluxe_render_homepage_category_showcase( array $section ): void {
+	static $printed = false;
 	$is_woocommerce_active = class_exists( 'WooCommerce' );
 	$desktop_layout = jluxe_homepage_section_choice( $section, 'layout', array( 'grid', 'row' ), 'grid' );
 	$mobile_layout = jluxe_homepage_section_choice( $section, 'mobile_layout', array( 'grid', 'row' ), 'grid' );
@@ -2220,7 +2245,7 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 	$shape = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'none' );
 	$frame_mode = jluxe_homepage_section_choice( $section, 'image_frame_mode', array( 'none', 'transparent', 'color' ), 'none' );
 	$frame_width = 'none' === $frame_mode ? '0px' : '1px';
-	$frame_color = 'color' === $frame_mode ? ( sanitize_hex_color( $section['image_frame_color'] ?? '' ) ?: '#F5D1FA' ) : 'transparent';
+	$frame_color = 'color' === $frame_mode ? ( sanitize_hex_color( $section['image_frame_color'] ?? '' ) ?: 'hsl(var(--border))' ) : 'transparent';
 	$image_radius = 'circle' === $shape ? '9999px' : ( 'square' === $shape ? '14px' : '0px' );
 	$text_color = sanitize_hex_color( $section['card_text_color'] ?? '' ) ?: '#1F2937';
 	$show_names = ! array_key_exists( 'show_category_names', $section ) || ! empty( $section['show_category_names'] );
@@ -2249,24 +2274,25 @@ function jluxe_render_homepage_category_showcase( array $section ): void {
 			<?php if ( $show_arrows ) jluxe_scroll_arrows(); ?>
 		</div>
 	</section>
-	<style>
-	.jluxe-category-showcase-v2{box-sizing:border-box;position:relative;isolation:isolate;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto 32px;padding:0;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:inherit}
+	<?php if ( ! $printed ) : $printed = true; ?><style>
+	.jluxe-category-showcase-v2{box-sizing:border-box;position:relative;isolation:isolate;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto 32px;padding:0 16px;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:inherit}
 	.jluxe-category-showcase-scroll-wrap{position:relative;min-width:0}
 	.jluxe-category-showcase-grid{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px}
 	.jluxe-category-showcase-row{display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:12px;overflow-x:auto;overflow-y:hidden;padding:2px 42px 8px;scroll-behavior:smooth;scrollbar-width:none}
 	.jluxe-category-showcase-row::-webkit-scrollbar{display:none}.jluxe-category-showcase-row.is-centered{justify-content:center}.jluxe-category-showcase-row.is-overflowing{justify-content:flex-start}
 	.jluxe-category-showcase-card{box-sizing:border-box;display:flex!important;flex:0 0 152px;flex-direction:column;align-items:center;justify-content:flex-start;width:152px;min-width:0;padding:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;text-align:center!important;text-decoration:none!important;overflow:visible}
-	.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 120px;align-items:center;justify-content:center;width:120px!important;height:120px!important;overflow:hidden;border:var(--jluxe-showcase-image-frame-width,0px) solid var(--jluxe-showcase-image-frame-color,transparent);border-radius:var(--jluxe-showcase-image-radius,0px)!important;background:transparent!important;padding:0!important}
+	.jluxe-category-showcase-image{box-sizing:border-box;display:flex!important;flex:0 0 120px;align-items:center;justify-content:center;width:120px!important;height:120px!important;overflow:hidden;border:var(--jluxe-showcase-image-frame-width,0px) solid var(--jluxe-showcase-image-frame-color,transparent);border-radius:var(--jluxe-showcase-image-radius,0px)!important;background:hsl(var(--surface))!important;padding:0!important}
 	.jluxe-category-showcase-image img{display:block!important;flex:0 0 auto;width:100%!important;height:100%!important;max-width:100%;max-height:100%;margin:0!important;padding:0!important;border:0!important;border-radius:inherit!important;object-fit:contain!important;box-shadow:none!important}
 	.jluxe-category-showcase-name{display:block!important;width:100%;margin-top:8px;padding:0 3px;font-size:13px!important;line-height:1.65!important;font-weight:600!important;color:var(--jluxe-showcase-card-text,#1F2937)!important;white-space:normal;overflow-wrap:anywhere}
 	.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap>[data-jluxe-scroll-next]{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:inherit!important}
-	@media(max-width:639px){.jluxe-category-showcase-v2{width:calc(100% - 16px);margin:20px auto 26px}.jluxe-category-showcase-grid{gap:12px 8px}.jluxe-category-showcase-row{gap:8px;padding:2px 36px 8px}.jluxe-category-showcase-card{flex-basis:var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-image{flex-basis:var(--jluxe-mobile-image-size);width:var(--jluxe-mobile-image-size)!important;height:var(--jluxe-mobile-image-size)!important}.jluxe-category-showcase-name{margin-top:6px;font-size:12px!important}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-row{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding:2px 36px 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered{justify-content:center}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-overflowing{justify-content:flex-start}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-card{flex:0 0 calc(var(--jluxe-mobile-image-size) + 16px);width:calc(var(--jluxe-mobile-image-size) + 16px);min-width:calc(var(--jluxe-mobile-image-size) + 16px)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 8px;overflow:visible;padding:2px 0 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card{flex:0 0 var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-next]{display:none}}
+	@media(max-width:767px){.jluxe-category-showcase-v2{width:100%;padding-inline:12px;margin:20px auto 26px}.jluxe-category-showcase-grid{gap:12px 8px}.jluxe-category-showcase-row{gap:8px;padding:2px 36px 8px}.jluxe-category-showcase-card{flex-basis:var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-image{flex-basis:var(--jluxe-mobile-image-size);width:var(--jluxe-mobile-image-size)!important;height:var(--jluxe-mobile-image-size)!important}.jluxe-category-showcase-name{margin-top:6px;font-size:12px!important}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-row{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;padding:2px 36px 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-centered{justify-content:center}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] [data-jluxe-scroller].is-overflowing{justify-content:flex-start}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="row"] .jluxe-category-showcase-card{flex:0 0 calc(var(--jluxe-mobile-image-size) + 16px);width:calc(var(--jluxe-mobile-image-size) + 16px);min-width:calc(var(--jluxe-mobile-image-size) + 16px)}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-grid,.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 8px;overflow:visible;padding:2px 0 8px}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"] .jluxe-category-showcase-card{flex:0 0 var(--jluxe-mobile-card-width);width:var(--jluxe-mobile-card-width);min-width:0}.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-prev],.jluxe-category-showcase-scroll-wrap[data-mobile-layout="grid"]>[data-jluxe-scroll-next]{display:none}}
 	@media(prefers-reduced-motion:reduce){.jluxe-category-showcase-row{scroll-behavior:auto}}
-	</style>
+	</style><?php endif; ?>
 	<?php
 }
 
 function jluxe_render_homepage_category_grid( array $section ): void {
+	static $printed = false;
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		return;
 	}
@@ -2294,6 +2320,8 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 			'term'         => $term,
 			'img_url'      => $img_url,
 			'img_srcset'   => $img_srcset,
+			'img_width'    => absint( $image_data['width'] ?? 120 ) ?: 120,
+			'img_height'   => absint( $image_data['height'] ?? 120 ) ?: 120,
 			'display_name' => $display ?: $term->name,
 		);
 	}
@@ -2306,7 +2334,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	$layout      = 'row';
 	$shape       = jluxe_homepage_section_choice( $section, 'image_shape', array( 'circle', 'square', 'none' ), 'none' );
 	$alignment   = jluxe_homepage_section_choice( $section, 'alignment', array( 'start', 'center', 'end' ), 'center' );
-	$section_rad = max( 0, min( 56, (int) ( $section['section_radius'] ?? 40 ) ) );
+	$section_rad = max( 0, min( 56, (int) ( $section['section_radius'] ?? 20 ) ) );
 	$card_rad    = max( 0, min( 40, (int) ( $section['card_radius'] ?? 20 ) ) );
 	$image_size  = (int) ( $section['image_size'] ?? 80 );
 	// 146px was the legacy value for the old category component; keep the
@@ -2318,9 +2346,9 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 	$image_bg   = 'transparent' === ( $section['image_bg_mode'] ?? 'transparent' ) ? 'transparent' : ( sanitize_hex_color( $section['image_bg_color'] ?? '' ) ?: '#FFFFFF' );
 	$shadow_map = array(
 		'none'   => 'none',
-		'soft'   => '0 4px 16px rgba(16,0,51,.06)',
-		'medium' => '0 8px 24px rgba(16,0,51,.09)',
-		'strong' => '0 14px 34px rgba(16,0,51,.13)',
+		'soft'   => '0 4px 16px rgba(15,23,42,.06)',
+		'medium' => '0 8px 24px rgba(15,23,42,.09)',
+		'strong' => '0 14px 34px rgba(15,23,42,.13)',
 	);
 	$shadow      = $shadow_map[ $section['card_shadow'] ?? 'soft' ] ?? $shadow_map['soft'];
 	$lift        = array_key_exists( 'hover_lift', $section ) ? ! empty( $section['hover_lift'] ) : false;
@@ -2381,7 +2409,7 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 				<?php foreach ( $rows as $row ) : ?>
 					<a href="<?php echo esc_url( get_term_link( $row['term'] ) ); ?>" class="jluxe-category-grid-ref-item<?php echo $lift ? ' is-lift' : ''; ?>" aria-label="<?php echo esc_attr( 'مشاهده دسته‌بندی ' . $row['display_name'] ); ?>" title="<?php echo esc_attr( $row['display_name'] ); ?>">
 						<span class="jluxe-home-card jluxe-category-grid-ref-card">
-							<span class="jluxe-category-grid-ref-image"><img class="<?php echo $zoom ? 'is-zoom' : ''; ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( '(max-width: 767px) ' . min( $image_size, 60 ) . 'px, ' . $image_size . 'px' ); ?>"<?php endif; ?> alt="" aria-hidden="true" <?php echo jluxe_lazy_attr(); ?> /></span>
+							<span class="jluxe-category-grid-ref-image"><img class="<?php echo $zoom ? 'is-zoom' : ''; ?>" width="<?php echo esc_attr( (string) $row['img_width'] ); ?>" height="<?php echo esc_attr( (string) $row['img_height'] ); ?>" src="<?php echo esc_url( $row['img_url'] ); ?>"<?php if ( $row['img_srcset'] ) : ?> srcset="<?php echo esc_attr( $row['img_srcset'] ); ?>" sizes="<?php echo esc_attr( '(max-width: 767px) ' . min( $image_size, 60 ) . 'px, ' . $image_size . 'px' ); ?>"<?php endif; ?> alt="" aria-hidden="true" <?php echo jluxe_lazy_attr(); ?> /></span>
 							<span class="jluxe-category-grid-ref-name"><?php echo esc_html( $row['display_name'] ); ?></span>
 						</span>
 					</a>
@@ -2390,15 +2418,15 @@ function jluxe_render_homepage_category_grid( array $section ): void {
 			<button type="button" class="jluxe-category-grid-ref-arrow is-next" data-jluxe-scroll-next aria-label="اسکرول به راست"><svg class="is-rotated" xmlns="http://www.w3.org/2000/svg" width="26" viewBox="0 0 24 24"><path fill="currentColor" d="M14 17.308L8.692 12L14 6.692l.708.708l-4.6 4.6l4.6 4.6z"></path></svg></button>
 		</div>
 	</section>
-	<style>
+	<?php if ( ! $printed ) : $printed = true; ?><style>
 	/* Keep the category group centered when it fits; JS switches overflow rows back to a safe scroll start. */
-	.jluxe-category-grid-ref{box-sizing:border-box;width:calc(100% - 48px);max-width:var(--jluxe-container-max,1320px);margin:24px auto;background:transparent;border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-section-radius,40px);color:hsl(var(--foreground));padding:40px 0 0;display:flex;flex-direction:column;justify-content:center;overflow:visible}
-	.jluxe-category-grid-ref-head{padding:0 40px 0 0}.jluxe-category-grid-ref-heading{display:flex;align-items:center;justify-content:flex-start;gap:16px;color:hsl(var(--foreground))}.jluxe-category-grid-ref-icon{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;background:#fff;border:1px solid hsl(var(--border));border-radius:12px;color:hsl(var(--primary));font-size:22px;line-height:1}.jluxe-category-grid-ref-title-wrap{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}.jluxe-category-grid-ref-title-wrap h2{margin:0 0 0 32px;font-size:30px;line-height:1.25;letter-spacing:-.065em;font-weight:800;color:hsl(var(--foreground))}.jluxe-category-grid-ref-all{font-size:12px;line-height:1.5;color:hsl(var(--text-muted));text-decoration:none;letter-spacing:-.02em}
-	.jluxe-category-grid-ref-carousel{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;width:100%;overflow:visible}.jluxe-category-grid-ref-scroll{display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:visible;scrollbar-width:none;scroll-behavior:smooth;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-scroll.is-centered{justify-content:var(--jluxe-cat-cards-justify)}.jluxe-category-grid-ref-scroll.is-overflowing{justify-content:flex-start}.jluxe-category-grid-ref-scroll::-webkit-scrollbar{display:none}.jluxe-category-grid-ref-scroll.is-grid{display:flex!important;flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-item{display:block;flex:0 0 var(--jluxe-cat-card-width);width:var(--jluxe-cat-card-width);text-decoration:none;color:inherit;cursor:pointer}.jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{width:var(--jluxe-cat-card-width);min-width:var(--jluxe-cat-card-width);flex:0 0 var(--jluxe-cat-card-width)}.jluxe-category-grid-ref-card{box-sizing:border-box;display:flex;flex-direction:column;gap:14px;align-items:var(--jluxe-cat-align);justify-content:center;width:var(--jluxe-cat-card-width);height:var(--jluxe-cat-card-height);background:#fff;border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-card-radius);overflow:visible;box-shadow:var(--jluxe-cat-shadow);transition:transform .24s cubic-bezier(.2,.7,.2,1),border-color .2s ease,box-shadow .24s ease}.jluxe-category-grid-ref-item.is-lift:hover .jluxe-category-grid-ref-card{transform:translateY(-3px);border-color:hsl(var(--primary) / .28)}.jluxe-category-grid-ref-image{display:flex;align-items:center;justify-content:center;width:var(--jluxe-cat-image-size);height:var(--jluxe-cat-image-size);flex:0 0 var(--jluxe-cat-image-size);overflow:hidden;background:var(--jluxe-cat-image-bg);border-radius:var(--jluxe-cat-image-radius)}.jluxe-category-grid-ref-image img{display:block;width:100%;height:100%;object-fit:contain;border:0!important;outline:0!important;box-shadow:none!important;border-radius:inherit;transition:transform .42s cubic-bezier(.2,.7,.2,1);transform-origin:center}.jluxe-category-grid-ref-image img.is-zoom{transform:scale(1)}.jluxe-category-grid-ref-item:hover .jluxe-category-grid-ref-image img.is-zoom{transform:scale(1.045)}.jluxe-category-grid-ref-name{display:block;width:calc(100% - 16px);font-size:13px;line-height:1.55;text-align:var(--jluxe-cat-text-align);color:hsl(var(--foreground));white-space:normal;overflow-wrap:anywhere}
-	.jluxe-category-grid-ref-arrow{display:flex;position:absolute;top:50%;z-index:10;width:38px;height:76px;align-items:center;justify-content:center;transform:translateY(-50%);padding:0 8px;border:0;border-radius:12px;background:rgba(255,255,255,.88);color:hsl(var(--foreground));box-shadow:0 5px 18px rgba(0,0,0,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:background .2s ease,opacity .2s ease}.jluxe-category-grid-ref-arrow:hover{background:#fff}.jluxe-category-grid-ref-arrow.is-prev{left:-24px}.jluxe-category-grid-ref-arrow.is-next{right:-24px}.jluxe-category-grid-ref-arrow .is-rotated{transform:rotate(180deg)}
-	@media(max-width:767px){.jluxe-category-grid-ref{max-width:none;margin:20px 0;width:100%;border-left:0;border-right:0;border-radius:0;padding-top:32px}.jluxe-category-grid-ref-head{padding:0 12px}.jluxe-category-grid-ref-heading{gap:12px}.jluxe-category-grid-ref-title-wrap h2{font-size:18px;margin-left:0;letter-spacing:-.04em}.jluxe-category-grid-ref-all{font-size:11px}.jluxe-category-grid-ref-scroll{gap:8px;padding:32px 40px}.jluxe-category-grid-ref-item{flex-basis:120px;width:120px}.jluxe-category-grid-ref-card{width:120px;height:116px;gap:10px;border-radius:var(--jluxe-cat-card-radius,20px)}.jluxe-category-grid-ref-image{width:min(var(--jluxe-cat-image-size),60px);height:min(var(--jluxe-cat-image-size),60px);flex-basis:min(var(--jluxe-cat-image-size),60px)}.jluxe-category-grid-ref-name{font-size:12px;width:calc(100% - 10px)}.jluxe-category-grid-ref-arrow{top:50%;width:34px;height:48px;border-radius:12px}.jluxe-category-grid-ref-arrow.is-prev{left:4px}.jluxe-category-grid-ref-arrow.is-next{right:4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll{display:flex!important;flex-wrap:wrap;justify-content:var(--jluxe-cat-cards-justify);gap:8px;overflow:visible;padding:12px 6px 20px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-item,.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{flex:0 0 var(--jluxe-cat-mobile-card-width);width:var(--jluxe-cat-mobile-card-width);min-width:0}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-card{width:100%;height:auto;min-height:100px;gap:8px;padding:8px 4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-image{width:var(--jluxe-cat-mobile-image-size);height:var(--jluxe-cat-mobile-image-size);min-width:0;flex-basis:var(--jluxe-cat-mobile-image-size)}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-name{width:100%;font-size:clamp(10px,3vw,12px);line-height:1.45}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-arrow{display:none}}
+	.jluxe-category-grid-ref{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;background:transparent;border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-section-radius,20px);color:hsl(var(--foreground));padding:40px 16px 0;display:flex;flex-direction:column;justify-content:center;overflow:visible}
+	.jluxe-category-grid-ref-head{padding:0 16px}.jluxe-category-grid-ref-heading{display:flex;align-items:center;justify-content:flex-start;gap:16px;color:hsl(var(--foreground))}.jluxe-category-grid-ref-icon{display:flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;background:hsl(var(--surface));border:1px solid hsl(var(--border));border-radius:12px;color:hsl(var(--primary));font-size:22px;line-height:1}.jluxe-category-grid-ref-title-wrap{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}.jluxe-category-grid-ref-title-wrap h2{margin:0 0 0 32px;font-size:22px;line-height:1.25;letter-spacing:-.065em;font-weight:800;color:hsl(var(--foreground))}.jluxe-category-grid-ref-all{font-size:12px;line-height:1.5;color:hsl(var(--text-muted));text-decoration:none;letter-spacing:-.02em}
+	.jluxe-category-grid-ref-carousel{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;width:100%;overflow:visible}.jluxe-category-grid-ref-scroll{display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:visible;scrollbar-width:none;scroll-behavior:smooth;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-scroll.is-centered{justify-content:var(--jluxe-cat-cards-justify)}.jluxe-category-grid-ref-scroll.is-overflowing{justify-content:flex-start}.jluxe-category-grid-ref-scroll::-webkit-scrollbar{display:none}.jluxe-category-grid-ref-scroll.is-grid{display:flex!important;flex-wrap:nowrap;overflow-x:auto;overflow-y:visible;padding:40px 4px 40px 16px}.jluxe-category-grid-ref-item{display:block;flex:0 0 var(--jluxe-cat-card-width);width:var(--jluxe-cat-card-width);text-decoration:none;color:inherit;cursor:pointer}.jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{width:var(--jluxe-cat-card-width);min-width:var(--jluxe-cat-card-width);flex:0 0 var(--jluxe-cat-card-width)}.jluxe-category-grid-ref-card{box-sizing:border-box;display:flex;flex-direction:column;gap:14px;align-items:var(--jluxe-cat-align);justify-content:center;width:var(--jluxe-cat-card-width);height:var(--jluxe-cat-card-height);background:hsl(var(--surface));border:1px solid hsl(var(--border));border-radius:var(--jluxe-cat-card-radius);overflow:visible;box-shadow:var(--jluxe-cat-shadow);transition:transform .24s cubic-bezier(.2,.7,.2,1),border-color .2s ease,box-shadow .24s ease}.jluxe-category-grid-ref-item.is-lift:hover .jluxe-category-grid-ref-card{transform:translateY(-3px);border-color:hsl(var(--primary) / .28)}.jluxe-category-grid-ref-image{display:flex;align-items:center;justify-content:center;width:var(--jluxe-cat-image-size);height:var(--jluxe-cat-image-size);flex:0 0 var(--jluxe-cat-image-size);overflow:hidden;background:var(--jluxe-cat-image-bg);border-radius:var(--jluxe-cat-image-radius)}.jluxe-category-grid-ref-image img{display:block;width:100%;height:100%;object-fit:contain;border:0!important;outline:0!important;box-shadow:none!important;border-radius:inherit;transition:transform .42s cubic-bezier(.2,.7,.2,1);transform-origin:center}.jluxe-category-grid-ref-image img.is-zoom{transform:scale(1)}.jluxe-category-grid-ref-item:hover .jluxe-category-grid-ref-image img.is-zoom{transform:scale(1.045)}.jluxe-category-grid-ref-name{display:block;width:calc(100% - 16px);font-size:13px;line-height:1.55;text-align:var(--jluxe-cat-text-align);color:hsl(var(--foreground));white-space:normal;overflow-wrap:anywhere}
+	.jluxe-category-grid-ref-arrow{display:flex;position:absolute;top:50%;z-index:10;width:38px;height:76px;align-items:center;justify-content:center;transform:translateY(-50%);padding:0 8px;border:0;border-radius:12px;background:rgba(255,255,255,.88);color:hsl(var(--foreground));box-shadow:0 5px 18px rgba(15,23,42,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer;transition:background .2s ease,opacity .2s ease}.jluxe-category-grid-ref-arrow:hover{background:#fff}.jluxe-category-grid-ref-arrow.is-prev{left:8px}.jluxe-category-grid-ref-arrow.is-next{right:8px}.jluxe-category-grid-ref-arrow .is-rotated{transform:rotate(180deg)}
+	@media(max-width:767px){.jluxe-category-grid-ref{max-width:none;margin:20px auto;width:100%;padding-inline:12px;border-left:0;border-right:0;border-radius:0;padding-top:32px;padding-bottom:0}.jluxe-category-grid-ref-head{padding:0}.jluxe-category-grid-ref-heading{gap:12px}.jluxe-category-grid-ref-title-wrap h2{font-size:18px;margin-left:0;letter-spacing:-.04em}.jluxe-category-grid-ref-all{font-size:11px}.jluxe-category-grid-ref-scroll{gap:8px;padding:32px 40px}.jluxe-category-grid-ref-item{flex-basis:120px;width:120px}.jluxe-category-grid-ref-card{width:120px;height:116px;gap:10px;border-radius:var(--jluxe-cat-card-radius,20px)}.jluxe-category-grid-ref-image{width:min(var(--jluxe-cat-image-size),60px);height:min(var(--jluxe-cat-image-size),60px);flex-basis:min(var(--jluxe-cat-image-size),60px)}.jluxe-category-grid-ref-name{font-size:12px;width:calc(100% - 10px)}.jluxe-category-grid-ref-arrow{top:50%;width:34px;height:48px;border-radius:12px}.jluxe-category-grid-ref-arrow.is-prev{left:4px}.jluxe-category-grid-ref-arrow.is-next{right:4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll{display:flex!important;flex-wrap:wrap;justify-content:var(--jluxe-cat-cards-justify);gap:8px;overflow:visible;padding:12px 6px 20px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-item,.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll.is-grid .jluxe-category-grid-ref-item{flex:0 0 var(--jluxe-cat-mobile-card-width);width:var(--jluxe-cat-mobile-card-width);min-width:0}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-card{width:100%;height:auto;min-height:100px;gap:8px;padding:8px 4px}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-image{width:var(--jluxe-cat-mobile-image-size);height:var(--jluxe-cat-mobile-image-size);min-width:0;flex-basis:var(--jluxe-cat-mobile-image-size)}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-name{width:100%;font-size:clamp(10px,3vw,12px);line-height:1.45}.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-arrow{display:none}}
 	@media(prefers-reduced-motion:reduce){.jluxe-category-grid-ref-card,.jluxe-category-grid-ref-image img{transition:none!important}}
-	</style>
+	</style><?php endif; ?>
 	<?php
 }
 
@@ -2534,7 +2562,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 					<ul class="jluxe-bvc-products" data-jluxe-scroller aria-label="محصولات و رسانهٔ <?php echo esc_attr( $campaign['title'] ); ?>">
 						<li class="jluxe-bvc-item jluxe-bvc-media-item" data-bvc-media-slide>
 							<?php if ( $campaign['link'] ) : ?><a class="jluxe-bvc-media-content" href="<?php echo esc_url( $campaign['link'] ); ?>" aria-label="مشاهدهٔ کمپین <?php echo esc_attr( $campaign['title'] ); ?>"><?php else : ?><div class="jluxe-bvc-media-content"><?php endif; ?>
-							<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><video class="jluxe-bvc-video" data-desktop-src="<?php echo esc_url( $campaign['media'] ); ?>"<?php echo $campaign['mobile_media'] ? ' data-mobile-src="' . esc_url( $campaign['mobile_media'] ) . '"' : ''; ?><?php echo $campaign['poster'] ? ' data-desktop-poster="' . esc_url( $campaign['poster'] ) . '"' : ''; ?><?php echo $campaign['mobile_poster'] ? ' data-mobile-poster="' . esc_url( $campaign['mobile_poster'] ) . '"' : ''; ?> muted loop playsinline preload="none" aria-label="<?php echo esc_attr( 'ویدیوی تبلیغاتی ' . $campaign['title'] ); ?>"></video>
+							<?php if ( 'video' === $campaign['media_type'] && $campaign['media'] ) : ?><video class="jluxe-bvc-video" data-desktop-src="<?php echo esc_url( $campaign['media'] ); ?>"<?php echo $campaign['mobile_media'] ? ' data-mobile-src="' . esc_url( $campaign['mobile_media'] ) . '"' : ''; ?><?php echo $campaign['poster'] ? ' poster="' . esc_url( $campaign['poster'] ) . '" data-desktop-poster="' . esc_url( $campaign['poster'] ) . '"' : ''; ?><?php echo $campaign['mobile_poster'] ? ' data-mobile-poster="' . esc_url( $campaign['mobile_poster'] ) . '"' : ''; ?> muted loop playsinline preload="none" aria-label="<?php echo esc_attr( 'ویدیوی تبلیغاتی ' . $campaign['title'] ); ?>"></video>
 							<?php elseif ( 'image' === $campaign['media_type'] && $campaign['media'] ) : ?><picture class="jluxe-bvc-picture"><?php if ( $campaign['mobile_media'] ) : ?><source media="(max-width: 767px)" srcset="<?php echo esc_url( $campaign['mobile_media'] ); ?>" /><?php endif; ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['media'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $campaign['title'] ); ?>" loading="lazy" decoding="async" /></picture>
 							<?php elseif ( $campaign['poster'] ) : ?><img class="jluxe-bvc-poster" src="<?php echo esc_url( $campaign['poster'] ); ?>" alt="<?php echo esc_attr( 'کمپین ' . $campaign['title'] ); ?>" loading="lazy" decoding="async" />
 							<?php else : ?><div class="jluxe-bvc-empty-media" aria-hidden="true"><span><?php echo esc_html( $campaign['title'] ); ?></span></div><?php endif; ?>
@@ -2565,7 +2593,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 								<span class="jluxe-bvc-product-visual"><?php if ( $discount_percent > 0 ) : ?><span class="jluxe-bvc-sale-badge"><?php echo esc_html( jluxe_fa_digits( $discount_percent ) ); ?>٪</span><?php endif; ?><span class="jluxe-bvc-product-image"><?php echo wp_kses_post( $product->get_image( 'woocommerce_thumbnail', array( 'loading' => 'lazy', 'decoding' => 'async' ) ) ); ?></span></span>
 								<span class="jluxe-bvc-product-name"><?php echo esc_html( $product->get_name() ); ?></span>
 								<?php if ( $product->get_average_rating() ) : ?><span class="jluxe-bvc-rating" aria-label="<?php echo esc_attr( 'امتیاز ' . $product->get_average_rating() . ' از ۵' ); ?>"><span aria-hidden="true">★</span> <?php echo esc_html( number_format_i18n( (float) $product->get_average_rating(), 1 ) ); ?></span><?php endif; ?>
-								<span class="jluxe-bvc-price"><?php echo wp_kses_post( $product->get_price_html() ); ?><?php if ( function_exists( 'jluxe_toman_display_icon_svg' ) ) : ?><span class="jluxe-bvc-toman" aria-label="تومان"><?php echo jluxe_toman_display_icon_svg( '', '16px', '13px' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span><?php endif; ?></span>
+								<span class="jluxe-bvc-price"><?php echo wp_kses_post( $product->get_price_html() ); ?></span>
 							</a>
 						</li>
 						<?php endforeach; ?>
@@ -2579,7 +2607,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	</section>
 	<?php if ( ! $printed ) : $printed = true; ?>
 	<style>
-	.jluxe-brand-campaigns{--bvc-primary:hsl(var(--primary));box-sizing:border-box;display:flex;flex-direction:column;width:min(calc(100% - 32px),1320px);min-width:0;margin:20px auto 24px;padding:0 0 24px;border:1px solid hsl(var(--border));border-radius:16px;background-color:var(--bvc-active-bg,var(--bvc-background,#7E0820));color:var(--bvc-fg,#ECEDEF);box-shadow:0 2px 8px -2px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);overflow:hidden;transition:background-color .5s cubic-bezier(.61,1,.88,1),color .5s cubic-bezier(.61,1,.88,1)}
+	.jluxe-brand-campaigns{--bvc-primary:hsl(var(--primary));box-sizing:border-box;display:flex;flex-direction:column;width:100%;max-width:1320px;min-width:0;margin:20px auto 24px;padding:0 16px 24px;border:1px solid hsl(var(--border));border-radius:16px;background-color:var(--bvc-active-bg,var(--bvc-background,#7E0820));color:var(--bvc-fg,#ECEDEF);box-shadow:0 2px 8px -2px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);overflow:hidden;transition:background-color .5s cubic-bezier(.61,1,.88,1),color .5s cubic-bezier(.61,1,.88,1)}
 	.jluxe-bvc-header{display:flex;align-items:center;gap:16px;min-width:0;padding:12px 16px 0}
 	.jluxe-bvc-heading{display:flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
 	.jluxe-bvc-header h2{margin:0;overflow:hidden;color:var(--bvc-fg,#ECEDEF);font-size:14px;font-weight:700;line-height:1.5;text-overflow:ellipsis;white-space:nowrap}
@@ -2587,13 +2615,13 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	.jluxe-bvc-tabs{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-inline:contain;padding:2px 0 4px;scrollbar-width:none}
 	.jluxe-bvc-tabs::-webkit-scrollbar{display:none}
 	.jluxe-bvc-tab-item{display:flex;flex:0 0 auto;align-items:center;gap:4px}
-	.jluxe-bvc-tab{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;height:40px;padding:4px 12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:rgba(255,255,255,.14);color:var(--bvc-fg,#ECEDEF);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;transition:background-color .2s ease,color .2s ease,border-color .2s ease}
+	.jluxe-bvc-tab{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;height:40px;padding:4px 12px;border:1px solid color-mix(in srgb,var(--bvc-fg,#ECEDEF) 28%,transparent);border-radius:999px;background:rgba(255,255,255,.14);color:var(--bvc-fg,#ECEDEF);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;transition:background-color .2s ease,color .2s ease,border-color .2s ease}
 	.jluxe-bvc-tab img{display:block;width:32px;height:32px;flex:0 0 32px;border-radius:50%;object-fit:contain;background:#fff}
-	.jluxe-bvc-tab.is-active{border-color:#fff;background:#fff;color:#1F1F1F;font-weight:700}
+	.jluxe-bvc-tab.is-active{border-color:rgba(31,31,31,.14);background:#fff;color:#1F1F1F;font-weight:700}
 	.jluxe-bvc-tab-arrow{display:none;font-size:18px;line-height:1}
 	.jluxe-bvc-tab.is-active .jluxe-bvc-tab-arrow{display:inline-block}
-	.jluxe-bvc-tab-link{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(255,255,255,.35);border-radius:50%;color:var(--bvc-fg,#ECEDEF);text-decoration:none;font-size:13px}
-	.jluxe-bvc-tab-item:has(.jluxe-bvc-tab.is-active) .jluxe-bvc-tab-link{border-color:#fff;background:#fff;color:#1F1F1F}
+	.jluxe-bvc-tab-link{display:none;place-items:center;width:40px;height:40px;min-width:40px;min-height:40px;border:1px solid color-mix(in srgb,var(--bvc-fg,#ECEDEF) 28%,transparent);border-radius:50%;color:var(--bvc-fg,#ECEDEF);text-decoration:none;font-size:13px}
+	.jluxe-bvc-tab-item:has(.jluxe-bvc-tab.is-active) .jluxe-bvc-tab-link{display:grid;border-color:rgba(31,31,31,.14);background:#fff;color:#1F1F1F}
 	.jluxe-bvc-panels,.jluxe-bvc-panel{min-width:0}
 	.jluxe-bvc-panel[hidden]{display:none!important}
 	.jluxe-bvc-products-rail{position:relative;min-width:0;margin-top:12px}
@@ -2618,7 +2646,7 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	.jluxe-bvc-rating{color:#5c5c5c;font-size:10px;direction:ltr;text-align:right}
 	.jluxe-bvc-rating span{color:#f0a500}
 	.jluxe-bvc-price{display:flex;flex:1;align-items:flex-end;justify-content:space-between;gap:3px;color:#1F1F1F;font-size:12px;font-weight:700}
-	.jluxe-bvc-price del{color:#848484;font-size:10px;font-weight:400}
+	.jluxe-bvc-price del{color:#5C5C5C;font-size:10px;font-weight:400}
 	.jluxe-bvc-price ins{color:#1F1F1F;text-decoration:none}
 	.jluxe-bvc-price .woocommerce-Price-currencySymbol{font-size:10px}
 	.jluxe-bvc-toman{display:inline-flex;flex:0 0 auto;align-items:center;color:#5c5c5c}
@@ -2629,13 +2657,14 @@ function jluxe_render_homepage_brand_video_campaigns( array $section ): void {
 	.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{animation:jluxe-bvc-card-in 380ms cubic-bezier(.61,1,.88,1) both;animation-delay:calc(var(--bvc-index,0)*18ms)}
 	@keyframes jluxe-bvc-media-in{from{opacity:0;transform:scale(.975)}to{opacity:1;transform:scale(1)}}
 	@keyframes jluxe-bvc-card-in{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
-	@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px 0 24px;padding:0 0 16px;border:0;border-radius:0;box-shadow:none}.jluxe-bvc-header{align-items:center;flex-direction:row;gap:8px;padding:12px 12px 0}.jluxe-bvc-heading{flex:0 0 auto;justify-content:flex-start}.jluxe-bvc-header h2{display:none}.jluxe-bvc-tabs{width:auto;gap:6px}.jluxe-bvc-tab{height:40px;padding:4px 10px;font-size:11px}.jluxe-bvc-products-rail{margin-top:8px}.jluxe-bvc-item{height:292px}.jluxe-bvc-item:first-child{margin-inline-start:16px}.jluxe-bvc-item:last-child{margin-inline-end:16px}.jluxe-bvc-media-item{width:clamp(220px,68vw,260px)}.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:148px}.jluxe-bvc-product,.jluxe-bvc-see-all{padding:10px}.jluxe-bvc-products{gap:12px}}
+	@media(max-width:767px){.jluxe-brand-campaigns{width:100%;margin:20px auto 24px;padding:0 12px 16px;border:0;border-radius:0;box-shadow:none}.jluxe-bvc-header{align-items:center;flex-direction:row;gap:8px;padding:12px 0 0}.jluxe-bvc-heading{flex:0 0 auto;justify-content:flex-start}.jluxe-bvc-header h2{display:none}.jluxe-bvc-tabs{width:auto;gap:6px}.jluxe-bvc-tab{height:40px;padding:4px 10px;font-size:11px}.jluxe-bvc-tab-link{width:44px;height:44px;min-width:44px;min-height:44px}.jluxe-bvc-products-rail{margin-top:8px}.jluxe-bvc-item{height:292px}.jluxe-bvc-item:first-child{margin-inline-start:16px}.jluxe-bvc-item:last-child{margin-inline-end:16px}.jluxe-bvc-media-item{width:clamp(220px,68vw,260px)}.jluxe-bvc-product-item,.jluxe-bvc-see-all-item{width:148px}.jluxe-bvc-product,.jluxe-bvc-see-all{padding:10px}.jluxe-bvc-products{gap:12px}}
 	@media(prefers-reduced-motion:reduce){.jluxe-brand-campaigns,.jluxe-bvc-tab,.jluxe-bvc-panel.is-entering .jluxe-bvc-media-content,.jluxe-bvc-panel.is-entering .jluxe-bvc-product-item,.jluxe-bvc-panel.is-entering .jluxe-bvc-see-all-item{scroll-behavior:auto!important;transition:none!important;animation:none!important;transform:none!important}}
 	</style>
 	<?php endif;
 }
 
 function jluxe_render_homepage_brand_marquee( array $section ): void {
+	static $printed = false;
 	$items = array_values( array_filter( $section['items'] ?? array(), fn( $i ) => ! empty( $i['image_id'] ) ) );
 	if ( empty( $items ) ) return;
 	$duration = max( 15, min( 120, (int) ( $section['speed_sec'] ?? 36 ) ) );
@@ -2665,9 +2694,9 @@ function jluxe_render_homepage_brand_marquee( array $section ): void {
 			</div>
 		</div>
 	</section>
-	<style>
-	.jluxe-brand-strip{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding:0;border:1px solid rgba(16,0,51,.07);border-radius:16px;background:rgba(255,255,255,.72);overflow:hidden}.jluxe-brand-strip-inner{box-sizing:border-box;width:100%;height:64px;min-height:64px;display:flex;align-items:center;gap:16px;padding:5px 16px}.jluxe-brand-strip-title{flex:0 0 auto;max-width:120px;font-size:11px;font-weight:800;color:#1F2937;white-space:nowrap}.jluxe-brand-strip-viewport{min-width:0;flex:1;overflow:hidden}.jluxe-brand-marquee-track{display:flex;align-items:center;width:max-content;height:54px;animation:jluxe-brand-marquee var(--jluxe-brand-speed) linear infinite}.jluxe-brand-marquee-pause:hover{animation-play-state:paused}.jluxe-brand-strip-item{box-sizing:border-box;width:126px;min-width:126px;height:54px;display:flex;align-items:center;justify-content:center;padding:0 7px}.jluxe-brand-strip-link{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.jluxe-brand-strip-logo{width:96px;height:40px;display:flex;align-items:center;justify-content:center}.jluxe-brand-strip-logo img{display:block;width:auto!important;height:auto!important;max-width:96px!important;max-height:40px!important;object-fit:contain!important;object-position:50% 50%!important;transition:filter .25s ease,opacity .25s ease}.jluxe-brand-strip-logo img.is-gray{filter:grayscale(1);opacity:.62}.jluxe-brand-strip-link:hover img.is-gray{filter:grayscale(0);opacity:1}@keyframes jluxe-brand-marquee{from{transform:translateX(0)}to{transform:translateX(50%)}}@media(prefers-reduced-motion:reduce){.jluxe-brand-marquee-track{animation:none!important}.jluxe-brand-strip-logo img{transition:none!important}}@media(max-width:639px){.jluxe-brand-strip{width:calc(100% - 16px);margin:14px auto;border-radius:12px}.jluxe-brand-strip-inner{height:56px;min-height:56px;padding:4px 9px;gap:9px}.jluxe-brand-strip-title{max-width:76px;font-size:9px}.jluxe-brand-marquee-track{height:48px}.jluxe-brand-strip-item{width:102px;min-width:102px;height:48px;padding:0 5px}.jluxe-brand-strip-logo{width:78px;height:32px}.jluxe-brand-strip-logo img{max-width:78px!important;max-height:32px!important}}
-	</style>
+	<?php if ( ! $printed ) : $printed = true; ?><style>
+	.jluxe-brand-strip{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding:0 16px;border:1px solid hsl(var(--border));border-radius:16px;background:hsl(var(--surface));overflow:hidden}.jluxe-brand-strip-inner{box-sizing:border-box;width:100%;height:64px;min-height:64px;display:flex;align-items:center;gap:16px;padding:5px 16px}.jluxe-brand-strip-title{flex:0 0 auto;max-width:120px;font-size:11px;font-weight:800;color:#1F2937;white-space:nowrap}.jluxe-brand-strip-viewport{min-width:0;flex:1;overflow:hidden}.jluxe-brand-marquee-track{display:flex;align-items:center;width:max-content;height:54px;animation:jluxe-brand-marquee var(--jluxe-brand-speed) linear infinite}.jluxe-brand-marquee-pause:hover{animation-play-state:paused}.jluxe-brand-strip-item{box-sizing:border-box;width:126px;min-width:126px;height:54px;display:flex;align-items:center;justify-content:center;padding:0 7px}.jluxe-brand-strip-link{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.jluxe-brand-strip-logo{width:96px;height:40px;display:flex;align-items:center;justify-content:center}.jluxe-brand-strip-logo img{display:block;width:auto!important;height:auto!important;max-width:96px!important;max-height:40px!important;object-fit:contain!important;object-position:50% 50%!important;transition:filter .25s ease,opacity .25s ease}.jluxe-brand-strip-logo img.is-gray{filter:grayscale(1);opacity:.62}.jluxe-brand-strip-link:hover img.is-gray{filter:grayscale(0);opacity:1}@keyframes jluxe-brand-marquee{from{transform:translateX(0)}to{transform:translateX(50%)}}@media(prefers-reduced-motion:reduce){.jluxe-brand-marquee-track{animation:none!important}.jluxe-brand-strip-logo img{transition:none!important}}@media(max-width:767px){.jluxe-brand-strip{width:100%;padding-inline:12px;margin:14px auto;border-radius:12px}.jluxe-brand-strip-inner{height:56px;min-height:56px;padding:4px 9px;gap:9px}.jluxe-brand-strip-title{max-width:76px;font-size:9px}.jluxe-brand-marquee-track{height:48px}.jluxe-brand-strip-item{width:102px;min-width:102px;height:48px;padding:0 5px}.jluxe-brand-strip-logo{width:78px;height:32px}.jluxe-brand-strip-logo img{max-width:78px!important;max-height:32px!important}}
+	</style><?php endif; ?>
 	<?php
 }
 
@@ -2682,20 +2711,20 @@ function jluxe_render_homepage_blog( array $section ): void {
 	if ( empty( $posts ) ) {
 		return; // بلاگی نیست — چیزی جعلی نشون داده نمی‌شه.
 	}
+	$blog_page_id = (int) get_option( 'page_for_posts' );
+	$blog_url = $blog_page_id ? get_permalink( $blog_page_id ) : home_url( '/' );
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-8">
-		<?php if ( ! empty( $section['title'] ) ) : ?>
-			<h2 class="mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
-		<?php endif; ?>
+		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? 'از وبلاگ' ), (string) $blog_url, (string) ( $section['title'] ?? 'وبلاگ' ) ); ?>
 		<div class="jluxe-home-blog-viewport" role="region" aria-label="نوشته‌های وبلاگ">
-			<div class="jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<div class="jluxe-home-blog-scroller jluxe-scroll-x jluxe-hide-scrollbar flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:overflow-visible">
 			<?php foreach ( $posts as $p ) : ?>
-				<a href="<?php echo esc_url( get_permalink( $p ) ); ?>" class="jluxe-home-card jluxe-home-blog-card group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md">
-					<?php if ( has_post_thumbnail( $p ) ) : ?>
-						<span class="block aspect-video overflow-hidden bg-muted">
+				<a href="<?php echo esc_url( get_permalink( $p ) ); ?>" class="jluxe-home-card jluxe-home-blog-card group flex w-[80vw] shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md sm:w-[46vw] lg:w-auto lg:shrink">
+					<span class="block aspect-video overflow-hidden bg-muted">
+						<?php if ( has_post_thumbnail( $p ) ) : ?>
 							<?php echo get_the_post_thumbnail( $p, 'medium_large', array( 'class' => 'size-full object-cover transition-transform duration-300 group-hover:scale-105', 'loading' => 'lazy' ) ); ?>
-						</span>
-					<?php endif; ?>
+						<?php else : ?><span class="grid size-full place-items-center text-text-muted" aria-hidden="true"><span class="text-3xl">▧</span></span><?php endif; ?>
+					</span>
 					<div class="flex flex-1 flex-col gap-1.5 p-4">
 						<span class="text-caption text-text-muted"><?php echo esc_html( get_the_date( '', $p ) ); ?></span>
 						<span class="line-clamp-2 text-body font-bold text-foreground group-hover:text-primary"><?php echo esc_html( get_the_title( $p ) ); ?></span>
@@ -2906,11 +2935,13 @@ function jluxe_render_homepage_stories( array $section ): void {
 					data-src="<?php echo esc_url( $media_url ); ?>"
 					data-media-type="<?php echo esc_attr( $media_type ); ?>"
 					data-title="<?php echo esc_attr( $item['title'] ?? '' ); ?>"
+					data-link="<?php echo esc_url( $item['link'] ?? '' ); ?>"
+					data-button-text="<?php echo esc_attr( $item['button_text'] ?? '' ); ?>"
 					class="flex shrink-0 flex-col items-center gap-1.5"
 				>
 					<span class="grid size-16 place-items-center rounded-full bg-gradient-to-tr from-primary via-primary to-primary/60 p-[2.5px]">
 						<span class="grid size-full place-items-center rounded-full bg-surface p-[2.5px]">
-							<img src="<?php echo esc_url( $thumb_url ); ?>" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full rounded-full object-cover" <?php echo jluxe_lazy_attr(); ?> />
+							<img src="<?php echo esc_url( $thumb_url ); ?>" width="64" height="64" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full rounded-full object-cover" <?php echo jluxe_lazy_attr(); ?> />
 						</span>
 					</span>
 					<?php if ( ! empty( $item['title'] ) ) : ?>
@@ -2930,13 +2961,17 @@ function jluxe_render_homepage_stories( array $section ): void {
 			 * homepage.js) اضافه می‌شن، نه از اول.
 			 */
 			?>
-			<div data-jluxe-story-viewer hidden class="fixed inset-0 z-[999] bg-black/85 p-4">
-				<button type="button" data-jluxe-story-close aria-label="بستن" class="absolute end-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white">
+			<div data-jluxe-story-viewer hidden class="fixed inset-0 z-[999] bg-black/90 p-4">
+				<div class="absolute inset-x-4 top-4 h-1 overflow-hidden rounded-full bg-white/30" role="progressbar" aria-label="پیشرفت استوری" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-jluxe-story-progress><span class="block h-full w-0 bg-white transition-[width] duration-300" data-jluxe-story-progress-fill></span></div>
+				<button type="button" data-jluxe-story-close aria-label="بستن" class="absolute end-4 top-8 grid size-10 place-items-center rounded-full bg-white/10 text-white">
 					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
 				</button>
-				<div class="flex max-w-full flex-col items-center gap-3">
+				<button type="button" data-jluxe-story-prev aria-label="استوری قبلی" class="absolute start-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white">‹</button>
+				<button type="button" data-jluxe-story-next aria-label="استوری بعدی" class="absolute end-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white">›</button>
+				<div class="flex max-w-full flex-col items-center gap-3 pt-5">
 					<div data-jluxe-story-media></div>
 					<span data-jluxe-story-title class="text-small text-white"></span>
+					<a data-jluxe-story-cta hidden class="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-white px-5 py-2 text-small font-bold text-foreground shadow-lg" href="#"></a>
 				</div>
 			</div>
 		</div>
@@ -3385,8 +3420,9 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 								<?php jluxe_homepage_mobile_picture_source( $mobile_image, (bool) $slide['has_mobile'], $mobile_sizes ); ?>
 								<img src="<?php echo esc_url( $desktop_image['src'] ); ?>"<?php echo jluxe_responsive_image_attributes( $desktop_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full object-cover" loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"<?php echo 0 === $i ? ' data-no-lazy="1"' : ''; ?> />
 							</picture>
-						<?php if ( ! empty( $item['title'] ) || ! empty( $item['category'] ) ) : ?>
-							<div class="absolute inset-y-0 start-6 flex flex-col justify-center gap-1.5 sm:start-10">
+						<?php if ( ! empty( $item['title'] ) || ! empty( $item['category'] ) || ! empty( $item['description'] ) ) : ?>
+							<span aria-hidden="true" class="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-transparent"></span>
+							<div class="absolute inset-y-0 start-6 z-10 flex flex-col justify-center gap-1.5 sm:start-10">
 								<?php if ( ! empty( $item['category'] ) ) : ?><span class="text-caption font-medium text-white/80"><?php echo esc_html( $item['category'] ); ?></span><?php endif; ?>
 								<?php if ( ! empty( $item['title'] ) ) : ?><span class="text-h2 font-extrabold text-white"><?php echo esc_html( $item['title'] ); ?></span><?php endif; ?>
 								<?php if ( ! empty( $item['description'] ) ) : ?><span class="max-w-xs text-small text-white/85"><?php echo esc_html( $item['description'] ); ?></span><?php endif; ?>
@@ -3404,7 +3440,7 @@ function jluxe_render_homepage_banner_slider( array $section ): void {
 				</button>
 				<div class="absolute bottom-3 start-1/2 flex -translate-x-1/2 gap-1.5">
 					<?php foreach ( $slides as $i => $slide ) : ?>
-						<span data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-1.5 w-5 rounded-full bg-white/50 transition-colors data-[active=true]:bg-white"></span>
+						<button type="button" data-jluxe-bs-dot data-active="<?php echo 0 === $i ? 'true' : 'false'; ?>" aria-label="رفتن به اسلاید <?php echo esc_attr( jluxe_fa_digits( $i + 1 ) ); ?>" aria-current="<?php echo 0 === $i ? 'true' : 'false'; ?>" class="h-3 min-w-5 rounded-full bg-white/50 transition-colors data-[active=true]:bg-white"></button>
 					<?php endforeach; ?>
 				</div>
 			<?php endif; ?>
@@ -3524,12 +3560,7 @@ function jluxe_render_homepage_brick_products( array $section ): void {
 	}
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
-		<?php if ( ! empty( $section['title'] ) ) : ?>
-			<div class="mb-4 flex items-center justify-between">
-				<h2 class="text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
-				<a href="<?php echo esc_url( $view_all ); ?>" class="shrink-0 text-caption font-medium text-text-muted transition-colors hover:text-primary">نمایش همه</a>
-			</div>
-		<?php endif; ?>
+		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? '' ), (string) $view_all, (string) ( $section['title'] ?? 'محصولات' ) ); ?>
 		<?php
 		/*
 		 * طبقِ درخواستِ صریحِ کاربر («چیدمانِ آجری») — به‌جایِ کارتِ کاملِ
@@ -3720,7 +3751,7 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 				$button_link = ! empty( $panel['button_link'] ) ? $panel['button_link'] : ( is_wp_error( $term_link ) ? '' : $term_link );
 				$arrow_style = ! empty( $panel['button_color'] ) ? ' style="background-color:' . esc_attr( $panel['button_color'] ) . '"' : '';
 				?>
-				<div class="jluxe-home-panel snap-start shrink-0 basis-full rounded-3xl bg-surface p-4 shadow-[0_2px_18px_rgba(16,0,51,0.05)] lg:basis-0 lg:flex-1">
+				<div class="jluxe-home-panel snap-start shrink-0 basis-full rounded-3xl bg-surface p-4 shadow-[0_2px_18px_rgba(15,23,42,0.05)] lg:basis-0 lg:flex-1">
 					<div class="mb-3">
 						<div class="min-w-0 text-right">
 							<h3 class="min-w-0 text-base font-extrabold text-foreground sm:text-lg">
@@ -3798,10 +3829,24 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 	$is_variable   = $product->is_type( 'variable' );
 	$regular_price = (float) $product->get_regular_price();
 	$sale_price    = (float) $product->get_sale_price();
-	$has_discount  = ! $is_variable && $product->is_on_sale() && $sale_price > 0 && $sale_price < $regular_price;
-	$discount_pct  = $has_discount ? (int) round( 100 - ( $sale_price / $regular_price ) * 100 ) : 0;
-	$price         = $is_variable ? $product->get_variation_price( 'min' ) : ( $has_discount ? $sale_price : $regular_price );
-	$review_count  = (int) $product->get_review_count();
+	$has_discount = false;
+	$discount_pct = 0;
+	if ( $is_variable ) {
+		$variation_prices = $product->get_variation_prices( true );
+		foreach ( (array) ( $variation_prices['regular_price'] ?? array() ) as $variation_id => $variation_regular ) {
+			$variation_regular = (float) $variation_regular;
+			$variation_sale = (float) ( $variation_prices['sale_price'][ $variation_id ] ?? 0 );
+			if ( $variation_regular > 0 && $variation_sale > 0 && $variation_sale < $variation_regular ) {
+				$has_discount = true;
+				$discount_pct = max( $discount_pct, (int) round( 100 - ( $variation_sale / $variation_regular * 100 ) ) );
+			}
+		}
+	} else {
+		$has_discount = $product->is_on_sale() && $sale_price > 0 && $regular_price > 0 && $sale_price < $regular_price;
+		$discount_pct = $has_discount ? (int) round( 100 - ( $sale_price / $regular_price ) * 100 ) : 0;
+	}
+	$price = $is_variable ? $product->get_variation_price( 'min' ) : ( $has_discount ? $sale_price : $regular_price );
+	$average_rating = (float) $product->get_average_rating();
 
 	// سواچ‌های ویژگی رنگ (حداکثر ۴) از همان resolver مشترکِ صفحه‌ی محصول،
 	// quick-pick و مشخصات فنی؛ برای محصول ساده هم از termهایِ اختصاص‌داده‌شده
@@ -3853,10 +3898,10 @@ function jluxe_render_homepage_recommended_card( WC_Product $product, bool $bord
 		<h3 class="line-clamp-1 text-right text-[12px] leading-6 text-text-secondary sm:text-[13px]"><?php echo esc_html( $product->get_name() ); ?></h3>
 
 		<div class="mt-2 flex items-center justify-between">
-			<div class="flex items-center gap-1">
+			<?php if ( $average_rating > 0 ) : ?><div class="flex items-center gap-1" aria-label="<?php echo esc_attr( sprintf( 'امتیاز %s از ۵', number_format_i18n( $average_rating, 1 ) ) ); ?>">
 				<svg class="size-[15px] shrink-0 text-boom-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m7.625 6.4l2.8-3.625q.3-.4.713-.587T12 2t.863.188t.712.587l2.8 3.625l4.25 1.425q.65.2 1.025.738t.375 1.187q0 .3-.088.6t-.287.575l-2.75 3.9l.1 4.1q.025.875-.575 1.475t-1.4.6q-.05 0-.55-.075L12 19.675l-4.475 1.25q-.125.05-.275.063T6.975 21q-.8 0-1.4-.6T5 18.925l.1-4.125l-2.725-3.875q-.2-.275-.288-.575T2 9.75q0-.625.363-1.162t1.012-.763z"/></svg>
-				<span class="text-[13px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( (string) $review_count ) ); ?></span>
-			</div>
+				<span class="text-[13px] font-medium text-text-secondary"><?php echo esc_html( jluxe_fa_digits( number_format_i18n( $average_rating, 1 ) ) ); ?></span>
+			</div><?php else : ?><span aria-hidden="true"></span><?php endif; ?>
 			<div class="flex items-center gap-1 text-foreground">
 				<span class="text-[14px] font-bold sm:text-[15px]"><?php echo esc_html( jluxe_fa_digits( number_format( (float) $price, 0 ) ) ); ?></span>
 				<?php echo jluxe_toman_display_icon_svg( 'shrink-0 text-text-muted', '18px', '15px' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -3878,8 +3923,11 @@ function jluxe_render_homepage_trust( array $section ): void {
 			<h2 class="mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
 		<?php endif; ?>
 		<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-			<?php foreach ( $cards as $card ) : ?>
-				<div class="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-surface p-4 text-center">
+			<?php foreach ( $cards as $card ) :
+				$trust_icon = ! empty( $card['svg'] ) ? jluxe_sanitize_svg_markup( (string) $card['svg'] ) : jluxe_nav_icon_svg( (string) ( $card['icon'] ?? '' ), 'size-5' );
+				?>
+				<div class="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4 text-center">
+					<span class="grid size-11 place-items-center rounded-xl border border-border bg-muted/40 text-primary" aria-hidden="true"><?php echo $trust_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized via helper. ?></span>
 					<strong class="text-small text-foreground"><?php echo esc_html( $card['title'] ); ?></strong>
 					<span class="text-caption text-text-muted"><?php echo esc_html( $card['subtitle'] ); ?></span>
 				</div>

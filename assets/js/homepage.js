@@ -10,25 +10,40 @@
 	 * استوری‌ها — کلیک روی آواتار، ویوئر تمام‌صفحه (عکس یا ویدیو) رو باز می‌کنه.
 	 * ------------------------------------------------------------- */
 	function initStories() {
-		var bars = document.querySelectorAll("[data-jluxe-stories]");
-		if (!bars.length) return;
-
-		bars.forEach(function (bar) {
+		document.querySelectorAll("[data-jluxe-stories]").forEach(function (bar) {
 			var viewer = bar.querySelector("[data-jluxe-story-viewer]");
-			var media = viewer ? viewer.querySelector("[data-jluxe-story-media]") : null;
-			var titleEl = viewer ? viewer.querySelector("[data-jluxe-story-title]") : null;
-			var closeBtn = viewer ? viewer.querySelector("[data-jluxe-story-close]") : null;
+			if (!viewer) return;
+			var media = viewer.querySelector("[data-jluxe-story-media]");
+			var titleEl = viewer.querySelector("[data-jluxe-story-title]");
+			var closeBtn = viewer.querySelector("[data-jluxe-story-close]");
+			var prevBtn = viewer.querySelector("[data-jluxe-story-prev]");
+			var nextBtn = viewer.querySelector("[data-jluxe-story-next]");
+			var progress = viewer.querySelector("[data-jluxe-story-progress]");
+			var progressFill = viewer.querySelector("[data-jluxe-story-progress-fill]");
+			var cta = viewer.querySelector("[data-jluxe-story-cta]");
+			var items = Array.prototype.slice.call(bar.querySelectorAll("[data-jluxe-story-avatar]")).map(function (btn) {
+				return {
+					src: btn.getAttribute("data-src") || "",
+					type: btn.getAttribute("data-media-type") || "image",
+					title: btn.getAttribute("data-title") || "",
+					link: btn.getAttribute("data-link") || "",
+					buttonText: btn.getAttribute("data-button-text") || ""
+				};
+			});
+			var activeIndex = -1;
 
 			function close() {
-				if (!viewer) return;
 				viewer.setAttribute("hidden", "");
 				viewer.classList.remove("grid", "place-items-center");
 				media.innerHTML = "";
+				activeIndex = -1;
 				document.body.style.overflow = "";
 			}
 
-			function open(item) {
-				if (!viewer || !media) return;
+			function show(index) {
+				if (!items.length) return;
+				activeIndex = (index + items.length) % items.length;
+				var item = items[activeIndex];
 				media.innerHTML = "";
 				if (item.type === "video") {
 					var video = document.createElement("video");
@@ -41,34 +56,45 @@
 				} else {
 					var img = document.createElement("img");
 					img.src = item.src;
-					img.alt = item.title || "";
+					img.alt = item.title;
 					img.className = "max-h-[80vh] max-w-full rounded-xl object-contain";
 					media.appendChild(img);
 				}
-				if (titleEl) titleEl.textContent = item.title || "";
+				if (titleEl) titleEl.textContent = item.title;
+				if (progress) progress.setAttribute("aria-valuenow", String(Math.round(((activeIndex + 1) / items.length) * 100)));
+				if (progressFill) progressFill.style.width = (((activeIndex + 1) / items.length) * 100) + "%";
+				if (cta) {
+					if (item.link) {
+						cta.href = item.link;
+						cta.textContent = item.buttonText || "مشاهده محصول";
+						cta.removeAttribute("hidden");
+					} else {
+						cta.setAttribute("hidden", "");
+					}
+				}
+			}
+
+			function open(index) {
 				viewer.removeAttribute("hidden");
 				viewer.classList.add("grid", "place-items-center");
 				document.body.style.overflow = "hidden";
+				show(index);
 			}
 
-			bar.querySelectorAll("[data-jluxe-story-avatar]").forEach(function (btn) {
-				btn.addEventListener("click", function () {
-					open({
-						src: btn.getAttribute("data-src"),
-						type: btn.getAttribute("data-media-type"),
-						title: btn.getAttribute("data-title"),
-					});
-				});
+			bar.querySelectorAll("[data-jluxe-story-avatar]").forEach(function (btn, index) {
+				btn.addEventListener("click", function () { open(index); });
 			});
-
 			if (closeBtn) closeBtn.addEventListener("click", close);
-			if (viewer) {
-				viewer.addEventListener("click", function (e) {
-					if (e.target === viewer) close();
-				});
-			}
+			if (prevBtn) prevBtn.addEventListener("click", function () { if (activeIndex >= 0) show(activeIndex - 1); });
+			if (nextBtn) nextBtn.addEventListener("click", function () { if (activeIndex >= 0) show(activeIndex + 1); });
+			viewer.addEventListener("click", function (e) {
+				if (e.target === viewer) close();
+			});
 			document.addEventListener("keydown", function (e) {
+				if (viewer.hasAttribute("hidden")) return;
 				if (e.key === "Escape") close();
+				else if (e.key === "ArrowLeft") show(activeIndex + 1);
+				else if (e.key === "ArrowRight") show(activeIndex - 1);
 			});
 		});
 	}
@@ -128,6 +154,7 @@
 				});
 				dots.forEach(function (d, di) {
 					d.setAttribute("data-active", di === index ? "true" : "false");
+					d.setAttribute("aria-current", di === index ? "true" : "false");
 					// نوارِ پیشرفتِ داخلِ هر نشانگر (اگه وجود داشته باشه — فقط
 					// اسلایدرِ هیرو این ساختار رو داره، بنرِ اسلایدرِ قدیمی نه):
 					// اسلایدهای گذشته پر، اسلایدِ فعال با همون مدتِ واقعیِ
@@ -602,7 +629,7 @@
 			var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 			var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 767px)") : null;
 			var activeIndex = -1;
-			var rootInRange = false;
+			var rootInRange = typeof IntersectionObserver !== "function";
 			var animationToken = 0;
 			if (!tabs.length || tabs.length !== panels.length) return;
 
