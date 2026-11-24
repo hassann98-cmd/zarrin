@@ -185,9 +185,20 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 			// via wc_get_template) instead of treating a nested template as a loop part.
 			// The matching CSS also keeps the server-rendered gallery visible if its
 			// optional gallery initializer is delayed or unavailable.
-			add_action( 'woocommerce_product_thumbnails', 'jluxe_render_default_product_gallery_video_trigger', 20 );
+			ob_start();
 			woocommerce_show_product_images();
-				remove_action( 'woocommerce_product_thumbnails', 'jluxe_render_default_product_gallery_video_trigger', 20 );
+			$jluxe_default_gallery_html = (string) ob_get_clean();
+			$jluxe_default_gallery_video = function_exists( 'jluxe_get_product_gallery_video' ) ? jluxe_get_product_gallery_video( (int) $product->get_id() ) : null;
+			if ( $jluxe_default_gallery_video && function_exists( 'jluxe_render_default_product_gallery_video_trigger' ) ) {
+				ob_start();
+				jluxe_render_default_product_gallery_video_trigger();
+				$jluxe_default_video_trigger = (string) ob_get_clean();
+				$jluxe_gallery_closing_div = strrpos( $jluxe_default_gallery_html, '</div>' );
+				if ( false !== $jluxe_gallery_closing_div ) {
+					$jluxe_default_gallery_html = substr_replace( $jluxe_default_gallery_html, $jluxe_default_video_trigger, $jluxe_gallery_closing_div, 0 );
+				}
+			}
+				echo $jluxe_default_gallery_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WooCommerce gallery markup is trusted; injected trigger escapes its attributes.
 				?>
 
 				<div>

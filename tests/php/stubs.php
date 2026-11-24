@@ -30,7 +30,7 @@ function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
 function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
 function remove_action(...$a){$GLOBALS['removed_actions'][]=$a;return true;}
 function PW(){return $GLOBALS['test_pw_instance']??null;}
-function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
+function do_action(...$a){$hook=(string)($a[0]??'');$GLOBALS['fired'][]=$hook;if(!in_array($hook,array('comment_form_before','comment_form_after','comment_form'),true))return;foreach($GLOBALS['actions']??array() as $registered){if(($registered[0]??'')!==$hook||!is_callable($registered[1]??null))continue;$accepted=max(0,(int)($registered[3]??1));call_user_func_array($registered[1],array_slice($a,1,$accepted));}}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}
 function get_bloginfo($k){if('language'===$k)return $GLOBALS['blog_language']??'fa-IR';if('charset'===$k)return 'UTF-8';return 'Audit shop';}
@@ -715,7 +715,7 @@ function wc_get_account_orders_actions( $order ) {
 if(!function_exists('wp_attachment_is_image')){function wp_attachment_is_image($id){$id=(int)$id;if(!empty($GLOBALS['product_manager_images'][$id]))return true;if(array_key_exists($id,$GLOBALS['attachment_images']??[]))return (bool)$GLOBALS['attachment_images'][$id];return 0===strpos((string)($GLOBALS['attachment_mimes'][$id]??''),'image/');}}
 if(!function_exists('get_post_thumbnail_id')){function get_post_thumbnail_id($id){return (int)($GLOBALS['post_thumbnails'][(int)$id]??0);}}
 if(!function_exists('is_user_logged_in')){function is_user_logged_in(){return !empty($GLOBALS['logged_in']);}}
-if(!function_exists('wp_check_filetype_and_ext')){function wp_check_filetype_and_ext($file,$filename,$mimes=null){$ext=strtolower(pathinfo((string)$filename,PATHINFO_EXTENSION));$map=['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'];$type=$map[$ext]??'';return ['ext'=>$type?($ext==='jpeg'?'jpg':$ext):false,'type'=>$type,'proper_filename'=>false];}}
+if(!function_exists('wp_check_filetype_and_ext')){function wp_check_filetype_and_ext($file,$filename,$mimes=null){$ext=strtolower(pathinfo((string)$filename,PATHINFO_EXTENSION));$GLOBALS['filetype_mime_checks'][]=$mimes;$type='';foreach(is_array($mimes)?$mimes:array() as $extensions=>$mime){if(preg_match('/^(?:'.$extensions.')$/i',$ext)){$type=(string)$mime;break;}}return ['ext'=>$type?$ext:false,'type'=>$type,'proper_filename'=>false];}}
 if(!function_exists('wp_get_attachment_image')){function wp_get_attachment_image($id,$size='thumbnail',$icon=false,$attr=[]){return '<img src="'.esc_url(wp_get_attachment_image_url($id,is_array($size)?'thumbnail':$size)).'" alt="'.esc_attr($attr['alt']??'').'" />';}}
 if(!function_exists('wp_delete_attachment')){function wp_delete_attachment($id,$force=false){$GLOBALS['deleted_attachments'][]=[(int)$id,(bool)$force];return true;}}
 if(!function_exists('get_post_field')){function get_post_field($field,$id){return $GLOBALS['posts'][(int)$id][$field]??'';}}

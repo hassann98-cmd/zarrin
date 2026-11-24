@@ -82,7 +82,7 @@ function jluxe_review_form_criteria( array $args ): array {
 	$field .= '<p class="comment-form-comment"><label for="comment">دیدگاه شما <span class="required">*</span></label><textarea id="comment" name="comment" cols="45" rows="6" required></textarea></p>';
 	$field .= jluxe_render_review_criteria_inputs();
 	$photo_settings = jluxe_get_theme_settings()['review_criteria'] ?? array();
-	$may_upload_photos = ! empty( $photo_settings['photos_enabled'] ) && ( empty( $photo_settings['photos_logged_in_only'] ) || is_user_logged_in() );
+	$may_upload_photos = jluxe_review_photo_upload_allowed( (int) get_queried_object_id() );
 	if ( $may_upload_photos ) {
 		$max_count = max( 1, min( 5, absint( $photo_settings['photos_max_count'] ?? 3 ) ) );
 		$max_bytes = max( 1, min( 5, absint( $photo_settings['photos_max_size_mb'] ?? 2 ) ) ) * MB_IN_BYTES;
@@ -103,30 +103,49 @@ function jluxe_review_form_criteria( array $args ): array {
 }
 add_filter( 'woocommerce_product_review_comment_form_args', 'jluxe_review_form_criteria' );
 
-/** Ensure WordPress's native review form is multipart even when JavaScript is unavailable. */
-function jluxe_review_comment_form_enctype( string $html, array $args, int $post_id ): string {
+/** Is the current customer allowed to attach images to this product review? */
+function jluxe_review_photo_upload_allowed( int $product_id ): bool {
+	if ( 'product' !== get_post_type( $product_id ) ) { return false; }
 	$settings = jluxe_get_theme_settings()['review_criteria'] ?? array();
-	if ( 'product' !== get_post_type( $post_id ) || empty( $settings['photos_enabled'] ) || ( ! empty( $settings['photos_logged_in_only'] ) && ! is_user_logged_in() ) ) { return $html; }
-	return preg_replace_callback(
-		'/<form\b(?=[^>]*\bid=(?:"commentform"|\'commentform\'))[^>]*>/i',
+	return ! empty( $settings['photos_enabled'] ) && ( empty( $settings['photos_logged_in_only'] ) || is_user_logged_in() );
+}
+
+/** Start buffering only around an eligible product review form for the native multipart fallback. */
+function jluxe_review_comment_form_buffer_before(): void {
+	$post_id = isset( $GLOBALS['post']->ID ) ? absint( $GLOBALS['post']->ID ) : ( function_exists( 'get_queried_object_id' ) ? absint( get_queried_object_id() ) : 0 );
+	if ( ! $post_id || ! jluxe_review_photo_upload_allowed( $post_id ) || ! empty( $GLOBALS['jluxe_review_comment_form_buffer_active'] ) ) { return; }
+	$GLOBALS['jluxe_review_comment_form_buffer_active'] = true;
+	ob_start();
+}
+
+/** Inject the multipart attribute into WordPress's native form after its markup has been rendered. */
+function jluxe_review_comment_form_buffer_after(): void {
+	if ( empty( $GLOBALS['jluxe_review_comment_form_buffer_active'] ) ) { return; }
+	unset( $GLOBALS['jluxe_review_comment_form_buffer_active'] );
+	$html = ob_get_clean();
+	if ( ! is_string( $html ) ) { return; }
+	$html = preg_replace_callback(
+		'~<form\b[^>]*\bid\s*=\s*(["\x27])commentform\1[^>]*>~i',
 		static function ( array $matches ): string {
 			return preg_match( '/\benctype\s*=/i', $matches[0] ) ? $matches[0] : preg_replace( '/>$/', ' enctype="multipart/form-data">', $matches[0] );
 		},
 		$html,
 		1
-	) ?: $html;
+	);
+	echo is_string( $html ) ? $html : '';
 }
-add_filter( 'comment_form', 'jluxe_review_comment_form_enctype', 20, 3 );
+add_action( 'comment_form_before', 'jluxe_review_comment_form_buffer_before', 1, 0 );
+add_action( 'comment_form_after', 'jluxe_review_comment_form_buffer_after', 999, 0 );
 
 /** Validate a single uploaded image's actual bytes, declared MIME/extension and size. */
 function jluxe_validate_review_photo_file( string $path, string $filename, int $size, int $max_bytes ): bool {
 	if ( ! is_file( $path ) || $size < 1 || $size > $max_bytes ) { return false; }
-	$allowed = array( 'image/jpeg' => 'jpg|jpeg', 'image/png' => 'png', 'image/webp' => 'webp' );
+	$allowed = array( 'jpg|jpeg|jpe' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp' );
 	$filetype = wp_check_filetype_and_ext( $path, sanitize_file_name( $filename ), $allowed );
 	$mime = is_array( $filetype ) ? (string) ( $filetype['type'] ?? '' ) : '';
 	$image = @getimagesize( $path );
 	$actual_mime = is_array( $image ) ? (string) ( $image['mime'] ?? '' ) : '';
-	return isset( $allowed[ $mime ] ) && $mime === $actual_mime && (bool) preg_match( '/\.(?:jpe?g|png|webp)$/i', $filename );
+	return in_array( $mime, $allowed, true ) && $mime === $actual_mime && (bool) preg_match( '/\.(?:jpe?g|jpe|png|webp)$/i', $filename );
 }
 
 function jluxe_review_photo_count_allowed( int $count, int $max_count ): bool {
@@ -138,7 +157,7 @@ function jluxe_save_review_photos( int $comment_id, $comment_approved ): void {
 	$comment = get_comment( $comment_id );
 	if ( ! $comment || 'review' !== (string) $comment->comment_type || 'product' !== get_post_type( (int) $comment->comment_post_ID ) ) { return; }
 	$settings = jluxe_get_theme_settings()['review_criteria'] ?? array();
-	if ( empty( $settings['photos_enabled'] ) || ( ! empty( $settings['photos_logged_in_only'] ) && ! is_user_logged_in() ) ) { return; }
+	if ( ! jluxe_review_photo_upload_allowed( (int) $comment->comment_post_ID ) ) { return; }
 	$nonce = isset( $_POST['jluxe_review_photos_nonce'] ) && is_scalar( $_POST['jluxe_review_photos_nonce'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['jluxe_review_photos_nonce'] ) ) : '';
 	if ( ! $nonce || ! wp_verify_nonce( $nonce, 'jluxe_review_photos' ) || empty( $_FILES['jluxe_review_photos'] ) || ! is_array( $_FILES['jluxe_review_photos'] ) ) { return; }
 	$files = $_FILES['jluxe_review_photos'];
@@ -147,7 +166,7 @@ function jluxe_save_review_photos( int $comment_id, $comment_approved ): void {
 	$max_count = max( 1, min( 5, absint( $settings['photos_max_count'] ?? 3 ) ) );
 	$max_bytes = max( 1, min( 5, absint( $settings['photos_max_size_mb'] ?? 2 ) ) ) * MB_IN_BYTES;
 	if ( ! jluxe_review_photo_count_allowed( $count, $max_count ) ) { return; }
-	$allowed = array( 'image/jpeg' => 'jpg|jpeg', 'image/png' => 'png', 'image/webp' => 'webp' );
+	$allowed = array( 'jpg|jpeg|jpe' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp' );
 	$valid_files = array();
 	for ( $i = 0; $i < count( $names ); $i++ ) {
 		$name_value = $files['name'][ $i ] ?? '';
@@ -278,14 +297,16 @@ function jluxe_admin_review_photo_comment_text( string $text, $comment = null ):
 	if ( ! $comment || 'review' !== (string) $comment->comment_type ) { return $text; }
 	$ids = get_comment_meta( (int) $comment->comment_ID, '_jluxe_review_photo_ids', true );
 	if ( ! is_array( $ids ) ) { return $text; }
-	$html = '<div class="jluxe-admin-review-photos" style="display:flex;gap:6px;margin-top:8px">';
+	$html = '';
 	foreach ( array_slice( $ids, 0, 5 ) as $id ) {
 		$id = absint( $id );
-		if ( $id && '1' === (string) get_post_meta( $id, '_jluxe_review_photo', true ) && (int) get_post_meta( $id, '_jluxe_review_comment_id', true ) === (int) $comment->comment_ID && wp_attachment_is_image( $id ) ) {
-			$html .= '<a href="' . esc_url( wp_get_attachment_image_url( $id, 'full' ) ) . '" target="_blank" rel="noopener noreferrer">' . wp_get_attachment_image( $id, array( 64, 64 ), false, array( 'alt' => 'عکس ارسالی دیدگاه', 'loading' => 'lazy' ) ) . '</a>';
-		}
+		if ( ! $id || '1' !== (string) get_post_meta( $id, '_jluxe_review_photo', true ) || (int) get_post_meta( $id, '_jluxe_review_comment_id', true ) !== (int) $comment->comment_ID || ! wp_attachment_is_image( $id ) ) { continue; }
+		$url = wp_get_attachment_image_url( $id, 'full' );
+		$image = wp_get_attachment_image( $id, array( 64, 64 ), false, array( 'alt' => 'عکس ارسالی دیدگاه', 'loading' => 'lazy' ) );
+		if ( ! $url || ! is_string( $image ) || '' === $image ) { continue; }
+		$html .= '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $image . '</a>';
 	}
-	return $text . $html . '</div>';
+	return '' !== $html ? $text . '<div class="jluxe-admin-review-photos" style="display:flex;gap:6px;margin-top:8px">' . $html . '</div>' : $text;
 }
 add_filter( 'comment_text', 'jluxe_admin_review_photo_comment_text', 20, 2 );
 

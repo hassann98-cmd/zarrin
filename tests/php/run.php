@@ -12183,10 +12183,23 @@ if ( null === $postcode_guard_query_kind ) {
 // R540: product video media validation and review-photo security/render/cache regressions.
 $review_photo_defaults = jluxe_theme_settings_defaults()['review_criteria'];
 $review_multipart_saved_login = $GLOBALS['logged_in'] ?? false;
+$review_multipart_saved_post = $GLOBALS['post'] ?? null;
+$review_multipart_saved_type = $GLOBALS['post_types'][900] ?? null;
 $GLOBALS['logged_in'] = true;
-$review_multipart_markup = jluxe_review_comment_form_enctype('<form id="commentform" method="post">', array(), 900);
+$GLOBALS['post_types'][900] = 'product';
+$GLOBALS['post'] = (object) array( 'ID' => 900, 'post_type' => 'product' );
+ob_start();
+ob_start();
+do_action('comment_form_before');
+echo '<form action="/wp-comments-post.php" method="post" id="commentform"><textarea></textarea></form>';
+do_action('comment_form', 900);
+do_action('comment_form_after');
+$review_multipart_markup = (string) ob_get_clean();
 $GLOBALS['logged_in'] = $review_multipart_saved_login;
-check(str_contains($review_multipart_markup, 'enctype="multipart/form-data"'), 'R540 native WordPress product-review form is multipart for the non-JavaScript upload fallback');
+$GLOBALS['post'] = $review_multipart_saved_post;
+if ( null === $review_multipart_saved_type ) { unset($GLOBALS['post_types'][900]); } else { $GLOBALS['post_types'][900] = $review_multipart_saved_type; }
+$review_multipart_actions = array_filter($GLOBALS['actions']??array(),static function($hook){return in_array(($hook[0]??''),array('comment_form_before','comment_form_after'),true)&&str_contains((string)($hook[1]??''),'jluxe_review_comment_form_buffer_');});
+check(str_contains($review_multipart_markup, 'enctype="multipart/form-data"') && count($review_multipart_actions) === 2 && !in_array('comment_form',array_column($GLOBALS['filters']??array(),0),true), 'R540 real one-argument comment_form action does not fatal; before/after actions inject multipart enctype');
 check(
 	true === $review_photo_defaults['photos_enabled'] && 3 === $review_photo_defaults['photos_max_count'] && 2 === $review_photo_defaults['photos_max_size_mb'] && true === $review_photo_defaults['photos_logged_in_only'],
 	'R540 review-photo defaults enable uploads with bounded limits and login-only protection'
@@ -12233,12 +12246,14 @@ $_POST=array();
 $valid_png=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($valid_png,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/S2cAAAAASUVORK5CYII='));
 $svg_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($svg_file,'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
 $php_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($php_file,'<?php echo "not an image";');
+$expected_review_photo_mimes=array('jpg|jpeg|jpe'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp');
 check(
 	jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),2*MB_IN_BYTES) &&
 	!jluxe_validate_review_photo_file($svg_file,'customer.svg',(int)filesize($svg_file),2*MB_IN_BYTES) &&
 	!jluxe_validate_review_photo_file($php_file,'customer.php',(int)filesize($php_file),2*MB_IN_BYTES) &&
-	!jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),1),
-	'R540 review-photo verifier accepts raster images and rejects SVG/PHP or oversized files'
+	!jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),1) &&
+	end($GLOBALS['filetype_mime_checks'])===$expected_review_photo_mimes,
+	'R540 review-photo verifier accepts raster images, rejects SVG/PHP or oversized files, and passes WordPress ext=>MIME maps'
 );
 check(jluxe_review_photo_count_allowed(3,3) && !jluxe_review_photo_count_allowed(4,3) && !jluxe_review_photo_count_allowed(0,3),'R540 review-photo server count limit rejects excess and empty uploads');
 unlink($valid_png);unlink($svg_file);unlink($php_file);
@@ -12247,12 +12262,13 @@ $photo_comment=new WP_Comment();$photo_comment->comment_ID=505;$photo_comment->c
 $GLOBALS['comment_objects'][505]=$photo_comment;$GLOBALS['comments'][505]=$photo_comment;
 $GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903);
 $GLOBALS['post_meta'][903]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][903]['_jluxe_review_comment_id']=505;$GLOBALS['attachment_images'][903]=true;
-$GLOBALS['attachment_image_urls'][903]=array('large'=>'https://shop.test/photo-large.jpg','thumbnail'=>'https://shop.test/photo-thumb.jpg');
+$GLOBALS['attachment_image_urls'][903]=array('large'=>'https://shop.test/photo-large.jpg','thumbnail'=>'https://shop.test/photo-thumb.jpg','full'=>'https://shop.test/photo-full.jpg');
 ob_start();jluxe_render_review_photo_thumbnails($photo_comment);$photo_thumbs=(string)ob_get_clean();
 $photo_hook_registered=(bool)array_filter($GLOBALS['actions']??array(),static function($hook){return ($hook[0]??'')==='woocommerce_review_after_comment_text'&&($hook[1]??'')==='jluxe_render_review_photo_thumbnails'&&(int)($hook[2]??0)===20;});
 check(str_contains($photo_thumbs,'loading="lazy"')&&str_contains($photo_thumbs,'width="72" height="72"')&&str_contains($photo_thumbs,'data-jluxe-review-photo')&&$photo_hook_registered,'R540 approved review cards render accessible lazy photo thumbnails from the WooCommerce post-text hook');
-$GLOBALS['is_admin']=true;$admin_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['is_admin']=false;
-check(str_contains($admin_photo_markup,'jluxe-admin-review-photos')&&str_contains($admin_photo_markup,'target="_blank"'),'R540 comment moderation includes owned customer-photo previews for admins');
+$GLOBALS['is_admin']=true;$admin_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(905);$admin_empty_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['is_admin']=false;
+check(str_contains($admin_photo_markup,'jluxe-admin-review-photos')&&str_contains($admin_photo_markup,'target="_blank"')&&!str_contains($admin_empty_photo_markup,'jluxe-admin-review-photos'),'R540 comment moderation includes owned customer-photo previews and never adds an empty wrapper');
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903);
 unset($GLOBALS['transients']['jluxe_review_photos_gallery_900']);
 $photo_gallery=jluxe_get_review_photo_gallery(900);
 ob_start();jluxe_render_review_photo_gallery(900);$photo_gallery_html=(string)ob_get_clean();

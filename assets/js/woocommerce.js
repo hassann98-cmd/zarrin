@@ -2914,8 +2914,6 @@ function jluxeEnhanceShopSort(root) {
 			item.appendChild(image); item.appendChild(remove); previews.appendChild(item);
 		});
 		try { var transfer = new DataTransfer(); reviewPhotoFiles.forEach(function (file) { transfer.items.add(file); }); input.files = transfer.files; } catch (error) {}
-		input.value = '';
-		try { var transferAgain = new DataTransfer(); reviewPhotoFiles.forEach(function (file) { transferAgain.items.add(file); }); input.files = transferAgain.files; } catch (error) {}
 	});
 	document.addEventListener('click', function (event) {
 		var remove = event.target.closest && event.target.closest('[data-remove-review-photo]');
@@ -2923,10 +2921,10 @@ function jluxeEnhanceShopSort(root) {
 		var index = Number(remove.dataset.removeReviewPhoto);
 		reviewPhotoFiles.splice(index, 1);
 		var input = remove.closest('.jluxe-review-photo-upload').querySelector('#jluxe-review-photos');
-		var fakeEvent = new Event('change', { bubbles: true });
 		// Repaint using the selected-file list while preserving only approved files.
 		var box = remove.closest('.jluxe-review-photo-upload');
 		var previews = box.querySelector('.jluxe-review-upload-previews'); previews.textContent = '';
+		var errorBox = box.querySelector('.jluxe-review-upload-error'); if (errorBox) { errorBox.textContent = ''; errorBox.hidden = true; }
 		reviewPhotoUrls.forEach(function (url) { URL.revokeObjectURL(url); }); reviewPhotoUrls = [];
 		reviewPhotoFiles.forEach(function (file, i) { var url=URL.createObjectURL(file);reviewPhotoUrls.push(url);var item=document.createElement('div');item.className='jluxe-review-upload-preview';var image=document.createElement('img');image.src=url;image.alt=file.name;image.width=72;image.height=72;var button=document.createElement('button');button.type='button';button.textContent='×';button.dataset.removeReviewPhoto=String(i);button.setAttribute('aria-label','حذف '+file.name);item.appendChild(image);item.appendChild(button);previews.appendChild(item); });
 		try { var transfer = new DataTransfer(); reviewPhotoFiles.forEach(function (file) { transfer.items.add(file); }); input.files = transfer.files; } catch (error) {}
@@ -6407,23 +6405,24 @@ function jluxeEnhanceShopSort(root) {
 
 /* Approved customer-review photo lightbox with group-local previous/next navigation. */
 (function () {
-	var root = null, release = null, opener = null, group = [], index = 0;
+	var root = null, release = null, opener = null, group = [], index = 0, previousOverflow = '';
+	function persianDigits(value) { return String(value).replace(/\d/g, function (digit) { return '۰۱۲۳۴۵۶۷۸۹'[digit]; }); }
 	function draw() {
 		var item = group[index]; if (!item || !root) return;
 		var image = root.querySelector('img'); image.src = item.dataset.photoSrc; image.alt = item.dataset.photoCaption || 'تصویر خریدار';
 		root.querySelector('figcaption').textContent = item.dataset.photoCaption || '';
-		root.querySelector('[data-photo-count]').textContent = (index + 1) + ' / ' + group.length;
+		root.querySelector('[data-photo-count]').textContent = persianDigits(index + 1) + ' / ' + persianDigits(group.length);
 		root.querySelector('[data-photo-prev]').hidden = group.length < 2; root.querySelector('[data-photo-next]').hidden = group.length < 2;
 	}
-	function close() { if (!root) return; if (release) { release(); release = null; } root.remove(); root = null; if (opener && opener.focus) opener.focus(); }
+	function close() { if (!root) return; if (release) { release(); release = null; } root.remove(); root = null; document.body.style.overflow = previousOverflow; if (opener && opener.focus) opener.focus(); }
 	function move(delta) { index = (index + delta + group.length) % group.length; draw(); }
 	document.addEventListener('click', function (event) {
 		var trigger = event.target.closest && event.target.closest('[data-jluxe-review-photo]'); if (!trigger) return;
-		event.preventDefault(); if (root) close(); opener = trigger;
+		event.preventDefault(); if (root) close(); opener = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
 		var container = trigger.closest('.jluxe-review-photo-thumbnails, .jluxe-review-photo-gallery__track') || document;
 		group = Array.from(container.querySelectorAll('[data-jluxe-review-photo]')); index = Math.max(0, group.indexOf(trigger));
 		root = document.createElement('div'); root.className = 'jluxe-review-photo-lightbox'; root.setAttribute('role','presentation');
-		root.innerHTML = '<div class="jluxe-review-photo-lightbox__dialog" role="dialog" aria-modal="true" aria-label="تصویر دیدگاه"><button type="button" data-photo-close aria-label="بستن">×</button><button type="button" data-photo-prev aria-label="تصویر قبلی">‹</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" data-photo-next aria-label="تصویر بعدی">›</button><span data-photo-count></span></div>';
+		root.innerHTML = '<div class="jluxe-review-photo-lightbox__dialog" role="dialog" aria-modal="true" aria-label="تصویر دیدگاه"><button type="button" data-photo-close aria-label="بستن">×</button><button type="button" data-photo-prev aria-label="تصویر قبلی">›</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" data-photo-next aria-label="تصویر بعدی">‹</button><span data-photo-count></span></div>';
 		document.body.appendChild(root); draw();
 		if (window.JLuxeStorefrontUtils && window.JLuxeStorefrontUtils.activateDialog) release = window.JLuxeStorefrontUtils.activateDialog(root.querySelector('[role="dialog"]'), close);
 		root.addEventListener('click', function(e) { if(e.target===root || e.target.closest('[data-photo-close]'))close(); else if(e.target.closest('[data-photo-prev]'))move(-1); else if(e.target.closest('[data-photo-next]'))move(1); });
@@ -6443,7 +6442,7 @@ function jluxeEnhanceShopSort(root) {
   meter.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 5 5 3-3 4 4"/></svg><span></span><i class="jluxe-gallery-meter__line"></i><i class="jluxe-gallery-meter__track"><i class="jluxe-gallery-meter__thumb"></i></i>';
   gallery.appendChild(meter);
   var hasVideo=!!gallery.getAttribute('data-jluxe-video-src');var count=(dots.length || 1)+(hasVideo?1:0);meter.querySelector('span').textContent=String(count).replace(/\d/g,function(n){return '۰۱۲۳۴۵۶۷۸۹'[n];});
-  function updateMeter(){var index=Math.max(0,Math.min(count-1,Number(gallery.getAttribute('data-jluxe-gallery-current')||0)));meter.setAttribute('aria-label','تصویر '+(index+1)+' از '+count);var thumb=meter.querySelector('.jluxe-gallery-meter__thumb');thumb.style.width=(100/count)+'%';thumb.style.right=(100*index/count)+'%';}
+  function updateMeter(forcedIndex){var index=Math.max(0,Math.min(count-1,Number.isFinite(forcedIndex)?forcedIndex:Number(gallery.getAttribute('data-jluxe-gallery-current')||0)));var shown=String(index+1).replace(/\d/g,function(n){return '۰۱۲۳۴۵۶۷۸۹'[n];});var total=String(count).replace(/\d/g,function(n){return '۰۱۲۳۴۵۶۷۸۹'[n];});meter.setAttribute('aria-label',hasVideo&&index===(dots.length||1)?'ویدیوی محصول، مورد '+shown+' از '+total:'تصویر '+shown+' از '+total);var thumb=meter.querySelector('.jluxe-gallery-meter__thumb');thumb.style.width=(100/count)+'%';thumb.style.right=(100*index/count)+'%';}
   var slides=[],timer=null,fromScroll=false;
   function open(){main.click();}
   (dots.length?dots:[null]).forEach(function(dot,index){
@@ -6456,7 +6455,7 @@ function jluxeEnhanceShopSort(root) {
   function step(){return slides.length>1?Math.abs(slides[1].offsetLeft-slides[0].offsetLeft):0;}
   function edges(){var max=Math.max(0,track.scrollWidth-track.clientWidth),pos=Math.abs(track.scrollLeft);track.classList.toggle('more-left',pos<max-2);track.classList.toggle('more-right',pos>2);}
   function sync(){updateMeter();if(!fromScroll){var index=Number(gallery.getAttribute('data-jluxe-gallery-current')||0),distance=step()*index;if(track.scrollTo)track.scrollTo({left:-distance,behavior:'auto'});}edges();}
-  track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(index<dots.length && dots[index] && index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}},120);},{passive:true});
+  track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(hasVideo&&index===(dots.length||1)){updateMeter(index);return;}if(index<dots.length && dots[index] && index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}},120);},{passive:true});
   new MutationObserver(function(){sync();}).observe(gallery,{attributes:true,attributeFilter:['data-jluxe-gallery-current']});
   function syncFirstImage(){
    // The main image also represents slides 1..N while browsing. Only index 0

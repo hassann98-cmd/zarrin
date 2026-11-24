@@ -30,13 +30,13 @@ function jluxe_get_product_gallery_video( int $product_id ): ?array {
 	);
 }
 
-/** Print the optional product video action inside WooCommerce's native gallery wrapper. */
+/** Render the optional product-video action as a sibling to WooCommerce's image wrapper. */
 function jluxe_render_default_product_gallery_video_trigger(): void {
 	global $product;
 	if ( ! $product instanceof WC_Product ) { return; }
 	$video = jluxe_get_product_gallery_video( (int) $product->get_id() );
 	if ( ! $video ) { return; }
-	echo '<button type="button" class="jluxe-product-video-pill jluxe-product-video-pill--below" data-jluxe-product-video-trigger data-video-src="' . esc_url( $video['video_url'] ) . '" data-video-type="' . esc_attr( $video['mime'] ) . '" data-video-poster="' . esc_url( $video['poster_url'] ) . '" data-video-title="' . esc_attr( $product->get_name() ) . '"><span aria-hidden="true">▶</span> ویدیوی محصول</button>';
+	echo '<button type="button" class="jluxe-product-video-pill" data-jluxe-product-video-trigger data-video-src="' . esc_url( $video['video_url'] ) . '" data-video-type="' . esc_attr( $video['mime'] ) . '" data-video-poster="' . esc_url( $video['poster_url'] ) . '" data-video-title="' . esc_attr( $product->get_name() ) . '"><span aria-hidden="true">▶</span> ویدیوی محصول</button>';
 }
 
 /** Normalize variation attribute names to WooCommerce's canonical, unprefixed form. */
