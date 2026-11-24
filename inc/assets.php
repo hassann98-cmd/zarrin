@@ -147,7 +147,7 @@ function jluxe_apply_asset_plan(): void {
 	};
 
 	if ( empty( $plan['theme_woo_ux'] ) ) {
-		$dequeue_scripts( array( 'jluxe-woocommerce', 'wc-add-to-cart-variation' ) );
+		$dequeue_scripts( array( 'jluxe-woocommerce', 'jluxe-woocommerce-product', 'jluxe-woocommerce-cart-checkout', 'wc-add-to-cart-variation' ) );
 	}
 
 	if ( empty( $plan['cart_fragments'] ) ) {

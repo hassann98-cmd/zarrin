@@ -69,7 +69,7 @@ test('review photo lightbox locks and restores scrolling, uses Persian counts, a
   assert.match(lightbox, /data-photo-next[^>]*>‹/);
 });
 
-test('R406 product and homepage touch-ups add less than one KB of main CSS vs R405', () => {
+test('R406 product/homepage CSS changes stay below one KB vs R405 after font trimming', () => {
   const route = read('src/styles/route-product.css');
   const manifest = JSON.parse(read('assets/compiled/manifest.json'));
   const mainCss = manifest['src/main.js'].css.find((name) => name.startsWith('assets/main-'));
@@ -80,6 +80,5 @@ test('R406 product and homepage touch-ups add less than one KB of main CSS vs R4
   const baseline = execFileSync('git', ['show', `31bc14d:assets/compiled/${baselinePath}`]);
   assert.match(route, /\.jluxe-product-video-modal/);
   assert.match(route, /\.jluxe-review-photo-lightbox/);
-  assert.ok(currentBytes.length >= baseline.length, 'initial stylesheet growth is nonnegative');
-  assert.ok(currentBytes.length - baseline.length < 1024, `main stylesheet grew by ${currentBytes.length - baseline.length} bytes`);
+  assert.ok(currentBytes.length - baseline.length < 1024, `main stylesheet changed by ${currentBytes.length - baseline.length} bytes`);
 });

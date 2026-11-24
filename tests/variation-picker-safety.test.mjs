@@ -6,7 +6,7 @@ const read = p => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 const source = read('../assets/js/woocommerce.js');
 const marker = source.indexOf('مودالِ انتخاب سریعِ تنوع');
 const start = source.indexOf('(function () {', marker);
-const end = source.indexOf('\n})();\n\n/**\n * توضیحاتِ کوتاهِ محصول', start);
+const end = source.indexOf('\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * توضیحاتِ کوتاهِ محصول', start);
 assert.ok(start > marker && end > start);
 const tick = () => new Promise(resolve => setTimeout(resolve, 10));
 async function setup(t, overflow = '') {

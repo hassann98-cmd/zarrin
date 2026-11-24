@@ -190,7 +190,7 @@ test("R306 sticky sale-price CSS stacks a small muted struck old price above a b
   assert.match(sharedOldPrice, /text-decoration:\s*line-through/);
   assert.match(storefrontCss, /\.jluxe-sticky-cta \.jluxe-sticky-cta-price ins/);
   assert.match(sharedCurrentPrice, /font-size:\s*0\.96rem/);
-  assert.match(sharedCurrentPrice, /font-weight:\s*900/);
+  assert.match(sharedCurrentPrice, /font-weight:\s*700/);
 });
 
 test("R306 narrow sticky bars reclaim width with smaller quantity and CTA controls, hiding tiny-screen cart icons", () => {

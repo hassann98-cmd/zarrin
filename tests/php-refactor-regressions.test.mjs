@@ -51,8 +51,8 @@ test("Iran city data is loaded from the dedicated JSON resource", () => {
   assert.match(checkout, /dirname\(\s*__DIR__\s*\)\s*\.\s*'\/data\/iran-cities\.json'/);
   assert.match(checkout, /json_decode\(\s*\$json\s*,\s*true\s*\)/);
   const cities = JSON.parse(read("inc/data/iran-cities.json"));
-  assert.ok(Array.isArray(cities.THR) && cities.THR.length > 0);
-  assert.ok(cities.THR.includes("آبسرد"));
+  assert.ok(Array.isArray(cities["تهران"]) && cities["تهران"].length > 0);
+  assert.ok(cities["تهران"].includes("آبسرد"));
 });
 
 test("custom code styles run after checkout login and builder animation styles", () => {

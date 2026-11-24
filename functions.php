@@ -202,6 +202,16 @@ function jluxe_vite_manifest(): array {
 	return $manifest;
 }
 
+/** Resolve a bundled font by its Vite source key (source files need not ship). */
+function jluxe_vite_font_url( string $source_key ): string {
+	$manifest = jluxe_vite_manifest();
+	$file     = $manifest[ $source_key ]['file'] ?? '';
+	if ( ! is_string( $file ) || '' === $file || ! is_file( JLUXE_ASSET_DIR . '/' . $file ) ) {
+		return '';
+	}
+	return JLUXE_ASSET_URI . '/' . ltrim( $file, '/' );
+}
+
 /**
  * Preload only the static module graph of the Vite entry. Dynamic island
  * imports stay lazy; their own dependency graphs are fetched when mounted.
@@ -562,7 +572,7 @@ add_filter( 'script_loader_tag', 'jluxe_module_script_attrs', 10, 2 );
 
 /** Keep only the purchase-critical script chain out of optimizer delay/combine rewrites. */
 function jluxe_protect_purchase_script_optimization( $tag, $handle ) {
-	$purchase_handles = array( 'jluxe-woocommerce', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
+	$purchase_handles = array( 'jluxe-woocommerce', 'jluxe-woocommerce-product', 'jluxe-woocommerce-cart-checkout', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
 	if ( ! in_array( $handle, $purchase_handles, true ) || false !== strpos( $tag, 'data-no-optimize' ) ) {
 		return $tag;
 	}

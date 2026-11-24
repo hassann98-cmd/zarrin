@@ -268,6 +268,7 @@ function jluxeHaptic() {
 	};
 })();
 
+/* @jluxe-bundle:cart-checkout:start */
 /**
  * Fast cart-page mutations. WooCommerce still validates and calculates the cart
  * on the server; the response carries only the changed cart fragments instead
@@ -644,6 +645,8 @@ function jluxeHaptic() {
 		enqueueMutation("remove", key, null, row, state, revision);
 	});
 })();
+
+/* @jluxe-bundle:cart-checkout:end */
 
 /**
  * گالری تصویر صفحه‌ی محصول (woocommerce/single-product/product-image.php):
@@ -3507,6 +3510,7 @@ function jluxeEnhanceShopSort(root) {
 	});
 })();
 
+/* @jluxe-bundle:product:start */
 /**
  * افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول (woocommerce/single-product/add-to-cart/{simple,variation-add-to-cart-button}.php)
  * پیش‌فرضِ ووکامرس submit واقعیِ فرم (رفرش کامل صفحه) بود — بعدش همون نوتیسِ
@@ -3679,6 +3683,8 @@ function jluxeEnhanceShopSort(root) {
 			});
 	});
 })();
+
+/* @jluxe-bundle:product:end */
 
 /**
  * مودالِ انتخاب سریعِ تنوع — کلیک روی [data-jluxe-quick-variant] (دکمه‌ی
@@ -3999,6 +4005,7 @@ function jluxeEnhanceShopSort(root) {
 	});
 })();
 
+/* @jluxe-bundle:product:start */
 /**
  * توضیحاتِ کوتاهِ محصول (content-single-product.php، زیرِ «ویژگی‌های کلیدی»):
  * ۳ خط با CSS کلمپ می‌شه؛ این‌جا فقط اگه واقعاً بیشتر از ۳ خط باشه (scrollHeight
@@ -4781,6 +4788,9 @@ function jluxeEnhanceShopSort(root) {
 		}
 	});
 })();
+
+/* @jluxe-bundle:product:end */
+/* @jluxe-bundle:cart-checkout:start */
 
 /**
  * R307 — کد پستی فقط برای نرخِ انتخاب‌شدهٔ ادارهٔ پست لازم است.
@@ -5580,6 +5590,8 @@ function jluxeEnhanceShopSort(root) {
 	});
 	setTimeout(clearAutoSelectedPaymentMethod, 50);
 })();
+
+/* @jluxe-bundle:cart-checkout:end */
 
 /**
  * اینپوتِ پرشِ صفحه در پاژینیشنِ آرشیوِ محصولات (woocommerce/loop/pagination.php).

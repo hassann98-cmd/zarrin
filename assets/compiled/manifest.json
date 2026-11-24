@@ -47,21 +47,9 @@
     "src": "node_modules/lenis/dist/lenis.mjs",
     "isDynamicEntry": true
   },
-  "src/assets/fonts/IRANYekanMobileBlack.woff2": {
-    "file": "assets/IRANYekanMobileBlack-DVW6csJE.woff2",
-    "src": "src/assets/fonts/IRANYekanMobileBlack.woff2"
-  },
   "src/assets/fonts/IRANYekanMobileBold.woff2": {
     "file": "assets/IRANYekanMobileBold-BPaFMCvd.woff2",
     "src": "src/assets/fonts/IRANYekanMobileBold.woff2"
-  },
-  "src/assets/fonts/IRANYekanMobileExtraBlack.woff2": {
-    "file": "assets/IRANYekanMobileExtraBlack-ExqMngrj.woff2",
-    "src": "src/assets/fonts/IRANYekanMobileExtraBlack.woff2"
-  },
-  "src/assets/fonts/IRANYekanMobileExtraBold.woff2": {
-    "file": "assets/IRANYekanMobileExtraBold-N-nBJY2W.woff2",
-    "src": "src/assets/fonts/IRANYekanMobileExtraBold.woff2"
   },
   "src/assets/fonts/IRANYekanMobileMedium.woff2": {
     "file": "assets/IRANYekanMobileMedium-I6jb8KnV.woff2",
@@ -72,7 +60,7 @@
     "src": "src/assets/fonts/IRANYekanMobileRegular.woff2"
   },
   "src/islands/AiAssistant.js": {
-    "file": "assets/AiAssistant-CF2qtnbT.js",
+    "file": "assets/AiAssistant-BojXiyAi.js",
     "name": "AiAssistant",
     "src": "src/islands/AiAssistant.js",
     "isDynamicEntry": true,
@@ -82,11 +70,11 @@
       "_send-6J7LDPzK.js"
     ],
     "css": [
-      "assets/AiAssistant-CATGpvRj.css"
+      "assets/AiAssistant-BvTjYJer.css"
     ]
   },
   "src/islands/AuthPage.jsx": {
-    "file": "assets/AuthPage-BVyDIrFZ.js",
+    "file": "assets/AuthPage-D3vflSgd.js",
     "name": "AuthPage",
     "src": "src/islands/AuthPage.jsx",
     "isDynamicEntry": true,
@@ -95,7 +83,7 @@
       "_shared-shell-ui-CpdfCG3m.js"
     ],
     "css": [
-      "assets/AuthPage-DaKhZl0I.css"
+      "assets/AuthPage-CIz8i3HQ.css"
     ]
   },
   "src/islands/CategoriesBrowser.js": {
@@ -232,7 +220,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-BLugNBM3.js",
+    "file": "assets/main-CanmRM1J.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -258,15 +246,12 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-C1cgsaOg.css"
+      "assets/main-h7CmDblO.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",
       "assets/IRANYekanMobileMedium-I6jb8KnV.woff2",
-      "assets/IRANYekanMobileBold-BPaFMCvd.woff2",
-      "assets/IRANYekanMobileExtraBold-N-nBJY2W.woff2",
-      "assets/IRANYekanMobileBlack-DVW6csJE.woff2",
-      "assets/IRANYekanMobileExtraBlack-ExqMngrj.woff2"
+      "assets/IRANYekanMobileBold-BPaFMCvd.woff2"
     ]
   },
   "src/styles/catalog-filter-chips.css": {
@@ -297,7 +282,7 @@
     "isEntry": true
   },
   "src/styles/route-account-auth.css": {
-    "file": "assets/route-account-auth-BMG2uGPY.css",
+    "file": "assets/route-account-auth-D_kL3A44.css",
     "name": "route-account-auth",
     "names": [
       "route-account-auth.css"
@@ -306,7 +291,7 @@
     "isEntry": true
   },
   "src/styles/route-cart-checkout.css": {
-    "file": "assets/route-cart-checkout-Cr6DsajP.css",
+    "file": "assets/route-cart-checkout-BJ-kHY5F.css",
     "name": "route-cart-checkout",
     "names": [
       "route-cart-checkout.css"
@@ -315,7 +300,7 @@
     "isEntry": true
   },
   "src/styles/route-home.css": {
-    "file": "assets/route-home-DxMPhWmr.css",
+    "file": "assets/route-home-Cx_WHtwk.css",
     "name": "route-home",
     "names": [
       "route-home.css"
@@ -324,7 +309,7 @@
     "isEntry": true
   },
   "src/styles/route-product.css": {
-    "file": "assets/route-product-DmhNTsKd.css",
+    "file": "assets/route-product-DNEgf2D7.css",
     "name": "route-product",
     "names": [
       "route-product.css"

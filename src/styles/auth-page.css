@@ -70,7 +70,7 @@ html.jluxe-lite .jluxe-auth-screen > .jluxe-auth-card { animation: none; }
   box-shadow: inset 0 1px 3px hsl(var(--foreground) / .04), 0 0 0 3px hsl(var(--primary) / .035);
   text-align: center;
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .48em;
   font-variant-numeric: tabular-nums;
 }
@@ -105,7 +105,7 @@ html.jluxe-lite .jluxe-auth-screen > .jluxe-auth-card { animation: none; }
   color: var(--boom-success);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--boom-success) 12%, transparent), inset 0 1px 0 rgb(255 255 255 / 55%);
 }
-.jluxe-auth-card p.jluxe-auth-success-title { margin: .1rem 0 0; color: hsl(var(--foreground)); font-size: .95rem; font-weight: 800; }
+.jluxe-auth-card p.jluxe-auth-success-title { margin: .1rem 0 0; color: hsl(var(--foreground)); font-size: .95rem; font-weight: 700; }
 .jluxe-auth-card p.jluxe-auth-success-copy { margin: 0; color: hsl(var(--text-secondary)); font-size: .77rem; }
 .jluxe-auth-success-progress { display: block; width: min(190px, 80%); height: 4px; margin-top: .75rem; overflow: hidden; border-radius: 99px; background: hsl(var(--border)); }
 .jluxe-auth-success-progress > span { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--boom-success); transform: scaleX(0); transform-origin: right center; animation: jluxe-auth-success-progress 1s linear forwards; }

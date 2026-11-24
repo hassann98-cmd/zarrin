@@ -527,8 +527,8 @@ function jluxe_iran_city_name_key( $city ): string {
 
 /**
  * WooCommerce IR-state city map. The original theme values remain first as a
- * fallback and to preserve legacy labels; MIT-licensed additions are loaded
- * from inc/data/iran-cities.json when present.
+ * fallback and to preserve legacy labels; the shared, province-name keyed data
+ * in inc/data/iran-cities.json is mapped to WooCommerce's canonical state codes.
  */
 function jluxe_iran_cities(): array {
 	static $cities = null;
@@ -570,6 +570,39 @@ function jluxe_iran_cities(): array {
 		'QHM' => array( 'قم' ),
 	);
 
+	$province_by_state = array(
+		'THR' => 'تهران',
+		'ABZ' => 'البرز',
+		'EAZ' => 'آذربایجان شرقی',
+		'WAZ' => 'آذربایجان غربی',
+		'ADL' => 'اردبیل',
+		'ESF' => 'اصفهان',
+		'ILM' => 'ایلام',
+		'BHR' => 'بوشهر',
+		'CHB' => 'چهارمحال و بختیاری',
+		'KHZ' => 'خوزستان',
+		'FRS' => 'فارس',
+		'GZN' => 'قزوین',
+		'GIL' => 'گیلان',
+		'GLS' => 'گلستان',
+		'LRS' => 'لرستان',
+		'MKZ' => 'مرکزی',
+		'MZN' => 'مازندران',
+		'HRZ' => 'هرمزگان',
+		'HDN' => 'همدان',
+		'YZD' => 'یزد',
+		'KRH' => 'کرمانشاه',
+		'KRN' => 'کرمان',
+		'KRD' => 'کردستان',
+		'KBD' => 'کهگیلویه و بویراحمد',
+		'SKH' => 'خراسان جنوبی',
+		'RKH' => 'خراسان رضوی',
+		'NKH' => 'خراسان شمالی',
+		'SMN' => 'سمنان',
+		'SBN' => 'سیستان و بلوچستان',
+		'ZJN' => 'زنجان',
+		'QHM' => 'قم',
+	);
 	$data_path = dirname( __DIR__ ) . '/data/iran-cities.json';
 	if ( ! is_readable( $data_path ) ) {
 		return $cities;
@@ -583,8 +616,9 @@ function jluxe_iran_cities(): array {
 	foreach ( $cities as $state => $legacy_cities ) {
 		$seen   = array();
 		$merged = array();
-		$new_cities = isset( $additional[ $state ] ) && is_array( $additional[ $state ] )
-			? $additional[ $state ]
+		$province  = $province_by_state[ $state ] ?? '';
+		$new_cities = '' !== $province && isset( $additional[ $province ] ) && is_array( $additional[ $province ] )
+			? $additional[ $province ]
 			: array();
 		foreach ( array_merge( $legacy_cities, $new_cities ) as $city ) {
 			if ( ! is_string( $city ) ) {
@@ -1193,9 +1227,9 @@ function jluxe_admin_billing_fields( array $fields ): array {
 /**
  * استایل مینیمال سبد/چک‌اوت با استایل کلی سایت هماهنگه (فونت/رنگ از
  * assets/compiled/assets/main-*.css که همه‌جا لود می‌شه)، پس رفتارِ سبد
- * (دکمه‌های +/-، حذف و همگام‌سازی fragmentها) در همان assets/js/woocommerce.js
- * می‌ماند؛ درخواست‌های تغییر با اعتبارسنجیِ خودِ endpoint/cart WooCommerce
- * انجام می‌شوند و submit استاندارد برای fallback حفظ می‌شود.
+ * (دکمه‌های +/-، حذف و همگام‌سازی fragmentها) در bundle cart/checkout باقی
+ * می‌ماند؛ درخواست‌ها با اعتبارسنجیِ endpoint/cart خود WooCommerce انجام
+ * می‌شوند و submit استاندارد هم برای fallback حفظ می‌شود.
  */
 function jluxe_enqueue_woocommerce_assets(): void {
 	if ( ! function_exists( 'is_cart' ) ) {
@@ -1207,10 +1241,9 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	if ( empty( jluxe_asset_plan()['theme_woo_ux'] ) ) {
 		return;
 	}
-	// هر جا ممکنه کارت محصول باشه (شاپ/دسته/برچسب/جستجو/صفحه اصلی با گرید
-	// محصول) هم به هاور/لمس‌طولانیِ تامبنیل گالری کارت نیاز داره، نه فقط
-	// صفحه‌ی تکی محصول/سبد/چک‌اوت — پس این اسکریپت سراسری لود می‌شه (فایل
-	// کوچیکه و با .closest() امن نوشته شده، جایی که چیزی نباشه کاری نمی‌کنه).
+	// هستهٔ مشترکِ Woo (درگاه cart امن، کارت‌ها، مودال تنوع سریع و مینی‌سبد)
+	// در صفحه‌هایی می‌آید که ممکن است UI محصول داشته باشند. تعاملات سنگین‌تر
+	// محصول و checkout در bundleهای جدا و شرطی پایین‌تر قرار دارند.
 	$jluxe_wc_js_path = JLUXE_THEME_DIR . '/assets/js/woocommerce.js';
 	$jluxe_wc_js_url  = JLUXE_THEME_URI . '/assets/js/woocommerce.js';
 	$jluxe_wc_min_path = JLUXE_ASSET_DIR . '/woocommerce.min.js';
@@ -1257,6 +1290,38 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	// تکیِ محصول — وگرنه با تزریقِ HTML مودال، jQuery(form).wc_variation_form
 	// هنوز تعریف‌نشده و انتخاب سواچ هیچ اتفاقی نمی‌ندازه.
 	wp_enqueue_script( 'wc-add-to-cart-variation' );
+
+	// جزئیاتِ فرم محصول و نوار/آکاردئون خرید، فقط روی صفحهٔ محصول اجرا شوند.
+	if ( ! jluxe_is_dev() && function_exists( 'is_product' ) && is_product() ) {
+		$product_path = JLUXE_ASSET_DIR . '/woocommerce.product.min.js';
+		$product_url  = JLUXE_ASSET_URI . '/woocommerce.product.min.js';
+		if ( ! is_file( $product_path ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'jluxe-woocommerce-product',
+			$product_url,
+			array( 'jluxe-woocommerce', 'wc-add-to-cart-variation' ),
+			(string) filemtime( $product_path ),
+			array( 'in_footer' => true, 'strategy' => 'defer' )
+		);
+	}
+
+	// تغییراتِ سبد و فرمِ checkout در همان دو صفحه لازم‌اند، نه Home/archive.
+	if ( ! jluxe_is_dev() && ( ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_checkout' ) && is_checkout() ) ) ) {
+		$cart_checkout_path = JLUXE_ASSET_DIR . '/woocommerce.cart-checkout.min.js';
+		$cart_checkout_url  = JLUXE_ASSET_URI . '/woocommerce.cart-checkout.min.js';
+		if ( ! is_file( $cart_checkout_path ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'jluxe-woocommerce-cart-checkout',
+			$cart_checkout_url,
+			array( 'jluxe-woocommerce' ),
+			(string) filemtime( $cart_checkout_path ),
+			array( 'in_footer' => true, 'strategy' => 'defer' )
+		);
+	}
 }
 
 /** Load the guided checkout state machine only when that optional template is active. */

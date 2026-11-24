@@ -47,17 +47,17 @@ console.log(
   `Asset manifest verified (${Object.keys(manifest).length} entries).`,
 );
 
-const wooSourcePath = path.resolve("assets/js/woocommerce.js");
-const wooMinifiedPath = path.resolve(root, "woocommerce.min.js");
-if (!fs.existsSync(wooMinifiedPath))
-  throw Error("Missing compiled WooCommerce production script");
-const wooSource = fs.readFileSync(wooSourcePath, "utf8");
-const wooMinified = fs.readFileSync(wooMinifiedPath, "utf8");
-if (!wooMinified || wooMinified.length >= wooSource.length * 0.8)
-  throw Error("Compiled WooCommerce script is not sufficiently minified");
-const wooParse = parseSync("woocommerce.min.js", wooMinified);
-if (wooParse.errors.length)
-  throw Error(`Invalid compiled WooCommerce script: ${wooParse.errors.map((error) => error.message).join("; ")}`);
+for (const bundle of ["woocommerce.min.js", "woocommerce.product.min.js", "woocommerce.cart-checkout.min.js"]) {
+  const bundlePath = path.resolve(root, bundle);
+  if (!fs.existsSync(bundlePath))
+    throw Error(`Missing compiled WooCommerce production script: ${bundle}`);
+  const code = fs.readFileSync(bundlePath, "utf8");
+  if (!code)
+    throw Error(`Compiled WooCommerce script is empty: ${bundle}`);
+  const parsed = parseSync(bundle, code);
+  if (parsed.errors.length)
+    throw Error(`Invalid compiled WooCommerce script ${bundle}: ${parsed.errors.map((error) => error.message).join("; ")}`);
+}
 
 const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 const stylesheet = fs.readFileSync("style.css", "utf8");

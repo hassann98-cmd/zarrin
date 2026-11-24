@@ -149,7 +149,7 @@ body.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address-tit
   background: hsl(var(--primary) / .07);
   color: hsl(var(--primary));
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
   text-decoration: none;
   transition: background-color .16s ease, border-color .16s ease;
@@ -279,7 +279,7 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
   background: hsl(var(--primary) / .08);
   color: hsl(var(--primary));
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 .jluxe-phone-link__description {

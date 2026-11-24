@@ -1322,7 +1322,7 @@ function jluxe_render_colors_typography_page(): void {
 			<div class="jluxe-hb-section-body">
 				<form method="post">
 					<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
-					<p class="description">فونت خودِ سایت (IRANYekan، self-hosted در <code>src/assets/fonts</code>) قابل تغییر نیست — این تنظیمات فقط اندازه/وزن رو کنترل می‌کنن.</p>
+					<p class="description">فونت خودِ سایت (IRANYekan، self-hosted در فایل‌های کامپایل‌شدهٔ پوسته) قابل تغییر نیست — این تنظیمات فقط اندازه/وزن رو کنترل می‌کنن.</p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th scope="row"><label for="jluxe-base-size">سایز پایه‌ی متن (px)</label></th>

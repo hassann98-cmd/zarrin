@@ -1060,7 +1060,7 @@ $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settin
 check(
 	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileRegular-BdVpDEyu.woff2' ) &&
 	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileMedium-I6jb8KnV.woff2' ) &&
-	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileExtraBold-N-nBJY2W.woff2' ) &&
+	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileBold-BPaFMCvd.woff2' ) &&
 	false === strpos( $admin_font_css, '../../dist/assets/' ),
 	'R111 admin font URLs resolve to packaged WOFF2 files instead of the excluded legacy dist directory'
 );
@@ -2576,6 +2576,15 @@ $GLOBALS['products'][1]->stock=20;
 
 // R39: keep only the two critical, build-manifest-backed font hints.
 $font_manifest = jluxe_vite_manifest();
+$regular_font_url = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileRegular.woff2' );
+$medium_font_url  = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileMedium.woff2' );
+$bold_font_url    = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileBold.woff2' );
+check(
+	$regular_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileRegular.woff2']['file'] ?? '' ) &&
+	$medium_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileMedium.woff2']['file'] ?? '' ) &&
+	$bold_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileBold.woff2']['file'] ?? '' ),
+	'Compiled font URLs resolve from the manifest for storefront and print views without shipping src/'
+);
 ob_start(); jluxe_preload_body_fonts(); $font_heads=(string) ob_get_clean();
 $font_hooks = array_values( array_filter( $GLOBALS['actions'], static fn( $action ) => 'wp_head' === ( $action[0] ?? '' ) && in_array( $action[1] ?? '', array( 'jluxe_preload_body_fonts', 'jluxe_preload_storefront_fonts' ), true ) ) );
 check(
@@ -4333,12 +4342,51 @@ $GLOBALS['dequeued_styles']=array();
 $GLOBALS['query_kind']='404';
 jluxe_apply_asset_plan();
 $GLOBALS['query_kind']='front';
-check(in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && in_array('woocommerce-general',$GLOBALS['dequeued_styles'],true) && in_array('jquery-migrate',$GLOBALS['dequeued_scripts'],true) && in_array('select2',$GLOBALS['dequeued_scripts'],true), 'R62 on a lean page the plan dequeues the fragments poller, the theme Woo UX bundle, Woo CSS and jquery-migrate');
+check(in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce-product',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce-cart-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('woocommerce-general',$GLOBALS['dequeued_styles'],true) && in_array('jquery-migrate',$GLOBALS['dequeued_scripts'],true) && in_array('select2',$GLOBALS['dequeued_scripts'],true), 'R62 on a lean page the plan dequeues all Woo theme bundles, the fragments poller, Woo CSS and jquery-migrate');
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['query_kind']='cart';
 jluxe_apply_asset_plan();
 $GLOBALS['query_kind']='front';
-check(!in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && !in_array('wc-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true), 'R62 on the cart page the Woo UX bundle and core scripts stay and only the fragments poller is removed');
+check(!in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && !in_array('jluxe-woocommerce-product',$GLOBALS['dequeued_scripts'],true) && !in_array('jluxe-woocommerce-cart-checkout',$GLOBALS['dequeued_scripts'],true) && !in_array('wc-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true), 'R62 on the cart page the core and conditional Woo UX bundles stay; only the fragments poller is removed');
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'front';
+ jluxe_enqueue_woocommerce_assets();
+$woo_home_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'product';
+jluxe_enqueue_woocommerce_assets();
+$woo_product_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'cart';
+jluxe_enqueue_woocommerce_assets();
+$woo_cart_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'checkout';
+jluxe_enqueue_woocommerce_assets();
+$woo_checkout_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['query_kind'] = 'front';
+check(
+	in_array( 'jluxe-woocommerce', $woo_home_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_home_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-cart-checkout', $woo_home_handles, true ) &&
+		in_array( 'jluxe-woocommerce-product', $woo_product_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-cart-checkout', $woo_product_handles, true ) &&
+		in_array( 'jluxe-woocommerce-cart-checkout', $woo_cart_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_cart_handles, true ) &&
+		in_array( 'jluxe-woocommerce-cart-checkout', $woo_checkout_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_checkout_handles, true ),
+	'Production route bundles enqueue only on their matching product/cart/checkout pages, not Home'
+);
+$woo_enqueue_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce/checkout-fields.php' );
+check(
+	false !== strpos( $woo_enqueue_source, "function_exists( 'is_product' ) && is_product()" ) &&
+		false !== strpos( $woo_enqueue_source, "function_exists( 'is_cart' ) && is_cart()" ) &&
+		false !== strpos( $woo_enqueue_source, "function_exists( 'is_checkout' ) && is_checkout()" ) &&
+		false !== strpos( $woo_enqueue_source, 'woocommerce.product.min.js' ) &&
+		false !== strpos( $woo_enqueue_source, 'woocommerce.cart-checkout.min.js' ) &&
+		false !== strpos( (string) file_get_contents( ABSPATH . 'assets/compiled/woocommerce.product.min.js' ), 'jluxe' ),
+	'WooCommerce product and cart/checkout modules are compiled separately and gated to their matching routes'
+);
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['test_filters']['jluxe_asset_plan']=static function($plan){ $plan['cart_fragments']=true; return $plan; };
 jluxe_apply_asset_plan();
@@ -5609,6 +5657,20 @@ check(
 	false !== strpos( $r86_package_source, "'zarrin/dist/'" ) &&
 	false !== strpos( $r86_package_source, "extracted_theme / 'dist'" ),
 	'R86 the obsolete local dist/ build is excluded and rejected in the release ZIP; assets/compiled remains the runtime bundle'
+);
+check(
+	false !== strpos( $r86_package_source, "'src/'" ) &&
+	false !== strpos( $r86_package_source, "'docs/'" ) &&
+	false !== strpos( $r86_package_source, "'scripts/'" ) &&
+	false !== strpos( $r86_package_source, "'package.json', 'package-lock.json', 'assets/js/woocommerce.js'" ) &&
+	false !== strpos( $r86_package_source, "'assets/compiled/woocommerce.product.min.js'" ) &&
+	false !== strpos( $r86_package_source, "'assets/compiled/woocommerce.cart-checkout.min.js'" ),
+	'Package excludes source/docs/scripts/npm and raw WooCommerce JS while requiring all route bundles'
+);
+check(
+	false !== strpos( $r86_package_source, "'screenshot.png', 'screenshot.webp'" ) &&
+	false !== strpos( $r86_package_source, 'Theme screenshot check:' ),
+	'Package checks for a root screenshot and reports clearly when the optional theme preview is absent'
 );
 
 
@@ -9176,7 +9238,7 @@ check(
 	in_array( 'آرمرده', $r267_city_map['KRD'], true ) &&
 	in_array( 'توپ آغاج', $r267_city_map['KRD'], true ) &&
 	in_array( 'ابوموسی', $r267_city_map['HRZ'], true ) &&
-	1347 === $r267_city_count && $r267_unique_city_values &&
+	1511 === $r267_city_count && $r267_unique_city_values &&
 	false !== strpos( $r267_js_source, 'window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities' ) &&
 	false !== strpos( $r267_js_source, 'window.jQuery(stateSelect).on("change"' ),
 	'R267 the expanded 31-province map keeps legacy options, includes MIT-source cities, deduplicates Persian spelling variants and preserves the dependent selector'

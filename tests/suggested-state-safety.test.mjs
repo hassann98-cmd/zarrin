@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {JSDOM} from 'jsdom';
 const source=fs.readFileSync(new URL('../assets/js/woocommerce.js',import.meta.url),'utf8');
-const marker=source.indexOf('پاپ‌آپِ «محصولات پیشنهادی»'),start=source.indexOf('(function () {',marker),end=source.indexOf('\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه',start);
+const marker=source.indexOf('پاپ‌آپِ «محصولات پیشنهادی»'),start=source.indexOf('(function () {',marker),end=source.indexOf('\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه',start);
 function boot(t,rows){
  const dom=new JSDOM(`<div data-jluxe-suggested-modal class="hidden" aria-hidden="true" data-pa-main="100"><div class="jluxe-pa-sheet" role="dialog"><div class="jluxe-pa-body">${rows}</div><strong data-pa-total></strong><button data-pa-confirm><span data-pa-confirm-label></span></button></div></div>`,{url:'https://shop.test/product/item',runScripts:'outside-only',pretendToBeVisual:true});t.after(()=>dom.window.close());const w=dom.window;w.JLuxeThemeSettings={cart:{ajaxUrl:'/ajax',nonce:'ok',cartUrl:'/basket/'}};return w;
 }

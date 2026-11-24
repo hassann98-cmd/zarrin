@@ -643,7 +643,11 @@ function jluxe_invoice_render_document( array $data, string $size, array $size_u
 	$order_number = jluxe_invoice_plain_text( $data['order_number'] ?? '' );
 	$date = jluxe_invoice_plain_text( $data['date'] ?? '' );
 	$footer_text = jluxe_invoice_plain_text( $seller['footer_text'] ?? '' );
-	$font_uri = function_exists( 'get_template_directory_uri' ) ? trailingslashit( get_template_directory_uri() ) . 'src/assets/fonts/' : '';
+	$font_urls = array(
+		'regular' => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileRegular.woff2' ) : '',
+		'medium'  => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileMedium.woff2' ) : '',
+		'bold'    => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileBold.woff2' ) : '',
+	);
 	$print_script_url = function_exists( 'get_template_directory_uri' ) ? trailingslashit( get_template_directory_uri() ) . 'assets/js/invoice-print.js' : '';
 	?>
 	<!doctype html>
@@ -654,9 +658,9 @@ function jluxe_invoice_render_document( array $data, string $size, array $size_u
 		<meta name="robots" content="noindex,nofollow,noarchive">
 		<title><?php echo esc_html( 'فاکتور فروش ' . $order_number ); ?></title>
 		<style>
-			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileRegular.woff2' ); ?>') format('woff2');font-weight:400;font-style:normal;font-display:swap}
-			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileMedium.woff2' ); ?>') format('woff2');font-weight:500;font-style:normal;font-display:swap}
-			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileBold.woff2' ); ?>') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_urls['regular'] ); ?>') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_urls['medium'] ); ?>') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeInvoice;src:url('<?php echo esc_url( $font_urls['bold'] ); ?>') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 			*{box-sizing:border-box}
 			html,body{margin:0;min-height:100%;direction:rtl}
 			body{padding:18px;background:#f3f4f6;color:#1F2937;font-family:JLuxeInvoice,Tahoma,Arial,sans-serif;font-size:12px;line-height:1.8;-webkit-print-color-adjust:exact;print-color-adjust:exact}

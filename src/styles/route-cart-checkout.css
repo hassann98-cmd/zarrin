@@ -19,7 +19,7 @@ body.woocommerce-cart .cart_totals .jluxe-cart-actions .jluxe-checkout-btn-wrap 
   color: hsl(var(--primary-foreground));
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
   text-align: center;
   text-decoration: none;
@@ -396,7 +396,7 @@ body.woocommerce-checkout .jluxe-checkout-summary-title {
   border-block-end: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
   font-size: 0.9375rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.6;
 }
 body.woocommerce-checkout .jluxe-checkout-panel :is(.woocommerce-billing-fields > h3, #jluxe-payment-heading) {
@@ -406,7 +406,7 @@ body.woocommerce-checkout .jluxe-checkout-panel :is(.woocommerce-billing-fields 
   border-block-end: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
   font-size: 1.0625rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.65;
 }
 body.woocommerce-checkout .jluxe-checkout-layout #order_review {
@@ -441,7 +441,7 @@ body.woocommerce-checkout .jluxe-checkout-summary .jluxe-shipping-note {
 body.woocommerce-checkout .jluxe-checkout-summary #jluxe-shipping-section > p:first-child {
   margin-block: 0 0.75rem;
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.6;
 }
 body.woocommerce-checkout .jluxe-billing-grid {
@@ -562,7 +562,7 @@ body.woocommerce-checkout .jluxe-checkout-vpn-note {
 .jluxe-checkout-vpn-note__copy strong {
   color: var(--jluxe-checkout-vpn-text-color, hsl(var(--warning-strong)));
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 body.woocommerce-checkout .jluxe-checkout-alert {
   display: flex;
@@ -595,7 +595,7 @@ body.woocommerce-checkout .jluxe-checkout-alert::before {
   color: hsl(var(--error));
   content: "!";
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 body.woocommerce-checkout .jluxe-checkout-alert[hidden] {
@@ -647,7 +647,7 @@ body.woocommerce-checkout :is(.woocommerce-NoticeGroup-checkout, #payment, #jlux
   border-radius: 50%;
   font-family: inherit;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 body.woocommerce-checkout :is(.woocommerce-NoticeGroup-checkout, #payment, #jluxe-payment-submit) .woocommerce-error::before {
@@ -686,7 +686,7 @@ body.woocommerce-checkout .jluxe-checkout-coupon__title {
   margin: 0 0 0.25rem;
   color: hsl(var(--foreground));
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 body.woocommerce-checkout .jluxe-checkout-coupon__label {
   display: block;
@@ -764,7 +764,7 @@ body.woocommerce-checkout .jluxe-checkout-coupon__status[data-status="error"] {
   border-radius: 0.9375rem;
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
   text-align: center;
   text-decoration: none;
@@ -948,7 +948,7 @@ body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-messag
   content: "✓";
   font-family: inherit;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-message > p {
@@ -1091,7 +1091,7 @@ body.woocommerce-order-pay #payment #place_order {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
 }
 @media (max-width: 480px) {

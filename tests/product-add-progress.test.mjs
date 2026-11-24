@@ -44,7 +44,7 @@ test('real product submit snapshots variation, prevents duplicate clicks and ser
  const events=[];let successAtAddedEvent=false;function jq(){return {trigger:(name,args)=>{events.push([name,args]);if(name==='added_to_cart')successAtAddedEvent=b.dataset.jluxeAddState==='success'&&b.getAttribute('aria-busy')===null;}};}w.jQuery=jq;
  let nativeSubmits=0;w.document.addEventListener('submit',()=>nativeSubmits++);
  const calls=[];let release;w.jluxeCartPost=(url,body)=>{calls.push(Object.fromEntries(body));return new Promise(resolve=>{release=resolve;});};
- const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول');const a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);
+ const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول');const a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/* @jluxe-bundle:product:end */\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);
  assert.ok(a>0&&z>a);w.eval(source.slice(a,z+'\n})();'.length));
  function submit(){f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));}
  submit();submit();await Promise.resolve();assert.equal(calls.length,1);assert.equal(calls[0].variation_id,'10');
@@ -107,7 +107,7 @@ test('a throwing success listener cannot turn a confirmed add into a network err
  w.JLuxeThemeSettings.cart.ajaxUrl='/ajax';w.JLuxeThemeSettings.cart.nonce='ok';
  w.jQuery=()=>({trigger(){throw new Error('injected listener failure');}});w.console.warn=()=>{};
  w.jluxeCartPost=async()=>({success:true,data:{items:[],itemCount:1}});
- const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));
+ const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/* @jluxe-bundle:product:end */\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));
  let snapshot;w.addEventListener('jluxe:cart-updated',e=>{snapshot=e.detail;});
  f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,10));
  assert.equal(f.querySelector('[data-state="uncertain"]'),null);assert.equal(f.querySelector('[data-state="success"]').textContent,'به سبد اضافه شد');assert.equal(snapshot.itemCount,1);assert.equal(f.querySelector('.jluxe-toast-error'),null);
@@ -117,7 +117,7 @@ test('a final failed variation still flushes the previous confirmed success and 
  const w=boot(t),f=w.document.querySelector('form'),b=f.querySelector('button');b.value='1';f.classList.add('variations_form');const id=w.document.createElement('input');id.name='variation_id';id.value='10';f.appendChild(id);
  w.JLuxeThemeSettings.cart.ajaxUrl='/ajax';w.JLuxeThemeSettings.cart.nonce='ok';const events=[],calls=[];
  w.jQuery=()=>({trigger:(type,args)=>events.push({type,args})});w.jluxeCartPost=(url,body)=>new Promise(resolve=>calls.push({body:Object.fromEntries(body),resolve}));
- const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));w.requestAnimationFrame=fn=>w.setTimeout(fn,0);
+ const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/* @jluxe-bundle:product:end */\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));w.requestAnimationFrame=fn=>w.setTimeout(fn,0);
  const submit=()=>f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();await Promise.resolve();id.value='11';f.querySelector('select').value='white';submit();
  calls[0].resolve({success:true,data:{itemCount:1,items:[],suggested_html:'offers'}});await new Promise(r=>setTimeout(r,5));assert.equal(events.length,0);
  calls[1].resolve({success:false,data:{message:'Out of stock'}});await new Promise(r=>setTimeout(r,5));
@@ -128,7 +128,7 @@ test('earlier queue failures survive final success and do not leak into the next
  const w=boot(t),f=w.document.querySelector('form'),b=f.querySelector('button');b.value='1';f.classList.add('variations_form');const id=w.document.createElement('input');id.name='variation_id';id.value='10';f.appendChild(id);
  w.JLuxeThemeSettings.cart.ajaxUrl='/ajax';w.JLuxeThemeSettings.cart.nonce='ok';const events=[],calls=[];w.requestAnimationFrame=fn=>w.setTimeout(fn,0);
  w.jQuery=()=>({trigger:(type,args)=>events.push({type,args})});w.jluxeCartPost=()=>new Promise(resolve=>calls.push(resolve));
- const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));
+ const marker=source.indexOf('افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول'),a=source.indexOf('(function () {',marker),z=source.indexOf('\n})();\n\n/* @jluxe-bundle:product:end */\n\n/**\n * مودالِ انتخاب سریعِ تنوع',a);w.eval(source.slice(a,z+'\n})();'.length));
  const submit=()=>f.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));submit();await Promise.resolve();id.value='11';submit();id.value='12';submit();
  calls[0]({success:false,data:{message:'First unavailable'}});await new Promise(r=>setTimeout(r,5));calls[1]({success:false,data:{message:'Second unavailable'}});await new Promise(r=>setTimeout(r,5));calls[2]({success:true,data:{items:[],itemCount:1,suggested_html:'offers'}});await new Promise(r=>setTimeout(r,5));
  assert.equal(events.length,1);assert.match(events[0].args[3].queued_add_error,/First unavailable/);assert.match(events[0].args[3].queued_add_error,/Second unavailable/);

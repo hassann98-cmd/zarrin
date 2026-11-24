@@ -119,7 +119,7 @@ test("recent-product history uses a polished responsive rail and clear stock sty
   assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*font-family: IRANYekan/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card\s*\{\s*flex-basis: min\(78vw, 296px\)/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card__link \{ display: grid; grid-template-columns: 98px minmax\(0, 1fr\);/);
-  assert.match(styles, /\.jluxe-recent-card__price \{ display: flex; max-width: 100%; font-size: 14px; font-weight: 800;/);
+  assert.match(styles, /\.jluxe-recent-card__price \{ display: flex; max-width: 100%; font-size: 14px; font-weight: 700;/);
   assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*white-space: normal;/);
   assert.match(styles, /\.jluxe-recent-products__list\s*\{[^}]*overflow-x: auto;[^}]*direction: rtl;/);
   assert.match(styles, /\.jluxe-recent-card__image\[hidden\] \{ display: none; \}/);

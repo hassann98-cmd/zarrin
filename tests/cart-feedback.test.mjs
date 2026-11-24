@@ -321,7 +321,7 @@ test("a rejected product add restores its button and never mounts or opens recom
   form.innerHTML = '<input type="hidden" name="add-to-cart" value="321"><button id="add" name="add-to-cart" value="321" class="single_add_to_cart_button">افزودن</button>';
   const marker = source.indexOf("افزودن به سبد در فرمِ صفحه‌ی تکیِ محصول");
   const start = source.indexOf("(function () {", marker);
-  const end = source.indexOf("\n})();\n\n/**\n * مودالِ انتخاب سریعِ تنوع", start);
+  const end = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:end */\n\n/**\n * مودالِ انتخاب سریعِ تنوع", start);
   assert.ok(marker >= 0 && start > marker && end > start, "the real product-form submit handler is isolated");
   const progressStart = source.indexOf('/** Immediate, truthful product-add feedback;');
   window.eval(source.slice(progressStart, source.indexOf('/** Retry a cart request', progressStart)));

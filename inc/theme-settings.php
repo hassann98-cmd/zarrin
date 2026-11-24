@@ -545,7 +545,7 @@ function jluxe_theme_settings_defaults(): array {
 		'urls' => array(
 			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
 		),
-		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted، در src/assets/fonts) استفاده می‌شه؛
+		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted در دارایی کامپایل‌شدهٔ پوسته) استفاده می‌شه؛
 		// این تنظیمات جایگزین فونت نمی‌کنن، فقط اندازه/وزن رو کنترل می‌کنن.
 		'typography' => array(
 			'base_size'      => 16,

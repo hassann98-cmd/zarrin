@@ -1,1 +1,5 @@
-assets/iran-cities.json is derived from https://github.com/sajaddp/list-of-cities-in-Iran (GPL-3.0).
+The shared city dataset is ../data/iran-cities.json (also used by WooCommerce checkout).
+
+Its base city list is derived from https://github.com/sajaddp/list-of-cities-in-Iran and distributed under GPL-3.0; the complete license text is in ../data/iran-cities-GPL-3.0.txt.
+
+The merged dataset also contains city additions from https://github.com/jd1378/iran-cities-json, commit 2766b261efd9ac66b2e48c2fa58e075cb892f170, under MIT; the complete license text is in ../data/iran-cities-MIT-LICENSE.txt.

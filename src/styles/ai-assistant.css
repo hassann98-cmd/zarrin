@@ -120,7 +120,7 @@
   overflow: hidden;
   color: #fff;
   font-size: .96rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -209,7 +209,7 @@
   margin-block-end: 3px;
   color: hsl(var(--foreground));
   font-size: .8rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 .jluxe-ai-welcome-message {
   margin: 0;
@@ -275,7 +275,7 @@
   border: 1px solid transparent;
   background: linear-gradient(135deg, var(--aia-primary, hsl(var(--primary))), color-mix(in srgb, var(--aia-primary, var(--jluxe-primary, var(--color-royal-orchid-600))) 75%, var(--jluxe-primary-active, var(--color-royal-orchid-800))));
   color: hsl(var(--primary-foreground));
-  font-weight: 800;
+  font-weight: 700;
   box-shadow: 0 7px 16px color-mix(in srgb, var(--aia-primary, hsl(var(--primary))) 22%, transparent);
 }
 .jluxe-ai-buy-btn:focus-visible { color: hsl(var(--primary-foreground)); }
@@ -328,7 +328,7 @@
   display: grid;
   place-items: center;
   font-size: .9rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 .jluxe-ai-icon-fallback[hidden] { display: none; }
@@ -362,7 +362,7 @@
   border-radius: 10px;
   background: rgb(255 255 255 / 74%);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 .jluxe-ai-hours-content { min-width: 0; flex: 1 1 auto; }
 .jluxe-ai-hours-head {
@@ -448,7 +448,7 @@
 .jluxe-ai-typing-dots {
   color: var(--aia-primary, hsl(var(--primary)));
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: .12em;
   animation: jluxe-ai-typing-bounce 1s ease-in-out infinite;
 }

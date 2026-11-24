@@ -17,7 +17,7 @@ body.single-product .jluxe-product-description p:last-child, body.single-product
 body.single-product .jluxe-product-description h2, body.single-product .jluxe-product-description h3, body.single-product .jluxe-product-description h4, body.single-product [data-jluxe-short-desc-text] h2, body.single-product [data-jluxe-short-desc-text] h3, body.single-product [data-jluxe-short-desc-text] h4, body.single-product .jluxe-cp3 .cp3-descbody h2, body.single-product .jluxe-cp3 .cp3-descbody h3, body.single-product .jluxe-cp3 .cp3-descbody h4, body.single-product .jluxe-cp3 .cp3-short-body h2, body.single-product .jluxe-cp3 .cp3-short-body h3, body.single-product .jluxe-cp3 .cp3-short-body h4 {
   margin: 1.35rem 0 0.55rem;
   color: hsl(var(--foreground));
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.65;
   text-align: start;
 }
@@ -133,7 +133,7 @@ body.single-product .jluxe-description-table-scroll thead > tr > th, body.single
   background: hsl(var(--primary) / 0.12);
   color: hsl(var(--foreground));
   border-bottom: 2px solid hsl(var(--primary) / 0.4);
-  font-weight: 800;
+  font-weight: 700;
 }
 body.single-product .jluxe-description-table-scroll tbody th, body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody th {
   background: hsl(var(--primary) / 0.08);
@@ -596,7 +596,7 @@ body.single-product .jluxe-product-description, body.single-product .jluxe-produ
 body.single-product .jluxe-product-description h1, body.single-product .jluxe-product-description h2, body.single-product .jluxe-product-description h3, body.single-product .jluxe-product-description h4, body.single-product .jluxe-product-description h5, body.single-product .jluxe-product-description h6, body.single-product .jluxe-product-description-content h1, body.single-product .jluxe-product-description-content h2, body.single-product .jluxe-product-description-content h3, body.single-product .jluxe-product-description-content h4, body.single-product .jluxe-product-description-content h5, body.single-product .jluxe-product-description-content h6, body.single-product [data-jluxe-short-desc-text] h1, body.single-product [data-jluxe-short-desc-text] h2, body.single-product [data-jluxe-short-desc-text] h3, body.single-product [data-jluxe-short-desc-text] h4, body.single-product [data-jluxe-short-desc-text] h5, body.single-product [data-jluxe-short-desc-text] h6, body.single-product .jluxe-cp3 .cp3-descbody h1, body.single-product .jluxe-cp3 .cp3-descbody h2, body.single-product .jluxe-cp3 .cp3-descbody h3, body.single-product .jluxe-cp3 .cp3-descbody h4, body.single-product .jluxe-cp3 .cp3-descbody h5, body.single-product .jluxe-cp3 .cp3-descbody h6, body.single-product .jluxe-cp3 .cp3-short-body h1, body.single-product .jluxe-cp3 .cp3-short-body h2, body.single-product .jluxe-cp3 .cp3-short-body h3, body.single-product .jluxe-cp3 .cp3-short-body h4, body.single-product .jluxe-cp3 .cp3-short-body h5, body.single-product .jluxe-cp3 .cp3-short-body h6 {
   margin: 1.35rem 0 0.6rem;
   color: hsl(var(--foreground));
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.55;
   text-align: start;
   overflow-wrap: anywhere;
@@ -679,7 +679,7 @@ body.single-product .jluxe-description-table-scroll thead > tr > th, body.single
   border-bottom: 2px solid hsl(var(--border));
   background-color: hsl(var(--muted));
   color: hsl(var(--foreground));
-  font-weight: 800;
+  font-weight: 700;
 }
 body.single-product .jluxe-description-table-scroll tbody th, body.single-product .jluxe-cp3 .jluxe-description-table-scroll tbody th {
   background-color: hsl(var(--muted) / 0.5);
@@ -730,7 +730,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
 #review_form .comment-reply-title {
   display: block;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: hsl(var(--foreground));
   margin-bottom: 12px;
 }
@@ -1240,7 +1240,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
 .jluxe-product-notice__icon { display: inline-flex; flex: 0 0 1.25rem; width: 1.25rem; height: 1.25rem; margin-top: 0.2rem; }
 .jluxe-product-notice__icon svg { display: block; width: 100%; height: 100%; }
 .jluxe-product-notice__content { flex: 1 1 auto; min-width: 0; }
-.jluxe-product-notice__title { display: block; margin-bottom: 0.2rem; font-weight: 800; }
+.jluxe-product-notice__title { display: block; margin-bottom: 0.2rem; font-weight: 700; }
 .jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
 @media (max-width: 480px) {
   .jluxe-product-notice {
@@ -1328,7 +1328,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
   gap: 0.0625rem;
   color: hsl(var(--foreground));
   font-size: 0.9375rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.15;
 }
 .jluxe-mobile-price-card [data-jluxe-mobile-bar-price] .price, .jluxe-sticky-cta .jluxe-sticky-cta-price .price {
@@ -1361,7 +1361,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
   background: transparent;
   color: hsl(var(--foreground));
   font-size: 0.96rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.12;
   text-decoration: none;
 }
@@ -1729,7 +1729,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
   margin: 0 0 16px;
   color: hsl(var(--foreground));
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
   direction: rtl;
   text-align: right;
@@ -1972,7 +1972,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
   margin: 0;
   color: hsl(var(--foreground));
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.6;
 }
 .jluxe-product-advanced-specs__group--other .jluxe-product-advanced-specs__heading {

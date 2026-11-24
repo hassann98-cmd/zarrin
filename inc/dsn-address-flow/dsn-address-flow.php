@@ -55,7 +55,7 @@ final class DSN_ACF {
 	static function provinces() {
 		static $cache = null;
 		if ( null === $cache ) {
-			$f = __DIR__ . '/assets/iran-cities.json';
+			$f = dirname( __DIR__ ) . '/data/iran-cities.json';
 			$d = is_readable( $f ) ? json_decode( file_get_contents( $f ), true ) : null;
 			$cache = is_array( $d ) ? array_keys( $d ) : [ 'آذربایجان شرقی','آذربایجان غربی','اردبیل','اصفهان','البرز','ایلام','بوشهر','تهران','چهارمحال و بختیاری','خراسان جنوبی','خراسان رضوی','خراسان شمالی','خوزستان','زنجان','سمنان','سیستان و بلوچستان','فارس','قزوین','قم','کردستان','کرمان','کرمانشاه','کهگیلویه و بویراحمد','گلستان','گیلان','لرستان','مازندران','مرکزی','هرمزگان','همدان','یزد' ];
 		}
@@ -138,7 +138,7 @@ final class DSN_ACF {
 			'mapKey'    => $mk,
 			'tiles'     => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 			'needPhone' => self::need_phone(),
-			'citiesUrl' => $u . 'assets/iran-cities.json',
+			'citiesUrl' => function_exists( 'get_theme_file_uri' ) ? get_theme_file_uri( 'inc/data/iran-cities.json' ) : $u . '../data/iran-cities.json',
 			'bbox'      => [ 24.0, 43.5, 40.5, 64.0 ],
 		] );
 	}

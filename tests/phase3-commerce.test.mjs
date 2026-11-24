@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('1.7.406 keeps prior regressions closed and fixes panel and product CTA edges', () => {
+test('the current release keeps prior regressions closed and fixes panel and product CTA edges', () => {
   const woo = read('assets/js/woocommerce.js');
   const gallery = woo.slice(woo.indexOf("track.addEventListener('scroll',function(){edges();clearTimeout(timer)", woo.indexOf('/* Mobile gallery:')), woo.indexOf("new MutationObserver(function(){sync();}", woo.indexOf('/* Mobile gallery:')));
   assert.match(gallery, /if\(index<dots\.length\|\|\(!dots\.length&&index===0\)\)\{updateMeter\(index\);if\(dots\[index\]&&index!==Number\(gallery\.getAttribute\('data-jluxe-gallery-current'\)\|\|0\)\)/);
@@ -17,8 +17,9 @@ test('1.7.406 keeps prior regressions closed and fixes panel and product CTA edg
   assert.doesNotMatch(loader, /function jluxe_render_homepage_page\(/);
   assert.match(editor, /function jluxe_render_homepage_page\(/);
   assert.match(loader, /require_once __DIR__ \. '\/homepage\/admin-editor\.php'/);
+  const version = JSON.parse(read('package.json')).version;
   for (const path of ['package.json', 'package-lock.json', 'style.css', 'README.md', 'docs/FIXES.fa.md']) {
-    assert.match(read(path), /1\.7\.406/);
+    assert.ok(read(path).includes(version), `${path} advertises the current ${version} release`);
   }
 });
 
