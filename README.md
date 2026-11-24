@@ -1,8 +1,8 @@
 # پوستهٔ زرین — Zarrin
 
-پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.407** است.
+پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.408** است.
 
-[دانلود مستقیم بستهٔ قابل نصب zarrin-1.7.407.zip](https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.407/zarrin-1.7.407.zip)
+[دانلود مستقیم بستهٔ قابل نصب zarrin-1.7.408.zip](https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.408/zarrin-1.7.408.zip)
 
 - [فهرست اصلاحات و نتیجهٔ تست‌ها](docs/FIXES.fa.md)
 - [آزمون یکپارچهٔ وردپرس: روش اجرا و محدودیت‌ها](docs/INTEGRATION.fa.md)

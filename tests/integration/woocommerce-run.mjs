@@ -642,7 +642,7 @@ try {
       ? Object.values(localizedIranCities).reduce((total, cities) => total + (Array.isArray(cities) ? cities.length : 0), 0)
       : 0;
     const legacyCityMapLoaded = Array.isArray(localizedIranCities?.KRH) && localizedIranCities.KRH.includes("جوانرود");
-    const expandedCityMapLoaded = Object.keys(localizedIranCities || {}).length === 31 && localizedCityCount === 1347 && [
+    const expandedCityMapLoaded = Object.keys(localizedIranCities || {}).length === 31 && localizedCityCount === 1511 && [
       ["KRD", "دهگلان"],
       ["KRD", "آرمرده"],
       ["KRD", "توپ آغاج"],

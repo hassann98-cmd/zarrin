@@ -245,7 +245,7 @@ try {
   const builderConfigMatch = builderAdmin.text.match(/var jluxeBuilder2\s*=\s*(\{[^;]+\});/);
   assert.ok(builderConfigMatch, 'Actual admin localizes new document editor');
   const builderConfig = JSON.parse(builderConfigMatch[1]);
-  check(builderAdmin.text.includes('id="jluxe-builder2"') && Object.keys(builderConfig.types).length===24, 'New desktop workspace exposes all 24 native element types');
+  check(builderAdmin.text.includes('id="jluxe-builder2"') && Object.keys(builderConfig.types).length===25, `New desktop workspace exposes all 25 native element types (received ${Object.keys(builderConfig.types).length}: ${Object.keys(builderConfig.types).join(', ')})`);
   const builderDocument = { sections: [{id:'integration-row',type:'container',enabled:true,children:[{id:'integration-title',type:'heading',enabled:true,title:'Private nested builder fixture',tag:'h3'}]}] };
   const builderCall = (operation, revision=builderConfig.revision) => ajax({action:'jluxe_builder2',operation,nonce:builderConfig.nonce,revision,document:JSON.stringify(builderDocument)});
   const builderPreview = await builderCall('preview');

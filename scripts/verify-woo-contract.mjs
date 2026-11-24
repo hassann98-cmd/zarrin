@@ -121,20 +121,22 @@ if (missingFunctions.length) {
 if (process.env.WOO_VERIFY_PROFILE) console.error('[profile] sec2 at ' + (Date.now()-__t3) + 'ms');
 /* --------------------------------------------------- 2) object method calls */
 const objectCalls = new Map(); // method => Set(variable)
+// Ignore generic PHP/WordPress/Elementor objects (for example WP_Query,
+// WP_Error, wpdb, and Elementor's $this); inspect variables that indicate a
+// WooCommerce domain object instead of guessing from the source file path.
+const wooishVariable = /product|order|item|variation|cart|session|coupon|address|attribute|shipping|payment|gateway|zone|term/i;
 for (const [i, body] of themeBody.entries()) {
   for (const match of body.matchAll(/\$([a-z_][a-z0-9_]*)\s*->\s*([a-z_][a-z0-9_]*)\s*\(/g)) {
     const [, variable, method] = match;
+    if (!wooishVariable.test(variable)) continue;
     if (!objectCalls.has(method)) objectCalls.set(method, new Set());
     objectCalls.get(method).add(`${variable} (${rel(themePhp[i])})`);
   }
 }
-// Only methods called on things that look like WooCommerce objects.
-const wooish = /product|order|item|variation|cart|session|coupon|address|attribute|shipping|payment|gateway|zone|term/i;
 const missingMethods = [];
 const checkedMethods = [];
 for (const [method, where] of [...objectCalls].sort()) {
   const owners = [...where];
-  if (!owners.some((o) => wooish.test(o))) continue;
   checkedMethods.push(method);
   if (!new RegExp(`function\\s+${method}\\s*\\(`).test(pluginAll)) missingMethods.push(`${method}() — called as ${owners[0]}`);
 }

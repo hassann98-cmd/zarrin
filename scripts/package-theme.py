@@ -5,6 +5,7 @@ import os
 import re
 from pathlib import Path, PurePosixPath
 import shutil
+import struct
 import subprocess
 import tempfile
 import time
@@ -38,7 +39,7 @@ excluded_workspace_files = {
     'mosh.txt', 'new 1.txt', 'new 2.txt', 'new 3.txt', 'new 4.txt', 'sql.txt',
     'mehrad_ux_20261109_205854270.mp4',
     # Development metadata and the unminified WooCommerce source are not runtime files.
-    'package.json', 'package-lock.json', 'assets/js/woocommerce.js',
+    'package.json', 'package-lock.json', 'assets/js/woocommerce.js', 'logo.png',
 }
 with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
     for name in sorted(paths):
@@ -74,8 +75,14 @@ with zipfile.ZipFile(destination) as archive:
     for required in required_files:
         if 'zarrin/' + required not in names:
             raise SystemExit('Release missing runtime file ' + required)
-    if screenshot_name and 'zarrin/' + screenshot_name not in names:
-        raise SystemExit('The root screenshot exists but was omitted from the release ZIP.')
+    if not screenshot_name or 'zarrin/' + screenshot_name not in names:
+        raise SystemExit('Release must include a root screenshot.png or screenshot.webp for the WordPress theme preview.')
+    if screenshot_name == 'screenshot.png':
+        preview_header = (root / screenshot_name).read_bytes()[:24]
+        if len(preview_header) < 24 or preview_header[:8] != b'\x89PNG\r\n\x1a\n' or struct.unpack('>II', preview_header[16:24]) != (1200, 900):
+            raise SystemExit('WordPress screenshot.png must be a valid 1200x900 PNG preview.')
+    if 'zarrin/logo.png' in names:
+        raise SystemExit('Release contains the unused 267 KB root logo.png; it is not referenced by the theme.')
     if any(name.startswith(('zarrin/src/', 'zarrin/docs/', 'zarrin/scripts/')) for name in names):
         raise SystemExit('Release contains a source, docs, or scripts directory.')
     if any(name in names for name in ('zarrin/package.json', 'zarrin/package-lock.json', 'zarrin/assets/js/woocommerce.js')):

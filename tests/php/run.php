@@ -4387,6 +4387,24 @@ check(
 		false !== strpos( (string) file_get_contents( ABSPATH . 'assets/compiled/woocommerce.product.min.js' ), 'jluxe' ),
 	'WooCommerce product and cart/checkout modules are compiled separately and gated to their matching routes'
 );
+$product_bundle_start = strpos( $woo_enqueue_source, '// جزئیاتِ فرم محصول' );
+$cart_bundle_start = strpos( $woo_enqueue_source, '// تغییراتِ سبد و فرمِ checkout' );
+$product_bundle_block = false !== $product_bundle_start && false !== $cart_bundle_start
+	? substr( $woo_enqueue_source, $product_bundle_start, $cart_bundle_start - $product_bundle_start )
+	: '';
+$cart_bundle_end = false !== $cart_bundle_start ? strpos( $woo_enqueue_source, "\n}", $cart_bundle_start ) : false;
+$cart_bundle_block = false !== $cart_bundle_start && false !== $cart_bundle_end
+	? substr( $woo_enqueue_source, $cart_bundle_start, $cart_bundle_end - $cart_bundle_start )
+	: '';
+check(
+	false !== strpos( $product_bundle_block, 'if ( is_file( $product_path ) )' ) &&
+		false === strpos( $product_bundle_block, 'return;' ) &&
+		false !== strpos( $cart_bundle_block, 'if ( is_file( $cart_checkout_path ) )' ) &&
+		false === strpos( $cart_bundle_block, 'return;' ) &&
+		false !== strpos( $product_bundle_block, "array( 'in_footer' => true, 'strategy' => 'defer' )" ) &&
+		false !== strpos( $cart_bundle_block, "array( 'in_footer' => true, 'strategy' => 'defer' )" ),
+	'R408 route bundles are checked independently; a missing file cannot short-circuit another enqueue and both keep deferred footer loading'
+);
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['test_filters']['jluxe_asset_plan']=static function($plan){ $plan['cart_fragments']=true; return $plan; };
 jluxe_apply_asset_plan();
@@ -5669,8 +5687,11 @@ check(
 );
 check(
 	false !== strpos( $r86_package_source, "'screenshot.png', 'screenshot.webp'" ) &&
-	false !== strpos( $r86_package_source, 'Theme screenshot check:' ),
-	'Package checks for a root screenshot and reports clearly when the optional theme preview is absent'
+	false !== strpos( $r86_package_source, 'Release must include a root screenshot.png or screenshot.webp' ) &&
+	false !== strpos( $r86_package_source, 'valid 1200x900 PNG preview' ) &&
+	false !== strpos( $r86_package_source, "'logo.png'" ) &&
+	false !== strpos( $r86_package_source, 'unused 267 KB root logo.png' ),
+	'R408 package requires a WordPress root screenshot and excludes the unused oversized root logo'
 );
 
 

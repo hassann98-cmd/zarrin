@@ -1295,32 +1295,30 @@ function jluxe_enqueue_woocommerce_assets(): void {
 	if ( ! jluxe_is_dev() && function_exists( 'is_product' ) && is_product() ) {
 		$product_path = JLUXE_ASSET_DIR . '/woocommerce.product.min.js';
 		$product_url  = JLUXE_ASSET_URI . '/woocommerce.product.min.js';
-		if ( ! is_file( $product_path ) ) {
-			return;
+		if ( is_file( $product_path ) ) {
+			wp_enqueue_script(
+				'jluxe-woocommerce-product',
+				$product_url,
+				array( 'jluxe-woocommerce', 'wc-add-to-cart-variation' ),
+				(string) filemtime( $product_path ),
+				array( 'in_footer' => true, 'strategy' => 'defer' )
+			);
 		}
-		wp_enqueue_script(
-			'jluxe-woocommerce-product',
-			$product_url,
-			array( 'jluxe-woocommerce', 'wc-add-to-cart-variation' ),
-			(string) filemtime( $product_path ),
-			array( 'in_footer' => true, 'strategy' => 'defer' )
-		);
 	}
 
 	// تغییراتِ سبد و فرمِ checkout در همان دو صفحه لازم‌اند، نه Home/archive.
 	if ( ! jluxe_is_dev() && ( ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_checkout' ) && is_checkout() ) ) ) {
 		$cart_checkout_path = JLUXE_ASSET_DIR . '/woocommerce.cart-checkout.min.js';
 		$cart_checkout_url  = JLUXE_ASSET_URI . '/woocommerce.cart-checkout.min.js';
-		if ( ! is_file( $cart_checkout_path ) ) {
-			return;
+		if ( is_file( $cart_checkout_path ) ) {
+			wp_enqueue_script(
+				'jluxe-woocommerce-cart-checkout',
+				$cart_checkout_url,
+				array( 'jluxe-woocommerce' ),
+				(string) filemtime( $cart_checkout_path ),
+				array( 'in_footer' => true, 'strategy' => 'defer' )
+			);
 		}
-		wp_enqueue_script(
-			'jluxe-woocommerce-cart-checkout',
-			$cart_checkout_url,
-			array( 'jluxe-woocommerce' ),
-			(string) filemtime( $cart_checkout_path ),
-			array( 'in_footer' => true, 'strategy' => 'defer' )
-		);
 	}
 }
 
