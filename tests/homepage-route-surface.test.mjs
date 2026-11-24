@@ -36,7 +36,7 @@ test("R403 adds three fixed luxury presets and keeps product action markup untou
   const product = read("woocommerce/content-product.php");
   assert.match(product, /ajax_add_to_cart add_to_cart_button/);
   assert.match(product, /product_type_.*variable/);
-  assert.match(read("src/styles/storefront.css"), /R405 product-card contrast/);
+  assert.match(read("src/styles/storefront.css"), /R405 product-card polish/);
 });
 
 test("R404 inverse section actions stay white-glass and readable over brand bands", () => {
@@ -141,11 +141,22 @@ test("R405 homepage motion stays route-isolated, respects motion preferences, an
   const mainPath = manifest["src/main.js"].css.find((name) => name.startsWith("assets/main-"));
   const current = fs.readFileSync(new URL(`../assets/compiled/${mainPath}`, import.meta.url));
   assert.doesNotMatch(current.toString("utf8"), /jluxe-home-reveal|jluxe-story-ring|jluxe-home-special-band/);
-  const baselineManifest = JSON.parse(execFileSync("git", ["show", "f9bc899:assets/compiled/manifest.json"], { encoding: "utf8" }));
+  const baselineManifest = JSON.parse(execFileSync("git", ["show", "31bc14d:assets/compiled/manifest.json"], { encoding: "utf8" }));
   const baselinePath = baselineManifest["src/main.js"].css.find((name) => name.startsWith("assets/main-"));
-  const baseline = execFileSync("git", ["show", `f9bc899:assets/compiled/${baselinePath}`]);
-  assert.ok(current.length - baseline.length < 1024, `main CSS growth is ${current.length - baseline.length} bytes (must remain below 1 KB)`);
+  const baseline = execFileSync("git", ["show", `31bc14d:assets/compiled/${baselinePath}`]);
+  assert.ok(current.length - baseline.length < 1024, `main CSS growth vs 1.7.405 is ${current.length - baseline.length} bytes (must remain below 1 KB)`);
   const currentStorefront = Buffer.from(read("src/styles/storefront.css"));
   const baselineStorefront = execFileSync("git", ["show", "f9bc899:src/styles/storefront.css"]);
   assert.ok(currentStorefront.length - baselineStorefront.length < 1024, `product-card stylesheet growth is ${currentStorefront.length - baselineStorefront.length} bytes (must remain below 1 KB)`);
+});
+
+test("R406 clips panel accents and restores primary CTA states across Woo product loops", () => {
+  const home = read("src/styles/route-home.css");
+  const touch = home.match(/@media \(hover: none\)\s*\{([^}]+)\}/)?.[1] ?? "";
+  assert.match(home, /\.jluxe-home-panel\s*\{[^}]*overflow:\s*hidden/);
+  assert.doesNotMatch(touch, /\.jluxe-home-section-view-all:hover\s*>\s*span/);
+
+  const storefront = read("src/styles/storefront.css");
+  assert.match(storefront, /\.jluxe-product-card \.jluxe-product-card-cta\.is-available\s*,\s*\.woocommerce ul\.products li\.product\.jluxe-product-card a\.jluxe-product-card-cta\.is-available\s*\{/);
+  assert.match(storefront, /:is\(:hover,:focus-visible,:active,\.loading,\.added,\.jluxe-btn-added\)/);
 });

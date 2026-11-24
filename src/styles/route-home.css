@@ -170,7 +170,7 @@ html body .jvb-preview-section .jluxe-home-tone-wrapper:is([data-surface-tone="c
 .jluxe-home-banner { border: 1px solid hsl(var(--foreground) / .09); }
 .jluxe-home-banner .jluxe-home-media { transition: transform 600ms cubic-bezier(.22,1,.36,1); }
 .jluxe-home-banner span.inline-flex { border-radius: 999px; box-shadow: 0 4px 14px rgb(15 23 42 / .16); transition: transform .24s cubic-bezier(.22,1,.36,1); }
-.jluxe-home-panel { position: relative; border: 1px solid hsl(var(--border)); }
+.jluxe-home-panel { position: relative; overflow: hidden; border: 1px solid hsl(var(--border)); }
 .jluxe-home-panel::before { position: absolute; inset: 0 0 auto; height: 3px; border-radius: 3px 3px 0 0; background: linear-gradient(90deg, hsl(var(--primary) / .75), hsl(var(--accent) / .65)); content: ""; pointer-events: none; }
 .jluxe-home-section .jluxe-home-trust-card,
 .jluxe-home-section .jluxe-home-blog-card { transition: transform .28s cubic-bezier(.22,1,.36,1); }
@@ -192,7 +192,6 @@ html.jluxe-lite .jluxe-brand-marquee-track { animation: none !important; }
 }
 @media (hover: none) {
   .jluxe-home-section-view-all:active,
-  .jluxe-home-section-view-all:hover > span,
   .jluxe-story-ring:active,
   .jluxe-category-showcase-card:active .jluxe-category-showcase-image,
   .jluxe-home-banner:active { transform: scale(.96); }
