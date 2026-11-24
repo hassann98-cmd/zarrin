@@ -75,6 +75,7 @@ if ( $jluxe_main_id ) {
 	array_unshift( $jluxe_gallery_ids, $jluxe_main_id );
 }
 $jluxe_gallery_ids = array_values( array_unique( array_filter( $jluxe_gallery_ids ) ) );
+$cp3_product_video = function_exists( 'jluxe_get_product_gallery_video' ) ? jluxe_get_product_gallery_video( (int) $product->get_id() ) : null;
 if ( empty( $jluxe_gallery_ids ) ) {
 	$jluxe_gallery_ids = array( 0 );
 }
@@ -585,7 +586,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 			<div class="cp3-grid" data-jluxe-layer-stage>
 
 				<!-- گالری -->
-				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal">
+				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal"<?php if ( $cp3_product_video ) : ?> data-jluxe-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-jluxe-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-jluxe-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-jluxe-video-title="<?php echo esc_attr( $product->get_name() ); ?>"<?php endif; ?>>
 					<button type="button" class="cp3-zoom" data-cp3-zoom-box data-jluxe-gallery-open-current aria-label="نمایش تصویر محصول به‌صورت تمام‌صفحه">
 						<?php
 						$cp3_main_size   = 'large';
@@ -595,6 +596,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						?>
 						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?><?php if ( ! empty( $cp3_main_image['width'] ) && ! empty( $cp3_main_image['height'] ) ) : ?> width="<?php echo absint( $cp3_main_image['width'] ); ?>" height="<?php echo absint( $cp3_main_image['height'] ); ?>"<?php endif; ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
 					</button>
+					<?php if ( $cp3_product_video ) : ?>
+						<button type="button" class="jluxe-product-video-pill" data-jluxe-product-video-trigger data-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-video-title="<?php echo esc_attr( $product->get_name() ); ?>"><span aria-hidden="true">▶</span> ویدیو</button>
+					<?php endif; ?>
 					<div class="reference-mobile-gallery-actions" role="group" aria-label="اقدام‌های محصول">
 						<a class="reference-mobile-gallery-button" href="<?php echo esc_url( $cp3_mobile_back_url ); ?>" aria-label="بازگشت به فروشگاه">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -608,7 +612,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							</button>
 						</div>
 					</div>
-					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
+					<?php if ( count( $jluxe_gallery_ids ) > 1 || ! empty( $cp3_product_video ) ) : ?>
 						<div class="cp3-thumbsrow">
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-prev aria-label="تصاویر قبلی" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 							<div class="cp3-thumbs">
@@ -618,6 +622,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 									<img src="<?php echo esc_url( $cp3_thumb_image['src'] ?: wc_placeholder_img_src( 'medium' ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_thumb_image ); ?> alt="" loading="lazy" />
 								</button>
 							<?php endforeach; ?>
+								<?php if ( $cp3_product_video ) : ?>
+									<button type="button" class="cp3-thumb jluxe-product-video-thumb" data-jluxe-product-video-trigger data-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-video-title="<?php echo esc_attr( $product->get_name() ); ?>" aria-label="پخش ویدیوی محصول"><span aria-hidden="true">▶</span><?php if ( $cp3_product_video['poster_url'] ) : ?><img src="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" alt="" loading="lazy" decoding="async" /><?php endif; ?></button>
+								<?php endif; ?>
 						</div>
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-next aria-label="تصاویر بعدی"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 						</div>

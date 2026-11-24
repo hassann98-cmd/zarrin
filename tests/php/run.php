@@ -12179,4 +12179,88 @@ if ( null === $postcode_guard_query_kind ) {
 	$GLOBALS['query_kind'] = $postcode_guard_query_kind;
 }
 
+
+// R540: product video media validation and review-photo security/render/cache regressions.
+$review_photo_defaults = jluxe_theme_settings_defaults()['review_criteria'];
+$review_multipart_saved_login = $GLOBALS['logged_in'] ?? false;
+$GLOBALS['logged_in'] = true;
+$review_multipart_markup = jluxe_review_comment_form_enctype('<form id="commentform" method="post">', array(), 900);
+$GLOBALS['logged_in'] = $review_multipart_saved_login;
+check(str_contains($review_multipart_markup, 'enctype="multipart/form-data"'), 'R540 native WordPress product-review form is multipart for the non-JavaScript upload fallback');
+check(
+	true === $review_photo_defaults['photos_enabled'] && 3 === $review_photo_defaults['photos_max_count'] && 2 === $review_photo_defaults['photos_max_size_mb'] && true === $review_photo_defaults['photos_logged_in_only'],
+	'R540 review-photo defaults enable uploads with bounded limits and login-only protection'
+);
+$form_review_settings = jluxe_sanitize_review_criteria(array('items'=>array(),'photos_enabled'=>'0','photos_logged_in_only'=>'0','photos_max_count'=>'9','photos_max_size_mb'=>'0'),$review_photo_defaults);
+check(
+	false === $form_review_settings['photos_enabled'] && false === $form_review_settings['photos_logged_in_only'] && 5 === $form_review_settings['photos_max_count'] && 1 === $form_review_settings['photos_max_size_mb'],
+	'R540 review-photo form settings sanitize booleans and clamp count/size to 1..5'
+);
+$import_review_settings = jluxe_sanitize_settings_payload(array('review_criteria'=>array('items'=>array(),'photos_enabled'=>true,'photos_logged_in_only'=>false,'photos_max_count'=>4,'photos_max_size_mb'=>5)),jluxe_theme_settings_defaults());
+check(
+	true === $import_review_settings['review_criteria']['photos_enabled'] && false === $import_review_settings['review_criteria']['photos_logged_in_only'] && 4 === $import_review_settings['review_criteria']['photos_max_count'] && 5 === $import_review_settings['review_criteria']['photos_max_size_mb'],
+	'R540 review-photo settings survive validated JSON import/export payload sanitization'
+);
+
+$GLOBALS['posts'][901]=array('ID'=>901,'post_type'=>'attachment','post_title'=>'Product clip','post_status'=>'inherit');
+$GLOBALS['post_types'][901]='attachment';
+$GLOBALS['attachment_mimes'][901]='video/mp4';
+$GLOBALS['attachment_urls'][901]='https://shop.test/uploads/clip.mp4';
+$GLOBALS['post_thumbnails'][900]=902;
+$GLOBALS['attachment_images'][902]=true;
+$GLOBALS['attachment_image_urls'][902]=array('large'=>'https://shop.test/uploads/featured.jpg');
+$GLOBALS['post_meta'][900]['_jluxe_product_video_id']=901;
+$gallery_video=jluxe_get_product_gallery_video(900);
+check(
+	is_array($gallery_video) && 901===$gallery_video['video_id'] && 'video/mp4'===$gallery_video['mime'] && 'https://shop.test/uploads/featured.jpg'===$gallery_video['poster_url'],
+	'R540 gallery-video helper accepts video attachments and falls back to the featured image poster'
+);
+$video_markup_sources = file_get_contents(ABSPATH.'woocommerce/content-single-product-reference.php').file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php').file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+check(!preg_match('/<video\\b[^>]*\\bsrc\\s*=/i',$video_markup_sources)&&str_contains($video_markup_sources,'fetchpriority="high"'),'R540 initial server-rendered product templates keep the high-priority image and never emit a video src');
+$GLOBALS['attachment_mimes'][901]='image/jpeg';
+check(null===jluxe_get_product_gallery_video(900),'R540 gallery-video helper rejects non-video attachments');
+$GLOBALS['attachment_mimes'][901]='video/webm';
+$_POST=array('jluxe_product_options_present'=>'1','_jluxe_product_video_id'=>'901','_jluxe_product_video_poster_id'=>'0');
+$GLOBALS['post_meta'][900]['_jluxe_product_video_id']=0;
+jluxe_save_product_badge_fields(900);
+check(901===(int)$GLOBALS['post_meta'][900]['_jluxe_product_video_id'] && !isset($GLOBALS['post_meta'][900]['_jluxe_product_video_poster_id']),'R540 product-editor save persists valid video IDs and clears an empty poster');
+$GLOBALS['attachment_mimes'][901]='image/png';
+$_POST['_jluxe_product_video_id']='901';
+jluxe_save_product_badge_fields(900);
+check(!isset($GLOBALS['post_meta'][900]['_jluxe_product_video_id']),'R540 product-editor save removes invalid non-video media IDs');
+$_POST=array();
+
+$valid_png=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($valid_png,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/S2cAAAAASUVORK5CYII='));
+$svg_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($svg_file,'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+$php_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($php_file,'<?php echo "not an image";');
+check(
+	jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($svg_file,'customer.svg',(int)filesize($svg_file),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($php_file,'customer.php',(int)filesize($php_file),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),1),
+	'R540 review-photo verifier accepts raster images and rejects SVG/PHP or oversized files'
+);
+check(jluxe_review_photo_count_allowed(3,3) && !jluxe_review_photo_count_allowed(4,3) && !jluxe_review_photo_count_allowed(0,3),'R540 review-photo server count limit rejects excess and empty uploads');
+unlink($valid_png);unlink($svg_file);unlink($php_file);
+
+$photo_comment=new WP_Comment();$photo_comment->comment_ID=505;$photo_comment->comment_post_ID=900;$photo_comment->comment_type='review';$photo_comment->comment_approved='1';$photo_comment->comment_author='خریدار';
+$GLOBALS['comment_objects'][505]=$photo_comment;$GLOBALS['comments'][505]=$photo_comment;
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903);
+$GLOBALS['post_meta'][903]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][903]['_jluxe_review_comment_id']=505;$GLOBALS['attachment_images'][903]=true;
+$GLOBALS['attachment_image_urls'][903]=array('large'=>'https://shop.test/photo-large.jpg','thumbnail'=>'https://shop.test/photo-thumb.jpg');
+ob_start();jluxe_render_review_photo_thumbnails($photo_comment);$photo_thumbs=(string)ob_get_clean();
+$photo_hook_registered=(bool)array_filter($GLOBALS['actions']??array(),static function($hook){return ($hook[0]??'')==='woocommerce_review_after_comment_text'&&($hook[1]??'')==='jluxe_render_review_photo_thumbnails'&&(int)($hook[2]??0)===20;});
+check(str_contains($photo_thumbs,'loading="lazy"')&&str_contains($photo_thumbs,'width="72" height="72"')&&str_contains($photo_thumbs,'data-jluxe-review-photo')&&$photo_hook_registered,'R540 approved review cards render accessible lazy photo thumbnails from the WooCommerce post-text hook');
+$GLOBALS['is_admin']=true;$admin_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['is_admin']=false;
+check(str_contains($admin_photo_markup,'jluxe-admin-review-photos')&&str_contains($admin_photo_markup,'target="_blank"'),'R540 comment moderation includes owned customer-photo previews for admins');
+unset($GLOBALS['transients']['jluxe_review_photos_gallery_900']);
+$photo_gallery=jluxe_get_review_photo_gallery(900);
+ob_start();jluxe_render_review_photo_gallery(900);$photo_gallery_html=(string)ob_get_clean();
+check(count($photo_gallery)===1&&str_contains($photo_gallery_html,'تصاویر خریداران')&&str_contains($photo_gallery_html,'خریدار'),'R540 recent buyer-photo strip renders approved photos and reviewer attribution');
+check(jluxe_invalidate_review_insights(505,$photo_comment)===null&&!isset($GLOBALS['transients']['jluxe_review_photos_gallery_900']),'R540 review-insights invalidation also purges the cached photo gallery');
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903,904);
+$GLOBALS['post_meta'][904]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][904]['_jluxe_review_comment_id']=999;
+$GLOBALS['deleted_attachments']=array();jluxe_delete_review_photos(505);
+check(array(array(903,true))===$GLOBALS['deleted_attachments'],'R540 deleting a review removes only its explicitly owned photo attachments');
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

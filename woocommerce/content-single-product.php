@@ -185,10 +185,12 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 			// via wc_get_template) instead of treating a nested template as a loop part.
 			// The matching CSS also keeps the server-rendered gallery visible if its
 			// optional gallery initializer is delayed or unavailable.
+			add_action( 'woocommerce_product_thumbnails', 'jluxe_render_default_product_gallery_video_trigger', 20 );
 			woocommerce_show_product_images();
-			?>
+				remove_action( 'woocommerce_product_thumbnails', 'jluxe_render_default_product_gallery_video_trigger', 20 );
+				?>
 
-			<div>
+				<div>
 				<?php if ( $categories ) : ?>
 					<span class="text-[12px] font-medium text-text-muted"><?php echo wp_kses_post( wp_strip_all_tags( $categories ) ); ?></span>
 				<?php endif; ?>

@@ -79,18 +79,21 @@ function jluxe_related_products_admin_assets( string $hook_suffix ): void {
 		return;
 	}
 
+	wp_enqueue_media();
 	$file = JLUXE_THEME_DIR . '/assets/js/related-products-admin.js';
-	if ( ! is_readable( $file ) ) {
-		return;
+	if ( is_readable( $file ) ) {
+		wp_enqueue_script(
+			'jluxe-related-products-admin',
+			JLUXE_THEME_URI . '/assets/js/related-products-admin.js',
+			array( 'jquery', 'wc-enhanced-select' ),
+			(string) filemtime( $file ),
+			true
+		);
 	}
-
-	wp_enqueue_script(
-		'jluxe-related-products-admin',
-		JLUXE_THEME_URI . '/assets/js/related-products-admin.js',
-		array( 'jquery', 'wc-enhanced-select' ),
-		(string) filemtime( $file ),
-		true
-	);
+	$video_file = JLUXE_THEME_DIR . '/assets/js/product-video-admin.js';
+	if ( is_readable( $video_file ) ) {
+		wp_enqueue_script( 'jluxe-product-video-admin', JLUXE_THEME_URI . '/assets/js/product-video-admin.js', array( 'jquery' ), (string) filemtime( $video_file ), true );
+	}
 }
 
 /**
@@ -139,6 +142,16 @@ function jluxe_render_product_badge_fields(): void {
 		)
 	);
 
+	echo '</div>';
+
+	$video_id  = absint( get_post_meta( $post->ID, '_jluxe_product_video_id', true ) );
+	$poster_id = absint( get_post_meta( $post->ID, '_jluxe_product_video_poster_id', true ) );
+	$video_name = $video_id ? basename( (string) ( get_attached_file( $video_id ) ?: get_the_title( $video_id ) ) ) : '';
+	$poster_name = $poster_id ? basename( (string) ( get_attached_file( $poster_id ) ?: get_the_title( $poster_id ) ) ) : '';
+	echo '<div class="options_group jluxe-product-video-fields">';
+	echo '<p class="form-field"><strong>ویدیوی کوتاه محصول (اختیاری)</strong></p>';
+	echo '<p class="form-field"><label for="_jluxe_product_video_id">فایل ویدیو</label><input type="hidden" id="_jluxe_product_video_id" name="_jluxe_product_video_id" value="' . esc_attr( (string) $video_id ) . '" /><span class="jluxe-product-media-name">' . esc_html( $video_name ?: 'ویدیویی انتخاب نشده است' ) . '</span> <button type="button" class="button jluxe-product-video-select">انتخاب ویدیو</button> <button type="button" class="button jluxe-product-video-remove"' . ( $video_id ? '' : ' hidden' ) . '>حذف ویدیو</button><span class="description">فقط فایل ویدیویی MP4 یا WebM را انتخاب کنید.</span></p>';
+	echo '<p class="form-field"><label for="_jluxe_product_video_poster_id">تصویر پوستر (اختیاری)</label><input type="hidden" id="_jluxe_product_video_poster_id" name="_jluxe_product_video_poster_id" value="' . esc_attr( (string) $poster_id ) . '" /><span class="jluxe-product-poster-name">' . esc_html( $poster_name ?: 'پوستر انتخاب نشده است؛ تصویر شاخص محصول استفاده می‌شود.' ) . '</span> <button type="button" class="button jluxe-product-poster-select">انتخاب تصویر</button> <button type="button" class="button jluxe-product-poster-remove"' . ( $poster_id ? '' : ' hidden' ) . '>حذف پوستر</button></p>';
 	echo '</div>';
 
 	$product                 = wc_get_product( (int) $post->ID );
@@ -304,12 +317,26 @@ function jluxe_invalidate_catalog_stock_order_cache( $meta_id, $object_id, $meta
  * absent checkbox means "off" only when the panel itself was submitted.
  */
 function jluxe_save_product_badge_fields( int $post_id ): void {
-	if ( ! isset( $_POST['jluxe_product_options_present'] ) || '1' !== (string) $_POST['jluxe_product_options_present'] ) {
+	if ( ! isset( $_POST['jluxe_product_options_present'] ) || '1' !== (string) $_POST['jluxe_product_options_present'] || ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
 	}
 
 	update_post_meta( $post_id, '_jluxe_badge_authenticity', isset( $_POST['_jluxe_badge_authenticity'] ) ? 'yes' : 'no' );
 	update_post_meta( $post_id, '_jluxe_badge_warranty', isset( $_POST['_jluxe_badge_warranty'] ) ? 'yes' : 'no' );
+
+	$video_id = isset( $_POST['_jluxe_product_video_id'] ) && is_scalar( $_POST['_jluxe_product_video_id'] ) ? absint( wp_unslash( $_POST['_jluxe_product_video_id'] ) ) : 0;
+	$video_mime = $video_id ? (string) get_post_mime_type( $video_id ) : '';
+	if ( $video_id && in_array( strtolower( $video_mime ), array( 'video/mp4', 'video/webm' ), true ) && get_post( $video_id ) instanceof WP_Post && 'attachment' === get_post_type( $video_id ) ) {
+		update_post_meta( $post_id, '_jluxe_product_video_id', $video_id );
+	} else {
+		delete_post_meta( $post_id, '_jluxe_product_video_id' );
+	}
+	$poster_id = isset( $_POST['_jluxe_product_video_poster_id'] ) && is_scalar( $_POST['_jluxe_product_video_poster_id'] ) ? absint( wp_unslash( $_POST['_jluxe_product_video_poster_id'] ) ) : 0;
+	if ( $poster_id && function_exists( 'wp_attachment_is_image' ) && wp_attachment_is_image( $poster_id ) ) {
+		update_post_meta( $post_id, '_jluxe_product_video_poster_id', $poster_id );
+	} else {
+		delete_post_meta( $post_id, '_jluxe_product_video_poster_id' );
+	}
 
 	/*
 	 * Do not write the legacy key-feature selection/brand metadata. Summary

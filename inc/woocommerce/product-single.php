@@ -3,6 +3,42 @@ defined( 'ABSPATH' ) || exit;
 
 /** Single-product markup, schema, variation, gallery and presentation logic. */
 
+/** Return validated product-gallery video metadata without creating a video element in server HTML. */
+function jluxe_get_product_gallery_video( int $product_id ): ?array {
+	$video_id = absint( get_post_meta( $product_id, '_jluxe_product_video_id', true ) );
+	if ( ! $video_id || 'attachment' !== get_post_type( $video_id ) ) {
+		return null;
+	}
+	$mime = (string) get_post_mime_type( $video_id );
+	if ( 0 !== strpos( $mime, 'video/' ) || ! in_array( strtolower( $mime ), array( 'video/mp4', 'video/webm' ), true ) ) {
+		return null;
+	}
+	$video_url = (string) wp_get_attachment_url( $video_id );
+	if ( '' === $video_url ) {
+		return null;
+	}
+	$poster_id = absint( get_post_meta( $product_id, '_jluxe_product_video_poster_id', true ) );
+	if ( ! $poster_id || ! wp_attachment_is_image( $poster_id ) ) {
+		$poster_id = absint( get_post_thumbnail_id( $product_id ) );
+	}
+	$poster_url = $poster_id && wp_attachment_is_image( $poster_id ) ? (string) wp_get_attachment_image_url( $poster_id, 'large' ) : '';
+	return array(
+		'video_id' => $video_id,
+		'video_url' => $video_url,
+		'mime' => $mime,
+		'poster_url' => $poster_url,
+	);
+}
+
+/** Print the optional product video action inside WooCommerce's native gallery wrapper. */
+function jluxe_render_default_product_gallery_video_trigger(): void {
+	global $product;
+	if ( ! $product instanceof WC_Product ) { return; }
+	$video = jluxe_get_product_gallery_video( (int) $product->get_id() );
+	if ( ! $video ) { return; }
+	echo '<button type="button" class="jluxe-product-video-pill jluxe-product-video-pill--below" data-jluxe-product-video-trigger data-video-src="' . esc_url( $video['video_url'] ) . '" data-video-type="' . esc_attr( $video['mime'] ) . '" data-video-poster="' . esc_url( $video['poster_url'] ) . '" data-video-title="' . esc_attr( $product->get_name() ) . '"><span aria-hidden="true">▶</span> ویدیوی محصول</button>';
+}
+
 /** Normalize variation attribute names to WooCommerce's canonical, unprefixed form. */
 function jluxe_normalize_variable_attribute_name( string $name ): string {
 	if ( 0 === strpos( $name, 'attribute_' ) ) {

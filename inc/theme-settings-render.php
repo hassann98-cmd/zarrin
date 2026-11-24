@@ -2824,6 +2824,15 @@ function jluxe_render_review_criteria_page(): void {
 		</p>
 		<form method="post">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
+			<h2>دیدگاه تصویری خریداران</h2>
+			<p class="description">امکان پیوست عکس به دیدگاه محصول را مدیریت کنید. تصاویر فقط پس از تأیید دیدگاه برای خریداران نمایش داده می‌شوند.</p>
+			<table class="form-table" role="presentation">
+				<tr><th scope="row">آپلود تصاویر</th><td><input type="hidden" name="review_criteria[photos_enabled]" value="0" /><label><input type="checkbox" name="review_criteria[photos_enabled]" value="1" <?php checked( ! empty( $settings['review_criteria']['photos_enabled'] ) ); ?> /> فعال‌سازی عکس در دیدگاه‌ها</label></td></tr>
+				<tr><th scope="row">حداکثر تعداد عکس</th><td><input type="number" min="1" max="5" name="review_criteria[photos_max_count]" value="<?php echo esc_attr( (string) ( $settings['review_criteria']['photos_max_count'] ?? 3 ) ); ?>" /></td></tr>
+				<tr><th scope="row">حداکثر حجم هر عکس (MB)</th><td><input type="number" min="1" max="5" name="review_criteria[photos_max_size_mb]" value="<?php echo esc_attr( (string) ( $settings['review_criteria']['photos_max_size_mb'] ?? 2 ) ); ?>" /></td></tr>
+				<tr><th scope="row">محدودیت کاربران</th><td><input type="hidden" name="review_criteria[photos_logged_in_only]" value="0" /><label><input type="checkbox" name="review_criteria[photos_logged_in_only]" value="1" <?php checked( ! empty( $settings['review_criteria']['photos_logged_in_only'] ) ); ?> /> فقط کاربران واردشده اجازهٔ بارگذاری داشته باشند (پیشنهادی)</label></td></tr>
+			</table>
+
 			<table class="form-table" role="presentation">
 				<?php
 				$i = 0;

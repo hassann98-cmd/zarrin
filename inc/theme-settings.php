@@ -1232,6 +1232,10 @@ function jluxe_theme_settings_defaults(): array {
 		 * استفاده می‌شه؛ برچسب (label) همون متنِ فارسیِ نمایشیه.
 		 */
 		'review_criteria' => array(
+			'photos_enabled' => true,
+			'photos_max_count' => 3,
+			'photos_max_size_mb' => 2,
+			'photos_logged_in_only' => true,
 			'items' => array(
 				array( 'key' => 'quality', 'label' => 'کیفیت ساخت' ),
 				array( 'key' => 'appearance', 'label' => 'زیبایی و طراحی' ),

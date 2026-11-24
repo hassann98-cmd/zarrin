@@ -1475,7 +1475,13 @@ function jluxe_sanitize_review_criteria( array $posted, array $defaults ): array
 			);
 		}
 	}
-	return array( 'items' => array_slice( $items, 0, 10 ) ); // سقف منطقی.
+	return array(
+		'photos_enabled' => ! array_key_exists( 'photos_enabled', $posted ) ? (bool) ( $defaults['photos_enabled'] ?? true ) : ! empty( $posted['photos_enabled'] ),
+		'photos_max_count' => max( 1, min( 5, absint( $posted['photos_max_count'] ?? $defaults['photos_max_count'] ?? 3 ) ) ),
+		'photos_max_size_mb' => max( 1, min( 5, absint( $posted['photos_max_size_mb'] ?? $defaults['photos_max_size_mb'] ?? 2 ) ) ),
+		'photos_logged_in_only' => ! array_key_exists( 'photos_logged_in_only', $posted ) ? (bool) ( $defaults['photos_logged_in_only'] ?? true ) : ! empty( $posted['photos_logged_in_only'] ),
+		'items' => array_slice( $items, 0, 10 ),
+	);
 }
 
 function jluxe_sanitize_performance( array $posted, array $defaults ): array {
