@@ -5359,6 +5359,38 @@ function jluxeEnhanceShopSort(root) {
 	 * قرمزِ globals.css روش سوار می‌شه) — نه یک اعتبارسنجیِ ابداعیِ جدید.
 	 */
 	function findFirstInvalidRequiredField() {
+		var checkoutSettings = window.JLuxeThemeSettings && window.JLuxeThemeSettings.cartCheckout;
+		var postcodeSetting = checkoutSettings && checkoutSettings.require_postcode_for_post;
+		var requirePostcodeForPost = false !== postcodeSetting && 0 !== postcodeSetting && "0" !== postcodeSetting;
+		var selectedPostMethod = form && form.querySelector('input.shipping_method:checked[data-jluxe-shipping-kind="post"]');
+		var billingPostcode = document.getElementById("billing_postcode");
+		if (requirePostcodeForPost && selectedPostMethod && billingPostcode && String(billingPostcode.value || "").trim() === "") {
+			var addressSelector = document.querySelector("[data-jluxe-address-selector]");
+			var addressStatus = addressSelector && addressSelector.querySelector("[data-jluxe-address-status]");
+			if (addressSelector) {
+				var checkedAddress = addressSelector.querySelector("[data-jluxe-address-option]:checked");
+				var checkedCard = checkedAddress && checkedAddress.closest("[data-jluxe-address-card]");
+				var editAddress = checkedCard && checkedCard.querySelector("[data-jluxe-address-edit]");
+				if (editAddress) {
+					editAddress.click();
+				} else {
+					var addressForm = addressSelector.querySelector("[data-jluxe-address-form]");
+					var addressToggle = addressSelector.querySelector("[data-jluxe-address-toggle]");
+					if (addressForm && addressForm.hidden && addressToggle) addressToggle.click();
+				}
+				var editablePostcode = addressSelector.querySelector('[data-jluxe-new-field="postcode"]');
+				if (editablePostcode) editablePostcode.focus();
+				else if (editAddress) editAddress.focus();
+				if (typeof addressSelector.scrollIntoView === "function") addressSelector.scrollIntoView({ behavior: "smooth", block: "center" });
+			}
+			if (addressStatus) {
+				addressStatus.textContent = "برای ارسال پستی، آدرس انتخاب‌شده نیاز به کد پستی دارد؛ آدرس را ویرایش کنید یا گزینهٔ «کد پستی خود را نمی‌دانم» را بزنید.";
+				addressStatus.hidden = false;
+				addressStatus.classList.add("is-error");
+				return addressStatus;
+			}
+			if (addressSelector) return addressSelector;
+		}
 		if (!customerDetails || !window.jQuery) {
 			return null;
 		}

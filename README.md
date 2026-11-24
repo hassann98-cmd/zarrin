@@ -1,8 +1,8 @@
 # پوستهٔ زرین — Zarrin
 
-پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.400** است.
+پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.401** است.
 
-[دانلود مستقیم بستهٔ قابل نصب zarrin-1.7.400.zip](https://raw.githubusercontent.com/hassann98-cmd/zarrin/v1.7.400/artifacts/zarrin-1.7.400.zip)
+[دانلود مستقیم بستهٔ قابل نصب zarrin-1.7.401.zip](https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.401/zarrin-1.7.401.zip)
 
 - [فهرست اصلاحات و نتیجهٔ تست‌ها](docs/FIXES.fa.md)
 - [آزمون یکپارچهٔ وردپرس: روش اجرا و محدودیت‌ها](docs/INTEGRATION.fa.md)
@@ -90,6 +90,8 @@ npm run release
 `THEME_DOWNLOAD_SERVER_PORT=4181 npm run release` شمارهٔ patch را خودکار افزایش می‌دهد، نسخه‌های `package.json`/lock/style/README را هماهنگ می‌کند، `npm run check` را اجرا می‌کند، ZIP نسخه‌دار می‌سازد و در `downloads/` قرار می‌دهد؛ در پایان `/version` و `/download/latest` سرور sandbox روی پورت `4181` را با فایل بسته‌شده بایت‌به‌بایت تطبیق می‌دهد. اگر سرور اجرا نباشد، release با خطا متوقف می‌شود؛ لینک قدیمی را به‌عنوان نسخهٔ تازه تحویل ندهید.
 
 خروجی در `artifacts/zarrin-{version}.zip` است، با پوشهٔ بالایی `zarrin/`. ZIP شامل runtime، سورس و ابزارهای بازسازی است؛ `.git`، `node_modules`، محیط/credentialها و artifactهای قبلی بسته‌بندی نمی‌شوند. `npm run package` فقط ابزار بسته‌بندی سطح پایین است و نسخه را افزایش نمی‌دهد. سرور sandbox به‌معنی انتشار روی production نیست.
+
+**قاعدهٔ انتشار:** هر تغییر نسخه که روی `main` یا شاخهٔ `arena/**` push شود، باید از `.github/workflows/release-assets.yml` عبور کند؛ workflow تست‌ها و build را اجرا می‌کند، Release متناظر با `v{version}` را می‌سازد و ZIP را به‌عنوان asset پیوست و دانلودش را تأیید می‌کند. لینک دانلود عمومی باید به `/releases/download/v{version}/zarrin-{version}.zip` اشاره کند؛ ZIP را به‌جای Release asset در Git مخزن commit نکنید.
 
 `.github/workflows/quality.yml` build، تست، تطبیق خروجی با فایل‌های ثبت‌شده و ZIP را تعریف می‌کند؛ PHP matrix آن 8.0/8.3/8.5 است. job جداگانهٔ WordPress/SQLite، Node 24 و PHP-WASM 8.3/8.5 دارد. اضافه‌شدن workflow به معنی مشاهدهٔ اجرای موفق GitHub Actions نیست.
 

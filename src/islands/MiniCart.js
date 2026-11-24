@@ -574,6 +574,18 @@ function J() {
                                 ],
                               })
                             : e.jsx("div", { className: "mb-3" }),
+                          s.giftWrap?.feeHtml && !d
+                            ? e.jsxs("div", {
+                                className: "mb-3 flex items-center justify-between gap-2 text-caption",
+                                children: [
+                                  e.jsx("span", { className: "text-text-muted", children: s.giftWrap.label }),
+                                  e.jsx("span", {
+                                    className: "font-medium text-text-secondary",
+                                    dangerouslySetInnerHTML: { __html: s.giftWrap.feeHtml },
+                                  }),
+                                ],
+                              })
+                            : null,
                           e.jsx("a", {
                             href: s.cartUrl,
                             "aria-disabled": d || undefined,

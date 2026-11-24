@@ -155,12 +155,14 @@ function jluxe_cart_snapshot(): array {
 	$share_cart_enabled = ! empty( jluxe_get_theme_settings()['cart_checkout']['show_share_cart'] );
 	$share_cart_url = $share_cart_enabled && ! $cart->is_empty() ? jluxe_share_cart_url() : '';
 	$gift_wrap = function_exists( 'jluxe_get_session_gift_wrap' ) ? jluxe_get_session_gift_wrap() : array( 'enabled' => false, 'note' => '' );
+	$gift_wrap_config = function_exists( 'jluxe_get_gift_wrap_config' ) ? jluxe_get_gift_wrap_config() : array( 'label' => '', 'fee' => 0 );
+	$gift_wrap_has_fee = ! empty( $gift_wrap['enabled'] ) && ( $gift_wrap_config['fee'] ?? 0 ) > 0;
 	return array(
 		'items'         => $items,
 		'itemCount'     => $cart->get_cart_contents_count(),
 		'shareCartEnabled' => $share_cart_enabled,
 		'shareCartUrl'  => $share_cart_url,
-		'giftWrap'      => array( 'enabled' => (bool) $gift_wrap['enabled'], 'note' => (string) $gift_wrap['note'] ),
+		'giftWrap'      => array( 'enabled' => (bool) $gift_wrap['enabled'], 'note' => (string) $gift_wrap['note'], 'label' => $gift_wrap_has_fee ? (string) $gift_wrap_config['label'] : '', 'feeHtml' => $gift_wrap_has_fee ? wc_price( $gift_wrap_config['fee'] ) : null ),
 		'subtotalHtml'  => wc_price( $cart->get_subtotal() ),
 		'coupons'       => $coupons,
 		'discountHtml'  => $cart->get_discount_total() > 0 ? wc_price( $cart->get_discount_total() ) : null,

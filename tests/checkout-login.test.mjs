@@ -168,7 +168,7 @@ test("new-address accordion always starts with empty province and city", () => {
   const js = read("assets/js/checkout-login.js");
   // 1.7.359: clearNewForm استان/شهر را هم خالی می‌کند تا کاربر مجبور باشد
   // اول استان را انتخاب کند و شهر بعد از آن لود شود (هیچ‌وقت کش نیست).
-  assert.match(js, /function clearNewForm\(\) \{[\s\S]*?applyStateCity\("", ""\)/, "clearNewForm clears province and city");
+  assert.match(js, /function clearNewForm\(keepLocation\) \{[\s\S]*?if \(!keepLocation\) \{\s*applyStateCity\("", ""\)/, "clearNewForm clears location by default but can preserve it after a save");
 });
 
 test("multiple addresses are stored per customer in a dedicated meta", () => {
@@ -260,7 +260,8 @@ test("opening the new-address accordion clears province and city; closing re-app
   // استان/شهر برای آدرس جدید همیشه خالی شروع می‌شوند (هیچ‌وقت کش نیستند).
   assert.match(js, /applyStateCity\("", ""\)/);
   // بستن بدون ذخیره، فرم را به آدرس انتخاب‌شده برمی‌گرداند.
-  assert.match(js, /اگر آکاردئون بدون ذخیره بسته شد/);
+  assert.match(js, /Closing via the toggle is equivalent to the explicit close button/);
+  assert.match(js, /restoreSelectedAddress\(\)/);
 });
 
 test("Persian and Arabic digits are converted before the address is saved", () => {
@@ -387,7 +388,7 @@ test("legacy numeric state/city IDs are omitted from the address line instead of
 test("checkout address changes are replayed once after the user pauses, including the province-to-city cascade", async (t) => {
   const js = read("assets/js/checkout-login.js");
   const dom = new JSDOM(
-    '<form class="checkout"><input name="billing_address_1"><select name="billing_state"><option value="">—</option><option value="THR">تهران</option></select><select name="billing_city"><option value="">—</option><option value="city">شهر</option></select></form>',
+    '<form class="checkout"><input name="billing_address_1"><input name="billing_phone"><input name="billing_email"><select name="billing_state"><option value="">—</option><option value="THR">تهران</option></select><select name="billing_city"><option value="">—</option><option value="city">شهر</option></select></form>',
     { url: "https://shop.test/checkout/", runScripts: "outside-only" },
   );
   t.after(() => dom.window.close());
@@ -398,6 +399,8 @@ test("checkout address changes are replayed once after the user pauses, includin
 
   const form = document.querySelector("form.checkout");
   const address = form.querySelector('[name="billing_address_1"]');
+  const phone = form.querySelector('[name="billing_phone"]');
+  const email = form.querySelector('[name="billing_email"]');
   const state = form.querySelector('[name="billing_state"]');
   const city = form.querySelector('[name="billing_city"]');
   const changes = [];
@@ -418,11 +421,18 @@ test("checkout address changes are replayed once after the user pauses, includin
   await new Promise(resolve => window.setTimeout(resolve, 200));
   assert.deepEqual(changes, ["billing_address_1"], "the latest address value is delivered in one trailing change");
 
+  phone.value = "09120000000";
+  phone.dispatchEvent(new window.Event("input", { bubbles: true }));
+  email.value = "person@example.test";
+  email.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await new Promise(resolve => window.setTimeout(resolve, 280));
+  assert.deepEqual(changes, ["billing_address_1"], "typing phone/email does not synthesize change events or trigger early field errors");
+
   state.value = "THR";
   state.dispatchEvent(new window.Event("change", { bubbles: true }));
-  assert.deepEqual(changes, ["billing_address_1"], "province and city changes are deferred together");
+  assert.deepEqual(changes, ["billing_address_1", "billing_state"], "province change immediately reaches the cascade handler");
   await new Promise(resolve => window.setTimeout(resolve, 280));
-  assert.deepEqual(changes, ["billing_address_1", "billing_city", "billing_state"], "the delayed province event lets the city cascade complete in the same replay turn without losing either field change");
+  assert.deepEqual(changes, ["billing_address_1", "billing_state", "billing_city"], "only the final city change is replayed after the province has synchronously populated its options");
 });
 
 test("unknown-postcode shortcut hides and restores the field while its native change is coalesced by checkout throttling", async (t) => {
@@ -478,15 +488,16 @@ test("saved-address selection/editing syncs postcode opt-out, and clearing a new
   const js = read("assets/js/checkout-login.js");
   const dom = new JSDOM(
     '<form class="checkout" data-jluxe-postcode-shortcuts>' +
-      '<select id="billing_state" name="billing_state"><option value="">استان</option><option value="THR">تهران</option></select>' +
-      '<select id="billing_city" name="billing_city"><option value="">شهر</option><option value="1">تهران</option></select>' +
+      '<select id="billing_state" name="billing_state"><option value="">استان</option><option value="THR">تهران</option><option value="FAR">فارس</option></select>' +
+      '<select id="billing_city" name="billing_city"><option value="">شهر</option><option value="1">تهران</option><option value="2">شیراز</option></select>' +
       '<input id="billing_postcode" name="billing_postcode"><label for="billing_postcode">کد پستی</label>' +
       '<input type="checkbox" class="jluxe-unknown-postcode-checkbox" id="jluxe-unknown-postcode-billing_postcode" data-jluxe-postcode-target="billing_postcode">' +
-      '<section data-jluxe-address-selector><div data-jluxe-address-list><article data-jluxe-address-card>' +
+      '<input id="billing_address_1" name="billing_address_1"><section data-jluxe-address-selector><div data-jluxe-address-list><article data-jluxe-address-card>' +
         '<input type="radio" checked value="billing" data-jluxe-address-option>' +
         '<span hidden data-jluxe-address-data></span><button type="button" data-jluxe-address-edit>ویرایش</button>' +
       '</article></div><button type="button" data-jluxe-address-toggle>آدرس جدید</button>' +
-      '<div data-jluxe-address-form><input data-jluxe-new-field="postcode" id="jluxe-new-address-postcode">' +
+      '<div data-jluxe-address-form><input data-jluxe-identity-field="first_name"><input data-jluxe-identity-field="last_name"><input data-jluxe-identity-field="phone">' +
+        '<input data-jluxe-new-field="postcode" id="jluxe-new-address-postcode">' +
         '<label for="jluxe-new-address-postcode">کد پستی جدید</label>' +
         '<input type="checkbox" class="jluxe-unknown-postcode-checkbox" id="jluxe-unknown-postcode-jluxe-new-address-postcode" data-jluxe-postcode-target="jluxe-new-address-postcode">' +
         '<input data-jluxe-new-field="address_1"><input data-jluxe-new-field="landline">' +
@@ -502,14 +513,29 @@ test("saved-address selection/editing syncs postcode opt-out, and clearing a new
     id: "saved-1", first_name: "الف", last_name: "ب", address_1: "خیابان", postcode,
     state: "THR", city: "1", country: "IR", phone: "09120000000",
   });
+  window.JLUXE_CHECKOUT_ADDRESS = { ajaxUrl: "https://shop.test/admin-ajax.php", nonce: "valid" };
   window.eval(js);
-  document.dispatchEvent(new window.Event("DOMContentLoaded"));
+  const locationChanges = [];
+  document.querySelector("form.checkout").addEventListener("change", (event) => {
+    if (["billing_state", "billing_city"].includes(event.target.name) && event.target.value) {
+      locationChanges.push([event.target.name, event.target.value]);
+    }
+  });
+  if (document.readyState === "loading") {
+    await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
+  }
 
   const billingPostcode = document.getElementById("billing_postcode");
   const billingCheckbox = document.getElementById("jluxe-unknown-postcode-billing_postcode");
   assert.equal(billingPostcode.value, postcode);
   assert.equal(billingCheckbox.checked, true, "applying a saved address checks the matching postcode shortcut");
   assert.equal(billingPostcode.hidden, true);
+  assert.equal(document.getElementById("billing_state").value, "THR");
+  assert.equal(document.getElementById("billing_city").value, "1", "province application selects its city in the same tick");
+  assert.ok(locationChanges.some(([name, value]) => name === "billing_state" && value === "THR"), "province change is delivered immediately");
+  await new Promise((resolve) => window.setTimeout(resolve, 280));
+  assert.deepEqual(locationChanges.filter(([name]) => name === "billing_city"), [["billing_city", "1"]], "only one final populated city change is delivered for checkout refresh");
+  locationChanges.length = 0;
 
   const newPostcode = document.getElementById("jluxe-new-address-postcode");
   const newCheckbox = document.getElementById("jluxe-unknown-postcode-jluxe-new-address-postcode");
@@ -519,10 +545,63 @@ test("saved-address selection/editing syncs postcode opt-out, and clearing a new
   assert.equal(newPostcode.hidden, true);
   assert.equal(newPostcode.labels[0].hidden, true);
 
+  const addressToggle = document.querySelector("[data-jluxe-address-toggle]");
   document.querySelector("[data-jluxe-address-close]").click();
-  document.querySelector("[data-jluxe-address-toggle]").click();
+  // The close handler reapplies the selected address; toggling closed then open
+  // exercises the blank-new-form transition without assuming the prior state.
+  if (!document.querySelector("[data-jluxe-address-form]").hidden) addressToggle.click();
+  if (document.querySelector("[data-jluxe-address-form]").hidden) addressToggle.click();
   assert.equal(newPostcode.value, "");
   assert.equal(newCheckbox.checked, false, "clearing the new-address form resets its opt-out checkbox");
   assert.equal(newPostcode.hidden, false, "clearing the new-address form makes postcode visible again");
   assert.equal(newPostcode.labels[0].hidden, false);
+
+  const toggle = document.querySelector("[data-jluxe-address-toggle]");
+  const state = document.getElementById("billing_state");
+  const city = document.getElementById("billing_city");
+  assert.equal(state.value, "", "opening a blank new-address form clears the old location");
+  toggle.click();
+  assert.equal(document.querySelector("[data-jluxe-address-form]").hidden, true);
+  assert.equal(state.value, "THR", "closing via the toggle reapplies the selected card's province");
+  assert.equal(city.value, "1", "closing via the toggle reapplies the selected card's city");
+
+  window.fetch = () => Promise.resolve({
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(JSON.stringify({ success: true, data: {
+      saved_id: "saved-2",
+      addresses: [{ type: "billing", label: "آدرس جدید", address: {
+        id: "saved-2", first_name: "نام", last_name: "خانوادگی", phone: "09121111111",
+        address_1: "خیابان جدید", postcode: "2222222222", state: "FAR", state_name: "فارس",
+        city: "2", city_name: "شیراز", country: "IR",
+      } }],
+    } })) ,
+  });
+  toggle.click();
+  document.querySelector('[data-jluxe-identity-field="first_name"]').value = "نام";
+  document.querySelector('[data-jluxe-identity-field="last_name"]').value = "خانوادگی";
+  document.getElementById("billing_state").value = "FAR";
+  document.getElementById("billing_city").value = "2";
+  document.querySelector('[data-jluxe-new-field="address_1"]').value = "خیابان جدید";
+  document.getElementById("jluxe-new-address-postcode").value = "2222222222";
+  document.querySelector('[data-jluxe-address-save]').click();
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
+  assert.equal(state.value, "FAR", "saving the selected address does not clear billing_state");
+  assert.equal(city.value, "2", "saving the selected address does not clear billing_city");
+  assert.equal(document.querySelector("[data-jluxe-address-form]").hidden, true);
+
+  window.fetch = () => Promise.resolve({
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(JSON.stringify({ success: true, data: { addresses: [] } })),
+  });
+  const deleteButton = document.querySelector("[data-jluxe-address-delete]");
+  deleteButton.click();
+  deleteButton.click();
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
+  assert.equal(document.getElementById("billing_address_1").value, "");
+  assert.equal(billingPostcode.value, "");
+  assert.equal(state.value, "");
+  assert.equal(city.value, "");
+  assert.equal(document.querySelector("[data-jluxe-address-form]").hidden, false, "deleting the last saved address opens the new-address form");
 });

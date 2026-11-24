@@ -50,6 +50,8 @@
       if (hasOption || attempts > 40) {
         cityEl.value = cityValue;
         try {
+          // Emit only the final city change. If the province handler rebuilt
+          // options synchronously, selection and its change happen this tick.
           cityEl.dispatchEvent(new Event("change", { bubbles: true }));
         } catch (e) {
           /* نادیده گرفتن خطای پلاگین */
@@ -58,7 +60,14 @@
       }
       window.setTimeout(setCity, 50);
     }
-    window.setTimeout(setCity, 0);
+    var cityOptionReady = Array.prototype.some.call(cityEl.options, function (opt) {
+      return opt.value === cityValue;
+    });
+    if (cityOptionReady || "" === cityValue) {
+      setCity();
+    } else {
+      window.setTimeout(setCity, 50);
+    }
   }
 
   function syncUnknownPostcodeFor(input) {
@@ -155,6 +164,12 @@
       'form.checkout select[name^="shipping_"]',
       'form.checkout textarea[name^="shipping_"]',
     ].join(", ");
+    var inputSelector = [
+      'form.checkout input[name="billing_postcode"]',
+      'form.checkout input[name="shipping_postcode"]',
+      'form.checkout input[name="billing_address_1"]',
+      'form.checkout input[name="shipping_address_1"]',
+    ].join(", ");
     var delay = 250;
     var pending = new Map();
     var lastSent = new WeakMap();
@@ -181,13 +196,15 @@
     }
 
     document.addEventListener("input", function (event) {
-      if (!event.target || !event.target.matches || !event.target.matches(selector)) return;
+      if (!event.target || !event.target.matches || !event.target.matches(inputSelector)) return;
       queueChange(event.target);
     }, true);
 
     document.addEventListener("change", function (event) {
       var target = event.target;
-      if (replaying || !target || !target.matches || !target.matches(selector)) return;
+      if (!target || !target.matches) return;
+      if (target.matches('select[name="billing_state"], select[name="shipping_state"]')) return;
+      if (replaying || !target.matches(selector)) return;
       var value = String(target.value || "");
       if (!pending.has(target) && lastSent.has(target) && lastSent.get(target) === value) {
         event.stopImmediatePropagation();
@@ -410,7 +427,8 @@
       status.classList.toggle("is-error", !!isError);
     }
 
-    function clearNewForm() {
+    function clearNewForm(keepLocation) {
+      keepLocation = true === keepLocation;
       if (!form) return;
       form.querySelectorAll("[data-jluxe-new-field]").forEach(function (el) {
         el.value = "";
@@ -418,10 +436,11 @@
       var postcodeCheckbox = field("jluxe-unknown-postcode-jluxe-new-address-postcode");
       if (postcodeCheckbox) postcodeCheckbox.checked = false;
       syncUnknownPostcodeFor(newField("postcode"));
-      // استان/شهر همیشه خالی شروع می‌شوند تا کاربر مجبور باشد اول استان
-      // را انتخاب کند و شهر بعد از آن لود شود؛ هیچ‌وقت از انتخاب قبلی
-      // (آدرس ذخیره‌شده یا نشست) کش نمی‌شوند.
-      applyStateCity("", "");
+      // New forms start empty, but a successful save must preserve the
+      // just-selected billing province/city applied from its saved card.
+      if (!keepLocation) {
+        applyStateCity("", "");
+      }
     }
 
     function setFormOpen(open) {
@@ -436,21 +455,32 @@
       }
     }
 
+    function restoreSelectedAddress() {
+      var checkedInput = selector.querySelector("[data-jluxe-address-option]:checked");
+      if (!checkedInput) return;
+      var checkedCard = checkedInput.closest("[data-jluxe-address-card]");
+      if (checkedCard) select(checkedCard);
+    }
+
     // آکاردئون به‌صورت پیش‌فرض بسته است؛ بدون JS فرم باز می‌ماند تا
     // فیلدهای استان/شهر در دسترس باشند (پشتیبانی پیش‌رونده).
     setFormOpen(false);
 
     if (toggle) {
       toggle.addEventListener("click", function () {
-        // باز کردن برای آدرس جدید: حالت ویرایش ریست و فرم خالی می‌شود.
-        // clearNewForm استان/شهر را هم خالی می‌کند تا کاربر مجبور باشد
-        // اول استان را انتخاب کند و شهر بعد از آن لود شود.
         if (form.hidden) {
+          // Opening a new address starts blank and exits any previous edit.
           editingAddressId = null;
           if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
           clearNewForm();
+          setFormOpen(true);
+        } else {
+          // Closing via the toggle is equivalent to the explicit close button.
+          editingAddressId = null;
+          if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
+          setFormOpen(false);
+          restoreSelectedAddress();
         }
-        setFormOpen(form.hidden);
       });
     }
     if (closeBtn) {
@@ -458,13 +488,8 @@
         editingAddressId = null;
         if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
         setFormOpen(false);
-        // اگر آکاردئون بدون ذخیره بسته شد، فرم تسویه‌حساب به آدرس
-        // انتخاب‌شده برمی‌گردد تا استان/شهر خالی نمانند.
-        var checkedInput = selector.querySelector("[data-jluxe-address-option]:checked");
-        if (checkedInput) {
-          var checkedCard = checkedInput.closest("[data-jluxe-address-card]");
-          if (checkedCard) select(checkedCard);
-        }
+        // Closing without saving restores the selected card's checkout fields.
+        restoreSelectedAddress();
       });
     }
 
@@ -676,6 +701,14 @@
           json.data.addresses.forEach(function (entry, idx) {
             appendAddress(entry, idx === 0);
           });
+          if (json.data.addresses.length === 0) {
+            ["billing_address_1", "billing_postcode"].forEach(function (id) {
+              setField(id, "");
+            });
+            syncUnknownPostcodeFor(field("billing_postcode"));
+            clearNewForm(false);
+            setFormOpen(true);
+          }
           showStatus("آدرس حذف شد.", false);
         } else if (json && json.data && json.data.message) {
           showStatus(json.data.message, true);
@@ -779,7 +812,7 @@
             json.data.addresses.forEach(function (entry, idx) {
               appendAddress(entry, idx === savedIdx);
             });
-            clearNewForm();
+            clearNewForm(true);
             setFormOpen(false);
             editingAddressId = null;
             if (saveBtn) saveBtn.textContent = "ذخیره آدرس";
