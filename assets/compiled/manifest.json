@@ -232,7 +232,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-BZbEw-Jh.js",
+    "file": "assets/main-BXDCZeye.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -258,7 +258,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-BBWTNhhR.css"
+      "assets/main-BXlc1ynO.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",
@@ -306,12 +306,21 @@
     "isEntry": true
   },
   "src/styles/route-cart-checkout.css": {
-    "file": "assets/route-cart-checkout-CUchEALi.css",
+    "file": "assets/route-cart-checkout-p6KPVQWH.css",
     "name": "route-cart-checkout",
     "names": [
       "route-cart-checkout.css"
     ],
     "src": "src/styles/route-cart-checkout.css",
+    "isEntry": true
+  },
+  "src/styles/route-home.css": {
+    "file": "assets/route-home-CX3GbXc5.css",
+    "name": "route-home",
+    "names": [
+      "route-home.css"
+    ],
+    "src": "src/styles/route-home.css",
     "isEntry": true
   },
   "src/styles/route-product.css": {

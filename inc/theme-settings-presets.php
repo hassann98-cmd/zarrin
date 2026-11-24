@@ -91,6 +91,24 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
+		'atelier_noir' => array(
+			'label' => 'آتلیه نوآر و طلایی',
+			'description' => 'مشکی زغالی، طلایی مات و عاجی گرم؛ برای برندهای لوکس و مینیمال.',
+			'colors' => array( 'primary' => '#705522', 'secondary' => '#242321', 'background' => '#F7F4EC', 'success' => '#26734D', 'accent' => '#B58A3A' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'pearl_sage' => array(
+			'label' => 'مروارید و مریم‌گلی',
+			'description' => 'سبز مریم‌گلی و مرواریدی روشن با جزئیات برنزی؛ آرام و ممتاز.',
+			'colors' => array( 'primary' => '#356354', 'secondary' => '#263B36', 'background' => '#F1F5F0', 'success' => '#26734D', 'accent' => '#A87945' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'royal_sapphire' => array(
+			'label' => 'یاقوت کبود سلطنتی',
+			'description' => 'سرمه‌ای یاقوتی، شامپاینی و سفید ابریشمی؛ هویتی رسمی و لوکس.',
+			'colors' => array( 'primary' => '#27466B', 'secondary' => '#182D45', 'background' => '#F1F4F8', 'success' => '#26734D', 'accent' => '#B38B52' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
 		'legacy_default' => array(
 			'label' => 'پالت پیش‌فرض پیشین زرین',
 			'description' => 'رنگ‌های پایهٔ پوسته پیش از Electric Indigo؛ گزینه‌ای جداگانه و قابل‌اعمال، بدون تغییر خودکارِ تنظیمات ذخیره‌شده.',

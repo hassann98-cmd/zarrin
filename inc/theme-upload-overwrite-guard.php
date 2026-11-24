@@ -61,3 +61,31 @@ function jluxe_preserve_theme_package_attachment( $delete, $post, $force_delete 
 	return $post;
 }
 add_filter( 'pre_delete_attachment', 'jluxe_preserve_theme_package_attachment', 10, 3 );
+
+/** Prevent a fast double-click from submitting the same theme replacement twice. */
+function jluxe_theme_overwrite_click_guard(): void {
+	if ( 'upload-theme' !== ( $_GET['action'] ?? '' ) || ! empty( $_GET['overwrite'] ) ) {
+		return;
+	}
+	?>
+	<script id="jluxe-theme-overwrite-click-guard">
+	(function(){
+	  var locked = false;
+	  document.addEventListener('click', function(event){
+	    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+	    if (!link) return;
+	    var href = link.getAttribute('href') || '';
+	    var text = (link.textContent || '').trim().toLowerCase();
+	    if (!(/[?&]overwrite(?:=|&|$)/.test(href)) && !(/replace/.test(text) && /theme-install\.php|upload-theme/.test(href))) return;
+	    if (locked) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+	    locked = true;
+	    link.setAttribute('aria-disabled', 'true');
+	    link.setAttribute('data-jluxe-overwrite-locked', 'true');
+	    link.style.pointerEvents = 'none';
+	    link.style.opacity = '.65';
+	  }, true);
+	})();
+	</script>
+	<?php
+}
+add_action( 'admin_footer', 'jluxe_theme_overwrite_click_guard' );

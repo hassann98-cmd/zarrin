@@ -256,7 +256,7 @@ function jluxe_render_homepage_section_styled( array $section ): void {
 	if ( $d['border_color'] ) { $style .= 'border:1px solid ' . $d['border_color'] . ';'; }
 	if ( $d['background_image'] ) { $style .= 'background-image:url(' . wp_json_encode( $d['background_image'], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP ) . ');background-size:cover;background-position:center;'; }
 	$style .= '--jvb-duration:' . $d['animation_duration'] . 'ms;--jvb-delay:' . $d['animation_delay'] . 'ms;';
-	echo '<div data-jvb-animation="' . esc_attr( $d['animation'] ) . '" data-jvb-repeat="' . ( $d['animation_repeat'] ? '1' : '0' ) . '"' . ( $d['anchor'] ? ' id="' . esc_attr( $d['anchor'] ) . '"' : '' ) . ' class="' . esc_attr( $classes ) . '" style="' . esc_attr( $style ) . '">';
+	echo '<div data-surface-tone="' . esc_attr( $d['surface_tone'] ) . '" data-jvb-animation="' . esc_attr( $d['animation'] ) . '" data-jvb-repeat="' . ( $d['animation_repeat'] ? '1' : '0' ) . '"' . ( $d['anchor'] ? ' id="' . esc_attr( $d['anchor'] ) . '"' : '' ) . ' class="' . esc_attr( $classes ) . '" style="' . esc_attr( $style ) . '">';
 	jluxe_render_homepage_section_content( $section );
 	echo '</div>';
 }

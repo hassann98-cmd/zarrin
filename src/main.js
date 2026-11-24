@@ -19,6 +19,9 @@ import "./styles/sitewide-design.css";
 if (import.meta.env.DEV) {
   const assetConfig = window.JLUXEAssetConfig || {};
   const devStyles = [];
+  if (assetConfig.context === "home") {
+    devStyles.push(import("./styles/route-home.css"));
+  }
   if (["shop", "search"].includes(assetConfig.context)) {
     devStyles.push(import("./styles/catalog-filter-chips.css"));
   }

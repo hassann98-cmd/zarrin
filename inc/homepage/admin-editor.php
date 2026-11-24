@@ -772,6 +772,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 				foreach ( array( 'padding' => 'فاصله داخلی دسکتاپ', 'mobile_padding' => 'فاصله داخلی موبایل', 'margin_top' => 'فاصله بالا', 'margin_bottom' => 'فاصله پایین', 'radius' => 'گردی گوشه‌ها' ) as $key => $title ) {
 					jluxe_hb_field_number( $name . '[design]', $key, $title . ' (px)', $design[ $key ] ?? 0, 0, 240 );
 				}
+				jluxe_hb_field_select( $name . '[design]', 'surface_tone', 'نمایش سطح پس‌زمینه', $design['surface_tone'] ?? 'transparent', array( 'transparent' => 'شفاف', 'soft' => 'ملایم', 'card' => 'کارت برجسته', 'tinted' => 'رنگی لطیف' ) );
 				jluxe_hb_field_text( $name . '[design]', 'background', 'رنگ پس‌زمینه (#RRGGBB؛ خالی یعنی شفاف)', $design['background'] ?? '' );
 				jluxe_hb_field_text( $name . '[design]', 'text_color', 'رنگ متن (#RRGGBB)', $design['text_color'] ?? '' );
 				jluxe_hb_field_text( $name . '[design]', 'border_color', 'رنگ خط دور (#RRGGBB؛ خالی = بدون خط)', $design['border_color'] ?? '' );

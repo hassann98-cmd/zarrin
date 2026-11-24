@@ -15,6 +15,7 @@ for (const entry of [
   "src/styles/route-cart-checkout.css",
   "src/styles/route-account-auth.css",
   "src/styles/catalog-filter-chips.css",
+  "src/styles/route-home.css",
 ]) {
   if (!manifest[entry]?.isEntry || !manifest[entry]?.file)
     throw Error(`Missing standalone CSS entry: ${entry}`);

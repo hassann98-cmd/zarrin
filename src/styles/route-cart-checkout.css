@@ -124,7 +124,7 @@ input.shipping_method:focus-visible + .jluxe-shipping-card {
     transform: none;
   }
 }
-#payment ul.payment_methods.jluxe-payment-method-list {
+body.woocommerce-checkout #payment ul.payment_methods.jluxe-payment-method-list {
   display: flex !important;
   width: 100%;
   min-width: 0;
@@ -136,7 +136,7 @@ input.shipping_method:focus-visible + .jluxe-shipping-card {
   border: 0 !important;
   list-style: none;
 }
-#payment ul.payment_methods li.jluxe-payment-method-item {
+body.woocommerce-checkout #payment ul.payment_methods li.jluxe-payment-method-item {
   display: flex !important;
   width: 100% !important;
   min-width: 0;
@@ -146,7 +146,7 @@ input.shipping_method:focus-visible + .jluxe-shipping-card {
   margin: 0 !important;
   padding: 0 !important;
 }
-#payment ul.payment_methods li label.jluxe-payment-card {
+body.woocommerce-checkout #payment ul.payment_methods li label.jluxe-payment-card {
   display: flex !important;
   flex-direction: row !important;
   align-items: center;
@@ -180,12 +180,12 @@ input.shipping_method:focus-visible + .jluxe-shipping-card {
   text-align: start;
   overflow-wrap: anywhere;
 }
-#payment ul.payment_methods li.jluxe-payment-method-item .payment_box {
+body.woocommerce-checkout #payment ul.payment_methods li.jluxe-payment-method-item .payment_box {
   box-sizing: border-box;
   width: 100%;
   margin-block: 0.625rem 0 !important;
 }
-#payment ul.payment_methods li.jluxe-payment-method-item .jluxe-check-off, #payment ul.payment_methods li.jluxe-payment-method-item .jluxe-check-on {
+body.woocommerce-checkout #payment ul.payment_methods li.jluxe-payment-method-item .jluxe-check-off, body.woocommerce-checkout #payment ul.payment_methods li.jluxe-payment-method-item .jluxe-check-on {
   top: 50%;
   transform: translateY(-50%);
 }
@@ -317,7 +317,7 @@ body.woocommerce-cart [data-jluxe-cart-pending] {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
-#payment ul.payment_methods li input.payment_method:checked + label.jluxe-payment-card {
+body.woocommerce-checkout #payment input.payment_method:checked + label.jluxe-payment-card {
   border-width: 2px;
   /* UI audit: selected state was green — the customer asked for a
      uniform gray palette, no colorful boxes. Dark gray border +
@@ -325,15 +325,15 @@ body.woocommerce-cart [data-jluxe-cart-pending] {
   border-color: #4a4750;
   background-color: var(--jluxe-payment-card-selected-background, #f4f3f5);
 }
-#payment ul.payment_methods li label.jluxe-payment-card:active, #shipping_method input.shipping_method + .jluxe-shipping-card:active {
+body.woocommerce-checkout #payment ul.payment_methods li label.jluxe-payment-card:active, #shipping_method input.shipping_method + .jluxe-shipping-card:active {
   transform: scale(0.99);
 }
-input.shipping_method:focus-visible + .jluxe-shipping-card, input.payment_method:focus-visible + label.jluxe-payment-card {
+input.shipping_method:focus-visible + .jluxe-shipping-card, body.woocommerce-checkout #payment input.payment_method:focus-visible + label.jluxe-payment-card {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 3px;
 }
 @media (forced-colors: active) {
-  input.shipping_method:focus-visible + .jluxe-shipping-card, input.payment_method:focus-visible + label.jluxe-payment-card {
+  input.shipping_method:focus-visible + .jluxe-shipping-card, body.woocommerce-checkout #payment input.payment_method:focus-visible + label.jluxe-payment-card {
     outline-color: Highlight;
   }
 }
@@ -341,10 +341,10 @@ input.shipping_method:focus-visible + .jluxe-shipping-card, input.payment_method
   max-height: 2rem;
   width: auto;
 }
-input.payment_method:checked + label.jluxe-payment-card .jluxe-check-off {
+body.woocommerce-checkout #payment input.payment_method:checked + label.jluxe-payment-card .jluxe-check-off {
   display: none;
 }
-input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
+body.woocommerce-checkout #payment input.payment_method:checked + label.jluxe-payment-card .jluxe-check-on {
   display: block;
 }
 body.woocommerce-checkout #billing_postcode_field input::-webkit-input-placeholder, body.woocommerce-checkout #shipping_postcode_field input::-webkit-input-placeholder {

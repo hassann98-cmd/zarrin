@@ -1,0 +1,68 @@
+/* Homepage presentation only. Enqueued for the front page and authorized builder previews. */
+.jluxe-home-section {
+  --jluxe-home-space: clamp(1.25rem, 3vw, 2.5rem);
+  margin-block: var(--jluxe-home-space);
+  padding-block: clamp(.5rem, 1.2vw, 1rem);
+}
+.jluxe-home-section-heading {
+  align-items: end;
+  margin-bottom: 1.125rem;
+  gap: 1rem;
+}
+.jluxe-home-section-heading h2,
+.jluxe-home-section > h2 {
+  margin: 0;
+  font-size: clamp(1.125rem, 1.5vw, 1.375rem);
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: -.025em;
+}
+.jluxe-home-section-heading p { margin-block: .35rem 0; line-height: 1.7; }
+.jluxe-home-section-view-all {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  border-color: hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--surface));
+  padding-inline: .9rem;
+  font-size: .75rem;
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.jluxe-home-section-view-all:hover { border-color: hsl(var(--primary)/.35); background: hsl(var(--primary)/.05); color: hsl(var(--primary)); }
+.jluxe-home-section :is(.jluxe-home-card,.jluxe-home-panel,.jluxe-home-blog-card,.jluxe-home-trust-card) {
+  border-radius: 1rem;
+  box-shadow: 0 4px 18px rgb(15 23 42 / .055);
+}
+.jluxe-home-section .jluxe-home-media { backface-visibility: hidden; }
+.jluxe-home-section [data-jluxe-scroller] { scroll-padding-inline: 1rem; scrollbar-width: none; }
+.jluxe-home-section [data-jluxe-scroller]::-webkit-scrollbar { display: none; }
+.jluxe-home-section .jluxe-home-scroll-arrow,
+.jluxe-home-section .jluxe-banner-slider-arrow {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  box-shadow: 0 3px 12px rgb(15 23 42 / .12);
+}
+.jluxe-home-section .jluxe-home-scroll-arrow:hover,
+.jluxe-home-section .jluxe-banner-slider-arrow:hover { border-color: hsl(var(--primary)/.4); color: hsl(var(--primary)); }
+.jluxe-home-section .jluxe-recommended-panels-frame::after { pointer-events: none; }
+.jluxe-designed-section[data-surface-tone="soft"] { background: color-mix(in srgb, var(--jluxe-home-surface, #f5f5f5) 38%, white); }
+.jluxe-designed-section[data-surface-tone="card"] { background: hsl(var(--surface)); box-shadow: 0 8px 28px rgb(15 23 42 / .07); }
+.jluxe-designed-section[data-surface-tone="tinted"] { background: linear-gradient(135deg,hsl(var(--primary)/.075),hsl(var(--accent)/.045)); }
+.jluxe-designed-section[data-surface-tone="transparent"] { background-color: transparent; }
+.jluxe-designed-section[data-surface-tone="card"],
+.jluxe-designed-section[data-surface-tone="tinted"],
+.jluxe-designed-section[data-surface-tone="soft"] { overflow: clip; }
+@media (max-width: 639px) {
+  .jluxe-home-section { margin-block: 1rem; padding-block: .25rem; }
+  .jluxe-home-section-heading { align-items: center; margin-bottom: .85rem; gap: .5rem; }
+  .jluxe-home-section-view-all { min-height: 2.25rem; padding-inline: .7rem; }
+  .jluxe-home-section .jluxe-home-scroll-arrow,
+  .jluxe-home-section .jluxe-banner-slider-arrow { width: 2.5rem; height: 2.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-home-section-view-all { transition: none; }
+}

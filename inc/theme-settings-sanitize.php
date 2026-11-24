@@ -1690,6 +1690,7 @@ function jluxe_sanitize_homepage_section_design( array $posted ): array {
 	$bg = is_string( $raw['background'] ?? null ) ? $raw['background'] : '';
 	$d['background'] = preg_match( '/^#[a-fA-F0-9]{6}$/D', $bg ) ? $bg : '';
 	$d['align'] = in_array( $raw['align'] ?? '', array( 'start', 'center', 'end' ), true ) ? $raw['align'] : 'start';
+	$d['surface_tone'] = in_array( $raw['surface_tone'] ?? '', array( 'transparent', 'soft', 'card', 'tinted' ), true ) ? $raw['surface_tone'] : 'transparent';
 	foreach ( array( 'text_color', 'border_color' ) as $key ) {
 		$d[ $key ] = is_string( $raw[ $key ] ?? null ) && preg_match( '/^#[a-fA-F0-9]{6}$/D', $raw[ $key ] ) ? $raw[ $key ] : '';
 	}

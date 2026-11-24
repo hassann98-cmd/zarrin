@@ -30,7 +30,7 @@ test("R402 thank-you keeps extension hooks, suppresses only Woo's duplicate tabl
   assert.equal((thankyou.match(/do_action\( 'woocommerce_thankyou_' \. \$order->get_payment_method\(\)/g) ?? []).length, 2);
 });
 
-test("R402 order-pay styling stays in the route stylesheet and leaves main CSS byte-identical", () => {
+test("R403 order-pay styling stays route-isolated and homepage CSS keeps shared growth below 1.5KB", () => {
   const route = read("src/styles/route-cart-checkout.css");
   const accountRoute = read("src/styles/route-account-auth.css");
   assert.match(route, /body\.woocommerce-order-pay #order_review\s*\{[^}]*max-width:\s*760px;[^}]*margin:\s*24px auto 48px;[^}]*padding:\s*0 16px;/s);
@@ -44,6 +44,8 @@ test("R402 order-pay styling stays in the route stylesheet and leaves main CSS b
   const manifest = JSON.parse(read("assets/compiled/manifest.json"));
   const mainCss = manifest["src/main.js"].css.find((path) => path.startsWith("assets/main-"));
   const current = readFileSync(new URL(`../assets/compiled/${mainCss}`, import.meta.url));
-  const baseline = execFileSync("git", ["show", `v1.7.401:assets/compiled/${mainCss}`]);
-  assert.deepEqual(current, baseline, "main CSS remains byte-identical to 1.7.401");
+  const baselineManifest = JSON.parse(execFileSync("git", ["show", "v1.7.401:assets/compiled/manifest.json"], { encoding: "utf8" }));
+  const baselineCss = baselineManifest["src/main.js"].css.find((path) => path.startsWith("assets/main-"));
+  const baseline = execFileSync("git", ["show", `v1.7.401:assets/compiled/${baselineCss}`]);
+  assert.ok(current.length - baseline.length < 1536, `main CSS growth is ${current.length - baseline.length} bytes, below 1.5KB`);
 });

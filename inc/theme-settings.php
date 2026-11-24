@@ -2980,6 +2980,7 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$vars['--jluxe-accent-hover']    = strtoupper( $accent_hover_hex );
 	$vars['--jluxe-success']         = strtoupper( $colors['success'] );
 	$vars['--jluxe-page-bg']         = strtoupper( $colors['background'] );
+	$vars['--jluxe-home-surface']    = strtoupper( $colors['background'] );
 	$vars['--jluxe-surface']         = '#FFFFFF';
 	$vars['--jluxe-text']            = '#1F2937';
 	$vars['--jluxe-text-muted']      = '#475569';

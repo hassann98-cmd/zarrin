@@ -417,6 +417,7 @@ function jluxe_enqueue_assets() {
 	}
 
 	$route_styles = array(
+		'home'     => array( 'src/styles/route-home.css', 'jluxe-route-home' ),
 		'product'  => array( 'src/styles/route-product.css', 'jluxe-route-product' ),
 		'cart'     => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
 		'checkout' => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
@@ -467,6 +468,7 @@ function jluxe_assets_admin_notice(): void {
 		'src/styles/route-cart-checkout.css',
 		'src/styles/route-account-auth.css',
 		'src/styles/catalog-filter-chips.css',
+		'src/styles/route-home.css',
 	);
 	$files = array_merge( array( $entry['file'] ?? '' ), $entry['css'] ?? array() );
 	$search_discovery_css = $manifest['src/islands/SearchDiscovery.js']['css'] ?? array();

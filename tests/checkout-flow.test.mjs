@@ -710,7 +710,7 @@ test("payment gateways render as full-width horizontal cards in one responsive c
   assert.match(cardRule, /min-height:\s*4\.5rem/);
   assert.match(cardRule, /text-align:\s*start/);
   assert.match(cardRule, /background-color:\s*var\(--jluxe-payment-card-background/);
-  assert.match(storefrontStyles, /#payment ul\.payment_methods li input\.payment_method:checked \+ label\.jluxe-payment-card\s*\{[^}]*--jluxe-payment-card-selected-background/s);
+  assert.match(storefrontStyles, /body\.woocommerce-checkout #payment input\.payment_method:checked \+ label\.jluxe-payment-card\s*\{[^}]*--jluxe-payment-card-selected-background/s);
   assert.match(storefrontStyles, /jluxe-payment-method-item \.payment_box\s*\{[^}]*width:\s*100%/s);
   assert.doesNotMatch(storefrontStyles, /width:\s*(?:calc\(50%|152px)\s*!important/);
 });

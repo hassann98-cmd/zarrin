@@ -467,7 +467,7 @@ check(
 	'R361 main CSS and JS enqueue with filemtime cache-busting version'
 );
 
-// Route CSS and optional design variants remain off the shared homepage request.
+// Route CSS and optional design variants remain route-isolated from each other.
 $css_split_old_query = $GLOBALS['query_kind'] ?? null;
 $css_split_old_get = $_GET;
 $css_split_old_options = $GLOBALS['options'];
@@ -479,8 +479,9 @@ $GLOBALS['styles'] = array();
 jluxe_get_theme_settings( true );
 jluxe_enqueue_assets();
 check(
+	isset( $GLOBALS['styles']['jluxe-route-home'] ) &&
 	! isset( $GLOBALS['styles']['jluxe-design-variants'], $GLOBALS['styles']['jluxe-neumorphism-refinements'], $GLOBALS['styles']['jluxe-route-product'], $GLOBALS['styles']['jluxe-route-cart-checkout'] ),
-	'R534 home/current does not enqueue design-variant, neumorphism, product-route, or cart/checkout CSS'
+	'R403 home/current enqueues only the isolated homepage route CSS, not product/cart/variant styles'
 );
 $css_split_routes = array(
 	'product'  => 'jluxe-route-product',
@@ -3617,7 +3618,7 @@ foreach ( $r363_legacy_preset_colors as $r363_id => $r363_colors ) {
 	}
 }
 check(
-	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'legacy_default', 'royal_orchid', 'dodger_blue', 'bubblegum_pink' ) ) &&
+	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'atelier_noir', 'pearl_sage', 'royal_sapphire', 'legacy_default', 'royal_orchid', 'dodger_blue', 'bubblegum_pink' ) ) &&
 	$r363_legacy_presets_preserved &&
 	$r363_all_presets['electric_indigo']['colors'] === $r363_electric_indigo_colors &&
 	'نیلی الکتریکی (افزوده‌شده)' === $r363_all_presets['electric_indigo']['label'] &&
@@ -3627,10 +3628,11 @@ check(
 	'رویال ارکید (Royal Orchid)' === $r363_all_presets['royal_orchid']['label'] &&
 	$r363_all_presets['dodger_blue']['colors'] === $r369_dodger_blue_colors &&
 	'آبی داجر (Dodger Blue)' === $r363_all_presets['dodger_blue']['label'] &&
+	isset( $r363_all_presets['atelier_noir']['colors'], $r363_all_presets['pearl_sage']['colors'], $r363_all_presets['royal_sapphire']['colors'] ) &&
 	$r363_all_presets['bubblegum_pink']['colors'] === $r370_bubblegum_pink_colors &&
 	'صورتی آدامسی (Bubblegum Pink)' === $r363_all_presets['bubblegum_pink']['label'] &&
 	'bubblegum_pink' === $r363_all_presets['bubblegum_pink']['palette'],
-	'R363/R369/R370 preserves the earlier presets and appends Bubblegum Pink as the twelfth independent preset'
+	'R363/R369/R370/R403 preserves every earlier preset and appends three independent luxury palettes'
 );
 $r363_saved_post = $_POST;
 $r363_defaults = jluxe_theme_settings_defaults();
@@ -11917,6 +11919,12 @@ foreach ( array( '0,100', '1;position:fixed,2', 'NaN,10', '20', '-5,20', '999,1'
  check( '1,1' === $layout['column_ratios'], 'Invalid column ratio rejected: ' . $bad_ratios );
 }
 $advanced = jluxe_sanitize_homepage_section_design( array( 'design_enabled' => true, 'design' => array( 'text_color' => '#123abc', 'border_color' => 'red;position:fixed', 'background_image' => 'javascript:alert(1)', 'anchor' => 'contact" onclick="evil', 'class_name' => 'my-card extra"', 'shadow' => 'large', 'width' => 'full', 'hide_tablet' => true ) ) );
+check( 'transparent' === $advanced['design']['surface_tone'], 'R403 surface tone defaults to transparent' );
+$advanced_surface = jluxe_sanitize_homepage_section_design( array( 'design' => array( 'surface_tone' => 'tinted' ) ) );
+check( 'tinted' === $advanced_surface['design']['surface_tone'], 'R403 accepts only a supported surface tone' );
+$advanced_surface['design'] = array( 'surface_tone' => 'url(javascript:alert(1))' );
+$unsafe_surface = jluxe_sanitize_homepage_section_design( $advanced_surface );
+check( 'transparent' === $unsafe_surface['design']['surface_tone'], 'R403 rejects unsupported surface tone values' );
 check( '#123abc' === $advanced['design']['text_color'] && '' === $advanced['design']['border_color'] && false === strpos( $advanced['design']['anchor'], '"' ) && 'my-card extra' === $advanced['design']['class_name'], 'Advanced fields sanitize colors, anchors and CSS class tokens' );
 ob_start(); jluxe_render_homepage_section_styled( array_merge( array( 'type' => 'heading', 'title' => 'Styled', 'tag' => 'h2' ), $advanced ) ); $styled = ob_get_clean();
 check( false !== strpos( $styled, 'jluxe-design-width-full' ) && false !== strpos( $styled, 'jluxe-design-shadow-large' ) && false !== strpos( $styled, '--jvb-text:#123abc' ) && false === strpos( $styled, 'javascript:' ), 'Advanced fields render safe real frontend styles rather than editor-only controls' );
