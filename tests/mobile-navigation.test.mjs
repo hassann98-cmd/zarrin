@@ -1,3 +1,4 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
 import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -20,7 +21,7 @@ const storefrontStyles = readStorefrontCss();
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const headerTemplate = await readFile(new URL("header.php", root), "utf8");
 const headerIslandSource = await readFile(new URL("src/islands/Header.js", root), "utf8");
-const shopToolbarSource = await readFile(new URL("inc/woocommerce.php", root), "utf8");
+const shopToolbarSource = await Promise.resolve(readWooCommerceSource());
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
 const {
   isMobileNavItemActive,

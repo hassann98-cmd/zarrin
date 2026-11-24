@@ -1,10 +1,11 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
 import { readProductCss, readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const css = readStorefrontCss();
-const woocommerce = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
+const woocommerce = readWooCommerceSource();
 const productTemplates = [
   "../woocommerce/content-single-product.php",
   "../woocommerce/content-single-product-classic.php",

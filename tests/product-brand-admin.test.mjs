@@ -1,8 +1,9 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const woocommerce = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
+const woocommerce = readWooCommerceSource();
 const brandRegistration = woocommerce.match(
   /function jluxe_register_product_brand_taxonomy\(\): void \{([\s\S]*?)\n\}/,
 )?.[1] || "";

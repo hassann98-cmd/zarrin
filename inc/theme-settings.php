@@ -3536,7 +3536,7 @@ function jluxe_output_custom_code(): void {
 		wp_add_inline_script( 'jluxe-main', $code['js'] );
 	}
 }
-add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 22 );
+add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 40 );
 
 /**
  * canonicalِ خودِ core (rel_canonical، هوکِ wp_head) رو غیرفعال می‌کنیم —

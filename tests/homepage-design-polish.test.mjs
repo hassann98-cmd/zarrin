@@ -1,9 +1,10 @@
+import { readHomepageSource } from "./helpers/theme-source.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 
-const php = await readFile(new URL("../inc/theme-settings-homepage.php", import.meta.url), "utf8");
+const php = await Promise.resolve(readHomepageSource());
 const sanitizer = await readFile(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
 const js = await readFile(new URL("../assets/js/homepage.js", import.meta.url), "utf8");
 

@@ -1,3 +1,4 @@
+import { readHomepageSource } from "./helpers/theme-source.mjs";
 import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
@@ -6,7 +7,7 @@ import test from "node:test";
 
 const root = process.cwd();
 const [php, storefrontCss] = await Promise.all([
-  fs.readFile(path.join(root, "inc/theme-settings-homepage.php"), "utf8"),
+  readHomepageSource(),
   Promise.resolve(readStorefrontCss()),
 ]);
 const manifest = JSON.parse(
@@ -54,7 +55,7 @@ test("homepage utilities changed for static PHP templates exist in compiled CSS"
 test("blog uses the restored desktop grid and leaves mobile swiping to authored CSS", () => {
   const blog = section(
     "function jluxe_render_homepage_blog(",
-    "function jluxe_banner_position_classes(",
+    "function jluxe_render_homepage_trust(",
   );
   assert.match(
     blog,

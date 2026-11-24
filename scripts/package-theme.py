@@ -59,6 +59,22 @@ with zipfile.ZipFile(destination) as archive:
     for required in ('style.css', 'functions.php', 'assets/compiled/manifest.json', 'src/main.js', 'package.json', 'package-lock.json'):
         if 'zarrin/' + required not in names:
             raise SystemExit('Release missing ' + required)
+    required_modules = (
+        'inc/homepage/admin-editor.php',
+        'inc/homepage/hooks.php',
+        'inc/homepage/sections-products.php',
+        'inc/homepage/sections-media.php',
+        'inc/homepage/sections-catalog.php',
+        'inc/woocommerce/pricing-toman.php',
+        'inc/woocommerce/product-single.php',
+        'inc/woocommerce/checkout-fields.php',
+        'inc/woocommerce/catalog-shop.php',
+        'inc/woocommerce/admin-product-meta.php',
+        'inc/woocommerce/hooks.php',
+    )
+    for required in required_modules:
+        if 'zarrin/' + required not in names:
+            raise SystemExit('Release missing refactored module ' + required)
     if any(name.startswith('zarrin/dist/') for name in names):
         raise SystemExit('Release contains the obsolete legacy dist/ build; use assets/compiled/.')
     if any(not name.startswith('zarrin/') for name in names):

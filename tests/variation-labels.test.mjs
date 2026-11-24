@@ -1,3 +1,4 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
 import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -77,7 +78,7 @@ test("both CP3 product layouts render a selected-value slot without changing var
     assert.match(template, /\.cp3-pill\.is-active\{[^}]*box-shadow:/, `${name} gives the selected pill a subtle shadow`);
   }
 
-  const wooPhp = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
+  const wooPhp = readWooCommerceSource();
   assert.match(wooPhp, /data-jluxe-variation-selected aria-live="polite" aria-atomic="true"/, "the default swatch layout includes the same selected-value slot for every attribute");
   assert.match(wooPhp, /<\?php if \( \$is_color_attr \) : \?>انتخاب <\?php endif; \?>/, "the existing color title stays intact while non-color titles retain their original wording");
 });

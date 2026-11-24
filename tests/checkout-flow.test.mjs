@@ -1,3 +1,4 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
 import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -15,7 +16,7 @@ const paymentTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment
 const paymentMethodTemplate = fs.readFileSync(new URL("../woocommerce/checkout/payment-method.php", import.meta.url), "utf8");
 const shippingTemplate = fs.readFileSync(new URL("../woocommerce/cart/cart-shipping.php", import.meta.url), "utf8");
 const paginationTemplate = fs.readFileSync(new URL("../woocommerce/loop/pagination.php", import.meta.url), "utf8");
-const paymentSource = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
+const paymentSource = readWooCommerceSource();
 const themeSettingsSource = fs.readFileSync(new URL("../inc/theme-settings.php", import.meta.url), "utf8");
 const settingsAdminSource = fs.readFileSync(new URL("../inc/theme-settings-admin.php", import.meta.url), "utf8");
 const settingsRenderSource = fs.readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");

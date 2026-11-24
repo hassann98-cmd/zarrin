@@ -9,6 +9,16 @@ function check($condition, $message) {
 	$GLOBALS['assertion_count'] = ($GLOBALS['assertion_count'] ?? 0) + 1;
 	echo "PASS: $message\n";
 }
+function theme_test_php_source( string $area ): string {
+	$files = 'homepage' === $area
+		? array( ABSPATH . 'inc/theme-settings-homepage.php', ABSPATH . 'inc/homepage/admin-editor.php', ABSPATH . 'inc/homepage/sections-products.php', ABSPATH . 'inc/homepage/sections-media.php', ABSPATH . 'inc/homepage/sections-catalog.php', ABSPATH . 'inc/homepage/hooks.php' )
+		: array( ABSPATH . 'inc/woocommerce.php', ABSPATH . 'inc/woocommerce/pricing-toman.php', ABSPATH . 'inc/woocommerce/product-single.php', ABSPATH . 'inc/woocommerce/checkout-fields.php', ABSPATH . 'inc/woocommerce/catalog-shop.php', ABSPATH . 'inc/woocommerce/admin-product-meta.php', ABSPATH . 'inc/woocommerce/hooks.php' );
+	$source = '';
+	foreach ( $files as $file ) {
+		$source .= (string) file_get_contents( $file ) . "\n";
+	}
+	return $source;
+}
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
 // Native page motion must stay away from transactional pages and remain optional.
@@ -867,7 +877,7 @@ check(
 );
 $_POST = array( 'jluxe_settings_nonce' => 'test', 'seo' => array( 'verification_meta_tags' => $verification_input ) );
 check( jluxe_handle_advanced_combined_save() === 'saved' && get_option( JLUXE_SETTINGS_OPTION )['seo']['verification_meta_tags'] === $verification_clean, 'R109 SEO form saves the verification tags through the normal nonce and sanitizer path' );
-$blog_renderer_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$blog_renderer_source = theme_test_php_source( 'homepage' );
 $blog_styles_source = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
 	false !== strpos( $blog_renderer_source, 'class="jluxe-home-blog-viewport" role="region"' ) &&
@@ -884,7 +894,7 @@ check(
 	false !== strpos( $blog_styles_source, 'backdrop-filter: blur(1px);' ),
 	'R110 homepage blog stays a desktop grid and becomes a swipeable RTL mobile row with a next-card peek and subtle fixed-edge blur'
 );
-$recommended_panels_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$recommended_panels_source = theme_test_php_source( 'homepage' );
 $recommended_panels_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $recommended_panels_start = strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_panels(' );
 $recommended_panels_end = false !== $recommended_panels_start ? strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_card(', $recommended_panels_start ) : false;
@@ -1599,7 +1609,7 @@ check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic t
 
 // R238: keep the third product layout independent and make delivery text editable per product.
 $r238_reference_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
-$r238_sticky_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r238_sticky_renderer = theme_test_php_source( 'woocommerce' );
 $r238_router = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r238_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 $r238_sanitized_layout = jluxe_sanitize_product_page( array( 'layout' => 'reference' ), jluxe_theme_settings_defaults()['product_page'] );
@@ -1744,7 +1754,7 @@ check(
 $r244_ai_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-ai.php' );
 $r244_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $r244_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
-$r244_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r244_woocommerce_source = theme_test_php_source( 'woocommerce' );
 check(
 	false !== strpos( $r244_ai_source, '.jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
 	false !== strpos( $classic_tpl, '.jluxe-cp3 .jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
@@ -3437,7 +3447,7 @@ check(strpos($cp3,'<div class="single_variation_wrap">')!==false && strpos($cp3,
 check(strpos($cp3,'if ( ! opt || opt.disabled ) { return; }')!==false && strpos($r53_variation_js,'pill.disabled = !selectable;')!==false && strpos($r53_variation_js,'opt.disabled = !selectable;')!==false, 'R74 (was R53) filtered-out options can never be picked; the shared Woo asset synchronizes the real select and pill disabled states');
 check(strpos($cp3,'data-cp3-thumbs-prev')!==false && strpos($cp3,'data-cp3-thumbs-next')!==false && strpos($cp3,'Math.abs( thumbsStrip.scrollLeft )')!==false && strpos($cp3,'tPrev.hidden = ! over')!==false, 'R53 the gallery thumbs strip gets RTL-safe prev/next arrows that hide themselves when nothing overflows');
 check(strpos($cp3,'.cp3-tarrow{')!==false && strpos($cp3,'.cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through')!==false && strpos($cp3,'.cp3-thumbsrow{')!==false, 'R53 the arrows, struck-through pills (class OR disabled attributes - R74) and the thumbs row have explicit reference styles');
-$inc_woo=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+$inc_woo=theme_test_php_source( 'woocommerce' );
 $urls=(string) file_get_contents(ABSPATH.'inc/urls.php');
 $presets=(string) file_get_contents(ABSPATH.'inc/theme-settings-presets.php');
 $sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
@@ -3639,7 +3649,7 @@ check(
 check(substr_count($presets,'typography')>=12 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R369/R370 all twelve design presets still flow through the same apply pipeline and sanitizer gates');
 check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
 check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false && strpos($woo_inc,'data-jluxe-sticky-variation-price')!==false && strpos($woo_inc,'data-jluxe-price-placeholder=""')!==false, 'R136 simple sticky prices keep the toman glyph while variable products start with an empty price placeholder');
-$home_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
+$home_tpl=theme_test_php_source( 'homepage' );
 $export_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-import-export.php');
 $card_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
 $cart_php=(string) file_get_contents(ABSPATH.'inc/cart-ux.php');
@@ -4396,7 +4406,7 @@ check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false 
 check(strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button')!==false && strpos($store_css,'border-radius: 16px !important')!==false && strpos($store_css,'background: hsl(var(--primary)) !important')!==false, 'R71 the picker modal add-to-cart button is forced to the unified rounded primary style (16px radius, 48px height) immune to core/plugin CSS order');
 // R72: random-mode setting ships; R137 gives product-card plus buttons a compact dark-to-primary interaction state.
 check(strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php'),"'per_category', 'random'")!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-render.php'),"value=\"random\"")!==false, 'R72 the suggested-products mode offers the new random option in both the renderer and the sanitizer whitelist');
-$pa_wc=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+$pa_wc=theme_test_php_source( 'woocommerce' );
 check(strpos($pa_wc,'function jluxe_suggested_is_available')!==false && strpos($pa_wc,"'visibility'   => 'visible'")!==false && strpos($pa_wc,"'orderby'      => 'rand'")!==false && strpos($pa_wc,'$limit * 4')!==false, 'R72 the suggestion pool queries a bigger-than-limit batch of visible products in rand order and re-filters every candidate so no slot is wasted');
 $cprod=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
 check(strpos($cprod,'is-available')!==false && strpos($cprod,'is-unavailable')!==false && strpos($cprod,'bg-primary text-primary-foreground hover:bg-primary-hover')===false && strpos($store_css,'.jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added)')!==false, 'R137 product-card plus buttons are dark by default and transition to primary on hover, press, load, or successful add while modal buttons stay primary');
@@ -4725,7 +4735,7 @@ $GLOBALS['deleted_product_transients'] = array();
 jluxe_purge_product_related_caches( $r174_variation_id );
 check( array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['cleaned_posts'] && array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['deleted_product_transients'], 'R174 variation cache invalidation is restricted to the variation and its parent, never the whole site');
 $modern_badges = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
-$r212_badge_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r212_badge_renderer = theme_test_php_source( 'woocommerce' );
 $r212_classic_route = strpos( $modern_badges, "if ( 'classic' === \$jluxe_layout ) {" );
 $r212_classic_include = strpos( $modern_badges, "require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';" );
 $r212_classic_return = false === $r212_classic_include ? false : strpos( $modern_badges, 'return;', $r212_classic_include );
@@ -4734,7 +4744,7 @@ check( strpos( $modern_badges, "jluxe_render_product_trust_badges( (int) \$produ
 unset( $GLOBALS['products'][ $r174_badge_product_id ], $GLOBALS['products'][ $r174_parent_id ], $GLOBALS['products'][ $r174_variation_id ] );
 check(strpos($r53_variation_js,'priceBox.innerHTML = priceHtml;')!==false && strpos($r53_variation_js,'priceBox.textContent = emptyPrice;')!==false && strpos($r53_variation_js,'restoreInitialPriceOrPrompt')!==false && strpos($r53_variation_js,'variation.is_in_stock === false')!==false, 'R139 a resolved purchasable variation displays its exact price, while reset preserves a still-selected server default or restores the prompt');
 check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($r53_variation_js,'pill.setAttribute("aria-disabled", selectable ? "false" : "true");')!==false && strpos($r53_variation_js,'pill.disabled = !selectable;')!==false, 'R74 unavailable variation pills retain their struck state through the shared WooCommerce availability sync');
-$woo_variation_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$woo_variation_source = theme_test_php_source( 'woocommerce' );
 $has_default_filter = false;
 $has_stock_status_filter = false;
 foreach ( (array) ( $GLOBALS['filters'] ?? array() ) as $registration ) {
@@ -4839,7 +4849,7 @@ $GLOBALS['term_meta'][9903] = array( '_jluxe_swatch_type' => 'none' );
 check(null===jluxe_resolve_variation_swatch('pa_color','blue','آبی',true), 'R99 an explicit no-swatch choice is still respected rather than overridden by automatic color guessing');
 $single_tpl_source = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
 $classic_tpl_source = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
-$home_source = (string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
+$home_source = theme_test_php_source( 'homepage' );
 $cart_ux_source = (string) file_get_contents(ABSPATH.'inc/cart-ux.php');
 check(strpos($single_tpl_source,'jluxe_render_attribute_swatches_html')!==false && strpos($classic_tpl_source,'jluxe_render_attribute_swatches_html')!==false && strpos($home_source,'jluxe_product_color_swatch_options( $product )')!==false && strpos($cart_ux_source,'jluxe_render_variation_swatches( $product, $variation_attributes )')!==false, 'R99 default/classic simple-product specs, homepage cards, variable product page and quick picker all use the shared swatch logic');
 
@@ -4969,7 +4979,7 @@ check( 'inner-test-size' === $r152_seen_card_sizes, 'Product-card responsive ima
 check( 'inner-card-class' === $r152_seen_item_class, 'Carousel list-item classes are passed to the product-card rendering callback' );
 check( $r152_sizes_restored && $r152_class_restored, 'Product-card image sizes and list-item classes restore their outer render context without leaking' );
 if ( $r152_original_had_item_class ) { $GLOBALS['jluxe_product_card_item_class'] = $r152_original_item_class; } else { unset( $GLOBALS['jluxe_product_card_item_class'] ); }
-$r152_home_cards = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r152_home_cards = theme_test_php_source( 'homepage' );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-200' )" ) !== false &&
@@ -5005,7 +5015,7 @@ check(
 	strpos( $r152_home_cards, 'sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"' ) !== false,
 	'R520 unrated product cards reserve the rating row without hidden star SVGs and recommended images use their rendered slot sizes'
 );
-$r520_woo_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r520_woo_source = theme_test_php_source( 'woocommerce' );
 check(
 	strpos( $r520_woo_source, 'function jluxe_output_toman_icon_sprite' ) !== false &&
 	strpos( $r520_woo_source, 'add_action( \'wp_body_open\', \'jluxe_output_toman_icon_sprite\', 1 )' ) !== false &&
@@ -5050,7 +5060,7 @@ check(
 	strpos( $r84_html, 'srcset=' ) !== false,
 	'R152 rendered product cards emit a responsive full-item image and semantic stock-dot color'
 );
-$r313_image_delivery_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r313_image_delivery_source = theme_test_php_source( 'homepage' );
 check(
 	strpos( $r313_image_delivery_source, "'jluxe-category-grid-ref-240', '240px'" ) !== false &&
 	strpos( $r313_image_delivery_source, "'jluxe-uncropped-200', '(max-width: 639px) 78px, 96px'" ) !== false &&
@@ -7098,7 +7108,7 @@ check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_co
 check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
 check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
 check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
-$h108home_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$h108home_source = theme_test_php_source( 'homepage' );
 check(
 	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-inline:16px' ) &&
 	false !== strpos( $h108home_source, '@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}' ) &&
@@ -7357,7 +7367,7 @@ check( isset( $GLOBALS['scripts']['jluxe-homepage'] ) && 'defer' === ( $GLOBALS[
 $GLOBALS['query_kind'] = 'home';
 update_test_settings( jluxe_theme_settings_defaults() );
 check( false === strpos( (string) file_get_contents( ABSPATH . 'assets/js/homepage.js' ), 'initSliders("[data-jluxe-hero-slider]")' ), 'R89 the old hero driver no longer runs on the new markup' );
-$h89admin = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$h89admin = theme_test_php_source( 'homepage' );
 foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mobile_height', 'radius', 'top_spacing', 'border', 'show_arrows', 'indicators' ) as $h89k ) {
 	check( false !== strpos( $h89admin, "jluxe_hb_field_select( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_number( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_checkbox( \$name, '$h89k'" ) || false !== strpos( $h89admin, "\t\$name,\n\t\t\t\t\t\t\t'$h89k'," ), 'R89 admin field exists: ' . $h89k );
 }
@@ -7749,7 +7759,7 @@ $r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_grid', 'id
 check( 'custom' === $r91sec['view_all_mode'] && 'همه' === $r91sec['view_all_text'] && 'https://jluxe.test/all/' === $r91sec['view_all_link'], 'R91 homepage sanitizer stores the «نمایش همه» fields' );
 $r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_showcase', 'id' => 'cs', 'view_all_mode' => 'nope' ) );
 check( 'categories_page' === $r91sec['view_all_mode'], 'R91 unknown mode → categories page' );
-$r91hp = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r91hp = theme_test_php_source( 'homepage' );
 check( 1 === substr_count( $r91hp, 'jluxe_render_category_view_all_fields( $name, $section );' ) && 1 === substr_count( $r91hp, 'jluxe_category_section_view_all( $section )' ) && false === strpos( $r91hp, 'jluxe-category-showcase-all' ) && false === strpos( $r91hp, 'class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( \'مشاهده همه محصولات بخش' ), 'R91 only the legacy category-grid section keeps its editable «show all» control; the simplified showcase omits the extra heading/button' );
 
 // قالب + پیشخوان
@@ -8992,7 +9002,7 @@ $r267_empty_city  = $r267_empty_fields['billing']['billing_city'];
 $r267_saved_city  = $r267_saved_fields['billing']['billing_city'];
 $r267_posted_city = $r267_posted_fields['billing']['billing_city'];
 $r267_city_map    = jluxe_iran_cities();
-$r267_php_source  = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_php_source  = theme_test_php_source( 'woocommerce' );
 $r267_js_source   = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 $r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r267_checkout_value_filter_registered = false;
@@ -9279,7 +9289,7 @@ $r425_checkout_js = file_exists( ABSPATH . 'assets/js/checkout-guided.js' ) ? (s
 $r425_guided_css = file_exists( ABSPATH . 'assets/css/checkout-guided.css' ) ? (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' ) : '';
 $r433_checkout_notices_js = file_exists( ABSPATH . 'assets/js/checkout-notices.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' ) : '';
 $r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
-$r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r425_woocommerce_source = theme_test_php_source( 'woocommerce' );
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
 $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
 $r425_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
@@ -9410,7 +9420,7 @@ if ( null === $r430_saved_query ) { unset( $GLOBALS['query_kind'] ); } else { $G
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
-$r267_payment_source   = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_payment_source   = theme_test_php_source( 'woocommerce' );
 check(
 	false === strpos( $r267_payment_template, 'data-jluxe-payment-required=' ) &&
 	false === strpos( $r267_payment_template, 'jluxe-payment-heading' ) &&
@@ -9577,7 +9587,7 @@ check(
 $r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r276_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 $r276_cart_totals = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-totals.php' );
-$r276_checkout_submit = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r276_checkout_submit = theme_test_php_source( 'woocommerce' );
 $r276_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 $r276_shipping_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 $r276_proceed_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/proceed-to-checkout-button.php' );
@@ -11275,7 +11285,7 @@ check(
 	! isset( $r329_manual_args['meta_query'] ),
 	'R329 manual source preserves the administrator-selected order and does not apply bestseller eligibility rules'
 );
-$r329_homepage_admin_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r329_homepage_admin_source = theme_test_php_source( 'homepage' );
 check(
 	false !== strpos( $r329_homepage_admin_source, 'فقط کالاهای دارای فروش ثبت‌شده نمایش داده می‌شوند' ) &&
 	false !== strpos( $r329_homepage_admin_source, 'برای نمایش کالای تازه یا بدون فروش' ),

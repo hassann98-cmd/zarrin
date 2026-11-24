@@ -1,3 +1,4 @@
+import { readHomepageSource } from "./helpers/theme-source.mjs";
 import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -275,7 +276,7 @@ test('home product cards remain canonical across WooCommerce lists and home div 
   assert.doesNotMatch(sheet,/ul\.products li\.product/,'archive-only card overrides would diverge from home again');
  }
  const template=readFileSync(new URL('../woocommerce/content-product.php',import.meta.url),'utf8');
- const home=readFileSync(new URL('../inc/theme-settings-homepage.php',import.meta.url),'utf8');
+ const home=readHomepageSource();
  assert.match(home,/wc_get_template_part\( 'content', 'product' \)/);assert.match(template,/jluxe-product-card-cta/);
  assert.match(storefrontCss,/\.jluxe-product-card-cta\s*\{[\s\S]*?background-color: hsl\(var\(--foreground\)\)/);
 });
