@@ -1,9 +1,6 @@
 import { j as e } from "../lib/jsx.js";
 import "../styles/search-discovery.css";
 import { T } from "../icons/tag.js";
-import { addRecentSearch, readRecentSearches, removeRecentSearch, writeRecentSearches } from "../lib/recent-searches.js";
-
-export { addRecentSearch, readRecentSearches, removeRecentSearch, writeRecentSearches };
 
 function SearchDiscovery({ recent = [], trending = [], onChoose, onRemove, onClear }) {
   const recentSection = recent.length

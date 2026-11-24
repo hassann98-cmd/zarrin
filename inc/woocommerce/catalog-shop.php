@@ -1225,10 +1225,10 @@ function jluxe_render_shop_toolbar(): void {
 	$price_currency_label = function_exists( 'jluxe_currency_label' ) ? jluxe_currency_label( get_woocommerce_currency() ) : get_woocommerce_currency_symbol();
 	$has_filters   = $current_cat_id || $current_brand_id || $has_min_price || $has_max_price || $current_in_stock || $current_on_sale;
 
-	$filter_base_url = function_exists( 'get_pagenum_link' ) ? get_pagenum_link( 1 ) : wc_get_page_permalink( 'shop' );
-	$filter_base_url = remove_query_arg( array( 'paged', 'page' ), $filter_base_url );
+	$filter_base_url = function_exists( 'get_pagenum_link' ) ? get_pagenum_link( 1, false ) : wc_get_page_permalink( 'shop' );
+	$filter_base_url = remove_query_arg( array( 'paged', 'page', 'product-page' ), $filter_base_url );
 	$filter_url      = static function ( array $remove_keys = array() ) use ( $filter_base_url ): string {
-		return remove_query_arg( array_values( array_unique( array_merge( array( 'paged', 'page' ), $remove_keys ) ) ), $filter_base_url );
+		return remove_query_arg( array_values( array_unique( array_merge( array( 'paged', 'page', 'product-page' ), $remove_keys ) ) ), $filter_base_url );
 	};
 	$active_filter_chips = array();
 	$add_filter_chip     = static function ( string $label, string $remove_label, array $remove_keys ) use ( &$active_filter_chips, $filter_url ): void {
@@ -1332,7 +1332,7 @@ function jluxe_render_shop_toolbar(): void {
 			<form data-jluxe-filter-form class="flex flex-1 flex-col overflow-hidden">
 				<div class="flex-1 overflow-y-auto px-4">
 					<?php if ( $has_filters ) : ?>
-						<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" data-jluxe-catalog-clear class="mt-3 inline-block text-caption font-medium text-primary hover:text-primary-hover">حذف فیلترها</a>
+						<a href="<?php echo esc_url( $clear_filter_url ); ?>" data-jluxe-catalog-clear class="mt-3 inline-block text-caption font-medium text-primary hover:text-primary-hover">حذف فیلترها</a>
 					<?php endif; ?>
 
 					<details class="group border-b border-border py-3.5" open>

@@ -19,7 +19,7 @@ import "./styles/sitewide-design.css";
 if (import.meta.env.DEV) {
   const assetConfig = window.JLUXEAssetConfig || {};
   const devStyles = [];
-  if (assetConfig.context === "shop" && document.querySelector(".jluxe-active-filters")) {
+  if (["shop", "search"].includes(assetConfig.context)) {
     devStyles.push(import("./styles/catalog-filter-chips.css"));
   }
   if (assetConfig.context === "product") {

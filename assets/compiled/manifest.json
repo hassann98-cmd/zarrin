@@ -130,7 +130,7 @@
     ]
   },
   "src/islands/Footer.js": {
-    "file": "assets/Footer-wbNoh-Bu.js",
+    "file": "assets/Footer-BnOLFrH8.js",
     "name": "Footer",
     "src": "src/islands/Footer.js",
     "isDynamicEntry": true,
@@ -142,7 +142,7 @@
     ]
   },
   "src/islands/Header.js": {
-    "file": "assets/Header-DkOLdYTT.js",
+    "file": "assets/Header-C0yTpjug.js",
     "name": "Header",
     "src": "src/islands/Header.js",
     "isDynamicEntry": true,
@@ -203,7 +203,7 @@
     ]
   },
   "src/islands/SearchDiscovery.js": {
-    "file": "assets/SearchDiscovery-BG557cmc.js",
+    "file": "assets/SearchDiscovery-4XoF6aUp.js",
     "name": "SearchDiscovery",
     "src": "src/islands/SearchDiscovery.js",
     "isDynamicEntry": true,
@@ -211,7 +211,7 @@
       "_shared-shell-ui-CpdfCG3m.js"
     ],
     "css": [
-      "assets/SearchDiscovery-Dnpypi8W.css"
+      "assets/SearchDiscovery-DytISSdF.css"
     ]
   },
   "src/lib/checkout-map.js": {
@@ -232,7 +232,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-C3-GZ3M7.js",
+    "file": "assets/main-BElb43EX.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,

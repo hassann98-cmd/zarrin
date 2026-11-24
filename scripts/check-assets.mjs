@@ -14,6 +14,7 @@ for (const entry of [
   "src/styles/route-product.css",
   "src/styles/route-cart-checkout.css",
   "src/styles/route-account-auth.css",
+  "src/styles/catalog-filter-chips.css",
 ]) {
   if (!manifest[entry]?.isEntry || !manifest[entry]?.file)
     throw Error(`Missing standalone CSS entry: ${entry}`);
@@ -22,6 +23,8 @@ if (!manifest["src/islands/AuthPage.jsx"]?.css?.length)
   throw Error("Missing AuthPage island stylesheet dependency");
 if (!manifest["src/islands/AiAssistant.js"]?.css?.length)
   throw Error("Missing lazy AI assistant stylesheet from its island chunk");
+if (!manifest["src/islands/SearchDiscovery.js"]?.css?.length)
+  throw Error("Missing lazy SearchDiscovery stylesheet from its island chunk");
 for (const [name, entry] of Object.entries(manifest)) {
   for (const file of [
     entry.file,

@@ -48,7 +48,10 @@ test("all three header search surfaces expose zero-state discovery, submit/resul
   assert.match(headerSource, /c\.lazy\(\(\) => window\.JLuxeSearchDiscovery\(\)\)/);
   assert.match(mainSource, /JLuxeSearchDiscovery = \(\) => import\("\.\/islands\/SearchDiscovery\.js"\)/);
   assert.match(discoverySource, /function SearchDiscovery\(/);
-  assert.doesNotMatch(headerSource, /recent-searches\.js/);
+  assert.match(headerSource, /import \{ addRecentSearch, readRecentSearches, removeRecentSearch, writeRecentSearches \} from "\.\.\/lib\/recent-searches\.js"/);
+  assert.match(headerSource, /saveRecentSearch: \(query\) => publish\(addRecentSearch\(readRecentSearches\(\), query\)\)/);
+  assert.match(headerSource, /removeRecentSearch: \(query\) => publish\(removeRecentSearch\(readRecentSearches\(\), query\)\)/);
+  assert.doesNotMatch(discoverySource, /recent-searches\.js/);
   assert.equal((headerSource.match(/onSubmit: \(\) => saveRecentSearch\(/g) || []).length, 3);
   assert.match(headerSource, /onFocus: \(\) => \{ d\(!0\); loadRecentSearches\(\); \}/);
   assert.match(headerSource, /onFocus: \(\) => \{ setFocused\(!0\); loadRecentSearches\(\); \}/);

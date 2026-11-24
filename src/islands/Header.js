@@ -2,6 +2,7 @@ import { useDialog } from "../lib/use-dialog.js";
 import { siteUrl } from "../lib/api.js";
 import { requestCartDrawerOpen } from "../lib/cart-drawer.js";
 import { fetchLiveSearch } from "../lib/live-search.js";
+import { addRecentSearch, readRecentSearches, removeRecentSearch, writeRecentSearches } from "../lib/recent-searches.js";
 import { j as e } from "../lib/jsx.js";
 import { r as c } from "../lib/icons.js";
 import { r as L } from "../lib/react-dom.js";
@@ -9,6 +10,7 @@ import { L as U, B as g } from "../components/button.js";
 import { g as b } from "../lib/theme-settings.js";
 import { u as R } from "../lib/use-cart.js";
 import { S as f } from "../icons/search.js";
+import { T } from "../icons/tag.js";
 import { S as $ } from "../icons/shopping-cart.js";
 import { U as A } from "../icons/user.js";
 import { X as D } from "../icons/x.js";
@@ -54,18 +56,14 @@ function I(l) {
   );
 }
 function useRecentSearches() {
-  const [recentSearches, setRecentSearches] = c.useState([]);
-  const load = () => window.JLuxeSearchDiscovery?.().then((module) => setRecentSearches(module.readRecentSearches())).catch(() => {});
-  const update = (change) => window.JLuxeSearchDiscovery?.().then((module) => {
-    const next = change(module, module.readRecentSearches());
-    setRecentSearches(module.writeRecentSearches(next));
-  }).catch(() => {});
+  const [recentSearches, setRecentSearches] = c.useState(() => readRecentSearches());
+  const publish = (next) => setRecentSearches(writeRecentSearches(next));
   return {
     recentSearches,
-    loadRecentSearches: load,
-    saveRecentSearch: (query) => update((module, current) => module.addRecentSearch(current, query)),
-    removeRecentSearch: (query) => update((module, current) => module.removeRecentSearch(current, query)),
-    clearRecentSearches: () => update(() => []),
+    loadRecentSearches: () => setRecentSearches(readRecentSearches()),
+    saveRecentSearch: (query) => publish(addRecentSearch(readRecentSearches(), query)),
+    removeRecentSearch: (query) => publish(removeRecentSearch(readRecentSearches(), query)),
+    clearRecentSearches: () => publish([]),
   };
 }
 function hasSearchDiscovery(recent, trending) {
@@ -666,4 +664,4 @@ function K({ className: l }) {
     }),
   });
 }
-export { K as BrandLogo, J as default, MobileSearch as MobileHeaderSearch };
+export { K as BrandLogo, J as default, MobileSearch as MobileHeaderSearch, C as LiveSearchResults };

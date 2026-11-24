@@ -169,18 +169,28 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
 		$search_placeholder = (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
 	}
 
-	$trending_raw = isset( $posted['trending_searches'] ) && is_scalar( $posted['trending_searches'] )
-		? (string) $posted['trending_searches']
-		: '';
+	$trending_posted = $posted['trending_searches'] ?? '';
+	if ( is_array( $trending_posted ) ) {
+		$trending_items = $trending_posted;
+	} elseif ( is_scalar( $trending_posted ) ) {
+		$trending_items = preg_split( '/[\r\n،,]+/u', (string) $trending_posted ) ?: array();
+	} else {
+		$trending_items = array();
+	}
 	$trending_searches = array();
 	$trending_seen     = array();
-	foreach ( preg_split( '/[\r\n،,]+/u', $trending_raw ) ?: array() as $trending_search ) {
+	foreach ( $trending_items as $trending_search ) {
+		if ( ! is_scalar( $trending_search ) ) {
+			continue;
+		}
 		$trending_search = trim( sanitize_text_field( (string) $trending_search ) );
 		if ( '' === $trending_search ) {
 			continue;
 		}
 		$trending_search = wp_html_excerpt( $trending_search, 40, '' );
-		$trending_key    = strtolower( $trending_search );
+		$trending_key    = function_exists( 'mb_strtolower' )
+			? call_user_func_array( 'mb_strtolower', array( $trending_search, 'UTF-8' ) )
+			: strtolower( $trending_search );
 		if ( '' === $trending_search || isset( $trending_seen[ $trending_key ] ) ) {
 			continue;
 		}

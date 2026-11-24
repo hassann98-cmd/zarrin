@@ -420,8 +420,9 @@ function add_query_arg($key,$value=null,$url=null){
 }
 if(!function_exists('remove_query_arg')){function remove_query_arg($key,$url=''){return add_query_arg(array_fill_keys((array)$key,false),$url);}}
 if(!function_exists('get_pagenum_link')){function get_pagenum_link($pagenum=1,$escape=true){
+ $GLOBALS['get_pagenum_link_calls'][]=[$pagenum,$escape];
  $request=(string)($_SERVER['REQUEST_URI']??'/catalog/');$parts=parse_url($request);$path=preg_replace('~/page/\d+/?$~','/',(string)($parts['path']??'/catalog/'));
- $url=home_url($path);return add_query_arg($_GET,$url);
+ $url=add_query_arg($_GET,home_url($path));return $escape?str_replace('&','&amp;',$url):$url;
 }}
 class WP_User {
  public $ID; public $roles; public $caps=[]; public $user_login; public $user_pass=''; public $display_name='Test customer'; public $user_email='test@example.invalid';

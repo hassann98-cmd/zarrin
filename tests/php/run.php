@@ -34,6 +34,11 @@ check(
 	array() === jluxe_sanitize_header( array( 'trending_searches' => " , ،\n  " ), $trending_defaults )['trending_searches'],
 	'R536 an empty trending-search setting stays empty rather than adding defaults'
 );
+$trending_array_clean = jluxe_sanitize_header( array( 'trending_searches' => array( 'Tea', 'tea', 'دسته', 'عبارت,با,کاما', 7, array( 'غیرمجاز' ) ) ), $trending_defaults )['trending_searches'];
+check(
+	array( 'Tea', 'دسته', 'عبارت,با,کاما', '7' ) === $trending_array_clean,
+	'R536 JSON-import arrays retain scalar entries as-is, deduplicate case-insensitively, and ignore nested values'
+);
 
 $active_filter_saved_get = $_GET;
 $active_filter_saved_uri = $_SERVER['REQUEST_URI'] ?? '';
@@ -85,6 +90,36 @@ check(
 	! isset( $clear_filter_query['product_cat'], $clear_filter_query['product_brand'], $clear_filter_query['min_price'], $clear_filter_query['max_price'], $clear_filter_query['on_sale'], $clear_filter_query['filter_stock'], $clear_filter_query['filter_color'], $clear_filter_query['query_type_color'], $clear_filter_query['paged'] ) &&
 	str_contains( $active_filter_markup, 'دسته: قفسه' ) && str_contains( $active_filter_markup, 'از ۱,۲۳۴,۵۰۰ تومان' ) && str_contains( $active_filter_markup, 'role="region" aria-label="فیلترهای فعال"' ),
 	'R536 active-filter chips render labels and remove only one query parameter while preserving search, sort, WooCommerce filters, and clearing pagination'
+);
+
+$_GET = array( 's' => 'rug', 'post_type' => 'product', 'orderby' => 'date', 'min_price' => '100', 'filter_stock' => 'instock', 'on_sale' => '1', 'paged' => '2', 'product-page' => '3' );
+$_SERVER['REQUEST_URI'] = '/catalog/page/2/';
+$GLOBALS['get_pagenum_link_calls'] = array();
+ob_start();
+jluxe_render_shop_toolbar();
+$pagination_filter_markup = (string) ob_get_clean();
+preg_match_all( '~<a\\b(?=[^>]*data-jluxe-catalog-filter-chip)[^>]*href="([^"]*)"[^>]*aria-label="([^"]*)"~', $pagination_filter_markup, $pagination_filter_matches, PREG_SET_ORDER );
+$pagination_filter_urls = array();
+foreach ( $pagination_filter_matches as $pagination_filter_match ) {
+	$url = html_entity_decode( $pagination_filter_match[1], ENT_QUOTES );
+	parse_str( (string) ( parse_url( $url, PHP_URL_QUERY ) ?: '' ), $query );
+	$pagination_filter_urls[ html_entity_decode( $pagination_filter_match[2], ENT_QUOTES ) ] = array( 'url' => $url, 'query' => $query );
+}
+$min_chip_query = $pagination_filter_urls['حذف فیلتر حداقل قیمت']['query'] ?? array();
+$stock_chip_query = $pagination_filter_urls['حذف فیلتر فقط موجودها']['query'] ?? array();
+$sale_chip_query = $pagination_filter_urls['حذف فیلتر فقط تخفیف‌دارها']['query'] ?? array();
+$pagination_urls_clean = ! str_contains( $pagination_filter_markup, 'amp;amp;' ) && ! str_contains( $pagination_filter_markup, 'amp%3B' );
+foreach ( $pagination_filter_urls as $filter_chip ) {
+	$pagination_urls_clean = $pagination_urls_clean && ! str_contains( $filter_chip['url'], 'amp;' ) && ! str_contains( $filter_chip['url'], 'amp%3B' ) && ! isset( $filter_chip['query']['paged'], $filter_chip['query']['page'], $filter_chip['query']['product-page'] );
+}
+check(
+	3 === count( $pagination_filter_urls ) &&
+	array( 1, false ) === ( $GLOBALS['get_pagenum_link_calls'][0] ?? null ) &&
+	$pagination_urls_clean &&
+	isset( $min_chip_query['filter_stock'], $min_chip_query['on_sale'], $min_chip_query['s'], $min_chip_query['post_type'] ) && ! isset( $min_chip_query['min_price'] ) &&
+	isset( $stock_chip_query['min_price'], $stock_chip_query['on_sale'], $stock_chip_query['s'] ) && ! isset( $stock_chip_query['filter_stock'] ) &&
+	isset( $sale_chip_query['min_price'], $sale_chip_query['filter_stock'], $sale_chip_query['s'] ) && ! isset( $sale_chip_query['on_sale'] ),
+	'R536 unescaped page-one URLs have no amp entities and each price/stock/sale chip removes only itself while preserving the other query filters'
 );
 $_GET = $active_filter_saved_get;
 $_SERVER['REQUEST_URI'] = $active_filter_saved_uri;
@@ -418,6 +453,10 @@ if ( $r338_had_fired ) { $GLOBALS['fired'] = $r338_old_fired; } else { unset( $G
 jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
+ob_start();
+jluxe_assets_admin_notice();
+$asset_admin_notice_output = (string) ob_get_clean();
+check( '' === $asset_admin_notice_output, 'R536 asset-health notice requires the conditional catalog-filter and lazy SearchDiscovery CSS manifest assets' );
 // R361: main CSS/JS must carry a filemtime version (not null) so browsers
 // re-fetch when file content changes even if the hashed name stays the same.
 $r361_css_ver = $GLOBALS['styles']['jluxe-main-0'][2] ?? null;
@@ -430,6 +469,7 @@ check(
 
 // Route CSS and optional design variants remain off the shared homepage request.
 $css_split_old_query = $GLOBALS['query_kind'] ?? null;
+$css_split_old_get = $_GET;
 $css_split_old_options = $GLOBALS['options'];
 $css_split_old_styles = $GLOBALS['styles'];
 $css_split_settings = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ) );
@@ -460,6 +500,16 @@ foreach ( $css_split_routes as $css_split_context => $css_split_handle ) {
 		check( isset( $GLOBALS['styles']['jluxe-auth-page-0'] ) && in_array( 'jluxe-route-account-auth', $GLOBALS['styles']['jluxe-auth-page-0'][1] ?? array(), true ), 'AuthPage manifest CSS is enqueued after the account route stylesheet' );
 	}
 }
+$_GET = array();
+foreach ( array( 'shop', 'search' ) as $css_filter_context ) {
+	$GLOBALS['query_kind'] = $css_filter_context;
+	$GLOBALS['styles'] = array();
+	jluxe_enqueue_assets();
+	check(
+		isset( $GLOBALS['styles']['jluxe-catalog-filter-chips'] ) && in_array( 'jluxe-main-0', $GLOBALS['styles']['jluxe-catalog-filter-chips'][1] ?? array(), true ),
+		'R536 catalog filter-chip CSS is enqueued on ' . $css_filter_context . ' even without initial GET filter parameters'
+	);
+}
 $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ), 'header' => array( 'variant' => 'premium' ) );
 $GLOBALS['query_kind'] = 'front';
 $GLOBALS['styles'] = array();
@@ -486,6 +536,7 @@ foreach ( array( 'canva_home' => 'jluxe-design-variants', 'neumorphism' => 'jlux
 }
 $GLOBALS['options'] = $css_split_old_options;
 $GLOBALS['styles'] = $css_split_old_styles;
+$_GET = $css_split_old_get;
 if ( null === $css_split_old_query ) { unset( $GLOBALS['query_kind'] ); } else { $GLOBALS['query_kind'] = $css_split_old_query; }
 jluxe_get_theme_settings( true );
 $r314_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
