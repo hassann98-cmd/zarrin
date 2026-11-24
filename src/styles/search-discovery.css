@@ -1,0 +1,99 @@
+/* Deferred with the shared zero-state search discovery island on focus. */
+/* Zero-state search discovery reuses the existing header-search overlays. */
+.jluxe-search-discovery {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: hsl(var(--foreground));
+}
+.jluxe-search-discovery__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.jluxe-search-discovery__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.5rem;
+  color: hsl(var(--foreground));
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.jluxe-search-discovery__heading h3 { margin: 0; font: inherit; }
+.jluxe-search-discovery__heading > button {
+  min-height: 28px;
+  margin-inline-start: auto;
+  padding: 0 0.35rem;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--primary));
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.jluxe-search-discovery__icon { width: 0.9rem; height: 0.9rem; color: hsl(var(--primary)); }
+.jluxe-search-discovery__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.jluxe-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 0.45rem 0 0.8rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.jluxe-search-chip > button:first-child {
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+button.jluxe-search-chip {
+  padding-inline: 0.85rem;
+  text-align: start;
+  cursor: pointer;
+}
+.jluxe-search-chip:hover,
+.jluxe-search-chip:focus-within {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--surface));
+}
+.jluxe-search-chip__remove {
+  display: inline-grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: hsl(var(--foreground) / 0.68);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.jluxe-search-chip__remove:hover { background: hsl(var(--surface)); color: hsl(var(--primary)); }
+.jluxe-search-discovery-popup { max-height: min(58vh, 26rem); }

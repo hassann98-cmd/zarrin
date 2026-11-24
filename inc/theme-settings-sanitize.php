@@ -169,10 +169,33 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
 		$search_placeholder = (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
 	}
 
+	$trending_raw = isset( $posted['trending_searches'] ) && is_scalar( $posted['trending_searches'] )
+		? (string) $posted['trending_searches']
+		: '';
+	$trending_searches = array();
+	$trending_seen     = array();
+	foreach ( preg_split( '/[\r\n،,]+/u', $trending_raw ) ?: array() as $trending_search ) {
+		$trending_search = trim( sanitize_text_field( (string) $trending_search ) );
+		if ( '' === $trending_search ) {
+			continue;
+		}
+		$trending_search = wp_html_excerpt( $trending_search, 40, '' );
+		$trending_key    = strtolower( $trending_search );
+		if ( '' === $trending_search || isset( $trending_seen[ $trending_key ] ) ) {
+			continue;
+		}
+		$trending_seen[ $trending_key ] = true;
+		$trending_searches[] = $trending_search;
+		if ( count( $trending_searches ) >= 10 ) {
+			break;
+		}
+	}
+
 	return array(
 		'variant'              => $variant,
 		'sticky'               => ! empty( $posted['sticky'] ),
 		'search_placeholder'   => $search_placeholder,
+		'trending_searches'    => array_values( $trending_searches ),
 		// نمایش/عدم‌نمایش هر آیتم حالا مستقل برای موبایل و دسکتاپه (قبلاً
 		// یک تیک مشترک هر دو حالت رو کنترل می‌کرد — درخواست واقعی: بشه مثلاً
 		// آیکون سبد رو فقط از نوار پایین موبایل حذف کرد ولی توی دسکتاپ نگه داشت).

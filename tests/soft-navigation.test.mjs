@@ -310,6 +310,43 @@ test("a slower obsolete archive request cannot overwrite the newest route", asyn
   assert.equal(app.window.location.href, latestUrl);
 });
 
+test("catalog filter chips use soft navigation while preserving their server-built URL", async (t) => {
+  const url = "https://shop.test/store/catalog/?s=sofa&post_type=product&orderby=price&filter_color=red";
+  const app = boot({
+    url: "https://shop.test/store/catalog/?s=sofa&post_type=product&orderby=price&filter_color=red&filter_stock=instock",
+    html: documentHtml({ main: `<div class="jluxe-shop-toolbar"></div><div id="product-result">موجود</div><a id="remove-stock" data-jluxe-catalog-filter-chip href="${url}" aria-label="حذف فیلتر فقط موجودها">فقط موجودها ×</a>` }),
+    respond: (requestUrl) => responseFor(requestUrl, documentHtml({
+      title: "نتایج فیلترشده",
+      canonical: url,
+      main: `<div class="jluxe-shop-toolbar"></div><div id="product-result">رنگ قرمز</div>`,
+    })),
+  });
+  t.after(() => app.dom.window.close());
+  const link = app.window.document.querySelector("#remove-stock");
+  const click = new app.window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+  link.dispatchEvent(click);
+  await tick();
+  assert.equal(click.defaultPrevented, true);
+  assert.equal(app.requests.length, 1);
+  assert.equal(app.requests[0].url, url);
+  assert.equal(app.window.location.href, url);
+  assert.equal(app.window.document.querySelector("#product-result").textContent, "رنگ قرمز");
+});
+
+test("browsers without fetch keep filter chips fully native as a complete fallback", (t) => {
+  const url = "https://shop.test/store/catalog/?filter_color=red";
+  const app = boot({
+    url: "https://shop.test/store/catalog/?filter_color=red&filter_stock=instock",
+    html: documentHtml({ main: `<a id="remove-stock" data-jluxe-catalog-filter-chip href="${url}">فقط موجودها ×</a>` }),
+  });
+  t.after(() => app.dom.window.close());
+  app.window.fetch = undefined;
+  const click = new app.window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+  app.window.document.querySelector("#remove-stock").dispatchEvent(click);
+  assert.equal(click.defaultPrevented, false);
+  assert.equal(app.requests.length, 0);
+});
+
 test("browsers without fetch keep archive links and WooCommerce sorting fully native", (t) => {
   const nextUrl = "https://shop.test/store/catalog/page/2/";
   const app = boot({

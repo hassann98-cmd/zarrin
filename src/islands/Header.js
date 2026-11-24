@@ -9,7 +9,6 @@ import { L as U, B as g } from "../components/button.js";
 import { g as b } from "../lib/theme-settings.js";
 import { u as R } from "../lib/use-cart.js";
 import { S as f } from "../icons/search.js";
-import { T } from "../icons/tag.js";
 import { S as $ } from "../icons/shopping-cart.js";
 import { U as A } from "../icons/user.js";
 import { X as D } from "../icons/x.js";
@@ -54,7 +53,30 @@ function I(l) {
     { results: r, loading: o }
   );
 }
-function C({ query: l, results: r, loading: n }) {
+function useRecentSearches() {
+  const [recentSearches, setRecentSearches] = c.useState([]);
+  const load = () => window.JLuxeSearchDiscovery?.().then((module) => setRecentSearches(module.readRecentSearches())).catch(() => {});
+  const update = (change) => window.JLuxeSearchDiscovery?.().then((module) => {
+    const next = change(module, module.readRecentSearches());
+    setRecentSearches(module.writeRecentSearches(next));
+  }).catch(() => {});
+  return {
+    recentSearches,
+    loadRecentSearches: load,
+    saveRecentSearch: (query) => update((module, current) => module.addRecentSearch(current, query)),
+    removeRecentSearch: (query) => update((module, current) => module.removeRecentSearch(current, query)),
+    clearRecentSearches: () => update(() => []),
+  };
+}
+function hasSearchDiscovery(recent, trending) {
+  return recent.length > 0 || trending.length > 0;
+}
+const SearchDiscovery = c.lazy(() => window.JLuxeSearchDiscovery());
+function renderSearchDiscovery(props) {
+  return e.jsx(c.Suspense, { fallback: null, children: e.jsx(SearchDiscovery, props) });
+}
+
+function C({ query: l, results: r, loading: n, onSelect }) {
   const settings = b(),
     categoryUrl = (settings.megaMenu && settings.megaMenu.url) || siteUrl("shop"),
     o =
@@ -115,6 +137,7 @@ function C({ query: l, results: r, loading: n }) {
                 r.viewAllUrl
                   ? e.jsxs("a", {
                       href: r.viewAllUrl,
+                      onClick: () => onSelect?.(l),
                       className:
                         "flex h-11 flex-1 items-center justify-center rounded-xl bg-primary px-3 text-button font-medium text-primary-foreground transition-colors hover:bg-primary-hover",
                       children: ["جستجوی کامل برای «", displayQuery, "»"],
@@ -155,6 +178,7 @@ function C({ query: l, results: r, loading: n }) {
                           "a",
                           {
                             href: t.url,
+                            onClick: () => onSelect?.(l),
                             className:
                               "flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted",
                             children: [
@@ -206,6 +230,7 @@ function C({ query: l, results: r, loading: n }) {
                           "a",
                           {
                             href: t.url,
+                            onClick: () => onSelect?.(l),
                             className:
                               "rounded-full border border-border bg-muted px-3 py-1.5 text-caption text-foreground transition-colors hover:border-primary/40 hover:text-primary",
                             children: t.name,
@@ -232,6 +257,7 @@ function C({ query: l, results: r, loading: n }) {
                           "a",
                           {
                             href: t.url,
+                            onClick: () => onSelect?.(l),
                             className:
                               "flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1.5 text-caption text-foreground transition-colors hover:border-primary/40 hover:text-primary",
                             children: [
@@ -252,6 +278,7 @@ function C({ query: l, results: r, loading: n }) {
             r.viewAllUrl
               ? e.jsxs("a", {
                   href: r.viewAllUrl,
+                  onClick: () => onSelect?.(l),
                   className:
                     "flex h-11 items-center justify-center rounded-xl bg-primary text-button font-medium text-primary-foreground transition-colors hover:bg-primary-hover",
                   children: ["مشاهده همه‌ی نتایج برای «", displayQuery, "»"],
@@ -271,6 +298,10 @@ function J() {
     { results: x, loading: h } = I(n),
     s = b().header,
     dialogRef = c.useRef(null);
+  const { recentSearches, loadRecentSearches, saveRecentSearch, removeRecentSearch: removeRecent, clearRecentSearches } = useRecentSearches();
+  const trendingSearches = Array.isArray(s?.trending_searches) ? s.trending_searches.filter((term) => typeof term === "string" && term.trim()).slice(0, 10) : [];
+  const discoveryAvailable = hasSearchDiscovery(recentSearches, trendingSearches);
+  const chooseSearch = (term) => { o(term); d(true); saveRecentSearch(term); };
   useDialog(m, dialogRef, () => i(!1));
   (c.useEffect(() => {
     function a() {
@@ -282,13 +313,15 @@ function J() {
     );
   }, []),
     c.useEffect(() => {
-      if (m)
+      if (m) {
+        loadRecentSearches();
         return (
           (document.body.style.overflow = "hidden"),
           () => {
             document.body.style.overflow = "";
           }
         );
+      }
     }, [m]));
   const u = (s == null ? void 0 : s.show_search_desktop) ?? !0,
     j = (s == null ? void 0 : s.show_account_desktop) ?? !0,
@@ -316,6 +349,7 @@ function J() {
                 role: "search",
                 action: siteUrl("home"),
                 method: "get",
+                onSubmit: () => saveRecentSearch(n),
                 className: "relative",
                 children: [
                   e.jsx(f, {
@@ -328,7 +362,7 @@ function J() {
                     name: "s",
                     value: n,
                     onChange: (a) => o(a.target.value),
-                    onFocus: () => d(!0),
+                    onFocus: () => { d(!0); loadRecentSearches(); },
                     onBlur: () => d(!1),
                     placeholder: searchPlaceholder,
                     "aria-label": "جستجو در فروشگاه",
@@ -350,9 +384,15 @@ function J() {
                     onMouseDown: (a) => a.preventDefault(),
                     className:
                       "jluxe-header-search-results--desktop absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-lg",
-                    children: e.jsx(C, { query: n, results: x, loading: h }),
+                    children: e.jsx(C, { query: n, results: x, loading: h, onSelect: saveRecentSearch }),
                   })
-                : null,
+                : t && n.trim().length < 2 && discoveryAvailable
+                  ? e.jsx("div", {
+                      onMouseDown: (a) => a.preventDefault(),
+                      className: "jluxe-header-search-results--desktop jluxe-search-discovery-popup absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto rounded-2xl border border-border bg-surface p-4 shadow-lg",
+                      children: renderSearchDiscovery({ recent: recentSearches, trending: trendingSearches, onChoose: chooseSearch, onRemove: removeRecent, onClear: clearRecentSearches }),
+                    })
+                  : null,
             ],
           })
         : null,
@@ -440,6 +480,7 @@ function J() {
                       role: "search",
                       action: siteUrl("home"),
                       method: "get",
+                      onSubmit: () => saveRecentSearch(n),
                       className: "relative flex-1",
                       children: [
                         e.jsx(f, {
@@ -487,13 +528,15 @@ function J() {
                   className: "flex-1 overflow-y-auto p-4",
                   children:
                     n.trim().length >= 2
-                      ? e.jsx(C, { query: n, results: x, loading: h })
-                      : e.jsx("p", {
-                          className:
-                            "py-8 text-center text-small text-text-muted",
-                          children:
-                            "نام محصول، دسته‌بندی یا برند را جستجو کنید.",
-                        }),
+                      ? e.jsx(C, { query: n, results: x, loading: h, onSelect: saveRecentSearch })
+                      : discoveryAvailable
+                        ? renderSearchDiscovery({ recent: recentSearches, trending: trendingSearches, onChoose: chooseSearch, onRemove: removeRecent, onClear: clearRecentSearches })
+                        : e.jsx("p", {
+                            className:
+                              "py-8 text-center text-small text-text-muted",
+                            children:
+                              "نام محصول، دسته‌بندی یا برند را جستجو کنید.",
+                          }),
                 }),
               ],
             }),
@@ -516,6 +559,10 @@ function MobileSearch() {
         "string" && headerSettings.search_placeholder.trim()
         ? headerSettings.search_placeholder.trim()
         : "جستجو در فروشگاه";
+  const { recentSearches, loadRecentSearches, saveRecentSearch, removeRecentSearch: removeRecent, clearRecentSearches } = useRecentSearches();
+  const trendingSearches = Array.isArray(headerSettings?.trending_searches) ? headerSettings.trending_searches.filter((term) => typeof term === "string" && term.trim()).slice(0, 10) : [];
+  const discoveryAvailable = hasSearchDiscovery(recentSearches, trendingSearches);
+  const chooseSearch = (term) => { setQuery(term); setFocused(true); saveRecentSearch(term); };
   return enabled
     ? e.jsxs("div", {
         className: "relative h-10 w-full min-w-0 md:hidden",
@@ -524,6 +571,7 @@ function MobileSearch() {
             role: "search",
             action: siteUrl("home"),
             method: "get",
+            onSubmit: () => saveRecentSearch(query),
             className: "relative h-full",
             children: [
               e.jsx(f, {
@@ -536,7 +584,7 @@ function MobileSearch() {
                 name: "s",
                 value: query,
                 onChange: (event) => setQuery(event.target.value),
-                onFocus: () => setFocused(!0),
+                onFocus: () => { setFocused(!0); loadRecentSearches(); },
                 onBlur: () => setFocused(!1),
                 placeholder: searchPlaceholder,
                 "aria-label": "جستجو در فروشگاه",
@@ -561,9 +609,16 @@ function MobileSearch() {
                   query,
                   results,
                   loading,
+                  onSelect: saveRecentSearch,
                 }),
               })
-            : null,
+            : focused && query.trim().length < 2 && discoveryAvailable
+              ? e.jsx("div", {
+                  onMouseDown: (event) => event.preventDefault(),
+                  className: "jluxe-header-search-results--mobile jluxe-search-discovery-popup absolute inset-x-0 top-full z-40 mt-2 overflow-y-auto rounded-2xl border border-border bg-surface p-3 shadow-lg",
+                  children: renderSearchDiscovery({ recent: recentSearches, trending: trendingSearches, onChoose: chooseSearch, onRemove: removeRecent, onClear: clearRecentSearches }),
+                })
+              : null,
         ],
       })
     : null;

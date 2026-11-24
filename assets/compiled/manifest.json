@@ -130,7 +130,7 @@
     ]
   },
   "src/islands/Footer.js": {
-    "file": "assets/Footer-DNmEDYTq.js",
+    "file": "assets/Footer-wbNoh-Bu.js",
     "name": "Footer",
     "src": "src/islands/Footer.js",
     "isDynamicEntry": true,
@@ -142,7 +142,7 @@
     ]
   },
   "src/islands/Header.js": {
-    "file": "assets/Header-CFDgYCG9.js",
+    "file": "assets/Header-DkOLdYTT.js",
     "name": "Header",
     "src": "src/islands/Header.js",
     "isDynamicEntry": true,
@@ -202,6 +202,18 @@
       "_mobile-dock-mode-QPM6iIY7.js"
     ]
   },
+  "src/islands/SearchDiscovery.js": {
+    "file": "assets/SearchDiscovery-BG557cmc.js",
+    "name": "SearchDiscovery",
+    "src": "src/islands/SearchDiscovery.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_shared-shell-ui-CpdfCG3m.js"
+    ],
+    "css": [
+      "assets/SearchDiscovery-Dnpypi8W.css"
+    ]
+  },
   "src/lib/checkout-map.js": {
     "file": "assets/checkout-map-1FUIe2Uy.js",
     "name": "checkout-map",
@@ -220,7 +232,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-COvFZUsg.js",
+    "file": "assets/main-C3-GZ3M7.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -233,6 +245,7 @@
       "src/lib/checkout-map.js",
       "src/islands/MegaMenuClickToggle.js",
       "src/islands/MegaMenuPanel.js",
+      "src/islands/SearchDiscovery.js",
       "src/islands/Footer.js",
       "src/islands/Header.js",
       "src/islands/MegaMenu.js",
@@ -255,6 +268,15 @@
       "assets/IRANYekanMobileBlack-DVW6csJE.woff2",
       "assets/IRANYekanMobileExtraBlack-ExqMngrj.woff2"
     ]
+  },
+  "src/styles/catalog-filter-chips.css": {
+    "file": "assets/catalog-filter-chips-IbCQqwr3.css",
+    "name": "catalog-filter-chips",
+    "names": [
+      "catalog-filter-chips.css"
+    ],
+    "src": "src/styles/catalog-filter-chips.css",
+    "isEntry": true
   },
   "src/styles/design-variants.css": {
     "file": "assets/design-variants-CEjNmtEO.css",

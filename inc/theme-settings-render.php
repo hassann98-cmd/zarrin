@@ -555,6 +555,13 @@ function jluxe_render_header_page(): void {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="jluxe-header-trending-searches">جستجوهای پرطرفدار (اختیاری)</label></th>
+					<td>
+						<textarea id="jluxe-header-trending-searches" name="header[trending_searches]" rows="3" maxlength="1200" class="regular-text" placeholder="عبارت‌ها را با ویرگول یا خط جدید جدا کنید"><?php echo esc_textarea( implode( "\n", (array) ( $settings['header']['trending_searches'] ?? array() ) ) ); ?></textarea>
+						<p class="description">حداکثر ۱۰ عبارت، هرکدام تا ۴۰ نویسه؛ ویرگول فارسی یا انگلیسی پذیرفته می‌شود. خالی بماند، این بخش در جستجوی سایت پنهان است.</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row">نمایش حساب کاربری</th>
 					<td>
 						<label><input type="checkbox" name="header[show_account_desktop]" value="1" <?php checked( $settings['header']['show_account_desktop'] ?? true ); ?> /> دسکتاپ</label>

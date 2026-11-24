@@ -425,6 +425,15 @@ function jluxe_enqueue_assets() {
 	if ( isset( $route_styles[ $context ] ) ) {
 		jluxe_enqueue_manifest_stylesheet( $route_styles[ $context ][0], $route_styles[ $context ][1] );
 	}
+	if ( 'shop' === $context ) {
+		$filter_chip_keys = array( 'product_cat', 'product_brand', 'min_price', 'max_price', 'on_sale', 'filter_stock' );
+		foreach ( $filter_chip_keys as $filter_chip_key ) {
+			if ( isset( $_GET[ $filter_chip_key ] ) && is_scalar( $_GET[ $filter_chip_key ] ) && '' !== (string) wp_unslash( $_GET[ $filter_chip_key ] ) && ( 'on_sale' !== $filter_chip_key || '1' === (string) $_GET[ $filter_chip_key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				jluxe_enqueue_manifest_stylesheet( 'src/styles/catalog-filter-chips.css', 'jluxe-catalog-filter-chips' );
+				break;
+			}
+		}
+	}
 	if ( 'account' === $context ) {
 		$auth_entry = $manifest['src/islands/AuthPage.jsx'] ?? array();
 		foreach ( $auth_entry['css'] ?? array() as $i => $css_file ) {

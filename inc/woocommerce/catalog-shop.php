@@ -1220,7 +1220,64 @@ function jluxe_render_shop_toolbar(): void {
 	$cat_terms   = is_wp_error( $cat_terms ) ? array() : $cat_terms;
 	$brand_terms = taxonomy_exists( 'product_brand' ) ? get_terms( array( 'taxonomy' => 'product_brand', 'hide_empty' => true ) ) : array();
 	$brand_terms = is_wp_error( $brand_terms ) ? array() : $brand_terms;
-	$has_filters = $current_cat_id || $current_brand_id || $current_min_price || $current_max_price || $current_in_stock || $current_on_sale;
+	$has_min_price = '' !== $current_min_price;
+	$has_max_price = '' !== $current_max_price;
+	$price_currency_label = function_exists( 'jluxe_currency_label' ) ? jluxe_currency_label( get_woocommerce_currency() ) : get_woocommerce_currency_symbol();
+	$has_filters   = $current_cat_id || $current_brand_id || $has_min_price || $has_max_price || $current_in_stock || $current_on_sale;
+
+	$filter_base_url = function_exists( 'get_pagenum_link' ) ? get_pagenum_link( 1 ) : wc_get_page_permalink( 'shop' );
+	$filter_base_url = remove_query_arg( array( 'paged', 'page' ), $filter_base_url );
+	$filter_url      = static function ( array $remove_keys = array() ) use ( $filter_base_url ): string {
+		return remove_query_arg( array_values( array_unique( array_merge( array( 'paged', 'page' ), $remove_keys ) ) ), $filter_base_url );
+	};
+	$active_filter_chips = array();
+	$add_filter_chip     = static function ( string $label, string $remove_label, array $remove_keys ) use ( &$active_filter_chips, $filter_url ): void {
+		$active_filter_chips[] = array(
+			'label'        => $label,
+			'remove_label' => $remove_label,
+			'url'          => $filter_url( $remove_keys ),
+		);
+	};
+
+	if ( isset( $_GET['product_cat'] ) && is_scalar( $_GET['product_cat'] ) && taxonomy_exists( 'product_cat' ) ) {
+		$filter_cat_slug = sanitize_title( wp_unslash( (string) $_GET['product_cat'] ) );
+		$filter_cat_term = '' !== $filter_cat_slug ? get_term_by( 'slug', $filter_cat_slug, 'product_cat' ) : false;
+		$is_archive_cat  = $queried instanceof WP_Term && 'product_cat' === $queried->taxonomy && $filter_cat_slug === $queried->slug;
+		if ( $filter_cat_term && ! is_wp_error( $filter_cat_term ) && ! $is_archive_cat ) {
+			$add_filter_chip( 'دسته: ' . (string) $filter_cat_term->name, 'دسته ' . (string) $filter_cat_term->name, array( 'product_cat' ) );
+		}
+	}
+	if ( isset( $_GET['product_brand'] ) && is_scalar( $_GET['product_brand'] ) && taxonomy_exists( 'product_brand' ) ) {
+		$filter_brand_slug = sanitize_title( wp_unslash( (string) $_GET['product_brand'] ) );
+		$filter_brand_term = '' !== $filter_brand_slug ? get_term_by( 'slug', $filter_brand_slug, 'product_brand' ) : false;
+		$is_archive_brand  = $queried instanceof WP_Term && 'product_brand' === $queried->taxonomy && $filter_brand_slug === $queried->slug;
+		if ( $filter_brand_term && ! is_wp_error( $filter_brand_term ) && ! $is_archive_brand ) {
+			$add_filter_chip( 'برند: ' . (string) $filter_brand_term->name, 'برند ' . (string) $filter_brand_term->name, array( 'product_brand' ) );
+		}
+	}
+	foreach ( array( 'min_price' => array( 'از ', 'حداقل قیمت' ), 'max_price' => array( 'تا ', 'حداکثر قیمت' ) ) as $price_key => $price_labels ) {
+		$price_value = 'min_price' === $price_key ? $current_min_price : $current_max_price;
+		if ( '' === $price_value ) {
+			continue;
+		}
+		$formatted_price = jluxe_fa_digits( number_format( (float) $price_value, 0, '.', ',' ) );
+		$add_filter_chip( $price_labels[0] . $formatted_price . ' ' . $price_currency_label, $price_labels[1], array( $price_key ) );
+	}
+	if ( $current_on_sale ) {
+		$add_filter_chip( 'تخفیف‌دار', 'فقط تخفیف‌دارها', array( 'on_sale' ) );
+	}
+	if ( $current_in_stock ) {
+		$add_filter_chip( 'فقط موجودها', 'فقط موجودها', array( 'filter_stock' ) );
+	}
+
+	$clear_filter_keys = array( 'product_cat', 'product_brand', 'min_price', 'max_price', 'on_sale', 'filter_stock' );
+	foreach ( array_keys( $_GET ) as $query_key ) {
+		$query_key = (string) $query_key;
+		if ( 0 === strpos( $query_key, 'filter_' ) || 0 === strpos( $query_key, 'query_type_' ) ) {
+			$clear_filter_keys[] = $query_key;
+		}
+	}
+	$clear_filter_url = $filter_url( $clear_filter_keys );
 	?>
 	<div class="jluxe-shop-toolbar mb-4">
 		<button type="button" data-jluxe-filter-toggle class="jluxe-shop-toolbar-filter relative flex h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-caption font-medium text-foreground transition-all hover:bg-muted active:scale-95 sm:px-4">
@@ -1236,6 +1293,19 @@ function jluxe_render_shop_toolbar(): void {
 			</div>
 		</div>
 	</div>
+
+	<?php if ( ! empty( $active_filter_chips ) ) : ?>
+		<div class="jluxe-active-filters" role="region" aria-label="فیلترهای فعال">
+			<?php foreach ( $active_filter_chips as $chip ) : ?>
+				<a class="jluxe-filter-chip" href="<?php echo esc_url( $chip['url'] ); ?>" data-jluxe-catalog-filter-chip aria-label="<?php echo esc_attr( 'حذف فیلتر ' . $chip['remove_label'] ); ?>">
+					<span><?php echo esc_html( $chip['label'] ); ?></span><span class="jluxe-filter-chip__remove" aria-hidden="true">×</span>
+				</a>
+			<?php endforeach; ?>
+			<?php if ( count( $active_filter_chips ) > 1 ) : ?>
+				<a class="jluxe-filter-chip jluxe-filter-chip__clear" href="<?php echo esc_url( $clear_filter_url ); ?>" data-jluxe-catalog-clear aria-label="پاک کردن همهٔ فیلترها">پاک کردن همه</a>
+			<?php endif; ?>
+		</div>
+	<?php endif; ?>
 
 	<?php
 	/*

@@ -21,6 +21,78 @@ function theme_test_php_source( string $area ): string {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+$trending_defaults = jluxe_theme_settings_defaults()['header'];
+$trending_input = "ساعت،چای,ساعت\nگل,,قهوه،" . str_repeat( 'آ', 45 ) . ',' . implode( ',', array_map( static fn( $index ) => 'عبارت' . $index, range( 1, 8 ) ) );
+$trending_clean = jluxe_sanitize_header( array( 'trending_searches' => $trending_input ), $trending_defaults );
+check(
+	array_slice( $trending_clean['trending_searches'], 0, 4 ) === array( 'ساعت', 'چای', 'گل', 'قهوه' ) &&
+		count( $trending_clean['trending_searches'] ) === 10 &&
+		40 === preg_match_all( '/./us', $trending_clean['trending_searches'][4], $trending_chars ),
+	'R536 trending searches split Persian/English commas and lines, deduplicate, truncate to 40 characters, and cap at ten'
+);
+check(
+	array() === jluxe_sanitize_header( array( 'trending_searches' => " , ،\n  " ), $trending_defaults )['trending_searches'],
+	'R536 an empty trending-search setting stays empty rather than adding defaults'
+);
+
+$active_filter_saved_get = $_GET;
+$active_filter_saved_uri = $_SERVER['REQUEST_URI'] ?? '';
+$active_filter_saved_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$active_filter_saved_terms = $GLOBALS['terms_by_slug'] ?? array();
+$active_filter_saved_test_terms = $GLOBALS['test_terms'] ?? array();
+$active_filter_saved_queried = $GLOBALS['queried_object'] ?? null;
+$_GET = array(
+	's' => 'sofa', 'post_type' => 'product', 'orderby' => 'price',
+	'product_cat' => 'shelves', 'product_brand' => 'acme',
+	'min_price' => '1234500', 'max_price' => '8000000', 'on_sale' => '1',
+	'filter_stock' => 'instock', 'filter_color' => 'red', 'query_type_color' => 'or', 'paged' => '3',
+);
+$_SERVER['REQUEST_URI'] = '/catalog/page/3/';
+$GLOBALS['taxonomies']['product_cat'] = true;
+$GLOBALS['taxonomies']['product_brand'] = true;
+$GLOBALS['terms_by_slug']['product_cat']['shelves'] = (object) array( 'term_id' => 22, 'slug' => 'shelves', 'name' => 'قفسه', 'taxonomy' => 'product_cat' );
+$GLOBALS['terms_by_slug']['product_brand']['acme'] = (object) array( 'term_id' => 23, 'slug' => 'acme', 'name' => 'آکمی', 'taxonomy' => 'product_brand' );
+$GLOBALS['test_terms'] = array();
+$GLOBALS['queried_object'] = new WP_Term();
+$GLOBALS['queried_object']->slug = 'current-category';
+$GLOBALS['queried_object']->taxonomy = 'product_cat';
+ob_start();
+jluxe_render_shop_toolbar();
+$active_filter_markup = (string) ob_get_clean();
+preg_match_all( '~<a\\b(?=[^>]*data-jluxe-catalog-filter-chip)[^>]*href="([^"]*)"[^>]*aria-label="([^"]*)"~', $active_filter_markup, $active_filter_matches, PREG_SET_ORDER );
+$active_filter_links = array();
+foreach ( $active_filter_matches as $active_filter_match ) {
+	$active_filter_links[ html_entity_decode( $active_filter_match[2], ENT_QUOTES ) ] = html_entity_decode( $active_filter_match[1], ENT_QUOTES );
+}
+$active_filter_queries = array();
+foreach ( $active_filter_links as $label => $url ) {
+	parse_str( (string) ( parse_url( $url, PHP_URL_QUERY ) ?: '' ), $active_filter_queries[ $label ] );
+}
+$category_chip_url = $active_filter_queries['حذف فیلتر دسته قفسه'] ?? array();
+$stock_chip_url = $active_filter_queries['حذف فیلتر فقط موجودها'] ?? array();
+$clear_filter_url = '';
+if ( preg_match( '~<a\\b(?=[^>]*data-jluxe-catalog-clear)[^>]*href="([^"]*)"~', $active_filter_markup, $clear_filter_match ) ) {
+	$clear_filter_url = html_entity_decode( $clear_filter_match[1], ENT_QUOTES );
+}
+parse_str( (string) ( parse_url( $clear_filter_url, PHP_URL_QUERY ) ?: '' ), $clear_filter_query );
+check(
+	count( $active_filter_links ) === 6 &&
+	isset( $category_chip_url['product_brand'], $category_chip_url['min_price'], $category_chip_url['filter_stock'], $category_chip_url['filter_color'], $category_chip_url['s'], $category_chip_url['post_type'], $category_chip_url['orderby'] ) &&
+	! isset( $category_chip_url['product_cat'], $category_chip_url['paged'], $category_chip_url['page'] ) &&
+	isset( $stock_chip_url['product_cat'], $stock_chip_url['product_brand'], $stock_chip_url['filter_color'], $stock_chip_url['s'] ) &&
+	! isset( $stock_chip_url['filter_stock'], $stock_chip_url['paged'] ) &&
+	isset( $clear_filter_query['s'], $clear_filter_query['post_type'], $clear_filter_query['orderby'] ) &&
+	! isset( $clear_filter_query['product_cat'], $clear_filter_query['product_brand'], $clear_filter_query['min_price'], $clear_filter_query['max_price'], $clear_filter_query['on_sale'], $clear_filter_query['filter_stock'], $clear_filter_query['filter_color'], $clear_filter_query['query_type_color'], $clear_filter_query['paged'] ) &&
+	str_contains( $active_filter_markup, 'دسته: قفسه' ) && str_contains( $active_filter_markup, 'از ۱,۲۳۴,۵۰۰ تومان' ) && str_contains( $active_filter_markup, 'role="region" aria-label="فیلترهای فعال"' ),
+	'R536 active-filter chips render labels and remove only one query parameter while preserving search, sort, WooCommerce filters, and clearing pagination'
+);
+$_GET = $active_filter_saved_get;
+$_SERVER['REQUEST_URI'] = $active_filter_saved_uri;
+$GLOBALS['taxonomies'] = $active_filter_saved_taxonomies;
+$GLOBALS['terms_by_slug'] = $active_filter_saved_terms;
+$GLOBALS['test_terms'] = $active_filter_saved_test_terms;
+if ( null === $active_filter_saved_queried ) { unset( $GLOBALS['queried_object'] ); } else { $GLOBALS['queried_object'] = $active_filter_saved_queried; }
+
 // Native page motion must stay away from transactional pages and remain optional.
 $motion_old_query = $GLOBALS['query_kind'] ?? '';
 $motion_old_options = $GLOBALS['options'];

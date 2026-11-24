@@ -69,6 +69,7 @@ function sanitize_email($s){return $s;}
 function absint($v){return abs((int)$v);}
 function wp_unslash($v){return is_array($v)?array_map('wp_unslash',$v):stripslashes($v);}
 function wp_check_invalid_utf8($v){return $v;}
+function wp_html_excerpt($text,$length,$more='&hellip;'){$text=wp_strip_all_tags($text);$chars=preg_split('//u',$text,-1,PREG_SPLIT_NO_EMPTY);if(count($chars)<=$length)return $text;return implode('',array_slice($chars,0,$length)).$more;}
 function wp_strip_all_tags($s){return strip_tags($s);}
 function wp_kses_post($s){return $s;}
 function wp_kses($s,...$a){return $s;}
@@ -405,7 +406,7 @@ function is_search(){return $GLOBALS['query_kind']==='search';}
 function is_404(){return $GLOBALS['query_kind']==='404';}
 function get_query_var($name,$default=''){return $GLOBALS['query_vars'][$name]??$default;}
 function wc_get_page_id($name){return 10;}
-function get_queried_object(){return (object)['term_id'=>2];}
+function get_queried_object(){return $GLOBALS['queried_object']??(object)['term_id'=>2];}
 function get_term_link($term){return home_url('/category/gold/');}
 function get_post_type_archive_link($type){return home_url('/'.$type.'/');}
 function wp_get_canonical_url(){return home_url('/article/');}
@@ -417,6 +418,11 @@ function add_query_arg($key,$value=null,$url=null){
  foreach($q as $k=>$v)if($v===false)unset($q[$k]);
  return preg_replace('/\?.*$/','',$url).($q?'?'.http_build_query($q):'');
 }
+if(!function_exists('remove_query_arg')){function remove_query_arg($key,$url=''){return add_query_arg(array_fill_keys((array)$key,false),$url);}}
+if(!function_exists('get_pagenum_link')){function get_pagenum_link($pagenum=1,$escape=true){
+ $request=(string)($_SERVER['REQUEST_URI']??'/catalog/');$parts=parse_url($request);$path=preg_replace('~/page/\d+/?$~','/',(string)($parts['path']??'/catalog/'));
+ $url=home_url($path);return add_query_arg($_GET,$url);
+}}
 class WP_User {
  public $ID; public $roles; public $caps=[]; public $user_login; public $user_pass=''; public $display_name='Test customer'; public $user_email='test@example.invalid';
  function __construct($id,$roles=['customer']){$this->ID=$id;$this->roles=$roles;$this->user_login='customer'.$id;}

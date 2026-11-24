@@ -19,6 +19,9 @@ import "./styles/sitewide-design.css";
 if (import.meta.env.DEV) {
   const assetConfig = window.JLUXEAssetConfig || {};
   const devStyles = [];
+  if (assetConfig.context === "shop" && document.querySelector(".jluxe-active-filters")) {
+    devStyles.push(import("./styles/catalog-filter-chips.css"));
+  }
   if (assetConfig.context === "product") {
     devStyles.push(import("./styles/route-product.css"));
   } else if (assetConfig.context === "cart" || assetConfig.context === "checkout") {
@@ -49,6 +52,8 @@ window.JLuxeMegaMenuChunks = {
   clickToggle: () => import("./islands/MegaMenuClickToggle.js"),
   panel: () => import("./islands/MegaMenuPanel.js"),
 };
+// Search discovery and its local-history helpers are fetched only on search focus.
+window.JLuxeSearchDiscovery = () => import("./islands/SearchDiscovery.js");
 const islands = {
   footer: () => import("./islands/Footer.js"),
   "header-logo": () =>

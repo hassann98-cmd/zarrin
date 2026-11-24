@@ -54,6 +54,7 @@ export default defineConfig({
         "route-product": "src/styles/route-product.css",
         "route-cart-checkout": "src/styles/route-cart-checkout.css",
         "route-account-auth": "src/styles/route-account-auth.css",
+        "catalog-filter-chips": "src/styles/catalog-filter-chips.css",
       },
       output: { codeSplitting: { groups: sharedShellGroups } },
     },

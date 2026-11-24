@@ -82,7 +82,7 @@ test("R122 keeps the existing desktop search, cart, account controls and respons
   assert.match(headerIsland, /hidden text-button md:inline/);
   assert.match(headerIsland, /requestCartDrawerOpen\(window\)/);
   assert.match(headerIsland, /siteUrl\(y \? "dashboard" : "login"\)/);
-  assert.match(headerIsland, /onFocus: \(\) => d\(!0\)/);
+  assert.match(headerIsland, /onFocus: \(\) => \{ d\(!0\); loadRecentSearches\(\); \}/);
 });
 
 test("R211 widens the desktop search and modestly enlarges the logo without changing account/cart controls", () => {

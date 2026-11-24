@@ -550,6 +550,7 @@ function jluxe_theme_settings_defaults(): array {
 			'variant'              => 'current', // current | premium — premium is an opt-in design alternative.
 			'sticky'               => true,
 			'search_placeholder'   => 'جستجو در فروشگاه',
+			'trending_searches'    => array(),
 			'show_search_desktop'  => true,
 			'show_search_mobile'   => true,
 			'show_account_desktop' => true,
