@@ -274,12 +274,23 @@ function jluxe_cart_post_string( string $key, string $default = '' ): string {
 /** Serialize only public product/variation IDs and bounded quantities; never cart/customer data or prices. */
 function jluxe_share_cart_encoded(): string {
 	if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) { return ''; }
-	$parts = array();
-	foreach ( array_slice( WC()->cart->get_cart(), 0, 20, true ) as $item ) {
+	$quantities = array();
+	foreach ( WC()->cart->get_cart() as $item ) {
 		$product_id = absint( $item['product_id'] ?? 0 );
 		$variation_id = absint( $item['variation_id'] ?? 0 );
 		$quantity = max( 1, min( 99, absint( $item['quantity'] ?? 1 ) ) );
 		if ( ! $product_id ) { continue; }
+		$key = $product_id . ':' . $variation_id;
+		if ( isset( $quantities[ $key ] ) ) {
+			$quantities[ $key ] = min( 99, $quantities[ $key ] + $quantity );
+			continue;
+		}
+		if ( count( $quantities ) >= 20 ) { continue; }
+		$quantities[ $key ] = $quantity;
+	}
+	$parts = array();
+	foreach ( $quantities as $key => $quantity ) {
+		list( $product_id, $variation_id ) = array_map( 'absint', explode( ':', $key, 2 ) );
 		$parts[] = $product_id . ( $variation_id ? 'v' . $variation_id : '' ) . ':' . $quantity;
 	}
 	return implode( ',', $parts );
@@ -336,7 +347,8 @@ function jluxe_import_share_cart( string $encoded ): array {
 			if ( absint( $cart_item['product_id'] ?? 0 ) === $entry['product_id'] && absint( $cart_item['variation_id'] ?? 0 ) === $entry['variation_id'] ) { $existing_quantity += absint( $cart_item['quantity'] ?? 0 ); }
 		}
 		if ( $existing_quantity >= $entry['quantity'] ) { ++$already_present; continue; }
-		$result = $cart->add_to_cart( $entry['product_id'], $entry['quantity'], $entry['variation_id'], $variation_attributes );
+		$needed = $entry['quantity'] - $existing_quantity;
+		$result = $cart->add_to_cart( $entry['product_id'], $needed, $entry['variation_id'], $variation_attributes );
 		if ( false === $result || '' === $result ) { ++$unavailable; continue; }
 		++$added;
 	}
@@ -344,7 +356,15 @@ function jluxe_import_share_cart( string $encoded ): array {
 }
 
 function jluxe_handle_share_cart_link(): void {
-	if ( ! function_exists( 'is_cart' ) || ! is_cart() || ! isset( $_GET['jluxe_share_cart'] ) ) { return; }
+	if ( ! jluxe_cart_checkout_option( 'show_share_cart', true ) || ! function_exists( 'WC' ) ) { return; }
+	$wc = WC();
+	if ( ! is_object( $wc ) || ! isset( $wc->cart ) || ! $wc->cart || ! function_exists( 'is_cart' ) || ! is_cart() || ! isset( $_GET['jluxe_share_cart'] ) ) { return; }
+	if ( isset( $wc->session ) && is_object( $wc->session ) && method_exists( $wc->session, 'set_customer_session_cookie' ) ) {
+		$session = $wc->session;
+		if ( ! method_exists( $session, 'has_session' ) || ! $session->has_session() ) {
+			$session->set_customer_session_cookie( true );
+		}
+	}
 	$raw = is_scalar( $_GET['jluxe_share_cart'] ) ? (string) wp_unslash( $_GET['jluxe_share_cart'] ) : '';
 	$result = jluxe_import_share_cart( $raw );
 	if ( ! empty( $result['invalid'] ) ) {

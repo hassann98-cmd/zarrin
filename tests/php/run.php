@@ -12322,6 +12322,7 @@ $phase_cart = new FakeCart();
 $phase_cart->items = array(
 	'same' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>2,'variation'=>array()),
 	'other' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>1,'variation'=>array()),
+	'partial' => array('data'=>$GLOBALS['products'][703],'product_id'=>703,'variation_id'=>0,'quantity'=>1,'variation'=>array()),
 );
 $GLOBALS['wc'] = (object) array('cart'=>$phase_cart,'session'=>new FakeSession());
 $GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>''));
@@ -12331,11 +12332,11 @@ $phase_parsed = jluxe_parse_share_cart_payload('703:3,701v702:1');
 $phase_import = jluxe_import_share_cart('700:2,703:3,701v702:1,704:1,701v705:1');
 $phase_snapshot = jluxe_cart_snapshot();
 check(
-	'700:2,700:1' === $phase_encoded && str_contains($phase_url, 'jluxe_share_cart=') && is_array($phase_parsed) && 2 === count($phase_parsed) &&
-	array('added'=>2,'unavailable'=>2,'already_present'=>1,'invalid'=>false) === $phase_import && count($phase_cart->addCalls) === 2 && 701 === $phase_cart->addCalls[1][0] && 702 === $phase_cart->addCalls[1][2] && array('attribute_pa_color'=>'red') === $phase_cart->addCalls[1][3] &&
+	'700:3,703:1' === $phase_encoded && str_contains($phase_url, 'jluxe_share_cart=') && is_array($phase_parsed) && 2 === count($phase_parsed) &&
+	array('added'=>2,'unavailable'=>2,'already_present'=>1,'invalid'=>false) === $phase_import && count($phase_cart->addCalls) === 2 && 703 === $phase_cart->addCalls[0][0] && 2 === $phase_cart->addCalls[0][1] && 701 === $phase_cart->addCalls[1][0] && 702 === $phase_cart->addCalls[1][2] && array('attribute_pa_color'=>'red') === $phase_cart->addCalls[1][3] &&
 	null === jluxe_parse_share_cart_payload('703:100') && null === jluxe_parse_share_cart_payload('703:1,703:1') && null === jluxe_parse_share_cart_payload('bad:1') &&
 	true === $phase_snapshot['shareCartEnabled'] && str_contains($phase_snapshot['shareCartUrl'], 'jluxe_share_cart=') && true === $phase_snapshot['giftWrap']['enabled'],
-	'R399 share-cart payloads stay bounded, skip existing quantities and unavailable/draft/mismatched variations, preserve the recipient cart, and expose the safe snapshot'
+	'R400 share-cart aggregates duplicate lines, adds only the missing quantity, rejects unavailable/draft/mismatched variations, preserves the recipient cart, and exposes the safe snapshot'
 );
 $phase_cart->items = array('valid'=>array('data'=>$GLOBALS['products'][703],'product_id'=>703,'variation_id'=>0,'quantity'=>1,'variation'=>array()));
 $GLOBALS['query_kind'] = 'cart';
@@ -12345,7 +12346,33 @@ $GLOBALS['throw_redirect'] = true;
 $phase_redirect = '';
 try { jluxe_handle_share_cart_link(); } catch (RuntimeException $redirect_error) { $phase_redirect = $redirect_error->getMessage(); }
 $GLOBALS['throw_redirect'] = false;
-check(str_contains($phase_redirect, 'TEST_REDIRECT:') && !str_contains($phase_redirect, 'jluxe_share_cart') && str_contains($phase_redirect, 'keep=1'),'R399 share-cart import registers a clear Persian notice and redirects to a clean cart URL without reapplying the payload');
+$phase_cookie_started = $GLOBALS['wc']->session->customerCookieCalls === array(true);
+check(str_contains($phase_redirect, 'TEST_REDIRECT:') && !str_contains($phase_redirect, 'jluxe_share_cart') && str_contains($phase_redirect, 'keep=1') && $phase_cookie_started,'R400 share-cart import starts a guest session before adding/redirecting and cleans the payload URL');
+$phase_settings['cart_checkout']['show_share_cart'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['throw_redirect'] = true;
+$phase_disabled_redirect = false;
+try { jluxe_handle_share_cart_link(); } catch (RuntimeException $redirect_error) { $phase_disabled_redirect = true; }
+$GLOBALS['throw_redirect'] = false;
+check(!$phase_disabled_redirect,'R400 a disabled share-cart setting ignores incoming share links');
+$phase_settings['cart_checkout']['show_share_cart'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>'old note'));
+$_POST = array('jluxe_gift_wrap_present'=>'1');
+$phase_unchecked_state = jluxe_sync_gift_wrap_request();
+$phase_unchecked_ok = is_array($phase_unchecked_state) && false === $phase_unchecked_state['enabled'] && false === $GLOBALS['wc']->session->get('jluxe_gift_wrap')['enabled'];
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$_POST = array('jluxe_gift_wrap_present'=>'1','jluxe_gift_wrap'=>'1','jluxe_gift_wrap_note'=>"O\\'Reilly");
+$phase_unslash_state = jluxe_sync_gift_wrap_request();
+check($phase_unchecked_ok && is_array($phase_unslash_state) && "O'Reilly" === $phase_unslash_state['note'],'R400 hidden form presence unchecks gift wrap without a note field, and POST note text is unslashed before storage');
 
 $phase_cart->fees = array();
 $_POST = array('gift_wrap_fee'=>'99999999','gift_wrap_label'=>'Attacker title');
@@ -12358,7 +12385,7 @@ ob_start(); jluxe_render_gift_wrap_box(); $phase_gift_box = (string) ob_get_clea
 $phase_fee_ok = count($phase_cart->fees) === 1 && 'بسته‌بندی هدیه آزمایشی' === $phase_cart->fees[0][0] && 1250 == $phase_cart->fees[0][1];
 $phase_note_safe = strlen($phase_gift_state['note']) <= 800 && false === strpos($phase_gift_state['note'], '<script>');
 $phase_order_saved = 'yes' === $phase_order->get_meta('_jluxe_gift_wrap') && '' !== $phase_order->get_meta('_jluxe_gift_wrap_note');
-$phase_note_render = str_contains($phase_gift_box, 'name="jluxe_gift_wrap_note"') && str_contains($phase_gift_box, 'maxlength="200"');
+$phase_note_render = str_contains($phase_gift_box, 'name="jluxe_gift_wrap_present" value="1"') && str_contains($phase_gift_box, 'name="jluxe_gift_wrap_note"') && str_contains($phase_gift_box, 'maxlength="200"');
 $phase_privacy = count($phase_export) === 2;
 jluxe_checkout_erase_gift_wrap($phase_order);
 $phase_erased = '' === $phase_order->get_meta('_jluxe_gift_wrap') && '' === $phase_order->get_meta('_jluxe_gift_wrap_note');

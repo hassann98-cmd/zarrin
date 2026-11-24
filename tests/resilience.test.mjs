@@ -891,9 +891,9 @@ test("R184 the optional assistant waits until after page load and stays outside 
   );
   // Includes the shared reactive auth subscription and fresh-session publication.
   // Keep the initial closure below 100 kB while the recent-search storage helpers
-  // remain synchronous in Header (only the discovery UI/CSS is interaction-lazy).
-  // The existing budget also covers shared auth/cart, dock ownership, and image warmup.
-  assert.ok(gzipBytes >= 90_000 && gzipBytes <= 99_600, `gzip closure is ${gzipBytes} bytes`);
+  // remain synchronous in Header and MiniCart owns its standalone share action;
+  // discovery UI/CSS and cart-shared click handling stay out of this island.
+  assert.ok(gzipBytes >= 90_000 && gzipBytes < 100_000, `gzip closure is ${gzipBytes} bytes`);
 
   const staticClosure = new Set();
   visit("src/main.js", staticClosure);

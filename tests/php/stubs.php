@@ -507,9 +507,11 @@ class WC_Product {
  function add_to_cart_url(){return home_url('/?add-to-cart='.$this->id);}
 }
 class WooCommerce {}
-class FakeSession { public $data=[];
+class FakeSession { public $data=[]; public $sessionExists=false; public $customerCookieCalls=[];
  function get($key){return $this->data[$key]??null;}
  function set($key,$value){$this->data[$key]=$value;}
+ function has_session(){return $this->sessionExists;}
+ function set_customer_session_cookie($set=true){$this->customerCookieCalls[]=$set;}
  function __unset($key){unset($this->data[$key]);}
 }
 class FakeCart {

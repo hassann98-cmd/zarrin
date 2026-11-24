@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('1.7.399 closes the four prior regressions without crossing route boundaries', () => {
+test('1.7.400 closes the four prior regressions without crossing route boundaries', () => {
   const woo = read('assets/js/woocommerce.js');
   const gallery = woo.slice(woo.indexOf("track.addEventListener('scroll',function(){edges();clearTimeout(timer)", woo.indexOf('/* Mobile gallery:')), woo.indexOf("new MutationObserver(function(){sync();}", woo.indexOf('/* Mobile gallery:')));
   assert.match(gallery, /if\(index<dots\.length\|\|\(!dots\.length&&index===0\)\)\{updateMeter\(index\);if\(dots\[index\]&&index!==Number\(gallery\.getAttribute\('data-jluxe-gallery-current'\)\|\|0\)\)/);
@@ -18,19 +18,23 @@ test('1.7.399 closes the four prior regressions without crossing route boundarie
   assert.match(editor, /function jluxe_render_homepage_page\(/);
   assert.match(loader, /require_once __DIR__ \. '\/homepage\/admin-editor\.php'/);
   for (const path of ['package.json', 'package-lock.json', 'style.css', 'README.md', 'docs/FIXES.fa.md']) {
-    assert.match(read(path), /1\.7\.399/);
+    assert.match(read(path), /1\.7\.400/);
   }
 });
 
 test('shareable carts serialize only bounded IDs and safely merge public purchasable stock', () => {
   const cart = read('inc/cart-ux.php');
   assert.match(cart, /function jluxe_share_cart_encoded\(\): string/);
-  assert.match(cart, /array_slice\( WC\(\)->cart->get_cart\(\), 0, 20, true \)/);
+  assert.match(cart, /\$quantities\[ \$key \] = min\( 99, \$quantities\[ \$key \] \+ \$quantity \)/);
+  assert.match(cart, /count\( \$quantities \) >= 20/);
   assert.match(cart, /max\( 1, min\( 99, absint\( \$item\['quantity'\]/);
   assert.match(cart, /function jluxe_parse_share_cart_payload\( string \$encoded \): \?array/);
   assert.match(cart, /count\( \$tokens \) > 20/);
   assert.match(cart, /function jluxe_import_share_cart\( string \$encoded \): array/);
-  assert.match(cart, /\$cart->add_to_cart\( \$entry\['product_id'\], \$entry\['quantity'\], \$entry\['variation_id'\], \$variation_attributes \)/);
+  assert.match(cart, /\$needed = \$entry\['quantity'\] - \$existing_quantity/);
+  assert.match(cart, /\$cart->add_to_cart\( \$entry\['product_id'\], \$needed, \$entry\['variation_id'\], \$variation_attributes \)/);
+  assert.match(cart, /! jluxe_cart_checkout_option\( 'show_share_cart', true \)/);
+  assert.match(cart, /set_customer_session_cookie\( true \)/);
   assert.match(cart, /remove_query_arg\( 'jluxe_share_cart' \)/);
   assert.match(cart, /'shareCartEnabled' => \$share_cart_enabled/);
   assert.match(cart, /'shareCartUrl'\s*=>\s*\$share_cart_url/);
@@ -51,6 +55,9 @@ test('gift wrap uses server-owned settings and persists safe order/privacy metad
   assert.match(cart, /'gift_wrap' === \$op/);
   assert.match(cart, /'giftWrap'\s*=>\s*array\( 'enabled' => \(bool\) \$gift_wrap\['enabled'\]/);
   assert.match(checkout, /name="jluxe_gift_wrap_note" maxlength="200"/);
+  assert.match(checkout, /name="jluxe_gift_wrap_present" value="1"/);
+  assert.match(checkout, /\$data = wp_unslash\( \$_POST \)/);
+  assert.match(checkout, /array_key_exists\( 'jluxe_gift_wrap_present', \$data \)/);
 });
 
 test('archive product-card color swatches are opt-in controlled, bounded, accessible and route-isolated', () => {
@@ -73,6 +80,9 @@ test('archive product-card color swatches are opt-in controlled, bounded, access
   assert.match(storefront, /\[data-jluxe-card-thumbs\]~\.jluxe-product-card-swatches/);
   assert.match(route, /\.jluxe-gift-wrap-card/);
   assert.match(route, /\.jluxe-share-cart-button/);
+  assert.match(route, /\.jluxe-gift-wrap-card__description\{margin:8px 0 0;margin-inline-start:32px/);
+  assert.match(route, /\.jluxe-gift-wrap-card__note\{[^}]*visibility:hidden/);
+  assert.match(route, /:has\(\[data-jluxe-gift-enabled\]:checked\) \.jluxe-gift-wrap-card__note\{[^}]*visibility:visible/);
 });
 
 test('share and gift controls provide mobile native sharing, clipboard fallback and debounced checkout refresh', () => {
@@ -83,9 +93,21 @@ test('share and gift controls provide mobile native sharing, clipboard fallback 
   assert.match(woo, /navigator\.clipboard\.writeText\(url\)/);
   assert.match(woo, /setTimeout\(function \(\) \{ request\(box\); \}, 350\)/);
   assert.match(woo, /trigger\('update_checkout'\)/);
+  assert.match(woo, /var giftWrap = document\.querySelector\("\[data-jluxe-gift-wrap\]"\)/);
+  assert.match(woo, /giftWrap\.style\.display = showShipping \? "" : "none"/);
+  assert.match(woo, /delete cartUpdatedData\.cartPage/);
+  assert.match(woo, /new CustomEvent\('jluxe:cart-updated', \{ detail: cartUpdatedData \}\)/);
+  assert.match(woo, /trigger\('updated_cart_totals'\)/);
   assert.match(minicart, /s\.shareCartEnabled && s\.shareCartUrl/);
-  assert.match(minicart, /"data-jluxe-share-cart": ""/);
-  assert.match(minicart, /"data-share-url": s\.shareCartUrl/);
-  assert.match(minicart, /"data-share-label": ""/);
+  assert.match(minicart, /"data-jluxe-mini-cart-share": ""/);
+  assert.match(minicart, /onClick: shareCart/);
+  assert.match(minicart, /className: "mt-2 flex h-11 /);
+  assert.match(minicart, /async function shareCart\(event\)/);
+  assert.match(minicart, /navigator\.share\(\{ title: "سبد خرید پیشنهادی", url \}\)/);
+  assert.match(minicart, /navigator\.clipboard\.writeText\(url\)/);
+  assert.match(minicart, /document\.execCommand\("copy"\)/);
+  assert.match(minicart, /لینک سبد کپی شد ✓/);
+  assert.match(minicart, /}, 2200\)/);
+  assert.match(minicart, /window\.JLuxeStorefrontUtils\?\.haptic\?\./);
   assert.match(minicart, /"aria-live": "polite"/);
 });

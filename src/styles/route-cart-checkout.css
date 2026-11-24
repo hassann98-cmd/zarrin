@@ -976,9 +976,9 @@ body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-messag
 .jluxe-gift-wrap-card__copy{display:flex;flex:1;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
 .jluxe-gift-wrap-card__copy strong{color:hsl(var(--foreground));font-weight:700}
 .jluxe-gift-wrap-card__copy>span{color:hsl(var(--primary));font-weight:700;white-space:nowrap}
-.jluxe-gift-wrap-card__description{margin:8px 0 0 32px;color:hsl(var(--text-muted));font-size:12px;line-height:1.8}
-.jluxe-gift-wrap-card__note{max-height:0;margin-inline-start:32px;overflow:hidden;opacity:0;transition:max-height .28s ease,opacity .2s ease,margin .2s ease}
-.jluxe-gift-wrap-card:has([data-jluxe-gift-enabled]:checked) .jluxe-gift-wrap-card__note{max-height:15rem;margin-top:12px;opacity:1}
+.jluxe-gift-wrap-card__description{margin:8px 0 0;margin-inline-start:32px;color:hsl(var(--text-muted));font-size:12px;line-height:1.8}
+.jluxe-gift-wrap-card__note{max-height:0;margin-inline-start:32px;overflow:hidden;opacity:0;visibility:hidden;transition:max-height .28s ease,opacity .2s ease,margin .2s ease,visibility .28s ease}
+.jluxe-gift-wrap-card:has([data-jluxe-gift-enabled]:checked) .jluxe-gift-wrap-card__note{max-height:15rem;margin-top:12px;opacity:1;visibility:visible}
 .jluxe-gift-wrap-card__note label{display:block;margin-bottom:6px;color:hsl(var(--text-secondary));font-size:12px;font-weight:700}
 .jluxe-gift-wrap-card__note label span{color:hsl(var(--text-muted));font-weight:400}
 .jluxe-gift-wrap-card__note textarea{display:block;width:100%;min-height:76px;resize:vertical;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--surface));padding:10px 12px;color:hsl(var(--foreground));font:inherit;font-size:13px;line-height:1.8}

@@ -41,7 +41,52 @@ function J() {
       couponError: h,
     } = I(),
     [m, b] = r.useState(""),
+    shareCopyTimer = r.useRef(null),
     S = ((g = H().cart) == null ? void 0 : g.showCoupon) !== !1;
+  async function shareCart(event) {
+    event.stopPropagation();
+    const button = event.currentTarget;
+    const url = s.shareCartUrl;
+    if (!url) return;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "سبد خرید پیشنهادی", url });
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    let copied = false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      }
+    } catch {}
+    if (!copied) {
+      const field = document.createElement("textarea");
+      field.value = url;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      try { copied = document.execCommand("copy"); } catch {}
+      field.remove();
+    }
+    if (!copied) return;
+    const label = button.querySelector("[data-share-label]");
+    if (label) {
+      label.textContent = "لینک سبد کپی شد ✓";
+      if (shareCopyTimer.current) window.clearTimeout(shareCopyTimer.current);
+      shareCopyTimer.current = window.setTimeout(() => {
+        if (label.isConnected) label.textContent = "ارسال لیست سبد برای دیگران";
+      }, 2200);
+    }
+    if (window.matchMedia?.("(pointer: coarse)")?.matches) {
+      try { window.JLuxeStorefrontUtils?.haptic?.(); } catch {}
+    }
+  }
   function closeDrawer() {
     closeMobileDrawer("cart", window);
   }
@@ -540,16 +585,11 @@ function J() {
                           s.shareCartEnabled && s.shareCartUrl
                             ? e.jsx("button", {
                                 type: "button",
-                                "data-jluxe-share-cart": "",
+                                "data-jluxe-mini-cart-share": "",
                                 "data-share-url": s.shareCartUrl,
-                                className: "mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface text-caption font-bold text-text-secondary transition-colors hover:bg-muted",
-                                children: e.jsxs("span", {
-                                  className: "inline-flex items-center gap-2",
-                                  children: [
-                                    e.jsx("span", { "aria-hidden": "true", children: "↗" }),
-                                    e.jsx("span", { "data-share-label": "", "aria-live": "polite", children: "ارسال لیست سبد برای دیگران" }),
-                                  ],
-                                }),
+                                onClick: shareCart,
+                                className: "mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface text-caption font-bold text-text-secondary transition-colors hover:bg-muted",
+                                children: e.jsx("span", { "data-share-label": "", "aria-live": "polite", children: "ارسال لیست سبد برای دیگران" }),
                               })
                             : null,
                         ],

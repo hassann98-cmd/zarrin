@@ -62,9 +62,9 @@ function jluxe_set_session_gift_wrap( bool $enabled, string $note = '' ): array 
 
 /** Read native checkout fields or WooCommerce's serialized update_order_review payload. */
 function jluxe_sync_gift_wrap_request( $raw_post_data = null ): ?array {
-	$data = $_POST;
+	$data = wp_unslash( $_POST );
 	if ( is_string( $raw_post_data ) && '' !== $raw_post_data ) { parse_str( wp_unslash( $raw_post_data ), $data ); }
-	if ( ! is_array( $data ) || ( ! array_key_exists( 'jluxe_gift_wrap_note', $data ) && ! array_key_exists( 'jluxe_gift_wrap', $data ) ) ) { return null; }
+	if ( ! is_array( $data ) || ( ! array_key_exists( 'jluxe_gift_wrap_present', $data ) && ! array_key_exists( 'jluxe_gift_wrap_note', $data ) && ! array_key_exists( 'jluxe_gift_wrap', $data ) ) ) { return null; }
 	$config = jluxe_get_gift_wrap_config();
 	$enabled = $config['enabled'] && isset( $data['jluxe_gift_wrap'] ) && is_scalar( $data['jluxe_gift_wrap'] ) && '1' === (string) $data['jluxe_gift_wrap'];
 	$note = isset( $data['jluxe_gift_wrap_note'] ) && is_scalar( $data['jluxe_gift_wrap_note'] ) ? (string) $data['jluxe_gift_wrap_note'] : '';
@@ -80,6 +80,7 @@ function jluxe_render_gift_wrap_box(): void {
 	$id = 'jluxe-gift-wrap-enabled';
 	?>
 	<section class="jluxe-gift-wrap-card" data-jluxe-gift-wrap aria-labelledby="jluxe-gift-wrap-title">
+		<input type="hidden" name="jluxe_gift_wrap_present" value="1" />
 		<label class="jluxe-gift-wrap-card__choice" for="<?php echo esc_attr( $id ); ?>">
 			<input id="<?php echo esc_attr( $id ); ?>" type="checkbox" name="jluxe_gift_wrap" value="1" data-jluxe-gift-enabled <?php checked( $state['enabled'] ); ?> />
 			<span class="jluxe-gift-wrap-card__copy"><strong id="jluxe-gift-wrap-title"><?php echo esc_html( $config['label'] ); ?></strong><span><?php echo $price; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wc_price() is WooCommerce-formatted safe markup. ?></span></span>

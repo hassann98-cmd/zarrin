@@ -5216,12 +5216,16 @@ function jluxeEnhanceShopSort(root) {
 		// و در مرحله‌ی پرداخت بالای ستونِ پرداخت دیده می‌موند — مثلِ
 		// guided که کل پنلِ ارسال مخفی می‌شه، این‌جا هم باید مخفی بشه.
 		var addressSelector = document.querySelector("[data-jluxe-address-selector]");
+		var giftWrap = document.querySelector("[data-jluxe-gift-wrap]");
 		var showShipping = "shipping" === currentStep;
 		if (customerDetails) {
 			customerDetails.style.display = showShipping ? "" : "none";
 		}
 		if (addressSelector) {
 			addressSelector.style.display = showShipping ? "" : "none";
+		}
+		if (giftWrap) {
+			giftWrap.style.display = showShipping ? "" : "none";
 		}
 		if (shippingSection) {
 			shippingSection.style.display = showShipping ? "" : "none";
@@ -6567,6 +6571,12 @@ function jluxeEnhanceShopSort(root) {
 					var replacement = holder.querySelector('.cart_totals');
 					var current = document.querySelector('.cart_totals');
 					if (replacement && current) current.replaceWith(replacement);
+				}
+				if (cartPage) {
+					var cartUpdatedData = Object.assign({}, result.data);
+					delete cartUpdatedData.cartPage;
+					window.dispatchEvent(new CustomEvent('jluxe:cart-updated', { detail: cartUpdatedData }));
+					if (window.jQuery) window.jQuery(document.body).trigger('updated_cart_totals');
 				}
 				if (!cartPage && window.jQuery) window.jQuery(document.body).trigger('update_checkout');
 				announce(box, 'انتخاب بسته‌بندی هدیه ذخیره شد.');

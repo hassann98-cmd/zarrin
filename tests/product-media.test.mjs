@@ -75,7 +75,7 @@ test('route-only product styles stay isolated and initial main CSS growth remain
   const mainCss = manifest['src/main.js'].css.find((name) => name.startsWith('assets/main-'));
   const currentPath = new URL(`../assets/compiled/${mainCss}`, import.meta.url);
   const currentBytes = readFileSync(currentPath);
-  const baseline = execFileSync('git', ['show', 'HEAD:assets/compiled/assets/main-cTRK1YX2.css']);
+  const baseline = execFileSync('git', ['show', 'v1.7.399:assets/compiled/assets/main-BBWTNhhR.css']);
   assert.match(route, /\.jluxe-product-video-modal/);
   assert.match(route, /\.jluxe-review-photo-lightbox/);
   assert.ok(currentBytes.length >= baseline.length, 'initial stylesheet growth is nonnegative');
