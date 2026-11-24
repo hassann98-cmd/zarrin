@@ -143,8 +143,14 @@ function jluxe_settings_page_shell( string $title, string $current_slug, ?string
 					<div class="notice notice-success is-dismissible"><p>✓ این بخش به حالت پیش‌فرض بازگشت.</p></div>
 				<?php elseif ( 'preset_applied' === $status ) : ?>
 					<div class="notice notice-success is-dismissible"><p>✓ پریست اعمال شد — رنگ‌ها و تایپوگرافی به‌روزرسانی شدند.</p></div>
+				<?php elseif ( 'homepage_backup_saved' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ بکاپِ تنظیمات واقعی صفحهٔ اصلی با موفقیت ثبت شد؛ تا پیش از ثبت آن، چیدمان فعال تغییر نکرده است.</p></div>
+				<?php elseif ( 'homepage_backup_restored' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ چیدمان صفحهٔ اصلی از بکاپِ بررسی‌شده بازیابی شد.</p></div>
+				<?php elseif ( 'homepage_preset_applied' === $status ) : ?>
+					<div class="notice notice-success is-dismissible"><p>✓ پریست جدید فعال شد؛ چیدمان قبلی در بکاپ ذخیره است و از همین صفحه قابل‌بازیابی است. بخش‌های تصویری تا افزودن تصاویر واقعی غیرفعال می‌مانند.</p></div>
 				<?php elseif ( 'error' === $status ) : ?>
-					<div class="notice notice-error is-dismissible"><p>✕ ذخیره انجام نشد (nonce نامعتبر — صفحه را تازه کنید و دوباره تلاش کنید).</p></div>
+					<div class="notice notice-error is-dismissible"><p>✕ درخواست ذخیره/بازیابی تأیید نشد (nonce یا یکپارچگی بکاپ نامعتبر است). صفحه را تازه کنید و دوباره تلاش کنید.</p></div>
 				<?php endif; ?>
 
 				<div class="jluxe-settings-content">

@@ -406,6 +406,7 @@ function jluxe_enqueue_builder_animations(): void {
  wp_enqueue_script( 'jluxe-builder-animations', JLUXE_THEME_URI . '/assets/js/builder-animations.js', array(), (string) filemtime( JLUXE_THEME_DIR . '/assets/js/builder-animations.js' ), true );
 }
 
+require_once __DIR__ . '/homepage/homepage-backup.php';
 require_once __DIR__ . '/homepage/admin-editor.php';
 require_once __DIR__ . '/homepage/sections-products.php';
 require_once __DIR__ . '/homepage/sections-media.php';

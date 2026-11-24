@@ -1851,6 +1851,8 @@ function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array
 			$section['title']             = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'فروش ویژه';
 			$section['count']             = max( 4, min( 30, absint( $posted['count'] ?? 10 ) ) );
 			$section['sort']              = in_array( $special_sort, $special_sorts, true ) ? $special_sort : 'discount';
+			$special_category             = absint( $posted['category'] ?? 0 );
+			$section['category']          = $special_category && term_exists( $special_category, 'product_cat' ) ? $special_category : 0;
 			$section['view_all_link']     = isset( $posted['view_all_link'] ) ? esc_url_raw( $posted['view_all_link'] ) : '';
 			$section['hide_out_of_stock'] = filter_var( $posted['hide_out_of_stock'] ?? false, FILTER_VALIDATE_BOOLEAN );
 			break;

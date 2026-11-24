@@ -210,7 +210,24 @@ function jluxe_render_homepage_special_products( array $section ): void {
 		return;
 	}
 
-	$sale_ids = wc_get_product_ids_on_sale();
+	$sale_ids    = wc_get_product_ids_on_sale();
+	$category_id = absint( $section['category'] ?? 0 );
+	if ( $category_id ) {
+		$category = get_term( $category_id, 'product_cat' );
+		if ( is_wp_error( $category ) || ! $category || empty( $category->slug ) ) {
+			return;
+		}
+		$category_sale_ids = wc_get_products(
+			array(
+				'status'   => 'publish',
+				'include'  => array_map( 'absint', (array) $sale_ids ),
+				'category' => array( (string) $category->slug ),
+				'limit'    => max( 1, count( (array) $sale_ids ) ),
+				'return'   => 'ids',
+			)
+		);
+		$sale_ids = array_values( array_map( 'absint', (array) $category_sale_ids ) );
+	}
 	if ( empty( $sale_ids ) ) {
 		return;
 	}

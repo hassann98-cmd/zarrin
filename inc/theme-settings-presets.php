@@ -145,6 +145,80 @@ function jluxe_get_design_presets(): array {
 	);
 }
 
+/**
+ * «پریست پیش‌فرض جدید صفحه اصلی» — فقط ساختار/چیدمان؛ هیچ رسانهٔ خیالی
+ * یا attachment ID ساختگی وارد نمی‌کند. بخش‌هایی که به عکس نیاز دارند تا
+ * زمان فراهم‌شدن عکس‌های واقعی غیرفعال می‌مانند. دسته‌ها هنگام اعمال از
+ * taxonomy واقعی WooCommerce بررسی می‌شوند و دستهٔ خالی از preset حذف می‌شود.
+ */
+function jluxe_get_homepage_layout_presets(): array {
+	$popular_categories = array( 925, 956, 971, 936, 927, 946, 941, 926, 977, 942 );
+	$showcase_categories = array( 970, 922, 937, 919 );
+	$recommended_categories = array(
+		array( 'category' => 932, 'title' => 'کتری و قوری' ),
+		array( 'category' => 940, 'title' => 'جا ظرفی و آبچکان' ),
+		array( 'category' => 972, 'title' => 'آباژور و اکسسوری دکوری' ),
+		array( 'category' => 920, 'title' => 'رنده و خردکن دستی' ),
+	);
+
+	$valid_category = static function ( int $term_id ): bool {
+		if ( ! $term_id || ! function_exists( 'get_term' ) || ! function_exists( 'term_exists' ) || ! term_exists( $term_id, 'product_cat' ) ) {
+			return false;
+		}
+		$term = get_term( $term_id, 'product_cat' );
+		return ! is_wp_error( $term ) && is_object( $term ) && (int) ( $term->count ?? 0 ) > 0;
+	};
+
+	$popular_items = array();
+	foreach ( $popular_categories as $term_id ) {
+		if ( $valid_category( $term_id ) ) {
+			$popular_items[] = array( 'term_id' => $term_id, 'image_id' => 0, 'display_name' => '' );
+		}
+	}
+	$showcase_items = array();
+	foreach ( $showcase_categories as $term_id ) {
+		if ( $valid_category( $term_id ) ) {
+			$showcase_items[] = array( 'term_id' => $term_id, 'image_id' => 0, 'display_name' => '', 'mode' => 'category' );
+		}
+	}
+	$panels = array();
+	foreach ( $recommended_categories as $panel ) {
+		if ( $valid_category( (int) $panel['category'] ) ) {
+			$panels[] = array(
+				'title'       => $panel['title'],
+				'subtitle'    => '',
+				'category'    => (int) $panel['category'],
+				'count'       => 4,
+				'sort'        => 'popularity',
+				'button_text' => 'مشاهدهٔ محصولات',
+				'button_link' => '',
+			);
+		}
+	}
+	$special_category = $valid_category( 4313 ) ? 4313 : 0;
+
+	return array(
+		'label' => 'پریست پیش‌فرض جدید صفحه اصلی',
+		'description' => 'چیدمان تازهٔ JLuxe؛ بخش‌های وابسته به بنر/لوگو تا زمان آماده‌شدن تصاویر واقعی غیرفعال می‌مانند.',
+		'homepage' => array(
+			'mobile_category_swipe_hint_enabled' => true,
+			'sections' => array(
+				array( 'id' => 'jluxe-hero', 'type' => 'hero', 'enabled' => false, 'items' => array() ),
+				array( 'id' => 'jluxe-popular-categories', 'type' => 'category_grid', 'enabled' => ! empty( $popular_items ), 'title' => 'دسته‌بندی‌های محبوب', 'layout' => 'row', 'mobile_layout' => 'row', 'items' => $popular_items ),
+				array( 'id' => 'jluxe-special-products', 'type' => 'special_products', 'enabled' => true, 'title' => 'فروش ویژه', 'count' => 18, 'sort' => 'discount', 'category' => $special_category, 'hide_out_of_stock' => true ),
+				array( 'id' => 'jluxe-two-banners', 'type' => 'banner_two', 'enabled' => false, 'items' => array() ),
+				array( 'id' => 'jluxe-newest-products', 'type' => 'product_grid', 'enabled' => true, 'title' => 'جدیدترین محصولات', 'subtitle' => '', 'query' => 'newest', 'category' => '', 'count' => 8, 'columns_desktop' => 4, 'columns_tablet' => 3, 'columns_mobile' => 2, 'layout' => 'carousel', 'style' => 'plain' ),
+				array( 'id' => 'jluxe-category-showcase', 'type' => 'category_showcase', 'enabled' => ! empty( $showcase_items ), 'title' => 'دسته‌بندی‌های ویژه', 'layout' => 'grid', 'mobile_layout' => 'grid', 'items' => $showcase_items ),
+				array( 'id' => 'jluxe-bestsellers', 'type' => 'brick_products', 'enabled' => true, 'title' => 'پرفروش‌ترین‌ها', 'source' => 'bestsellers', 'category' => 0, 'brand' => 0, 'product_ids' => array(), 'columns_desktop' => 4, 'columns_tablet' => 3, 'columns_mobile' => 2, 'rows' => 2, 'hide_out_of_stock' => true ),
+				array( 'id' => 'jluxe-recommended-panels', 'type' => 'recommended_panels', 'enabled' => ! empty( $panels ), 'title' => 'پیشنهادهای منتخب', 'panels' => $panels ),
+				array( 'id' => 'jluxe-brand-marquee', 'type' => 'brand_marquee', 'enabled' => false, 'title' => 'برندهای منتخب', 'items' => array() ),
+				array( 'id' => 'jluxe-trust', 'type' => 'trust', 'enabled' => true, 'title' => 'خرید مطمئن از JLuxe' ),
+				array( 'id' => 'jluxe-blog', 'type' => 'blog', 'enabled' => true, 'title' => 'راهنمای خرید و مجله جهیزیه', 'count' => 3 ),
+			),
+		),
+	);
+}
+
 /** Remap exact bundled palette shades while keeping announcement-bar colors independent. */
 function jluxe_remap_design_palette_values( array $settings, array $target_palette ): array {
 	$source_palettes = array(

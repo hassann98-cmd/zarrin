@@ -21,6 +21,32 @@ function theme_test_php_source( string $area ): string {
 }
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
 
+$r_homepage_sale_terms = $GLOBALS['terms_by_id'] ?? array();
+$GLOBALS['terms_by_id'][4313] = (object) array( 'term_id' => 4313, 'slug' => 'sale-special' );
+$r_homepage_sale_category = jluxe_sanitize_homepage_section( array( 'type' => 'special_products', 'category' => 4313 ) );
+check( 4313 === $r_homepage_sale_category['category'], 'Homepage special-products section preserves an existing sale-category ID' );
+$r_homepage_invalid_sale_category = jluxe_sanitize_homepage_section( array( 'type' => 'special_products', 'category' => 999999 ) );
+check( 0 === $r_homepage_invalid_sale_category['category'], 'Homepage special-products section drops a missing category ID' );
+$GLOBALS['terms_by_id'] = $r_homepage_sale_terms;
+
+$r_layout_preset_terms = $GLOBALS['terms_by_id'] ?? array();
+foreach ( array( 925, 956, 971, 936, 927, 946, 941, 926, 977, 942, 970, 922, 937, 919, 932, 940, 972, 920, 4313 ) as $r_term_id ) {
+	$GLOBALS['terms_by_id'][ $r_term_id ] = (object) array( 'term_id' => $r_term_id, 'slug' => 'category-' . $r_term_id, 'count' => 1 );
+}
+$r_homepage_layout_preset = jluxe_get_homepage_layout_presets();
+$r_homepage_preset_sections = $r_homepage_layout_preset['homepage']['sections'];
+check(
+	'پریست پیش‌فرض جدید صفحه اصلی' === $r_homepage_layout_preset['label'] &&
+	array( 'hero', 'category_grid', 'special_products', 'banner_two', 'product_grid', 'category_showcase', 'brick_products', 'recommended_panels', 'brand_marquee', 'trust', 'blog' ) === array_column( $r_homepage_preset_sections, 'type' ),
+	'Homepage redesign preset exposes the requested section order under the Persian preset name'
+);
+check(
+	false === $r_homepage_preset_sections[0]['enabled'] && false === $r_homepage_preset_sections[3]['enabled'] && false === $r_homepage_preset_sections[8]['enabled'] &&
+	array() === $r_homepage_preset_sections[0]['items'] && array() === $r_homepage_preset_sections[3]['items'] && array() === $r_homepage_preset_sections[8]['items'],
+	'Homepage redesign preset leaves media-dependent hero, banners, and brand marquee disabled without real media IDs'
+);
+$GLOBALS['terms_by_id'] = $r_layout_preset_terms;
+
 $trending_defaults = jluxe_theme_settings_defaults()['header'];
 $trending_input = "ساعت،چای,ساعت\nگل,,قهوه،" . str_repeat( 'آ', 45 ) . ',' . implode( ',', array_map( static fn( $index ) => 'عبارت' . $index, range( 1, 8 ) ) );
 $trending_clean = jluxe_sanitize_header( array( 'trending_searches' => $trending_input ), $trending_defaults );

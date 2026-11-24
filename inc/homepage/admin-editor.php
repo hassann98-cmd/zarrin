@@ -6,13 +6,18 @@ defined( 'ABSPATH' ) || exit;
 
 
 function jluxe_render_homepage_page(): void {
-	$status   = jluxe_handle_generic_settings_save( 'jluxe-homepage' );
+	$status   = jluxe_handle_homepage_layout_backup_action();
+	if ( null === $status ) {
+		$status = jluxe_handle_generic_settings_save( 'jluxe-homepage' );
+	}
 	$settings = jluxe_get_fresh_settings();
 	$types    = jluxe_homepage_section_types();
 
 	jluxe_settings_page_shell( 'صفحه اصلی', 'jluxe-homepage', $status, function () use ( $settings, $types ) {
 		?>
 		<p class="description">بخش‌ها رو با کشیدن (☰) جابه‌جا کن، فعال/غیرفعال کن، یا حذف/تکثیر کن. ترتیب همینی که این‌جا می‌بینی دقیقاً همون چیزیه که روی صفحه‌ی اصلی نمایش داده می‌شه.</p>
+
+		<?php jluxe_render_homepage_layout_backup_controls(); ?>
 
 		<form method="post" id="jluxe-homepage-form">
 			<?php wp_nonce_field( 'jluxe_save_settings', 'jluxe_settings_nonce' ); ?>
@@ -549,6 +554,7 @@ function jluxe_render_homepage_section_editor( $i, array $section, array $types,
 				case 'special_products':
 					jluxe_hb_field_text( $name, 'title', 'عنوان', $section['title'] ?? 'فروش ویژه' );
 					jluxe_hb_field_number( $name, 'count', 'تعداد محصول', $section['count'] ?? 10, 4, 30 );
+					jluxe_hb_field_number( $name, 'category', 'شناسهٔ دستهٔ محصولات حراجی (خالی/صفر = همهٔ فروش‌های ویژه)', $section['category'] ?? 0, 0, 999999999 );
 					jluxe_hb_field_select(
 						$name,
 						'sort',
