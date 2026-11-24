@@ -397,3 +397,33 @@ body.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link {
     transition: none;
   }
 }
+
+.jluxe-order-shipment__tracking-code {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+.jluxe-order-shipment__note p:last-child {
+  white-space: pre-line;
+}
+.jluxe-account-layout .text-h4 {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.jluxe-order-gift-wrap {
+  margin-block: 16px;
+  padding: 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--muted) / .45);
+}
+.jluxe-order-gift-wrap h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.jluxe-order-gift-wrap p {
+  margin: 4px 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}

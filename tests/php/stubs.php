@@ -29,6 +29,7 @@ function add_theme_support(...$a){$GLOBALS['theme_supports'][]=$a;}
 function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
 function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
 function remove_action(...$a){$GLOBALS['removed_actions'][]=$a;return true;}
+function has_action($hook,$callback=false){foreach($GLOBALS['actions']??array() as $registered){if(($registered[0]??'')!==$hook)continue;if(false!==$callback&&($registered[1]??null)!==$callback)continue;return $registered[2]??10;}return false;}
 function PW(){return $GLOBALS['test_pw_instance']??null;}
 function do_action(...$a){$hook=(string)($a[0]??'');$GLOBALS['fired'][]=$hook;if(!in_array($hook,array('comment_form_before','comment_form_after','comment_form'),true))return;foreach($GLOBALS['actions']??array() as $registered){if(($registered[0]??'')!==$hook||!is_callable($registered[1]??null))continue;$accepted=max(0,(int)($registered[3]??1));call_user_func_array($registered[1],array_slice($a,1,$accepted));}}
 function wp_footer(){do_action('wp_footer');}

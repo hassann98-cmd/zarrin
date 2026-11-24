@@ -43,7 +43,7 @@ $jluxe_address_parts  = array_filter(
 		</a>
 		<div class="flex items-center gap-2">
 			<?php if ( '' !== $jluxe_invoice_url ) : ?>
-				<a href="<?php echo esc_url( $jluxe_invoice_url ); ?>" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-caption font-bold text-primary-foreground transition-colors hover:bg-primary-hover">
+				<a href="<?php echo esc_url( $jluxe_invoice_url ); ?>" target="_blank" rel="noopener noreferrer" class="inline-flex h-10 items-center gap-1.5 rounded-xl bg-primary px-3 text-caption font-bold text-primary-foreground transition-colors hover:bg-primary-hover">
 					<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h8M9 17h8"/></svg>
 					چاپ فاکتور
 				</a>
@@ -102,7 +102,7 @@ $jluxe_address_parts  = array_filter(
 					<p class="jluxe-order-shipment__tracking-code mt-1 break-all font-mono text-small font-extrabold text-foreground" dir="ltr"><?php echo esc_html( jluxe_convert_digits_to_en( $jluxe_shipping['tracking_code'] ) ); ?></p>
 				</div>
 				<?php if ( ! empty( $jluxe_shipping['tracking_url'] ) ) : ?>
-					<a href="<?php echo esc_url( $jluxe_shipping['tracking_url'] ); ?>" target="_blank" rel="noopener noreferrer" class="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-button font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.98]">
+					<a href="<?php echo esc_url( $jluxe_shipping['tracking_url'] ); ?>" target="_blank" rel="noopener noreferrer" class="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-button font-bold text-primary-foreground transition-all hover:bg-primary-hover active:scale-[0.98]">
 						<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg>
 						پیگیری در سایت <?php echo esc_html( $jluxe_shipping['shipping_company'] ?: 'شرکت حمل' ); ?>
 					</a>
@@ -162,6 +162,8 @@ $jluxe_address_parts  = array_filter(
 			<?php endforeach; ?>
 		</ul>
 	</div>
+
+	<?php if ( function_exists( 'jluxe_render_order_gift_wrap_details' ) ) { jluxe_render_order_gift_wrap_details( $order ); } ?>
 
 	<?php
 	$jluxe_notes = $order->get_customer_order_notes();

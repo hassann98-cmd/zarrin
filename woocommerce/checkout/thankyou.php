@@ -25,6 +25,10 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 	$jluxe_ty_items   = $order->get_items();
 	$jluxe_ty_has_shipping_address = (bool) array_filter( $order->get_address( 'shipping' ) );
 	$jluxe_ty_address = $jluxe_ty_has_shipping_address ? $order->get_formatted_shipping_address() : $order->get_formatted_billing_address();
+	$jluxe_ty_date_created = $order->get_date_created();
+	$jluxe_ty_date = ( $jluxe_ty_date_created && function_exists( 'jluxe_gregorian_timestamp_to_jalali_string' ) )
+		? jluxe_gregorian_timestamp_to_jalali_string( $jluxe_ty_date_created->getTimestamp(), 'Y/m/d' )
+		: ( $jluxe_ty_date_created ? jluxe_fa_digits( wc_format_datetime( $jluxe_ty_date_created ) ) : '' );
 	// P1 (audit): a pending/on-hold order is NOT a confirmed payment — the
 	// celebration hero would mislead the customer. Those orders get a
 	// neutral "awaiting confirmation" state instead.
@@ -54,7 +58,16 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<h1 class="text-h2 text-foreground">پرداخت ناموفق بود</h1>
 				<p class="max-w-md text-body text-text-secondary">متأسفانه سفارش شما توسط بانک/درگاه پرداخت رد شد. لطفاً دوباره تلاش کنید.</p>
 				<?php do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() ); ?>
-				<?php do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
+				<?php
+				$jluxe_ty_details_priority = has_action( 'woocommerce_thankyou', 'woocommerce_order_details_table' );
+				if ( false !== $jluxe_ty_details_priority ) {
+					remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+				}
+				do_action( 'woocommerce_thankyou', $order->get_id() );
+				if ( false !== $jluxe_ty_details_priority ) {
+					add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+				}
+				?>
 				<div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
 					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground sm:w-auto">تلاش مجدد برای پرداخت</a>
 					<?php if ( is_user_logged_in() ) : ?>
@@ -109,7 +122,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				</div>
 				<div class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface p-4 text-center">
 					<span class="text-caption text-text-muted">تاریخ ثبت</span>
-					<strong class="text-small text-foreground"><?php echo esc_html( jluxe_fa_digits( wc_format_datetime( $order->get_date_created() ) ) ); ?></strong>
+					<strong class="text-small text-foreground"><?php echo esc_html( $jluxe_ty_date ); ?></strong>
 				</div>
 				<div class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface p-4 text-center">
 					<span class="text-caption text-text-muted">مبلغ کل</span>
@@ -162,6 +175,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 					<p class="text-small text-text-secondary"><?php echo wp_kses_post( $jluxe_ty_address ); ?></p>
 				</div>
 			<?php endif; ?>
+			<?php if ( function_exists( 'jluxe_render_order_gift_wrap_details' ) ) { jluxe_render_order_gift_wrap_details( $order ); } ?>
 
 			<?php if ( ! empty( $jluxe_ty_trust_cards ) ) : ?>
 				<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -183,7 +197,14 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			<?php
 			// Payment integrations (including gateway tracking) render before final actions.
 			do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() );
+			$jluxe_ty_details_priority = has_action( 'woocommerce_thankyou', 'woocommerce_order_details_table' );
+			if ( false !== $jluxe_ty_details_priority ) {
+				remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+			}
 			do_action( 'woocommerce_thankyou', $order->get_id() );
+			if ( false !== $jluxe_ty_details_priority ) {
+				add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+			}
 			// مشتریِ لاگین‌کرده حسابِ واقعی داره، پس مستقیم به بخش سفارش‌های
 			// همون حساب می‌ره (نیازی به وارد کردن دوباره‌ی شماره سفارش/موبایل
 			// نیست)؛ فقط خریدِ مهمان (بدون حساب) به صفحه‌ی پیگیریِ عمومی می‌ره.

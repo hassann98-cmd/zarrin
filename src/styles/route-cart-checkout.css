@@ -989,3 +989,118 @@ body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-messag
 .jluxe-order-gift-wrap h2{margin:0 0 8px;font-size:16px;font-weight:700}
 .jluxe-order-gift-wrap p{margin:4px 0;line-height:1.8;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){.jluxe-share-cart-button,.jluxe-gift-wrap-card__note{transition:none}}
+
+/* Keep WooCommerce's order-pay retry screen inside the same checkout rhythm. */
+body.woocommerce-order-pay #order_review {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+  margin: 24px auto 48px;
+  padding: 0 16px;
+}
+body.woocommerce-order-pay #order_review table.shop_table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 20px;
+  border: 1px solid hsl(var(--border));
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 14px;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+body.woocommerce-order-pay #order_review table.shop_table th,
+body.woocommerce-order-pay #order_review table.shop_table td {
+  padding: 11px 13px;
+  border-bottom: 1px solid hsl(var(--border));
+  text-align: start;
+  vertical-align: top;
+}
+body.woocommerce-order-pay #order_review table.shop_table thead th,
+body.woocommerce-order-pay #order_review table.shop_table tfoot th {
+  color: hsl(var(--text-secondary));
+  font-weight: 700;
+}
+body.woocommerce-order-pay #order_review table.shop_table tr:last-child th,
+body.woocommerce-order-pay #order_review table.shop_table tr:last-child td {
+  border-bottom: 0;
+}
+body.woocommerce-order-pay #payment {
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: hsl(var(--surface));
+}
+body.woocommerce-order-pay #payment ul.payment_methods {
+  display: flex !important;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column !important;
+  align-items: stretch;
+  gap: 10px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  list-style: none;
+}
+body.woocommerce-order-pay #payment ul.payment_methods > li {
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 13px 15px !important;
+  border: 1px solid #8a878d;
+  border-radius: 12px;
+  background: hsl(var(--surface));
+  float: none !important;
+}
+body.woocommerce-order-pay #payment ul.payment_methods > li > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  line-height: 1.6;
+}
+body.woocommerce-order-pay #payment ul.payment_methods input[type="radio"] {
+  accent-color: hsl(var(--primary));
+}
+body.woocommerce-order-pay #payment .payment_box {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 12px 0 0 !important;
+  padding: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--muted) / .5);
+  color: hsl(var(--text-secondary));
+  line-height: 1.8;
+}
+body.woocommerce-order-pay #payment #place_order {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 12px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+@media (max-width: 480px) {
+  body.woocommerce-order-pay #order_review table.shop_table th,
+  body.woocommerce-order-pay #order_review table.shop_table td {
+    padding: 9px 8px;
+    font-size: 12px;
+  }
+  body.woocommerce-order-pay #payment {
+    padding: 12px;
+  }
+}

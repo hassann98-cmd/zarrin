@@ -12099,6 +12099,14 @@ check(
  strpos( $thankyou_source, "do_action( 'woocommerce_thankyou', \$order->get_id() )" ) < strpos( $thankyou_source, 'class="mt-6 flex flex-col gap-3 sm:flex-row"' ),
  'Gateway and general thank-you hooks run before final customer action buttons'
 );
+check(
+ substr_count( $thankyou_source, "remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table'" ) === 2 &&
+ substr_count( $thankyou_source, "add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table'" ) === 2 &&
+ false !== strpos( $thankyou_source, 'jluxe_render_order_gift_wrap_details( $order )' ) &&
+ false !== strpos( $thankyou_source, 'jluxe_gregorian_timestamp_to_jalali_string' ) &&
+ false !== strpos( $thankyou_source, "'Y/m/d'" ),
+ 'R402 thank-you suppresses only WooCommerce’s duplicate table, restores it, and renders gift-wrap plus Jalali date'
+);
 $guided_checkout = ABSPATH . 'woocommerce/checkout/form-checkout-guided.php';
 $checkout_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 check( ! is_file( $guided_checkout ) && false !== strpos( $checkout_source, "is_file( __DIR__ . '/form-checkout-guided.php' )" ), 'Missing guided checkout template selects the standard checkout instead of including a nonexistent file' );

@@ -1427,7 +1427,7 @@ function jluxe_render_customer_order_actions( $order ): void {
 		if ( empty( $action['url'] ) || empty( $action['name'] ) ) { continue; }
 		$action_class = preg_replace( '/[^a-zA-Z0-9_-]/', '', (string) $key );
 		$action_label = $action['aria-label'] ?? sprintf( '%s — #%s', wp_strip_all_tags( $action['name'] ), $order->get_order_number() );
-		echo '<a class="' . esc_attr( $action_class ) . ' inline-flex min-h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-caption font-bold text-primary" href="' . esc_url( $action['url'] ) . '" aria-label="' . esc_attr( $action_label ) . '">' . esc_html( $action['name'] ) . '</a>';
+		echo '<a class="' . esc_attr( $action_class ) . ' inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 py-2 text-caption font-bold text-primary" href="' . esc_url( $action['url'] ) . '" aria-label="' . esc_attr( $action_label ) . '">' . esc_html( $action['name'] ) . '</a>';
 	}
 	echo '</div>';
 }
