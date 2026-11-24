@@ -429,6 +429,28 @@ test("R05 drawer mutations are serialized and expose server failures", async () 
   assert.ok(results.every((result) => result.error === "Stock limit"));
 });
 
+test("the checkout stepper hides gift wrap on payment and restores it on shipping", () => {
+  const start = legacy.indexOf("function applyStepVisibility() {");
+  const end = legacy.indexOf("\n\tfunction hasShippingMethodSelected()", start);
+  assert.ok(start >= 0 && end > start);
+  const giftWrap = { style: { display: "" } };
+  const context = {
+    currentStep: "payment",
+    customerDetails: { style: {} },
+    actions: {},
+    document: {
+      getElementById: () => null,
+      querySelector: (selector) => selector === "[data-jluxe-gift-wrap]" ? giftWrap : null,
+    },
+  };
+  vm.runInNewContext(legacy.slice(start, end), context);
+  vm.runInNewContext("applyStepVisibility()", context);
+  assert.equal(giftWrap.style.display, "none");
+  context.currentStep = "shipping";
+  vm.runInNewContext("applyStepVisibility()", context);
+  assert.equal(giftWrap.style.display, "");
+});
+
 test("Payment selection remains manual after WooCommerce single-gateway auto-selection", () => {
   const start = legacy.indexOf("\tvar jluxeManualPaymentMethod = null;");
   const end = legacy.indexOf("\n\tapplyStepVisibility();", start);
