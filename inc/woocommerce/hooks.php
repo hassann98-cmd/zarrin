@@ -22,6 +22,19 @@ add_filter( 'wp_kses_allowed_html', 'jluxe_allow_svg_in_kses_post', 10, 2 );
 add_action( 'wp', 'jluxe_defer_guided_checkout_coupon_form', 20 );
 
 add_action( 'woocommerce_checkout_create_order', 'jluxe_checkout_store_map_coordinates', 10, 2 );
+add_action( 'woocommerce_checkout_create_order', 'jluxe_checkout_store_gift_wrap', 11, 2 );
+add_action( 'woocommerce_checkout_process', 'jluxe_sync_gift_wrap_request', 5 );
+add_action( 'woocommerce_checkout_update_order_review', 'jluxe_sync_gift_wrap_request', 10, 1 );
+add_action( 'woocommerce_cart_calculate_fees', 'jluxe_apply_gift_wrap_fee', 30 );
+add_action( 'woocommerce_cart_emptied', 'jluxe_clear_gift_wrap_session', 20 );
+add_action( 'woocommerce_thankyou', 'jluxe_clear_gift_wrap_session', 30 );
+add_action( 'woocommerce_after_cart_table', 'jluxe_render_gift_wrap_box', 20 );
+add_action( 'woocommerce_checkout_after_customer_details', 'jluxe_render_gift_wrap_box', 20 );
+add_action( 'woocommerce_admin_order_data_after_shipping_address', 'jluxe_admin_order_gift_wrap_details', 20, 1 );
+add_action( 'woocommerce_order_details_after_order_table', 'jluxe_render_order_gift_wrap_details', 20, 1 );
+add_action( 'woocommerce_email_after_order_table', 'jluxe_email_order_gift_wrap_details', 20, 4 );
+add_filter( 'woocommerce_privacy_export_order_personal_data', 'jluxe_checkout_export_gift_wrap', 20, 2 );
+add_action( 'woocommerce_privacy_remove_order_personal_data', 'jluxe_checkout_erase_gift_wrap', 20, 1 );
 
 add_action( 'woocommerce_admin_order_data_after_shipping_address', 'jluxe_admin_order_delivery_map_location', 10, 1 );
 

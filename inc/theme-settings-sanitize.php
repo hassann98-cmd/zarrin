@@ -1025,6 +1025,7 @@ function jluxe_sanitize_product_card( array $posted, array $defaults ): array {
 		'radius'           => in_array( $radius, array( 'sm', 'md', 'lg' ), true ) ? $radius : $defaults['radius'],
 		'image_corners'    => in_array( $corners, array( 'rounded', 'sharp' ), true ) ? $corners : $defaults['image_corners'],
 		'show_rating'      => ! empty( $posted['show_rating'] ),
+		'show_color_swatches' => array_key_exists( 'show_color_swatches', $posted ) ? ! empty( $posted['show_color_swatches'] ) : ! empty( $defaults['show_color_swatches'] ),
 		'show_sale_badge'  => ! empty( $posted['show_sale_badge'] ),
 		'show_stock_badge' => ! empty( $posted['show_stock_badge'] ),
 		'price_color'      => isset( $posted['price_color'] ) ? ( sanitize_hex_color( $posted['price_color'] ) ?: '' ) : '',
@@ -1133,6 +1134,12 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 	}
 
 	return array(
+		'show_share_cart'                   => array_key_exists( 'show_share_cart', $posted ) ? ! empty( $posted['show_share_cart'] ) : ! empty( $defaults['show_share_cart'] ),
+		'gift_wrap_enabled'                 => array_key_exists( 'gift_wrap_enabled', $posted ) ? ! empty( $posted['gift_wrap_enabled'] ) : ! empty( $defaults['gift_wrap_enabled'] ),
+		'gift_wrap_label'                   => jluxe_substr( sanitize_text_field( is_scalar( $posted['gift_wrap_label'] ?? null ) ? (string) $posted['gift_wrap_label'] : (string) ( $defaults['gift_wrap_label'] ?? 'بسته‌بندی هدیه ویژه' ) ), 0, 80 ),
+		'gift_wrap_fee'                     => max( 0, (float) ( is_numeric( $posted['gift_wrap_fee'] ?? null ) ? $posted['gift_wrap_fee'] : ( $defaults['gift_wrap_fee'] ?? 0 ) ) ),
+		'gift_wrap_description'             => jluxe_substr( sanitize_text_field( is_scalar( $posted['gift_wrap_description'] ?? null ) ? (string) $posted['gift_wrap_description'] : (string) ( $defaults['gift_wrap_description'] ?? '' ) ), 0, 240 ),
+		'gift_wrap_note_enabled'            => array_key_exists( 'gift_wrap_note_enabled', $posted ) ? ! empty( $posted['gift_wrap_note_enabled'] ) : ! empty( $defaults['gift_wrap_note_enabled'] ),
 		'checkout_layout'                  => $checkout_layout,
 		'checkout_map_enabled'             => ! empty( $posted['checkout_map_enabled'] ),
 		'show_stepper'                     => ! empty( $posted['show_stepper'] ),

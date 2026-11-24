@@ -12279,4 +12279,121 @@ $GLOBALS['post_meta'][904]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][904]
 $GLOBALS['deleted_attachments']=array();jluxe_delete_review_photos(505);
 check(array(array(903,true))===$GLOBALS['deleted_attachments'],'R540 deleting a review removes only its explicitly owned photo attachments');
 
+// R399 phase-three commerce: settings compatibility, share links, server-side gift fees, and archive swatches.
+$phase_defaults = jluxe_theme_settings_defaults();
+$phase_cart_defaults = $phase_defaults['cart_checkout'];
+$phase_cart_sanitized = jluxe_sanitize_cart_checkout(array(
+	'show_share_cart' => '0', 'gift_wrap_enabled' => '1', 'gift_wrap_label' => '<b>هدیه</b>',
+	'gift_wrap_fee' => '-25', 'gift_wrap_description' => '<i>بسته</i>', 'gift_wrap_note_enabled' => '0',
+), $phase_cart_defaults);
+$phase_cart_import_defaults = jluxe_sanitize_cart_checkout(array(), $phase_cart_defaults);
+$phase_card_sanitized = jluxe_sanitize_product_card(array('show_color_swatches' => '0'), $phase_defaults['product_card']);
+check(
+	true === $phase_cart_defaults['show_share_cart'] && false === $phase_cart_defaults['gift_wrap_enabled'] && 'بسته‌بندی هدیه ویژه' === $phase_cart_defaults['gift_wrap_label'] && 0 === $phase_cart_defaults['gift_wrap_fee'] && true === $phase_cart_defaults['gift_wrap_note_enabled'] &&
+	false === $phase_cart_sanitized['show_share_cart'] && true === $phase_cart_sanitized['gift_wrap_enabled'] && 'هدیه' === $phase_cart_sanitized['gift_wrap_label'] && 0 == $phase_cart_sanitized['gift_wrap_fee'] && 'بسته' === $phase_cart_sanitized['gift_wrap_description'] && false === $phase_cart_sanitized['gift_wrap_note_enabled'] &&
+	true === $phase_cart_import_defaults['show_share_cart'] && false === $phase_cart_import_defaults['gift_wrap_enabled'] && true === $phase_cart_import_defaults['gift_wrap_note_enabled'] && true === $phase_defaults['product_card']['show_color_swatches'] && false === $phase_card_sanitized['show_color_swatches'],
+	'R399 share-cart, gift-wrap and product-card defaults/sanitizers preserve import defaults, explicit booleans, safe text and nonnegative fees'
+);
+
+$phase_old_wc = $GLOBALS['wc'] ?? null;
+$phase_old_settings = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$phase_old_post = $_POST;
+$phase_old_query = $GLOBALS['query_kind'] ?? null;
+$phase_old_uri = $_SERVER['REQUEST_URI'] ?? null;
+$phase_old_get = $_GET;
+$phase_old_throw_redirect = $GLOBALS['throw_redirect'] ?? false;
+$phase_settings = $phase_defaults;
+$phase_settings['cart_checkout']['show_share_cart'] = true;
+$phase_settings['cart_checkout']['gift_wrap_enabled'] = true;
+$phase_settings['cart_checkout']['gift_wrap_label'] = 'بسته‌بندی هدیه آزمایشی';
+$phase_settings['cart_checkout']['gift_wrap_fee'] = 1250;
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = true;
+$phase_settings['shop']['mini_cart_show_free_shipping'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['products'][700] = new WC_Product(700);
+$GLOBALS['products'][701] = new WC_Product(701); $GLOBALS['products'][701]->type = 'variable';
+$GLOBALS['products'][702] = new WC_Product(702); $GLOBALS['products'][702]->type = 'variation'; $GLOBALS['products'][702]->parent = 701;
+$GLOBALS['products'][703] = new WC_Product(703);
+$GLOBALS['products'][704] = new WC_Product(704); $GLOBALS['products'][704]->status = 'draft';
+$GLOBALS['products'][705] = new WC_Product(705); $GLOBALS['products'][705]->type = 'variation'; $GLOBALS['products'][705]->parent = 704;
+$GLOBALS['variation_attributes'][702] = array('attribute_pa_color' => 'red');
+$phase_cart = new FakeCart();
+$phase_cart->items = array(
+	'same' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>2,'variation'=>array()),
+	'other' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>1,'variation'=>array()),
+);
+$GLOBALS['wc'] = (object) array('cart'=>$phase_cart,'session'=>new FakeSession());
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>''));
+$phase_encoded = jluxe_share_cart_encoded();
+$phase_url = jluxe_share_cart_url();
+$phase_parsed = jluxe_parse_share_cart_payload('703:3,701v702:1');
+$phase_import = jluxe_import_share_cart('700:2,703:3,701v702:1,704:1,701v705:1');
+$phase_snapshot = jluxe_cart_snapshot();
+check(
+	'700:2,700:1' === $phase_encoded && str_contains($phase_url, 'jluxe_share_cart=') && is_array($phase_parsed) && 2 === count($phase_parsed) &&
+	array('added'=>2,'unavailable'=>2,'already_present'=>1,'invalid'=>false) === $phase_import && count($phase_cart->addCalls) === 2 && 701 === $phase_cart->addCalls[1][0] && 702 === $phase_cart->addCalls[1][2] && array('attribute_pa_color'=>'red') === $phase_cart->addCalls[1][3] &&
+	null === jluxe_parse_share_cart_payload('703:100') && null === jluxe_parse_share_cart_payload('703:1,703:1') && null === jluxe_parse_share_cart_payload('bad:1') &&
+	true === $phase_snapshot['shareCartEnabled'] && str_contains($phase_snapshot['shareCartUrl'], 'jluxe_share_cart=') && true === $phase_snapshot['giftWrap']['enabled'],
+	'R399 share-cart payloads stay bounded, skip existing quantities and unavailable/draft/mismatched variations, preserve the recipient cart, and expose the safe snapshot'
+);
+$phase_cart->items = array('valid'=>array('data'=>$GLOBALS['products'][703],'product_id'=>703,'variation_id'=>0,'quantity'=>1,'variation'=>array()));
+$GLOBALS['query_kind'] = 'cart';
+$_SERVER['REQUEST_URI'] = '/basket/?jluxe_share_cart=703%3A1&keep=1';
+$_GET = array('jluxe_share_cart'=>'703:1');
+$GLOBALS['throw_redirect'] = true;
+$phase_redirect = '';
+try { jluxe_handle_share_cart_link(); } catch (RuntimeException $redirect_error) { $phase_redirect = $redirect_error->getMessage(); }
+$GLOBALS['throw_redirect'] = false;
+check(str_contains($phase_redirect, 'TEST_REDIRECT:') && !str_contains($phase_redirect, 'jluxe_share_cart') && str_contains($phase_redirect, 'keep=1'),'R399 share-cart import registers a clear Persian notice and redirects to a clean cart URL without reapplying the payload');
+
+$phase_cart->fees = array();
+$_POST = array('gift_wrap_fee'=>'99999999','gift_wrap_label'=>'Attacker title');
+$phase_gift_state = jluxe_set_session_gift_wrap(true, str_repeat('متن', 90) . '<script>bad</script>');
+jluxe_apply_gift_wrap_fee();
+$phase_order = new WC_Order();
+jluxe_checkout_store_gift_wrap($phase_order, array());
+$phase_export = jluxe_checkout_export_gift_wrap(array(), $phase_order);
+ob_start(); jluxe_render_gift_wrap_box(); $phase_gift_box = (string) ob_get_clean();
+$phase_fee_ok = count($phase_cart->fees) === 1 && 'بسته‌بندی هدیه آزمایشی' === $phase_cart->fees[0][0] && 1250 == $phase_cart->fees[0][1];
+$phase_note_safe = strlen($phase_gift_state['note']) <= 800 && false === strpos($phase_gift_state['note'], '<script>');
+$phase_order_saved = 'yes' === $phase_order->get_meta('_jluxe_gift_wrap') && '' !== $phase_order->get_meta('_jluxe_gift_wrap_note');
+$phase_note_render = str_contains($phase_gift_box, 'name="jluxe_gift_wrap_note"') && str_contains($phase_gift_box, 'maxlength="200"');
+$phase_privacy = count($phase_export) === 2;
+jluxe_checkout_erase_gift_wrap($phase_order);
+$phase_erased = '' === $phase_order->get_meta('_jluxe_gift_wrap') && '' === $phase_order->get_meta('_jluxe_gift_wrap_note');
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>'clear'));
+jluxe_clear_gift_wrap_session();
+$phase_cleared = !isset($GLOBALS['wc']->session->data['jluxe_gift_wrap']);
+check($phase_fee_ok && $phase_note_safe && $phase_order_saved && $phase_note_render && $phase_privacy && $phase_erased && $phase_cleared,'R399 gift-wrap fee ignores posted amount/title, bounds and sanitizes notes, persists on orders, exports/erases privacy data and clears session state');
+
+$phase_card_attribute = new WC_Product_Attribute();
+$phase_card_attribute->set_name('pa_color');
+$phase_card_attribute->set_options(array('قرمز','آبی','سبز','زرد','سفید','مشکی'));
+$GLOBALS['product_attributes'][500] = array($phase_card_attribute);
+$GLOBALS['attribute_labels']['pa_color'] = 'رنگ';
+$phase_card_settings = $phase_defaults;
+$phase_card_settings['product_card']['show_color_swatches'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_card_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['query_kind'] = 'shop';
+ob_start(); jluxe_test_render_card_probe('content','product'); $phase_card_on = (string) ob_get_clean();
+$phase_swatch_start = strpos($phase_card_on, 'class="jluxe-product-card-swatches"');
+$phase_swatch_end = false === $phase_swatch_start ? false : strpos($phase_card_on, '</div>', $phase_swatch_start);
+$phase_swatch_html = false !== $phase_swatch_end ? substr($phase_card_on, $phase_swatch_start, $phase_swatch_end-$phase_swatch_start) : '';
+$phase_card_settings['product_card']['show_color_swatches'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_card_settings;
+jluxe_get_theme_settings(true);
+ob_start(); jluxe_test_render_card_probe('content','product'); $phase_card_off = (string) ob_get_clean();
+check(substr_count($phase_swatch_html,'role="img"') === 4 && str_contains($phase_swatch_html,'+۲') && !str_contains($phase_card_off,'class="jluxe-product-card-swatches"'),'R399 archive product cards render at most four accessible color swatches plus a Persian +N count and obey the disable switch');
+
+$_POST = $phase_old_post;
+if ( null === $phase_old_settings ) { unset($GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]); } else { $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_old_settings; }
+$GLOBALS['wc'] = $phase_old_wc;
+if ( null === $phase_old_query ) { unset($GLOBALS['query_kind']); } else { $GLOBALS['query_kind'] = $phase_old_query; }
+if ( null === $phase_old_uri ) { unset($_SERVER['REQUEST_URI']); } else { $_SERVER['REQUEST_URI'] = $phase_old_uri; }
+$_GET = $phase_old_get;
+$GLOBALS['throw_redirect'] = $phase_old_throw_redirect;
+jluxe_get_theme_settings(true);
+
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

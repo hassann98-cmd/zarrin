@@ -38,9 +38,10 @@ test("refactored modules retain the ABSPATH guard and stable loader order", () =
   );
   const homepageLoader = read("inc/theme-settings-homepage.php");
   assert.doesNotMatch(homepageLoader, /is_admin\s*\(/);
-  assert.match(homepageLoader, /function jluxe_render_homepage_page\(/);
-  assert.equal([...homepageLoader.matchAll(/^function /gm)].length, 9, "the loader retains its nine core functions");
-  assert.doesNotMatch(read("inc/homepage/admin-editor.php"), /function jluxe_render_homepage_page\(/);
+  assert.doesNotMatch(homepageLoader, /function jluxe_render_homepage_page\(/);
+  assert.match(homepageLoader, /require_once __DIR__ \. '\/homepage\/admin-editor\.php'/);
+  assert.equal([...homepageLoader.matchAll(/^function /gm)].length, 8, "the compatibility loader retains its eight core functions");
+  assert.match(read("inc/homepage/admin-editor.php"), /function jluxe_render_homepage_page\(/);
   assert.match(read("inc/homepage/sections-media.php"), /function jluxe_hb_collage_mobile_grid_css\(/);
   assert.match(read("inc/homepage/sections-media.php"), /function jluxe_hero_options\(/);
 });

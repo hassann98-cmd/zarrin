@@ -363,6 +363,12 @@ function jluxe_theme_settings_defaults(): array {
 		 * توضیح‌های accordion را کنترل می‌کند.
 		 */
 		'cart_checkout' => array(
+			'show_share_cart'                 => true,
+			'gift_wrap_enabled'               => false,
+			'gift_wrap_label'                 => 'بسته‌بندی هدیه ویژه',
+			'gift_wrap_fee'                   => 0,
+			'gift_wrap_description'           => '',
+			'gift_wrap_note_enabled'          => true,
 			'checkout_layout'                 => 'classic',
 			'checkout_map_enabled'            => true,
 			'show_stepper'                    => true,
@@ -967,6 +973,7 @@ function jluxe_theme_settings_defaults(): array {
 			// 'sharp' یعنی گوشه‌های عکس کاملاً تیز، صرف‌نظر از radius کارت.
 			'image_corners'    => 'rounded', // rounded | sharp
 			'show_rating'      => true,
+			'show_color_swatches' => true,
 			'show_sale_badge'  => true,
 			'show_stock_badge' => true,
 			'price_color'      => '', // خالی یعنی رنگ پیش‌فرض متن (--foreground).

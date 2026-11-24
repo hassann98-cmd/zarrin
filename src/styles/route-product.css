@@ -1818,6 +1818,7 @@ body.single-product .jluxe-description-table-scroll::-webkit-scrollbar-thumb {
   .jluxe-product-faq-list .jluxe-faq-trigger, .jluxe-product-faq-list .jluxe-faq-chevron { transition: none; }
 }
 .single-product .product[data-jluxe-layout="default"] .woocommerce-product-gallery {
+  position: relative;
   /* WooCommerce's product-image.php prints inline opacity:0 before its gallery initializer runs. */
   opacity: 1 !important;
 }

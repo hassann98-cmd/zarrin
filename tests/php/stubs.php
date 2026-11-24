@@ -282,6 +282,7 @@ function wc_get_products($args){$GLOBALS['product_query_args']=$args;if(isset($G
 function wc_get_product_ids_on_sale(){return $GLOBALS['sale_ids']??[];}
 function wc_format_coupon_code($value){return strtolower(trim($value));}
 function wc_clear_notices(){$GLOBALS['notices']=[];}
+function wc_add_notice($message,$type='success'){$GLOBALS['notices'][$type][]=['notice'=>(string)$message,'data'=>[]];}
 function wc_get_notices($type){return $GLOBALS['notices'][$type]??[];}
 function wp_send_json_error($data=[], $status=200){throw new JsonReply(false,$data,$status);}
 function wp_send_json_success($data=[], $status=200){throw new JsonReply(true,$data,$status);}
@@ -418,7 +419,7 @@ function add_query_arg($key,$value=null,$url=null){
  foreach($q as $k=>$v)if($v===false)unset($q[$k]);
  return preg_replace('/\?.*$/','',$url).($q?'?'.http_build_query($q):'');
 }
-if(!function_exists('remove_query_arg')){function remove_query_arg($key,$url=''){return add_query_arg(array_fill_keys((array)$key,false),$url);}}
+if(!function_exists('remove_query_arg')){function remove_query_arg($key,$url=''){if(''===$url)$url=home_url((string)($_SERVER['REQUEST_URI']??'/basket/'));return add_query_arg(array_fill_keys((array)$key,false),$url);}}
 if(!function_exists('get_pagenum_link')){function get_pagenum_link($pagenum=1,$escape=true){
  $GLOBALS['get_pagenum_link_calls'][]=[$pagenum,$escape];
  $request=(string)($_SERVER['REQUEST_URI']??'/catalog/');$parts=parse_url($request);$path=preg_replace('~/page/\d+/?$~','/',(string)($parts['path']??'/catalog/'));
@@ -496,6 +497,7 @@ class WC_Product {
  // رندر کند و خطاهای زمانِ اجرا (مثل «Undefined constant» نسخهٔ 1.65) دیده
  // نمی‌شدند — همان شکافی که یک باگِ واقعی را تا روی سرورِ زنده برد.
  function is_visible(){return true;}
+ function get_variation_attributes(){return (array)($GLOBALS['variation_attributes'][$this->id]??[]);}
  function get_variation_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['price']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
  function get_variation_regular_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['regular']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['regular']??0.0;}
  function get_sale_price($context='view'){return ($GLOBALS['product_prices'][$this->id]['regular']??0.0)>($GLOBALS['product_prices'][$this->id]['price']??0.0)?($GLOBALS['product_prices'][$this->id]['price']??0.0):'';}
@@ -508,16 +510,17 @@ class WooCommerce {}
 class FakeSession { public $data=[];
  function get($key){return $this->data[$key]??null;}
  function set($key,$value){$this->data[$key]=$value;}
+ function __unset($key){unset($this->data[$key]);}
 }
 class FakeCart {
- public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $totalsCalls=0;public $quantityRefreshArgs=[];public $stockCheckCalls=0;
+ public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $addCalls=[];public $totalsCalls=0;public $quantityRefreshArgs=[];public $stockCheckCalls=0;
  function get_cart(){return $this->items;}
  function is_empty(){return empty($this->items);}
  function add_fee($name,$amount,$taxed=true){$this->fees[]=[$name,$amount];return true;}
  function get_cart_item($key){return $this->items[$key]??[];}
  function remove_cart_item($key){if(!isset($this->items[$key]))return false;unset($this->items[$key]);return true;}
  function set_quantity($key,$quantity,$refresh=true){$this->changed++;$this->quantityRefreshArgs[]=$refresh;if(!$quantity)return $this->remove_cart_item($key);$this->items[$key]['quantity']=$quantity;if($refresh)$this->calculate_totals();return true;}
- function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
+ function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;$this->addCalls[]=[$id,$qty,$variation,$attrs];if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
  public $stockFail=false;
  function check_cart_item_stock(){$this->stockCheckCalls++;return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
  function get_cart_item_quantities(){$out=[];foreach($this->items as $item){$id=$item['data']->get_stock_managed_by_id();$out[$id]=($out[$id]??0)+$item['quantity'];}return $out;}
@@ -637,7 +640,7 @@ function get_object_taxonomies($object_type,$output='names'){$taxonomies=$GLOBAL
 function get_term_by($field,$value,$taxonomy){$terms=$GLOBALS['terms_by_slug'][$taxonomy]??[];if(isset($terms[$value]))return $terms[$value];foreach($terms as $slug=>$term){if(!is_object($term))continue;if('slug'===$field&&isset($term->slug)&&(string)$term->slug===(string)$value)return $term;if('name'===$field&&isset($term->name)&&(string)$term->name===(string)$value)return $term;}return false;}
 function wp_count_posts($type='post'){return (object)($GLOBALS['post_counts'][$type]??[]);}
 function wp_update_post($data,$errors=false){$GLOBALS['updated_posts'][]=$data;return $data['ID']??0;}
-function wp_safe_redirect($url,$status=302){$GLOBALS['redirects'][]=$url;return true;}
+function wp_safe_redirect($url,$status=302){$GLOBALS['redirects'][]=$url;if(!empty($GLOBALS['throw_redirect']))throw new RuntimeException('TEST_REDIRECT:'.$url);return true;}
 function wp_nonce_field(...$a){echo '';}
 
 

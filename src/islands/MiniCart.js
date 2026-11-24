@@ -537,6 +537,21 @@ function J() {
                               "flex h-12 items-center justify-center rounded-xl bg-primary text-button font-medium text-primary-foreground transition-colors hover:bg-primary-hover",
                             children: "مشاهده سبد خرید",
                           }),
+                          s.shareCartEnabled && s.shareCartUrl
+                            ? e.jsx("button", {
+                                type: "button",
+                                "data-jluxe-share-cart": "",
+                                "data-share-url": s.shareCartUrl,
+                                className: "mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface text-caption font-bold text-text-secondary transition-colors hover:bg-muted",
+                                children: e.jsxs("span", {
+                                  className: "inline-flex items-center gap-2",
+                                  children: [
+                                    e.jsx("span", { "aria-hidden": "true", children: "↗" }),
+                                    e.jsx("span", { "data-share-label": "", "aria-live": "polite", children: "ارسال لیست سبد برای دیگران" }),
+                                  ],
+                                }),
+                              })
+                            : null,
                         ],
                       })
                     : null,

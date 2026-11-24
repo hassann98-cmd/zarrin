@@ -1427,7 +1427,11 @@ function jluxe_render_product_page(): void {
 						</tr>
 						<tr>
 							<th scope="row">نمایش امتیاز</th>
-							<td><label><input type="checkbox" name="product_card[show_rating]" value="1" <?php checked( $pc['show_rating'] ); ?> /></label></td>
+							<td><input type="hidden" name="product_card[show_rating]" value="0" /><label><input type="checkbox" name="product_card[show_rating]" value="1" <?php checked( $pc['show_rating'] ); ?> /></label></td>
+						</tr>
+						<tr>
+							<th scope="row">نمایش نقاط رنگ روی کارت محصول</th>
+							<td><input type="hidden" name="product_card[show_color_swatches]" value="0" /><label><input type="checkbox" name="product_card[show_color_swatches]" value="1" <?php checked( ! empty( $pc['show_color_swatches'] ) ); ?> /> نمایش رنگ‌های موجود زیر تصویر</label></td>
 						</tr>
 						<tr>
 							<th scope="row">نمایش بج تخفیف</th>
@@ -1919,7 +1923,7 @@ function jluxe_render_cart_checkout_toggle_row( array $settings, string $key, st
 	?>
 	<tr>
 		<th scope="row"><?php echo esc_html( $label ); ?></th>
-		<td><label><input type="checkbox" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> نمایش</label></td>
+		<td><input type="hidden" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="0" /><label><input type="checkbox" name="cart_checkout[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( ! empty( $settings[ $key ] ) ); ?> /> نمایش</label></td>
 	</tr>
 	<?php
 }
@@ -1961,6 +1965,7 @@ function jluxe_render_cart_checkout_page(): void {
 			<h2>سبد خرید</h2>
 			<table class="form-table" role="presentation">
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_cart_coupon', 'کد تخفیف' ); ?>
+				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'show_share_cart', 'دکمهٔ اشتراک‌گذاری سبد خرید' ); ?>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_message_enabled', 'پیام سفارشیِ سبد خالی' ); ?>
 				<?php jluxe_render_cart_checkout_toggle_row( $cart, 'cart_empty_return_enabled', 'دکمهٔ بازگشت از سبد خالی' ); ?>
 				<tr>
@@ -1972,8 +1977,16 @@ function jluxe_render_cart_checkout_page(): void {
 					</td>
 				</tr>
 			</table>
+			<h3>بسته‌بندی هدیه</h3>
 			<table class="form-table" role="presentation">
-				<?php
+				<tr><th scope="row">فعال‌سازی</th><td><input type="hidden" name="cart_checkout[gift_wrap_enabled]" value="0" /><label><input type="checkbox" name="cart_checkout[gift_wrap_enabled]" value="1" <?php checked( ! empty( $cart['gift_wrap_enabled'] ) ); ?> /> امکان افزودن بسته‌بندی هدیه به سبد و تسویه‌حساب</label></td></tr>
+				<tr><th scope="row"><label for="jluxe-gift-wrap-label">عنوان هزینه</label></th><td><input id="jluxe-gift-wrap-label" class="regular-text" type="text" maxlength="80" name="cart_checkout[gift_wrap_label]" value="<?php echo esc_attr( (string) ( $cart['gift_wrap_label'] ?? 'بسته‌بندی هدیه ویژه' ) ); ?>" /></td></tr>
+				<tr><th scope="row"><label for="jluxe-gift-wrap-fee">هزینه (واحد پول فروشگاه)</label></th><td><input id="jluxe-gift-wrap-fee" type="number" min="0" step="0.01" name="cart_checkout[gift_wrap_fee]" value="<?php echo esc_attr( (string) ( $cart['gift_wrap_fee'] ?? 0 ) ); ?>" /></td></tr>
+				<tr><th scope="row"><label for="jluxe-gift-wrap-description">توضیح اختیاری</label></th><td><input id="jluxe-gift-wrap-description" class="large-text" type="text" maxlength="240" name="cart_checkout[gift_wrap_description]" value="<?php echo esc_attr( (string) ( $cart['gift_wrap_description'] ?? '' ) ); ?>" /></td></tr>
+				<tr><th scope="row">کارت یادداشت</th><td><input type="hidden" name="cart_checkout[gift_wrap_note_enabled]" value="0" /><label><input type="checkbox" name="cart_checkout[gift_wrap_note_enabled]" value="1" <?php checked( ! empty( $cart['gift_wrap_note_enabled'] ) ); ?> /> امکان نوشتن متن کارت تا ۲۰۰ نویسه</label></td></tr>
+			</table>
+			<table class="form-table" role="presentation">
+			<?php
 			$cart_fields = array(
 					'cart_page_title'        => array( 'عنوان صفحهٔ سبد', false ),
 					'cart_column_product'    => array( 'ستون محصول', false ),

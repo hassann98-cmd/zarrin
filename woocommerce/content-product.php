@@ -131,6 +131,13 @@ $jluxe_ratio    = $jluxe_ratio_map[ $jluxe_pc['image_ratio'] ?? 'square' ] ?? $j
 $jluxe_show_rating = $jluxe_pc['show_rating'] ?? true;
 $jluxe_show_sale   = $jluxe_pc['show_sale_badge'] ?? true;
 $jluxe_show_stock  = $jluxe_pc['show_stock_badge'] ?? true;
+$jluxe_card_swatches = array();
+$jluxe_card_swatches_more = 0;
+if ( ! empty( $jluxe_pc['show_color_swatches'] ) && function_exists( 'jluxe_product_color_swatch_options' ) ) {
+	$jluxe_all_color_swatches = jluxe_product_color_swatch_options( $product );
+	$jluxe_card_swatches = array_slice( $jluxe_all_color_swatches, 0, 4 );
+	$jluxe_card_swatches_more = max( 0, count( $jluxe_all_color_swatches ) - count( $jluxe_card_swatches ) );
+}
 $jluxe_price_style = ! empty( $jluxe_pc['price_color'] ) ? ' style="color:' . esc_attr( $jluxe_pc['price_color'] ) . '"' : '';
 $jluxe_stock_color = isset( $jluxe_pc['in_stock_color'] ) ? sanitize_hex_color( $jluxe_pc['in_stock_color'] ) : '';
 $jluxe_stock_style = $jluxe_stock_color ? ' style="background-color:' . esc_attr( $jluxe_stock_color ) . '"' : '';
@@ -253,6 +260,18 @@ $jluxe_image_inner_class = ( 'sharp' === ( $jluxe_pc['image_corners'] ?? 'rounde
 					<?php if ( $jluxe_gallery_overflow > 0 ) : ?>
 						<span class="flex size-8 shrink-0 items-center justify-center rounded-md border-2 border-white/90 bg-black/60 text-caption font-medium text-white">+<?php echo esc_html( jluxe_fa_digits( $jluxe_gallery_overflow ) ); ?></span>
 					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+			<?php if ( $jluxe_card_swatches ) : ?>
+				<div class="jluxe-product-card-swatches" role="group" aria-label="<?php echo esc_attr( 'رنگ‌های ' . $product_name ); ?>">
+					<?php foreach ( $jluxe_card_swatches as $swatch ) : ?>
+						<?php if ( 'color' === $swatch['type'] ) : ?>
+							<span role="img" title="<?php echo esc_attr( $swatch['label'] ); ?>" aria-label="<?php echo esc_attr( $swatch['label'] ); ?>" style="background-color:<?php echo esc_attr( $swatch['value'] ); ?>"></span>
+						<?php elseif ( 'image' === $swatch['type'] ) : ?>
+							<span role="img" title="<?php echo esc_attr( $swatch['label'] ); ?>" aria-label="<?php echo esc_attr( $swatch['label'] ); ?>"><img src="<?php echo esc_url( $swatch['value'] ); ?>" alt="" width="10" height="10" loading="lazy" decoding="async" /></span>
+						<?php endif; ?>
+					<?php endforeach; ?>
+					<?php if ( $jluxe_card_swatches_more > 0 ) : ?><span class="jluxe-product-card-swatches__more" aria-hidden="true">+<?php echo esc_html( jluxe_fa_digits( $jluxe_card_swatches_more ) ); ?></span><?php endif; ?>
 				</div>
 			<?php endif; ?>
 		</a>

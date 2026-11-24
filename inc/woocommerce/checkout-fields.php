@@ -20,6 +20,141 @@ function jluxe_cart_checkout_option( string $key, bool $fallback = false ): bool
 	return (bool) jluxe_get_setting( 'cart_checkout.' . $key, $fallback );
 }
 
+/** Gift-wrap labels, price, and note permissions always come from sanitized server settings. */
+function jluxe_get_gift_wrap_config(): array {
+	$settings = jluxe_get_theme_settings()['cart_checkout'] ?? array();
+	$label = is_scalar( $settings['gift_wrap_label'] ?? null ) ? (string) $settings['gift_wrap_label'] : 'بسته‌بندی هدیه ویژه';
+	$fee = is_numeric( $settings['gift_wrap_fee'] ?? null ) ? (float) $settings['gift_wrap_fee'] : 0.0;
+	$description = is_scalar( $settings['gift_wrap_description'] ?? null ) ? (string) $settings['gift_wrap_description'] : '';
+	return array(
+		'enabled' => ! empty( $settings['gift_wrap_enabled'] ),
+		'label' => jluxe_substr( sanitize_text_field( $label ), 0, 80 ),
+		'fee' => max( 0, $fee ),
+		'description' => jluxe_substr( sanitize_text_field( $description ), 0, 240 ),
+		'note_enabled' => ! empty( $settings['gift_wrap_note_enabled'] ),
+	);
+}
+
+/** Return the session state in a small, sanitized, stable shape. */
+function jluxe_get_session_gift_wrap(): array {
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( ! is_object( $wc ) || ! isset( $wc->session ) || ! is_object( $wc->session ) || ! method_exists( $wc->session, 'get' ) ) { return array( 'enabled' => false, 'note' => '' ); }
+	$stored = $wc->session->get( 'jluxe_gift_wrap', array() );
+	$stored = is_array( $stored ) ? $stored : array();
+	$config = jluxe_get_gift_wrap_config();
+	$enabled = $config['enabled'] && ! empty( $stored['enabled'] );
+	$note = $enabled && $config['note_enabled'] && is_scalar( $stored['note'] ?? null )
+		? jluxe_substr( sanitize_textarea_field( (string) $stored['note'] ), 0, 200 )
+		: '';
+	return array( 'enabled' => $enabled, 'note' => $note );
+}
+
+/** Store only the selected state and note; never accept a fee or label from a request. */
+function jluxe_set_session_gift_wrap( bool $enabled, string $note = '' ): array {
+	$config = jluxe_get_gift_wrap_config();
+	$enabled = $enabled && $config['enabled'];
+	$note = $enabled && $config['note_enabled'] ? jluxe_substr( sanitize_textarea_field( $note ), 0, 200 ) : '';
+	$state = array( 'enabled' => $enabled, 'note' => $note );
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( is_object( $wc ) && isset( $wc->session ) && is_object( $wc->session ) && method_exists( $wc->session, 'set' ) ) { $wc->session->set( 'jluxe_gift_wrap', $state ); }
+	return $state;
+}
+
+/** Read native checkout fields or WooCommerce's serialized update_order_review payload. */
+function jluxe_sync_gift_wrap_request( $raw_post_data = null ): ?array {
+	$data = $_POST;
+	if ( is_string( $raw_post_data ) && '' !== $raw_post_data ) { parse_str( wp_unslash( $raw_post_data ), $data ); }
+	if ( ! is_array( $data ) || ( ! array_key_exists( 'jluxe_gift_wrap_note', $data ) && ! array_key_exists( 'jluxe_gift_wrap', $data ) ) ) { return null; }
+	$config = jluxe_get_gift_wrap_config();
+	$enabled = $config['enabled'] && isset( $data['jluxe_gift_wrap'] ) && is_scalar( $data['jluxe_gift_wrap'] ) && '1' === (string) $data['jluxe_gift_wrap'];
+	$note = isset( $data['jluxe_gift_wrap_note'] ) && is_scalar( $data['jluxe_gift_wrap_note'] ) ? (string) $data['jluxe_gift_wrap_note'] : '';
+	return jluxe_set_session_gift_wrap( $enabled, $note );
+}
+
+/** Render the same gift option on cart and checkout without adding a nested form. */
+function jluxe_render_gift_wrap_box(): void {
+	$config = jluxe_get_gift_wrap_config();
+	if ( ! $config['enabled'] || ( function_exists( 'WC' ) && WC()->cart && WC()->cart->is_empty() ) ) { return; }
+	$state = jluxe_get_session_gift_wrap();
+	$price = $config['fee'] > 0 ? wp_kses_post( wc_price( $config['fee'] ) ) : 'رایگان';
+	$id = 'jluxe-gift-wrap-enabled';
+	?>
+	<section class="jluxe-gift-wrap-card" data-jluxe-gift-wrap aria-labelledby="jluxe-gift-wrap-title">
+		<label class="jluxe-gift-wrap-card__choice" for="<?php echo esc_attr( $id ); ?>">
+			<input id="<?php echo esc_attr( $id ); ?>" type="checkbox" name="jluxe_gift_wrap" value="1" data-jluxe-gift-enabled <?php checked( $state['enabled'] ); ?> />
+			<span class="jluxe-gift-wrap-card__copy"><strong id="jluxe-gift-wrap-title"><?php echo esc_html( $config['label'] ); ?></strong><span><?php echo $price; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wc_price() is WooCommerce-formatted safe markup. ?></span></span>
+		</label>
+		<?php if ( '' !== $config['description'] ) : ?><p class="jluxe-gift-wrap-card__description"><?php echo esc_html( $config['description'] ); ?></p><?php endif; ?>
+		<?php if ( $config['note_enabled'] ) : ?>
+			<div class="jluxe-gift-wrap-card__note" data-jluxe-gift-note-wrap>
+				<label for="jluxe-gift-wrap-note">متن کارت یادداشت <span>(اختیاری)</span></label>
+				<textarea id="jluxe-gift-wrap-note" name="jluxe_gift_wrap_note" maxlength="200" rows="3" data-jluxe-gift-note aria-describedby="jluxe-gift-wrap-count"><?php echo esc_textarea( $state['note'] ); ?></textarea>
+				<span id="jluxe-gift-wrap-count" class="jluxe-gift-wrap-card__count" data-jluxe-gift-count aria-live="polite"><?php echo esc_html( jluxe_fa_digits( jluxe_strlen( $state['note'] ) ) ); ?> / ۲۰۰</span>
+			</div>
+		<?php endif; ?>
+		<p class="screen-reader-text" data-jluxe-gift-status aria-live="polite"></p>
+	</section>
+	<?php
+}
+
+/** Add the configured, non-taxable gift fee; client requests cannot set its amount or label. */
+function jluxe_apply_gift_wrap_fee(): void {
+	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) { return; }
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( ! is_object( $wc ) || ! isset( $wc->cart, $wc->session ) || ! is_object( $wc->cart ) || ! is_object( $wc->session ) || ! method_exists( $wc->cart, 'is_empty' ) || $wc->cart->is_empty() ) { return; }
+	$config = jluxe_get_gift_wrap_config();
+	$state = jluxe_get_session_gift_wrap();
+	if ( $config['enabled'] && $state['enabled'] && $config['fee'] > 0 ) { WC()->cart->add_fee( $config['label'], $config['fee'], false ); }
+}
+
+function jluxe_clear_gift_wrap_session(): void {
+	$wc = function_exists( 'WC' ) ? WC() : null;
+	if ( is_object( $wc ) && isset( $wc->session ) && is_object( $wc->session ) && method_exists( $wc->session, '__unset' ) ) { $wc->session->__unset( 'jluxe_gift_wrap' ); }
+}
+
+/** Persist gift metadata only after a validated checkout; fees and labels remain settings-owned. */
+function jluxe_checkout_store_gift_wrap( $order, array $data = array() ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) ) { return; }
+	jluxe_sync_gift_wrap_request();
+	$state = jluxe_get_session_gift_wrap();
+	if ( ! $state['enabled'] ) { return; }
+	$order->update_meta_data( '_jluxe_gift_wrap', 'yes' );
+	if ( '' !== $state['note'] ) { $order->update_meta_data( '_jluxe_gift_wrap_note', $state['note'] ); }
+	elseif ( method_exists( $order, 'delete_meta_data' ) ) { $order->delete_meta_data( '_jluxe_gift_wrap_note' ); }
+}
+
+function jluxe_render_order_gift_wrap_details( $order ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) || 'yes' !== $order->get_meta( '_jluxe_gift_wrap', true ) ) { return; }
+	$note = sanitize_textarea_field( (string) $order->get_meta( '_jluxe_gift_wrap_note', true ) );
+	echo '<section class="jluxe-order-gift-wrap"><h2>بسته‌بندی هدیه</h2><p><strong>بسته‌بندی هدیه:</strong> بله</p>';
+	if ( '' !== $note ) { echo '<div><strong>متن کارت یادداشت:</strong><p>' . nl2br( esc_html( $note ) ) . '</p></div>'; }
+	echo '</section>';
+}
+
+function jluxe_email_order_gift_wrap_details( $order, $sent_to_admin = false, $plain_text = false, $email = null ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) || 'yes' !== $order->get_meta( '_jluxe_gift_wrap', true ) ) { return; }
+	$note = sanitize_textarea_field( (string) $order->get_meta( '_jluxe_gift_wrap_note', true ) );
+	if ( $plain_text ) { echo "\nبسته‌بندی هدیه: بله\n" . ( '' !== $note ? "متن کارت: {$note}\n" : '' ); return; }
+	jluxe_render_order_gift_wrap_details( $order );
+}
+
+function jluxe_admin_order_gift_wrap_details( $order ): void { jluxe_render_order_gift_wrap_details( $order ); }
+
+function jluxe_checkout_export_gift_wrap( array $personal_data, $order ): array {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_meta' ) || 'yes' !== $order->get_meta( '_jluxe_gift_wrap', true ) ) { return $personal_data; }
+	$personal_data[] = array( 'name' => 'Gift wrapping', 'value' => 'Yes' );
+	$note = sanitize_textarea_field( (string) $order->get_meta( '_jluxe_gift_wrap_note', true ) );
+	if ( '' !== $note ) { $personal_data[] = array( 'name' => 'Gift card note', 'value' => $note ); }
+	return $personal_data;
+}
+
+function jluxe_checkout_erase_gift_wrap( $order ): void {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'delete_meta_data' ) ) { return; }
+	$order->delete_meta_data( '_jluxe_gift_wrap' );
+	$order->delete_meta_data( '_jluxe_gift_wrap_note' );
+	if ( method_exists( $order, 'save_meta_data' ) ) { $order->save_meta_data(); }
+}
+
 /** Return the allow-listed checkout layout; missing or corrupted settings preserve the released classic flow. */
 function jluxe_checkout_layout(): string {
 	$layout = jluxe_get_setting( 'cart_checkout.checkout_layout', 'classic' );

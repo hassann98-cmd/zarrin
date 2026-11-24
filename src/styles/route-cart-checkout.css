@@ -965,3 +965,25 @@ body.woocommerce-order-received .woocommerce-notices-wrapper .woocommerce-messag
   outline: 3px solid hsl(var(--success) / 0.3);
   outline-offset: 3px;
 }
+
+/* Shareable-cart and gift-wrap controls: route-only so the storefront shell stays lean. */
+.jluxe-share-cart-button{display:flex;width:100%;min-height:44px;align-items:center;justify-content:center;gap:9px;border:1px solid hsl(var(--border));border-radius:14px;background:hsl(var(--surface));padding:9px 14px;color:hsl(var(--text-secondary));font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .18s,border-color .18s,color .18s}
+.jluxe-share-cart-button:hover{border-color:hsl(var(--primary)/.35);background:hsl(var(--muted));color:hsl(var(--primary))}
+.jluxe-share-cart-button:focus-visible,.jluxe-gift-wrap-card :focus-visible{outline:3px solid hsl(var(--primary)/.35);outline-offset:2px}
+.jluxe-gift-wrap-card{display:block;margin-block:14px;padding:16px;border:1px solid hsl(var(--border));border-radius:18px;background:linear-gradient(135deg,hsl(var(--surface)),hsl(var(--muted)/.55));box-shadow:0 4px 16px hsl(var(--foreground)/.04)}
+.jluxe-gift-wrap-card__choice{display:flex;align-items:center;gap:12px;cursor:pointer}
+.jluxe-gift-wrap-card__choice input{width:20px;height:20px;accent-color:hsl(var(--primary));flex:none}
+.jluxe-gift-wrap-card__copy{display:flex;flex:1;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+.jluxe-gift-wrap-card__copy strong{color:hsl(var(--foreground));font-weight:700}
+.jluxe-gift-wrap-card__copy>span{color:hsl(var(--primary));font-weight:700;white-space:nowrap}
+.jluxe-gift-wrap-card__description{margin:8px 0 0 32px;color:hsl(var(--text-muted));font-size:12px;line-height:1.8}
+.jluxe-gift-wrap-card__note{max-height:0;margin-inline-start:32px;overflow:hidden;opacity:0;transition:max-height .28s ease,opacity .2s ease,margin .2s ease}
+.jluxe-gift-wrap-card:has([data-jluxe-gift-enabled]:checked) .jluxe-gift-wrap-card__note{max-height:15rem;margin-top:12px;opacity:1}
+.jluxe-gift-wrap-card__note label{display:block;margin-bottom:6px;color:hsl(var(--text-secondary));font-size:12px;font-weight:700}
+.jluxe-gift-wrap-card__note label span{color:hsl(var(--text-muted));font-weight:400}
+.jluxe-gift-wrap-card__note textarea{display:block;width:100%;min-height:76px;resize:vertical;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--surface));padding:10px 12px;color:hsl(var(--foreground));font:inherit;font-size:13px;line-height:1.8}
+.jluxe-gift-wrap-card__count{display:block;margin-top:4px;color:hsl(var(--text-muted));font-size:11px;text-align:end}
+.jluxe-order-gift-wrap{margin-block:16px;padding:14px;border:1px solid hsl(var(--border));border-radius:14px;background:hsl(var(--muted)/.45)}
+.jluxe-order-gift-wrap h2{margin:0 0 8px;font-size:16px;font-weight:700}
+.jluxe-order-gift-wrap p{margin:4px 0;line-height:1.8;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.jluxe-share-cart-button,.jluxe-gift-wrap-card__note{transition:none}}

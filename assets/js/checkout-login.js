@@ -132,7 +132,10 @@
       var checkbox = event.target && event.target.closest && event.target.closest(".jluxe-unknown-postcode-checkbox");
       if (checkbox && form.contains(checkbox)) applyShortcut(checkbox);
     });
-    form.querySelectorAll(".jluxe-unknown-postcode-checkbox:checked").forEach(applyShortcut);
+    form.querySelectorAll(".jluxe-unknown-postcode-checkbox").forEach(function (checkbox) {
+      var input = field(checkbox.getAttribute("data-jluxe-postcode-target"));
+      if (input && form.contains(input)) syncUnknownPostcodeFor(input);
+    });
   }
 
   function installCheckoutAddressThrottle() {

@@ -6455,7 +6455,7 @@ function jluxeEnhanceShopSort(root) {
   function step(){return slides.length>1?Math.abs(slides[1].offsetLeft-slides[0].offsetLeft):0;}
   function edges(){var max=Math.max(0,track.scrollWidth-track.clientWidth),pos=Math.abs(track.scrollLeft);track.classList.toggle('more-left',pos<max-2);track.classList.toggle('more-right',pos>2);}
   function sync(){updateMeter();if(!fromScroll){var index=Number(gallery.getAttribute('data-jluxe-gallery-current')||0),distance=step()*index;if(track.scrollTo)track.scrollTo({left:-distance,behavior:'auto'});}edges();}
-  track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(hasVideo&&index===(dots.length||1)){updateMeter(index);return;}if(index<dots.length && dots[index] && index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}},120);},{passive:true});
+  track.addEventListener('scroll',function(){edges();clearTimeout(timer);timer=setTimeout(function(){var size=step();if(!size)return;var index=Math.min(slides.length-1,Math.round(Math.abs(track.scrollLeft)/size));if(hasVideo&&index===(dots.length||1)){updateMeter(index);return;}if(index<dots.length||(!dots.length&&index===0)){updateMeter(index);if(dots[index]&&index!==Number(gallery.getAttribute('data-jluxe-gallery-current')||0)){fromScroll=true;dots[index].click();fromScroll=false;}}},120);},{passive:true});
   new MutationObserver(function(){sync();}).observe(gallery,{attributes:true,attributeFilter:['data-jluxe-gallery-current']});
   function syncFirstImage(){
    // The main image also represents slides 1..N while browsing. Only index 0
@@ -6492,5 +6492,101 @@ function jluxeEnhanceShopSort(root) {
 		document.body.appendChild(field); field.select();
 		try { if (document.execCommand('copy')) copied(); } catch (_) {}
 		document.body.removeChild(field);
+	});
+})();
+
+/* Share a cart without placing identity, price, or address data in the URL. */
+(function () {
+	'use strict';
+	var copyTimers = new WeakMap();
+	function showCopied(button) {
+		var label = button.querySelector('[data-share-label]');
+		if (!label) return;
+		label.textContent = 'لینک سبد کپی شد ✓';
+		if (copyTimers.has(button)) window.clearTimeout(copyTimers.get(button));
+		copyTimers.set(button, window.setTimeout(function () {
+			if (label.isConnected) label.textContent = 'ارسال لیست سبد برای دیگران';
+			copyTimers.delete(button);
+		}, 2200));
+		if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches && window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.haptic === 'function') window.JLuxeStorefrontUtils.haptic();
+	}
+	function fallbackCopy(value) {
+		var field = document.createElement('textarea');
+		field.value = value; field.setAttribute('readonly', ''); field.style.position = 'fixed'; field.style.opacity = '0';
+		document.body.appendChild(field); field.select();
+		var copied = false;
+		try { copied = document.execCommand('copy'); } catch (error) {}
+		field.remove();
+		return copied;
+	}
+	document.addEventListener('click', function (event) {
+		var button = event.target.closest && event.target.closest('[data-jluxe-share-cart]');
+		if (!button) return;
+		event.preventDefault();
+		var url = button.getAttribute('data-share-url') || '';
+		if (!url) return;
+		if (typeof navigator.share === 'function') {
+			try {
+				var sharing = navigator.share({ title: 'سبد خرید پیشنهادی', url: url });
+				if (sharing && typeof sharing.then === 'function') {
+					sharing.catch(function (error) { if (error && error.name !== 'AbortError' && fallbackCopy(url)) showCopied(button); });
+				}
+				return;
+			} catch (error) { if (error && error.name === 'AbortError') return; }
+		}
+		if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+			navigator.clipboard.writeText(url).then(function () { showCopied(button); }).catch(function () { if (fallbackCopy(url)) showCopied(button); });
+		} else if (fallbackCopy(url)) { showCopied(button); }
+	});
+})();
+
+/* Server-owned gift wrapping: only selection/note cross the AJAX boundary. */
+(function () {
+	'use strict';
+	var queue = Promise.resolve();
+	var noteTimer = null;
+	function persianCount(value) { return String(value).replace(/\d/g, function (digit) { return '۰۱۲۳۴۵۶۷۸۹'[digit]; }); }
+	function announce(box, message) {
+		var status = box.querySelector('[data-jluxe-gift-status]');
+		if (status) status.textContent = message;
+	}
+	function request(box) {
+		var settings = (window.JLuxeThemeSettings || {}).cart || {};
+		if (!settings.ajaxUrl || typeof window.jluxeCartPost !== 'function') return;
+		var enabled = box.querySelector('[data-jluxe-gift-enabled]');
+		var note = box.querySelector('[data-jluxe-gift-note]');
+		var body = new URLSearchParams({ action: 'jluxe_cart', nonce: settings.nonce || '', op: 'gift_wrap', enabled: enabled && enabled.checked ? '1' : '0', note: note ? note.value.slice(0, 200) : '' });
+		var cartPage = !!document.querySelector('form.woocommerce-cart-form');
+		if (cartPage) body.set('cart_page', '1');
+		box.setAttribute('aria-busy', 'true');
+		queue = queue.catch(function () {}).then(function () {
+			return window.jluxeCartPost(settings.ajaxUrl, body, settings).then(function (result) {
+				if (!result || !result.success || !result.data) throw new Error('Gift-wrap update failed');
+				if (cartPage && result.data.cartPage && typeof result.data.cartPage.totalsHtml === 'string') {
+					var holder = document.createElement('div'); holder.innerHTML = result.data.cartPage.totalsHtml;
+					var replacement = holder.querySelector('.cart_totals');
+					var current = document.querySelector('.cart_totals');
+					if (replacement && current) current.replaceWith(replacement);
+				}
+				if (!cartPage && window.jQuery) window.jQuery(document.body).trigger('update_checkout');
+				announce(box, 'انتخاب بسته‌بندی هدیه ذخیره شد.');
+			}).catch(function () { announce(box, 'ذخیره انجام نشد؛ لطفاً دوباره تلاش کنید.'); });
+		}).finally(function () { box.removeAttribute('aria-busy'); });
+	}
+	document.addEventListener('change', function (event) {
+		var checkbox = event.target.closest && event.target.closest('[data-jluxe-gift-enabled]');
+		if (!checkbox) return;
+		var box = checkbox.closest('[data-jluxe-gift-wrap]');
+		if (box) request(box);
+	});
+	document.addEventListener('input', function (event) {
+		var note = event.target.closest && event.target.closest('[data-jluxe-gift-note]');
+		if (!note) return;
+		var box = note.closest('[data-jluxe-gift-wrap]');
+		var count = box && box.querySelector('[data-jluxe-gift-count]');
+		if (count) count.textContent = persianCount(Array.from(note.value).length) + ' / ۲۰۰';
+		if (!box || !box.querySelector('[data-jluxe-gift-enabled]').checked) return;
+		window.clearTimeout(noteTimer);
+		noteTimer = window.setTimeout(function () { request(box); }, 350);
 	});
 })();
