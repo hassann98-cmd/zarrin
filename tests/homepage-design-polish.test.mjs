@@ -10,7 +10,7 @@ const js = await readFile(new URL("../assets/js/homepage.js", import.meta.url), 
 const routeHomeCss = await readFile(new URL("../src/styles/route-home.css", import.meta.url), "utf8");
 
 test("homepage sections share the 1320px padded grid and consistent section headers", () => {
-  assert.match(php, /\.jluxe-home-section\{box-sizing:border-box;width:100%;max-width:var\(--jluxe-container-max,1320px\);padding-inline:16px/);
+  assert.match(php, /\.jluxe-home-section\{box-sizing:border-box;width:100%;max-width:var\(--jluxe-container-max,1320px\);margin-inline:auto;padding-inline:16px/);
   assert.match(routeHomeCss, /body\.home \.jluxe-home-section[\s\S]*margin-block: var\(--jluxe-home-space\)/);
   assert.doesNotMatch(php, /\.jluxe-home-section\{[^}]*margin:24px auto/);
   assert.match(php, /@media\(max-width:767\.98px\)\{\.jluxe-home-section\{padding-inline:12px\}\}/);

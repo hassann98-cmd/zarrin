@@ -232,7 +232,7 @@
     ]
   },
   "src/main.js": {
-    "file": "assets/main-vpT9fLd7.js",
+    "file": "assets/main-BEiiVASp.js",
     "name": "main",
     "src": "src/main.js",
     "isEntry": true,
@@ -258,7 +258,7 @@
       "node_modules/lenis/dist/lenis.mjs"
     ],
     "css": [
-      "assets/main-DpElKfHP.css"
+      "assets/main-BZKu_DOo.css"
     ],
     "assets": [
       "assets/IRANYekanMobileRegular-BdVpDEyu.woff2",
@@ -315,7 +315,7 @@
     "isEntry": true
   },
   "src/styles/route-home.css": {
-    "file": "assets/route-home-Cfij0yH4.css",
+    "file": "assets/route-home-B4ll3m17.css",
     "name": "route-home",
     "names": [
       "route-home.css"

@@ -106,6 +106,8 @@
 	 * هر ریشه خونده می‌شه (پیش‌فرض ۵۰۰۰ اگه ست نشده بود).
 	 * ------------------------------------------------------------- */
 	function initSliders(selector) {
+		var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		var liteMode = document.documentElement.classList.contains("jluxe-lite");
 		document.querySelectorAll(selector).forEach(function (root) {
 			var slides = Array.prototype.slice.call(root.querySelectorAll("[data-jluxe-bs-slide]"));
 			if (slides.length < 2) return;
@@ -117,7 +119,7 @@
 			var index = 0;
 			var timer = null;
 			var paused = false;
-			var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			var motionLimited = reducedMotion || liteMode;
 
 			// اسلایدرِ هیرو (inc/theme-settings-homepage.php: jluxe_render_homepage_hero)
 			// طبقِ درخواستِ صریحِ کاربر («بنرها با یک حالتِ نرمِ اسلاید بخورن»)
@@ -175,7 +177,7 @@
 
 			function restart() {
 				if (timer) clearInterval(timer);
-				if (reducedMotion) {
+				if (motionLimited) {
 					timer = null;
 					return;
 				}
@@ -378,6 +380,7 @@
 	 * نمی‌کنن»)؛ الان کلیکِ فلش هم چند ثانیه موقتاً متوقفش می‌کنه.
 	 * ------------------------------------------------------------- */
 	function initAutoScroll() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
 		if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		var FORWARD_SPEED = 1.1; // پیکسل در هر فریم — کمی سریع‌تر از حالتِ قبلی طبقِ درخواست.
 		var REWIND_MS = 650; // مدتِ برگشتِ سریع به اول.
@@ -481,6 +484,8 @@
 	 * می‌شه — نیازی به چک‌کردنِ عرضِ ویوپورت نیست.
 	 * ------------------------------------------------------------- */
 	function initCarouselPeekHint() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
+		if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!("IntersectionObserver" in window)) return;
 
 		function easedScrollTo(scroller, target, duration, done) {
@@ -532,6 +537,7 @@
 	 * می‌کند تا با کشیدنِ انگشت یا انتخاب دسته تداخلی نداشته باشد.
 	 * ------------------------------------------------------------- */
 	function initMobileCategorySwipeHint() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
 		if (!window.matchMedia || !window.matchMedia("(max-width: 767.98px)").matches) return;
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!("IntersectionObserver" in window)) return;
@@ -768,6 +774,48 @@
 		});
 	}
 
+	/* Reveal only below-the-fold sections after the first initially visible section.
+	 * The hero/LCP and every section visible on first paint are never hidden. */
+	function initHomeReveal() {
+		var docRoot = document.documentElement;
+		if (
+			!("IntersectionObserver" in window) ||
+			!window.matchMedia ||
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+			docRoot.classList.contains("jluxe-lite")
+		) return;
+
+		var sections = Array.prototype.slice.call(document.querySelectorAll(".jluxe-home-section"));
+		if (!sections.length) return;
+		var viewportHeight = window.innerHeight || docRoot.clientHeight;
+		var firstVisible = -1;
+		sections.some(function (section, index) {
+			var rect = section.getBoundingClientRect();
+			if (rect.bottom > 0 && rect.top < viewportHeight) {
+				firstVisible = index;
+				return true;
+			}
+			return false;
+		});
+		if (firstVisible < 0) firstVisible = 0;
+
+		var observer = new IntersectionObserver(function (entries) {
+			entries.forEach(function (entry) {
+				if (!entry.isIntersecting) return;
+				entry.target.classList.add("is-revealed");
+				observer.unobserve(entry.target);
+			});
+		}, { threshold: 0.08 });
+
+		sections.forEach(function (section, index) {
+			if (index <= firstVisible || section.matches(".jluxe-hero") || section.closest(".jluxe-hero") || section.querySelector(".jluxe-hero")) return;
+			var rect = section.getBoundingClientRect();
+			if (rect.top < viewportHeight || rect.bottom <= 0) return;
+			section.classList.add("jluxe-home-reveal");
+			observer.observe(section);
+		});
+	}
+
 	function whenDocumentReady(callback) {
 		if ("loading" === document.readyState) {
 			document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -777,6 +825,7 @@
 	}
 
 	whenDocumentReady(function () {
+		initHomeReveal();
 		initStories();
 		initBrandVideoCampaigns();
 		initSliders("[data-jluxe-banner-slider]");

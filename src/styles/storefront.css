@@ -9393,25 +9393,15 @@ body .jluxe-add-progress [data-state="success"]::before{content:'✓';display:in
 .jluxe-product-card-swatches__more{font-size:10px;font-weight:700;line-height:1;color:hsl(var(--foreground))}
 @media(hover:hover){.group:hover [data-jluxe-card-thumbs]~.jluxe-product-card-swatches{opacity:0}}
 
-/* R404 product cards: quieter surfaces with clear brand actions, preserving Woo AJAX/variation markup. */
-.jluxe-product-card { box-shadow: 0 2px 10px hsl(var(--foreground) / .035); }
-.jluxe-product-card-title { color: hsl(var(--foreground)); font-weight: 600; line-height: 1.55; text-wrap: pretty; }
-.jluxe-product-card-sale-badge { border-radius: 999px; padding: 3px 8px; box-shadow: 0 3px 10px hsl(var(--primary) / .26); }
-.jluxe-product-card .jluxe-product-card-cta.is-available {
-  border: 1px solid hsl(var(--primary) / .18);
-  background-color: hsl(var(--primary) / .1);
-  color: hsl(var(--primary));
-  box-shadow: none;
-}
-.jluxe-product-card .jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added, .jluxe-btn-added) {
-  border-color: transparent;
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-.jluxe-product-card-cta:focus-visible { outline-offset: 3px; }
-@media (hover: hover) {
-  .jluxe-product-card:hover { transform: translateY(-3px); border-color: hsl(var(--primary) / .28); box-shadow: 0 12px 28px hsl(var(--foreground) / .08); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .jluxe-product-card { transition: none; }
-}
+/* R405 product-card contrast and touch feedback; transitions stay composited. */
+.jluxe-product-card{border-color:hsl(var(--foreground)/.09);box-shadow:0 3px 14px -4px rgb(15 23 42/.07),0 1px 2px rgb(15 23 42/.04);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.jluxe-product-card-title{color:hsl(var(--foreground));font-weight:600;line-height:1.55;text-wrap:pretty}
+.jluxe-product-card-sale-badge{border-radius:999px;padding:3px 8px;background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--primary-hover,var(--primary))))!important;color:#fff!important;box-shadow:0 4px 12px hsl(var(--primary)/.32)}
+.jluxe-product-card-current-price{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+@media(hover:none){.jluxe-product-card:active{transform:scale(.985)}}
+.jluxe-product-card .jluxe-product-card-cta.is-available{border:1px solid hsl(var(--primary)/.28);background-color:hsl(var(--primary)/.13);color:hsl(var(--primary));box-shadow:none;transition:transform .2s ease}
+.jluxe-product-card .jluxe-product-card-cta.is-available:is(:hover,:focus-visible){background-color:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 6px 14px -4px hsl(var(--primary)/.45)}
+.jluxe-product-card .jluxe-product-card-cta.is-available:active{transform:scale(.92)}
+@media(hover:hover){.jluxe-product-card:hover{transform:translateY(-4px);border-color:hsl(var(--primary)/.38);box-shadow:0 16px 34px -14px rgb(15 23 42/.18),0 4px 12px -4px hsl(var(--primary)/.14)}}
+@media(prefers-reduced-motion:reduce){.jluxe-product-card,.jluxe-product-card:hover,.jluxe-product-card:active,.jluxe-product-card .jluxe-product-card-cta,.jluxe-product-card-cta-icon{transition:none!important;transform:none!important}}
+html.jluxe-lite .jluxe-product-card,html.jluxe-lite .jluxe-product-card:hover,html.jluxe-lite .jluxe-product-card:active,html.jluxe-lite .jluxe-product-card .jluxe-product-card-cta,html.jluxe-lite .jluxe-product-card-cta-icon{transition:none!important;transform:none!important}

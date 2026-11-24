@@ -45,7 +45,7 @@ function jluxe_render_homepage_sections(): void {
 	$settings = jluxe_get_theme_settings();
 	?>
 	<style id="jluxe-homepage-system-style">
-	.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);padding-inline:16px;}
+	.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin-inline:auto;padding-inline:16px;}
 	@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}
 	.jluxe-builder-container{box-sizing:border-box;display:grid;grid-template-columns:var(--jbc-tracks,repeat(var(--jbc-cols,2),minmax(0,1fr)));gap:var(--jbc-gap,20px);width:calc(100% - 32px);margin:24px auto;align-items:var(--jbc-align,start);min-height:40px}
 	.jluxe-builder-container>.jluxe-home-section,.jluxe-builder-container>.jvb-node-preview>.jluxe-home-section{width:100%;margin:0;min-width:0}

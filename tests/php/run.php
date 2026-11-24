@@ -7235,7 +7235,7 @@ check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1
 check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
 $h108home_source = theme_test_php_source( 'homepage' );
 check(
-	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);padding-inline:16px' ) &&
+	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin-inline:auto;padding-inline:16px' ) &&
 	false !== strpos( $h108home_source, '@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}' ) &&
 	false === strpos( $h108home_source, '.jluxe-home-section{margin-block:12px;padding-block:8px' ) &&
 	false !== strpos( (string) file_get_contents( ABSPATH . 'src/styles/route-home.css' ), 'body.home .jluxe-home-section' ) &&

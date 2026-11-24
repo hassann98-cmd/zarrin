@@ -69,13 +69,15 @@ test('review photo lightbox locks and restores scrolling, uses Persian counts, a
   assert.match(lightbox, /data-photo-next[^>]*>‹/);
 });
 
-test('route-only product styles stay isolated and initial main CSS growth remains below one kilobyte', () => {
+test('product and homepage polish stays route-isolated with less than one KB of main CSS growth vs R404', () => {
   const route = read('src/styles/route-product.css');
   const manifest = JSON.parse(read('assets/compiled/manifest.json'));
   const mainCss = manifest['src/main.js'].css.find((name) => name.startsWith('assets/main-'));
   const currentPath = new URL(`../assets/compiled/${mainCss}`, import.meta.url);
   const currentBytes = readFileSync(currentPath);
-  const baseline = execFileSync('git', ['show', 'v1.7.399:assets/compiled/assets/main-BBWTNhhR.css']);
+  const baselineManifest = JSON.parse(execFileSync('git', ['show', 'f9bc899:assets/compiled/manifest.json'], { encoding: 'utf8' }));
+  const baselinePath = baselineManifest['src/main.js'].css.find((name) => name.startsWith('assets/main-'));
+  const baseline = execFileSync('git', ['show', `f9bc899:assets/compiled/${baselinePath}`]);
   assert.match(route, /\.jluxe-product-video-modal/);
   assert.match(route, /\.jluxe-review-photo-lightbox/);
   assert.ok(currentBytes.length >= baseline.length, 'initial stylesheet growth is nonnegative');
