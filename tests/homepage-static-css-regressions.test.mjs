@@ -6,9 +6,10 @@ import path from "node:path";
 import test from "node:test";
 
 const root = process.cwd();
-const [php, storefrontCss] = await Promise.all([
+const [php, storefrontCss, routeHomeCss] = await Promise.all([
   readHomepageSource(),
   Promise.resolve(readStorefrontCss()),
+  fs.readFile(path.join(root, "src/styles/route-home.css"), "utf8"),
 ]);
 const manifest = JSON.parse(
   await fs.readFile(path.join(root, "assets/compiled/manifest.json"), "utf8"),
@@ -126,7 +127,8 @@ test("mobile search, recommendations and product cards get narrow-screen-safe di
 });
 
 test("homepage frame widths, transparent showcase images and trust icon alias stay correct", () => {
-  assert.match(php, /@media\(max-width:767\.98px\)\{\.jluxe-home-section\{margin-block:12px;padding-block:8px/);
+  assert.doesNotMatch(php, /@media\(max-width:767\.98px\)\{\.jluxe-home-section\{margin-block:12px;padding-block:8px/);
+  assert.match(routeHomeCss, /@media \(max-width: 767\.98px\)[\s\S]*body\.home \.jluxe-home-section[\s\S]*margin-block: 1rem; padding-block: \.25rem/);
   assert.match(php, /\.jluxe-brand-campaigns\{[^}]*width:min\(calc\(100% - 32px\),1288px\)[^}]*padding:0 0 24px/);
   assert.match(php, /\.jluxe-brand-strip\{[^}]*width:min\(calc\(100% - 32px\),1288px\)/);
   assert.match(php, /\.jluxe-category-grid-ref\{[^}]*width:min\(calc\(100% - 32px\),1288px\)/);

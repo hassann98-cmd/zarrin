@@ -7,9 +7,12 @@ import { JSDOM } from "jsdom";
 const php = await Promise.resolve(readHomepageSource());
 const sanitizer = await readFile(new URL("../inc/theme-settings-sanitize.php", import.meta.url), "utf8");
 const js = await readFile(new URL("../assets/js/homepage.js", import.meta.url), "utf8");
+const routeHomeCss = await readFile(new URL("../src/styles/route-home.css", import.meta.url), "utf8");
 
 test("homepage sections share the 1320px padded grid and consistent section headers", () => {
-  assert.match(php, /\.jluxe-home-section\{box-sizing:border-box;width:100%;max-width:var\(--jluxe-container-max,1320px\);margin:24px auto;padding-inline:16px/);
+  assert.match(php, /\.jluxe-home-section\{box-sizing:border-box;width:100%;max-width:var\(--jluxe-container-max,1320px\);padding-inline:16px/);
+  assert.match(routeHomeCss, /body\.home \.jluxe-home-section[\s\S]*margin-block: var\(--jluxe-home-space\)/);
+  assert.doesNotMatch(php, /\.jluxe-home-section\{[^}]*margin:24px auto/);
   assert.match(php, /@media\(max-width:767\.98px\)\{\.jluxe-home-section\{padding-inline:12px\}\}/);
   assert.match(php, /function jluxe_render_homepage_section_header\(/);
   for (const name of ["product_grid", "special_products", "brick_products", "blog"]) {

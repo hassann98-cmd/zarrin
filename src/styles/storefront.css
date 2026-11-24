@@ -9393,11 +9393,25 @@ body .jluxe-add-progress [data-state="success"]::before{content:'✓';display:in
 .jluxe-product-card-swatches__more{font-size:10px;font-weight:700;line-height:1;color:hsl(var(--foreground))}
 @media(hover:hover){.group:hover [data-jluxe-card-thumbs]~.jluxe-product-card-swatches{opacity:0}}
 
-/* R403 product-card refinements; markup and WooCommerce AJAX controls remain unchanged. */
-.jluxe-product-card-title { text-wrap: pretty; }
-.woocommerce ul.products li.product:focus-within { z-index: 1; }
-.jluxe-product-card-cta { box-shadow: 0 2px 7px rgb(15 23 42 / .12); }
+/* R404 product cards: quieter surfaces with clear brand actions, preserving Woo AJAX/variation markup. */
+.jluxe-product-card { box-shadow: 0 2px 10px hsl(var(--foreground) / .035); }
+.jluxe-product-card-title { color: hsl(var(--foreground)); font-weight: 600; line-height: 1.55; text-wrap: pretty; }
+.jluxe-product-card-sale-badge { border-radius: 999px; padding: 3px 8px; box-shadow: 0 3px 10px hsl(var(--primary) / .26); }
+.jluxe-product-card .jluxe-product-card-cta.is-available {
+  border: 1px solid hsl(var(--primary) / .18);
+  background-color: hsl(var(--primary) / .1);
+  color: hsl(var(--primary));
+  box-shadow: none;
+}
+.jluxe-product-card .jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added, .jluxe-btn-added) {
+  border-color: transparent;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
 .jluxe-product-card-cta:focus-visible { outline-offset: 3px; }
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .woocommerce ul.products li.product:hover { box-shadow: 0 10px 28px rgb(15 23 42 / .09); }
+@media (hover: hover) {
+  .jluxe-product-card:hover { transform: translateY(-3px); border-color: hsl(var(--primary) / .28); box-shadow: 0 12px 28px hsl(var(--foreground) / .08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jluxe-product-card { transition: none; }
 }

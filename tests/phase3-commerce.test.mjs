@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('1.7.403 keeps the prior regressions closed and adds route-isolated homepage styling', () => {
+test('1.7.404 keeps prior regressions closed and adds homepage UI polish', () => {
   const woo = read('assets/js/woocommerce.js');
   const gallery = woo.slice(woo.indexOf("track.addEventListener('scroll',function(){edges();clearTimeout(timer)", woo.indexOf('/* Mobile gallery:')), woo.indexOf("new MutationObserver(function(){sync();}", woo.indexOf('/* Mobile gallery:')));
   assert.match(gallery, /if\(index<dots\.length\|\|\(!dots\.length&&index===0\)\)\{updateMeter\(index\);if\(dots\[index\]&&index!==Number\(gallery\.getAttribute\('data-jluxe-gallery-current'\)\|\|0\)\)/);
@@ -18,7 +18,7 @@ test('1.7.403 keeps the prior regressions closed and adds route-isolated homepag
   assert.match(editor, /function jluxe_render_homepage_page\(/);
   assert.match(loader, /require_once __DIR__ \. '\/homepage\/admin-editor\.php'/);
   for (const path of ['package.json', 'package-lock.json', 'style.css', 'README.md', 'docs/FIXES.fa.md']) {
-    assert.match(read(path), /1\.7\.403/);
+    assert.match(read(path), /1\.7\.404/);
   }
 });
 

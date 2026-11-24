@@ -359,17 +359,15 @@ function jluxe_render_homepage_trust( array $section ): void {
 	}
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-8">
-		<?php if ( ! empty( $section['title'] ) ) : ?>
-			<h2 class="mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
-		<?php endif; ?>
+		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? '' ), '', (string) ( $section['title'] ?? 'نشان‌های اعتماد' ) ); ?>
 		<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 			<?php foreach ( $cards as $card ) :
 				$icon_alias = array( 'badge-percent' => 'percent' );
 				$icon_name = (string) ( $card['icon'] ?? '' );
 				$trust_icon = ! empty( $card['svg'] ) ? jluxe_sanitize_svg_markup( (string) $card['svg'] ) : jluxe_nav_icon_svg( $icon_alias[ $icon_name ] ?? $icon_name, 'size-5' );
 				?>
-				<div class="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4 text-center">
-					<span class="grid size-11 place-items-center rounded-xl border border-border bg-muted/40 text-primary" aria-hidden="true"><?php echo $trust_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized via helper. ?></span>
+				<div class="jluxe-home-trust-card flex flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4 text-center">
+					<span class="jluxe-home-trust-icon grid size-11 place-items-center rounded-xl border border-border text-primary" aria-hidden="true"><?php echo $trust_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized via helper. ?></span>
 					<strong class="text-small text-foreground"><?php echo esc_html( $card['title'] ); ?></strong>
 					<span class="text-caption text-text-muted"><?php echo esc_html( $card['subtitle'] ); ?></span>
 				</div>

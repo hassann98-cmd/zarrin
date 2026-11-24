@@ -35,5 +35,42 @@ test("R403 adds three fixed luxury presets and keeps product action markup untou
   const product = read("woocommerce/content-product.php");
   assert.match(product, /ajax_add_to_cart add_to_cart_button/);
   assert.match(product, /product_type_.*variable/);
-  assert.match(read("src/styles/storefront.css"), /R403 product-card refinements/);
+  assert.match(read("src/styles/storefront.css"), /R404 product cards/);
+});
+
+test("R404 inverse section actions stay white-glass and readable over brand bands", () => {
+  const products = read("inc/homepage/sections-products.php");
+  const css = read("src/styles/route-home.css");
+  assert.match(products, /\$inverse \? ' jluxe-home-section-view-all--inverse' : ''/);
+  assert.match(products, /class="jluxe-home-section-view-all<\?php echo esc_attr\( \$inverse_class \); \?>/);
+  const inverseRule = css.match(/\.jluxe-home-section-heading \.jluxe-home-section-view-all--inverse\s*\{([^}]+)\}/)?.[1] ?? "";
+  assert.match(inverseRule, /background:\s*rgb\(255 255 255 \/ .16\)/);
+  assert.match(inverseRule, /color:\s*#fff/);
+  assert.doesNotMatch(inverseRule, /background:\s*hsl\(var\(--surface\)\)/);
+  assert.match(css, /\.jluxe-home-section-heading \.jluxe-home-section-view-all--inverse:hover[\s\S]*background:\s*rgb\(255 255 255 \/ .26\)/);
+});
+
+test("R404 renders the supported soft surface wrapper without requiring design_enabled", () => {
+  const homepage = read("inc/theme-settings-homepage.php");
+  const css = read("src/styles/route-home.css");
+  assert.match(homepage, /if \( empty\( \$section\['design_enabled'\] \) \)[\s\S]*'transparent' === \$d\['surface_tone'\][\s\S]*jluxe-home-tone-wrapper/);
+  assert.match(homepage, /class="jluxe-designed-section jluxe-home-tone-wrapper" data-surface-tone=/);
+  assert.match(css, /\.jluxe-designed-section\[data-surface-tone="soft"\][\s\S]*background:\s*color-mix\(in srgb, hsl\(var\(--background\)\) 93%, hsl\(var\(--foreground\)\) 7%\)/);
+});
+
+test("R404 scopes generic order-pay method frames away from custom payment cards", () => {
+  const css = read("src/styles/route-cart-checkout.css");
+  assert.match(css, /body\.woocommerce-order-pay #payment ul\.payment_methods > li:not\(\.jluxe-payment-method-item\)\s*\{/);
+  assert.match(css, /body\.woocommerce-order-pay #payment ul\.payment_methods > li:not\(\.jluxe-payment-method-item\) > label\s*\{/);
+});
+
+test("R404 real homepage renderers and product cards expose the requested presentation hooks", () => {
+  const product = read("woocommerce/content-product.php");
+  const sections = read("inc/homepage/sections-products.php");
+  const catalog = read("inc/homepage/sections-catalog.php");
+  assert.match(product, /wc_product_class\( 'jluxe-product-card group relative flex flex-col/);
+  assert.match(product, /border border-border bg-surface transition-all/);
+  assert.doesNotMatch(product, /bg-gradient-to-b from-surface to-muted\/40/);
+  assert.match(sections, /class="jluxe-home-special-band"/);
+  assert.match(catalog, /class="jluxe-home-trust-card/);
 });

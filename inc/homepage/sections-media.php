@@ -715,7 +715,7 @@ function jluxe_render_homepage_banners( array $section ): void {
 							<img src="<?php echo esc_url( $img_url ); ?>"<?php echo jluxe_responsive_image_attributes( $desktop_image ); ?> alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="jluxe-home-media size-full <?php echo 'cover' === $image_fit ? 'object-cover' : 'object-contain'; ?> transition-transform duration-500<?php echo $zoom_enabled ? ' group-hover:scale-105' : ''; ?>" <?php echo jluxe_lazy_attr(); ?> />
 						</picture>
 					<?php if ( $has_overlay ) : ?>
-						<div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+						<div class="jluxe-home-banner__overlay pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 					<?php endif; ?>
 					<?php if ( ! empty( $item['title'] ) || ! empty( $item['subtitle'] ) || ! empty( $item['button'] ) ) : ?>
 						<div class="absolute inset-0 flex flex-col gap-1.5 p-4 sm:p-6 <?php echo esc_attr( $pos_class ); ?>">
@@ -782,7 +782,7 @@ function jluxe_render_homepage_stories( array $section ): void {
 					data-button-text="<?php echo esc_attr( $item['button_text'] ?? '' ); ?>"
 					class="flex shrink-0 flex-col items-center gap-1.5"
 				>
-					<span class="grid size-16 place-items-center rounded-full bg-gradient-to-tr from-primary via-primary to-primary/60 p-[2.5px]">
+					<span class="jluxe-story-ring grid size-16 place-items-center rounded-full bg-gradient-to-tr from-primary via-primary to-primary/60 p-[2.5px]">
 						<span class="grid size-full place-items-center rounded-full bg-surface p-[2.5px]">
 							<img src="<?php echo esc_url( $thumb_url ); ?>" width="64" height="64" alt="<?php echo esc_attr( $item['title'] ?? '' ); ?>" class="size-full rounded-full object-cover" <?php echo jluxe_lazy_attr(); ?> />
 						</span>

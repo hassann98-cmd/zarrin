@@ -45,7 +45,7 @@ function jluxe_render_homepage_sections(): void {
 	$settings = jluxe_get_theme_settings();
 	?>
 	<style id="jluxe-homepage-system-style">
-	.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-inline:16px;}
+	.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);padding-inline:16px;}
 	@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}
 	.jluxe-builder-container{box-sizing:border-box;display:grid;grid-template-columns:var(--jbc-tracks,repeat(var(--jbc-cols,2),minmax(0,1fr)));gap:var(--jbc-gap,20px);width:calc(100% - 32px);margin:24px auto;align-items:var(--jbc-align,start);min-height:40px}
 	.jluxe-builder-container>.jluxe-home-section,.jluxe-builder-container>.jvb-node-preview>.jluxe-home-section{width:100%;margin:0;min-width:0}
@@ -64,12 +64,12 @@ function jluxe_render_homepage_sections(): void {
 	.jluxe-designed-section>.jluxe-home-section{margin-top:0;margin-bottom:0;}
 	@media(max-width:767.98px){.jluxe-designed-section{padding:var(--jvb-mobile-pad,0)}.jluxe-design-hide-mobile{display:none!important}}
 	@media(min-width:768px){.jluxe-design-hide-desktop{display:none!important}}
-	.jluxe-home-section h2{color:hsl(var(--foreground));}
+	.jluxe-home-section h2:not(.text-white){color:hsl(var(--foreground));}
 	.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel{transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease;}
 	.jluxe-home-section .jluxe-home-card:hover,.jluxe-home-section .jluxe-home-panel:hover{transform:translateY(-2px);}
 	.jluxe-home-section .jluxe-home-media{transition:transform .42s cubic-bezier(.2,.7,.2,1),filter .25s ease;}
 	.jluxe-home-section .jluxe-home-card:hover .jluxe-home-media{transform:scale(1.03);}
-	@media(max-width:767.98px){.jluxe-home-section{margin-block:12px;padding-block:8px}.jluxe-home-scroll-arrow,.jluxe-banner-slider-arrow{box-sizing:border-box;width:40px;height:40px;min-width:40px;min-height:40px;flex:0 0 40px}.jluxe-category-grid-ref-arrow{width:40px;height:40px;min-width:40px;min-height:40px;border-radius:50%}[data-jluxe-bs-dot]{box-sizing:border-box;display:grid;place-items:center;width:24px;height:24px;min-width:24px;min-height:0;padding:0;background:transparent!important}[data-jluxe-bs-dot]::before{content:"";display:block;width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.6);transition:width .2s ease,background-color .2s ease}[data-jluxe-bs-dot][data-active="true"]::before{width:20px;background:#fff}}
+	@media(max-width:767.98px){.jluxe-home-scroll-arrow,.jluxe-banner-slider-arrow{box-sizing:border-box;width:40px;height:40px;min-width:40px;min-height:40px;flex:0 0 40px}.jluxe-category-grid-ref-arrow{width:40px;height:40px;min-width:40px;min-height:40px;border-radius:50%}[data-jluxe-bs-dot]{box-sizing:border-box;display:grid;place-items:center;width:24px;height:24px;min-width:24px;min-height:0;padding:0;background:transparent!important}[data-jluxe-bs-dot]::before{content:"";display:block;width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.6);transition:width .2s ease,background-color .2s ease}[data-jluxe-bs-dot][data-active="true"]::before{width:20px;background:#fff}}
 	@media(max-width:639px){.jluxe-home-section{margin-inline:auto;}}
 	@media(prefers-reduced-motion:reduce){.jluxe-home-section .jluxe-home-card,.jluxe-home-section .jluxe-home-panel,.jluxe-home-section .jluxe-home-media{transition:none!important;transform:none!important;}}
 	</style>
@@ -244,13 +244,31 @@ function jluxe_render_homepage_section_frontend( array $section ): void {
 }
 
 function jluxe_render_homepage_section_styled( array $section ): void {
-	if ( empty( $section['design_enabled'] ) ) { jluxe_render_homepage_section_content( $section ); return; }
-	// Normalize again at the output boundary; never accept arbitrary CSS from storage.
+	// Normalize at the output boundary; surface tones are useful independently
+	// of the optional layout/design controls and never accept arbitrary CSS.
 	$safe = jluxe_sanitize_homepage_section_design( $section );
 	$d = $safe['design'];
+	$manual_tone_padding = $d['padding'];
+	$manual_tone_mobile_padding = $d['mobile_padding'];
+	if ( empty( $section['design_enabled'] ) ) {
+		if ( 'transparent' === $d['surface_tone'] ) { jluxe_render_homepage_section_content( $section ); return; }
+		echo '<div class="jluxe-designed-section jluxe-home-tone-wrapper" data-surface-tone="' . esc_attr( $d['surface_tone'] ) . '">';
+		jluxe_render_homepage_section_content( $section );
+		echo '</div>';
+		return;
+	}
+	// A zero means no custom dimension was selected: give framed tones a
+	// premium default while retaining non-zero admin-entered padding/radius.
+	if ( in_array( $d['surface_tone'], array( 'card', 'tinted' ), true ) ) {
+		if ( 0 === $d['padding'] ) { $d['padding'] = 24; }
+		if ( 0 === $d['mobile_padding'] ) { $d['mobile_padding'] = 16; }
+		if ( 0 === $d['radius'] ) { $d['radius'] = 22; }
+	}
 	$classes = 'jluxe-designed-section' . ( $d['hide_mobile'] ? ' jluxe-design-hide-mobile' : '' ) . ( $d['hide_desktop'] ? ' jluxe-design-hide-desktop' : '' );
 	$classes .= ' jluxe-design-width-' . $d['width'] . ' jluxe-design-shadow-' . $d['shadow'] . ( $d['hide_tablet'] ? ' jluxe-design-hide-tablet' : '' ) . ' ' . $d['class_name'];
 	$style = sprintf( '--jvb-pad:%dpx;--jvb-mobile-pad:%dpx;margin-top:%dpx;margin-bottom:%dpx;border-radius:%dpx;text-align:%s;', $d['padding'], $d['mobile_padding'], $d['margin_top'], $d['margin_bottom'], $d['radius'], $d['align'] );
+	if ( $manual_tone_padding > 0 ) { $style .= '--jluxe-home-tone-padding:' . $manual_tone_padding . 'px;--jluxe-home-tone-padding-block:' . $manual_tone_padding . 'px;'; }
+	if ( $manual_tone_mobile_padding > 0 ) { $style .= '--jluxe-home-tone-mobile-padding:' . $manual_tone_mobile_padding . 'px;--jluxe-home-tone-mobile-padding-block:' . $manual_tone_mobile_padding . 'px;'; }
 	if ( $d['background'] ) { $style .= 'background-color:' . $d['background'] . ';'; }
 	if ( $d['text_color'] ) { $style .= '--jvb-text:' . $d['text_color'] . ';color:' . $d['text_color'] . ';'; }
 	if ( $d['border_color'] ) { $style .= 'border:1px solid ' . $d['border_color'] . ';'; }

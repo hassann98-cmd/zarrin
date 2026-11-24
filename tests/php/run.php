@@ -7235,8 +7235,10 @@ check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1
 check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
 $h108home_source = theme_test_php_source( 'homepage' );
 check(
-	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin:24px auto;padding-inline:16px' ) &&
+	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);padding-inline:16px' ) &&
 	false !== strpos( $h108home_source, '@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}' ) &&
+	false === strpos( $h108home_source, '.jluxe-home-section{margin-block:12px;padding-block:8px' ) &&
+	false !== strpos( (string) file_get_contents( ABSPATH . 'src/styles/route-home.css' ), 'body.home .jluxe-home-section' ) &&
 	false !== strpos( $h108home_source, 'max-w-[1320px] px-3 md:px-4' ),
 	'R108 homepage sections use the fluid desktop container, retain the 12px mobile gutter, and align «مشاهده همه» content'
 );
@@ -11925,6 +11927,10 @@ check( 'tinted' === $advanced_surface['design']['surface_tone'], 'R403 accepts o
 $advanced_surface['design'] = array( 'surface_tone' => 'url(javascript:alert(1))' );
 $unsafe_surface = jluxe_sanitize_homepage_section_design( $advanced_surface );
 check( 'transparent' === $unsafe_surface['design']['surface_tone'], 'R403 rejects unsupported surface tone values' );
+ob_start();
+jluxe_render_homepage_section_styled( array( 'type' => 'heading', 'title' => 'Soft band', 'tag' => 'h2', 'design_enabled' => false, 'design' => array( 'surface_tone' => 'soft' ) ) );
+$soft_surface_markup = (string) ob_get_clean();
+check( false !== strpos( $soft_surface_markup, 'class="jluxe-designed-section jluxe-home-tone-wrapper" data-surface-tone="soft"' ), 'R404 renders a soft surface wrapper even when custom section design is disabled' );
 check( '#123abc' === $advanced['design']['text_color'] && '' === $advanced['design']['border_color'] && false === strpos( $advanced['design']['anchor'], '"' ) && 'my-card extra' === $advanced['design']['class_name'], 'Advanced fields sanitize colors, anchors and CSS class tokens' );
 ob_start(); jluxe_render_homepage_section_styled( array_merge( array( 'type' => 'heading', 'title' => 'Styled', 'tag' => 'h2' ), $advanced ) ); $styled = ob_get_clean();
 check( false !== strpos( $styled, 'jluxe-design-width-full' ) && false !== strpos( $styled, 'jluxe-design-shadow-large' ) && false !== strpos( $styled, '--jvb-text:#123abc' ) && false === strpos( $styled, 'javascript:' ), 'Advanced fields render safe real frontend styles rather than editor-only controls' );

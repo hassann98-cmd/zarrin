@@ -19,13 +19,14 @@ function jluxe_render_homepage_section_header( string $title, string $url, strin
 	}
 	$heading_color = $inverse ? 'text-white' : 'text-foreground';
 	$action_style  = $inverse ? 'border-white/40 text-white' : 'border-border text-foreground';
+	$inverse_class = $inverse ? ' jluxe-home-section-view-all--inverse' : '';
 	?>
 	<div class="jluxe-home-section-heading mb-4 flex items-center justify-between gap-3">
 		<div class="min-w-0">
 			<h2 class="text-h2 <?php echo esc_attr( $heading_color ); ?>"><?php echo esc_html( $title ); ?></h2>
 			<?php if ( '' !== trim( $subtitle ) ) : ?><p class="mt-1 text-small <?php echo $inverse ? 'text-white/80' : 'text-text-muted'; ?>"><?php echo esc_html( $subtitle ); ?></p><?php endif; ?>
 		</div>
-		<?php if ( '' !== $url ) : ?><a href="<?php echo esc_url( $url ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $label ) ); ?>" class="jluxe-home-section-view-all shrink-0 rounded-lg border px-3 py-1.5 text-caption font-medium <?php echo esc_attr( $action_style ); ?>">مشاهده همه <span aria-hidden="true">←</span></a><?php endif; ?>
+		<?php if ( '' !== $url ) : ?><a href="<?php echo esc_url( $url ); ?>" aria-label="<?php echo esc_attr( sprintf( 'مشاهده همهٔ %s', $label ) ); ?>" class="jluxe-home-section-view-all<?php echo esc_attr( $inverse_class ); ?> shrink-0 rounded-lg border px-3 py-1.5 text-caption font-medium <?php echo esc_attr( $action_style ); ?>">مشاهده همه <span aria-hidden="true">←</span></a><?php endif; ?>
 	</div>
 	<?php
 }
@@ -325,6 +326,7 @@ function jluxe_render_homepage_special_products( array $section ): void {
 		: add_query_arg( 'on_sale', '1', wc_get_page_permalink( 'shop' ) );
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
+		<div class="jluxe-home-special-band">
 		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? 'فروش ویژه' ), $view_all_link, (string) ( $section['title'] ?? 'فروش ویژه' ) ); ?>
 		<div class="relative">
 			<ul data-jluxe-scroller data-jluxe-autoscroll class="jluxe-scroll-x jluxe-hide-scrollbar m-0 flex list-none gap-4 overflow-x-auto p-0 scroll-smooth pb-2" aria-label="<?php echo esc_attr( $section['title'] ?? 'فروش ویژه' ); ?>">
@@ -351,6 +353,7 @@ function jluxe_render_homepage_special_products( array $section ): void {
 				?>
 			</ul>
 			<?php jluxe_scroll_arrows(); ?>
+		</div>
 		</div>
 	</section>
 	<?php
@@ -655,9 +658,7 @@ function jluxe_render_homepage_recommended_panels( array $section ): void {
 	$panel_frame_class    = $has_multiple_panels ? ' jluxe-recommended-panels-frame--multiple' : '';
 	?>
 	<section class="jluxe-home-section mx-auto max-w-[1320px] px-3 md:px-4 py-6">
-		<?php if ( ! empty( $section['title'] ) ) : ?>
-			<h2 class="mb-4 text-h2 text-foreground"><?php echo esc_html( $section['title'] ); ?></h2>
-		<?php endif; ?>
+		<?php jluxe_render_homepage_section_header( (string) ( $section['title'] ?? '' ), '', (string) ( $section['title'] ?? 'محصولات پیشنهادی' ) ); ?>
 		<?php
 		/*
 		 * R111 — زیرِ 640px، یک پنلِ کامل به‌اضافهٔ 40px از پنلِ بعدی

@@ -1046,7 +1046,7 @@ body.woocommerce-order-pay #payment ul.payment_methods {
   border: 0 !important;
   list-style: none;
 }
-body.woocommerce-order-pay #payment ul.payment_methods > li {
+body.woocommerce-order-pay #payment ul.payment_methods > li:not(.jluxe-payment-method-item) {
   box-sizing: border-box;
   width: 100% !important;
   min-width: 0;
@@ -1057,7 +1057,7 @@ body.woocommerce-order-pay #payment ul.payment_methods > li {
   background: hsl(var(--surface));
   float: none !important;
 }
-body.woocommerce-order-pay #payment ul.payment_methods > li > label {
+body.woocommerce-order-pay #payment ul.payment_methods > li:not(.jluxe-payment-method-item) > label {
   display: inline-flex;
   align-items: center;
   gap: 10px;
