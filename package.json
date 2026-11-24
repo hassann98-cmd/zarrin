@@ -1,13 +1,13 @@
 {
   "name": "zarrin-theme",
-  "version": "1.7.222",
+  "version": "1.7.409",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "vite build && node scripts/check-assets.mjs",
+    "build": "vite build && node scripts/build-woocommerce.mjs && node scripts/check-assets.mjs",
     "dev": "vite --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
     "test:php": "node scripts/test-php.mjs",
@@ -17,7 +17,9 @@
     "test:integration": "node tests/integration/run.mjs",
     "test:integration:woo": "node tests/integration/woocommerce-run.mjs",
     "php:cli": "node scripts/php-wasm-cli.mjs",
-    "verify:woo": "node scripts/verify-woo-contract.mjs"
+    "verify:woo": "node scripts/verify-woo-contract.mjs",
+    "test:integration:builder": "node tests/integration/builder-v2-run.mjs",
+    "test:browser:builder": "node tests/integration/builder-browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "1.3.3",
@@ -36,6 +38,7 @@
     "@wp-playground/wordpress": "^3.1.54",
     "jquery": "3.7.1",
     "jsdom": "26.1.0",
+    "rolldown": "^1.2.15",
     "vite": "8.3.5"
   }
 }

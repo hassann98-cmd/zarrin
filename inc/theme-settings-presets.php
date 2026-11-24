@@ -63,15 +63,15 @@ function jluxe_get_design_presets(): array {
 		 * R57 — درخواستِ صریحِ کاربر: «در ظاهر و برند این رنگ هم اضافه کن» —
 		 * هویتِ رنگیِ مرجعِ jluxe.ir که کاربر از DOM آن سایت فرستاد:
 		 * style attribute مرجع: --color-primary: #ed1a45؛ --color-secondary: #101113
-		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبز/کهربایی از پالتِ موجودِ
-		 * خود پوسته (#00A049 سودِ خرید، #F5A623 ستارهٔ امتیاز) تا هماهنگ بماند.
+		 * و زمینهٔ پرتکرارِ همان DOM: bg-[#f7f8fa]. سبزِ موفقیتِ خوانا و کهرباییِ
+		 * ستاره (#15803D و #F5A623) هویتِ معناییِ خود را حفظ می‌کنند.
 		 * مسیرِ اعمال مثل بقیهٔ پریست‌ها از sanitizerهای همیشگی می‌گذرد.
 		 */
 		'jluxe_brand_red' => array(
 			'label' => 'قرمز برند مرجع (جهیزیه لوکس)',
-			'description' => 'قرمز پرقدرتِ #ED1A45 با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA — دقیقاً هویتِ رنگیِ مرجعِ jluxe.ir.',
+			'description' => 'قرمز برندِ #D9143C با ثانویهٔ مشکی‌فامِ #101113 و زمینهٔ روشنِ #F7F8FA، با کنتراست خوانای متن روی دکمه‌ها.',
 			'colors' => array(
-				'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623',
+				'primary' => '#D9143C', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#15803D', 'accent' => '#F5A623',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 		),
@@ -90,6 +90,24 @@ function jluxe_get_design_presets(): array {
 				'primary' => '#5100FF', 'secondary' => '#300099', 'background' => '#EEE5FF', 'success' => '#16865A', 'accent' => '#7433FF',
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
+		),
+		'atelier_noir' => array(
+			'label' => 'آتلیه نوآر و طلایی',
+			'description' => 'مشکی زغالی، طلایی مات و عاجی گرم؛ برای برندهای لوکس و مینیمال.',
+			'colors' => array( 'primary' => '#705522', 'secondary' => '#242321', 'background' => '#F7F4EC', 'success' => '#26734D', 'accent' => '#B58A3A' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'pearl_sage' => array(
+			'label' => 'مروارید و مریم‌گلی',
+			'description' => 'سبز مریم‌گلی و مرواریدی روشن با جزئیات برنزی؛ آرام و ممتاز.',
+			'colors' => array( 'primary' => '#356354', 'secondary' => '#263B36', 'background' => '#F1F5F0', 'success' => '#26734D', 'accent' => '#A87945' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
+		),
+		'royal_sapphire' => array(
+			'label' => 'یاقوت کبود سلطنتی',
+			'description' => 'سرمه‌ای یاقوتی، شامپاینی و سفید ابریشمی؛ هویتی رسمی و لوکس.',
+			'colors' => array( 'primary' => '#27466B', 'secondary' => '#182D45', 'background' => '#F1F4F8', 'success' => '#26734D', 'accent' => '#B38B52' ),
+			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.62),
 		),
 		'legacy_default' => array(
 			'label' => 'پالت پیش‌فرض پیشین زرین',
@@ -123,6 +141,80 @@ function jluxe_get_design_presets(): array {
 			),
 			'typography' => array('base_size' => 16, 'heading_weight' => 700, 'line_height' => 1.6),
 			'palette' => 'bubblegum_pink',
+		),
+	);
+}
+
+/**
+ * «پریست پیش‌فرض جدید صفحه اصلی» — فقط ساختار/چیدمان؛ هیچ رسانهٔ خیالی
+ * یا attachment ID ساختگی وارد نمی‌کند. بخش‌هایی که به عکس نیاز دارند تا
+ * زمان فراهم‌شدن عکس‌های واقعی غیرفعال می‌مانند. دسته‌ها هنگام اعمال از
+ * taxonomy واقعی WooCommerce بررسی می‌شوند و دستهٔ خالی از preset حذف می‌شود.
+ */
+function jluxe_get_homepage_layout_presets(): array {
+	$popular_categories = array( 925, 956, 971, 936, 927, 946, 941, 926, 977, 942 );
+	$showcase_categories = array( 970, 922, 937, 919 );
+	$recommended_categories = array(
+		array( 'category' => 932, 'title' => 'کتری و قوری' ),
+		array( 'category' => 940, 'title' => 'جا ظرفی و آبچکان' ),
+		array( 'category' => 972, 'title' => 'آباژور و اکسسوری دکوری' ),
+		array( 'category' => 920, 'title' => 'رنده و خردکن دستی' ),
+	);
+
+	$valid_category = static function ( int $term_id ): bool {
+		if ( ! $term_id || ! function_exists( 'get_term' ) || ! function_exists( 'term_exists' ) || ! term_exists( $term_id, 'product_cat' ) ) {
+			return false;
+		}
+		$term = get_term( $term_id, 'product_cat' );
+		return ! is_wp_error( $term ) && is_object( $term ) && (int) ( $term->count ?? 0 ) > 0;
+	};
+
+	$popular_items = array();
+	foreach ( $popular_categories as $term_id ) {
+		if ( $valid_category( $term_id ) ) {
+			$popular_items[] = array( 'term_id' => $term_id, 'image_id' => 0, 'display_name' => '' );
+		}
+	}
+	$showcase_items = array();
+	foreach ( $showcase_categories as $term_id ) {
+		if ( $valid_category( $term_id ) ) {
+			$showcase_items[] = array( 'term_id' => $term_id, 'image_id' => 0, 'display_name' => '', 'mode' => 'category' );
+		}
+	}
+	$panels = array();
+	foreach ( $recommended_categories as $panel ) {
+		if ( $valid_category( (int) $panel['category'] ) ) {
+			$panels[] = array(
+				'title'       => $panel['title'],
+				'subtitle'    => '',
+				'category'    => (int) $panel['category'],
+				'count'       => 4,
+				'sort'        => 'popularity',
+				'button_text' => 'مشاهدهٔ محصولات',
+				'button_link' => '',
+			);
+		}
+	}
+	$special_category = $valid_category( 4313 ) ? 4313 : 0;
+
+	return array(
+		'label' => 'پریست پیش‌فرض جدید صفحه اصلی',
+		'description' => 'چیدمان تازهٔ JLuxe؛ بخش‌های وابسته به بنر/لوگو تا زمان آماده‌شدن تصاویر واقعی غیرفعال می‌مانند.',
+		'homepage' => array(
+			'mobile_category_swipe_hint_enabled' => true,
+			'sections' => array(
+				array( 'id' => 'jluxe-hero', 'type' => 'hero', 'enabled' => false, 'items' => array() ),
+				array( 'id' => 'jluxe-popular-categories', 'type' => 'category_grid', 'enabled' => ! empty( $popular_items ), 'title' => 'دسته‌بندی‌های محبوب', 'layout' => 'row', 'mobile_layout' => 'row', 'items' => $popular_items ),
+				array( 'id' => 'jluxe-special-products', 'type' => 'special_products', 'enabled' => true, 'title' => 'فروش ویژه', 'count' => 18, 'sort' => 'discount', 'category' => $special_category, 'hide_out_of_stock' => true ),
+				array( 'id' => 'jluxe-two-banners', 'type' => 'banner_two', 'enabled' => false, 'items' => array() ),
+				array( 'id' => 'jluxe-newest-products', 'type' => 'product_grid', 'enabled' => true, 'title' => 'جدیدترین محصولات', 'subtitle' => '', 'query' => 'newest', 'category' => '', 'count' => 8, 'columns_desktop' => 4, 'columns_tablet' => 3, 'columns_mobile' => 2, 'layout' => 'carousel', 'style' => 'plain' ),
+				array( 'id' => 'jluxe-category-showcase', 'type' => 'category_showcase', 'enabled' => ! empty( $showcase_items ), 'title' => 'دسته‌بندی‌های ویژه', 'layout' => 'grid', 'mobile_layout' => 'grid', 'items' => $showcase_items ),
+				array( 'id' => 'jluxe-bestsellers', 'type' => 'brick_products', 'enabled' => true, 'title' => 'پرفروش‌ترین‌ها', 'source' => 'bestsellers', 'category' => 0, 'brand' => 0, 'product_ids' => array(), 'columns_desktop' => 4, 'columns_tablet' => 3, 'columns_mobile' => 2, 'rows' => 2, 'hide_out_of_stock' => true ),
+				array( 'id' => 'jluxe-recommended-panels', 'type' => 'recommended_panels', 'enabled' => ! empty( $panels ), 'title' => 'پیشنهادهای منتخب', 'panels' => $panels ),
+				array( 'id' => 'jluxe-brand-marquee', 'type' => 'brand_marquee', 'enabled' => false, 'title' => 'برندهای منتخب', 'items' => array() ),
+				array( 'id' => 'jluxe-trust', 'type' => 'trust', 'enabled' => true, 'title' => 'خرید مطمئن از JLuxe' ),
+				array( 'id' => 'jluxe-blog', 'type' => 'blog', 'enabled' => true, 'title' => 'راهنمای خرید و مجله جهیزیه', 'count' => 3 ),
+			),
 		),
 	);
 }

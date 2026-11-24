@@ -29,8 +29,9 @@ function add_theme_support(...$a){$GLOBALS['theme_supports'][]=$a;}
 function register_nav_menus($menus){$GLOBALS['registered_nav_menus']=$menus;}
 function add_image_size($name,$width=0,$height=0,$crop=false){$GLOBALS['registered_image_sizes'][$name]=array('width'=>$width,'height'=>$height,'crop'=>$crop);}
 function remove_action(...$a){$GLOBALS['removed_actions'][]=$a;return true;}
+function has_action($hook,$callback=false){foreach($GLOBALS['actions']??array() as $registered){if(($registered[0]??'')!==$hook)continue;if(false!==$callback&&($registered[1]??null)!==$callback)continue;return $registered[2]??10;}return false;}
 function PW(){return $GLOBALS['test_pw_instance']??null;}
-function do_action(...$a){$GLOBALS['fired'][]=$a[0];}
+function do_action(...$a){$hook=(string)($a[0]??'');$GLOBALS['fired'][]=$hook;if(!in_array($hook,array('comment_form_before','comment_form_after','comment_form'),true))return;foreach($GLOBALS['actions']??array() as $registered){if(($registered[0]??'')!==$hook||!is_callable($registered[1]??null))continue;$accepted=max(0,(int)($registered[3]??1));call_user_func_array($registered[1],array_slice($a,1,$accepted));}}
 function wp_footer(){do_action('wp_footer');}
 function apply_filters($hook,$value,...$a){$GLOBALS['filtered'][]=$hook; return isset($GLOBALS['test_filters'][$hook]) ? $GLOBALS['test_filters'][$hook]($value,...$a) : $value;}
 function get_bloginfo($k){if('language'===$k)return $GLOBALS['blog_language']??'fa-IR';if('charset'===$k)return 'UTF-8';return 'Audit shop';}
@@ -69,6 +70,7 @@ function sanitize_email($s){return $s;}
 function absint($v){return abs((int)$v);}
 function wp_unslash($v){return is_array($v)?array_map('wp_unslash',$v):stripslashes($v);}
 function wp_check_invalid_utf8($v){return $v;}
+function wp_html_excerpt($text,$length,$more='&hellip;'){$text=wp_strip_all_tags($text);$chars=preg_split('//u',$text,-1,PREG_SPLIT_NO_EMPTY);if(count($chars)<=$length)return $text;return implode('',array_slice($chars,0,$length)).$more;}
 function wp_strip_all_tags($s){return strip_tags($s);}
 function wp_kses_post($s){return $s;}
 function wp_kses($s,...$a){return $s;}
@@ -281,6 +283,7 @@ function wc_get_products($args){$GLOBALS['product_query_args']=$args;if(isset($G
 function wc_get_product_ids_on_sale(){return $GLOBALS['sale_ids']??[];}
 function wc_format_coupon_code($value){return strtolower(trim($value));}
 function wc_clear_notices(){$GLOBALS['notices']=[];}
+function wc_add_notice($message,$type='success'){$GLOBALS['notices'][$type][]=['notice'=>(string)$message,'data'=>[]];}
 function wc_get_notices($type){return $GLOBALS['notices'][$type]??[];}
 function wp_send_json_error($data=[], $status=200){throw new JsonReply(false,$data,$status);}
 function wp_send_json_success($data=[], $status=200){throw new JsonReply(true,$data,$status);}
@@ -304,6 +307,7 @@ function wc_price($amount,$args=array()){return '<span>'.(isset($args['currency'
 function get_permalink($id=0){return home_url('/product/'.$id.'/');}
 function get_attachment_link($id){return $GLOBALS['attachment_links'][$id]??home_url('/attachment/'.$id.'/');}
 function wp_get_attachment_image_url(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$images=$GLOBALS['attachment_image_urls']??[];if(array_key_exists($id,$images)){$value=$images[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return home_url('/image.jpg');}
+function attachment_url_to_postid($url){return $GLOBALS['attachment_id_by_url'][$url] ?? 0;}
 function wp_get_attachment_image_srcset(...$args){$id=(int)($args[0]??0);$size=$args[1]??'thumbnail';$sets=$GLOBALS['attachment_srcsets']??[];if(array_key_exists($id,$sets)){$value=$sets[$id];if(is_array($value)){if(array_key_exists($size,$value))return $value[$size];if(array_key_exists('default',$value))return $value['default'];return false;}return $value;}return 'https://shop.test/store/image-1024.jpg 1024w, https://shop.test/store/image-2048.jpg 2048w';}
 function wp_get_attachment_url($id){if(array_key_exists($id,$GLOBALS['attachment_urls']??[]))return $GLOBALS['attachment_urls'][$id];return home_url('/uploads/'.$id.'.gif');}
 function get_post_mime_type($id){return $GLOBALS['attachment_mimes'][$id]??'';}
@@ -320,6 +324,8 @@ function wp_localize_script($handle,$name,$data){$GLOBALS['localized'][$name]=$d
 function nocache_headers(){$GLOBALS['no_cache']=true;}
 function rest_url($path){return home_url('/wp-json/'.ltrim($path,'/'));}
 function admin_url($path){return home_url('/wp-admin/'.ltrim($path,'/'));}
+function plugin_basename($file){return basename(dirname($file)).'/'.basename($file);}
+function plugin_dir_url($file){return home_url('/wp-content/themes/zarrin/'.basename(dirname($file)).'/');}
 function test_comment_meta_query_matches($query,$comment_id){
  if(!is_array($query)||!$query)return true;
  $relation=strtoupper($query['relation']??'AND');$matches=[];
@@ -375,7 +381,9 @@ function is_product_taxonomy(){return in_array($GLOBALS['query_kind']??'',array(
 function wc_review_ratings_enabled(){return $GLOBALS['ratings_enabled']??true;}
 function wc_review_ratings_required(){return $GLOBALS['ratings_required']??true;}
 function is_cart(){return $GLOBALS['query_kind']==='cart';}
-function is_checkout(){return $GLOBALS['query_kind']==='checkout';}
+function sanitize_html_class($class){return preg_replace('/[^A-Za-z0-9_-]/','',$class);}
+function is_checkout(){return in_array($GLOBALS['query_kind'],array('checkout','order_received'),true);}
+function is_order_received_page(){return $GLOBALS['query_kind']==='order_received';}
 function is_account_page(){return $GLOBALS['query_kind']==='account';}
 function is_author(){return $GLOBALS['query_kind']==='author';}
 function is_date(){return in_array($GLOBALS['query_kind']??'',array('date_year','date_month','date_day'),true);}
@@ -400,7 +408,7 @@ function is_search(){return $GLOBALS['query_kind']==='search';}
 function is_404(){return $GLOBALS['query_kind']==='404';}
 function get_query_var($name,$default=''){return $GLOBALS['query_vars'][$name]??$default;}
 function wc_get_page_id($name){return 10;}
-function get_queried_object(){return (object)['term_id'=>2];}
+function get_queried_object(){return $GLOBALS['queried_object']??(object)['term_id'=>2];}
 function get_term_link($term){return home_url('/category/gold/');}
 function get_post_type_archive_link($type){return home_url('/'.$type.'/');}
 function wp_get_canonical_url(){return home_url('/article/');}
@@ -412,6 +420,12 @@ function add_query_arg($key,$value=null,$url=null){
  foreach($q as $k=>$v)if($v===false)unset($q[$k]);
  return preg_replace('/\?.*$/','',$url).($q?'?'.http_build_query($q):'');
 }
+if(!function_exists('remove_query_arg')){function remove_query_arg($key,$url=''){if(''===$url)$url=home_url((string)($_SERVER['REQUEST_URI']??'/basket/'));return add_query_arg(array_fill_keys((array)$key,false),$url);}}
+if(!function_exists('get_pagenum_link')){function get_pagenum_link($pagenum=1,$escape=true){
+ $GLOBALS['get_pagenum_link_calls'][]=[$pagenum,$escape];
+ $request=(string)($_SERVER['REQUEST_URI']??'/catalog/');$parts=parse_url($request);$path=preg_replace('~/page/\d+/?$~','/',(string)($parts['path']??'/catalog/'));
+ $url=add_query_arg($_GET,home_url($path));return $escape?str_replace('&','&amp;',$url):$url;
+}}
 class WP_User {
  public $ID; public $roles; public $caps=[]; public $user_login; public $user_pass=''; public $display_name='Test customer'; public $user_email='test@example.invalid';
  function __construct($id,$roles=['customer']){$this->ID=$id;$this->roles=$roles;$this->user_login='customer'.$id;}
@@ -465,6 +479,8 @@ class WC_Product {
  function get_children(){return $this->children;}
  function get_available_variations(){$this->variationCalls++;return ['test-variation'];}
  function get_image_id(){return $this->image_id;}
+ function get_image($size='woocommerce_thumbnail',$attr=array()){return '<img src="'.esc_url(home_url('/product-image-'.$this->id.'.jpg')).'" width="300" height="300" alt="" />';}
+ function get_variation_prices($for_display=false){return $GLOBALS['variation_prices'][$this->id]??array('regular_price'=>array(),'sale_price'=>array(),'price'=>array());}
  function get_name(){return 'Public product';}
  function get_attributes(){return $GLOBALS['product_attributes'][$this->id]??[];}
  function get_price_html(){return $GLOBALS['product_price_html'][$this->id]??'100';}
@@ -482,6 +498,7 @@ class WC_Product {
  // رندر کند و خطاهای زمانِ اجرا (مثل «Undefined constant» نسخهٔ 1.65) دیده
  // نمی‌شدند — همان شکافی که یک باگِ واقعی را تا روی سرورِ زنده برد.
  function is_visible(){return true;}
+ function get_variation_attributes(){return (array)($GLOBALS['variation_attributes'][$this->id]??[]);}
  function get_variation_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['price']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['price']??0.0;}
  function get_variation_regular_price($min_or_max='min',$for_display=false){$range=$GLOBALS['variation_price_ranges'][$this->id]['regular']??null;if(is_array($range)&&array_key_exists($min_or_max,$range))return $range[$min_or_max];return $GLOBALS['product_prices'][$this->id]['regular']??0.0;}
  function get_sale_price($context='view'){return ($GLOBALS['product_prices'][$this->id]['regular']??0.0)>($GLOBALS['product_prices'][$this->id]['price']??0.0)?($GLOBALS['product_prices'][$this->id]['price']??0.0):'';}
@@ -491,21 +508,24 @@ class WC_Product {
  function add_to_cart_url(){return home_url('/?add-to-cart='.$this->id);}
 }
 class WooCommerce {}
-class FakeSession { public $data=[];
+class FakeSession { public $data=[]; public $sessionExists=false; public $customerCookieCalls=[];
  function get($key){return $this->data[$key]??null;}
  function set($key,$value){$this->data[$key]=$value;}
+ function has_session(){return $this->sessionExists;}
+ function set_customer_session_cookie($set=true){$this->customerCookieCalls[]=$set;}
+ function __unset($key){unset($this->data[$key]);}
 }
 class FakeCart {
- public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $totalsCalls=0;public $quantityRefreshArgs=[];
+ public $items=[]; public $added=0;public $changed=0; public $addFails=false;public $mutateOnFailure=false; public $fees=[];public $addCalls=[];public $totalsCalls=0;public $quantityRefreshArgs=[];public $stockCheckCalls=0;
  function get_cart(){return $this->items;}
  function is_empty(){return empty($this->items);}
  function add_fee($name,$amount,$taxed=true){$this->fees[]=[$name,$amount];return true;}
  function get_cart_item($key){return $this->items[$key]??[];}
  function remove_cart_item($key){if(!isset($this->items[$key]))return false;unset($this->items[$key]);return true;}
  function set_quantity($key,$quantity,$refresh=true){$this->changed++;$this->quantityRefreshArgs[]=$refresh;if(!$quantity)return $this->remove_cart_item($key);$this->items[$key]['quantity']=$quantity;if($refresh)$this->calculate_totals();return true;}
- function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
+ function add_to_cart($id,$qty,$variation=0,$attrs=[]){$this->added++;$this->addCalls[]=[$id,$qty,$variation,$attrs];if(!$this->addFails||$this->mutateOnFailure)$this->items['new']=['data'=>wc_get_product($variation?:$id),'product_id'=>$id,'variation_id'=>$variation,'variation'=>$attrs,'quantity'=>$qty];return $this->addFails?false:'new';}
  public $stockFail=false;
- function check_cart_item_stock(){return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
+ function check_cart_item_stock(){$this->stockCheckCalls++;return $this->stockFail?new WP_Error('out-of-stock','stub stock failure'):true;}
  function get_cart_item_quantities(){$out=[];foreach($this->items as $item){$id=$item['data']->get_stock_managed_by_id();$out[$id]=($out[$id]??0)+$item['quantity'];}return $out;}
  function calculate_totals(){$this->totalsCalls++;}
  function get_product_subtotal($product,$qty){return '100';}
@@ -623,7 +643,7 @@ function get_object_taxonomies($object_type,$output='names'){$taxonomies=$GLOBAL
 function get_term_by($field,$value,$taxonomy){$terms=$GLOBALS['terms_by_slug'][$taxonomy]??[];if(isset($terms[$value]))return $terms[$value];foreach($terms as $slug=>$term){if(!is_object($term))continue;if('slug'===$field&&isset($term->slug)&&(string)$term->slug===(string)$value)return $term;if('name'===$field&&isset($term->name)&&(string)$term->name===(string)$value)return $term;}return false;}
 function wp_count_posts($type='post'){return (object)($GLOBALS['post_counts'][$type]??[]);}
 function wp_update_post($data,$errors=false){$GLOBALS['updated_posts'][]=$data;return $data['ID']??0;}
-function wp_safe_redirect($url,$status=302){$GLOBALS['redirects'][]=$url;return true;}
+function wp_safe_redirect($url,$status=302){$GLOBALS['redirects'][]=$url;if(!empty($GLOBALS['throw_redirect']))throw new RuntimeException('TEST_REDIRECT:'.$url);return true;}
 function wp_nonce_field(...$a){echo '';}
 
 
@@ -687,3 +707,23 @@ if(!function_exists('term_exists')){function term_exists($id,$tax=''){return iss
 if(!function_exists('get_term_meta')){function get_term_meta($id,$key='',$single=false){return $GLOBALS['term_meta'][(int)$id][$key]??'';}}
 if(!function_exists('wp_dropdown_pages')){function wp_dropdown_pages($a=array()){echo '<select name="'.htmlspecialchars((string)($a['name']??''),ENT_QUOTES).'"></select>';}}
 if(!function_exists('is_page')){function is_page(...$a){return !empty($GLOBALS['is_page']);}}
+
+// The real Woo helper owns public/private item-meta filtering and formatting.
+function wc_display_item_meta( $item, $args = array() ) {
+ $GLOBALS['item_meta_calls'][] = array( $item, $args );
+ return '<ul class="wc-item-meta"><li>سایز: XL</li></ul>';
+}
+function wc_get_account_orders_actions( $order ) {
+ $GLOBALS['account_action_calls'][] = $order->get_id();
+ return $GLOBALS['account_actions_fixture'] ?? array();
+}
+
+if(!function_exists('wp_attachment_is_image')){function wp_attachment_is_image($id){$id=(int)$id;if(!empty($GLOBALS['product_manager_images'][$id]))return true;if(array_key_exists($id,$GLOBALS['attachment_images']??[]))return (bool)$GLOBALS['attachment_images'][$id];return 0===strpos((string)($GLOBALS['attachment_mimes'][$id]??''),'image/');}}
+if(!function_exists('get_post_thumbnail_id')){function get_post_thumbnail_id($id){return (int)($GLOBALS['post_thumbnails'][(int)$id]??0);}}
+if(!function_exists('is_user_logged_in')){function is_user_logged_in(){return !empty($GLOBALS['logged_in']);}}
+if(!function_exists('wp_check_filetype_and_ext')){function wp_check_filetype_and_ext($file,$filename,$mimes=null){$ext=strtolower(pathinfo((string)$filename,PATHINFO_EXTENSION));$GLOBALS['filetype_mime_checks'][]=$mimes;$type='';foreach(is_array($mimes)?$mimes:array() as $extensions=>$mime){if(preg_match('/^(?:'.$extensions.')$/i',$ext)){$type=(string)$mime;break;}}return ['ext'=>$type?$ext:false,'type'=>$type,'proper_filename'=>false];}}
+if(!function_exists('wp_get_attachment_image')){function wp_get_attachment_image($id,$size='thumbnail',$icon=false,$attr=[]){return '<img src="'.esc_url(wp_get_attachment_image_url($id,is_array($size)?'thumbnail':$size)).'" alt="'.esc_attr($attr['alt']??'').'" />';}}
+if(!function_exists('wp_delete_attachment')){function wp_delete_attachment($id,$force=false){$GLOBALS['deleted_attachments'][]=[(int)$id,(bool)$force];return true;}}
+if(!function_exists('get_post_field')){function get_post_field($field,$id){return $GLOBALS['posts'][(int)$id][$field]??'';}}
+if(!function_exists('sanitize_file_name')){function sanitize_file_name($name){return preg_replace('/[^A-Za-z0-9._-]/','-',basename((string)$name));}}
+if(!function_exists('get_attached_file')){function get_attached_file($id){return $GLOBALS['attached_files'][(int)$id]??'';}}

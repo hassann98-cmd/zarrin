@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -102,7 +103,7 @@ test("recently viewed history renders separate mobile-friendly product and homep
 });
 
 test("recent-product history uses a polished responsive rail and clear stock styling", () => {
-  const styles = read("../src/styles/storefront.css");
+  const styles = readStorefrontCss();
   assert.match(styles, /\.jluxe-recent-products__heading\s*\{/);
   assert.match(styles, /\.jluxe-recent-products__intro\s*\{[^}]*display:\s*flex/);
   assert.match(styles, /\.jluxe-recent-products__subtitle\s*\{/);
@@ -118,7 +119,7 @@ test("recent-product history uses a polished responsive rail and clear stock sty
   assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*font-family: IRANYekan/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card\s*\{\s*flex-basis: min\(78vw, 296px\)/);
   assert.match(styles, /@media \(max-width: 639px\)[\s\S]*?\.jluxe-recent-card__link \{ display: grid; grid-template-columns: 98px minmax\(0, 1fr\);/);
-  assert.match(styles, /\.jluxe-recent-card__price \{ display: flex; max-width: 100%; font-size: 14px; font-weight: 800;/);
+  assert.match(styles, /\.jluxe-recent-card__price \{ display: flex; max-width: 100%; font-size: 14px; font-weight: 700;/);
   assert.match(styles, /\.jluxe-recent-card__price\s*\{[^}]*white-space: normal;/);
   assert.match(styles, /\.jluxe-recent-products__list\s*\{[^}]*overflow-x: auto;[^}]*direction: rtl;/);
   assert.match(styles, /\.jluxe-recent-card__image\[hidden\] \{ display: none; \}/);
@@ -198,7 +199,7 @@ test("a single recent product uses compact markup and search results layer above
   assert.equal(panel.querySelector("[data-jluxe-recent-count]").textContent, "۱ محصول");
   assert.equal(panel.querySelectorAll(".jluxe-recent-card").length, 1);
 
-  const styles = read("../src/styles/storefront.css");
+  const styles = readStorefrontCss();
   const header = read("../header.php");
   const classicProduct = read("../woocommerce/content-single-product-classic.php");
   assert.match(styles, /data-jluxe-recent-item-count="1"[\s\S]*?grid-template-columns: 128px minmax\(0, 1fr\)/);

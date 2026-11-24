@@ -219,6 +219,8 @@ export function setupAuthNavigation(
 
   function onClick(event) {
     if (!isPlainClick(event)) return;
+    // This router may have mounted while the visitor was still a guest.
+    if (win.jluxeCurrentAuthStatus === true || settings.auth?.isLoggedIn === true) return;
     const target = event.target;
     const anchor = target?.closest?.("a[href]");
     if (!anchor || !doc.documentElement.contains(anchor)) return;

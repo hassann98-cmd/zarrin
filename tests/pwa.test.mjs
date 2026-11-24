@@ -163,6 +163,9 @@ test("on desktop the browser's own install UI is left alone (no preventDefault)"
 // ---------------------------------------------------------------- service worker routing
 function loadWorker() {
   const listeners = {};
+  let navigationPreloadEnabled = false;
+  let clientsClaimed = false;
+  let fetchCalls = 0;
   const config = {
     version: "abc",
     offline: "https://shop.test/store/?jluxe_pwa=offline",
@@ -180,10 +183,14 @@ function loadWorker() {
     },
     self: {
       location: new URL("https://shop.test/store/?jluxe_pwa=sw"),
+      registration: { navigationPreload: { enable: async () => { navigationPreloadEnabled = true; } } },
+      clients: { claim: async () => { clientsClaimed = true; } },
       addEventListener: (type, fn) => (listeners[type] = fn),
     },
     caches: {
       store: new Map(),
+      async keys() { return [...this.store.keys()]; },
+      async delete(name) { return this.store.delete(name); },
       async open(name) {
         if (!this.store.has(name)) this.store.set(name, new Map());
         const bucket = this.store.get(name);
@@ -196,10 +203,12 @@ function loadWorker() {
         };
       },
     },
-    fetch: (request) =>
-      context.online
+    fetch: (request) => {
+      fetchCalls += 1;
+      return context.online
         ? Promise.resolve({ ok: true, type: "basic", body: "net:" + request.url, clone() { return this; } })
-        : Promise.reject(new Error("offline")),
+        : Promise.reject(new Error("offline"));
+    },
     online: false,
   };
   vm.runInNewContext(fs.readFileSync(new URL("../assets/pwa/sw.js", import.meta.url), "utf8"), context);
@@ -216,10 +225,14 @@ function loadWorker() {
   };
   const respond = (url, init = {}) => {
     let result;
-    listeners.fetch({ request: { url, method: "GET", mode: "no-cors", ...init }, respondWith: (p) => (result = p) });
+    const { preloadResponse, ...requestInit } = init;
+    listeners.fetch({ request: { url, method: "GET", mode: "no-cors", ...requestInit }, preloadResponse, respondWith: (p) => (result = p) });
     return result;
   };
-  return { route, respond, listeners, context };
+  return {
+    route, respond, listeners, context,
+    state: () => ({ navigationPreloadEnabled, clientsClaimed, fetchCalls }),
+  };
 }
 
 test("SW never intercepts cart, checkout, account, admin, REST, stateful queries, POST or cross-origin", () => {
@@ -250,6 +263,31 @@ test("SW handles page navigations (offline fallback) and hashed theme assets onl
   assert.equal(route("https://shop.test/store/wp-content/uploads/2026/09/kettle.webp"), false, "uploads are not cached");
   assert.equal(route("https://shop.test/store/wp-content/themes/zarrin/style.css?ver=1"), false);
   assert.equal(route("https://shop.test/store/wp-includes/js/jquery/jquery.min.js"), false);
+});
+
+test("activation enables Navigation Preload and navigations use the preloaded response before fetch", async () => {
+  const { respond, listeners, context, state } = loadWorker();
+  let activation;
+  listeners.activate({ waitUntil: promise => { activation = promise; } });
+  await activation;
+  assert.equal(state().navigationPreloadEnabled, true);
+  assert.equal(state().clientsClaimed, true);
+
+  context.online = true;
+  const fetchesBefore = state().fetchCalls;
+  const preloaded = { body: "preloaded-html", ok: true };
+  const response = await respond("https://shop.test/store/product/fast/", {
+    mode: "navigate",
+    preloadResponse: Promise.resolve(preloaded),
+  });
+  assert.equal(response, preloaded);
+  assert.equal(state().fetchCalls, fetchesBefore, "preload avoids a second serial fetch after the worker wakes");
+
+  const fallback = await respond("https://shop.test/store/product/retry/", {
+    mode: "navigate",
+    preloadResponse: Promise.reject(new Error("preload failed")),
+  });
+  assert.equal(fallback.body, "net:https://shop.test/store/product/retry/", "a failed preload retries normal network fetch before offline fallback");
 });
 
 test("offline navigation shows the precached offline page; online navigation is never stored", async () => {

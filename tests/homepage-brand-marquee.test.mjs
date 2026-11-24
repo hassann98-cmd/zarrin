@@ -1,11 +1,9 @@
+import { readHomepageSource } from "./helpers/theme-source.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(
-  new URL("../inc/theme-settings-homepage.php", import.meta.url),
-  "utf8",
-);
+const source = await Promise.resolve(readHomepageSource());
 
 test("brand marquee uses small uncropped responsive logo assets and fits them without cropping", () => {
   assert.match(

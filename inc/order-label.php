@@ -308,7 +308,11 @@ function jluxe_render_order_labels_document( array $orders ): void {
 	if ( empty( $labels ) ) {
 		return;
 	}
-	$font_uri = function_exists( 'get_template_directory_uri' ) ? trailingslashit( get_template_directory_uri() ) . 'src/assets/fonts/' : '';
+	$font_urls = array(
+		'regular' => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileRegular.woff2' ) : '',
+		'medium'  => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileMedium.woff2' ) : '',
+		'bold'    => function_exists( 'jluxe_vite_font_url' ) ? jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileBold.woff2' ) : '',
+	);
 	$label_count = count( $labels );
 	$toolbar_hint = 1 === $label_count
 		? 'برگهٔ A5 افقی؛ برچسب در نیمهٔ چپ (نصف A5)'
@@ -322,9 +326,9 @@ function jluxe_render_order_labels_document( array $orders ): void {
 		<meta name="robots" content="noindex,nofollow,noarchive">
 		<title><?php echo esc_html( sprintf( 'چاپ برچسب پستی %d سفارش', $label_count ) ); ?></title>
 		<style>
-			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileRegular.woff2' ); ?>') format('woff2');font-weight:400;font-style:normal;font-display:swap}
-			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileMedium.woff2' ); ?>') format('woff2');font-weight:500;font-style:normal;font-display:swap}
-			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_uri . 'IRANYekanMobileBold.woff2' ); ?>') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_urls['regular'] ); ?>') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_urls['medium'] ); ?>') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+			@font-face{font-family:JLuxeLabel;src:url('<?php echo esc_url( $font_urls['bold'] ); ?>') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 			*{box-sizing:border-box}
 			html{direction:rtl;background:#ececec}
 			body{min-height:100vh;margin:0;padding:8mm;display:flex;flex-direction:column;align-items:center;gap:4mm;background:#ececec;color:#111;font-family:JLuxeLabel,Tahoma,sans-serif;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}

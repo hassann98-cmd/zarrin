@@ -1,6 +1,8 @@
 # پوستهٔ زرین — Zarrin
 
-پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.222** است.
+پوستهٔ کلاسیک وردپرس/WooCommerce با رابط فارسی RTL و جزیره‌های React. مبنای بستهٔ کاری **`zarrin-1.7.29.zip`** است؛ نسخهٔ این بستهٔ اصلاحی **1.7.409** است.
+
+[دانلود مستقیم بستهٔ قابل نصب zarrin-1.7.408.zip](https://github.com/hassann98-cmd/zarrin/releases/download/v1.7.408/zarrin-1.7.408.zip)
 
 - [فهرست اصلاحات و نتیجهٔ تست‌ها](docs/FIXES.fa.md)
 - [آزمون یکپارچهٔ وردپرس: روش اجرا و محدودیت‌ها](docs/INTEGRATION.fa.md)
@@ -88,6 +90,8 @@ npm run release
 `THEME_DOWNLOAD_SERVER_PORT=4181 npm run release` شمارهٔ patch را خودکار افزایش می‌دهد، نسخه‌های `package.json`/lock/style/README را هماهنگ می‌کند، `npm run check` را اجرا می‌کند، ZIP نسخه‌دار می‌سازد و در `downloads/` قرار می‌دهد؛ در پایان `/version` و `/download/latest` سرور sandbox روی پورت `4181` را با فایل بسته‌شده بایت‌به‌بایت تطبیق می‌دهد. اگر سرور اجرا نباشد، release با خطا متوقف می‌شود؛ لینک قدیمی را به‌عنوان نسخهٔ تازه تحویل ندهید.
 
 خروجی در `artifacts/zarrin-{version}.zip` است، با پوشهٔ بالایی `zarrin/`. ZIP شامل runtime، سورس و ابزارهای بازسازی است؛ `.git`، `node_modules`، محیط/credentialها و artifactهای قبلی بسته‌بندی نمی‌شوند. `npm run package` فقط ابزار بسته‌بندی سطح پایین است و نسخه را افزایش نمی‌دهد. سرور sandbox به‌معنی انتشار روی production نیست.
+
+**قاعدهٔ انتشار:** هر تغییر نسخه که روی `main` یا شاخهٔ `arena/**` push شود، باید از `.github/workflows/release-assets.yml` عبور کند؛ workflow تست‌ها و build را اجرا می‌کند، Release متناظر با `v{version}` را می‌سازد و ZIP را به‌عنوان asset پیوست و دانلودش را تأیید می‌کند. لینک دانلود عمومی باید به `/releases/download/v{version}/zarrin-{version}.zip` اشاره کند؛ ZIP را به‌جای Release asset در Git مخزن commit نکنید.
 
 `.github/workflows/quality.yml` build، تست، تطبیق خروجی با فایل‌های ثبت‌شده و ZIP را تعریف می‌کند؛ PHP matrix آن 8.0/8.3/8.5 است. job جداگانهٔ WordPress/SQLite، Node 24 و PHP-WASM 8.3/8.5 دارد. اضافه‌شدن workflow به معنی مشاهدهٔ اجرای موفق GitHub Actions نیست.
 
@@ -245,3 +249,10 @@ define( 'JLUXE_VITE_DEV_SERVER', 'https://5173-YOUR-SANDBOX.e2b.app' );
 - سازگاری ۲۳ override با نسخهٔ نصب‌شده، ارسال واقعی SMS/ایمیل، پرداخت، حمل/مالیات، session هم‌زمان، Woo Blocks، چندارزی و چندسایتی نیازمند محیط واقعی‌اند.
 - آزمون‌های ایزوله و آزمون WordPress/SQLite واقعی اجرا شده‌اند؛ نه Lighthouse، نه خرید WooCommerce/مرورگر واقعی و نه آزمایش provider واقعی. دامنهٔ هر مجموعه در گزارش تست جدا شده است.
 - دربارهٔ مجوز فونت IRANYekan و LICENSE کد اختصاصی، مدارک مالک باید تکمیل شوند. [یادداشت وابستگی‌های ثالث](docs/THIRD-PARTY-NOTICES.md) مجوزی برای فونت یا کل پوسته اعطا نمی‌کند.
+
+
+### آزمون بازسازی صفحه‌ساز بصری
+
+`npm run check` آزمون‌های مستقل و build را اجرا می‌کند. برای تست وردپرس واقعی با fixtureهای ایزوله، مطابق `tests/integration/package.json` از Node >=24.18 استفاده کنید؛ ابتدا `node tests/integration/download.mjs` و سپس `npm run test:integration:builder`. خروجی موفق `BUILDER_V2_WORDPRESS_INTEGRATION_PASSED` است. هیچ دیتابیس تولیدی یا سرویس پرداخت/پیامک واقعی استفاده نمی‌شود.
+
+آزمون اختیاری Chromium: وابستگی‌های `playwright-core` و `@sparticuz/chromium` را در پوشهٔ cache جدا نصب کنید، `BUILDER_CAPTURE=1 npm run test:integration:builder` را اجرا کنید، سپس با `BUILDER_BROWSER_MODULES` برابر مسیر node_modules همان پوشه، `npm run test:browser:builder` را اجرا کنید. سیستم باید کتابخانه‌های موردنیاز Chromium را داشته باشد. تصاویر آزمایش فقط در `.cache/builder-capture` ذخیره می‌شوند و منتشر نمی‌شوند.

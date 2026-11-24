@@ -270,7 +270,9 @@
   function eligibleArchiveLink(main, anchor) {
     var kind = routeKind(main);
     if (kind === "catalog") {
-      return !!anchor.closest(".woocommerce-pagination") || anchor.hasAttribute("data-jluxe-catalog-clear");
+      return !!anchor.closest(".woocommerce-pagination") ||
+        anchor.hasAttribute("data-jluxe-catalog-clear") ||
+        anchor.hasAttribute("data-jluxe-catalog-filter-chip");
     }
     if (kind === "blog") {
       return !!anchor.closest(".jluxe-blog-pagination") || anchor.classList.contains("jluxe-blog-card__category");

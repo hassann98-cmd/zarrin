@@ -1,6 +1,9 @@
+import { useNavPress } from "../lib/use-nav-press.js";
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { siteUrl } from "../lib/api.js";
 import {
   getActiveMobileDrawer,
+  hasMobileDrawerRegistration,
   openMobileDrawer,
   subscribeMobileDrawerState,
   toggleMobileDrawer,
@@ -50,11 +53,11 @@ function MobileNav() {
   const homeHref = DESTINATIONS.home.href;
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const isSingleProduct =
+    typeof document !== "undefined" &&
+    document.body?.classList.contains("single-product");
+  const loggedIn = useAuthStatus();
+  const pressProps = useNavPress();
   const [activeDrawer, setActiveDrawer] = React.useState(() =>
     typeof window === "undefined" ? null : getActiveMobileDrawer(window),
   );
@@ -139,18 +142,20 @@ function MobileNav() {
         (!item.label || item.label === "حساب" || item.label === "ورود")
           ? "حساب کاربری"
           : item.label,
-      label: item.id === "account" && !loggedIn ? "ورود" : item.label,
+      label: item.id === "account"
+        ? !loggedIn ? "ورود" : (!item.label || item.label === "حساب" || item.label === "ورود") ? "حساب کاربری" : item.label
+        : item.label,
     }));
 
   return jsx.jsx("nav", {
     className: "jluxe-mobile-nav fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
     style: {
-      backgroundColor: colors.background,
+      backgroundColor: isSingleProduct ? "hsl(var(--surface))" : colors.background,
       borderRadius: `${colors.radius}px`,
       boxShadow: shadow,
       color: colors.icon,
-      backdropFilter: style.blur === false ? "none" : "blur(14px)",
-      WebkitBackdropFilter: style.blur === false ? "none" : "blur(14px)",
+      backdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
+      WebkitBackdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
       ...mobileNavContainerStyle(colors.height),
     },
     "aria-label": "ناوبری موبایل",
@@ -175,14 +180,17 @@ function MobileNav() {
         );
         const routeActive = isActive(currentHref, item.href, item.id);
         const active = routeActive || drawerOpen;
-        const Icon = navIcons[item.icon] ?? fallbackIcon;
+        const Icon = item.icon ? navIcons[item.icon] ?? fallbackIcon : null;
         return jsx.jsxs(
           "a",
           {
+            ...pressProps(item.id),
             href: item.href,
             onClick: (event) => {
               if (isModifiedClick(event)) return;
               if (item.opensDrawer) {
+                // Without a mounted drawer island, keep normal link navigation.
+                if (!hasMobileDrawerRegistration(item.opensDrawer, window)) return;
                 event.preventDefault();
                 const closedSuggestions =
                   typeof window.jluxeCloseSuggestedProductsModal === "function" &&
@@ -190,7 +198,7 @@ function MobileNav() {
                 // Dismissing an overlay must reveal/open the requested drawer,
                 // not let stale drawer state interpret this tap as a second toggle.
                 if (closedSuggestions) openMobileDrawer(item.opensDrawer, window);
-                else toggleMobileDrawer(item.opensDrawer, window);
+                else toggleMobileDrawer(item.opensDrawer, window, activeDrawer);
               } else if (item.id !== "home") {
                 setCurrentHref(item.href);
               }
@@ -254,10 +262,10 @@ function MobileNav() {
                 },
                 ...(item.id === "cart" ? { "data-jluxe-cart-icon-mobile": "" } : {}),
                 children: [
-                  jsx.jsx(Icon, {
+                  Icon ? jsx.jsx(Icon, {
                     className: "size-[21px]",
                     "aria-hidden": true,
-                  }),
+                  }) : null,
                   item.id === "cart" && snapshot.itemCount > 0
                     ? jsx.jsx("span", {
                         className: "absolute -end-1 -top-1 flex size-[17px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-md",

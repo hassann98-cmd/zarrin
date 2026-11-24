@@ -152,9 +152,17 @@ function jluxe_cart_snapshot(): array {
 		);
 	}
 
+	$share_cart_enabled = ! empty( jluxe_get_theme_settings()['cart_checkout']['show_share_cart'] );
+	$share_cart_url = $share_cart_enabled && ! $cart->is_empty() ? jluxe_share_cart_url() : '';
+	$gift_wrap = function_exists( 'jluxe_get_session_gift_wrap' ) ? jluxe_get_session_gift_wrap() : array( 'enabled' => false, 'note' => '' );
+	$gift_wrap_config = function_exists( 'jluxe_get_gift_wrap_config' ) ? jluxe_get_gift_wrap_config() : array( 'label' => '', 'fee' => 0 );
+	$gift_wrap_has_fee = ! empty( $gift_wrap['enabled'] ) && ( $gift_wrap_config['fee'] ?? 0 ) > 0;
 	return array(
 		'items'         => $items,
 		'itemCount'     => $cart->get_cart_contents_count(),
+		'shareCartEnabled' => $share_cart_enabled,
+		'shareCartUrl'  => $share_cart_url,
+		'giftWrap'      => array( 'enabled' => (bool) $gift_wrap['enabled'], 'note' => (string) $gift_wrap['note'], 'label' => $gift_wrap_has_fee ? (string) $gift_wrap_config['label'] : '', 'feeHtml' => $gift_wrap_has_fee ? wc_price( $gift_wrap_config['fee'] ) : null ),
 		'subtotalHtml'  => wc_price( $cart->get_subtotal() ),
 		'coupons'       => $coupons,
 		'discountHtml'  => $cart->get_discount_total() > 0 ? wc_price( $cart->get_discount_total() ) : null,
@@ -246,6 +254,8 @@ function jluxe_get_free_shipping_progress(): ?array {
 
 	return array(
 		'achieved'        => $achieved,
+		'remaining'       => $remaining,
+		'threshold'       => $threshold,
 		'remainingHtml'   => wc_price( $remaining ),
 		'progressPercent' => min( 100, (int) round( ( $current / $threshold ) * 100 ) ),
 	);
@@ -261,6 +271,121 @@ function jluxe_cart_error( string $fallback, int $status = 400 ): void {
 
 function jluxe_cart_post_string( string $key, string $default = '' ): string {
 	return isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? (string) wp_unslash( $_POST[ $key ] ) : $default;
+}
+
+/** Serialize only public product/variation IDs and bounded quantities; never cart/customer data or prices. */
+function jluxe_share_cart_encoded(): string {
+	if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) { return ''; }
+	$quantities = array();
+	foreach ( WC()->cart->get_cart() as $item ) {
+		$product_id = absint( $item['product_id'] ?? 0 );
+		$variation_id = absint( $item['variation_id'] ?? 0 );
+		$quantity = max( 1, min( 99, absint( $item['quantity'] ?? 1 ) ) );
+		if ( ! $product_id ) { continue; }
+		$key = $product_id . ':' . $variation_id;
+		if ( isset( $quantities[ $key ] ) ) {
+			$quantities[ $key ] = min( 99, $quantities[ $key ] + $quantity );
+			continue;
+		}
+		if ( count( $quantities ) >= 20 ) { continue; }
+		$quantities[ $key ] = $quantity;
+	}
+	$parts = array();
+	foreach ( $quantities as $key => $quantity ) {
+		list( $product_id, $variation_id ) = array_map( 'absint', explode( ':', $key, 2 ) );
+		$parts[] = $product_id . ( $variation_id ? 'v' . $variation_id : '' ) . ':' . $quantity;
+	}
+	return implode( ',', $parts );
+}
+
+function jluxe_share_cart_url(): string {
+	if ( ! jluxe_cart_checkout_option( 'show_share_cart', true ) || ! function_exists( 'wc_get_cart_url' ) ) { return ''; }
+	$encoded = jluxe_share_cart_encoded();
+	return '' !== $encoded ? (string) add_query_arg( 'jluxe_share_cart', $encoded, wc_get_cart_url() ) : '';
+}
+
+/** Parse a bounded, canonical share payload; malformed input is rejected as a whole. */
+function jluxe_parse_share_cart_payload( string $encoded ): ?array {
+	if ( '' === $encoded || strlen( $encoded ) > 600 ) { return null; }
+	$tokens = explode( ',', $encoded );
+	if ( count( $tokens ) > 20 ) { return null; }
+	$items = array();
+	$seen = array();
+	foreach ( $tokens as $token ) {
+		if ( ! preg_match( '/^(\\d+)(?:v(\\d+))?:(\\d+)$/D', $token, $matches ) ) { return null; }
+		$product_id = absint( $matches[1] );
+		$variation_id = ! empty( $matches[2] ) ? absint( $matches[2] ) : 0;
+		$quantity = absint( $matches[3] );
+		if ( ! $product_id || ! $quantity || $quantity > 99 ) { return null; }
+		$key = $product_id . ':' . $variation_id;
+		if ( isset( $seen[ $key ] ) ) { return null; }
+		$seen[ $key ] = true;
+		$items[] = array( 'product_id' => $product_id, 'variation_id' => $variation_id, 'quantity' => $quantity );
+	}
+	return $items;
+}
+
+/** Add each still-needed valid item without ever clearing the recipient's current cart. */
+function jluxe_import_share_cart( string $encoded ): array {
+	$items = jluxe_parse_share_cart_payload( $encoded );
+	if ( null === $items ) { return array( 'added' => 0, 'unavailable' => 0, 'invalid' => true ); }
+	$added = 0;
+	$unavailable = 0;
+	$already_present = 0;
+	$cart = WC()->cart;
+	foreach ( $items as $entry ) {
+		$product = wc_get_product( $entry['product_id'] );
+		if ( ! $product instanceof WC_Product || $product->is_type( 'variation' ) || 'publish' !== $product->get_status() || ! jluxe_product_is_public( $product ) || ! $product->is_purchasable() || ! $product->is_in_stock() ) { ++$unavailable; continue; }
+		$variation = null;
+		$variation_attributes = array();
+		if ( $entry['variation_id'] ) {
+			$variation = wc_get_product( $entry['variation_id'] );
+			if ( ! $product->is_type( 'variable' ) || ! $variation instanceof WC_Product || ! $variation->is_type( 'variation' ) || $variation->get_parent_id() !== $product->get_id() || 'publish' !== $variation->get_status() || ! jluxe_product_is_public( $variation ) || ! $variation->is_purchasable() || ! $variation->is_in_stock() ) { ++$unavailable; continue; }
+			$variation_attributes = $variation->get_variation_attributes();
+			if ( ! is_array( $variation_attributes ) ) { ++$unavailable; continue; }
+		} elseif ( $product->is_type( 'variable' ) ) { ++$unavailable; continue; }
+		$existing_quantity = 0;
+		foreach ( $cart->get_cart() as $cart_item ) {
+			if ( absint( $cart_item['product_id'] ?? 0 ) === $entry['product_id'] && absint( $cart_item['variation_id'] ?? 0 ) === $entry['variation_id'] ) { $existing_quantity += absint( $cart_item['quantity'] ?? 0 ); }
+		}
+		if ( $existing_quantity >= $entry['quantity'] ) { ++$already_present; continue; }
+		$needed = $entry['quantity'] - $existing_quantity;
+		$result = $cart->add_to_cart( $entry['product_id'], $needed, $entry['variation_id'], $variation_attributes );
+		if ( false === $result || '' === $result ) { ++$unavailable; continue; }
+		++$added;
+	}
+	return array( 'added' => $added, 'unavailable' => $unavailable, 'already_present' => $already_present, 'invalid' => false );
+}
+
+function jluxe_handle_share_cart_link(): void {
+	if ( ! jluxe_cart_checkout_option( 'show_share_cart', true ) || ! function_exists( 'WC' ) ) { return; }
+	$wc = WC();
+	if ( ! is_object( $wc ) || ! isset( $wc->cart ) || ! $wc->cart || ! function_exists( 'is_cart' ) || ! is_cart() || ! isset( $_GET['jluxe_share_cart'] ) ) { return; }
+	if ( isset( $wc->session ) && is_object( $wc->session ) && method_exists( $wc->session, 'set_customer_session_cookie' ) ) {
+		$session = $wc->session;
+		if ( ! method_exists( $session, 'has_session' ) || ! $session->has_session() ) {
+			$session->set_customer_session_cookie( true );
+		}
+	}
+	$raw = is_scalar( $_GET['jluxe_share_cart'] ) ? (string) wp_unslash( $_GET['jluxe_share_cart'] ) : '';
+	$result = jluxe_import_share_cart( $raw );
+	if ( ! empty( $result['invalid'] ) ) {
+		wc_add_notice( 'لینک سبد خرید معتبر نیست.', 'error' );
+	} else {
+		if ( $result['added'] > 0 ) { wc_add_notice( jluxe_fa_digits( $result['added'] ) . ' کالا از سبد اشتراکی به سبد خرید شما اضافه شد.', 'success' ); }
+		if ( $result['unavailable'] > 0 ) { wc_add_notice( 'برخی اقلام به دلیل اتمام موجودی یا در دسترس نبودن اضافه نشدند.', 'notice' ); }
+		if ( 0 === $result['added'] && 0 === $result['unavailable'] && $result['already_present'] > 0 ) { wc_add_notice( 'اقلام این سبد از قبل در سبد خرید شما هستند.', 'notice' ); }
+	}
+	wp_safe_redirect( remove_query_arg( 'jluxe_share_cart' ) );
+	exit;
+}
+add_action( 'template_redirect', 'jluxe_handle_share_cart_link', 5 );
+
+/** Render a compact, accessible share action in the cart totals. */
+function jluxe_render_share_cart_button(): void {
+	$url = jluxe_share_cart_url();
+	if ( '' === $url ) { return; }
+	echo '<button type="button" class="jluxe-share-cart-button" data-jluxe-share-cart data-share-url="' . esc_url( $url ) . '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg><span data-share-label aria-live="polite">ارسال لیست سبد برای دیگران</span></button>';
 }
 
 /** Reject malformed/negative/infinite amounts rather than silently turning them into another action. */
@@ -366,19 +491,26 @@ function jluxe_ajax_cart(): void {
 				}
 			}
 			$previous_quantity = isset( $item['quantity'] ) ? $item['quantity'] : null;
-			if ( false === $cart->set_quantity( $key, $qty, true ) ) {
+			// Defer tax/shipping/fee work until the shared response path below.
+			// WooCommerce's set_quantity(..., false) safely supports this; a zero
+			// quantity removes the line and is also followed by one final totals pass.
+			if ( false === $cart->set_quantity( $key, $qty, false ) ) {
 				jluxe_cart_error( 'تغییر تعداد انجام نشد.' );
 			}
-			// set_quantity(..., true) has already recalculated all WooCommerce
-			// totals for positive quantities. Avoid repeating shipping/tax/fee work.
-			$cart_totals_are_current = $qty > 0;
-			$stock = jluxe_cart_stock_check();
-			if ( true !== $stock ) {
-				// Roll back only this request's write; the pre-update quantity was validated above.
-				if ( null !== $previous_quantity ) {
-					$cart->set_quantity( $key, $previous_quantity, true );
+			$cart_totals_are_current = false;
+			// Removing a line cannot create an out-of-stock cart. For increases or
+			// positive quantity changes retain the full WooCommerce post-mutation
+			// check (including shared stock owners and reserved stock), exactly once.
+			if ( $qty > 0 ) {
+				$stock = jluxe_cart_stock_check();
+				if ( true !== $stock ) {
+					// Roll back only this request's write and persist matching totals.
+					if ( null !== $previous_quantity ) {
+						$cart->set_quantity( $key, $previous_quantity, false );
+						$cart->calculate_totals();
+					}
+					jluxe_cart_error( $stock, 409 );
 				}
-				jluxe_cart_error( $stock, 409 );
 			}
 		}
 	} elseif ( 'apply_coupon' === $op ) {
@@ -392,6 +524,13 @@ function jluxe_ajax_cart(): void {
 		}
 	} elseif ( 'add' === $op ) {
 		jluxe_ajax_cart_add();
+	} elseif ( 'gift_wrap' === $op ) {
+		$config = jluxe_get_gift_wrap_config();
+		if ( ! $config['enabled'] ) { jluxe_cart_error( 'بسته‌بندی هدیه در دسترس نیست.', 403 ); }
+		$enabled = '1' === jluxe_cart_post_string( 'enabled' );
+		$note = jluxe_cart_post_string( 'note' );
+		jluxe_set_session_gift_wrap( $enabled, $note );
+		$cart_totals_are_current = false;
 	} elseif ( 'pa_services' === $op ) {
 		/* کلیدهای خدماتِ انتخابیِ مودالِ «اضافه خرید» — فقط کلید پذیرفته
 		 * می‌شود؛ مبلغ/عنوان هنگامِ اعمالِ فِی از تنظیماتِ سرور خوانده
@@ -431,7 +570,7 @@ function jluxe_ajax_cart(): void {
 		$cart->calculate_totals();
 	}
 	$snapshot = jluxe_cart_snapshot();
-	if ( '1' === jluxe_cart_post_string( 'cart_page' ) && in_array( $op, array( 'remove', 'update_qty' ), true ) ) {
+	if ( '1' === jluxe_cart_post_string( 'cart_page' ) && in_array( $op, array( 'remove', 'update_qty', 'gift_wrap' ), true ) ) {
 		$snapshot['cartPage'] = jluxe_cart_page_ajax_fragment();
 	}
 	if ( in_array( $op, array( 'add', 'get' ), true ) ) {

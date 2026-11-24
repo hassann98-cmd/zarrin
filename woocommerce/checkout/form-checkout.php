@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$jluxe_is_guided_checkout = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout();
+$jluxe_is_guided_checkout = function_exists( 'jluxe_checkout_layout' ) && 'guided' === jluxe_checkout_layout() && is_file( __DIR__ . '/form-checkout-guided.php' );
 if ( $jluxe_is_guided_checkout ) : ?>
 <div class="jluxe-guided-checkout__before-form-notices" data-guided-before-form-notices aria-hidden="false">
 <?php endif; ?>
@@ -36,12 +36,14 @@ jluxe_render_checkout_stepper( 'shipping' );
 
 <div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 	<noscript><p class="woocommerce-error" role="alert"><?php echo esc_html( jluxe_cart_checkout_copy( 'checkout_no_js_notice', 'برای تکمیل خرید، جاوااسکریپت مرورگر باید فعال باشد.' ) ); ?> <a href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php echo esc_html( jluxe_cart_checkout_required_copy( 'checkout_no_js_back', 'بازگشت به سبد خرید' ) ); ?></a></p></noscript>
-	<form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
+	<form name="checkout" method="post" class="checkout woocommerce-checkout" data-jluxe-postcode-shortcuts action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__( 'Checkout', 'woocommerce' ); ?>">
 
 		<div class="jluxe-checkout-layout grid gap-6 lg:grid-cols-[1fr_320px]">
 			<div class="jluxe-checkout-panel">
 				<?php if ( $checkout->get_checkout_fields() ) : ?>
 					<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
+
+					<?php if ( function_exists( 'jluxe_render_address_selector' ) ) { jluxe_render_address_selector(); } ?>
 
 					<div id="customer_details">
 						<?php do_action( 'woocommerce_checkout_billing' ); ?>

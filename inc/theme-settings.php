@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const JLUXE_SETTINGS_OPTION = 'jluxe_theme_settings';
-const JLUXE_SETTINGS_VERSION = 23;
+const JLUXE_SETTINGS_VERSION = 24;
 
 /**
  * مهاجرت سبک: گزینه‌های اختصاصی پوسته لازم نیست در alloptions لود شوند.
@@ -322,7 +322,7 @@ function jluxe_theme_settings_defaults(): array {
 		// Optional, site-wide visual system. Keep the existing storefront as
 		// the default; selecting a new design changes presentation only.
 		'visual_design' => array(
-			'variant' => 'current', // current | canva_home
+			'variant' => 'current', // current | canva_home | neumorphism
 		),
 		'shop' => array(
 			'products_per_page'          => 12,
@@ -363,6 +363,12 @@ function jluxe_theme_settings_defaults(): array {
 		 * توضیح‌های accordion را کنترل می‌کند.
 		 */
 		'cart_checkout' => array(
+			'show_share_cart'                 => true,
+			'gift_wrap_enabled'               => false,
+			'gift_wrap_label'                 => 'بسته‌بندی هدیه ویژه',
+			'gift_wrap_fee'                   => 0,
+			'gift_wrap_description'           => '',
+			'gift_wrap_note_enabled'          => true,
 			'checkout_layout'                 => 'classic',
 			'checkout_map_enabled'            => true,
 			'show_stepper'                    => true,
@@ -443,42 +449,48 @@ function jluxe_theme_settings_defaults(): array {
 					'summary'                   => 'جزئیات پست پیشتاز',
 					'description'               => 'کرایهٔ ارسال پست پیشتاز به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور پست پرداخت می‌شود.',
 					'note'                      => 'اقتصادی',
+					'icon_background_color'     => '#FACC15',
+					'icon_text_color'           => '#1E293B',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => $palette['100'],
-					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['600'],
-					'note_background_color'     => $palette['600'],
+					'card_border_color'         => '#E2E8F0',
+					'selected_card_background_color' => '#F0FDF4',
+					'selected_card_border_color' => '#16A34A',
+					'note_background_color'     => '#1E293B',
 					'note_text_color'           => '#FFFFFF',
-					'details_background_color'  => $palette['50'],
-					'details_text_color'        => '#475569',
+					'details_background_color'  => '#FEFCE8',
+					'details_text_color'        => '#713F12',
 				),
 				'tipax' => array(
 					'enabled'                   => true,
 					'summary'                   => 'جزئیات ارسال با تیپاکس',
 					'description'               => 'کرایهٔ ارسال تیپاکس به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور تیپاکس پرداخت می‌شود.',
 					'note'                      => 'سریع‌تر، هزینه بالا',
+					'icon_background_color'     => '#059669',
+					'icon_text_color'           => '#FFFFFF',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => $palette['100'],
-					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['600'],
-					'note_background_color'     => $palette['600'],
-					'note_text_color'           => '#FFFFFF',
-					'details_background_color'  => $palette['50'],
-					'details_text_color'        => '#475569',
+					'card_border_color'         => '#E2E8F0',
+					'selected_card_background_color' => '#ECFDF5',
+					'selected_card_border_color' => '#059669',
+					'note_background_color'     => '#D1FAE5',
+					'note_text_color'           => '#065F46',
+					'details_background_color'  => '#ECFDF5',
+					'details_text_color'        => '#064E3B',
 				),
 				'chapar' => array(
 					'enabled'                   => true,
 					'summary'                   => 'جزئیات ارسال با چاپار',
 					'description'               => 'کرایهٔ ارسال چاپار به‌صورت پس‌کرایه است و هنگام تحویل مرسوله به مأمور چاپار پرداخت می‌شود.',
 					'note'                      => 'مناسب مرسوله‌های حجیم',
+					'icon_background_color'     => '#DC2626',
+					'icon_text_color'           => '#FFFFFF',
 					'card_background_color'     => '#FFFFFF',
-					'card_border_color'         => $palette['100'],
-					'selected_card_background_color' => $palette['50'],
-					'selected_card_border_color' => $palette['600'],
-					'note_background_color'     => $palette['600'],
-					'note_text_color'           => '#FFFFFF',
-					'details_background_color'  => $palette['50'],
-					'details_text_color'        => '#475569',
+					'card_border_color'         => '#E2E8F0',
+					'selected_card_background_color' => '#FEF2F2',
+					'selected_card_border_color' => '#DC2626',
+					'note_background_color'     => '#FEE2E2',
+					'note_text_color'           => '#991B1B',
+					'details_background_color'  => '#FFF1F2',
+					'details_text_color'        => '#881337',
 				),
 			),
 		),
@@ -533,7 +545,7 @@ function jluxe_theme_settings_defaults(): array {
 		'urls' => array(
 			'login' => '', 'dashboard' => '', 'orders' => '', 'track_order' => '', 'thankyou_orders' => '',
 		),
-		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted، در src/assets/fonts) استفاده می‌شه؛
+		// ابعاد فونت — فقط IRANYekan خودِ تم (self-hosted در دارایی کامپایل‌شدهٔ پوسته) استفاده می‌شه؛
 		// این تنظیمات جایگزین فونت نمی‌کنن، فقط اندازه/وزن رو کنترل می‌کنن.
 		'typography' => array(
 			'base_size'      => 16,
@@ -544,6 +556,7 @@ function jluxe_theme_settings_defaults(): array {
 			'variant'              => 'current', // current | premium — premium is an opt-in design alternative.
 			'sticky'               => true,
 			'search_placeholder'   => 'جستجو در فروشگاه',
+			'trending_searches'    => array(),
 			'show_search_desktop'  => true,
 			'show_search_mobile'   => true,
 			'show_account_desktop' => true,
@@ -923,7 +936,7 @@ function jluxe_theme_settings_defaults(): array {
 			'nav_variant' => 'classic', // classic | floating
 			// آیتم‌های نوار فعلی، برای حفظ رفتار قبلی بدون تغییر.
 			'nav_items' => array(
-				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'package', 'enabled' => true ),
+				array( 'id' => 'track', 'label' => 'پیگیری سفارش', 'icon' => 'order-tracking', 'enabled' => true ),
 				array( 'id' => 'shop', 'label' => 'دسته‌بندی‌ها', 'icon' => 'grid', 'enabled' => true ),
 				array( 'id' => 'home', 'label' => 'خانه', 'icon' => 'home', 'enabled' => true ),
 				array( 'id' => 'account', 'label' => 'حساب', 'icon' => 'user', 'enabled' => true ),
@@ -960,6 +973,7 @@ function jluxe_theme_settings_defaults(): array {
 			// 'sharp' یعنی گوشه‌های عکس کاملاً تیز، صرف‌نظر از radius کارت.
 			'image_corners'    => 'rounded', // rounded | sharp
 			'show_rating'      => true,
+			'show_color_swatches' => true,
 			'show_sale_badge'  => true,
 			'show_stock_badge' => true,
 			'price_color'      => '', // خالی یعنی رنگ پیش‌فرض متن (--foreground).
@@ -970,6 +984,12 @@ function jluxe_theme_settings_defaults(): array {
 			// چیدمان‌ها مستقل‌اند: 'default' طرح Boom فعلی، 'classic' قالبِ جایگزین،
 			// و 'reference' صفحهٔ سوم با کارت خرید/مشخصات و بخش‌های کامل محصول.
 			'layout'        => 'default', // default | classic | reference
+			'mobile_layout' => 'standard', // standard | layered
+			'mobile_title_size' => 18,
+			'mobile_title_weight' => 600,
+			'mobile_option_height' => 36,
+			'mobile_option_font' => 13,
+			'mobile_option_padding' => 10,
 			'show_related'  => true,
 			'related_count' => 4,
 			// خالی یعنی semantic token (error / success / warning-strong).
@@ -1203,6 +1223,8 @@ function jluxe_theme_settings_defaults(): array {
 		// R91 — برگهٔ «همه دسته‌بندی‌ها» (inc/categories-page.php).
 		'categories_page' => function_exists( 'jluxe_categories_page_defaults' ) ? jluxe_categories_page_defaults() : array(),
 		'performance' => array(
+			'page_transitions' => true,
+			'page_prefetch' => true,
 			'disable_emojis'  => false,
 			'lazy_load_images' => true,
 			'defer_third_party_scripts' => false,
@@ -1217,6 +1239,10 @@ function jluxe_theme_settings_defaults(): array {
 		 * استفاده می‌شه؛ برچسب (label) همون متنِ فارسیِ نمایشیه.
 		 */
 		'review_criteria' => array(
+			'photos_enabled' => true,
+			'photos_max_count' => 3,
+			'photos_max_size_mb' => 2,
+			'photos_logged_in_only' => true,
 			'items' => array(
 				array( 'key' => 'quality', 'label' => 'کیفیت ساخت' ),
 				array( 'key' => 'appearance', 'label' => 'زیبایی و طراحی' ),
@@ -1250,6 +1276,7 @@ function jluxe_nav_icon_options(): array {
 		'help-circle'      => 'راهنما/سوال',
 		'info'             => 'اطلاعات',
 		'package'          => 'بسته/سفارش',
+		'order-tracking'   => 'پیگیری سفارش (بسته و ذره‌بین)',
 		'rotate-ccw'       => 'بازگشت کالا',
 		'shield-check'     => 'ضمانت',
 		'percent'          => 'درصد تخفیف',
@@ -2594,6 +2621,22 @@ function jluxe_migrate_settings_v23( array $settings ): array {
 }
 
 /** Apply all versioned migrations in order and stamp the current schema version. */
+/** Upgrade only the old tracking placeholder, preserving other configured icons. */
+function jluxe_migrate_settings_v24( array $settings ): array {
+	foreach ( array( 'nav_items', 'floating_nav_items' ) as $group ) {
+		if ( ! is_array( $settings['mobile'][ $group ] ?? null ) ) { continue; }
+		foreach ( $settings['mobile'][ $group ] as &$item ) {
+			if ( ! is_array( $item ) ) { continue; }
+			$is_tracking = 'nav_items' === $group ? 'track' === ( $item['id'] ?? '' ) : 'track' === ( $item['action'] ?? '' );
+			if ( $is_tracking && 'package' === ( $item['icon'] ?? '' ) ) {
+				$item['icon'] = 'order-tracking';
+			}
+		}
+		unset( $item );
+	}
+	return $settings;
+}
+
 function jluxe_migrate_settings_to_current_version( array $settings, int $stored_version ): array {
 	$migrations = array(
 		2 => 'jluxe_migrate_settings_v2',
@@ -2618,6 +2661,7 @@ function jluxe_migrate_settings_to_current_version( array $settings, int $stored
 		21 => 'jluxe_migrate_settings_v21',
 		22 => 'jluxe_migrate_settings_v22',
 		23 => 'jluxe_migrate_settings_v23',
+		24 => 'jluxe_migrate_settings_v24',
 	);
 	foreach ( $migrations as $target_version => $migration ) {
 		if ( $stored_version < $target_version ) {
@@ -2661,8 +2705,12 @@ function jluxe_get_setting( string $path, $default = null ) {
 
 /** Add the opt-in storefront design class without changing markup or content. */
 function jluxe_visual_design_body_classes( array $classes ): array {
-	if ( 'canva_home' === jluxe_get_setting( 'visual_design.variant', 'current' ) && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
+	$variant = jluxe_get_setting( 'visual_design.variant', 'current' );
+	if ( 'canva_home' === $variant && ! in_array( 'jluxe-design-canva-home', $classes, true ) ) {
 		$classes[] = 'jluxe-design-canva-home';
+	}
+	if ( 'neumorphism' === $variant && ! in_array( 'jluxe-design-neumorphism', $classes, true ) ) {
+		$classes[] = 'jluxe-design-neumorphism';
 	}
 	return $classes;
 }
@@ -2881,12 +2929,13 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$primary_soft_hex = $is_electric_primary
 		? $electric['50']
 		: ( $is_royal_primary ? $royal['50'] : ( $is_dodger_primary ? $dodger['50'] : ( $is_bubblegum_primary ? $bubblegum['50'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 42 ) ) ) );
+	// Custom high-lightness primaries must not wash borders to white; use neutral accessible edges unless a built-in palette defines its own scale.
 	$border_hex = $is_electric_primary
 		? $electric['100']
-		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 50 ) ) ) );
+		: ( $is_royal_primary ? $royal['100'] : ( $is_dodger_primary ? $dodger['600'] : ( $is_bubblegum_primary ? $bubblegum['600'] : '#E2E8F0' ) ) );
 	$border_strong_hex = $is_electric_primary
 		? $electric['200']
-		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#' . jluxe_hsl_to_hex( $primary_hsl, 40 ) ) ) );
+		: ( $is_royal_primary ? $royal['200'] : ( $is_dodger_primary ? $dodger['700'] : ( $is_bubblegum_primary ? $bubblegum['700'] : '#CBD5E1' ) ) );
 	$primary_dark_hsl    = $primary_hsl;
 	$primary_dark_hsl[2] = min( $primary_dark_hsl[2], 18 );
 	$primary_dark_hex = $is_electric_primary
@@ -2931,6 +2980,7 @@ function jluxe_generate_color_variables( array $colors ): string {
 	$vars['--jluxe-accent-hover']    = strtoupper( $accent_hover_hex );
 	$vars['--jluxe-success']         = strtoupper( $colors['success'] );
 	$vars['--jluxe-page-bg']         = strtoupper( $colors['background'] );
+	$vars['--jluxe-home-surface']    = strtoupper( $colors['background'] );
 	$vars['--jluxe-surface']         = '#FFFFFF';
 	$vars['--jluxe-text']            = '#1F2937';
 	$vars['--jluxe-text-muted']      = '#475569';
@@ -2947,14 +2997,10 @@ function jluxe_generate_color_variables( array $colors ): string {
 }
 
 /**
- * چاپ متغیرهای رنگ روی frontend — بعد از استایل اصلی تم لود می‌شه تا
- * override واقعی انجام بشه؛ چون مقادیر پیش‌فرض دقیقاً با globals.css یکیه،
- * تا وقتی ادمین چیزی تغییر نداده هیچ افکت بصری‌ای نداره.
+ * Print editable color tokens once after the main stylesheet. The critical CSS
+ * contains only fixed tokens, avoiding an early duplicate :root declaration.
  */
 function jluxe_output_color_variables(): void {
-	// در حالت dev سرور Vite خودش CSS رو تزریق می‌کنه، هیچ handle استایلی به
-	// نام jluxe-main-0 وجود نداره — اون‌جا override رنگ صرفاً skip می‌شه (فقط
-	// تست لوکال، تأثیری روی build واقعی نداره).
 	if ( ! wp_style_is( 'jluxe-main-0', 'registered' ) ) {
 		return;
 	}
@@ -3050,6 +3096,48 @@ function jluxe_get_mobile_logo_url(): string {
 }
 
 /**
+ * قدیمی‌ترین/عمومی‌ترین HTML گواهی‌نامه‌ها اغلب بدون width/height ذخیره شده‌اند.
+ * وقتی تصویر از کتابخانهٔ رسانهٔ وردپرس باشد، ابعاد ذاتی فایل را به <img> اضافه
+ * می‌کنیم تا مرورگر پیش از دانلود هم فضای لازم را رزرو کند. کدهای خارجی یا
+ * فایل‌هایی که attachment lookup نشوند عمداً دست‌نخورده می‌مانند.
+ */
+function jluxe_add_site_trust_badge_image_dimensions( string $html ): string {
+	if ( false === stripos( $html, '<img' ) || ! function_exists( 'attachment_url_to_postid' ) || ! function_exists( 'wp_get_attachment_metadata' ) ) {
+		return $html;
+	}
+
+	return (string) preg_replace_callback(
+		'#<img\\b[^>]*>#i',
+		static function ( array $matches ): string {
+			$tag = $matches[0];
+			if ( preg_match( '/\\b(?:width|height)\\s*=/i', $tag )
+				|| ! preg_match( '/\\bsrc\\s*=\\s*(?:"([^"]+)"|\'([^\']+)\'|([^\\s>]+))/i', $tag, $src_match ) ) {
+				return $tag;
+			}
+
+			$src = html_entity_decode( $src_match[1] ?: ( $src_match[2] ?: $src_match[3] ), ENT_QUOTES, 'UTF-8' );
+			$attachment_id = absint( attachment_url_to_postid( $src ) );
+			if ( ! $attachment_id ) {
+				return $tag;
+			}
+
+			$metadata = wp_get_attachment_metadata( $attachment_id );
+			$width    = (int) ( $metadata['width'] ?? 0 );
+			$height   = (int) ( $metadata['height'] ?? 0 );
+			if ( $width < 1 || $height < 1 ) {
+				return $tag;
+			}
+
+			$clean = rtrim( $tag );
+			$self_closing = 2 <= strlen( $clean ) && '/>' === substr( $clean, -2 );
+			$clean = substr( $clean, 0, $self_closing ? -2 : -1 );
+			return $clean . ' width="' . $width . '" height="' . $height . '"' . ( $self_closing ? ' />' : '>' );
+		},
+		$html
+	);
+}
+
+/**
  * نرمال‌سازیِ «نمادهای سایت» (اینماد/ساماندهی/ترب/زرین‌پال و ...) برای چاپِ
  * مستقیم روی صفحه — هر آیتم یا 'html' کاملِ ذخیره‌شده رو داره، یا فقط
  * 'link' (که این‌جا به یک لینکِ متنیِ ساده تبدیل می‌شه)، یا (داده‌ی خیلی
@@ -3072,6 +3160,7 @@ function jluxe_get_site_trust_badges(): array {
 			array_map(
 				static function ( $badge ) {
 					$html = isset( $badge['html'] ) ? (string) $badge['html'] : '';
+					$html = jluxe_add_site_trust_badge_image_dimensions( $html );
 					$link = isset( $badge['link'] ) ? (string) $badge['link'] : '';
 					if ( '' !== trim( $html ) ) {
 						return array( 'html' => $html, 'link' => $link );
@@ -3084,7 +3173,7 @@ function jluxe_get_site_trust_badges(): array {
 					if ( ! empty( $badge['image_id'] ) ) {
 						$url = wp_get_attachment_image_url( (int) $badge['image_id'], 'full' );
 						if ( $url ) {
-							$img = '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />';
+							$img = jluxe_add_site_trust_badge_image_dimensions( '<img src="' . esc_url( $url ) . '" alt="نماد اعتماد" style="width:100%;height:auto;max-width:100%;object-fit:contain;" />' );
 							return array( 'html' => ! empty( $badge['link'] ) ? '<a target="_blank" rel="noopener noreferrer" href="' . esc_url( $badge['link'] ) . '">' . $img . '</a>' : $img, 'link' => ! empty( $badge['link'] ) ? esc_url_raw( $badge['link'] ) : '' );
 						}
 					}
@@ -3356,6 +3445,7 @@ function jluxe_localize_public_settings(): void {
 			),
 			'siteName'         => $settings['identity']['site_name'],
 			'shortDescription' => $settings['identity']['short_description'],
+			'navigation'      => array( 'prefetch' => ! empty( $settings['performance']['page_prefetch'] ) ),
 			'iconGlyphs'       => function_exists( 'jluxe_public_icon_glyphs' ) ? jluxe_public_icon_glyphs( $settings ) : array(),
 			'header'           => $settings['header'],
 			'footer'           => $footer,
@@ -3397,6 +3487,7 @@ function jluxe_localize_public_settings(): void {
 			'cart'             => array(
 				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 				'nonce'        => wp_create_nonce( 'jluxe_cart' ),
+				'cartUrl'      => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url( '/cart/' ),
 				'initialCount' => function_exists( 'WC' ) && WC()->cart ? WC()->cart->get_cart_contents_count() : 0,
 				'showCoupon'   => ! empty( $settings['shop']['mini_cart_show_coupon'] ),
 			),
@@ -3425,6 +3516,25 @@ function jluxe_output_typography_variables(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_output_typography_variables', 20 );
 
+/** Return the last enqueued Zarrin stylesheet so admin CSS follows route/variant CSS. */
+function jluxe_last_theme_style_handle(): string {
+	$queue = array();
+	if ( function_exists( 'wp_styles' ) ) {
+		$wp_styles = wp_styles();
+		if ( is_object( $wp_styles ) && ! empty( $wp_styles->queue ) && is_array( $wp_styles->queue ) ) {
+			$queue = $wp_styles->queue;
+		}
+	} elseif ( ! empty( $GLOBALS['styles'] ) && is_array( $GLOBALS['styles'] ) ) {
+		$queue = array_keys( $GLOBALS['styles'] );
+	}
+	foreach ( array_reverse( $queue ) as $handle ) {
+		if ( is_string( $handle ) && 0 === strpos( $handle, 'jluxe-' ) ) {
+			return $handle;
+		}
+	}
+	return 'jluxe-main-0';
+}
+
 /**
  * CSS/JS سفارشی ادمین — فقط خروجی خامِ چیزی که خودِ ادمین (manage_options)
  * نوشته؛ ورودی در inc/theme-settings-sanitize.php با wp_strip_all_tags روی
@@ -3433,13 +3543,13 @@ add_action( 'wp_enqueue_scripts', 'jluxe_output_typography_variables', 20 );
 function jluxe_output_custom_code(): void {
 	$code = jluxe_get_theme_settings()['custom_code'];
 	if ( ! empty( $code['css'] ) ) {
-		wp_add_inline_style( 'jluxe-main-0', $code['css'] );
+		wp_add_inline_style( jluxe_last_theme_style_handle(), $code['css'] );
 	}
 	if ( ! empty( $code['js'] ) ) {
 		wp_add_inline_script( 'jluxe-main', $code['js'] );
 	}
 }
-add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 22 );
+add_action( 'wp_enqueue_scripts', 'jluxe_output_custom_code', 40 );
 
 /**
  * canonicalِ خودِ core (rel_canonical، هوکِ wp_head) رو غیرفعال می‌کنیم —
@@ -4289,3 +4399,20 @@ require_once __DIR__ . '/ai-knowledge.php'; // R94 — دانشِ سایت بر�
 require_once __DIR__ . '/ai-stream.php'; // R134 — ارسالِ تدریجیِ پاسخ‌های providerهای OpenAI-compatible
 require_once __DIR__ . '/theme-settings-sms.php';
 require_once __DIR__ . '/auth.php';
+
+/** Bounded mobile product design controls; shared by persistence and CSS output. */
+function jluxe_product_mobile_design_values( array $input ): array {
+	$result = array();
+	foreach ( array(
+		'mobile_title_size' => array( 18, 16, 24 ),
+		'mobile_option_height' => array( 36, 32, 48 ),
+		'mobile_option_font' => array( 13, 12, 16 ),
+		'mobile_option_padding' => array( 10, 6, 16 ),
+	) as $key => $range ) {
+		$value = $input[ $key ] ?? null;
+		$result[ $key ] = is_scalar( $value ) && is_numeric( $value ) ? max( $range[1], min( $range[2], (int) round( (float) $value ) ) ) : $range[0];
+	}
+	$weight = $input['mobile_title_weight'] ?? 600;
+	$result['mobile_title_weight'] = is_scalar( $weight ) && in_array( (string) $weight, array( '400', '500', '600', '700', '800' ), true ) ? (int) $weight : 600;
+	return $result;
+}

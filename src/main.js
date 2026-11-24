@@ -1,3 +1,4 @@
+import { scheduleResponsiveIsland } from "./lib/responsive-island.js";
 import {
   markLiteDevice,
   mountIsland,
@@ -11,8 +12,36 @@ import "./styles/storefront.css";
 // Bundle the WordPress theme stylesheet here too, so it shares the compiled
 // CSS request instead of creating a second render-blocking stylesheet request.
 import "../style.css";
-import "./styles/design-variants.css";
 import "./styles/sitewide-design.css";
+
+// In development the route/variant CSS is loaded after the shared stylesheet,
+// matching production's conditional stylesheet dependencies and cascade order.
+if (import.meta.env.DEV) {
+  const assetConfig = window.JLUXEAssetConfig || {};
+  const devStyles = [];
+  if (assetConfig.context === "home") {
+    devStyles.push(import("./styles/route-home.css"));
+  }
+  if (["shop", "search"].includes(assetConfig.context)) {
+    devStyles.push(import("./styles/catalog-filter-chips.css"));
+  }
+  if (assetConfig.context === "product") {
+    devStyles.push(import("./styles/route-product.css"));
+  } else if (assetConfig.context === "cart" || assetConfig.context === "checkout") {
+    devStyles.push(import("./styles/route-cart-checkout.css"));
+  } else if (assetConfig.context === "account") {
+    devStyles.push(import("./styles/route-account-auth.css"));
+  }
+  if (assetConfig.premiumChrome || assetConfig.visualVariant === "canva_home") {
+    devStyles.push(import("./styles/design-variants.css"));
+  }
+  if (assetConfig.visualVariant === "canva_home") {
+    devStyles.push(import("./styles/variant-canva-home.css"));
+  } else if (assetConfig.visualVariant === "neumorphism") {
+    devStyles.push(import("./styles/neumorphism-refinements.css"));
+  }
+  if (devStyles.length) Promise.all(devStyles).catch((error) => console.error("[jluxe] route CSS failed to load", error));
+}
 import { setupPwa } from "./lib/pwa.js";
 // The map's own JavaScript chunk is fetched only when its explicit open button is used.
 for (const picker of document.querySelectorAll("[data-jluxe-map-picker]")) {
@@ -26,6 +55,8 @@ window.JLuxeMegaMenuChunks = {
   clickToggle: () => import("./islands/MegaMenuClickToggle.js"),
   panel: () => import("./islands/MegaMenuPanel.js"),
 };
+// Search discovery and its local-history helpers are fetched only on search focus.
+window.JLuxeSearchDiscovery = () => import("./islands/SearchDiscovery.js");
 const islands = {
   footer: () => import("./islands/Footer.js"),
   "header-logo": () =>
@@ -66,7 +97,7 @@ for (const element of document.querySelectorAll("[data-jluxe-island]")) {
     continue;
   }
   if (name !== "footer" || !("IntersectionObserver" in window)) {
-    mountIsland(element, load);
+    scheduleResponsiveIsland(element, () => mountIsland(element, load), window);
     continue;
   }
   const observer = new IntersectionObserver(

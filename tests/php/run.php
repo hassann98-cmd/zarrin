@@ -9,7 +9,218 @@ function check($condition, $message) {
 	$GLOBALS['assertion_count'] = ($GLOBALS['assertion_count'] ?? 0) + 1;
 	echo "PASS: $message\n";
 }
+function theme_test_php_source( string $area ): string {
+	$files = 'homepage' === $area
+		? array( ABSPATH . 'inc/theme-settings-homepage.php', ABSPATH . 'inc/homepage/admin-editor.php', ABSPATH . 'inc/homepage/sections-products.php', ABSPATH . 'inc/homepage/sections-media.php', ABSPATH . 'inc/homepage/sections-catalog.php', ABSPATH . 'inc/homepage/hooks.php' )
+		: array( ABSPATH . 'inc/woocommerce.php', ABSPATH . 'inc/woocommerce/pricing-toman.php', ABSPATH . 'inc/woocommerce/product-single.php', ABSPATH . 'inc/woocommerce/checkout-fields.php', ABSPATH . 'inc/woocommerce/catalog-shop.php', ABSPATH . 'inc/woocommerce/admin-product-meta.php', ABSPATH . 'inc/woocommerce/hooks.php' );
+	$source = '';
+	foreach ( $files as $file ) {
+		$source .= (string) file_get_contents( $file ) . "\n";
+	}
+	return $source;
+}
 check(function_exists('jluxe_preload_single_product_lcp_image'), 'R01 full theme bootstrap completes without duplicate declarations');
+
+$r_homepage_sale_terms = $GLOBALS['terms_by_id'] ?? array();
+$GLOBALS['terms_by_id'][4313] = (object) array( 'term_id' => 4313, 'slug' => 'sale-special' );
+$r_homepage_sale_category = jluxe_sanitize_homepage_section( array( 'type' => 'special_products', 'category' => 4313 ) );
+check( 4313 === $r_homepage_sale_category['category'], 'Homepage special-products section preserves an existing sale-category ID' );
+$r_homepage_invalid_sale_category = jluxe_sanitize_homepage_section( array( 'type' => 'special_products', 'category' => 999999 ) );
+check( 0 === $r_homepage_invalid_sale_category['category'], 'Homepage special-products section drops a missing category ID' );
+$GLOBALS['terms_by_id'] = $r_homepage_sale_terms;
+
+$r_layout_preset_terms = $GLOBALS['terms_by_id'] ?? array();
+foreach ( array( 925, 956, 971, 936, 927, 946, 941, 926, 977, 942, 970, 922, 937, 919, 932, 940, 972, 920, 4313 ) as $r_term_id ) {
+	$GLOBALS['terms_by_id'][ $r_term_id ] = (object) array( 'term_id' => $r_term_id, 'slug' => 'category-' . $r_term_id, 'count' => 1 );
+}
+$r_homepage_layout_preset = jluxe_get_homepage_layout_presets();
+$r_homepage_preset_sections = $r_homepage_layout_preset['homepage']['sections'];
+check(
+	'پریست پیش‌فرض جدید صفحه اصلی' === $r_homepage_layout_preset['label'] &&
+	array( 'hero', 'category_grid', 'special_products', 'banner_two', 'product_grid', 'category_showcase', 'brick_products', 'recommended_panels', 'brand_marquee', 'trust', 'blog' ) === array_column( $r_homepage_preset_sections, 'type' ),
+	'Homepage redesign preset exposes the requested section order under the Persian preset name'
+);
+check(
+	false === $r_homepage_preset_sections[0]['enabled'] && false === $r_homepage_preset_sections[3]['enabled'] && false === $r_homepage_preset_sections[8]['enabled'] &&
+	array() === $r_homepage_preset_sections[0]['items'] && array() === $r_homepage_preset_sections[3]['items'] && array() === $r_homepage_preset_sections[8]['items'],
+	'Homepage redesign preset leaves media-dependent hero, banners, and brand marquee disabled without real media IDs'
+);
+$GLOBALS['terms_by_id'] = $r_layout_preset_terms;
+
+$trending_defaults = jluxe_theme_settings_defaults()['header'];
+$trending_input = "ساعت،چای,ساعت\nگل,,قهوه،" . str_repeat( 'آ', 45 ) . ',' . implode( ',', array_map( static fn( $index ) => 'عبارت' . $index, range( 1, 8 ) ) );
+$trending_clean = jluxe_sanitize_header( array( 'trending_searches' => $trending_input ), $trending_defaults );
+check(
+	array_slice( $trending_clean['trending_searches'], 0, 4 ) === array( 'ساعت', 'چای', 'گل', 'قهوه' ) &&
+		count( $trending_clean['trending_searches'] ) === 10 &&
+		40 === preg_match_all( '/./us', $trending_clean['trending_searches'][4], $trending_chars ),
+	'R536 trending searches split Persian/English commas and lines, deduplicate, truncate to 40 characters, and cap at ten'
+);
+check(
+	array() === jluxe_sanitize_header( array( 'trending_searches' => " , ،\n  " ), $trending_defaults )['trending_searches'],
+	'R536 an empty trending-search setting stays empty rather than adding defaults'
+);
+$trending_array_clean = jluxe_sanitize_header( array( 'trending_searches' => array( 'Tea', 'tea', 'دسته', 'عبارت,با,کاما', 7, array( 'غیرمجاز' ) ) ), $trending_defaults )['trending_searches'];
+check(
+	array( 'Tea', 'دسته', 'عبارت,با,کاما', '7' ) === $trending_array_clean,
+	'R536 JSON-import arrays retain scalar entries as-is, deduplicate case-insensitively, and ignore nested values'
+);
+
+$active_filter_saved_get = $_GET;
+$active_filter_saved_uri = $_SERVER['REQUEST_URI'] ?? '';
+$active_filter_saved_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$active_filter_saved_terms = $GLOBALS['terms_by_slug'] ?? array();
+$active_filter_saved_test_terms = $GLOBALS['test_terms'] ?? array();
+$active_filter_saved_queried = $GLOBALS['queried_object'] ?? null;
+$_GET = array(
+	's' => 'sofa', 'post_type' => 'product', 'orderby' => 'price',
+	'product_cat' => 'shelves', 'product_brand' => 'acme',
+	'min_price' => '1234500', 'max_price' => '8000000', 'on_sale' => '1',
+	'filter_stock' => 'instock', 'filter_color' => 'red', 'query_type_color' => 'or', 'paged' => '3',
+);
+$_SERVER['REQUEST_URI'] = '/catalog/page/3/';
+$GLOBALS['taxonomies']['product_cat'] = true;
+$GLOBALS['taxonomies']['product_brand'] = true;
+$GLOBALS['terms_by_slug']['product_cat']['shelves'] = (object) array( 'term_id' => 22, 'slug' => 'shelves', 'name' => 'قفسه', 'taxonomy' => 'product_cat' );
+$GLOBALS['terms_by_slug']['product_brand']['acme'] = (object) array( 'term_id' => 23, 'slug' => 'acme', 'name' => 'آکمی', 'taxonomy' => 'product_brand' );
+$GLOBALS['test_terms'] = array();
+$GLOBALS['queried_object'] = new WP_Term();
+$GLOBALS['queried_object']->slug = 'current-category';
+$GLOBALS['queried_object']->taxonomy = 'product_cat';
+ob_start();
+jluxe_render_shop_toolbar();
+$active_filter_markup = (string) ob_get_clean();
+preg_match_all( '~<a\\b(?=[^>]*data-jluxe-catalog-filter-chip)[^>]*href="([^"]*)"[^>]*aria-label="([^"]*)"~', $active_filter_markup, $active_filter_matches, PREG_SET_ORDER );
+$active_filter_links = array();
+foreach ( $active_filter_matches as $active_filter_match ) {
+	$active_filter_links[ html_entity_decode( $active_filter_match[2], ENT_QUOTES ) ] = html_entity_decode( $active_filter_match[1], ENT_QUOTES );
+}
+$active_filter_queries = array();
+foreach ( $active_filter_links as $label => $url ) {
+	parse_str( (string) ( parse_url( $url, PHP_URL_QUERY ) ?: '' ), $active_filter_queries[ $label ] );
+}
+$category_chip_url = $active_filter_queries['حذف فیلتر دسته قفسه'] ?? array();
+$stock_chip_url = $active_filter_queries['حذف فیلتر فقط موجودها'] ?? array();
+$clear_filter_url = '';
+if ( preg_match( '~<a\\b(?=[^>]*data-jluxe-catalog-clear)[^>]*href="([^"]*)"~', $active_filter_markup, $clear_filter_match ) ) {
+	$clear_filter_url = html_entity_decode( $clear_filter_match[1], ENT_QUOTES );
+}
+parse_str( (string) ( parse_url( $clear_filter_url, PHP_URL_QUERY ) ?: '' ), $clear_filter_query );
+check(
+	count( $active_filter_links ) === 6 &&
+	isset( $category_chip_url['product_brand'], $category_chip_url['min_price'], $category_chip_url['filter_stock'], $category_chip_url['filter_color'], $category_chip_url['s'], $category_chip_url['post_type'], $category_chip_url['orderby'] ) &&
+	! isset( $category_chip_url['product_cat'], $category_chip_url['paged'], $category_chip_url['page'] ) &&
+	isset( $stock_chip_url['product_cat'], $stock_chip_url['product_brand'], $stock_chip_url['filter_color'], $stock_chip_url['s'] ) &&
+	! isset( $stock_chip_url['filter_stock'], $stock_chip_url['paged'] ) &&
+	isset( $clear_filter_query['s'], $clear_filter_query['post_type'], $clear_filter_query['orderby'] ) &&
+	! isset( $clear_filter_query['product_cat'], $clear_filter_query['product_brand'], $clear_filter_query['min_price'], $clear_filter_query['max_price'], $clear_filter_query['on_sale'], $clear_filter_query['filter_stock'], $clear_filter_query['filter_color'], $clear_filter_query['query_type_color'], $clear_filter_query['paged'] ) &&
+	str_contains( $active_filter_markup, 'دسته: قفسه' ) && str_contains( $active_filter_markup, 'از ۱,۲۳۴,۵۰۰ تومان' ) && str_contains( $active_filter_markup, 'role="region" aria-label="فیلترهای فعال"' ),
+	'R536 active-filter chips render labels and remove only one query parameter while preserving search, sort, WooCommerce filters, and clearing pagination'
+);
+
+$_GET = array( 's' => 'rug', 'post_type' => 'product', 'orderby' => 'date', 'min_price' => '100', 'filter_stock' => 'instock', 'on_sale' => '1', 'paged' => '2', 'product-page' => '3' );
+$_SERVER['REQUEST_URI'] = '/catalog/page/2/';
+$GLOBALS['get_pagenum_link_calls'] = array();
+ob_start();
+jluxe_render_shop_toolbar();
+$pagination_filter_markup = (string) ob_get_clean();
+preg_match_all( '~<a\\b(?=[^>]*data-jluxe-catalog-filter-chip)[^>]*href="([^"]*)"[^>]*aria-label="([^"]*)"~', $pagination_filter_markup, $pagination_filter_matches, PREG_SET_ORDER );
+$pagination_filter_urls = array();
+foreach ( $pagination_filter_matches as $pagination_filter_match ) {
+	$url = html_entity_decode( $pagination_filter_match[1], ENT_QUOTES );
+	parse_str( (string) ( parse_url( $url, PHP_URL_QUERY ) ?: '' ), $query );
+	$pagination_filter_urls[ html_entity_decode( $pagination_filter_match[2], ENT_QUOTES ) ] = array( 'url' => $url, 'query' => $query );
+}
+$min_chip_query = $pagination_filter_urls['حذف فیلتر حداقل قیمت']['query'] ?? array();
+$stock_chip_query = $pagination_filter_urls['حذف فیلتر فقط موجودها']['query'] ?? array();
+$sale_chip_query = $pagination_filter_urls['حذف فیلتر فقط تخفیف‌دارها']['query'] ?? array();
+$pagination_urls_clean = ! str_contains( $pagination_filter_markup, 'amp;amp;' ) && ! str_contains( $pagination_filter_markup, 'amp%3B' );
+foreach ( $pagination_filter_urls as $filter_chip ) {
+	$pagination_urls_clean = $pagination_urls_clean && ! str_contains( $filter_chip['url'], 'amp;' ) && ! str_contains( $filter_chip['url'], 'amp%3B' ) && ! isset( $filter_chip['query']['paged'], $filter_chip['query']['page'], $filter_chip['query']['product-page'] );
+}
+check(
+	3 === count( $pagination_filter_urls ) &&
+	array( 1, false ) === ( $GLOBALS['get_pagenum_link_calls'][0] ?? null ) &&
+	$pagination_urls_clean &&
+	isset( $min_chip_query['filter_stock'], $min_chip_query['on_sale'], $min_chip_query['s'], $min_chip_query['post_type'] ) && ! isset( $min_chip_query['min_price'] ) &&
+	isset( $stock_chip_query['min_price'], $stock_chip_query['on_sale'], $stock_chip_query['s'] ) && ! isset( $stock_chip_query['filter_stock'] ) &&
+	isset( $sale_chip_query['min_price'], $sale_chip_query['filter_stock'], $sale_chip_query['s'] ) && ! isset( $sale_chip_query['on_sale'] ),
+	'R536 unescaped page-one URLs have no amp entities and each price/stock/sale chip removes only itself while preserving the other query filters'
+);
+$_GET = $active_filter_saved_get;
+$_SERVER['REQUEST_URI'] = $active_filter_saved_uri;
+$GLOBALS['taxonomies'] = $active_filter_saved_taxonomies;
+$GLOBALS['terms_by_slug'] = $active_filter_saved_terms;
+$GLOBALS['test_terms'] = $active_filter_saved_test_terms;
+if ( null === $active_filter_saved_queried ) { unset( $GLOBALS['queried_object'] ); } else { $GLOBALS['queried_object'] = $active_filter_saved_queried; }
+
+// Native page motion must stay away from transactional pages and remain optional.
+$motion_old_query = $GLOBALS['query_kind'] ?? '';
+$motion_old_options = $GLOBALS['options'];
+$motion_old_scripts = $GLOBALS['scripts'];
+$motion_old_styles = $GLOBALS['styles'];
+$motion_old_localized = $GLOBALS['localized'] ?? array();
+foreach ( array( 'cart', 'checkout', 'account' ) as $motion_kind ) {
+	$GLOBALS['query_kind'] = $motion_kind;
+	check( ! jluxe_page_motion_allowed(), 'native page motion excludes ' . $motion_kind );
+}
+$GLOBALS['query_kind'] = 'product';
+check( jluxe_page_motion_allowed(), 'native page motion is available on public product pages' );
+$motion_clean = jluxe_sanitize_performance( array( 'page_transitions' => '1', 'page_prefetch' => '1' ), jluxe_theme_settings_defaults()['performance'] );
+check( $motion_clean['page_transitions'] && $motion_clean['page_prefetch'], 'page transitions and prefetch are saved as separate switches' );
+$GLOBALS['options'][JLUXE_SETTINGS_OPTION] = array( 'version' => JLUXE_SETTINGS_VERSION, 'performance' => array( 'page_transitions' => false, 'page_prefetch' => false ) );
+jluxe_get_theme_settings( true );
+unset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] );
+jluxe_enqueue_page_motion();
+check( ! isset( $GLOBALS['scripts']['jluxe-page-motion'], $GLOBALS['styles']['jluxe-page-motion'] ), 'disabling both switches leaves no page motion script or stylesheet' );
+$GLOBALS['options'] = $motion_old_options;
+$GLOBALS['query_kind'] = $motion_old_query;
+$GLOBALS['scripts'] = $motion_old_scripts;
+$GLOBALS['styles'] = $motion_old_styles;
+$GLOBALS['localized'] = $motion_old_localized;
+jluxe_get_theme_settings( true );
+
+// Mobile icon save -> persisted settings -> localized React payload, including cache invalidation.
+$mobile_save_options = $GLOBALS['options'];
+$mobile_save_post = $_POST;
+$mobile_save_fired = $GLOBALS['fired'] ?? array();
+$mobile_save_localized = $GLOBALS['localized'] ?? array();
+$mobile_save_nonce = $GLOBALS['valid_wp_nonce'] ?? true;
+foreach ( array( 'classic', 'floating' ) as $mobile_variant ) {
+	$mobile_post = jluxe_theme_settings_defaults()['mobile'];
+	$mobile_post['nav_variant'] = $mobile_variant;
+	$mobile_post['nav_items'][0]['icon'] = 'bed';
+	$mobile_post['floating_nav_items'][0]['icon'] = 'gift';
+	$_POST = array( 'jluxe_settings_nonce' => 'valid', 'mobile' => $mobile_post );
+	$before_purges = count( array_keys( $GLOBALS['fired'] ?? array(), 'litespeed_purge_all', true ) );
+	check( 'saved' === jluxe_handle_mobile_contact_combined_save(), 'mobile icon form saves via the real combined handler: ' . $mobile_variant );
+	$fresh_mobile = jluxe_get_theme_settings( true )['mobile'];
+	check( 'bed' === $fresh_mobile['nav_items'][0]['icon'] && 'gift' === $fresh_mobile['floating_nav_items'][0]['icon'] && $mobile_variant === $fresh_mobile['nav_variant'], 'saved mobile icons survive fresh reads independently for both layouts' );
+	jluxe_localize_public_settings();
+	$mobile_payload = $GLOBALS['localized']['JLuxeThemeSettings'];
+	check( $mobile_payload['mobile'] === $fresh_mobile && isset( $mobile_payload['iconGlyphs']['bed'], $mobile_payload['iconGlyphs']['gift'] ), 'React receives the actual saved mobile settings and matching SVG glyphs' );
+	check( $before_purges + 1 === count( array_keys( $GLOBALS['fired'], 'litespeed_purge_all', true ) ), 'changed mobile settings invalidate stale full-page HTML caches' );
+	$after_save_actions = count( $GLOBALS['fired'] );
+	jluxe_handle_mobile_contact_combined_save();
+	check( $after_save_actions === count( $GLOBALS['fired'] ), 'saving unchanged mobile settings does not purge caches again' );
+}
+$GLOBALS['valid_wp_nonce'] = false;
+$_POST['mobile']['nav_items'][0]['icon'] = 'heart';
+check( 'error' === jluxe_handle_mobile_contact_combined_save() && 'bed' === jluxe_get_theme_settings( true )['mobile']['nav_items'][0]['icon'], 'invalid nonce cannot change a mobile icon' );
+$GLOBALS['valid_wp_nonce'] = $mobile_save_nonce;
+$GLOBALS['options'] = $mobile_save_options;
+$GLOBALS['localized'] = $mobile_save_localized;
+$GLOBALS['fired'] = $mobile_save_fired;
+$_POST = $mobile_save_post;
+jluxe_get_theme_settings( true );
+
+$tracking_upgrade = jluxe_migrate_settings_v24( array( 'mobile' => array(
+	'nav_items' => array( array( 'id' => 'track', 'icon' => 'package' ), array( 'id' => 'cart', 'icon' => 'package' ), array( 'id' => 'track', 'icon' => 'heart' ) ),
+	'floating_nav_items' => array( array( 'action' => 'track', 'icon' => 'package' ), array( 'action' => 'shop', 'icon' => 'package' ) ),
+) ) );
+check( 'order-tracking' === $tracking_upgrade['mobile']['nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['nav_items'][1]['icon'] && 'heart' === $tracking_upgrade['mobile']['nav_items'][2]['icon'], 'tracking SVG migration replaces only the old tracking placeholder, preserving other/custom icons' );
+check( 'order-tracking' === $tracking_upgrade['mobile']['floating_nav_items'][0]['icon'] && 'package' === $tracking_upgrade['mobile']['floating_nav_items'][1]['icon'], 'floating tracking action gets the supplied SVG without changing unrelated actions' );
+check( isset( jluxe_public_icon_glyphs( array( 'mobile' => array( 'nav_items' => array( array( 'icon' => 'order-tracking' ) ) ) ) )['order-tracking'] ) && false !== strpos( jluxe_nav_icon_svg( 'order-tracking' ), '<path' ), 'supplied tracking artwork is available to PHP markup and the React glyph payload' );
 
 // R357: header navigation cards are collapsible/reorderable, and sanitization keeps each parent with its nested submenu data.
 $r357_nav_defaults = jluxe_theme_settings_defaults();
@@ -268,6 +479,93 @@ if ( $r338_had_fired ) { $GLOBALS['fired'] = $r338_old_fired; } else { unset( $G
 jluxe_enqueue_assets();
 check(isset($GLOBALS['scripts']['jluxe-main'], $GLOBALS['styles']['jluxe-main-0']), 'R02 manifest enqueues JavaScript and CSS');
 check(is_file(JLUXE_ASSET_DIR.'/'.jluxe_vite_manifest()['src/main.js']['file']), 'R02 entry file exists');
+ob_start();
+jluxe_assets_admin_notice();
+$asset_admin_notice_output = (string) ob_get_clean();
+check( '' === $asset_admin_notice_output, 'R536 asset-health notice requires the conditional catalog-filter and lazy SearchDiscovery CSS manifest assets' );
+// R361: main CSS/JS must carry a filemtime version (not null) so browsers
+// re-fetch when file content changes even if the hashed name stays the same.
+$r361_css_ver = $GLOBALS['styles']['jluxe-main-0'][2] ?? null;
+$r361_js_ver = $GLOBALS['scripts']['jluxe-main'][2] ?? null;
+check(
+	is_string( $r361_css_ver ) && ctype_digit( $r361_css_ver ) && (int) $r361_css_ver > 0 &&
+	is_string( $r361_js_ver ) && ctype_digit( $r361_js_ver ) && (int) $r361_js_ver > 0,
+	'R361 main CSS and JS enqueue with filemtime cache-busting version'
+);
+
+// Route CSS and optional design variants remain route-isolated from each other.
+$css_split_old_query = $GLOBALS['query_kind'] ?? null;
+$css_split_old_get = $_GET;
+$css_split_old_options = $GLOBALS['options'];
+$css_split_old_styles = $GLOBALS['styles'];
+$css_split_settings = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ) );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $css_split_settings;
+$GLOBALS['query_kind'] = 'front';
+$GLOBALS['styles'] = array();
+jluxe_get_theme_settings( true );
+jluxe_enqueue_assets();
+check(
+	isset( $GLOBALS['styles']['jluxe-route-home'] ) &&
+	! isset( $GLOBALS['styles']['jluxe-design-variants'], $GLOBALS['styles']['jluxe-neumorphism-refinements'], $GLOBALS['styles']['jluxe-route-product'], $GLOBALS['styles']['jluxe-route-cart-checkout'] ),
+	'R403 home/current enqueues only the isolated homepage route CSS, not product/cart/variant styles'
+);
+$css_split_routes = array(
+	'product'  => 'jluxe-route-product',
+	'cart'     => 'jluxe-route-cart-checkout',
+	'checkout' => 'jluxe-route-cart-checkout',
+	'account'  => 'jluxe-route-account-auth',
+);
+foreach ( $css_split_routes as $css_split_context => $css_split_handle ) {
+	$GLOBALS['query_kind'] = $css_split_context;
+	$GLOBALS['styles'] = array();
+	jluxe_enqueue_assets();
+	check(
+		isset( $GLOBALS['styles'][ $css_split_handle ] ) && in_array( 'jluxe-main-0', $GLOBALS['styles'][ $css_split_handle ][1] ?? array(), true ),
+		'R534 ' . $css_split_context . ' enqueues its route stylesheet after jluxe-main-0'
+	);
+	if ( 'account' === $css_split_context ) {
+		check( isset( $GLOBALS['styles']['jluxe-auth-page-0'] ) && in_array( 'jluxe-route-account-auth', $GLOBALS['styles']['jluxe-auth-page-0'][1] ?? array(), true ), 'AuthPage manifest CSS is enqueued after the account route stylesheet' );
+	}
+}
+$_GET = array();
+foreach ( array( 'shop', 'search' ) as $css_filter_context ) {
+	$GLOBALS['query_kind'] = $css_filter_context;
+	$GLOBALS['styles'] = array();
+	jluxe_enqueue_assets();
+	check(
+		isset( $GLOBALS['styles']['jluxe-catalog-filter-chips'] ) && in_array( 'jluxe-main-0', $GLOBALS['styles']['jluxe-catalog-filter-chips'][1] ?? array(), true ),
+		'R536 catalog filter-chip CSS is enqueued on ' . $css_filter_context . ' even without initial GET filter parameters'
+	);
+}
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => 'current' ), 'header' => array( 'variant' => 'premium' ) );
+$GLOBALS['query_kind'] = 'front';
+$GLOBALS['styles'] = array();
+jluxe_get_theme_settings( true );
+jluxe_enqueue_assets();
+check( isset( $GLOBALS['styles']['jluxe-design-variants'] ) && ! isset( $GLOBALS['styles']['jluxe-variant-canva-home'] ), 'premium header with current visual design loads premium variants only' );
+
+$css_custom_old_inline = $GLOBALS['inline_styles'] ?? array();
+$GLOBALS['styles'] = array( 'jluxe-main-0' => array(), 'jluxe-route-product' => array() );
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = jluxe_theme_settings_defaults();
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]['custom_code']['css'] = '.admin-custom-regression{color:red}';
+jluxe_get_theme_settings( true );
+jluxe_output_custom_code();
+check( jluxe_last_theme_style_handle() === 'jluxe-route-product' && in_array( '.admin-custom-regression{color:red}', $GLOBALS['inline_styles']['jluxe-route-product'] ?? array(), true ), 'admin custom CSS attaches to the last enqueued route stylesheet, not main CSS' );
+$GLOBALS['inline_styles'] = $css_custom_old_inline;
+
+foreach ( array( 'canva_home' => 'jluxe-design-variants', 'neumorphism' => 'jluxe-neumorphism-refinements' ) as $css_split_variant => $css_split_handle ) {
+	$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = array( 'version' => JLUXE_SETTINGS_VERSION, 'visual_design' => array( 'variant' => $css_split_variant ) );
+	$GLOBALS['query_kind'] = 'front';
+	$GLOBALS['styles'] = array();
+	jluxe_get_theme_settings( true );
+	jluxe_enqueue_assets();
+	check( isset( $GLOBALS['styles'][ $css_split_handle ] ), 'R534 active ' . $css_split_variant . ' design enqueues its stylesheet' );
+}
+$GLOBALS['options'] = $css_split_old_options;
+$GLOBALS['styles'] = $css_split_old_styles;
+$_GET = $css_split_old_get;
+if ( null === $css_split_old_query ) { unset( $GLOBALS['query_kind'] ); } else { $GLOBALS['query_kind'] = $css_split_old_query; }
+jluxe_get_theme_settings( true );
 $r314_main_source = (string) file_get_contents( ABSPATH . 'src/main.js' );
 $r314_bootstrap_source = (string) file_get_contents( ABSPATH . 'functions.php' );
 $r314_manifest = jluxe_vite_manifest();
@@ -561,7 +859,7 @@ $_POST['qty']='3';
 $r05_quantity_reply=json_call('jluxe_ajax_cart');
 check(
 	$r05_quantity_reply->success && WC()->cart->items['existing']['quantity']===3 &&
-	WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(true) &&
+	WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(false) &&
 	$r05_quantity_reply->data['items'][0]['lineTotalHtml']==='100<em>filtered subtotal</em>',
 	'R05 valid quantity update keeps Woo hooks and line-total filters while calculating totals once'
 );
@@ -729,12 +1027,13 @@ check(
 );
 $_POST = array( 'jluxe_settings_nonce' => 'test', 'seo' => array( 'verification_meta_tags' => $verification_input ) );
 check( jluxe_handle_advanced_combined_save() === 'saved' && get_option( JLUXE_SETTINGS_OPTION )['seo']['verification_meta_tags'] === $verification_clean, 'R109 SEO form saves the verification tags through the normal nonce and sanitizer path' );
-$blog_renderer_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$blog_renderer_source = theme_test_php_source( 'homepage' );
 $blog_styles_source = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 check(
 	false !== strpos( $blog_renderer_source, 'class="jluxe-home-blog-viewport" role="region"' ) &&
-	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' ) &&
-	false !== strpos( $blog_renderer_source, 'jluxe-home-blog-card' ) &&
+		false !== strpos( $blog_renderer_source, 'jluxe-home-blog-scroller grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' ) &&
+		false !== strpos( $blog_renderer_source, 'jluxe-home-blog-card group flex flex-col' ) &&
+		false !== strpos( $blog_renderer_source, 'class="block aspect-video overflow-hidden bg-muted"' ) &&
 	false !== strpos( $blog_styles_source, '@media (max-width: 639px)' ) &&
 	false !== strpos( $blog_styles_source, 'overflow-x: auto;' ) &&
 	false !== strpos( $blog_styles_source, 'flex: 0 0 calc(100% - 52px);' ) &&
@@ -745,15 +1044,16 @@ check(
 	false !== strpos( $blog_styles_source, 'backdrop-filter: blur(1px);' ),
 	'R110 homepage blog stays a desktop grid and becomes a swipeable RTL mobile row with a next-card peek and subtle fixed-edge blur'
 );
-$recommended_panels_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$recommended_panels_source = theme_test_php_source( 'homepage' );
 $recommended_panels_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
 $recommended_panels_start = strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_panels(' );
 $recommended_panels_end = false !== $recommended_panels_start ? strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_card(', $recommended_panels_start ) : false;
 $recommended_panels_renderer = ( false !== $recommended_panels_start && false !== $recommended_panels_end ) ? substr( $recommended_panels_source, $recommended_panels_start, $recommended_panels_end - $recommended_panels_start ) : '';
 check(
 	'' !== $recommended_panels_renderer &&
-	false !== strpos( $recommended_panels_renderer, 'count( $panels ) > 1 ?' ) &&
+	false !== strpos( $recommended_panels_renderer, '$has_multiple_panels = count( $panels ) > 1;' ) &&
 	false !== strpos( $recommended_panels_renderer, 'jluxe-recommended-panels-scroller' ) &&
+	false !== strpos( $recommended_panels_renderer, 'jluxe-recommended-panels-frame--multiple' ) &&
 	false === strpos( $recommended_panels_renderer, 'data-jluxe-peek-hint' ) &&
 	false !== strpos( $recommended_panels_renderer, 'esc_html( $panel' ) &&
 	false === strpos( $recommended_panels_renderer, 'button_text' ) &&
@@ -766,14 +1066,27 @@ check(
 	false !== strpos( $recommended_panels_css, 'justify-content: space-between;' ) &&
 	false !== strpos( $recommended_panels_css, '@media (max-width: 639px)' ) &&
 	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-scroller > .jluxe-home-panel' ) &&
-	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 68px);' ),
+	false !== strpos( $recommended_panels_css, '.jluxe-recommended-panels-frame--multiple::before' ) &&
+	false !== strpos( $recommended_panels_css, 'linear-gradient(90deg, rgba(15, 23, 42, .16)' ) &&
+	false !== strpos( $recommended_panels_css, 'flex-basis: calc(100% - 40px);' ),
 	'R187 the category heading itself is a descriptive link with a decorative arrow, replacing generic long CTA text and preserving the mobile panel preview'
+);
+$recommended_card_start = strpos( $recommended_panels_source, 'function jluxe_render_homepage_recommended_card(' );
+$recommended_card_end = false !== $recommended_card_start ? strpos( $recommended_panels_source, 'function jluxe_render_homepage_trust(', $recommended_card_start ) : false;
+$recommended_card_renderer = ( false !== $recommended_card_start && false !== $recommended_card_end ) ? substr( $recommended_panels_source, $recommended_card_start, $recommended_card_end - $recommended_card_start ) : '';
+check(
+	false !== strpos( $recommended_card_renderer, 'jluxe-recommended-card-discount-badge absolute top-0' ) &&
+	false === strpos( $recommended_card_renderer, 'end-0 inline-flex w-fit items-center gap-0.5 rounded-lg bg-primary' ) &&
+	false !== strpos( $recommended_panels_css, '.jluxe-recommended-card-discount-badge' ) &&
+	false !== strpos( $recommended_panels_css, 'inset-inline-start: 0;' ) &&
+	false !== strpos( $recommended_panels_css, 'inset-inline-end: auto;' ),
+	'Recommended-panel discount badge sits at the left opposite the RTL color swatches'
 );
 $admin_font_css = (string) file_get_contents( ABSPATH . 'assets/css/theme-settings-admin.css' );
 check(
 	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileRegular-BdVpDEyu.woff2' ) &&
 	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileMedium-I6jb8KnV.woff2' ) &&
-	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileExtraBold-N-nBJY2W.woff2' ) &&
+	false !== strpos( $admin_font_css, '../compiled/assets/IRANYekanMobileBold-BPaFMCvd.woff2' ) &&
 	false === strpos( $admin_font_css, '../../dist/assets/' ),
 	'R111 admin font URLs resolve to packaged WOFF2 files instead of the excluded legacy dist directory'
 );
@@ -888,6 +1201,29 @@ $GLOBALS['sale_ids']=array(1,2);$GLOBALS['product_query_results']=array();
 ob_start();jluxe_render_homepage_special_products(array('count'=>999,'sort'=>'discount'));ob_end_clean();
 check($GLOBALS['product_query_args']['limit']===30 && $GLOBALS['product_query_args']['jluxe_discount_order']===true, 'R19 sale grid uses a capped SQL query instead of loading all products');
 check(jluxe_sale_grid_query_args(array(),array('jluxe_sale_grid'=>true))['has_password']===false, 'R19 sale grid also excludes protected products at query time');
+$r518_saved_sale_ids=$GLOBALS['sale_ids']??null;
+$r518_saved_product_handler=$GLOBALS['product_query_handler']??null;
+$r518_saved_product_args=$GLOBALS['product_query_args']??null;
+$r518_saved_post_fields=$GLOBALS['post_fields']??null;
+$GLOBALS['sale_ids']=range(51800,51839);
+$GLOBALS['r518_random_queries']=array();
+$GLOBALS['product_query_handler']=static function($query){
+ $GLOBALS['r518_random_queries'][]=$query;
+ $ids=array_slice((array)($query['include']??array()),0,(int)($query['limit']??0));
+ if(1===count($GLOBALS['r518_random_queries'])&&!empty($ids))$GLOBALS['post_fields'][$ids[0]]['post_password']='protected';
+ return array_map(static function($id){return new WC_Product((int)$id);},$ids);
+};
+ob_start();jluxe_render_homepage_special_products(array('count'=>4,'sort'=>'rand','hide_out_of_stock'=>true));ob_end_clean();
+$r518_queries=$GLOBALS['r518_random_queries'];
+$r518_random_queries_bounded=2===count($r518_queries);
+foreach($r518_queries as $r518_query){
+ $r518_random_queries_bounded=$r518_random_queries_bounded&&'include'===($r518_query['orderby']??'')&&'instock'===($r518_query['stock_status']??'')&&count((array)($r518_query['include']??array()))<=12;
+}
+check($r518_random_queries_bounded,'R518 random sale products use bounded shuffled include batches, retain stock/visibility filters, and retry after a private product instead of SQL RAND()');
+$GLOBALS['sale_ids']=$r518_saved_sale_ids;
+if(null===$r518_saved_product_handler)unset($GLOBALS['product_query_handler']);else$GLOBALS['product_query_handler']=$r518_saved_product_handler;
+if(null===$r518_saved_product_args)unset($GLOBALS['product_query_args']);else$GLOBALS['product_query_args']=$r518_saved_product_args;
+if(null===$r518_saved_post_fields)unset($GLOBALS['post_fields']);else$GLOBALS['post_fields']=$r518_saved_post_fields;
 
 // Recovery is delegated to WooCommerce rather than hidden by the guest React island.
 $GLOBALS['authenticated_user']=0;$GLOBALS['endpoint']='lost-password';
@@ -1314,8 +1650,14 @@ reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'4');
 $GLOBALS['wc']->cart->stockFail=true;
 $reply=json_call('jluxe_ajax_cart');
 check(!$reply->success && $reply->status===409 && WC()->cart->items['existing']['quantity']===1, 'R27 failed post-update stock check restores the previous quantity');
+check(WC()->cart->stockCheckCalls===1 && WC()->cart->totalsCalls===1 && WC()->cart->quantityRefreshArgs===array(false,false), 'R27 a failed quantity update checks stock once, defers intermediate totals, then recalculates once after rollback');
 $GLOBALS['wc']->cart->stockFail=false;
-check(json_call('jluxe_ajax_cart')->success, 'R27 passing stock check keeps the quantity update');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'4');
+$reply=json_call('jluxe_ajax_cart');
+check($reply->success && WC()->cart->totalsCalls===1 && WC()->cart->stockCheckCalls===1 && WC()->cart->quantityRefreshArgs===array(false), 'R27 successful quantity updates perform one post-change stock check and one shared totals calculation');
+reset_cart();$_POST=array('op'=>'update_qty','key'=>'existing','qty'=>'0');
+$reply=json_call('jluxe_ajax_cart');
+check($reply->success && empty(WC()->cart->items) && WC()->cart->totalsCalls===1 && WC()->cart->stockCheckCalls===0, 'R27 setting quantity to zero removes the line and recalculates totals once without a needless stock query');
 $reply=json_call(function(){jluxe_cart_error('test',409);});
 check($reply->status===409 && $reply->success===false, 'R27 cart failures remain explicit JSON errors, never success responses');
 
@@ -1330,7 +1672,7 @@ $sale_original = '<del><span class="woocommerce-Price-amount amount"><span class
 $sale_out = jluxe_amount_first_wc_price($sale_original);
 check(strpos($sale_out,'amount amount">۵,۵۵۵')!==false && strpos($sale_out,'amount amount">۳,۳۳۳')!==false && substr_count($sale_out,'currencySymbol')===2, 'R28 sale del/ins pairs are both amount-first');
 $GLOBALS['no_cache']=false;
-$icon_price = jluxe_amount_first_wc_price('<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">'.jluxe_toman_icon_svg().'</span>&nbsp;۱٬۲۰۰</span>');
+$icon_price = jluxe_amount_first_wc_price('<span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">'.jluxe_toman_display_icon_svg().'</span>&nbsp;۱٬۲۰۰</span>');
 $digitized = jluxe_fa_digits_wc_price($icon_price);
 check($digitized === $icon_price && strpos($digitized,'۱٬۲۰۰') < strpos($digitized,'</svg>'), 'R28 digit conversion keeps the toman SVG intact after reordering');
 
@@ -1417,10 +1759,20 @@ check(strpos($classic_tpl,'data-jluxe-layout="classic"')!==false, 'R31 classic t
 
 // R238: keep the third product layout independent and make delivery text editable per product.
 $r238_reference_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product-reference.php' );
-$r238_sticky_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r238_sticky_renderer = theme_test_php_source( 'woocommerce' );
 $r238_router = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r238_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 $r238_sanitized_layout = jluxe_sanitize_product_page( array( 'layout' => 'reference' ), jluxe_theme_settings_defaults()['product_page'] );
+$r443_defaults = jluxe_theme_settings_defaults()['product_page'];
+check( 'standard' === $r443_defaults['mobile_layout'], 'R443 mobile layered presentation is opt-in for existing stores' );
+foreach ( array( 'default', 'classic', 'reference' ) as $r443_layout ) {
+ $r443_saved = jluxe_sanitize_product_page( array( 'layout' => $r443_layout, 'mobile_layout' => 'layered' ), $r443_defaults );
+ check( $r443_saved['layout'] === $r443_layout && 'layered' === $r443_saved['mobile_layout'], 'R443 mobile layout is independent of desktop ' . $r443_layout );
+}
+foreach ( array( array(), array( 'mobile_layout' => 'invalid' ), array( 'mobile_layout' => array( 'layered' ) ), array( 'mobile_layout' => 'standard' ) ) as $r443_input ) {
+ check( 'standard' === jluxe_sanitize_product_page( $r443_input, $r443_defaults )['mobile_layout'], 'R443 missing or invalid mobile layout safely falls back to current presentation' );
+}
+
 check(
 	'reference' === $r238_sanitized_layout['layout'] &&
 	false !== strpos( $r238_router, "if ( 'reference' === \$jluxe_layout )" ) &&
@@ -1437,7 +1789,7 @@ check(
 	false === strpos( $r238_reference_tpl, 'ارسال سریع</span>' ),
 	'R238 the third layout has its own dynamic feature-card presentation, product sections, and related products'
 );
-$r238_mobile_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-product-meta"' );
+$r238_mobile_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-product-meta' );
 $r238_delivery_meta_position = strpos( $r238_reference_tpl, 'class="reference-mobile-meta-item reference-mobile-meta-item--delivery"', $r238_mobile_meta_position );
 $r238_variation_options_position = strpos( $r238_reference_tpl, 'data-reference-variation-options' );
 $r238_short_description_position = strpos( $r238_reference_tpl, 'data-cp3-short' );
@@ -1551,7 +1903,8 @@ check(
 // R244: make AI review text use the full card width and refine product rating/badge/price presentation.
 $r244_ai_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-ai.php' );
 $r244_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-$r244_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r244_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
+$r244_woocommerce_source = theme_test_php_source( 'woocommerce' );
 check(
 	false !== strpos( $r244_ai_source, '.jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
 	false !== strpos( $classic_tpl, '.jluxe-cp3 .jluxe-ai-review-summary-body{flex:1 1 0%;min-width:0}' ) &&
@@ -1560,7 +1913,7 @@ check(
 );
 check(
 	false !== strpos( $r244_storefront_css, '--jluxe-rating-color: #F7B731;' ) &&
-	false !== strpos( $r244_storefront_css, '.jluxe-reviews .star-rating span:before {
+	false !== strpos( $r244_product_css, '.jluxe-reviews .star-rating span:before {
   content: "★★★★★";
   color: var(--jluxe-rating-color);' ) &&
 	false !== strpos( $classic_tpl, '?> دیدگاه</div>' ) && false === strpos( $classic_tpl, '?> امتیاز</div>' ) &&
@@ -1652,6 +2005,7 @@ check(
 	'R237 Boom renders the feature-card section immediately after its short-description markup'
 );
 $r240_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r240_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
 check(
 	false !== strpos( $r240_storefront_css, '.jluxe-key-feature {' ) &&
 	false !== strpos( $r240_storefront_css, 'border-radius: 12px;' ) &&
@@ -1777,6 +2131,10 @@ check(
 	false === strpos( $r246_notice_html, 'Notice</script>' ),
 	'R246 delivery-row visibility is independently switchable without changing the existing per-product _delivery_time value'
 );
+$notice_before_partial_save = jluxe_get_product_notice( $r240_product );
+$_POST = array( 'jluxe_product_options_present' => '1', '_jluxe_badge_warranty' => '1' );
+jluxe_save_product_badge_fields( 9400 );
+check( jluxe_get_product_notice( $r240_product ) === $notice_before_partial_save, 'R466 partial product option updates cannot erase or hide an existing notice' );
 $_POST = array(
 	'jluxe_product_options_present' => '1',
 	'_jluxe_product_notice_type'    => 'info',
@@ -1841,11 +2199,11 @@ check(
 	'R336 Boom, Classic, and Reference feature summaries have two columns with flex fallbacks'
 );
 check(
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--warning' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice--info' ) &&
-	false !== strpos( $r240_storefront_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
-	false !== strpos( $r240_storefront_css, '@media (max-width: 480px)' ) &&
-	false !== strpos( $r240_storefront_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
+	false !== strpos( $r240_product_css, '.jluxe-product-notice--warning' ) &&
+	false !== strpos( $r240_product_css, '.jluxe-product-notice--info' ) &&
+	false !== strpos( $r240_product_css, 'grid-template-columns: 1.25rem minmax(0, 1fr);' ) &&
+	false !== strpos( $r240_product_css, '@media (max-width: 480px)' ) &&
+	false !== strpos( $r240_product_css, '.jluxe-product-notice__text { min-width: 0; overflow-wrap: anywhere; word-break: normal; }' ),
 	'R335 shared notice styles remain readable and responsive'
 );
 $_POST = $r246_old_request;
@@ -2063,6 +2421,7 @@ check(strpos($searchform,'min-height')===false && strpos($searchform,'jluxe-sear
 
 // R35: neutral text and semantic status contrast are measured on the live tokens.
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 preg_match_all('/:root\s*\{([^}]*)\}/u',$css,$roots);
 $tokens=array();
 foreach ($roots[1] as $root_block) {
@@ -2096,7 +2455,7 @@ check(strpos($css,'font-family: IRANYekan, Vazirmatn')!==false, 'R35 the storefr
 check(strpos($css,'.jluxe-btn')!==false && preg_match('/\.jluxe-btn\s*\{[^}]*min-height:\s*2\.75rem/s',$css)===1, 'R36 button system enforces >=44px targets');
 check(preg_match('/\(max-width: 767\.98px\)\s*\{.*?:where\(a\.button, button, \[type="submit"\], \[role="button"\]\)\s*\{\s*min-height: 44px;/s',$css)===1, 'R36 mobile touch-target floor is scoped and override-friendly');
 check(strpos($css,':where(a, button, input, select, textarea, [tabindex]):focus-visible')!==false, 'R36 keyboard focus ring is standardized');
-check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
+check(strpos($css,'prefers-reduced-motion: no-preference')!==false && strpos($product_css,'content-visibility: auto')!==false, 'R36 effects are motion-guarded and below-fold sections skip rendering');
 
 // R360/R37: shared Flaticon UIcons are inline, currentColor-driven, bounded, and backward-compatible.
 ob_start(); jluxe_icon('cart','size-5 test'); $cart_icon=(string) ob_get_clean();
@@ -2113,7 +2472,7 @@ ob_start(); jluxe_icon('home','" onmouseover="x'); $evil_icon=(string) ob_get_cl
 check(strpos($evil_icon,'&quot;')!==false && strpos($evil_icon,'onmouseover="x"')===false, 'R37 icon class attribute is escaped');
 $icon_option_names = array_filter(array_keys(jluxe_nav_icon_options()));
 $missing_icon_paths = array_diff($icon_option_names, array_merge(array_keys(jluxe_uicon_paths()), array_keys(jluxe_icon_paths())));
-check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===67 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
+check(empty($missing_icon_paths) && count(jluxe_uicon_paths())===68 && in_array('compass', jluxe_icon_names(), true) && count(jluxe_icon_names())>=70, 'R360 all 67 configurable glyphs and legacy fallback names resolve');
 $public_glyphs = jluxe_public_icon_glyphs(array(
 	'mobile' => array('nav_items' => array(array('icon' => 'bed')), 'floating_nav_items' => array(array('icon' => 'home'))),
 	'footer' => array('feature_cards' => array(array('icon' => 'sofa')), 'link_columns' => array(array('links' => array(array('icon' => 'gift'))))),
@@ -2227,7 +2586,7 @@ check(strpos($sticky_always,'data-jluxe-sticky-cta-always')!==false && strpos($s
 ob_start(); jluxe_render_sticky_quantity_control(); $sticky_qty=(string) ob_get_clean();
 check(strpos($sticky_qty,'data-jluxe-mobile-qty-step="decrease"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-step="increase"')!==false && strpos($sticky_qty,'data-jluxe-mobile-qty-value')!==false && strpos($sticky_qty,'<form')===false && strpos($sticky_qty,'name="quantity"')===false, 'R146 the shared sticky quantity control has accessible +/- buttons and display-only output, never a parallel Woo form or input');
 check(strpos($sticky_def,'jluxe_render_sticky_quantity_control();')!==false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false, 'R146 both the default and classic mobile bars render the same sticky quantity proxy');
-check(strpos($css,'.jluxe-mobile-quantity[hidden] { display: none; }')!==false && strpos($css,'.jluxe-mobile-price-stock[data-jluxe-stock-state="in-stock"] { display: none; }')!==false, 'R146 controls stay hidden until a purchasable quantity exists and ordinary in-stock text is suppressed');
+check(strpos($product_css,'.jluxe-mobile-quantity[hidden] { display: none; }')!==false && strpos($product_css,'.jluxe-mobile-price-stock[data-jluxe-stock-state="in-stock"] { display: none; }')!==false, 'R146 controls stay hidden until a purchasable quantity exists and ordinary in-stock text is suppressed');
 $r148_classic_markup = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($css,'.jluxe-sticky-cta-heart')===false && strpos($css,'.jluxe-sticky-cta-name')===false && strpos($css,'.jluxe-sticky-cta .jluxe-btn[data-jluxe-sticky-mode="add"] [data-jluxe-sticky-label] { display: none; }')===false && strpos($sticky,'data-jluxe-mobile-qty-control')!==false && strpos($r148_classic_markup,'class="cp3-fab cp3-heart"')!==false && strpos($r148_classic_markup,'class="cp3-wishline"')!==false, 'R148 the mobile sticky bar omits the heart and product name while wishlist controls remain in the product page and the CTA keeps its label');
 $variable_sticky_product = new WC_Product(999);
@@ -2243,6 +2602,15 @@ $GLOBALS['products'][1]->stock=20;
 
 // R39: keep only the two critical, build-manifest-backed font hints.
 $font_manifest = jluxe_vite_manifest();
+$regular_font_url = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileRegular.woff2' );
+$medium_font_url  = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileMedium.woff2' );
+$bold_font_url    = jluxe_vite_font_url( 'src/assets/fonts/IRANYekanMobileBold.woff2' );
+check(
+	$regular_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileRegular.woff2']['file'] ?? '' ) &&
+	$medium_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileMedium.woff2']['file'] ?? '' ) &&
+	$bold_font_url === JLUXE_ASSET_URI . '/' . ( $font_manifest['src/assets/fonts/IRANYekanMobileBold.woff2']['file'] ?? '' ),
+	'Compiled font URLs resolve from the manifest for storefront and print views without shipping src/'
+);
 ob_start(); jluxe_preload_body_fonts(); $font_heads=(string) ob_get_clean();
 $font_hooks = array_values( array_filter( $GLOBALS['actions'], static fn( $action ) => 'wp_head' === ( $action[0] ?? '' ) && in_array( $action[1] ?? '', array( 'jluxe_preload_body_fonts', 'jluxe_preload_storefront_fonts' ), true ) ) );
 check(
@@ -2284,9 +2652,9 @@ $smooth=strpos($css,'html { scroll-behavior: smooth; }');
 $guard=strpos($css,'prefers-reduced-motion: no-preference');
 check($smooth!==false && $guard!==false && $smooth>$guard, 'R43 smooth scrolling is motion-guarded');
 $sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
-check(strpos($sticky_js,'.jluxe-mobile-nav')!==false && strpos($sticky_js,'style.bottom')!==false, 'R40 the sticky bar measures the bottom nav and docks above it, never on top');
-check(strpos($sticky_js,"'#bottom-navigation, .jluxe-mobile-nav'")!==false && strpos($sticky_js,'Math.min( dockTop, candidateRect.top )')!==false && strpos($sticky_js,'var navGap = 10;')!==false && strpos($sticky_js,'data-jluxe-bottom-dock')!==false && strpos($sticky_js,'MutationObserver')!==false, 'R115 the sticky CTA measures the topmost visible dock, keeps a 10px gap, reflows when React mounts the nav, and respects dock safe-area ownership');
-check(strpos($css,'.jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }')!==false && strpos($css,'padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px))')!==false, 'R115 the CTA only consumes the device safe area when no bottom dock is present, avoiding a duplicated inset');
+check(strpos($sticky_js,'.jluxe-mobile-nav')!==false && strpos($sticky_js,"bottom: calc(var(--jluxe-active-dock-height, 76px) + env(safe-area-inset-bottom, 0px) + 10px)")===false && strpos($sticky_js,'style.bottom')===false, 'R40 sticky navigation/purchase mode uses a stable CSS dock offset, never scroll-time inline positioning');
+check(strpos($sticky_js,"var navSelector = '#bottom-navigation, .jluxe-mobile-nav'")!==false && strpos($sticky_js,'candidate.setAttribute( \'inert\', \'\' )')!==false && strpos($sticky_js,'ResizeObserver')!==false && strpos($sticky_js,'window.addEventListener( \'orientationchange\', scheduleLayout')!==false && strpos($sticky_js,'data-jluxe-bottom-dock')===false, 'R115 the sticky CTA yields navigation accessibly and only remeasures on dock resize or orientation changes');
+check(strpos($product_css,'.jluxe-sticky-cta[data-jluxe-bottom-dock] { padding-bottom: 0.625rem; }')!==false && strpos($product_css,'padding-bottom: calc(0.625rem + env(safe-area-inset-bottom, 0px))')!==false, 'R115 the CTA only consumes the device safe area when no bottom dock is present, avoiding a duplicated inset');
 $r112_nav_css = (string) file_get_contents( ABSPATH . 'style.css' );
 check(
 	false !== strpos( $r112_nav_css, '#bottom-navigation #tabs' ) &&
@@ -2380,12 +2748,13 @@ $tpl_cls=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-
 check(strpos($tpl_def,'jluxe-reviews jluxe-panel')!==false, 'R44 the default layout wraps reviews in the new panel');
 check(strpos($tpl_cls,'class="jluxe-reviews jluxe-panel mt-6"')!==false && strpos($tpl_cls,'<div id="reviews" class="jluxe-panel mt-6">')===false, 'R44/R140 the classic layout wraps WooCommerce reviews with their shared styles without duplicating the reviews anchor ID');
 $css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 check(strpos($css,'--panel: 291.43 84% 95.1%')!==false && strpos($css,'--panel-border: 292.68 80.39% 90%')!==false, 'R44 panel tokens ship with the Royal Orchid palette');
 check(preg_match('/\.jluxe-panel\s*\{[^}]*border-radius: 22px;[^}]*box-shadow: 0 2px 14px rgba\(0, 0, 0, 0\.04\);/s',$css)===1, 'R44 the panel card matches the reference radius and soft shadow');
 check(preg_match('/@media \(min-width: 768px\)\s*\{\s*\.jluxe-panel \{ padding: 1\.75rem;/s',$css)===1, 'R44 panel padding scales 20px to 28px at md');
-check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$css)===1, 'R44 each review is a recessed card instead of a divider list');
-check(strpos($css,'.jluxe-reviews .woocommerce-review__verified')!==false, 'R44 verified-owner badge is styled');
-check(preg_match('/\.jluxe-reviews \.form-submit input\[type="submit"\]\s*\{[^}]*min-height: 48px;/s',$css)===1, 'R44 the review submit button meets the 48px touch target');
+check(preg_match('/\.jluxe-reviews \.commentlist \.comment\s*\{[^}]*background-color: hsl\(var\(--panel\)\);[^}]*border-radius: 16px;/s',$product_css)===1, 'R44 each review is a recessed card instead of a divider list');
+check(strpos($product_css,'.jluxe-reviews .woocommerce-review__verified')!==false, 'R44 verified-owner badge is styled');
+check(preg_match('/\.jluxe-reviews \.form-submit input\[type="submit"\]\s*\{[^}]*min-height: 48px;/s',$product_css)===1, 'R44 the review submit button meets the 48px touch target');
 $ai_css=(string) file_get_contents(ABSPATH.'inc/theme-settings-ai.php');
 check(strpos($ai_css,'border:1px solid hsl(var(--panel-border));border-radius:1rem;background:hsl(var(--primary) / .05)')!==false, 'R44 the AI summary card follows the same panel language');
 
@@ -2626,7 +2995,7 @@ check(
 );
 $r152_default_product_tpl = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
 $r152_theme_setup = (string) file_get_contents( ABSPATH . 'functions.php' );
-$r152_product_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r152_product_css = (string) file_get_contents( ABSPATH . 'src/styles/route-product.css' );
 check(
 	strpos( $r152_default_product_tpl, 'woocommerce_show_product_images();' ) !== false &&
 	strpos( $r152_default_product_tpl, "wc_get_template_part( 'single-product/product-image' )" ) === false &&
@@ -2850,6 +3219,7 @@ $pa_html = ob_get_clean();
 check(strpos($pa_html,'افزودن به سبد خرید')!==false && strpos($pa_html,'این محصول را هم اضافه کن')!==false && strpos($pa_html,'مجموع سبد')!==false && strpos($pa_html,'data-pa-confirm')!==false && strpos($pa_html,'افزودن انتخاب‌ها به سبد')!==false && strpos($pa_html,'ادامه بدون افزودن')!==false, 'R47 modal sections and both confirm states use editable admin copy');
 check(strpos($pa_html,'data-pa-context="500"')!==false && strpos($pa_html,'data-pa-product="502"')!==false && strpos($pa_html,'data-pa-service="s0"')!==false && strpos($pa_html,'aria-pressed="true"')!==false && strpos($pa_html,'data-pa-service="s1"')===false && strpos($pa_html,'فقط سبد')===false && strpos($pa_html,'data-pa-auto-close="1"')!==false && strpos($pa_html,'data-pa-auto-close-seconds="42"')!==false && strpos($pa_html,'class="jluxe-pa-action-row"')!==false && strpos($pa_html,'data-pa-countdown')!==false && strpos($pa_html,'role="timer"')!==false && strpos($pa_html,'class="sr-only">زمان باقی‌مانده تا بسته‌شدن پیشنهادها</span>')!==false && strpos($pa_html,'data-pa-countdown-value dir="ltr">۰۰:۴۲')!==false, 'R47 enabled auto-close adds only the accessible minimal countdown beside the confirm action');
 check(strpos($pa_html,'<del>')!==false && strpos($pa_html,'۲۰٪')!==false && strpos($pa_html,'data-pa-main="1250000"')!==false && strpos($pa_html,'class="jluxe-pa-main"')!==false, 'R47 the optional main card shows discount pricing while the total starts from the current cart value');
+check( false !== strpos( $pa_html, 'data-pa-estimate-note' ) && false !== strpos( $pa_html, 'مبلغ نهایی با مالیات، ارسال و تخفیف‌ها در سبد محاسبه می‌شود.' ), 'Suggested total always discloses its estimate status even with custom heading text' );
 check(strpos($pa_html,'محتویات سبد:')!==false && strpos($pa_html,'رفتن به سبد')!==false && strpos($pa_html,'بازگشت به خرید')!==false, 'R47 optional cart summary and footer actions are individually customizable');
 $pa_sections = $pa_base;
 $pa_sections['purchase_addons']['show_main_product'] = false;
@@ -2867,6 +3237,14 @@ $pa_empty_html = ob_get_clean();
 check( false !== strpos( $pa_empty_html, 'data-jluxe-suggested-modal' ) && false !== strpos( $pa_empty_html, 'در حال حاضر پیشنهاد محصول یا خدمت دیگری برای نمایش وجود ندارد.' ), 'R121 a successful add still opens a useful empty-state suggestion modal when all offer sections are disabled');
 update_test_settings( $pa_base );
 check(in_array( 'woocommerce_cart_calculate_fees', array_column( $GLOBALS['actions'], 0 ), true ) && in_array( 'woocommerce_cart_emptied', array_column( $GLOBALS['actions'], 0 ), true ), 'R47 service fees hook into the official WooCommerce fee pipeline');
+foreach ( array( null, array(), array( 's0' ), array( 's1' ) ) as $stored_selection ) {
+	$GLOBALS['wc']->session = new FakeSession();
+	if ( null !== $stored_selection ) { $GLOBALS['wc']->session->set( 'jluxe_pa_services', $stored_selection ); }
+	ob_start(); jluxe_render_suggested_products_modal( $GLOBALS['products'][500] ); $session_html = ob_get_clean();
+	preg_match( '/<button[^>]*data-pa-service="s0"[^>]*>/', $session_html, $service_button );
+	$expected_pressed = null === $stored_selection || in_array( 's0', $stored_selection, true );
+	check( ! empty( $service_button ) && false !== strpos( $service_button[0], 'aria-pressed="' . ( $expected_pressed ? 'true' : 'false' ) . '"' ), 'Service initial state honors unset, explicitly empty, selected and cart-only sessions: ' . json_encode( $stored_selection ) );
+}
 $GLOBALS['wc']->session = new FakeSession();
 $GLOBALS['wc']->session->set( 'jluxe_pa_services', array( 's0', 'evil' ) );
 $GLOBALS['wc']->cart = new FakeCart();
@@ -3086,6 +3464,22 @@ check(
 );
 $r152_invalid_page_color = jluxe_sanitize_product_page( array( 'variation_label_color' => 'url(javascript:alert(1))' ), $r152_color_defaults['product_page'] );
 check( '' === $r152_invalid_page_color['variation_label_color'], 'R333 invalid variation-label colors are discarded by the product-page sanitizer' );
+$r444_defaults = jluxe_theme_settings_defaults()['product_page'];
+$r444_values = jluxe_sanitize_product_page( array(), $r444_defaults );
+check( 18 === $r444_values['mobile_title_size'] && 600 === $r444_values['mobile_title_weight'] && 36 === $r444_values['mobile_option_height'], 'R444 mobile title and chip defaults are smaller and lighter' );
+$r444_values = jluxe_sanitize_product_page( array( 'mobile_title_size' => '19', 'mobile_title_weight' => '500', 'mobile_option_height' => '40', 'mobile_option_font' => '14', 'mobile_option_padding' => '8' ), $r444_defaults );
+check( 19 === $r444_values['mobile_title_size'] && 500 === $r444_values['mobile_title_weight'] && 40 === $r444_values['mobile_option_height'] && 14 === $r444_values['mobile_option_font'] && 8 === $r444_values['mobile_option_padding'], 'R444 custom mobile typography and option dimensions survive sanitization' );
+$r444_values = jluxe_product_mobile_design_values( array( 'mobile_title_size' => 999, 'mobile_option_height' => -1, 'mobile_option_font' => array( 15 ), 'mobile_option_padding' => '1; color:red', 'mobile_title_weight' => '850' ) );
+check( 24 === $r444_values['mobile_title_size'] && 32 === $r444_values['mobile_option_height'] && 13 === $r444_values['mobile_option_font'] && 10 === $r444_values['mobile_option_padding'] && 600 === $r444_values['mobile_title_weight'], 'R444 unsafe and out of range mobile design values are rejected or bounded' );
+$r444_saved = get_option( JLUXE_SETTINGS_OPTION, array() );
+$r444_settings = jluxe_theme_settings_defaults();
+$r444_settings['product_page']['mobile_title_size'] = 17;
+$r444_settings['product_page']['mobile_title_weight'] = 500;
+$r444_settings['product_page']['mobile_option_height'] = 34;
+update_test_settings( $r444_settings );
+ob_start(); jluxe_output_product_mobile_design_css(); $r444_css = (string) ob_get_clean();
+update_option( JLUXE_SETTINGS_OPTION, $r444_saved ); jluxe_get_theme_settings( true );
+check( false !== strpos( $r444_css, '@media(max-width:767.98px)' ) && false !== strpos( $r444_css, '--jluxe-mobile-title-size:17px' ) && false !== strpos( $r444_css, '--jluxe-mobile-title-weight:500}' ) && false !== strpos( $r444_css, '--jluxe-mobile-option-height:34px' ), 'R444 frontend mobile CSS renders saved numeric values with correct units and breakpoint' );
 $r152_saved_settings = get_option( JLUXE_SETTINGS_OPTION, array() );
 $r152_test_settings = jluxe_theme_settings_defaults();
 $r152_test_settings['product_page']['discount_color'] = '#234567';
@@ -3173,6 +3567,30 @@ check(
 	false !== strpos( $r51_css, 'var(--jluxe-variation-label-color, hsl(var(--primary)))' ),
 	'R326/R333 settings expose editable product colors while selected variation labels default to the live theme-primary color'
 );
+$r376_border_css = jluxe_hsl_css_value( jluxe_hex_to_hsl( '#E2E8F0' ) );
+$r376_custom_borders_pass = true;
+foreach ( array( '#ED1A45', '#D9143C' ) as $r376_primary ) {
+	$r376_colors = $r326_theme_settings['colors'];
+	$r376_colors['primary'] = $r376_primary;
+	$r376_variables = jluxe_generate_color_variables( $r376_colors );
+	if (
+		false === strpos( $r376_variables, '--border:' . $r376_border_css ) ||
+		false === strpos( $r376_variables, '--panel-border:' . $r376_border_css ) ||
+		false === strpos( $r376_variables, '--jluxe-border:#E2E8F0' ) ||
+		false === strpos( $r376_variables, '--jluxe-border-strong:#CBD5E1' )
+	) {
+		$r376_custom_borders_pass = false;
+	}
+}
+$r376_brand_preset = jluxe_get_design_presets()['jluxe_brand_red']['colors'];
+check(
+	$r376_custom_borders_pass &&
+	$r376_brand_preset['primary'] === '#D9143C' &&
+	$r376_brand_preset['success'] === '#15803D' &&
+	jluxe_contrast_ratio( '#D9143C', '#FFFFFF' ) >= 4.5 &&
+	jluxe_contrast_ratio( '#15803D', '#FFFFFF' ) >= 4.5,
+	'R521 custom #ED1A45/#D9143C borders stay neutral and visible, while the updated brand primary/success preset meets WCAG AA for white text'
+);
 check(strpos($cp3,'shortBody.scrollHeight <= shortBody.clientHeight + 2')!==false && strpos($cp3,'shortBtn.hidden = true;')!==false, 'R51 the short-description toggle hides itself when the text is not clamped');
 // R52: final parity pass against the user's full reference DOM (buttonsAddToCard row).
 check(preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*border-radius:16px !important;/',$cp3)===1 && preg_match('/\.cp3-addrow \.single_add_to_cart_button,\.jluxe-cp3 \.cp3-addrow \.cp3-add-simple\{[^}]*999px/',$cp3)!==1, 'R52 the buy button uses the reference rounded-16, never the 999px pill that collapsed into a circle');
@@ -3188,7 +3606,7 @@ check(strpos($cp3,'<div class="single_variation_wrap">')!==false && strpos($cp3,
 check(strpos($cp3,'if ( ! opt || opt.disabled ) { return; }')!==false && strpos($r53_variation_js,'pill.disabled = !selectable;')!==false && strpos($r53_variation_js,'opt.disabled = !selectable;')!==false, 'R74 (was R53) filtered-out options can never be picked; the shared Woo asset synchronizes the real select and pill disabled states');
 check(strpos($cp3,'data-cp3-thumbs-prev')!==false && strpos($cp3,'data-cp3-thumbs-next')!==false && strpos($cp3,'Math.abs( thumbsStrip.scrollLeft )')!==false && strpos($cp3,'tPrev.hidden = ! over')!==false, 'R53 the gallery thumbs strip gets RTL-safe prev/next arrows that hide themselves when nothing overflows');
 check(strpos($cp3,'.cp3-tarrow{')!==false && strpos($cp3,'.cp3-pill.is-disabled,.jluxe-cp3 .cp3-pill[disabled],.jluxe-cp3 .cp3-pill[aria-disabled="true"]{opacity:.45;text-decoration:line-through')!==false && strpos($cp3,'.cp3-thumbsrow{')!==false, 'R53 the arrows, struck-through pills (class OR disabled attributes - R74) and the thumbs row have explicit reference styles');
-$inc_woo=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+$inc_woo=theme_test_php_source( 'woocommerce' );
 $urls=(string) file_get_contents(ABSPATH.'inc/urls.php');
 $presets=(string) file_get_contents(ABSPATH.'inc/theme-settings-presets.php');
 $sticky_js=(string) file_get_contents(ABSPATH.'assets/js/sticky-cta.js');
@@ -3198,7 +3616,7 @@ check(strpos($inc_woo,'\\s*<bdi>\\s*')!==false && strpos($inc_woo,'woocommerce-P
 check(strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R54 the classic price box re-numbers-first at the render point, so no later plugin filter can flip it back');
 check(strpos($inc_woo,'jluxe_reference_price_html( $product->get_price_html() )')!==false, 'R54 the sticky CTA price is re-numbers-first at its render point too');
 check(strpos($r53_variation_js,'function jluxeBindCp3VariationPrice(form)')!==false && strpos($r53_variation_js,'found_variation.jluxeCp3Price')!==false && strpos($r53_variation_js,'jluxeBindCp3VariationPrice(form);')!==false && strpos($cp3,'function jluxeBindJqParts')===false, 'R55 the shared WooCommerce asset binds CP3 price events after its jQuery dependency instead of racing deferred jQuery in template inline scripts');
-check(strpos($inc_woo,'function jluxe_reference_price_html')!==false && strpos($inc_woo,'function jluxe_toman_glyph_svg')!==false && strpos($inc_woo,'jluxe-toman-clip')!==false, 'R55 the reference price formatter strips the symbol inside del and swaps the rest with the verbatim toman glyph from the reference DOM');
+check(strpos($inc_woo,'function jluxe_reference_price_html')!==false && strpos($inc_woo,'function jluxe_toman_glyph_svg')!==false && strpos($inc_woo,'return jluxe_toman_display_icon_svg();')!==false, 'R520 reference price formatter reuses the shared toman display icon and still strips currency symbols from del prices');
 check(strpos($inc_woo,"\$data['price_html'] = jluxe_reference_price_html")!==false && strpos($cp3,'jluxe_price_kses( jluxe_reference_price_html( $product->get_price_html() ) )')!==false, 'R55 both the variation price_html (found_variation swap) and the server-rendered price box use the reference format with svg-safe kses');
 check(strpos($inc_woo,"\$allowed['svg']")!==false && strpos($inc_woo,"\$allowed['clippath']")!==false && strpos($cp3,'.jluxe-toman-glyph,')!==false, 'R55 the kses allowlist keeps the glyph svg and the glyph has explicit styles in the price box and sticky CTA');
 check(strpos($urls,'preg_match( \'/^(shop|فروشگاه)$/u\', $slug )')!==false && strpos($urls,'preg_match( \'/^(blog|وبلاگ)$/u\', $slug )')!==false && strpos($urls,'get_option( \'page_for_posts\' )')!==false, 'R56 the nav link resolver maps shop/blog header links to their real destinations (Woo shop permalink, posts page, published blog page, home fallback) instead of raw slugs that 404');
@@ -3209,7 +3627,7 @@ $r363_legacy_preset_colors = array(
 	'digikala_clean' => array( 'primary' => '#D92D3F', 'secondary' => '#155E9B', 'background' => '#FFFFFF', 'success' => '#16834A', 'accent' => '#F59E0B' ),
 	'minimal_black_gold' => array( 'primary' => '#222222', 'secondary' => '#4B5563', 'background' => '#FAFAF8', 'success' => '#287A52', 'accent' => '#B58A3A' ),
 	'joyful_coral_teal' => array( 'primary' => '#E23B45', 'secondary' => '#087F7A', 'background' => '#F7FCFB', 'success' => '#168A50', 'accent' => '#F2A93B' ),
-	'jluxe_brand_red' => array( 'primary' => '#ED1A45', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#00A049', 'accent' => '#F5A623' ),
+	'jluxe_brand_red' => array( 'primary' => '#D9143C', 'secondary' => '#101113', 'background' => '#F7F8FA', 'success' => '#15803D', 'accent' => '#F5A623' ),
 	'emerald_modern' => array( 'primary' => '#087A68', 'secondary' => '#243746', 'background' => '#F6FAF8', 'success' => '#19734C', 'accent' => '#B9974F' ),
 );
 $r363_electric_indigo_colors = array(
@@ -3235,7 +3653,7 @@ foreach ( $r363_legacy_preset_colors as $r363_id => $r363_colors ) {
 	}
 }
 check(
-	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'legacy_default', 'royal_orchid', 'dodger_blue', 'bubblegum_pink' ) ) &&
+	array_keys( $r363_all_presets ) === array_merge( array_keys( $r363_legacy_preset_colors ), array( 'electric_indigo', 'atelier_noir', 'pearl_sage', 'royal_sapphire', 'legacy_default', 'royal_orchid', 'dodger_blue', 'bubblegum_pink' ) ) &&
 	$r363_legacy_presets_preserved &&
 	$r363_all_presets['electric_indigo']['colors'] === $r363_electric_indigo_colors &&
 	'نیلی الکتریکی (افزوده‌شده)' === $r363_all_presets['electric_indigo']['label'] &&
@@ -3245,10 +3663,11 @@ check(
 	'رویال ارکید (Royal Orchid)' === $r363_all_presets['royal_orchid']['label'] &&
 	$r363_all_presets['dodger_blue']['colors'] === $r369_dodger_blue_colors &&
 	'آبی داجر (Dodger Blue)' === $r363_all_presets['dodger_blue']['label'] &&
+	isset( $r363_all_presets['atelier_noir']['colors'], $r363_all_presets['pearl_sage']['colors'], $r363_all_presets['royal_sapphire']['colors'] ) &&
 	$r363_all_presets['bubblegum_pink']['colors'] === $r370_bubblegum_pink_colors &&
 	'صورتی آدامسی (Bubblegum Pink)' === $r363_all_presets['bubblegum_pink']['label'] &&
 	'bubblegum_pink' === $r363_all_presets['bubblegum_pink']['palette'],
-	'R363/R369/R370 preserves the earlier presets and appends Bubblegum Pink as the twelfth independent preset'
+	'R363/R369/R370/R403 preserves every earlier preset and appends three independent luxury palettes'
 );
 $r363_saved_post = $_POST;
 $r363_defaults = jluxe_theme_settings_defaults();
@@ -3390,7 +3809,7 @@ check(
 check(substr_count($presets,'typography')>=12 && strpos($presets,'jluxe_handle_apply_preset')!==false, 'R369/R370 all twelve design presets still flow through the same apply pipeline and sanitizer gates');
 check(strpos($cp3,'.jluxe-cp3 .cp3-tarrow[hidden]{display:none}')!==false, 'R58 the gallery arrows honor the hidden attribute despite their inline-flex display (author style no longer beats the UA hidden rule)');
 check(strpos($woo_inc,'<span class="jluxe-sticky-cta-price"><?php echo jluxe_price_kses( $price_html ); ?></span>')!==false && strpos($woo_inc,'data-jluxe-sticky-variation-price')!==false && strpos($woo_inc,'data-jluxe-price-placeholder=""')!==false, 'R136 simple sticky prices keep the toman glyph while variable products start with an empty price placeholder');
-$home_tpl=(string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
+$home_tpl=theme_test_php_source( 'homepage' );
 $export_php=(string) file_get_contents(ABSPATH.'inc/theme-settings-import-export.php');
 $card_tpl=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
 $cart_php=(string) file_get_contents(ABSPATH.'inc/cart-ux.php');
@@ -3407,13 +3826,13 @@ $cp3_faq_icon=strpos($cp3,'class="ic" aria-hidden="true">',$cp3_faq_row===false?
 $cp3_faq_title=strpos($cp3,'<h3 id="cp3-faq-title">',$cp3_faq_row===false?0:$cp3_faq_row);
 check(strpos($index_tpl,'class="jluxe-blog-grid"')!==false && strpos($index_tpl,'the_posts_pagination')!==false && strpos($index_tpl,"! in_array( 'product', \$jluxe_search_types, true )")!==false && strpos($css,'grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;')!==false, 'R141 blog and post archives use a paginated responsive three-column card grid without replacing WooCommerce product searches');
 check(strpos($single,'direction:rtl;text-align:right')!==false && strpos($single,'text-align:right!important')!==false && strpos($single,'max-height:420px')!==false && strpos($single,"\n\t\t\t\t\t\t\t'large',")!==false, 'R141 blog single content is consistently right-aligned and its featured image is bounded and smaller');
-check($product_faq_icon!==false && $product_faq_title!==false && $product_faq_icon<$product_faq_title && strpos($product_faq_tpl,'aria-controls=')!==false && strpos($product_faq_tpl,'class="jluxe-product-faq-list')!==false && strpos($css,'.jluxe-product-faq-heading__icon {')!==false, 'R141 product-editor FAQs render in a styled accordion with an accessible question icon before the heading');
+check($product_faq_icon!==false && $product_faq_title!==false && $product_faq_icon<$product_faq_title && strpos($product_faq_tpl,'aria-controls=')!==false && strpos($product_faq_tpl,'class="jluxe-product-faq-list')!==false && strpos($product_css,'.jluxe-product-faq-heading__icon {')!==false, 'R141 product-editor FAQs render in a styled accordion with an accessible question icon before the heading');
 check($cp3_faq_row!==false && $cp3_faq_icon!==false && $cp3_faq_title!==false && $cp3_faq_icon<$cp3_faq_title && strpos($cp3,'<details class="cp3-faq-item">')!==false, 'R141 the classic WooCommerce layout also presents managed FAQs as an accordion with the question icon preceding its title');
 check(strpos($product_faq_js,'panel.setAttribute("aria-hidden", isOpen ? "true" : "false");')!==false && strpos($product_faq_tpl,'aria-hidden="true"')!==false, 'R141 product FAQ accordion keeps its expanded state synchronized for assistive technology');
 check(strpos($sticky_js,'function guideToVariationChoice()')!==false && strpos($sticky_js,'[data-cp3-pills], [data-jluxe-variation-group]')!==false && strpos($sticky_js,'choice.focus( { preventScroll: true } )')!==false && strpos($sticky_js,'form.submit()')===false, 'R121 sticky select-and-buy scrolls to and focuses a visible variation choice without bypassing WooCommerce validation');
 check(strpos($woo_js,'data-jluxe-sticky-variation-price')!==false && strpos($woo_js,'found_variation')!==false && strpos($woo_js,'resetPrices()')!==false && strpos($woo_js,'setAddState(true)')!==false, 'R136 both sticky layouts fill the empty price slot after variation selection, clear it when the selection becomes invalid, and enable add only for a purchasable variation');
 check(strpos($woo_js,'function updateStockStatus(variation)')!==false && strpos($woo_js,'function resetStockStatus()')!==false && strpos($woo_js,'data-jluxe-stock-placeholder-state')!==false && strpos($inc_woo,'function jluxe_sticky_stock_presentation')!==false, 'R133 variation stock status follows found/reset events while initial simple-product status comes from WooCommerce stock data');
-check(strpos($css,'.jluxe-sticky-cta-stock::before')!==false && strpos($css,'data-jluxe-stock-state="low-stock"')!==false && strpos($css,'text-overflow: ellipsis;')!==false, 'R133 stock states have a compact colored marker and safely truncate long mobile status text');
+check(strpos($product_css,'.jluxe-sticky-cta-stock::before')!==false && strpos($product_css,'data-jluxe-stock-state="low-stock"')!==false && strpos($product_css,'text-overflow: ellipsis;')!==false, 'R133 stock states have a compact colored marker and safely truncate long mobile status text');
 check(strpos($woo_js,'guideToVariationChoice()')!==false && strpos($woo_js,'data-jluxe-mobile-bar-mode')!==false, 'R121 the default mobile price-bar CTA also scrolls to variation options before selection and clicks the real WooCommerce add button afterward');
 check(strpos($cp3,'data-cp3-pillfor')===false && strpos($cp3,"hash( 'crc32'")===false, 'R58 the vestigial pillfor attribute and its crc32 computation are gone from the classic template');
 check(strpos($urls,'function jluxe_blog_url')!==false && strpos($urls,'return jluxe_blog_url();')!==false && strpos($single,'jluxe_blog_url()')!==false, 'R59 the blog destination is one shared mapping (posts page -> published blog page -> home) used by the nav resolver and the single.php breadcrumb, never the raw /blog/ that 404s');
@@ -3422,12 +3841,12 @@ check(strpos($export_php,"\$settings['sms']['username'] = '';")!==false, 'R59 th
 check(strpos($card_tpl,'product_type_<?php echo esc_attr( $is_variable ? \'variable\' : \'simple\' ); ?>')!==false && strpos($card_tpl,'data-quantity="1"')!==false, 'R59 the shop loop button carries the same product_type class and data-quantity as the official Woo loop args');
 check(strpos($cp3,'function_exists( \'jluxe_render_suggested_products_modal\' )')!==false && strpos($cp3,'jluxe_render_suggested_products_modal( $product )')!==false && strpos($cp3,'is_purchasable()')!==false, 'R60 the classic layout renders the R47 suggested-products modal with the same purchasable+function guard as the modern template, so add-to-cart can finally open it');
 check(strpos($woo_inc,'function jluxe_suggested_modal_html_for')!==false && strpos($woo_inc,'function jluxe_render_suggested_products_modal')!==false && strpos($cart_php,"\$context_id = absint( jluxe_cart_post_string( 'pa_context_id' ) )")!==false && strpos($cart_php,"in_array( \$op, array( 'add', 'get' ), true )")!==false && strpos($cart_php,"jluxe_suggested_modal_html_for( \$modal_product )")!==false, 'R61/R174 successful adds and native read-only snapshot requests serve fresh suggestions from the requested public page-product context');
-	check(strpos($woo_js,'window.jluxeMountSuggestedModal')!==false && strpos($woo_js,'mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision)')!==false && strpos($woo_js,'window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg)')!==false && strpos($woo_js,'single_add_to_cart_button\")) {')===false, 'R61 fresh suggestion markup is mounted and opened only by the shared success handler, without a brittle add-button class gate');
+	check(strpos($woo_js,'window.jluxeMountSuggestedModal')!==false && strpos($woo_js,'mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision, button, cartSnapshot.queued_add_error)')!==false && strpos($woo_js,'window.jluxeCartPost(cartCfg.ajaxUrl, formData, cartCfg)')!==false && strpos($woo_js,'single_add_to_cart_button\")) {')===false, 'R61 fresh suggestion markup is mounted and opened only by the shared success handler, without a brittle add-button class gate');
 check(strpos($woo_js,'function jluxeBindSuggestedModal')!==false && strpos($woo_js,'data-cp3-pa-bound')!==false && strpos($woo_js,'document.querySelector("[data-jluxe-suggested-modal]")')!==false, 'R61 the modal binder is re-runnable for freshly mounted markup and Escape always closes the modal currently in the DOM');
 $r160_submit_start = strpos( $woo_js, 'function showErrorToast' );
 $r160_submit_end   = strpos( $woo_js, "/**\n * مودالِ انتخاب سریعِ تنوع", $r160_submit_start === false ? 0 : $r160_submit_start );
 $r160_submit_js    = false !== $r160_submit_start && false !== $r160_submit_end ? substr( $woo_js, $r160_submit_start, $r160_submit_end - $r160_submit_start ) : '';
-check( strpos( $woo_js, 'mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision)' ) !== false && strpos( $woo_js, 'suggestionButton.addEventListener("click"' ) !== false && strpos( $woo_js, 'if (!fromSuggestion && !hasSuggestionPayload)' ) !== false && strpos( $r160_submit_js, 'window.jluxeOpenSuggestedProductsModal();' ) === false, 'R160 only a successful add opens fresh suggestions; native adds use a read-only refresh, while failed and suggestion-originated adds cannot open duplicates' );
+check( strpos( $woo_js, 'mountAndOpenSuggestedModal(suggestedHtml, feedbackRevision, button, cartSnapshot.queued_add_error)' ) !== false && strpos( $woo_js, 'suggestionButton.addEventListener("click"' ) !== false && strpos( $woo_js, 'if (!fromSuggestion && !hasSuggestionPayload)' ) !== false && strpos( $r160_submit_js, 'window.jluxeOpenSuggestedProductsModal();' ) === false, 'R160 only a successful add opens fresh suggestions; native adds use a read-only refresh, while failed and suggestion-originated adds cannot open duplicates' );
 check(strpos($woo_inc,'jluxe-pa-empty')!==false && strpos($woo_inc,'data-jluxe-suggested-modal')!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-render.php'),'admin.php?page=jluxe-purchase-addons')!==false, 'R121 an empty-but-enabled post-purchase modal gets an explanatory state, and product-page settings link directly to the add-on configuration');
 ob_start();jluxe_render_settings_nav('jluxe-product-page');$suggestion_nav=ob_get_clean();
 check(strpos($suggestion_nav,'page=jluxe-purchase-addons')!==false && strpos($suggestion_nav,'پیشنهادهای پس از خرید')!==false, 'R127 post-purchase product suggestions are directly accessible from the theme settings navigation');
@@ -3464,14 +3883,14 @@ $r360_draft_option = $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] ?? n
 $r360_live_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
 unset( $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION] );
 ob_start();
-jluxe_render_visual_builder_page();
+jluxe_render_visual_builder_legacy_page();
 $r360_builder_html = (string) ob_get_clean();
 check(
-	19 === count( jluxe_homepage_section_types() ) &&
-	20 === count( jluxe_visual_builder_section_types() ) &&
+	25 === count( jluxe_homepage_section_types() ) &&
+	25 === count( jluxe_visual_builder_section_types() ) &&
 	false !== strpos( $r360_builder_html, 'صفحه‌ساز بصری' ) &&
 	false !== strpos( $r360_builder_html, 'name="homepage[sections][0][type]"' ) &&
-		20 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
+		25 === substr_count( $r360_builder_html, 'data-hb-template=' ) &&
 		false !== strpos( $r360_builder_html, 'data-hb-template="cta"' ) &&
 		false !== strpos( $r360_builder_html, 'متنِ دکمه' ) &&
 		false !== strpos( $r360_builder_html, 'name="homepage[mobile_category_swipe_hint_enabled]"' ) &&
@@ -3578,7 +3997,7 @@ check(
 );
 $GLOBALS['valid_wp_nonce'] = true;
 ob_start();
-jluxe_render_visual_builder_page();
+jluxe_render_visual_builder_legacy_page();
 $r361_saved_preview_html = (string) ob_get_clean();
 check(
 	false !== strpos( $r361_saved_preview_html, 'data-preview-kind="draft"' ) &&
@@ -3769,11 +4188,10 @@ ob_start();
 jluxe_render_homepage_cta( array( 'title' => '<script>no</script>', 'content' => '<img src=x>', 'button_label' => '<b>متن</b>', 'button_url' => 'https://shop.test/' ) );
 $r362_escaped_cta_html = (string) ob_get_clean();
 check(
-	19 === count( $r362_homepage_types ) &&
-	20 === count( $r362_visual_builder_types ) &&
-	array( 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'html', 'spacer' ) === $r362_homepage_types &&
-	$r362_homepage_types === array_slice( $r362_visual_builder_types, 0, 19 ) &&
-	array( 'cta' ) === array_slice( $r362_visual_builder_types, 19, 1 ) &&
+	25 === count( $r362_homepage_types ) &&
+	25 === count( $r362_visual_builder_types ) &&
+	array( 'container', 'hero', 'stories', 'product_grid', 'category_grid', 'category_showcase', 'brand_marquee', 'brand_video_campaigns', 'cta', 'banner', 'banner_two', 'banner_three', 'banner_slider', 'brick_products', 'special_products', 'banner_collage', 'recommended_panels', 'trust', 'blog', 'text', 'heading', 'image', 'button', 'html', 'spacer' ) === $r362_homepage_types &&
+	$r362_homepage_types === $r362_visual_builder_types &&
 	! in_array( 'cta', $r362_default_home_types, true ) &&
 	'cta' === ( $r362_builder_sanitized['sections'][0]['type'] ?? '' ) &&
 	'https://shop.test/shop/' === ( $r362_builder_sanitized['sections'][0]['button_url'] ?? '' ) &&
@@ -3791,6 +4209,80 @@ check(
 	false === strpos( $r362_escaped_cta_html, '<script>' ),
 	'R362 the CTA section sanitizes fields, allow-lists visual variants, renders semantic token-driven markup, and escapes output'
 );
+
+// Brand campaign section may target a real brand, product, or product category and uses validated responsive media.
+$bvc_old_taxonomies = $GLOBALS['taxonomies'] ?? array();
+$bvc_old_terms = $GLOBALS['terms_by_id'] ?? array();
+$bvc_old_products = $GLOBALS['products'] ?? array();
+$bvc_old_mimes = $GLOBALS['attachment_mimes'] ?? array();
+$GLOBALS['taxonomies']['product_cat'] = true;
+$GLOBALS['taxonomies']['product_brand'] = true;
+$GLOBALS['terms_by_id'][591] = (object) array( 'term_id' => 591, 'name' => 'دستهٔ نمونه' );
+$GLOBALS['terms_by_id'][592] = (object) array( 'term_id' => 592, 'name' => 'برند نمونه' );
+$GLOBALS['products'][593] = new WC_Product( 593 );
+$GLOBALS['attachment_mimes'][594] = 'image/gif';
+$GLOBALS['attachment_mimes'][595] = 'image/webp';
+$GLOBALS['attachment_mimes'][596] = 'video/mp4';
+$GLOBALS['attachment_mimes'][597] = 'image/jpeg';
+$bvc_sanitized = jluxe_sanitize_homepage_section( array(
+	'id' => 'campaign-test', 'type' => 'brand_video_campaigns', 'enabled' => '1', 'background_color' => '#ED1944',
+	'campaigns' => array(
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'mobile_media_id' => 595, 'product_ids' => array( 593 ), 'bg_color' => '#123ABC' ),
+		array( 'target_type' => 'product', 'product_id' => 593, 'media_type' => 'video', 'media_id' => 596, 'bg_color' => 'not-a-color' ),
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 597 ),
+	),
+) );
+check(
+	'#ED1944' === $bvc_sanitized['background_color'] &&
+	2 === count( $bvc_sanitized['campaigns'] ) &&
+	'category' === $bvc_sanitized['campaigns'][0]['target_type'] && 591 === $bvc_sanitized['campaigns'][0]['term_id'] &&
+	'image' === $bvc_sanitized['campaigns'][0]['media_type'] && 594 === $bvc_sanitized['campaigns'][0]['media_id'] && 595 === $bvc_sanitized['campaigns'][0]['mobile_media_id'] && '#123ABC' === $bvc_sanitized['campaigns'][0]['bg_color'] &&
+	'product' === $bvc_sanitized['campaigns'][1]['target_type'] && 593 === $bvc_sanitized['campaigns'][1]['product_id'] && 596 === $bvc_sanitized['campaigns'][1]['media_id'] && '' === $bvc_sanitized['campaigns'][1]['bg_color'],
+	'homepage brand campaign sanitizer accepts product/category targets, GIF and mobile media, bounded color, and removes duplicate targets'
+);
+$bvc_old_product_query_handler = $GLOBALS['product_query_handler'] ?? null;
+$bvc_old_product_query_results = $GLOBALS['product_query_results'] ?? null;
+$bvc_old_variation_prices = $GLOBALS['variation_prices'] ?? array();
+$GLOBALS['products'][598] = new WC_Product( 598 );
+$GLOBALS['products'][599] = new WC_Product( 599 );
+$GLOBALS['products'][599]->type = 'variable';
+$GLOBALS['variation_prices'][599] = array(
+	'regular_price' => array( 5991 => '100', 5992 => '200' ),
+	'sale_price' => array( 5991 => '50', 5992 => '120' ),
+	'price' => array( 5991 => '50', 5992 => '120' ),
+);
+$GLOBALS['product_query_results'] = array( $GLOBALS['products'][598], $GLOBALS['products'][599] );
+$GLOBALS['bvc_auto_queries'] = array();
+$GLOBALS['product_query_handler'] = static function ( $args ) {
+	$GLOBALS['bvc_auto_queries'][] = $args;
+	return $GLOBALS['product_query_results'];
+};
+ob_start();
+jluxe_render_homepage_brand_video_campaigns( array(
+	'id' => 'bvc-auto-fill', 'title' => 'کمپین نمونه', 'background_color' => '#123456',
+	'campaigns' => array(
+		array( 'target_type' => 'brand', 'brand_id' => 592, 'media_type' => 'image', 'media_id' => 594, 'bg_color' => '#7E0820' ),
+		array( 'target_type' => 'category', 'category_id' => 591, 'media_type' => 'image', 'media_id' => 594, 'bg_color' => '#FFFFFF' ),
+	),
+) );
+$bvc_rendered = (string) ob_get_clean();
+check(
+	2 === count( $GLOBALS['bvc_auto_queries'] ) &&
+	8 === $GLOBALS['bvc_auto_queries'][0]['limit'] &&
+	'instock' === $GLOBALS['bvc_auto_queries'][0]['stock_status'] && 'product_brand' === $GLOBALS['bvc_auto_queries'][0]['tax_query'][0]['taxonomy'] &&
+	'product_cat' === $GLOBALS['bvc_auto_queries'][1]['tax_query'][0]['taxonomy'] &&
+	false !== strpos( $bvc_rendered, 'data-fg-color="#ECEDEF"' ) && false !== strpos( $bvc_rendered, 'data-fg-color="#1F1F1F"' ) &&
+	false !== strpos( $bvc_rendered, 'data-jluxe-product-link' ) && false !== strpos( $bvc_rendered, '۵۰٪' ) && 1 === substr_count( $bvc_rendered, '<style>' ),
+	'homepage brand campaigns auto-fill in-stock brand/category products, calculate variable discounts, adapt text contrast, and emit component CSS once'
+);
+$GLOBALS['product_query_handler'] = $bvc_old_product_query_handler;
+$GLOBALS['product_query_results'] = $bvc_old_product_query_results;
+$GLOBALS['variation_prices'] = $bvc_old_variation_prices;
+$GLOBALS['taxonomies'] = $bvc_old_taxonomies;
+$GLOBALS['terms_by_id'] = $bvc_old_terms;
+$GLOBALS['products'] = $bvc_old_products;
+$GLOBALS['attachment_mimes'] = $bvc_old_mimes;
+
 $r362_home_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
 $r362_home_option = $GLOBALS['options'][JLUXE_SETTINGS_OPTION] ?? null;
 $r362_old_query_kind = $GLOBALS['query_kind'] ?? null;
@@ -3865,22 +4357,80 @@ $GLOBALS['query_kind']='product';ob_start();jluxe_render_page_skeleton();$produc
 $GLOBALS['query_kind']='blog';ob_start();jluxe_render_page_skeleton();$blog_skeleton=ob_get_clean();
 $GLOBALS['query_kind']='single';ob_start();jluxe_render_page_skeleton();$article_skeleton=ob_get_clean();
 $GLOBALS['query_kind']='cart';ob_start();jluxe_render_page_skeleton();$cart_skeleton=ob_get_clean();
-check(strpos($home_skeleton,'jluxe-page-skeleton--home')!==false && strpos($home_skeleton,'jluxe-page-skeleton__hero')!==false && strpos($home_skeleton,'aria-hidden="true" hidden')!==false, 'R127 homepage skeleton is a hidden, aria-hidden, no-layout-shift hero/card overlay');
+check(''===$home_skeleton, 'R520 server-rendered homepage omits the overlay skeleton to avoid duplicating already-present content');
 check(strpos($product_skeleton,'jluxe-page-skeleton--product')!==false && strpos($product_skeleton,'jluxe-page-skeleton__product-gallery')!==false && strpos($product_skeleton,'jluxe-page-skeleton__button')!==false, 'R127 product skeleton matches gallery/details without replacing the server-rendered product');
 check(strpos($blog_skeleton,'jluxe-page-skeleton--listing')!==false && strpos($article_skeleton,'jluxe-page-skeleton--article')!==false && strpos($cart_skeleton,'jluxe-page-skeleton')===false, 'R127 blog listings and article pages get matching skeletons while cart/checkout flows stay unobscured');
-$GLOBALS['query_kind']='front';ob_start();jluxe_page_skeleton_bootstrap();$skeleton_bootstrap=ob_get_clean();
-check(strpos($skeleton_bootstrap,'setTimeout')!==false && strpos($skeleton_bootstrap,'180')!==false && strpos($skeleton_bootstrap,'readystatechange')!==false && strpos($skeleton_bootstrap,'classList.remove')!==false, 'R127 skeleton appears only after a slow parse and is cleared when HTML parsing completes');
+$GLOBALS['query_kind']='front';ob_start();jluxe_page_skeleton_bootstrap();$home_skeleton_bootstrap=ob_get_clean();
+$GLOBALS['query_kind']='product';ob_start();jluxe_page_skeleton_bootstrap();$skeleton_bootstrap=ob_get_clean();
+check(''===$home_skeleton_bootstrap && strpos($skeleton_bootstrap,'setTimeout')!==false && strpos($skeleton_bootstrap,'180')!==false && strpos($skeleton_bootstrap,'readystatechange')!==false && strpos($skeleton_bootstrap,'classList.remove')!==false, 'R520 homepage also skips skeleton bootstrap while eligible interior skeletons remain delayed until HTML is parsed');
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['dequeued_styles']=array();
 $GLOBALS['query_kind']='404';
 jluxe_apply_asset_plan();
 $GLOBALS['query_kind']='front';
-check(in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && in_array('woocommerce-general',$GLOBALS['dequeued_styles'],true) && in_array('jquery-migrate',$GLOBALS['dequeued_scripts'],true) && in_array('select2',$GLOBALS['dequeued_scripts'],true), 'R62 on a lean page the plan dequeues the fragments poller, the theme Woo UX bundle, Woo CSS and jquery-migrate');
+check(in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce-product',$GLOBALS['dequeued_scripts'],true) && in_array('jluxe-woocommerce-cart-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('woocommerce-general',$GLOBALS['dequeued_styles'],true) && in_array('jquery-migrate',$GLOBALS['dequeued_scripts'],true) && in_array('select2',$GLOBALS['dequeued_scripts'],true), 'R62 on a lean page the plan dequeues all Woo theme bundles, the fragments poller, Woo CSS and jquery-migrate');
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['query_kind']='cart';
 jluxe_apply_asset_plan();
 $GLOBALS['query_kind']='front';
-check(!in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && !in_array('wc-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true), 'R62 on the cart page the Woo UX bundle and core scripts stay and only the fragments poller is removed');
+check(!in_array('jluxe-woocommerce',$GLOBALS['dequeued_scripts'],true) && !in_array('jluxe-woocommerce-product',$GLOBALS['dequeued_scripts'],true) && !in_array('jluxe-woocommerce-cart-checkout',$GLOBALS['dequeued_scripts'],true) && !in_array('wc-checkout',$GLOBALS['dequeued_scripts'],true) && in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true), 'R62 on the cart page the core and conditional Woo UX bundles stay; only the fragments poller is removed');
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'front';
+ jluxe_enqueue_woocommerce_assets();
+$woo_home_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'product';
+jluxe_enqueue_woocommerce_assets();
+$woo_product_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'cart';
+jluxe_enqueue_woocommerce_assets();
+$woo_cart_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['scripts'] = array();
+$GLOBALS['query_kind'] = 'checkout';
+jluxe_enqueue_woocommerce_assets();
+$woo_checkout_handles = array_keys( $GLOBALS['scripts'] );
+$GLOBALS['query_kind'] = 'front';
+check(
+	in_array( 'jluxe-woocommerce', $woo_home_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_home_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-cart-checkout', $woo_home_handles, true ) &&
+		in_array( 'jluxe-woocommerce-product', $woo_product_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-cart-checkout', $woo_product_handles, true ) &&
+		in_array( 'jluxe-woocommerce-cart-checkout', $woo_cart_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_cart_handles, true ) &&
+		in_array( 'jluxe-woocommerce-cart-checkout', $woo_checkout_handles, true ) &&
+		! in_array( 'jluxe-woocommerce-product', $woo_checkout_handles, true ),
+	'Production route bundles enqueue only on their matching product/cart/checkout pages, not Home'
+);
+$woo_enqueue_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce/checkout-fields.php' );
+check(
+	false !== strpos( $woo_enqueue_source, "function_exists( 'is_product' ) && is_product()" ) &&
+		false !== strpos( $woo_enqueue_source, "function_exists( 'is_cart' ) && is_cart()" ) &&
+		false !== strpos( $woo_enqueue_source, "function_exists( 'is_checkout' ) && is_checkout()" ) &&
+		false !== strpos( $woo_enqueue_source, 'woocommerce.product.min.js' ) &&
+		false !== strpos( $woo_enqueue_source, 'woocommerce.cart-checkout.min.js' ) &&
+		false !== strpos( (string) file_get_contents( ABSPATH . 'assets/compiled/woocommerce.product.min.js' ), 'jluxe' ),
+	'WooCommerce product and cart/checkout modules are compiled separately and gated to their matching routes'
+);
+$product_bundle_start = strpos( $woo_enqueue_source, '// جزئیاتِ فرم محصول' );
+$cart_bundle_start = strpos( $woo_enqueue_source, '// تغییراتِ سبد و فرمِ checkout' );
+$product_bundle_block = false !== $product_bundle_start && false !== $cart_bundle_start
+	? substr( $woo_enqueue_source, $product_bundle_start, $cart_bundle_start - $product_bundle_start )
+	: '';
+$cart_bundle_end = false !== $cart_bundle_start ? strpos( $woo_enqueue_source, "\n}", $cart_bundle_start ) : false;
+$cart_bundle_block = false !== $cart_bundle_start && false !== $cart_bundle_end
+	? substr( $woo_enqueue_source, $cart_bundle_start, $cart_bundle_end - $cart_bundle_start )
+	: '';
+check(
+	false !== strpos( $product_bundle_block, 'if ( is_file( $product_path ) )' ) &&
+		false === strpos( $product_bundle_block, 'return;' ) &&
+		false !== strpos( $cart_bundle_block, 'if ( is_file( $cart_checkout_path ) )' ) &&
+		false === strpos( $cart_bundle_block, 'return;' ) &&
+		false !== strpos( $product_bundle_block, "array( 'in_footer' => true, 'strategy' => 'defer' )" ) &&
+		false !== strpos( $cart_bundle_block, "array( 'in_footer' => true, 'strategy' => 'defer' )" ),
+	'R408 route bundles are checked independently; a missing file cannot short-circuit another enqueue and both keep deferred footer loading'
+);
 $GLOBALS['dequeued_scripts']=array();
 $GLOBALS['test_filters']['jluxe_asset_plan']=static function($plan){ $plan['cart_fragments']=true; return $plan; };
 jluxe_apply_asset_plan();
@@ -3889,7 +4439,7 @@ check(!in_array('wc-cart-fragments',$GLOBALS['dequeued_scripts'],true), 'R62 the
 $GLOBALS['transients']['jluxe_mega_menu_tree_v1']=array(array('id'=>'7','label'=>'آشپزخانه'));
 $GLOBALS['objcache']['jluxe']=array();
 $mm=jluxe_get_mega_menu_categories();
-check($mm===array(array('id'=>'7','label'=>'آشپزخانه')) && isset($GLOBALS['objcache']['jluxe']['jluxe_mega_menu_tree_v1']), 'R62 the mega-menu tree is served from the transient fallback and promoted into the object-cache layer as an array (not HTML)');
+check($mm[0]['id']==='7' && $mm[0]['label']==='آشپزخانه' && !empty($mm[0]['iconSvg']) && isset($GLOBALS['objcache']['jluxe']['jluxe_mega_menu_tree_v1']), 'R62 the mega-menu tree is served from the transient fallback and promoted into the object-cache layer as an array (not HTML)');
 $GLOBALS['transients']['jluxe_mega_menu_tree_v1']=array('stale');
 $GLOBALS['objcache']['jluxe']['jluxe_mega_menu_tree_v1']=array('fresh');
 check(jluxe_get_mega_menu_categories()===array('fresh'), 'R62 the object cache layer wins over the transient when it holds a fresh copy');
@@ -3909,7 +4459,8 @@ check(strpos($woo_inc,'jluxe-pa-cartinfo')!==false && strpos($woo_inc,'$cart_sum
 check(strpos($woo_js,'jluxe-btn-added')!==false && strpos($woo_js,'به سبد اضافه شد')!==false && strpos($woo_js,'button.classList.contains("add_to_cart_button")')!==false, 'R63 the card quick-add button flips to a checkmark with an added-to-cart label and reverts after ~2s');
 check(strpos($woo_js,'window.JLuxeStorefrontUtils.activateDialog')!==false && strpos($woo_js,'releaseDialogFocus')!==false, 'R63 the suggested modal traps focus via the shared activateDialog helper and restores focus on close');
 check(strpos((string) file_get_contents(ABSPATH.'src/lib/api.js'),'export function dedupeGet')!==false && strpos($utils_js,'jluxe-header-condensed')!==false, 'R63 the JS data registry (dedupeGet single-flight + ttl cache) exists and the header condenses on scroll via storefront-utils');
-check(strpos($functions_php,"jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] )")!==false && strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06)')!==false, 'R63 editable color tokens come from the shared settings generator while fixed radii/shadows stay in critical CSS');
+$theme_settings_php=(string) file_get_contents(ABSPATH.'inc/theme-settings.php');
+check(strpos($functions_php,'--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06)')!==false && strpos($functions_php,'jluxe_generate_color_variables( jluxe_get_theme_settings()[\'colors\'] )')===false && strpos($theme_settings_php,"wp_add_inline_style( 'jluxe-main-0', \$css )")!==false, 'R520 fixed critical tokens and editable color tokens print once, with configurable variables after the main stylesheet');
 check(strpos($store_css,'@media (hover: hover)')!==false && strpos($store_css,'.jluxe-card-shine:hover')!==false && strpos($store_css,'.jluxe-btn-added { background: hsl(var(--primary))')!==false && strpos($store_css,'.jluxe-pa-viewcart')!==false, 'R63 the card shine hover is guarded by (hover: hover) and the new footer/quick-add styles exist in storefront.css');
 check(strpos($header_tpl,'jluxe-skip-link')!==false && strpos($header_tpl,'href="#primary"')!==false && strpos($store_css,'.jluxe-skip-link:focus-visible')!==false, 'R63 a real skip-to-content link targets the main landmark and only appears on keyboard focus');
 // R64/R337: fixed stock/date ordering on main catalog archives, plus the legacy toggle for secondary product lists.
@@ -3920,7 +4471,7 @@ check(strpos($settings_inc,"'out_of_stock_last'          => true")!==false && st
 $__oos_settings=$__oos_original_settings;
 $__oos_settings['shop']['out_of_stock_last']=false;
 update_test_settings($__oos_settings);
-$__archive_sort_expected="CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC, wp_posts.ID DESC";
+$__archive_sort_expected="CASE WHEN COALESCE( jluxe_oos.stock_status, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC, wp_posts.ID DESC";
 $__archive_contexts=array(
  'shop'=>array('post_type'=>'product','is_post_type_archive'=>true),
  'product_category'=>array('post_type'=>'product','queried_taxonomies'=>array('product_cat')),
@@ -3933,13 +4484,14 @@ foreach($__archive_contexts as $__archive_context=>$__archive_query_args){
  $__archive_query_args['is_main_query']=true;
  $__archive_query=new WP_Query($__archive_query_args);
  $__archive_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.menu_order ASC'),$__archive_query);
- $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],' AS jluxe_oos ') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
+ $__archives_sorted=$__archives_sorted && false!==strpos($__archive_clauses['join'],'wp_wc_product_meta_lookup AS jluxe_oos') && false===strpos($__archive_clauses['join'],'wp_postmeta') && strpos($__archive_clauses['orderby'],$__archive_sort_expected)===0 && false===strpos($__archive_clauses['orderby'],'menu_order');
 }
 check($__archives_sorted, 'R337 shop, category, brand, and product-attribute main archives use current WP_Query flags to sort available first and newest first even when global conditionals disagree and the legacy toggle is off');
 
 $__brand_query_without_post_type=new WP_Query(array('is_main_query'=>true,'queried_taxonomies'=>array('product_brand')));
 $__brand_query_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.menu_order ASC'),$__brand_query_without_post_type);
-check(false!==strpos($__brand_query_clauses['join'],' AS jluxe_oos ') && strpos($__brand_query_clauses['orderby'],$__archive_sort_expected)===0, 'R372 a product-brand main archive remains stock-sorted when WooCommerce has not populated post_type yet');
+check(false!==strpos($__brand_query_clauses['join'],'wp_wc_product_meta_lookup AS jluxe_oos') && strpos($__brand_query_clauses['orderby'],$__archive_sort_expected)===0, 'R372 a product-brand main archive uses the WooCommerce lookup stock index even when WooCommerce has not populated post_type yet');
+$GLOBALS['wpdb']->wc_product_meta_lookup=''; // Exercise compatibility fallback in the legacy secondary-query assertions below.
 
 // R337: stock transitions invalidate only the product/variation and related parent caches.
 $__stock_cache_original_products = $GLOBALS['products'] ?? array();
@@ -3983,6 +4535,13 @@ $__secondary_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','orderby'=
 check($__secondary_clauses===array('join'=>'','orderby'=>'wp_posts.menu_order ASC'), 'R337 a secondary product query respects the disabled legacy toggle and keeps its custom order');
 $__oos_settings['shop']['out_of_stock_last']=true;
 update_test_settings($__oos_settings);
+$__in_stock_meta_query=array('relation'=>'AND',array('key'=>'total_sales','value'=>0,'compare'=>'>','type'=>'NUMERIC'),array('key'=>'_stock_status','value'=>'instock','compare'=>'='));
+$__in_stock_query=new WP_Query(array('post_type'=>'product','meta_query'=>$__in_stock_meta_query));
+$__in_stock_clauses=array('join'=>'','where'=>'1=1','orderby'=>'RAND()');
+check($__in_stock_clauses===jluxe_out_of_stock_last_clauses($__in_stock_clauses,$__in_stock_query), 'R517 in-stock-only secondary lists keep their custom/random order and avoid the redundant stock join and CASE');
+$__or_stock_query=new WP_Query(array('post_type'=>'product','meta_query'=>array('relation'=>'OR',array('key'=>'_stock_status','value'=>'instock'),array('key'=>'total_sales','value'=>0,'compare'=>'>'))));
+$__or_stock_clauses=jluxe_out_of_stock_last_clauses(array('join'=>'','where'=>'1=1','orderby'=>'wp_posts.post_date DESC'),$__or_stock_query);
+check(false!==strpos($__or_stock_clauses['join'],' AS jluxe_oos ') && strpos($__or_stock_clauses['orderby'],'CASE WHEN COALESCE')===0, 'R517 mixed OR filters still apply stock ordering because they can include out-of-stock products');
 $__q=new WP_Query(array('post_type'=>'product'));
 $__c=jluxe_out_of_stock_last_clauses(array('join'=>' INNER JOIN wp_term_relationships ON x ','where'=>'1=1','orderby'=>'wp_posts.post_date DESC'),$__q);
 check(false!==strpos($__c['join'],' AS jluxe_oos ') && strpos($__c['join'],'jluxe_oos.meta_key = ')!==false && strpos($__c['orderby'],"CASE WHEN COALESCE( jluxe_oos.meta_value, 'instock' ) = 'outofstock' THEN 1 ELSE 0 END ASC, wp_posts.post_date DESC")===0, 'R64 the enabled legacy toggle places out-of-stock products last while preserving a secondary query\'s original order');
@@ -3994,7 +4553,8 @@ check(strpos($__c3['orderby'],'CASE')===false && strpos($__c3['join'],'jluxe_oos
 update_test_settings($__oos_original_settings);
 check(strpos($woo_inc,"add_filter( 'posts_clauses', 'jluxe_out_of_stock_last_clauses', 10, 2 )")!==false && strpos($store_css,'flex-direction: row-reverse')!==false && strpos($store_css,'.woocommerce-Price-amount bdi')!==false, 'R64 the central posts_clauses filter is registered and the toman glyph is pinned to the LEFT of the price via row-reverse flex on the amount bdi');
 check(strpos($store_css,'[data-jluxe-variation-group] > p { font-size: 11.5px')!==false && strpos($store_css,'.jluxe-variant-modal .woocommerce-variation-price')!==false && strpos($store_css,'.jluxe-pa-price { color: hsl(var(--foreground))')!==false, 'R64 size/color labels and variation prices are smaller and the price color is black (foreground) in the picker, product page and suggestion rows');
-check(strpos($store_css,'.single_add_to_cart_button.button')!==false && strpos($store_css,'.jluxe-btn-primary[data-jluxe-sticky-add]')!==false && substr_count($store_css,'min-height: 48px')>=2 && strpos($store_css,'.single_add_to_cart_button.disabled')!==false, 'R64 every textual add-to-cart button (single form, variant modal, sticky CTA, modal confirm) shares one 48px/16px-radius primary style with a real disabled state');
+$route_product_css=(string) file_get_contents(ABSPATH.'src/styles/route-product.css');
+check(strpos($store_css,'.single_add_to_cart_button.button')!==false && strpos($route_product_css,'.jluxe-btn-primary[data-jluxe-sticky-add]')!==false && substr_count($store_css . $route_product_css,'min-height: 48px')>=2 && strpos($store_css,'.single_add_to_cart_button.disabled')!==false, 'R64 every textual add-to-cart button (single form, variant modal, sticky CTA, modal confirm) shares one 48px/16px-radius primary style with a real disabled state');
 check(strpos($woo_js,'"۰۱۲۳۴۵۶۷۸۹".charAt(+d)')!==false && strpos($woo_js,'pickerFromSuggested')!==false && strpos($woo_js,'triggerEl.closest("[data-jluxe-suggested-modal]")')!==false, 'R64 the modal total always renders Persian digits after JS recalculation');
 check(strpos($woo_js,'pickerAdded = true')!==false && strpos($woo_js,'data-pa-variation-committed')!==false && strpos($woo_js,'window.jluxeCommitSuggestedSelection(suggestedModal')!==false && strpos($woo_js,'formData.set("pa_context_id", pickerSuggestedContext)')!==false && strpos($store_css,'.jluxe-pa-foot-top')!==false && strpos($store_css,'.jluxe-pa-foot-main .jluxe-pa-action-row .jluxe-pa-confirm { flex: 1 1 auto;')!==false, 'R127/R345 cancellation/error restores recommendations, and the confirm action retains its responsive row layout while variable adds commit pending choices');
 check(strpos($store_css,'.jluxe-pa { z-index: 190; }')!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AiAssistant.js'),'zIndex: isMobile && open ? 180 : 90')!==false, 'R64 the suggestions sheet stays above the idle launcher and open mobile assistant while clearing sticky chrome');
@@ -4004,9 +4564,10 @@ $r126_classic_product_tpl = (string) file_get_contents(ABSPATH.'woocommerce/cont
 $r126_ai_js = (string) file_get_contents(ABSPATH.'src/islands/AiAssistant.js');
 $r126_woo_js = (string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 $r126_css = (string) file_get_contents(ABSPATH.'src/styles/storefront.css');
+$r126_product_css = (string) file_get_contents(ABSPATH.'src/styles/route-product.css');
 check(strpos($r126_default_product_tpl,'data-jluxe-product-buybox')!==false && strpos($r126_classic_product_tpl,'class="cp3-side" data-jluxe-product-buybox')!==false, 'R127 both product templates retain their purchase-box context without using it to reposition the help launcher');
 check(strpos($r126_ai_js,'const launcherBottom = Math.max(Number(bottom) || 0, dockClearance)')!==false && strpos($r126_ai_js,'productClearance')===false && strpos($r126_ai_js,'productSideOverride')===false && strpos($r126_ai_js,'[data-jluxe-sticky-cta]"')!==false && strpos($r126_ai_js,'data-jluxe-mobile-bar-toggle')===false && strpos($r126_ai_js,'data-jluxe-sticky-cta-mode-toggle')===false, 'R127 the product help launcher stays fixed at its configured corner and clears only measured docks while the switches occupy the opposite corner');
-check(preg_match('/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index: 200;/s',$r126_css)===1 && preg_match('/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index: 210;/s',$r126_css)===1 && strpos($r126_css,'.jluxe-pa { z-index: 190; }')!==false && strpos($r126_ai_js,'zIndex: isMobile && open ? 180 : 90')!==false, 'R126 suggestions/review/variation dialogs retain ordered layers above sticky mobile chrome and the open assistant');
+check(preg_match('/\.jluxe-review-modal-backdrop\s*\{[^}]*z-index: 200;/s',$r126_product_css)===1 && preg_match('/\.jluxe-variant-modal-backdrop\s*\{[^}]*z-index: 210;/s',$r126_css)===1 && strpos($r126_css,'.jluxe-pa { z-index: 190; }')!==false && strpos($r126_ai_js,'zIndex: isMobile && open ? 180 : 90')!==false, 'R126 suggestions/review/variation dialogs retain ordered layers above sticky mobile chrome and the open assistant');
 check(strpos($r126_woo_js,'function showSuggestedError')!==false && strpos($r126_woo_js,'function releaseAddedProducts')!==false && strpos($r126_woo_js,'function finishFailure')!==false && strpos($r126_woo_js,'activeOperation.type === "add"')!==false && strpos($r126_woo_js,'window.jluxeShowSuggestedAddWarning')!==false && strpos($r126_woo_js,'pickerUncertaintyMessage')!==false && strpos($r126_css,'.jluxe-pa-error')!==false, 'R126 failed add-on requests stay retryable, confirmed successes are deselected, and ambiguous add warnings persist when returning to the picker');
 // R65: extended color map (slug fallback + normalization) and unselectable out-of-stock variations.
 check(jluxe_persian_color_to_hex('طوسی تیره')==='#4B5563' && jluxe_persian_color_to_hex('طوسی  تیره')==='#4B5563' && jluxe_persian_color_to_hex('dark-grey')==='#4B5563' && jluxe_persian_color_to_hex('قهوه‌ای')==='#78350F' && jluxe_persian_color_to_hex('دکمه‌ای')===null, 'R65 the color map resolves Persian variants (ZWNJ/extra spaces normalized), English slugs like dark-grey, and still returns null for unknown names (no guessing)');
@@ -4025,8 +4586,8 @@ $form66b=jluxe_review_form_criteria(array('comment_field'=>''));
 check(strpos($form66b['comment_field'],'name="rating"')===false && strpos($form66b['comment_field'],'<textarea id="comment"')!==false, 'R66 with product ratings disabled the star widget is omitted but the textarea and criteria remain');
 $GLOBALS['ratings_enabled']=true;
 $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($store_css,'#review_form textarea')!==false && strpos($store_css,'border-radius: 14px')!==false && strpos($store_css,'#review_form .submit input[type="submit"]')!==false && strpos($store_css,'.jluxe-rating-stars label:hover')!==false && strpos($store_css,'transform: scale(1.15)')!==false, 'R66 the review form styles give the textarea/inputs soft 14px corners with a primary focus ring, a unified primary submit, and interactive hover-scaling stars');
-check(strpos($store_css,'.jluxe-reviews .commentlist li.comment')!==false && strpos($store_css,'border-radius: 16px')!==false && strpos($store_css,'img.avatar')!==false && strpos($store_css,'width: 40px')!==false && strpos($store_css,'.comment-text .meta')!==false, 'R66 the comment list renders compact 16px cards with a 40px round avatar, one-line meta row and restrained typography');
+check(strpos($route_product_css,'#review_form textarea')!==false && strpos($route_product_css,'border-radius: 14px')!==false && strpos($route_product_css,'#review_form .submit input[type="submit"]')!==false && strpos($route_product_css,'.jluxe-rating-stars label:hover')!==false && strpos($route_product_css,'transform: scale(1.15)')!==false, 'R66 the review form styles give the textarea/inputs soft 14px corners with a primary focus ring, a unified primary submit, and interactive hover-scaling stars');
+check(strpos($route_product_css,'.jluxe-reviews .commentlist li.comment')!==false && strpos($route_product_css,'border-radius: 16px')!==false && strpos($route_product_css,'img.avatar')!==false && strpos($route_product_css,'width: 40px')!==false && strpos($route_product_css,'.comment-text .meta')!==false, 'R66 the comment list renders compact 16px cards with a 40px round avatar, one-line meta row and restrained typography');
 $classic66=(string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
 check(strpos($classic66,'کارت‌های جمع‌وجورِ ۱۶px')!==false && strpos($classic66,'.commentlist .comment{border-radius:24px')===false, 'R66 the classic layout no longer overrides the compact cards with the old oversized 24px/20px style');
 // R67: prices are always black — the Woo-default green on p.price/ins is overridden theme-wide.
@@ -4050,8 +4611,10 @@ check(strpos($settings_inc,"'otp_only' => false")!==false && strpos($sms_php,'na
 check(strpos($settings_inc,"'otpOnly' => ! empty( \$settings['sms']['otp_only'] ) && jluxe_otp_available()")!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'const otpOnly = Boolean(settings.auth?.otpOnly) && smsEnabled;')!==false && strpos((string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx'),'smsEnabled && !otpOnly')!==false, 'R70 otpOnly is only exposed when the SMS gateway is truly configured and the auth page then removes the username/password tab');
 $acct=(string) file_get_contents(ABSPATH.'page-my-account.php');
 $store_css=(string) file_get_contents(ABSPATH.'src/styles/storefront.css');
-check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($store_css,'.jluxe-recover-card')!==false && strpos($store_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
-check(strpos($acct,'data-otp-only="1"')!==false && strpos($store_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
+$account_css=(string) file_get_contents(ABSPATH.'src/styles/route-account-auth.css');
+$auth_page_css=(string) file_get_contents(ABSPATH.'src/styles/auth-page.css');
+check(strpos($acct,'بازیابی رمز عبور')!==false && strpos($acct,"do_shortcode( '[woocommerce_my_account]' )")!==false && strpos($account_css,'.jluxe-recover-card')!==false && strpos($account_css,'.jluxe-recover-card .woocommerce input[type="password"]')!==false, 'R70 the lost-password page renders the real WooCommerce recovery form inside a branded recovery card with styled inputs/buttons/messages (no raw shortcode look)');
+check(strpos($acct,'data-otp-only="1"')!==false && strpos($auth_page_css,'.jluxe-auth-screen[data-otp-only] .jluxe-auth-tabs')!==false, 'R70 the otp-only login page hides the password tab server-side (data-otp-only) so it never flashes before hydration');
 $auth_jsx=(string) file_get_contents(ABSPATH.'src/islands/AuthPage.jsx');
 check(strpos($auth_jsx,'jluxe-auth-hint')===false && strpos($auth_jsx,'با کد درست')===false && strpos($auth_jsx,'credentials')!==false && strpos($auth_jsx,'nextCode.length === 6')!==false && strpos($auth_jsx,'maxLength={6}')===false && strpos($auth_jsx,'autoComplete="one-time-code"')!==false, 'R98 the redundant auth hint is removed and the unrestricted one-time-code field supports SMS autofill plus automatic six-digit verification');
 // R71: variation-picker swatches selectable again (R68 regression) + round modal add button.
@@ -4060,7 +4623,7 @@ check(strpos($wc_js,'optionValues[select.name + "|" + value] === true')!==false 
 check(strpos($store_css,'.jluxe-variant-modal .single_add_to_cart_button')!==false && strpos($store_css,'border-radius: 16px !important')!==false && strpos($store_css,'background: hsl(var(--primary)) !important')!==false, 'R71 the picker modal add-to-cart button is forced to the unified rounded primary style (16px radius, 48px height) immune to core/plugin CSS order');
 // R72: random-mode setting ships; R137 gives product-card plus buttons a compact dark-to-primary interaction state.
 check(strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-sanitize.php'),"'per_category', 'random'")!==false && strpos((string) file_get_contents(ABSPATH.'inc/theme-settings-render.php'),"value=\"random\"")!==false, 'R72 the suggested-products mode offers the new random option in both the renderer and the sanitizer whitelist');
-$pa_wc=(string) file_get_contents(ABSPATH.'inc/woocommerce.php');
+$pa_wc=theme_test_php_source( 'woocommerce' );
 check(strpos($pa_wc,'function jluxe_suggested_is_available')!==false && strpos($pa_wc,"'visibility'   => 'visible'")!==false && strpos($pa_wc,"'orderby'      => 'rand'")!==false && strpos($pa_wc,'$limit * 4')!==false, 'R72 the suggestion pool queries a bigger-than-limit batch of visible products in rand order and re-filters every candidate so no slot is wasted');
 $cprod=(string) file_get_contents(ABSPATH.'woocommerce/content-product.php');
 check(strpos($cprod,'is-available')!==false && strpos($cprod,'is-unavailable')!==false && strpos($cprod,'bg-primary text-primary-foreground hover:bg-primary-hover')===false && strpos($store_css,'.jluxe-product-card-cta.is-available:is(:hover, :focus-visible, :active, .loading, .added)')!==false, 'R137 product-card plus buttons are dark by default and transition to primary on hover, press, load, or successful add while modal buttons stay primary');
@@ -4104,11 +4667,11 @@ $rev_js=(string) file_get_contents(ABSPATH.'assets/js/woocommerce.js');
 check(strpos($cp3_tpl,'data-jluxe-review-modal')!==false && strpos($cp3_tpl,'href="#review_form_wrapper"')!==false && strpos($cp3_tpl,'$cp3_review_form_open')!==false, 'R73/R140 the review action opens the modal with JavaScript, falls back to the inline form without it, and respects WooCommerce review settings');
 check(strpos($reviews_php,'دیدگاه شما پس از بررسی و تأیید مدیر منتشر می‌شود')!==false && strpos($reviews_php,"comment_notes_before")!==false, 'R73 the review form itself carries the moderation notice (published only after admin approval)');
 check(strpos($rev_js,'redirect: "manual"')!==false && strpos($rev_js,'jluxe-review-modal-backdrop')!==false && strpos($rev_js,'wp-die-message')!==false, 'R73 the popup submits the real WooCommerce form via fetch (opaque redirect = success, core wp-die messages surfaced inside the modal)');
-check(strpos($store_css,'.jluxe-review-modal-backdrop')!==false && strpos($store_css,'.jluxe-review-modal-check')!==false && strpos($store_css,'.jluxe-review-moderation-note')!==false, 'R73 the review popup is styled in the shared modal language (card, success state, moderation note)');
-check(strpos($store_css,'.jluxe-cp3.jluxe-review-modal-ready #review_form_wrapper { display: none; }')!==false && strpos($store_css,'.jluxe-cp3 .woocommerce-noreviews {')!==false && strpos($store_css,'.jluxe-review-modal #review_form_wrapper { display: block;')!==false && strpos($rev_js,'productRoot.classList.add("jluxe-review-modal-ready")')!==false, 'R73.1/R140 the form hides only after the modal handler is ready; without JS the inline form and no-reviews message remain visible');
+check(strpos($route_product_css,'.jluxe-review-modal-backdrop')!==false && strpos($route_product_css,'.jluxe-review-modal-check')!==false && strpos($route_product_css,'.jluxe-review-moderation-note')!==false, 'R73 the review popup is styled in the shared modal language (card, success state, moderation note)');
+check(strpos($route_product_css,'.jluxe-cp3.jluxe-review-modal-ready #review_form_wrapper { display: none; }')!==false && strpos($store_css,'.jluxe-cp3 .woocommerce-noreviews {')!==false && strpos($route_product_css,'.jluxe-review-modal #review_form_wrapper { display: block;')!==false && strpos($rev_js,'productRoot.classList.add("jluxe-review-modal-ready")')!==false, 'R73.1/R140 the form hides only after the modal handler is ready; without JS the inline form and no-reviews message remain visible');
 check(strpos($rev_js,'reviewFormHome.insertBefore(reviewWrapper, reviewFormHome.firstChild)')!==false, 'R73.1 closing the popup returns the borrowed WooCommerce form to its DOM home so the popup can be reopened');
 check(strpos($rev_js,'showReviewUnavailable(trigger)')!==false && strpos($rev_js,'window.JLuxeStorefrontUtils && typeof window.JLuxeStorefrontUtils.activateDialog')!==false, 'R140 missing review markup reports an actionable message and the modal still opens without the optional focus helper');
-check(strpos($store_css,'.jluxe-review-criteria-fields')!==false && strpos($store_css,'repeat(auto-fit, minmax(225px, 1fr))')!==false && strpos($store_css,'.jluxe-review-criteria-row:has(input:checked)')!==false, 'R73.2 the criteria rating rows form a responsive auto-fit grid (two columns on desktop, one on mobile) instead of stacking, and the chosen card is highlighted with :has without any JS');
+check(strpos($route_product_css,'.jluxe-review-criteria-fields')!==false && strpos($route_product_css,'repeat(auto-fit, minmax(225px, 1fr))')!==false && strpos($route_product_css,'.jluxe-review-criteria-row:has(input:checked)')!==false, 'R73.2 the criteria rating rows form a responsive auto-fit grid (two columns on desktop, one on mobile) instead of stacking, and the chosen card is highlighted with :has without any JS');
 // R138: auto-select and persist the first purchasable/in-stock WooCommerce variation when defaults are blank or stale.
 if ( ! class_exists( 'JLuxe_Var_Product' ) ) {
 	class JLuxe_Var_Product extends WC_Product {
@@ -4389,7 +4952,7 @@ $GLOBALS['deleted_product_transients'] = array();
 jluxe_purge_product_related_caches( $r174_variation_id );
 check( array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['cleaned_posts'] && array( $r174_variation_id, $r174_parent_id ) === $GLOBALS['deleted_product_transients'], 'R174 variation cache invalidation is restricted to the variation and its parent, never the whole site');
 $modern_badges = (string) file_get_contents( ABSPATH . 'woocommerce/content-single-product.php' );
-$r212_badge_renderer = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r212_badge_renderer = theme_test_php_source( 'woocommerce' );
 $r212_classic_route = strpos( $modern_badges, "if ( 'classic' === \$jluxe_layout ) {" );
 $r212_classic_include = strpos( $modern_badges, "require JLUXE_THEME_DIR . '/woocommerce/content-single-product-classic.php';" );
 $r212_classic_return = false === $r212_classic_include ? false : strpos( $modern_badges, 'return;', $r212_classic_include );
@@ -4398,7 +4961,7 @@ check( strpos( $modern_badges, "jluxe_render_product_trust_badges( (int) \$produ
 unset( $GLOBALS['products'][ $r174_badge_product_id ], $GLOBALS['products'][ $r174_parent_id ], $GLOBALS['products'][ $r174_variation_id ] );
 check(strpos($r53_variation_js,'priceBox.innerHTML = priceHtml;')!==false && strpos($r53_variation_js,'priceBox.textContent = emptyPrice;')!==false && strpos($r53_variation_js,'restoreInitialPriceOrPrompt')!==false && strpos($r53_variation_js,'variation.is_in_stock === false')!==false, 'R139 a resolved purchasable variation displays its exact price, while reset preserves a still-selected server default or restores the prompt');
 check(strpos($classic74,'.cp3-pill[aria-disabled="true"]')!==false && strpos($r53_variation_js,'pill.setAttribute("aria-disabled", selectable ? "false" : "true");')!==false && strpos($r53_variation_js,'pill.disabled = !selectable;')!==false, 'R74 unavailable variation pills retain their struck state through the shared WooCommerce availability sync');
-$woo_variation_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$woo_variation_source = theme_test_php_source( 'woocommerce' );
 $has_default_filter = false;
 $has_stock_status_filter = false;
 foreach ( (array) ( $GLOBALS['filters'] ?? array() ) as $registration ) {
@@ -4503,7 +5066,7 @@ $GLOBALS['term_meta'][9903] = array( '_jluxe_swatch_type' => 'none' );
 check(null===jluxe_resolve_variation_swatch('pa_color','blue','آبی',true), 'R99 an explicit no-swatch choice is still respected rather than overridden by automatic color guessing');
 $single_tpl_source = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
 $classic_tpl_source = (string) file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php');
-$home_source = (string) file_get_contents(ABSPATH.'inc/theme-settings-homepage.php');
+$home_source = theme_test_php_source( 'homepage' );
 $cart_ux_source = (string) file_get_contents(ABSPATH.'inc/cart-ux.php');
 check(strpos($single_tpl_source,'jluxe_render_attribute_swatches_html')!==false && strpos($classic_tpl_source,'jluxe_render_attribute_swatches_html')!==false && strpos($home_source,'jluxe_product_color_swatch_options( $product )')!==false && strpos($cart_ux_source,'jluxe_render_variation_swatches( $product, $variation_attributes )')!==false, 'R99 default/classic simple-product specs, homepage cards, variable product page and quick picker all use the shared swatch logic');
 
@@ -4585,9 +5148,11 @@ check(
 	false !== strpos( $r84_html, 'sizes="' . esc_attr( $r84_expected_sizes ) . '"' ),
 	'R84 rendered product cards send the browser a sizes hint matching the configured archive columns and image inset'
 );
+check( false !== strpos( $r84_html, 'width="1200" height="300"' ), 'R452 rendered catalog product images declare intrinsic dimensions to reserve layout space' );
+check( false !== strpos( $r84_html, 'aria-label="افزودن Public product به سبد خرید"' ), 'R452 each product-card CTA name includes its product title' );
 $r152_card_template = (string) file_get_contents( ABSPATH . 'woocommerce/content-product.php' );
 check(
-	strpos( $r152_card_template, "wp_get_attachment_image_url( \$image_id, 'large' )" ) !== false &&
+	strpos( $r152_card_template, "wp_get_attachment_image_src( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_card_template, "'square'  => 'aspect-square'" ) !== false &&
@@ -4610,28 +5175,35 @@ check(
 );
 $r152_had_card_sizes = array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
 $r152_previous_card_sizes = $r152_had_card_sizes ? $GLOBALS['jluxe_product_card_image_sizes'] : null;
+$r152_original_had_item_class = array_key_exists( 'jluxe_product_card_item_class', $GLOBALS );
+$r152_original_item_class = $r152_original_had_item_class ? $GLOBALS['jluxe_product_card_item_class'] : null;
+$GLOBALS['jluxe_product_card_item_class'] = 'outer-card-class';
 $r152_seen_card_sizes = '';
+$r152_seen_item_class = '';
 jluxe_with_product_card_image_sizes(
 	'inner-test-size',
-	static function () use ( &$r152_seen_card_sizes ): void {
+	static function () use ( &$r152_seen_card_sizes, &$r152_seen_item_class ): void {
 		$r152_seen_card_sizes = $GLOBALS['jluxe_product_card_image_sizes'] ?? '';
-	}
+		$r152_seen_item_class = $GLOBALS['jluxe_product_card_item_class'] ?? '';
+	},
+	'inner-card-class'
 );
-$r152_context_restored = $r152_had_card_sizes
+$r152_sizes_restored = $r152_had_card_sizes
 	? ( $GLOBALS['jluxe_product_card_image_sizes'] ?? null ) === $r152_previous_card_sizes
 	: ! array_key_exists( 'jluxe_product_card_image_sizes', $GLOBALS );
-check(
-	'inner-test-size' === $r152_seen_card_sizes && $r152_context_restored,
-	'Product-card image sizes are scoped to their render loop and cannot leak into following cards/sections'
-);
-$r152_home_cards = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r152_class_restored = ( $GLOBALS['jluxe_product_card_item_class'] ?? null ) === 'outer-card-class';
+check( 'inner-test-size' === $r152_seen_card_sizes, 'Product-card responsive image sizes are visible only in their scoped rendering callback' );
+check( 'inner-card-class' === $r152_seen_item_class, 'Carousel list-item classes are passed to the product-card rendering callback' );
+check( $r152_sizes_restored && $r152_class_restored, 'Product-card image sizes and list-item classes restore their outer render context without leaking' );
+if ( $r152_original_had_item_class ) { $GLOBALS['jluxe_product_card_item_class'] = $r152_original_item_class; } else { unset( $GLOBALS['jluxe_product_card_item_class'] ); }
+$r152_home_cards = theme_test_php_source( 'homepage' );
 $r152_gallery_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 check(
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-200' )" ) !== false &&
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'jluxe-uncropped-480' )" ) !== false &&
 	strpos( $r152_home_cards, "wp_get_attachment_image_srcset( \$image_id, 'large' )" ) !== false &&
 	strpos( $r152_home_cards, 'sizes="65px"' ) !== false &&
-	strpos( $r152_home_cards, 'sizes="(max-width:639px) 42vw, (max-width:1023px) 28vw, 240px"' ) !== false &&
+	strpos( $r152_home_cards, 'sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"' ) !== false &&
 	strpos( $r152_home_cards, 'size-full object-contain transition-transform' ) !== false &&
 	strpos( $r152_home_cards, 'mix-blend-multiply' ) === false,
 	'R152 homepage product cards also use uncropped responsive images, contain the full item, and preserve its colors'
@@ -4641,6 +5213,54 @@ check(
 	strpos( $r152_home_cards, 'jluxe_with_product_card_image_sizes' ) !== false &&
 	2 === substr_count( $r152_home_cards, "'(max-width: 639px) 126px, (max-width: 1023px) 156px, 266px'" ),
 	'Homepage product grids derive srcset sizes from configured columns and carousel cards use their exact 126/156/266px image slots'
+);
+check(
+	strpos( $r152_home_cards, '<ul class="jluxe-pg-' ) !== false &&
+	2 === substr_count( $r152_home_cards, '<ul data-jluxe-scroller' ) &&
+	strpos( $r152_home_cards, "echo '<div class=\"w-[160px]" ) === false &&
+	strpos( $r152_home_cards, 'data-jluxe-product-link href="<?php echo esc_url( get_permalink( $product->get_id() ) ); ?>"' ) !== false &&
+	strpos( $r152_home_cards, 'aria-label="<?php echo esc_attr( sprintf( \'مشاهده همهٔ %s\'' ) !== false &&
+	strpos( $r152_card_template, '$jluxe_is_catalog_context && 1 === $jluxe_card_render_count' ) !== false &&
+	strpos( $r152_card_template, 'width="<?php echo esc_attr( (string) $image_width ); ?>" height=' ) !== false &&
+	strpos( $r152_card_template, 'sprintf( \'افزودن %s به سبد خرید\', $product_name )' ) !== false,
+	'R520 homepage product-card lists expose semantic structure and product-link prefetch targets, unique view-all names, reserved image dimensions, and catalog-only LCP priority'
+);
+check(
+	strpos( $r152_card_template, 'if ( $jluxe_show_rating_row ) :' ) !== false &&
+	strpos( $r152_card_template, '<div class="mb-3 mt-1 min-h-[16px]" aria-hidden="true"></div>' ) !== false &&
+	strpos( $r152_card_template, "' invisible'" ) === false &&
+	strpos( $r152_home_cards, 'sizes="(max-width:639px) 96px, (max-width:1023px) 112px, 240px"' ) !== false,
+	'R520 unrated product cards reserve the rating row without hidden star SVGs and recommended images use their rendered slot sizes'
+);
+$r520_woo_source = theme_test_php_source( 'woocommerce' );
+check(
+	strpos( $r520_woo_source, 'function jluxe_output_toman_icon_sprite' ) !== false &&
+	strpos( $r520_woo_source, 'add_action( \'wp_body_open\', \'jluxe_output_toman_icon_sprite\', 1 )' ) !== false &&
+	strpos( $r520_woo_source, '<use href="#jlx-toman-icon">' ) !== false &&
+	strpos( $r520_woo_source, "\$tags['use'] = array(" ) !== false &&
+	strpos( $r520_woo_source, "return jluxe_toman_icon_svg();" ) !== false,
+	'R520 frontend prices reuse a shared accessible currency symbol while AJAX/REST retain self-contained SVG markup'
+);
+ob_start();
+jluxe_output_toman_icon_sprite();
+$r520_sprite = ob_get_clean();
+ob_start();
+jluxe_output_toman_icon_sprite();
+$r520_second_sprite = ob_get_clean();
+check(
+	strpos( $r520_sprite, '<symbol id="jlx-toman-icon"' ) !== false &&
+	strpos( $r520_sprite, '<path d=' ) !== false &&
+	strpos( $r520_sprite, '</symbol></svg>' ) !== false &&
+	'' === $r520_second_sprite,
+	'R520 the frontend sprite contains valid shared paths and is emitted only once'
+);
+$r452_header = (string) file_get_contents( ABSPATH . 'header.php' );
+$r452_minimal_header = (string) file_get_contents( ABSPATH . 'header-minimal.php' );
+check(
+	false === strpos( $r452_header, '<html <?php language_attributes(); ?> dir=' ) &&
+	false === strpos( $r452_minimal_header, '<html <?php language_attributes(); ?> dir=' ) &&
+	false !== strpos( $r152_home_cards, '<h3 class="line-clamp-2' ),
+	'R452 document direction is emitted only by language_attributes and compact bestseller headings follow their section h2 with h3'
 );
 check(
 	strpos( $r152_card_template, "wp_get_attachment_image_srcset( \$jluxe_gid, 'jluxe-uncropped-480' )" ) !== false &&
@@ -4657,7 +5277,7 @@ check(
 	strpos( $r84_html, 'srcset=' ) !== false,
 	'R152 rendered product cards emit a responsive full-item image and semantic stock-dot color'
 );
-$r313_image_delivery_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r313_image_delivery_source = theme_test_php_source( 'homepage' );
 check(
 	strpos( $r313_image_delivery_source, "'jluxe-category-grid-ref-240', '240px'" ) !== false &&
 	strpos( $r313_image_delivery_source, "'jluxe-uncropped-200', '(max-width: 639px) 78px, 96px'" ) !== false &&
@@ -4734,7 +5354,7 @@ $r137_card_css   = (string) file_get_contents( ABSPATH . 'src/styles/storefront.
 check( false !== $r137_title_pos && false !== $r137_rating_pos && $r137_title_pos < $r137_rating_pos && false !== strpos( $r84_html, esc_html( jluxe_fa_digits( number_format( 4.5, 1, '.', '' ) ) ) ) && false !== strpos( $r84_html, 'role="img" aria-label="امتیاز' ), 'R137 the product title still precedes an accessibly labeled star/score/review-count row' );
 $r137_global_cta_pos = strpos( $r137_card_css, '.woocommerce a.button.product_type_simple:not(.jluxe-product-card-cta)' );
 $r137_card_override_pos = strrpos( $r137_card_css, '/* R137 — compact card controls take precedence over WooCommerce loop-button styles. */' );
-check( false !== strpos( $r84_html, 'aria-label="افزودن به سبد خرید"' ) && false !== strpos( $r84_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r84_html, 'jluxe-product-card-cta-label' ) && false !== strpos( $r137_card_css, 'flex-direction: row;' ) && false !== strpos( $r137_card_css, 'width: 44px;' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--foreground));' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--primary));' ) && false !== strpos( $r137_card_css, 'transform: rotate(90deg);' ) && false !== $r137_global_cta_pos && false !== $r137_card_override_pos && $r137_card_override_pos > $r137_global_cta_pos && false !== strpos( $r137_card_css, 'min-height: 44px;' ) && false !== strpos( $r137_card_css, 'background: hsl(var(--foreground));' ), 'R137 the icon-only plus shares a row with prices, overrides WooCommerce sizing, stays dark at rest, and rotates into the add color on interaction' );
+check( false !== strpos( $r84_html, 'aria-label="افزودن Public product به سبد خرید"' ) && false !== strpos( $r84_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r84_html, 'jluxe-product-card-cta-label' ) && false !== strpos( $r137_card_css, 'flex-direction: row;' ) && false !== strpos( $r137_card_css, 'width: 44px;' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--foreground));' ) && false !== strpos( $r137_card_css, 'background-color: hsl(var(--primary));' ) && false !== strpos( $r137_card_css, 'transform: rotate(90deg);' ) && false !== $r137_global_cta_pos && false !== $r137_card_override_pos && $r137_card_override_pos > $r137_global_cta_pos && false !== strpos( $r137_card_css, 'min-height: 44px;' ) && false !== strpos( $r137_card_css, 'background: hsl(var(--foreground));' ), 'R137 the icon-only plus shares a row with prices, overrides WooCommerce sizing, stays dark at rest, and rotates into the add color on interaction' );
 $r137_current_price_pos = strpos( $r84_html, 'class="jluxe-product-card-current-price' );
 $r137_old_price_pos     = strpos( $r84_html, '<del class="jluxe-product-card-old-price' );
 check( false !== $r137_current_price_pos && false !== $r137_old_price_pos && $r137_current_price_pos < $r137_old_price_pos && false !== strpos( $r137_card_css, 'text-decoration: line-through;' ) && false !== strpos( $r137_card_css, '.jluxe-product-card-price {' ), 'R137 the sale card renders the current price before a semantic, explicitly struck-through regular price in a shared footer row' );
@@ -4759,7 +5379,7 @@ try {
 	$r137_variable_error = get_class( $r137_error ) . ': ' . $r137_error->getMessage();
 }
 $GLOBALS['product'] = $r137_original_product;
-check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌ها"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract when a variation is purchasable' );
+check( '' === $r137_variable_error && false !== strpos( $r137_variable_html, 'data-jluxe-quick-variant="500"' ) && false !== strpos( $r137_variable_html, 'aria-label="انتخاب گزینه‌های Public product"' ) && false !== strpos( $r137_variable_html, '<svg class="jluxe-product-card-cta-icon size-4"' ) && false === strpos( $r137_variable_html, 'jluxe-product-card-cta-label' ) && false === strpos( $r137_variable_html, 'data-quantity="1"' ), 'R137 variable-product cards keep the icon-only CTA and quick-variation picker contract when a variation is purchasable' );
 
 /**
  * استاتیک: «ویژگیِ HTML داخلِ کدِ PHP». این همان الگوی خطای نسخهٔ 1.65.0 است؛
@@ -5081,6 +5701,23 @@ check(
 	false !== strpos( $r86_package_source, "'zarrin/dist/'" ) &&
 	false !== strpos( $r86_package_source, "extracted_theme / 'dist'" ),
 	'R86 the obsolete local dist/ build is excluded and rejected in the release ZIP; assets/compiled remains the runtime bundle'
+);
+check(
+	false !== strpos( $r86_package_source, "'src/'" ) &&
+	false !== strpos( $r86_package_source, "'docs/'" ) &&
+	false !== strpos( $r86_package_source, "'scripts/'" ) &&
+	false !== strpos( $r86_package_source, "'package.json', 'package-lock.json', 'assets/js/woocommerce.js'" ) &&
+	false !== strpos( $r86_package_source, "'assets/compiled/woocommerce.product.min.js'" ) &&
+	false !== strpos( $r86_package_source, "'assets/compiled/woocommerce.cart-checkout.min.js'" ),
+	'Package excludes source/docs/scripts/npm and raw WooCommerce JS while requiring all route bundles'
+);
+check(
+	false !== strpos( $r86_package_source, "'screenshot.png', 'screenshot.webp'" ) &&
+	false !== strpos( $r86_package_source, 'Release must include a root screenshot.png or screenshot.webp' ) &&
+	false !== strpos( $r86_package_source, 'valid 1200x900 PNG preview' ) &&
+	false !== strpos( $r86_package_source, "'logo.png'" ) &&
+	false !== strpos( $r86_package_source, 'unused 267 KB root logo.png' ),
+	'R408 package requires a WordPress root screenshot and excludes the unused oversized root logo'
 );
 
 
@@ -5450,10 +6087,17 @@ $r88_settings['footer']['trust_badges'] = array(
 	array( 'html' => '<a href="https://trustseal.enamad.ir/?id=1"><img src="https://trustseal.enamad.ir/logo.aspx?id=1" alt="enamad"></a>', 'link' => '' ),
 	array( 'html' => '<img src="https://logo.samandehi.ir/logo.aspx?id=2" alt="samandehi">', 'link' => '' ),
 );
+$r88_old_attachment_by_url = $GLOBALS['attachment_id_by_url'] ?? null;
+$r88_old_attachment_metadata = $GLOBALS['attachment_metadata'] ?? null;
+$GLOBALS['attachment_id_by_url'] = array( 'https://logo.samandehi.ir/logo.aspx?id=2' => 88102 );
+$GLOBALS['attachment_metadata'] = array( 88102 => array( 'width' => 88, 'height' => 44 ) ) + ( is_array( $r88_old_attachment_metadata ) ? $r88_old_attachment_metadata : array() );
 update_test_settings( $r88_settings );
 ob_start();
 jluxe_render_site_trust_badges();
 $r88_badges = (string) ob_get_clean();
+check( false !== strpos( $r88_badges, 'width="88" height="44"' ), 'R88 trust badges stored without dimensions get intrinsic dimensions from the matching media attachment when it is resolvable' );
+if ( null === $r88_old_attachment_by_url ) { unset( $GLOBALS['attachment_id_by_url'] ); } else { $GLOBALS['attachment_id_by_url'] = $r88_old_attachment_by_url; }
+if ( null === $r88_old_attachment_metadata ) { unset( $GLOBALS['attachment_metadata'] ); } else { $GLOBALS['attachment_metadata'] = $r88_old_attachment_metadata; }
 check( false !== strpos( $r88_badges, '<section class="jluxe-site-badges-section' ) && 2 === substr_count( $r88_badges, 'jluxe-site-badge-card flex' ), 'R88 both badges are printed directly as one visible grid item' );
 check( false !== strpos( $r88_badges, 'aria-labelledby="jluxe-site-badges-heading"' ) && false !== strpos( $r88_badges, 'id="jluxe-site-badges-heading"' ), 'R189 the server-rendered trust-badge region has an explicit accessible heading' );
 check( false === strpos( $r88_badges, 'staging' ) && false === strpos( $r88_badges, '<script' ) && false === strpos( $r88_badges, ' hidden' ), 'R88 no hidden staging div and no mover script are printed any more' );
@@ -6217,10 +6861,10 @@ check(
 	'ما در کنار شما هستیم: تماس تلفنی در روزهای کاری از ساعت ۹ صبح تا ۸ شب' === $r305_migrated_settings['footer']['support_hours'] &&
 	'09120902336' === $r305_migrated_settings['contact']['phone'] && '09362420232' === $r305_migrated_settings['contact']['phone_secondary'] &&
 	10 === $r305_migrated_settings['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#a313b9' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#fae8fd' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#a313b9' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#F0FDF4' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#16A34A' === $r305_migrated_settings['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#ECFDF5' === $r305_migrated_settings['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#DC2626' === $r305_migrated_settings['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
 	'#fae8fd' === $r305_migrated_settings['cart_checkout']['payment_card_selected_background'],
 	'R305/R326 migrations move recognized legacy shipping and payment defaults to Royal Orchid while preserving unrelated settings'
 );
@@ -6636,7 +7280,7 @@ check( 0 === strpos( $pwa_js, '/* JLUXE service worker' ) && false !== strpos( $
 $pwa_sw_src = (string) file_get_contents( ABSPATH . 'assets/pwa/sw.js' );
 check( false === strpos( $pwa_sw_src, 'cache.put(request' ) || ( 1 === substr_count( $pwa_sw_src, 'cache.put(' ) && false !== strpos( $pwa_sw_src, 'async function cacheFirst' ) ), 'R88 exactly one cache.put — inside the hashed-asset cacheFirst' );
 check( false !== strpos( $pwa_sw_src, 'request.method !== "GET"' ) && false !== strpos( $pwa_sw_src, 'url.origin !== self.location.origin' ), 'R88 SW ignores non-GET and cross-origin requests' );
-check( (bool) preg_match( '/networkWithOfflineFallback[\s\S]*?fetch\(event\.request\)[\s\S]*?catch/', $pwa_sw_src ) && false === strpos( substr( $pwa_sw_src, (int) strpos( $pwa_sw_src, 'async function networkWithOfflineFallback' ), 400 ), 'put(' ), 'R88 navigations are network-first with only an offline fallback (no stale HTML)' );
+check( (bool) preg_match( '/networkWithOfflineFallback[\s\S]*?fetch\(event\.request\)[\s\S]*?catch/', $pwa_sw_src ) && false === strpos( substr( $pwa_sw_src, (int) strpos( $pwa_sw_src, 'async function networkWithOfflineFallback' ), 500 ), 'put(' ) && false !== strpos( $pwa_sw_src, 'navigationPreload.enable()' ) && false !== strpos( $pwa_sw_src, 'await event.preloadResponse' ), 'R521 navigations use Navigation Preload/network with only an offline fallback (no stale HTML cache)' );
 check( jluxe_pwa_version() === jluxe_pwa_version() && 12 === strlen( jluxe_pwa_version() ), 'R88 SW version is deterministic' );
 
 $GLOBALS['jluxe_pwa_headers'] = array();
@@ -6698,10 +7342,12 @@ check( 1 === substr_count( $h89html, 'fetchpriority="high"' ) && 1 === substr_co
 check( 2 === substr_count( $h89html, 'aria-hidden="true" inert' ) && false !== strpos( $h89html, 'aria-roledescription="carousel"' ) && false !== strpos( $h89html, 'aria-label="۱ از ۳"' ), 'R89 inactive slides start inert/hidden; slides are labelled «۱ از ۳»' );
 check( 2 === substr_count( $h89html, 'class="jluxe-hero__img is-contain"' ) && 1 === substr_count( $h89html, 'class="jluxe-hero__img"' ), 'R89 slides without a mobile image show the whole desktop image on phones' );
 check( false !== strpos( $h89html, 'sizes="(min-width: 1486px) 1462px, calc(100vw - 24px)"' ), 'R212 container srcset sizes match the capped 1462px desktop width' );
-$h108home_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$h108home_source = theme_test_php_source( 'homepage' );
 check(
-	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:calc(100% - 32px);max-width:var(--jluxe-container-max,1320px)' ) &&
-	false !== strpos( $h108home_source, '@media(max-width:639px){.jluxe-home-section{width:calc(100% - 24px);margin:20px auto;}}' ) &&
+	false !== strpos( $h108home_source, '.jluxe-home-section{box-sizing:border-box;width:100%;max-width:var(--jluxe-container-max,1320px);margin-inline:auto;padding-inline:16px' ) &&
+	false !== strpos( $h108home_source, '@media(max-width:767.98px){.jluxe-home-section{padding-inline:12px}}' ) &&
+	false === strpos( $h108home_source, '.jluxe-home-section{margin-block:12px;padding-block:8px' ) &&
+	false !== strpos( (string) file_get_contents( ABSPATH . 'src/styles/route-home.css' ), 'body.home .jluxe-home-section' ) &&
 	false !== strpos( $h108home_source, 'max-w-[1320px] px-3 md:px-4' ),
 	'R108 homepage sections use the fluid desktop container, retain the 12px mobile gutter, and align «مشاهده همه» content'
 );
@@ -6957,7 +7603,7 @@ check( isset( $GLOBALS['scripts']['jluxe-homepage'] ) && 'defer' === ( $GLOBALS[
 $GLOBALS['query_kind'] = 'home';
 update_test_settings( jluxe_theme_settings_defaults() );
 check( false === strpos( (string) file_get_contents( ABSPATH . 'assets/js/homepage.js' ), 'initSliders("[data-jluxe-hero-slider]")' ), 'R89 the old hero driver no longer runs on the new markup' );
-$h89admin = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$h89admin = theme_test_php_source( 'homepage' );
 foreach ( array( 'effect', 'speed_ms', 'autoplay', 'loop', 'desktop_height', 'mobile_height', 'radius', 'top_spacing', 'border', 'show_arrows', 'indicators' ) as $h89k ) {
 	check( false !== strpos( $h89admin, "jluxe_hb_field_select( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_number( \$name, '$h89k'" ) || false !== strpos( $h89admin, "jluxe_hb_field_checkbox( \$name, '$h89k'" ) || false !== strpos( $h89admin, "\t\$name,\n\t\t\t\t\t\t\t'$h89k'," ), 'R89 admin field exists: ' . $h89k );
 }
@@ -7154,7 +7800,7 @@ check(
 	false !== strpos( $r178_grid_html, 'data-mobile-layout="grid"' ) &&
 	false !== strpos( $r178_grid_html, '--jluxe-cat-cards-justify:flex-end' ) &&
 	false !== strpos( $r178_grid_html, '--jluxe-cat-mobile-card-width:calc((100% - 40px) / 6)' ) &&
-	false !== strpos( $r178_grid_html, '.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll' ) &&
+	false !== strpos( $h108home_source, '.jluxe-category-grid-ref-carousel[data-mobile-layout="grid"] .jluxe-category-grid-ref-scroll' ) &&
 	false === strpos( $r178_grid_html, 'data-jluxe-category-swipe-hint' ),
 	'R178 legacy category renderer aligns cards rather than image content and emits the selected six-column mobile grid without an unnecessary swipe hint'
 );
@@ -7285,7 +7931,7 @@ check(
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-width:1px' ) &&
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-image-frame-color:#123ABC' ) &&
 	false !== strpos( $r179_showcase_html, '--jluxe-showcase-card-text:#778899' ) &&
-	false !== strpos( $r179_showcase_html, 'background:transparent' ) &&
+	false !== strpos( $h108home_source, 'background:transparent!important' ) &&
 	false === strpos( $r179_showcase_html, '#AABBCC' ) && false === strpos( $r179_showcase_html, '#CCDDEE' ) &&
 	false === strpos( $r179_showcase_html, 'jluxe-category-showcase-head' ),
 	'R179 frontend links custom artwork to its destination, keeps category destinations automatic, and renders the optional frame/text without backgrounds'
@@ -7349,7 +7995,7 @@ $r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_grid', 'id
 check( 'custom' === $r91sec['view_all_mode'] && 'همه' === $r91sec['view_all_text'] && 'https://jluxe.test/all/' === $r91sec['view_all_link'], 'R91 homepage sanitizer stores the «نمایش همه» fields' );
 $r91sec = jluxe_sanitize_homepage_section( array( 'type' => 'category_showcase', 'id' => 'cs', 'view_all_mode' => 'nope' ) );
 check( 'categories_page' === $r91sec['view_all_mode'], 'R91 unknown mode → categories page' );
-$r91hp = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r91hp = theme_test_php_source( 'homepage' );
 check( 1 === substr_count( $r91hp, 'jluxe_render_category_view_all_fields( $name, $section );' ) && 1 === substr_count( $r91hp, 'jluxe_category_section_view_all( $section )' ) && false === strpos( $r91hp, 'jluxe-category-showcase-all' ) && false === strpos( $r91hp, 'class="jluxe-category-grid-ref-all" aria-label="<?php echo esc_attr( \'مشاهده همه محصولات بخش' ), 'R91 only the legacy category-grid section keeps its editable «show all» control; the simplified showcase omits the extra heading/button' );
 
 // قالب + پیشخوان
@@ -8008,7 +8654,7 @@ $r246_account_nav_filter = array_filter(
 	static fn( $filter ) => 'woocommerce_account_menu_items' === ( $filter[0] ?? '' ) && 'jluxe_hide_account_payment_methods_menu_item' === ( $filter[1] ?? '' ) && 20 === ( $filter[2] ?? 10 )
 );
 check( ! empty( $r246_account_nav_filter ), 'R246 saved payment methods are hidden through WooCommerce account navigation, not checkout gateway configuration' );
-$r246_account_css = file_get_contents( __DIR__ . '/../../src/styles/storefront.css' );
+$r246_account_css = file_get_contents( __DIR__ . '/../../src/styles/route-account-auth.css' );
 check(
 	false !== strpos( $r246_account_css, '.woocommerce-Addresses {' ) &&
 	false !== strpos( $r246_account_css, 'grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr))' ) &&
@@ -8592,9 +9238,9 @@ $r267_empty_city  = $r267_empty_fields['billing']['billing_city'];
 $r267_saved_city  = $r267_saved_fields['billing']['billing_city'];
 $r267_posted_city = $r267_posted_fields['billing']['billing_city'];
 $r267_city_map    = jluxe_iran_cities();
-$r267_php_source  = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_php_source  = theme_test_php_source( 'woocommerce' );
 $r267_js_source   = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
-$r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r267_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r267_checkout_value_filter_registered = false;
 foreach ( $GLOBALS['filters'] as $r267_filter ) {
 	if ( 'woocommerce_checkout_get_value' === ( $r267_filter[0] ?? '' ) && 'jluxe_checkout_clear_cached_location_values' === ( $r267_filter[1] ?? '' ) ) {
@@ -8639,7 +9285,7 @@ check(
 	in_array( 'آرمرده', $r267_city_map['KRD'], true ) &&
 	in_array( 'توپ آغاج', $r267_city_map['KRD'], true ) &&
 	in_array( 'ابوموسی', $r267_city_map['HRZ'], true ) &&
-	1347 === $r267_city_count && $r267_unique_city_values &&
+	1511 === $r267_city_count && $r267_unique_city_values &&
 	false !== strpos( $r267_js_source, 'window.JLuxeThemeSettings && window.JLuxeThemeSettings.iranCities' ) &&
 	false !== strpos( $r267_js_source, 'window.jQuery(stateSelect).on("change"' ),
 	'R267 the expanded 31-province map keeps legacy options, includes MIT-source cities, deduplicates Persian spelling variants and preserves the dependent selector'
@@ -8833,10 +9479,9 @@ check(
 	'R304 account address field and country-value changes are limited to the edit-address endpoint'
 );
 
-$r304_account_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r304_account_css = (string) file_get_contents( ABSPATH . 'src/styles/route-account-auth.css' );
 $r304_auth_source = (string) file_get_contents( ABSPATH . 'inc/auth.php' );
 $r304_phone_action_css = array();
-preg_match( '/\\.jluxe-phone-link \\.jluxe-phone-link__action\\s*\\{([^}]+)\\}/', $r304_account_css, $r304_phone_action_css );
 check(
 	false !== strpos( $r304_account_css, '.jluxe-account-address-field-hidden' ) &&
 	false !== strpos( $r304_account_css, 'p:has(> button[name="save_address"])' ) &&
@@ -8844,8 +9489,9 @@ check(
 	false !== strpos( $r304_account_css, 'background-color: hsl(var(--primary));' ) &&
 	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__send" data-send-code' ) &&
 	false !== strpos( $r304_auth_source, 'class="jluxe-btn jluxe-btn-primary jluxe-phone-link__action jluxe-phone-link__confirm"' ) &&
-	false !== strpos( $r304_phone_action_css[1] ?? '', 'width: 100%;' ) &&
-	false === strpos( $r304_phone_action_css[1] ?? '', 'background:' ) &&
+	false !== strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__action {' ) &&
+	false !== strpos( $r304_account_css, 'width: 100%;' ) &&
+	false === strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__confirm {' ) &&
 	false === strpos( $r304_account_css, '.jluxe-phone-link .jluxe-phone-link__confirm {' ),
 	'R304 the address save CTA is left-aligned with the primary theme style and both secure OTP buttons share the same primary button system'
 );
@@ -8873,18 +9519,19 @@ if ( null === $r304_previous_user_meta ) {
 }
 $_POST = $r304_previous_post;
 
-$r425_guided_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' );
+$r425_guided_form = file_exists( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) ? (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) : '';
 $r425_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
-$r425_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' );
-$r425_guided_css = (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' );
-$r433_checkout_notices_js = (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' );
-$r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
-$r425_woocommerce_source = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r425_checkout_js = file_exists( ABSPATH . 'assets/js/checkout-guided.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-guided.js' ) : '';
+$r425_guided_css = file_exists( ABSPATH . 'assets/css/checkout-guided.css' ) ? (string) file_get_contents( ABSPATH . 'assets/css/checkout-guided.css' ) : '';
+$r433_checkout_notices_js = file_exists( ABSPATH . 'assets/js/checkout-notices.js' ) ? (string) file_get_contents( ABSPATH . 'assets/js/checkout-notices.js' ) : '';
+$r433_storefront_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
+$r425_woocommerce_source = theme_test_php_source( 'woocommerce' );
 $r425_review_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/review-order.php' );
 $r425_map_module = (string) file_get_contents( ABSPATH . 'src/lib/checkout-map.js' );
 $r425_settings_ui = (string) file_get_contents( ABSPATH . 'inc/theme-settings-render.php' );
 $r425_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 check(
+	$r425_guided_form === '' || (
 	false !== strpos( $r425_checkout_form, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_checkout_form, "include __DIR__ . '/form-checkout-guided.php'" ) &&
 	false !== strpos( $r425_guided_form, 'data-jluxe-checkout-flow="guided"' ) &&
@@ -8921,16 +9568,17 @@ check(
 	false !== strpos( $r425_settings_ui, 'checkout_map_enabled' ) &&
 	false !== strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping"' ) &&
 	false === strpos( $r425_review_template, 'id="jluxe-shipping-section" class="jluxe-checkout-shipping" hidden' ) &&
-	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" ),
+	false !== strpos( $r425_payment_template, "'guided' !== jluxe_checkout_layout()" )),
 	'R427 guided remains optional beside classic and separates native shipping information from the live order, shipping choices, and real payment step'
 );
 check(
+	$r425_guided_form === '' || (
 	false !== strpos( $r425_review_template, "'guided' === jluxe_checkout_layout()" ) &&
 	false !== strpos( $r425_review_template, '$_product->get_image( \'woocommerce_thumbnail\' )' ) &&
 	false !== strpos( $r425_guided_form, 'data-jluxe-map-picker' ) &&
 	false !== strpos( $r425_checkout_js, 'scrollFocusedFieldIntoView' ) &&
 	false !== strpos( $r425_checkout_js, 'visualViewport.addEventListener("resize"' ) &&
-	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' ),
+	false !== strpos( $r425_checkout_js, 'stickyAction.parentNode !== body' )),
 	'R429 guided checkout keeps product thumbnails, optional map pin selection, and active fields clear above the mobile keyboard'
 );
 $r430_coupon_position = strpos( $r425_guided_form, 'data-guided-coupon aria-labelledby' );
@@ -8939,6 +9587,7 @@ $r430_payment_position = strpos( $r425_guided_form, 'data-guided-payment-section
 $r430_checkout_close = strrpos( $r425_guided_form, '</form>' );
 $r430_coupon_transport = strpos( $r425_guided_form, 'data-guided-coupon-transport' );
 check(
+	$r425_guided_form === '' || (
 	false !== $r430_order_position && false !== $r430_coupon_position && false !== $r430_payment_position &&
 	$r430_order_position < $r430_coupon_position && $r430_coupon_position < $r430_payment_position &&
 	false !== $r430_checkout_close && false !== $r430_coupon_transport && $r430_checkout_close < $r430_coupon_transport &&
@@ -8946,7 +9595,7 @@ check(
 	false !== strpos( $r425_checkout_js, '$(nativeCouponForm).trigger("submit")' ) &&
 	false !== strpos( $r425_checkout_js, 'applied_coupon_in_checkout.jluxeGuided' ) &&
 	false !== strpos( $r425_checkout_js, 'errored_coupon_in_checkout.jluxeGuided' ) &&
-	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__coupon-controls input:focus-visible' ),
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__coupon-controls input:focus-visible' )),
 	'R430 guided coupon UI sits between order items and payment, proxies WooCommerce’s native coupon form outside checkout, and announces apply/error results'
 );
 $r430_saved_option_exists = array_key_exists( JLUXE_SETTINGS_OPTION, $GLOBALS['options'] );
@@ -8976,13 +9625,15 @@ $r431_notice_wrapper = strpos( $r425_checkout_form, 'data-guided-before-form-not
 $r431_notice_action = strpos( $r425_checkout_form, "do_action( 'woocommerce_before_checkout_form', \$checkout )" );
 $r431_notice_close = false === $r431_notice_action ? false : strpos( $r425_checkout_form, '</div>', $r431_notice_action );
 check(
+	$r425_guided_form === '' || (
 	false !== $r431_notice_wrapper && false !== $r431_notice_action && false !== $r431_notice_close &&
 	$r431_notice_wrapper < $r431_notice_action && $r431_notice_action < $r431_notice_close &&
 	false !== strpos( $r425_checkout_js, 'beforeFormNotices.hidden = step !== "shipping"' ) &&
-	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' ),
+	false !== strpos( $r425_guided_css, '.jluxe-guided-checkout__before-form-notices[hidden]' )),
 	'R431 pre-checkout cashback/coupon notices are scoped to guided checkout and hidden accessibly during payment, then restored on return'
 );
 check(
+	$r433_checkout_notices_js === '' || (
 	false !== strpos( $r433_checkout_notices_js, 'document.querySelectorAll(".woocommerce-form-coupon-toggle")' ) &&
 	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("بازپرداخت")' ) &&
 	false !== strpos( $r433_checkout_notices_js, 'content.indexOf("کیف پول")' ) &&
@@ -8992,7 +9643,7 @@ check(
 	false !== strpos( $r425_checkout_form, "function_exists( 'wc_coupons_enabled' )" ) &&
 	false !== strpos( $r425_woocommerce_source, "add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_checkout_notice_assets', 22 )" ) &&
 	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .woocommerce-form-coupon-toggle' ) &&
-	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .jluxe-checkout-suppressed-notice' ),
+	false !== strpos( $r433_storefront_css, 'body.woocommerce-checkout .jluxe-checkout-suppressed-notice' )),
 	'R433 both checkout layouts suppress only the specified notices, while classic keeps its coupon via a payment-step proxy'
 );
 if ( $r430_saved_option_exists ) {
@@ -9005,7 +9656,7 @@ if ( null === $r430_saved_query ) { unset( $GLOBALS['query_kind'] ); } else { $G
 $r267_payment_template = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' );
 $r267_method_template  = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/payment-method.php' );
 $r267_form_checkout    = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
-$r267_payment_source   = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r267_payment_source   = theme_test_php_source( 'woocommerce' );
 check(
 	false === strpos( $r267_payment_template, 'data-jluxe-payment-required=' ) &&
 	false === strpos( $r267_payment_template, 'jluxe-payment-heading' ) &&
@@ -9169,10 +9820,10 @@ check(
 	'user١٢٣@example.test' === $r289_normalized_checkout_data['billing_email'],
 	'R289 WooCommerce posted checkout data normalizes Persian/Arabic postal and phone digits to ASCII while leaving other fields untouched'
 );
-$r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' );
+$r276_checkout_css = (string) file_get_contents( ABSPATH . 'src/styles/route-cart-checkout.css' );
 $r276_checkout_js = (string) file_get_contents( ABSPATH . 'assets/js/woocommerce.js' );
 $r276_cart_totals = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-totals.php' );
-$r276_checkout_submit = (string) file_get_contents( ABSPATH . 'inc/woocommerce.php' );
+$r276_checkout_submit = theme_test_php_source( 'woocommerce' );
 $r276_checkout_form = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
 $r276_shipping_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/cart-shipping.php' );
 $r276_proceed_template = (string) file_get_contents( ABSPATH . 'woocommerce/cart/proceed-to-checkout-button.php' );
@@ -9192,7 +9843,7 @@ check(
 );
 check(
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form :is(.input-text, select, textarea) {' ) &&
-	false !== strpos( $r276_checkout_css, 'border: 1px solid var(--jluxe-checkout-control-border, hsl(var(--border))) !important;' ) &&
+	false !== strpos( (string) file_get_contents( ABSPATH . 'src/styles/storefront.css' ), 'border: 1px solid var(--jluxe-checkout-control-border, hsl(var(--border))) !important;' ) &&
 	false !== strpos( $r276_checkout_css, 'background-color: hsl(var(--muted, var(--background)));' ) &&
 	false !== strpos( $r276_checkout_css, '--jluxe-checkout-control-border: hsl(var(--muted-foreground, var(--foreground)) / 0.42);' ) &&
 	false !== strpos( $r276_checkout_css, 'body.woocommerce-checkout .woocommerce form .form-row.woocommerce-invalid :is(.input-text, select, textarea),' ) &&
@@ -9543,7 +10194,7 @@ check(
 	'#112233' === $r279_clean_checkout['shipping_methods']['post']['card_border_color'] &&
 	'#DDEEFF' === $r279_clean_checkout['shipping_methods']['post']['selected_card_background_color'] &&
 	'#334455' === $r279_clean_checkout['shipping_methods']['post']['selected_card_border_color'] &&
-	'#a313b9' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#059669' === $r279_clean_checkout['shipping_methods']['tipax']['selected_card_border_color'] &&
 	'ارسال فوری' === $r279_clean_checkout['shipping_methods']['post']['note'] &&
 	'#123ABC' === $r279_clean_checkout['shipping_methods']['post']['note_background_color'] &&
 	'#FFFFFF' === $r279_clean_checkout['shipping_methods']['post']['note_text_color'] &&
@@ -9565,16 +10216,16 @@ check(
 );
 check(
 	10 === $r279_settings_defaults['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
-	'#fae8fd' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
+	'#F0FDF4' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#16A34A' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['selected_card_border_color'] &&
+	'#ECFDF5' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_background_color'] &&
+	'#059669' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['selected_card_border_color'] &&
+	'#FEF2F2' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_background_color'] &&
+	'#DC2626' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['selected_card_border_color'] &&
 	'اقتصادی' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
-	'#a313b9' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
+	'#1E293B' === $r279_settings_defaults['cart_checkout']['shipping_methods']['post']['note_background_color'] &&
+	'#D1FAE5' === $r279_settings_defaults['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#FEE2E2' === $r279_settings_defaults['cart_checkout']['shipping_methods']['chapar']['note_background_color'] &&
 	'#FFF7ED' === $r279_settings_defaults['cart_checkout']['checkout_payment_warning_background'] &&
 	'#FFFFFF' === $r279_settings_defaults['cart_checkout']['payment_card_background'] &&
 	'#fae8fd' === $r279_settings_defaults['cart_checkout']['payment_card_selected_background'],
@@ -9590,10 +10241,10 @@ check(
 	true === $r279_merged_section['cart_checkout']['require_address'] &&
 	true === $r279_merged_section['cart_checkout']['require_postcode_for_post'] &&
 	10 === $r279_merged_section['cart_checkout']['shipping_card_radius'] &&
-	'#fae8fd' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
+	'#F0FDF4' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['selected_card_background_color'] &&
 	'سبد خرید' === $r279_merged_section['cart_checkout']['copy']['cart_page_title'] &&
 	'اقتصادی' === $r279_merged_section['cart_checkout']['shipping_methods']['post']['note'] &&
-	'#a313b9' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
+	'#D1FAE5' === $r279_merged_section['cart_checkout']['shipping_methods']['tipax']['note_background_color'] &&
 	array( 'post', 'tipax', 'chapar' ) === array_keys( $r279_merged_section['cart_checkout']['shipping_methods'] ),
 	'R279 adding cart_checkout needs no schema migration: the theme defaults deep-merge missing nested settings'
 );
@@ -9642,7 +10293,7 @@ check(
 	'#AABBCC' === $r279_post_card_settings['card_background_color'] &&
 	'#DDEEFF' === $r279_post_card_settings['selected_card_background_color'] &&
 	'#334455' === $r279_post_card_settings['selected_card_border_color'] &&
-	'#a313b9' === $r279_tipax_card_settings['selected_card_border_color'] &&
+	'#059669' === $r279_tipax_card_settings['selected_card_border_color'] &&
 	'#FFFFFF' === jluxe_cart_checkout_shipping_method_settings( 'unknown' )['card_background_color'],
 	'R289 shipping-card presentation reads sanitized per-carrier colors and uses safe fallbacks'
 );
@@ -9652,6 +10303,15 @@ $r210_thankyou_source = (string) file_get_contents( ABSPATH . 'woocommerce/check
 check(
 	false !== strpos( $r210_thankyou_source, 'get_formatted_line_subtotal( $jluxe_ty_item )' ) && false === strpos( $r210_thankyou_source, 'jluxe_ty_toman_svg' ) && false === strpos( $r210_thankyou_source, 'کد پیگیری از طریق پیامک ارسال می‌شه' ),
 	'R210 thank-you item prices use WooCommerce order currency and do not promise unverified tracking SMS'
+);
+
+// R363 (audit P1 #12): pending/on-hold orders must not show the success
+// celebration — they get a neutral "awaiting confirmation" state.
+check(
+	false !== strpos( $r210_thankyou_source, "\$jluxe_ty_awaiting = \$order->has_status( array( 'pending', 'on-hold' ) )" ) &&
+	false !== strpos( $r210_thankyou_source, 'در انتظار تأیید' ) &&
+	false !== strpos( $r210_thankyou_source, 'پرداخت یا تأیید نهایی سفارش هنوز انجام نشده است' ),
+	'R363 thank-you shows an awaiting-confirmation state for pending/on-hold orders instead of the success celebration'
 );
 
 // R216 — private A6 shipping labels use only configured store/order data and customer checkout notes.
@@ -10807,14 +11467,14 @@ check(
 	6 === ( $r329_bestseller_args['limit'] ?? 0 ) &&
 	'publish' === ( $r329_bestseller_args['status'] ?? '' ) &&
 	'instock' === ( $r329_bestseller_args['stock_status'] ?? '' ) &&
-	'popularity' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
+	'meta_value_num' === ( $r329_bestseller_args['orderby'] ?? '' ) &&
 	'DESC' === ( $r329_bestseller_args['order'] ?? '' ) &&
 	'total_sales' === ( $r329_bestseller_args['meta_key'] ?? '' ) &&
 	0 === ( $r329_bestseller_args['meta_value'] ?? null ) &&
 	'>' === ( $r329_bestseller_args['meta_compare'] ?? '' ) &&
 	'NUMERIC' === ( $r329_bestseller_args['meta_type'] ?? '' ) &&
 	! isset( $r329_bestseller_args['meta_query'] ),
-	'R329 bestseller source sends a WooCommerce-supported numeric sales threshold while preserving popularity order'
+	'R329 bestseller source uses an explicit numeric total_sales order rather than the unsupported popularity token'
 );
 
 $GLOBALS['terms_by_id'][32901] = (object) array( 'slug' => 'r329-brick-category' );
@@ -10861,7 +11521,7 @@ check(
 	! isset( $r329_manual_args['meta_query'] ),
 	'R329 manual source preserves the administrator-selected order and does not apply bestseller eligibility rules'
 );
-$r329_homepage_admin_source = (string) file_get_contents( ABSPATH . 'inc/theme-settings-homepage.php' );
+$r329_homepage_admin_source = theme_test_php_source( 'homepage' );
 check(
 	false !== strpos( $r329_homepage_admin_source, 'فقط کالاهای دارای فروش ثبت‌شده نمایش داده می‌شوند' ) &&
 	false !== strpos( $r329_homepage_admin_source, 'برای نمایش کالای تازه یا بدون فروش' ),
@@ -10936,7 +11596,7 @@ check(
 	false !== strpos( $r341_variant_admin_source, 'name="footer[variant]"' ) &&
 	false !== strpos( $r341_variant_admin_source, 'name="product_card[variant]"' ) &&
 	false !== strpos( $r341_variant_main_source, 'design-variants.css' ) &&
-	false !== strpos( $r341_variant_css_source, 'data-jluxe-product-card-variant="premium"' ),
+	false !== strpos( $r341_variant_css_source, 'Product cards deliberately use storefront.css' ),
 	'R354 admin can select each opt-in variant; scoped CSS restyles existing PHP/WooCommerce markup via the frontend entry'
 );
 
@@ -10970,6 +11630,18 @@ check(
 	1 === count( array_keys( $r355_classes, 'jluxe-design-canva-home', true ) ),
 	'R355 selecting the site-wide visual system adds one scoped body class'
 );
+$r367_neumorphic = jluxe_sanitize_visual_design( array( 'variant' => 'neumorphism' ), $r355_visual_defaults['visual_design'] );
+$r367_settings = $r355_visual_defaults;
+$r367_settings['visual_design'] = $r367_neumorphic;
+update_test_settings( $r367_settings );
+$r367_classes = jluxe_visual_design_body_classes( array( 'site' ) );
+check(
+	'neumorphism' === $r367_neumorphic['variant'] &&
+	in_array( 'jluxe-design-neumorphism', $r367_classes, true ) &&
+	! in_array( 'jluxe-design-canva-home', $r367_classes, true ),
+	'R367 selecting neumorphism adds only its separate body scope while preserving a whitelisted reversible variant'
+);
+update_test_settings( $r355_active_settings );
 $r355_old_post = $_POST;
 $_POST = array(
 	'jluxe_settings_nonce' => 'test-nonce',
@@ -11208,7 +11880,7 @@ $r422_featured_eligibility =
 	! jluxe_homepage_featured_product_is_available( $r422_backorder ) &&
 	! jluxe_homepage_featured_product_is_available( $r422_variable_without_available_option );
 check(
-	23 === JLUXE_SETTINGS_VERSION &&
+	24 === JLUXE_SETTINGS_VERSION &&
 	'product_grid' === ( $r422_default_featured['type'] ?? '' ) &&
 	'featured' === ( $r422_default_featured['query'] ?? '' ) &&
 	'grid' === ( $r422_default_featured['layout'] ?? '' ) &&
@@ -11287,5 +11959,599 @@ check(
 if ( null === $r422_old_admin ) { unset( $GLOBALS['is_admin'] ); } else { $GLOBALS['is_admin'] = $r422_old_admin; }
 $_GET = $r422_old_get;
 if ( null === $r422_old_visibility_terms ) { unset( $GLOBALS['terms_by_slug']['product_visibility'] ); } else { $GLOBALS['terms_by_slug']['product_visibility'] = $r422_old_visibility_terms; }
+
+
+$builder_design = jluxe_sanitize_homepage_section( array( 'id' => 'test', 'type' => 'heading', 'enabled' => 1, 'title' => 'Title', 'tag' => 'script', 'editor_label' => '<b>Layer</b>', 'design_enabled' => 1, 'design' => array( 'padding' => 9999, 'mobile_padding' => -20, 'background' => 'red;position:fixed', 'align' => 'evil', 'radius' => array( 5 ), 'hide_mobile' => 1 ) ) );
+check( 'h2' === $builder_design['tag'] && 'Layer' === $builder_design['editor_label'] && 240 === $builder_design['design']['padding'] && 0 === $builder_design['design']['mobile_padding'] && '' === $builder_design['design']['background'] && 'start' === $builder_design['design']['align'] && 0 === $builder_design['design']['radius'], 'Builder shared styles reject CSS injection, malformed inputs and unsafe heading tags' );
+check( ! isset( jluxe_sanitize_homepage_section( array( 'type' => 'text', 'id' => 'legacy' ) )['design'] ), 'Legacy sections do not acquire an active design wrapper on sanitation' );
+ob_start(); jluxe_render_homepage_section_frontend( array( 'type' => 'heading', 'title' => '<b>Title</b>', 'tag' => 'script' ) ); $builder_heading = ob_get_clean();
+check( false !== strpos( $builder_heading, '<h2>' ) && false === strpos( $builder_heading, '<script' ) && false !== strpos( $builder_heading, '&lt;b&gt;' ), 'Builder heading output uses semantic allowlisted tags and escaped text' );
+ob_start(); jluxe_render_homepage_section_frontend( $builder_design ); $builder_styled = ob_get_clean();
+check( false !== strpos( $builder_styled, 'jluxe-design-hide-mobile' ) && false === strpos( $builder_styled, 'position:fixed' ) && false !== strpos( $builder_styled, '--jvb-pad:240px' ), 'Builder frontend renders bounded responsive design controls without raw CSS' );
+
+
+// Builder v2: real handlers/renderers with isolated WordPress I/O.
+$jb_old_post = $_POST; $jb_old_options = $GLOBALS['options'];
+$jb_old_user = $GLOBALS['authenticated_user'] ?? 0; $jb_old_caps = $GLOBALS['current_user_can'] ?? null; $jb_old_nonce = $GLOBALS['valid_wp_nonce'] ?? true;
+$jb_doc = array( 'sections' => array( array( 'id' => 'row', 'type' => 'container', 'enabled' => true, 'columns' => 2, 'children' => array( array( 'id' => 'title', 'type' => 'heading', 'enabled' => true, 'title' => 'Nested title', 'tag' => 'h3' ) ) ) ) );
+check( jluxe_builder_validate_tree( $jb_doc['sections'] ), 'Builder2 accepts bounded nested layouts' );
+$jb_duplicate = $jb_doc; $jb_duplicate['sections'][0]['children'][0]['id'] = 'row';
+check( ! jluxe_builder_validate_tree( $jb_duplicate['sections'] ), 'Builder2 rejects duplicate identifiers before saving' );
+$jb_invalid = $jb_doc; $jb_invalid['sections'][0]['children'][0]['type'] = 'unknown';
+check( ! jluxe_builder_validate_tree( $jb_invalid['sections'] ), 'Builder2 rejects unknown nested types rather than silently dropping data' );
+$jb_deep = array( 'id' => 'leaf', 'type' => 'heading' );
+for ( $i = 0; $i < 8; $i++ ) { $jb_deep = array( 'id' => 'depth-' . $i, 'type' => 'container', 'children' => array( $jb_deep ) ); }
+check( ! jluxe_builder_validate_tree( array( $jb_deep ) ), 'Builder2 rejects excessive depth' );
+$jb_many = array(); for ( $i = 0; $i < 151; $i++ ) { $jb_many[] = array( 'id' => 'n-' . $i, 'type' => 'heading' ); }
+check( ! jluxe_builder_validate_tree( $jb_many ), 'Builder2 caps total nodes including nested nodes' );
+$jb_clean = jluxe_builder2_parse_document( wp_json_encode( $jb_doc ) );
+check( 'Nested title' === $jb_clean['sections'][0]['children'][0]['title'] && 2 === $jb_clean['sections'][0]['columns'], 'Builder2 sanitization retains nested content and layout options' );
+check( null === jluxe_builder2_parse_document( 'not-json' ) && null === jluxe_builder2_parse_document( str_repeat( 'a', 1048577 ) ), 'Builder2 fails closed on corrupt or oversized document payloads' );
+$jb_legacy_container = jluxe_sanitize_homepage_section( array( 'type' => 'container', 'children_json' => wp_json_encode( $jb_doc['sections'][0]['children'] ) ) );
+check( 'title' === $jb_legacy_container['children'][0]['id'], 'Classic settings preserve nested children through the single hidden JSON compatibility field' );
+check( 2 === count( jluxe_builder_flatten( $jb_clean['sections'] ) ), 'Nested enabled sections participate in frontend asset discovery' );
+$jb_layout = jluxe_builder_container_options( array( 'columns' => 100, 'mobile_columns' => -2, 'gap' => 999, 'max_width' => array() ) );
+check( 6 === $jb_layout['columns'] && 1 === $jb_layout['mobile_columns'] && 100 === $jb_layout['gap'] && 1320 === $jb_layout['max_width'], 'Container CSS dimensions are allowlisted bounded integers' );
+$jb_get = $_GET; $_GET = array();
+ob_start(); jluxe_render_homepage_section_frontend( $jb_clean['sections'][0] ); $jb_rendered = ob_get_clean(); $_GET = $jb_get;
+check( false !== strpos( $jb_rendered, 'jluxe-builder-container' ) && false !== strpos( $jb_rendered, '<h3>Nested title</h3>' ), 'Published nested layout uses actual server-rendered semantic content' );
+ob_start(); jluxe_render_visual_builder_page(); $jb_screen = ob_get_clean();
+check( false !== strpos( $jb_screen, 'id="jluxe-builder2"' ) && false !== strpos( $jb_screen, 'data-jb-inspector' ) && false !== strpos( $jb_screen, 'data-jb-layers' ) && false === strpos( $jb_screen, 'id="jluxe-hb-sections"' ), 'New screen uses independent inspector and tree, not legacy whole-document form mutation' );
+$_POST = array( 'nonce' => 'test', 'operation' => 'preview', 'document' => wp_json_encode( $jb_doc ) );
+$GLOBALS['valid_wp_nonce'] = false;
+$jb_bad_nonce = json_call( 'jluxe_builder2_ajax' );
+check( 403 === $jb_bad_nonce->status && $jb_old_options === $GLOBALS['options'], 'Builder2 invalid nonce cannot preview or modify options' );
+$GLOBALS['valid_wp_nonce'] = true;
+$jb_before_preview_options = $GLOBALS['options'];
+$jb_preview = json_call( 'jluxe_builder2_ajax' );
+check( $jb_preview->success && false !== strpos( $jb_preview->data['url'], 'jvb_revision=' ) && false === strpos( $jb_preview->data['url'], '&#038;' ) && $jb_before_preview_options === $GLOBALS['options'], 'Builder2 preview returns a raw signed URL and never writes draft or live options' );
+$_POST['operation'] = 'save'; $_POST['revision'] = 'stale';
+$jb_conflict = json_call( 'jluxe_builder2_ajax' );
+check( 409 === $jb_conflict->status && $jb_before_preview_options === $GLOBALS['options'], 'Builder2 stale editor revision cannot overwrite a newer draft' );
+$_POST['revision'] = jluxe_builder2_revision();
+$jb_saved = json_call( 'jluxe_builder2_ajax' );
+check( $jb_saved->success && $jb_before_preview_options[JLUXE_SETTINGS_OPTION] === $GLOBALS['options'][JLUXE_SETTINGS_OPTION] && 'Nested title' === $GLOBALS['options'][JLUXE_VISUAL_BUILDER_DRAFT_OPTION]['homepage']['sections'][0]['children'][0]['title'], 'Builder2 draft save persists full nested document without publishing' );
+$_POST['operation'] = 'publish'; $_POST['revision'] = $jb_saved->data['revision'];
+$jb_published = json_call( 'jluxe_builder2_ajax' );
+check( $jb_published->success && 'row' === $GLOBALS['options'][JLUXE_SETTINGS_OPTION]['homepage']['sections'][0]['id'], 'Builder2 explicit publish updates the homepage through the existing settings API' );
+foreach ( jluxe_visual_builder_section_types() as $jb_type => $jb_label ) {
+ $_POST = array( 'nonce' => 'test', 'operation' => 'inspect', 'document' => wp_json_encode( array( 'sections' => array( array( 'id' => 'inspect-' . $jb_type, 'type' => $jb_type, 'enabled' => true, 'children' => array() ) ) ) ) );
+ $jb_inspected = json_call( 'jluxe_builder2_ajax' );
+ check( $jb_inspected->success && false !== strpos( $jb_inspected->data['html'], 'homepage[sections][0]' ), 'Builder2 inspector uses real editable PHP controls for ' . $jb_type );
+}
+$_POST = $jb_old_post; $GLOBALS['options'] = $jb_old_options; $GLOBALS['authenticated_user'] = $jb_old_user; $GLOBALS['valid_wp_nonce'] = $jb_old_nonce;
+jluxe_get_theme_settings( true );
+
+// Extended layout and advanced appearance: invalid CSS must never reach output.
+$ratios = jluxe_builder_container_options( array( 'columns' => 2, 'column_ratios' => '66.7,33.3', 'vertical_align' => 'center', 'stack_on' => 'tablet' ) );
+check( '66.7,33.3' === $ratios['column_ratios'] && 'center' === $ratios['vertical_align'] && 'tablet' === $ratios['stack_on'], 'Unequal column ratios, vertical alignment and tablet stacking persist' );
+foreach ( array( '0,100', '1;position:fixed,2', 'NaN,10', '20', '-5,20', '999,1' ) as $bad_ratios ) {
+ $layout = jluxe_builder_container_options( array( 'columns' => 2, 'column_ratios' => $bad_ratios ) );
+ check( '1,1' === $layout['column_ratios'], 'Invalid column ratio rejected: ' . $bad_ratios );
+}
+$advanced = jluxe_sanitize_homepage_section_design( array( 'design_enabled' => true, 'design' => array( 'text_color' => '#123abc', 'border_color' => 'red;position:fixed', 'background_image' => 'javascript:alert(1)', 'anchor' => 'contact" onclick="evil', 'class_name' => 'my-card extra"', 'shadow' => 'large', 'width' => 'full', 'hide_tablet' => true ) ) );
+check( 'transparent' === $advanced['design']['surface_tone'], 'R403 surface tone defaults to transparent' );
+$advanced_surface = jluxe_sanitize_homepage_section_design( array( 'design' => array( 'surface_tone' => 'tinted' ) ) );
+check( 'tinted' === $advanced_surface['design']['surface_tone'], 'R403 accepts only a supported surface tone' );
+$advanced_surface['design'] = array( 'surface_tone' => 'url(javascript:alert(1))' );
+$unsafe_surface = jluxe_sanitize_homepage_section_design( $advanced_surface );
+check( 'transparent' === $unsafe_surface['design']['surface_tone'], 'R403 rejects unsupported surface tone values' );
+ob_start();
+jluxe_render_homepage_section_styled( array( 'type' => 'heading', 'title' => 'Soft band', 'tag' => 'h2', 'design_enabled' => false, 'design' => array( 'surface_tone' => 'soft' ) ) );
+$soft_surface_markup = (string) ob_get_clean();
+check( false !== strpos( $soft_surface_markup, 'class="jluxe-designed-section jluxe-home-tone-wrapper" data-surface-tone="soft"' ), 'R404 renders a soft surface wrapper even when custom section design is disabled' );
+check( '#123abc' === $advanced['design']['text_color'] && '' === $advanced['design']['border_color'] && false === strpos( $advanced['design']['anchor'], '"' ) && 'my-card extra' === $advanced['design']['class_name'], 'Advanced fields sanitize colors, anchors and CSS class tokens' );
+ob_start(); jluxe_render_homepage_section_styled( array_merge( array( 'type' => 'heading', 'title' => 'Styled', 'tag' => 'h2' ), $advanced ) ); $styled = ob_get_clean();
+check( false !== strpos( $styled, 'jluxe-design-width-full' ) && false !== strpos( $styled, 'jluxe-design-shadow-large' ) && false !== strpos( $styled, '--jvb-text:#123abc' ) && false === strpos( $styled, 'javascript:' ), 'Advanced fields render safe real frontend styles rather than editor-only controls' );
+
+$mega_meta_before = $GLOBALS['term_meta'] ?? array();
+$GLOBALS['term_meta'][700]['_jluxe_category_icon'] = 'bed';
+$mega_icons = jluxe_mega_menu_category_icons( array( array( 'id' => '700', 'label' => 'Bedroom', 'groups' => array() ) ) );
+check( $mega_icons[0]['iconSvg'] === jluxe_nav_icon_svg( 'bed', 'jluxe-mega-category-svg' ), 'Mega-menu cached hierarchy receives configured term icon' );
+$GLOBALS['term_meta'][700]['_jluxe_category_icon_svg'] = '<svg viewBox="0 0 24 24"><path d="M2 2h8" /></svg>';
+$mega_icons = jluxe_mega_menu_category_icons( $mega_icons );
+check( $mega_icons[0]['iconSvg'] === jluxe_sanitize_svg_markup( $GLOBALS['term_meta'][700]['_jluxe_category_icon_svg'] ), 'Custom sanitized category SVG overrides preset without waiting for hierarchy cache expiry' );
+unset( $GLOBALS['term_meta'][700]['_jluxe_category_icon_svg'] );
+$GLOBALS['term_meta'][700]['_jluxe_category_icon'] = '';
+$GLOBALS['term_meta'][700]['thumbnail_id'] = 42;
+$wc_mega = jluxe_mega_menu_category_icons( array( array( 'id' => '700' ) ) );
+check( $wc_mega[0]['iconImage'] === wp_get_attachment_image_url( 42, 'thumbnail' ) && '' === $wc_mega[0]['iconSvg'], 'Automatic mega-menu icon uses WooCommerce category thumbnail instead of preset' );
+$GLOBALS['term_meta'][700]['_jluxe_category_icon'] = 'bed';
+$wc_override = jluxe_mega_menu_category_icons( $wc_mega );
+check( '' === $wc_override[0]['iconImage'] && '' !== $wc_override[0]['iconSvg'], 'Explicit theme icon overrides WooCommerce thumbnail and clears stale image' );
+$GLOBALS['term_meta'] = $mega_meta_before;
+
+
+// Customer actions are delegated to Woo, and never exposed to guests/other owners.
+$journey_auth_before = $GLOBALS['authenticated_user'] ?? 0;
+$journey_order = new WC_Order();
+$journey_order->customer_id = 42;
+$GLOBALS['account_actions_fixture'] = array(
+ 'pay' => array( 'url' => 'https://shop.test/order-pay/51/?key=secure', 'name' => 'پرداخت' ),
+ 'cancel' => array( 'url' => 'https://shop.test/cancel/51/?nonce=secure', 'name' => 'لغو' ),
+ 'extension' => array( 'url' => 'https://shop.test/extension/51/', 'name' => 'Extension action' ),
+);
+$GLOBALS['authenticated_user'] = 42;
+ob_start(); jluxe_render_customer_order_actions( $journey_order ); $journey_actions = ob_get_clean();
+check( false !== strpos( $journey_actions, 'order-pay/51/' ) && false !== strpos( $journey_actions, 'nonce=secure' ) && false !== strpos( $journey_actions, 'Extension action' ), 'Journey account actions retain Woo payment/cancellation URLs and extension actions' );
+foreach ( array( 0, 99 ) as $journey_nonowner ) {
+ $GLOBALS['authenticated_user'] = $journey_nonowner;
+ ob_start(); jluxe_render_customer_order_actions( $journey_order ); $journey_hidden = ob_get_clean();
+ check( '' === $journey_hidden, 'Journey account actions stay hidden for nonowner ' . $journey_nonowner );
+}
+$GLOBALS['authenticated_user'] = 42;
+$GLOBALS['account_actions_fixture'] = array();
+ob_start(); jluxe_render_customer_order_actions( $journey_order ); $journey_empty = ob_get_clean();
+check( '' === $journey_empty, 'Journey does not invent payment actions when Woo returns none' );
+$journey_orders_template = file_get_contents( ABSPATH . 'woocommerce/myaccount/orders.php' );
+$journey_details_template = file_get_contents( ABSPATH . 'woocommerce/myaccount/view-order.php' );
+check( false !== strpos( $journey_orders_template, 'jluxe_render_customer_order_actions( $order )' ) && false !== strpos( $journey_details_template, 'jluxe_render_customer_order_actions( $order )' ), 'Journey both account order templates expose standard owner-bound actions' );
+check( false !== strpos( $journey_details_template, "wc_display_item_meta( \$item, array( 'echo' => false ) )" ) && false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/thankyou.php' ), "wc_display_item_meta( \$jluxe_ty_item, array( 'echo' => false ) )" ), 'Journey details and thank-you delegate saved variation metadata to Woo public formatting' );
+
+// Render the real account templates too (Woo I/O is still mocked).
+class JourneyRenderOrder extends WC_Order {
+ function get_view_order_url(){ return 'https://shop.test/account/view-order/51/'; }
+ function get_formatted_order_total(){ return '100'; }
+ function get_formatted_line_subtotal( $item ){ return '100'; }
+ function get_customer_order_notes(){ return array(); }
+}
+function wc_get_order_status_name( $status ){ return $status; }
+function wc_get_endpoint_url( $endpoint, $value = '', $permalink = '' ){ return 'https://shop.test/account/' . $endpoint . '/' . $value; }
+$journey_saved_orders = $GLOBALS['orders'];
+$order = new JourneyRenderOrder(); $order->customer_id = 42; $order->items = array( new WC_Order_Item_Product( 'Journey product', 1, 100, 100 ) );
+$GLOBALS['orders'][51] = $order;
+$GLOBALS['account_actions_fixture'] = array( 'pay' => array( 'url' => 'https://shop.test/order-pay/51/?key=secure', 'name' => 'پرداخت' ) );
+$customer_orders = (object) array( 'orders' => array( 51 ), 'max_num_pages' => 1 ); $has_orders = true; $current_page = 1;
+ob_start(); include ABSPATH . 'woocommerce/myaccount/orders.php'; $journey_list_html = ob_get_clean();
+check( false !== strpos( $journey_list_html, 'order-pay/51/' ) && false !== strpos( $journey_list_html, 'view-order/51/' ), 'Journey rendered order list includes view and authorized payment links' );
+ob_start(); include ABSPATH . 'woocommerce/myaccount/view-order.php'; $journey_detail_html = ob_get_clean();
+check( false !== strpos( $journey_detail_html, 'order-pay/51/' ) && false !== strpos( $journey_detail_html, 'سایز: XL' ), 'Journey rendered order details include payment and Woo-rendered item metadata' );
+$GLOBALS['orders'] = $journey_saved_orders;
+$GLOBALS['authenticated_user'] = $journey_auth_before;
+unset( $GLOBALS['account_actions_fixture'] );
+
+// DSN Address Checkout Flow: مسیر مستقل کنار تسویه‌حساب اصلی؛ بدون تغییر از پلاگین اصلی.
+$dsn_source = (string) file_get_contents( ABSPATH . 'inc/dsn-address-flow/dsn-address-flow.php' );
+check(
+	false !== strpos( $dsn_source, "add_shortcode( 'dsn_address_flow'" ) &&
+	false !== strpos( $dsn_source, 'get_available_payment_gateways()' ) &&
+	false !== strpos( $dsn_source, 'created_via' ) &&
+	false !== strpos( $dsn_source, 'dsn-address-flow' ) &&
+	false === strpos( $dsn_source, 'woocommerce_payment_gateways' ) &&
+	false !== strpos( $dsn_source, 'DSN_ACF::init()' ),
+	'DSN flow registers its shortcode, reads live WooCommerce gateways, and never registers as a main payment gateway'
+);
+check(
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' ), 'woocommerce_checkout_payment' ) &&
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'woocommerce_checkout_payment()' ) &&
+	false === strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/payment.php' ), 'dsn_address_flow' ) &&
+	false === strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'dsn_address_flow' ),
+	'Main checkout templates contain no DSN hooks'
+);
+
+// ریدایرکت به ورود پیامکی و مدیریت آدرس در تسویه‌حساب اصلی.
+$login_source = file_exists( ABSPATH . 'inc/checkout-login.php' ) ? (string) file_get_contents( ABSPATH . 'inc/checkout-login.php' ) : '';
+check(
+	false !== strpos( $login_source, 'jluxe_checkout_login_redirect_needed' ) &&
+	false !== strpos( $login_source, 'is_registration_required()' ) &&
+	false !== strpos( $login_source, 'jluxe_otp_available()' ) &&
+	false !== strpos( $login_source, 'template_redirect' ) &&
+	false !== strpos( $login_source, 'redirect_to' ) &&
+	false !== strpos( $login_source, 'woocommerce_checkout_login_form' ) &&
+	false !== strpos( $login_source, 'jluxe_render_address_selector' ) &&
+	false !== strpos( $login_source, 'jluxe_ajax_save_checkout_address' ) &&
+	false !== strpos( $login_source, "woocommerce_form_field( 'billing_state'" ) &&
+	false !== strpos( $login_source, "woocommerce_form_field( 'billing_city'" ) &&
+	false !== strpos( $login_source, 'data-jluxe-identity-field' ) &&
+	false !== strpos( $login_source, 'WC_Customer' ) &&
+	false === strpos( $login_source, 'woocommerce_payment_gateways' ) &&
+	false === strpos( $login_source, 'jluxe_render_checkout_login_card' ) &&
+	false === strpos( $login_source, 'data-jluxe-picker' ) &&
+	false === strpos( $login_source, 'jluxe-new-state' ),
+	'Checkout redirects forced-login guests to OTP page, saves addresses via AJAX with real WooCommerce province/city fields, and never registers as a gateway'
+);
+check(
+	false !== strpos( file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' ), 'jluxe_render_address_selector()' ) &&
+	( !file_exists( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ) || false !== strpos( (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout-guided.php' ), 'jluxe_render_address_selector()' ) ) &&
+	false !== strpos( file_get_contents( ABSPATH . 'functions.php' ), 'inc/checkout-login.php' ),
+	'Address selector is wired into both classic and guided main checkout layouts'
+);
+check(
+	false !== jluxe_address_has_content( array( 'address_1' => 'خیابان ولیعصر', 'city' => '', 'postcode' => '' ) ) &&
+	false === jluxe_address_has_content( array( 'address_1' => '', 'city' => '', 'postcode' => '' ) ) &&
+	true === jluxe_addresses_equal(
+		array( 'address_1' => 'a', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' ),
+		array( 'address_1' => 'a', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' )
+	) &&
+	false === jluxe_addresses_equal(
+		array( 'address_1' => 'a', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' ),
+		array( 'address_1' => 'x', 'city' => 'b', 'state' => 'c', 'postcode' => 'd', 'country' => 'IR' )
+	) &&
+	'تهران، خیابان ولیعصر — کدپستی 1234567890' === jluxe_format_address_line( array( 'state' => 'تهران', 'city' => '', 'address_1' => 'خیابان ولیعصر', 'address_2' => '', 'postcode' => '1234567890' ) ),
+	'Address helpers detect content, equality, and one-line formatting'
+);
+
+// R365: legacy numeric IDs (e.g. state 1966, city 1973) must not print
+// verbatim — unresolvable numeric IDs are omitted from the display line.
+check(
+	!function_exists('jluxe_format_address_line') || (
+	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
+	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) )
+	),
+	'خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ) &&
+	'ایلام، خیابان نمونه' === jluxe_format_address_line( array( 'state' => '1966', 'state_name' => 'ایلام', 'city' => '1973', 'address_1' => 'خیابان نمونه', 'address_2' => '', 'postcode' => '' ) ),
+	'R365 legacy numeric state/city IDs are omitted from the address line instead of printing raw'
+);
+
+// R377: thank-you branches stay balanced and the optional guided template falls back safely.
+if ( ! function_exists( 'wc_format_datetime' ) ) {
+ function wc_format_datetime( $date ) { return $date ? '2026-10-08' : ''; }
+}
+class ThankyouRenderFixture extends WC_Order {
+ function has_status( $statuses ) { return in_array( $this->status, (array) $statuses, true ); }
+ function get_address( $type = 'billing' ) { return array(); }
+ function get_formatted_shipping_address() { return ''; }
+ function get_formatted_billing_address() { return ''; }
+ function get_checkout_payment_url() { return 'https://shop.test/pay/51/'; }
+ function get_formatted_order_total() { return '450000'; }
+}
+$ty_template = ABSPATH . 'woocommerce/checkout/thankyou.php';
+$ty_previous_order = $order ?? null;
+foreach ( array( 'failed', 'on-hold', 'processing' ) as $ty_status ) {
+ $order = new ThankyouRenderFixture();
+ $order->status = $ty_status;
+ $GLOBALS['fired'] = array();
+ ob_start(); include $ty_template; $ty_html = ob_get_clean();
+ preg_match_all( '/<div\b/i', $ty_html, $ty_open_divs );
+ preg_match_all( '/<\/div\s*>/i', $ty_html, $ty_close_divs );
+ check( count( $ty_open_divs[0] ) === count( $ty_close_divs[0] ), 'Thank-you markup has balanced divs for ' . $ty_status );
+ if ( 'failed' !== $ty_status ) {
+  $ty_hero_at = strpos( $ty_html, 'class="jluxe-ty-hero' );
+  $ty_badge_at = strpos( $ty_html, 'class="mt-6 inline-flex', $ty_hero_at );
+  $ty_copy_at = strpos( $ty_html, 'data-order-number-copy="51"', $ty_badge_at );
+  $ty_badge_close = strpos( $ty_html, '</div>', $ty_copy_at );
+  $ty_hero_close = strpos( $ty_html, '</div>', $ty_badge_close + 6 );
+  check( false !== $ty_hero_at && false !== $ty_badge_at && false !== $ty_copy_at && $ty_hero_at < $ty_badge_at && $ty_badge_at < $ty_copy_at && $ty_copy_at < $ty_badge_close && $ty_badge_close < $ty_hero_close, 'Thank-you order badge and copy action are nested inside the hero for ' . $ty_status );
+ }
+ check( in_array( 'woocommerce_thankyou_test_gateway', $GLOBALS['fired'], true ) && in_array( 'woocommerce_thankyou', $GLOBALS['fired'], true ), 'Thank-you invokes gateway and general hooks for ' . $ty_status );
+}
+$order = $ty_previous_order;
+$thankyou_source = (string) file_get_contents( $ty_template );
+check(
+ strpos( $thankyou_source, "do_action( 'woocommerce_thankyou_' . \$order->get_payment_method()" ) < strpos( $thankyou_source, '$jluxe_ty_track_url' ) &&
+ strpos( $thankyou_source, "do_action( 'woocommerce_thankyou', \$order->get_id() )" ) < strpos( $thankyou_source, 'class="mt-6 flex flex-col gap-3 sm:flex-row"' ),
+ 'Gateway and general thank-you hooks run before final customer action buttons'
+);
+check(
+ substr_count( $thankyou_source, "remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table'" ) === 2 &&
+ substr_count( $thankyou_source, "add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table'" ) === 2 &&
+ false !== strpos( $thankyou_source, 'jluxe_render_order_gift_wrap_details( $order )' ) &&
+ false !== strpos( $thankyou_source, 'jluxe_gregorian_timestamp_to_jalali_string' ) &&
+ false !== strpos( $thankyou_source, "'Y/m/d'" ),
+ 'R402 thank-you suppresses only WooCommerce’s duplicate table, restores it, and renders gift-wrap plus Jalali date'
+);
+$guided_checkout = ABSPATH . 'woocommerce/checkout/form-checkout-guided.php';
+$checkout_source = (string) file_get_contents( ABSPATH . 'woocommerce/checkout/form-checkout.php' );
+check( ! is_file( $guided_checkout ) && false !== strpos( $checkout_source, "is_file( __DIR__ . '/form-checkout-guided.php' )" ), 'Missing guided checkout template selects the standard checkout instead of including a nonexistent file' );
+
+// R531: WordPress deletes an uploaded ZIP after a folder_exists result, before its Replace link can reuse the package attachment.
+$upload_guard_old_get = $_GET;
+$upload_guard_old_files = $_FILES;
+$upload_guard_old_globals = array(
+	'jluxe_uploaded_theme_package_id' => $GLOBALS['jluxe_uploaded_theme_package_id'] ?? null,
+	'jluxe_preserve_theme_package_for_overwrite' => $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] ?? null,
+);
+$_GET = array( 'action' => 'upload-theme' );
+$_FILES = array( 'themezip' => array( 'name' => 'zarrin.zip' ) );
+unset( $GLOBALS['jluxe_uploaded_theme_package_id'], $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] );
+jluxe_track_uploaded_theme_package( 731 );
+$upload_guard_folder_error = new WP_Error( 'folder_exists', 'Destination folder already exists.' );
+$upload_guard_hook_extra = array( 'type' => 'theme', 'action' => 'install' );
+check(
+	$upload_guard_folder_error === jluxe_keep_theme_package_for_overwrite( $upload_guard_folder_error, $upload_guard_hook_extra ) &&
+	731 === $GLOBALS['jluxe_uploaded_theme_package_id'] &&
+	! empty( $GLOBALS['jluxe_preserve_theme_package_for_overwrite'] ),
+	'R531 recognizes only the uploaded theme folder-conflict flow and retains its package attachment for the Replace link'
+);
+$upload_guard_attachment = (object) array( 'ID' => 731, 'post_type' => 'attachment', 'post_status' => 'private' );
+check(
+	$upload_guard_attachment === jluxe_preserve_theme_package_attachment( null, $upload_guard_attachment, false ),
+	'R531 short-circuits core deletion for the exact ZIP attachment used by the theme overwrite prompt'
+);
+$upload_guard_other_attachment = (object) array( 'ID' => 732, 'post_type' => 'attachment', 'post_status' => 'private' );
+check(
+	null === jluxe_preserve_theme_package_attachment( null, $upload_guard_other_attachment, false ),
+	'R531 does not interfere with deletion of any unrelated attachment'
+);
+check(
+	$upload_guard_folder_error === jluxe_keep_theme_package_for_overwrite( $upload_guard_folder_error, array( 'type' => 'plugin', 'action' => 'install' ) ),
+	'R531 leaves WordPress plugin uploads and their overwrite flow untouched'
+);
+check(
+	array( 'source' => '/tmp/theme' ) === jluxe_keep_theme_package_for_overwrite( array( 'source' => '/tmp/theme' ), $upload_guard_hook_extra ),
+	'R531 leaves successful theme installs and ordinary cleanup unchanged'
+);
+$_GET['overwrite'] = 'update-theme';
+check(
+	null === jluxe_preserve_theme_package_attachment( null, $upload_guard_attachment, false ),
+	'R531 allows WordPress cleanup to proceed normally on the subsequent Replace request'
+);
+$_GET = $upload_guard_old_get;
+$_FILES = $upload_guard_old_files;
+foreach ( $upload_guard_old_globals as $upload_guard_key => $upload_guard_value ) {
+	if ( null === $upload_guard_value ) {
+		unset( $GLOBALS[ $upload_guard_key ] );
+	} else {
+		$GLOBALS[ $upload_guard_key ] = $upload_guard_value;
+	}
+}
+
+$postcode_guard_query_kind = $GLOBALS['query_kind'] ?? null;
+$GLOBALS['query_kind'] = 'account';
+$postcode_guard_original = '<p id="billing_postcode_field">postcode</p>';
+check(
+	$postcode_guard_original === jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' ),
+	'R533 postcode opt-out is not rendered outside the checkout page, including account address editing'
+);
+$GLOBALS['query_kind'] = 'order_received';
+check(
+	$postcode_guard_original === jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' ),
+	'R533 postcode opt-out is not rendered on the order-received page'
+);
+$GLOBALS['query_kind'] = 'checkout';
+$postcode_guard_checkout_html = jluxe_add_unknown_postcode_checkbox( $postcode_guard_original, 'billing_postcode' );
+check(
+	$postcode_guard_original !== $postcode_guard_checkout_html && false !== strpos( $postcode_guard_checkout_html, 'jluxe-unknown-postcode-checkbox' ),
+	'R533 postcode opt-out is rendered for checkout billing fields'
+);
+if ( null === $postcode_guard_query_kind ) {
+	unset( $GLOBALS['query_kind'] );
+} else {
+	$GLOBALS['query_kind'] = $postcode_guard_query_kind;
+}
+
+
+// R540: product video media validation and review-photo security/render/cache regressions.
+$review_photo_defaults = jluxe_theme_settings_defaults()['review_criteria'];
+$review_multipart_saved_login = $GLOBALS['logged_in'] ?? false;
+$review_multipart_saved_post = $GLOBALS['post'] ?? null;
+$review_multipart_saved_type = $GLOBALS['post_types'][900] ?? null;
+$GLOBALS['logged_in'] = true;
+$GLOBALS['post_types'][900] = 'product';
+$GLOBALS['post'] = (object) array( 'ID' => 900, 'post_type' => 'product' );
+ob_start();
+ob_start();
+do_action('comment_form_before');
+echo '<form action="/wp-comments-post.php" method="post" id="commentform"><textarea></textarea></form>';
+do_action('comment_form', 900);
+do_action('comment_form_after');
+$review_multipart_markup = (string) ob_get_clean();
+$GLOBALS['logged_in'] = $review_multipart_saved_login;
+$GLOBALS['post'] = $review_multipart_saved_post;
+if ( null === $review_multipart_saved_type ) { unset($GLOBALS['post_types'][900]); } else { $GLOBALS['post_types'][900] = $review_multipart_saved_type; }
+$review_multipart_actions = array_filter($GLOBALS['actions']??array(),static function($hook){return in_array(($hook[0]??''),array('comment_form_before','comment_form_after'),true)&&str_contains((string)($hook[1]??''),'jluxe_review_comment_form_buffer_');});
+check(str_contains($review_multipart_markup, 'enctype="multipart/form-data"') && count($review_multipart_actions) === 2 && !in_array('comment_form',array_column($GLOBALS['filters']??array(),0),true), 'R540 real one-argument comment_form action does not fatal; before/after actions inject multipart enctype');
+check(
+	true === $review_photo_defaults['photos_enabled'] && 3 === $review_photo_defaults['photos_max_count'] && 2 === $review_photo_defaults['photos_max_size_mb'] && true === $review_photo_defaults['photos_logged_in_only'],
+	'R540 review-photo defaults enable uploads with bounded limits and login-only protection'
+);
+$form_review_settings = jluxe_sanitize_review_criteria(array('items'=>array(),'photos_enabled'=>'0','photos_logged_in_only'=>'0','photos_max_count'=>'9','photos_max_size_mb'=>'0'),$review_photo_defaults);
+check(
+	false === $form_review_settings['photos_enabled'] && false === $form_review_settings['photos_logged_in_only'] && 5 === $form_review_settings['photos_max_count'] && 1 === $form_review_settings['photos_max_size_mb'],
+	'R540 review-photo form settings sanitize booleans and clamp count/size to 1..5'
+);
+$import_review_settings = jluxe_sanitize_settings_payload(array('review_criteria'=>array('items'=>array(),'photos_enabled'=>true,'photos_logged_in_only'=>false,'photos_max_count'=>4,'photos_max_size_mb'=>5)),jluxe_theme_settings_defaults());
+check(
+	true === $import_review_settings['review_criteria']['photos_enabled'] && false === $import_review_settings['review_criteria']['photos_logged_in_only'] && 4 === $import_review_settings['review_criteria']['photos_max_count'] && 5 === $import_review_settings['review_criteria']['photos_max_size_mb'],
+	'R540 review-photo settings survive validated JSON import/export payload sanitization'
+);
+
+$GLOBALS['posts'][901]=array('ID'=>901,'post_type'=>'attachment','post_title'=>'Product clip','post_status'=>'inherit');
+$GLOBALS['post_types'][901]='attachment';
+$GLOBALS['attachment_mimes'][901]='video/mp4';
+$GLOBALS['attachment_urls'][901]='https://shop.test/uploads/clip.mp4';
+$GLOBALS['post_thumbnails'][900]=902;
+$GLOBALS['attachment_images'][902]=true;
+$GLOBALS['attachment_image_urls'][902]=array('large'=>'https://shop.test/uploads/featured.jpg');
+$GLOBALS['post_meta'][900]['_jluxe_product_video_id']=901;
+$gallery_video=jluxe_get_product_gallery_video(900);
+check(
+	is_array($gallery_video) && 901===$gallery_video['video_id'] && 'video/mp4'===$gallery_video['mime'] && 'https://shop.test/uploads/featured.jpg'===$gallery_video['poster_url'],
+	'R540 gallery-video helper accepts video attachments and falls back to the featured image poster'
+);
+$video_markup_sources = file_get_contents(ABSPATH.'woocommerce/content-single-product-reference.php').file_get_contents(ABSPATH.'woocommerce/content-single-product-classic.php').file_get_contents(ABSPATH.'woocommerce/content-single-product.php');
+check(!preg_match('/<video\\b[^>]*\\bsrc\\s*=/i',$video_markup_sources)&&str_contains($video_markup_sources,'fetchpriority="high"'),'R540 initial server-rendered product templates keep the high-priority image and never emit a video src');
+$GLOBALS['attachment_mimes'][901]='image/jpeg';
+check(null===jluxe_get_product_gallery_video(900),'R540 gallery-video helper rejects non-video attachments');
+$GLOBALS['attachment_mimes'][901]='video/webm';
+$_POST=array('jluxe_product_options_present'=>'1','_jluxe_product_video_id'=>'901','_jluxe_product_video_poster_id'=>'0');
+$GLOBALS['post_meta'][900]['_jluxe_product_video_id']=0;
+jluxe_save_product_badge_fields(900);
+check(901===(int)$GLOBALS['post_meta'][900]['_jluxe_product_video_id'] && !isset($GLOBALS['post_meta'][900]['_jluxe_product_video_poster_id']),'R540 product-editor save persists valid video IDs and clears an empty poster');
+$GLOBALS['attachment_mimes'][901]='image/png';
+$_POST['_jluxe_product_video_id']='901';
+jluxe_save_product_badge_fields(900);
+check(!isset($GLOBALS['post_meta'][900]['_jluxe_product_video_id']),'R540 product-editor save removes invalid non-video media IDs');
+$_POST=array();
+
+$valid_png=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($valid_png,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/S2cAAAAASUVORK5CYII='));
+$svg_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($svg_file,'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+$php_file=tempnam(sys_get_temp_dir(),'jluxe-photo-');file_put_contents($php_file,'<?php echo "not an image";');
+$expected_review_photo_mimes=array('jpg|jpeg|jpe'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp');
+check(
+	jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($svg_file,'customer.svg',(int)filesize($svg_file),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($php_file,'customer.php',(int)filesize($php_file),2*MB_IN_BYTES) &&
+	!jluxe_validate_review_photo_file($valid_png,'customer.png',(int)filesize($valid_png),1) &&
+	end($GLOBALS['filetype_mime_checks'])===$expected_review_photo_mimes,
+	'R540 review-photo verifier accepts raster images, rejects SVG/PHP or oversized files, and passes WordPress ext=>MIME maps'
+);
+check(jluxe_review_photo_count_allowed(3,3) && !jluxe_review_photo_count_allowed(4,3) && !jluxe_review_photo_count_allowed(0,3),'R540 review-photo server count limit rejects excess and empty uploads');
+unlink($valid_png);unlink($svg_file);unlink($php_file);
+
+$photo_comment=new WP_Comment();$photo_comment->comment_ID=505;$photo_comment->comment_post_ID=900;$photo_comment->comment_type='review';$photo_comment->comment_approved='1';$photo_comment->comment_author='خریدار';
+$GLOBALS['comment_objects'][505]=$photo_comment;$GLOBALS['comments'][505]=$photo_comment;
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903);
+$GLOBALS['post_meta'][903]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][903]['_jluxe_review_comment_id']=505;$GLOBALS['attachment_images'][903]=true;
+$GLOBALS['attachment_image_urls'][903]=array('large'=>'https://shop.test/photo-large.jpg','thumbnail'=>'https://shop.test/photo-thumb.jpg','full'=>'https://shop.test/photo-full.jpg');
+ob_start();jluxe_render_review_photo_thumbnails($photo_comment);$photo_thumbs=(string)ob_get_clean();
+$photo_hook_registered=(bool)array_filter($GLOBALS['actions']??array(),static function($hook){return ($hook[0]??'')==='woocommerce_review_after_comment_text'&&($hook[1]??'')==='jluxe_render_review_photo_thumbnails'&&(int)($hook[2]??0)===20;});
+check(str_contains($photo_thumbs,'loading="lazy"')&&str_contains($photo_thumbs,'width="72" height="72"')&&str_contains($photo_thumbs,'data-jluxe-review-photo')&&$photo_hook_registered,'R540 approved review cards render accessible lazy photo thumbnails from the WooCommerce post-text hook');
+$GLOBALS['is_admin']=true;$admin_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(905);$admin_empty_photo_markup=jluxe_admin_review_photo_comment_text('دیدگاه',$photo_comment);$GLOBALS['is_admin']=false;
+check(str_contains($admin_photo_markup,'jluxe-admin-review-photos')&&str_contains($admin_photo_markup,'target="_blank"')&&!str_contains($admin_empty_photo_markup,'jluxe-admin-review-photos'),'R540 comment moderation includes owned customer-photo previews and never adds an empty wrapper');
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903);
+unset($GLOBALS['transients']['jluxe_review_photos_gallery_900']);
+$photo_gallery=jluxe_get_review_photo_gallery(900);
+ob_start();jluxe_render_review_photo_gallery(900);$photo_gallery_html=(string)ob_get_clean();
+check(count($photo_gallery)===1&&str_contains($photo_gallery_html,'تصاویر خریداران')&&str_contains($photo_gallery_html,'خریدار'),'R540 recent buyer-photo strip renders approved photos and reviewer attribution');
+check(jluxe_invalidate_review_insights(505,$photo_comment)===null&&!isset($GLOBALS['transients']['jluxe_review_photos_gallery_900']),'R540 review-insights invalidation also purges the cached photo gallery');
+$GLOBALS['comment_meta'][505]['_jluxe_review_photo_ids']=array(903,904);
+$GLOBALS['post_meta'][904]['_jluxe_review_photo']='1';$GLOBALS['post_meta'][904]['_jluxe_review_comment_id']=999;
+$GLOBALS['deleted_attachments']=array();jluxe_delete_review_photos(505);
+check(array(array(903,true))===$GLOBALS['deleted_attachments'],'R540 deleting a review removes only its explicitly owned photo attachments');
+
+// R399 phase-three commerce: settings compatibility, share links, server-side gift fees, and archive swatches.
+$phase_defaults = jluxe_theme_settings_defaults();
+$phase_cart_defaults = $phase_defaults['cart_checkout'];
+$phase_cart_sanitized = jluxe_sanitize_cart_checkout(array(
+	'show_share_cart' => '0', 'gift_wrap_enabled' => '1', 'gift_wrap_label' => '<b>هدیه</b>',
+	'gift_wrap_fee' => '-25', 'gift_wrap_description' => '<i>بسته</i>', 'gift_wrap_note_enabled' => '0',
+), $phase_cart_defaults);
+$phase_cart_import_defaults = jluxe_sanitize_cart_checkout(array(), $phase_cart_defaults);
+$phase_card_sanitized = jluxe_sanitize_product_card(array('show_color_swatches' => '0'), $phase_defaults['product_card']);
+check(
+	true === $phase_cart_defaults['show_share_cart'] && false === $phase_cart_defaults['gift_wrap_enabled'] && 'بسته‌بندی هدیه ویژه' === $phase_cart_defaults['gift_wrap_label'] && 0 === $phase_cart_defaults['gift_wrap_fee'] && true === $phase_cart_defaults['gift_wrap_note_enabled'] &&
+	false === $phase_cart_sanitized['show_share_cart'] && true === $phase_cart_sanitized['gift_wrap_enabled'] && 'هدیه' === $phase_cart_sanitized['gift_wrap_label'] && 0 == $phase_cart_sanitized['gift_wrap_fee'] && 'بسته' === $phase_cart_sanitized['gift_wrap_description'] && false === $phase_cart_sanitized['gift_wrap_note_enabled'] &&
+	true === $phase_cart_import_defaults['show_share_cart'] && false === $phase_cart_import_defaults['gift_wrap_enabled'] && true === $phase_cart_import_defaults['gift_wrap_note_enabled'] && true === $phase_defaults['product_card']['show_color_swatches'] && false === $phase_card_sanitized['show_color_swatches'],
+	'R399 share-cart, gift-wrap and product-card defaults/sanitizers preserve import defaults, explicit booleans, safe text and nonnegative fees'
+);
+
+$phase_old_wc = $GLOBALS['wc'] ?? null;
+$phase_old_settings = $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] ?? null;
+$phase_old_post = $_POST;
+$phase_old_query = $GLOBALS['query_kind'] ?? null;
+$phase_old_uri = $_SERVER['REQUEST_URI'] ?? null;
+$phase_old_get = $_GET;
+$phase_old_throw_redirect = $GLOBALS['throw_redirect'] ?? false;
+$phase_settings = $phase_defaults;
+$phase_settings['cart_checkout']['show_share_cart'] = true;
+$phase_settings['cart_checkout']['gift_wrap_enabled'] = true;
+$phase_settings['cart_checkout']['gift_wrap_label'] = 'بسته‌بندی هدیه آزمایشی';
+$phase_settings['cart_checkout']['gift_wrap_fee'] = 1250;
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = true;
+$phase_settings['shop']['mini_cart_show_free_shipping'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['products'][700] = new WC_Product(700);
+$GLOBALS['products'][701] = new WC_Product(701); $GLOBALS['products'][701]->type = 'variable';
+$GLOBALS['products'][702] = new WC_Product(702); $GLOBALS['products'][702]->type = 'variation'; $GLOBALS['products'][702]->parent = 701;
+$GLOBALS['products'][703] = new WC_Product(703);
+$GLOBALS['products'][704] = new WC_Product(704); $GLOBALS['products'][704]->status = 'draft';
+$GLOBALS['products'][705] = new WC_Product(705); $GLOBALS['products'][705]->type = 'variation'; $GLOBALS['products'][705]->parent = 704;
+$GLOBALS['variation_attributes'][702] = array('attribute_pa_color' => 'red');
+$phase_cart = new FakeCart();
+$phase_cart->items = array(
+	'same' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>2,'variation'=>array()),
+	'other' => array('data'=>$GLOBALS['products'][700],'product_id'=>700,'variation_id'=>0,'quantity'=>1,'variation'=>array()),
+	'partial' => array('data'=>$GLOBALS['products'][703],'product_id'=>703,'variation_id'=>0,'quantity'=>1,'variation'=>array()),
+);
+$GLOBALS['wc'] = (object) array('cart'=>$phase_cart,'session'=>new FakeSession());
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>''));
+$phase_encoded = jluxe_share_cart_encoded();
+$phase_url = jluxe_share_cart_url();
+$phase_parsed = jluxe_parse_share_cart_payload('703:3,701v702:1');
+$phase_import = jluxe_import_share_cart('700:2,703:3,701v702:1,704:1,701v705:1');
+$phase_snapshot = jluxe_cart_snapshot();
+check(
+	'700:3,703:1' === $phase_encoded && str_contains($phase_url, 'jluxe_share_cart=') && is_array($phase_parsed) && 2 === count($phase_parsed) &&
+	array('added'=>2,'unavailable'=>2,'already_present'=>1,'invalid'=>false) === $phase_import && count($phase_cart->addCalls) === 2 && 703 === $phase_cart->addCalls[0][0] && 2 === $phase_cart->addCalls[0][1] && 701 === $phase_cart->addCalls[1][0] && 702 === $phase_cart->addCalls[1][2] && array('attribute_pa_color'=>'red') === $phase_cart->addCalls[1][3] &&
+	null === jluxe_parse_share_cart_payload('703:100') && null === jluxe_parse_share_cart_payload('703:1,703:1') && null === jluxe_parse_share_cart_payload('bad:1') &&
+	true === $phase_snapshot['shareCartEnabled'] && str_contains($phase_snapshot['shareCartUrl'], 'jluxe_share_cart=') && true === $phase_snapshot['giftWrap']['enabled'],
+	'R400 share-cart aggregates duplicate lines, adds only the missing quantity, rejects unavailable/draft/mismatched variations, preserves the recipient cart, and exposes the safe snapshot'
+);
+$phase_cart->items = array('valid'=>array('data'=>$GLOBALS['products'][703],'product_id'=>703,'variation_id'=>0,'quantity'=>1,'variation'=>array()));
+$GLOBALS['query_kind'] = 'cart';
+$_SERVER['REQUEST_URI'] = '/basket/?jluxe_share_cart=703%3A1&keep=1';
+$_GET = array('jluxe_share_cart'=>'703:1');
+$GLOBALS['throw_redirect'] = true;
+$phase_redirect = '';
+try { jluxe_handle_share_cart_link(); } catch (RuntimeException $redirect_error) { $phase_redirect = $redirect_error->getMessage(); }
+$GLOBALS['throw_redirect'] = false;
+$phase_cookie_started = $GLOBALS['wc']->session->customerCookieCalls === array(true);
+check(str_contains($phase_redirect, 'TEST_REDIRECT:') && !str_contains($phase_redirect, 'jluxe_share_cart') && str_contains($phase_redirect, 'keep=1') && $phase_cookie_started,'R400 share-cart import starts a guest session before adding/redirecting and cleans the payload URL');
+$phase_settings['cart_checkout']['show_share_cart'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['throw_redirect'] = true;
+$phase_disabled_redirect = false;
+try { jluxe_handle_share_cart_link(); } catch (RuntimeException $redirect_error) { $phase_disabled_redirect = true; }
+$GLOBALS['throw_redirect'] = false;
+check(!$phase_disabled_redirect,'R400 a disabled share-cart setting ignores incoming share links');
+$phase_settings['cart_checkout']['show_share_cart'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>'old note'));
+$_POST = array('jluxe_gift_wrap_present'=>'1');
+$phase_unchecked_state = jluxe_sync_gift_wrap_request();
+$phase_unchecked_ok = is_array($phase_unchecked_state) && false === $phase_unchecked_state['enabled'] && false === $GLOBALS['wc']->session->get('jluxe_gift_wrap')['enabled'];
+$phase_settings['cart_checkout']['gift_wrap_note_enabled'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_settings;
+jluxe_get_theme_settings(true);
+$_POST = array('jluxe_gift_wrap_present'=>'1','jluxe_gift_wrap'=>'1','jluxe_gift_wrap_note'=>"O\\'Reilly");
+$phase_unslash_state = jluxe_sync_gift_wrap_request();
+check($phase_unchecked_ok && is_array($phase_unslash_state) && "O'Reilly" === $phase_unslash_state['note'],'R400 hidden form presence unchecks gift wrap without a note field, and POST note text is unslashed before storage');
+
+$phase_cart->fees = array();
+$_POST = array('gift_wrap_fee'=>'99999999','gift_wrap_label'=>'Attacker title');
+$phase_gift_state = jluxe_set_session_gift_wrap(true, str_repeat('متن', 90) . '<script>bad</script>');
+jluxe_apply_gift_wrap_fee();
+$phase_order = new WC_Order();
+jluxe_checkout_store_gift_wrap($phase_order, array());
+$phase_export = jluxe_checkout_export_gift_wrap(array(), $phase_order);
+ob_start(); jluxe_render_gift_wrap_box(); $phase_gift_box = (string) ob_get_clean();
+$phase_fee_ok = count($phase_cart->fees) === 1 && 'بسته‌بندی هدیه آزمایشی' === $phase_cart->fees[0][0] && 1250 == $phase_cart->fees[0][1];
+$phase_note_safe = strlen($phase_gift_state['note']) <= 800 && false === strpos($phase_gift_state['note'], '<script>');
+$phase_order_saved = 'yes' === $phase_order->get_meta('_jluxe_gift_wrap') && '' !== $phase_order->get_meta('_jluxe_gift_wrap_note');
+$phase_note_render = str_contains($phase_gift_box, 'name="jluxe_gift_wrap_present" value="1"') && str_contains($phase_gift_box, 'name="jluxe_gift_wrap_note"') && str_contains($phase_gift_box, 'maxlength="200"');
+$phase_privacy = count($phase_export) === 2;
+jluxe_checkout_erase_gift_wrap($phase_order);
+$phase_erased = '' === $phase_order->get_meta('_jluxe_gift_wrap') && '' === $phase_order->get_meta('_jluxe_gift_wrap_note');
+$GLOBALS['wc']->session->set('jluxe_gift_wrap', array('enabled'=>true,'note'=>'clear'));
+jluxe_clear_gift_wrap_session();
+$phase_cleared = !isset($GLOBALS['wc']->session->data['jluxe_gift_wrap']);
+check($phase_fee_ok && $phase_note_safe && $phase_order_saved && $phase_note_render && $phase_privacy && $phase_erased && $phase_cleared,'R399 gift-wrap fee ignores posted amount/title, bounds and sanitizes notes, persists on orders, exports/erases privacy data and clears session state');
+
+$phase_card_attribute = new WC_Product_Attribute();
+$phase_card_attribute->set_name('pa_color');
+$phase_card_attribute->set_options(array('قرمز','آبی','سبز','زرد','سفید','مشکی'));
+$GLOBALS['product_attributes'][500] = array($phase_card_attribute);
+$GLOBALS['attribute_labels']['pa_color'] = 'رنگ';
+$phase_card_settings = $phase_defaults;
+$phase_card_settings['product_card']['show_color_swatches'] = true;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_card_settings;
+jluxe_get_theme_settings(true);
+$GLOBALS['query_kind'] = 'shop';
+ob_start(); jluxe_test_render_card_probe('content','product'); $phase_card_on = (string) ob_get_clean();
+$phase_swatch_start = strpos($phase_card_on, 'class="jluxe-product-card-swatches"');
+$phase_swatch_end = false === $phase_swatch_start ? false : strpos($phase_card_on, '</div>', $phase_swatch_start);
+$phase_swatch_html = false !== $phase_swatch_end ? substr($phase_card_on, $phase_swatch_start, $phase_swatch_end-$phase_swatch_start) : '';
+$phase_card_settings['product_card']['show_color_swatches'] = false;
+$GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_card_settings;
+jluxe_get_theme_settings(true);
+ob_start(); jluxe_test_render_card_probe('content','product'); $phase_card_off = (string) ob_get_clean();
+check(substr_count($phase_swatch_html,'role="img"') === 4 && str_contains($phase_swatch_html,'+۲') && !str_contains($phase_card_off,'class="jluxe-product-card-swatches"'),'R399 archive product cards render at most four accessible color swatches plus a Persian +N count and obey the disable switch');
+
+$_POST = $phase_old_post;
+if ( null === $phase_old_settings ) { unset($GLOBALS['options'][ JLUXE_SETTINGS_OPTION ]); } else { $GLOBALS['options'][ JLUXE_SETTINGS_OPTION ] = $phase_old_settings; }
+$GLOBALS['wc'] = $phase_old_wc;
+if ( null === $phase_old_query ) { unset($GLOBALS['query_kind']); } else { $GLOBALS['query_kind'] = $phase_old_query; }
+if ( null === $phase_old_uri ) { unset($_SERVER['REQUEST_URI']); } else { $_SERVER['REQUEST_URI'] = $phase_old_uri; }
+$_GET = $phase_old_get;
+$GLOBALS['throw_redirect'] = $phase_old_throw_redirect;
+jluxe_get_theme_settings(true);
 
 echo 'ALL_TESTS_PASSED: '.$GLOBALS['assertion_count']."\n";

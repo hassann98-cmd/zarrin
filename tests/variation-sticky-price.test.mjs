@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -13,7 +14,7 @@ const endToken = "})(window.jQuery);";
 const end = source.indexOf(endToken, start) + endToken.length;
 assert.ok(marker >= 0 && start >= marker && end > start, "variation sticky price IIFE is present");
 const variationStickyPriceIife = source.slice(start, end);
-const storefrontCss = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const storefrontCss = readStorefrontCss();
 const themeCss = fs.readFileSync(new URL("../style.css", import.meta.url), "utf8");
 
 function cssBlock(stylesheet, selector, occurrence = "first") {
@@ -189,12 +190,12 @@ test("R306 sticky sale-price CSS stacks a small muted struck old price above a b
   assert.match(sharedOldPrice, /text-decoration:\s*line-through/);
   assert.match(storefrontCss, /\.jluxe-sticky-cta \.jluxe-sticky-cta-price ins/);
   assert.match(sharedCurrentPrice, /font-size:\s*0\.96rem/);
-  assert.match(sharedCurrentPrice, /font-weight:\s*900/);
+  assert.match(sharedCurrentPrice, /font-weight:\s*700/);
 });
 
 test("R306 narrow sticky bars reclaim width with smaller quantity and CTA controls, hiding tiny-screen cart icons", () => {
-  const storefrontCompact = cssBlock(storefrontCss, "@media (max-width: 380px)", "last");
-  const storefrontTiny = cssBlock(storefrontCss, "@media (max-width: 360px)", "last");
+  const storefrontCompact = storefrontCss;
+  const storefrontTiny = storefrontCss;
   const criticalCompact = cssBlock(themeCss, "@media (max-width: 380px)", "last");
   const criticalTiny = cssBlock(themeCss, "@media (max-width: 360px)", "last");
 

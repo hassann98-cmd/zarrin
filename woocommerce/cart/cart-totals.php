@@ -80,6 +80,8 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php do_action( 'woocommerce_cart_totals_after_order_total' ); ?>
 
+	<?php jluxe_render_share_cart_button(); ?>
+
 	<div class="jluxe-cart-actions jluxe-checkout-action-row">
 		<?php
 		/*

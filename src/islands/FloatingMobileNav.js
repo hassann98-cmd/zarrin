@@ -1,7 +1,10 @@
+import { useNavPress } from "../lib/use-nav-press.js";
+import { useAuthStatus } from "../lib/use-auth-status.js";
 import { j as jsx } from "../lib/jsx.js";
 import { r as React } from "../lib/icons.js";
 import {
   getActiveMobileDrawer,
+  hasMobileDrawerRegistration,
   openMobileDrawer,
   subscribeMobileDrawerState,
   toggleMobileDrawer,
@@ -46,24 +49,6 @@ function isActiveRoute(currentHref, targetHref, itemId) {
   }
 }
 
-function MenuIcon({ className, ...props }) {
-  return jsx.jsxs("svg", {
-    className,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    ...props,
-    children: [
-      jsx.jsx("path", { d: "M4 6h16" }),
-      jsx.jsx("path", { d: "M4 12h16" }),
-      jsx.jsx("path", { d: "M4 18h16" }),
-    ],
-  });
-}
-
 function isModifiedClick(event) {
   return (
     event.defaultPrevented ||
@@ -79,13 +64,13 @@ function FloatingMobileNav() {
   const settings = getThemeSettings();
   const mobile = settings.mobile ?? {};
   const style = mobile.nav_style ?? {};
+  const isSingleProduct =
+    typeof document !== "undefined" &&
+    document.body?.classList.contains("single-product");
   const urls = settings.urls ?? {};
   const homeHref = siteLink(urls.home || "/", urls);
-  const loggedIn =
-    typeof window !== "undefined" &&
-    typeof window.jluxeCurrentAuthStatus === "boolean"
-      ? window.jluxeCurrentAuthStatus
-      : settings.auth?.isLoggedIn ?? false;
+  const loggedIn = useAuthStatus();
+  const pressProps = useNavPress();
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -174,8 +159,8 @@ function FloatingMobileNav() {
             ? "حساب کاربری"
             : resolved.label,
         label:
-          resolved.action === "account" && !loggedIn
-            ? "ورود"
+          resolved.action === "account"
+            ? !loggedIn ? "ورود" : (!resolved.label || resolved.label === "حساب" || resolved.label === "ورود") ? "حساب کاربری" : resolved.label
             : resolved.label,
       };
     });
@@ -183,6 +168,8 @@ function FloatingMobileNav() {
   const handleClick = (event, item) => {
     if (isModifiedClick(event)) return;
     if (item.opensDrawer) {
+      // If the lazy drawer island is absent, preserve the link's native href.
+      if (!hasMobileDrawerRegistration(item.opensDrawer, window)) return;
       event.preventDefault();
       const closedSuggestions =
         typeof window.jluxeCloseSuggestedProductsModal === "function" &&
@@ -190,7 +177,7 @@ function FloatingMobileNav() {
       // A just-dismissed modal should reveal the chosen drawer even if the
       // prior drawer state is stale or its close animation is still running.
       if (closedSuggestions) openMobileDrawer(item.opensDrawer, window);
-      else toggleMobileDrawer(item.opensDrawer, window);
+      else toggleMobileDrawer(item.opensDrawer, window, activeDrawer);
       return;
     }
     if (
@@ -205,12 +192,12 @@ function FloatingMobileNav() {
   return jsx.jsx("nav", {
     className: "jluxe-mobile-nav jluxe-mobile-nav--floating fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-surface/95 md:hidden",
     style: {
-      backgroundColor: colors.background,
+      backgroundColor: isSingleProduct ? "hsl(var(--surface))" : colors.background,
       borderRadius: `${radius}px`,
       boxShadow: shadow,
       color: colors.icon,
-      backdropFilter: style.blur === false ? "none" : "blur(14px)",
-      WebkitBackdropFilter: style.blur === false ? "none" : "blur(14px)",
+      backdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
+      WebkitBackdropFilter: isSingleProduct || style.blur === false ? "none" : "blur(14px)",
     },
     "aria-label": "ناوبری پایین موبایل",
     "data-jluxe-mobile-nav-dock": "",
@@ -225,16 +212,13 @@ function FloatingMobileNav() {
         item.action === "account" ? "account" : item.id,
       );
       const active = routeActive || drawerOpen;
-      const Icon = item.icon
-        ? item.icon === "menu"
-          ? MenuIcon
-          : navIcons[item.icon] ?? fallbackIcon
-        : null;
+      const Icon = item.icon ? navIcons[item.icon] ?? fallbackIcon : null;
       const cartAction = item.action === "cart";
       const color = active ? colors.active : colors.icon;
       return jsx.jsxs(
         "a",
         {
+          ...pressProps(item.id),
           href: item.href,
           onClick: (event) => handleClick(event, item),
           onPointerEnter:

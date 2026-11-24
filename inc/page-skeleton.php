@@ -25,7 +25,6 @@ function jluxe_page_skeleton_layout(): string {
 		}
 	}
 	$layouts = array(
-		'home'     => 'home',
 		'product'  => 'product',
 		'blog'     => 'listing',
 		'shop'     => 'listing',

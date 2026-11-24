@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -56,7 +57,7 @@ test("suggested-product modal retains selections, retries only failed adds, and 
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const start = source.indexOf("(function () {", marker);
-  const endMarker = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  const endMarker = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", start);
   assert.ok(marker >= 0 && start > marker && endMarker > start, "the suggested-modal module is isolated from unrelated WooCommerce handlers");
   window.eval(source.slice(start, endMarker + "\n})();".length));
 
@@ -131,7 +132,7 @@ test("R343 closing the suggestion sheet after a home-page variation leaves the m
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const start = source.indexOf("(function () {", marker);
-  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  const end = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", start);
   assert.ok(start > marker && end > start);
   window.eval(source.slice(start, end + "\n})();".length));
 
@@ -198,7 +199,7 @@ test("R343 the optional timer shows a live Persian countdown, then closes the op
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const start = source.indexOf("(function () {", marker);
-  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  const end = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", start);
   assert.ok(start > marker && end > start);
   window.eval(source.slice(start, end + "\n})();".length));
 
@@ -255,7 +256,7 @@ test("R345 choosing a suggested row removes and permanently cancels the auto-clo
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const start = source.indexOf("(function () {", marker);
-  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  const end = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", start);
   assert.ok(start > marker && end > start);
   window.eval(source.slice(start, end + "\n})();".length));
 
@@ -315,7 +316,7 @@ test("R345 the variable-product picker returns to suggestions without restoring 
 
   const modalMarker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const modalStart = source.indexOf("(function () {", modalMarker);
-  const modalEnd = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", modalStart);
+  const modalEnd = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", modalStart);
   assert.ok(modalStart > modalMarker && modalEnd > modalStart);
   window.eval(source.slice(modalStart, modalEnd + "\n})();".length));
 
@@ -358,7 +359,7 @@ test("R345 the variable-product picker returns to suggestions without restoring 
 });
 
 test("R345 the countdown is a minimal black circle beside the confirm button", () => {
-  const css = read("../src/styles/storefront.css");
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-pa-action-row\s*\{[^}]*display:\s*flex/);
   assert.match(css, /\.jluxe-pa-countdown\s*\{[^}]*width:\s*44px[^}]*height:\s*44px[^}]*border:\s*1px solid #000[^}]*border-radius:\s*50%/);
   assert.match(css, /\.jluxe-pa-countdown-value\s*\{[^}]*font-size:\s*12px/);
@@ -430,13 +431,13 @@ test("variable recommendations preserve and retry pending sheet choices after a 
   const source = read("../assets/js/woocommerce.js");
   const suggestionsMarker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const suggestionsStart = source.indexOf("(function () {", suggestionsMarker);
-  const suggestionsEnd = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", suggestionsStart);
+  const suggestionsEnd = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", suggestionsStart);
   assert.ok(suggestionsStart > suggestionsMarker && suggestionsEnd > suggestionsStart);
   window.eval(source.slice(suggestionsStart, suggestionsEnd + "\n})();".length));
 
   const pickerMarker = source.indexOf("مودالِ انتخاب سریعِ تنوع");
   const pickerStart = source.indexOf("(function () {", pickerMarker);
-  const pickerEnd = source.indexOf("\n})();\n\n/**\n * توضیحاتِ کوتاهِ محصول", pickerStart);
+  const pickerEnd = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * توضیحاتِ کوتاهِ محصول", pickerStart);
   assert.ok(pickerStart > pickerMarker && pickerEnd > pickerStart, "the quick-variation handler is isolated from unrelated product handlers");
   window.eval(source.slice(pickerStart, pickerEnd + "\n})();".length));
 
@@ -543,7 +544,7 @@ test("an ambiguous network failure warns before leaving a selected offer retryab
   const source = read("../assets/js/woocommerce.js");
   const marker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const start = source.indexOf("(function () {", marker);
-  const end = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", start);
+  const end = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", start);
   assert.ok(marker >= 0 && start > marker && end > start);
   window.eval(source.slice(start, end + "\n})();".length));
 
@@ -593,12 +594,12 @@ test("the variation picker keeps an uncertain add visible and blocks in-flight d
   const source = read("../assets/js/woocommerce.js");
   const suggestionsMarker = source.indexOf("پاپ‌آپِ «محصولات پیشنهادی»");
   const suggestionsStart = source.indexOf("(function () {", suggestionsMarker);
-  const suggestionsEnd = source.indexOf("\n})();\n\n/**\n * افزودن به سبد در فرمِ صفحه", suggestionsStart);
+  const suggestionsEnd = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * افزودن به سبد در فرمِ صفحه", suggestionsStart);
   assert.ok(suggestionsStart > suggestionsMarker && suggestionsEnd > suggestionsStart);
   window.eval(source.slice(suggestionsStart, suggestionsEnd + "\n})();".length));
   const pickerMarker = source.indexOf("مودالِ انتخاب سریعِ تنوع");
   const pickerStart = source.indexOf("(function () {", pickerMarker);
-  const pickerEnd = source.indexOf("\n})();\n\n/**\n * توضیحاتِ کوتاهِ محصول", pickerStart);
+  const pickerEnd = source.indexOf("\n})();\n\n/* @jluxe-bundle:product:start */\n/**\n * توضیحاتِ کوتاهِ محصول", pickerStart);
   assert.ok(pickerStart > pickerMarker && pickerEnd > pickerStart);
   window.eval(source.slice(pickerStart, pickerEnd + "\n})();".length));
 

@@ -12,6 +12,8 @@ if (process.env.JLUXE_DEV_ORIGIN)
 // remain dynamic and send.js stays isolated to the optional AI widget.
 const sharedShellSupportModules = new Set([
   "button.js",
+  "category-image.js",
+  "category-image-warmup.js",
   "nav-icons.js",
   "use-cart.js",
   "use-dialog.js",
@@ -44,7 +46,17 @@ export default defineConfig({
     manifest: "manifest.json",
     assetsInlineLimit: 0,
     rollupOptions: {
-      input: "src/main.js",
+      input: {
+        main: "src/main.js",
+        "design-variants": "src/styles/design-variants.css",
+        "variant-canva-home": "src/styles/variant-canva-home.css",
+        "neumorphism-refinements": "src/styles/neumorphism-refinements.css",
+        "route-product": "src/styles/route-product.css",
+        "route-cart-checkout": "src/styles/route-cart-checkout.css",
+        "route-account-auth": "src/styles/route-account-auth.css",
+        "catalog-filter-chips": "src/styles/catalog-filter-chips.css",
+        "route-home": "src/styles/route-home.css",
+      },
       output: { codeSplitting: { groups: sharedShellGroups } },
     },
   },

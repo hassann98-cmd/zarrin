@@ -163,6 +163,61 @@ const legacy = fs.readFileSync(
   new URL("../assets/js/woocommerce.js", import.meta.url),
   "utf8",
 );
+test("a logged-in customer on postal shipping is stopped and guided to add a missing billing postcode", () => {
+  const start = legacy.indexOf("\tfunction findFirstInvalidRequiredField() {");
+  const end = legacy.indexOf("\n\tif (paymentBackBtn)", start);
+  assert.ok(start >= 0 && end > start, "production checkout validation and next-step handler exist");
+  const addressStatus = {
+    textContent: "",
+    hidden: true,
+    classList: { add(name) { this[name] = true; } },
+    scrollIntoView() {},
+    querySelector() { return null; },
+  };
+  const newPostcode = { focus() { this.focused = true; } };
+  const addressForm = { hidden: true };
+  const editButton = { click() { addressForm.hidden = false; this.clicked = true; }, focus() { this.focused = true; } };
+  const card = { querySelector: (selector) => selector === "[data-jluxe-address-edit]" ? editButton : null };
+  const selected = { closest: () => card };
+  const addressSelector = {
+    querySelector(selector) {
+      if (selector === "[data-jluxe-address-status]") return addressStatus;
+      if (selector === "[data-jluxe-address-option]:checked") return selected;
+      if (selector === '[data-jluxe-new-field="postcode"]') return newPostcode;
+      if (selector === "[data-jluxe-address-form]") return addressForm;
+      return null;
+    },
+    scrollIntoView() { this.scrolled = true; },
+  };
+  const billingPostcode = { value: "", hidden: true };
+  const postMethod = {};
+  let nextClick;
+  let paymentMoves = 0;
+  const context = {
+    customerDetails: null,
+    form: { querySelector: (selector) => selector.includes('data-jluxe-shipping-kind="post"') ? postMethod : null },
+    nextBtn: { addEventListener: (type, callback) => { if (type === "click") nextClick = callback; } },
+    window: { JLuxeThemeSettings: { cartCheckout: { require_postcode_for_post: true } } },
+    document: {
+      querySelector: (selector) => selector === "[data-jluxe-address-selector]" ? addressSelector : null,
+      getElementById: (id) => id === "billing_postcode" ? billingPostcode : null,
+    },
+    goToPayment() { paymentMoves++; },
+    hasShippingMethodSelected() { return true; },
+    toggleError() { return null; },
+    paymentBackBtn: null,
+    actions: {},
+  };
+  vm.runInNewContext(legacy.slice(start, end), context);
+  nextClick();
+  assert.equal(paymentMoves, 0, "payment stage is not entered");
+  assert.equal(addressStatus.hidden, false);
+  assert.match(addressStatus.textContent, /برای ارسال پستی، آدرس انتخاب‌شده نیاز به کد پستی دارد/);
+  assert.equal(addressSelector.scrolled, true);
+  assert.equal(editButton.clicked, true, "selected saved address edit form is opened");
+  assert.equal(newPostcode.focused, true, "focus moves directly to its postcode field");
+});
+
 function submitFilters(fields) {
   const marker = "function jluxeSubmitCatalogFilters(jluxeFilterForm, event) {";
   const start = legacy.indexOf(marker);
@@ -427,6 +482,28 @@ test("R05 drawer mutations are serialized and expose server failures", async () 
   assert.equal(maximum, 1);
   assert.deepEqual(sequence, ["update_qty", "remove"]);
   assert.ok(results.every((result) => result.error === "Stock limit"));
+});
+
+test("the checkout stepper hides gift wrap on payment and restores it on shipping", () => {
+  const start = legacy.indexOf("function applyStepVisibility() {");
+  const end = legacy.indexOf("\n\tfunction hasShippingMethodSelected()", start);
+  assert.ok(start >= 0 && end > start);
+  const giftWrap = { style: { display: "" } };
+  const context = {
+    currentStep: "payment",
+    customerDetails: { style: {} },
+    actions: {},
+    document: {
+      getElementById: () => null,
+      querySelector: (selector) => selector === "[data-jluxe-gift-wrap]" ? giftWrap : null,
+    },
+  };
+  vm.runInNewContext(legacy.slice(start, end), context);
+  vm.runInNewContext("applyStepVisibility()", context);
+  assert.equal(giftWrap.style.display, "none");
+  context.currentStep = "shipping";
+  vm.runInNewContext("applyStepVisibility()", context);
+  assert.equal(giftWrap.style.display, "");
 });
 
 test("Payment selection remains manual after WooCommerce single-gateway auto-selection", () => {

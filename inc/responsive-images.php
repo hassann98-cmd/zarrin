@@ -74,21 +74,31 @@ function jluxe_product_card_grid_image_sizes(
  *
  * @param string   $sizes Responsive image slot sizes.
  * @param callable $render Renderer that includes one or more product cards.
+ * @param string   $item_class Optional classes applied to each product list item.
  * @return void
  */
-function jluxe_with_product_card_image_sizes( string $sizes, callable $render ): void {
-	$key          = 'jluxe_product_card_image_sizes';
-	$had_previous = array_key_exists( $key, $GLOBALS );
-	$previous     = $had_previous ? $GLOBALS[ $key ] : null;
-	$GLOBALS[ $key ] = $sizes;
+function jluxe_with_product_card_image_sizes( string $sizes, callable $render, string $item_class = '' ): void {
+	$sizes_key           = 'jluxe_product_card_image_sizes';
+	$item_class_key      = 'jluxe_product_card_item_class';
+	$had_sizes           = array_key_exists( $sizes_key, $GLOBALS );
+	$previous_sizes      = $had_sizes ? $GLOBALS[ $sizes_key ] : null;
+	$had_item_class      = array_key_exists( $item_class_key, $GLOBALS );
+	$previous_item_class = $had_item_class ? $GLOBALS[ $item_class_key ] : null;
+	$GLOBALS[ $sizes_key ]      = $sizes;
+	$GLOBALS[ $item_class_key ] = $item_class;
 
 	try {
 		$render();
 	} finally {
-		if ( $had_previous ) {
-			$GLOBALS[ $key ] = $previous;
+		if ( $had_sizes ) {
+			$GLOBALS[ $sizes_key ] = $previous_sizes;
 		} else {
-			unset( $GLOBALS[ $key ] );
+			unset( $GLOBALS[ $sizes_key ] );
+		}
+		if ( $had_item_class ) {
+			$GLOBALS[ $item_class_key ] = $previous_item_class;
+		} else {
+			unset( $GLOBALS[ $item_class_key ] );
 		}
 	}
 }

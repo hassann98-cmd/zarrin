@@ -15,6 +15,7 @@ define( 'JLUXE_ASSET_DIR', JLUXE_THEME_DIR . '/assets/compiled' );
 define( 'JLUXE_ASSET_URI', JLUXE_THEME_URI . '/assets/compiled' );
 
 require_once JLUXE_THEME_DIR . '/inc/responsive-images.php';
+require_once JLUXE_THEME_DIR . '/inc/theme-upload-overwrite-guard.php';
 
 /**
  * Theme supports.
@@ -67,6 +68,7 @@ function jluxe_setup() {
 
 	// نسخهٔ مربعی برای کارت‌های دسته‌بندی؛ GIF متحرک در helper همچنان اصل می‌ماند.
 	add_image_size( 'jluxe-category-grid-ref-240', 240, 240, true );
+	add_image_size( 'jluxe-category-icon', 64, 64, false );
 }
 add_action( 'after_setup_theme', 'jluxe_setup' );
 
@@ -200,6 +202,16 @@ function jluxe_vite_manifest(): array {
 	return $manifest;
 }
 
+/** Resolve a bundled font by its Vite source key (source files need not ship). */
+function jluxe_vite_font_url( string $source_key ): string {
+	$manifest = jluxe_vite_manifest();
+	$file     = $manifest[ $source_key ]['file'] ?? '';
+	if ( ! is_string( $file ) || '' === $file || ! is_file( JLUXE_ASSET_DIR . '/' . $file ) ) {
+		return '';
+	}
+	return JLUXE_ASSET_URI . '/' . ltrim( $file, '/' );
+}
+
 /**
  * Preload only the static module graph of the Vite entry. Dynamic island
  * imports stay lazy; their own dependency graphs are fetched when mounted.
@@ -308,12 +320,9 @@ add_action( 'wp_head', 'jluxe_preload_body_fonts', 2 );
  * کپی نشده، فقط CSSِ دستی‌نوشته‌ی خودِ globals.css (که ثابته، نه از کلاسِ
  * پویا استخراج‌شده).
  *
- * نکته‌ی مهم: primary/secondary/accent/success/background توسطِ ادمین
- * قابل‌تغییرن (رنگ و تایپوگرافی → رنگ‌ها) — به‌جایِ هاردکدکردنِ مقادیرِ
- * پیش‌فرض (که برای سایتی با رنگِ سفارشی یک فلشِ کوتاهِ رنگِ اشتباه می‌ساخت)،
- * از همون jluxe_generate_color_variables() که خودِ override واقعی هم ازش
- * استفاده می‌کنه صدا زده می‌شه — یعنی این‌جا هم همیشه رنگِ واقعیِ همون
- * سایته، نه پیش‌فرضِ تم.
+ * رنگ‌های قابل‌ویرایش پس از stylesheet اصلی به‌صورت inline متصل می‌شوند؛
+ * این critical block فقط توکن‌های ثابت و پوستهٔ پایه را نگه می‌دارد تا متغیرهای
+ * :root یک‌بار و در cascade صحیح چاپ شوند.
  */
 function jluxe_output_critical_css(): void {
 	if ( jluxe_is_dev() ) {
@@ -321,7 +330,6 @@ function jluxe_output_critical_css(): void {
 	}
 	$manifest = jluxe_vite_manifest();
 	echo '<style id="jluxe-critical-css">';
-	echo jluxe_generate_color_variables( jluxe_get_theme_settings()['colors'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجیِ خودِ این تابع با esc_attr روی مقادیر امنه.
 	// توکن‌های ثابت (غیرِقابل‌تنظیم از پنل) — عیناً از globals.css:root کپی شده.
 	echo ':root{--jluxe-radius-sm:0.5rem;--jluxe-radius-md:0.75rem;--jluxe-radius-lg:1rem;--jluxe-shadow-sm:0 1px 2px rgba(15,23,42,0.05);--jluxe-shadow-card:0 4px 16px rgba(15,23,42,0.06);--radius:0.5rem}';
 	echo 'html{direction:rtl}body{font-family:"IRANYekan","Tahoma",sans-serif;text-align:right;background-color:hsl(var(--background));color:hsl(var(--foreground))}';
@@ -368,12 +376,31 @@ function jluxe_enqueue_mobile_auth_status(): void {
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_mobile_auth_status', 4 );
 
+/** Enqueue one standalone Vite CSS entry after the shared main stylesheet. */
+function jluxe_enqueue_manifest_stylesheet( string $entry, string $handle ): void {
+	$manifest = jluxe_vite_manifest();
+	$file = $manifest[ $entry ]['file'] ?? '';
+	$path = $file ? JLUXE_ASSET_DIR . '/' . $file : '';
+	if ( ! $file || ! is_file( $path ) ) {
+		return;
+	}
+	wp_enqueue_style( $handle, JLUXE_ASSET_URI . '/' . $file, array( 'jluxe-main-0' ), (string) filemtime( $path ) );
+}
+
 function jluxe_enqueue_assets() {
 	$entry = 'src/main.js';
+	$context = function_exists( 'jluxe_page_context' ) ? jluxe_page_context() : 'generic';
+	$variant = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'visual_design.variant', 'current' ) : 'current';
 
 	if ( jluxe_is_dev() ) {
 		wp_enqueue_script( 'jluxe-vite-client', JLUXE_VITE_DEV_SERVER . '/@vite/client', array(), null, false );
 		wp_enqueue_script( 'jluxe-main', JLUXE_VITE_DEV_SERVER . '/' . $entry, array(), null, true );
+		$premium_chrome = 'premium' === jluxe_get_setting( 'header.variant', 'current' ) || 'premium' === jluxe_get_setting( 'footer.variant', 'current' );
+		wp_add_inline_script(
+			'jluxe-main',
+			'window.JLUXEAssetConfig = ' . wp_json_encode( array( 'context' => $context, 'visualVariant' => $variant, 'premiumChrome' => $premium_chrome ) ) . ';',
+			'before'
+		);
 		return;
 	}
 
@@ -385,13 +412,54 @@ function jluxe_enqueue_assets() {
 
 	$entry_data = $manifest[ $entry ];
 
+	/*
+	 * Version = filemtime (نه null) — حتی اگه نامِ هش‌دارِ فایل ثابت بمونه
+	 * (مثلاً بازنویسیِ FTP روی همون نام)، تغییرِ محتوا mtime رو عوض می‌کنه و
+	 * مرورگر/کشِ سرور فایلِ تازه رو می‌گیره. این همون الگوی بقیهٔ CSSهای
+	 * پوسته‌ست (checkout-login، checkout-guided و…) و لایهٔ دومِ
+	 * cache-busting روی هشِ Viteـه.
+	 */
 	if ( ! empty( $entry_data['css'] ) ) {
 		foreach ( $entry_data['css'] as $i => $css_file ) {
-			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array(), null );
+			$css_path = JLUXE_ASSET_DIR . '/' . $css_file;
+			wp_enqueue_style( 'jluxe-main-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array(), is_file( $css_path ) ? (string) filemtime( $css_path ) : null );
 		}
 	}
 
-	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), null, true );
+	$route_styles = array(
+		'home'     => array( 'src/styles/route-home.css', 'jluxe-route-home' ),
+		'product'  => array( 'src/styles/route-product.css', 'jluxe-route-product' ),
+		'cart'     => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
+		'checkout' => array( 'src/styles/route-cart-checkout.css', 'jluxe-route-cart-checkout' ),
+		'account'  => array( 'src/styles/route-account-auth.css', 'jluxe-route-account-auth' ),
+	);
+	if ( isset( $route_styles[ $context ] ) ) {
+		jluxe_enqueue_manifest_stylesheet( $route_styles[ $context ][0], $route_styles[ $context ][1] );
+	}
+	if ( in_array( $context, array( 'shop', 'search' ), true ) ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/catalog-filter-chips.css', 'jluxe-catalog-filter-chips' );
+	}
+	if ( 'account' === $context ) {
+		$auth_entry = $manifest['src/islands/AuthPage.jsx'] ?? array();
+		foreach ( $auth_entry['css'] ?? array() as $i => $css_file ) {
+			$css_path = JLUXE_ASSET_DIR . '/' . $css_file;
+			if ( is_file( $css_path ) ) {
+				wp_enqueue_style( 'jluxe-auth-page-' . $i, JLUXE_ASSET_URI . '/' . $css_file, array( 'jluxe-route-account-auth' ), (string) filemtime( $css_path ) );
+			}
+		}
+	}
+	$premium_chrome = 'premium' === jluxe_get_setting( 'header.variant', 'current' ) || 'premium' === jluxe_get_setting( 'footer.variant', 'current' );
+	if ( $premium_chrome || 'canva_home' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/design-variants.css', 'jluxe-design-variants' );
+	}
+	if ( 'canva_home' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/variant-canva-home.css', 'jluxe-variant-canva-home' );
+	} elseif ( 'neumorphism' === $variant ) {
+		jluxe_enqueue_manifest_stylesheet( 'src/styles/neumorphism-refinements.css', 'jluxe-neumorphism-refinements' );
+	}
+
+	$js_path = JLUXE_ASSET_DIR . '/' . $entry_data['file'];
+	wp_enqueue_script( 'jluxe-main', JLUXE_ASSET_URI . '/' . $entry_data['file'], array(), is_file( $js_path ) ? (string) filemtime( $js_path ) : null, true );
 }
 add_action( 'wp_enqueue_scripts', 'jluxe_enqueue_assets' );
 
@@ -402,7 +470,35 @@ function jluxe_assets_admin_notice(): void {
 	}
 	$manifest = jluxe_vite_manifest();
 	$entry = $manifest['src/main.js'] ?? array();
+	$required_css_entries = array(
+		'src/styles/design-variants.css',
+		'src/styles/variant-canva-home.css',
+		'src/styles/neumorphism-refinements.css',
+		'src/styles/route-product.css',
+		'src/styles/route-cart-checkout.css',
+		'src/styles/route-account-auth.css',
+		'src/styles/catalog-filter-chips.css',
+		'src/styles/route-home.css',
+	);
 	$files = array_merge( array( $entry['file'] ?? '' ), $entry['css'] ?? array() );
+	$search_discovery_css = $manifest['src/islands/SearchDiscovery.js']['css'] ?? array();
+	if ( ! $search_discovery_css ) {
+		$files[] = '';
+	}
+	$files = array_merge( $files, $search_discovery_css );
+	foreach ( $required_css_entries as $css_entry ) {
+		$files[] = $manifest[ $css_entry ]['file'] ?? '';
+	}
+	$auth_css = $manifest['src/islands/AuthPage.jsx']['css'] ?? array();
+	if ( ! $auth_css ) {
+		$files[] = '';
+	}
+	$files = array_merge( $files, $auth_css );
+	$assistant_css = $manifest['src/islands/AiAssistant.js']['css'] ?? array();
+	if ( ! $assistant_css ) {
+		$files[] = '';
+	}
+	$files = array_merge( $files, $assistant_css );
 	foreach ( $files as $file ) {
 		if ( ! $file || ! is_file( JLUXE_ASSET_DIR . '/' . $file ) ) {
 			echo '<div class="notice notice-error"><p>' . esc_html__( 'فایل‌های فرانت‌اند زرین ناقص است. خروجی کامل npm ci و npm run build (پوشهٔ assets/compiled همراه manifest.json) را بارگذاری کنید.', 'jluxe' ) . '</p></div>';
@@ -476,7 +572,7 @@ add_filter( 'script_loader_tag', 'jluxe_module_script_attrs', 10, 2 );
 
 /** Keep only the purchase-critical script chain out of optimizer delay/combine rewrites. */
 function jluxe_protect_purchase_script_optimization( $tag, $handle ) {
-	$purchase_handles = array( 'jluxe-woocommerce', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
+	$purchase_handles = array( 'jluxe-woocommerce', 'jluxe-woocommerce-product', 'jluxe-woocommerce-cart-checkout', 'wc-add-to-cart', 'wc-add-to-cart-variation', 'wc-cart' );
 	if ( ! in_array( $handle, $purchase_handles, true ) || false !== strpos( $tag, 'data-no-optimize' ) ) {
 		return $tag;
 	}
@@ -658,6 +754,7 @@ add_filter( 'script_loader_tag', 'jluxe_defer_third_party_scripts', 10, 3 );
 require_once JLUXE_THEME_DIR . '/inc/compat.php'; // R86 — هلپرهای رشته‌ای (بدونِ وابستگیِ اجباری به mbstring)
 require_once JLUXE_THEME_DIR . '/inc/assets.php';
 require_once JLUXE_THEME_DIR . '/inc/soft-navigation.php';
+require_once JLUXE_THEME_DIR . '/inc/page-motion.php';
 require_once JLUXE_THEME_DIR . '/inc/page-skeleton.php';
 require_once JLUXE_THEME_DIR . '/inc/security.php';
 require_once JLUXE_THEME_DIR . '/inc/icons.php';
@@ -670,6 +767,8 @@ require_once JLUXE_THEME_DIR . '/inc/product-faq.php';
 require_once JLUXE_THEME_DIR . '/inc/ai-tickets.php';
 require_once JLUXE_THEME_DIR . '/inc/attribute-swatches.php';
 require_once JLUXE_THEME_DIR . '/inc/theme-settings.php';
+require_once JLUXE_THEME_DIR . '/inc/checkout-login.php';
+require_once JLUXE_THEME_DIR . '/inc/dsn-address-flow/dsn-address-flow.php';
 require_once JLUXE_THEME_DIR . '/inc/store-closure.php';
 require_once JLUXE_THEME_DIR . '/inc/storefront-personalization.php';
 require_once JLUXE_THEME_DIR . '/inc/stock-alert.php';

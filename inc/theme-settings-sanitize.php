@@ -116,7 +116,7 @@ function jluxe_sanitize_colors( array $posted, array $defaults ): array {
 
 /** Validate the opt-in site-wide visual system independently of color presets. */
 function jluxe_sanitize_visual_design( array $posted, array $defaults ): array {
-	$allowed = array( 'current', 'canva_home' );
+	$allowed = array( 'current', 'canva_home', 'neumorphism' );
 	$default = isset( $defaults['variant'] ) && in_array( $defaults['variant'], $allowed, true )
 		? $defaults['variant']
 		: 'current';
@@ -169,10 +169,43 @@ function jluxe_sanitize_header( array $posted, array $defaults ): array {
 		$search_placeholder = (string) ( $defaults['search_placeholder'] ?? 'جستجو در فروشگاه' );
 	}
 
+	$trending_posted = $posted['trending_searches'] ?? '';
+	if ( is_array( $trending_posted ) ) {
+		$trending_items = $trending_posted;
+	} elseif ( is_scalar( $trending_posted ) ) {
+		$trending_items = preg_split( '/[\r\n،,]+/u', (string) $trending_posted ) ?: array();
+	} else {
+		$trending_items = array();
+	}
+	$trending_searches = array();
+	$trending_seen     = array();
+	foreach ( $trending_items as $trending_search ) {
+		if ( ! is_scalar( $trending_search ) ) {
+			continue;
+		}
+		$trending_search = trim( sanitize_text_field( (string) $trending_search ) );
+		if ( '' === $trending_search ) {
+			continue;
+		}
+		$trending_search = wp_html_excerpt( $trending_search, 40, '' );
+		$trending_key    = function_exists( 'mb_strtolower' )
+			? call_user_func_array( 'mb_strtolower', array( $trending_search, 'UTF-8' ) )
+			: strtolower( $trending_search );
+		if ( '' === $trending_search || isset( $trending_seen[ $trending_key ] ) ) {
+			continue;
+		}
+		$trending_seen[ $trending_key ] = true;
+		$trending_searches[] = $trending_search;
+		if ( count( $trending_searches ) >= 10 ) {
+			break;
+		}
+	}
+
 	return array(
 		'variant'              => $variant,
 		'sticky'               => ! empty( $posted['sticky'] ),
 		'search_placeholder'   => $search_placeholder,
+		'trending_searches'    => array_values( $trending_searches ),
 		// نمایش/عدم‌نمایش هر آیتم حالا مستقل برای موبایل و دسکتاپه (قبلاً
 		// یک تیک مشترک هر دو حالت رو کنترل می‌کرد — درخواست واقعی: بشه مثلاً
 		// آیکون سبد رو فقط از نوار پایین موبایل حذف کرد ولی توی دسکتاپ نگه داشت).
@@ -992,6 +1025,7 @@ function jluxe_sanitize_product_card( array $posted, array $defaults ): array {
 		'radius'           => in_array( $radius, array( 'sm', 'md', 'lg' ), true ) ? $radius : $defaults['radius'],
 		'image_corners'    => in_array( $corners, array( 'rounded', 'sharp' ), true ) ? $corners : $defaults['image_corners'],
 		'show_rating'      => ! empty( $posted['show_rating'] ),
+		'show_color_swatches' => array_key_exists( 'show_color_swatches', $posted ) ? ! empty( $posted['show_color_swatches'] ) : ! empty( $defaults['show_color_swatches'] ),
 		'show_sale_badge'  => ! empty( $posted['show_sale_badge'] ),
 		'show_stock_badge' => ! empty( $posted['show_stock_badge'] ),
 		'price_color'      => isset( $posted['price_color'] ) ? ( sanitize_hex_color( $posted['price_color'] ) ?: '' ) : '',
@@ -1100,6 +1134,12 @@ function jluxe_sanitize_cart_checkout( array $posted, array $defaults ): array {
 	}
 
 	return array(
+		'show_share_cart'                   => array_key_exists( 'show_share_cart', $posted ) ? ! empty( $posted['show_share_cart'] ) : ! empty( $defaults['show_share_cart'] ),
+		'gift_wrap_enabled'                 => array_key_exists( 'gift_wrap_enabled', $posted ) ? ! empty( $posted['gift_wrap_enabled'] ) : ! empty( $defaults['gift_wrap_enabled'] ),
+		'gift_wrap_label'                   => jluxe_substr( sanitize_text_field( is_scalar( $posted['gift_wrap_label'] ?? null ) ? (string) $posted['gift_wrap_label'] : (string) ( $defaults['gift_wrap_label'] ?? 'بسته‌بندی هدیه ویژه' ) ), 0, 80 ),
+		'gift_wrap_fee'                     => max( 0, (float) ( is_numeric( $posted['gift_wrap_fee'] ?? null ) ? $posted['gift_wrap_fee'] : ( $defaults['gift_wrap_fee'] ?? 0 ) ) ),
+		'gift_wrap_description'             => jluxe_substr( sanitize_text_field( is_scalar( $posted['gift_wrap_description'] ?? null ) ? (string) $posted['gift_wrap_description'] : (string) ( $defaults['gift_wrap_description'] ?? '' ) ), 0, 240 ),
+		'gift_wrap_note_enabled'            => array_key_exists( 'gift_wrap_note_enabled', $posted ) ? ! empty( $posted['gift_wrap_note_enabled'] ) : ! empty( $defaults['gift_wrap_note_enabled'] ),
 		'checkout_layout'                  => $checkout_layout,
 		'checkout_map_enabled'             => ! empty( $posted['checkout_map_enabled'] ),
 		'show_stepper'                     => ! empty( $posted['show_stepper'] ),
@@ -1246,8 +1286,9 @@ function jluxe_sanitize_product_page( array $posted, array $defaults ): array {
 
 	$layout = isset( $posted['layout'] ) ? sanitize_key( $posted['layout'] ) : $defaults['layout'];
 
-	return array(
+	return array_merge( jluxe_product_mobile_design_values( $posted ), array(
 		'layout'         => in_array( $layout, array( 'default', 'classic', 'reference' ), true ) ? $layout : $defaults['layout'],
+		'mobile_layout'  => isset( $posted['mobile_layout'] ) && 'layered' === $posted['mobile_layout'] ? 'layered' : 'standard',
 		'show_related'   => ! empty( $posted['show_related'] ),
 		'related_count'  => max( 2, min( 8, $count ) ),
 		'discount_color'                => isset( $posted['discount_color'] ) ? ( sanitize_hex_color( $posted['discount_color'] ) ?: '' ) : $defaults['discount_color'],
@@ -1258,7 +1299,7 @@ function jluxe_sanitize_product_page( array $posted, array $defaults ): array {
 		'description_link_text_color'   => isset( $posted['description_link_text_color'] ) ? ( sanitize_hex_color( $posted['description_link_text_color'] ) ?: '' ) : ( $defaults['description_link_text_color'] ?? '' ),
 		'description_link_border_color' => isset( $posted['description_link_border_color'] ) ? ( sanitize_hex_color( $posted['description_link_border_color'] ) ?: '' ) : ( $defaults['description_link_border_color'] ?? '' ),
 		'trust_items'                   => $trust_items,
-	);
+	) );
 }
 
 /**
@@ -1441,11 +1482,19 @@ function jluxe_sanitize_review_criteria( array $posted, array $defaults ): array
 			);
 		}
 	}
-	return array( 'items' => array_slice( $items, 0, 10 ) ); // سقف منطقی.
+	return array(
+		'photos_enabled' => ! array_key_exists( 'photos_enabled', $posted ) ? (bool) ( $defaults['photos_enabled'] ?? true ) : ! empty( $posted['photos_enabled'] ),
+		'photos_max_count' => max( 1, min( 5, absint( $posted['photos_max_count'] ?? $defaults['photos_max_count'] ?? 3 ) ) ),
+		'photos_max_size_mb' => max( 1, min( 5, absint( $posted['photos_max_size_mb'] ?? $defaults['photos_max_size_mb'] ?? 2 ) ) ),
+		'photos_logged_in_only' => ! array_key_exists( 'photos_logged_in_only', $posted ) ? (bool) ( $defaults['photos_logged_in_only'] ?? true ) : ! empty( $posted['photos_logged_in_only'] ),
+		'items' => array_slice( $items, 0, 10 ),
+	);
 }
 
 function jluxe_sanitize_performance( array $posted, array $defaults ): array {
 	return array(
+		'page_transitions' => ! empty( $posted['page_transitions'] ),
+		'page_prefetch' => ! empty( $posted['page_prefetch'] ),
 		'disable_emojis'   => ! empty( $posted['disable_emojis'] ),
 		'lazy_load_images' => ! empty( $posted['lazy_load_images'] ),
 		'defer_third_party_scripts' => ! empty( $posted['defer_third_party_scripts'] ),
@@ -1631,7 +1680,36 @@ function jluxe_sanitize_sms( array $posted, array $defaults ): array {
  * معتبرن؛ فیلدهای مشترک (id/type/enabled) همیشه sanitize می‌شن، بقیه بر
  * اساس نوع.
  */
-function jluxe_sanitize_homepage_section( array $posted ): array {
+/** Strict shared visual controls; no raw CSS, selectors or executable values. */
+function jluxe_sanitize_homepage_section_design( array $posted ): array {
+	$raw = is_array( $posted['design'] ?? null ) ? $posted['design'] : array();
+	$d = array();
+	foreach ( array( 'padding', 'mobile_padding', 'margin_top', 'margin_bottom', 'radius' ) as $key ) {
+		$d[ $key ] = is_scalar( $raw[ $key ] ?? null ) ? max( 0, min( 240, (int) $raw[ $key ] ) ) : 0;
+	}
+	$bg = is_string( $raw['background'] ?? null ) ? $raw['background'] : '';
+	$d['background'] = preg_match( '/^#[a-fA-F0-9]{6}$/D', $bg ) ? $bg : '';
+	$d['align'] = in_array( $raw['align'] ?? '', array( 'start', 'center', 'end' ), true ) ? $raw['align'] : 'start';
+	$d['surface_tone'] = in_array( $raw['surface_tone'] ?? '', array( 'transparent', 'soft', 'card', 'tinted' ), true ) ? $raw['surface_tone'] : 'transparent';
+	foreach ( array( 'text_color', 'border_color' ) as $key ) {
+		$d[ $key ] = is_string( $raw[ $key ] ?? null ) && preg_match( '/^#[a-fA-F0-9]{6}$/D', $raw[ $key ] ) ? $raw[ $key ] : '';
+	}
+	$d['background_image'] = is_string( $raw['background_image'] ?? null ) && preg_match( '~^https?://~i', $raw['background_image'] ) ? esc_url_raw( $raw['background_image'], array( 'https', 'http' ) ) : '';
+	$d['anchor'] = is_string( $raw['anchor'] ?? null ) ? preg_replace( '/[^A-Za-z0-9_-]/', '', substr( $raw['anchor'], 0, 80 ) ) : '';
+	$d['class_name'] = is_string( $raw['class_name'] ?? null ) ? implode( ' ', array_filter( array_map( static function ( $class ) { return preg_replace( '/[^A-Za-z0-9_-]/', '', $class ); }, preg_split( '/\s+/', substr( $raw['class_name'], 0, 300 ) ) ) ) ) : '';
+	$d['shadow'] = in_array( $raw['shadow'] ?? '', array( 'none', 'small', 'medium', 'large' ), true ) ? $raw['shadow'] : 'none';
+	$d['width'] = in_array( $raw['width'] ?? '', array( 'default', 'boxed', 'full' ), true ) ? $raw['width'] : 'default';
+	$d['animation'] = in_array( $raw['animation'] ?? '', array( 'none', 'fade', 'fade-up', 'fade-down', 'slide-right', 'slide-left', 'zoom' ), true ) ? $raw['animation'] : 'none';
+	$d['animation_duration'] = is_scalar( $raw['animation_duration'] ?? null ) ? max( 200, min( 1500, (int) $raw['animation_duration'] ) ) : 600;
+	$d['animation_delay'] = is_scalar( $raw['animation_delay'] ?? null ) ? max( 0, min( 1500, (int) $raw['animation_delay'] ) ) : 0;
+	$d['animation_repeat'] = ! empty( $raw['animation_repeat'] );
+	$d['hide_tablet'] = ! empty( $raw['hide_tablet'] );
+	$d['hide_mobile'] = ! empty( $raw['hide_mobile'] );
+	$d['hide_desktop'] = ! empty( $raw['hide_desktop'] );
+	return array( 'editor_label' => is_scalar( $posted['editor_label'] ?? null ) ? sanitize_text_field( (string) $posted['editor_label'] ) : '', 'design_enabled' => ! empty( $posted['design_enabled'] ), 'design' => $d );
+}
+
+function jluxe_sanitize_homepage_section( array $posted, int $depth = 0 ): array {
 	$type = isset( $posted['type'] ) ? sanitize_key( $posted['type'] ) : 'text';
 	$id   = isset( $posted['id'] ) ? sanitize_key( $posted['id'] ) : '';
 	if ( '' === $id ) {
@@ -1643,8 +1721,21 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 		'type'    => $type,
 		'enabled' => ! empty( $posted['enabled'] ),
 	);
+	if ( isset( $posted['design'] ) || isset( $posted['editor_label'] ) || isset( $posted['design_enabled'] ) ) {
+		$section = array_merge( $section, jluxe_sanitize_homepage_section_design( $posted ) );
+	}
 
 	switch ( $type ) {
+		case 'container':
+			$section = array_merge( $section, jluxe_builder_container_options( $posted ) );
+			$section['children'] = array();
+			if ( ! isset( $posted['children'] ) && is_string( $posted['children_json'] ?? null ) && strlen( $posted['children_json'] ) <= 1048576 ) { $posted['children'] = json_decode( $posted['children_json'], true, 32 ); }
+			if ( $depth < 6 && is_array( $posted['children'] ?? null ) ) {
+				foreach ( array_slice( $posted['children'], 0, 150 ) as $child ) {
+					if ( is_array( $child ) ) { $section['children'][] = jluxe_sanitize_homepage_section( $child, $depth + 1 ); }
+				}
+			}
+			break;
 		case 'hero':
 			$section['duration_sec'] = max( 2, min( 15, absint( $posted['duration_sec'] ?? 5 ) ) );
 			$section['zoom_enabled'] = array_key_exists( 'zoom_enabled', $posted ) && '1' === (string) $posted['zoom_enabled'];
@@ -1699,8 +1790,10 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 				$section['items'][] = array(
 					'thumb_id'   => isset( $item['thumb_id'] ) ? absint( $item['thumb_id'] ) : 0,
 					'media_id'   => isset( $item['media_id'] ) ? absint( $item['media_id'] ) : 0,
-					'title'      => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
-					'media_type' => in_array( $media_type, array( 'image', 'video' ), true ) ? $media_type : 'image',
+					'title'       => isset( $item['title'] ) ? sanitize_text_field( $item['title'] ) : '',
+					'link'        => isset( $item['link'] ) ? esc_url_raw( $item['link'] ) : '',
+					'button_text' => isset( $item['button_text'] ) ? sanitize_text_field( $item['button_text'] ) : '',
+					'media_type'  => in_array( $media_type, array( 'image', 'video' ), true ) ? $media_type : 'image',
 				);
 			}
 			break;
@@ -1758,6 +1851,8 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['title']             = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'فروش ویژه';
 			$section['count']             = max( 4, min( 30, absint( $posted['count'] ?? 10 ) ) );
 			$section['sort']              = in_array( $special_sort, $special_sorts, true ) ? $special_sort : 'discount';
+			$special_category             = absint( $posted['category'] ?? 0 );
+			$section['category']          = $special_category && term_exists( $special_category, 'product_cat' ) ? $special_category : 0;
 			$section['view_all_link']     = isset( $posted['view_all_link'] ) ? esc_url_raw( $posted['view_all_link'] ) : '';
 			$section['hide_out_of_stock'] = filter_var( $posted['hide_out_of_stock'] ?? false, FILTER_VALIDATE_BOOLEAN );
 			break;
@@ -1885,7 +1980,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			$section['mobile_layout'] = in_array( $mobile_layout, array( 'row', 'grid' ), true ) ? $mobile_layout : $mobile_layout_default;
 			$section['mobile_columns'] = max( 2, min( 6, absint( $posted['mobile_columns'] ?? 3 ) ) );
 			if ( 'category_grid' === $type ) {
-				$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 40 ) ) );
+				$section['section_radius'] = max( 12, min( 56, absint( $posted['section_radius'] ?? 20 ) ) );
 				$section['card_radius'] = max( 0, min( 40, absint( $posted['card_radius'] ?? 20 ) ) );
 				$section['image_size'] = max( 48, min( 140, absint( $posted['image_size'] ?? 80 ) ) );
 				$image_bg_mode = sanitize_key( $posted['image_bg_mode'] ?? 'color' );
@@ -1898,7 +1993,7 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 			} else {
 				$frame_mode = sanitize_key( $posted['image_frame_mode'] ?? 'none' );
 				$section['image_frame_mode'] = in_array( $frame_mode, array( 'none', 'transparent', 'color' ), true ) ? $frame_mode : 'none';
-				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#F5D1FA';
+				$section['image_frame_color'] = sanitize_hex_color( $posted['image_frame_color'] ?? '' ) ?: '#E5E7EB';
 				$section['show_category_names'] = ! array_key_exists( 'show_category_names', $posted ) || '1' === (string) $posted['show_category_names'];
 				$section['card_text_color'] = sanitize_hex_color( $posted['card_text_color'] ?? '' ) ?: '#1F2937';
 			}
@@ -1940,6 +2035,69 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 					$category_item['mode'] = 'category';
 				}
 				$section['items'][] = $category_item;
+			}
+			break;
+
+		case 'brand_video_campaigns':
+			$section['title'] = isset( $posted['title'] ) ? sanitize_text_field( $posted['title'] ) : 'تبلیغات ویدیویی برندها';
+			$section['view_all_text'] = isset( $posted['view_all_text'] ) ? sanitize_text_field( $posted['view_all_text'] ) : 'مشاهده همه';
+			$section['background_color'] = sanitize_hex_color( $posted['background_color'] ?? '' ) ?: '#7E0820';
+			$section['campaigns'] = array();
+			$seen_targets = array();
+			foreach ( array_slice( (array) ( $posted['campaigns'] ?? array() ), 0, 6 ) as $campaign ) {
+				if ( ! is_array( $campaign ) ) { continue; }
+				$target_type = sanitize_key( $campaign['target_type'] ?? 'brand' );
+				if ( ! in_array( $target_type, array( 'brand', 'category', 'product' ), true ) ) { $target_type = 'brand'; }
+				$target_id = 0;
+				if ( 'product' === $target_type ) {
+					$target_id = absint( $campaign['product_id'] ?? 0 );
+					$target_product = function_exists( 'wc_get_product' ) && $target_id ? wc_get_product( $target_id ) : false;
+					if ( ! $target_product || ! $target_product->is_visible() ) { continue; }
+					$target_key = 'product:' . $target_id;
+				} else {
+					$taxonomy = 'category' === $target_type ? 'product_cat' : 'product_brand';
+					$target_id = 'category' === $target_type ? absint( $campaign['category_id'] ?? ( $campaign['term_id'] ?? 0 ) ) : absint( $campaign['brand_id'] ?? ( $campaign['term_id'] ?? 0 ) );
+					if ( ! $target_id || ! taxonomy_exists( $taxonomy ) || ! term_exists( $target_id, $taxonomy ) ) { continue; }
+					$target_key = $taxonomy . ':' . $target_id;
+				}
+				if ( in_array( $target_key, $seen_targets, true ) ) { continue; }
+				$seen_targets[] = $target_key;
+				$product_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $campaign['product_ids'] ?? array() ) ) ) ) );
+				$product_ids = array_slice( $product_ids, 0, 12 );
+				$logo_id = absint( $campaign['logo_id'] ?? 0 );
+				if ( $logo_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $logo_id ) ) { $logo_id = 0; }
+				$media_type = 'image' === sanitize_key( $campaign['media_type'] ?? '' ) ? 'image' : 'video';
+				$media_id = absint( $campaign['media_id'] ?? ( $campaign['video_id'] ?? 0 ) );
+				$mobile_media_id = absint( $campaign['mobile_media_id'] ?? 0 );
+				$valid_media = static function ( int $attachment_id ) use ( $media_type ): bool {
+					if ( ! $attachment_id || ! function_exists( 'get_post_mime_type' ) ) { return false; }
+					$mime = (string) get_post_mime_type( $attachment_id );
+					return 'video' === $media_type ? 0 === strpos( $mime, 'video/' ) : 0 === strpos( $mime, 'image/' );
+				};
+				if ( $media_id && ! $valid_media( $media_id ) ) { $media_id = 0; }
+				if ( $mobile_media_id && ! $valid_media( $mobile_media_id ) ) { $mobile_media_id = 0; }
+				$poster_id = absint( $campaign['poster_id'] ?? 0 );
+				if ( $poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $poster_id ) ) { $poster_id = 0; }
+				$mobile_poster_id = absint( $campaign['mobile_poster_id'] ?? 0 );
+				if ( $mobile_poster_id && function_exists( 'wp_attachment_is_image' ) && ! wp_attachment_is_image( $mobile_poster_id ) ) { $mobile_poster_id = 0; }
+				$campaign_bg = sanitize_hex_color( (string) ( $campaign['bg_color'] ?? '' ) );
+				$clean_campaign = array(
+					'target_type' => $target_type,
+					'bg_color' => $campaign_bg ?: '',
+					'term_id' => 'product' === $target_type ? 0 : $target_id,
+					'product_id' => 'product' === $target_type ? $target_id : 0,
+					'logo_id' => $logo_id,
+					'media_type' => $media_type,
+					'media_id' => $media_id,
+					'mobile_media_id' => $mobile_media_id,
+					'poster_id' => $poster_id,
+					'mobile_poster_id' => $mobile_poster_id,
+					'link' => isset( $campaign['link'] ) ? esc_url_raw( trim( (string) $campaign['link'] ) ) : '',
+					'product_ids' => $product_ids,
+				);
+				if ( 'category' === $target_type ) { $clean_campaign['category_id'] = $target_id; }
+				if ( 'brand' === $target_type ) { $clean_campaign['brand_id'] = $target_id; }
+				$section['campaigns'][] = $clean_campaign;
 			}
 			break;
 
@@ -2016,6 +2174,16 @@ function jluxe_sanitize_homepage_section( array $posted ): array {
 
 		case 'html':
 			$section['content'] = isset( $posted['content'] ) ? $posted['content'] : ''; // manage_options only، مثل Custom CSS/JS.
+			break;
+
+		case 'heading':
+		case 'button':
+		case 'image':
+			$section['title'] = is_scalar( $posted['title'] ?? null ) ? sanitize_text_field( (string) $posted['title'] ) : '';
+			$section['url'] = is_scalar( $posted['url'] ?? null ) ? esc_url_raw( (string) $posted['url'] ) : '';
+			$section['alt'] = is_scalar( $posted['alt'] ?? null ) ? sanitize_text_field( (string) $posted['alt'] ) : '';
+			$section['image_id'] = is_scalar( $posted['image_id'] ?? null ) ? absint( $posted['image_id'] ) : 0;
+			$section['tag'] = in_array( $posted['tag'] ?? '', array( 'h2', 'h3', 'h4' ), true ) ? $posted['tag'] : 'h2';
 			break;
 
 		case 'spacer':

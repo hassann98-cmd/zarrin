@@ -1,3 +1,4 @@
+import { CartHourglass } from "../components/cart-hourglass.js";
 import { siteUrl } from "../lib/api.js";
 import {
   closeMobileDrawer,
@@ -28,7 +29,10 @@ function J() {
     {
       snapshot: s,
       loading: d,
+      quantityPending,
+      quantityKeys,
       error: cartError,
+      refresh,
       updateQty: f,
       removeItem: v,
       applyCoupon: N,
@@ -37,7 +41,52 @@ function J() {
       couponError: h,
     } = I(),
     [m, b] = r.useState(""),
+    shareCopyTimer = r.useRef(null),
     S = ((g = H().cart) == null ? void 0 : g.showCoupon) !== !1;
+  async function shareCart(event) {
+    event.stopPropagation();
+    const button = event.currentTarget;
+    const url = s.shareCartUrl;
+    if (!url) return;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "سبد خرید پیشنهادی", url });
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    let copied = false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      }
+    } catch {}
+    if (!copied) {
+      const field = document.createElement("textarea");
+      field.value = url;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      try { copied = document.execCommand("copy"); } catch {}
+      field.remove();
+    }
+    if (!copied) return;
+    const label = button.querySelector("[data-share-label]");
+    if (label) {
+      label.textContent = "لینک سبد کپی شد ✓";
+      if (shareCopyTimer.current) window.clearTimeout(shareCopyTimer.current);
+      shareCopyTimer.current = window.setTimeout(() => {
+        if (label.isConnected) label.textContent = "ارسال لیست سبد برای دیگران";
+      }, 2200);
+    }
+    if (window.matchMedia?.("(pointer: coarse)")?.matches) {
+      try { window.JLuxeStorefrontUtils?.haptic?.(); } catch {}
+    }
+  }
   function closeDrawer() {
     closeMobileDrawer("cart", window);
   }
@@ -47,10 +96,16 @@ function J() {
       () =>
         registerMobileDrawer(
           "cart",
-          { open: () => l(!0), close: () => l(!1) },
+          {
+            open: () => {
+              l(!0);
+              refresh();
+            },
+            close: () => l(!1),
+          },
           window,
         ),
-      [],
+      [refresh],
     ),
     r.useEffect(() => {
       if (n) {
@@ -146,13 +201,15 @@ function J() {
                           e.jsx("p", { children: cartError }),
                           e.jsx("a", {
                             href: s.cartUrl,
+                            "aria-disabled": d || undefined,
+                            onClick: (event) => { if (d) event.preventDefault(); },
                             className: "underline",
                             children: "مشاهدهٔ صفحهٔ سبد خرید",
                           }),
                         ],
                       })
                     : null,
-                  s.items.length > 0 && s.freeShipping && !d
+                  s.items.length > 0 && s.freeShipping && (!d || quantityPending)
                     ? e.jsxs("div", {
                         className:
                           "border-b border-border bg-muted/40 px-4 py-3",
@@ -173,6 +230,7 @@ function J() {
                                 : e.jsxs("span", {
                                     className: "text-text-secondary",
                                     children: [
+                                      "فقط ",
                                       e.jsx("bdi", {
                                         dir: "ltr",
                                         className: "font-bold text-foreground",
@@ -180,8 +238,7 @@ function J() {
                                           __html: s.freeShipping.remainingHtml,
                                         },
                                       }),
-                                      " ",
-                                      "تا ارسال رایگان",
+                                      " تا ارسال رایگان!",
                                     ],
                                   }),
                             ],
@@ -203,10 +260,7 @@ function J() {
                     className: "flex-1 overflow-y-auto p-4",
                     children:
                       d && s.items.length === 0
-                        ? e.jsx("p", {
-                            role: "status",
-                            children: "در حال به‌روزرسانی سبد خرید…",
-                          })
+                        ? e.jsx(CartHourglass, {})
                         : cartError && s.items.length === 0
                           ? null
                           : s.items.length === 0
@@ -291,9 +345,11 @@ function J() {
                                                   children: [
                                                     e.jsx("button", {
                                                       type: "button",
-                                                      disabled: d,
-                                                      onClick: () =>
-                                                        f(t.key, t.qty - 1),
+                                                      disabled: d && !quantityPending,
+                                                      onClick: () => {
+                                                        window.JLuxeStorefrontUtils?.haptic?.();
+                                                        f(t.key, t.qty - 1);
+                                                      },
                                                       "aria-label":
                                                         "کاهش تعداد",
                                                       className:
@@ -322,9 +378,11 @@ function J() {
                                                     e.jsx("button", {
                                                       type: "button",
                                                       disabled:
-                                                        d || t.qty >= t.maxQty,
-                                                      onClick: () =>
-                                                        f(t.key, t.qty + 1),
+                                                        (d && !quantityPending) || t.qty >= t.maxQty,
+                                                      onClick: () => {
+                                                        window.JLuxeStorefrontUtils?.haptic?.();
+                                                        f(t.key, t.qty + 1);
+                                                      },
                                                       "aria-label":
                                                         "افزایش تعداد",
                                                       className:
@@ -339,9 +397,9 @@ function J() {
                                                 e.jsx("span", {
                                                   className:
                                                     "text-caption font-bold text-foreground",
-                                                  dangerouslySetInnerHTML: {
-                                                    __html: t.lineTotalHtml,
-                                                  },
+                                                  children: quantityKeys.includes(String(t.key))
+                                                    ? e.jsx(CartHourglass, {})
+                                                    : e.jsx("span", { dangerouslySetInnerHTML: { __html: t.lineTotalHtml } }),
                                                 }),
                                               ],
                                             }),
@@ -349,7 +407,7 @@ function J() {
                                         }),
                                         e.jsx("button", {
                                           type: "button",
-                                          disabled: d,
+                                          disabled: d || quantityKeys.includes(String(t.key)),
                                           onClick: () => v(t.key),
                                           "aria-label": "حذف از سبد خرید",
                                           className:
@@ -483,13 +541,18 @@ function J() {
                               }),
                               e.jsx("span", {
                                 className: "font-bold text-foreground",
-                                children: d
-                                  ? "در حال به‌روزرسانی…"
-                                  : e.jsx("span", {
-                                      dangerouslySetInnerHTML: {
-                                        __html: s.subtotalHtml,
-                                      },
+                                "aria-busy": d,
+                                children: e.jsxs("span", {
+                                  className: "inline-flex items-center gap-2",
+                                  children: [
+                                    e.jsx("span", {
+                                      className: d ? "opacity-60" : undefined,
+                                      title: d ? "آخرین مبلغ تأییدشده؛ در حال بررسی مبلغ جدید" : undefined,
+                                      dangerouslySetInnerHTML: { __html: s.subtotalHtml },
                                     }),
+                                    d ? e.jsx(CartHourglass, {}) : null,
+                                  ],
+                                }),
                               }),
                             ],
                           }),
@@ -511,12 +574,36 @@ function J() {
                                 ],
                               })
                             : e.jsx("div", { className: "mb-3" }),
+                          s.giftWrap?.feeHtml && !d
+                            ? e.jsxs("div", {
+                                className: "mb-3 flex items-center justify-between gap-2 text-caption",
+                                children: [
+                                  e.jsx("span", { className: "text-text-muted", children: s.giftWrap.label }),
+                                  e.jsx("span", {
+                                    className: "font-medium text-text-secondary",
+                                    dangerouslySetInnerHTML: { __html: s.giftWrap.feeHtml },
+                                  }),
+                                ],
+                              })
+                            : null,
                           e.jsx("a", {
                             href: s.cartUrl,
+                            "aria-disabled": d || undefined,
+                            onClick: (event) => { if (d) event.preventDefault(); },
                             className:
                               "flex h-12 items-center justify-center rounded-xl bg-primary text-button font-medium text-primary-foreground transition-colors hover:bg-primary-hover",
                             children: "مشاهده سبد خرید",
                           }),
+                          s.shareCartEnabled && s.shareCartUrl
+                            ? e.jsx("button", {
+                                type: "button",
+                                "data-jluxe-mini-cart-share": "",
+                                "data-share-url": s.shareCartUrl,
+                                onClick: shareCart,
+                                className: "mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface text-caption font-bold text-text-secondary transition-colors hover:bg-muted",
+                                children: e.jsx("span", { "data-share-label": "", "aria-live": "polite", children: "ارسال لیست سبد برای دیگران" }),
+                              })
+                            : null,
                         ],
                       })
                     : null,

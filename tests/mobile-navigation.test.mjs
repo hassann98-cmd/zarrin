@@ -1,10 +1,12 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
-const stickySource = await readFile(new URL("assets/js/sticky-cta.js", root), "utf8");
+const stickySource = (await readFile(new URL("assets/js/storefront-utils.js", root), "utf8")) + "\n" + (await readFile(new URL("assets/js/sticky-cta.js", root), "utf8"));
 const mobileNavSource = await readFile(new URL("src/islands/MobileNav.js", root), "utf8");
 const mainSource = await readFile(new URL("src/main.js", root), "utf8");
 const floatingNavSource = await readFile(new URL("src/islands/FloatingMobileNav.js", root), "utf8");
@@ -15,11 +17,11 @@ const drawerStateSource = await readFile(new URL("src/lib/mobile-drawers.js", ro
 const assistantSource = await readFile(new URL("src/islands/AiAssistant.js", root), "utf8");
 const productTemplate = await readFile(new URL("woocommerce/content-single-product.php", root), "utf8");
 const classicProductTemplate = await readFile(new URL("woocommerce/content-single-product-classic.php", root), "utf8");
-const storefrontStyles = await readFile(new URL("src/styles/storefront.css", root), "utf8");
+const storefrontStyles = readStorefrontCss();
 const footerTemplate = await readFile(new URL("footer.php", root), "utf8");
 const headerTemplate = await readFile(new URL("header.php", root), "utf8");
 const headerIslandSource = await readFile(new URL("src/islands/Header.js", root), "utf8");
-const shopToolbarSource = await readFile(new URL("inc/woocommerce.php", root), "utf8");
+const shopToolbarSource = await Promise.resolve(readWooCommerceSource());
 const thankyouTemplate = await readFile(new URL("woocommerce/checkout/thankyou.php", root), "utf8");
 const {
   isMobileNavItemActive,
@@ -64,11 +66,15 @@ test("R115 purchase mode yields both supplied and native bottom docks instead of
     { ".jluxe-mobile-nav": { top: 732, height: 68 }, "#bottom-navigation": { top: 714, height: 76 } },
   );
 
-  assert.equal(bar.style.bottom, "0px", "the purchase CTA occupies the viewport edge after both docks yield");
+  assert.equal(bar.style.bottom, "", "purchase CTA bottom is CSS-fixed at zero");
   assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
-  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
-  assert.equal(dom.window.document.querySelector("#bottom-navigation").hidden, true);
-  assert.equal(body.style.paddingBottom, "68px", "page clearance follows the single active CTA");
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hasAttribute("inert"), true);
+  assert.equal(dom.window.document.querySelector("#bottom-navigation").hidden, false);
+  assert.equal(dom.window.document.querySelector("#bottom-navigation").hasAttribute("inert"), true);
+  assert.equal(body.style.paddingBottom, "", "page clearance remains a stable CSS value");
+  assert.match(storefrontStyles, /\.jluxe-sticky-cta\s*\{[\s\S]*?bottom:\s*0;/);
+  assert.match(storefrontStyles, /body\.jluxe-has-sticky-cta\s*\{\s*padding-bottom:\s*calc\(10rem \+ env\(safe-area-inset-bottom, 0px\)\)/);
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
@@ -79,10 +85,11 @@ test("R115 purchase mode hides the native mobile dock and removes its safe-area 
     { ".jluxe-mobile-nav": { top: 732, height: 68 } },
   );
 
-  assert.equal(bar.style.bottom, "0px");
+  assert.equal(bar.style.bottom, "");
   assert.equal(bar.hasAttribute("data-jluxe-bottom-dock"), false);
-  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, true);
-  assert.equal(body.style.paddingBottom, "68px");
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  assert.equal(dom.window.document.querySelector(".jluxe-mobile-nav").hasAttribute("inert"), true);
+  assert.equal(body.style.paddingBottom, "");
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
@@ -97,7 +104,7 @@ test("R115 a mobile menu mounted after startup yields immediately to an active p
   const bar = window.document.querySelector("[data-jluxe-sticky-cta]");
   Object.defineProperty(bar, "offsetHeight", { configurable: true, value: 56 });
   window.eval(stickySource);
-  assert.equal(bar.style.bottom, "0px");
+  assert.equal(bar.style.bottom, "");
 
   const nav = window.document.createElement("nav");
   nav.className = "jluxe-mobile-nav";
@@ -108,9 +115,11 @@ test("R115 a mobile menu mounted after startup yields immediately to an active p
   window.document.body.append(nav);
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 
-  assert.equal(nav.hidden, true, "the newly mounted dock follows the already active purchase mode");
-  assert.equal(bar.style.bottom, "0px");
-  assert.equal(window.document.body.style.paddingBottom, "68px");
+  assert.equal(nav.hidden, false, "the newly mounted dock remains in the render tree");
+  assert.equal(nav.hasAttribute("inert"), true, "a newly mounted dock follows the active purchase mode");
+  assert.equal(nav.getAttribute("aria-hidden"), "true");
+  assert.equal(bar.style.bottom, "");
+  assert.equal(window.document.body.style.paddingBottom, "");
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 });
 
@@ -240,10 +249,10 @@ test("R182 floating dock matches the supplied pill layout and leaves the classic
 test("mobile category/cart controls keep their normal icons, expose close state, and retain real-page fallbacks", () => {
   assert.match(mobileNavSource, /shop: \{ href: siteUrl\("shop"\), opensDrawer: "categories" \}/);
   assert.match(mobileNavSource, /cart: \{ href: siteUrl\("cart"\), opensDrawer: "cart" \}/);
-  assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(mobileNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
-  assert.match(floatingNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window\)/);
+  assert.match(mobileNavSource, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(floatingNavSource, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(mobileNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  assert.match(floatingNavSource, /closedSuggestions[\s\S]*?openMobileDrawer\(item\.opensDrawer, window\)[\s\S]*?toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
   assert.match(mobileNavSource, /aria-expanded": drawerOpen/);
   assert.match(floatingNavSource, /aria-expanded": drawerOpen/);
   assert.match(mobileNavSource, /"aria-current": routeActive \? "page"/);
@@ -252,7 +261,7 @@ test("mobile category/cart controls keep their normal icons, expose close state,
   assert.match(mobileNavSource, /بستن سبد خرید/);
   assert.match(floatingNavSource, /بستن دسته‌بندی‌ها/);
   assert.match(floatingNavSource, /بستن سبد خرید/);
-  assert.match(mobileNavSource, /children: \[\s*jsx\.jsx\(Icon,/);
+  assert.match(mobileNavSource, /children: \[\s*Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.match(floatingNavSource, /Icon\s*\?\s*jsx\.jsx\(Icon,/);
   assert.doesNotMatch(mobileNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
   assert.doesNotMatch(floatingNavSource, /MobileDrawerIcon|rotate\(-28deg\)/);
@@ -364,12 +373,22 @@ test("R121 the failed-checkout recovery actions stack at phone width", () => {
 });
 
 
+test("sticky old-price text keeps full contrast instead of opacity-dimming the muted color", () => {
+  const start = storefrontStyles.indexOf('.jluxe-mobile-price-card [data-jluxe-mobile-bar-price] del,');
+  const end = storefrontStyles.indexOf('}', start);
+  const rule = storefrontStyles.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(rule, /opacity:\s*1;/);
+  assert.doesNotMatch(rule, /opacity:\s*0\.78/);
+});
+
 test("mobile home navigation is quietly prefetched on idle and on intent without intercepting the native link", () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "https://shop.test/store/catalog/",
   });
   const { window } = dom;
-  window.matchMedia = () => ({ matches: true });
+  window.matchMedia = () => ({ matches: false });
+  delete window.jluxeCurrentAuthStatus;
 
   assert.equal(prefetchMobileHome("https://shop.test/store/", window), true);
   const hint = window.document.querySelector(
@@ -394,11 +413,18 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   });
   assert.equal(prefetchMobileHome("https://shop.test/store/", noPrefetch.window), false);
   assert.equal(noPrefetch.window.document.querySelector("link[rel=prefetch]"), null);
+  const cacheUnsafe = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
+    url: "https://shop.test/store/catalog/",
+  });
+  cacheUnsafe.window.jluxePageMotion = { cacheSafe: false };
+  assert.equal(prefetchMobileHome("https://shop.test/store/", cacheUnsafe.window), false);
 
   let runIdle;
+  let idleOptions;
   let cancelledIdle = false;
-  window.requestIdleCallback = (callback) => {
+  window.requestIdleCallback = (callback, options) => {
     runIdle = callback;
+    idleOptions = options;
     return 17;
   };
   window.cancelIdleCallback = (id) => {
@@ -406,6 +432,7 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   };
   const cancel = scheduleMobileHomePrefetch("https://shop.test/store/", window);
   assert.equal(typeof runIdle, "function");
+  assert.equal(idleOptions.timeout, 800);
   runIdle();
   assert.equal(window.document.querySelectorAll("link[rel=prefetch]").length, 1);
   cancel();
@@ -419,4 +446,37 @@ test("mobile home navigation is quietly prefetched on idle and on intent without
   assert.match(floatingNavSource, /item\.action !== "home"/);
   dom.window.close();
   noPrefetch.window.close();
+  cacheUnsafe.window.close();
+});
+
+test("explicit navigation mode remains selected as scrolling hides and reveals the sticky purchase bar", () => {
+  const dom = new JSDOM('<form class="cart"></form><nav class="jluxe-mobile-nav"><a href="/">Home</a></nav><div data-jluxe-sticky-cta><button data-jluxe-sticky-cta-mode-toggle aria-pressed="false"><span data-jluxe-sticky-cta-mode-label></span></button></div>', {
+    url: "https://shop.test/product/demo/", runScripts: "outside-only",
+  });
+  const { window } = dom;
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  const form = window.document.querySelector("form.cart");
+  let bottom = 100;
+  form.getBoundingClientRect = () => ({ bottom, top: bottom - 300, height: 300, left: 0, right: 390, width: 390 });
+  const button = window.document.querySelector("[data-jluxe-sticky-cta-mode-toggle]");
+  window.eval(stickySource);
+  assert.equal(button.getAttribute("aria-pressed"), "true", "initial visible CTA starts in purchase mode");
+  button.click();
+  assert.equal(button.getAttribute("aria-pressed"), "false", "the user selects navigation");
+  bottom = 900;
+  window.dispatchEvent(new window.Event("scroll"));
+  bottom = 100;
+  window.dispatchEvent(new window.Event("scroll"));
+  assert.equal(button.getAttribute("aria-pressed"), "false", "scroll visibility changes do not reset the selected mode");
+  assert.equal(window.document.querySelector(".jluxe-mobile-nav").hidden, false);
+  dom.window.close();
+});
+
+test("drawer navigation falls back to native href when its category or cart island is not registered", () => {
+  for (const source of [mobileNavSource, floatingNavSource]) {
+    assert.match(source, /hasMobileDrawerRegistration\(item\.opensDrawer, window\)/);
+    assert.match(source, /if \(!hasMobileDrawerRegistration\(item\.opensDrawer, window\)\) return;/);
+    assert.match(source, /toggleMobileDrawer\(item\.opensDrawer, window, activeDrawer\)/);
+  }
 });

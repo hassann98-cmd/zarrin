@@ -25,6 +25,14 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 	$jluxe_ty_items   = $order->get_items();
 	$jluxe_ty_has_shipping_address = (bool) array_filter( $order->get_address( 'shipping' ) );
 	$jluxe_ty_address = $jluxe_ty_has_shipping_address ? $order->get_formatted_shipping_address() : $order->get_formatted_billing_address();
+	$jluxe_ty_date_created = $order->get_date_created();
+	$jluxe_ty_date = ( $jluxe_ty_date_created && function_exists( 'jluxe_gregorian_timestamp_to_jalali_string' ) )
+		? jluxe_gregorian_timestamp_to_jalali_string( $jluxe_ty_date_created->getTimestamp(), 'Y/m/d' )
+		: ( $jluxe_ty_date_created ? jluxe_fa_digits( wc_format_datetime( $jluxe_ty_date_created ) ) : '' );
+	// P1 (audit): a pending/on-hold order is NOT a confirmed payment — the
+	// celebration hero would mislead the customer. Those orders get a
+	// neutral "awaiting confirmation" state instead.
+	$jluxe_ty_awaiting = $order->has_status( array( 'pending', 'on-hold' ) );
 
 	// کارت‌های اعتمادِ همون بخشِ فوتر (footer.feature_cards) — طبقِ اصلِ
 	// «تکرار نکن»، به‌جایِ تعریفِ دوباره‌ی متنِ ارسال/پشتیبانی/امنیت اینجا.
@@ -49,6 +57,17 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				<svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5" class="text-error" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
 				<h1 class="text-h2 text-foreground">پرداخت ناموفق بود</h1>
 				<p class="max-w-md text-body text-text-secondary">متأسفانه سفارش شما توسط بانک/درگاه پرداخت رد شد. لطفاً دوباره تلاش کنید.</p>
+				<?php do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() ); ?>
+				<?php
+				$jluxe_ty_details_priority = has_action( 'woocommerce_thankyou', 'woocommerce_order_details_table' );
+				if ( false !== $jluxe_ty_details_priority ) {
+					remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+				}
+				do_action( 'woocommerce_thankyou', $order->get_id() );
+				if ( false !== $jluxe_ty_details_priority ) {
+					add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+				}
+				?>
 				<div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
 					<a href="<?php echo esc_url( $order->get_checkout_payment_url() ); ?>" class="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 text-button text-primary-foreground sm:w-auto">تلاش مجدد برای پرداخت</a>
 					<?php if ( is_user_logged_in() ) : ?>
@@ -67,15 +86,25 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			 * کاملاً خاموشش می‌کنه (globals.css).
 			 */
 			?>
+			<?php if ( $jluxe_ty_awaiting ) : ?>
+				<div class="jluxe-ty-hero relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-10 text-center sm:py-14">
+					<div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-muted text-foreground sm:size-24">
+						<svg class="size-10 sm:size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+					</div>
+					<h1 class="text-h1 font-extrabold text-foreground">سفارش شما ثبت شد — در انتظار تأیید</h1>
+					<p class="mx-auto mt-3 max-w-md text-body text-text-secondary">پرداخت یا تأیید نهایی سفارش هنوز انجام نشده است. پس از تأیید، وضعیت سفارش به‌روزرسانی می‌شود. برای پیگیری، از دکمهٔ «پیگیری سفارش» استفاده کنید.</p>
+			<?php else : ?>
 			<div class="jluxe-ty-hero relative overflow-hidden rounded-3xl border border-success/20 bg-gradient-to-br from-success/10 via-surface to-accent/10 px-6 py-10 text-center sm:py-14">
 				<div class="mx-auto mb-5 flex size-20 items-center justify-center rounded-full bg-success text-white shadow-lg shadow-success/25 sm:size-24">
 					<svg class="jluxe-ty-check-path size-10 sm:size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
 				</div>
 				<h1 class="text-h1 font-extrabold text-foreground">سفارش شما با موفقیت ثبت شد 🎉</h1>
 				<p class="mx-auto mt-3 max-w-md text-body text-text-secondary">جزئیات واقعی سفارش در همین صفحه قرار دارد. برای پیگیری، از دکمهٔ «پیگیری سفارش» استفاده کنید.</p>
+			<?php endif; ?>
 				<div class="mt-6 inline-flex items-center gap-2 rounded-full bg-surface px-5 py-2 text-small font-bold text-foreground shadow-sm">
 					شماره سفارش
 					<span class="text-primary" dir="ltr">#<?php echo esc_html( jluxe_fa_digits( $order->get_order_number() ) ); ?></span>
+					<button type="button" data-order-number-copy="<?php echo esc_attr( $order->get_order_number() ); ?>" class="rounded-full border border-border px-2.5 py-1 text-caption font-medium text-text-secondary transition-colors hover:bg-muted">کپی</button>
 				</div>
 			</div>
 
@@ -93,7 +122,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 				</div>
 				<div class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface p-4 text-center">
 					<span class="text-caption text-text-muted">تاریخ ثبت</span>
-					<strong class="text-small text-foreground"><?php echo esc_html( jluxe_fa_digits( wc_format_datetime( $order->get_date_created() ) ) ); ?></strong>
+					<strong class="text-small text-foreground"><?php echo esc_html( $jluxe_ty_date ); ?></strong>
 				</div>
 				<div class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface p-4 text-center">
 					<span class="text-caption text-text-muted">مبلغ کل</span>
@@ -128,6 +157,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 								</span>
 								<div class="min-w-0 flex-1">
 									<p class="line-clamp-2 text-small font-medium text-foreground"><?php echo esc_html( $jluxe_ty_item->get_name() ); ?></p>
+									<div class="text-caption text-text-secondary"><?php echo wp_kses_post( wc_display_item_meta( $jluxe_ty_item, array( 'echo' => false ) ) ); ?></div>
 									<p class="mt-0.5 text-caption text-text-muted"><?php echo esc_html( jluxe_fa_digits( (string) $jluxe_ty_item->get_quantity() ) ); ?> عدد</p>
 								</div>
 								<div class="shrink-0 text-small font-bold text-foreground">
@@ -145,6 +175,7 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 					<p class="text-small text-text-secondary"><?php echo wp_kses_post( $jluxe_ty_address ); ?></p>
 				</div>
 			<?php endif; ?>
+			<?php if ( function_exists( 'jluxe_render_order_gift_wrap_details' ) ) { jluxe_render_order_gift_wrap_details( $order ); } ?>
 
 			<?php if ( ! empty( $jluxe_ty_trust_cards ) ) : ?>
 				<div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -164,6 +195,16 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 			<?php endif; ?>
 
 			<?php
+			// Payment integrations (including gateway tracking) render before final actions.
+			do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() );
+			$jluxe_ty_details_priority = has_action( 'woocommerce_thankyou', 'woocommerce_order_details_table' );
+			if ( false !== $jluxe_ty_details_priority ) {
+				remove_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+			}
+			do_action( 'woocommerce_thankyou', $order->get_id() );
+			if ( false !== $jluxe_ty_details_priority ) {
+				add_action( 'woocommerce_thankyou', 'woocommerce_order_details_table', $jluxe_ty_details_priority );
+			}
 			// مشتریِ لاگین‌کرده حسابِ واقعی داره، پس مستقیم به بخش سفارش‌های
 			// همون حساب می‌ره (نیازی به وارد کردن دوباره‌ی شماره سفارش/موبایل
 			// نیست)؛ فقط خریدِ مهمان (بدون حساب) به صفحه‌ی پیگیریِ عمومی می‌ره.
@@ -184,8 +225,6 @@ if ( $order && ! $order->has_status( 'failed' ) ) {
 
 		<?php endif; ?>
 
-		<?php do_action( 'woocommerce_thankyou_' . $order->get_payment_method(), $order->get_id() ); ?>
-		<?php do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
 	<?php else : ?>
 		<p class="text-body text-text-secondary">سفارشی یافت نشد.</p>
 	<?php endif; ?>

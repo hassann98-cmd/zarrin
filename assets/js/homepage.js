@@ -10,25 +10,40 @@
 	 * استوری‌ها — کلیک روی آواتار، ویوئر تمام‌صفحه (عکس یا ویدیو) رو باز می‌کنه.
 	 * ------------------------------------------------------------- */
 	function initStories() {
-		var bars = document.querySelectorAll("[data-jluxe-stories]");
-		if (!bars.length) return;
-
-		bars.forEach(function (bar) {
+		document.querySelectorAll("[data-jluxe-stories]").forEach(function (bar) {
 			var viewer = bar.querySelector("[data-jluxe-story-viewer]");
-			var media = viewer ? viewer.querySelector("[data-jluxe-story-media]") : null;
-			var titleEl = viewer ? viewer.querySelector("[data-jluxe-story-title]") : null;
-			var closeBtn = viewer ? viewer.querySelector("[data-jluxe-story-close]") : null;
+			if (!viewer) return;
+			var media = viewer.querySelector("[data-jluxe-story-media]");
+			var titleEl = viewer.querySelector("[data-jluxe-story-title]");
+			var closeBtn = viewer.querySelector("[data-jluxe-story-close]");
+			var prevBtn = viewer.querySelector("[data-jluxe-story-prev]");
+			var nextBtn = viewer.querySelector("[data-jluxe-story-next]");
+			var progress = viewer.querySelector("[data-jluxe-story-progress]");
+			var progressFill = viewer.querySelector("[data-jluxe-story-progress-fill]");
+			var cta = viewer.querySelector("[data-jluxe-story-cta]");
+			var items = Array.prototype.slice.call(bar.querySelectorAll("[data-jluxe-story-avatar]")).map(function (btn) {
+				return {
+					src: btn.getAttribute("data-src") || "",
+					type: btn.getAttribute("data-media-type") || "image",
+					title: btn.getAttribute("data-title") || "",
+					link: btn.getAttribute("data-link") || "",
+					buttonText: btn.getAttribute("data-button-text") || ""
+				};
+			});
+			var activeIndex = -1;
 
 			function close() {
-				if (!viewer) return;
 				viewer.setAttribute("hidden", "");
 				viewer.classList.remove("grid", "place-items-center");
 				media.innerHTML = "";
+				activeIndex = -1;
 				document.body.style.overflow = "";
 			}
 
-			function open(item) {
-				if (!viewer || !media) return;
+			function show(index) {
+				if (!items.length) return;
+				activeIndex = (index + items.length) % items.length;
+				var item = items[activeIndex];
 				media.innerHTML = "";
 				if (item.type === "video") {
 					var video = document.createElement("video");
@@ -41,34 +56,45 @@
 				} else {
 					var img = document.createElement("img");
 					img.src = item.src;
-					img.alt = item.title || "";
+					img.alt = item.title;
 					img.className = "max-h-[80vh] max-w-full rounded-xl object-contain";
 					media.appendChild(img);
 				}
-				if (titleEl) titleEl.textContent = item.title || "";
+				if (titleEl) titleEl.textContent = item.title;
+				if (progress) progress.setAttribute("aria-valuenow", String(Math.round(((activeIndex + 1) / items.length) * 100)));
+				if (progressFill) progressFill.style.width = (((activeIndex + 1) / items.length) * 100) + "%";
+				if (cta) {
+					if (item.link) {
+						cta.href = item.link;
+						cta.textContent = item.buttonText || "مشاهده محصول";
+						cta.removeAttribute("hidden");
+					} else {
+						cta.setAttribute("hidden", "");
+					}
+				}
+			}
+
+			function open(index) {
 				viewer.removeAttribute("hidden");
 				viewer.classList.add("grid", "place-items-center");
 				document.body.style.overflow = "hidden";
+				show(index);
 			}
 
-			bar.querySelectorAll("[data-jluxe-story-avatar]").forEach(function (btn) {
-				btn.addEventListener("click", function () {
-					open({
-						src: btn.getAttribute("data-src"),
-						type: btn.getAttribute("data-media-type"),
-						title: btn.getAttribute("data-title"),
-					});
-				});
+			bar.querySelectorAll("[data-jluxe-story-avatar]").forEach(function (btn, index) {
+				btn.addEventListener("click", function () { open(index); });
 			});
-
 			if (closeBtn) closeBtn.addEventListener("click", close);
-			if (viewer) {
-				viewer.addEventListener("click", function (e) {
-					if (e.target === viewer) close();
-				});
-			}
+			if (prevBtn) prevBtn.addEventListener("click", function () { if (activeIndex >= 0) show(activeIndex - 1); });
+			if (nextBtn) nextBtn.addEventListener("click", function () { if (activeIndex >= 0) show(activeIndex + 1); });
+			viewer.addEventListener("click", function (e) {
+				if (e.target === viewer) close();
+			});
 			document.addEventListener("keydown", function (e) {
+				if (viewer.hasAttribute("hidden")) return;
 				if (e.key === "Escape") close();
+				else if (e.key === "ArrowLeft") show(activeIndex + 1);
+				else if (e.key === "ArrowRight") show(activeIndex - 1);
 			});
 		});
 	}
@@ -80,6 +106,8 @@
 	 * هر ریشه خونده می‌شه (پیش‌فرض ۵۰۰۰ اگه ست نشده بود).
 	 * ------------------------------------------------------------- */
 	function initSliders(selector) {
+		var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		var liteMode = document.documentElement.classList.contains("jluxe-lite");
 		document.querySelectorAll(selector).forEach(function (root) {
 			var slides = Array.prototype.slice.call(root.querySelectorAll("[data-jluxe-bs-slide]"));
 			if (slides.length < 2) return;
@@ -91,7 +119,7 @@
 			var index = 0;
 			var timer = null;
 			var paused = false;
-			var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			var motionLimited = reducedMotion || liteMode;
 
 			// اسلایدرِ هیرو (inc/theme-settings-homepage.php: jluxe_render_homepage_hero)
 			// طبقِ درخواستِ صریحِ کاربر («بنرها با یک حالتِ نرمِ اسلاید بخورن»)
@@ -128,6 +156,7 @@
 				});
 				dots.forEach(function (d, di) {
 					d.setAttribute("data-active", di === index ? "true" : "false");
+					d.setAttribute("aria-current", di === index ? "true" : "false");
 					// نوارِ پیشرفتِ داخلِ هر نشانگر (اگه وجود داشته باشه — فقط
 					// اسلایدرِ هیرو این ساختار رو داره، بنرِ اسلایدرِ قدیمی نه):
 					// اسلایدهای گذشته پر، اسلایدِ فعال با همون مدتِ واقعیِ
@@ -148,7 +177,7 @@
 
 			function restart() {
 				if (timer) clearInterval(timer);
-				if (reducedMotion) {
+				if (motionLimited) {
 					timer = null;
 					return;
 				}
@@ -227,38 +256,47 @@
 	 * راست («بعدی») ظاهر می‌شه.
 	 * ------------------------------------------------------------- */
 	function initScrollArrowVisibility() {
+		var rows = [];
 		document.querySelectorAll("[data-jluxe-scroller]").forEach(function (scroller) {
 			var wrapper = scroller.closest(".relative");
 			if (!wrapper) return;
 			var prevBtn = wrapper.querySelector("[data-jluxe-scroll-prev]");
 			var nextBtn = wrapper.querySelector("[data-jluxe-scroll-next]");
-			if (!prevBtn && !nextBtn) return;
-
-			function setVisible(btn, visible) {
-				if (!btn) return;
-				btn.classList.toggle("opacity-0", !visible);
-				btn.classList.toggle("pointer-events-none", !visible);
-			}
-
-			function update() {
-				var max = scroller.scrollWidth - scroller.clientWidth;
-				var overflowing = max >= 20;
-				scroller.classList.toggle("is-overflowing", overflowing);
-				scroller.classList.toggle("is-centered", !overflowing);
-				if (max < 20) {
-					setVisible(prevBtn, false);
-					setVisible(nextBtn, false);
-					return;
-				}
-				var scrolled = Math.abs(scroller.scrollLeft);
-				setVisible(prevBtn, scrolled < max - 4);
-				setVisible(nextBtn, scrolled > 4);
-			}
-
-			scroller.addEventListener("scroll", update, { passive: true });
-			window.addEventListener("resize", update);
-			update();
+			if (prevBtn || nextBtn) rows.push({ scroller: scroller, prevBtn: prevBtn, nextBtn: nextBtn });
 		});
+
+		function setVisible(btn, visible) {
+			if (!btn) return;
+			btn.classList.toggle("opacity-0", !visible);
+			btn.classList.toggle("pointer-events-none", !visible);
+		}
+
+		function updateAll() {
+			// Complete every layout read across every carousel before the first class write.
+			var states = rows.map(function (row) {
+				var max = row.scroller.scrollWidth - row.scroller.clientWidth;
+				var overflowing = max >= 20;
+				var scrolled = Math.abs(row.scroller.scrollLeft);
+				return {
+					row: row,
+					overflowing: overflowing,
+					showPrev: overflowing && scrolled < max - 4,
+					showNext: overflowing && scrolled > 4,
+				};
+			});
+			states.forEach(function (state) {
+				state.row.scroller.classList.toggle("is-overflowing", state.overflowing);
+				state.row.scroller.classList.toggle("is-centered", !state.overflowing);
+				setVisible(state.row.prevBtn, state.showPrev);
+				setVisible(state.row.nextBtn, state.showNext);
+			});
+		}
+
+		rows.forEach(function (row) {
+			row.scroller.addEventListener("scroll", updateAll, { passive: true });
+		});
+		window.addEventListener("resize", updateAll);
+		updateAll();
 	}
 
 	/* ---------------------------------------------------------------
@@ -342,6 +380,7 @@
 	 * نمی‌کنن»)؛ الان کلیکِ فلش هم چند ثانیه موقتاً متوقفش می‌کنه.
 	 * ------------------------------------------------------------- */
 	function initAutoScroll() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
 		if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		var FORWARD_SPEED = 1.1; // پیکسل در هر فریم — کمی سریع‌تر از حالتِ قبلی طبقِ درخواست.
 		var REWIND_MS = 650; // مدتِ برگشتِ سریع به اول.
@@ -445,6 +484,8 @@
 	 * می‌شه — نیازی به چک‌کردنِ عرضِ ویوپورت نیست.
 	 * ------------------------------------------------------------- */
 	function initCarouselPeekHint() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
+		if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!("IntersectionObserver" in window)) return;
 
 		function easedScrollTo(scroller, target, duration, done) {
@@ -496,6 +537,7 @@
 	 * می‌کند تا با کشیدنِ انگشت یا انتخاب دسته تداخلی نداشته باشد.
 	 * ------------------------------------------------------------- */
 	function initMobileCategorySwipeHint() {
+		if (document.documentElement.classList.contains("jluxe-lite")) return;
 		if (!window.matchMedia || !window.matchMedia("(max-width: 767.98px)").matches) return;
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!("IntersectionObserver" in window)) return;
@@ -586,6 +628,194 @@
 		});
 	}
 
+	function initBrandVideoCampaigns() {
+		document.querySelectorAll("[data-jluxe-brand-campaigns]").forEach(function (root) {
+			var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+			var panels = Array.prototype.slice.call(root.querySelectorAll('[role="tabpanel"]'));
+			var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			var mobileQuery = window.matchMedia ? window.matchMedia("(max-width: 767px)") : null;
+			var activeIndex = -1;
+			var rootInRange = typeof IntersectionObserver !== "function";
+			var animationToken = 0;
+			if (!tabs.length || tabs.length !== panels.length) return;
+
+			function syncVideoSource(video) {
+				var desktopSrc = video.getAttribute("data-desktop-src") || video.getAttribute("src");
+				var mobileSrc = video.getAttribute("data-mobile-src");
+				var nextSrc = mobileQuery && mobileQuery.matches && mobileSrc ? mobileSrc : desktopSrc;
+				var desktopPoster = video.getAttribute("data-desktop-poster") || "";
+				var mobilePoster = video.getAttribute("data-mobile-poster") || "";
+				var nextPoster = mobileQuery && mobileQuery.matches && mobilePoster ? mobilePoster : desktopPoster;
+				if (nextPoster) video.setAttribute("poster", nextPoster);
+				else video.removeAttribute("poster");
+				if (nextSrc && video.getAttribute("src") !== nextSrc) {
+					video.setAttribute("src", nextSrc);
+					if (typeof video.load === "function") video.load();
+				}
+			}
+
+			function syncActiveVideo() {
+				panels.forEach(function (panel, index) {
+					var video = panel.querySelector("video");
+					if (!video) return;
+					if (index !== activeIndex || !rootInRange) {
+						video.pause();
+						return;
+					}
+					syncVideoSource(video);
+					video.autoplay = !reducedMotion;
+					video.controls = !!reducedMotion;
+					if (reducedMotion) {
+						video.pause();
+					} else {
+						var play = video.play();
+						if (play && typeof play.catch === "function") play.catch(function () {});
+					}
+				});
+			}
+
+			var videoObserver = typeof IntersectionObserver === "function"
+				? new IntersectionObserver(function (entries) {
+					entries.forEach(function (entry) {
+						rootInRange = entry.isIntersecting || entry.intersectionRatio > 0;
+						if (!rootInRange) {
+							panels.forEach(function (panel) {
+								var video = panel.querySelector("video");
+								if (video) video.pause();
+							});
+							return;
+						}
+						syncActiveVideo();
+					});
+				}, { rootMargin: "200px 0px" })
+				: null;
+			if (videoObserver) videoObserver.observe(root);
+
+			function activate(index, focusTab, userInitiated) {
+				index = (index + tabs.length) % tabs.length;
+				var changed = index !== activeIndex;
+				activeIndex = index;
+				var activeTab = tabs[index];
+				var activePanel = panels[index];
+
+				tabs.forEach(function (tab, i) {
+					var active = i === index;
+					tab.classList.toggle("is-active", active);
+					tab.setAttribute("aria-selected", active ? "true" : "false");
+					tab.tabIndex = active ? 0 : -1;
+				});
+				panels.forEach(function (panel, i) {
+					var active = i === index;
+					panel.classList.toggle("is-active", active);
+					if (active) panel.hidden = false;
+					else {
+						panel.classList.remove("is-entering");
+						panel.hidden = true;
+					}
+				});
+
+				var background = activeTab.getAttribute("data-bg-color");
+				var foreground = activeTab.getAttribute("data-fg-color");
+				if (background) root.style.setProperty("--bvc-active-bg", background);
+				if (foreground) root.style.setProperty("--bvc-fg", foreground);
+				var scroller = activePanel.querySelector("[data-jluxe-scroller]");
+				if (scroller) scroller.scrollLeft = 0;
+
+				if (userInitiated && changed && !reducedMotion) {
+					var token = ++animationToken;
+					activePanel.classList.remove("is-entering");
+					window.requestAnimationFrame(function () {
+						window.requestAnimationFrame(function () {
+							if (token === animationToken && activeIndex === index) activePanel.classList.add("is-entering");
+						});
+					});
+				}
+				if (focusTab) activeTab.focus();
+				syncActiveVideo();
+				window.requestAnimationFrame(function () {
+					window.dispatchEvent(new Event("resize"));
+				});
+			}
+
+			if (mobileQuery) {
+				var handleMediaChange = function () { syncActiveVideo(); };
+				if (mobileQuery.addEventListener) mobileQuery.addEventListener("change", handleMediaChange);
+				else if (mobileQuery.addListener) mobileQuery.addListener(handleMediaChange);
+			}
+
+			tabs.forEach(function (tab, index) {
+				tab.addEventListener("click", function () { activate(index, false, true); });
+				tab.addEventListener("keydown", function (event) {
+					var next = index;
+					if (event.key === "ArrowLeft" || event.key === "ArrowDown") next++;
+					else if (event.key === "ArrowRight" || event.key === "ArrowUp") next--;
+					else if (event.key === "Home") next = 0;
+					else if (event.key === "End") next = tabs.length - 1;
+					else return;
+					event.preventDefault();
+					activate(next, true, true);
+				});
+			});
+
+			root.querySelectorAll("[data-jluxe-bvc-mute]").forEach(function (button) {
+				button.addEventListener("click", function () {
+					var panel = button.closest('[role="tabpanel"]');
+					var video = panel ? panel.querySelector("video") : null;
+					if (!video) return;
+					video.muted = !video.muted;
+					button.setAttribute("aria-pressed", video.muted ? "false" : "true");
+					button.setAttribute("aria-label", video.muted ? "فعال‌کردن صدا" : "قطع صدا");
+					var label = button.querySelector("[data-jluxe-bvc-mute-label]");
+					if (label) label.textContent = video.muted ? "بی‌صدا" : "با صدا";
+				});
+			});
+
+			activate(Math.max(0, tabs.findIndex(function (tab) { return tab.getAttribute("aria-selected") === "true"; })), false, false);
+		});
+	}
+
+	/* Reveal only below-the-fold sections after the first initially visible section.
+	 * The hero/LCP and every section visible on first paint are never hidden. */
+	function initHomeReveal() {
+		var docRoot = document.documentElement;
+		if (
+			!("IntersectionObserver" in window) ||
+			!window.matchMedia ||
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+			docRoot.classList.contains("jluxe-lite")
+		) return;
+
+		var sections = Array.prototype.slice.call(document.querySelectorAll(".jluxe-home-section"));
+		if (!sections.length) return;
+		var viewportHeight = window.innerHeight || docRoot.clientHeight;
+		var firstVisible = -1;
+		sections.some(function (section, index) {
+			var rect = section.getBoundingClientRect();
+			if (rect.bottom > 0 && rect.top < viewportHeight) {
+				firstVisible = index;
+				return true;
+			}
+			return false;
+		});
+		if (firstVisible < 0) firstVisible = 0;
+
+		var observer = new IntersectionObserver(function (entries) {
+			entries.forEach(function (entry) {
+				if (!entry.isIntersecting) return;
+				entry.target.classList.add("is-revealed");
+				observer.unobserve(entry.target);
+			});
+		}, { threshold: 0.08 });
+
+		sections.forEach(function (section, index) {
+			if (index <= firstVisible || section.matches(".jluxe-hero") || section.closest(".jluxe-hero") || section.querySelector(".jluxe-hero")) return;
+			var rect = section.getBoundingClientRect();
+			if (rect.top < viewportHeight || rect.bottom <= 0) return;
+			section.classList.add("jluxe-home-reveal");
+			observer.observe(section);
+		});
+	}
+
 	function whenDocumentReady(callback) {
 		if ("loading" === document.readyState) {
 			document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -595,7 +825,9 @@
 	}
 
 	whenDocumentReady(function () {
+		initHomeReveal();
 		initStories();
+		initBrandVideoCampaigns();
 		initSliders("[data-jluxe-banner-slider]");
 		// R89 — هیرو حالا assets/js/hero-slider.js است (افکت‌ها، حلقه، کشیدن).
 		initScrollArrows();

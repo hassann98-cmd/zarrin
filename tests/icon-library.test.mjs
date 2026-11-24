@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
@@ -32,7 +33,7 @@ test("R360 keeps required public attribution on the About page, outside the glob
   assert.match(about, /jluxe_uicons_attribution\(\s*true\s*\)/);
   const navSource = fs.readFileSync(new URL("../src/components/nav-icons.js", import.meta.url), "utf8");
   assert.doesNotMatch(navSource, /flaticon-uicons\.json/);
-  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const css = readStorefrontCss();
   assert.match(css, /\.jluxe-uicons-attribution--standalone[\s\S]*?safe-area-inset-bottom/);
 });
 
@@ -76,5 +77,23 @@ test("R360 React icons use active SVG glyphs via currentColor and keep Lucide fa
   } finally {
     if (previousWindow === undefined) delete globalThis.window;
     else globalThis.window = previousWindow;
+  }
+});
+
+test("the supplied order-tracking artwork is true vector SVG and renders through the configurable mobile icon library", () => {
+  const svg = fs.readFileSync(new URL('../assets/icons/order-tracking.svg', import.meta.url), 'utf8');
+  assert.match(svg, /viewBox="0 0 24 24"/);
+  assert.match(svg, /fill="currentColor"/);
+  assert.doesNotMatch(svg, /<image|data:|<script|https?:[^" ]+\.(?:png|jpg)/);
+  const d = svg.match(/<path\s+d="([^"]+)"/)[1];
+  const previous = globalThis.window;
+  try {
+    globalThis.window = { JLuxeThemeSettings: { iconGlyphs: { 'order-tracking': d } } };
+    const html = renderToStaticMarkup(React.createElement(navIcons['order-tracking'], { 'aria-hidden': true }));
+    assert.ok(html.includes(`d="${d}"`));
+    assert.match(html, /fill="currentColor"/);
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
   }
 });

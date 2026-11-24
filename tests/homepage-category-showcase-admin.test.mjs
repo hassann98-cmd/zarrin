@@ -1,3 +1,4 @@
+import { readHomepageSource } from "./helpers/theme-source.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -8,10 +9,7 @@ const source = await readFile(
   new URL("../assets/js/theme-settings-admin.js", import.meta.url),
   "utf8",
 );
-const homepageSettingsSource = await readFile(
-  new URL("../inc/theme-settings-homepage.php", import.meta.url),
-  "utf8",
-);
+const homepageSettingsSource = await Promise.resolve(readHomepageSource());
 
 test("R305 homepage settings expose an obvious enabled-by-default mobile category swipe-hint switch", () => {
   assert.match(

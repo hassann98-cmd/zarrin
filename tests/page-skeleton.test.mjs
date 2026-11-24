@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -6,11 +7,11 @@ const root = new URL("../", import.meta.url);
 const [skeletonPhp, functionsPhp, css] = await Promise.all([
   readFile(new URL("inc/page-skeleton.php", root), "utf8"),
   readFile(new URL("functions.php", root), "utf8"),
-  readFile(new URL("src/styles/storefront.css", root), "utf8"),
+  Promise.resolve(readStorefrontCss()),
 ]);
 
-test("R127 adds page-specific skeletons for home, product, listings, and articles", () => {
-  assert.match(skeletonPhp, /'home'\s*=>\s*'home'/);
+test("R520 omits the overlay skeleton on the server-rendered homepage and retains useful interior-page skeletons", () => {
+  assert.doesNotMatch(skeletonPhp, /'home'\s*=>\s*'home'/);
   assert.match(skeletonPhp, /'product'\s*=>\s*'product'/);
   assert.match(skeletonPhp, /'blog'\s*=>\s*'listing'/);
   assert.match(skeletonPhp, /'singular'\s*=>\s*'article'/);

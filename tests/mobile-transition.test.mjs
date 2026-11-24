@@ -1,8 +1,9 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const css = await readFile(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const css = readStorefrontCss();
 const transitionBlock = css.slice(css.lastIndexOf("/* R184: tiny, CSS-only"));
 
 test("R184 cross-page motion is CSS-only, subtle, mobile-scoped, and disabled for reduced motion", () => {

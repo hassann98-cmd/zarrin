@@ -75,6 +75,7 @@ if ( $jluxe_main_id ) {
 	array_unshift( $jluxe_gallery_ids, $jluxe_main_id );
 }
 $jluxe_gallery_ids = array_values( array_unique( array_filter( $jluxe_gallery_ids ) ) );
+$cp3_product_video = function_exists( 'jluxe_get_product_gallery_video' ) ? jluxe_get_product_gallery_video( (int) $product->get_id() ) : null;
 if ( empty( $jluxe_gallery_ids ) ) {
 	$jluxe_gallery_ids = array( 0 );
 }
@@ -557,7 +558,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 }
 </style>
 
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3 jluxe-product-reference', $product ); ?> data-jluxe-layout="reference" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'jluxe-cp3 jluxe-product-reference', $product ); ?> data-jluxe-layout="reference" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $cp3_is_in_stock ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-2">
 
 		<nav aria-label="مسیر صفحه" class="cp3-bc">
@@ -582,10 +583,10 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 		<?php endif; ?>
 
 		<div class="cp3-card">
-			<div class="cp3-grid">
+			<div class="cp3-grid" data-jluxe-layer-stage>
 
 				<!-- گالری -->
-				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal">
+				<div class="cp3-gallery" data-cp3-gallery data-jluxe-gallery data-jluxe-gallery-current="0" data-jluxe-gallery-modal-id="jluxe-product-gallery-modal"<?php if ( $cp3_product_video ) : ?> data-jluxe-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-jluxe-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-jluxe-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-jluxe-video-title="<?php echo esc_attr( $product->get_name() ); ?>"<?php endif; ?>>
 					<button type="button" class="cp3-zoom" data-cp3-zoom-box data-jluxe-gallery-open-current aria-label="نمایش تصویر محصول به‌صورت تمام‌صفحه">
 						<?php
 						$cp3_main_size   = 'large';
@@ -593,8 +594,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						$cp3_main_image  = jluxe_get_responsive_attachment_image( (int) $jluxe_gallery_ids[0], $cp3_main_size, $cp3_main_sizes );
 						$cp3_main_url    = $cp3_main_image['src'];
 						?>
-						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
+						<img src="<?php echo esc_url( $cp3_main_url ?: wc_placeholder_img_src( $cp3_main_size ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_main_image ); ?><?php if ( ! empty( $cp3_main_image['width'] ) && ! empty( $cp3_main_image['height'] ) ) : ?> width="<?php echo absint( $cp3_main_image['width'] ); ?>" height="<?php echo absint( $cp3_main_image['height'] ); ?>"<?php endif; ?> alt="<?php echo esc_attr( $product->get_name() ); ?>" data-cp3-zoom-img data-no-lazy="1" loading="eager" fetchpriority="high" />
 					</button>
+					<?php if ( $cp3_product_video ) : ?>
+						<button type="button" class="jluxe-product-video-pill" data-jluxe-product-video-trigger data-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-video-title="<?php echo esc_attr( $product->get_name() ); ?>"><span aria-hidden="true">▶</span> ویدیو</button>
+					<?php endif; ?>
 					<div class="reference-mobile-gallery-actions" role="group" aria-label="اقدام‌های محصول">
 						<a class="reference-mobile-gallery-button" href="<?php echo esc_url( $cp3_mobile_back_url ); ?>" aria-label="بازگشت به فروشگاه">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -608,7 +612,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 							</button>
 						</div>
 					</div>
-					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
+					<?php if ( count( $jluxe_gallery_ids ) > 1 || ! empty( $cp3_product_video ) ) : ?>
 						<div class="cp3-thumbsrow">
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-prev aria-label="تصاویر قبلی" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 							<div class="cp3-thumbs">
@@ -618,6 +622,9 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 									<img src="<?php echo esc_url( $cp3_thumb_image['src'] ?: wc_placeholder_img_src( 'medium' ) ); ?>"<?php echo jluxe_responsive_image_attributes( $cp3_thumb_image ); ?> alt="" loading="lazy" />
 								</button>
 							<?php endforeach; ?>
+								<?php if ( $cp3_product_video ) : ?>
+									<button type="button" class="cp3-thumb jluxe-product-video-thumb" data-jluxe-product-video-trigger data-video-src="<?php echo esc_url( $cp3_product_video['video_url'] ); ?>" data-video-type="<?php echo esc_attr( $cp3_product_video['mime'] ); ?>" data-video-poster="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" data-video-title="<?php echo esc_attr( $product->get_name() ); ?>" aria-label="پخش ویدیوی محصول"><span aria-hidden="true">▶</span><?php if ( $cp3_product_video['poster_url'] ) : ?><img src="<?php echo esc_url( $cp3_product_video['poster_url'] ); ?>" alt="" loading="lazy" decoding="async" /><?php endif; ?></button>
+								<?php endif; ?>
 						</div>
 							<button type="button" class="cp3-tarrow" data-cp3-thumbs-next aria-label="تصاویر بعدی"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 						</div>
@@ -625,8 +632,11 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php if ( count( $jluxe_gallery_ids ) > 1 ) : ?>
 						<div class="reference-mobile-gallery-dots" role="group" aria-label="انتخاب تصویر محصول">
 							<?php foreach ( $jluxe_gallery_ids as $cp3_dot_i => $cp3_dot_att ) : ?>
-								<?php $cp3_dot_full = $cp3_dot_att ? wp_get_attachment_image_url( $cp3_dot_att, 'full' ) : wc_placeholder_img_src( 'full' ); ?>
-								<button type="button" class="reference-mobile-gallery-dot<?php echo 0 === $cp3_dot_i ? ' is-active' : ''; ?>" data-cp3-thumb data-reference-gallery-index="<?php echo esc_attr( (string) $cp3_dot_i ); ?>" data-full="<?php echo esc_url( $cp3_dot_full ?: wc_placeholder_img_src( 'full' ) ); ?>" aria-label="نمایش تصویر <?php echo esc_attr( jluxe_fa_digits( (string) ( $cp3_dot_i + 1 ) ) ); ?>" aria-pressed="<?php echo 0 === $cp3_dot_i ? 'true' : 'false'; ?>"></button>
+								<?php
+								$cp3_dot_full    = $cp3_dot_att ? wp_get_attachment_image_url( $cp3_dot_att, 'full' ) : wc_placeholder_img_src( 'full' );
+								$cp3_dot_preview = $cp3_dot_att ? jluxe_get_responsive_attachment_image( (int) $cp3_dot_att, 'large', '(max-width: 390px) 82vw, 320px' ) : array();
+								?>
+								<button type="button" class="reference-mobile-gallery-dot<?php echo 0 === $cp3_dot_i ? ' is-active' : ''; ?>" data-cp3-thumb data-reference-gallery-index="<?php echo esc_attr( (string) $cp3_dot_i ); ?>" data-full="<?php echo esc_url( $cp3_dot_full ?: wc_placeholder_img_src( 'full' ) ); ?>"<?php if ( ! empty( $cp3_dot_preview['src'] ) && ! empty( $cp3_dot_preview['width'] ) && ! empty( $cp3_dot_preview['height'] ) ) : ?> data-preview-src="<?php echo esc_url( $cp3_dot_preview['src'] ); ?>" data-preview-srcset="<?php echo esc_attr( $cp3_dot_preview['srcset'] ); ?>" data-preview-sizes="<?php echo esc_attr( $cp3_dot_preview['sizes'] ); ?>" data-preview-width="<?php echo absint( $cp3_dot_preview['width'] ); ?>" data-preview-height="<?php echo absint( $cp3_dot_preview['height'] ); ?>"<?php endif; ?> aria-label="نمایش تصویر <?php echo esc_attr( jluxe_fa_digits( (string) ( $cp3_dot_i + 1 ) ) ); ?>" aria-pressed="<?php echo 0 === $cp3_dot_i ? 'true' : 'false'; ?>"></button>
 							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>
@@ -684,7 +694,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php endif; ?>
 					<?php if ( function_exists( 'jluxe_render_product_trust_badges' ) ) { jluxe_render_product_trust_badges( (int) $product->get_id(), 'mt-3' ); } ?>
 
-					<div class="reference-mobile-product-meta" data-reference-product-meta>
+					<div class="reference-mobile-product-meta<?php echo $jluxe_is_simple ? ' reference-simple-product-meta' : ''; ?>" data-reference-product-meta>
 						<span class="reference-mobile-meta-item reference-mobile-stock <?php echo $cp3_mobile_in_stock ? 'is-in-stock' : 'is-out-of-stock'; ?>" data-reference-stock-status="<?php echo $cp3_mobile_in_stock ? 'in-stock' : 'out-of-stock'; ?>">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12.2 2.4 2.4 4.6-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
 							<?php echo esc_html( $cp3_mobile_in_stock ? 'موجود' : 'ناموجود' ); ?>
@@ -702,7 +712,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 					<?php if ( $jluxe_is_variable || ( $cp3_mobile_in_stock && $cp3_stock_warning_is_low ) ) : ?>
 						<div class="reference-mobile-stock-warning" data-reference-low-stock data-cp3-low-stock<?php echo $cp3_stock_warning_is_low ? '' : ' hidden="hidden"'; ?> aria-live="polite" aria-atomic="true">
 							<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 4h.01M10.3 3.86 2.9 17a2 2 0 0 0 1.74 3h14.72a2 2 0 0 0 1.74-3l-7.36-13.14a2 2 0 0 0-3.44 0Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-							<span>تنها <bdi data-cp3-stock-quantity><?php echo $cp3_stock_warning_is_low ? esc_html( jluxe_fa_digits( $cp3_stock_qty ) ) : ''; ?></bdi> عدد موجود است</span>
+							<span><bdi data-cp3-stock-quantity><?php echo $cp3_stock_warning_is_low ? esc_html( jluxe_fa_digits( $cp3_stock_qty ) ) : ''; ?></bdi> عدد موجود</span>
 						</div>
 					<?php endif; ?>
 					<?php if ( $jluxe_is_variable && ! empty( $jluxe_variation_attributes ) ) : ?>
@@ -805,6 +815,8 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 						</div>
 					<?php endif; ?>
 
+					<?php jluxe_render_product_notice( $product ); ?>
+
 						<?php if ( $review_count > 0 ) : ?>
 							<div class="reference-mobile-rating" aria-label="امتیاز <?php echo esc_attr( jluxe_fa_digits( number_format_i18n( $rating, 1 ) ) ); ?> از ۵ بر اساس <?php echo esc_attr( jluxe_fa_digits( $review_count ) ); ?> دیدگاه">
 								<span class="reference-mobile-stars" style="--reference-rating-fill:<?php echo esc_attr( (string) $cp3_mobile_rating_fill ); ?>%" aria-hidden="true"></span>
@@ -864,7 +876,7 @@ float و اندازه‌های خودِ وو خنثی می‌شوند تا با 
 								</div>
 							</section>
 						<?php endif; ?>
-						<?php jluxe_render_product_notice( $product ); ?>
+
 
 				</div>
 

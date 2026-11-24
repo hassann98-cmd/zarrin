@@ -32,8 +32,8 @@ function dispatch(win, name, detail = {}) {
 
 export function getActiveMobileDrawer(win = globalThis.window) {
   if (!isWindowLike(win)) return null;
-  if (activeByWindow.has(win)) return activeByWindow.get(win);
-
+  // The root attribute is also written by drawer integrations and is the
+  // authoritative rendered state when it diverges from our event cache.
   const saved = win.document?.documentElement?.getAttribute(
     "data-jluxe-mobile-drawer",
   );
@@ -42,9 +42,12 @@ export function getActiveMobileDrawer(win = globalThis.window) {
   return active;
 }
 
+
 function drawerRegistrationCount(name, win) {
-  return registeredByWindow.get(win)?.get(name) ?? 0;
+  return (registeredByWindow.get(win)?.get(name) ?? 0) > 0;
 }
+
+export { drawerRegistrationCount as hasMobileDrawerRegistration };
 
 function changeDrawerRegistrationCount(name, win, delta) {
   let registrations = registeredByWindow.get(win);
@@ -72,7 +75,6 @@ function setActive(win, active, previous) {
 export function openMobileDrawer(name, win = globalThis.window) {
   const config = DRAWERS[name];
   if (!config || !isWindowLike(win)) return false;
-
   const previous = getActiveMobileDrawer(win);
   if (previous !== name) {
     setActive(win, name, previous);
@@ -95,12 +97,17 @@ export function closeMobileDrawer(name, win = globalThis.window) {
 }
 
 /** Toggle a requested drawer; its own close controls and backdrop remain available while open. */
-export function toggleMobileDrawer(name, win = globalThis.window) {
-  if (getActiveMobileDrawer(win) === name) {
+export function toggleMobileDrawer(name, win = globalThis.window, displayedActive) {
+  const active = getActiveMobileDrawer(win);
+  if (displayedActive !== undefined && name === "cart" && displayedActive !== "cart" && active === "cart") {
+    openMobileDrawer(name, win);
+    return name;
+  }
+  if (active === name) {
     // A tap can arrive before React finishes loading the drawer island. Keep
     // retrying the pending open request instead of treating it as a visible
     // panel and closing it on the customer's second tap.
-    if (drawerRegistrationCount(name, win) === 0) {
+    if (!drawerRegistrationCount(name, win)) {
       dispatch(win, DRAWERS[name].openEvent, { source: "mobile-navigation-retry" });
       return name;
     }

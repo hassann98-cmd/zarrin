@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   closeMobileDrawer,
   getActiveMobileDrawer,
+  hasMobileDrawerRegistration,
   openMobileDrawer,
   registerMobileDrawer,
   setMobileDrawerScrollLock,
@@ -139,4 +140,34 @@ test("drawer scroll lock remains active through overlapping exit/entry transitio
   assert.equal(body.style.overflow, "hidden", "one drawer's exit cannot unlock the other drawer");
   setMobileDrawerScrollLock("categories", false, window);
   assert.equal(body.style.overflow, "auto", "the original overflow style is restored after the final close");
+});
+
+test('a switch release never opens the cart, but the next intentional cart action is never time-blocked',async(t)=>{
+ const fs=await import('node:fs');
+ const dom=new JSDOM('<button data-jluxe-mobile-bar-toggle>Switch</button><button id="cart">Cart</button>',{runScripts:'outside-only'});t.after(()=>dom.window.close());const w=dom.window,d=w.document,b=d.querySelector('button');
+ w.eval(fs.readFileSync(new URL('../assets/js/storefront-utils.js',import.meta.url),'utf8'));
+ w.JLuxeStorefrontUtils.protectDockSwitch(b);let opened=0;registerMobileDrawer('cart',{open:()=>opened++},w);
+ const fire=(el,type)=>el.dispatchEvent(new w.MouseEvent(type,{bubbles:true,cancelable:true,button:0,detail:1,clientX:20,clientY:30}));
+ fire(b,'pointerdown');fire(b,'pointerup');
+ assert.equal(opened,0,'the switch gesture itself does not request a cart drawer');
+ assert.equal(getActiveMobileDrawer(w),null);
+ assert.equal(openMobileDrawer('cart',w),true,'a deliberate cart action immediately after switching remains available');
+ assert.equal(opened,1);assert.equal(getActiveMobileDrawer(w),'cart');
+ closeMobileDrawer('cart',w);w.dispatchEvent(new w.CustomEvent('jluxe:open-cart'));assert.equal(opened,2,'legacy open events remain compatible');
+ closeMobileDrawer('cart',w);b.click();assert.equal(openMobileDrawer('cart',w),true);
+});
+
+test("drawer registration and the DOM attribute reconcile stale visual state", (t) => {
+  const dom = new JSDOM("<!doctype html><html><body></body></html>");
+  const { window } = dom;
+  t.after(() => window.close());
+  assert.equal(hasMobileDrawerRegistration("cart", window), false);
+  const events = [];
+  const unregister = registerMobileDrawer("cart", { open: () => events.push("open") }, window);
+  assert.equal(hasMobileDrawerRegistration("cart", window), true);
+  window.document.documentElement.setAttribute("data-jluxe-mobile-drawer", "cart");
+  assert.equal(getActiveMobileDrawer(window), "cart", "actual DOM state wins over stale internal state");
+  assert.equal(toggleMobileDrawer("cart", window, null), "cart");
+  assert.deepEqual(events, ["open"], "a seemingly closed cart tap opens rather than toggling the visible drawer shut");
+  unregister();
 });

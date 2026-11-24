@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
@@ -15,7 +16,7 @@ const [
 ] = await Promise.all([
   readFile(new URL("header.php", root), "utf8"),
   readFile(new URL("src/islands/Header.js", root), "utf8"),
-  readFile(new URL("src/styles/storefront.css", root), "utf8"),
+  Promise.resolve(readStorefrontCss()),
   readFile(new URL("inc/theme-settings.php", root), "utf8"),
   readFile(new URL("inc/theme-settings-render.php", root), "utf8"),
   readFile(new URL("inc/theme-settings-sanitize.php", root), "utf8"),
@@ -81,7 +82,7 @@ test("R122 keeps the existing desktop search, cart, account controls and respons
   assert.match(headerIsland, /hidden text-button md:inline/);
   assert.match(headerIsland, /requestCartDrawerOpen\(window\)/);
   assert.match(headerIsland, /siteUrl\(y \? "dashboard" : "login"\)/);
-  assert.match(headerIsland, /onFocus: \(\) => d\(!0\)/);
+  assert.match(headerIsland, /onFocus: \(\) => \{ d\(!0\); loadRecentSearches\(\); \}/);
 });
 
 test("R211 widens the desktop search and modestly enlarges the logo without changing account/cart controls", () => {
@@ -102,9 +103,18 @@ test("R212 shared desktop containers never grow past 1462px, including product-w
   assert.match(classicProductTemplate, /class="mx-auto w-full max-w-\[1320px\] px-3 md:px-4 py-2"/);
 });
 
+test("desktop header content stays aligned to the storefront shell rather than stretching full bleed", () => {
+  assert.match(
+    storefrontStyles,
+    /@media \(min-width: 768px\)\s*\{\s*\/\* Keep header content aligned to the 1320px storefront shell; the bar background remains full-bleed\. \*\/\s*#masthead \.jluxe-header-row,\s*#masthead > \.hidden > nav\s*\{\s*box-sizing: border-box;\s*width: 100%;\s*max-width: min\(1320px, 100%\);/,
+  );
+  assert.match(headerTemplate, /mx-auto grid h-\[72px\] max-w-\[1320px\]/);
+  assert.match(headerTemplate, /<nav class="mx-auto flex h-16 max-w-\[1320px\]/);
+});
+
 test("R126 places the logo, editable mobile search, and enabled action controls in order", () => {
   assert.match(headerIsland, /function MobileSearch\(\)/);
-  assert.match(headerIsland, /className:\s*"h-10 w-full rounded-2xl border border-border bg-surface/);
+  assert.match(headerIsland, /className:\s*"jluxe-header-search-field h-10 w-full rounded-2xl border border-border bg-surface/);
   assert.match(headerIsland, /h-14 w-full rounded-2xl border border-transparent/);
   assert.match(headerIsland, /className: `gap-1\.5 rounded-2xl px-3 md:h-\[58px\] md:w-\[171px\]/);
   assert.match(headerIsland, /placeholder: searchPlaceholder/);
@@ -164,10 +174,10 @@ test("R342 desktop search results use native wheel scrolling and release it at t
   );
 });
 
-test("R342 mobile live-search results are wider, centered, and capped inside the viewport", () => {
+test("mobile live-search results are fixed to viewport gutters below the sticky header", () => {
   assert.match(
     storefrontStyles,
-    /\.jluxe-header-search-results--mobile\s*\{[^}]*width:\s*360px;[^}]*max-width:\s*calc\(100vw - 48px\);[^}]*left:\s*50%;[^}]*right:\s*auto;[^}]*transform:\s*translateX\(-50%\);[^}]*-webkit-overflow-scrolling:\s*touch;/s,
+    /\.jluxe-header-search-results--mobile\s*\{[^}]*position:\s*fixed;[^}]*inset-inline:\s*12px;[^}]*top:\s*calc\(var\(--jluxe-product-header-row-height,\s*72px\)\s*\+\s*var\(--jluxe-mobile-banner-offset,\s*0px\)\s*\+\s*6px\);[^}]*width:\s*auto;[^}]*max-width:\s*none;[^}]*left:\s*12px;[^}]*right:\s*12px;[^}]*transform:\s*none;[^}]*-webkit-overflow-scrolling:\s*touch;/s,
   );
 });
 
@@ -214,6 +224,10 @@ test("R169 header/footer brand logo uses one responsive picture and keeps LiteSp
   assert.match(brandLogo, /media: "\(min-width: 768px\)"/);
   assert.match(brandLogo, /srcSet: a\.srcset \|\| n \|\| o/);
   assert.match(brandLogo, /srcSet: m\.srcset,/);
+  assert.match(brandLogo, /width: m\.width \|\| a\.width/);
+  assert.match(brandLogo, /height: m\.height \|\| a\.height/);
+  assert.match(brandLogo, /width: a\.width/);
+  assert.match(brandLogo, /height: a\.height/);
   assert.match(brandLogo, /"data-no-lazy": "1"/);
   assert.equal((brandLogo.match(/e\.jsx\("img"/g) ?? []).length, 1);
 });

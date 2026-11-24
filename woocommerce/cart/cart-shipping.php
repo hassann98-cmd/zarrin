@@ -24,10 +24,10 @@ if ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() && isset( $_GET['wc-a
 $jluxe_guided_shipping = ( ( function_exists( 'is_checkout' ) && is_checkout() ) || $jluxe_checkout_review_ajax )
 	&& function_exists( 'jluxe_checkout_layout' )
 	&& 'guided' === jluxe_checkout_layout();
-$shipping_card_radius = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 10 ) : 10;
-$shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 10;
+$shipping_card_radius = function_exists( 'jluxe_get_setting' ) ? jluxe_get_setting( 'cart_checkout.shipping_card_radius', 12 ) : 12;
+$shipping_card_radius     = is_scalar( $shipping_card_radius ) ? (int) $shipping_card_radius : 12;
 if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) ) {
-	$shipping_card_radius = 10;
+	$shipping_card_radius = 12;
 }
 ?>
 <div class="jluxe-shipping-methods">
@@ -64,7 +64,7 @@ if ( ! in_array( $shipping_card_radius, array( 10, 12, 16, 18, 22, 26 ), true ) 
 						esc_attr( $presentation['kind'] )
 					);
 					?>
-						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#EFF6FF' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#2563EB' ); ?>">
+						<label for="<?php echo esc_attr( $input_id ); ?>" class="jluxe-shipping-card jluxe-shipping-card--<?php echo esc_attr( $kind ); ?><?php echo $has_method_note ? '' : ' jluxe-shipping-card--no-note'; ?>" style="--jluxe-shipping-card-radius: <?php echo esc_attr( (string) $shipping_card_radius ); ?>px; --jluxe-shipping-card-bg: <?php echo esc_attr( $method_copy['card_background_color'] ?? '#FFFFFF' ); ?>; --jluxe-shipping-card-border: <?php echo esc_attr( $method_copy['card_border_color'] ?? '#E2E8F0' ); ?>; --jluxe-shipping-card-selected-bg: <?php echo esc_attr( $method_copy['selected_card_background_color'] ?? '#EFF6FF' ); ?>; --jluxe-shipping-card-selected-border: <?php echo esc_attr( $method_copy['selected_card_border_color'] ?? '#2563EB' ); ?>; --jluxe-shipping-icon-background: <?php echo esc_attr( $method_copy['icon_background_color'] ?? '#F1F5F9' ); ?>; --jluxe-shipping-icon-color: <?php echo esc_attr( $method_copy['icon_text_color'] ?? '#475569' ); ?>">
 							<span class="jluxe-shipping-card__details">
 								<?php if ( '' !== $shipping_icon && function_exists( 'jluxe_icon_svg_markup' ) ) : ?>
 									<span class="jluxe-shipping-card__icon" aria-hidden="true"><?php echo jluxe_icon_svg_markup( $shipping_icon, 'size-5' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- خروجی فقط از آیکون‌های ثابت و escapeشدهٔ پوسته ساخته می‌شود. ?></span>

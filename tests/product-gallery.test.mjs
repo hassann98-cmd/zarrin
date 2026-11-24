@@ -1,3 +1,5 @@
+import { readProductCss } from "./helpers/storefront-css.mjs";
+import postcss from "postcss";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -14,10 +16,7 @@ const classicTemplate = fs.readFileSync(
   new URL("../woocommerce/content-single-product-classic.php", import.meta.url),
   "utf8",
 );
-const storefrontStyles = fs.readFileSync(
-  new URL("../src/styles/storefront.css", import.meta.url),
-  "utf8",
-);
+const storefrontStyles = readProductCss();
 assert.ok(marker >= 0 && start > marker && galleryIife.endsWith("})();"));
 
 test("R212 mobile product galleries use 44px controls, token colors, clear focus and reduced motion", () => {
@@ -33,15 +32,20 @@ test("R212 mobile product galleries use 44px controls, token colors, clear focus
   assert.match(classicMobile, /@media \(max-width:767\.98px\) and \(prefers-reduced-motion:reduce\)/);
   assert.doesNotMatch(classicMobile, /#[0-9a-f]{3,8}\b/i, "the mobile gallery adds no new hard-coded palette colors");
 
-  const nativeStart = storefrontStyles.indexOf("/* R212: make the native WooCommerce gallery controls easier to use");
-  const nativeEnd = storefrontStyles.indexOf("/* WooCommerce account order progress", nativeStart);
-  assert.ok(nativeStart >= 0 && nativeEnd > nativeStart, "native WooCommerce mobile gallery rules are present");
-  const nativeMobile = storefrontStyles.slice(nativeStart, nativeEnd);
+  const nativeRoot = postcss.parse(storefrontStyles);
+  const nativeRules = [];
+  nativeRoot.walkRules((rule) => {
+    if (/\.woocommerce-product-gallery|\.flex-control-nav\.flex-control-thumbs|\.flex-direction-nav|\.woocommerce-product-gallery__trigger/.test(rule.selector)) {
+      nativeRules.push(rule.toString());
+    }
+  });
+  const nativeMobile = nativeRules.join("\n");
+  assert.match(nativeMobile, /\.woocommerce-product-gallery/, "native WooCommerce mobile gallery rules are present");
   assert.match(nativeMobile, /flex-control-nav\.flex-control-thumbs/);
   assert.match(nativeMobile, /flex-direction-nav a/);
   assert.match(nativeMobile, /woocommerce-product-gallery__trigger/);
   assert.match(nativeMobile, /width:\s*44px;\s*height:\s*44px/);
-  assert.match(nativeMobile, /prefers-reduced-motion:\s*reduce/);
+  assert.match(storefrontStyles, /@media \(max-width:\s*767\.98px\) and \(prefers-reduced-motion:\s*reduce\)/);
   assert.doesNotMatch(nativeMobile, /#[0-9a-f]{3,8}\b/i, "the native gallery keeps colors on theme tokens");
 });
 
@@ -244,4 +248,10 @@ test("classic gallery double-tap, pinch, touch drag, swipe, and mouse drag gestu
   assert.equal(modal.getAttribute("data-jluxe-gallery-modal-current"), "1", "left swipe advances to the next slide");
   assert.equal(modal.querySelector('[data-jluxe-gallery-modal-image][aria-hidden="false"]').getAttribute("src"), "/large-2.jpg");
   dom.window.close();
+});
+
+test('repeated gallery open and close preserve original scroll ownership and ignore stale reveal',()=>{
+ const dom=setup(),w=dom.window,d=w.document;
+ click(w,'#open-first');click(w,'#open-current');click(w,'[data-jluxe-gallery-modal-close]');click(w,'[data-jluxe-gallery-modal-close]');
+ assert.equal(d.body.style.overflow,'auto');assert.equal(d.querySelector('[data-jluxe-gallery-modal]').getAttribute('aria-hidden'),'true');dom.window.close();
 });

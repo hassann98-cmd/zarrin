@@ -1,3 +1,5 @@
+import { readWooCommerceSource } from "./helpers/theme-source.mjs";
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -76,13 +78,13 @@ test("both CP3 product layouts render a selected-value slot without changing var
     assert.match(template, /\.cp3-pill\.is-active\{[^}]*box-shadow:/, `${name} gives the selected pill a subtle shadow`);
   }
 
-  const wooPhp = fs.readFileSync(new URL("../inc/woocommerce.php", import.meta.url), "utf8");
+  const wooPhp = readWooCommerceSource();
   assert.match(wooPhp, /data-jluxe-variation-selected aria-live="polite" aria-atomic="true"/, "the default swatch layout includes the same selected-value slot for every attribute");
   assert.match(wooPhp, /<\?php if \( \$is_color_attr \) : \?>انتخاب <\?php endif; \?>/, "the existing color title stays intact while non-color titles retain their original wording");
 });
 
 test("default variation swatches and selected-value labels use restrained theme-primary styling", () => {
-  const css = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+  const css = readStorefrontCss();
   assert.match(css, /\[data-jluxe-variation-value\]\[data-active\]\s*\{[^}]*box-shadow:\s*0 0 0 1px hsl\(var\(--primary\) \/ 0\.18\)/s);
   assert.match(css, /\[data-jluxe-variation-selected\]\s*\{[^}]*color:\s*var\(--jluxe-variation-label-color, hsl\(var\(--primary\)\)\);[^}]*font-weight:\s*700;/s);
   const settings = fs.readFileSync(new URL("../inc/theme-settings-render.php", import.meta.url), "utf8");

@@ -1,0 +1,783 @@
+/*
+ * R519 — finish pass for the optional neumorphic storefront skin.
+ * No layout or component markup is changed here. Keep the soft layer scoped to
+ * its body class, and use one raised surface per hierarchy to prevent stacked
+ * cards/shadows from crowding or visually colliding.
+ */
+body.jluxe-design-neumorphism {
+  background-color: var(--neu-bg);
+  color: var(--neu-ink);
+}
+
+/* Shared controls, pills and focus: tactile, colorful, and still easy to read. */
+body.jluxe-design-neumorphism :is(button, .button, .wp-element-button, [role="button"]),
+body.jluxe-design-neumorphism input[type="submit"],
+body.jluxe-design-neumorphism input[type="button"] {
+  border-color: rgba(255,255,255,.84);
+  border-radius: 13px;
+  box-shadow: var(--neu-raised-small);
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease, transform .18s ease;
+}
+body.jluxe-design-neumorphism :is(button, .button, .wp-element-button, [role="button"]):active,
+body.jluxe-design-neumorphism input[type="submit"]:active,
+body.jluxe-design-neumorphism input[type="button"]:active { box-shadow: var(--neu-inset); }
+body.jluxe-design-neumorphism :is(.button, .wp-element-button, .single_add_to_cart_button, .checkout-button, .jluxe-product-card-cta, .jluxe-checkout-action-button--primary, #place_order, button[name="save_address"]) {
+  border-color: rgba(255,255,255,.42);
+  background-color: var(--neu-accent);
+  color: #fff;
+  box-shadow: 4px 4px 9px rgba(8,92,83,.18), -3px -3px 8px rgba(255,255,255,.78);
+}
+body.jluxe-design-neumorphism :is(.button, .wp-element-button, .single_add_to_cart_button, .checkout-button, .jluxe-product-card-cta, .jluxe-checkout-action-button--primary, #place_order, button[name="save_address"]):hover:not(:disabled) {
+  background-color: var(--neu-accent-dark);
+  color: #fff;
+  box-shadow: inset 3px 3px 7px rgba(0,0,0,.13), inset -3px -3px 7px rgba(255,255,255,.13);
+}
+body.jluxe-design-neumorphism :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--neu-accent) !important;
+  outline-offset: 3px !important;
+}
+body.jluxe-design-neumorphism :is(.jluxe-blog-card__category, .jluxe-product-card-sale-badge, .woocommerce span.onsale, .jluxe-article-header > a) {
+  letter-spacing: .01em;
+}
+body.jluxe-design-neumorphism .jluxe-product-card-sale-badge,
+body.jluxe-design-neumorphism .woocommerce span.onsale {
+  background: #C04F31;
+  color: #fff;
+  box-shadow: 3px 3px 8px rgba(132,61,40,.18), -2px -2px 6px rgba(255,255,255,.55);
+}
+
+/* Header: raised navigation, recessed search and cheerful teal identity. */
+body.jluxe-design-neumorphism #masthead .jluxe-header-bar {
+  background-color: var(--neu-bg);
+  background-image: linear-gradient(115deg, #EDF8F1 0%, #EAF5EE 55%, #F4F8E9 100%);
+  box-shadow: 0 5px 16px rgba(67,94,78,.07);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"] {
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 5px 5px 11px rgba(8,92,83,.19), -4px -4px 10px rgba(255,255,255,.82);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"]:hover {
+  background: var(--neu-accent-dark);
+  color: #fff;
+  box-shadow: inset 3px 3px 7px rgba(0,0,0,.13), inset -3px -3px 7px rgba(255,255,255,.13);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"] {
+  color: var(--neu-accent-dark);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"] [data-jluxe-cart-icon-glyph] {
+  color: var(--neu-accent-dark);
+}
+body.jluxe-design-neumorphism #masthead .jluxe-header-search-results--desktop,
+body.jluxe-design-neumorphism #masthead .jluxe-header-search-results--mobile {
+  border-color: rgba(255,255,255,.82);
+  border-radius: 20px;
+  background: var(--neu-surface);
+  box-shadow: 12px 12px 26px rgba(79,100,85,.16), -8px -8px 20px rgba(255,255,255,.92);
+}
+body.jluxe-design-neumorphism #masthead .jluxe-header-search-results--desktop a,
+body.jluxe-design-neumorphism #masthead .jluxe-header-search-results--mobile a {
+  border-radius: 12px;
+}
+
+/* Blog/archive cards: editorial hierarchy, pill metadata, and quiet reading controls. */
+body.jluxe-design-neumorphism .jluxe-blog-listing__header {
+  position: relative;
+  margin-block-end: clamp(20px, 3vw, 30px);
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 24px;
+  background: linear-gradient(135deg, #EEF8F1 0%, #EAF5EE 68%, #F5F7E9 100%);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-blog-listing__eyebrow {
+  display: inline-flex;
+  margin-block-end: 10px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 999px;
+  background: var(--neu-bg);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .jluxe-blog-listing__title { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-blog-listing__description { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .jluxe-blog-card {
+  border: 1px solid rgba(255,255,255,.88);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+body.jluxe-design-neumorphism .jluxe-blog-card__media {
+  background: linear-gradient(135deg, #DDF0E4, #F7F8EC);
+}
+body.jluxe-design-neumorphism .jluxe-blog-card__body { padding: 19px 20px 20px; }
+body.jluxe-design-neumorphism .jluxe-blog-card__meta { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .jluxe-blog-card__category {
+  border: 1px solid rgba(255,255,255,.92);
+  background: #DDF1E5;
+  color: #176C5D;
+  box-shadow: 2px 2px 5px rgba(108,145,119,.14), -2px -2px 5px rgba(255,255,255,.82);
+}
+body.jluxe-design-neumorphism .jluxe-blog-card__title { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-blog-card__title a:hover,
+body.jluxe-design-neumorphism .jluxe-blog-card__read-more { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .jluxe-blog-card__excerpt { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .jluxe-blog-card__read-more {
+  min-height: 38px;
+  align-self: flex-start;
+  padding: 8px 13px;
+  border: 1px solid rgba(255,255,255,.85);
+  border-radius: 999px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-blog-card__read-more:active { box-shadow: var(--neu-inset); }
+body.jluxe-design-neumorphism .jluxe-blog-pagination .page-numbers {
+  border-color: rgba(255,255,255,.84);
+  border-radius: 13px;
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-blog-pagination .page-numbers.current {
+  border-color: var(--neu-accent);
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.12), inset -2px -2px 5px rgba(255,255,255,.14);
+}
+body.jluxe-design-neumorphism .jluxe-blog-empty {
+  border-color: rgba(255,255,255,.82);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+@media (max-width: 639px) {
+  body.jluxe-design-neumorphism .jluxe-blog-listing__header { padding: 18px; border-radius: 20px; }
+  body.jluxe-design-neumorphism .jluxe-blog-card__body { padding: 14px 15px 16px; }
+}
+
+/* Single post: warm reading canvas, calm metadata, inset quote/table details. */
+body.jluxe-design-neumorphism .jluxe-article-card {
+  border: 1px solid rgba(255,255,255,.88);
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism .jluxe-article-hero {
+  border: 7px solid var(--neu-surface);
+  border-radius: 25px;
+  box-shadow: 5px 5px 12px rgba(113,140,119,.18), -5px -5px 12px rgba(255,255,255,.92);
+}
+body.jluxe-design-neumorphism .jluxe-article-header .jluxe-article-meta > span {
+  color: var(--neu-muted-ink);
+}
+body.jluxe-design-neumorphism .jluxe-article-header > a {
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 999px;
+  background: #DDF1E5;
+  color: #176C5D;
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-article-content {
+  color: var(--neu-ink);
+  line-height: 2;
+}
+body.jluxe-design-neumorphism .jluxe-article-content :is(h2,h3,h4) {
+  color: var(--neu-ink);
+  text-wrap: pretty;
+}
+body.jluxe-design-neumorphism .jluxe-article-content h2 {
+  padding-block-end: .45em;
+  border-block-end: 1px solid rgba(104,142,116,.22);
+}
+body.jluxe-design-neumorphism .jluxe-article-content a {
+  color: #086D64;
+  text-decoration-color: rgba(8,127,117,.45);
+}
+body.jluxe-design-neumorphism .jluxe-article-content blockquote {
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(255,255,255,.88);
+  border-inline-start: 4px solid #42A987;
+  border-radius: 15px;
+  background: var(--neu-bg);
+  color: var(--neu-muted-ink);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .jluxe-article-content :is(pre, table) {
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,.88);
+  border-radius: 16px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-article-content th {
+  background: #DDEFE3;
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism .jluxe-article-content :is(th,td) { border-color: rgba(107,137,116,.2); }
+body.jluxe-design-neumorphism .jluxe-related-card {
+  border-color: rgba(255,255,255,.86);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-related-card:hover { box-shadow: var(--neu-raised); }
+
+/* Homepage's editorial teasers get the same blog-card treatment as the archive. */
+body.jluxe-design-neumorphism .jluxe-home-blog-card {
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 21px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-home-blog-card > div { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-home-blog-card > div > span:first-child { color: var(--neu-muted-ink); }
+
+/* Product gallery, description tabs and long attribute tables. */
+body.jluxe-design-neumorphism .single-product .woocommerce-product-gallery,
+body.jluxe-design-neumorphism .single-product .summary,
+body.jluxe-design-neumorphism .woocommerce-tabs,
+body.jluxe-design-neumorphism .jluxe-product-buybox {
+  border: 1px solid rgba(255,255,255,.84);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .single-product .woocommerce-product-gallery__wrapper,
+body.jluxe-design-neumorphism .single-product .woocommerce-product-gallery .flex-control-nav img,
+body.jluxe-design-neumorphism .single-product .jluxe-product-reference [data-cp3-gallery] {
+  border-radius: 18px;
+}
+body.jluxe-design-neumorphism .single-product .summary .price,
+body.jluxe-design-neumorphism .single-product .summary .price .amount,
+body.jluxe-design-neumorphism .jluxe-product-card-current-price { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .single-product .summary .price del,
+body.jluxe-design-neumorphism .single-product .summary .price del .amount { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li.active { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .jluxe-option-strip .cp3-pill,
+body.jluxe-design-neumorphism .jluxe-option-strip [data-jluxe-variation-value] {
+  border-color: rgba(255,255,255,.84);
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-option-strip .cp3-pill.is-active,
+body.jluxe-design-neumorphism .jluxe-option-strip [data-jluxe-variation-value][aria-pressed="true"] {
+  border-color: rgba(8,127,117,.34);
+  background: #DDF1E5;
+  color: #075E56;
+  box-shadow: var(--neu-inset);
+}
+
+/* Cart: one raised product list and one raised totals panel; nested controls are inset. */
+body.jluxe-design-neumorphism.woocommerce-cart [data-jluxe-cart-page-content] > .grid > div:first-child > .woocommerce-cart-form > div.overflow-hidden,
+body.jluxe-design-neumorphism.woocommerce-cart [data-jluxe-cart-page-content] > .grid > div:last-child {
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .woocommerce-cart-form__cart-item {
+  border-color: rgba(112,143,120,.22);
+  background: transparent;
+}
+body.jluxe-design-neumorphism.woocommerce-cart .woocommerce-cart-form__cart-item + .woocommerce-cart-form__cart-item {
+  border-block-start: 1px solid rgba(112,143,120,.2);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .woocommerce-cart-form__cart-item img {
+  border-radius: 14px;
+  box-shadow: 2px 2px 6px rgba(104,131,110,.15), -2px -2px 6px rgba(255,255,255,.8);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-remove-item {
+  border: 1px solid rgba(255,255,255,.82);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-remove-item:hover { box-shadow: var(--neu-inset); }
+body.jluxe-design-neumorphism.woocommerce-cart .cart_totals > div:last-of-type:not(.jluxe-cart-actions) {
+  border-color: rgba(112,143,120,.24);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-cart-actions .jluxe-checkout-action-button--secondary,
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-checkout-btn-wrap .checkout-button {
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 4px 4px 9px rgba(8,92,83,.18), -3px -3px 8px rgba(255,255,255,.78);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-cart-actions .jluxe-checkout-action-button--secondary {
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+}
+body.jluxe-design-neumorphism.woocommerce-cart .jluxe-cart-actions :is(.jluxe-checkout-action-button, .checkout-button):active { box-shadow: var(--neu-inset); }
+
+/* Checkout: preserve the existing grid/spacing; outer panels raised, choices recessed. */
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.jluxe-checkout-panel, .jluxe-checkout-summary, #order_review) {
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout .jluxe-checkout-shipping,
+body.jluxe-design-neumorphism.woocommerce-checkout .jluxe-checkout-coupon {
+  border-color: rgba(255,255,255,.8);
+  border-radius: 16px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.jluxe-shipping-card, .jluxe-payment-card) {
+  border: 1px solid rgba(255,255,255,.84);
+  border-radius: 16px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.jluxe-shipping-card--selected, input.shipping_method:checked + .jluxe-shipping-card, .jluxe-payment-card:has(input:checked)) {
+  border-color: rgba(8,127,117,.34);
+  background: #E0F2E6;
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout .jluxe-shipping-card__icon {
+  border-color: rgba(255,255,255,.82);
+  background: var(--neu-bg);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.jluxe-checkout-action-button--secondary, .jluxe-checkout-action-button--primary, #place_order) {
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 4px 4px 9px rgba(8,92,83,.18), -3px -3px 8px rgba(255,255,255,.78);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout .jluxe-checkout-action-button--secondary {
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.jluxe-checkout-action-button, #place_order):active:not(:disabled) { box-shadow: var(--neu-inset); }
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.woocommerce-error, .woocommerce-info, .woocommerce-message, .jluxe-checkout-alert) {
+  border-radius: 14px;
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-checkout :is(.select2-container .select2-selection--single, .woocommerce form :is(.input-text, select, textarea)) {
+  border-color: rgba(255,255,255,.84);
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .jluxe-checkout-step__circle {
+  border-color: #73B89D;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .jluxe-checkout-step[data-jluxe-step-state="current"] .jluxe-checkout-step__circle,
+body.jluxe-design-neumorphism .jluxe-checkout-step[data-jluxe-step-state="done"] .jluxe-checkout-step__circle {
+  border-color: var(--neu-accent);
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 3px 3px 7px rgba(8,92,83,.17), -2px -2px 6px rgba(255,255,255,.82);
+}
+
+/* Account area: clear navigation rail, a quiet active state, and raised account surfaces. */
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > div,
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul,
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-MyAccount-content {
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul { padding: 10px; }
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul a {
+  border: 1px solid transparent;
+  border-radius: 13px;
+  color: var(--neu-muted-ink);
+}
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul a[aria-current="page"] {
+  border-color: rgba(8,127,117,.22);
+  background: #DDF1E5;
+  color: #075E56;
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul a:hover:not([aria-current="page"]) {
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-MyAccount-content .woocommerce-Address,
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-MyAccount-content .jluxe-phone-link,
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-MyAccount-content .jluxe-account-card,
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-MyAccount-content .jluxe-order-card {
+  border-color: rgba(255,255,255,.84);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-phone-link__icon,
+body.jluxe-design-neumorphism.woocommerce-account .jluxe-account-nav > ul a span.rounded-xl {
+  border: 1px solid rgba(255,255,255,.82);
+  background: #DDF1E5;
+  color: #176C5D;
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism.woocommerce-account .woocommerce-Address-title a.edit {
+  border-color: rgba(8,127,117,.22);
+  background: #DDF1E5;
+  color: #075E56;
+  box-shadow: var(--neu-raised-small);
+}
+
+/* Footer: restore delicate, separated soft surfaces without changing its grid. */
+body.jluxe-design-neumorphism #jluxe-footer-root {
+  background: linear-gradient(180deg, #EAF5EE 0%, #E6F1E9 100%);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-shell {
+  border: 1px solid rgba(255,255,255,.86);
+  border-radius: 25px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-grid {
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 18px;
+  background: #E3F1E7;
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-card,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-brand-column,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-link-column,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-site-badges-section {
+  border: 1px solid rgba(255,255,255,.76);
+  border-radius: 17px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-icon,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-support-icon {
+  border: 1px solid rgba(255,255,255,.78);
+  background: #DDF1E5;
+  color: #176C5D;
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root :is(a, .jluxe-footer-feature-title) { color: var(--neu-ink); }
+body.jluxe-design-neumorphism #jluxe-footer-root a:hover { color: var(--neu-accent-dark); }
+
+/* Reduced motion remains authoritative; forced-colors retains native outlines. */
+@media (prefers-reduced-motion: reduce) {
+  body.jluxe-design-neumorphism *,
+  body.jluxe-design-neumorphism *::before,
+  body.jluxe-design-neumorphism *::after { transition-duration: .01ms !important; }
+}
+@media (forced-colors: active) {
+  body.jluxe-design-neumorphism :is(a, button, input, select, textarea, summary):focus-visible {
+    outline: 3px solid Highlight !important;
+  }
+}
+
+/* Optional global neumorphism visual design, split from the shared stylesheet. */
+
+body.jluxe-design-neumorphism {
+  --neu-bg: #EAF5EE;
+  --neu-surface: #EAF5EE;
+  --neu-raised: 10px 10px 24px #C4D6CA, -10px -10px 24px #FFFFFF;
+  --neu-raised-small: 5px 5px 12px #C4D6CA, -5px -5px 12px #FFFFFF;
+  --neu-inset: inset 5px 5px 12px #C4D6CA, inset -5px -5px 12px #FFFFFF;
+  --neu-accent: #087F75;
+  --neu-accent-dark: #075E56;
+  --neu-ink: #23352E;
+  --neu-muted-ink: #4D6258;
+  --background: 135 30% 94%;
+  --foreground: 150 21% 17%;
+  --primary: 175 88% 27%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 175 86% 20%;
+  --primary-active: 175 85% 16%;
+  --secondary: 158 15% 38%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 175 88% 27%;
+  --accent-foreground: 0 0% 100%;
+  --surface: 135 30% 94%;
+  --surface-foreground: 150 21% 17%;
+  --surface-elevated: 135 33% 97%;
+  --text-secondary: 155 15% 31%;
+  --text-muted: 155 10% 40%;
+  --muted: 135 20% 90%;
+  --muted-foreground: 155 15% 31%;
+  --border: 140 15% 82%;
+  --ring: 175 88% 27%;
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+  color-scheme: light;
+}
+
+body.jluxe-design-neumorphism :focus-visible {
+  outline: 3px solid var(--neu-accent) !important;
+  outline-offset: 3px !important;
+}
+
+body.jluxe-design-neumorphism #masthead,
+body.jluxe-design-neumorphism #jluxe-footer-root {
+  --background: 135 30% 94%;
+  --foreground: 150 21% 17%;
+  --primary: 175 88% 27%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 175 86% 20%;
+  --accent: 175 88% 27%;
+  --accent-foreground: 0 0% 100%;
+  --surface: 135 30% 94%;
+  --surface-foreground: 150 21% 17%;
+  --surface-elevated: 135 33% 97%;
+  --muted: 135 20% 90%;
+  --muted-foreground: 155 15% 31%;
+  --text-secondary: 155 15% 31%;
+  --text-muted: 155 10% 40%;
+  --border: 140 15% 82%;
+  --ring: 175 88% 27%;
+}
+body.jluxe-design-neumorphism #masthead .jluxe-header-bar {
+  border-color: transparent;
+  background: var(--neu-surface);
+  box-shadow: 0 5px 16px rgba(62, 70, 91, .055);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t { border-color: transparent; background: transparent; }
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav {
+  border: 1px solid rgba(255,255,255,.62);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > a,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div > a,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div.group > a {
+  border-radius: 12px;
+  color: var(--neu-ink);
+  transition: color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > a:hover,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div > a:hover,
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav > div.group > a:hover {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-accent);
+}
+body.jluxe-design-neumorphism #masthead > .hidden.border-t nav .group > div,
+body.jluxe-design-neumorphism #masthead #jluxe-header-categories-menu .jluxe-header-categories-panel {
+  border: 1px solid rgba(255,255,255,.74);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: 12px 12px 26px rgba(93,101,120,.18), -8px -8px 20px rgba(255,255,255,.9);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[type="search"] {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 999px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="search"] input[type="search"]:focus {
+  border-color: rgba(8,127,117,.42);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.35), inset -3px -3px 7px #fff, 0 0 0 3px rgba(8,127,117,.12);
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"],
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"] {
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 15px;
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-raised-small);
+  transition: box-shadow .18s ease, transform .18s ease, color .18s ease;
+}
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"] { font-weight: 700; }
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="account"]:active,
+body.jluxe-design-neumorphism #masthead [data-jluxe-header-grid="cart"]:active { box-shadow: var(--neu-inset); transform: translateY(1px); }
+body.jluxe-design-neumorphism .jluxe-home-section {
+  margin-block: clamp(20px, 2.8vw, 34px);
+  padding: clamp(14px, 2vw, 24px);
+  border: 1px solid rgba(255,255,255,.76);
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism .jluxe-home-section h2:not(.text-white) { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-home-section > div.mb-3.flex.items-center.justify-between > a,
+body.jluxe-design-neumorphism .jluxe-home-card:not(.jluxe-home-banner),
+body.jluxe-design-neumorphism .jluxe-home-panel {
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 20px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism [data-jluxe-product-card-variant],
+body.jluxe-design-neumorphism .jluxe-home-section li.product {
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 20px;
+  background: var(--neu-surface) !important;
+  box-shadow: var(--neu-raised-small);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+body.jluxe-design-neumorphism .jluxe-product-card-title { color: var(--neu-ink); }
+body.jluxe-design-neumorphism .jluxe-product-card-current-price,
+body.jluxe-design-neumorphism .single-product .summary .price,
+body.jluxe-design-neumorphism .single-product .summary .price .amount { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .jluxe-product-card-old-price,
+body.jluxe-design-neumorphism .single-product .summary .price del { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism .jluxe-product-card-sale-badge,
+body.jluxe-design-neumorphism .woocommerce span.onsale {
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 999px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 3px 3px 8px rgba(8,70,61,.22), -2px -2px 6px rgba(255,255,255,.35);
+}
+body.jluxe-design-neumorphism .jluxe-product-card-cta {
+  border: 1px solid rgba(255,255,255,.48);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 4px 4px 9px rgba(8,85,76,.22), -3px -3px 8px rgba(255,255,255,.78);
+}
+body.jluxe-design-neumorphism .jluxe-product-card-cta.is-available:is(:hover,:focus-visible,:active,.loading,.added,.jluxe-btn-added) {
+  background: var(--neu-accent-dark);
+  color: #fff;
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,.18), inset -2px -2px 5px rgba(255,255,255,.12);
+}
+body.jluxe-design-neumorphism .single-product .woocommerce-product-gallery,
+body.jluxe-design-neumorphism .single-product .summary,
+body.jluxe-design-neumorphism .woocommerce-tabs,
+body.jluxe-design-neumorphism .woocommerce-cart .shop_table,
+body.jluxe-design-neumorphism .woocommerce-checkout #order_review,
+body.jluxe-design-neumorphism .woocommerce-checkout .woocommerce-checkout-payment,
+body.jluxe-design-neumorphism .woocommerce-MyAccount-content,
+body.jluxe-design-neumorphism .woocommerce-MyAccount-navigation,
+body.jluxe-design-neumorphism .jluxe-checkout-panel,
+body.jluxe-design-neumorphism .jluxe-checkout-summary,
+body.jluxe-design-neumorphism .jluxe-checkout-shipping,
+body.jluxe-design-neumorphism .jluxe-payment-card,
+body.jluxe-design-neumorphism .jluxe-checkout-card,
+body.jluxe-design-neumorphism .jluxe-account-card,
+body.jluxe-design-neumorphism .jluxe-product-buybox {
+  border: 1px solid rgba(255,255,255,.78);
+  border-radius: 22px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .woocommerce table.shop_table th,
+body.jluxe-design-neumorphism .woocommerce table.shop_table td { border-color: rgba(128,137,158,.2); }
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li,
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li a { border-radius: 12px; }
+body.jluxe-design-neumorphism .woocommerce-tabs ul.tabs li.active {
+  border-color: rgba(255,255,255,.8);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .button,
+body.jluxe-design-neumorphism .wp-element-button,
+body.jluxe-design-neumorphism .woocommerce a.button:not(.jluxe-product-card-cta),
+body.jluxe-design-neumorphism .woocommerce button.button,
+body.jluxe-design-neumorphism .woocommerce input.button,
+body.jluxe-design-neumorphism .woocommerce #respond input#submit,
+body.jluxe-design-neumorphism .single_add_to_cart_button,
+body.jluxe-design-neumorphism .checkout-button {
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 14px;
+  background: var(--neu-accent);
+  color: #fff;
+  box-shadow: 5px 5px 11px rgba(8,75,68,.2), -4px -4px 10px rgba(255,255,255,.82);
+  transition: box-shadow .18s ease, transform .18s ease, background-color .18s ease;
+}
+body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]),
+body.jluxe-design-neumorphism textarea,
+body.jluxe-design-neumorphism select {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 12px;
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):focus,
+body.jluxe-design-neumorphism textarea:focus,
+body.jluxe-design-neumorphism select:focus {
+  border-color: rgba(8,127,117,.48);
+  box-shadow: inset 3px 3px 7px rgba(151,157,172,.32), inset -3px -3px 7px #fff, 0 0 0 3px rgba(8,127,117,.13);
+}
+body.jluxe-design-neumorphism :is(button,input[type="checkbox"],input[type="radio"],.variable-item,.reset_variations) { accent-color: var(--neu-accent); }
+body.jluxe-design-neumorphism .cp3-pill,
+body.jluxe-design-neumorphism [data-jluxe-variation-value],
+body.jluxe-design-neumorphism .jluxe-pa-row {
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 999px;
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism .cp3-pill.is-active,
+body.jluxe-design-neumorphism .jluxe-pa-row.is-selected,
+body.jluxe-design-neumorphism [data-jluxe-variation-value][aria-pressed="true"] {
+  border-color: rgba(8,127,117,.32);
+  background: var(--neu-surface);
+  color: var(--neu-accent-dark);
+  box-shadow: var(--neu-inset);
+}
+body.jluxe-design-neumorphism .cp3-pill:disabled,
+body.jluxe-design-neumorphism .cp3-pill.is-disabled { opacity: .48; box-shadow: none; }
+@media (hover:hover) and (pointer:fine) {
+  body.jluxe-design-neumorphism .button:hover,
+  body.jluxe-design-neumorphism .wp-element-button:hover,
+  body.jluxe-design-neumorphism .woocommerce a.button:not(.jluxe-product-card-cta):hover,
+  body.jluxe-design-neumorphism .woocommerce button.button:hover,
+  body.jluxe-design-neumorphism .woocommerce input.button:hover,
+  body.jluxe-design-neumorphism .woocommerce #respond input#submit:hover,
+  body.jluxe-design-neumorphism .single_add_to_cart_button:hover,
+  body.jluxe-design-neumorphism .checkout-button:hover {
+    border-color: rgba(255,255,255,.42);
+    background: var(--neu-accent-dark);
+    color: #fff;
+    box-shadow: inset 3px 3px 7px rgba(0,0,0,.15), inset -3px -3px 7px rgba(255,255,255,.12);
+    transform: translateY(1px);
+  }
+}
+@media (hover:hover) and (pointer:fine) {
+  body.jluxe-design-neumorphism [data-jluxe-product-card-variant]:hover,
+  body.jluxe-design-neumorphism .jluxe-home-section li.product:hover {
+    box-shadow: 5px 5px 12px #C4D6CA, -5px -5px 12px #fff;
+    transform: translateY(-2px);
+  }
+}
+body.jluxe-design-neumorphism #jluxe-footer-root {
+  background: var(--neu-bg);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-shell {
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-grid,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-feature-card,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-footer-link-column,
+body.jluxe-design-neumorphism #jluxe-footer-root .jluxe-site-badges-section {
+  border-color: rgba(255,255,255,.68);
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+}
+body.jluxe-design-neumorphism #jluxe-footer-root a { color: var(--neu-muted-ink); }
+body.jluxe-design-neumorphism #jluxe-footer-root a:hover { color: var(--neu-accent-dark); }
+body.jluxe-design-neumorphism .woocommerce-message,
+body.jluxe-design-neumorphism .woocommerce-info {
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 14px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-small);
+  color: var(--neu-ink);
+}
+body.jluxe-design-neumorphism .woocommerce-error { border-radius: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  body.jluxe-design-neumorphism *,
+  body.jluxe-design-neumorphism *::before,
+  body.jluxe-design-neumorphism *::after { transition-duration: .01ms !important; }
+}

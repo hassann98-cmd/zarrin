@@ -1,3 +1,4 @@
+import { readStorefrontCss } from "./helpers/storefront-css.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
@@ -6,7 +7,7 @@ import jqueryFactory from "jquery";
 
 const source = fs.readFileSync(new URL("../assets/js/checkout-notices.js", import.meta.url), "utf8");
 const classicTemplate = fs.readFileSync(new URL("../woocommerce/checkout/form-checkout.php", import.meta.url), "utf8");
-const storefrontStyles = fs.readFileSync(new URL("../src/styles/storefront.css", import.meta.url), "utf8");
+const storefrontStyles = readStorefrontCss();
 
 test("the classic checkout offers a replacement coupon control inside its payment step and keeps the native form outside", () => {
   const paymentColumn = classicTemplate.indexOf('<div id="jluxe-payment-column" hidden>');
@@ -62,15 +63,14 @@ function bootClassicCheckout() {
   return { dom, window, document, $, nativeSubmissions: () => nativeSubmissions };
 }
 
-test("classic checkout hides only the cashback notice and default coupon prompt, including after WooCommerce refreshes", (t) => {
+test("classic checkout removes the cashback notice from the DOM and hides only the default coupon prompt, including after WooCommerce refreshes", (t) => {
   const { dom, document, $ } = bootClassicCheckout();
   t.after(() => dom.window.close());
 
-  const cashback = document.querySelector("[data-test-cashback]");
+  // 1.7.357: اعلان کش‌بک کاملاً از DOM حذف می‌شود (نه فقط مخفی).
+  assert.equal(document.querySelector("[data-test-cashback]"), null, "the cashback notice is removed from the DOM entirely");
   const toggle = document.querySelector(".woocommerce-form-coupon-toggle");
   const unrelated = document.querySelector("[data-test-other-notice]");
-  assert.equal(cashback.hidden, true);
-  assert.equal(cashback.getAttribute("aria-hidden"), "true");
   assert.equal(toggle.hidden, true);
   assert.equal(toggle.getAttribute("aria-hidden"), "true");
   assert.equal(unrelated.hidden, false, "unrelated notices stay visible");
@@ -86,8 +86,7 @@ test("classic checkout hides only the cashback notice and default coupon prompt,
   refreshedToggle.textContent = "کد تخفیف دارید؟";
   document.querySelector(".woocommerce").append(refreshedToggle);
   $(document.body).trigger("updated_checkout");
-  assert.equal(refreshedCashback.hidden, true);
-  assert.equal(refreshedCashback.getAttribute("aria-hidden"), "true");
+  assert.equal(refreshedCashback.isConnected, false, "a refreshed cashback notice is removed again on update");
   assert.equal(refreshedToggle.hidden, true);
   assert.equal(refreshedToggle.getAttribute("aria-hidden"), "true");
 });

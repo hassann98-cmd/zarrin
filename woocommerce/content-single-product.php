@@ -133,7 +133,7 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 	$jluxe_simple_stock_qty = is_numeric( $jluxe_simple_stock_qty ) ? (int) $jluxe_simple_stock_qty : null;
 }
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
+<div id="product-<?php the_ID(); ?>" <?php wc_product_class( 'bg-background', $product ); ?> data-jluxe-layout="<?php echo esc_attr( $jluxe_layout ); ?>" data-jluxe-mobile-layout="<?php echo esc_attr( ( jluxe_get_theme_settings()['product_page']['mobile_layout'] ?? 'standard' ) === 'layered' ? 'layered' : 'standard' ); ?>" data-jluxe-product-id="<?php echo esc_attr( (string) $product->get_id() ); ?>" data-jluxe-product-in-stock="<?php echo $product->is_in_stock() ? 'true' : 'false'; ?>">
 	<div class="mx-auto w-full max-w-[1320px] px-3 md:px-4 py-6">
 
 		<nav aria-label="مسیر صفحه" class="flex flex-wrap items-center gap-2 text-caption text-text-muted">
@@ -179,16 +179,29 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		}
 		?>
 
-		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]">
+		<div class="mt-4 grid gap-5 lg:grid-cols-[26rem_1fr_19rem]" data-jluxe-layer-stage>
 			<?php
 			// Use WooCommerce's own gallery callback (which loads product-image.php
 			// via wc_get_template) instead of treating a nested template as a loop part.
 			// The matching CSS also keeps the server-rendered gallery visible if its
 			// optional gallery initializer is delayed or unavailable.
+			ob_start();
 			woocommerce_show_product_images();
-			?>
+			$jluxe_default_gallery_html = (string) ob_get_clean();
+			$jluxe_default_gallery_video = function_exists( 'jluxe_get_product_gallery_video' ) ? jluxe_get_product_gallery_video( (int) $product->get_id() ) : null;
+			if ( $jluxe_default_gallery_video && function_exists( 'jluxe_render_default_product_gallery_video_trigger' ) ) {
+				ob_start();
+				jluxe_render_default_product_gallery_video_trigger();
+				$jluxe_default_video_trigger = (string) ob_get_clean();
+				$jluxe_gallery_closing_div = strrpos( $jluxe_default_gallery_html, '</div>' );
+				if ( false !== $jluxe_gallery_closing_div ) {
+					$jluxe_default_gallery_html = substr_replace( $jluxe_default_gallery_html, $jluxe_default_video_trigger, $jluxe_gallery_closing_div, 0 );
+				}
+			}
+				echo $jluxe_default_gallery_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WooCommerce gallery markup is trusted; injected trigger escapes its attributes.
+				?>
 
-			<div>
+				<div>
 				<?php if ( $categories ) : ?>
 					<span class="text-[12px] font-medium text-text-muted"><?php echo wp_kses_post( wp_strip_all_tags( $categories ) ); ?></span>
 				<?php endif; ?>
@@ -459,10 +472,11 @@ if ( $product->is_type( 'simple' ) && function_exists( 'jluxe_product_stock_quan
 		aria-pressed="true"
 		class="jluxe-mobile-bar-toggle fixed end-3 flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary shadow-md transition-transform active:scale-95 md:hidden"
 	>
+		<span class="jluxe-dock-choice jluxe-dock-choice--menu" aria-hidden="true">منو</span><span class="jluxe-dock-exchange" aria-hidden="true">⇄</span><span class="jluxe-dock-choice jluxe-dock-choice--purchase" aria-hidden="true">خرید</span>
 		<svg data-jluxe-mobile-bar-mode-icon="menu" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 		<svg data-jluxe-mobile-bar-mode-icon="purchase" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.4 12.1a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/></svg>
 	</button>
-	<div id="jluxe-mobile-price-bar" class="jluxe-mobile-price-bar fixed inset-x-0 bottom-0 hidden md:hidden" data-jluxe-mobile-price-bar>
+	<div id="jluxe-mobile-price-bar" class="jluxe-mobile-price-bar fixed inset-x-0 bottom-0 md:hidden" data-jluxe-mobile-price-bar data-jluxe-mobile-bar-mode="purchase">
 		<div class="m-2" style="margin-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
 			<div class="jluxe-mobile-price-card flex items-center gap-1.5 rounded-2xl border border-border bg-surface/95 p-2 px-3 shadow-2xl">
 				<div class="min-w-0 flex-1">

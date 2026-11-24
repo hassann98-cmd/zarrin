@@ -22,7 +22,8 @@
     for (var j = 0; j < notices.length; j++) {
       var content = String(notices[j].textContent || "").replace(/\s+/g, " ");
       if (content.indexOf("بازپرداخت") !== -1 && content.indexOf("کش‌بک") !== -1 && content.indexOf("کیف پول") !== -1) {
-        hideRepeatedCheckoutNotice(notices[j]);
+        // اعلان کش‌بک در مرحلهٔ قبلی نمایش داده شده؛ کاملاً از DOM حذف شود.
+        notices[j].remove();
       }
     }
   }
